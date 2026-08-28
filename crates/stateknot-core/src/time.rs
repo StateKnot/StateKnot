@@ -486,7 +486,9 @@ mod tests {
             assert_eq!(Timestamp::try_from(system_time).unwrap(), timestamp);
         }
 
-        let submicrosecond = UNIX_EPOCH.checked_add(Duration::from_nanos(1)).unwrap();
+        // Windows `SystemTime` has 100 ns resolution, so use the smallest
+        // sub-microsecond value that remains observable on every CI target.
+        let submicrosecond = UNIX_EPOCH.checked_add(Duration::from_nanos(100)).unwrap();
         assert_eq!(
             Timestamp::try_from(submicrosecond),
             Err(TimestampError::SubmicrosecondPrecision)
