@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 mod accounting;
+mod artifact;
 mod capability;
 mod content;
 mod decimal;
@@ -27,7 +28,14 @@ pub use accounting::{
     ByteCount, CountParseError, CurrencyCode, CurrencyCodeError, Money, MoneyArithmeticError,
     TokenCount,
 };
-pub use capability::{CapabilityName, CapabilityNameError};
+pub use artifact::{
+    ArtifactDescription, ArtifactDescriptionError, ArtifactIdentity, ArtifactModality,
+    ArtifactName, ArtifactNameError, ArtifactParents, ArtifactParentsError, ArtifactPresentation,
+    ArtifactProvenance, ArtifactRef, ArtifactRefError, ArtifactRepresentation,
+    ArtifactRepresentationError, ContentPart, MediaType, MediaTypeError, RetentionClass,
+    RetentionClassError,
+};
+pub use capability::{CapabilityName, CapabilityNameError, CapabilityReference};
 pub use content::{
     ContentMetadata, ContentSource, ContentTrust, JsonContent, LanguageTag, LanguageTagError,
     RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,

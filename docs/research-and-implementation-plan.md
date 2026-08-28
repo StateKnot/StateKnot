@@ -205,6 +205,9 @@ flowchart TB
 
 - core `ContentPart` 在 v1 封闭为 `Text`、bounded `Json`、`ArtifactRef`；image、audio、file 都通过带 MIME、长度、SHA-256、来源和安全标签的 `ArtifactRef` 表达；
 - 大对象只保存 tenant-scoped `ArtifactRef`，不向领域对象暴露 URI、bucket、对象键、文件路径或永久公网 URL；
+- `ArtifactRef` 还必须携带 retention class、creator principal、可选的 capability + version、run/event 因果关系和有界 direct-parent lineage；只有 ID、URL、MIME 的轻量引用不满足生产审计与生命周期要求；
+- media type 按 RFC 6838/9110 解析为具体而非 wildcard 的有界规范形式；声明的 MIME 和 modality 只用于协商与渲染，不能替代字节校验、内容扫描或授权；
+- A2A 1.0 的 `raw`/`url` part，以及 MCP 2026-07-28 的 image/audio/embedded resource/resource link，必须先经过 body/base64/redirect 上限、SSRF/egress policy、tenant authorization、流式长度与 SHA-256 校验，再注册为 core artifact；
 - `Message` 表示交互输入/输出，`Artifact` 表示任务产物，两者不能混用；
 - provider 或协议未知字段只保存在 adapter 自己的有界、namespaced envelope 中，不能伪装为 core content 或绕过 schema/trust 策略；
 - core durable wire 对未知安全枚举和值 fail closed；adapter 可在明确版本协商下保留未知协议字段，不能因供应商新增 event 崩溃或静默改变语义。

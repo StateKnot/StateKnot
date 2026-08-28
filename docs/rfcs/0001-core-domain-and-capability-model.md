@@ -348,6 +348,10 @@ pub enum ContentPart {
 }
 ```
 
+Its durable JSON representation is an adjacent-tagged closed object with the
+exact fields `type` and `content`; the stable tags are `text`, `json`, and
+`artifact`. Missing, additional, or unknown fields and tags are rejected.
+
 Image, audio, and file inputs use `ArtifactRef` with a validated media type,
 size, digest, and modality. Bytes and arbitrary remote URLs are not embedded in
 durable messages. Embedded callers first register bytes or an external reference
@@ -432,20 +436,59 @@ and values above runtime-configured hard limits before provider invocation.
 
 `ArtifactRef` contains:
 
-- tenant-scoped `ArtifactId`;
-- logical name and optional description;
-- media type and modality;
-- byte length and SHA-256 digest;
-- security label and retention class;
-- creator principal/capability plus run/event causation;
-- artifact schema/version when the content is structured.
+- `ArtifactIdentity { tenant_id, artifact_id }` so no artifact ID is resolved
+  outside an explicit tenant;
+- `ArtifactPresentation` with a required logical name and optional description;
+- `ArtifactRepresentation` with media type, modality, byte length, digest, and
+  optional digest-pinned structured-content schema;
+- mandatory `ContentMetadata` whose immediate source is exactly `artifact`;
+- an opaque, case-sensitive retention-policy class;
+- `ArtifactProvenance` with creator principal, optional pinned capability
+  name/version, and causing run/event IDs; and
+- a sorted, unique set of at most 32 direct parent artifact IDs.
+
+`MediaType` accepts a concrete media type, not a wildcard media range. Type,
+subtype, and parameter names follow the RFC 6838 restricted-name grammar; type,
+subtype, names, and `charset` values are lowercase, while other parameter value
+case is retained. Parameter names are unique and sorted, quoting is
+deterministic, the canonical value is at most 512 bytes, at most 16 parameters
+are accepted, and each decoded parameter value is at most 128 ASCII bytes.
+Validation is intentionally independent of the mutable IANA registry. Declared
+media type and modality are interpretation hints, never authorization or a
+substitute for policy-controlled byte inspection; adapters reject unsupported
+combinations before provider invocation.
+
+Artifact names are 1 to 255 UTF-8 bytes and preserve exact text, but reject
+path separators, `.`/`..`, leading or trailing Unicode whitespace, controls,
+and Unicode noncharacters. They are display names and must never be used as
+filesystem paths. Descriptions are 1 to 4,096 UTF-8 bytes and use the same
+control policy as `TextContent`. Both redact their contents from `Debug`.
+
+`ArtifactRepresentation` requires a zero-length value to carry the known
+SHA-256 digest of empty bytes. The resolver separately enforces the declared
+length and digest while streaming; the metadata does not prove that a backing
+object exists. A schema reference is accepted only for the `structured_data`
+modality. The retention class grants no deletion, declassification, or legal-
+hold authority by itself; a pinned runtime policy interprets it.
 
 It does not expose storage credentials, bucket names, filesystem paths, or a
 permanent public URL. A runtime artifact resolver authorizes access and returns a
-bounded stream or short-lived handle appropriate for the adapter.
+bounded stream or short-lived handle appropriate for the adapter. Deserialization
+revalidates all nested invariants and rejects unknown fields. Self-parent links
+are rejected in core; cross-record existence, same-tenant lineage, and cycle
+detection are atomic responsibilities of the artifact registry.
 
 Provenance is append-only attribution. Sanitizing or transforming an artifact
 creates a new artifact and links to its parents; it does not overwrite origin.
+
+A2A 1.0 `Part` supports protocol-native text, data, raw base64 bytes, and URLs;
+MCP 2026-07-28 content blocks support inline text/image/audio, embedded
+resources, and resource links. Protocol adapters validate body/base64/redirect
+limits and SSRF/egress policy, then ingest every binary or external resource
+through the artifact boundary before constructing core `ContentPart`. A2A/MCP
+metadata, filenames, resource URIs, and external artifact IDs remain in the
+adapter's bounded protocol envelope or audit mapping. They do not become
+permanent storage coordinates in core.
 
 ## JSON schemas
 
@@ -479,7 +522,7 @@ validation happens before a result is committed as successful.
 
 `CapabilityName` is a case-sensitive string of 1–128 ASCII letters, digits,
 `_`, `-`, or `.`. This freezes the tool-name recommendation in the
-[MCP 2025-11-25 tools specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+[MCP 2026-07-28 schema](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2026-07-28/schema.ts)
 as a mandatory StateKnot v1 invariant. Names are unique within an owning
 registry, not globally. Registry merges use owner/provenance identity and
 reject collisions; they never silently rename a capability.

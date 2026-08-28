@@ -43,4 +43,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   opaque security labels, explicit source/trust/redaction metadata, redacted
   diagnostics, closed schemas, exhaustive Unicode checks, and versioned wire
   fixtures.
+- Tenant-scoped immutable artifact references with canonical RFC media types,
+  bounded path-safe presentation metadata, integrity and schema bindings,
+  explicit retention/provenance/lineage, closed content-part envelopes,
+  redacted diagnostics, and versioned wire fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

@@ -1,0 +1,409 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-artifact/1.0.0",
+  "media_types": {
+    "valid": [
+      {
+        "input": "IMAGE/PNG",
+        "canonical": "image/png"
+      },
+      {
+        "input": "Text/Plain; Format=flowed; Charset=UTF-8",
+        "canonical": "text/plain;charset=utf-8;format=flowed"
+      },
+      {
+        "input": "video/mp4;codecs=\"avc1.42E01E, mp4a.40.2\"",
+        "canonical": "video/mp4;codecs=\"avc1.42E01E, mp4a.40.2\""
+      },
+      {
+        "input": "application/ld+json;profile=\"https://example.com/v1\"",
+        "canonical": "application/ld+json;profile=\"https://example.com/v1\""
+      }
+    ],
+    "invalid": [
+      "",
+      "*/*",
+      "image/*",
+      "application/json;a=1;A=2",
+      "application/json;profile=\"bad\\value\"",
+      "application/json;profile=\"é\"",
+      42,
+      null
+    ]
+  },
+  "artifact_names": {
+    "valid": [
+      "incident-report.pdf",
+      "事故报告 42.pdf",
+      "résumé.txt"
+    ],
+    "invalid": [
+      "",
+      ".",
+      "..",
+      " report.pdf",
+      "report.pdf ",
+      "../secret",
+      "dir\\secret",
+      "bad\nname",
+      42,
+      null
+    ]
+  },
+  "artifact_descriptions": {
+    "valid": [
+      "Sanitized incident report",
+      "第一行\n第二行\tمرحبا"
+    ],
+    "invalid": [
+      "",
+      "bad\u0000description",
+      42,
+      null
+    ]
+  },
+  "retention_classes": {
+    "valid": [
+      "audit/7y",
+      "Legal_Hold:v1",
+      "tenant.42-short"
+    ],
+    "invalid": [
+      "",
+      "_internal",
+      "bad class",
+      "bad\\class",
+      "秘密",
+      42,
+      null
+    ]
+  },
+  "representations": {
+    "valid": [
+      {
+        "media_type": "application/pdf",
+        "modality": "document",
+        "byte_length": "12",
+        "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+      },
+      {
+        "media_type": "application/json;charset=utf-8",
+        "modality": "structured_data",
+        "byte_length": "0",
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "schema": {
+          "id": "https://stateknot.github.io/schema/example/artifact/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "media_type": "application/octet-stream",
+        "modality": "binary",
+        "byte_length": "0",
+        "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+      },
+      {
+        "media_type": "image/*",
+        "modality": "image",
+        "byte_length": "12",
+        "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+      },
+      {
+        "media_type": "application/pdf",
+        "modality": "unknown",
+        "byte_length": "12",
+        "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+      },
+      {
+        "media_type": "application/pdf",
+        "modality": "document",
+        "byte_length": 12,
+        "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+      },
+      {
+        "media_type": "application/pdf",
+        "modality": "document",
+        "byte_length": "12",
+        "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80",
+        "schema": {
+          "id": "https://stateknot.github.io/schema/example/artifact/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      {
+        "media_type": "application/pdf",
+        "modality": "document",
+        "byte_length": "12",
+        "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80",
+        "extra": true
+      },
+      null
+    ]
+  },
+  "parents": {
+    "valid": [
+      {
+        "input": [],
+        "canonical": []
+      },
+      {
+        "input": [
+          "01912345-6789-7abc-8def-0123456789ad",
+          "01912345-6789-7abc-8def-0123456789ac"
+        ],
+        "canonical": [
+          "01912345-6789-7abc-8def-0123456789ac",
+          "01912345-6789-7abc-8def-0123456789ad"
+        ]
+      }
+    ],
+    "invalid": [
+      [
+        "01912345-6789-7abc-8def-0123456789ac",
+        "01912345-6789-7abc-8def-0123456789ac"
+      ],
+      [
+        "01912345-6789-4abc-8def-0123456789ac"
+      ],
+      "01912345-6789-7abc-8def-0123456789ac",
+      null
+    ]
+  },
+  "artifact_refs": {
+    "valid": [
+      {
+        "identity": {
+          "tenant_id": "tenant-a",
+          "artifact_id": "01912345-6789-7abc-8def-0123456789ab"
+        },
+        "presentation": {
+          "name": "incident-report.pdf",
+          "description": "Sanitized incident report"
+        },
+        "representation": {
+          "media_type": "application/pdf",
+          "modality": "document",
+          "byte_length": "12",
+          "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+        },
+        "metadata": {
+          "source": "artifact",
+          "trust": "untrusted",
+          "security_label": "internal/pii",
+          "redaction": "not_applied"
+        },
+        "retention_class": "audit/7y",
+        "provenance": {
+          "principal": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          },
+          "capability": {
+            "name": "files.convert",
+            "version": "1.2.3"
+          },
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "event_id": "01912345-6789-7abc-8def-0123456789af"
+        },
+        "parents": [
+          "01912345-6789-7abc-8def-0123456789ac",
+          "01912345-6789-7abc-8def-0123456789ad"
+        ]
+      }
+    ],
+    "invalid": [
+      {
+        "identity": {
+          "tenant_id": "tenant-a",
+          "artifact_id": "01912345-6789-7abc-8def-0123456789ab"
+        },
+        "presentation": {
+          "name": "incident-report.pdf"
+        },
+        "representation": {
+          "media_type": "application/pdf",
+          "modality": "document",
+          "byte_length": "12",
+          "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+        },
+        "metadata": {
+          "source": "remote_agent",
+          "trust": "untrusted",
+          "security_label": "internal/pii",
+          "redaction": "not_applied"
+        },
+        "retention_class": "audit/7y",
+        "provenance": {
+          "principal": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          },
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "event_id": "01912345-6789-7abc-8def-0123456789af"
+        },
+        "parents": []
+      },
+      {
+        "identity": {
+          "tenant_id": "tenant-a",
+          "artifact_id": "01912345-6789-7abc-8def-0123456789ab"
+        },
+        "presentation": {
+          "name": "incident-report.pdf"
+        },
+        "representation": {
+          "media_type": "application/pdf",
+          "modality": "document",
+          "byte_length": "12",
+          "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+        },
+        "metadata": {
+          "source": "artifact",
+          "trust": "untrusted",
+          "security_label": "internal/pii",
+          "redaction": "not_applied"
+        },
+        "retention_class": "audit/7y",
+        "provenance": {
+          "principal": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          },
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "event_id": "01912345-6789-7abc-8def-0123456789af"
+        },
+        "parents": [
+          "01912345-6789-7abc-8def-0123456789ab"
+        ]
+      },
+      {
+        "identity": {
+          "tenant_id": "tenant-a",
+          "artifact_id": "01912345-6789-7abc-8def-0123456789ab"
+        },
+        "presentation": {
+          "name": "incident-report.pdf"
+        },
+        "representation": {
+          "media_type": "application/pdf",
+          "modality": "document",
+          "byte_length": "12",
+          "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+        },
+        "metadata": {
+          "source": "artifact",
+          "trust": "untrusted",
+          "security_label": "internal/pii",
+          "redaction": "not_applied"
+        },
+        "retention_class": "audit/7y",
+        "provenance": {
+          "principal": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          },
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "event_id": "01912345-6789-7abc-8def-0123456789af"
+        },
+        "parents": [],
+        "url": "https://example.com/permanent"
+      },
+      null
+    ]
+  },
+  "content_parts": {
+    "valid": [
+      {
+        "type": "text",
+        "content": {
+          "text": "Investigate incident 42",
+          "language": "en-us",
+          "metadata": {
+            "source": "user",
+            "trust": "untrusted",
+            "security_label": "internal/pii",
+            "redaction": "not_applied"
+          }
+        }
+      },
+      {
+        "type": "json",
+        "content": {
+          "value": {
+            "answer": 42
+          },
+          "metadata": {
+            "source": "tool",
+            "trust": "untrusted",
+            "security_label": "internal/derived",
+            "redaction": "partial"
+          }
+        }
+      },
+      {
+        "type": "artifact",
+        "content": {
+          "identity": {
+            "tenant_id": "tenant-a",
+            "artifact_id": "01912345-6789-7abc-8def-0123456789ab"
+          },
+          "presentation": {
+            "name": "incident-report.pdf"
+          },
+          "representation": {
+            "media_type": "application/pdf",
+            "modality": "document",
+            "byte_length": "12",
+            "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+          },
+          "metadata": {
+            "source": "artifact",
+            "trust": "untrusted",
+            "security_label": "internal/pii",
+            "redaction": "not_applied"
+          },
+          "retention_class": "audit/7y",
+          "provenance": {
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "service-account"
+            },
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "event_id": "01912345-6789-7abc-8def-0123456789af"
+          },
+          "parents": []
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "type": "raw",
+        "content": "AA=="
+      },
+      {
+        "type": "url",
+        "content": "https://example.com/file"
+      },
+      {
+        "type": "artifact"
+      },
+      {
+        "type": "text",
+        "content": {
+          "text": "unknown envelope field",
+          "metadata": {
+            "source": "user",
+            "trust": "untrusted",
+            "security_label": "internal/pii",
+            "redaction": "not_applied"
+          }
+        },
+        "extra": true
+      },
+      null
+    ]
+  }
+}

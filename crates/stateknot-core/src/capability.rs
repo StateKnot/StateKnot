@@ -9,12 +9,14 @@ use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use thiserror::Error;
 
+use crate::Version;
+
 const CAPABILITY_NAME_PATTERN: &str = "^[A-Za-z0-9_.-]{1,128}$";
 
 /// A stable, case-sensitive capability name.
 ///
 /// Names contain 1 to 128 ASCII letters, digits, `_`, `-`, or `.`. This is
-/// the tool-name grammar from the MCP 2025-11-25 specification, made
+/// the tool-name grammar from the MCP 2026-07-28 specification, made
 /// mandatory at the `StateKnot` domain boundary. A name is unique only within
 /// its owning registry; owner/provenance remains a separate identity field.
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -190,6 +192,39 @@ pub enum CapabilityNameError {
     },
 }
 
+/// A version-pinned reference to a registered capability.
+///
+/// Names are unique only within their owning registry. Durable provenance must
+/// therefore pair this value with the owning principal or registry identity.
+#[derive(
+    Clone, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
+)]
+#[serde(deny_unknown_fields)]
+pub struct CapabilityReference {
+    name: CapabilityName,
+    version: Version,
+}
+
+impl CapabilityReference {
+    /// Constructs a reference from validated components.
+    #[must_use]
+    pub const fn new(name: CapabilityName, version: Version) -> Self {
+        Self { name, version }
+    }
+
+    /// Returns the registry-local capability name.
+    #[must_use]
+    pub const fn name(&self) -> &CapabilityName {
+        &self.name
+    }
+
+    /// Returns the pinned capability version.
+    #[must_use]
+    pub const fn version(&self) -> Version {
+        self.version
+    }
+}
+
 fn validate_capability_name(value: &str) -> Result<(), CapabilityNameError> {
     if value.is_empty() {
         return Err(CapabilityNameError::Empty);
@@ -310,5 +345,36 @@ mod tests {
         assert_eq!(schema["minLength"], 1);
         assert_eq!(schema["maxLength"], CapabilityName::MAX_LEN);
         assert_eq!(schema["pattern"], CAPABILITY_NAME_PATTERN);
+    }
+
+    #[test]
+    fn capability_references_pin_name_and_version_in_a_closed_object() {
+        let reference = CapabilityReference::new(
+            "ops.restart-service".parse().unwrap(),
+            Version::new(2, 3, 4),
+        );
+        let expected = json!({
+            "name": "ops.restart-service",
+            "version": "2.3.4"
+        });
+        assert_eq!(to_value(&reference).unwrap(), expected);
+        assert_eq!(
+            from_value::<CapabilityReference>(expected).unwrap(),
+            reference
+        );
+
+        assert!(
+            from_value::<CapabilityReference>(json!({
+                "name": "ops.restart-service",
+                "version": "2.3.4",
+                "extra": true
+            }))
+            .is_err()
+        );
+
+        let schema = to_value(schemars::schema_for!(CapabilityReference)).unwrap();
+        assert_eq!(schema["type"], "object");
+        assert_eq!(schema["additionalProperties"], false);
+        assert_eq!(schema["required"], json!(["name", "version"]));
     }
 }
