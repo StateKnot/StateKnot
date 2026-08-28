@@ -16,6 +16,7 @@ mod decimal;
 mod digest;
 mod identity;
 mod ids;
+mod json;
 mod schema;
 mod scope;
 mod time;
@@ -32,6 +33,7 @@ pub use ids::{
     ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, RunId, TenantId,
     TenantIdError, ThreadId,
 };
+pub use json::{BoundedJson, BoundedJsonError, JsonLimit, JsonLimits, JsonLimitsError, JsonStats};
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};
 pub use time::{DurationMillis, DurationMillisError, Timestamp, TimestampError};

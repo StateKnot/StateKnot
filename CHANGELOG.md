@@ -36,4 +36,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   deterministic, duplicate-rejecting scope sets with narrowing property tests.
 - Exact OIDC/OAuth issuer and redacted subject identifiers composed into a
   strict principal identity key, without unsafe URI normalization.
+- Streaming bounded JSON materialization with immutable hard ceilings,
+  decoded duplicate-key rejection, exact compact-size accounting, redacted
+  diagnostics, property tests, and cross-version fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

@@ -356,8 +356,30 @@ and egress policy can be enforced.
 
 `TextContent` records text plus language, source, trust classification, security
 label, and redaction metadata. `JsonContent` contains a schema identifier when
-known and a value constrained by configured depth, property-count, string, and
-total-byte limits.
+known and a `BoundedJson` value. The default v1 boundary accepts at most 256 KiB
+of raw or compact JSON, 32 array/object levels, 1,024 entries in any one
+container, 16,384 total value nodes, 64 KiB in one decoded string, and 256 bytes
+in one decoded object key. Configuration may narrow those values but cannot
+exceed the v1 hard ceilings of 2 MiB, 64 levels, 8,192 container entries,
+131,072 nodes, 1 MiB per string, and 1,024 bytes per key.
+
+Untrusted JSON is validated by a streaming Serde visitor rather than first
+being collected into `serde_json::Value`. The raw byte ceiling is checked before
+parsing; depth, node, container, decoded-string, decoded-key, and compact-byte
+ceilings are enforced while values are visited. A node or container violation
+stops before an excess child is traversed. The parser accepts exactly one JSON
+value and rejects duplicate object names after escape decoding, as required by
+[I-JSON](https://www.rfc-editor.org/rfc/rfc7493.html#section-2.3). This avoids the
+implementation-dependent last-key-wins behavior described by
+[RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html#section-4).
+
+`BoundedJson` is an immutable resource-safety substrate, not schema validation
+and not JSON canonicalization. Generic nested `Deserialize` use enforces the
+semantic and compact limits but cannot observe an enclosing transport's raw
+whitespace; HTTP, protocol, and storage adapters therefore enforce their body
+or record byte ceiling before invoking Serde. Conversion from an existing
+`serde_json::Value` is restricted to trusted in-process data because duplicate
+names have already been lost.
 
 ### Instructions and messages
 
@@ -710,6 +732,12 @@ Canonical bytes use RFC 8785 JSON Canonicalization Scheme after StateKnot schema
 validation. JSON numbers must be finite and schema-bounded; money, 64-bit values
 that cross JavaScript boundaries, timestamps, UUIDs, and digests use their
 defined string or integer forms. Hashes include the schema identifier and kind.
+
+The sorted object representation inside `BoundedJson` makes ordinary output
+deterministic under StateKnot's dependency configuration, but MUST NOT be used
+as RFC 8785 output or as approval, signature, digest, or idempotency bytes. The
+canonicalization layer remains an explicit, separately tested operation after
+schema validation.
 
 Ordinary API JSON may be pretty-printed or reordered, but approval action
 hashes, idempotency input hashes, schema digests, event checksums, and fixture

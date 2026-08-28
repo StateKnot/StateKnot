@@ -1,0 +1,86 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-json/1.0.0",
+  "valid": [
+    {
+      "input": "null",
+      "compact": "null",
+      "value": null,
+      "stats": {
+        "compact_bytes": 4,
+        "max_depth": 0,
+        "nodes": 1
+      }
+    },
+    {
+      "input": " { \"b\": 2, \"a\": [true, \"é\"] } ",
+      "compact": "{\"a\":[true,\"é\"],\"b\":2}",
+      "value": {
+        "a": [
+          true,
+          "é"
+        ],
+        "b": 2
+      },
+      "stats": {
+        "compact_bytes": 23,
+        "max_depth": 2,
+        "nodes": 5
+      }
+    },
+    {
+      "input": "[\"\\b\",\"\\u0000\",\"\\\\\",\"\\\"\"]",
+      "compact": "[\"\\b\",\"\\u0000\",\"\\\\\",\"\\\"\"]",
+      "value": [
+        "\b",
+        "\u0000",
+        "\\",
+        "\""
+      ],
+      "stats": {
+        "compact_bytes": 25,
+        "max_depth": 1,
+        "nodes": 5
+      }
+    },
+    {
+      "input": "{\"nested\":{\"array\":[0,-2,1.5]}}",
+      "compact": "{\"nested\":{\"array\":[0,-2,1.5]}}",
+      "value": {
+        "nested": {
+          "array": [
+            0,
+            -2,
+            1.5
+          ]
+        }
+      },
+      "stats": {
+        "compact_bytes": 31,
+        "max_depth": 3,
+        "nodes": 6
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "input": "{\"a\":1,\"a\":2}",
+      "kind": "duplicate_object_key"
+    },
+    {
+      "input": "{\"a\":1,\"\\u0061\":2}",
+      "kind": "duplicate_object_key"
+    },
+    {
+      "input": "true false",
+      "kind": "invalid_json"
+    },
+    {
+      "input": "[1,]",
+      "kind": "invalid_json"
+    },
+    {
+      "input": "NaN",
+      "kind": "invalid_json"
+    }
+  ]
+}
