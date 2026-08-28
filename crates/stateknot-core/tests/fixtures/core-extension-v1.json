@@ -1,0 +1,115 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-extension/1.0.0",
+  "keys": {
+    "valid": [
+      "https://example.com/extensions/citations/v1",
+      "https://example.com:8443/extensions/private/v2",
+      "urn:example:extension:citations:v1",
+      "urn:ietf:rfc:8141",
+      "com.example.citations-v1",
+      "io.stateknot.feature"
+    ],
+    "invalid": [
+      "",
+      "example.feature",
+      "com..feature",
+      "com.Example.feature",
+      "com.example.feature/name",
+      "http://example.com/extensions/citations/v1",
+      "HTTPS://example.com/extensions/citations/v1",
+      "https://EXAMPLE.com/extensions/citations/v1",
+      "https://user@example.com/extensions/citations/v1",
+      "https://example.com/extensions/citations/v1?active=true",
+      "https://example.com/extensions/citations/v1#metadata",
+      "urn:a:value",
+      "urn:Example:value",
+      "urn:example:",
+      42,
+      null
+    ]
+  },
+  "values": {
+    "valid": [
+      {
+        "kind": "opaque",
+        "value": null
+      },
+      {
+        "kind": "opaque",
+        "value": {
+          "citation_ids": ["source-1", "source-2"]
+        }
+      },
+      {
+        "kind": "schema_bound",
+        "schema": {
+          "id": "https://stateknot.github.io/schema/extension/citations/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": ["source-1"]
+      }
+    ],
+    "invalid": [
+      {},
+      { "kind": "unknown", "value": null },
+      { "kind": "opaque" },
+      { "kind": "opaque", "value": null, "extra": true },
+      { "kind": "opaque", "schema": null, "value": null },
+      { "kind": "schema_bound", "value": null },
+      {
+        "kind": "schema_bound",
+        "schema": {
+          "id": "http://stateknot.github.io/schema/extension/citations/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": null
+      },
+      null,
+      []
+    ]
+  },
+  "maps": {
+    "canonical": [
+      {
+        "wire": "{}",
+        "entries": 0,
+        "compact_bytes": 2
+      },
+      {
+        "wire": "{\"com.example.alpha\":{\"kind\":\"opaque\",\"value\":{\"enabled\":true}},\"urn:example:zeta:v1\":{\"kind\":\"schema_bound\",\"schema\":{\"id\":\"https://stateknot.github.io/schema/extension/citations/1.0.0\",\"version\":\"1.0.0\",\"digest\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"value\":[\"source-1\"]}}",
+        "entries": 2,
+        "compact_bytes": 311
+      }
+    ],
+    "invalid": [
+      [],
+      null,
+      {
+        "example.feature": {
+          "kind": "opaque",
+          "value": null
+        }
+      },
+      {
+        "com.example.feature": {
+          "kind": "unknown",
+          "value": null
+        }
+      },
+      {
+        "com.example.feature": {
+          "kind": "opaque",
+          "value": null,
+          "extra": true
+        }
+      }
+    ]
+  },
+  "raw_invalid": [
+    "{\"com.example.feature\":{\"kind\":\"opaque\",\"value\":null},\"com.example.feature\":{\"kind\":\"opaque\",\"value\":true}}",
+    "{\"com.example.feature\":{\"kind\":\"opaque\",\"value\":{\"name\":1,\"\\u006eame\":2}}}",
+    "{\"com.example.feature\":{\"kind\":\"opaque\",\"kind\":\"opaque\",\"value\":null}}"
+  ]
+}

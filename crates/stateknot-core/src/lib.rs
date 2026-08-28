@@ -17,6 +17,7 @@ mod capability;
 mod content;
 mod decimal;
 mod digest;
+mod extension;
 mod failure;
 mod identity;
 mod ids;
@@ -49,6 +50,10 @@ pub use content::{
     RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,
 };
 pub use digest::{Digest, DigestAlgorithm, DigestError};
+pub use extension::{
+    ExtensionKey, ExtensionKeyError, ExtensionKeyKind, ExtensionLimit, ExtensionLimits,
+    ExtensionLimitsError, ExtensionValue, Extensions, ExtensionsError,
+};
 pub use failure::{
     Failure, FailureBuildError, FailureCategory, FailureCode, FailureDetails, FailureDetailsError,
     FailureIdentifierError, FailureMessage, FailureMessageError, FailureOrigin, RetryAdvice,

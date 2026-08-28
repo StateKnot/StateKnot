@@ -286,6 +286,31 @@ HTTP+JSON binding 保留标准 code/message/details 语义；MCP 2026-07-28
 adapter 必须区分 JSON-RPC protocol error 与模型可修正的 tool execution
 error。所有 adapter mapping 都是显式、可失败、带 fixture/TCK 的边界。
 
+### 8.6 Extensions
+
+core `Extensions` 是协议中立的有界容器，而不是插件注册表。key 只接受不超过
+512 bytes 的规范化 HTTPS/URN 标识或至少三段的严格小写 reverse-DNS 名称；
+URI 只作为 identity，禁止运行时联网解引用。value 必须显式选择 `opaque` 或
+`schema_bound`：前者永远没有可执行/授权语义，后者也只声明 digest-pinned
+`SchemaReference`，必须经可信本地 registry 做 schema 校验并转换为单独的 typed
+结果后才能影响行为。
+
+v1 hard ceiling 固定为 64 entries、整个 compact map 256 KiB、每个 key 512
+bytes，以及每个 value 的 `JsonLimits::DEFAULT`；调用方只能逐维收紧。空 map 合法，
+重复 key、nested JSON 转义后的重复 key、未知 value variant 和超限数据全部 fail
+closed。`Debug` 只输出条目数和字节统计；transport 在通用 Serde 之前还必须限制
+包含空白在内的 raw body/record bytes。
+
+[A2A 1.0](https://a2a-protocol.org/latest/specification/) 的 extension URI 在完成
+Agent Card 声明、`A2A-Extensions` 协商和本地注册后，可按原 URI 映射；不支持的
+scheme 留在 adapter 的有界 wire envelope 或被拒绝，不能改写 key 或自动降级版本。
+[A2A governance](https://a2a-protocol.org/latest/topics/extension-and-binding-governance/)
+明确其官方 HTTPS URI 是 canonical identifier，并不要求 HTTP 获取。
+[MCP 2026-07-28 `_meta`](https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta)
+拥有不同的 `prefix/name` grammar 与 reserved keys，因此原始 `_meta` 始终由 MCP
+adapter 保存和验证；只有显式、无碰撞的 registry mapping 可以将已协商 key 提升
+为 core extension，禁止用字符串替换把 `/` 偷换为 `.`。
+
 ## 9. Agent 与 Graph 语义
 
 ### 9.1 预置 Agent loop
@@ -678,6 +703,8 @@ RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵
 - [MCP 2026-07-28 release](https://blog.modelcontextprotocol.io/posts/2026-07-28/)、[official Rust SDK](https://github.com/modelcontextprotocol/rust-sdk)、[conformance suite](https://github.com/modelcontextprotocol/conformance)
 - [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)、[gRPC status codes](https://grpc.io/docs/guides/status-codes/) 与 [gRPC retry](https://grpc.io/docs/guides/retry/)
 - [MCP 2026-07-28 base error model](https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-responses) 与 [tool error split](https://modelcontextprotocol.io/specification/2026-07-28/server/tools#error-handling)
+- [A2A extension specification](https://a2a-protocol.org/latest/specification/#46-extensions) 与 [extension governance](https://a2a-protocol.org/latest/topics/extension-and-binding-governance/)
+- [MCP 2026-07-28 `_meta` key rules](https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta)
 - [AG-UI](https://github.com/ag-ui-protocol/ag-ui)、[MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview)、[A2UI](https://github.com/a2ui-project/a2ui/blob/main/specification/v1_0/docs/a2ui_protocol.md)
 - [AGNTCY](https://github.com/agntcy)、[SLIM](https://github.com/agntcy/slim)、[AP2](https://ap2-protocol.org/ap2/specification/)
 - [Restate durable agents](https://docs.restate.dev/ai/patterns/durable-agents) 与 [Restate Rust SDK](https://github.com/restatedev/sdk-rust)

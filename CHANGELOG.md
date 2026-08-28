@@ -59,4 +59,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   categories, stable code/origin identifiers, bounded public-safe messages and
   schema-bound details, explicit retry/reconciliation advice, non-serializable
   private source chains, closed schemas, and versioned wire fixtures.
+- Sorted, duplicate-rejecting namespaced extensions with canonical HTTPS/URN
+  and strict reverse-DNS identities, explicit opaque/schema-bound trust modes,
+  exact compact-map accounting, immutable hard ceilings, caller-only
+  narrowing, redacted diagnostics, closed schemas, and versioned wire fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

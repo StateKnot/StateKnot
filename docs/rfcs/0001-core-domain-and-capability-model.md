@@ -927,9 +927,48 @@ evidence.
 
 ## Extensions
 
-`Extensions` is a map keyed by absolute URI or reverse-DNS name controlled by
-the adapter owner. It has configurable limits on entries, key length, nesting,
-and encoded bytes. Core-owned keys use the StateKnot namespace.
+`Extensions` is a protocol-neutral, sorted map from `ExtensionKey` to an
+explicitly tagged `ExtensionValue`. It is not a capability registry and
+deserializing it never installs code, grants authority, or activates behavior.
+
+An `ExtensionKey` is at most 512 encoded bytes and has exactly one of these
+forms:
+
+- a normalized absolute HTTPS identifier with a non-empty authority and no
+  userinfo, query, or fragment;
+- a normalized `urn:` identifier with a 2–32 byte lowercase namespace
+  identifier and a non-empty namespace-specific value; or
+- a lowercase reverse-DNS name containing at least three DNS labels, where
+  every label is at most 63 bytes, begins with a letter, ends with a letter or
+  digit, and otherwise contains only letters, digits, and hyphens.
+
+URI keys are identities only and are never dereferenced. The reverse-DNS and
+URI owners are responsible for stable names and for using a new versioned key
+for breaking semantics. Core-owned keys use a `StateKnot`-controlled namespace.
+
+`ExtensionValue` has two closed wire variants:
+
+- `opaque` contains bounded JSON with no registered semantic contract;
+- `schema_bound` carries an immutable `SchemaReference` plus bounded JSON.
+
+`schema_bound` declares the intended schema identity; construction or
+deserialization alone is not proof that validation succeeded. Before semantic
+use, a boundary must resolve the schema from a trusted local registry, verify
+its pinned digest, validate the value under a bounded execution budget, and
+produce a separate typed/validated result. Unknown or opaque values never
+participate directly in authorization, policy, capability selection,
+idempotency, hashing, scheduling, or deterministic reduction.
+
+The immutable v1 hard ceiling is 64 entries, 512 bytes per key, 256 KiB for the
+exact compact JSON representation of the complete map, and
+`JsonLimits::DEFAULT` for each value. The complete-map count includes key JSON
+syntax and the tagged value/schema envelope. Empty `{}` is valid and accounts
+for two bytes. Callers may construct a validated profile that narrows every
+dimension but cannot widen the hard ceiling. Keys are serialized in canonical
+byte order; duplicate keys, including duplicates encountered after JSON escape
+processing inside values, are rejected before their duplicate value is
+traversed. Generic Serde cannot account for whitespace outside the map, so every
+transport and durable record reader must cap raw bytes before deserialization.
 
 Extensions cannot:
 
@@ -942,6 +981,26 @@ Extensions cannot:
 
 Unknown extensions are either preserved as opaque bounded data or rejected
 according to the receiving boundary's negotiated profile.
+
+Protocol adapters preserve their own wire rules instead of coercing every
+metadata property into this map:
+
+- [A2A 1.0](https://a2a-protocol.org/latest/specification/) declares and
+  negotiates extensions by URI, including the `A2A-Extensions` service
+  parameter, and uses extensions to type otherwise flexible metadata. A
+  negotiated normalized HTTPS/URN identifier can map directly to an
+  `ExtensionKey`; any other A2A URI stays in the bounded adapter envelope or is
+  rejected. Breaking A2A extension semantics require a new URI, and an adapter
+  never falls back to another version implicitly. The
+  [A2A extension governance rules](https://a2a-protocol.org/latest/topics/extension-and-binding-governance/)
+  also define canonical HTTPS URI namespaces as identifiers that are not
+  expected to be fetched.
+- [MCP 2026-07-28 `_meta`](https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta)
+  uses its own optional `prefix/name` grammar and reserves MCP and tracing keys.
+  Raw `_meta` therefore remains adapter-owned. Only an explicit, collision-free
+  registry mapping from one negotiated MCP key to one core `ExtensionKey` may
+  promote its bounded value; adapters must not mechanically replace `/` with
+  `.` or interpret self-reported metadata as a security decision.
 
 ## Canonical serialization
 
