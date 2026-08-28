@@ -13,6 +13,7 @@ mod accounting;
 mod decimal;
 mod digest;
 mod ids;
+mod schema;
 mod time;
 mod version;
 
@@ -25,5 +26,6 @@ pub use ids::{
     ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, RunId, TenantId,
     TenantIdError, ThreadId,
 };
+pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use time::{DurationMillis, DurationMillisError, Timestamp, TimestampError};
 pub use version::{Version, VersionComponent, VersionError};

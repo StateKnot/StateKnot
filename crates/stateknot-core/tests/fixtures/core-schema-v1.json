@@ -1,0 +1,53 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-schema/1.0.0",
+  "ids": {
+    "valid": [
+      "https://stateknot.github.io/schema/run-event/1.0.0",
+      "https://schemas.example.com/tool/input/2.3.4",
+      "https://schemas.example.com:8443/a%20b/1.0.0"
+    ],
+    "invalid": [
+      "schema/run-event/1.0.0",
+      "http://example.com/schema/1.0.0",
+      "HTTPS://example.com/schema/1.0.0",
+      "https://EXAMPLE.com/schema/1.0.0",
+      "https://user@example.com/schema/1.0.0",
+      "https://example.com/schema/1.0.0?profile=full",
+      "https://example.com/schema/1.0.0#part",
+      "https://example.com/a/../schema/1.0.0",
+      "https://example.com:443/schema/1.0.0"
+    ]
+  },
+  "references": {
+    "valid": [
+      {
+        "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+        "version": "1.0.0",
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "invalid": [
+      {
+        "id": "http://example.com/schema/1.0.0",
+        "version": "1.0.0",
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+        "version": "1.0",
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+        "version": "1.0.0",
+        "digest": "sha256:00"
+      },
+      {
+        "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+        "version": "1.0.0",
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "extra": true
+      }
+    ]
+  }
+}

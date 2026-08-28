@@ -383,6 +383,18 @@ JSON Schema Draft 2020-12. `JsonSchemaDocument` validates:
 - no network resolution during validation;
 - stable schema digest and explicit version.
 
+`SchemaId` is a normalized absolute HTTPS URI of at most 512 ASCII bytes. It
+rejects relative references, user information, queries, fragments (including
+an empty fragment), non-HTTPS schemes, and any spelling changed by RFC 3986
+normalization. The URI is an identifier only: core and runtime code never
+dereference it over the network. Schema bytes are resolved from an explicitly
+populated local registry after digest verification.
+
+Durable references use `SchemaReference { id, version, digest }` and reject
+unknown JSON fields. The version is explicit even when the URI path also
+contains a version, and the digest covers the canonical schema bytes. This
+prevents mutable content at a reused URI from changing validation semantics.
+
 Typed Rust tools normally generate schemas through `schemars`. A schema snapshot
 is a compatibility artifact and changes when the corresponding capability
 version changes. Input validation happens before policy and invocation; output

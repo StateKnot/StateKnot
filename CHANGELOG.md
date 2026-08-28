@@ -30,4 +30,6 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   exact decimal-string JSON encoding.
 - Checked token/byte counters and exact micro-unit money with strict currency,
   overflow, cross-currency, Serde, schema, property, and fixture validation.
+- Normalized, offline-only HTTPS schema identifiers and immutable
+  ID/version/digest schema references.
 - CI, dependency policy, issue forms, and security reporting guidance.
