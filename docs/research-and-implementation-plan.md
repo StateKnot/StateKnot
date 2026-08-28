@@ -144,7 +144,7 @@ Agent ↔ 能力       MCP 2026-07-28 · local tools · skills
 - run、event、checkpoint、interrupt、tool invocation、outbox 都是持久实体；
 - worker 使用 lease + fencing token，过期 worker 的迟到写入必须被数据库拒绝；
 - 所有跨系统通知通过 transactional outbox；consumer 以 event ID 幂等消费；
-- retry 必须基于错误分类，而不是对所有错误统一重试；
+- retry 必须基于来源组件显式给出的 recovery advice，并同时受幂等性、deadline、budget、attempt limit、circuit breaker 与 policy 约束；不能从错误分类或 HTTP/gRPC 状态码单独推导；
 - 支持限流、并发、深度、时长、token、费用和 tool-call 数量预算。
 - caller/tenant/system/policy 等可选预算层逐维取最小值，解析后的 run budget 每一维必须有限；depth/concurrency/fan-out 用高水位，其余 usage 单调 checked 累计；未知费用和未配置币种 fail closed，不能当作零或无限；
 - provider adapter 将 input 规范为包含 cached-input、output 规范为包含 reasoning 的累计总量；单次 context/output ceiling 归 ModelRequest/ModelCapabilities，不能与 run 累计预算混为一谈；
@@ -262,6 +262,29 @@ local function、MCP tool、workflow-as-tool 和 remote A2A agent 都可适配�
 - deadline、cancel token、budget、policy version；
 - credential resolver 的句柄，而不是明文 secret；
 - clock、random source 与 invocation ledger 访问器，便于确定性测试。
+
+### 8.5 Failure / Retry
+
+公共组件错误组合统一 `Failure`，但不把 HTTP、gRPC、A2A 或 MCP 的 wire
+error 当作核心模型。每次失败使用 UUIDv7 `FailureId`，并携带闭集
+`FailureCategory`、稳定 `code`、`origin`、经过公开安全审查的单行 message、
+显式 `RetryAdvice`、可选的 schema-bound bounded details 与 causal `EventId`。
+私有 `std::error::Error` source chain 只留在进程内，不参与 Serde、JSON
+Schema 或 Debug。
+
+`RetryAdvice` 只有 `Never`、`SafeAfter { delay }`、`ReconcileFirst`。
+`AmbiguousExternalOutcome` 与 `ReconcileFirst` 必须严格成对；不确定的外部写
+结果在 status query、idempotency proof、compensation 或人工裁决前不得进入
+普通 retry。类别与 retry advice 保持正交，因此同一个 `RateLimited` 也可能
+因 provider 契约不完整而是 `Never`，同一个 `DependencyUnavailable` 只有来源
+明确证明可安全重试时才是 `SafeAfter`。
+
+HTTP adapter 遵循 [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)，但只把
+经过 authorization/existence-hiding 后的安全字段放入 Problem Details；gRPC
+status 不能自动成为重试策略。A2A 1.0 adapter 按所选 JSON-RPC、gRPC 或
+HTTP+JSON binding 保留标准 code/message/details 语义；MCP 2026-07-28
+adapter 必须区分 JSON-RPC protocol error 与模型可修正的 tool execution
+error。所有 adapter mapping 都是显式、可失败、带 fixture/TCK 的边界。
 
 ## 9. Agent 与 Graph 语义
 
@@ -653,6 +676,8 @@ RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵
 - [Rig](https://rig.rs/) 与 [Swiftide](https://github.com/bosun-ai/swiftide)
 - [A2A 1.0 specification](https://a2a-protocol.org/latest/specification/)、[official Rust SDK](https://github.com/a2aproject/a2a-rs)、[TCK](https://github.com/a2aproject/a2a-tck)
 - [MCP 2026-07-28 release](https://blog.modelcontextprotocol.io/posts/2026-07-28/)、[official Rust SDK](https://github.com/modelcontextprotocol/rust-sdk)、[conformance suite](https://github.com/modelcontextprotocol/conformance)
+- [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)、[gRPC status codes](https://grpc.io/docs/guides/status-codes/) 与 [gRPC retry](https://grpc.io/docs/guides/retry/)
+- [MCP 2026-07-28 base error model](https://modelcontextprotocol.io/specification/2026-07-28/basic/index#error-responses) 与 [tool error split](https://modelcontextprotocol.io/specification/2026-07-28/server/tools#error-handling)
 - [AG-UI](https://github.com/ag-ui-protocol/ag-ui)、[MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview)、[A2UI](https://github.com/a2ui-project/a2ui/blob/main/specification/v1_0/docs/a2ui_protocol.md)
 - [AGNTCY](https://github.com/agntcy)、[SLIM](https://github.com/agntcy/slim)、[AP2](https://ap2-protocol.org/ap2/specification/)
 - [Restate durable agents](https://docs.restate.dev/ai/patterns/durable-agents) 与 [Restate Rust SDK](https://github.com/restatedev/sdk-rust)

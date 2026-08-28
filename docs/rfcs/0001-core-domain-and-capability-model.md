@@ -264,11 +264,11 @@ global, and tenant-scoped storage and authorization still include the separate
 
 ### StateKnot-generated IDs
 
-`RunId`, `ThreadId`, `EventId`, `MessageId`, `ArtifactId`, `InvocationId`,
-`InterruptId`, and `AttemptId` are distinct newtypes generated from UUIDv7
-values. Their canonical wire form is lowercase hyphenated UUID text. Parsing
-accepts only the canonical form for security-bearing and durable APIs;
-human-facing CLI input may offer a separate permissive parser.
+`RunId`, `ThreadId`, `EventId`, `FailureId`, `MessageId`, `ArtifactId`,
+`InvocationId`, `InterruptId`, and `AttemptId` are distinct newtypes generated
+from UUIDv7 values. Their canonical wire form is lowercase hyphenated UUID
+text. Parsing accepts only the canonical form for security-bearing and durable
+APIs; human-facing CLI input may offer a separate permissive parser.
 
 An ID never conveys authorization. Storage keys and lookups include `TenantId`,
 and authorization is evaluated before revealing whether an ID exists.
@@ -850,24 +850,80 @@ pub enum FailureCategory {
 
 pub enum RetryAdvice {
     Never,
-    SafeAfter(Duration),
+    SafeAfter { delay: DurationMillis },
     ReconcileFirst,
 }
 ```
 
-`Failure` also contains a stable machine code, safe public message, origin,
-retry advice, optional safe structured details, causation ID, and a private
-source chain unavailable to serialization. It never derives retryability from
-category alone; the adapter or runtime supplies explicit advice.
+Each occurrence has its own `FailureId`. `Failure` also contains a stable
+machine code, origin, explicitly public-safe message, retry advice, optional
+schema-bound public details, and optional causal `EventId`. Codes and origins
+are 1–128 byte lowercase ASCII identifiers made from dot-separated segments;
+every segment begins with `a-z` and then uses `a-z`, `0-9`, `_`, or `-`.
+Messages are single-line UTF-8 values no larger than 1,024 bytes. Their
+constructor rejects surrounding whitespace, controls, Unicode line separators,
+bidirectional formatting controls, and noncharacters, but shape validation
+cannot prove confidentiality: the caller remains responsible for omitting
+secrets, prompts, private resource existence, provider payloads, stack traces,
+and implementation details.
 
-`AmbiguousExternalOutcome` always uses `ReconcileFirst`. It cannot be converted
-to a normal retry without a tool-specific status query, idempotency guarantee,
-compensation decision, or human resolution.
+Structured public details always pair a `SchemaReference` with `BoundedJson`.
+They are revalidated at 16 KiB compact JSON, depth 8, 64 entries per container,
+512 total value nodes, 4 KiB per decoded string, and 128 bytes per decoded key.
+The enclosing adapter also caps raw request/response bytes before Serde parsing
+and validates the value against the locally registered, digest-pinned schema.
+Details are not a generic extension map.
 
-Server adapters map failures to RFC 9457 problem details without exposing
-resource existence, internal SQL/provider errors, secrets, prompts, or stack
-traces. Protocol adapters use their specified error models while retaining the
-internal category in redacted audit evidence.
+A private `Arc<dyn Error + Send + Sync>` source chain may be attached for
+trusted in-process diagnostics. It is absent from serialization, JSON Schema,
+and `Debug`; deserialization explicitly rejects a `private_source` member.
+`std::error::Error::source` deliberately returns `None` so generic error-chain
+formatters cannot leak it; trusted diagnostics use the explicit
+`private_source()` accessor and a protected sink. The public `Display`
+implementation emits only the approved message.
+
+Retryability is never derived from category alone. The adapter or runtime
+supplies explicit advice, and the scheduler intersects `SafeAfter` with the
+operation's idempotency contract, resolved deadline and budget, attempt limit,
+circuit breaker, and policy. A zero delay permits an immediate new attempt but
+does not bypass those controls. `Never` describes automatic recovery for this
+operation; it does not prohibit a separately authorized user action.
+
+`AmbiguousExternalOutcome` and `ReconcileFirst` are an exact pair enforced by
+construction and deserialization. This category cannot be converted to a
+normal retry without a tool-specific status query, idempotency guarantee,
+compensation decision, or human resolution. Other categories cannot use
+`ReconcileFirst`; if reconciliation is required, the outcome is by definition
+ambiguous.
+
+Mappings are adapter-owned and fallible:
+
+- HTTP APIs map authorized failures to
+  [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details. A stable
+  problem-type URI represents `code`, an occurrence URI represents
+  `FailureId`, and `detail` can use only the approved public message. The HTTP
+  status and optional `Retry-After` are adapter decisions; the latter is emitted
+  only for a compatible `SafeAfter`, never for `ReconcileFirst`.
+- gRPC adapters map categories to the nearest status while preserving explicit
+  recovery advice separately. Status-code names do not become retry policy;
+  [gRPC itself requires configured retryable codes and retry limits](https://grpc.io/docs/guides/retry/).
+- [A2A 1.0](https://a2a-protocol.org/latest/specification/) adapters map the
+  internal failure to that specification's code/message/details model and then
+  to JSON-RPC, `google.rpc.Status`, or HTTP+JSON as selected by the Agent Card.
+  An adapter must preserve the A2A error type and binding-specific status
+  without treating an internal category as an A2A wire code.
+- [MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/index)
+  adapters preserve the distinction between JSON-RPC protocol errors and
+  [tool execution errors](https://modelcontextprotocol.io/specification/2026-07-28/server/tools#error-handling).
+  A model-actionable tool failure is not silently promoted to a protocol error,
+  and a malformed protocol request is not presented as model tool output.
+
+Every mapping applies authentication and existence-hiding policy before
+selecting public status, code, message, and details. Protocol responses never
+expose internal SQL/provider errors, credentials, prompts, stack traces, or the
+private source chain. The original category, code, origin, advice, and failure
+ID remain available only in appropriately redacted, tenant-scoped audit
+evidence.
 
 ## Extensions
 

@@ -1,0 +1,246 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-failure/1.0.0",
+  "codes": {
+    "valid": [
+      "invalid_argument",
+      "dependency.rate_limited",
+      "tool.outcome_unknown",
+      "runtime.invariant-v2"
+    ],
+    "invalid": [
+      "",
+      "InvalidArgument",
+      "2invalid",
+      ".invalid",
+      "invalid.",
+      "invalid..argument",
+      "invalid/argument",
+      1,
+      null
+    ]
+  },
+  "origins": {
+    "valid": [
+      "stateknot.core",
+      "stateknot.runtime",
+      "provider.openai",
+      "tool.payments_v2"
+    ],
+    "invalid": [
+      "",
+      "StateKnot.core",
+      "stateknot:core",
+      "stateknot core",
+      "stateknot..core",
+      true,
+      null
+    ]
+  },
+  "messages": {
+    "valid": [
+      "The request contains invalid input.",
+      "The dependency is temporarily unavailable.",
+      "请求暂时无法完成。"
+    ],
+    "invalid": [
+      "",
+      " padded",
+      "padded ",
+      "two\nlines",
+      "tab\tinside",
+      "bidi\u202eoverride",
+      42,
+      null
+    ]
+  },
+  "categories": {
+    "valid": [
+      "invalid_input",
+      "unauthenticated",
+      "permission_denied",
+      "policy_denied",
+      "not_found",
+      "conflict",
+      "unsupported",
+      "rate_limited",
+      "deadline_exceeded",
+      "cancelled",
+      "dependency_unavailable",
+      "data_corruption",
+      "ambiguous_external_outcome",
+      "internal"
+    ],
+    "invalid": [
+      "invalid-argument",
+      "unknown",
+      1,
+      null
+    ]
+  },
+  "retry_advice": {
+    "valid": [
+      { "kind": "never" },
+      { "kind": "safe_after", "delay": "0" },
+      { "kind": "safe_after", "delay": "250" },
+      { "kind": "reconcile_first" }
+    ],
+    "invalid": [
+      {},
+      { "kind": "unknown" },
+      { "kind": "never", "delay": "1" },
+      { "kind": "safe_after" },
+      { "kind": "safe_after", "delay": 250 },
+      { "kind": "safe_after", "delay": "0250" },
+      { "kind": "reconcile_first", "extra": true },
+      null,
+      "never"
+    ]
+  },
+  "details": {
+    "valid": [
+      {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/failure-details/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": {
+          "field": "message.parts",
+          "reason": "required"
+        }
+      },
+      {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/failure-details/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": null
+      }
+    ],
+    "invalid": [
+      {
+        "value": { "field": "message.parts" }
+      },
+      {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/failure-details/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      {
+        "schema": {
+          "id": "http://stateknot.github.io/schema/failure-details/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": {}
+      },
+      {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/failure-details/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": {},
+        "extra": true
+      },
+      null,
+      []
+    ]
+  },
+  "failures": {
+    "valid": [
+      {
+        "id": "01890f3e-7b2a-7cc1-98f1-1234567890ab",
+        "category": "invalid_input",
+        "code": "validation.invalid_argument",
+        "origin": "stateknot.core",
+        "message": "The request contains invalid input.",
+        "retry_advice": { "kind": "never" }
+      },
+      {
+        "id": "01890f3e-7b2a-7cc2-a8f1-1234567890ab",
+        "category": "rate_limited",
+        "code": "dependency.rate_limited",
+        "origin": "provider.openai",
+        "message": "The dependency is temporarily unavailable.",
+        "retry_advice": { "kind": "safe_after", "delay": "250" },
+        "details": {
+          "schema": {
+            "id": "https://stateknot.github.io/schema/failure-details/1.0.0",
+            "version": "1.0.0",
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "value": {
+            "limit": "requests_per_minute"
+          }
+        },
+        "caused_by_event_id": "01890f3e-7b2a-7cc3-b8f1-1234567890ab"
+      },
+      {
+        "id": "01890f3e-7b2a-7cc4-88f1-1234567890ab",
+        "category": "ambiguous_external_outcome",
+        "code": "tool.outcome_unknown",
+        "origin": "tool.payments",
+        "message": "The payment outcome must be reconciled.",
+        "retry_advice": { "kind": "reconcile_first" }
+      }
+    ],
+    "invalid": [
+      {
+        "id": "01890f3e-7b2a-7cc5-98f1-1234567890ab",
+        "category": "ambiguous_external_outcome",
+        "code": "tool.outcome_unknown",
+        "origin": "tool.payments",
+        "message": "The payment outcome must be reconciled.",
+        "retry_advice": { "kind": "never" }
+      },
+      {
+        "id": "01890f3e-7b2a-7cc6-a8f1-1234567890ab",
+        "category": "internal",
+        "code": "runtime.internal",
+        "origin": "stateknot.runtime",
+        "message": "The operation could not be completed.",
+        "retry_advice": { "kind": "reconcile_first" }
+      },
+      {
+        "id": "01890f3e-7b2a-7cc7-b8f1-1234567890ab",
+        "category": "internal",
+        "code": "runtime.internal",
+        "origin": "stateknot.runtime",
+        "message": "The operation could not be completed.",
+        "retry_advice": { "kind": "never" },
+        "private_source": "database password"
+      },
+      {
+        "id": "01890f3e-7b2a-7cc8-88f1-1234567890ab",
+        "category": "internal",
+        "code": "runtime.internal",
+        "origin": "stateknot.runtime",
+        "message": "The operation could not be completed.",
+        "retry_advice": { "kind": "never" },
+        "extra": true
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "category": "internal",
+        "code": "runtime.internal",
+        "origin": "stateknot.runtime",
+        "message": "The operation could not be completed.",
+        "retry_advice": { "kind": "never" }
+      },
+      {
+        "id": "01890f3e-7b2a-7cc9-98f1-1234567890ab",
+        "category": "unknown",
+        "code": "runtime.internal",
+        "origin": "stateknot.runtime",
+        "message": "The operation could not be completed.",
+        "retry_advice": { "kind": "never" }
+      },
+      null,
+      []
+    ]
+  }
+}

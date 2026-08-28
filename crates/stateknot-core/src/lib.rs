@@ -17,6 +17,7 @@ mod capability;
 mod content;
 mod decimal;
 mod digest;
+mod failure;
 mod identity;
 mod ids;
 mod json;
@@ -48,10 +49,14 @@ pub use content::{
     RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,
 };
 pub use digest::{Digest, DigestAlgorithm, DigestError};
+pub use failure::{
+    Failure, FailureBuildError, FailureCategory, FailureCode, FailureDetails, FailureDetailsError,
+    FailureIdentifierError, FailureMessage, FailureMessageError, FailureOrigin, RetryAdvice,
+};
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
-    ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, MessageId, RunId,
-    TenantId, TenantIdError, ThreadId,
+    ArtifactId, AttemptId, EventId, FailureId, GeneratedIdError, InterruptId, InvocationId,
+    MessageId, RunId, TenantId, TenantIdError, ThreadId,
 };
 pub use json::{BoundedJson, BoundedJsonError, JsonLimit, JsonLimits, JsonLimitsError, JsonStats};
 pub use message::{

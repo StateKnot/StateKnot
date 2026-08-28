@@ -55,4 +55,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   monotonic/high-water usage, normalized token subsets, bounded multi-currency
   cost ceilings, fail-closed unknown pricing, exact remaining-capacity
   evaluation, closed schemas, and versioned wire fixtures.
+- Protocol-neutral failures with UUIDv7 occurrence identity, closed semantic
+  categories, stable code/origin identifiers, bounded public-safe messages and
+  schema-bound details, explicit retry/reconciliation advice, non-serializable
+  private source chains, closed schemas, and versioned wire fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.
