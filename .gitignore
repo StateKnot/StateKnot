@@ -1,0 +1,16 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+
+/target/
+**/*.rs.bk
+*.profraw
+*.profdata
+coverage/
+
+.DS_Store
+.idea/
+.vscode/
+
+.env
+.env.*
+!.env.example

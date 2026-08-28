@@ -1,0 +1,44 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+
+name: Supply chain
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - "deny.toml"
+      - ".github/workflows/supply-chain.yml"
+  pull_request:
+    paths:
+      - "**/Cargo.lock"
+      - "**/Cargo.toml"
+      - "deny.toml"
+      - ".github/workflows/supply-chain.yml"
+  schedule:
+    - cron: "23 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supply-chain-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargo-deny:
+    name: Dependency policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Check advisories, licenses, bans, and sources
+        uses: EmbarkStudios/cargo-deny-action@b66acf5e9fe20f8aba065be86778a8a4c846f902 # v2
+        with:
+          command: check advisories bans licenses sources
+          arguments: --all-features

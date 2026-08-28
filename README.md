@@ -1,2 +1,98 @@
+<!--
+Copyright 2026 StateKnot contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # StateKnot
-A production-grade Rust framework for building typed, durable, and observable agent systems, with graph workflows and native MCP/A2A support.
+
+[![CI](https://github.com/StateKnot/StateKnot/actions/workflows/ci.yml/badge.svg)](https://github.com/StateKnot/StateKnot/actions/workflows/ci.yml)
+[![Supply chain](https://github.com/StateKnot/StateKnot/actions/workflows/supply-chain.yml/badge.svg)](https://github.com/StateKnot/StateKnot/actions/workflows/supply-chain.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+**Durable agent orchestration for Rust.**
+
+StateKnot is an open-source Rust framework under development for building typed,
+durable, observable, and protocol-native agent systems. It is designed as a
+Rust-native runtime rather than a line-by-line port of a Python agent framework.
+
+> [!IMPORTANT]
+> StateKnot is currently **pre-alpha**. The repository contains the reviewed
+> architecture baseline and project infrastructure, but no production release
+> or stable public API yet. Do not use it in production at this stage.
+
+## Direction
+
+StateKnot is being designed around five commitments:
+
+- **Typed by default:** explicit state, tool schemas, structured output, and
+  capability negotiation instead of untyped maps flowing through the runtime.
+- **Durable execution:** journaled events, checkpoints, pause and resume,
+  lease/fencing, transactional outbox, and realistic external-side-effect
+  guarantees.
+- **Graph and agent ergonomics:** a direct agent loop for common cases plus
+  deterministic typed graphs for branching, parallelism, joins, loops, and
+  human approval.
+- **Protocol-native interoperability:** first-class MCP and A2A adapters without
+  leaking their wire types into the stable core domain model.
+- **Production governance:** tenant isolation, policy enforcement, budgets,
+  auditability, OpenTelemetry, evaluation, failure injection, and compatibility
+  testing are design requirements rather than optional add-ons.
+
+The planned v1 baseline targets PostgreSQL-backed execution, OpenAI-compatible
+and Anthropic model adapters, MCP client/server support, and A2A REST/JSON-RPC
+client/server support. Scope is not considered frozen until the phase-zero RFCs
+and golden scenarios are accepted.
+
+## Current milestone
+
+The project is in the **architecture-contract and vertical-validation phase**:
+
+1. freeze three representative production scenarios and their load/failure models;
+2. accept the core domain, graph, durability, and protocol/security RFCs;
+3. prove one end-to-end durable execution path with crash recovery;
+4. publish compatibility and performance evidence before claiming support.
+
+See the [roadmap](docs/roadmap.md), the full
+[research and implementation plan](docs/research-and-implementation-plan.md),
+and the [completeness audit](docs/plan-completeness-audit.md).
+
+## Repository layout
+
+```text
+crates/stateknot/   Unpublished facade crate used to validate the workspace
+docs/               Architecture research, roadmap, and RFC process
+.github/             Contribution templates and automated quality gates
+```
+
+Additional crates will be created only after their dependency or semantic
+boundaries are proven. Empty provider, protocol, and runtime crates are
+deliberately avoided.
+
+## Development
+
+The repository pins Rust 1.85.0, the initial minimum supported Rust version.
+With `rustup` installed, the toolchain is selected automatically.
+
+```console
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --all-targets --all-features --locked
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
+```
+
+Before proposing an implementation, read [CONTRIBUTING.md](CONTRIBUTING.md).
+Changes to public APIs, durable semantics, protocols, persistence, or security
+boundaries require an RFC.
+
+## Community and security
+
+- Use GitHub issues for reproducible bugs and scoped feature proposals.
+- Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+- Report vulnerabilities through the private process in [SECURITY.md](SECURITY.md).
+- Project decision-making is documented in [GOVERNANCE.md](GOVERNANCE.md).
+
+## License
+
+StateKnot is licensed under the [Apache License 2.0](LICENSE). Contributions are
+accepted under the same license and require a Developer Certificate of Origin
+sign-off. The license does not grant rights to project names or logos.

@@ -1,0 +1,46 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+
+name: Feature proposal
+description: Propose a scoped capability backed by a concrete use case.
+title: "[Proposal]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Production problem
+      description: Describe the user, workload, scale, and failure mode. Avoid proposing only an API shape.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Required outcome
+      description: What observable result and guarantee should StateKnot provide?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Existing alternatives
+      description: Explain why application code, an adapter, or an existing dependency is insufficient.
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Compatibility, security, and operations
+      description: Note API, protocol, storage, tenancy, migration, deployment, or cost constraints.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues, roadmap items, and RFCs.
+          required: true
+        - label: I understand that major contracts require an RFC before acceptance.
+          required: true

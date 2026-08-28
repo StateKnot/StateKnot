@@ -1,0 +1,28 @@
+<!--
+Copyright 2026 StateKnot contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
+# StateKnot documentation
+
+This directory contains the normative design inputs for StateKnot. Claims in
+the project README remain aspirational until backed by implementation,
+conformance output, and the release gates in these documents.
+
+## Start here
+
+1. [Research and implementation plan](research-and-implementation-plan.md) —
+   ecosystem research, product boundaries, architecture, execution guarantees,
+   protocols, security, operations, and release gates.
+2. [Completeness audit](plan-completeness-audit.md) — scope reductions and the
+   unresolved decisions that block a production API freeze.
+3. [Roadmap](roadmap.md) — ordered milestones and exit criteria.
+4. [RFC process](rfcs/README.md) — how durable project decisions are proposed,
+   reviewed, accepted, and superseded.
+
+## Normative language
+
+RFCs marked `Accepted` define project contracts. Research documents explain
+intent and trade-offs but do not override accepted RFCs or released API
+documentation. Terms such as MUST, SHOULD, and MAY are interpreted as described
+by RFC 2119 only when an accepted RFC explicitly says so.

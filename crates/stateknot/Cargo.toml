@@ -1,0 +1,21 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "stateknot"
+description = "Durable agent orchestration for Rust"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lints]
+workspace = true

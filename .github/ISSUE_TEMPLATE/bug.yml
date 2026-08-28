@@ -1,0 +1,75 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+
+name: Bug report
+description: Report a reproducible defect in StateKnot-owned code or documentation.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        StateKnot is pre-alpha. For security issues, stop and use private vulnerability reporting instead.
+
+  - type: input
+    id: revision
+    attributes:
+      label: Affected revision
+      description: Release version or full commit SHA.
+      placeholder: 0123456789abcdef...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Workspace and build
+        - Documentation
+        - CI and release infrastructure
+        - Architecture or RFC
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Rust version, target, database or service versions, and relevant configuration.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include exact commands or a minimal repository and remove secrets.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and did not find this report.
+          required: true
+        - label: This report contains no secrets or sensitive personal data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
