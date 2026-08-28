@@ -240,6 +240,11 @@ whitespace-containing, path-like, control, or normalization-ambiguous values are
 rejected. An application maps its external tenant identifier into this form
 before calling StateKnot.
 
+`SubjectId` is deliberately specified together with its issuer rather than as
+an independently global identifier. Its exact OIDC-compatible wire grammar is
+deferred to the identity slice; adapters MUST NOT treat a bare subject as
+globally unique.
+
 ### StateKnot-generated IDs
 
 `RunId`, `ThreadId`, `EventId`, `ArtifactId`, `InvocationId`, `InterruptId`, and
@@ -402,6 +407,19 @@ validation happens before a result is committed as successful.
 
 ## Capability model
 
+`CapabilityName` is a case-sensitive string of 1–128 ASCII letters, digits,
+`_`, `-`, or `.`. This freezes the tool-name recommendation in the
+[MCP 2025-11-25 tools specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+as a mandatory StateKnot v1 invariant. Names are unique within an owning
+registry, not globally. Registry merges use owner/provenance identity and
+reject collisions; they never silently rename a capability.
+
+An A2A `AgentSkill.id` has a less restrictive protocol grammar. The A2A adapter
+therefore maps it explicitly to a configured `CapabilityName`, retains the
+external identifier as provenance, and rejects an unmapped or colliding value.
+It does not normalize an arbitrary remote identifier into a local executable
+name.
+
 `CapabilityDescriptor` is the common discovery record for a model, tool, agent,
 or workflow capability. It contains a validated name, version, description,
 owner/provenance, supported modalities, schemas, required scopes, risk metadata,
@@ -515,6 +533,14 @@ content is never treated as a committed complete response.
 
 ## Identity and delegation
 
+`Scope` uses the case-sensitive RFC 6749 `scope-token` grammar: 1–256 visible
+ASCII bytes excluding space, double quote, and backslash. The 256-byte ceiling
+is a StateKnot resource bound. `ScopeSet` contains at most 128 unique scopes,
+rejects duplicate input, and serializes as an array in exact ASCII byte order.
+The array representation is the StateKnot domain wire form; OAuth adapters map
+to and from the protocol's space-delimited parameter. See
+[RFC 6749 section 3.3](https://www.rfc-editor.org/rfc/rfc6749.html#section-3.3).
+
 `Principal` contains:
 
 - `TenantId`;
@@ -529,6 +555,8 @@ Each `DelegationHop` records delegator, delegate, granted scopes, audience,
 reason, time bounds, and evidence reference. Effective scopes are the
 intersection of tenant policy, authenticated scopes, every delegation hop, and
 capability requirements. Delegation can narrow but never widen authority.
+The `ScopeSet::intersection` operation implements this narrowing primitive; its
+result is deterministically ordered and a subset of both operands.
 
 The full principal is available to policy and audit. Model prompts receive only
 explicitly selected, non-secret identity attributes.

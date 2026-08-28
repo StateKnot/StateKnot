@@ -32,4 +32,6 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   overflow, cross-currency, Serde, schema, property, and fixture validation.
 - Normalized, offline-only HTTPS schema identifiers and immutable
   ID/version/digest schema references.
+- MCP-compatible capability names plus bounded OAuth-compatible scopes and
+  deterministic, duplicate-rejecting scope sets with narrowing property tests.
 - CI, dependency policy, issue forms, and security reporting guidance.

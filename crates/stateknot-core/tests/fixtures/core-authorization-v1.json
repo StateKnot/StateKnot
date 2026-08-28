@@ -1,0 +1,58 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-authorization/1.0.0",
+  "capability_names": {
+    "valid": [
+      "getUser",
+      "DATA_EXPORT_v2",
+      "admin.tools.list",
+      "ops.restart-service",
+      ".",
+      "-"
+    ],
+    "invalid": [
+      "",
+      "restart service",
+      "ops/restart",
+      "ops:restart",
+      "tool,name",
+      "tool\\name",
+      "工具",
+      42,
+      null
+    ]
+  },
+  "scopes": {
+    "valid": [
+      "read",
+      "Read",
+      "ops:restart",
+      "https://api.example.com/auth/data.read",
+      "!#$%&'()*+,-./:;<=>?@[]^_`{|}~"
+    ],
+    "invalid": [
+      "",
+      "data read",
+      "data\"read",
+      "data\\read",
+      "data\nread",
+      "读取",
+      42,
+      null
+    ]
+  },
+  "scope_sets": {
+    "valid": [
+      [],
+      ["read"],
+      ["Read", "read"],
+      ["admin", "read", "write"]
+    ],
+    "invalid": [
+      ["read", "read"],
+      ["data read"],
+      "read write",
+      { "read": true },
+      null
+    ]
+  }
+}
