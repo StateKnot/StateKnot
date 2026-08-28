@@ -67,4 +67,9 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   redacted discovery text, closed kinds, validated active/deprecated/retired
   lifecycles, self-replacement rejection, required scopes, bounded extensions,
   closed schemas, property tests, and versioned wire fixtures.
+- Protocol-neutral tool descriptors with digest-pinned schemas, closed and
+  cross-validated side-effect/idempotency semantics, non-granting resource
+  requirements, bounded cancellation/progress behavior, finite input/output/
+  artifact/concurrency/time ceilings, redacted diagnostics, closed schemas,
+  property tests, and versioned wire fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

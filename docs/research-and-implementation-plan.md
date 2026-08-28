@@ -261,13 +261,40 @@ flowchart TB
 
 ### 8.4 Tool
 
-工具规范至少包含：
+`ToolDescriptor` 是某个 owner-qualified、精确版本工具的不可变注册快照：
 
-- 唯一、版本化名称；描述；JSON Schema 2020-12 input/output；
-- `read_only | idempotent_write | non_idempotent_write | code_execution` 风险分类；
-- 所需 scopes、网络/文件/secret capability、timeout、并发和成本提示；
-- 是否支持幂等键、取消、进度事件和补偿；
-- 来源、签名/摘要、owner 与弃用信息。
+- common metadata 的 kind 必须为 `tool`；owner、version、required scopes、
+  lifecycle 和 extension 上限沿用 8.2 的正式契约；
+- input/output 使用带版本和 SHA-256 摘要的 `SchemaReference`。可信本地 schema
+  registry 在注册期解析并校验 JSON Schema 2020-12；input 根必须是 object，
+  provider adapter 还要检查各自支持的 schema profile，运行期不得按 URL
+  临时下载 schema；
+- `ToolRisk` 封闭为 `read_only | idempotent_write |
+  non_idempotent_write`，`ToolIdempotency` 封闭为 `not_applicable |
+  intrinsic | required_key | unsupported`；只允许 read-only/not-applicable、
+  idempotent-write/intrinsic-or-required-key、non-idempotent-write/unsupported
+  三组语义组合；
+- status-query 表示能权威核对不明确结果，compensation 表示另有需要独立授权的
+  补偿入口；二者都不是事务回滚，read-only 工具不得声明；注册 typed/erased
+  adapter 时还必须验证对应入口确实存在；
+- network/filesystem 只声明 `none | read_only | read_write`，另行声明 opaque
+  credential 需求和 invocation-supplied dynamic code。它们只触发 policy
+  要求，不能授予权限；精确 host/path/operation/credential handle 由 tenant
+  executor profile 收窄；read-only 工具不得要求资源写权限；
+- cancellation 只承诺 cooperative best effort；不能据此判断副作用未发生。
+  每次调用允许的 progress event 数量必须是有限上限，事件只用于观察，不能提交
+  成功状态；
+- 每次调用必须给出正数 timeout、该工具版本的正数并发上限、正数 compact input
+  byte 上限、正数 inline result byte 上限，以及成对为零或成对为正的 artifact
+  count/aggregate-byte 上限；system、tenant、policy、run 和 descriptor
+  各层取交集，任何层都不能放宽上层硬限制。
+
+动态代码执行是资源/隔离要求，不是副作用风险分类；同一段动态代码仍可能只读、
+幂等写或非幂等写。v1 不内置通用代码沙箱，只允许 policy 将其路由到独立受控的
+sandbox executor，或直接拒绝。approval policy、价格/成本和精确资源 allowlist
+属于会随 tenant、principal、参数或运营配置变化的版本化外部策略，不能固化进工具
+版本描述符。MCP annotations 按规范是不可信提示，只有可信 registry 审核后的事实
+才能映射进上述语义。
 
 ```rust
 pub trait Tool: Send + Sync {

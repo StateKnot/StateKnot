@@ -26,6 +26,7 @@ mod message;
 mod schema;
 mod scope;
 mod time;
+mod tool;
 mod version;
 
 pub use accounting::{
@@ -77,4 +78,9 @@ pub use message::{
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};
 pub use time::{DurationMillis, DurationMillisError, Timestamp, TimestampError};
+pub use tool::{
+    ToolCancellationSupport, ToolDescriptor, ToolDescriptorError, ToolExecutionLimits,
+    ToolExecutionLimitsError, ToolExecutionSemantics, ToolExecutionSemanticsError, ToolIdempotency,
+    ToolInvocationCapabilities, ToolResourceAccess, ToolResourceRequirements, ToolRisk,
+};
 pub use version::{Version, VersionComponent, VersionError};

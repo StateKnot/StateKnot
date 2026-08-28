@@ -670,12 +670,48 @@ override provider errors, tenant policy, or configured safety limits.
 `ToolDescriptor` contains:
 
 - common `CapabilityMetadata` whose kind is exactly `tool`;
-- input and output schemas;
-- `ToolRisk::{ReadOnly, IdempotentWrite, NonIdempotentWrite}`;
-- approval policy reference and tool-specific resource capabilities;
-- idempotency support and optional status-query/compensation capability;
-- timeout ceiling, concurrency class, and maximum result/artifact sizes;
-- schema/artifact provenance required by the invocation boundary.
+- digest-pinned `SchemaReference` values for JSON Schema 2020-12 input and
+  output contracts;
+- validated `ToolExecutionSemantics`: `ToolRisk::{ReadOnly,
+  IdempotentWrite, NonIdempotentWrite}`, its compatible idempotency mechanism,
+  and optional status-query/compensation support;
+- broad network/filesystem access requirements, credential use, and whether
+  invocation-supplied dynamic code is executed;
+- cooperative cancellation support and a finite maximum progress-event count;
+- finite per-invocation timeout, per-version concurrency, compact input,
+  inline result, artifact-count, and aggregate artifact-byte ceilings.
+
+The trusted local schema registry resolves schema bytes, checks their digest,
+validates the document as JSON Schema 2020-12, requires an object-root input
+schema, and checks the target provider profile before registration. Schema URLs
+are identities, not runtime fetch instructions. MCP tool annotations remain
+untrusted input and are never promoted to these reviewed semantics solely
+because a remote server supplied them.
+
+The legal risk/idempotency combinations are deliberately closed:
+
+- `ReadOnly + NotApplicable`;
+- `IdempotentWrite + Intrinsic | RequiredKey`;
+- `NonIdempotentWrite + Unsupported`.
+
+A required idempotency key must be durably reused across attempts. Status-query
+and compensation declarations must correspond to separately registered and
+authorized implementation entry points before an executable adapter is
+accepted. Compensation is not rollback, and cooperative cancellation never
+proves that an external effect did not occur.
+
+Resource declarations are requirements, never grants. Exact destinations,
+paths, operations, and opaque credential handles live in a tenant-controlled
+executor profile that can only narrow the descriptor. A read-only tool cannot
+declare network or filesystem write access. Dynamic code is an orthogonal
+resource requirement rather than a side-effect class; v1 routes it to an
+independently operated sandbox profile or denies it.
+
+Approval rules, pricing, and mutable tenant policy are intentionally not
+embedded in the immutable descriptor. A versioned policy evaluates the
+descriptor together with principal, arguments, destination allowlists, budgets,
+and run context. Descriptor limits are intersected with system, tenant, policy,
+and run limits and can never widen them.
 
 `ReadOnly` is a security and semantic assertion by the tool owner, not an
 inference from an HTTP method. Misdeclaring it is a tool defect detectable by

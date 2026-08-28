@@ -1,0 +1,455 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-tool/1.0.0",
+  "risks": {
+    "valid": [
+      "read_only",
+      "idempotent_write",
+      "non_idempotent_write"
+    ],
+    "invalid": [
+      "code_execution",
+      "write",
+      "ReadOnly",
+      "",
+      42,
+      null
+    ]
+  },
+  "idempotency": {
+    "valid": [
+      "not_applicable",
+      "intrinsic",
+      "required_key",
+      "unsupported"
+    ],
+    "invalid": [
+      "optional_key",
+      "best_effort",
+      "",
+      42,
+      null
+    ]
+  },
+  "resource_access": {
+    "valid": [
+      "none",
+      "read_only",
+      "read_write"
+    ],
+    "invalid": [
+      "write_only",
+      "unrestricted",
+      "",
+      true,
+      null
+    ]
+  },
+  "cancellation": {
+    "valid": [
+      "unsupported",
+      "cooperative"
+    ],
+    "invalid": [
+      "guaranteed",
+      "authoritative",
+      "",
+      false,
+      null
+    ]
+  },
+  "semantics": {
+    "valid": [
+      {
+        "risk": "read_only",
+        "idempotency": "not_applicable",
+        "status_query": false,
+        "compensation": false
+      },
+      {
+        "risk": "idempotent_write",
+        "idempotency": "intrinsic",
+        "status_query": false,
+        "compensation": false
+      },
+      {
+        "risk": "idempotent_write",
+        "idempotency": "required_key",
+        "status_query": true,
+        "compensation": true
+      },
+      {
+        "risk": "non_idempotent_write",
+        "idempotency": "unsupported",
+        "status_query": true,
+        "compensation": false
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "risk": "read_only",
+        "idempotency": "intrinsic",
+        "status_query": false,
+        "compensation": false
+      },
+      {
+        "risk": "read_only",
+        "idempotency": "not_applicable",
+        "status_query": true,
+        "compensation": false
+      },
+      {
+        "risk": "idempotent_write",
+        "idempotency": "unsupported",
+        "status_query": false,
+        "compensation": false
+      },
+      {
+        "risk": "non_idempotent_write",
+        "idempotency": "required_key",
+        "status_query": true,
+        "compensation": false
+      },
+      {
+        "risk": "read_only",
+        "idempotency": "not_applicable",
+        "status_query": false,
+        "compensation": false,
+        "retryable": true
+      },
+      null
+    ]
+  },
+  "resources": {
+    "valid": [
+      {
+        "network": "none",
+        "filesystem": "none",
+        "credentials": false,
+        "dynamic_code": false
+      },
+      {
+        "network": "read_write",
+        "filesystem": "read_only",
+        "credentials": true,
+        "dynamic_code": true
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "network": "unrestricted",
+        "filesystem": "none",
+        "credentials": false,
+        "dynamic_code": false
+      },
+      {
+        "network": "none",
+        "filesystem": "none",
+        "credentials": false,
+        "dynamic_code": false,
+        "shell": true
+      },
+      null
+    ]
+  },
+  "invocation": {
+    "valid": [
+      {
+        "cancellation": "unsupported",
+        "max_progress_events": "0"
+      },
+      {
+        "cancellation": "cooperative",
+        "max_progress_events": "128"
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "cancellation": "guaranteed",
+        "max_progress_events": "128"
+      },
+      {
+        "cancellation": "unsupported",
+        "max_progress_events": "0",
+        "streaming": true
+      },
+      null
+    ]
+  },
+  "limits": {
+    "valid": [
+      {
+        "timeout": "30000",
+        "max_concurrency": "16",
+        "max_input_bytes": "65536",
+        "max_inline_result_bytes": "262144",
+        "max_artifacts": "4",
+        "max_total_artifact_bytes": "26214400"
+      },
+      {
+        "timeout": "1",
+        "max_concurrency": "1",
+        "max_input_bytes": "1",
+        "max_inline_result_bytes": "1",
+        "max_artifacts": "0",
+        "max_total_artifact_bytes": "0"
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "timeout": "0",
+        "max_concurrency": "1",
+        "max_input_bytes": "1",
+        "max_inline_result_bytes": "1",
+        "max_artifacts": "0",
+        "max_total_artifact_bytes": "0"
+      },
+      {
+        "timeout": "1",
+        "max_concurrency": "0",
+        "max_input_bytes": "1",
+        "max_inline_result_bytes": "1",
+        "max_artifacts": "0",
+        "max_total_artifact_bytes": "0"
+      },
+      {
+        "timeout": "1",
+        "max_concurrency": "1",
+        "max_input_bytes": "0",
+        "max_inline_result_bytes": "1",
+        "max_artifacts": "0",
+        "max_total_artifact_bytes": "0"
+      },
+      {
+        "timeout": "1",
+        "max_concurrency": "1",
+        "max_input_bytes": "1",
+        "max_inline_result_bytes": "0",
+        "max_artifacts": "0",
+        "max_total_artifact_bytes": "0"
+      },
+      {
+        "timeout": "1",
+        "max_concurrency": "1",
+        "max_input_bytes": "1",
+        "max_inline_result_bytes": "1",
+        "max_artifacts": "1",
+        "max_total_artifact_bytes": "0"
+      },
+      {
+        "timeout": "1",
+        "max_concurrency": "1",
+        "max_input_bytes": "1",
+        "max_inline_result_bytes": "1",
+        "max_artifacts": "0",
+        "max_total_artifact_bytes": "1"
+      },
+      {
+        "timeout": 1,
+        "max_concurrency": "1",
+        "max_input_bytes": "1",
+        "max_inline_result_bytes": "1",
+        "max_artifacts": "0",
+        "max_total_artifact_bytes": "0"
+      },
+      {
+        "timeout": "1",
+        "max_concurrency": "1",
+        "max_input_bytes": "1",
+        "max_inline_result_bytes": "1",
+        "max_artifacts": "0",
+        "max_total_artifact_bytes": "0",
+        "unlimited": true
+      },
+      null
+    ]
+  },
+  "descriptors": {
+    "valid": [
+      {
+        "metadata": {
+          "identity": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          },
+          "kind": "tool",
+          "title": "Capture payment",
+          "description": "Capture exactly one approved payment.",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": [
+            "payments:capture"
+          ],
+          "extensions": {}
+        },
+        "input_schema": {
+          "id": "https://schemas.example.com/tools/capture-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "output_schema": {
+          "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "semantics": {
+          "risk": "idempotent_write",
+          "idempotency": "required_key",
+          "status_query": true,
+          "compensation": true
+        },
+        "resources": {
+          "network": "read_write",
+          "filesystem": "none",
+          "credentials": true,
+          "dynamic_code": false
+        },
+        "invocation": {
+          "cancellation": "cooperative",
+          "max_progress_events": "128"
+        },
+        "limits": {
+          "timeout": "30000",
+          "max_concurrency": "16",
+          "max_input_bytes": "65536",
+          "max_inline_result_bytes": "262144",
+          "max_artifacts": "4",
+          "max_total_artifact_bytes": "26214400"
+        }
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "metadata": {
+          "identity": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          },
+          "kind": "agent",
+          "description": "Wrong descriptor kind.",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": [],
+          "extensions": {}
+        },
+        "input_schema": {
+          "id": "https://schemas.example.com/tools/capture-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "output_schema": {
+          "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "semantics": {
+          "risk": "read_only",
+          "idempotency": "not_applicable",
+          "status_query": false,
+          "compensation": false
+        },
+        "resources": {
+          "network": "none",
+          "filesystem": "none",
+          "credentials": false,
+          "dynamic_code": false
+        },
+        "invocation": {
+          "cancellation": "unsupported",
+          "max_progress_events": "0"
+        },
+        "limits": {
+          "timeout": "30000",
+          "max_concurrency": "1",
+          "max_input_bytes": "1024",
+          "max_inline_result_bytes": "1024",
+          "max_artifacts": "0",
+          "max_total_artifact_bytes": "0"
+        }
+      },
+      {
+        "metadata": {
+          "identity": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          },
+          "kind": "tool",
+          "description": "Read-only metadata with write resource access.",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": [],
+          "extensions": {}
+        },
+        "input_schema": {
+          "id": "https://schemas.example.com/tools/capture-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "output_schema": {
+          "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "semantics": {
+          "risk": "read_only",
+          "idempotency": "not_applicable",
+          "status_query": false,
+          "compensation": false
+        },
+        "resources": {
+          "network": "read_write",
+          "filesystem": "none",
+          "credentials": false,
+          "dynamic_code": false
+        },
+        "invocation": {
+          "cancellation": "unsupported",
+          "max_progress_events": "0"
+        },
+        "limits": {
+          "timeout": "30000",
+          "max_concurrency": "1",
+          "max_input_bytes": "1024",
+          "max_inline_result_bytes": "1024",
+          "max_artifacts": "0",
+          "max_total_artifact_bytes": "0"
+        }
+      },
+      null
+    ]
+  },
+  "raw_invalid": {
+    "semantics": [
+      "{\"risk\":\"read_only\",\"risk\":\"idempotent_write\",\"idempotency\":\"not_applicable\",\"status_query\":false,\"compensation\":false}",
+      "{\"risk\":\"read_only\",\"idempotency\":\"not_applicable\",\"status_query\":false,\"status_query\":true,\"compensation\":false}"
+    ],
+    "descriptors": [
+      "{\"metadata\":{\"identity\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"registry-owner\"},\"capability\":{\"name\":\"payments.capture\",\"version\":\"2.1.0\"}},\"kind\":\"tool\",\"description\":\"Capture payment.\",\"lifecycle\":{\"status\":\"active\"},\"required_scopes\":[],\"extensions\":{}},\"input_schema\":{\"id\":\"https://schemas.example.com/tools/input/1.0.0\",\"version\":\"1.0.0\",\"digest\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"input_schema\":{\"id\":\"https://schemas.example.com/tools/other-input/1.0.0\",\"version\":\"1.0.0\",\"digest\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"output_schema\":{\"id\":\"https://schemas.example.com/tools/output/1.0.0\",\"version\":\"1.0.0\",\"digest\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"semantics\":{\"risk\":\"read_only\",\"idempotency\":\"not_applicable\",\"status_query\":false,\"compensation\":false},\"resources\":{\"network\":\"none\",\"filesystem\":\"none\",\"credentials\":false,\"dynamic_code\":false},\"invocation\":{\"cancellation\":\"unsupported\",\"max_progress_events\":\"0\"},\"limits\":{\"timeout\":\"1000\",\"max_concurrency\":\"1\",\"max_input_bytes\":\"1024\",\"max_inline_result_bytes\":\"1024\",\"max_artifacts\":\"0\",\"max_total_artifact_bytes\":\"0\"}}"
+    ]
+  }
+}
