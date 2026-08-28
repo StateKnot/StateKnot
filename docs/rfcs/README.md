@@ -8,6 +8,12 @@ SPDX-License-Identifier: Apache-2.0
 RFCs record decisions that create long-lived compatibility, correctness,
 security, or operational commitments.
 
+## RFC index
+
+| RFC | Status | Topic |
+|---|---|---|
+| [0001](0001-core-domain-and-capability-model.md) | Draft | Core domain and capability model |
+
 ## When an RFC is required
 
 Use an RFC for:

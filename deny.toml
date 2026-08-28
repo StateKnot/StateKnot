@@ -8,6 +8,9 @@ all-features = true
 feature-depth = 1
 
 [advisories]
+unmaintained = "workspace"
+unsound = "all"
+yanked = "deny"
 ignore = []
 
 [licenses]
@@ -22,6 +25,7 @@ allow = [
   "Zlib",
 ]
 confidence-threshold = 0.8
+unused-allowed-license = "allow"
 
 [licenses.private]
 ignore = false

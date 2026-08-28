@@ -11,13 +11,17 @@ conformance output, and the release gates in these documents.
 
 ## Start here
 
-1. [Research and implementation plan](research-and-implementation-plan.md) —
+1. [v1 scope baseline](v1-scope.md) — the capabilities, guarantees, supported
+   environment, and explicit exclusions that control implementation work.
+2. [Qualification scenarios](scenarios/README.md) — the three production-shaped
+   workloads, failure models, and measurable release criteria.
+3. [Research and implementation plan](research-and-implementation-plan.md) —
    ecosystem research, product boundaries, architecture, execution guarantees,
    protocols, security, operations, and release gates.
-2. [Completeness audit](plan-completeness-audit.md) — scope reductions and the
-   unresolved decisions that block a production API freeze.
-3. [Roadmap](roadmap.md) — ordered milestones and exit criteria.
-4. [RFC process](rfcs/README.md) — how durable project decisions are proposed,
+4. [Completeness audit](plan-completeness-audit.md) — the initial scope audit,
+   its resolved items, and the remaining decisions that block the public API.
+5. [Roadmap](roadmap.md) — ordered milestones and exit criteria.
+6. [RFC process](rfcs/README.md) — how durable project decisions are proposed,
    reviewed, accepted, and superseded.
 
 ## Normative language

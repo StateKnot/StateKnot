@@ -42,3 +42,4 @@ jobs:
         with:
           command: check advisories bans licenses sources
           arguments: --all-features
+          rust-version: "1.85.0"

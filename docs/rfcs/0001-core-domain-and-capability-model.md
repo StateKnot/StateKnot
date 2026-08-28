@@ -1,0 +1,750 @@
+<!--
+Copyright 2026 StateKnot contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
+# RFC-0001: Core domain and capability model
+
+- Status: Draft
+- Authors: StateKnot contributors
+- Created: 2026-08-28
+- Tracking issue: Not yet created
+- Supersedes: None
+- Superseded by: None
+
+## Summary
+
+This RFC defines the stable domain boundary shared by the embedded SDK,
+durable runtime, model and tool integrations, server API, MCP adapter, and A2A
+adapter. It standardizes identifiers, content, messages, artifacts, schemas,
+capabilities, identity, budgets, execution context, errors, and the typed/erased
+tool boundary.
+
+The core model is provider-, protocol-, database-, and async-runtime-neutral.
+Provider SDK types, MCP/A2A wire types, SQL records, Axum extractors, and Tokio
+primitives cannot appear in its public contracts.
+
+## Motivation
+
+StateKnot needs one durable vocabulary before graph, persistence, provider, and
+protocol code can be implemented independently. Reusing one integration's
+types would make its versioning and semantic compromises the framework's public
+API. Passing arbitrary JSON maps through every boundary would make schema
+validation, migration, redaction, capability checks, and deterministic hashing
+unreliable.
+
+The three qualification scenarios require the same values to retain meaning
+across in-process calls, database records, event streams, protocol mappings,
+crash recovery, and audit export. This RFC establishes those meanings without
+pre-designing excluded v1 features.
+
+## Goals and non-goals
+
+### Goals
+
+- make tenant, identity, version, budget, provenance, and schema boundaries
+  explicit and difficult to omit accidentally;
+- provide ergonomic typed model and tool authoring while allowing heterogeneous
+  capabilities to be stored and invoked through validated erased adapters;
+- distinguish trusted instructions, untrusted messages, external artifacts,
+  model requests, model results, tool calls, and tool results;
+- provide capability negotiation before side effects occur;
+- define stable error categories and retry/ambiguity semantics;
+- define canonical serialization rules for hashing, approval binding,
+  idempotency, durable envelopes, and cross-version fixtures;
+- prevent secrets and transport-specific authentication objects from becoming
+  serializable domain data.
+
+### Non-goals
+
+- graph topology, superstep, reducer, scheduler, or interrupt state-machine
+  semantics, which belong to RFC-0002;
+- SQL schema, transactions, leases, outbox, checkpoint layout, and recovery,
+  which belong to RFC-0003;
+- MCP and A2A wire mappings or OAuth flows, which belong to RFC-0004;
+- a built-in RAG, vector store, prompt-template language, workflow DSL, or
+  arbitrary metadata-driven plugin system;
+- a universal least-common-denominator provider API that hides supported
+  provider extensions.
+
+## Design principles
+
+1. **Typed invariants, bounded extension points.** Required semantics use named
+   Rust types. Namespaced JSON extensions exist only where integration-specific
+   data is unavoidable and are size-limited.
+2. **Domain and wire separation.** Adapters perform explicit, fallible mapping.
+   A remote task is not an internal run, and a provider tool call is not a
+   committed StateKnot invocation.
+3. **Trust is metadata, not a prompt convention.** Content records its source,
+   trust class, security label, and provenance separately from its text.
+4. **No implicit unlimited execution.** A runnable context carries a resolved
+   deadline and finite system-enforced budget even when the caller omits limits.
+5. **Ambiguity is a result.** An external write whose outcome cannot be proven
+   is not converted into a retryable failure or a fictitious success.
+6. **Canonical forms are explicit.** Display formatting and ordinary Serde JSON
+   are not used as approval, idempotency, or integrity hashes.
+
+## User-facing design
+
+The examples describe the intended API shape. They become normative only after
+the M0 contract examples compile against the implementation.
+
+### Typed tool authoring
+
+```rust,no_run
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use stateknot::prelude::*;
+use std::time::Duration;
+
+#[derive(Debug, Deserialize, JsonSchema)]
+struct RestartInput {
+    service: String,
+    region: String,
+    expected_revision: String,
+}
+
+#[derive(Debug, Serialize, JsonSchema)]
+struct RestartOutput {
+    deployment_id: String,
+    accepted_revision: String,
+}
+
+struct RestartService;
+
+impl Tool for RestartService {
+    type Input = RestartInput;
+    type Output = RestartOutput;
+
+    fn descriptor(&self) -> Result<ToolDescriptor, DescriptorError> {
+        ToolDescriptor::builder("ops.restart-service", Version::new(1, 0, 0))
+            .description("Restart one allowlisted service deployment")
+            .risk(ToolRisk::IdempotentWrite)
+            .required_scope("ops:restart")
+            .timeout_ceiling(Duration::from_secs(30))
+            .build()
+    }
+
+    fn call<'a>(
+        &'a self,
+        ctx: ToolContext,
+        input: Self::Input,
+    ) -> BoxFuture<'a, Result<Self::Output, ToolError>> {
+        Box::pin(async move {
+            let key = ctx.required_idempotency_key()?;
+            let credential = ctx.credentials().resolve("deployment-api").await?;
+            restart_with_key(credential, key, input).await
+        })
+    }
+}
+# fn restart_with_key(
+#     _: ResolvedCredential,
+#     _: IdempotencyKey,
+#     input: RestartInput,
+# ) -> BoxFuture<'static, Result<RestartOutput, ToolError>> {
+#     Box::pin(async move {
+#         Ok(RestartOutput {
+#             deployment_id: String::from("deployment-42"),
+#             accepted_revision: input.expected_revision,
+#         })
+#     })
+# }
+# fn main() {}
+```
+
+The builder is fallible because capability names, versions, scopes, descriptions,
+timeouts, schemas, and extension sizes are validated. The typed tool is wrapped
+by an erased adapter only after both generated schemas pass validation.
+
+### Model invocation
+
+```rust,no_run
+use stateknot::prelude::*;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize, JsonSchema, Serialize)]
+struct IncidentSummary {
+    summary: String,
+}
+
+async fn invoke(
+    model: &dyn Model,
+    ctx: ModelContext,
+) -> Result<IncidentSummary, Box<dyn std::error::Error>> {
+    let request = ModelRequest::builder()
+        .instruction(Instruction::trusted("Return a typed incident summary")?)
+        .message(Message::user([ContentPart::text("Investigate incident 42")?])?)
+        .required(ModelRequirement::ToolCalling)
+        .required(ModelRequirement::StructuredOutput)
+        .output_schema(JsonSchemaDocument::for_type::<IncidentSummary>()?)
+        .build()?;
+
+    model.capabilities().satisfies(request.requirements())?;
+    let response = model.invoke(ctx, request).await?;
+    Ok(response.decode_structured()?)
+}
+```
+
+Capability mismatch fails before provider invocation. Provider-specific options
+may be supplied through a registered, namespaced extension, but cannot weaken
+budgets, policy, schema validation, or durable guarantees.
+
+### Bounded run context
+
+```rust,no_run
+use stateknot::prelude::*;
+
+fn inspect(ctx: &RunContext) {
+    let tenant: &TenantId = ctx.tenant();
+    let principal: &Principal = ctx.principal();
+    let deadline: Timestamp = ctx.deadline();
+    let remaining: BudgetRemaining = ctx.budget().remaining();
+    let cancelled: bool = ctx.cancellation().is_cancelled();
+
+    // Credentials are opaque, asynchronously resolved for one capability, and
+    // intentionally cannot be serialized or formatted with Debug.
+    let credentials: &CredentialResolver = ctx.credentials();
+}
+```
+
+## Module and dependency boundary
+
+The proposed `stateknot-core` modules are:
+
+```text
+artifact     budget       capability   content      error
+extension    identity     ids          model        schema
+time         tool         version
+```
+
+The core crate may depend publicly on `serde`, `serde_json`, `schemars`, and
+`futures-core`, plus small implementation dependencies for UUID, time, hashing,
+and error support. It MUST NOT depend on provider SDKs, MCP/A2A SDKs, Axum,
+Tower, SQLx, Tokio, tracing subscribers, OpenTelemetry exporters, or object-store
+clients.
+
+The facade crate re-exports a deliberately small prelude. It does not glob
+re-export integration SDKs.
+
+## Identifiers
+
+### Tenant and external subjects
+
+`TenantId`, `SubjectId`, issuer identifiers, capability names, and external
+references are validated opaque strings. Each type defines a maximum UTF-8 byte
+length and allowed grammar. They are not interchangeable `String` aliases.
+
+`TenantId` permits 1–128 ASCII characters from `[A-Za-z0-9._:-]`. Empty,
+whitespace-containing, path-like, control, or normalization-ambiguous values are
+rejected. An application maps its external tenant identifier into this form
+before calling StateKnot.
+
+### StateKnot-generated IDs
+
+`RunId`, `ThreadId`, `EventId`, `ArtifactId`, `InvocationId`, `InterruptId`, and
+`AttemptId` are distinct newtypes generated from UUIDv7 values. Their canonical
+wire form is lowercase hyphenated UUID text. Parsing accepts only the canonical
+form for security-bearing and durable APIs; human-facing CLI input may offer a
+separate permissive parser.
+
+An ID never conveys authorization. Storage keys and lookups include `TenantId`,
+and authorization is evaluated before revealing whether an ID exists.
+
+## Time, duration, money, and hashes
+
+- `Timestamp` is a UTC instant serialized as RFC 3339 with exactly six
+  fractional decimal digits and a trailing `Z`.
+- persisted durations and deadlines use signed 64-bit integer milliseconds with
+  validated non-negative domain wrappers where negative values are invalid;
+- token and byte counters use checked `u64` arithmetic;
+- known cost uses integer micro-units plus an uppercase ISO 4217 currency code;
+  floating-point currency is forbidden;
+- integrity values use `Digest { algorithm, bytes }`, with SHA-256 mandatory in
+  v1 and canonical text `sha256:<lowercase hex>`;
+- random jitter and wall-clock reads are runtime services whose observed values
+  are recorded when they influence a durable decision.
+
+## Version model
+
+`Version` is a validated semantic version with numeric major, minor, and patch.
+Durable execution pins independently:
+
+- graph version;
+- state-schema version;
+- event/payload schema version;
+- model adapter and provider model identifier;
+- prompt/instruction version;
+- tool capability version;
+- policy version; and
+- protocol profile version.
+
+An opaque provider model identifier such as a dated model name is not parsed as
+semantic version. It is stored separately from adapter version.
+
+## Content and messages
+
+### Content parts
+
+The core content enum is closed for v1:
+
+```rust
+pub enum ContentPart {
+    Text(TextContent),
+    Json(JsonContent),
+    Artifact(ArtifactRef),
+}
+```
+
+Image, audio, and file inputs use `ArtifactRef` with a validated media type,
+size, digest, and modality. Bytes and arbitrary remote URLs are not embedded in
+durable messages. Embedded callers first register bytes or an external reference
+through the configured artifact boundary, where size, URL, MIME, hash, tenancy,
+and egress policy can be enforced.
+
+`TextContent` records text plus language, source, trust classification, security
+label, and redaction metadata. `JsonContent` contains a schema identifier when
+known and a value constrained by configured depth, property-count, string, and
+total-byte limits.
+
+### Instructions and messages
+
+Trusted instructions and conversation messages are separate types:
+
+- `Instruction` is created only from application-controlled configuration and
+  records a stable name, version, text/artifact, and provenance;
+- `Message` has `User`, `Assistant`, or `Tool` origin plus content parts and
+  provenance;
+- provider-specific system/developer roles map from ordered `Instruction`
+  records at the adapter boundary;
+- untrusted retrieved, MCP, A2A, file, and tool content cannot be converted into
+  `Instruction` without an explicit application policy decision.
+
+Message constructors reject empty content, invalid names, excessive part counts,
+and values above runtime-configured hard limits before provider invocation.
+
+## Artifacts and provenance
+
+`ArtifactRef` contains:
+
+- tenant-scoped `ArtifactId`;
+- logical name and optional description;
+- media type and modality;
+- byte length and SHA-256 digest;
+- security label and retention class;
+- creator principal/capability plus run/event causation;
+- artifact schema/version when the content is structured.
+
+It does not expose storage credentials, bucket names, filesystem paths, or a
+permanent public URL. A runtime artifact resolver authorizes access and returns a
+bounded stream or short-lived handle appropriate for the adapter.
+
+Provenance is append-only attribution. Sanitizing or transforming an artifact
+creates a new artifact and links to its parents; it does not overwrite origin.
+
+## JSON schemas
+
+Tool inputs, tool outputs, structured model output, and structured artifacts use
+JSON Schema Draft 2020-12. `JsonSchemaDocument` validates:
+
+- a bounded encoded size and nesting depth;
+- one canonical `$id` controlled by StateKnot or the owning capability;
+- supported keywords and reference resolution policy;
+- no network resolution during validation;
+- stable schema digest and explicit version.
+
+Typed Rust tools normally generate schemas through `schemars`. A schema snapshot
+is a compatibility artifact and changes when the corresponding capability
+version changes. Input validation happens before policy and invocation; output
+validation happens before a result is committed as successful.
+
+## Capability model
+
+`CapabilityDescriptor` is the common discovery record for a model, tool, agent,
+or workflow capability. It contains a validated name, version, description,
+owner/provenance, supported modalities, schemas, required scopes, risk metadata,
+limits, and namespaced extensions.
+
+It is not itself executable. Execution uses the corresponding model, tool, or
+agent trait so unlike operations do not pretend to share one lifecycle.
+
+### Model capabilities
+
+`ModelCapabilities` explicitly records:
+
+- supported input and output modalities;
+- streaming support;
+- tool-calling and parallel-tool-calling support;
+- structured-output support and accepted schema subset;
+- known context/output token limits;
+- provider features represented by registered extension keys.
+
+`ModelRequirement` records the capabilities a request needs. Negotiation returns
+a `CapabilityMismatch` listing every unmet requirement. A runtime snapshots the
+negotiated capabilities with the attempt so recovery can detect adapter or
+provider drift.
+
+Capability data is evidence from an adapter and may become stale. It does not
+override provider errors, tenant policy, or configured safety limits.
+
+### Tool capabilities
+
+`ToolDescriptor` contains:
+
+- stable capability name and semantic version;
+- input and output schemas;
+- `ToolRisk::{ReadOnly, IdempotentWrite, NonIdempotentWrite}`;
+- required scopes and approval policy reference;
+- idempotency support and optional status-query/compensation capability;
+- timeout ceiling, concurrency class, and maximum result/artifact sizes;
+- provenance and bounded namespaced extensions.
+
+`ReadOnly` is a security and semantic assertion by the tool owner, not an
+inference from an HTTP method. Misdeclaring it is a tool defect detectable by
+review and integration tests.
+
+## Typed and erased tool boundary
+
+The public authoring trait is typed:
+
+```rust
+pub trait Tool: Send + Sync + 'static {
+    type Input: serde::de::DeserializeOwned + schemars::JsonSchema + Send + 'static;
+    type Output: serde::Serialize + schemars::JsonSchema + Send + 'static;
+
+    fn descriptor(&self) -> Result<ToolDescriptor, DescriptorError>;
+
+    fn call<'a>(
+        &'a self,
+        context: ToolContext,
+        input: Self::Input,
+    ) -> BoxFuture<'a, Result<Self::Output, ToolError>>;
+}
+```
+
+StateKnot owns an object-safe erased adapter used by registries and the runtime.
+The erased interface is not the recommended application-authoring API. It:
+
+1. validates canonical JSON input against the descriptor schema;
+2. deserializes into `Tool::Input`;
+3. invokes the typed implementation;
+4. serializes and validates `Tool::Output`;
+5. returns a bounded `ToolResult` with artifacts and external references.
+
+No tool receives a raw provider request, database transaction, bearer token, or
+unrestricted service locator.
+
+## Model boundary
+
+The object-safe `Model` trait exposes descriptor/capabilities plus unary and
+streaming invocation through runtime-neutral futures and streams:
+
+```rust
+pub trait Model: Send + Sync + 'static {
+    fn descriptor(&self) -> &ModelDescriptor;
+    fn capabilities(&self) -> &ModelCapabilities;
+
+    fn invoke<'a>(
+        &'a self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxFuture<'a, Result<ModelResponse, ModelError>>;
+
+    fn stream<'a>(
+        &'a self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxStream<'a, Result<ModelEvent, ModelError>>;
+}
+```
+
+`ModelRequest` contains ordered instructions, messages, available tool
+descriptors, required capabilities, output schema, sampling/limit values, and a
+bounded extension map. It does not contain a provider SDK request object.
+
+`ModelResponse` contains typed content, validated tool-call proposals, finish
+reason, usage, adapter/provider identifiers, and redacted provider metadata.
+Tool-call proposals are not invocations until StateKnot validates schema,
+policy, budget, approval, and invocation-ledger state.
+
+Streaming emits semantic `ModelEvent` values. Adapters may coalesce provider
+deltas, but must produce one validated terminal response or one error. Partial
+content is never treated as a committed complete response.
+
+## Identity and delegation
+
+`Principal` contains:
+
+- `TenantId`;
+- issuer and subject;
+- principal kind: user, workload, agent, or system;
+- validated scope set;
+- optional authenticated client/workload identity;
+- ordered `DelegationChain`;
+- authentication time and credential expiry metadata.
+
+Each `DelegationHop` records delegator, delegate, granted scopes, audience,
+reason, time bounds, and evidence reference. Effective scopes are the
+intersection of tenant policy, authenticated scopes, every delegation hop, and
+capability requirements. Delegation can narrow but never widen authority.
+
+The full principal is available to policy and audit. Model prompts receive only
+explicitly selected, non-secret identity attributes.
+
+## Budgets
+
+`BudgetLimit` and `BudgetUsage` cover:
+
+- wall-clock deadline;
+- graph depth and steps;
+- model attempts and turns;
+- input, cached-input, reasoning, and output tokens where observable;
+- tool calls, write calls, remote-agent delegations, and retries;
+- concurrent branches and fan-out;
+- input, output, event, checkpoint, and artifact bytes;
+- known monetary cost per currency.
+
+The runtime resolves caller limits against finite tenant and system defaults.
+The effective budget always chooses the most restrictive applicable value.
+Unknown provider cost is recorded as unknown and cannot be interpreted as zero.
+
+Usage accounting is monotonic and checked for overflow. Reservations prevent
+parallel branches from each consuming the full remaining budget. Commit or
+release of a reservation is durable runtime behavior specified by RFC-0003.
+
+## Execution contexts
+
+`RunContext`, `ModelContext`, and `ToolContext` are capability-limited views,
+not mutable property bags. `RunContext` carries:
+
+- tenant, principal, delegation, scopes, and policy version;
+- run, thread, trace, and correlation identifiers;
+- deadline and cancellation signal;
+- effective budget and usage view;
+- credential resolver handle;
+- clock and randomness services whose durable decisions can be recorded;
+- invocation identity and access to safe progress/event emission.
+
+`ModelContext` and `ToolContext` expose only the subset needed at that boundary.
+They do not implement `Serialize`. Their `Debug` output is redacted and excludes
+credential handles, tokens, content, and tool arguments.
+
+`CredentialResolver` returns a non-serializable, non-cloneable or explicitly
+zeroizing short-lived credential scoped to one named capability and audience.
+Credential resolution is audited without recording secret material.
+
+## Error model
+
+Every public operation returns a typed component error containing a common
+`Failure`:
+
+```rust
+pub enum FailureCategory {
+    InvalidInput,
+    Unauthenticated,
+    PermissionDenied,
+    PolicyDenied,
+    NotFound,
+    Conflict,
+    Unsupported,
+    RateLimited,
+    DeadlineExceeded,
+    Cancelled,
+    DependencyUnavailable,
+    DataCorruption,
+    AmbiguousExternalOutcome,
+    Internal,
+}
+
+pub enum RetryAdvice {
+    Never,
+    SafeAfter(Duration),
+    ReconcileFirst,
+}
+```
+
+`Failure` also contains a stable machine code, safe public message, origin,
+retry advice, optional safe structured details, causation ID, and a private
+source chain unavailable to serialization. It never derives retryability from
+category alone; the adapter or runtime supplies explicit advice.
+
+`AmbiguousExternalOutcome` always uses `ReconcileFirst`. It cannot be converted
+to a normal retry without a tool-specific status query, idempotency guarantee,
+compensation decision, or human resolution.
+
+Server adapters map failures to RFC 9457 problem details without exposing
+resource existence, internal SQL/provider errors, secrets, prompts, or stack
+traces. Protocol adapters use their specified error models while retaining the
+internal category in redacted audit evidence.
+
+## Extensions
+
+`Extensions` is a map keyed by absolute URI or reverse-DNS name controlled by
+the adapter owner. It has configurable limits on entries, key length, nesting,
+and encoded bytes. Core-owned keys use the StateKnot namespace.
+
+Extensions cannot:
+
+- add scopes or bypass policy;
+- alter tenant, identity, deadlines, budgets, risk, or idempotency semantics;
+- contain raw credentials;
+- participate in deterministic decisions unless their schema, canonical form,
+  and version are registered and pinned;
+- be silently forwarded across trust boundaries.
+
+Unknown extensions are either preserved as opaque bounded data or rejected
+according to the receiving boundary's negotiated profile.
+
+## Canonical serialization
+
+Durable and signed values use an envelope:
+
+```json
+{
+  "schema": "https://stateknot.github.io/schema/run-event/1.0.0",
+  "kind": "tool-call-requested",
+  "data": {}
+}
+```
+
+The `stateknot.github.io` authority is controlled by the GitHub organization and
+keeps schema identity independent of a registrar or future marketing-domain
+change. A schema identifier is stable identity; runtime validation MUST NOT
+require network dereferencing.
+
+Canonical bytes use RFC 8785 JSON Canonicalization Scheme after StateKnot schema
+validation. JSON numbers must be finite and schema-bounded; money, 64-bit values
+that cross JavaScript boundaries, timestamps, UUIDs, and digests use their
+defined string or integer forms. Hashes include the schema identifier and kind.
+
+Ordinary API JSON may be pretty-printed or reordered, but approval action
+hashes, idempotency input hashes, schema digests, event checksums, and fixture
+goldens always use canonical bytes.
+
+Security-bearing commands reject unknown fields. Durable event readers may
+ignore additive fields only within a supported schema-major version and must
+retain the original canonical payload/checksum for audit. Unsupported major
+versions fail explicitly and never fall back to best-effort decoding.
+
+## Persistence and migration
+
+This RFC defines serializable values but not table layout. RFC-0003 must ensure:
+
+- every persisted domain payload carries its schema identifier and checksum;
+- durable data uses explicit conversion records rather than serializing arbitrary
+  Rust implementation structs directly;
+- migrations transform from known schema versions and preserve provenance;
+- unknown or corrupt payloads quarantine the affected run instead of causing
+  unsafe execution or process-wide failure;
+- N-1 and N-2 fixtures remain readable or have a documented offline migration.
+
+## Security and privacy
+
+- all constructors enforce length, count, depth, and canonical-form limits before
+  allocation or downstream calls where practical;
+- sensitive content is labeled and redacted by default; `Debug`, error, tracing,
+  and metrics implementations use safe summaries;
+- secret-bearing types do not implement `Serialize`, `Clone`, `Display`, or
+  revealing `Debug` and use zeroization where the backing SDK permits;
+- tenant and principal are required arguments for resource-bearing operations;
+- untrusted content cannot become an instruction, tool definition, capability,
+  extension policy, or credential reference through deserialization alone;
+- URLs are represented as untrusted references and fetched only through the
+  RFC-0004 egress boundary;
+- capability schemas and descriptors have provenance and version pins to resist
+  tool-definition and protocol supply-chain substitution.
+
+## Observability and operations
+
+Domain objects expose safe attribute projections rather than relying on generic
+serialization. Required low-cardinality telemetry includes component, stable
+operation, result category, retry advice, capability name/version, protocol
+profile, and budget dimension. Tenant, run, model, tool, and remote identifiers
+follow configurable cardinality and privacy policies.
+
+Content, raw JSON, artifact names, external references, subjects, and error
+source chains are not metric labels. Trace/event content capture is disabled by
+default and, when enabled, applies field-level redaction and retention policy.
+
+## Compatibility
+
+- the initial MSRV is Rust 1.85.0;
+- public Rust APIs follow the release-stage semantic-versioning policy;
+- serialized schema compatibility is versioned independently from crate semver;
+- adapter updates may add provider or protocol capabilities without changing
+  core types when they fit bounded extensions;
+- changing an enum's wire representation, canonical form, ID format, trust
+  semantics, error category, or budget accounting is a schema/RFC change;
+- internal struct layout is not stable ABI and no C ABI is promised by v1.
+
+## Alternatives considered
+
+### Use `serde_json::Value` for all state and tool data
+
+Rejected because it moves schema, trust, migration, redaction, and deterministic
+merge failures to runtime and makes public guarantees difficult to enforce.
+JSON remains available at explicit structured-content and erased-adapter
+boundaries.
+
+### Re-export one provider SDK's request/response types
+
+Rejected because provider release cycles, authentication, role models, streaming
+events, and extension semantics would become StateKnot's public compatibility
+surface and would disadvantage other providers.
+
+### Use MCP or A2A types as the common capability model
+
+Rejected because MCP tools, A2A tasks, internal runs, local tools, and model
+requests have different identity, lifecycle, durability, and authorization
+semantics. Explicit adapters are safer and independently versionable.
+
+### Expose only erased dynamic tools
+
+Rejected because application authors would lose compile-time input/output types
+and would repeatedly implement unsafe JSON decoding. A typed authoring trait plus
+one framework-owned erased adapter provides both ergonomics and heterogeneity.
+
+### Add a general service container to context
+
+Rejected because it hides dependencies, enables accidental secret/database
+access, complicates testing, and turns context into an unversioned plugin API.
+Contexts expose a fixed least-privilege surface.
+
+## Validation and rollout
+
+Before this RFC can be accepted:
+
+1. first-agent, typed-tool, model-stream, and protocol-adapter contract examples
+   compile on MSRV without provider, Tokio, database, or server dependencies in
+   `stateknot-core`;
+2. every identifier, timestamp, money, digest, schema, content, descriptor,
+   error, and durable envelope has canonical round-trip fixtures;
+3. property tests cover constructor bounds, canonicalization stability, budget
+   arithmetic, delegation scope intersection, and extension limits;
+4. fuzz tests cover domain deserialization, schemas, canonical JSON, unknown
+   fields, deeply nested content, oversized values, and malicious Unicode;
+5. compile-fail tests prove that secret/context handles cannot be serialized and
+   typed tools cannot enter the registry without valid schemas/descriptors;
+6. N-1/N-2 fixture migrations demonstrate explicit unsupported-version and
+   corruption behavior;
+7. a dependency review confirms that core has no provider, protocol, database,
+   HTTP server, async executor, or telemetry exporter dependency;
+8. the three qualification scenarios map every required domain value to these
+   types without an unbounded property bag;
+9. a security review covers instruction promotion, descriptor substitution,
+   cross-tenant IDs, extension smuggling, secret formatting, resource exhaustion,
+   and ambiguous external outcomes.
+
+The rollout order is core value types and fixtures, typed tool adapter, model
+boundary, context/identity/budget integration, and only then graph/persistence/
+protocol adapters. No crate is published while contract fixtures or materially
+changing questions remain unresolved.
+
+## Unresolved questions
+
+1. Decide whether `Timestamp` exposes a conversion to the `time` crate behind a
+   feature or only standard-library conversions; its canonical wire form is
+   already fixed here.
+2. Benchmark RFC 8785 canonicalization and schema validation against the GS-001
+   event rate before accepting the implementation dependency; the canonical
+   behavior remains required even if the implementation changes.

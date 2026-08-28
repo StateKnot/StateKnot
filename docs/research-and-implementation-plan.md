@@ -393,7 +393,7 @@ LLM 与外部工具天然不确定，不能假设“重新执行得到同样结�
 
 每个 event 有 `event_id`、run 内单调 `seq`、causation/correlation、timestamp、schema version 和 redaction metadata。客户端可用 `Last-Event-ID` 恢复，无需重新开始 run。
 
-## 12. Memory 与 RAG
+## 12. Memory 与检索边界
 
 必须分开三种状态：
 
@@ -401,9 +401,9 @@ LLM 与外部工具天然不确定，不能假设“重新执行得到同样结�
 2. **Conversation/thread memory**：同一会话的短期上下文；
 3. **Long-term knowledge/memory**：跨 thread 检索，带 provenance、ACL、TTL 和更新策略。
 
-核心 trait 只提供 `DocumentStore`、`Embedder`、`Retriever`、`Reranker`、`MemoryStore`。RAG 是否进入 v1 要由 golden scenario 决定；若进入，首个正式 adapter 只支持 PostgreSQL/pgvector，并同时交付 ingestion、去重、embedding 版本、reindex、ACL、删除传播和 retrieval eval。
+M0 范围决策已经将内建 RAG ingestion、vector database adapter、chunking 和 connector catalog 排除在 v1 之外。v1 不预先创建 `DocumentStore`、`Embedder`、`Retriever`、`Reranker` 或 `MemoryStore` 公共 trait；检索与长期知识通过普通 local tool 或 MCP tool 接入，并遵循相同的 schema、policy、provenance、budget 和审计规则。只有生产场景证明工具边界不足时，才通过新 RFC 设计最小的长期 memory/RAG API。
 
-任何被检索内容都视为不可信数据：带来源与信任标签进入 prompt，不得提升为 system/developer instruction。长期 memory 写入需 policy，敏感结论可要求审批；支持过期、撤销和污染追踪。
+任何被检索内容都视为不可信数据：带来源与信任标签进入 prompt，不得提升为 system/developer instruction。外部长期 memory 写入需经过工具 policy，敏感结论可要求审批；调用证据必须支持过期、撤销和污染追踪。
 
 ## 13. 安全架构
 
@@ -621,16 +621,17 @@ GET    /health/ready
 6. 许可证：项目明确采用 Apache License 2.0；如未来存在商业扩展，必须与开源核心保持清晰的代码、商标、发布物和依赖边界；
 7. 公共 API 在真实纵向用例与故障恢复验证完成前保持 `0.x`，但运行保证与数据迁移从第一天按生产标准实现。
 
-## 21. 下一步交付物
+## 21. 当前 M0 交付物
 
-进入编码前建议先完成并评审四份 ADR/RFC：
+仓库治理、CI、不发布的 facade crate、v1 scope baseline 与三个 Golden
+Scenario 已经建立。下一步完成并评审四份 RFC：
 
-1. `RFC-001 Core Domain and Capability Model`；
-2. `RFC-002 Graph Execution and Deterministic Reduction`；
-3. `RFC-003 PostgreSQL Journal, Checkpoint and Recovery`；
-4. `RFC-004 MCP/A2A Mapping, Identity and Security Boundaries`。
+1. `RFC-0001 Core Domain and Capability Model`（Draft）；
+2. `RFC-0002 Graph Execution and Deterministic Reduction`；
+3. `RFC-0003 PostgreSQL Journal, Checkpoint and Recovery`；
+4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
 
-同时建立 `CONTRIBUTING.md`、`CODE_OF_CONDUCT.md`、`SECURITY.md`、`GOVERNANCE.md`、第三方许可证策略和 DCO 检查。之后再初始化 workspace，并以阶段 0 的纵向链路作为第一个可执行验收目标。这样第一批代码就落在最终架构上，而不是先写一个无法扩展和恢复的 demo。
+RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的类型契约；RFC 评审期间的实现不得作为稳定 API 或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
 
 ## 22. 主要一手资料
 

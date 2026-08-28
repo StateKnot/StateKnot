@@ -38,30 +38,32 @@ StateKnot is being designed around five commitments:
   auditability, OpenTelemetry, evaluation, failure injection, and compatibility
   testing are design requirements rather than optional add-ons.
 
-The planned v1 baseline targets PostgreSQL-backed execution, OpenAI-compatible
-and Anthropic model adapters, MCP client/server support, and A2A REST/JSON-RPC
-client/server support. Scope is not considered frozen until the phase-zero RFCs
-and golden scenarios are accepted.
+The v1 scope baseline targets PostgreSQL-backed execution, OpenAI-compatible and
+Anthropic model adapters, MCP client/server support, and A2A REST/JSON-RPC
+client/server support. Its supported surface and explicit exclusions are
+recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 ## Current milestone
 
 The project is in the **architecture-contract and vertical-validation phase**:
 
-1. freeze three representative production scenarios and their load/failure models;
+1. validate the three frozen production scenarios and their load/failure models;
 2. accept the core domain, graph, durability, and protocol/security RFCs;
 3. prove one end-to-end durable execution path with crash recovery;
 4. publish compatibility and performance evidence before claiming support.
 
-See the [roadmap](docs/roadmap.md), the full
+See the [qualification scenarios](docs/scenarios/README.md), the
+[roadmap](docs/roadmap.md), the full
 [research and implementation plan](docs/research-and-implementation-plan.md),
 and the [completeness audit](docs/plan-completeness-audit.md).
 
 ## Repository layout
 
 ```text
-crates/stateknot/   Unpublished facade crate used to validate the workspace
-docs/               Architecture research, roadmap, and RFC process
-.github/             Contribution templates and automated quality gates
+crates/stateknot/        Unpublished facade crate used to validate the workspace
+crates/stateknot-core/   Experimental, validated domain types from RFC-0001
+docs/                    Architecture contracts, qualification scenarios, and roadmap
+.github/                 Contribution templates and automated quality gates
 ```
 
 Additional crates will be created only after their dependency or semantic
@@ -75,9 +77,9 @@ With `rustup` installed, the toolchain is selected automatically.
 
 ```console
 cargo fmt --all --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo test --workspace --all-targets --all-features --locked
-RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
 ```
 
 Before proposing an implementation, read [CONTRIBUTING.md](CONTRIBUTING.md).

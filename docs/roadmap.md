@@ -5,12 +5,24 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot roadmap
 
-> Current phase: repository bootstrap and architecture contracts. StateKnot has
-> no production release or stable API yet.
+> Current phase: M0 architecture contracts. Repository bootstrap is complete;
+> StateKnot has no production release or stable API yet.
 
 The roadmap is evidence-driven. Dates may be estimated in planning discussions,
 but a milestone exits only when its acceptance evidence is committed or linked
 from the repository.
+
+## Current M0 tracking
+
+- [x] Freeze the [v1 scope and explicit non-goals](v1-scope.md).
+- [x] Define the three [qualification scenarios](scenarios/README.md), shared
+  reference environment, loads, failure matrices, and release thresholds.
+- [ ] Accept RFC-0001 for the core domain and capability model.
+- [ ] Accept RFC-0002 for deterministic graph and scheduler semantics.
+- [ ] Accept RFC-0003 for PostgreSQL durability, recovery, and migration.
+- [ ] Accept RFC-0004 for MCP/A2A identity and security mapping.
+- [ ] Compile the four public contract examples against the proposed APIs.
+- [ ] Commit the benchmark harness and fault-injection matrix.
 
 ## M0 — Architecture contracts
 
@@ -22,7 +34,8 @@ Deliverables:
   scenario;
 - accepted RFCs for the core domain, deterministic graph execution,
   PostgreSQL durability, and MCP/A2A identity and security mapping;
-- a decision on whether production RAG belongs in v1;
+- a recorded decision excluding built-in RAG ingestion and vector database
+  adapters from v1;
 - reference hardware and measurable performance/recovery thresholds.
 
 Exit criteria:
@@ -32,6 +45,9 @@ Exit criteria:
 - schema migration, retention, RPO/RTO, authentication, policy, and scheduler
   fairness have executable acceptance plans;
 - unresolved questions capable of changing public types are closed.
+
+The scope decision excludes built-in RAG ingestion and vector database adapters
+from v1. Retrieval remains available through ordinary local or MCP tools.
 
 ## M1 — Production-shaped vertical slice
 

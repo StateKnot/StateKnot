@@ -16,4 +16,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 - Initial Rust workspace and repository governance.
 - Architecture research, implementation plan, completeness audit, and roadmap.
+- Frozen v1 scope and production qualification scenarios with measurable load,
+  failure, recovery, security, and interoperability gates.
+- Initial RFC draft for the core domain, typed capability, identity, budget,
+  error, and canonical serialization contracts.
+- Initial `stateknot-core` implementation with validated tenant identifiers and
+  canonical, strongly typed UUIDv7 identifiers.
 - CI, dependency policy, issue forms, and security reporting guidance.

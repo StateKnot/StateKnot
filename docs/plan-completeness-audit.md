@@ -9,6 +9,10 @@ SPDX-License-Identifier: Apache-2.0
 > 审计范围：当前仓库全部文件；架构主文档为 `docs/research-and-implementation-plan.md`。
 > 方法：Ponytail 只审查过度设计；完整性、正确性、安全、运维和开源治理另做正常评审。
 
+> M0 处理进度：[`v1-scope.md`](v1-scope.md) 已解决 v1 范围与 RAG 边界，
+> [`scenarios/`](scenarios/README.md) 已固定三个场景、参考环境、负载、故障模型与首组性能/恢复阈值。
+> Scheduler、storage lifecycle、schema migration、authentication/policy 和公共 API 仍必须由 RFC-0001 至 RFC-0004 关闭，不能因场景文档完成而视为已解决。
+
 ## 1. 总体结论
 
 方案的架构方向是成立的，已经覆盖 Agent loop、typed graph、耐久执行、MCP/A2A、安全、可观测性、评测与部署，明显超过概念性方案。
