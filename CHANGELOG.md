@@ -63,4 +63,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   and strict reverse-DNS identities, explicit opaque/schema-bound trust modes,
   exact compact-map accounting, immutable hard ceilings, caller-only
   narrowing, redacted diagnostics, closed schemas, and versioned wire fixtures.
+- Owner-qualified, version-pinned common capability metadata with bounded
+  redacted discovery text, closed kinds, validated active/deprecated/retired
+  lifecycles, self-replacement rejection, required scopes, bounded extensions,
+  closed schemas, property tests, and versioned wire fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

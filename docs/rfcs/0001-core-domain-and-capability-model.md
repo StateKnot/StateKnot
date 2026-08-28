@@ -585,13 +585,66 @@ external identifier as provenance, and rejects an unmapped or colliding value.
 It does not normalize an arbitrary remote identifier into a local executable
 name.
 
-`CapabilityDescriptor` is the common discovery record for a model, tool, agent,
-or workflow capability. It contains a validated name, version, description,
-owner/provenance, supported modalities, schemas, required scopes, risk metadata,
-limits, and namespaced extensions.
+`CapabilityIdentity { owner, capability }` makes a durable reference
+owner-qualified and version-pinned. `owner` is a `PrincipalIdentity`, while
+`capability` is a `CapabilityReference { name, version }`. The serialized owner
+is an auditable registry claim, not authentication, registration proof, or
+authorization. A bare name/version pair is valid only when the surrounding
+record already pins the registry namespace.
 
-It is not itself executable. Execution uses the corresponding model, tool, or
-agent trait so unlike operations do not pretend to share one lifecycle.
+`CapabilityKind` is closed to `model`, `tool`, `agent`, `workflow`, and
+`application`. `CapabilityMetadata` is the deliberately small discovery record
+shared by specialized descriptors. Its exact fields are:
+
+- owner-qualified `identity` and closed `kind`;
+- optional `CapabilityTitle`, limited to 256 UTF-8 bytes, and mandatory
+  `CapabilityDescription`, limited to 16 KiB;
+- validated `CapabilityLifecycle`;
+- a bounded, duplicate-rejecting `required_scopes` set;
+- bounded namespaced `extensions`.
+
+Titles are single-line. Descriptions may contain internal tab and CR/LF. Both
+preserve exact UTF-8, reject boundary whitespace, bidi formatting controls and
+Unicode noncharacters, and redact their text from `Debug`; titles additionally
+reject every control and Unicode line separator. These checks prevent ambiguous
+audit/display forms but do not make remote text trusted or replace
+output-context escaping.
+
+`CapabilityLifecycle` is a validated closed union:
+
+- `active` has no additional fields;
+- `deprecated` requires `announced_at` and a bounded migration `notice`, and may
+  carry a `sunset_at` strictly later than the announcement plus an
+  owner-qualified `replacement`;
+- `retired` requires `retired_at` and a bounded notice, and may carry a
+  replacement.
+
+A metadata record rejects an exact self-reference as its replacement. A sunset
+timestamp is publication data, not an implicit wall-clock scheduler: the
+registry snapshots and enforces availability under policy. Retired records stay
+decodable for audit and recovery but cannot be selected for new execution.
+
+The common record intentionally excludes modalities, input/output schemas,
+risk, provider features, execution limits, examples, tags, and transport
+security schemes. Those fields have different semantics and requiredness in
+specialized model, tool, and agent descriptors. This boundary follows the
+actual interoperability surface: an
+[MCP 2026-07-28 tool](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)
+has name/title/description, schemas, and explicitly untrusted annotations;
+[A2A 1.0 `AgentSkill`](https://a2a-protocol.org/latest/specification/#445-agentskill)
+adds tags, examples, modalities, and security requirements; and the
+[OpenAI](https://developers.openai.com/api/docs/guides/function-calling) and
+[Anthropic](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools)
+tool contracts expose different schema subsets and provider controls. Adapters
+therefore map identity/title/description into common metadata and retain the
+rest in the appropriate typed descriptor or bounded adapter envelope.
+
+`CapabilityMetadata` is not itself executable. A trusted tenant registry must
+authenticate the owner, pin the exact version, apply policy, validate any
+registered extension semantics, and snapshot the specialized descriptor for an
+execution attempt. Execution then uses the corresponding model, tool, agent,
+workflow, or application boundary; unlike operations do not pretend to share
+one invocation contract.
 
 ### Model capabilities
 
@@ -616,13 +669,13 @@ override provider errors, tenant policy, or configured safety limits.
 
 `ToolDescriptor` contains:
 
-- stable capability name and semantic version;
+- common `CapabilityMetadata` whose kind is exactly `tool`;
 - input and output schemas;
 - `ToolRisk::{ReadOnly, IdempotentWrite, NonIdempotentWrite}`;
-- required scopes and approval policy reference;
+- approval policy reference and tool-specific resource capabilities;
 - idempotency support and optional status-query/compensation capability;
 - timeout ceiling, concurrency class, and maximum result/artifact sizes;
-- provenance and bounded namespaced extensions.
+- schema/artifact provenance required by the invocation boundary.
 
 `ReadOnly` is a security and semantic assertion by the tool owner, not an
 inference from an HTTP method. Misdeclaring it is a tool defect detectable by

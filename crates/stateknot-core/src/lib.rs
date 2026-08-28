@@ -44,7 +44,12 @@ pub use budget::{
     BudgetUsage, BudgetUsageBuilder, BudgetUsageError, CostCollectionError, CostLimits, KnownCosts,
     MAX_BUDGET_LAYERS, MAX_COST_CURRENCIES, ResolvedBudget,
 };
-pub use capability::{CapabilityName, CapabilityNameError, CapabilityReference};
+pub use capability::{
+    CapabilityDescription, CapabilityDescriptionError, CapabilityIdentity, CapabilityKind,
+    CapabilityLifecycle, CapabilityLifecycleError, CapabilityLifecycleState, CapabilityMetadata,
+    CapabilityMetadataError, CapabilityName, CapabilityNameError, CapabilityReference,
+    CapabilityTitle, CapabilityTitleError,
+};
 pub use content::{
     ContentMetadata, ContentSource, ContentTrust, JsonContent, LanguageTag, LanguageTagError,
     RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,

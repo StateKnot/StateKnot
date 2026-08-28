@@ -217,7 +217,37 @@ flowchart TB
 - provider 或协议未知字段只保存在 adapter 自己的有界、namespaced envelope 中，不能伪装为 core content 或绕过 schema/trust 策略；
 - core durable wire 对未知安全枚举和值 fail closed；adapter 可在明确版本协商下保留未知协议字段，不能因供应商新增 event 崩溃或静默改变语义。
 
-### 8.2 Model
+### 8.2 Capability / discovery metadata
+
+协议和 provider 的最小公共交集只能固化为身份与发现元数据，不能把某一种工具
+定义伪装成万能 capability：
+
+- `CapabilityIdentity` 必须由 registry owner 的 `PrincipalIdentity` 与
+  `CapabilityReference { name, version }` 组成；序列化 owner 只是可审计声明，
+  不是认证或注册证明；
+- `CapabilityKind` 封闭为 `model | tool | agent | workflow | application`；
+- `CapabilityMetadata` 只包含 identity、kind、可选 title、必填 description、
+  lifecycle、required scopes 和 bounded extensions；title 上限 256 UTF-8 bytes，
+  description 上限 16 KiB，均保留原始 UTF-8、拒绝边界空白/双向格式控制/
+  Unicode noncharacter 并在 Debug 中脱敏；
+- lifecycle 封闭为 active、deprecated、retired；deprecated 的可选 sunset 必须
+  严格晚于 announced time，替代 capability 必须 owner-qualified 且不能精确指向
+  自身；sunset 不直接充当时钟策略，retired 记录可读取但不能进入新执行；
+- model modalities/provider features、tool schemas/risk/resource permissions、
+  A2A tags/examples/media modes/security schemes 都留在各自的 typed descriptor，
+  不进入 common metadata。
+
+这个分层来自协议实际差异：[MCP 2026-07-28 tool](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)
+包含 name/title/description、input/output schema 和必须按不可信处理的 annotations；
+[A2A 1.0 `AgentSkill`](https://a2a-protocol.org/latest/specification/#445-agentskill)
+还包含 tags、examples、input/output modes 与 security requirements；
+[OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling)
+和 [Anthropic tool definitions](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools)
+又有不同名称语法、schema subset 和 strict/provider controls。adapter 必须显式、
+可失败地映射；只有 tenant registry 完成 owner 认证、版本固定、policy 校验、
+扩展注册校验和 attempt snapshot 后，发现数据才能参与选择或进入模型上下文。
+
+### 8.3 Model
 
 公共接口不能只抽象成 `prompt -> String`。至少需要：
 
@@ -229,7 +259,7 @@ flowchart TB
 
 建议 v1 只提供两个高保真第一方 adapter：OpenAI Responses/OpenAI-compatible 与 Anthropic Messages。其他 provider 在有明确用户需求和契约测试后再加入。
 
-### 8.3 Tool
+### 8.4 Tool
 
 工具规范至少包含：
 
@@ -253,7 +283,7 @@ pub trait Tool: Send + Sync {
 
 local function、MCP tool、workflow-as-tool 和 remote A2A agent 都可适配为可执行 capability，但必须保留各自身份、风险和生命周期，不能假装它们完全相同。
 
-### 8.4 RunContext
+### 8.5 RunContext
 
 `RunContext` 必须携带且向下传播：
 
@@ -263,7 +293,7 @@ local function、MCP tool、workflow-as-tool 和 remote A2A agent 都可适配�
 - credential resolver 的句柄，而不是明文 secret；
 - clock、random source 与 invocation ledger 访问器，便于确定性测试。
 
-### 8.5 Failure / Retry
+### 8.6 Failure / Retry
 
 公共组件错误组合统一 `Failure`，但不把 HTTP、gRPC、A2A 或 MCP 的 wire
 error 当作核心模型。每次失败使用 UUIDv7 `FailureId`，并携带闭集
@@ -286,7 +316,7 @@ HTTP+JSON binding 保留标准 code/message/details 语义；MCP 2026-07-28
 adapter 必须区分 JSON-RPC protocol error 与模型可修正的 tool execution
 error。所有 adapter mapping 都是显式、可失败、带 fixture/TCK 的边界。
 
-### 8.6 Extensions
+### 8.7 Extensions
 
 core `Extensions` 是协议中立的有界容器，而不是插件注册表。key 只接受不超过
 512 bytes 的规范化 HTTPS/URN 标识或至少三段的严格小写 reverse-DNS 名称；

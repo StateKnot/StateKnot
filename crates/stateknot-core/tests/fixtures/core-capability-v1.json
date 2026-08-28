@@ -1,0 +1,343 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-capability/1.0.0",
+  "identities": {
+    "valid": [
+      {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "registry-owner"
+        },
+        "capability": {
+          "name": "payments.capture",
+          "version": "2.1.0"
+        }
+      },
+      {
+        "owner": {
+          "issuer": "https://partners.example.net/oidc",
+          "subject": "remote-agent-owner"
+        },
+        "capability": {
+          "name": "remote.approval-agent",
+          "version": "1.0.0"
+        }
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "capability": {
+          "name": "payments.capture",
+          "version": "2.1.0"
+        }
+      },
+      {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "registry-owner"
+        },
+        "capability": {
+          "name": "payments/capture",
+          "version": "2.1.0"
+        }
+      },
+      {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "registry-owner"
+        },
+        "capability": {
+          "name": "payments.capture",
+          "version": "2.1"
+        }
+      },
+      {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "registry-owner"
+        },
+        "capability": {
+          "name": "payments.capture",
+          "version": "2.1.0"
+        },
+        "authenticated": true
+      },
+      null
+    ]
+  },
+  "titles": {
+    "valid": [
+      "Capture payment",
+      "远程审批代理",
+      "Incident response 🚒"
+    ],
+    "invalid": [
+      "",
+      " leading space",
+      "trailing space ",
+      "two\nlines",
+      "hidden\u202erendering",
+      "noncharacter\ufdd0",
+      42,
+      null
+    ]
+  },
+  "descriptions": {
+    "valid": [
+      "Capture exactly one approved payment.",
+      "First validate the approval.\nThen capture the payment.\n\tNever infer currency.",
+      "处理一个已批准的付款请求。"
+    ],
+    "invalid": [
+      "",
+      " leading space",
+      "trailing newline\n",
+      "embedded\u0000control",
+      "hidden\u2066direction\u2069",
+      "noncharacter\ufdd0",
+      42,
+      null
+    ]
+  },
+  "kinds": {
+    "valid": [
+      "model",
+      "tool",
+      "agent",
+      "workflow",
+      "application"
+    ],
+    "invalid": [
+      "skill",
+      "Tool",
+      "",
+      42,
+      null
+    ]
+  },
+  "lifecycles": {
+    "valid": [
+      {
+        "status": "active"
+      },
+      {
+        "status": "deprecated",
+        "announced_at": "2026-08-29T00:00:00.000000Z",
+        "sunset_at": "2027-02-28T00:00:00.000000Z",
+        "notice": "Migrate to payments.capture 3.0.0 before retirement.",
+        "replacement": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "3.0.0"
+          }
+        }
+      },
+      {
+        "status": "retired",
+        "retired_at": "2027-02-28T00:00:00.000001Z",
+        "notice": "This capability is retained only for durable history."
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "status": "unknown"
+      },
+      {
+        "status": "active",
+        "notice": "Unexpected field."
+      },
+      {
+        "status": "deprecated",
+        "announced_at": "2026-08-29T00:00:00.000000Z"
+      },
+      {
+        "status": "deprecated",
+        "announced_at": "2026-08-29T00:00:00.000000Z",
+        "sunset_at": "2026-08-29T00:00:00.000000Z",
+        "notice": "Invalid sunset order."
+      },
+      {
+        "status": "retired",
+        "notice": "Missing retirement time."
+      },
+      null
+    ]
+  },
+  "metadata": {
+    "valid": [
+      {
+        "identity": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "kind": "tool",
+        "description": "Capture exactly one approved payment.",
+        "lifecycle": {
+          "status": "active"
+        },
+        "required_scopes": [
+          "payments:capture"
+        ],
+        "extensions": {}
+      },
+      {
+        "identity": {
+          "owner": {
+            "issuer": "https://partners.example.net/oidc",
+            "subject": "remote-agent-owner"
+          },
+          "capability": {
+            "name": "remote.approval-agent",
+            "version": "1.0.0"
+          }
+        },
+        "kind": "agent",
+        "title": "远程审批代理",
+        "description": "Request an approval from the configured partner.\nReturns a durable task reference.",
+        "lifecycle": {
+          "status": "deprecated",
+          "announced_at": "2026-08-29T00:00:00.000000Z",
+          "sunset_at": "2027-02-28T00:00:00.000000Z",
+          "notice": "Migrate to remote.approval-agent 2.0.0.",
+          "replacement": {
+            "owner": {
+              "issuer": "https://partners.example.net/oidc",
+              "subject": "remote-agent-owner"
+            },
+            "capability": {
+              "name": "remote.approval-agent",
+              "version": "2.0.0"
+            }
+          }
+        },
+        "required_scopes": [
+          "agent:delegate",
+          "approval:read"
+        ],
+        "extensions": {
+          "https://example.com/extensions/a2a/v1": {
+            "kind": "opaque",
+            "value": {
+              "protocol_skill_id": "request-approval"
+            }
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "identity": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "kind": "unknown",
+        "description": "Capture exactly one approved payment.",
+        "lifecycle": {
+          "status": "active"
+        },
+        "required_scopes": [],
+        "extensions": {}
+      },
+      {
+        "identity": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "kind": "tool",
+        "description": "Capture exactly one approved payment.",
+        "lifecycle": {
+          "status": "deprecated",
+          "announced_at": "2026-08-29T00:00:00.000000Z",
+          "notice": "Use a replacement.",
+          "replacement": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        },
+        "required_scopes": [],
+        "extensions": {}
+      },
+      {
+        "identity": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "kind": "tool",
+        "title": "Invalid\nTitle",
+        "description": "Capture exactly one approved payment.",
+        "lifecycle": {
+          "status": "active"
+        },
+        "required_scopes": [],
+        "extensions": {}
+      },
+      {
+        "identity": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "kind": "tool",
+        "description": "Capture exactly one approved payment.",
+        "lifecycle": {
+          "status": "active"
+        },
+        "required_scopes": [],
+        "extensions": {},
+        "authenticated": true
+      },
+      null
+    ]
+  },
+  "raw_invalid": {
+    "lifecycles": [
+      "{\"status\":\"active\",\"status\":\"active\"}",
+      "{\"status\":\"deprecated\",\"announced_at\":\"2026-08-29T00:00:00.000000Z\",\"notice\":\"First notice.\",\"notice\":\"Second notice.\"}"
+    ],
+    "metadata": [
+      "{\"identity\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"registry-owner\"},\"capability\":{\"name\":\"payments.capture\",\"version\":\"2.1.0\"}},\"identity\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"other-owner\"},\"capability\":{\"name\":\"payments.capture\",\"version\":\"2.1.0\"}},\"kind\":\"tool\",\"description\":\"Capture one payment.\",\"lifecycle\":{\"status\":\"active\"},\"required_scopes\":[],\"extensions\":{}}",
+      "{\"identity\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"registry-owner\",\"subject\":\"other-owner\"},\"capability\":{\"name\":\"payments.capture\",\"version\":\"2.1.0\"}},\"kind\":\"tool\",\"description\":\"Capture one payment.\",\"lifecycle\":{\"status\":\"active\"},\"required_scopes\":[],\"extensions\":{}}"
+    ]
+  }
+}
