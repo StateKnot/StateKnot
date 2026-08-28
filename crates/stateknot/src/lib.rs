@@ -1,10 +1,14 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-#![doc = include_str!("../../../README.md")]
-// The included project README uses StateKnot as a brand name, not a Rust item.
-#![allow(clippy::doc_markdown)]
-#![forbid(unsafe_code)]
+//! # `StateKnot`
+//!
+//! Durable agent orchestration for Rust.
+//!
+//! This facade crate is intentionally empty during the architecture-contract
+//! phase. Public types will be added only after their RFC and vertical
+//! validation pass. See the
+//! [project repository](https://github.com/StateKnot/StateKnot) for the current
+//! status, architecture plan, and roadmap.
 
-// This facade intentionally exports no public API during the architecture-contract
-// phase. Public types are added only after their RFC and vertical validation pass.
+#![forbid(unsafe_code)]
