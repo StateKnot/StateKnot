@@ -15,9 +15,12 @@ use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use thiserror::Error;
 
+use crate::decimal::{UnsignedDecimalError, parse_bounded_u64};
+
 const TIMESTAMP_LEN: usize = 27;
 const TIMESTAMP_PATTERN: &str =
     "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$";
+const DURATION_MILLIS_PATTERN: &str = "^(0|[1-9][0-9]{0,18})$";
 const MICROS_PER_SECOND: i128 = 1_000_000;
 
 /// A UTC instant with canonical microsecond precision.
@@ -277,7 +280,8 @@ fn timestamp_from_duration(
 
 /// A non-negative duration represented as signed 64-bit milliseconds.
 ///
-/// Its stable serialized form is a JSON integer. Construction from
+/// Its stable serialized form is a canonical decimal JSON string, preserving
+/// exact 64-bit values across JavaScript boundaries. Construction from
 /// [`Duration`] rejects sub-millisecond precision instead of truncating it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DurationMillis(i64);
@@ -334,6 +338,23 @@ impl TryFrom<i64> for DurationMillis {
     }
 }
 
+impl fmt::Display for DurationMillis {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
+impl FromStr for DurationMillis {
+    type Err = DurationMillisError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let parsed = parse_bounded_u64(value, i64::MAX.unsigned_abs())
+            .map_err(DurationMillisError::from_decimal_error)?;
+        let milliseconds = i64::try_from(parsed).map_err(|_| DurationMillisError::TooLarge)?;
+        Ok(Self(milliseconds))
+    }
+}
+
 impl TryFrom<u64> for DurationMillis {
     type Error = DurationMillisError;
 
@@ -373,7 +394,7 @@ impl Serialize for DurationMillis {
     where
         S: Serializer,
     {
-        serializer.serialize_i64(self.0)
+        serializer.collect_str(self)
     }
 }
 
@@ -382,8 +403,7 @@ impl<'de> Deserialize<'de> for DurationMillis {
     where
         D: Deserializer<'de>,
     {
-        let value = i64::deserialize(deserializer)?;
-        Self::new(value).map_err(de::Error::custom)
+        deserializer.deserialize_str(DurationMillisVisitor)
     }
 }
 
@@ -398,9 +418,10 @@ impl JsonSchema for DurationMillis {
 
     fn json_schema(_: &mut SchemaGenerator) -> Schema {
         json_schema!({
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9_223_372_036_854_775_807_i64
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 19,
+            "pattern": DURATION_MILLIS_PATTERN
         })
     }
 
@@ -420,6 +441,14 @@ pub enum DurationMillisError {
         milliseconds: i64,
     },
 
+    /// The wire value was empty or contained a non-decimal byte.
+    #[error("duration must contain only unsigned ASCII decimal digits")]
+    InvalidFormat,
+
+    /// The wire value contained a leading zero.
+    #[error("duration contains a leading zero")]
+    NonCanonical,
+
     /// The duration exceeded the signed 64-bit millisecond range.
     #[error("duration exceeds the supported millisecond range")]
     TooLarge,
@@ -427,6 +456,35 @@ pub enum DurationMillisError {
     /// Conversion would silently discard sub-millisecond precision.
     #[error("duration contains sub-millisecond precision")]
     SubmillisecondPrecision,
+}
+
+impl DurationMillisError {
+    fn from_decimal_error(error: UnsignedDecimalError) -> Self {
+        match error {
+            UnsignedDecimalError::Empty | UnsignedDecimalError::InvalidCharacter { .. } => {
+                Self::InvalidFormat
+            }
+            UnsignedDecimalError::LeadingZero => Self::NonCanonical,
+            UnsignedDecimalError::TooLong { .. } | UnsignedDecimalError::Overflow => Self::TooLarge,
+        }
+    }
+}
+
+struct DurationMillisVisitor;
+
+impl de::Visitor<'_> for DurationMillisVisitor {
+    type Value = DurationMillis;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a canonical decimal string containing non-negative milliseconds")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        value.parse().map_err(E::custom)
+    }
 }
 
 #[cfg(test)]
@@ -546,15 +604,17 @@ mod tests {
     #[test]
     fn duration_millis_serde_and_schema_enforce_the_wire_contract() {
         let duration = DurationMillis::new(42).unwrap();
-        assert_eq!(to_string(&duration).unwrap(), "42");
-        assert_eq!(from_str::<DurationMillis>("42").unwrap(), duration);
-        assert!(from_str::<DurationMillis>("-1").is_err());
-        assert!(from_str::<DurationMillis>("1.5").is_err());
-        assert!(from_str::<DurationMillis>("\"42\"").is_err());
+        assert_eq!(to_string(&duration).unwrap(), "\"42\"");
+        assert_eq!(from_str::<DurationMillis>("\"42\"").unwrap(), duration);
+        assert!(from_str::<DurationMillis>("42").is_err());
+        assert!(from_str::<DurationMillis>("\"-1\"").is_err());
+        assert!(from_str::<DurationMillis>("\"01\"").is_err());
+        assert!(from_str::<DurationMillis>("\"1.5\"").is_err());
 
         let schema = to_value(schemars::schema_for!(DurationMillis)).unwrap();
-        assert_eq!(schema["type"], "integer");
-        assert_eq!(schema["minimum"], 0);
-        assert_eq!(schema["maximum"], i64::MAX);
+        assert_eq!(schema["type"], "string");
+        assert_eq!(schema["minLength"], 1);
+        assert_eq!(schema["maxLength"], 19);
+        assert_eq!(schema["pattern"], DURATION_MILLIS_PATTERN);
     }
 }

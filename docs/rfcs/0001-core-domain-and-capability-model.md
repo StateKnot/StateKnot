@@ -257,9 +257,11 @@ and authorization is evaluated before revealing whether an ID exists.
   fractional decimal digits and a trailing `Z`.
 - persisted durations and deadlines use signed 64-bit integer milliseconds with
   validated non-negative domain wrappers where negative values are invalid;
-- token and byte counters use checked `u64` arithmetic;
-- known cost uses integer micro-units plus an uppercase ISO 4217 currency code;
-  floating-point currency is forbidden;
+- token and byte counters use distinct domain types and checked `u64`
+  arithmetic;
+- known cost uses a non-negative `u64` count of micro-units plus an uppercase
+  ISO 4217 alphabetic currency code; floating-point currency is forbidden and
+  arithmetic across different currencies is rejected;
 - integrity values use `Digest { algorithm, bytes }`, with SHA-256 mandatory in
   v1 and canonical text `sha256:<lowercase hex>`;
 - random jitter and wall-clock reads are runtime services whose observed values
@@ -271,6 +273,27 @@ leap-second text, and conversions that would silently discard nanoseconds.
 `stateknot-core` exposes fallible `std::time::SystemTime` conversions; the
 calendar implementation dependency remains private and is not part of the
 public compatibility surface.
+
+Full-width 64-bit non-negative values use canonical decimal strings on JSON
+boundaries: `0` or a non-zero ASCII digit followed by ASCII digits, with no
+sign, whitespace, exponent, decimal point, or leading zero. This applies to
+`DurationMillis`, `TokenCount`, `ByteCount`, and `Money.micro_units`. The Rust
+representation remains an integer. String encoding preserves exact values in
+JavaScript and follows the same interoperability rationale as ProtoJSON's
+`int64`/`uint64` mapping; RFC 8259 only guarantees exact agreement for JSON
+integers through `2^53 - 1`.
+
+`CurrencyCode` validates the stable ISO 4217 three-uppercase-ASCII-letter
+structure. Whether a code is current, historical, a fund, or permitted by a
+tenant/provider is mutable reference data and is checked at configuration and
+ingestion boundaries against a versioned catalog. Durable readers retain
+syntactically valid historical codes instead of consulting a live registry,
+so an ISO maintenance update cannot make old events unreadable.
+
+`Money` serializes as an object with exactly `currency` and `micro_units`.
+Unknown cost is represented by absence at the enclosing usage layer, never by
+zero money. `Money` does not define ordering or conversion between currencies;
+those operations require an explicitly versioned exchange-rate service.
 
 ## Version model
 

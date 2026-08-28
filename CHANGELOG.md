@@ -26,5 +26,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   including strict Serde/JSON Schema validation and external compatibility
   fixtures.
 - Canonical UTC microsecond timestamps and checked, non-negative millisecond
-  durations with strict precision-preserving standard-library conversions.
+  durations with strict precision-preserving standard-library conversions and
+  exact decimal-string JSON encoding.
+- Checked token/byte counters and exact micro-unit money with strict currency,
+  overflow, cross-currency, Serde, schema, property, and fixture validation.
 - CI, dependency policy, issue forms, and security reporting guidance.

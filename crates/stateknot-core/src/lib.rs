@@ -9,11 +9,17 @@
 
 #![forbid(unsafe_code)]
 
+mod accounting;
+mod decimal;
 mod digest;
 mod ids;
 mod time;
 mod version;
 
+pub use accounting::{
+    ByteCount, CountParseError, CurrencyCode, CurrencyCodeError, Money, MoneyArithmeticError,
+    TokenCount,
+};
 pub use digest::{Digest, DigestAlgorithm, DigestError};
 pub use ids::{
     ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, RunId, TenantId,

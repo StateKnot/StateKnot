@@ -7,7 +7,9 @@ use serde::Deserialize;
 use serde_json::Value;
 use stateknot_core::{DurationMillis, Timestamp};
 
-const FIXTURE_SCHEMA: &str = "https://stateknot.github.io/schema/test-fixture/core-time/1.0.0";
+const FIXTURE_SCHEMA: &str = "https://stateknot.github.io/schema/test-fixture/core-time/2.0.0";
+const LEGACY_FIXTURE_SCHEMA: &str =
+    "https://stateknot.github.io/schema/test-fixture/core-time/1.0.0";
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -34,12 +36,19 @@ struct ValidTimestamp {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DurationFixtures {
-    valid: Vec<i64>,
+    valid: Vec<ValidDuration>,
     invalid: Vec<Value>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ValidDuration {
+    text: String,
+    milliseconds: i64,
+}
+
 fn load_fixture() -> Fixture {
-    serde_json::from_str(include_str!("fixtures/core-time-v1.json"))
+    serde_json::from_str(include_str!("fixtures/core-time-v2.json"))
         .expect("canonical time fixture must be valid JSON")
 }
 
@@ -71,10 +80,11 @@ fn canonical_duration_fixture_matches_runtime_contract() {
     let fixture = load_fixture();
     assert_eq!(fixture.schema, FIXTURE_SCHEMA);
 
-    for milliseconds in fixture.durations_millis.valid {
-        let duration = DurationMillis::new(milliseconds).unwrap();
+    for expected in fixture.durations_millis.valid {
+        let duration = expected.text.parse::<DurationMillis>().unwrap();
+        assert_eq!(duration.as_i64(), expected.milliseconds);
         let encoded = serde_json::to_value(duration).unwrap();
-        assert_eq!(encoded, Value::from(milliseconds));
+        assert_eq!(encoded, Value::from(expected.text));
         assert_eq!(
             serde_json::from_value::<DurationMillis>(encoded).unwrap(),
             duration
@@ -85,6 +95,23 @@ fn canonical_duration_fixture_matches_runtime_contract() {
         assert!(
             serde_json::from_value::<DurationMillis>(invalid.clone()).is_err(),
             "accepted {invalid:?}"
+        );
+    }
+}
+
+#[test]
+fn legacy_numeric_duration_wire_is_not_silently_accepted() {
+    let fixture: Value = serde_json::from_str(include_str!("fixtures/core-time-v1.json"))
+        .expect("legacy time fixture must remain valid JSON");
+    assert_eq!(fixture["schema"], LEGACY_FIXTURE_SCHEMA);
+
+    for legacy in fixture["durations_millis"]["valid"]
+        .as_array()
+        .expect("legacy valid durations must be an array")
+    {
+        assert!(
+            serde_json::from_value::<DurationMillis>(legacy.clone()).is_err(),
+            "accepted legacy numeric duration {legacy}"
         );
     }
 }

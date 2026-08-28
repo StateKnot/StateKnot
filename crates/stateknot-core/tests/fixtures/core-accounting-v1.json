@@ -1,0 +1,28 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-accounting/1.0.0",
+  "counts": {
+    "valid": ["0", "1", "9007199254740991", "9007199254740992", "18446744073709551615"],
+    "invalid": ["", "00", "01", "+1", "-1", "1.0", "1e3", "18446744073709551616", 1, null]
+  },
+  "currencies": {
+    "valid": ["USD", "EUR", "CNY", "XAU", "BGN"],
+    "invalid": ["", "US", "USDD", "usd", "UsD", "U1D", "¥EN", 840, null]
+  },
+  "money": {
+    "valid": [
+      { "currency": "USD", "micro_units": "0" },
+      { "currency": "EUR", "micro_units": "1" },
+      { "currency": "CNY", "micro_units": "9007199254740992" },
+      { "currency": "XAU", "micro_units": "18446744073709551615" }
+    ],
+    "invalid": [
+      { "currency": "usd", "micro_units": "1" },
+      { "currency": "USD", "micro_units": 1 },
+      { "currency": "USD", "micro_units": "01" },
+      { "currency": "USD", "micro_units": "18446744073709551616" },
+      { "currency": "USD", "micro_units": "1", "extra": true },
+      { "currency": "USD" },
+      null
+    ]
+  }
+}
