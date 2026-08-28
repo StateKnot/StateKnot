@@ -39,4 +39,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 - Streaming bounded JSON materialization with immutable hard ceilings,
   decoded duplicate-key rejection, exact compact-size accounting, redacted
   diagnostics, property tests, and cross-version fixtures.
+- Bounded text and structured content with stable RFC 5646 language tags,
+  opaque security labels, explicit source/trust/redaction metadata, redacted
+  diagnostics, closed schemas, exhaustive Unicode checks, and versioned wire
+  fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

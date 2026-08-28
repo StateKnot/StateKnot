@@ -12,6 +12,7 @@
 
 mod accounting;
 mod capability;
+mod content;
 mod decimal;
 mod digest;
 mod identity;
@@ -27,6 +28,10 @@ pub use accounting::{
     TokenCount,
 };
 pub use capability::{CapabilityName, CapabilityNameError};
+pub use content::{
+    ContentMetadata, ContentSource, ContentTrust, JsonContent, LanguageTag, LanguageTagError,
+    RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,
+};
 pub use digest::{Digest, DigestAlgorithm, DigestError};
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{

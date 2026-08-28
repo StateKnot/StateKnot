@@ -381,6 +381,37 @@ or record byte ceiling before invoking Serde. Conversion from an existing
 `serde_json::Value` is restricted to trusted in-process data because duplicate
 names have already been lost.
 
+`LanguageTag` accepts well-formed RFC 5646 language tags, grandfathered tags,
+and private-use tags up to 255 ASCII bytes. It rejects duplicate variant and
+extension-singleton subtags and stores one lowercase representation because
+RFC 5646 comparison is case-insensitive. Parsing is deliberately independent
+of the mutable IANA Language Subtag Registry: StateKnot neither rejects a
+durable record because a registry snapshot changed nor silently rewrites it to
+a registry-version-dependent preferred value.
+
+`SecurityLabel` is an opaque, case-sensitive policy-engine key of 1 to 128
+ASCII bytes. It starts with an alphanumeric byte and subsequently permits
+letters, digits, `.`, `_`, `:`, `/`, and `-`. Core defines no public/default
+label, ordering, clearance relation, or declassification behavior. Each
+`ContentMetadata` value explicitly records `source`, `trust`, `security_label`,
+and `redaction`; all four fields are mandatory and unknown fields are rejected.
+The stable v1 source values are `application`, `user`, `model`, `tool`,
+`remote_agent`, and `artifact`; trust values are `application_controlled` and
+`untrusted`; redaction values are `not_applied`, `partial`, and `full`.
+`not_applied` does not mean non-sensitive. All metadata is an auditable claim,
+not authority: deserializing `application_controlled` cannot construct an
+`Instruction`, authorize execution, declassify content, or enable logging.
+
+`TextContent` contains 1 to 262,144 UTF-8 bytes and preserves the exact bytes;
+it performs no trimming or Unicode normalization. It rejects C0/C1 controls
+except tab, line feed, and carriage return, and rejects every Unicode
+noncharacter. Other valid Unicode, including bidi formatting characters,
+remains data that output-context renderers must escape safely. `Debug` reports
+only byte length, language, and security metadata, never the text. `JsonContent`
+applies the same mandatory metadata to `BoundedJson`; its optional
+`SchemaReference` is a digest-pinned declaration and does not itself perform
+schema lookup or validation.
+
 ### Instructions and messages
 
 Trusted instructions and conversation messages are separate types:

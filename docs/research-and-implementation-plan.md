@@ -203,11 +203,11 @@ flowchart TB
 
 ### 8.1 Content / Message / Artifact
 
-- `ContentPart`：text、image、audio、file、structured JSON、opaque extension；
-- 大对象只保存 `BlobRef`，包含 URI/对象键、MIME、长度、SHA-256、来源和安全标签；
+- core `ContentPart` 在 v1 封闭为 `Text`、bounded `Json`、`ArtifactRef`；image、audio、file 都通过带 MIME、长度、SHA-256、来源和安全标签的 `ArtifactRef` 表达；
+- 大对象只保存 tenant-scoped `ArtifactRef`，不向领域对象暴露 URI、bucket、对象键、文件路径或永久公网 URL；
 - `Message` 表示交互输入/输出，`Artifact` 表示任务产物，两者不能混用；
-- provider 或协议未知字段保存在 namespaced extension map，避免转换时丢失；
-- 枚举使用可演进策略，wire 解码对未知值可保留，不能因供应商新增 event 直接崩溃。
+- provider 或协议未知字段只保存在 adapter 自己的有界、namespaced envelope 中，不能伪装为 core content 或绕过 schema/trust 策略；
+- core durable wire 对未知安全枚举和值 fail closed；adapter 可在明确版本协商下保留未知协议字段，不能因供应商新增 event 崩溃或静默改变语义。
 
 ### 8.2 Model
 

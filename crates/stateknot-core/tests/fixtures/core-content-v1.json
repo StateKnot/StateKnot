@@ -1,0 +1,268 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-content/1.0.0",
+  "language_tags": {
+    "valid": [
+      {
+        "input": "EN-us",
+        "canonical": "en-us"
+      },
+      {
+        "input": "zh-Hant-TW",
+        "canonical": "zh-hant-tw"
+      },
+      {
+        "input": "i-KLINGON",
+        "canonical": "i-klingon"
+      },
+      {
+        "input": "X-private-42",
+        "canonical": "x-private-42"
+      }
+    ],
+    "invalid": [
+      "",
+      "en_US",
+      "en--US",
+      "sl-rozaj-ROZAJ",
+      "en-a-foo-A-bar",
+      "é",
+      42,
+      null
+    ]
+  },
+  "security_labels": {
+    "valid": [
+      "public",
+      "Internal/PII",
+      "tenant:42/restricted-v1",
+      "A_b.c"
+    ],
+    "invalid": [
+      "",
+      "_internal",
+      "bad label",
+      "a\\b",
+      "秘密",
+      42,
+      null
+    ]
+  },
+  "metadata": {
+    "valid": [
+      {
+        "source": "application",
+        "trust": "application_controlled",
+        "security_label": "public",
+        "redaction": "not_applied"
+      },
+      {
+        "source": "user",
+        "trust": "untrusted",
+        "security_label": "Internal/PII",
+        "redaction": "not_applied"
+      },
+      {
+        "source": "model",
+        "trust": "untrusted",
+        "security_label": "internal/derived",
+        "redaction": "partial"
+      },
+      {
+        "source": "tool",
+        "trust": "untrusted",
+        "security_label": "tenant:42/restricted-v1",
+        "redaction": "full"
+      },
+      {
+        "source": "remote_agent",
+        "trust": "untrusted",
+        "security_label": "partner/a2a",
+        "redaction": "not_applied"
+      },
+      {
+        "source": "artifact",
+        "trust": "untrusted",
+        "security_label": "internal/artifact",
+        "redaction": "partial"
+      }
+    ],
+    "invalid": [
+      {
+        "source": "remote",
+        "trust": "untrusted",
+        "security_label": "partner/a2a",
+        "redaction": "not_applied"
+      },
+      {
+        "source": "user",
+        "trust": "trusted",
+        "security_label": "Internal/PII",
+        "redaction": "not_applied"
+      },
+      {
+        "source": "user",
+        "trust": "untrusted",
+        "security_label": "bad label",
+        "redaction": "not_applied"
+      },
+      {
+        "source": "user",
+        "trust": "untrusted",
+        "security_label": "Internal/PII",
+        "redaction": "unknown"
+      },
+      {
+        "source": "user",
+        "trust": "untrusted",
+        "security_label": "Internal/PII",
+        "redaction": "not_applied",
+        "extra": true
+      },
+      null
+    ]
+  },
+  "text_content": {
+    "valid": [
+      {
+        "text": "Investigate incident 42",
+        "language": "en-us",
+        "metadata": {
+          "source": "user",
+          "trust": "untrusted",
+          "security_label": "Internal/PII",
+          "redaction": "not_applied"
+        }
+      },
+      {
+        "text": "第一行\n第二行\tمرحبا",
+        "metadata": {
+          "source": "remote_agent",
+          "trust": "untrusted",
+          "security_label": "partner/a2a",
+          "redaction": "partial"
+        }
+      },
+      {
+        "text": "[REDACTED]",
+        "metadata": {
+          "source": "tool",
+          "trust": "untrusted",
+          "security_label": "tenant:42/restricted-v1",
+          "redaction": "full"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "text": "",
+        "metadata": {
+          "source": "user",
+          "trust": "untrusted",
+          "security_label": "Internal/PII",
+          "redaction": "not_applied"
+        }
+      },
+      {
+        "text": "bad\u0000text",
+        "metadata": {
+          "source": "user",
+          "trust": "untrusted",
+          "security_label": "Internal/PII",
+          "redaction": "not_applied"
+        }
+      },
+      {
+        "text": "missing metadata"
+      },
+      {
+        "text": "invalid language",
+        "language": "en_US",
+        "metadata": {
+          "source": "user",
+          "trust": "untrusted",
+          "security_label": "Internal/PII",
+          "redaction": "not_applied"
+        }
+      },
+      {
+        "text": "unknown field",
+        "metadata": {
+          "source": "user",
+          "trust": "untrusted",
+          "security_label": "Internal/PII",
+          "redaction": "not_applied"
+        },
+        "extra": true
+      },
+      null
+    ]
+  },
+  "json_content": {
+    "valid": [
+      {
+        "value": true,
+        "metadata": {
+          "source": "user",
+          "trust": "untrusted",
+          "security_label": "Internal/PII",
+          "redaction": "not_applied"
+        }
+      },
+      {
+        "value": {
+          "answer": 42,
+          "status": "ok"
+        },
+        "schema": {
+          "id": "https://stateknot.github.io/schema/example/content/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "metadata": {
+          "source": "tool",
+          "trust": "untrusted",
+          "security_label": "tenant:42/restricted-v1",
+          "redaction": "partial"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "metadata": {
+          "source": "tool",
+          "trust": "untrusted",
+          "security_label": "tenant:42/restricted-v1",
+          "redaction": "partial"
+        }
+      },
+      {
+        "value": true
+      },
+      {
+        "value": true,
+        "schema": {
+          "id": "http://stateknot.github.io/schema/example/content/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "metadata": {
+          "source": "tool",
+          "trust": "untrusted",
+          "security_label": "tenant:42/restricted-v1",
+          "redaction": "partial"
+        }
+      },
+      {
+        "value": true,
+        "metadata": {
+          "source": "tool",
+          "trust": "untrusted",
+          "security_label": "tenant:42/restricted-v1",
+          "redaction": "partial"
+        },
+        "extra": true
+      },
+      null
+    ]
+  }
+}
