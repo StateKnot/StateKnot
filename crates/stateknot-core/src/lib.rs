@@ -9,9 +9,13 @@
 
 #![forbid(unsafe_code)]
 
+mod digest;
 mod ids;
+mod version;
 
+pub use digest::{Digest, DigestAlgorithm, DigestError};
 pub use ids::{
     ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, RunId, TenantId,
     TenantIdError, ThreadId,
 };
+pub use version::{Version, VersionComponent, VersionError};

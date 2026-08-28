@@ -22,4 +22,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   error, and canonical serialization contracts.
 - Initial `stateknot-core` implementation with validated tenant identifiers and
   canonical, strongly typed UUIDv7 identifiers.
+- Canonical three-component contract versions and SHA-256 integrity digests,
+  including strict Serde/JSON Schema validation and external compatibility
+  fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

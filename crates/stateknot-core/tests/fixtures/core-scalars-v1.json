@@ -1,0 +1,49 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-scalars/1.0.0",
+  "versions": {
+    "valid": [
+      { "text": "0.0.0", "major": 0, "minor": 0, "patch": 0 },
+      { "text": "1.2.3", "major": 1, "minor": 2, "patch": 3 },
+      {
+        "text": "18446744073709551615.18446744073709551615.18446744073709551615",
+        "major": 18446744073709551615,
+        "minor": 18446744073709551615,
+        "patch": 18446744073709551615
+      }
+    ],
+    "invalid": [
+      "1",
+      "1.2",
+      "1.2.3.4",
+      "01.2.3",
+      "1.02.3",
+      "1.2.03",
+      "1.2.3-alpha",
+      "18446744073709551616.0.0"
+    ]
+  },
+  "digests": {
+    "valid": [
+      {
+        "input_utf8": "",
+        "text": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "input_utf8": "abc",
+        "text": "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+      },
+      {
+        "input_utf8": "StateKnot",
+        "text": "sha256:521e724895346a37f34dd868e903b886f444b778080f11b8e5cd54ef97ec0159"
+      }
+    ],
+    "invalid": [
+      "sha256",
+      "sha512:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+      "SHA256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+      "sha256:BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD",
+      "sha256:00",
+      "sha256:ga7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    ]
+  }
+}
