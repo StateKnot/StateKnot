@@ -1643,6 +1643,20 @@ impl ContentPart {
             Self::Artifact(content) => content.metadata(),
         }
     }
+
+    /// Returns materialized text or compact JSON payload bytes held inline.
+    ///
+    /// Artifact bytes are external to the domain value and therefore count as
+    /// zero. The independently bounded artifact reference metadata remains in
+    /// the enclosing wire object.
+    #[must_use]
+    pub fn inline_payload_bytes(&self) -> usize {
+        match self {
+            Self::Text(content) => content.text().len(),
+            Self::Json(content) => content.value().stats().compact_bytes(),
+            Self::Artifact(_) => 0,
+        }
+    }
 }
 
 impl From<TextContent> for ContentPart {

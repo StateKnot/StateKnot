@@ -47,4 +47,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   bounded path-safe presentation metadata, integrity and schema bindings,
   explicit retention/provenance/lineage, closed content-part envelopes,
   redacted diagnostics, and versioned wire fixtures.
+- Integrity-bound application instructions separated from provenance-bound
+  user/assistant/tool messages, with strict producer/source-role matrices,
+  aggregate inline payload limits, redacted diagnostics, closed schemas, and
+  versioned wire fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

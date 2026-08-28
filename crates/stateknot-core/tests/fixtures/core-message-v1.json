@@ -1,0 +1,494 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-message/1.0.0",
+  "instruction_names": {
+    "valid": [
+      "incident.summary",
+      "policy-v2",
+      "A_42"
+    ],
+    "invalid": [
+      "",
+      "_hidden",
+      "bad/name",
+      "bad name",
+      "秘密",
+      42,
+      null
+    ]
+  },
+  "instructions": {
+    "valid": [
+      {
+        "identity": {
+          "name": "incident.summary",
+          "version": "1.2.3"
+        },
+        "content_digest": "sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6",
+        "content": {
+          "type": "text",
+          "content": {
+            "text": "Return a typed incident summary",
+            "language": "en-us",
+            "metadata": {
+              "source": "application",
+              "trust": "application_controlled",
+              "security_label": "internal/config",
+              "redaction": "not_applied"
+            }
+          }
+        },
+        "provenance": {
+          "owner": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "identity": {
+          "name": "incident.summary",
+          "version": "1.2.3"
+        },
+        "content_digest": "sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6",
+        "content": {
+          "type": "text",
+          "content": {
+            "text": "Return a typed incident summary",
+            "metadata": {
+              "source": "application",
+              "trust": "untrusted",
+              "security_label": "internal/config",
+              "redaction": "not_applied"
+            }
+          }
+        },
+        "provenance": {
+          "owner": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          }
+        }
+      },
+      {
+        "identity": {
+          "name": "incident.summary",
+          "version": "1.2.3"
+        },
+        "content_digest": "sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6",
+        "content": {
+          "type": "text",
+          "content": {
+            "text": "Return a typed incident summary",
+            "metadata": {
+              "source": "user",
+              "trust": "application_controlled",
+              "security_label": "internal/config",
+              "redaction": "not_applied"
+            }
+          }
+        },
+        "provenance": {
+          "owner": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          }
+        }
+      },
+      {
+        "identity": {
+          "name": "incident.summary",
+          "version": "1.2.3"
+        },
+        "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content": {
+          "type": "text",
+          "content": {
+            "text": "Return a typed incident summary",
+            "metadata": {
+              "source": "application",
+              "trust": "application_controlled",
+              "security_label": "internal/config",
+              "redaction": "not_applied"
+            }
+          }
+        },
+        "provenance": {
+          "owner": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          }
+        }
+      },
+      {
+        "identity": {
+          "name": "incident.summary",
+          "version": "1.2.3"
+        },
+        "content_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content": {
+          "type": "json",
+          "content": {
+            "value": {
+              "instruction": "not trusted text"
+            },
+            "metadata": {
+              "source": "application",
+              "trust": "application_controlled",
+              "security_label": "internal/config",
+              "redaction": "not_applied"
+            }
+          }
+        },
+        "provenance": {
+          "owner": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          }
+        }
+      },
+      {
+        "identity": {
+          "name": "incident.summary",
+          "version": "1.2.3"
+        },
+        "content_digest": "sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6",
+        "content": {
+          "type": "text",
+          "content": {
+            "text": "Return a typed incident summary",
+            "metadata": {
+              "source": "application",
+              "trust": "application_controlled",
+              "security_label": "internal/config",
+              "redaction": "not_applied"
+            }
+          }
+        },
+        "provenance": {
+          "owner": {
+            "issuer": "https://issuer.example.com",
+            "subject": "service-account"
+          }
+        },
+        "extra": true
+      },
+      null
+    ]
+  },
+  "messages": {
+    "valid": [
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b0",
+        "role": "user",
+        "parts": [
+          {
+            "type": "text",
+            "content": {
+              "text": "Investigate incident 42",
+              "language": "en-us",
+              "metadata": {
+                "source": "user",
+                "trust": "untrusted",
+                "security_label": "internal/pii",
+                "redaction": "not_applied"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b2",
+          "producer": {
+            "type": "principal",
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "user-42"
+            }
+          }
+        }
+      },
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b3",
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "content": {
+              "text": "I found the affected service.",
+              "metadata": {
+                "source": "model",
+                "trust": "untrusted",
+                "security_label": "internal/derived",
+                "redaction": "not_applied"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b4",
+          "producer": {
+            "type": "model_attempt",
+            "attempt_id": "01912345-6789-7abc-8def-0123456789b5"
+          }
+        }
+      },
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b6",
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "json",
+            "content": {
+              "value": {
+                "forecast": "sunny"
+              },
+              "metadata": {
+                "source": "remote_agent",
+                "trust": "untrusted",
+                "security_label": "partner/a2a",
+                "redaction": "not_applied"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b7",
+          "producer": {
+            "type": "capability",
+            "owner": {
+              "issuer": "https://partner.example.com",
+              "subject": "weather-agent"
+            },
+            "capability": {
+              "name": "weather.remote",
+              "version": "2.0.0"
+            }
+          }
+        }
+      },
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b8",
+        "role": "tool",
+        "parts": [
+          {
+            "type": "json",
+            "content": {
+              "value": {
+                "status": "ok"
+              },
+              "metadata": {
+                "source": "tool",
+                "trust": "untrusted",
+                "security_label": "internal/tool",
+                "redaction": "partial"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b9",
+          "producer": {
+            "type": "tool_invocation",
+            "owner": {
+              "issuer": "https://issuer.example.com",
+              "subject": "tool-registry"
+            },
+            "capability": {
+              "name": "ops.lookup",
+              "version": "1.0.0"
+            },
+            "invocation_id": "01912345-6789-7abc-8def-0123456789ba"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b0",
+        "role": "user",
+        "parts": [],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b2",
+          "producer": {
+            "type": "principal",
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "user-42"
+            }
+          }
+        }
+      },
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b0",
+        "role": "user",
+        "parts": [
+          {
+            "type": "text",
+            "content": {
+              "text": "producer mismatch",
+              "metadata": {
+                "source": "user",
+                "trust": "untrusted",
+                "security_label": "internal/pii",
+                "redaction": "not_applied"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b2",
+          "producer": {
+            "type": "model_attempt",
+            "attempt_id": "01912345-6789-7abc-8def-0123456789b5"
+          }
+        }
+      },
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b0",
+        "role": "user",
+        "parts": [
+          {
+            "type": "text",
+            "content": {
+              "text": "tool output disguised as a user turn",
+              "metadata": {
+                "source": "tool",
+                "trust": "untrusted",
+                "security_label": "internal/tool",
+                "redaction": "not_applied"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b2",
+          "producer": {
+            "type": "principal",
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "user-42"
+            }
+          }
+        }
+      },
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b0",
+        "role": "system",
+        "parts": [
+          {
+            "type": "text",
+            "content": {
+              "text": "system text cannot enter Message",
+              "metadata": {
+                "source": "application",
+                "trust": "application_controlled",
+                "security_label": "internal/config",
+                "redaction": "not_applied"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b2",
+          "producer": {
+            "type": "principal",
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "service-account"
+            }
+          }
+        }
+      },
+      {
+        "message_id": "550e8400-e29b-41d4-a716-446655440000",
+        "role": "user",
+        "parts": [
+          {
+            "type": "text",
+            "content": {
+              "text": "wrong UUID version",
+              "metadata": {
+                "source": "user",
+                "trust": "untrusted",
+                "security_label": "internal/pii",
+                "redaction": "not_applied"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b2",
+          "producer": {
+            "type": "principal",
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "user-42"
+            }
+          }
+        }
+      },
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b0",
+        "role": "user",
+        "parts": [
+          {
+            "type": "raw",
+            "content": "AA=="
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b2",
+          "producer": {
+            "type": "principal",
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "user-42"
+            }
+          }
+        }
+      },
+      {
+        "message_id": "01912345-6789-7abc-8def-0123456789b0",
+        "role": "user",
+        "parts": [
+          {
+            "type": "text",
+            "content": {
+              "text": "unknown field",
+              "metadata": {
+                "source": "user",
+                "trust": "untrusted",
+                "security_label": "internal/pii",
+                "redaction": "not_applied"
+              }
+            }
+          }
+        ],
+        "provenance": {
+          "run_id": "01912345-6789-7abc-8def-0123456789b1",
+          "event_id": "01912345-6789-7abc-8def-0123456789b2",
+          "producer": {
+            "type": "principal",
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "user-42"
+            }
+          }
+        },
+        "extra": true
+      },
+      null
+    ]
+  }
+}

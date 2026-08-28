@@ -408,6 +408,7 @@ macro_rules! define_generated_id {
 define_generated_id!(RunId, "A tenant-scoped durable run identifier.");
 define_generated_id!(ThreadId, "A tenant-scoped conversation thread identifier.");
 define_generated_id!(EventId, "A tenant-scoped durable event identifier.");
+define_generated_id!(MessageId, "A tenant-scoped durable message identifier.");
 define_generated_id!(ArtifactId, "A tenant-scoped artifact identifier.");
 define_generated_id!(
     InvocationId,
@@ -494,6 +495,7 @@ mod tests {
         assert_id!(RunId);
         assert_id!(ThreadId);
         assert_id!(EventId);
+        assert_id!(MessageId);
         assert_id!(ArtifactId);
         assert_id!(InvocationId);
         assert_id!(InterruptId);

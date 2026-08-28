@@ -19,6 +19,7 @@ mod digest;
 mod identity;
 mod ids;
 mod json;
+mod message;
 mod schema;
 mod scope;
 mod time;
@@ -43,10 +44,15 @@ pub use content::{
 pub use digest::{Digest, DigestAlgorithm, DigestError};
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
-    ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, RunId, TenantId,
-    TenantIdError, ThreadId,
+    ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, MessageId, RunId,
+    TenantId, TenantIdError, ThreadId,
 };
 pub use json::{BoundedJson, BoundedJsonError, JsonLimit, JsonLimits, JsonLimitsError, JsonStats};
+pub use message::{
+    Instruction, InstructionContent, InstructionError, InstructionIdentity, InstructionName,
+    InstructionNameError, InstructionProvenance, Message, MessageError, MessageParts,
+    MessagePartsError, MessageProducer, MessageProducerKind, MessageProvenance, MessageRole,
+};
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};
 pub use time::{DurationMillis, DurationMillisError, Timestamp, TimestampError};

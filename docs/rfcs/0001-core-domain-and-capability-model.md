@@ -264,11 +264,11 @@ global, and tenant-scoped storage and authorization still include the separate
 
 ### StateKnot-generated IDs
 
-`RunId`, `ThreadId`, `EventId`, `ArtifactId`, `InvocationId`, `InterruptId`, and
-`AttemptId` are distinct newtypes generated from UUIDv7 values. Their canonical
-wire form is lowercase hyphenated UUID text. Parsing accepts only the canonical
-form for security-bearing and durable APIs; human-facing CLI input may offer a
-separate permissive parser.
+`RunId`, `ThreadId`, `EventId`, `MessageId`, `ArtifactId`, `InvocationId`,
+`InterruptId`, and `AttemptId` are distinct newtypes generated from UUIDv7
+values. Their canonical wire form is lowercase hyphenated UUID text. Parsing
+accepts only the canonical form for security-bearing and durable APIs;
+human-facing CLI input may offer a separate permissive parser.
 
 An ID never conveys authorization. Storage keys and lookups include `TenantId`,
 and authorization is evaluated before revealing whether an ID exists.
@@ -421,16 +421,68 @@ schema lookup or validation.
 Trusted instructions and conversation messages are separate types:
 
 - `Instruction` is created only from application-controlled configuration and
-  records a stable name, version, text/artifact, and provenance;
-- `Message` has `User`, `Assistant`, or `Tool` origin plus content parts and
+  records a stable name/version identity, exact text or immutable artifact,
+  content digest, and owner provenance;
+- `Message` has `User`, `Assistant`, or `Tool` role plus a durable `MessageId`,
+  bounded ordered content parts, run/event causation, and typed producer
   provenance;
 - provider-specific system/developer roles map from ordered `Instruction`
   records at the adapter boundary;
 - untrusted retrieved, MCP, A2A, file, and tool content cannot be converted into
   `Instruction` without an explicit application policy decision.
 
-Message constructors reject empty content, invalid names, excessive part counts,
-and values above runtime-configured hard limits before provider invocation.
+`InstructionName` is a case-sensitive 1–128 byte ASCII name that begins with an
+alphanumeric byte and subsequently permits letters, digits, `.`, `_`, and `-`.
+`InstructionIdentity` binds that name to a `Version`; `InstructionProvenance`
+identifies the principal owning the instruction namespace. Text instructions
+must have immediate source `application` and trust `application_controlled`.
+Artifact instructions retain source `artifact` and must also be
+application-controlled. The stored content digest covers exact UTF-8 text bytes
+or the referenced immutable artifact bytes and is revalidated on deserialize.
+Structured JSON is not an instruction variant: applications render it into
+validated text or register it as an immutable artifact first.
+
+These checks prevent accidental promotion inside trusted application code, but
+a serialized owner or `application_controlled` claim is never proof of authority.
+Untrusted API/protocol bodies cannot directly deserialize into an executable
+instruction path; the configured owner registry and policy select the pinned
+instruction record.
+
+`MessageRole` is closed to `user`, `assistant`, and `tool`; system/developer
+authority is deliberately absent. `MessageProducer` records exactly one of:
+
+- an authenticated principal for a user message;
+- a durable model attempt for an assistant message;
+- an owner-qualified, version-pinned agent/workflow/application capability for
+  an assistant message; or
+- an owner-qualified, version-pinned capability plus `InvocationId` for a tool
+  message.
+
+Role and producer combinations outside that matrix are rejected. Non-artifact
+content sources are also checked against the role: user accepts direct user,
+remote-agent, or application content; assistant accepts model, remote-agent, or
+application content; tool accepts only tool content. Registered artifacts can
+be attached to every role because their own provenance remains authoritative.
+Trust metadata remains an auditable claim and does not become safer merely
+because a part is mapped to a user or assistant provider role.
+
+`MessageParts` preserves order, requires 1–64 parts, and accepts at most 2 MiB
+of aggregate materialized text plus compact JSON. Artifact bytes remain outside
+that total and are enforced by the artifact resolver. Streaming deserialization
+stops at the first part-count or aggregate violation. Runtime configuration and
+provider capability profiles may narrow these hard v1 ceilings before
+invocation.
+
+[OpenAI Responses](https://platform.openai.com/docs/api-reference/responses),
+[Anthropic Messages](https://platform.claude.com/docs/en/build-with-claude/working-with-messages),
+[Gemini GenerateContent](https://ai.google.dev/api/generate-content), and
+[Amazon Bedrock Converse](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html)
+do not share one instruction-role model. A2A 1.0 roles are directional user/agent
+values, while MCP sampling historically represented tool results as user-role
+messages and is deprecated in MCP 2026-07-28. Adapters therefore map these
+semantics explicitly, retain provider/protocol IDs in bounded adapter records,
+and fail capability negotiation when an ordered instruction cannot be
+represented without changing authority.
 
 ## Artifacts and provenance
 

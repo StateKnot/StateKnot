@@ -209,6 +209,9 @@ flowchart TB
 - media type 按 RFC 6838/9110 解析为具体而非 wildcard 的有界规范形式；声明的 MIME 和 modality 只用于协商与渲染，不能替代字节校验、内容扫描或授权；
 - A2A 1.0 的 `raw`/`url` part，以及 MCP 2026-07-28 的 image/audio/embedded resource/resource link，必须先经过 body/base64/redirect 上限、SSRF/egress policy、tenant authorization、流式长度与 SHA-256 校验，再注册为 core artifact；
 - `Message` 表示交互输入/输出，`Artifact` 表示任务产物，两者不能混用；
+- trusted instruction 与 user/assistant/tool message 必须是不同领域类型；不能因为某个 provider 支持 `system` role 就允许外部消息进入高权限 instruction 层；
+- message 必须有独立 UUIDv7 ID、run/event causation 和类型化 producer（principal、model attempt、owner-qualified capability 或 tool invocation），不能只记录一个可伪造的 role string；
+- ordered message parts 采用 64 项和 2 MiB 内联 text/compact-JSON 的 core hard ceiling，adapter/provider policy 只能收紧不能放宽；
 - provider 或协议未知字段只保存在 adapter 自己的有界、namespaced envelope 中，不能伪装为 core content 或绕过 schema/trust 策略；
 - core durable wire 对未知安全枚举和值 fail closed；adapter 可在明确版本协商下保留未知协议字段，不能因供应商新增 event 崩溃或静默改变语义。
 
