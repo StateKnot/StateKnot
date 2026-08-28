@@ -51,4 +51,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   user/assistant/tool messages, with strict producer/source-role matrices,
   aggregate inline payload limits, redacted diagnostics, closed schemas, and
   versioned wire fixtures.
+- Finite layered execution budgets with 21 explicit dimensions, checked
+  monotonic/high-water usage, normalized token subsets, bounded multi-currency
+  cost ceilings, fail-closed unknown pricing, exact remaining-capacity
+  evaluation, closed schemas, and versioned wire fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.

@@ -146,6 +146,8 @@ Agent ↔ 能力       MCP 2026-07-28 · local tools · skills
 - 所有跨系统通知通过 transactional outbox；consumer 以 event ID 幂等消费；
 - retry 必须基于错误分类，而不是对所有错误统一重试；
 - 支持限流、并发、深度、时长、token、费用和 tool-call 数量预算。
+- caller/tenant/system/policy 等可选预算层逐维取最小值，解析后的 run budget 每一维必须有限；depth/concurrency/fan-out 用高水位，其余 usage 单调 checked 累计；未知费用和未配置币种 fail closed，不能当作零或无限；
+- provider adapter 将 input 规范为包含 cached-input、output 规范为包含 reasoning 的累计总量；单次 context/output ceiling 归 ModelRequest/ModelCapabilities，不能与 run 累计预算混为一谈；
 
 ### 5.3 多租户与合规
 

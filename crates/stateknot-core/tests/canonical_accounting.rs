@@ -5,7 +5,7 @@
 
 use serde::Deserialize;
 use serde_json::Value;
-use stateknot_core::{ByteCount, CurrencyCode, Money, TokenCount};
+use stateknot_core::{ByteCount, CurrencyCode, ExecutionCount, Money, TokenCount};
 
 const FIXTURE_SCHEMA: &str =
     "https://stateknot.github.io/schema/test-fixture/core-accounting/1.0.0";
@@ -46,20 +46,29 @@ fn load_fixture() -> Fixture {
 }
 
 #[test]
-fn canonical_count_fixture_matches_both_count_contracts() {
+fn canonical_count_fixture_matches_all_count_contracts() {
     let fixture = load_fixture();
     assert_eq!(fixture.schema, FIXTURE_SCHEMA);
 
     for expected in fixture.counts.valid {
         let tokens = expected.parse::<TokenCount>().unwrap();
         let bytes = expected.parse::<ByteCount>().unwrap();
+        let executions = expected.parse::<ExecutionCount>().unwrap();
         assert_eq!(tokens.to_string(), expected);
         assert_eq!(bytes.to_string(), expected);
+        assert_eq!(executions.to_string(), expected);
         assert_eq!(
             serde_json::to_value(tokens).unwrap(),
             Value::from(expected.clone())
         );
-        assert_eq!(serde_json::to_value(bytes).unwrap(), Value::from(expected));
+        assert_eq!(
+            serde_json::to_value(bytes).unwrap(),
+            Value::from(expected.clone())
+        );
+        assert_eq!(
+            serde_json::to_value(executions).unwrap(),
+            Value::from(expected)
+        );
     }
 
     for invalid in fixture.counts.invalid {
@@ -70,6 +79,10 @@ fn canonical_count_fixture_matches_both_count_contracts() {
         assert!(
             serde_json::from_value::<ByteCount>(invalid.clone()).is_err(),
             "ByteCount accepted {invalid}"
+        );
+        assert!(
+            serde_json::from_value::<ExecutionCount>(invalid.clone()).is_err(),
+            "ExecutionCount accepted {invalid}"
         );
     }
 }

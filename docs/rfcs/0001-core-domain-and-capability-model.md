@@ -279,8 +279,8 @@ and authorization is evaluated before revealing whether an ID exists.
   fractional decimal digits and a trailing `Z`.
 - persisted durations and deadlines use signed 64-bit integer milliseconds with
   validated non-negative domain wrappers where negative values are invalid;
-- token and byte counters use distinct domain types and checked `u64`
-  arithmetic;
+- execution, token, and byte counters use distinct domain types and checked
+  `u64` arithmetic;
 - known cost uses a non-negative `u64` count of micro-units plus an uppercase
   ISO 4217 alphabetic currency code; floating-point currency is forbidden and
   arithmetic across different currencies is rejected;
@@ -735,7 +735,7 @@ explicitly selected, non-secret identity attributes.
 
 ## Budgets
 
-`BudgetLimit` and `BudgetUsage` cover:
+`BudgetLimits`, `ResolvedBudget`, and `BudgetUsage` cover:
 
 - wall-clock deadline;
 - graph depth and steps;
@@ -746,13 +746,63 @@ explicitly selected, non-secret identity attributes.
 - input, output, event, checkpoint, and artifact bytes;
 - known monetary cost per currency.
 
-The runtime resolves caller limits against finite tenant and system defaults.
-The effective budget always chooses the most restrictive applicable value.
-Unknown provider cost is recorded as unknown and cannot be interpreted as zero.
+`BudgetLimits` is one partial layer: omitted fields mean that layer has no
+opinion, never that execution is unlimited. The runtime supplies system,
+tenant, policy, graph/capability, and caller layers as applicable.
+`ResolvedBudget::resolve` accepts at most 16 layers, requires at least one, and
+rejects the result unless every dimension has a finite value. It takes the
+earliest deadline and the smallest applicable scalar limit, independent of
+layer order. A caller can only narrow a system or tenant ceiling.
 
-Usage accounting is monotonic and checked for overflow. Reservations prevent
-parallel branches from each consuming the full remaining budget. Commit or
-release of a reservation is durable runtime behavior specified by RFC-0003.
+Known monetary ceilings are a deterministically ordered set of at most 16
+`Money` values with unique currency codes. Omitting the entire cost field means
+that layer has no opinion; when two layers provide it, their currency
+allowlists are intersected and same-currency amounts take the minimum. An empty
+resolved set permits no priced charge. This prevents a caller from introducing
+a currency absent from system or tenant policy. A charge in an unlisted
+currency is rejected rather than treated as unlimited, and core performs no
+exchange-rate conversion. Any conversion or tenant base-currency reporting
+requires a versioned external rate source.
+
+`ExecutionCount`, `TokenCount`, and `ByteCount` use canonical decimal-string
+wire values and checked `u64` arithmetic. `BudgetUsage` treats graph depth,
+concurrent branches, and fan-out as high-water marks; other execution counts,
+tokens, bytes, and known costs are monotonic totals. Write calls are a subset
+of tool calls. Normalized input tokens include cached-input tokens, and
+normalized output tokens include reasoning tokens. Adapters reconstruct those
+inclusive totals where a provider reports components differently and retain
+provider-specific breakdowns outside the core contract.
+
+`BudgetUsage::checked_accumulate` takes maxima for high-water fields and checked
+addition for totals. It is pure arithmetic, not a concurrency primitive.
+`ResolvedBudget::remaining` requires an explicit observed clock value, treats
+equality with the deadline as expired, and returns a typed error for the first
+exceeded dimension. Known cost in an unbudgeted currency and any recorded
+unpriced cost event both fail closed; absence of known price is never zero.
+
+Run-cumulative input/output token budgets are separate from per-request context
+and generation ceilings on `ModelRequest` and `ModelCapabilities`. This avoids
+claiming preflight enforcement when a provider only reports exact token use
+after billing. [Pydantic AI](https://ai.pydantic.dev/agent/#usage-limits)
+similarly distinguishes cumulative and per-request limits, while
+[LangGraph](https://docs.langchain.com/oss/python/langgraph/graph-api#recursion-limit),
+[OpenAI Agents](https://openai.github.io/openai-agents-python/running_agents/),
+[Google ADK](https://adk-labs.github.io/adk-docs/runtime/runconfig/),
+[Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/agents/looping),
+and [AutoGen](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/termination.html)
+expose narrower step/turn/iteration termination controls. Current provider
+usage shapes also differ: [OpenAI Responses](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
+includes cached input and reasoning breakdowns,
+[Anthropic](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
+reports cache-read/cache-creation components, and
+[Gemini](https://ai.google.dev/api/generate-content#usage_metadata) reports
+cached content and thoughts separately. StateKnot adapters normalize those
+shapes into the inclusive contract above.
+
+Reservations prevent parallel branches from each consuming the full remaining
+budget. Reservation, commit, release, recovery, and fencing are durable runtime
+behavior specified by RFC-0003; the core arithmetic does not pretend an
+in-memory counter can provide that guarantee.
 
 ## Execution contexts
 

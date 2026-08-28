@@ -1,0 +1,394 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-budget/1.0.0",
+  "dimensions": {
+    "valid": [
+      "deadline",
+      "graph_depth",
+      "graph_steps",
+      "model_attempts",
+      "model_turns",
+      "input_tokens",
+      "cached_input_tokens",
+      "reasoning_tokens",
+      "output_tokens",
+      "tool_calls",
+      "write_calls",
+      "remote_agent_delegations",
+      "retries",
+      "concurrent_branches",
+      "fan_out",
+      "input_bytes",
+      "output_bytes",
+      "event_bytes",
+      "checkpoint_bytes",
+      "artifact_bytes",
+      "costs"
+    ],
+    "invalid": [
+      "total_tokens",
+      "currency",
+      "",
+      1,
+      null
+    ]
+  },
+  "cost_limits": {
+    "valid": [
+      [],
+      [
+        { "currency": "USD", "micro_units": "1000000" }
+      ],
+      [
+        { "currency": "CNY", "micro_units": "7000000" },
+        { "currency": "EUR", "micro_units": "900000" },
+        { "currency": "USD", "micro_units": "1000000" }
+      ]
+    ],
+    "invalid": [
+      [
+        { "currency": "USD", "micro_units": "1" },
+        { "currency": "USD", "micro_units": "2" }
+      ],
+      [
+        { "currency": "usd", "micro_units": "1" }
+      ],
+      [
+        { "currency": "USD", "micro_units": 1 }
+      ],
+      null,
+      {}
+    ]
+  },
+  "known_costs": {
+    "valid": [
+      [],
+      [
+        { "currency": "USD", "micro_units": "0" }
+      ],
+      [
+        { "currency": "CNY", "micro_units": "250000" },
+        { "currency": "USD", "micro_units": "50000" }
+      ]
+    ],
+    "invalid": [
+      [
+        { "currency": "EUR", "micro_units": "1" },
+        { "currency": "EUR", "micro_units": "2" }
+      ],
+      [
+        { "currency": "EUR", "micro_units": "01" }
+      ],
+      null,
+      "USD:1"
+    ]
+  },
+  "limits": {
+    "valid": [
+      {},
+      {
+        "costs": []
+      },
+      {
+        "deadline": "2030-01-01T00:00:00.000000Z",
+        "graph_steps": "1000",
+        "input_tokens": "1000000",
+        "output_tokens": "100000",
+        "tool_calls": "100",
+        "costs": [
+          { "currency": "USD", "micro_units": "1000000" }
+        ]
+      }
+    ],
+    "invalid": [
+      {
+        "graph_steps": 1000
+      },
+      {
+        "deadline": "2030-01-01T00:00:00Z"
+      },
+      {
+        "unlimited": true
+      },
+      null,
+      []
+    ]
+  },
+  "resolved": {
+    "valid": [
+      {
+        "deadline": "2030-01-01T00:00:00.000000Z",
+        "graph_depth": "32",
+        "graph_steps": "1000",
+        "model_attempts": "50",
+        "model_turns": "40",
+        "input_tokens": "1000000",
+        "cached_input_tokens": "500000",
+        "reasoning_tokens": "25000",
+        "output_tokens": "100000",
+        "tool_calls": "100",
+        "write_calls": "20",
+        "remote_agent_delegations": "10",
+        "retries": "25",
+        "concurrent_branches": "16",
+        "fan_out": "32",
+        "input_bytes": "10485760",
+        "output_bytes": "10485760",
+        "event_bytes": "20971520",
+        "checkpoint_bytes": "10485760",
+        "artifact_bytes": "104857600",
+        "costs": [
+          { "currency": "CNY", "micro_units": "7000000" },
+          { "currency": "USD", "micro_units": "1000000" }
+        ]
+      }
+    ],
+    "invalid": [
+      {
+        "deadline": "2030-01-01T00:00:00.000000Z",
+        "graph_depth": "32",
+        "graph_steps": "1000",
+        "model_attempts": "50",
+        "model_turns": "40",
+        "input_tokens": "1000000",
+        "cached_input_tokens": "500000",
+        "reasoning_tokens": "25000",
+        "output_tokens": "100000",
+        "tool_calls": "100",
+        "write_calls": "20",
+        "remote_agent_delegations": "10",
+        "retries": "25",
+        "concurrent_branches": "16",
+        "fan_out": "32",
+        "input_bytes": "10485760",
+        "output_bytes": "10485760",
+        "event_bytes": "20971520",
+        "checkpoint_bytes": "10485760",
+        "artifact_bytes": "104857600"
+      },
+      {
+        "deadline": "2030-01-01T00:00:00.000000Z",
+        "graph_depth": "32",
+        "graph_steps": "1000",
+        "model_attempts": "50",
+        "model_turns": "40",
+        "input_tokens": "100",
+        "cached_input_tokens": "101",
+        "reasoning_tokens": "25",
+        "output_tokens": "100",
+        "tool_calls": "100",
+        "write_calls": "20",
+        "remote_agent_delegations": "10",
+        "retries": "25",
+        "concurrent_branches": "16",
+        "fan_out": "32",
+        "input_bytes": "100",
+        "output_bytes": "100",
+        "event_bytes": "100",
+        "checkpoint_bytes": "100",
+        "artifact_bytes": "100",
+        "costs": [
+          { "currency": "USD", "micro_units": "100" }
+        ]
+      },
+      {
+        "deadline": "2030-01-01T00:00:00.000000Z",
+        "graph_depth": "32",
+        "graph_steps": "1000",
+        "model_attempts": "50",
+        "model_turns": "40",
+        "input_tokens": "100",
+        "cached_input_tokens": "50",
+        "reasoning_tokens": "25",
+        "output_tokens": "100",
+        "tool_calls": "10",
+        "write_calls": "11",
+        "remote_agent_delegations": "10",
+        "retries": "25",
+        "concurrent_branches": "16",
+        "fan_out": "32",
+        "input_bytes": "100",
+        "output_bytes": "100",
+        "event_bytes": "100",
+        "checkpoint_bytes": "100",
+        "artifact_bytes": "100",
+        "costs": [
+          { "currency": "USD", "micro_units": "100" }
+        ]
+      },
+      {
+        "deadline": "2030-01-01T00:00:00.000000Z",
+        "graph_depth": "1",
+        "graph_steps": "1",
+        "model_attempts": "1",
+        "model_turns": "1",
+        "input_tokens": "1",
+        "cached_input_tokens": "1",
+        "reasoning_tokens": "1",
+        "output_tokens": "1",
+        "tool_calls": "1",
+        "write_calls": "1",
+        "remote_agent_delegations": "1",
+        "retries": "1",
+        "concurrent_branches": "1",
+        "fan_out": "1",
+        "input_bytes": "1",
+        "output_bytes": "1",
+        "event_bytes": "1",
+        "checkpoint_bytes": "1",
+        "artifact_bytes": "1",
+        "costs": [],
+        "extra": true
+      },
+      null
+    ]
+  },
+  "usage": {
+    "valid": [
+      {
+        "graph_depth": "0",
+        "graph_steps": "0",
+        "model_attempts": "0",
+        "model_turns": "0",
+        "input_tokens": "0",
+        "cached_input_tokens": "0",
+        "reasoning_tokens": "0",
+        "output_tokens": "0",
+        "tool_calls": "0",
+        "write_calls": "0",
+        "remote_agent_delegations": "0",
+        "retries": "0",
+        "concurrent_branches": "0",
+        "fan_out": "0",
+        "input_bytes": "0",
+        "output_bytes": "0",
+        "event_bytes": "0",
+        "checkpoint_bytes": "0",
+        "artifact_bytes": "0",
+        "known_costs": [],
+        "unpriced_cost_events": "0"
+      },
+      {
+        "graph_depth": "4",
+        "graph_steps": "15",
+        "model_attempts": "3",
+        "model_turns": "2",
+        "input_tokens": "1000",
+        "cached_input_tokens": "400",
+        "reasoning_tokens": "100",
+        "output_tokens": "250",
+        "tool_calls": "5",
+        "write_calls": "2",
+        "remote_agent_delegations": "1",
+        "retries": "1",
+        "concurrent_branches": "3",
+        "fan_out": "4",
+        "input_bytes": "4096",
+        "output_bytes": "2048",
+        "event_bytes": "8192",
+        "checkpoint_bytes": "4096",
+        "artifact_bytes": "1048576",
+        "known_costs": [
+          { "currency": "CNY", "micro_units": "250000" },
+          { "currency": "USD", "micro_units": "50000" }
+        ],
+        "unpriced_cost_events": "1"
+      }
+    ],
+    "invalid": [
+      {
+        "graph_depth": "0",
+        "graph_steps": "0",
+        "model_attempts": "0",
+        "model_turns": "0",
+        "input_tokens": "10",
+        "cached_input_tokens": "11",
+        "reasoning_tokens": "0",
+        "output_tokens": "0",
+        "tool_calls": "0",
+        "write_calls": "0",
+        "remote_agent_delegations": "0",
+        "retries": "0",
+        "concurrent_branches": "0",
+        "fan_out": "0",
+        "input_bytes": "0",
+        "output_bytes": "0",
+        "event_bytes": "0",
+        "checkpoint_bytes": "0",
+        "artifact_bytes": "0",
+        "known_costs": [],
+        "unpriced_cost_events": "0"
+      },
+      {
+        "graph_depth": "0",
+        "graph_steps": "0",
+        "model_attempts": "0",
+        "model_turns": "0",
+        "input_tokens": "0",
+        "cached_input_tokens": "0",
+        "reasoning_tokens": "0",
+        "output_tokens": "0",
+        "tool_calls": "1",
+        "write_calls": "2",
+        "remote_agent_delegations": "0",
+        "retries": "0",
+        "concurrent_branches": "0",
+        "fan_out": "0",
+        "input_bytes": "0",
+        "output_bytes": "0",
+        "event_bytes": "0",
+        "checkpoint_bytes": "0",
+        "artifact_bytes": "0",
+        "known_costs": [],
+        "unpriced_cost_events": "0"
+      },
+      {
+        "graph_depth": "0",
+        "graph_steps": 0,
+        "model_attempts": "0",
+        "model_turns": "0",
+        "input_tokens": "0",
+        "cached_input_tokens": "0",
+        "reasoning_tokens": "0",
+        "output_tokens": "0",
+        "tool_calls": "0",
+        "write_calls": "0",
+        "remote_agent_delegations": "0",
+        "retries": "0",
+        "concurrent_branches": "0",
+        "fan_out": "0",
+        "input_bytes": "0",
+        "output_bytes": "0",
+        "event_bytes": "0",
+        "checkpoint_bytes": "0",
+        "artifact_bytes": "0",
+        "known_costs": [],
+        "unpriced_cost_events": "0"
+      },
+      {
+        "graph_depth": "0",
+        "graph_steps": "0",
+        "model_attempts": "0",
+        "model_turns": "0",
+        "input_tokens": "0",
+        "cached_input_tokens": "0",
+        "reasoning_tokens": "0",
+        "output_tokens": "0",
+        "tool_calls": "0",
+        "write_calls": "0",
+        "remote_agent_delegations": "0",
+        "retries": "0",
+        "concurrent_branches": "0",
+        "fan_out": "0",
+        "input_bytes": "0",
+        "output_bytes": "0",
+        "event_bytes": "0",
+        "checkpoint_bytes": "0",
+        "artifact_bytes": "0",
+        "known_costs": [],
+        "unpriced_cost_events": "0",
+        "extra": true
+      },
+      null
+    ]
+  }
+}

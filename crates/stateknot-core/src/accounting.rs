@@ -21,7 +21,7 @@ macro_rules! define_count {
         /// The JSON wire form is a canonical unsigned decimal string. Arithmetic
         /// is available only through checked methods, so release builds cannot
         /// silently wrap accounting values.
-        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
         pub struct $name(u64);
 
         impl $name {
@@ -170,6 +170,12 @@ define_count!(
     ByteCountVisitor,
     "ByteCount",
     "A count of input, output, event, checkpoint, or artifact bytes."
+);
+define_count!(
+    ExecutionCount,
+    ExecutionCountVisitor,
+    "ExecutionCount",
+    "A count of graph steps, model attempts, tool calls, branches, delegations, or retries."
 );
 
 /// Parse failure for a canonical token or byte count.
@@ -533,10 +539,16 @@ mod tests {
         for value in [0, 1, (1_u64 << 53) - 1, 1_u64 << 53, u64::MAX] {
             let tokens = TokenCount::new(value);
             let bytes = ByteCount::new(value);
+            let executions = ExecutionCount::new(value);
             assert_eq!(tokens.to_string().parse::<TokenCount>().unwrap(), tokens);
             assert_eq!(bytes.to_string().parse::<ByteCount>().unwrap(), bytes);
+            assert_eq!(
+                executions.to_string().parse::<ExecutionCount>().unwrap(),
+                executions
+            );
             assert_eq!(to_string(&tokens).unwrap(), format!("\"{value}\""));
             assert_eq!(to_string(&bytes).unwrap(), format!("\"{value}\""));
+            assert_eq!(to_string(&executions).unwrap(), format!("\"{value}\""));
         }
 
         assert_eq!(TokenCount::MAX.checked_add(TokenCount::new(1)), None);
@@ -549,6 +561,10 @@ mod tests {
         for value in ["", "00", "01", "+1", "-1", "1.0", "1e3", " 1"] {
             assert!(value.parse::<TokenCount>().is_err(), "accepted {value:?}");
             assert!(value.parse::<ByteCount>().is_err(), "accepted {value:?}");
+            assert!(
+                value.parse::<ExecutionCount>().is_err(),
+                "accepted {value:?}"
+            );
         }
         assert_eq!(
             "18446744073709551616".parse::<TokenCount>(),
@@ -563,6 +579,7 @@ mod tests {
         for schema in [
             to_value(schemars::schema_for!(TokenCount)).unwrap(),
             to_value(schemars::schema_for!(ByteCount)).unwrap(),
+            to_value(schemars::schema_for!(ExecutionCount)).unwrap(),
         ] {
             assert_eq!(schema["type"], "string");
             assert_eq!(schema["minLength"], 1);

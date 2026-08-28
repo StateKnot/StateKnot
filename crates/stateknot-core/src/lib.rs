@@ -12,6 +12,7 @@
 
 mod accounting;
 mod artifact;
+mod budget;
 mod capability;
 mod content;
 mod decimal;
@@ -26,8 +27,8 @@ mod time;
 mod version;
 
 pub use accounting::{
-    ByteCount, CountParseError, CurrencyCode, CurrencyCodeError, Money, MoneyArithmeticError,
-    TokenCount,
+    ByteCount, CountParseError, CurrencyCode, CurrencyCodeError, ExecutionCount, Money,
+    MoneyArithmeticError, TokenCount,
 };
 pub use artifact::{
     ArtifactDescription, ArtifactDescriptionError, ArtifactIdentity, ArtifactModality,
@@ -35,6 +36,11 @@ pub use artifact::{
     ArtifactProvenance, ArtifactRef, ArtifactRefError, ArtifactRepresentation,
     ArtifactRepresentationError, ContentPart, MediaType, MediaTypeError, RetentionClass,
     RetentionClassError,
+};
+pub use budget::{
+    BudgetDimension, BudgetEvaluationError, BudgetLimits, BudgetRemaining, BudgetResolutionError,
+    BudgetUsage, BudgetUsageBuilder, BudgetUsageError, CostCollectionError, CostLimits, KnownCosts,
+    MAX_BUDGET_LAYERS, MAX_COST_CURRENCIES, ResolvedBudget,
 };
 pub use capability::{CapabilityName, CapabilityNameError, CapabilityReference};
 pub use content::{
