@@ -11,6 +11,7 @@
 
 mod digest;
 mod ids;
+mod time;
 mod version;
 
 pub use digest::{Digest, DigestAlgorithm, DigestError};
@@ -18,4 +19,5 @@ pub use ids::{
     ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, RunId, TenantId,
     TenantIdError, ThreadId,
 };
+pub use time::{DurationMillis, DurationMillisError, Timestamp, TimestampError};
 pub use version::{Version, VersionComponent, VersionError};

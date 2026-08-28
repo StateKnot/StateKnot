@@ -265,6 +265,13 @@ and authorization is evaluated before revealing whether an ID exists.
 - random jitter and wall-clock reads are runtime services whose observed values
   are recorded when they influence a durable decision.
 
+`Timestamp` accepts exactly `YYYY-MM-DDTHH:MM:SS.ffffffZ`, covering UTC years
+`0000..=9999`. It rejects alternate offsets, variable fractional precision,
+leap-second text, and conversions that would silently discard nanoseconds.
+`stateknot-core` exposes fallible `std::time::SystemTime` conversions; the
+calendar implementation dependency remains private and is not part of the
+public compatibility surface.
+
 ## Version model
 
 `Version` is a validated semantic version with numeric major, minor, and patch.
@@ -742,9 +749,6 @@ changing questions remain unresolved.
 
 ## Unresolved questions
 
-1. Decide whether `Timestamp` exposes a conversion to the `time` crate behind a
-   feature or only standard-library conversions; its canonical wire form is
-   already fixed here.
-2. Benchmark RFC 8785 canonicalization and schema validation against the GS-001
+1. Benchmark RFC 8785 canonicalization and schema validation against the GS-001
    event rate before accepting the implementation dependency; the canonical
    behavior remains required even if the implementation changes.

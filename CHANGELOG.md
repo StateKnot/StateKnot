@@ -25,4 +25,6 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 - Canonical three-component contract versions and SHA-256 integrity digests,
   including strict Serde/JSON Schema validation and external compatibility
   fixtures.
+- Canonical UTC microsecond timestamps and checked, non-negative millisecond
+  durations with strict precision-preserving standard-library conversions.
 - CI, dependency policy, issue forms, and security reporting guidance.
