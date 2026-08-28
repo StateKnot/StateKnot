@@ -240,10 +240,27 @@ whitespace-containing, path-like, control, or normalization-ambiguous values are
 rejected. An application maps its external tenant identifier into this form
 before calling StateKnot.
 
-`SubjectId` is deliberately specified together with its issuer rather than as
-an independently global identifier. Its exact OIDC-compatible wire grammar is
-deferred to the identity slice; adapters MUST NOT treat a bare subject as
-globally unique.
+`IssuerId` is a case-sensitive, absolute HTTPS URI of at most 512 ASCII bytes.
+It requires a host, permits an optional valid `u16` port and path, and rejects
+userinfo, query, and fragment components. It preserves the exact input and does
+not lowercase, remove a default port or trailing slash, resolve dot segments,
+or normalize percent encoding. [OIDC Core](https://openid.net/specs/openid-connect-core-1_0.html)
+and [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414.html) require exact issuer
+comparison, while [JWT StringOrURI values](https://www.rfc-editor.org/rfc/rfc7519.html#section-2)
+forbid transformation before comparison; URI-equivalent strings are therefore
+distinct security domains.
+
+`SubjectId` is a non-empty, case-sensitive opaque value of at most 255 printable
+ASCII bytes. The length and ASCII constraints follow OIDC Core; StateKnot
+rejects control bytes to preserve supported database and text boundaries. It
+is never trimmed, normalized, interpreted as a username, or emitted through
+its `Debug` implementation.
+
+`PrincipalIdentity { issuer, subject }` is the stable external identity key.
+[OIDC Core section 5.7](https://openid.net/specs/openid-connect-core-1_0.html#ClaimStability)
+guarantees stability and uniqueness only for that pair. A bare subject is never
+global, and tenant-scoped storage and authorization still include the separate
+`TenantId`.
 
 ### StateKnot-generated IDs
 
@@ -544,7 +561,7 @@ to and from the protocol's space-delimited parameter. See
 `Principal` contains:
 
 - `TenantId`;
-- issuer and subject;
+- exact `PrincipalIdentity` issuer/subject pair;
 - principal kind: user, workload, agent, or system;
 - validated scope set;
 - optional authenticated client/workload identity;
@@ -557,6 +574,13 @@ intersection of tenant policy, authenticated scopes, every delegation hop, and
 capability requirements. Delegation can narrow but never widen authority.
 The `ScopeSet::intersection` operation implements this narrowing primitive; its
 result is deterministically ordered and a subset of both operands.
+
+Deserializing an `IssuerId`, `SubjectId`, or `PrincipalIdentity` only validates
+its data shape; it never authenticates a caller. An identity adapter constructs
+the principal only after validating the token signature and algorithm, exact
+configured/discovered issuer, intended audience and authorized party, expiry
+and not-before times, nonce/replay requirements, and tenant/provider policy.
+Core identity types never perform discovery or network access.
 
 The full principal is available to policy and audit. Model prompts receive only
 explicitly selected, non-secret identity attributes.

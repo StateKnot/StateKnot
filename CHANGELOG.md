@@ -34,4 +34,6 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   ID/version/digest schema references.
 - MCP-compatible capability names plus bounded OAuth-compatible scopes and
   deterministic, duplicate-rejecting scope sets with narrowing property tests.
+- Exact OIDC/OAuth issuer and redacted subject identifiers composed into a
+  strict principal identity key, without unsafe URI normalization.
 - CI, dependency policy, issue forms, and security reporting guidance.

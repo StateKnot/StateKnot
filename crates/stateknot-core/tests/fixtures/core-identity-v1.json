@@ -1,0 +1,81 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-identity/1.0.0",
+  "issuers": {
+    "valid": [
+      "https://issuer.example.com",
+      "https://issuer.example.com/",
+      "https://issuer.example.com:8443/tenant",
+      "HTTPS://ISSUER.example.com:443/a/../tenant",
+      "https://issuer.example.com/%7Etenant"
+    ],
+    "invalid": [
+      "",
+      "issuer.example.com",
+      "http://issuer.example.com",
+      "https:/issuer.example.com",
+      "https://",
+      "https://issuer.example.com:",
+      "https://issuer.example.com:65536",
+      "https://user@issuer.example.com",
+      "https://issuer.example.com?tenant=one",
+      "https://issuer.example.com#fragment",
+      "https://例子.example.com",
+      42,
+      null
+    ]
+  },
+  "subjects": {
+    "valid": [
+      "24400320",
+      "AItOawmwtWwcT0k51BayewNvutrJUqsvl6qs7A4",
+      "Subject",
+      "subject",
+      " user with exact spaces ",
+      "subject:\"quoted\"\\opaque"
+    ],
+    "invalid": [
+      "",
+      "subject\nvalue",
+      "subject\tvalue",
+      "subject\u0000value",
+      "subject\u007fvalue",
+      "用户",
+      42,
+      null
+    ]
+  },
+  "principal_identities": {
+    "valid": [
+      {
+        "issuer": "https://issuer.example.com",
+        "subject": "24400320"
+      },
+      {
+        "issuer": "https://issuer.example.com/tenant",
+        "subject": "subject:\"quoted\"\\opaque"
+      }
+    ],
+    "invalid": [
+      {
+        "issuer": "https://issuer.example.com"
+      },
+      {
+        "subject": "24400320"
+      },
+      {
+        "issuer": "http://issuer.example.com",
+        "subject": "24400320"
+      },
+      {
+        "issuer": "https://issuer.example.com",
+        "subject": "subject\nvalue"
+      },
+      {
+        "issuer": "https://issuer.example.com",
+        "subject": "24400320",
+        "extra": true
+      },
+      null
+    ]
+  }
+}

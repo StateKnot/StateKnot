@@ -14,6 +14,7 @@ mod accounting;
 mod capability;
 mod decimal;
 mod digest;
+mod identity;
 mod ids;
 mod schema;
 mod scope;
@@ -26,6 +27,7 @@ pub use accounting::{
 };
 pub use capability::{CapabilityName, CapabilityNameError};
 pub use digest::{Digest, DigestAlgorithm, DigestError};
+pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
     ArtifactId, AttemptId, EventId, GeneratedIdError, InterruptId, InvocationId, RunId, TenantId,
     TenantIdError, ThreadId,
