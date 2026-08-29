@@ -308,6 +308,9 @@ Pending node results are separate immutable rows anchored to the base
 checkpoint. They are intentionally not copied into or used to mutate that
 checkpoint. Recovery loads them beside the latest checkpoint and the journal
 suffix; a successful barrier consumes them into the next immutable checkpoint.
+The current PostgreSQL slice can atomically commit and fully verify one exact
+activation result. Bounded unconsumed-result scanning and atomic
+successor-barrier consumption remain the next implementation slice.
 
 ## Recovery
 

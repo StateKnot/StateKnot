@@ -60,9 +60,14 @@ from the repository.
   closed continue/route/wait/terminal control, committed activation-bound
   tool/model references, causal journal anchors, semantic idempotency, closed
   schemas, tamper tests, and a frozen canonical-wire digest fixture.
-- [ ] Complete PostgreSQL pending node results and atomic barrier consumption,
-  the node-attempt ledger, outbox, recovery scheduling, quarantine, role
-  isolation, retention, failover, restore, and stale-race gates.
+- [x] Persist PostgreSQL pending node results with an immutable semantic key,
+  exact worker fence and journal anchor, activation-bound committed tool/model
+  foreign keys, full fail-closed recovery, lease-takeover idempotency,
+  cancellation/corruption/rollback tests, and a 24-writer race on PostgreSQL
+  16/17.
+- [ ] Complete atomic pending-result barrier consumption, the node-attempt
+  ledger, outbox, recovery scheduling, quarantine, role isolation, retention,
+  failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

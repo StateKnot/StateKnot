@@ -3,7 +3,8 @@
 
 use stateknot_core::{
     Checkpoint, CheckpointHead, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead,
-    ModelInvocation, RunLease, RunLifecycle, RunRevision, RunTransition, Superstep, ToolInvocation,
+    ModelInvocation, PendingNodeResult, RunLease, RunLifecycle, RunRevision, RunTransition,
+    Superstep, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -148,6 +149,44 @@ impl ModelInvocationCommitOutcome {
     pub const fn invocation(&self) -> &ModelInvocation {
         match self {
             Self::Committed { invocation, .. } | Self::Idempotent { invocation, .. } => invocation,
+        }
+    }
+}
+
+/// Result of atomically committing a worker event and pending node result.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum PendingNodeResultCommitOutcome {
+    /// A new event and immutable pending result committed atomically.
+    Committed {
+        /// Newly committed journal event.
+        event: JournalEvent,
+        /// Newly committed pending node result.
+        result: PendingNodeResult,
+    },
+    /// The same semantic node result had already committed.
+    Idempotent {
+        /// Original journal event that anchored the stored winner.
+        event: JournalEvent,
+        /// Previously committed pending node result.
+        result: PendingNodeResult,
+    },
+}
+
+impl PendingNodeResultCommitOutcome {
+    /// Returns the validated anchoring journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the validated immutable pending result.
+    #[must_use]
+    pub const fn result(&self) -> &PendingNodeResult {
+        match self {
+            Self::Committed { result, .. } | Self::Idempotent { result, .. } => result,
         }
     }
 }

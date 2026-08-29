@@ -457,6 +457,17 @@ matches the stored fence, and reject a result anchor that does not follow all
 dependencies. Consumption metadata may advance once to one exact successor
 checkpoint, but no integrity-bearing result field is updated.
 
+Migration 5 and the current store implement the immutable write/read half of
+this contract. `pending_node_results` has one logical activation key, exact
+base-checkpoint and worker-event/fence foreign keys, bounded canonical bytes,
+and separate tool/model binding tables whose ordinary composite foreign keys
+prove exact activation plus committed revision. Identical semantic retries
+return the original winner even after lease takeover; changed semantics
+conflict. Recovery revalidates the full record, binding projections, full
+invocation records, and journal anchors in one repeatable-read snapshot. The
+append-only consumption table is present, but the atomic successor-barrier API
+remains unimplemented and must not be inferred from the schema alone.
+
 The exact barrier, logical activation, stable reduction, and checkpoint
 lineage semantics are defined by
 [RFC-0002](0002-deterministic-graph-and-scheduler.md). The database must not
@@ -755,7 +766,7 @@ responses/errors may finish after waiting or cancellation intent, but new
 preparation and dispatch require an active run. Model and tool claims cannot
 cross even when invocation identifiers collide.
 
-Twenty-seven integration tests run against digest-pinned PostgreSQL 16 and 17.
+Thirty-four integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -768,12 +779,17 @@ invalid/future lifecycle transitions, model delayed retry and exact response
 provenance, cross-tool/model attempt rejection, 100 concurrent journal
 appenders, 24 competing checkpoint writers producing one contiguous lineage,
 and 24 competing tool/model invocation writers admitting exactly one physical
-attempt. Non-ready and unsupported nested activations are rejected without
+attempt. Pending-result tests additionally cover exact committed tool/model
+bindings, same-event and cross-fence semantic retries, cancellation precedence,
+stale fencing, full recovery after corruption attempts, rollback of
+event/result/bindings/head on an invalid reference, and 24 contenders producing
+one physical winner. Non-ready and unsupported nested activations are rejected without
 durable residue, and cancellation races retain in-flight results without
 admitting new work. Checkpoint advancement is rejected until exact-parent
 invocations commit. This is evidence for those boundaries only. Pending node
-writes, the PostgreSQL node-attempt ledger, automatic quarantine, role-separated
-database procedures, the 10,000 stale-race trial, failover, archive,
+result consumption/barriers, the PostgreSQL node-attempt ledger, automatic
+quarantine, role-separated database procedures, the 10,000 stale-race trial,
+failover, archive,
 backup/restore, and soak gates below remain incomplete; the RFC therefore
 remains Draft.
 

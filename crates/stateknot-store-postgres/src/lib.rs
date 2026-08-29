@@ -5,8 +5,9 @@
 //!
 //! The provider persists canonical journal bytes, serializes each run under a
 //! row lock, checks worker fencing with the database clock, and commits journal
-//! facts with their lifecycle projection in one transaction. It never holds a
-//! database transaction across a model, tool, remote agent, or human wait.
+//! facts with their lifecycle projection, checkpoints, invocation revisions, or
+//! immutable pending node results in one transaction. It never holds a database
+//! transaction across a model, tool, remote agent, or human wait.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
 //! its database credentials to untrusted workers; role-separated procedures and
@@ -25,7 +26,8 @@ pub use model::{
     AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
     CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
     LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
-    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, RunProjection, StoredRun,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
+    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, PendingNodeResultCommitOutcome,
+    RunProjection, StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    ToolInvocationHistoryPageSize,
 };
 pub use store::PostgresStore;

@@ -813,14 +813,15 @@ archive anchor、expand/contract migration 与 backup/restore 门禁以
 
 当前已落地 `stateknot-store-postgres` 的第一段最终持久化边界：`runs`、`run_events`、
 immutable `run_checkpoints`、immutable/hash-linked tool/model invocation ledger、run-wide
-tool/model physical-attempt registry、canonical bytes/digests、projection-bound idempotency、
-locked pure transition、exact-head/parent append、数据库时钟 lease/fencing、完整 journal cursor
+tool/model physical-attempt registry、immutable pending node-result ledger、canonical bytes/digests、
+projection-bound 与 semantic-result idempotency、locked pure transition、exact-head/parent append、数据库时钟 lease/fencing、完整 journal cursor
 分页、有界 reverse checkpoint-lineage 与 invocation-history 分页、未结算 invocation 的
 exact-checkpoint advancement guard、精确 migration checksum/startup refusal，以及 PostgreSQL
 16/17 的 v3 Attempt 回填、corruption、rollback、lost-ack、delayed retry、100 并发 journal
-appender、24 并发 checkpoint writer 和 24 并发 tool/model invocation writer 测试。该 guard
-只防止 checkpoint 越过未结算外部调用；尚未证明 committed invocation result 已被 node update
-消费。它不是完整 runtime。pending node writes、node attempt、interrupt/outbox、自动
+appender、24 并发 checkpoint writer、24 并发 tool/model invocation writer 和 24 并发 pending-result writer 测试。该 guard
+只防止 checkpoint 越过未结算外部调用；pending-result 已证明 node 对 exact committed
+invocation 的引用，但尚未把结果原子消费进 successor checkpoint。它不是完整 runtime。
+atomic result barrier、node attempt、interrupt/outbox、自动
 quarantine、recovery
 scheduler、角色隔离、归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
 
@@ -1031,8 +1032,8 @@ GET    /health/ready
 - blob store、retention、tenant isolation 与 RLS 可选配置。
 
 进度：run/journal/checkpoint/tool/model-invocation/lease、run-wide physical-attempt registry、
-pending node-result 核心契约与 migration/startup 的首个生产形态切片已完成并进入主干验证；
-PostgreSQL pending-result/barrier、node-attempt ledger、recovery scheduler、outbox，
+pending node-result 核心契约及 PostgreSQL immutable commit/load ledger 已完成并通过 PG16/17
+验证；atomic pending-result barrier、node-attempt ledger、recovery scheduler、outbox，
 以及阶段 3 的其余运维与故障门禁未完成，不能据此提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
@@ -1123,7 +1124,7 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 3. `RFC-0003 PostgreSQL Durability, Recovery and Migration`（Draft）；
 4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
 
-RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0002/0003 的 journal、checkpoint、tool/model-invocation、lease/fencing 值契约；`stateknot-store-postgres` 已把 run/journal/checkpoint/tool/model-invocation、run-wide tool/model attempt claim、lease 与 migration/startup 语义落到 PostgreSQL 16/17，但 pending node writes、node-attempt ledger、完整恢复调度和运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
+RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0002/0003 的 journal、checkpoint、tool/model-invocation、pending node-result、lease/fencing 值契约；`stateknot-store-postgres` 已把 run/journal/checkpoint/tool/model-invocation、pending node-result commit/load、run-wide tool/model attempt claim、lease 与 migration/startup 语义落到 PostgreSQL 16/17，但 atomic result barrier、node-attempt ledger、完整恢复调度和运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
 
 ## 22. 主要一手资料
 

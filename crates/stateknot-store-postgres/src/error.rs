@@ -161,6 +161,24 @@ pub enum StoreError {
     /// The model invocation activation is not a ready root-graph node of its checkpoint.
     #[error("model invocation activation is not ready in the base checkpoint")]
     InvalidModelInvocationActivation,
+    /// No pending result exists for the supplied logical node activation key.
+    #[error("pending node result was not found in the tenant-scoped run")]
+    PendingNodeResultNotFound,
+    /// A logical activation already has a different immutable semantic result.
+    #[error("pending node result conflicts with the committed semantic intent")]
+    PendingNodeResultConflict,
+    /// Event and pending-result rows do not describe one atomic commit.
+    #[error("journal event and pending node result conflict with an atomic commit")]
+    PendingNodeResultCommitConflict,
+    /// The pending result activation is not a ready root-graph node of its checkpoint.
+    #[error("pending node result activation is not ready in the base checkpoint")]
+    InvalidPendingNodeResultActivation,
+    /// The result's temporal or control invariants cannot commit at the database observation.
+    #[error("pending node result is invalid at its durable commit position")]
+    InvalidPendingNodeResult,
+    /// A pending result named an absent, non-committed, or crossed invocation revision.
+    #[error("pending node result contains an invalid external invocation binding")]
+    InvalidPendingNodeResultBinding,
     /// A pagination cursor did not identify the exact stored event head.
     #[error("journal cursor does not match a durable event")]
     InvalidJournalCursor,

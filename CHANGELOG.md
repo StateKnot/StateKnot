@@ -193,6 +193,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   semantic idempotency separated from physical worker fencing, strict journal
   causality, redacted diagnostics, closed schemas, adversarial tests, and a
   versioned canonical-wire digest fixture.
+- PostgreSQL migration 5 and atomic pending node-result commit/load APIs with
+  immutable canonical records, exact base-checkpoint and worker-event anchors,
+  separate tool/model composite foreign keys for activation-bound committed
+  revisions, semantic idempotency across lease takeover, fail-closed full-record
+  recovery with one-model/two-tool/eight-anchor memory batches, cancellation
+  and corruption coverage, complete rollback after an invalid binding, and
+  24-writer single-winner tests on PostgreSQL 16/17. The
+  append-only consumption schema is installed; atomic barrier consumption is
+  still pending.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

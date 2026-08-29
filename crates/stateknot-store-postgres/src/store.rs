@@ -22,10 +22,12 @@ use stateknot_core::{
     JournalEventIntent, JournalEventSource, JournalHead, JournalSequence, JsonLimits,
     ModelInvocation, ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
     ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
-    ModelInvocationTransition, ModelInvocationTransitionKind, RunFence, RunId, RunLease,
-    RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTransition, Superstep,
-    TenantId, Timestamp, ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier,
-    ToolInvocationIntent, ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeControlKind,
+    NodeInvocationBinding, NodeInvocationBindingKind, PendingNodeResult, PendingNodeResultError,
+    PendingNodeResultIntent, RunFence, RunId, RunLease, RunLeaseValidationError, RunLifecycle,
+    RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp, ToolInvocation,
+    ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
+    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
     ToolInvocationTransitionKind,
 };
 use uuid::Uuid;
@@ -34,9 +36,9 @@ use crate::{
     AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
     CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
     LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
-    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, PostgresStoreOptions,
-    RunProjection, StoreError, StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
-    ToolInvocationHistoryPageSize,
+    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, PendingNodeResultCommitOutcome,
+    PostgresStoreOptions, RunProjection, StoreError, StoredRun, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -69,6 +71,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0004_model_invocations.sql")),
             false,
         ),
+        Migration::new(
+            5,
+            Cow::Borrowed("pending node results"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0005_pending_node_results.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -82,6 +91,10 @@ const MAX_TOOL_INVOCATION_INTENT_BYTES: usize = 4_194_304;
 const MAX_TOOL_INVOCATION_RECORD_BYTES: usize = 16_777_216;
 const MAX_MODEL_INVOCATION_INTENT_BYTES: usize = 134_217_728;
 const MAX_MODEL_INVOCATION_RECORD_BYTES: usize = 134_217_728;
+const MAX_PENDING_NODE_RESULT_BYTES: usize = 16_777_216;
+const PENDING_TOOL_BINDING_BATCH_SIZE: usize = ToolInvocationHistoryPageSize::MAX as usize;
+const PENDING_MODEL_BINDING_BATCH_SIZE: usize = ModelInvocationHistoryPageSize::MAX as usize;
+const PENDING_INVOCATION_ANCHOR_BATCH_SIZE: usize = 8;
 const MODEL_INVOCATION_RECORD_SCHEMA: &str =
     "https://stateknot.github.io/schema/storage/model-invocation-revision/1.0.0";
 const PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-run-projection-v1\0";
@@ -610,6 +623,232 @@ SELECT EXISTS (
 )
 ";
 
+const SELECT_PENDING_NODE_RESULT: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    base_journal_sequence,
+    base_journal_event_id,
+    base_journal_recorded_at,
+    base_journal_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    control_kind,
+    fence_attempt_id,
+    fence_epoch,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    record_digest,
+    result_bytes,
+    created_at
+FROM stateknot.pending_node_results
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND base_checkpoint_id = $3
+  AND graph_namespace = $4
+  AND node_id = $5
+";
+
+const SELECT_PENDING_NODE_RESULT_BY_ANCHOR: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    base_journal_sequence,
+    base_journal_event_id,
+    base_journal_recorded_at,
+    base_journal_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    control_kind,
+    fence_attempt_id,
+    fence_epoch,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    record_digest,
+    result_bytes,
+    created_at
+FROM stateknot.pending_node_results
+WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
+";
+
+const SELECT_PENDING_NODE_RESULT_TOOL_BINDINGS: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    result_record_digest,
+    result_journal_sequence,
+    result_journal_recorded_at,
+    result_journal_digest,
+    invocation_id,
+    invocation_revision,
+    invocation_record_digest,
+    invocation_journal_sequence,
+    invocation_journal_recorded_at,
+    invocation_journal_digest
+FROM stateknot.pending_node_result_tool_bindings
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND base_checkpoint_id = $3
+  AND graph_namespace = $4
+  AND node_id = $5
+ORDER BY invocation_id ASC
+";
+
+const SELECT_PENDING_NODE_RESULT_MODEL_BINDINGS: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    result_record_digest,
+    result_journal_sequence,
+    result_journal_recorded_at,
+    result_journal_digest,
+    invocation_id,
+    invocation_revision,
+    invocation_record_digest,
+    invocation_journal_sequence,
+    invocation_journal_recorded_at,
+    invocation_journal_digest
+FROM stateknot.pending_node_result_model_bindings
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND base_checkpoint_id = $3
+  AND graph_namespace = $4
+  AND node_id = $5
+ORDER BY invocation_id ASC
+";
+
+const SELECT_TOOL_INVOCATIONS_BY_IDS: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    intent_bytes,
+    current_revision,
+    current_status,
+    current_attempt_id,
+    current_record_digest,
+    created_at,
+    updated_at
+FROM stateknot.tool_invocations
+WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = ANY($3)
+ORDER BY invocation_id ASC
+";
+
+const SELECT_TOOL_INVOCATION_REVISIONS_BY_HEADS: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+FROM stateknot.tool_invocation_revisions
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND (invocation_id, revision) IN (
+      SELECT * FROM UNNEST($3::uuid[], $4::bigint[])
+  )
+ORDER BY invocation_id ASC, revision ASC
+";
+
+const SELECT_MODEL_INVOCATIONS_BY_IDS: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    intent_bytes,
+    current_revision,
+    current_status,
+    current_attempt_id,
+    current_record_digest,
+    created_at,
+    updated_at
+FROM stateknot.model_invocations
+WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = ANY($3)
+ORDER BY invocation_id ASC
+";
+
+const SELECT_MODEL_INVOCATION_REVISIONS_BY_HEADS: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+FROM stateknot.model_invocation_revisions
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND (invocation_id, revision) IN (
+      SELECT * FROM UNNEST($3::uuid[], $4::bigint[])
+  )
+ORDER BY invocation_id ASC, revision ASC
+";
+
 /// Connected `PostgreSQL` durability provider.
 ///
 /// Clones share one bounded connection pool. `Debug` intentionally omits pool
@@ -719,6 +958,10 @@ impl PostgresStore {
                  AND to_regclass('stateknot.run_attempt_claims') IS NOT NULL \
                  AND to_regclass('stateknot.model_invocations') IS NOT NULL \
                  AND to_regclass('stateknot.model_invocation_revisions') IS NOT NULL \
+                 AND to_regclass('stateknot.pending_node_results') IS NOT NULL \
+                 AND to_regclass('stateknot.pending_node_result_tool_bindings') IS NOT NULL \
+                 AND to_regclass('stateknot.pending_node_result_model_bindings') IS NOT NULL \
+                 AND to_regclass('stateknot.pending_node_result_consumptions') IS NOT NULL \
                  AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL",
         )
         .fetch_one(&self.pool)
@@ -1433,6 +1676,39 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .await
             .map_err(|source| StoreError::database("model invocation history commit", source))?;
         Ok(ModelInvocationHistoryPage { records, has_more })
+    }
+
+    /// Loads and fully verifies one immutable pending node result.
+    ///
+    /// The result's canonical bytes, redundant projections, base checkpoint,
+    /// worker journal anchor, binding rows, full invocation intents, exact
+    /// committed revisions, and invocation journal anchors are checked in one
+    /// repeatable-read snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::PendingNodeResultNotFound`] when the exact
+    /// activation is absent; otherwise returns an integrity or database error.
+    pub async fn load_pending_node_result(
+        &self,
+        activation: &NodeActivation,
+    ) -> Result<PendingNodeResult, StoreError> {
+        let mut transaction = self
+            .begin_repeatable_read("pending node result load")
+            .await?;
+        let row = load_pending_node_result_row(&mut transaction, activation)
+            .await?
+            .ok_or(StoreError::PendingNodeResultNotFound)?;
+        let result = decode_pending_node_result(&row)?;
+        if result.intent().activation() != activation {
+            return Err(StoreError::PendingNodeResultNotFound);
+        }
+        verify_pending_node_result(&mut transaction, &result).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("pending node result load commit", source))?;
+        Ok(result)
     }
 
     /// Claims an unowned or expired runnable run for a stable `UUIDv7` attempt.
@@ -2451,6 +2727,161 @@ WHERE tenant_id = $1
         Ok(ModelInvocationCommitOutcome::Committed { event, invocation })
     }
 
+    /// Atomically commits one successful node activation as a pending result.
+    ///
+    /// The worker event, immutable result, exact external-invocation bindings,
+    /// and run journal head commit in one fenced transaction. Retrying the same
+    /// semantic result converges on the original physical winner even after a
+    /// lease takeover; changing any semantic field is a conflict.
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit authority, lifecycle, idempotency, activation,
+    /// binding, checkpoint, journal, fencing, integrity, or database failures.
+    pub async fn commit_pending_node_result(
+        &self,
+        append: JournalAppend,
+        intent: PendingNodeResultIntent,
+    ) -> Result<PendingNodeResultCommitOutcome, StoreError> {
+        Box::pin(self.commit_pending_node_result_inner(append, intent)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn commit_pending_node_result_inner(
+        &self,
+        append: JournalAppend,
+        intent: PendingNodeResultIntent,
+    ) -> Result<PendingNodeResultCommitOutcome, StoreError> {
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(StoreError::WrongAppendAuthority)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if intent.tenant_id() != &tenant_id || intent.run_id() != run_id {
+            return Err(StoreError::PendingNodeResultCommitConflict);
+        }
+
+        let mut transaction = self.begin_mutation("pending node result commit").await?;
+        let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(run_row)?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("pending node result event lookup", source))?;
+        if let Some(row) = existing_event {
+            let projection_digest = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "pending node result projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            let sequence = i64::try_from(event.sequence().get())
+                .map_err(|_| StoreError::JournalSequenceExhausted)?;
+            let result_row =
+                query_as::<_, PendingNodeResultRow>(SELECT_PENDING_NODE_RESULT_BY_ANCHOR)
+                    .bind(tenant_id.as_str())
+                    .bind(*run_id.as_uuid())
+                    .bind(sequence)
+                    .fetch_optional(&mut *transaction)
+                    .await
+                    .map_err(|source| {
+                        StoreError::database("pending node result idempotency record", source)
+                    })?
+                    .ok_or(StoreError::PendingNodeResultCommitConflict)?;
+            let result = decode_pending_node_result(&result_row)?;
+            let expected = PendingNodeResult::commit(intent, fence, event.head())
+                .map_err(|_| StoreError::PendingNodeResultCommitConflict)?;
+            if projection_digest != Some(result.digest())
+                || encode_pending_node_result(&result)? != encode_pending_node_result(&expected)?
+            {
+                return Err(StoreError::PendingNodeResultCommitConflict);
+            }
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent pending node result lock release", source)
+            })?;
+            let mut verification = self
+                .begin_repeatable_read("idempotent pending node result verification")
+                .await?;
+            let anchor = verify_pending_node_result(&mut verification, &result).await?;
+            if anchor.head() != event.head() {
+                return Err(StoreError::PendingNodeResultCommitConflict);
+            }
+            verification.commit().await.map_err(|source| {
+                StoreError::database("idempotent pending node result verification commit", source)
+            })?;
+            return Ok(PendingNodeResultCommitOutcome::Idempotent { event, result });
+        }
+
+        if let Some(result_row) =
+            load_pending_node_result_row(&mut transaction, intent.activation()).await?
+        {
+            let result = decode_pending_node_result(&result_row)?;
+            if result.intent() != &intent {
+                return Err(StoreError::PendingNodeResultConflict);
+            }
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("semantic pending node result lock release", source)
+            })?;
+            let mut verification = self
+                .begin_repeatable_read("semantic pending node result verification")
+                .await?;
+            let event = verify_pending_node_result(&mut verification, &result).await?;
+            verification.commit().await.map_err(|source| {
+                StoreError::database("semantic pending node result verification commit", source)
+            })?;
+            return Ok(PendingNodeResultCommitOutcome::Idempotent { event, result });
+        }
+
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Active {
+            return Err(StoreError::RunNotRunnable);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !pending_node_result_activation_is_ready(&current_checkpoint, &intent) {
+            return Err(StoreError::InvalidPendingNodeResultActivation);
+        }
+
+        let observed_at = database_now(&mut transaction, "pending node result clock").await?;
+        authorize_worker(&stored, &fence, observed_at)?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let result = PendingNodeResult::commit(intent, fence.clone(), event.head())
+            .map_err(|error| map_pending_node_result_commit_error(&error))?;
+
+        insert_event(&mut transaction, &event, result.digest()).await?;
+        insert_pending_node_result(&mut transaction, &result, &fence).await?;
+        insert_pending_node_result_bindings(&mut transaction, &result, &fence).await?;
+        update_run_head(&mut transaction, &event, None).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("pending node result commit", source))?;
+        Ok(PendingNodeResultCommitOutcome::Committed { event, result })
+    }
+
     /// Atomically appends a control-plane event and commits one graph barrier.
     ///
     /// The checkpoint write must belong to the same tenant/run, its exact
@@ -3033,6 +3464,53 @@ struct ModelInvocationRevisionRow {
     created_at: DateTime<Utc>,
 }
 
+struct PendingNodeResultRow {
+    tenant_id: String,
+    run_id: Uuid,
+    base_checkpoint_id: Uuid,
+    base_superstep: i64,
+    base_checkpoint_digest: Vec<u8>,
+    base_journal_sequence: i64,
+    base_journal_event_id: Uuid,
+    base_journal_recorded_at: DateTime<Utc>,
+    base_journal_digest: Vec<u8>,
+    graph_namespace: String,
+    node_id: String,
+    activation_input_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    control_kind: String,
+    fence_attempt_id: Uuid,
+    fence_epoch: i64,
+    journal_sequence: i64,
+    journal_event_id: Uuid,
+    journal_recorded_at: DateTime<Utc>,
+    journal_digest: Vec<u8>,
+    record_digest: Vec<u8>,
+    result_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
+struct PendingNodeResultBindingRow {
+    tenant_id: String,
+    run_id: Uuid,
+    base_checkpoint_id: Uuid,
+    base_superstep: i64,
+    base_checkpoint_digest: Vec<u8>,
+    graph_namespace: String,
+    node_id: String,
+    activation_input_digest: Vec<u8>,
+    result_record_digest: Vec<u8>,
+    result_journal_sequence: i64,
+    result_journal_recorded_at: DateTime<Utc>,
+    result_journal_digest: Vec<u8>,
+    invocation_id: Uuid,
+    invocation_revision: i64,
+    invocation_record_digest: Vec<u8>,
+    invocation_journal_sequence: i64,
+    invocation_journal_recorded_at: DateTime<Utc>,
+    invocation_journal_digest: Vec<u8>,
+}
+
 impl<'row> FromRow<'row, PgRow> for RunRow {
     fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
         Ok(Self {
@@ -3207,6 +3685,61 @@ impl<'row> FromRow<'row, PgRow> for ModelInvocationRevisionRow {
             record_digest: row.try_get("record_digest")?,
             record_bytes: row.try_get("record_bytes")?,
             created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for PendingNodeResultRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            base_checkpoint_id: row.try_get("base_checkpoint_id")?,
+            base_superstep: row.try_get("base_superstep")?,
+            base_checkpoint_digest: row.try_get("base_checkpoint_digest")?,
+            base_journal_sequence: row.try_get("base_journal_sequence")?,
+            base_journal_event_id: row.try_get("base_journal_event_id")?,
+            base_journal_recorded_at: row.try_get("base_journal_recorded_at")?,
+            base_journal_digest: row.try_get("base_journal_digest")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            node_id: row.try_get("node_id")?,
+            activation_input_digest: row.try_get("activation_input_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            control_kind: row.try_get("control_kind")?,
+            fence_attempt_id: row.try_get("fence_attempt_id")?,
+            fence_epoch: row.try_get("fence_epoch")?,
+            journal_sequence: row.try_get("journal_sequence")?,
+            journal_event_id: row.try_get("journal_event_id")?,
+            journal_recorded_at: row.try_get("journal_recorded_at")?,
+            journal_digest: row.try_get("journal_digest")?,
+            record_digest: row.try_get("record_digest")?,
+            result_bytes: row.try_get("result_bytes")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for PendingNodeResultBindingRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            base_checkpoint_id: row.try_get("base_checkpoint_id")?,
+            base_superstep: row.try_get("base_superstep")?,
+            base_checkpoint_digest: row.try_get("base_checkpoint_digest")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            node_id: row.try_get("node_id")?,
+            activation_input_digest: row.try_get("activation_input_digest")?,
+            result_record_digest: row.try_get("result_record_digest")?,
+            result_journal_sequence: row.try_get("result_journal_sequence")?,
+            result_journal_recorded_at: row.try_get("result_journal_recorded_at")?,
+            result_journal_digest: row.try_get("result_journal_digest")?,
+            invocation_id: row.try_get("invocation_id")?,
+            invocation_revision: row.try_get("invocation_revision")?,
+            invocation_record_digest: row.try_get("invocation_record_digest")?,
+            invocation_journal_sequence: row.try_get("invocation_journal_sequence")?,
+            invocation_journal_recorded_at: row.try_get("invocation_journal_recorded_at")?,
+            invocation_journal_digest: row.try_get("invocation_journal_digest")?,
         })
     }
 }
@@ -4227,6 +4760,599 @@ async fn verify_model_invocation_anchor(
     Ok(())
 }
 
+fn encode_pending_node_result(result: &PendingNodeResult) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(result)
+        .map_err(|_| StoreError::encoding("pending node result"))?;
+    if bytes.is_empty() || bytes.len() > MAX_PENDING_NODE_RESULT_BYTES {
+        return Err(StoreError::encoding("pending node result size"));
+    }
+    Ok(bytes)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_pending_node_result(row: &PendingNodeResultRow) -> Result<PendingNodeResult, StoreError> {
+    if row.result_bytes.is_empty() || row.result_bytes.len() > MAX_PENDING_NODE_RESULT_BYTES {
+        return Err(StoreError::corrupt("pending node result byte length"));
+    }
+    let result = serde_json::from_slice::<PendingNodeResult>(&row.result_bytes)
+        .map_err(|_| StoreError::corrupt("pending node result value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&result)
+        .map_err(|_| StoreError::corrupt("pending node result canonicalization"))?;
+    if canonical != row.result_bytes {
+        return Err(StoreError::corrupt("pending node result canonical bytes"));
+    }
+
+    let activation = result.intent().activation();
+    let base = activation.base_checkpoint();
+    let base_journal = base.journal_head();
+    let journal = result.journal_head();
+    let fence_epoch = i64::try_from(result.fence().epoch().get())
+        .map_err(|_| StoreError::corrupt("pending node result fence epoch"))?;
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::corrupt("pending node result base superstep"))?;
+    let base_journal_sequence = i64::try_from(base_journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("pending node result base journal sequence"))?;
+    let journal_sequence = i64::try_from(journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("pending node result journal sequence"))?;
+
+    if activation.tenant_id().as_str() != row.tenant_id
+        || *activation.run_id().as_uuid() != row.run_id
+        || *base.checkpoint_id().as_uuid() != row.base_checkpoint_id
+        || base_superstep != row.base_superstep
+        || base.digest()
+            != decode_digest(
+                &row.base_checkpoint_digest,
+                "pending node result base checkpoint digest",
+            )?
+        || base_journal_sequence != row.base_journal_sequence
+        || *base_journal.event_id().as_uuid() != row.base_journal_event_id
+        || base_journal.recorded_at() != from_database_time(row.base_journal_recorded_at)?
+        || base_journal.digest()
+            != decode_digest(
+                &row.base_journal_digest,
+                "pending node result base journal digest",
+            )?
+        || activation.graph_namespace().as_str() != row.graph_namespace
+        || activation.node_id().as_str() != row.node_id
+        || activation.input_digest()
+            != decode_digest(
+                &row.activation_input_digest,
+                "pending node result activation input digest",
+            )?
+        || result.intent().intent_digest()
+            != decode_digest(&row.intent_digest, "pending node result intent digest")?
+        || pending_node_result_control_kind_text(result.intent().control().kind())
+            != row.control_kind
+        || *result.fence().attempt_id().as_uuid() != row.fence_attempt_id
+        || fence_epoch != row.fence_epoch
+        || journal_sequence != row.journal_sequence
+        || *journal.event_id().as_uuid() != row.journal_event_id
+        || journal.recorded_at() != from_database_time(row.journal_recorded_at)?
+        || journal.digest()
+            != decode_digest(&row.journal_digest, "pending node result journal digest")?
+        || result.digest()
+            != decode_digest(&row.record_digest, "pending node result record digest")?
+        || journal.recorded_at() != from_database_time(row.created_at)?
+    {
+        return Err(StoreError::corrupt("pending node result projection"));
+    }
+    Ok(result)
+}
+
+async fn load_pending_node_result_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    activation: &NodeActivation,
+) -> Result<Option<PendingNodeResultRow>, StoreError> {
+    query_as::<_, PendingNodeResultRow>(SELECT_PENDING_NODE_RESULT)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*activation.base_checkpoint().checkpoint_id().as_uuid())
+        .bind(activation.graph_namespace().as_str())
+        .bind(activation.node_id().as_str())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("pending node result lookup", source))
+}
+
+fn pending_node_result_activation_is_ready(
+    checkpoint: &Checkpoint,
+    intent: &PendingNodeResultIntent,
+) -> bool {
+    let activation = intent.activation();
+    activation.graph_namespace().is_root()
+        && checkpoint.ready_nodes().contains(activation.node_id())
+}
+
+async fn verify_pending_node_result_base_checkpoint(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+) -> Result<(), StoreError> {
+    let activation = result.intent().activation();
+    let base = activation.base_checkpoint();
+    let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*base.checkpoint_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("pending node result base checkpoint", source))?
+        .ok_or_else(|| StoreError::corrupt("pending node result base checkpoint"))?;
+    let checkpoint = decode_checkpoint(row)?;
+    if checkpoint.head() != *base
+        || !pending_node_result_activation_is_ready(&checkpoint, result.intent())
+    {
+        return Err(StoreError::corrupt("pending node result base checkpoint"));
+    }
+    verify_checkpoint_anchor(transaction, &checkpoint).await
+}
+
+async fn verify_pending_node_result_anchor(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+) -> Result<JournalEvent, StoreError> {
+    let sequence = i64::try_from(result.journal_head().sequence().get())
+        .map_err(|_| StoreError::corrupt("pending node result journal sequence"))?;
+    let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(result.intent().tenant_id().as_str())
+        .bind(*result.intent().run_id().as_uuid())
+        .bind(sequence)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("pending node result anchor", source))?
+        .ok_or_else(|| StoreError::corrupt("pending node result journal anchor"))?;
+    let projection_digest = row
+        .projection_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "pending node result projection digest"))
+        .transpose()?;
+    let event = decode_event(row)?;
+    if event.head() != *result.journal_head()
+        || event.source().worker_fence() != Some(result.fence())
+        || projection_digest != Some(result.digest())
+    {
+        return Err(StoreError::corrupt("pending node result journal anchor"));
+    }
+    Ok(event)
+}
+
+async fn verify_pending_node_result(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+) -> Result<JournalEvent, StoreError> {
+    verify_pending_node_result_base_checkpoint(transaction, result).await?;
+    let event = verify_pending_node_result_anchor(transaction, result).await?;
+    verify_pending_node_result_bindings(transaction, result).await?;
+    Ok(event)
+}
+
+async fn verify_pending_node_result_bindings(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+) -> Result<(), StoreError> {
+    let activation = result.intent().activation();
+    let tool_rows =
+        query_as::<_, PendingNodeResultBindingRow>(SELECT_PENDING_NODE_RESULT_TOOL_BINDINGS)
+            .bind(activation.tenant_id().as_str())
+            .bind(*activation.run_id().as_uuid())
+            .bind(*activation.base_checkpoint().checkpoint_id().as_uuid())
+            .bind(activation.graph_namespace().as_str())
+            .bind(activation.node_id().as_str())
+            .fetch_all(&mut **transaction)
+            .await
+            .map_err(|source| StoreError::database("pending node result tool bindings", source))?;
+    let model_rows =
+        query_as::<_, PendingNodeResultBindingRow>(SELECT_PENDING_NODE_RESULT_MODEL_BINDINGS)
+            .bind(activation.tenant_id().as_str())
+            .bind(*activation.run_id().as_uuid())
+            .bind(*activation.base_checkpoint().checkpoint_id().as_uuid())
+            .bind(activation.graph_namespace().as_str())
+            .bind(activation.node_id().as_str())
+            .fetch_all(&mut **transaction)
+            .await
+            .map_err(|source| StoreError::database("pending node result model bindings", source))?;
+
+    let tool_bindings = result
+        .intent()
+        .bindings()
+        .iter()
+        .filter(|binding| binding.kind() == NodeInvocationBindingKind::Tool)
+        .collect::<Vec<_>>();
+    let model_bindings = result
+        .intent()
+        .bindings()
+        .iter()
+        .filter(|binding| binding.kind() == NodeInvocationBindingKind::Model)
+        .collect::<Vec<_>>();
+    verify_pending_node_result_binding_rows(result, &tool_bindings, tool_rows)?;
+    verify_pending_node_result_binding_rows(result, &model_bindings, model_rows)?;
+
+    let mut anchors = BTreeMap::new();
+    verify_pending_tool_invocations(transaction, result, &tool_bindings, &mut anchors).await?;
+    verify_pending_model_invocations(transaction, result, &model_bindings, &mut anchors).await?;
+    verify_pending_invocation_anchors(transaction, result, anchors).await
+}
+
+fn verify_pending_node_result_binding_rows(
+    result: &PendingNodeResult,
+    expected: &[&NodeInvocationBinding],
+    rows: Vec<PendingNodeResultBindingRow>,
+) -> Result<(), StoreError> {
+    if rows.len() != expected.len() {
+        return Err(StoreError::corrupt("pending node result binding count"));
+    }
+    let mut rows_by_id = BTreeMap::new();
+    for row in rows {
+        let id = row.invocation_id;
+        if rows_by_id.insert(id, row).is_some() {
+            return Err(StoreError::corrupt("pending node result binding identity"));
+        }
+    }
+    for binding in expected {
+        let row = rows_by_id
+            .remove(binding.invocation_id().as_uuid())
+            .ok_or_else(|| StoreError::corrupt("pending node result binding identity"))?;
+        if !pending_node_result_binding_row_matches(&row, result, binding)? {
+            return Err(StoreError::corrupt(
+                "pending node result binding projection",
+            ));
+        }
+    }
+    if !rows_by_id.is_empty() {
+        return Err(StoreError::corrupt("pending node result binding identity"));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+fn pending_node_result_binding_row_matches(
+    row: &PendingNodeResultBindingRow,
+    result: &PendingNodeResult,
+    binding: &NodeInvocationBinding,
+) -> Result<bool, StoreError> {
+    let activation = result.intent().activation();
+    let base = activation.base_checkpoint();
+    let result_journal = result.journal_head();
+    let invocation_journal = binding.journal_head();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::corrupt("pending node result binding base superstep"))?;
+    let result_journal_sequence = i64::try_from(result_journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("pending node result binding result sequence"))?;
+    let invocation_journal_sequence = i64::try_from(invocation_journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("pending node result binding invocation sequence"))?;
+    let (revision, record_digest) = match binding {
+        NodeInvocationBinding::Tool { head, .. } => (
+            i64::try_from(head.revision().get())
+                .map_err(|_| StoreError::corrupt("pending tool binding revision"))?,
+            head.digest(),
+        ),
+        NodeInvocationBinding::Model { head, .. } => (
+            i64::try_from(head.revision().get())
+                .map_err(|_| StoreError::corrupt("pending model binding revision"))?,
+            head.digest(),
+        ),
+    };
+    Ok(row.tenant_id == activation.tenant_id().as_str()
+        && row.run_id == *activation.run_id().as_uuid()
+        && row.base_checkpoint_id == *base.checkpoint_id().as_uuid()
+        && row.base_superstep == base_superstep
+        && decode_digest(
+            &row.base_checkpoint_digest,
+            "pending node result binding base digest",
+        )? == base.digest()
+        && row.graph_namespace == activation.graph_namespace().as_str()
+        && row.node_id == activation.node_id().as_str()
+        && decode_digest(
+            &row.activation_input_digest,
+            "pending node result binding input digest",
+        )? == activation.input_digest()
+        && decode_digest(
+            &row.result_record_digest,
+            "pending node result binding result digest",
+        )? == result.digest()
+        && row.result_journal_sequence == result_journal_sequence
+        && from_database_time(row.result_journal_recorded_at)? == result_journal.recorded_at()
+        && decode_digest(
+            &row.result_journal_digest,
+            "pending node result binding result journal digest",
+        )? == result_journal.digest()
+        && row.invocation_id == *binding.invocation_id().as_uuid()
+        && row.invocation_revision == revision
+        && decode_digest(
+            &row.invocation_record_digest,
+            "pending node result binding invocation digest",
+        )? == record_digest
+        && row.invocation_journal_sequence == invocation_journal_sequence
+        && from_database_time(row.invocation_journal_recorded_at)?
+            == invocation_journal.recorded_at()
+        && decode_digest(
+            &row.invocation_journal_digest,
+            "pending node result binding invocation journal digest",
+        )? == invocation_journal.digest())
+}
+
+async fn verify_pending_tool_invocations(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+    bindings: &[&NodeInvocationBinding],
+    anchors: &mut BTreeMap<JournalSequence, (JournalHead, Digest)>,
+) -> Result<(), StoreError> {
+    for chunk in bindings.chunks(PENDING_TOOL_BINDING_BATCH_SIZE) {
+        verify_pending_tool_invocation_chunk(transaction, result, chunk, anchors).await?;
+    }
+    Ok(())
+}
+
+async fn verify_pending_tool_invocation_chunk(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+    bindings: &[&NodeInvocationBinding],
+    anchors: &mut BTreeMap<JournalSequence, (JournalHead, Digest)>,
+) -> Result<(), StoreError> {
+    let ids = bindings
+        .iter()
+        .map(|binding| *binding.invocation_id().as_uuid())
+        .collect::<Vec<_>>();
+    let revisions = bindings
+        .iter()
+        .map(|binding| {
+            let head = binding
+                .tool_head()
+                .ok_or_else(|| StoreError::corrupt("pending tool binding kind"))?;
+            i64::try_from(head.revision().get())
+                .map_err(|_| StoreError::corrupt("pending tool binding revision"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let intent_rows = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATIONS_BY_IDS)
+        .bind(result.intent().tenant_id().as_str())
+        .bind(*result.intent().run_id().as_uuid())
+        .bind(&ids)
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("pending tool binding intents", source))?;
+    let revision_rows =
+        query_as::<_, ToolInvocationRevisionRow>(SELECT_TOOL_INVOCATION_REVISIONS_BY_HEADS)
+            .bind(result.intent().tenant_id().as_str())
+            .bind(*result.intent().run_id().as_uuid())
+            .bind(&ids)
+            .bind(&revisions)
+            .fetch_all(&mut **transaction)
+            .await
+            .map_err(|source| StoreError::database("pending tool binding revisions", source))?;
+    let mut intents = unique_tool_invocation_rows(intent_rows)?;
+    let mut records = unique_tool_invocation_revision_rows(revision_rows)?;
+    if intents.len() != bindings.len() || records.len() != bindings.len() {
+        return Err(StoreError::corrupt("pending tool binding records"));
+    }
+    for binding in bindings {
+        let head = binding
+            .tool_head()
+            .ok_or_else(|| StoreError::corrupt("pending tool binding kind"))?;
+        let intent_row = intents
+            .remove(head.invocation_id().as_uuid())
+            .ok_or_else(|| StoreError::corrupt("pending tool binding intent"))?;
+        let intent = decode_tool_invocation_intent(&intent_row)?;
+        let revision = i64::try_from(head.revision().get())
+            .map_err(|_| StoreError::corrupt("pending tool binding revision"))?;
+        let revision_row = records
+            .remove(&(*head.invocation_id().as_uuid(), revision))
+            .ok_or_else(|| StoreError::corrupt("pending tool binding revision"))?;
+        let invocation = decode_tool_invocation_revision(revision_row, &intent)?;
+        validate_tool_invocation_current_projection(&intent_row, &invocation)?;
+        if intent.activation() != result.intent().activation() || invocation.head() != *head {
+            return Err(StoreError::corrupt("pending tool binding record"));
+        }
+        insert_pending_invocation_anchor(anchors, invocation.journal_head(), invocation.digest())?;
+    }
+    if !intents.is_empty() || !records.is_empty() {
+        return Err(StoreError::corrupt("pending tool binding records"));
+    }
+    Ok(())
+}
+
+async fn verify_pending_model_invocations(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+    bindings: &[&NodeInvocationBinding],
+    anchors: &mut BTreeMap<JournalSequence, (JournalHead, Digest)>,
+) -> Result<(), StoreError> {
+    for chunk in bindings.chunks(PENDING_MODEL_BINDING_BATCH_SIZE) {
+        verify_pending_model_invocation_chunk(transaction, result, chunk, anchors).await?;
+    }
+    Ok(())
+}
+
+async fn verify_pending_model_invocation_chunk(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+    bindings: &[&NodeInvocationBinding],
+    anchors: &mut BTreeMap<JournalSequence, (JournalHead, Digest)>,
+) -> Result<(), StoreError> {
+    let ids = bindings
+        .iter()
+        .map(|binding| *binding.invocation_id().as_uuid())
+        .collect::<Vec<_>>();
+    let revisions = bindings
+        .iter()
+        .map(|binding| {
+            let head = binding
+                .model_head()
+                .ok_or_else(|| StoreError::corrupt("pending model binding kind"))?;
+            i64::try_from(head.revision().get())
+                .map_err(|_| StoreError::corrupt("pending model binding revision"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let intent_rows = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATIONS_BY_IDS)
+        .bind(result.intent().tenant_id().as_str())
+        .bind(*result.intent().run_id().as_uuid())
+        .bind(&ids)
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("pending model binding intents", source))?;
+    let revision_rows =
+        query_as::<_, ModelInvocationRevisionRow>(SELECT_MODEL_INVOCATION_REVISIONS_BY_HEADS)
+            .bind(result.intent().tenant_id().as_str())
+            .bind(*result.intent().run_id().as_uuid())
+            .bind(&ids)
+            .bind(&revisions)
+            .fetch_all(&mut **transaction)
+            .await
+            .map_err(|source| StoreError::database("pending model binding revisions", source))?;
+    let mut intents = unique_model_invocation_rows(intent_rows)?;
+    let mut records = unique_model_invocation_revision_rows(revision_rows)?;
+    if intents.len() != bindings.len() || records.len() != bindings.len() {
+        return Err(StoreError::corrupt("pending model binding records"));
+    }
+    for binding in bindings {
+        let head = binding
+            .model_head()
+            .ok_or_else(|| StoreError::corrupt("pending model binding kind"))?;
+        let intent_row = intents
+            .remove(head.invocation_id().as_uuid())
+            .ok_or_else(|| StoreError::corrupt("pending model binding intent"))?;
+        let intent = decode_model_invocation_intent(&intent_row)?;
+        let revision = i64::try_from(head.revision().get())
+            .map_err(|_| StoreError::corrupt("pending model binding revision"))?;
+        let revision_row = records
+            .remove(&(*head.invocation_id().as_uuid(), revision))
+            .ok_or_else(|| StoreError::corrupt("pending model binding revision"))?;
+        let invocation = decode_model_invocation_revision(revision_row, &intent)?;
+        validate_model_invocation_current_projection(&intent_row, &invocation)?;
+        if intent.activation() != result.intent().activation() || invocation.head() != *head {
+            return Err(StoreError::corrupt("pending model binding record"));
+        }
+        insert_pending_invocation_anchor(anchors, invocation.journal_head(), invocation.digest())?;
+    }
+    if !intents.is_empty() || !records.is_empty() {
+        return Err(StoreError::corrupt("pending model binding records"));
+    }
+    Ok(())
+}
+
+fn unique_tool_invocation_rows(
+    rows: Vec<ToolInvocationRow>,
+) -> Result<BTreeMap<Uuid, ToolInvocationRow>, StoreError> {
+    let mut values = BTreeMap::new();
+    for row in rows {
+        let id = row.invocation_id;
+        if values.insert(id, row).is_some() {
+            return Err(StoreError::corrupt("pending tool binding intents"));
+        }
+    }
+    Ok(values)
+}
+
+fn unique_tool_invocation_revision_rows(
+    rows: Vec<ToolInvocationRevisionRow>,
+) -> Result<BTreeMap<(Uuid, i64), ToolInvocationRevisionRow>, StoreError> {
+    let mut values = BTreeMap::new();
+    for row in rows {
+        let key = (row.invocation_id, row.revision);
+        if values.insert(key, row).is_some() {
+            return Err(StoreError::corrupt("pending tool binding revisions"));
+        }
+    }
+    Ok(values)
+}
+
+fn unique_model_invocation_rows(
+    rows: Vec<ModelInvocationRow>,
+) -> Result<BTreeMap<Uuid, ModelInvocationRow>, StoreError> {
+    let mut values = BTreeMap::new();
+    for row in rows {
+        let id = row.invocation_id;
+        if values.insert(id, row).is_some() {
+            return Err(StoreError::corrupt("pending model binding intents"));
+        }
+    }
+    Ok(values)
+}
+
+fn unique_model_invocation_revision_rows(
+    rows: Vec<ModelInvocationRevisionRow>,
+) -> Result<BTreeMap<(Uuid, i64), ModelInvocationRevisionRow>, StoreError> {
+    let mut values = BTreeMap::new();
+    for row in rows {
+        let key = (row.invocation_id, row.revision);
+        if values.insert(key, row).is_some() {
+            return Err(StoreError::corrupt("pending model binding revisions"));
+        }
+    }
+    Ok(values)
+}
+
+fn insert_pending_invocation_anchor(
+    anchors: &mut BTreeMap<JournalSequence, (JournalHead, Digest)>,
+    head: &JournalHead,
+    digest: Digest,
+) -> Result<(), StoreError> {
+    if anchors
+        .insert(head.sequence(), (head.clone(), digest))
+        .is_some()
+    {
+        return Err(StoreError::corrupt(
+            "pending node result invocation journal identity",
+        ));
+    }
+    Ok(())
+}
+
+async fn verify_pending_invocation_anchors(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+    expected: BTreeMap<JournalSequence, (JournalHead, Digest)>,
+) -> Result<(), StoreError> {
+    if expected.is_empty() {
+        return Ok(());
+    }
+    let expected = expected.into_iter().collect::<Vec<_>>();
+    for expected in expected.chunks(PENDING_INVOCATION_ANCHOR_BATCH_SIZE) {
+        let sequences = expected
+            .iter()
+            .map(|(sequence, _)| {
+                i64::try_from(sequence.get())
+                    .map_err(|_| StoreError::corrupt("pending invocation journal sequence"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let rows = query_as::<_, EventRow>(SELECT_EVENTS_BY_SEQUENCES)
+            .bind(result.intent().tenant_id().as_str())
+            .bind(*result.intent().run_id().as_uuid())
+            .bind(&sequences)
+            .fetch_all(&mut **transaction)
+            .await
+            .map_err(|source| StoreError::database("pending invocation journal anchors", source))?;
+        if rows.len() != expected.len() {
+            return Err(StoreError::corrupt("pending invocation journal anchors"));
+        }
+        let mut actual = BTreeMap::new();
+        for row in rows {
+            let projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "pending invocation projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if actual
+                .insert(event.sequence(), (event, projection))
+                .is_some()
+            {
+                return Err(StoreError::corrupt("pending invocation journal anchors"));
+            }
+        }
+        for (sequence, (head, digest)) in expected {
+            let (event, projection) = actual
+                .remove(sequence)
+                .ok_or_else(|| StoreError::corrupt("pending invocation journal anchor"))?;
+            if event.head() != *head || projection != Some(*digest) {
+                return Err(StoreError::corrupt("pending invocation journal anchor"));
+            }
+        }
+        if !actual.is_empty() {
+            return Err(StoreError::corrupt("pending invocation journal anchors"));
+        }
+    }
+    Ok(())
+}
+
 fn projection_digest(projection: &RunProjection) -> Result<Digest, StoreError> {
     let wire = match projection {
         RunProjection::Unchanged => ProjectionDigestWire::Unchanged,
@@ -5142,6 +6268,298 @@ WHERE current_invocation.tenant_id = $1
     Ok(())
 }
 
+async fn insert_pending_node_result(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let intent = result.intent();
+    let activation = intent.activation();
+    let base = activation.base_checkpoint();
+    let base_journal = base.journal_head();
+    let journal = result.journal_head();
+    let result_bytes = encode_pending_node_result(result)?;
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::encoding("pending node result base superstep"))?;
+    let base_journal_sequence = i64::try_from(base_journal.sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let journal_sequence = i64::try_from(journal.sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let created_at = to_database_time(journal.recorded_at())?;
+    let inserted = query(
+        r"
+INSERT INTO stateknot.pending_node_results (
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    base_journal_sequence,
+    base_journal_event_id,
+    base_journal_recorded_at,
+    base_journal_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    control_kind,
+    fence_attempt_id,
+    fence_epoch,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    record_digest,
+    result_bytes,
+    created_at
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+    $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.checkpoint_id = $3
+  AND current_run.checkpoint_superstep = $4
+  AND current_run.checkpoint_digest = $5
+  AND current_run.lease_attempt_id = $15
+  AND current_run.fencing_epoch = $16
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(intent.tenant_id().as_str())
+    .bind(*intent.run_id().as_uuid())
+    .bind(*base.checkpoint_id().as_uuid())
+    .bind(base_superstep)
+    .bind(base.digest().as_bytes())
+    .bind(base_journal_sequence)
+    .bind(*base_journal.event_id().as_uuid())
+    .bind(to_database_time(base_journal.recorded_at())?)
+    .bind(base_journal.digest().as_bytes())
+    .bind(activation.graph_namespace().as_str())
+    .bind(activation.node_id().as_str())
+    .bind(activation.input_digest().as_bytes())
+    .bind(intent.intent_digest().as_bytes())
+    .bind(pending_node_result_control_kind_text(
+        intent.control().kind(),
+    ))
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .bind(journal_sequence)
+    .bind(*journal.event_id().as_uuid())
+    .bind(created_at)
+    .bind(journal.digest().as_bytes())
+    .bind(result.digest().as_bytes())
+    .bind(result_bytes)
+    .bind(created_at)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("pending node result insert", source))?
+    .rows_affected();
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+async fn insert_pending_node_result_bindings(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    insert_pending_node_result_binding_kind(
+        transaction,
+        result,
+        fence,
+        NodeInvocationBindingKind::Model,
+    )
+    .await?;
+    insert_pending_node_result_binding_kind(
+        transaction,
+        result,
+        fence,
+        NodeInvocationBindingKind::Tool,
+    )
+    .await
+}
+
+struct PendingBindingValues {
+    invocation_ids: Vec<Uuid>,
+    revisions: Vec<i64>,
+    record_digests: Vec<Vec<u8>>,
+    journal_sequences: Vec<i64>,
+    journal_recorded_at: Vec<DateTime<Utc>>,
+    journal_digests: Vec<Vec<u8>>,
+}
+
+fn pending_binding_values(
+    result: &PendingNodeResult,
+    kind: NodeInvocationBindingKind,
+) -> Result<PendingBindingValues, StoreError> {
+    let mut values = PendingBindingValues {
+        invocation_ids: Vec::new(),
+        revisions: Vec::new(),
+        record_digests: Vec::new(),
+        journal_sequences: Vec::new(),
+        journal_recorded_at: Vec::new(),
+        journal_digests: Vec::new(),
+    };
+    for binding in result
+        .intent()
+        .bindings()
+        .iter()
+        .filter(|binding| binding.kind() == kind)
+    {
+        let (revision, digest) = match binding {
+            NodeInvocationBinding::Model { head, .. } => (head.revision().get(), head.digest()),
+            NodeInvocationBinding::Tool { head, .. } => (head.revision().get(), head.digest()),
+        };
+        values
+            .invocation_ids
+            .push(*binding.invocation_id().as_uuid());
+        values.revisions.push(
+            i64::try_from(revision)
+                .map_err(|_| StoreError::encoding("pending node result binding revision"))?,
+        );
+        values.record_digests.push(digest.as_bytes().to_vec());
+        values.journal_sequences.push(
+            i64::try_from(binding.journal_head().sequence().get())
+                .map_err(|_| StoreError::JournalSequenceExhausted)?,
+        );
+        values
+            .journal_recorded_at
+            .push(to_database_time(binding.journal_head().recorded_at())?);
+        values
+            .journal_digests
+            .push(binding.journal_head().digest().as_bytes().to_vec());
+    }
+    Ok(values)
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_pending_node_result_binding_kind(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+    fence: &RunFence,
+    kind: NodeInvocationBindingKind,
+) -> Result<(), StoreError> {
+    let values = pending_binding_values(result, kind)?;
+    if values.invocation_ids.is_empty() {
+        return Ok(());
+    }
+    let (table, operation) = match kind {
+        NodeInvocationBindingKind::Model => (
+            "stateknot.pending_node_result_model_bindings",
+            "pending node result model binding insert",
+        ),
+        NodeInvocationBindingKind::Tool => (
+            "stateknot.pending_node_result_tool_bindings",
+            "pending node result tool binding insert",
+        ),
+    };
+    let statement = format!(
+        r"
+INSERT INTO {table} (
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    result_record_digest,
+    result_journal_sequence,
+    result_journal_recorded_at,
+    result_journal_digest,
+    invocation_id,
+    invocation_revision,
+    invocation_record_digest,
+    invocation_journal_sequence,
+    invocation_journal_recorded_at,
+    invocation_journal_digest
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+    binding.invocation_id,
+    binding.invocation_revision,
+    binding.invocation_record_digest,
+    binding.invocation_journal_sequence,
+    binding.invocation_journal_recorded_at,
+    binding.invocation_journal_digest
+FROM UNNEST(
+    $13::uuid[],
+    $14::bigint[],
+    $15::bytea[],
+    $16::bigint[],
+    $17::timestamptz[],
+    $18::bytea[]
+) AS binding (
+    invocation_id,
+    invocation_revision,
+    invocation_record_digest,
+    invocation_journal_sequence,
+    invocation_journal_recorded_at,
+    invocation_journal_digest
+)
+CROSS JOIN stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.checkpoint_id = $3
+  AND current_run.checkpoint_superstep = $4
+  AND current_run.checkpoint_digest = $5
+  AND current_run.lease_attempt_id = $19
+  AND current_run.fencing_epoch = $20
+  AND current_run.lease_expires_at > clock_timestamp()
+"
+    );
+    let activation = result.intent().activation();
+    let base = activation.base_checkpoint();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::encoding("pending node result binding base superstep"))?;
+    let result_sequence = i64::try_from(result.journal_head().sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let inserted = query(&statement)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*base.checkpoint_id().as_uuid())
+        .bind(base_superstep)
+        .bind(base.digest().as_bytes())
+        .bind(activation.graph_namespace().as_str())
+        .bind(activation.node_id().as_str())
+        .bind(activation.input_digest().as_bytes())
+        .bind(result.digest().as_bytes())
+        .bind(result_sequence)
+        .bind(to_database_time(result.journal_head().recorded_at())?)
+        .bind(result.journal_head().digest().as_bytes())
+        .bind(&values.invocation_ids)
+        .bind(&values.revisions)
+        .bind(&values.record_digests)
+        .bind(&values.journal_sequences)
+        .bind(&values.journal_recorded_at)
+        .bind(&values.journal_digests)
+        .bind(*fence.attempt_id().as_uuid())
+        .bind(fence_epoch)
+        .execute(&mut **transaction)
+        .await;
+    let inserted = match inserted {
+        Ok(result) => result.rows_affected(),
+        Err(source) if is_invalid_pending_binding_constraint(&source) => {
+            return Err(StoreError::InvalidPendingNodeResultBinding);
+        }
+        Err(source) => return Err(StoreError::database(operation, source)),
+    };
+    if inserted
+        != u64::try_from(values.invocation_ids.len())
+            .map_err(|_| StoreError::encoding("pending node result binding count"))?
+    {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
 #[allow(clippy::too_many_lines)]
 async fn insert_checkpoint(
     transaction: &mut Transaction<'_, Postgres>,
@@ -5585,6 +7003,25 @@ const fn model_invocation_transition_kind_text(
     }
 }
 
+const fn pending_node_result_control_kind_text(kind: NodeControlKind) -> &'static str {
+    match kind {
+        NodeControlKind::Continue => "continue",
+        NodeControlKind::Route => "route",
+        NodeControlKind::Wait => "wait",
+        NodeControlKind::Terminal => "terminal",
+    }
+}
+
+fn map_pending_node_result_commit_error(error: &PendingNodeResultError) -> StoreError {
+    match error {
+        PendingNodeResultError::JournalNotAfterBinding
+        | PendingNodeResultError::BindingClockRegression => {
+            StoreError::InvalidPendingNodeResultBinding
+        }
+        _ => StoreError::InvalidPendingNodeResult,
+    }
+}
+
 fn map_event_commit_error(error: &JournalEventError) -> StoreError {
     match error {
         JournalEventError::SequenceOverflow => StoreError::JournalSequenceExhausted,
@@ -5605,6 +7042,26 @@ fn has_database_constraint(error: &sqlx_core::Error, expected: &str) -> bool {
         error,
         sqlx_core::Error::Database(database)
             if database.constraint().is_some_and(|constraint| constraint == expected)
+    )
+}
+
+fn is_invalid_pending_binding_constraint(error: &sqlx_core::Error) -> bool {
+    matches!(
+        error,
+        sqlx_core::Error::Database(database)
+            if database.constraint().is_some_and(|constraint| matches!(
+                constraint,
+                "pending_node_result_tool_bindings_activation_fk"
+                    | "pending_node_result_tool_bindings_revision_fk"
+                    | "pending_node_result_tool_bindings_causal"
+                    | "pending_node_result_tool_bindings_once"
+                    | "pending_node_result_tool_bindings_pkey"
+                    | "pending_node_result_model_bindings_activation_fk"
+                    | "pending_node_result_model_bindings_revision_fk"
+                    | "pending_node_result_model_bindings_causal"
+                    | "pending_node_result_model_bindings_once"
+                    | "pending_node_result_model_bindings_pkey"
+            ))
     )
 }
 

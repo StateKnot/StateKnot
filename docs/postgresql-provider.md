@@ -38,6 +38,14 @@ The provider currently supplies:
 - atomic fenced prepare/advance APIs whose event, invocation revision, current
   invocation pointer, and run journal head commit or roll back together, with
   exact lost-ack convergence and no blind retry from an unknown outcome;
+- immutable pending node results committed atomically with their worker event,
+  exact winning lease fence, run journal head, canonical semantic intent, and
+  separately foreign-keyed committed tool/model revisions; logical retries
+  converge on the original physical winner across lease takeover;
+- repeatable-read pending-result recovery that revalidates canonical bytes,
+  every redundant SQL projection, the base checkpoint, worker event source and
+  projection digest, binding rows, full invocation intents/revisions, and all
+  invocation journal anchors in bounded batches;
 - successor-checkpoint rejection while any invocation rooted at the exact
   current checkpoint remains prepared, executing, failed, or unknown;
 - database-clock lease claim, renewal, release, forced supersession, monotonically
@@ -81,11 +89,13 @@ column-scoped `UPDATE` only for
 `current_revision`, `current_status`, `current_attempt_id`,
 `current_record_digest`, and `updated_at`, and `SELECT`/`INSERT` on
 `stateknot.tool_invocation_revisions`,
-`stateknot.model_invocation_revisions`, and `stateknot.run_attempt_claims`. Do
-not grant runtime DDL, checkpoint or invocation-revision update, or delete
-permissions. Exact role/grant SQL will be shipped only with the role-separated
-server boundary so this document does not invent deployment-specific role
-names.
+`stateknot.model_invocation_revisions`, `stateknot.run_attempt_claims`,
+`stateknot.pending_node_results`, and both pending-result binding tables. The
+future barrier boundary will also require `SELECT`/`INSERT` on the append-only
+consumption table. Do not grant runtime DDL, checkpoint, invocation-revision,
+pending-result update, or delete permissions. Exact role/grant SQL will be
+shipped only with the role-separated server boundary so this document does not
+invent deployment-specific role names.
 
 `PostgresTransportSecurity::VerifyFull` is the default and overrides weaker URL
 settings. `RequireEncryption` deliberately forgoes server-identity verification.
@@ -93,7 +103,8 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-CI runs 27 integration tests against digest-pinned PostgreSQL 16 and 17 images.
+The current database suite runs 34 integration tests against PostgreSQL 16 and
+17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v4 without guessed projection intent, real v3 tool-attempt history
 backfilled into the v4 run-wide registry, admission, direct lifecycle
@@ -108,7 +119,14 @@ invocation-byte, journal-anchor, and projection-binding corruption, a missing
 parent exactly beyond a page boundary, 100 concurrent journal appenders, 24
 competing checkpoint writers converging on one contiguous lineage, and 24
 competing tool and model invocation advances admitting exactly one physical
-attempt. Model coverage additionally proves delayed retry, cross-tool/model
+attempt. Pending-result coverage proves exact tool/model binding recovery,
+same-event lost-ack retry, semantic retry after lease takeover, cancellation
+precedence, stale-fence rejection, corrupted-byte rejection, rollback of the
+event/result/bindings/head unit, and 24 contenders converging on one physical
+winner. A nine-binding recovery case crosses the one-model, two-tool, and
+eight-event verification batch boundaries so maximum record sizes cannot turn
+the 256-reference logical ceiling into unbounded provider memory. Model
+coverage additionally proves delayed retry, cross-tool/model
 attempt rejection, exact response provenance, and rollback of an event,
 revision, current pointer, and attempt claim as one unit. Invalid non-ready and
 nested-namespace activations leave no event or invocation row; cancellation
@@ -171,6 +189,18 @@ attempt only after explicit `SafeAfter` advice and the database-recorded journal
 clock prove the delay; hidden SDK retries are outside this contract and must be
 disabled.
 
+Node execution commits a `PendingNodeResultIntent` with
+`commit_pending_node_result`. Its semantic digest deliberately excludes the
+worker fence and journal position, so a replacement worker can retry an
+identical logical result without creating another event. A changed activation
+input, state update, control result, or invocation binding is a conflict. The
+new-record path requires an active run, the exact current root-ready activation,
+an exact journal expectation, and a live fence. `load_pending_node_result`
+accepts the complete activation and fails closed unless the immutable row, base
+checkpoint, worker event, all binding rows, full committed invocation records,
+and their journal projections agree. Result consumption is not inferred from a
+committed invocation and does not occur until the atomic barrier API is added.
+
 Migration 2 adds nullable `run_events.projection_digest` because migration-1
 rows do not contain enough information to reconstruct the caller's projection
 intent. Those events remain readable and verifiable. A same-ID mutation retry
@@ -193,11 +223,22 @@ retain an intent digest and are rejoined through the core integrity validator.
 The migration is checksum-pinned and the v3 backfill is exercised on both
 PostgreSQL 16 and 17.
 
+Migration 5 adds immutable `pending_node_results`, separate tool/model binding
+tables, and append-only `pending_node_result_consumptions`. Composite foreign
+keys prove the exact base checkpoint, worker event/fence, logical invocation
+activation, committed revision, and causal journal order without polymorphic
+triggers. One logical `(tenant, run, base checkpoint, namespace, node)` key
+admits one semantic result; changing the activation input is a conflict rather
+than a second row. The consumption table and its exact successor-checkpoint key
+are installed for the next slice, but no public barrier-consumption API claims
+that behavior yet.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
-pending node-result writes, node execution-attempt records, interrupts, timers,
-outbox, artifacts, scheduling/readiness queues, automatic corruption quarantine,
+atomic pending-result consumption into successor barriers, node
+execution-attempt records, interrupts, timers, outbox, artifacts,
+scheduling/readiness queues, automatic corruption quarantine,
 retention/archive/legal hold, backup/restore, failover qualification, or the
 10,000-race stale-worker gate.
 
