@@ -1,0 +1,354 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-model-runtime/1.0.0",
+  "provider_request_ids": {
+    "valid": [
+      "req_01JABCDEF",
+      "request-id/provider:42",
+      "4f31df65-8087-4ce8-9019-c9f5e22a1f72"
+    ],
+    "invalid": [
+      "",
+      "request id",
+      "request\n42",
+      "请求-42",
+      42,
+      null
+    ]
+  },
+  "phases": {
+    "valid": [
+      "preparation",
+      "dispatch",
+      "response",
+      "stream"
+    ],
+    "invalid": [
+      "cancelled",
+      "provider_error",
+      "",
+      42,
+      null
+    ]
+  },
+  "provenances": {
+    "valid": [
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        },
+        "provider_model_id": "gpt-5.6-2026-08-15",
+        "provider_request_id": "req_01JABCDEF"
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ad",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        },
+        "provider_model_id": "anthropic.claude-v5:1",
+        "provider_request_id": "req_01JABCDEG",
+        "provider_response_id": "msg_01JABCDEF"
+      }
+    ],
+    "invalid": [
+      {
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        },
+        "provider_request_id": "request id"
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        },
+        "provider": "openai"
+      },
+      null
+    ]
+  },
+  "errors": {
+    "valid": [
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b1",
+          "category": "invalid_input",
+          "code": "model.request_invalid",
+          "origin": "stateknot.model",
+          "message": "The model request is invalid.",
+          "retry_advice": {
+            "kind": "never"
+          }
+        },
+        "phase": "preparation",
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b2",
+          "category": "rate_limited",
+          "code": "provider.rate_limited",
+          "origin": "provider.openai",
+          "message": "The model provider is temporarily unavailable.",
+          "retry_advice": {
+            "kind": "safe_after",
+            "delay": "1000"
+          }
+        },
+        "phase": "dispatch",
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          },
+          "provider_model_id": "gpt-5.6-2026-08-15",
+          "provider_request_id": "req_01JABCDEF"
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b3",
+          "category": "dependency_unavailable",
+          "code": "provider.stream_failed",
+          "origin": "provider.anthropic",
+          "message": "The model stream ended before completion.",
+          "retry_advice": {
+            "kind": "safe_after",
+            "delay": "250"
+          }
+        },
+        "phase": "stream",
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ad",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          },
+          "provider_model_id": "anthropic.claude-v5:1",
+          "provider_request_id": "req_01JABCDEG",
+          "provider_response_id": "msg_01JABCDEF"
+        },
+        "usage": {
+          "input_tokens": "120",
+          "cached_input_tokens": "20",
+          "output_tokens": "7",
+          "reasoning_tokens": "2"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "phase": "dispatch",
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b4",
+          "category": "internal",
+          "code": "provider.unknown",
+          "origin": "provider.example",
+          "message": "The model provider failed.",
+          "retry_advice": {
+            "kind": "never"
+          }
+        },
+        "phase": "cancelled",
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b5",
+          "category": "dependency_unavailable",
+          "code": "provider.stream_failed",
+          "origin": "provider.example",
+          "message": "The model stream ended before completion.",
+          "retry_advice": {
+            "kind": "never"
+          }
+        },
+        "phase": "stream",
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "usage": {
+          "input_tokens": "2",
+          "cached_input_tokens": "3",
+          "output_tokens": "0"
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b6",
+          "category": "ambiguous_external_outcome",
+          "code": "provider.outcome_unknown",
+          "origin": "provider.example",
+          "message": "The model outcome is unknown.",
+          "retry_advice": {
+            "kind": "never"
+          }
+        },
+        "phase": "dispatch",
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b7",
+          "category": "internal",
+          "code": "provider.unknown",
+          "origin": "provider.example",
+          "message": "The model provider failed.",
+          "retry_advice": {
+            "kind": "never"
+          }
+        },
+        "phase": "dispatch",
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "provider_payload": {
+          "secret": true
+        }
+      },
+      null
+    ]
+  },
+  "raw_invalid_errors": [
+    "{\"failure\":{\"id\":\"01912345-6789-7abc-8def-0123456789b8\",\"category\":\"internal\",\"code\":\"provider.unknown\",\"origin\":\"provider.example\",\"message\":\"The model provider failed.\",\"retry_advice\":{\"kind\":\"never\"}},\"phase\":\"dispatch\",\"phase\":\"dispatch\",\"provenance\":{\"attempt_id\":\"01912345-6789-7abc-8def-0123456789ab\",\"model\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"model-registry\"},\"capability\":{\"name\":\"models.primary\",\"version\":\"1.0.0\"}}}}",
+    "{\"failure\":{\"id\":\"01912345-6789-7abc-8def-0123456789b9\",\"category\":\"internal\",\"code\":\"provider.unknown\",\"origin\":\"provider.example\",\"message\":\"The model provider failed.\",\"retry_advice\":{\"kind\":\"never\"}},\"phase\":\"dispatch\",\"provenance\":{\"attempt_id\":\"01912345-6789-7abc-8def-0123456789ab\",\"model\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"model-registry\"},\"capability\":{\"name\":\"models.primary\",\"version\":\"1.0.0\"}},\"provider_request_id\":\"req_one\",\"provider_request_id\":\"req_two\"}}"
+  ]
+}

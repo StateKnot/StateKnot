@@ -27,6 +27,7 @@ mod model;
 mod model_event;
 mod model_request;
 mod model_response;
+mod model_runtime;
 mod schema;
 mod scope;
 mod time;
@@ -99,9 +100,15 @@ pub use model_request::{
 };
 pub use model_response::{
     ModelFinishReason, ModelOutputItem, ModelOutputItemError, ModelOutputItemKind,
-    ModelProviderIdentifierError, ModelProviderModelId, ModelProviderResponseId,
-    ModelProviderToolCallId, ModelResponse, ModelResponseError, ModelResponseProvenance,
-    ModelToolCallProposal, ModelToolCallProposalError, ModelUsage, ModelUsageError,
+    ModelProviderIdentifierError, ModelProviderModelId, ModelProviderRequestId,
+    ModelProviderResponseId, ModelProviderToolCallId, ModelResponse, ModelResponseError,
+    ModelResponseProvenance, ModelToolCallProposal, ModelToolCallProposalError, ModelUsage,
+    ModelUsageError,
+};
+pub use model_runtime::{
+    BoxFuture, BoxStream, CancellationObserver, CancellationSignal, Model, ModelContext,
+    ModelContextError, ModelError, ModelErrorPhase, ModelErrorProvenance,
+    ModelErrorValidationError, ModelStopReason,
 };
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};

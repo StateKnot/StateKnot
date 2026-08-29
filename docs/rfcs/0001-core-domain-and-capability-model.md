@@ -849,19 +849,27 @@ pub trait Model: Send + Sync + 'static {
         self.descriptor().capabilities()
     }
 
-    fn invoke<'a>(
-        &'a self,
+    fn invoke(
+        &self,
         context: ModelContext,
         request: ModelRequest,
-    ) -> BoxFuture<'a, Result<ModelResponse, ModelError>>;
+    ) -> BoxFuture<'_, Result<ModelResponse, ModelError>>;
 
-    fn stream<'a>(
-        &'a self,
+    fn stream(
+        &self,
         context: ModelContext,
         request: ModelRequest,
-    ) -> BoxStream<'a, Result<ModelEvent, ModelError>>;
+    ) -> BoxStream<'_, Result<ModelEvent, ModelError>>;
 }
 ```
+
+`BoxFuture` uses only `std::future::Future`; `BoxStream` uses the minimal
+`futures-core::Stream` trait. Both are pinned, `Send`, and borrow the model, so
+the core contract selects no executor, reactor, timer, HTTP client, or provider
+SDK. An adapter disables SDK-level automatic retries: every actual provider
+exchange needs a separately created and budgeted `AttemptId`. Unary invocation
+accepts only complete-mode requests and streaming invocation only streaming-mode
+requests. A stream error is terminal and no item may follow it.
 
 `ModelRequest` is an immutable, provider-neutral invocation value. Its v1
 contract is deliberately finite and fail-closed:
@@ -910,10 +918,10 @@ value. A request never contains a provider SDK object or bearer credential.
 
 `ModelResponse` is the immutable, ordered, provider-neutral result of exactly one
 attempt. `ModelResponseProvenance` binds it to an `AttemptId` and the exact
-owner-qualified `ModelDescriptor` identity. Optional provider model and response
-IDs preserve diagnostic correlation as opaque 1--512 byte visible-ASCII values;
-they are redacted from `Debug` and never become registry, authorization, replay,
-or idempotency keys.
+owner-qualified `ModelDescriptor` identity. Optional provider model, request,
+and response IDs preserve diagnostic correlation as opaque 1--512 byte
+visible-ASCII values; they are redacted from `Debug` and never become registry,
+authorization, replay, or idempotency keys.
 
 The response preserves provider order across three `ModelOutputItem` variants:
 
@@ -1162,6 +1170,17 @@ not mutable property bags. `RunContext` carries:
 They do not implement `Serialize`. Their `Debug` output is redacted and excludes
 credential handles, tokens, content, and tool arguments.
 
+The callable model boundary currently exposes tenant, run, thread, and attempt
+identity plus a `BudgetRemaining` snapshot, cancellation signal, and two paired
+clock observations. Construction converts the durable UTC budget deadline into
+a process-local monotonic `Instant`; equality is expired, so wall-clock changes
+cannot extend an in-flight call. Cancellation is checked before deadline when
+both are observed, but neither condition proves that the provider did not
+process or bill an already dispatched request. `CancellationObserver` is an
+object-safe runtime adapter whose state is permanent and whose wait future must
+be race-safe. A registered model binding owns its capability-limited credential
+resolution; raw credentials never enter `ModelContext`.
+
 `CredentialResolver` returns a non-serializable, non-cloneable or explicitly
 zeroizing short-lived credential scoped to one named capability and audience.
 Credential resolution is audited without recording secret material.
@@ -1195,6 +1214,18 @@ pub enum RetryAdvice {
     ReconcileFirst,
 }
 ```
+
+`ModelError` adds only model-boundary evidence: the exact attempt/model identity,
+optional opaque provider model/request/response IDs, an optional last complete
+cumulative `ModelUsage` snapshot, and the closed phase `preparation | dispatch |
+response | stream`. Phase records where observation failed; it does not imply
+retry safety, provider billing certainty, or an external outcome. `response`
+is valid only for complete delivery and `stream` only for streaming delivery.
+`ModelError::validate_for` rebinds decoded errors to the exact context,
+descriptor, request mode, and token ceilings. Missing usage remains unknown,
+never zero. Mid-stream provider error frames, transport failure, cancellation,
+deadline, malformed output, and EOF before the semantic terminal all end the
+stream with this error and discard partial output as a completed response.
 
 Each occurrence has its own `FailureId`. `Failure` also contains a stable
 machine code, origin, explicitly public-safe message, retry advice, optional

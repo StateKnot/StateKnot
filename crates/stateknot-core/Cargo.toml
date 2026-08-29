@@ -20,6 +20,7 @@ publish = false
 [dependencies]
 chrono.workspace = true
 fluent-uri.workspace = true
+futures-core.workspace = true
 language-tags.workspace = true
 mime.workspace = true
 schemars.workspace = true

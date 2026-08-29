@@ -443,6 +443,7 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "fluent-uri",
+ "futures-core",
  "language-tags",
  "mime",
  "proptest",

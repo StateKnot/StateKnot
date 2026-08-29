@@ -61,7 +61,7 @@ and the [completeness audit](docs/plan-completeness-audit.md).
 
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
-crates/stateknot-core/   Experimental, validated domain types from RFC-0001
+crates/stateknot-core/   Validated domain and callable model contracts from RFC-0001
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 .github/                 Contribution templates and automated quality gates
 ```

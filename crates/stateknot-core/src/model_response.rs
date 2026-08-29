@@ -225,6 +225,12 @@ define_provider_identifier!(
     "An opaque model identifier reported by the selected provider binding."
 );
 define_provider_identifier!(
+    ModelProviderRequestId,
+    ModelProviderRequestIdVisitor,
+    "ModelProviderRequestId",
+    "An opaque request correlation identifier reported or recognized by a model provider."
+);
+define_provider_identifier!(
     ModelProviderResponseId,
     ModelProviderResponseIdVisitor,
     "ModelProviderResponseId",
@@ -275,6 +281,8 @@ pub struct ModelResponseProvenance {
     #[serde(skip_serializing_if = "Option::is_none")]
     provider_model_id: Option<ModelProviderModelId>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    provider_request_id: Option<ModelProviderRequestId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     provider_response_id: Option<ModelProviderResponseId>,
 }
 
@@ -291,8 +299,19 @@ impl ModelResponseProvenance {
             attempt_id,
             model,
             provider_model_id,
+            provider_request_id: None,
             provider_response_id,
         }
+    }
+
+    /// Attaches the provider's request-correlation identifier.
+    ///
+    /// This value is diagnostic evidence only. It is not an authorization,
+    /// replay, deduplication, or idempotency key.
+    #[must_use]
+    pub fn with_provider_request_id(mut self, provider_request_id: ModelProviderRequestId) -> Self {
+        self.provider_request_id = Some(provider_request_id);
+        self
     }
 
     /// Returns the exact execution-attempt identifier.
@@ -313,6 +332,12 @@ impl ModelResponseProvenance {
         self.provider_model_id.as_ref()
     }
 
+    /// Returns the optional opaque provider request identifier.
+    #[must_use]
+    pub const fn provider_request_id(&self) -> Option<&ModelProviderRequestId> {
+        self.provider_request_id.as_ref()
+    }
+
     /// Returns the optional opaque provider response identifier.
     #[must_use]
     pub const fn provider_response_id(&self) -> Option<&ModelProviderResponseId> {
@@ -327,6 +352,7 @@ impl fmt::Debug for ModelResponseProvenance {
             .field("attempt_id", &self.attempt_id)
             .field("model", &self.model)
             .field("provider_model_id", &self.provider_model_id)
+            .field("provider_request_id", &self.provider_request_id)
             .field("provider_response_id", &self.provider_response_id)
             .finish_non_exhaustive()
     }

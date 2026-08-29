@@ -350,7 +350,7 @@ request 边界还逐项对照了多家当前一手 API，而不是用某一家�
 已冻结的 `ModelResponse` 同样只保留能够安全归一化的交集：
 
 - `ModelResponseProvenance` 固定 `AttemptId` 和精确的 owner-qualified model
-  identity；provider model/response ID 只是 1..=512 bytes、无空白/控制字符的
+  identity；provider model/request/response ID 只是 1..=512 bytes、无空白/控制字符的
   opaque correlation value，`Debug` 脱敏，不能用于授权、registry lookup 或重放；
 - `ModelOutputItem` 在一个数组中保持 content、readable reasoning summary、tool
   proposal 的原始相对顺序。最多 256 个 content/summary、1024 个 proposal、合计
@@ -475,6 +475,47 @@ canonical fixture 已证明 streaming state machine 最终重建的 wire 与既�
 `ModelResponse` 完全一致；partial content 永远不是 committed completion。pricing、
 rate limit、service tier、region availability 与 provider knob 属于可变 policy/adapter
 数据，不固化进模型 capability snapshot。
+
+已冻结的 callable `Model` 边界保持 executor/runtime 中立，并把失败证据与重试策略分离：
+
+- `BoxFuture` 只依赖 `std::future::Future`，`BoxStream` 只依赖最小的
+  `futures-core::Stream`；二者均为 pinned + `Send`，core 不绑定 Tokio、HTTP client
+  或任何 provider SDK；
+- `ModelContext` 只暴露 tenant/run/thread/attempt identity、已验证的
+  `BudgetRemaining`、cooperative `CancellationSignal`、持久化 UTC deadline 与由同一
+  wall/monotonic observation 换算出的 `Instant`。相等即过期，wall clock 跳变不能延长
+  在途调用；cancel 与 deadline 同时可见时 cancel 优先，但二者都不证明 provider 未处理
+  或未计费；
+- `CancellationObserver` 是可由具体 runtime newtype 适配的 object-safe 接口；状态必须
+  单调永久，wait future 必须避免注册/取消竞争丢 wake。core 提供 never-cancelled 值供
+  确定性测试，不假装它是生产 runtime 的取消源；
+- `ModelError` 复用统一 `Failure`，只增加 preparation/dispatch/response/stream phase、
+  精确 attempt/model binding、可选 provider model/request/response correlation ID 和
+  最后一份完整 cumulative `ModelUsage`。phase 不是 retry advice，也不能推导账单或结果
+  certainty；缺失 usage 仍是 unknown；
+- `ModelError::validate_for` 对 context attempt、descriptor identity、request response
+  mode 与 token ceiling 重新绑定。stream 中的 error 是唯一终止项，之后禁止继续产出；
+  partial events 永远不能提交为 response；
+- provider SDK 自动 retry 必须关闭，或者每次真实 exchange 前回到 runtime 创建新的
+  `AttemptId` 并重新通过 deadline、budget、attempt、retry 与 policy 闸门；一个 attempt
+  里隐藏多个网络调用会破坏账本、审计和限额，因此属于契约违规。
+
+这组规则逐项核对了当前官方失败面：
+
+- [OpenAI API debugging](https://platform.openai.com/docs/api-reference/backward-compatibility)
+  提供 `x-request-id`，还允许显式的 `X-Client-Request-Id`；Responses streaming 的失败、
+  cancelled 与 unknown terminal 不能伪装为成功；
+- [Anthropic errors](https://platform.claude.com/docs/en/api/errors) 明确每个响应携带
+  request ID，并说明 SSE 在 HTTP 200 后仍可能收到 error event；官方 SDK 默认自动重试
+  transient/429/5xx，因此 adapter 必须关闭隐藏重试；
+- [Vertex AI generative API errors](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/api-errors)
+  区分 cancelled、deadline exceeded、resource exhausted 与 unavailable，而
+  `GenerateContentResponse.responseId` 提供响应关联；这些状态仍由 adapter 显式映射为
+  `Failure + RetryAdvice`，不能仅凭 HTTP/gRPC code 推导 retry；
+- [Bedrock ConverseStream](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ConverseStream.html)
+  在已经建立的 event stream 内定义 model-stream/internal/service-unavailable/throttling/
+  validation exception；AWS SDK 自身也有 retry 策略，因此同样受一 exchange 一 attempt
+  约束。
 
 建议 v1 只提供两个高保真第一方 adapter：OpenAI Responses/OpenAI-compatible 与 Anthropic Messages。其他 provider 在有明确用户需求和契约测试后再加入。
 

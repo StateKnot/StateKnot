@@ -97,6 +97,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   a permanently poisoning response accumulator, strict EOF/resource handling,
   convergence to the unary `ModelResponse` contract, closed schemas, property
   tests, and an independent versioned wire fixture.
+- Runtime-neutral callable model contracts with object-safe unary/streaming
+  dispatch, executor-independent boxed futures and streams, capability-limited
+  attempt contexts, paired durable/monotonic deadlines, cooperative cancellation,
+  provider request correlation, phase-aware public-safe failures, explicit
+  hidden-retry prohibition, closed schemas, compile-time boundary tests, and an
+  independent versioned wire fixture.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/
