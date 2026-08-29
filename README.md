@@ -55,16 +55,17 @@ run admission, canonical journal append/read,
 locked lifecycle transitions, projection-bound idempotency, immutable superstep
 checkpoints, exact checkpoint parenting, bounded reverse-lineage verification,
 immutable hash-linked tool- and model-invocation ledgers, exact journal
-anchoring, a run-wide physical-attempt registry, checkpoint advancement guards
-for unsettled invocations, immutable worker-fenced pending node results with
-exact committed invocation bindings and semantic idempotency, bounded
-stable-snapshot unconsumed-result paging, schema verification, and
-database-enforced lease fencing. Complete ready-set barriers now atomically
-bind and consume the exact immutable result set while committing their event,
-successor checkpoint, lifecycle projection, and run heads; raw successor
-checkpoint writes are rejected. PostgreSQL persistence for the validated
-node-attempt contract, the outbox, recovery scheduling, quarantine workflows,
-and a runnable agent loop have not shipped yet.
+anchoring, a run-wide node/tool/model physical-attempt registry, durable node
+starts and append-only completions, database-time retry gates, higher-fence
+crash takeover, checkpoint advancement guards for unsettled invocations,
+attempt-owned immutable pending node results with exact committed invocation
+bindings and semantic idempotency, bounded verified attempt/result paging,
+schema verification, and database-enforced lease fencing. Complete ready-set
+barriers now atomically bind and consume the exact immutable result set while
+committing their event, successor checkpoint, lifecycle projection, and run
+heads; raw successor checkpoint and pending-result writes that bypass a durable
+node attempt are rejected. The outbox, recovery scheduler, quarantine
+workflows, and a runnable agent loop have not shipped yet.
 
 The current milestone is to:
 

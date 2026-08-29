@@ -487,9 +487,9 @@ Success references the pending result committed in that same transaction;
 failure retains public-safe evidence and explicit recovery advice. A missing
 completion is recoverable only after the worker fence is superseded. Committed
 external model/tool results are reused after recovery; they are not requested
-again merely to rebuild a process-local transcript. These provider-neutral
-types and frozen wire fixtures are implemented; the PostgreSQL tables and
-transactions remain the next durability slice.
+again merely to rebuild a process-local transcript. Migration 6 implements the
+tables and atomic start/fail/succeed transactions, bounded fully verified
+history, database-clock retry gates, and truthful migration-5 result recovery.
 
 ### Invocation ledger, interrupts, timers, and outbox
 
@@ -519,10 +519,11 @@ transactions remain the next durability slice.
   `safe_after`, the journal clock proves the full delay elapsed, and the new
   attempt identity differs. SDK-level hidden retries violate this contract.
 - `run_attempt_claims` is the one run-wide physical-attempt namespace shared by
-  tool and model ledgers. Its primary key rejects reuse, while generated ledger
-  kind plus deferred composite foreign keys bind every claim to the exact
-  invocation and `StartAttempt` revision. Migration 4 backfills all v3 tool
-  attempt claims before model dispatch becomes possible.
+  node, tool, and model ledgers. Its primary key rejects reuse; generated kind
+  plus deferred composite foreign keys bind tool/model claims to exact
+  invocation revisions and node claims to exact immutable starts. Migration 4
+  backfills all v3 tool attempt claims before model dispatch becomes possible;
+  migration 6 extends the same namespace to node execution.
 - `interrupts` stores request payload, bound action digest, required principal
   and scopes, exclusive expiry, version, and one authenticated resolution.
 - `timers` stores indexed due time and one firing event identity; the scheduler
@@ -779,7 +780,7 @@ responses/errors may finish after waiting or cancellation intent, but new
 preparation and dispatch require an active run. Model and tool claims cannot
 cross even when invocation identifiers collide.
 
-Forty integration tests run against PostgreSQL 16 and 17.
+Forty-six integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -801,9 +802,12 @@ durable residue, and cancellation races retain in-flight results without
 admitting new work. Checkpoint advancement is rejected until exact-parent
 invocations commit. Atomic barrier tests additionally cover complete-set
 consumption, lost acknowledgements, stale fences, injected rollback, and
-24-writer linearity. This is evidence for those boundaries only. The PostgreSQL node-attempt ledger, automatic
-quarantine, role-separated database procedures, the 10,000 stale-race trial,
-failover, archive,
+24-writer linearity. Node-attempt coverage proves durable start and terminal
+commit idempotency, success/result/barrier binding, same-epoch retry rejection,
+higher-fence recovery, database-time delayed retry, bounded history, run-wide
+cross-kind attempt identity, and fail-closed corrupted-byte recovery. This is
+evidence for those boundaries only. Automatic quarantine, role-separated
+database procedures, the 10,000 stale-race trial, failover, archive,
 backup/restore, and soak gates below remain incomplete; the RFC therefore
 remains Draft.
 

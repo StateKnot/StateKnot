@@ -13,28 +13,28 @@ use sqlx_core::{
 };
 use sqlx_postgres::PgPoolOptions;
 use stateknot_core::{
-    AgentResultProvenance, AttemptId, BoundedJson, CapabilityIdentity, CapabilityName,
+    AgentResultProvenance, AttemptId, BoundedJson, BudgetUsage, CapabilityIdentity, CapabilityName,
     CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
     CheckpointState, CheckpointWrite, Digest, DurationMillis, EventId, Failure, FailureCategory,
     FailureCode, FailureId, FailureMessage, FailureOrigin, GraphNamespace, GraphReference,
     InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
     JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
     ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
-    ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeControl, NodeId,
-    NodeInvocationBinding, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
-    PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, ReadyNodes, RetryAdvice,
-    RunCancellationRequest, RunId, RunStatus, RunTransition, SchemaId, SchemaReference, SubjectId,
-    TenantId, ThreadId, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation,
-    ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
-    ToolResultProvenance, Version,
+    ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus,
+    NodeControl, NodeId, NodeInvocationBinding, NodeInvocationBindings, NodeStateChange,
+    NodeStateUpdate, PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, ReadyNodes,
+    RetryAdvice, RunCancellationRequest, RunId, RunStatus, RunTransition, SchemaId,
+    SchemaReference, SubjectId, TenantId, ThreadId, Timestamp, ToolArtifacts, ToolDescriptor,
+    ToolInput, ToolInvocation, ToolInvocationIntent, ToolInvocationStatus,
+    ToolInvocationTransition, ToolResult, ToolResultProvenance, Version,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
     CheckpointLineagePageSize, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome,
     LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
-    PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions,
-    PostgresTransportSecurity, RunProjection, StoreError, ToolInvocationCommitOutcome,
-    ToolInvocationHistoryPageSize,
+    NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, PendingNodeResultCommitOutcome,
+    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
+    RunProjection, StoreError, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -72,6 +72,63 @@ fn test_options(lease_duration: Duration) -> PostgresStoreOptions {
         .with_pool_size(1, 48)
         .with_transaction_timeouts(Duration::from_secs(5), Duration::from_secs(20))
         .with_lease_timing(lease_duration, Duration::from_secs(5 * 60))
+}
+
+trait PendingNodeResultTestExt {
+    async fn commit_test_pending_node_result(
+        &self,
+        append: JournalAppend,
+        intent: PendingNodeResultIntent,
+    ) -> Result<PendingNodeResultCommitOutcome, StoreError>;
+}
+
+impl PendingNodeResultTestExt for PostgresStore {
+    async fn commit_test_pending_node_result(
+        &self,
+        append: JournalAppend,
+        intent: PendingNodeResultIntent,
+    ) -> Result<PendingNodeResultCommitOutcome, StoreError> {
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let start_event_id = append.intent().event_id();
+        let payload = append.intent().payload().clone();
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(StoreError::WrongAppendAuthority)?;
+        let attempt_id = AttemptId::from_uuid(*start_event_id.as_uuid())
+            .map_err(|_| StoreError::NodeAttemptCommitConflict)?;
+        let activation = intent.activation().clone();
+        let started = self
+            .start_node_attempt(append, activation.clone(), attempt_id)
+            .await?;
+        let success_intent =
+            JournalEventIntent::worker(tenant_id, run_id, EventId::generate(), fence, payload)
+                .map_err(|_| StoreError::NodeAttemptCommitConflict)?;
+        let success_append = JournalAppend::new(
+            JournalExpectation::exact(started.event().head()),
+            success_intent,
+        )
+        .map_err(|_| StoreError::NodeAttemptCommitConflict)?;
+        let outcome = self
+            .succeed_node_attempt(
+                success_append,
+                &started.attempt().start().head(),
+                intent,
+                BudgetUsage::zero(),
+            )
+            .await?;
+        let result = self.load_pending_node_result(&activation).await?;
+        match outcome {
+            NodeAttemptCommitOutcome::Committed { event, .. } => {
+                Ok(PendingNodeResultCommitOutcome::Committed { event, result })
+            }
+            NodeAttemptCommitOutcome::Idempotent { event, .. } => {
+                Ok(PendingNodeResultCommitOutcome::Idempotent { event, result })
+            }
+            _ => Err(StoreError::NodeAttemptCommitConflict),
+        }
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -591,6 +648,10 @@ async fn migration_four_backfills_existing_tool_attempts_into_the_run_registry()
         .connect(&isolated_url)
         .await
         .expect("isolated fixture administration connection must open");
+    query("DROP TABLE stateknot.node_attempt_completions")
+        .execute(&legacy_pool)
+        .await
+        .expect("v6 node-attempt completions must be removed from the fixture");
     query("DROP TABLE stateknot.pending_node_result_consumptions")
         .execute(&legacy_pool)
         .await
@@ -607,6 +668,16 @@ async fn migration_four_backfills_existing_tool_attempts_into_the_run_registry()
         .execute(&legacy_pool)
         .await
         .expect("v5 pending results must be removed from the fixture");
+    query("DROP TABLE stateknot.node_attempts")
+        .execute(&legacy_pool)
+        .await
+        .expect("v6 node-attempt starts must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 6")
+        .execute(&legacy_pool)
+        .await
+        .expect("v6 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
     query(
         "ALTER TABLE stateknot.model_invocation_revisions \
          DROP CONSTRAINT model_invocation_revisions_committed_binding_unique",
@@ -794,6 +865,205 @@ async fn migration_four_backfills_existing_tool_attempts_into_the_run_registry()
         .execute(&administration)
         .await
         .expect("isolated v4 upgrade database must be dropped");
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_six_preserves_legacy_results_without_fabricating_starts() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v6_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .expect("test administration connection must open");
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .expect("isolated v6 upgrade database must be created");
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("fixture database must initially reach the current schema");
+    let fixture_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("fixture store must connect");
+    let tenant_id = tenant("v6-legacy-result-upgrade");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(
+        &fixture_store,
+        &tenant_id,
+        run_id,
+        720,
+    ))
+    .await;
+    let lease = fixture_store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let activation = pending_activation(checkpoint.checkpoint(), b"truthful legacy result");
+    let committed = fixture_store
+        .commit_test_pending_node_result(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                721,
+            ),
+            pending_result_intent(activation.clone(), NodeInvocationBindings::empty()),
+        )
+        .await
+        .expect("fixture result must commit before reversing only v6 additions");
+    let expected_result = committed.result().clone();
+    let result_event_id = committed.event().event_id();
+    fixture_store.close().await;
+
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .expect("isolated fixture administration connection must open");
+    query(
+        "UPDATE stateknot.run_events SET projection_digest = $3 \
+         WHERE tenant_id = $1 AND run_id = $2 AND event_id = $4",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(expected_result.digest().as_bytes())
+    .bind(*result_event_id.as_uuid())
+    .execute(&fixture_pool)
+    .await
+    .expect("legacy result event must directly bind its result digest");
+    query("DELETE FROM stateknot.node_attempt_completions")
+        .execute(&fixture_pool)
+        .await
+        .expect("v6 completion fixture rows must be removed");
+    query(
+        "UPDATE stateknot.pending_node_results SET node_attempt_id = NULL \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .execute(&fixture_pool)
+    .await
+    .expect("legacy result must truthfully have no physical attempt owner");
+    query("DELETE FROM stateknot.node_attempts")
+        .execute(&fixture_pool)
+        .await
+        .expect("v6 start fixture rows must be removed");
+    query("DELETE FROM stateknot.run_attempt_claims WHERE claim_kind = 'node_attempt'")
+        .execute(&fixture_pool)
+        .await
+        .expect("v6 node claim fixture rows must be removed");
+    query("DROP TABLE stateknot.node_attempt_completions")
+        .execute(&fixture_pool)
+        .await
+        .expect("v6 completion table must be removed");
+    query(
+        "ALTER TABLE stateknot.pending_node_results \
+         DROP CONSTRAINT pending_node_results_node_attempt_fk, \
+         DROP CONSTRAINT pending_node_results_node_attempt_exact_unique, \
+         DROP CONSTRAINT pending_node_results_node_attempt_unique, \
+         DROP CONSTRAINT pending_node_results_node_attempt_id_valid, \
+         DROP COLUMN node_attempt_id",
+    )
+    .execute(&fixture_pool)
+    .await
+    .expect("v6 pending-result owner additions must be removed");
+    query("DROP TABLE stateknot.node_attempts")
+        .execute(&fixture_pool)
+        .await
+        .expect("v6 start table must be removed");
+    query(
+        "ALTER TABLE stateknot.run_attempt_claims \
+         DROP CONSTRAINT run_attempt_claims_node_exact_unique, \
+         DROP CONSTRAINT run_attempt_claims_owner_shape, \
+         DROP CONSTRAINT run_attempt_claims_kind_valid, \
+         DROP CONSTRAINT run_attempt_claims_ids_are_uuid_v7, \
+         DROP COLUMN activation_digest, \
+         ALTER COLUMN invocation_id SET NOT NULL, \
+         ALTER COLUMN invocation_revision SET NOT NULL, \
+         ADD CONSTRAINT run_attempt_claims_ids_are_uuid_v7 CHECK ( \
+             stateknot.is_uuid_v7(run_id) \
+             AND stateknot.is_uuid_v7(attempt_id) \
+             AND stateknot.is_uuid_v7(invocation_id) \
+             AND stateknot.is_uuid_v7(journal_event_id) \
+         ), \
+         ADD CONSTRAINT run_attempt_claims_kind_valid CHECK ( \
+             claim_kind IN ('tool_invocation', 'model_invocation') \
+         ), \
+         ADD CONSTRAINT run_attempt_claims_position_valid CHECK ( \
+             invocation_revision > 0 AND journal_sequence > 0 \
+         )",
+    )
+    .execute(&fixture_pool)
+    .await
+    .expect("attempt registry must be restored to its exact v5 shape");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 6")
+        .execute(&fixture_pool)
+        .await
+        .expect("v6 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 6 must upgrade the exact v5 legacy-result fixture");
+    let upgraded_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("the upgraded v6 runtime schema must be accepted");
+    assert_eq!(
+        upgraded_store
+            .load_pending_node_result(&activation)
+            .await
+            .expect("legacy result must remain fully verifiable after v6"),
+        expected_result
+    );
+    let verification_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .expect("upgraded fixture verification connection must open");
+    let owner_is_null: bool = query_scalar(
+        "SELECT node_attempt_id IS NULL FROM stateknot.pending_node_results \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .fetch_one(&verification_pool)
+    .await
+    .expect("upgraded legacy owner projection must be queryable");
+    assert!(owner_is_null);
+    verification_pool.close().await;
+    upgraded_store.close().await;
+
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .expect("isolated v6 upgrade database must be dropped");
     administration.close().await;
 }
 
@@ -1219,7 +1489,7 @@ async fn commit_ready_results(
             Digest::sha256(format!("ready result input {node_id}")),
         );
         let committed = store
-            .commit_pending_node_result(
+            .commit_test_pending_node_result(
                 worker_append(
                     checkpoint.tenant_id().clone(),
                     checkpoint.run_id(),
@@ -1342,8 +1612,746 @@ fn control_append(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_attempt_start_is_atomic_idempotent_and_load_verifiable() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("node-attempt-start");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_290)).await;
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let activation = pending_activation(checkpoint.checkpoint(), b"durable node attempt");
+    let node_attempt_id = AttemptId::generate();
+    let start_event_id = EventId::generate();
+    let start_append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            start_event_id,
+            JournalExpectation::exact(checkpoint.event().head()),
+            first_lease.fence().clone(),
+            1_291,
+        )
+    };
+
+    let started = store
+        .start_node_attempt(start_append(), activation.clone(), node_attempt_id)
+        .await
+        .expect("node attempt start must commit before dispatch");
+    assert!(matches!(
+        started,
+        NodeAttemptCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(started.attempt().status(), NodeAttemptStatus::Executing);
+    assert_eq!(started.event().sequence().get(), 2);
+
+    let retry = store
+        .start_node_attempt(start_append(), activation.clone(), node_attempt_id)
+        .await
+        .expect("lost start acknowledgement must converge");
+    assert!(matches!(retry, NodeAttemptCommitOutcome::Idempotent { .. }));
+    assert_eq!(
+        retry.attempt().start().head(),
+        started.attempt().start().head()
+    );
+
+    let restored = store
+        .load_node_attempt(&tenant_id, &run_id, node_attempt_id)
+        .await
+        .expect("durable attempt must fully verify");
+    assert_eq!(restored.start().head(), started.attempt().start().head());
+    let page = store
+        .load_node_attempt_history_page(
+            &activation,
+            None,
+            NodeAttemptHistoryPageSize::new(1).unwrap(),
+        )
+        .await
+        .expect("node attempt history must verify");
+    assert_eq!(page.records().len(), 1);
+    assert!(!page.has_more());
+    assert_eq!(page.records()[0].start().head(), restored.start().head());
+
+    assert!(matches!(
+        store
+            .start_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(started.event().head()),
+                    first_lease.fence().clone(),
+                    1_292,
+                ),
+                activation,
+                node_attempt_id,
+            )
+            .await,
+        Err(StoreError::NodeAttemptIdConflict)
+    ));
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(journal.events().len(), 2);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[allow(clippy::too_many_lines)]
-async fn pending_node_results_are_fenced_semantically_idempotent_and_load_verifiable() {
+async fn node_attempt_failure_is_atomic_idempotent_and_blocks_unsafe_retry() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("node-attempt-failure");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_300)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let activation = pending_activation(checkpoint.checkpoint(), b"failed durable node attempt");
+    let started = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                1_301,
+            ),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let failure_event_id = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Internal,
+        FailureCode::new("node.integration_failed").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("The integration node failed safely.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap()
+    .with_caused_by_event(failure_event_id);
+    let failure_append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            failure_event_id,
+            JournalExpectation::exact(started.event().head()),
+            lease.fence().clone(),
+            1_302,
+        )
+    };
+
+    let failed = store
+        .fail_node_attempt(
+            failure_append(),
+            &started.attempt().start().head(),
+            failure.clone(),
+            BudgetUsage::zero(),
+        )
+        .await
+        .expect("node failure and its event must commit atomically");
+    assert!(matches!(failed, NodeAttemptCommitOutcome::Committed { .. }));
+    assert_eq!(failed.attempt().status(), NodeAttemptStatus::Failed);
+
+    let retry = store
+        .fail_node_attempt(
+            failure_append(),
+            &started.attempt().start().head(),
+            failure,
+            BudgetUsage::zero(),
+        )
+        .await
+        .expect("lost failure acknowledgement must converge");
+    assert!(matches!(retry, NodeAttemptCommitOutcome::Idempotent { .. }));
+    assert_eq!(retry.attempt().status(), NodeAttemptStatus::Failed);
+    assert_eq!(
+        store
+            .load_node_attempt(&tenant_id, &run_id, started.attempt().start().attempt_id(),)
+            .await
+            .unwrap()
+            .status(),
+        NodeAttemptStatus::Failed
+    );
+
+    assert!(matches!(
+        store
+            .start_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(failed.event().head()),
+                    lease.fence().clone(),
+                    1_303,
+                ),
+                activation,
+                AttemptId::generate(),
+            )
+            .await,
+        Err(StoreError::InvalidNodeAttemptTransition)
+    ));
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(journal.events().len(), 3);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn node_attempt_recovery_requires_takeover_and_database_safe_after_time() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("node-attempt-recovery");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_305)).await;
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let activation = pending_activation(checkpoint.checkpoint(), b"recoverable node attempt");
+    let abandoned = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                first_lease.fence().clone(),
+                1_306,
+            ),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        store
+            .start_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(abandoned.event().head()),
+                    first_lease.fence().clone(),
+                    1_307,
+                ),
+                activation.clone(),
+                AttemptId::generate(),
+            )
+            .await,
+        Err(StoreError::InvalidNodeAttemptTransition)
+    ));
+
+    let successor_lease = store
+        .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let recovered = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(abandoned.event().head()),
+                successor_lease.fence().clone(),
+                1_308,
+            ),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .expect("a higher fencing epoch may recover an unfinished attempt");
+    let stale_failure_event_id = EventId::generate();
+    let stale_failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Internal,
+        FailureCode::new("node.abandoned").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("The abandoned node attempt cannot complete late.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap()
+    .with_caused_by_event(stale_failure_event_id);
+    assert!(matches!(
+        store
+            .fail_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    stale_failure_event_id,
+                    JournalExpectation::exact(recovered.event().head()),
+                    first_lease.fence().clone(),
+                    1_309,
+                ),
+                &abandoned.attempt().start().head(),
+                stale_failure,
+                BudgetUsage::zero(),
+            )
+            .await,
+        Err(StoreError::StaleFence)
+    ));
+
+    let failure_event_id = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::DependencyUnavailable,
+        FailureCode::new("node.retry_later").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("The node may retry after the durable delay.").unwrap(),
+        RetryAdvice::SafeAfter {
+            delay: DurationMillis::new(1_000).unwrap(),
+        },
+    )
+    .unwrap()
+    .with_caused_by_event(failure_event_id);
+    let failed = store
+        .fail_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                failure_event_id,
+                JournalExpectation::exact(recovered.event().head()),
+                successor_lease.fence().clone(),
+                1_310,
+            ),
+            &recovered.attempt().start().head(),
+            failure,
+            BudgetUsage::zero(),
+        )
+        .await
+        .unwrap();
+    let final_attempt_id = AttemptId::generate();
+    assert!(matches!(
+        store
+            .start_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(failed.event().head()),
+                    successor_lease.fence().clone(),
+                    1_311,
+                ),
+                activation.clone(),
+                final_attempt_id,
+            )
+            .await,
+        Err(StoreError::InvalidNodeAttemptTransition)
+    ));
+    tokio::time::sleep(Duration::from_millis(1_100)).await;
+    let eligible = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(failed.event().head()),
+                successor_lease.fence().clone(),
+                1_312,
+            ),
+            activation.clone(),
+            final_attempt_id,
+        )
+        .await
+        .expect("database-observed safe-after delay must eventually admit retry");
+    assert_eq!(eligible.attempt().status(), NodeAttemptStatus::Executing);
+
+    let first_page = store
+        .load_node_attempt_history_page(
+            &activation,
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(first_page.records().len(), 2);
+    assert!(first_page.has_more());
+    let cursor = first_page.next_cursor().unwrap();
+    let second_page = store
+        .load_node_attempt_history_page(
+            &activation,
+            Some(&cursor),
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(second_page.records().len(), 1);
+    assert_eq!(
+        second_page.records()[0].status(),
+        NodeAttemptStatus::Executing
+    );
+    assert!(!second_page.has_more());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn node_attempt_success_atomically_binds_result_and_checkpoint_barrier() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("node-attempt-success");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_310)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let activation =
+        pending_activation(checkpoint.checkpoint(), b"successful durable node attempt");
+    let started = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                1_311,
+            ),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let result_intent = pending_result_intent(activation.clone(), NodeInvocationBindings::empty());
+    let success_event_id = EventId::generate();
+    let success_append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            success_event_id,
+            JournalExpectation::exact(started.event().head()),
+            lease.fence().clone(),
+            1_312,
+        )
+    };
+
+    let succeeded = store
+        .succeed_node_attempt(
+            success_append(),
+            &started.attempt().start().head(),
+            result_intent.clone(),
+            BudgetUsage::zero(),
+        )
+        .await
+        .expect("success completion and pending result must commit together");
+    assert!(matches!(
+        succeeded,
+        NodeAttemptCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(succeeded.attempt().status(), NodeAttemptStatus::Succeeded);
+
+    let exact_retry = store
+        .succeed_node_attempt(
+            success_append(),
+            &started.attempt().start().head(),
+            result_intent.clone(),
+            BudgetUsage::zero(),
+        )
+        .await
+        .expect("lost success acknowledgement must converge by event identity");
+    assert!(matches!(
+        exact_retry,
+        NodeAttemptCommitOutcome::Idempotent { .. }
+    ));
+    let semantic_retry = store
+        .succeed_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(succeeded.event().head()),
+                lease.fence().clone(),
+                1_313,
+            ),
+            &started.attempt().start().head(),
+            result_intent,
+            BudgetUsage::zero(),
+        )
+        .await
+        .expect("physical-attempt semantic retry must return the original winner");
+    assert!(matches!(
+        semantic_retry,
+        NodeAttemptCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(semantic_retry.event().head(), succeeded.event().head());
+
+    let pending = store
+        .load_pending_node_result(&activation)
+        .await
+        .expect("attempt-owned pending result must fully verify");
+    let restored = store
+        .load_node_attempt(&tenant_id, &run_id, started.attempt().start().attempt_id())
+        .await
+        .expect("successful physical attempt must fully verify");
+    assert_eq!(restored.status(), NodeAttemptStatus::Succeeded);
+    assert_eq!(
+        restored.completion().unwrap().outcome().result().unwrap(),
+        &pending.head()
+    );
+
+    let barrier = CheckpointBarrier::new(
+        checkpoint.checkpoint(),
+        successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1),
+        [pending.head()],
+    )
+    .unwrap();
+    let advanced = store
+        .append_worker_barrier(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(succeeded.event().head()),
+                lease.fence().clone(),
+                1_314,
+            ),
+            RunProjection::unchanged(),
+            barrier,
+        )
+        .await
+        .expect("attempt-owned result must satisfy the complete checkpoint barrier");
+    assert_eq!(advanced.checkpoint().superstep().get(), 1);
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(journal.events().len(), 4);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn node_attempt_reads_fail_closed_and_attempt_ids_are_run_wide() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .expect("test administration connection must open");
+    let tenant_id = tenant("node-attempt-corruption");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_320)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let activation = pending_activation(checkpoint.checkpoint(), b"verified node attempt");
+    let node_attempt_id = AttemptId::generate();
+    let started = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                1_321,
+            ),
+            activation.clone(),
+            node_attempt_id,
+        )
+        .await
+        .unwrap();
+
+    let tool_invocation_id = InvocationId::generate();
+    let prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(started.event().head()),
+                lease.fence().clone(),
+                1_322,
+            ),
+            tool_invocation_intent(checkpoint.checkpoint(), tool_invocation_id),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        store
+            .advance_tool_invocation(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(prepared.event().head()),
+                    lease.fence().clone(),
+                    1_323,
+                ),
+                &prepared.invocation().head(),
+                ToolInvocationTransition::StartAttempt {
+                    attempt_id: node_attempt_id,
+                },
+            )
+            .await,
+        Err(StoreError::InvalidToolInvocationTransition)
+    ));
+    assert_eq!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, tool_invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ToolInvocationStatus::Prepared
+    );
+
+    let failure_event_id = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Internal,
+        FailureCode::new("node.integrity_fixture").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("The integrity fixture completed with a durable failure.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap()
+    .with_caused_by_event(failure_event_id);
+    store
+        .fail_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                failure_event_id,
+                JournalExpectation::exact(prepared.event().head()),
+                lease.fence().clone(),
+                1_324,
+            ),
+            &started.attempt().start().head(),
+            failure,
+            BudgetUsage::zero(),
+        )
+        .await
+        .unwrap();
+
+    let original_completion: Vec<u8> = query_scalar(
+        "SELECT completion_bytes FROM stateknot.node_attempt_completions \
+         WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*node_attempt_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    query(
+        "UPDATE stateknot.node_attempt_completions \
+         SET completion_bytes = completion_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*node_attempt_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_node_attempt(&tenant_id, &run_id, node_attempt_id)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .load_node_attempt_history_page(
+                &activation,
+                None,
+                NodeAttemptHistoryPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    query(
+        "UPDATE stateknot.node_attempt_completions \
+         SET completion_bytes = $4 \
+         WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*node_attempt_id.as_uuid())
+    .bind(original_completion)
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert_eq!(
+        store
+            .load_node_attempt(&tenant_id, &run_id, node_attempt_id)
+            .await
+            .unwrap()
+            .status(),
+        NodeAttemptStatus::Failed
+    );
+
+    query(
+        "UPDATE stateknot.node_attempts \
+         SET start_bytes = start_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*node_attempt_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_node_attempt(&tenant_id, &run_id, node_attempt_id)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .load_node_attempt_history_page(
+                &activation,
+                None,
+                NodeAttemptHistoryPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn pending_node_results_are_attempt_owned_fenced_and_load_verifiable() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
         return;
@@ -1372,14 +2380,14 @@ async fn pending_node_results_are_fenced_semantically_idempotent_and_load_verifi
     };
 
     let committed = store
-        .commit_pending_node_result(result_append(), intent.clone())
+        .commit_test_pending_node_result(result_append(), intent.clone())
         .await
         .expect("pending result must commit atomically");
     assert!(matches!(
         committed,
         PendingNodeResultCommitOutcome::Committed { .. }
     ));
-    assert_eq!(committed.event().sequence().get(), 2);
+    assert_eq!(committed.event().sequence().get(), 3);
     assert_eq!(
         store
             .load_pending_node_result(&activation)
@@ -1389,7 +2397,7 @@ async fn pending_node_results_are_fenced_semantically_idempotent_and_load_verifi
     );
 
     let same_event_retry = store
-        .commit_pending_node_result(result_append(), intent.clone())
+        .commit_test_pending_node_result(result_append(), intent.clone())
         .await
         .expect("lost result acknowledgement must converge");
     assert!(matches!(
@@ -1404,26 +2412,38 @@ async fn pending_node_results_are_fenced_semantically_idempotent_and_load_verifi
         .unwrap()
         .lease()
         .clone();
-    let replacement_retry = store
-        .commit_pending_node_result(
-            worker_append(
-                tenant_id.clone(),
-                run_id,
-                EventId::generate(),
-                JournalExpectation::exact(committed.event().head()),
-                successor_lease.fence().clone(),
-                1_102,
-            ),
-            intent.clone(),
-        )
-        .await
-        .expect("semantic retry after lease takeover must return the original winner");
     assert!(matches!(
-        replacement_retry,
-        PendingNodeResultCommitOutcome::Idempotent { .. }
+        store
+            .commit_test_pending_node_result(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(committed.event().head()),
+                    successor_lease.fence().clone(),
+                    1_102,
+                ),
+                intent.clone(),
+            )
+            .await,
+        Err(StoreError::InvalidNodeAttemptTransition)
     ));
-    assert_eq!(replacement_retry.event(), committed.event());
-    assert_eq!(replacement_retry.result(), committed.result());
+    assert!(matches!(
+        store
+            .commit_pending_node_result(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(committed.event().head()),
+                    successor_lease.fence().clone(),
+                    1_102,
+                ),
+                intent.clone(),
+            )
+            .await,
+        Err(StoreError::NodeAttemptRequired)
+    ));
 
     let changed_update = NodeStateUpdate::new(
         checkpoint.checkpoint().graph().state_schema().clone(),
@@ -1441,7 +2461,7 @@ async fn pending_node_results_are_fenced_semantically_idempotent_and_load_verifi
     .unwrap();
     assert!(matches!(
         store
-            .commit_pending_node_result(
+            .commit_test_pending_node_result(
                 worker_append(
                     tenant_id.clone(),
                     run_id,
@@ -1453,7 +2473,7 @@ async fn pending_node_results_are_fenced_semantically_idempotent_and_load_verifi
                 conflicting,
             )
             .await,
-        Err(StoreError::PendingNodeResultConflict)
+        Err(StoreError::InvalidNodeAttemptTransition)
     ));
     let crossed_input = pending_activation(checkpoint.checkpoint(), b"another activation input");
     assert!(matches!(
@@ -1484,7 +2504,7 @@ async fn pending_node_results_are_fenced_semantically_idempotent_and_load_verifi
         pending_activation(stale_checkpoint.checkpoint(), b"stale result activation");
     assert!(matches!(
         store
-            .commit_pending_node_result(
+            .commit_test_pending_node_result(
                 worker_append(
                     stale_tenant.clone(),
                     stale_run,
@@ -1547,7 +2567,7 @@ async fn unconsumed_pending_result_pages_are_stable_bounded_and_fully_verified()
             Digest::sha256(format!("pending page input {node}")),
         );
         let committed = store
-            .commit_pending_node_result(
+            .commit_test_pending_node_result(
                 worker_append(
                     tenant_id.clone(),
                     run_id,
@@ -1610,7 +2630,7 @@ async fn unconsumed_pending_result_pages_are_stable_bounded_and_fully_verified()
         Digest::sha256(b"pending page input node-delta"),
     );
     let delta = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 tenant_id.clone(),
                 run_id,
@@ -1694,7 +2714,7 @@ async fn worker_barrier_atomically_consumes_complete_results_and_is_idempotent()
             Digest::sha256(format!("barrier input {node}")),
         );
         let committed = store
-            .commit_pending_node_result(
+            .commit_test_pending_node_result(
                 worker_append(
                     tenant_id.clone(),
                     run_id,
@@ -1830,7 +2850,7 @@ async fn barrier_rejects_incomplete_conflicting_and_stale_fenced_inputs_without_
         Digest::sha256(b"incomplete alpha input"),
     );
     let alpha = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 incomplete_tenant.clone(),
                 incomplete_run,
@@ -2080,7 +3100,7 @@ async fn barrier_rejects_complete_results_while_external_invocations_are_unsettl
         .await
         .unwrap();
     let tool_result = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 tool_tenant.clone(),
                 tool_run,
@@ -2158,7 +3178,7 @@ async fn barrier_rejects_complete_results_while_external_invocations_are_unsettl
         .await
         .unwrap();
     let model_result = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 model_tenant.clone(),
                 model_run,
@@ -2322,7 +3342,7 @@ async fn barrier_consumption_failure_rolls_back_event_checkpoint_and_run_heads()
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
         .await
         .unwrap();
-    assert_eq!(events.events().len(), 2);
+    assert_eq!(events.events().len(), 3);
     assert!(
         events
             .events()
@@ -2563,7 +3583,7 @@ async fn pending_node_result_bindings_prove_exact_committed_tool_and_model_revis
     .unwrap();
     let intent = pending_result_intent(activation.clone(), bindings);
     let committed = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 tenant_id.clone(),
                 run_id,
@@ -2726,7 +3746,7 @@ async fn pending_node_result_recovery_batches_large_binding_sets() {
 
     let bindings = NodeInvocationBindings::try_new(&activation, bindings).unwrap();
     let committed = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 tenant_id,
                 run_id,
@@ -2748,7 +3768,7 @@ async fn pending_node_result_recovery_batches_large_binding_sets() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
-async fn concurrent_pending_node_result_commits_converge_on_one_physical_winner() {
+async fn concurrent_identical_node_attempt_retries_converge_on_one_physical_winner() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
         return;
@@ -2765,27 +3785,36 @@ async fn concurrent_pending_node_result_commits_converge_on_one_physical_winner(
     let activation = pending_activation(checkpoint.checkpoint(), b"concurrent activation");
     let intent = pending_result_intent(activation.clone(), NodeInvocationBindings::empty());
     let parent = checkpoint.event().head();
+    let start_event_id = EventId::generate();
     let mut tasks = tokio::task::JoinSet::new();
-    for index in 0..24_u64 {
+    for _ in 0..24_u64 {
         let store = store.clone();
         let tenant_id = tenant_id.clone();
         let intent = intent.clone();
         let fence = lease.fence().clone();
         let parent = parent.clone();
         tasks.spawn(async move {
-            store
-                .commit_pending_node_result(
-                    worker_append(
-                        tenant_id,
-                        run_id,
-                        EventId::generate(),
-                        JournalExpectation::exact(parent),
-                        fence,
-                        1_141 + index,
-                    ),
-                    intent,
-                )
-                .await
+            for _ in 0..64 {
+                match store
+                    .commit_test_pending_node_result(
+                        worker_append(
+                            tenant_id.clone(),
+                            run_id,
+                            start_event_id,
+                            JournalExpectation::exact(parent.clone()),
+                            fence.clone(),
+                            1_141,
+                        ),
+                        intent.clone(),
+                    )
+                    .await
+                {
+                    result @ Ok(_) => return result,
+                    Err(error) if error.is_retryable() => tokio::task::yield_now().await,
+                    error @ Err(_) => return error,
+                }
+            }
+            panic!("identical node-attempt retries did not converge within the test bound")
         });
     }
 
@@ -2821,7 +3850,7 @@ async fn concurrent_pending_node_result_commits_converge_on_one_physical_winner(
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
         .await
         .unwrap();
-    assert_eq!(journal.events().len(), 2);
+    assert_eq!(journal.events().len(), 3);
     store.close().await;
 }
 
@@ -2906,7 +3935,7 @@ async fn invalid_pending_binding_rolls_back_event_result_bindings_and_run_head()
     assert_eq!(durable_head.sequence().get(), 5);
     let result_event_id = EventId::generate();
     let commit = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 tenant_id.clone(),
                 run_id,
@@ -2927,17 +3956,24 @@ async fn invalid_pending_binding_rolls_back_event_result_bindings_and_run_head()
         Err(StoreError::PendingNodeResultNotFound)
     ));
     let run = store.load_run(&tenant_id, run_id).await.unwrap();
-    assert_eq!(run.journal_head(), Some(&durable_head));
+    assert_eq!(run.journal_head().unwrap().sequence().get(), 6);
     let journal = store
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
         .await
         .unwrap();
-    assert_eq!(journal.events().len(), 5);
-    assert!(
-        journal
-            .events()
-            .iter()
-            .all(|event| event.event_id() != result_event_id)
+    assert_eq!(journal.events().len(), 6);
+    assert_eq!(journal.events().last().unwrap().event_id(), result_event_id);
+    assert_eq!(
+        store
+            .load_node_attempt(
+                &tenant_id,
+                &run_id,
+                AttemptId::from_uuid(*result_event_id.as_uuid()).unwrap(),
+            )
+            .await
+            .unwrap()
+            .status(),
+        NodeAttemptStatus::Executing
     );
     store.close().await;
 }
@@ -2990,7 +4026,7 @@ async fn cancellation_blocks_new_pending_results_but_preserves_committed_idempot
     );
     assert!(matches!(
         store
-            .commit_pending_node_result(
+            .commit_test_pending_node_result(
                 worker_append(
                     blocked_tenant.clone(),
                     blocked_run,
@@ -3030,12 +4066,13 @@ async fn cancellation_blocks_new_pending_results_but_preserves_committed_idempot
     );
     let durable_intent =
         pending_result_intent(durable_activation.clone(), NodeInvocationBindings::empty());
+    let durable_start_event_id = EventId::generate();
     let committed = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 durable_tenant.clone(),
                 durable_run,
-                EventId::generate(),
+                durable_start_event_id,
                 JournalExpectation::exact(durable_checkpoint.event().head()),
                 durable_lease.fence().clone(),
                 1_191,
@@ -3063,15 +4100,16 @@ async fn cancellation_blocks_new_pending_results_but_preserves_committed_idempot
         )
         .await
         .unwrap();
+    assert_eq!(cancelled.event().sequence().get(), 4);
     let retry = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 durable_tenant,
                 durable_run,
-                EventId::generate(),
-                JournalExpectation::exact(cancelled.event().head()),
+                durable_start_event_id,
+                JournalExpectation::exact(durable_checkpoint.event().head()),
                 durable_lease.fence().clone(),
-                1_193,
+                1_191,
             ),
             durable_intent,
         )
@@ -3108,7 +4146,7 @@ async fn pending_node_result_recovery_rejects_noncanonical_or_corrupted_bytes() 
         .clone();
     let activation = pending_activation(checkpoint.checkpoint(), b"corruption activation");
     store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 tenant_id.clone(),
                 run_id,
@@ -4618,7 +5656,7 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
     )
     .unwrap();
     let pending = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 tenant_id.clone(),
                 run_id,
@@ -4653,7 +5691,7 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         .await
         .expect("a committed tool invocation must release the checkpoint barrier");
     assert_eq!(barrier.checkpoint().superstep().get(), 1);
-    assert_eq!(barrier.event().sequence().get(), 6);
+    assert_eq!(barrier.event().sequence().get(), 7);
     assert_eq!(
         store
             .load_tool_invocation(&tenant_id, run_id, invocation_id)
@@ -4667,7 +5705,7 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
         .await
         .unwrap();
-    assert_eq!(journal.events().len(), 6);
+    assert_eq!(journal.events().len(), 7);
     assert_eq!(journal.events().last().unwrap(), barrier.event());
     store.close().await;
 }
@@ -5169,7 +6207,7 @@ async fn model_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
     )
     .unwrap();
     let pending = store
-        .commit_pending_node_result(
+        .commit_test_pending_node_result(
             worker_append(
                 tenant_id.clone(),
                 run_id,
@@ -5204,7 +6242,7 @@ async fn model_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         .await
         .expect("a committed model invocation must release the checkpoint barrier");
     assert_eq!(barrier.checkpoint().superstep().get(), 1);
-    assert_eq!(barrier.event().sequence().get(), 6);
+    assert_eq!(barrier.event().sequence().get(), 7);
     assert_eq!(
         store
             .load_model_invocation(&tenant_id, run_id, invocation_id)
@@ -5218,7 +6256,7 @@ async fn model_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
         .await
         .unwrap();
-    assert_eq!(journal.events().len(), 6);
+    assert_eq!(journal.events().len(), 7);
     assert_eq!(journal.events().last().unwrap(), barrier.event());
     store.close().await;
 }
@@ -5361,6 +6399,23 @@ async fn model_retry_delay_and_run_wide_attempt_claims_are_enforced() {
             .status(),
         ToolInvocationStatus::Prepared
     );
+    assert!(matches!(
+        store
+            .start_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(tool_prepared.event().head()),
+                    lease.fence().clone(),
+                    926,
+                ),
+                pending_activation(checkpoint.checkpoint(), b"cross-kind attempt identity"),
+                first_attempt,
+            )
+            .await,
+        Err(StoreError::NodeAttemptIdConflict)
+    ));
 
     tokio::time::sleep(Duration::from_millis(2_100)).await;
     let retrying = store
@@ -6549,7 +7604,7 @@ async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
                     Digest::sha256(b"concurrent checkpoint result"),
                 );
                 let result = match store
-                    .commit_pending_node_result(
+                    .commit_test_pending_node_result(
                         worker_append(
                             tenant_id.clone(),
                             run_id,
@@ -6563,7 +7618,11 @@ async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
                     .await
                 {
                     Ok(outcome) => outcome,
-                    Err(StoreError::StaleJournalHead | StoreError::StaleCheckpointHead) => {
+                    Err(
+                        StoreError::StaleJournalHead
+                        | StoreError::StaleCheckpointHead
+                        | StoreError::InvalidNodeAttemptTransition,
+                    ) => {
                         tokio::task::yield_now().await;
                         continue;
                     }
@@ -6614,14 +7673,14 @@ async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
         .unwrap()
         .unwrap();
     assert_eq!(current.superstep().get(), writers);
-    assert_eq!(current.journal_head().sequence().get(), writers * 2 + 1);
+    assert_eq!(current.journal_head().sequence().get(), writers * 3 + 1);
     let page = store
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(128).unwrap())
         .await
         .unwrap();
     assert_eq!(
         page.events().len(),
-        usize::try_from(writers * 2 + 1).unwrap()
+        usize::try_from(writers * 3 + 1).unwrap()
     );
     assert!(!page.has_more());
     store.close().await;

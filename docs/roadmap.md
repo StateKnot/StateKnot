@@ -79,9 +79,13 @@ from the repository.
   rows, projection-bound idempotency, per-statement worker fencing, rollback
   injection, unsettled-invocation guards, and 24-writer linear-chain tests on
   PostgreSQL 16/17; reject every raw successor-checkpoint write.
-- [ ] Persist the node-attempt ledger, then complete outbox, recovery scheduling,
-  quarantine, role isolation, retention, failover, restore, and stale-race
-  gates.
+- [x] Persist the PostgreSQL node-attempt ledger with durable-before-dispatch
+  starts, append-only success/failure completion, attempt-owned results,
+  database-time delayed retry, higher-fence crash takeover, bounded verified
+  history, run-wide node/tool/model identity, migration-5 truth preservation,
+  lost-ack convergence, corruption rejection, and atomic barrier integration.
+- [ ] Complete outbox, recovery scheduling, quarantine, role isolation,
+  retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

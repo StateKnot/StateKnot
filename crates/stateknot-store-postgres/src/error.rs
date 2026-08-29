@@ -188,6 +188,9 @@ pub enum StoreError {
     /// The pending result activation is not a ready root-graph node of its checkpoint.
     #[error("pending node result activation is not ready in the base checkpoint")]
     InvalidPendingNodeResultActivation,
+    /// New pending results must be committed through a durable physical node attempt.
+    #[error("pending node result commit requires a durable node attempt")]
+    NodeAttemptRequired,
     /// The result's temporal or control invariants cannot commit at the database observation.
     #[error("pending node result is invalid at its durable commit position")]
     InvalidPendingNodeResult,
@@ -200,6 +203,30 @@ pub enum StoreError {
     /// A pending-result page cursor crossed scope or did not match its durable row.
     #[error("pending node result cursor is invalid")]
     InvalidPendingNodeResultCursor,
+    /// No physical node attempt exists in the supplied tenant/run boundary.
+    #[error("node attempt was not found in the tenant-scoped run")]
+    NodeAttemptNotFound,
+    /// A stable physical attempt identity was reused for another owner.
+    #[error("node attempt identity conflicts with a committed owner")]
+    NodeAttemptIdConflict,
+    /// Event and node-attempt rows do not describe one atomic commit.
+    #[error("journal event and node attempt conflict with an atomic commit")]
+    NodeAttemptCommitConflict,
+    /// The attempt activation is not a ready root-graph node of its checkpoint.
+    #[error("node attempt activation is not ready in the base checkpoint")]
+    InvalidNodeAttemptActivation,
+    /// The requested physical-attempt transition is invalid for durable history.
+    #[error("node attempt transition is invalid for the locked history")]
+    InvalidNodeAttemptTransition,
+    /// The supplied exact start does not match the durable physical attempt.
+    #[error("node attempt start is stale")]
+    StaleNodeAttemptStart,
+    /// A node-attempt history cursor did not identify the exact stored attempt.
+    #[error("node attempt history cursor does not match a durable attempt")]
+    InvalidNodeAttemptCursor,
+    /// A node-attempt history page size exceeded its decoded-memory safety bound.
+    #[error("node attempt history page size is invalid")]
+    InvalidNodeAttemptPageSize,
     /// The run journal advanced after an earlier pending-result page snapshot.
     #[error("pending node result page snapshot is stale and must be restarted")]
     StalePendingNodeResultSnapshot,

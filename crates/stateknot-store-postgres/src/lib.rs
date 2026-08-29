@@ -6,8 +6,9 @@
 //! The provider persists canonical journal bytes, serializes each run under a
 //! row lock, checks worker fencing with the database clock, and commits journal
 //! facts with their lifecycle projection, checkpoints, invocation revisions, or
-//! immutable pending node results in one transaction. It never holds a database
-//! transaction across a model, tool, remote agent, or human wait.
+//! durable node-attempt starts/completions and immutable pending results in one
+//! transaction. It never holds a database transaction across node, model, tool,
+//! remote-agent, or human work.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
 //! its database credentials to untrusted workers; role-separated procedures and
@@ -27,6 +28,7 @@ pub use model::{
     CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, JournalPage,
     JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
     ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
+    NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
     PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
     PendingNodeResultPageSize, RunProjection, StoredRun, ToolInvocationCommitOutcome,
     ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,

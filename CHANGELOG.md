@@ -201,8 +201,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   activation/start/completion journal binding, atomic success references,
   public-safe failure causation, explicit delayed retry, higher-epoch crash
   takeover, absorbing success/non-retryable failure, redacted diagnostics,
-  closed schemas, and frozen success/failure wire fixtures. PostgreSQL
-  persistence for this contract remains pending.
+  closed schemas, and frozen success/failure wire fixtures.
+- PostgreSQL migration 6 and atomic node-attempt start/fail/succeed/load/history
+  APIs with durable-before-dispatch starts, append-only completion evidence,
+  database-clock delayed retry, higher-fence abandoned-work takeover,
+  run-wide node/tool/model attempt identity, fail-closed canonical/projection/
+  journal recovery, bounded history pages, exact lost-ack convergence, and
+  attempt-owned pending results committed with successful completions. Existing
+  migration-5 results remain readable without fabricated physical provenance;
+  direct result writes that bypass an attempt now fail closed.
 - PostgreSQL migration 5 and atomic pending node-result commit/load APIs with
   immutable canonical records, exact base-checkpoint and worker-event anchors,
   separate tool/model composite foreign keys for activation-bound committed

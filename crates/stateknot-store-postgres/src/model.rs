@@ -3,8 +3,8 @@
 
 use stateknot_core::{
     Checkpoint, CheckpointHead, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead,
-    ModelInvocation, PendingNodeResult, PendingNodeResultHead, RunLease, RunLifecycle, RunRevision,
-    RunTransition, Superstep, ToolInvocation,
+    ModelInvocation, NodeAttempt, PendingNodeResult, PendingNodeResultHead, RunLease, RunLifecycle,
+    RunRevision, RunTransition, Superstep, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -194,7 +194,11 @@ impl ModelInvocationCommitOutcome {
     }
 }
 
-/// Result of atomically committing a worker event and pending node result.
+/// Legacy outcome shape for the pre-v6 direct pending-result API.
+///
+/// New writes return [`NodeAttemptCommitOutcome`] because every result must be
+/// owned by a durable physical node attempt. This type remains public so the
+/// fail-closed compatibility method can preserve its original signature.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum PendingNodeResultCommitOutcome {
@@ -229,6 +233,103 @@ impl PendingNodeResultCommitOutcome {
         match self {
             Self::Committed { result, .. } | Self::Idempotent { result, .. } => result,
         }
+    }
+}
+
+/// Result of atomically committing a node-attempt start or completion event.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum NodeAttemptCommitOutcome {
+    /// A new event and immutable node-attempt record committed atomically.
+    Committed {
+        /// Newly committed anchoring journal event.
+        event: JournalEvent,
+        /// Fully restored attempt after this mutation.
+        attempt: NodeAttempt,
+    },
+    /// The exact start or completion had already committed.
+    Idempotent {
+        /// Original journal event that anchored the stored mutation.
+        event: JournalEvent,
+        /// Fully restored durable attempt.
+        attempt: NodeAttempt,
+    },
+}
+
+impl NodeAttemptCommitOutcome {
+    /// Returns the validated anchoring journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the fully restored physical attempt.
+    #[must_use]
+    pub const fn attempt(&self) -> &NodeAttempt {
+        match self {
+            Self::Committed { attempt, .. } | Self::Idempotent { attempt, .. } => attempt,
+        }
+    }
+}
+
+/// Hard-bounded number of physical node attempts in one history page.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct NodeAttemptHistoryPageSize(u8);
+
+impl NodeAttemptHistoryPageSize {
+    /// Largest page accepted by the provider.
+    ///
+    /// A start and completion can occupy about 17 MiB together, so two
+    /// records cap provider-owned decoded page memory near 34 MiB before
+    /// driver overhead.
+    pub const MAX: u8 = 2;
+
+    /// Constructs a positive bounded history page size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidNodeAttemptPageSize`] for zero or values
+    /// above two.
+    pub const fn new(value: u8) -> Result<Self, StoreError> {
+        if value == 0 || value > Self::MAX {
+            return Err(StoreError::InvalidNodeAttemptPageSize);
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the page size as an integer.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// One bounded, fully verified ascending physical-attempt history page.
+#[derive(Clone, Debug)]
+pub struct NodeAttemptHistoryPage {
+    pub(crate) records: Vec<NodeAttempt>,
+    pub(crate) has_more: bool,
+}
+
+impl NodeAttemptHistoryPage {
+    /// Returns immutable physical attempts in ascending start order.
+    #[must_use]
+    pub fn records(&self) -> &[NodeAttempt] {
+        &self.records
+    }
+
+    /// Returns whether a later physical attempt remains in the snapshot.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    /// Returns the full last attempt required as the exact next-page cursor.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<NodeAttempt> {
+        self.records.last().cloned()
     }
 }
 

@@ -231,9 +231,10 @@ event or a public-safe failure naming that event as its direct cause. Automatic
 retry requires explicit `SafeAfter` advice and a durably late enough successor
 start. A start left incomplete by a crash may be replaced only under a higher
 worker fencing epoch; success and non-retryable failure are absorbing. The core
-history verifier enforces these rules independently of completion order, while
-the PostgreSQL transaction remains responsible for run-wide attempt uniqueness
-and exact row-level fencing.
+history verifier enforces these rules independently of completion order.
+PostgreSQL migration 6 implements the corresponding start/completion ledger,
+run-wide node/tool/model attempt uniqueness, exact row-level fencing, and
+attempt-owned result commit boundary.
 
 ## Parallel execution and barrier commit
 

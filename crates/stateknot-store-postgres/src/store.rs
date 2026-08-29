@@ -16,18 +16,20 @@ use sqlx_core::{
 };
 use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
-    AgentResultProvenance, AttemptId, BarrierResultHeads, BoundedJson, CanonicalJson, Checkpoint,
-    CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointLineageVerifier, CheckpointWrite,
-    Digest, EventId, FencingEpoch, GraphNamespace, InvocationId, JournalAppend,
-    JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent, JournalEventSource,
-    JournalHead, JournalSequence, JsonLimits, ModelInvocation, ModelInvocationHead,
-    ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
-    ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
-    ModelInvocationTransitionKind, NodeActivation, NodeControlKind, NodeId, NodeInvocationBinding,
+    AgentResultProvenance, AttemptId, BarrierResultHeads, BoundedJson, BudgetUsage, CanonicalJson,
+    Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointLineageVerifier,
+    CheckpointWrite, Digest, EventId, Failure, FencingEpoch, GraphNamespace, InvocationId,
+    JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent,
+    JournalEventSource, JournalHead, JournalSequence, JsonLimits, ModelInvocation,
+    ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
+    ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
+    ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeAttempt,
+    NodeAttemptCompletion, NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart,
+    NodeAttemptStartHead, NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding,
     NodeInvocationBindingKind, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
-    PendingNodeResultIntent, RunFence, RunId, RunLease, RunLeaseValidationError, RunLifecycle,
-    RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp, ToolInvocation,
-    ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
+    PendingNodeResultIntent, RetryAdvice, RunFence, RunId, RunLease, RunLeaseValidationError,
+    RunLifecycle, RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp,
+    ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
     ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
     ToolInvocationTransitionKind,
 };
@@ -38,6 +40,7 @@ use crate::{
     CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, JournalPage,
     JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
     ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
+    NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
     PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
     PendingNodeResultPageSize, PostgresStoreOptions, RunProjection, StoreError, StoredRun,
     ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
@@ -80,6 +83,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0005_pending_node_results.sql")),
             false,
         ),
+        Migration::new(
+            6,
+            Cow::Borrowed("node attempts"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0006_node_attempts.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -94,6 +104,8 @@ const MAX_TOOL_INVOCATION_RECORD_BYTES: usize = 16_777_216;
 const MAX_MODEL_INVOCATION_INTENT_BYTES: usize = 134_217_728;
 const MAX_MODEL_INVOCATION_RECORD_BYTES: usize = 134_217_728;
 const MAX_PENDING_NODE_RESULT_BYTES: usize = 16_777_216;
+const MAX_NODE_ATTEMPT_START_BYTES: usize = 1_048_576;
+const MAX_NODE_ATTEMPT_COMPLETION_BYTES: usize = 16_777_216;
 const PENDING_TOOL_BINDING_BATCH_SIZE: usize = ToolInvocationHistoryPageSize::MAX as usize;
 const PENDING_MODEL_BINDING_BATCH_SIZE: usize = ModelInvocationHistoryPageSize::MAX as usize;
 const PENDING_INVOCATION_ANCHOR_BATCH_SIZE: usize = 8;
@@ -447,6 +459,179 @@ FROM stateknot.tool_invocation_revisions
 WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
 ";
 
+const SELECT_NODE_ATTEMPT_BY_ID: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    base_journal_sequence,
+    base_journal_event_id,
+    base_journal_recorded_at,
+    base_journal_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    activation_digest,
+    attempt_id,
+    fence_attempt_id,
+    fence_epoch,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    start_digest,
+    start_bytes,
+    created_at
+FROM stateknot.node_attempts
+WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3
+";
+
+const SELECT_NODE_ATTEMPT_BY_ID_FOR_UPDATE: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    base_journal_sequence,
+    base_journal_event_id,
+    base_journal_recorded_at,
+    base_journal_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    activation_digest,
+    attempt_id,
+    fence_attempt_id,
+    fence_epoch,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    start_digest,
+    start_bytes,
+    created_at
+FROM stateknot.node_attempts
+WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3
+FOR UPDATE
+";
+
+const SELECT_NODE_ATTEMPT_COMPLETION: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    attempt_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    activation_digest,
+    fence_attempt_id,
+    fence_epoch,
+    start_journal_sequence,
+    start_journal_event_id,
+    start_journal_recorded_at,
+    start_journal_digest,
+    start_digest,
+    status,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    result_intent_digest,
+    result_record_digest,
+    failure_id,
+    retry_kind,
+    retry_not_before,
+    completion_digest,
+    completion_bytes,
+    created_at
+FROM stateknot.node_attempt_completions
+WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3
+";
+
+const SELECT_NODE_ATTEMPT_HISTORY: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    base_journal_sequence,
+    base_journal_event_id,
+    base_journal_recorded_at,
+    base_journal_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    activation_digest,
+    attempt_id,
+    fence_attempt_id,
+    fence_epoch,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    start_digest,
+    start_bytes,
+    created_at
+FROM stateknot.node_attempts
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND base_checkpoint_id = $3
+  AND base_superstep = $4
+  AND base_checkpoint_digest = $5
+  AND graph_namespace = $6
+  AND node_id = $7
+  AND activation_input_digest = $8
+  AND journal_sequence > $9
+ORDER BY journal_sequence ASC
+LIMIT $10
+";
+
+const SELECT_LATEST_NODE_ATTEMPT_FOR_UPDATE: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    base_journal_sequence,
+    base_journal_event_id,
+    base_journal_recorded_at,
+    base_journal_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    activation_digest,
+    attempt_id,
+    fence_attempt_id,
+    fence_epoch,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    start_digest,
+    start_bytes,
+    created_at
+FROM stateknot.node_attempts
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND base_checkpoint_id = $3
+  AND base_superstep = $4
+  AND base_checkpoint_digest = $5
+  AND graph_namespace = $6
+  AND node_id = $7
+  AND activation_input_digest = $8
+ORDER BY journal_sequence DESC
+LIMIT 1
+FOR UPDATE
+";
+
 const SELECT_TOOL_INVOCATION_HISTORY: &str = r"
 SELECT
     tenant_id,
@@ -640,6 +825,7 @@ SELECT
     graph_namespace,
     node_id,
     activation_input_digest,
+    node_attempt_id,
     intent_digest,
     control_kind,
     fence_attempt_id,
@@ -657,35 +843,6 @@ WHERE tenant_id = $1
   AND base_checkpoint_id = $3
   AND graph_namespace = $4
   AND node_id = $5
-";
-
-const SELECT_PENDING_NODE_RESULT_BY_ANCHOR: &str = r"
-SELECT
-    tenant_id,
-    run_id,
-    base_checkpoint_id,
-    base_superstep,
-    base_checkpoint_digest,
-    base_journal_sequence,
-    base_journal_event_id,
-    base_journal_recorded_at,
-    base_journal_digest,
-    graph_namespace,
-    node_id,
-    activation_input_digest,
-    intent_digest,
-    control_kind,
-    fence_attempt_id,
-    fence_epoch,
-    journal_sequence,
-    journal_event_id,
-    journal_recorded_at,
-    journal_digest,
-    record_digest,
-    result_bytes,
-    created_at
-FROM stateknot.pending_node_results
-WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
 ";
 
 const SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS: &str = r"
@@ -1117,6 +1274,8 @@ impl PostgresStore {
                  AND to_regclass('stateknot.pending_node_result_tool_bindings') IS NOT NULL \
                  AND to_regclass('stateknot.pending_node_result_model_bindings') IS NOT NULL \
                  AND to_regclass('stateknot.pending_node_result_consumptions') IS NOT NULL \
+                 AND to_regclass('stateknot.node_attempts') IS NOT NULL \
+                 AND to_regclass('stateknot.node_attempt_completions') IS NOT NULL \
                  AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL",
         )
         .fetch_one(&self.pool)
@@ -1831,6 +1990,134 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .await
             .map_err(|source| StoreError::database("model invocation history commit", source))?;
         Ok(ModelInvocationHistoryPage { records, has_more })
+    }
+
+    /// Loads and fully verifies one physical node attempt.
+    ///
+    /// Canonical start/completion bytes, every redundant projection, the base
+    /// checkpoint, both worker journal anchors, and a successful pending-result
+    /// binding are checked in one repeatable-read snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::NodeAttemptNotFound`] when the identity is absent
+    /// from the tenant/run boundary; otherwise returns an integrity or database
+    /// failure.
+    pub async fn load_node_attempt(
+        &self,
+        tenant_id: &TenantId,
+        run_id: &RunId,
+        attempt_id: AttemptId,
+    ) -> Result<NodeAttempt, StoreError> {
+        let mut transaction = self.begin_repeatable_read("node attempt load").await?;
+        let attempt = load_node_attempt_record(&mut transaction, tenant_id, run_id, attempt_id)
+            .await?
+            .ok_or(StoreError::NodeAttemptNotFound)?;
+        verify_node_attempt(&mut transaction, &attempt).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("node attempt load commit", source))?;
+        Ok(attempt)
+    }
+
+    /// Loads one bounded, fully verified page of an activation's physical history.
+    ///
+    /// Pass the exact full attempt returned by [`NodeAttemptHistoryPage::next_cursor`]
+    /// to continue. The provider reloads and verifies that cursor before using
+    /// its immutable start position, so a constructed or cross-activation
+    /// cursor fails closed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an invalid cursor, durable integrity, or database failure.
+    pub async fn load_node_attempt_history_page(
+        &self,
+        activation: &NodeActivation,
+        cursor: Option<&NodeAttempt>,
+        page_size: NodeAttemptHistoryPageSize,
+    ) -> Result<NodeAttemptHistoryPage, StoreError> {
+        if cursor.is_some_and(|cursor| cursor.start().activation() != activation) {
+            return Err(StoreError::InvalidNodeAttemptCursor);
+        }
+        let mut transaction = self
+            .begin_repeatable_read("node attempt history load")
+            .await?;
+        if let Some(cursor) = cursor {
+            let durable = load_node_attempt_record(
+                &mut transaction,
+                activation.tenant_id(),
+                &activation.run_id(),
+                cursor.start().attempt_id(),
+            )
+            .await?
+            .ok_or(StoreError::InvalidNodeAttemptCursor)?;
+            if encode_node_attempt(&durable)? != encode_node_attempt(cursor)? {
+                return Err(StoreError::InvalidNodeAttemptCursor);
+            }
+            verify_node_attempt(&mut transaction, &durable).await?;
+        }
+
+        let base = activation.base_checkpoint();
+        let base_superstep = i64::try_from(base.superstep().get())
+            .map_err(|_| StoreError::InvalidNodeAttemptCursor)?;
+        let after_sequence = cursor.map_or(0_i64, |cursor| {
+            i64::try_from(cursor.start().journal_head().sequence().get()).unwrap_or(i64::MAX)
+        });
+        let query_limit = i64::from(page_size.get()) + 1;
+        let mut rows = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_HISTORY)
+            .bind(activation.tenant_id().as_str())
+            .bind(*activation.run_id().as_uuid())
+            .bind(*base.checkpoint_id().as_uuid())
+            .bind(base_superstep)
+            .bind(base.digest().as_bytes())
+            .bind(activation.graph_namespace().as_str())
+            .bind(activation.node_id().as_str())
+            .bind(activation.input_digest().as_bytes())
+            .bind(after_sequence)
+            .bind(query_limit)
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("node attempt history rows", source))?;
+        let has_more = rows.len() > usize::from(page_size.get());
+        rows.truncate(usize::from(page_size.get()));
+
+        let mut verifier = cursor.cloned().map_or_else(
+            NodeAttemptHistoryVerifier::new,
+            NodeAttemptHistoryVerifier::after,
+        );
+        let mut records = Vec::with_capacity(rows.len());
+        for row in rows {
+            let start = decode_node_attempt_start(&row)?;
+            let completion_row =
+                query_as::<_, NodeAttemptCompletionRow>(SELECT_NODE_ATTEMPT_COMPLETION)
+                    .bind(activation.tenant_id().as_str())
+                    .bind(*activation.run_id().as_uuid())
+                    .bind(*start.attempt_id().as_uuid())
+                    .fetch_optional(&mut *transaction)
+                    .await
+                    .map_err(|source| {
+                        StoreError::database("node attempt history completion", source)
+                    })?;
+            let completion = completion_row
+                .map(|row| decode_node_attempt_completion(&row, &start))
+                .transpose()?;
+            let attempt = NodeAttempt::restore(start, completion)
+                .map_err(|_| StoreError::corrupt("node attempt history join"))?;
+            verifier
+                .verify_next(&attempt)
+                .map_err(|_| StoreError::corrupt("node attempt history"))?;
+            verify_node_attempt(&mut transaction, &attempt).await?;
+            records.push(attempt);
+        }
+        if has_more && records.is_empty() {
+            return Err(StoreError::corrupt("node attempt history look-ahead"));
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("node attempt history commit", source))?;
+        Ok(NodeAttemptHistoryPage { records, has_more })
     }
 
     /// Loads and fully verifies one immutable pending node result.
@@ -3007,31 +3294,33 @@ WHERE tenant_id = $1
         Ok(ModelInvocationCommitOutcome::Committed { event, invocation })
     }
 
-    /// Atomically commits one successful node activation as a pending result.
+    /// Durably starts one physical node attempt before user node code executes.
     ///
-    /// The worker event, immutable result, exact external-invocation bindings,
-    /// and run journal head commit in one fenced transaction. Retrying the same
-    /// semantic result converges on the original physical winner even after a
-    /// lease takeover; changing any semantic field is a conflict.
+    /// The worker event, run-wide physical-attempt claim, immutable start, and
+    /// run journal head commit in one fenced transaction. A retry may supersede
+    /// an unfinished attempt only under a higher fencing epoch, and may follow
+    /// a failure only after its explicit database-observed safe-after delay.
     ///
     /// # Errors
     ///
-    /// Returns explicit authority, lifecycle, idempotency, activation,
-    /// binding, checkpoint, journal, fencing, integrity, or database failures.
-    pub async fn commit_pending_node_result(
+    /// Returns explicit authority, activation, retry-history, lifecycle,
+    /// checkpoint, journal, fencing, idempotency, integrity, or database errors.
+    pub async fn start_node_attempt(
         &self,
         append: JournalAppend,
-        intent: PendingNodeResultIntent,
-    ) -> Result<PendingNodeResultCommitOutcome, StoreError> {
-        Box::pin(self.commit_pending_node_result_inner(append, intent)).await
+        activation: NodeActivation,
+        attempt_id: AttemptId,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        Box::pin(self.start_node_attempt_inner(append, activation, attempt_id)).await
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn commit_pending_node_result_inner(
+    async fn start_node_attempt_inner(
         &self,
         append: JournalAppend,
-        intent: PendingNodeResultIntent,
-    ) -> Result<PendingNodeResultCommitOutcome, StoreError> {
+        activation: NodeActivation,
+        attempt_id: AttemptId,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
         let fence = append
             .worker_fence()
             .cloned()
@@ -3039,88 +3328,62 @@ WHERE tenant_id = $1
         let tenant_id = append.intent().tenant_id().clone();
         let run_id = append.intent().run_id();
         let event_id = append.intent().event_id();
-        if intent.tenant_id() != &tenant_id || intent.run_id() != run_id {
-            return Err(StoreError::PendingNodeResultCommitConflict);
+        if activation.tenant_id() != &tenant_id || activation.run_id() != run_id {
+            return Err(StoreError::NodeAttemptCommitConflict);
         }
 
-        let mut transaction = self.begin_mutation("pending node result commit").await?;
+        let mut transaction = self.begin_mutation("node attempt start").await?;
         let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
         let stored = decode_run(run_row)?;
-
         let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
             .bind(tenant_id.as_str())
             .bind(*run_id.as_uuid())
             .bind(*event_id.as_uuid())
             .fetch_optional(&mut *transaction)
             .await
-            .map_err(|source| StoreError::database("pending node result event lookup", source))?;
+            .map_err(|source| StoreError::database("node attempt start event lookup", source))?;
         if let Some(row) = existing_event {
             let projection_digest = row
                 .projection_digest
                 .as_deref()
-                .map(|bytes| decode_digest(bytes, "pending node result projection digest"))
+                .map(|bytes| decode_digest(bytes, "node attempt start projection digest"))
                 .transpose()?;
             let event = decode_event(row)?;
             if !event.matches_intent(append.intent()) {
                 return Err(StoreError::EventIdConflict);
             }
-            let sequence = i64::try_from(event.sequence().get())
-                .map_err(|_| StoreError::JournalSequenceExhausted)?;
-            let result_row =
-                query_as::<_, PendingNodeResultRow>(SELECT_PENDING_NODE_RESULT_BY_ANCHOR)
-                    .bind(tenant_id.as_str())
-                    .bind(*run_id.as_uuid())
-                    .bind(sequence)
-                    .fetch_optional(&mut *transaction)
-                    .await
-                    .map_err(|source| {
-                        StoreError::database("pending node result idempotency record", source)
-                    })?
-                    .ok_or(StoreError::PendingNodeResultCommitConflict)?;
-            let result = decode_pending_node_result(&result_row)?;
-            let expected = PendingNodeResult::commit(intent, fence, event.head())
-                .map_err(|_| StoreError::PendingNodeResultCommitConflict)?;
-            if projection_digest != Some(result.digest())
-                || encode_pending_node_result(&result)? != encode_pending_node_result(&expected)?
+            let expected = NodeAttemptStart::new(activation, attempt_id, fence, event.head())
+                .map_err(|_| StoreError::NodeAttemptCommitConflict)?;
+            let attempt =
+                load_node_attempt_record(&mut transaction, &tenant_id, &run_id, attempt_id)
+                    .await?
+                    .ok_or(StoreError::NodeAttemptCommitConflict)?;
+            if projection_digest != Some(expected.digest())
+                || encode_node_attempt_start(attempt.start())?
+                    != encode_node_attempt_start(&expected)?
             {
-                return Err(StoreError::PendingNodeResultCommitConflict);
+                return Err(StoreError::NodeAttemptCommitConflict);
             }
-            transaction.commit().await.map_err(|source| {
-                StoreError::database("idempotent pending node result lock release", source)
-            })?;
-            let mut verification = self
-                .begin_repeatable_read("idempotent pending node result verification")
-                .await?;
-            let anchor = verify_pending_node_result(&mut verification, &result).await?;
-            if anchor.head() != event.head() {
-                return Err(StoreError::PendingNodeResultCommitConflict);
-            }
-            verification.commit().await.map_err(|source| {
-                StoreError::database("idempotent pending node result verification commit", source)
-            })?;
-            return Ok(PendingNodeResultCommitOutcome::Idempotent { event, result });
+            verify_node_attempt(&mut transaction, &attempt).await?;
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("node attempt start retry", source))?;
+            return Ok(NodeAttemptCommitOutcome::Idempotent { event, attempt });
         }
 
-        if let Some(result_row) =
-            load_pending_node_result_row(&mut transaction, intent.activation()).await?
+        if load_node_attempt_record(&mut transaction, &tenant_id, &run_id, attempt_id)
+            .await?
+            .is_some()
         {
-            let result = decode_pending_node_result(&result_row)?;
-            if result.intent() != &intent {
-                return Err(StoreError::PendingNodeResultConflict);
-            }
-            transaction.commit().await.map_err(|source| {
-                StoreError::database("semantic pending node result lock release", source)
-            })?;
-            let mut verification = self
-                .begin_repeatable_read("semantic pending node result verification")
-                .await?;
-            let event = verify_pending_node_result(&mut verification, &result).await?;
-            verification.commit().await.map_err(|source| {
-                StoreError::database("semantic pending node result verification commit", source)
-            })?;
-            return Ok(PendingNodeResultCommitOutcome::Idempotent { event, result });
+            return Err(StoreError::NodeAttemptIdConflict);
         }
-
+        if load_pending_node_result_row(&mut transaction, &activation)
+            .await?
+            .is_some()
+        {
+            return Err(StoreError::InvalidNodeAttemptTransition);
+        }
         if stored.is_quarantined() {
             return Err(StoreError::RunQuarantined);
         }
@@ -3134,14 +3397,383 @@ WHERE tenant_id = $1
             load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
                 .await?
                 .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+        if current_checkpoint.head() != *activation.base_checkpoint() {
             return Err(StoreError::StaleCheckpointHead);
         }
-        if !pending_node_result_activation_is_ready(&current_checkpoint, &intent) {
-            return Err(StoreError::InvalidPendingNodeResultActivation);
+        if !node_attempt_activation_is_ready(&current_checkpoint, &activation) {
+            return Err(StoreError::InvalidNodeAttemptActivation);
         }
 
-        let observed_at = database_now(&mut transaction, "pending node result clock").await?;
+        let previous = load_latest_locked_node_attempt(&mut transaction, &activation).await?;
+        if let Some(previous) = previous.as_ref() {
+            verify_node_attempt(&mut transaction, previous).await?;
+        }
+        let observed_at = database_now(&mut transaction, "node attempt start clock").await?;
+        authorize_worker(&stored, &fence, observed_at)?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let start = NodeAttemptStart::new(activation.clone(), attempt_id, fence, event.head())
+            .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+        let mut verifier = previous.map_or_else(
+            NodeAttemptHistoryVerifier::new,
+            NodeAttemptHistoryVerifier::after,
+        );
+        verifier
+            .verify_next(&NodeAttempt::executing(start.clone()))
+            .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+        reject_reused_node_worker_attempt(&mut transaction, &activation, start.fence()).await?;
+
+        insert_event(&mut transaction, &event, start.digest()).await?;
+        insert_node_attempt_claim(&mut transaction, &start).await?;
+        insert_node_attempt_start(&mut transaction, &start).await?;
+        update_run_head(&mut transaction, &event, None).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("node attempt start commit", source))?;
+        Ok(NodeAttemptCommitOutcome::Committed {
+            event,
+            attempt: NodeAttempt::executing(start),
+        })
+    }
+
+    /// Atomically records terminal public-safe failure evidence for an attempt.
+    ///
+    /// The worker event, immutable completion, and run journal head commit in
+    /// one transaction. The failure must name the new event as its direct cause
+    /// and may authorize retry only with `Never` or `SafeAfter` semantics.
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit authority, stale-start, terminal-state, lifecycle,
+    /// checkpoint, journal, fencing, causation, integrity, or database errors.
+    pub async fn fail_node_attempt(
+        &self,
+        append: JournalAppend,
+        expected: &NodeAttemptStartHead,
+        failure: Failure,
+        usage: BudgetUsage,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        Box::pin(self.fail_node_attempt_inner(append, expected, failure, usage)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn fail_node_attempt_inner(
+        &self,
+        append: JournalAppend,
+        expected: &NodeAttemptStartHead,
+        failure: Failure,
+        usage: BudgetUsage,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(StoreError::WrongAppendAuthority)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if expected.activation().tenant_id() != &tenant_id
+            || expected.activation().run_id() != run_id
+        {
+            return Err(StoreError::NodeAttemptCommitConflict);
+        }
+        if &fence != expected.fence() {
+            return Err(StoreError::StaleFence);
+        }
+
+        let mut transaction = self.begin_mutation("node attempt failure").await?;
+        let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(run_row)?;
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("node failure event lookup", source))?;
+        if let Some(row) = existing_event {
+            let projection_digest = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "node failure projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            let attempt = load_node_attempt_record(
+                &mut transaction,
+                &tenant_id,
+                &run_id,
+                expected.attempt_id(),
+            )
+            .await?
+            .ok_or(StoreError::NodeAttemptCommitConflict)?;
+            if attempt.start().head() != *expected {
+                return Err(StoreError::StaleNodeAttemptStart);
+            }
+            let expected_completion = NodeAttemptCompletion::fail(
+                attempt.start(),
+                failure.clone(),
+                usage.clone(),
+                event.head(),
+            )
+            .map_err(|_| StoreError::NodeAttemptCommitConflict)?;
+            let completion = attempt
+                .completion()
+                .ok_or(StoreError::NodeAttemptCommitConflict)?;
+            if projection_digest != Some(expected_completion.digest())
+                || encode_node_attempt_completion(completion)?
+                    != encode_node_attempt_completion(&expected_completion)?
+            {
+                return Err(StoreError::NodeAttemptCommitConflict);
+            }
+            let durable_event = verify_node_attempt(&mut transaction, &attempt).await?;
+            if durable_event.head() != event.head() {
+                return Err(StoreError::NodeAttemptCommitConflict);
+            }
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("node failure retry", source))?;
+            return Ok(NodeAttemptCommitOutcome::Idempotent { event, attempt });
+        }
+
+        let attempt = load_locked_node_attempt(&mut transaction, expected).await?;
+        if let Some(completion) = attempt.completion() {
+            let expected_completion = NodeAttemptCompletion::fail(
+                attempt.start(),
+                failure,
+                usage,
+                completion.journal_head().clone(),
+            )
+            .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+            if encode_node_attempt_completion(completion)?
+                != encode_node_attempt_completion(&expected_completion)?
+            {
+                return Err(StoreError::InvalidNodeAttemptTransition);
+            }
+            let event = verify_node_attempt(&mut transaction, &attempt).await?;
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("node failure semantic retry", source))?;
+            return Ok(NodeAttemptCommitOutcome::Idempotent { event, attempt });
+        }
+        if load_pending_node_result_row(&mut transaction, expected.activation())
+            .await?
+            .is_some()
+        {
+            return Err(StoreError::InvalidNodeAttemptTransition);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        validate_node_attempt_completion_lifecycle(&stored)?;
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *expected.activation().base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !node_attempt_activation_is_ready(&current_checkpoint, expected.activation()) {
+            return Err(StoreError::InvalidNodeAttemptActivation);
+        }
+
+        let observed_at = database_now(&mut transaction, "node attempt failure clock").await?;
+        authorize_worker(&stored, &fence, observed_at)?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let completion = NodeAttemptCompletion::fail(attempt.start(), failure, usage, event.head())
+            .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+        let completed = NodeAttempt::restore(attempt.start().clone(), Some(completion.clone()))
+            .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+
+        insert_event(&mut transaction, &event, completion.digest()).await?;
+        insert_node_attempt_completion(&mut transaction, attempt.start(), &completion).await?;
+        update_run_head(&mut transaction, &event, None).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("node attempt failure commit", source))?;
+        Ok(NodeAttemptCommitOutcome::Committed {
+            event,
+            attempt: completed,
+        })
+    }
+
+    /// Atomically completes an attempt with its immutable pending node result.
+    ///
+    /// The worker event, pending result, exact invocation bindings, successful
+    /// completion, and run journal head commit together. The event projection
+    /// binds the completion digest, which in turn binds the exact result head.
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit authority, stale-start, semantic-result, binding,
+    /// lifecycle, checkpoint, journal, fencing, integrity, or database errors.
+    pub async fn succeed_node_attempt(
+        &self,
+        append: JournalAppend,
+        expected: &NodeAttemptStartHead,
+        intent: PendingNodeResultIntent,
+        usage: BudgetUsage,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        Box::pin(self.succeed_node_attempt_inner(append, expected, intent, usage)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn succeed_node_attempt_inner(
+        &self,
+        append: JournalAppend,
+        expected: &NodeAttemptStartHead,
+        intent: PendingNodeResultIntent,
+        usage: BudgetUsage,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(StoreError::WrongAppendAuthority)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if expected.activation().tenant_id() != &tenant_id
+            || expected.activation().run_id() != run_id
+            || intent.activation() != expected.activation()
+        {
+            return Err(StoreError::NodeAttemptCommitConflict);
+        }
+        if &fence != expected.fence() {
+            return Err(StoreError::StaleFence);
+        }
+
+        let mut transaction = self.begin_mutation("node attempt success").await?;
+        let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(run_row)?;
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("node success event lookup", source))?;
+        if let Some(row) = existing_event {
+            let projection_digest = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "node success projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            let attempt = load_node_attempt_record(
+                &mut transaction,
+                &tenant_id,
+                &run_id,
+                expected.attempt_id(),
+            )
+            .await?
+            .ok_or(StoreError::NodeAttemptCommitConflict)?;
+            if attempt.start().head() != *expected {
+                return Err(StoreError::StaleNodeAttemptStart);
+            }
+            let expected_result = PendingNodeResult::commit(intent.clone(), fence, event.head())
+                .map_err(|_| StoreError::NodeAttemptCommitConflict)?;
+            let expected_completion = NodeAttemptCompletion::succeed(
+                attempt.start(),
+                expected_result.head(),
+                usage.clone(),
+            )
+            .map_err(|_| StoreError::NodeAttemptCommitConflict)?;
+            let completion = attempt
+                .completion()
+                .ok_or(StoreError::NodeAttemptCommitConflict)?;
+            let result_row = load_pending_node_result_row(&mut transaction, intent.activation())
+                .await?
+                .ok_or(StoreError::NodeAttemptCommitConflict)?;
+            let durable_result = decode_pending_node_result(&result_row)?;
+            if result_row.node_attempt_id != Some(*expected.attempt_id().as_uuid())
+                || encode_pending_node_result(&durable_result)?
+                    != encode_pending_node_result(&expected_result)?
+                || projection_digest != Some(expected_completion.digest())
+                || encode_node_attempt_completion(completion)?
+                    != encode_node_attempt_completion(&expected_completion)?
+            {
+                return Err(StoreError::NodeAttemptCommitConflict);
+            }
+            let durable_event = verify_node_attempt(&mut transaction, &attempt).await?;
+            if durable_event.head() != event.head() {
+                return Err(StoreError::NodeAttemptCommitConflict);
+            }
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("node success retry", source))?;
+            return Ok(NodeAttemptCommitOutcome::Idempotent { event, attempt });
+        }
+
+        let attempt = load_locked_node_attempt(&mut transaction, expected).await?;
+        if let Some(completion) = attempt.completion() {
+            let expected_result = PendingNodeResult::commit(
+                intent,
+                attempt.start().fence().clone(),
+                completion.journal_head().clone(),
+            )
+            .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+            let expected_completion =
+                NodeAttemptCompletion::succeed(attempt.start(), expected_result.head(), usage)
+                    .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+            if encode_node_attempt_completion(completion)?
+                != encode_node_attempt_completion(&expected_completion)?
+            {
+                return Err(StoreError::InvalidNodeAttemptTransition);
+            }
+            let event = verify_node_attempt(&mut transaction, &attempt).await?;
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("node success semantic retry", source))?;
+            return Ok(NodeAttemptCommitOutcome::Idempotent { event, attempt });
+        }
+        if let Some(row) =
+            load_pending_node_result_row(&mut transaction, intent.activation()).await?
+        {
+            return if row.node_attempt_id.is_some() {
+                Err(StoreError::corrupt("node result without completion"))
+            } else {
+                Err(StoreError::PendingNodeResultConflict)
+            };
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        validate_node_attempt_completion_lifecycle(&stored)?;
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *expected.activation().base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !node_attempt_activation_is_ready(&current_checkpoint, expected.activation()) {
+            return Err(StoreError::InvalidNodeAttemptActivation);
+        }
+
+        let observed_at = database_now(&mut transaction, "node attempt success clock").await?;
         authorize_worker(&stored, &fence, observed_at)?;
         let recorded_at = stored
             .journal_head()
@@ -3150,16 +3782,44 @@ WHERE tenant_id = $1
             .map_err(|error| map_event_commit_error(&error))?;
         let result = PendingNodeResult::commit(intent, fence.clone(), event.head())
             .map_err(|error| map_pending_node_result_commit_error(&error))?;
+        let completion = NodeAttemptCompletion::succeed(attempt.start(), result.head(), usage)
+            .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+        let completed = NodeAttempt::restore(attempt.start().clone(), Some(completion.clone()))
+            .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
 
-        insert_event(&mut transaction, &event, result.digest()).await?;
-        insert_pending_node_result(&mut transaction, &result, &fence).await?;
+        insert_event(&mut transaction, &event, completion.digest()).await?;
+        insert_pending_node_result(&mut transaction, &result, expected.attempt_id(), &fence)
+            .await?;
         insert_pending_node_result_bindings(&mut transaction, &result, &fence).await?;
+        insert_node_attempt_completion(&mut transaction, attempt.start(), &completion).await?;
         update_run_head(&mut transaction, &event, None).await?;
         transaction
             .commit()
             .await
-            .map_err(|source| StoreError::database("pending node result commit", source))?;
-        Ok(PendingNodeResultCommitOutcome::Committed { event, result })
+            .map_err(|source| StoreError::database("node attempt success commit", source))?;
+        Ok(NodeAttemptCommitOutcome::Committed {
+            event,
+            attempt: completed,
+        })
+    }
+
+    /// Rejects the pre-v6 pending-result write path.
+    ///
+    /// Existing migration-5 rows remain readable, but creating a new result
+    /// without first committing a physical node-attempt start would fabricate
+    /// execution history. Use [`Self::start_node_attempt`] followed by
+    /// [`Self::succeed_node_attempt`].
+    ///
+    /// # Errors
+    ///
+    /// Always returns [`StoreError::NodeAttemptRequired`].
+    #[allow(clippy::unused_async)] // Preserve the pre-v6 async API while failing closed.
+    pub async fn commit_pending_node_result(
+        &self,
+        _append: JournalAppend,
+        _intent: PendingNodeResultIntent,
+    ) -> Result<PendingNodeResultCommitOutcome, StoreError> {
+        Err(StoreError::NodeAttemptRequired)
     }
 
     /// Atomically appends a control-plane event and commits the initial graph
@@ -3610,8 +4270,7 @@ WHERE tenant_id = $1
             if result.head() != *expected {
                 return Err(StoreError::CheckpointBarrierResultConflict);
             }
-            verify_pending_node_result_anchor(&mut transaction, &result).await?;
-            verify_pending_node_result_bindings(&mut transaction, &result).await?;
+            verify_pending_node_result(&mut transaction, &result).await?;
         }
 
         transaction.commit().await.map_err(|source| {
@@ -4002,6 +4661,65 @@ struct ModelInvocationRevisionRow {
     created_at: DateTime<Utc>,
 }
 
+struct NodeAttemptStartRow {
+    tenant_id: String,
+    run_id: Uuid,
+    base_checkpoint_id: Uuid,
+    base_superstep: i64,
+    base_checkpoint_digest: Vec<u8>,
+    base_journal_sequence: i64,
+    base_journal_event_id: Uuid,
+    base_journal_recorded_at: DateTime<Utc>,
+    base_journal_digest: Vec<u8>,
+    graph_namespace: String,
+    node_id: String,
+    activation_input_digest: Vec<u8>,
+    activation_digest: Vec<u8>,
+    attempt_id: Uuid,
+    fence_attempt_id: Uuid,
+    fence_epoch: i64,
+    journal_sequence: i64,
+    journal_event_id: Uuid,
+    journal_recorded_at: DateTime<Utc>,
+    journal_digest: Vec<u8>,
+    start_digest: Vec<u8>,
+    start_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
+struct NodeAttemptCompletionRow {
+    tenant_id: String,
+    run_id: Uuid,
+    attempt_id: Uuid,
+    base_checkpoint_id: Uuid,
+    base_superstep: i64,
+    base_checkpoint_digest: Vec<u8>,
+    graph_namespace: String,
+    node_id: String,
+    activation_input_digest: Vec<u8>,
+    activation_digest: Vec<u8>,
+    fence_attempt_id: Uuid,
+    fence_epoch: i64,
+    start_journal_sequence: i64,
+    start_journal_event_id: Uuid,
+    start_journal_recorded_at: DateTime<Utc>,
+    start_journal_digest: Vec<u8>,
+    start_digest: Vec<u8>,
+    status: String,
+    journal_sequence: i64,
+    journal_event_id: Uuid,
+    journal_recorded_at: DateTime<Utc>,
+    journal_digest: Vec<u8>,
+    result_intent_digest: Option<Vec<u8>>,
+    result_record_digest: Option<Vec<u8>>,
+    failure_id: Option<Uuid>,
+    retry_kind: Option<String>,
+    retry_not_before: Option<DateTime<Utc>>,
+    completion_digest: Vec<u8>,
+    completion_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
 struct PendingNodeResultRow {
     tenant_id: String,
     run_id: Uuid,
@@ -4015,6 +4733,7 @@ struct PendingNodeResultRow {
     graph_namespace: String,
     node_id: String,
     activation_input_digest: Vec<u8>,
+    node_attempt_id: Option<Uuid>,
     intent_digest: Vec<u8>,
     control_kind: String,
     fence_attempt_id: Uuid,
@@ -4265,6 +4984,73 @@ impl<'row> FromRow<'row, PgRow> for ModelInvocationRevisionRow {
     }
 }
 
+impl<'row> FromRow<'row, PgRow> for NodeAttemptStartRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            base_checkpoint_id: row.try_get("base_checkpoint_id")?,
+            base_superstep: row.try_get("base_superstep")?,
+            base_checkpoint_digest: row.try_get("base_checkpoint_digest")?,
+            base_journal_sequence: row.try_get("base_journal_sequence")?,
+            base_journal_event_id: row.try_get("base_journal_event_id")?,
+            base_journal_recorded_at: row.try_get("base_journal_recorded_at")?,
+            base_journal_digest: row.try_get("base_journal_digest")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            node_id: row.try_get("node_id")?,
+            activation_input_digest: row.try_get("activation_input_digest")?,
+            activation_digest: row.try_get("activation_digest")?,
+            attempt_id: row.try_get("attempt_id")?,
+            fence_attempt_id: row.try_get("fence_attempt_id")?,
+            fence_epoch: row.try_get("fence_epoch")?,
+            journal_sequence: row.try_get("journal_sequence")?,
+            journal_event_id: row.try_get("journal_event_id")?,
+            journal_recorded_at: row.try_get("journal_recorded_at")?,
+            journal_digest: row.try_get("journal_digest")?,
+            start_digest: row.try_get("start_digest")?,
+            start_bytes: row.try_get("start_bytes")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for NodeAttemptCompletionRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            attempt_id: row.try_get("attempt_id")?,
+            base_checkpoint_id: row.try_get("base_checkpoint_id")?,
+            base_superstep: row.try_get("base_superstep")?,
+            base_checkpoint_digest: row.try_get("base_checkpoint_digest")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            node_id: row.try_get("node_id")?,
+            activation_input_digest: row.try_get("activation_input_digest")?,
+            activation_digest: row.try_get("activation_digest")?,
+            fence_attempt_id: row.try_get("fence_attempt_id")?,
+            fence_epoch: row.try_get("fence_epoch")?,
+            start_journal_sequence: row.try_get("start_journal_sequence")?,
+            start_journal_event_id: row.try_get("start_journal_event_id")?,
+            start_journal_recorded_at: row.try_get("start_journal_recorded_at")?,
+            start_journal_digest: row.try_get("start_journal_digest")?,
+            start_digest: row.try_get("start_digest")?,
+            status: row.try_get("status")?,
+            journal_sequence: row.try_get("journal_sequence")?,
+            journal_event_id: row.try_get("journal_event_id")?,
+            journal_recorded_at: row.try_get("journal_recorded_at")?,
+            journal_digest: row.try_get("journal_digest")?,
+            result_intent_digest: row.try_get("result_intent_digest")?,
+            result_record_digest: row.try_get("result_record_digest")?,
+            failure_id: row.try_get("failure_id")?,
+            retry_kind: row.try_get("retry_kind")?,
+            retry_not_before: row.try_get("retry_not_before")?,
+            completion_digest: row.try_get("completion_digest")?,
+            completion_bytes: row.try_get("completion_bytes")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
 impl<'row> FromRow<'row, PgRow> for PendingNodeResultRow {
     fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
         Ok(Self {
@@ -4280,6 +5066,7 @@ impl<'row> FromRow<'row, PgRow> for PendingNodeResultRow {
             graph_namespace: row.try_get("graph_namespace")?,
             node_id: row.try_get("node_id")?,
             activation_input_digest: row.try_get("activation_input_digest")?,
+            node_attempt_id: row.try_get("node_attempt_id")?,
             intent_digest: row.try_get("intent_digest")?,
             control_kind: row.try_get("control_kind")?,
             fence_attempt_id: row.try_get("fence_attempt_id")?,
@@ -5388,6 +6175,413 @@ async fn verify_model_invocation_anchor(
     Ok(())
 }
 
+fn encode_node_attempt(attempt: &NodeAttempt) -> Result<Vec<u8>, StoreError> {
+    serde_json_canonicalizer::to_vec(attempt).map_err(|_| StoreError::encoding("node attempt"))
+}
+
+fn encode_node_attempt_start(start: &NodeAttemptStart) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(start)
+        .map_err(|_| StoreError::encoding("node attempt start"))?;
+    if bytes.is_empty() || bytes.len() > MAX_NODE_ATTEMPT_START_BYTES {
+        return Err(StoreError::encoding("node attempt start size"));
+    }
+    Ok(bytes)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_node_attempt_start(row: &NodeAttemptStartRow) -> Result<NodeAttemptStart, StoreError> {
+    if row.start_bytes.is_empty() || row.start_bytes.len() > MAX_NODE_ATTEMPT_START_BYTES {
+        return Err(StoreError::corrupt("node attempt start byte length"));
+    }
+    let start = serde_json::from_slice::<NodeAttemptStart>(&row.start_bytes)
+        .map_err(|_| StoreError::corrupt("node attempt start value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&start)
+        .map_err(|_| StoreError::corrupt("node attempt start canonicalization"))?;
+    if canonical != row.start_bytes {
+        return Err(StoreError::corrupt("node attempt start canonical bytes"));
+    }
+
+    let activation = start.activation();
+    let base = activation.base_checkpoint();
+    let base_journal = base.journal_head();
+    let journal = start.journal_head();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::corrupt("node attempt base superstep"))?;
+    let base_journal_sequence = i64::try_from(base_journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("node attempt base journal sequence"))?;
+    let fence_epoch = i64::try_from(start.fence().epoch().get())
+        .map_err(|_| StoreError::corrupt("node attempt fence epoch"))?;
+    let journal_sequence = i64::try_from(journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("node attempt journal sequence"))?;
+
+    if activation.tenant_id().as_str() != row.tenant_id
+        || *activation.run_id().as_uuid() != row.run_id
+        || *base.checkpoint_id().as_uuid() != row.base_checkpoint_id
+        || base_superstep != row.base_superstep
+        || base.digest()
+            != decode_digest(
+                &row.base_checkpoint_digest,
+                "node attempt base checkpoint digest",
+            )?
+        || base_journal_sequence != row.base_journal_sequence
+        || *base_journal.event_id().as_uuid() != row.base_journal_event_id
+        || base_journal.recorded_at() != from_database_time(row.base_journal_recorded_at)?
+        || base_journal.digest()
+            != decode_digest(&row.base_journal_digest, "node attempt base journal digest")?
+        || activation.graph_namespace().as_str() != row.graph_namespace
+        || activation.node_id().as_str() != row.node_id
+        || activation.input_digest()
+            != decode_digest(&row.activation_input_digest, "node attempt input digest")?
+        || start.activation_digest()
+            != decode_digest(&row.activation_digest, "node attempt activation digest")?
+        || *start.attempt_id().as_uuid() != row.attempt_id
+        || *start.fence().attempt_id().as_uuid() != row.fence_attempt_id
+        || fence_epoch != row.fence_epoch
+        || journal_sequence != row.journal_sequence
+        || *journal.event_id().as_uuid() != row.journal_event_id
+        || journal.recorded_at() != from_database_time(row.journal_recorded_at)?
+        || journal.digest() != decode_digest(&row.journal_digest, "node attempt journal digest")?
+        || start.digest() != decode_digest(&row.start_digest, "node attempt start digest")?
+        || journal.recorded_at() != from_database_time(row.created_at)?
+    {
+        return Err(StoreError::corrupt("node attempt start projection"));
+    }
+    Ok(start)
+}
+
+fn encode_node_attempt_completion(
+    completion: &NodeAttemptCompletion,
+) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(completion)
+        .map_err(|_| StoreError::encoding("node attempt completion"))?;
+    if bytes.is_empty() || bytes.len() > MAX_NODE_ATTEMPT_COMPLETION_BYTES {
+        return Err(StoreError::encoding("node attempt completion size"));
+    }
+    Ok(bytes)
+}
+
+fn node_attempt_status_text(status: NodeAttemptStatus) -> Result<&'static str, StoreError> {
+    match status {
+        NodeAttemptStatus::Executing => Ok("executing"),
+        NodeAttemptStatus::Succeeded => Ok("succeeded"),
+        NodeAttemptStatus::Failed => Ok("failed"),
+        _ => Err(StoreError::encoding("node attempt status")),
+    }
+}
+
+fn node_attempt_retry_projection(
+    completion: &NodeAttemptCompletion,
+) -> Result<(Option<&'static str>, Option<DateTime<Utc>>), StoreError> {
+    let Some(failure) = completion.outcome().failure() else {
+        return Ok((None, None));
+    };
+    match failure.retry_advice() {
+        RetryAdvice::Never => Ok((Some("never"), None)),
+        RetryAdvice::SafeAfter { delay } => {
+            let delay_micros = delay
+                .as_i64()
+                .checked_mul(1_000)
+                .ok_or_else(|| StoreError::encoding("node attempt retry time"))?;
+            let eligible_micros = completion
+                .journal_head()
+                .recorded_at()
+                .unix_micros()
+                .checked_add(delay_micros)
+                .ok_or_else(|| StoreError::encoding("node attempt retry time"))?;
+            let eligible = Timestamp::from_unix_micros(eligible_micros)
+                .map_err(|_| StoreError::encoding("node attempt retry time"))?;
+            Ok((Some("safe_after"), Some(to_database_time(eligible)?)))
+        }
+        RetryAdvice::ReconcileFirst => Err(StoreError::InvalidNodeAttemptTransition),
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_node_attempt_completion(
+    row: &NodeAttemptCompletionRow,
+    expected_start: &NodeAttemptStart,
+) -> Result<NodeAttemptCompletion, StoreError> {
+    if row.completion_bytes.is_empty()
+        || row.completion_bytes.len() > MAX_NODE_ATTEMPT_COMPLETION_BYTES
+    {
+        return Err(StoreError::corrupt("node attempt completion byte length"));
+    }
+    let completion = serde_json::from_slice::<NodeAttemptCompletion>(&row.completion_bytes)
+        .map_err(|_| StoreError::corrupt("node attempt completion value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&completion)
+        .map_err(|_| StoreError::corrupt("node attempt completion canonicalization"))?;
+    if canonical != row.completion_bytes || completion.start() != &expected_start.head() {
+        return Err(StoreError::corrupt(
+            "node attempt completion canonical bytes",
+        ));
+    }
+
+    let start = completion.start();
+    let activation = start.activation();
+    let base = activation.base_checkpoint();
+    let start_journal = start.journal_head();
+    let journal = completion.journal_head();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::corrupt("node completion base superstep"))?;
+    let fence_epoch = i64::try_from(start.fence().epoch().get())
+        .map_err(|_| StoreError::corrupt("node completion fence epoch"))?;
+    let start_sequence = i64::try_from(start_journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("node completion start sequence"))?;
+    let journal_sequence = i64::try_from(journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("node completion journal sequence"))?;
+    let (result_intent_digest, result_record_digest, failure_id) = match completion.outcome() {
+        NodeAttemptOutcome::Succeeded { result } => {
+            (Some(result.intent_digest()), Some(result.digest()), None)
+        }
+        NodeAttemptOutcome::Failed { failure } => (None, None, Some(*failure.id().as_uuid())),
+        _ => return Err(StoreError::corrupt("node attempt completion outcome")),
+    };
+    let (retry_kind, retry_not_before) = node_attempt_retry_projection(&completion)
+        .map_err(|_| StoreError::corrupt("node completion retry projection"))?;
+
+    if activation.tenant_id().as_str() != row.tenant_id
+        || *activation.run_id().as_uuid() != row.run_id
+        || *start.attempt_id().as_uuid() != row.attempt_id
+        || *base.checkpoint_id().as_uuid() != row.base_checkpoint_id
+        || base_superstep != row.base_superstep
+        || base.digest()
+            != decode_digest(&row.base_checkpoint_digest, "node completion base digest")?
+        || activation.graph_namespace().as_str() != row.graph_namespace
+        || activation.node_id().as_str() != row.node_id
+        || activation.input_digest()
+            != decode_digest(&row.activation_input_digest, "node completion input digest")?
+        || expected_start.activation_digest()
+            != decode_digest(&row.activation_digest, "node completion activation digest")?
+        || *start.fence().attempt_id().as_uuid() != row.fence_attempt_id
+        || fence_epoch != row.fence_epoch
+        || start_sequence != row.start_journal_sequence
+        || *start_journal.event_id().as_uuid() != row.start_journal_event_id
+        || start_journal.recorded_at() != from_database_time(row.start_journal_recorded_at)?
+        || start_journal.digest()
+            != decode_digest(
+                &row.start_journal_digest,
+                "node completion start journal digest",
+            )?
+        || start.digest() != decode_digest(&row.start_digest, "node completion start digest")?
+        || node_attempt_status_text(completion.status())
+            .map_err(|_| StoreError::corrupt("node completion status"))?
+            != row.status
+        || journal_sequence != row.journal_sequence
+        || *journal.event_id().as_uuid() != row.journal_event_id
+        || journal.recorded_at() != from_database_time(row.journal_recorded_at)?
+        || journal.digest() != decode_digest(&row.journal_digest, "node completion journal digest")?
+        || decode_optional_digest(
+            row.result_intent_digest.as_deref(),
+            "node result intent digest",
+        )? != result_intent_digest
+        || decode_optional_digest(
+            row.result_record_digest.as_deref(),
+            "node result record digest",
+        )? != result_record_digest
+        || row.failure_id != failure_id
+        || row.retry_kind.as_deref() != retry_kind
+        || row.retry_not_before != retry_not_before
+        || completion.digest() != decode_digest(&row.completion_digest, "node completion digest")?
+        || journal.recorded_at() != from_database_time(row.created_at)?
+    {
+        return Err(StoreError::corrupt("node attempt completion projection"));
+    }
+    Ok(completion)
+}
+
+fn decode_optional_digest(
+    bytes: Option<&[u8]>,
+    record: &'static str,
+) -> Result<Option<Digest>, StoreError> {
+    bytes.map(|bytes| decode_digest(bytes, record)).transpose()
+}
+
+async fn load_node_attempt_record(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: &RunId,
+    attempt_id: AttemptId,
+) -> Result<Option<NodeAttempt>, StoreError> {
+    let Some(start_row) = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_BY_ID)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(*attempt_id.as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("node attempt lookup", source))?
+    else {
+        return Ok(None);
+    };
+    load_node_attempt_from_start_row(transaction, start_row)
+        .await
+        .map(Some)
+}
+
+async fn load_node_attempt_from_start_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    start_row: NodeAttemptStartRow,
+) -> Result<NodeAttempt, StoreError> {
+    let start = decode_node_attempt_start(&start_row)?;
+    let completion_row = query_as::<_, NodeAttemptCompletionRow>(SELECT_NODE_ATTEMPT_COMPLETION)
+        .bind(start.activation().tenant_id().as_str())
+        .bind(*start.activation().run_id().as_uuid())
+        .bind(*start.attempt_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("node attempt completion lookup", source))?;
+    let completion = completion_row
+        .map(|row| decode_node_attempt_completion(&row, &start))
+        .transpose()?;
+    NodeAttempt::restore(start, completion).map_err(|_| StoreError::corrupt("node attempt join"))
+}
+
+async fn load_locked_node_attempt(
+    transaction: &mut Transaction<'_, Postgres>,
+    expected: &NodeAttemptStartHead,
+) -> Result<NodeAttempt, StoreError> {
+    let activation = expected.activation();
+    let row = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_BY_ID_FOR_UPDATE)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*expected.attempt_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("node attempt row lock", source))?
+        .ok_or(StoreError::NodeAttemptNotFound)?;
+    let attempt = load_node_attempt_from_start_row(transaction, row).await?;
+    if attempt.start().head() != *expected {
+        return Err(StoreError::StaleNodeAttemptStart);
+    }
+    Ok(attempt)
+}
+
+async fn load_latest_locked_node_attempt(
+    transaction: &mut Transaction<'_, Postgres>,
+    activation: &NodeActivation,
+) -> Result<Option<NodeAttempt>, StoreError> {
+    let base = activation.base_checkpoint();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+    let row = query_as::<_, NodeAttemptStartRow>(SELECT_LATEST_NODE_ATTEMPT_FOR_UPDATE)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*base.checkpoint_id().as_uuid())
+        .bind(base_superstep)
+        .bind(base.digest().as_bytes())
+        .bind(activation.graph_namespace().as_str())
+        .bind(activation.node_id().as_str())
+        .bind(activation.input_digest().as_bytes())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("latest node attempt row lock", source))?;
+    match row {
+        Some(row) => load_node_attempt_from_start_row(transaction, row)
+            .await
+            .map(Some),
+        None => Ok(None),
+    }
+}
+
+async fn verify_node_attempt_anchor(
+    transaction: &mut Transaction<'_, Postgres>,
+    journal: &JournalHead,
+    fence: &RunFence,
+    projection_digest: Digest,
+    operation: &'static str,
+) -> Result<JournalEvent, StoreError> {
+    let sequence = i64::try_from(journal.sequence().get())
+        .map_err(|_| StoreError::corrupt("node attempt journal sequence"))?;
+    let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(journal.tenant_id().as_str())
+        .bind(*journal.run_id().as_uuid())
+        .bind(sequence)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database(operation, source))?
+        .ok_or_else(|| StoreError::corrupt("node attempt journal anchor"))?;
+    let durable_projection = row
+        .projection_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "node attempt projection digest"))
+        .transpose()?;
+    let event = decode_event(row)?;
+    if event.head() != *journal
+        || event.source().worker_fence() != Some(fence)
+        || durable_projection != Some(projection_digest)
+    {
+        return Err(StoreError::corrupt("node attempt journal anchor"));
+    }
+    Ok(event)
+}
+
+async fn verify_node_attempt_base_checkpoint(
+    transaction: &mut Transaction<'_, Postgres>,
+    start: &NodeAttemptStart,
+) -> Result<(), StoreError> {
+    let activation = start.activation();
+    let base = activation.base_checkpoint();
+    let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*base.checkpoint_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("node attempt base checkpoint", source))?
+        .ok_or_else(|| StoreError::corrupt("node attempt base checkpoint"))?;
+    let checkpoint = decode_checkpoint(row)?;
+    if checkpoint.head() != *base
+        || !activation.graph_namespace().is_root()
+        || !checkpoint.ready_nodes().contains(activation.node_id())
+    {
+        return Err(StoreError::corrupt("node attempt base checkpoint"));
+    }
+    verify_checkpoint_anchor(transaction, &checkpoint).await
+}
+
+async fn verify_node_attempt(
+    transaction: &mut Transaction<'_, Postgres>,
+    attempt: &NodeAttempt,
+) -> Result<JournalEvent, StoreError> {
+    let start = attempt.start();
+    verify_node_attempt_base_checkpoint(transaction, start).await?;
+    let start_event = verify_node_attempt_anchor(
+        transaction,
+        start.journal_head(),
+        start.fence(),
+        start.digest(),
+        "node attempt start anchor",
+    )
+    .await?;
+
+    let Some(completion) = attempt.completion() else {
+        return Ok(start_event);
+    };
+    let event = verify_node_attempt_anchor(
+        transaction,
+        completion.journal_head(),
+        start.fence(),
+        completion.digest(),
+        "node attempt completion anchor",
+    )
+    .await?;
+
+    if let NodeAttemptOutcome::Succeeded { result } = completion.outcome() {
+        let row = load_pending_node_result_row(transaction, result.activation())
+            .await?
+            .ok_or_else(|| StoreError::corrupt("node attempt successful result"))?;
+        if row.node_attempt_id != Some(*start.attempt_id().as_uuid()) {
+            return Err(StoreError::corrupt("node attempt successful result owner"));
+        }
+        let durable_result = decode_pending_node_result(&row)?;
+        if durable_result.head() != **result {
+            return Err(StoreError::corrupt("node attempt successful result"));
+        }
+        verify_pending_node_result_base_checkpoint(transaction, &durable_result).await?;
+        verify_pending_node_result_bindings(transaction, &durable_result).await?;
+    }
+    Ok(event)
+}
+
 fn encode_pending_node_result(result: &PendingNodeResult) -> Result<Vec<u8>, StoreError> {
     let bytes = serde_json_canonicalizer::to_vec(result)
         .map_err(|_| StoreError::encoding("pending node result"))?;
@@ -5681,6 +6875,58 @@ fn pending_node_result_activation_is_ready(
         && checkpoint.ready_nodes().contains(activation.node_id())
 }
 
+fn node_attempt_activation_is_ready(checkpoint: &Checkpoint, activation: &NodeActivation) -> bool {
+    activation.graph_namespace().is_root()
+        && checkpoint.ready_nodes().contains(activation.node_id())
+}
+
+async fn reject_reused_node_worker_attempt(
+    transaction: &mut Transaction<'_, Postgres>,
+    activation: &NodeActivation,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let base = activation.base_checkpoint();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+    let fence_epoch =
+        i64::try_from(fence.epoch().get()).map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+    let reused: bool = query_scalar(
+        r"
+SELECT EXISTS (
+    SELECT 1
+    FROM stateknot.node_attempts
+    WHERE tenant_id = $1
+      AND run_id = $2
+      AND base_checkpoint_id = $3
+      AND base_superstep = $4
+      AND base_checkpoint_digest = $5
+      AND graph_namespace = $6
+      AND node_id = $7
+      AND activation_input_digest = $8
+      AND fence_attempt_id = $9
+      AND fence_epoch <> $10
+)
+",
+    )
+    .bind(activation.tenant_id().as_str())
+    .bind(*activation.run_id().as_uuid())
+    .bind(*base.checkpoint_id().as_uuid())
+    .bind(base_superstep)
+    .bind(base.digest().as_bytes())
+    .bind(activation.graph_namespace().as_str())
+    .bind(activation.node_id().as_str())
+    .bind(activation.input_digest().as_bytes())
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .fetch_one(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("node attempt worker history", source))?;
+    if reused {
+        return Err(StoreError::InvalidNodeAttemptTransition);
+    }
+    Ok(())
+}
+
 async fn verify_pending_node_result_base_checkpoint(
     transaction: &mut Transaction<'_, Postgres>,
     result: &PendingNodeResult,
@@ -5738,7 +6984,54 @@ async fn verify_pending_node_result(
     result: &PendingNodeResult,
 ) -> Result<JournalEvent, StoreError> {
     verify_pending_node_result_base_checkpoint(transaction, result).await?;
-    let event = verify_pending_node_result_anchor(transaction, result).await?;
+    let row = load_pending_node_result_row(transaction, result.intent().activation())
+        .await?
+        .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;
+    let durable = decode_pending_node_result(&row)?;
+    if encode_pending_node_result(&durable)? != encode_pending_node_result(result)? {
+        return Err(StoreError::corrupt("pending node result owner row"));
+    }
+    let event = if let Some(owner) = row.node_attempt_id {
+        let attempt_id = AttemptId::from_uuid(owner)
+            .map_err(|_| StoreError::corrupt("pending node result attempt owner"))?;
+        let attempt = load_node_attempt_record(
+            transaction,
+            result.intent().tenant_id(),
+            &result.intent().run_id(),
+            attempt_id,
+        )
+        .await?
+        .ok_or_else(|| StoreError::corrupt("pending node result attempt owner"))?;
+        let completion = attempt
+            .completion()
+            .ok_or_else(|| StoreError::corrupt("pending node result attempt completion"))?;
+        if attempt.start().attempt_id() != attempt_id
+            || completion.outcome().result() != Some(&result.head())
+        {
+            return Err(StoreError::corrupt(
+                "pending node result attempt completion",
+            ));
+        }
+        verify_node_attempt_base_checkpoint(transaction, attempt.start()).await?;
+        verify_node_attempt_anchor(
+            transaction,
+            attempt.start().journal_head(),
+            attempt.start().fence(),
+            attempt.start().digest(),
+            "pending result node start anchor",
+        )
+        .await?;
+        verify_node_attempt_anchor(
+            transaction,
+            completion.journal_head(),
+            attempt.start().fence(),
+            completion.digest(),
+            "pending result node completion anchor",
+        )
+        .await?
+    } else {
+        verify_pending_node_result_anchor(transaction, result).await?
+    };
     verify_pending_node_result_bindings(transaction, result).await?;
     Ok(event)
 }
@@ -6565,6 +7858,309 @@ WHERE current_run.tenant_id = $1
     Ok(())
 }
 
+async fn insert_node_attempt_claim(
+    transaction: &mut Transaction<'_, Postgres>,
+    start: &NodeAttemptStart,
+) -> Result<(), StoreError> {
+    let journal = start.journal_head();
+    let journal_sequence = i64::try_from(journal.sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let fence_epoch =
+        i64::try_from(start.fence().epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let claimed_at = to_database_time(journal.recorded_at())?;
+    let result = query(
+        r"
+INSERT INTO stateknot.run_attempt_claims (
+    tenant_id,
+    run_id,
+    attempt_id,
+    claim_kind,
+    invocation_id,
+    invocation_revision,
+    activation_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    claimed_at
+)
+SELECT $1, $2, $3, 'node_attempt', NULL, NULL, $4, $5, $6, $7, $8, $7
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.lease_attempt_id = $9
+  AND current_run.fencing_epoch = $10
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(start.activation().tenant_id().as_str())
+    .bind(*start.activation().run_id().as_uuid())
+    .bind(*start.attempt_id().as_uuid())
+    .bind(start.activation_digest().as_bytes())
+    .bind(journal_sequence)
+    .bind(*journal.event_id().as_uuid())
+    .bind(claimed_at)
+    .bind(journal.digest().as_bytes())
+    .bind(*start.fence().attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .execute(&mut **transaction)
+    .await;
+    let inserted = match result {
+        Ok(result) => result.rows_affected(),
+        Err(source) if has_database_constraint(&source, "run_attempt_claims_pkey") => {
+            return Err(StoreError::NodeAttemptIdConflict);
+        }
+        Err(source)
+            if has_database_constraint(&source, "run_attempt_claims_anchor_unique")
+                || has_database_constraint(&source, "run_attempt_claims_node_exact_unique") =>
+        {
+            return Err(StoreError::NodeAttemptCommitConflict);
+        }
+        Err(source) => {
+            return Err(StoreError::database("node attempt claim insert", source));
+        }
+    };
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+async fn insert_node_attempt_start(
+    transaction: &mut Transaction<'_, Postgres>,
+    start: &NodeAttemptStart,
+) -> Result<(), StoreError> {
+    let activation = start.activation();
+    let base = activation.base_checkpoint();
+    let base_journal = base.journal_head();
+    let journal = start.journal_head();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::encoding("node attempt base superstep"))?;
+    let base_sequence = i64::try_from(base_journal.sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let fence_epoch =
+        i64::try_from(start.fence().epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let journal_sequence = i64::try_from(journal.sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let created_at = to_database_time(journal.recorded_at())?;
+    let start_bytes = encode_node_attempt_start(start)?;
+    let result = query(
+        r"
+INSERT INTO stateknot.node_attempts (
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    base_journal_sequence,
+    base_journal_event_id,
+    base_journal_recorded_at,
+    base_journal_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    activation_digest,
+    attempt_id,
+    fence_attempt_id,
+    fence_epoch,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    start_digest,
+    start_bytes,
+    created_at
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+    $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.checkpoint_id = $3
+  AND current_run.checkpoint_superstep = $4
+  AND current_run.checkpoint_digest = $5
+  AND current_run.lease_attempt_id = $15
+  AND current_run.fencing_epoch = $16
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(activation.tenant_id().as_str())
+    .bind(*activation.run_id().as_uuid())
+    .bind(*base.checkpoint_id().as_uuid())
+    .bind(base_superstep)
+    .bind(base.digest().as_bytes())
+    .bind(base_sequence)
+    .bind(*base_journal.event_id().as_uuid())
+    .bind(to_database_time(base_journal.recorded_at())?)
+    .bind(base_journal.digest().as_bytes())
+    .bind(activation.graph_namespace().as_str())
+    .bind(activation.node_id().as_str())
+    .bind(activation.input_digest().as_bytes())
+    .bind(start.activation_digest().as_bytes())
+    .bind(*start.attempt_id().as_uuid())
+    .bind(*start.fence().attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .bind(journal_sequence)
+    .bind(*journal.event_id().as_uuid())
+    .bind(created_at)
+    .bind(journal.digest().as_bytes())
+    .bind(start.digest().as_bytes())
+    .bind(start_bytes)
+    .bind(created_at)
+    .execute(&mut **transaction)
+    .await;
+    let inserted = match result {
+        Ok(result) => result.rows_affected(),
+        Err(source) if has_database_constraint(&source, "node_attempts_pkey") => {
+            return Err(StoreError::NodeAttemptIdConflict);
+        }
+        Err(source) if has_database_constraint(&source, "node_attempts_start_anchor_unique") => {
+            return Err(StoreError::NodeAttemptCommitConflict);
+        }
+        Err(source) => return Err(StoreError::database("node attempt start insert", source)),
+    };
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_node_attempt_completion(
+    transaction: &mut Transaction<'_, Postgres>,
+    durable_start: &NodeAttemptStart,
+    completion: &NodeAttemptCompletion,
+) -> Result<(), StoreError> {
+    let start = completion.start();
+    if start != &durable_start.head() {
+        return Err(StoreError::InvalidNodeAttemptTransition);
+    }
+    let activation = start.activation();
+    let base = activation.base_checkpoint();
+    let start_journal = start.journal_head();
+    let journal = completion.journal_head();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::encoding("node completion base superstep"))?;
+    let fence_epoch =
+        i64::try_from(start.fence().epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let start_sequence = i64::try_from(start_journal.sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let journal_sequence = i64::try_from(journal.sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let created_at = to_database_time(journal.recorded_at())?;
+    let completion_bytes = encode_node_attempt_completion(completion)?;
+    let (result_intent_digest, result_record_digest, failure_id) = match completion.outcome() {
+        NodeAttemptOutcome::Succeeded { result } => (
+            Some(result.intent_digest().as_bytes().to_vec()),
+            Some(result.digest().as_bytes().to_vec()),
+            None,
+        ),
+        NodeAttemptOutcome::Failed { failure } => (None, None, Some(*failure.id().as_uuid())),
+        _ => return Err(StoreError::InvalidNodeAttemptTransition),
+    };
+    let (retry_kind, retry_not_before) = node_attempt_retry_projection(completion)?;
+    let result = query(
+        r"
+INSERT INTO stateknot.node_attempt_completions (
+    tenant_id,
+    run_id,
+    attempt_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    activation_digest,
+    fence_attempt_id,
+    fence_epoch,
+    start_journal_sequence,
+    start_journal_event_id,
+    start_journal_recorded_at,
+    start_journal_digest,
+    start_digest,
+    status,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    result_intent_digest,
+    result_record_digest,
+    failure_id,
+    retry_kind,
+    retry_not_before,
+    completion_digest,
+    completion_bytes,
+    created_at
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+    $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
+    $25, $26, $27, $28, $29, $30
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.lease_attempt_id = $11
+  AND current_run.fencing_epoch = $12
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(activation.tenant_id().as_str())
+    .bind(*activation.run_id().as_uuid())
+    .bind(*start.attempt_id().as_uuid())
+    .bind(*base.checkpoint_id().as_uuid())
+    .bind(base_superstep)
+    .bind(base.digest().as_bytes())
+    .bind(activation.graph_namespace().as_str())
+    .bind(activation.node_id().as_str())
+    .bind(activation.input_digest().as_bytes())
+    .bind(durable_start.activation_digest().as_bytes())
+    .bind(*start.fence().attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .bind(start_sequence)
+    .bind(*start_journal.event_id().as_uuid())
+    .bind(to_database_time(start_journal.recorded_at())?)
+    .bind(start_journal.digest().as_bytes())
+    .bind(start.digest().as_bytes())
+    .bind(node_attempt_status_text(completion.status())?)
+    .bind(journal_sequence)
+    .bind(*journal.event_id().as_uuid())
+    .bind(created_at)
+    .bind(journal.digest().as_bytes())
+    .bind(result_intent_digest)
+    .bind(result_record_digest)
+    .bind(failure_id)
+    .bind(retry_kind)
+    .bind(retry_not_before)
+    .bind(completion.digest().as_bytes())
+    .bind(completion_bytes)
+    .bind(created_at)
+    .execute(&mut **transaction)
+    .await;
+    let inserted = match result {
+        Ok(result) => result.rows_affected(),
+        Err(source) if has_database_constraint(&source, "node_attempt_completions_pkey") => {
+            return Err(StoreError::InvalidNodeAttemptTransition);
+        }
+        Err(source)
+            if has_database_constraint(&source, "node_attempt_completions_anchor_unique") =>
+        {
+            return Err(StoreError::NodeAttemptCommitConflict);
+        }
+        Err(source) => {
+            return Err(StoreError::database(
+                "node attempt completion insert",
+                source,
+            ));
+        }
+    };
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
 async fn insert_initial_tool_invocation_revision(
     transaction: &mut Transaction<'_, Postgres>,
     invocation: &ToolInvocation,
@@ -7105,6 +8701,7 @@ WHERE current_invocation.tenant_id = $1
 async fn insert_pending_node_result(
     transaction: &mut Transaction<'_, Postgres>,
     result: &PendingNodeResult,
+    node_attempt_id: AttemptId,
     fence: &RunFence,
 ) -> Result<(), StoreError> {
     let intent = result.intent();
@@ -7136,6 +8733,7 @@ INSERT INTO stateknot.pending_node_results (
     graph_namespace,
     node_id,
     activation_input_digest,
+    node_attempt_id,
     intent_digest,
     control_kind,
     fence_attempt_id,
@@ -7150,15 +8748,15 @@ INSERT INTO stateknot.pending_node_results (
 )
 SELECT
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-    $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+    $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
   AND current_run.checkpoint_id = $3
   AND current_run.checkpoint_superstep = $4
   AND current_run.checkpoint_digest = $5
-  AND current_run.lease_attempt_id = $15
-  AND current_run.fencing_epoch = $16
+  AND current_run.lease_attempt_id = $16
+  AND current_run.fencing_epoch = $17
   AND current_run.lease_expires_at > clock_timestamp()
 ",
     )
@@ -7174,6 +8772,7 @@ WHERE current_run.tenant_id = $1
     .bind(activation.graph_namespace().as_str())
     .bind(activation.node_id().as_str())
     .bind(activation.input_digest().as_bytes())
+    .bind(*node_attempt_id.as_uuid())
     .bind(intent.intent_digest().as_bytes())
     .bind(pending_node_result_control_kind_text(
         intent.control().kind(),
@@ -7895,6 +9494,17 @@ fn validate_model_invocation_transition_lifecycle(
         return Err(StoreError::RunNotRunnable);
     }
     Ok(())
+}
+
+fn validate_node_attempt_completion_lifecycle(stored: &StoredRun) -> Result<(), StoreError> {
+    if matches!(
+        stored.lifecycle().status(),
+        RunStatus::Active | RunStatus::Waiting | RunStatus::CancellationRequested
+    ) {
+        Ok(())
+    } else {
+        Err(StoreError::RunNotRunnable)
+    }
 }
 
 fn positive_sequence(value: i64) -> Result<JournalSequence, StoreError> {

@@ -33,12 +33,16 @@ The provider currently supplies:
   attempt identities, bounded ascending history verification, closed tool
   prepared/executing/committed/failed/unknown outcomes, and closed model
   prepared/executing/committed/failed outcomes;
-- a run-wide tool/model physical-attempt registry whose primary key prevents
-  cross-ledger reuse and whose deferred exact-kind/invocation/revision foreign
-  keys make each `StartAttempt` claim inseparable from its immutable revision;
+- a run-wide node/tool/model physical-attempt registry whose primary key
+  prevents cross-ledger reuse and whose deferred exact-owner foreign keys make
+  each claim inseparable from its immutable node start or invocation revision;
 - atomic fenced prepare/advance APIs whose event, invocation revision, current
   invocation pointer, and run journal head commit or roll back together, with
   exact lost-ack convergence and no blind retry from an unknown outcome;
+- durable physical node-attempt starts committed before user code dispatch,
+  append-only success/failure completions, database-clock delayed-retry gates,
+  higher-fence takeover of abandoned execution, bounded verified history, and
+  atomic successful completion with its attempt-owned pending result;
 - immutable pending node results committed atomically with their worker event,
   exact winning lease fence, run journal head, canonical semantic intent, and
   separately foreign-keyed committed tool/model revisions; logical retries
@@ -100,10 +104,11 @@ column-scoped `UPDATE` only for
 `current_record_digest`, and `updated_at`, and `SELECT`/`INSERT` on
 `stateknot.tool_invocation_revisions`,
 `stateknot.model_invocation_revisions`, `stateknot.run_attempt_claims`,
+`stateknot.node_attempts`, `stateknot.node_attempt_completions`,
 `stateknot.pending_node_results`, both pending-result binding tables, and
 `stateknot.pending_node_result_consumptions`. Do not grant runtime DDL,
-checkpoint, invocation-revision, pending-result, or consumption update/delete
-permissions. Exact role/grant SQL will be
+checkpoint, node-attempt, invocation-revision, pending-result, or consumption
+update/delete permissions. Exact role/grant SQL will be
 shipped only with the role-separated server boundary so this document does not
 invent deployment-specific role names.
 
@@ -113,12 +118,12 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 40 integration tests against PostgreSQL 16 and
+The current database suite runs 46 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
-v4 without guessed projection intent, real v3 tool-attempt history
-backfilled into the v4 run-wide registry, admission, direct lifecycle
-transition enforcement, future-clock rejection, event and projection-intent
+v6 without guessed projection or physical-attempt provenance, real v3
+tool-attempt history backfilled into the run-wide registry, admission, direct
+lifecycle transition enforcement, future-clock rejection, event and projection-intent
 conflicts, lost-ack idempotency, bounded journal and
 reverse-checkpoint-lineage paging, exact/crossed cursor rejection,
 continuation across a concurrently advanced current checkpoint,
@@ -147,6 +152,12 @@ ready-set consumption, missing/conflicting result rejection, stale fencing,
 lost-ack idempotency after lease takeover, rollback when consumption insertion
 fails, 24 identical contenders producing one physical commit, and 24
 concurrent writers producing a contiguous 49-event result/barrier lineage.
+Node-attempt coverage proves durable start and terminal lost-ack convergence,
+atomic success/result/barrier binding, same-epoch unsafe retry rejection,
+higher-fence recovery of unfinished execution, database-time delayed retry,
+bounded exact history paging, cross-kind run-wide attempt identity, corrupted
+start/completion rejection, and migration-5 result readability without
+fabricating a historical start.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -203,22 +214,29 @@ attempt only after explicit `SafeAfter` advice and the database-recorded journal
 clock prove the delay; hidden SDK retries are outside this contract and must be
 disabled.
 
-Node execution commits a `PendingNodeResultIntent` with
-`commit_pending_node_result`. Its semantic digest deliberately excludes the
-worker fence and journal position, so a replacement worker can retry an
-identical logical result without creating another event. A changed activation
-input, state update, control result, or invocation binding is a conflict. The
-new-record path requires an active run, the exact current root-ready activation,
-an exact journal expectation, and a live fence. `load_pending_node_result`
-accepts the complete activation and fails closed unless the immutable row, base
+Node execution first calls `start_node_attempt`; its event, run-wide physical
+attempt claim, immutable start, and run head commit before user node code is
+dispatched. `fail_node_attempt` appends one public-safe failure completion.
+`succeed_node_attempt` atomically appends the completion and its immutable
+`PendingNodeResult`, including exact committed tool/model bindings. The result's
+semantic digest deliberately excludes physical ownership, but its stored row is
+owned by the exact successful attempt. A changed activation input, state update,
+control result, or invocation binding is a conflict. The legacy
+`commit_pending_node_result` entry point rejects every call with
+`NodeAttemptRequired`, so new code cannot fabricate a result without a durable
+start. `load_node_attempt` and `load_node_attempt_history_page` verify canonical
+bytes, redundant projections, base checkpoint, start/completion events, fences,
+retry history, and successful result ownership. `load_pending_node_result`
+fails closed unless the immutable row, owning attempt when present, base
 checkpoint, worker event, all binding rows, full committed invocation records,
-and their journal projections agree. `append_control_plane_barrier` and
-`append_worker_barrier` accept a core `CheckpointBarrier` only after full-record
-verification. Under the run lock they compare the entire canonical compact set,
-reject missing or additional results and unsettled invocations, and append one
-consumption row per result alongside the exact successor. Reducers and graph
-callbacks run before this API; none execute while a database transaction is
-open.
+and their journal projections agree.
+
+`append_control_plane_barrier` and `append_worker_barrier` accept a core
+`CheckpointBarrier` only after full-record verification. Under the run lock they
+compare the entire canonical compact set, reject missing or additional results
+and unsettled invocations, and append one consumption row per result alongside
+the exact successor. Reducers and graph callbacks run before this API; none
+execute while a database transaction is open.
 
 Migration 2 adds nullable `run_events.projection_digest` because migration-1
 rows do not contain enough information to reconstruct the caller's projection
@@ -255,11 +273,19 @@ table records one immutable mapping from every exact result to the immediately
 following checkpoint. Barrier-event idempotency binds both the lifecycle
 projection and the core barrier intent digest.
 
+Migration 6 extends `run_attempt_claims` with exact node-start ownership, creates
+immutable `node_attempts` and append-only `node_attempt_completions`, and adds an
+optional attempt owner to pending results. New successful results require that
+owner and are committed with the completion. Existing migration-5 rows retain a
+null owner because no historical start can be reconstructed truthfully; their
+original event/projection integrity remains fully verified. The migration and
+its migration-5 upgrade fixture are checksum-pinned on PostgreSQL 16 and 17.
+
 ## Not yet implemented
 
-This slice is not the complete durable runtime. It does not yet implement node
-execution-attempt records, interrupts, timers, outbox, artifacts,
-scheduling/readiness queues, automatic corruption quarantine,
+This slice is not the complete durable runtime. It does not yet implement
+interrupt persistence, timers, outbox, artifacts, scheduling/readiness queues,
+automatic corruption quarantine,
 retention/archive/legal hold, backup/restore, failover qualification, or the
 10,000-race stale-worker gate.
 
