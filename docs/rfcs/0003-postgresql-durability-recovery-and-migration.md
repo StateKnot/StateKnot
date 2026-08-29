@@ -856,8 +856,14 @@ clears active execution ownership, and sets the run quarantine projection that
 excludes scheduler discovery. Exact retries survive a lost acknowledgement;
 different evidence conflicts. Pre-v10 quarantines remain blocked but do not gain
 invented observation records.
+`with_corruption_quarantine` composes this transaction with one read-only
+recovery validation: success and non-corruption failures pass through, while a
+payload-redacted integrity failure deterministically supplies the component
+code. The recovery read finishes before the separate quarantine transaction;
+an advanced journal head returns a stale-observation error rather than stopping
+newer state.
 
-Seventy-one integration tests run against PostgreSQL 16 and 17.
+Seventy-two integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -892,8 +898,10 @@ fencing, abandonment audit, corruption and rollback rejection, plus 24-request
 single-commit convergence. Quarantine coverage adds v9 upgrade honesty, exact
 journal observation fencing, atomic lease removal and scheduler exclusion,
 same-ID lost-ACK recovery, corruption/rollback rejection, and 24-request
-single-record convergence. This is evidence for those boundaries only.
-Automatic recovery-loop quarantine invocation, role-separated database
+single-record convergence. A real corrupted-checkpoint recovery read also
+proves corruption-only automatic isolation, ordinary-error pass-through,
+idempotent retry, and stale-observation rejection. This is evidence for those
+boundaries only. Complete recovery-loop integration, role-separated database
 procedures, the 10,000
 stale-race trial, failover, archive, backup/restore, and soak gates below remain
 incomplete; the RFC therefore remains Draft.

@@ -75,14 +75,18 @@ quarantine outside a potentially corrupt journal: the request binds a stable
 ID, closed cause, bounded non-secret component, evidence checksum, and exact
 journal observation, then atomically clears execution ownership and removes the
 run from scheduler discovery with lost-ack convergence.
+Read-only recovery validations can use `with_corruption_quarantine` to pass
+successes and ordinary errors through while mapping only payload-redacted
+`CorruptData` into that transaction; a stale journal observation fails instead
+of quarantining newer durable state.
 Complete ready-set barriers now atomically bind and consume the exact immutable
 result set while committing their event, successor checkpoint, lifecycle
 projection, and run heads; the specialized wait-barrier commits that same unit
 with a complete interrupt/timer batch. Raw successor checkpoint, generic wait
 projection, and pending-result writes that bypass their durable evidence are
 rejected. Protocol-specific outbox dispatch adapters, cross-tenant fairness,
-the recovery/dispatch loop (including automatic quarantine invocation), and a
-runnable agent loop have not shipped yet.
+the complete recovery/dispatch loop integration, and a runnable agent loop have
+not shipped yet.
 
 The current milestone is to:
 

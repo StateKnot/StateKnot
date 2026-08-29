@@ -1,7 +1,9 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{borrow::Cow, collections::BTreeMap, fmt, sync::LazyLock, time::Duration};
+use std::{
+    borrow::Cow, collections::BTreeMap, fmt, future::Future, sync::LazyLock, time::Duration,
+};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -44,10 +46,10 @@ use uuid::Uuid;
 
 use crate::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, DueTimerPage,
-    DueTimerPageCursor, ExpiredInterruptPage, ExpiredInterruptPageCursor,
-    InterruptResolutionCommitOutcome, JournalPage, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
+    CorruptionQuarantineContext, DueTimerPage, DueTimerPageCursor, ExpiredInterruptPage,
+    ExpiredInterruptPageCursor, InterruptResolutionCommitOutcome, JournalPage, JournalPageSize,
+    LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
     ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
     NodeAttemptHistoryPage, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage,
     OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome,
@@ -2128,6 +2130,47 @@ WHERE tenant_id = $1 AND run_id = $2 AND quarantined_at IS NULL
             .await
             .map_err(|source| StoreError::database("run quarantine commit", source))?;
         Ok(RunQuarantineCommitOutcome::Committed(restored))
+    }
+
+    /// Runs one read-only recovery validation and quarantines only corruption.
+    ///
+    /// The supplied future must not perform external side effects. It completes
+    /// before a separate quarantine transaction begins. Successful values and
+    /// non-corruption failures are returned unchanged. For
+    /// [`StoreError::CorruptData`], the provider derives the bounded component
+    /// code, commits (or exactly recovers) the quarantine, then returns
+    /// [`StoreError::RunQuarantined`]. A stale journal observation or unavailable
+    /// database is returned instead of claiming that isolation committed.
+    ///
+    /// This helper does not grant execution authority: recovery still needs a
+    /// live run fence and must re-check the quarantined run projection before
+    /// dispatch.
+    ///
+    /// # Errors
+    ///
+    /// Returns the recovery read error, or an explicit quarantine transaction
+    /// failure. Raw corrupt payloads are never copied into the quarantine row.
+    pub async fn with_corruption_quarantine<T, F>(
+        &self,
+        context: CorruptionQuarantineContext,
+        recovery_read: F,
+    ) -> Result<T, StoreError>
+    where
+        F: Future<Output = Result<T, StoreError>>,
+    {
+        match recovery_read.await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                let component = match RunQuarantineComponent::from_corrupt_store_error(&error) {
+                    Ok(component) => component,
+                    Err(StoreError::InvalidRunQuarantineRequest) => return Err(error),
+                    Err(component_error) => return Err(component_error),
+                };
+                let request = context.into_request(component)?;
+                self.quarantine_run(request).await?;
+                Err(StoreError::RunQuarantined)
+            }
+        }
     }
 
     /// Loads and fully verifies the immutable quarantine observation for a run.

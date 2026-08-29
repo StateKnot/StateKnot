@@ -16,8 +16,10 @@
 //! indexed discovery, and explicit cancellation/failure abandonment preserve
 //! complete wait evidence. Structured quarantine observations live outside a
 //! journal that may be corrupt and atomically revoke execution ownership with
-//! exact journal-observation and lost-ack safeguards. The provider never holds
-//! a database transaction across node, model, tool, remote-agent, or human work.
+//! exact journal-observation and lost-ack safeguards. A recovery-read combinator
+//! triggers that transaction only for payload-redacted integrity failures. The
+//! provider never holds a database transaction across node, model, tool,
+//! remote-agent, or human work.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
 //! its database credentials to untrusted workers; role-separated procedures and
@@ -34,10 +36,10 @@ pub use config::{PostgresStoreOptions, PostgresTransportSecurity};
 pub use error::{ConfigurationError, StoreError};
 pub use model::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, DueTimerPage,
-    DueTimerPageCursor, ExpiredInterruptPage, ExpiredInterruptPageCursor,
-    InterruptResolutionCommitOutcome, JournalPage, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
+    CorruptionQuarantineContext, DueTimerPage, DueTimerPageCursor, ExpiredInterruptPage,
+    ExpiredInterruptPageCursor, InterruptResolutionCommitOutcome, JournalPage, JournalPageSize,
+    LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
     ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
     NodeAttemptHistoryPage, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage,
     OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome,

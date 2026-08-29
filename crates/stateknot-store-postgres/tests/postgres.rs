@@ -38,16 +38,17 @@ use stateknot_core::{
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePageSize, InterruptResolutionCommitOutcome, JournalPageSize,
-    LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
-    ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize,
-    OutboxAttemptHistoryPageSize, OutboxClaimOutcome, OutboxCompletionOutcome,
-    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
-    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
-    RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
-    RunQuarantineRequest, RunnableRunPageSize, StoreError, TimerFiringCommitOutcome,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome,
-    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    CheckpointLineagePageSize, CorruptionQuarantineContext, InterruptResolutionCommitOutcome,
+    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
+    NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize, OutboxClaimOutcome,
+    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
+    PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions,
+    PostgresTransportSecurity, RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome,
+    RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize, StoreError,
+    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
+    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
+    WaitDiscoveryPageSize,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -397,10 +398,20 @@ fn run_quarantine_contract_rejects_unbounded_or_crossed_codes() {
             tenant_id,
             run_id,
             QuarantineId::generate(),
-            JournalExpectation::exact(crossed_head),
+            JournalExpectation::exact(crossed_head.clone()),
             RunQuarantineCause::IntegrityFailure,
             RunQuarantineComponent::new("checkpoint.digest").unwrap(),
             Digest::sha256(b"evidence"),
+        ),
+        Err(StoreError::InvalidRunQuarantineRequest)
+    ));
+    assert!(matches!(
+        CorruptionQuarantineContext::new(
+            crossed_head.tenant_id().clone(),
+            run_id,
+            QuarantineId::generate(),
+            JournalExpectation::exact(crossed_head),
+            Digest::sha256(b"recovery evidence"),
         ),
         Err(StoreError::InvalidRunQuarantineRequest)
     ));
@@ -12245,6 +12256,179 @@ async fn quarantine_update_failure_rolls_back_evidence_and_corruption_fails_clos
         store.load_run_quarantine(&tenant_id, run_id).await,
         Err(StoreError::CorruptData { .. })
     ));
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn recovery_wrapper_quarantines_only_corruption_and_rejects_stale_observations() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+
+    let healthy_tenant = tenant("recovery-wrapper-healthy");
+    let healthy_run = RunId::generate();
+    store
+        .admit_run(provenance(healthy_tenant.clone(), healthy_run))
+        .await
+        .unwrap();
+    let healthy_context = CorruptionQuarantineContext::new(
+        healthy_tenant.clone(),
+        healthy_run,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        Digest::sha256(b"healthy recovery evidence"),
+    )
+    .unwrap();
+    let healthy = store
+        .with_corruption_quarantine(
+            healthy_context,
+            store.load_run(&healthy_tenant, healthy_run),
+        )
+        .await
+        .expect("successful recovery reads must pass through");
+    assert!(!healthy.is_quarantined());
+
+    let ordinary_error_context = CorruptionQuarantineContext::new(
+        healthy_tenant.clone(),
+        healthy_run,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        Digest::sha256(b"ordinary error evidence"),
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .with_corruption_quarantine(
+                ordinary_error_context,
+                store.load_checkpoint(&healthy_tenant, healthy_run, CheckpointId::generate()),
+            )
+            .await,
+        Err(StoreError::CheckpointNotFound)
+    ));
+    assert!(matches!(
+        store
+            .load_run_quarantine(&healthy_tenant, healthy_run)
+            .await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+
+    let corrupt_tenant = tenant("recovery-wrapper-corrupt");
+    let corrupt_run = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(
+        &store,
+        &corrupt_tenant,
+        corrupt_run,
+        940,
+    ))
+    .await;
+    query(
+        "UPDATE stateknot.run_checkpoints \
+         SET checkpoint_bytes = checkpoint_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $3",
+    )
+    .bind(corrupt_tenant.as_str())
+    .bind(*corrupt_run.as_uuid())
+    .bind(*checkpoint.checkpoint().checkpoint_id().as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    let corrupt_context = CorruptionQuarantineContext::new(
+        corrupt_tenant.clone(),
+        corrupt_run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(checkpoint.event().head()),
+        Digest::sha256(b"retained corrupt checkpoint evidence"),
+    )
+    .unwrap();
+    for context in [corrupt_context.clone(), corrupt_context] {
+        assert!(matches!(
+            store
+                .with_corruption_quarantine(
+                    context,
+                    store.load_checkpoint(
+                        &corrupt_tenant,
+                        corrupt_run,
+                        checkpoint.checkpoint().checkpoint_id(),
+                    ),
+                )
+                .await,
+            Err(StoreError::RunQuarantined)
+        ));
+    }
+    let quarantine = store
+        .load_run_quarantine(&corrupt_tenant, corrupt_run)
+        .await
+        .unwrap();
+    assert_eq!(
+        quarantine.request().cause(),
+        RunQuarantineCause::IntegrityFailure
+    );
+    assert!(
+        quarantine
+            .request()
+            .component()
+            .as_str()
+            .starts_with("store.checkpoint")
+    );
+
+    let stale_tenant = tenant("recovery-wrapper-stale");
+    let stale_run = RunId::generate();
+    let stale_checkpoint = Box::pin(start_run_with_checkpoint(
+        &store,
+        &stale_tenant,
+        stale_run,
+        941,
+    ))
+    .await;
+    query(
+        "UPDATE stateknot.run_checkpoints \
+         SET checkpoint_bytes = checkpoint_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $3",
+    )
+    .bind(stale_tenant.as_str())
+    .bind(*stale_run.as_uuid())
+    .bind(*stale_checkpoint.checkpoint().checkpoint_id().as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    let stale_context = CorruptionQuarantineContext::new(
+        stale_tenant.clone(),
+        stale_run,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        Digest::sha256(b"stale corruption evidence"),
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .with_corruption_quarantine(
+                stale_context,
+                store.load_checkpoint(
+                    &stale_tenant,
+                    stale_run,
+                    stale_checkpoint.checkpoint().checkpoint_id(),
+                ),
+            )
+            .await,
+        Err(StoreError::StaleRunQuarantineObservation)
+    ));
+    assert!(
+        !store
+            .load_run(&stale_tenant, stale_run)
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+
     administration.close().await;
     store.close().await;
 }

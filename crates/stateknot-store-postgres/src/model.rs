@@ -223,6 +223,95 @@ impl RunQuarantineRequest {
     }
 }
 
+/// Stable context for automatically quarantining one failed recovery read.
+///
+/// Clone and reuse the complete value after an ambiguous database outcome. The
+/// eventual corruption category is derived from [`StoreError::CorruptData`]
+/// rather than accepted from the caller.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CorruptionQuarantineContext {
+    pub(crate) tenant_id: TenantId,
+    pub(crate) run_id: RunId,
+    pub(crate) quarantine_id: QuarantineId,
+    pub(crate) expectation: JournalExpectation,
+    pub(crate) evidence_digest: Digest,
+}
+
+impl CorruptionQuarantineContext {
+    /// Constructs a tenant-bound recovery observation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidRunQuarantineRequest`] when an exact head
+    /// belongs to another tenant or run.
+    pub fn new(
+        tenant_id: TenantId,
+        run_id: RunId,
+        quarantine_id: QuarantineId,
+        expectation: JournalExpectation,
+        evidence_digest: Digest,
+    ) -> Result<Self, StoreError> {
+        if expectation
+            .head()
+            .is_some_and(|head| head.tenant_id() != &tenant_id || head.run_id() != run_id)
+        {
+            return Err(StoreError::InvalidRunQuarantineRequest);
+        }
+        Ok(Self {
+            tenant_id,
+            run_id,
+            quarantine_id,
+            expectation,
+            evidence_digest,
+        })
+    }
+
+    /// Returns the tenant boundary.
+    #[must_use]
+    pub const fn tenant_id(&self) -> &TenantId {
+        &self.tenant_id
+    }
+
+    /// Returns the observed run identity.
+    #[must_use]
+    pub const fn run_id(&self) -> RunId {
+        self.run_id
+    }
+
+    /// Returns the stable quarantine identity.
+    #[must_use]
+    pub const fn quarantine_id(&self) -> QuarantineId {
+        self.quarantine_id
+    }
+
+    /// Returns the exact journal observation made by recovery.
+    #[must_use]
+    pub const fn expectation(&self) -> &JournalExpectation {
+        &self.expectation
+    }
+
+    /// Returns the caller-retained redacted evidence checksum.
+    #[must_use]
+    pub const fn evidence_digest(&self) -> Digest {
+        self.evidence_digest
+    }
+
+    pub(crate) fn into_request(
+        self,
+        component: RunQuarantineComponent,
+    ) -> Result<RunQuarantineRequest, StoreError> {
+        RunQuarantineRequest::new(
+            self.tenant_id,
+            self.run_id,
+            self.quarantine_id,
+            self.expectation,
+            RunQuarantineCause::IntegrityFailure,
+            component,
+            self.evidence_digest,
+        )
+    }
+}
+
 /// Fully verified immutable quarantine observation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RunQuarantine {
