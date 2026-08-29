@@ -1076,6 +1076,46 @@ pub struct JournalEvent {
 }
 
 impl JournalEvent {
+    /// Restores and verifies an event from durable storage columns.
+    ///
+    /// The intent reconstructs and validates tenant, run, event identity,
+    /// source, payload, payload checksum, and intent checksum. This method then
+    /// validates sequence/predecessor shape and recomputes the complete event
+    /// checksum before returning a usable event.
+    ///
+    /// A store that persists redundant payload or intent digest columns must
+    /// compare those columns with `intent` before calling this method.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`JournalEventError`] when the sequence/predecessor shape or
+    /// complete event checksum does not match the reconstructed event.
+    pub fn restore(
+        intent: JournalEventIntent,
+        sequence: JournalSequence,
+        recorded_at: Timestamp,
+        previous_digest: Option<Digest>,
+        digest: Digest,
+    ) -> Result<Self, JournalEventError> {
+        let payload_digest = intent.payload.digest();
+        let intent_digest = intent.intent_digest;
+        let event = Self {
+            tenant_id: intent.tenant_id,
+            run_id: intent.run_id,
+            sequence,
+            event_id: intent.event_id,
+            recorded_at,
+            source: intent.source,
+            payload: intent.payload,
+            payload_digest,
+            intent_digest,
+            previous_digest,
+            digest,
+        };
+        event.validate()?;
+        Ok(event)
+    }
+
     /// Materializes a validated append after the store has won its transaction.
     ///
     /// `recorded_at` must be the database observation selected while holding the
@@ -1737,6 +1777,31 @@ mod tests {
 
         let round_trip = from_value::<JournalEvent>(to_value(&committed).unwrap()).unwrap();
         assert_eq!(round_trip, committed);
+    }
+
+    #[test]
+    fn storage_restore_recomputes_the_complete_event_integrity_layer() {
+        let committed = first_event();
+        let intent = control_intent(committed.event_id(), json!({"revision": "0"}));
+        let restored = JournalEvent::restore(
+            intent.clone(),
+            committed.sequence(),
+            committed.recorded_at(),
+            committed.previous_digest(),
+            committed.digest(),
+        )
+        .unwrap();
+        assert_eq!(restored, committed);
+        assert_eq!(
+            JournalEvent::restore(
+                intent,
+                committed.sequence(),
+                committed.recorded_at(),
+                committed.previous_digest(),
+                Digest::sha256(b"corrupt durable event"),
+            ),
+            Err(JournalEventError::EventDigestMismatch)
+        );
     }
 
     #[test]

@@ -2,7 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [workspace]
-members = ["crates/stateknot", "crates/stateknot-core"]
+members = [
+    "crates/stateknot",
+    "crates/stateknot-core",
+    "crates/stateknot-store-postgres",
+]
 resolver = "3"
 
 [workspace.dependencies]
@@ -17,7 +21,25 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 serde_json_canonicalizer = "0.3.2"
 sha2 = { version = "0.11.0", default-features = false }
+sqlx-core = { version = "=0.8.6", default-features = false, features = [
+    "_rt-tokio",
+    "_tls-rustls-ring-native-roots",
+    "chrono",
+    "migrate",
+    "uuid",
+] }
+sqlx-postgres = { version = "=0.8.6", default-features = false, features = [
+    "chrono",
+    "migrate",
+    "uuid",
+] }
 thiserror = "2.0.20"
+tokio = { version = "1.53.1", default-features = false, features = [
+    "macros",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
 uuid = { version = "1.26.0", features = ["v7"] }
 
 [workspace.package]

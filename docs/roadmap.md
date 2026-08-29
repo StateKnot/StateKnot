@@ -5,8 +5,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot roadmap
 
-> Current phase: M0 architecture contracts. Repository bootstrap is complete;
-> StateKnot has no production release or stable API yet.
+> Current phase: M0 architecture contracts with implementation-backed vertical
+> validation. StateKnot has no production release or stable API yet.
 
 The roadmap is evidence-driven. Dates may be estimated in planning discussions,
 but a milestone exits only when its acceptance evidence is committed or linked
@@ -27,6 +27,12 @@ from the repository.
 - [x] Validate RFC 8785 payload bytes, journal append identity/head/hash-chain,
   lease renewal, fencing epoch, stale-attempt, schema, property, and wire
   contracts in the unpublished `stateknot-core` crate.
+- [x] Implement the first PostgreSQL 16/17 run/journal/lease slice with exact
+  migration startup checks, atomic locked transitions, lost-ack idempotency,
+  database-level worker predicates, injected rollback validation, and a
+  100-appender contiguous-history test.
+- [ ] Complete RFC-0003 checkpoints, attempt/tool ledgers, outbox, recovery,
+  quarantine, role isolation, retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

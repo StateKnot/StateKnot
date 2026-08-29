@@ -46,9 +46,13 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 ## Current milestone
 
 The project is in the **architecture-contract and vertical-validation phase**.
-The unpublished core crate now validates model, tool, agent admission/result,
-durable run-lifecycle, canonical journal-envelope, and lease/fencing contracts;
-the PostgreSQL store and a runnable agent loop have not shipped yet.
+The unpublished core crate validates model, tool, agent admission/result,
+durable run-lifecycle, canonical journal-envelope, and lease/fencing contracts.
+The first PostgreSQL 16/17 durability slice now implements run admission,
+canonical journal append/read, locked lifecycle transitions, schema verification,
+and database-enforced lease fencing. Checkpoints, node/tool ledgers, outbox,
+recovery scheduling, quarantine workflows, and a runnable agent loop have not
+shipped yet.
 
 The current milestone is to:
 
@@ -60,13 +64,15 @@ The current milestone is to:
 See the [qualification scenarios](docs/scenarios/README.md), the
 [roadmap](docs/roadmap.md), the full
 [research and implementation plan](docs/research-and-implementation-plan.md),
-and the [completeness audit](docs/plan-completeness-audit.md).
+the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
+[completeness audit](docs/plan-completeness-audit.md).
 
 ## Repository layout
 
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, and ownership contracts
+crates/stateknot-store-postgres/  PostgreSQL run/journal/lease durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 .github/                 Contribution templates and automated quality gates
 ```

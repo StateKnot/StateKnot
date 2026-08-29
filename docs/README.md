@@ -23,6 +23,8 @@ conformance output, and the release gates in these documents.
 5. [Roadmap](roadmap.md) — ordered milestones and exit criteria.
 6. [RFC process](rfcs/README.md) — how durable project decisions are proposed,
    reviewed, accepted, and superseded.
+7. [PostgreSQL provider operations](postgresql-provider.md) — the implemented
+   durability slice, deployment boundary, validation, and explicit blockers.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md)
 and the [PostgreSQL durability contract](rfcs/0003-postgresql-durability-recovery-and-migration.md).

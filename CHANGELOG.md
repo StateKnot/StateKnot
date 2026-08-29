@@ -144,9 +144,21 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   database-clock lease fencing, record model, recovery/quarantine, retention,
   migration, backup/restore, security, and release evidence required before the
   durability layer can be called production-ready.
+- Initial unpublished `stateknot-store-postgres` slice for PostgreSQL 16/17,
+  with exact checksum-pinned migration verification, strict runtime startup,
+  secure TLS defaults, bounded pools/transactions, tenant-scoped admission,
+  canonical journal persistence, locked pure lifecycle transitions, atomic
+  event/head/projection commits, complete-cursor paging, and fail-closed decode.
+- Database-clock lease claim/renew/release/supersession with stable-attempt
+  idempotency, monotonic fencing epochs, exact worker predicates on event and
+  run-head writes, lost-ack convergence, post-insert rollback injection, and
+  digest-pinned PostgreSQL 16/17 CI covering 100 concurrent appenders.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/
   artifact/concurrency/time ceilings, redacted diagnostics, closed schemas,
   property tests, and versioned wire fixtures.
 - CI, dependency policy, issue forms, and security reporting guidance.
+- Crate package metadata and file lists that retain the Apache-2.0 SPDX
+  expression while embedding `LICENSE`, `NOTICE`, and `README.md` in every
+  distributable source archive.

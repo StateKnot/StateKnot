@@ -802,6 +802,13 @@ hash chain 用于发现损坏、缺失和乱序，不冒充能抵抗数据库管
 archive anchor、expand/contract migration 与 backup/restore 门禁以
 [RFC-0003](rfcs/0003-postgresql-durability-recovery-and-migration.md) 为准。
 
+当前已落地 `stateknot-store-postgres` 的第一段最终持久化边界：`runs`、`run_events`、
+canonical bytes/digests、locked pure transition、exact-head append、数据库时钟 lease/fencing、
+完整 cursor 分页、精确 migration checksum/startup refusal，以及 PostgreSQL 16/17 的 rollback、
+lost-ack 和 100 并发 appender 测试。它不是完整 runtime；checkpoint、node/tool attempt、
+interrupt/outbox、自动 quarantine、scheduler、角色隔离、归档、failover 与 restore 仍按 RFC
+门禁继续实现，RFC-0003 因此保持 Draft。
+
 ### 10.3 可以承诺的执行保证
 
 | 范围 | 保证 |
@@ -1008,6 +1015,9 @@ GET    /health/ready
 - testcontainers、kill/restart、网络分区和数据库 failover 测试；
 - blob store、retention、tenant isolation 与 RLS 可选配置。
 
+进度：run/journal/lease 与 migration/startup 的首个生产形态切片已完成并进入主干验证；
+阶段 3 的其余记录、恢复、运维与故障门禁未完成，不能据此提前宣称阶段完成。
+
 ### 阶段 4：协议正式支持（4–5 周）
 
 - MCP client/server 及 conformance；
@@ -1096,7 +1106,7 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 3. `RFC-0003 PostgreSQL Durability, Recovery and Migration`（Draft）；
 4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
 
-RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0003 的 journal/lease/fencing 值契约；RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
+RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0003 的 journal/lease/fencing 值契约；`stateknot-store-postgres` 已把 run/journal/lease 与 migration/startup 语义落到 PostgreSQL 16/17，但尚未覆盖 RFC-0003 的完整记录模型、恢复和运维门禁。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
 
 ## 22. 主要一手资料
 
@@ -1119,6 +1129,7 @@ RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵
 - [Restate durable agents](https://docs.restate.dev/ai/patterns/durable-agents) 与 [Restate Rust SDK](https://github.com/restatedev/sdk-rust)
 - [Restate journal/epoch architecture](https://docs.restate.dev/references/architecture) 与 [Temporal workflow history events](https://github.com/temporalio/documentation/blob/main/docs/references/events.mdx)
 - [PostgreSQL explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html) 与 [RFC 8785 JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785)
+- [SQLx 0.8.6 documentation](https://docs.rs/sqlx/0.8.6/sqlx/) 与 [official repository](https://github.com/launchbadge/sqlx)
 - [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai)
 - [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - [NIST AI RMF Generative AI Profile](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence)

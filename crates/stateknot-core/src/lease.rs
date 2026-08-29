@@ -252,6 +252,25 @@ pub struct RunLease {
 }
 
 impl RunLease {
+    /// Restores a lease snapshot from durable, trusted columns.
+    ///
+    /// This is the storage-facing counterpart to [`Self::new`]. It preserves
+    /// the original acquisition and latest renewal observations while
+    /// revalidating every timing invariant.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RunLeaseError`] if renewal precedes acquisition or expiry is
+    /// not strictly later than the latest observation.
+    pub fn restore(
+        fence: RunFence,
+        acquired_at: Timestamp,
+        renewed_at: Timestamp,
+        expires_at: Timestamp,
+    ) -> Result<Self, RunLeaseError> {
+        Self::from_observations(fence, acquired_at, renewed_at, expires_at)
+    }
+
     /// Constructs a newly acquired lease.
     ///
     /// # Errors
@@ -331,6 +350,12 @@ impl RunLease {
         if observed_at < self.acquired_at {
             return Err(RunLeaseValidationError::ObservationBeforeAcquisition {
                 acquired_at: self.acquired_at,
+                observed_at,
+            });
+        }
+        if observed_at < self.renewed_at {
+            return Err(RunLeaseValidationError::ObservationBeforeRenewal {
+                renewed_at: self.renewed_at,
                 observed_at,
             });
         }
@@ -629,6 +654,15 @@ pub enum RunLeaseValidationError {
         observed_at: Timestamp,
     },
 
+    /// The database clock moved before the latest durable renewal observation.
+    #[error("write observation {observed_at} precedes latest lease renewal {renewed_at}")]
+    ObservationBeforeRenewal {
+        /// Latest successful acquisition or renewal observation.
+        renewed_at: Timestamp,
+        /// Rejected database observation.
+        observed_at: Timestamp,
+    },
+
     /// The proposed database observation was at or after exclusive expiry.
     #[error("lease expired at {expires_at}; write observed at {observed_at}")]
     Expired {
@@ -744,6 +778,35 @@ mod tests {
         assert!(matches!(
             twice,
             Err(RunLeaseError::RenewalClockRegression { .. })
+        ));
+    }
+
+    #[test]
+    fn storage_restore_preserves_renewal_observations_and_revalidates_timing() {
+        let original = lease().renewed(lease().fence(), at(19), at(30)).unwrap();
+        let restored = RunLease::restore(
+            original.fence().clone(),
+            original.acquired_at(),
+            original.renewed_at(),
+            original.expires_at(),
+        )
+        .unwrap();
+        assert_eq!(restored, original);
+        assert_eq!(
+            restored.validate_write(restored.fence(), at(18)),
+            Err(RunLeaseValidationError::ObservationBeforeRenewal {
+                renewed_at: at(19),
+                observed_at: at(18),
+            })
+        );
+        assert!(matches!(
+            RunLease::restore(
+                original.fence().clone(),
+                original.acquired_at(),
+                at(9),
+                original.expires_at(),
+            ),
+            Err(RunLeaseError::RenewalBeforeAcquisition { .. })
         ));
     }
 

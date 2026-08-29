@@ -537,6 +537,33 @@ explicit unknown outcome otherwise.
 
 ## Validation and rollout
 
+### Current implementation evidence
+
+The unpublished `stateknot-store-postgres` crate implements the first
+run/journal/lease subset of this RFC rather than a separate transitional
+backend. Its initial migration creates tenant-scoped `runs` and `run_events`
+records with database constraints; runtime connection refuses absent, extra,
+failed, checksum-mismatched, or incomplete migration state. Migration uses a
+separate temporary pool so DDL credentials are not retained by the runtime.
+
+The append implementation locks the run row, performs event-ID idempotency
+before head/fence rejection, applies a supplied `RunTransition` to the locked
+lifecycle, rejects observations later than the commit clock, and atomically
+commits canonical event bytes, the complete head, and the lifecycle projection.
+Worker event insertion and head update each repeat the exact attempt/epoch and
+exclusive-expiry predicate in SQL. Reads reconstruct every integrity layer and
+stream-verify the suffix to the exact run head.
+
+Digest-pinned PostgreSQL 16 and 17 integration jobs currently cover migration
+retry/startup refusal, admission, append conflict and lost acknowledgement,
+renewal/expiry/release/supersession, stale fences, a failure injected after event
+insert but before head update, bounded suffix paging, invalid/future lifecycle
+transitions, and 100 concurrent appenders producing one contiguous history.
+This is evidence for those boundaries only. Checkpoints, other durable ledgers,
+automatic quarantine, role-separated database procedures, the 10,000 stale-race
+trial, failover, archive, backup/restore, and soak gates below remain incomplete;
+the RFC therefore remains Draft.
+
 Before RFC acceptance:
 
 - all core types have closed schemas, strict Serde, versioned fixtures, RFC 8785
