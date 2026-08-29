@@ -1317,6 +1317,7 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
+ "serde_json_canonicalizer",
  "sqlx-core",
  "sqlx-postgres",
  "stateknot-core",

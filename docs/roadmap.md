@@ -31,8 +31,13 @@ from the repository.
   migration startup checks, atomic locked transitions, lost-ack idempotency,
   database-level worker predicates, injected rollback validation, and a
   100-appender contiguous-history test.
-- [ ] Complete RFC-0003 checkpoints, attempt/tool ledgers, outbox, recovery,
-  quarantine, role isolation, retention, failover, restore, and stale-race gates.
+- [x] Implement immutable graph/state checkpoints with exact parent and journal
+  anchoring, projection-bound retry identity, atomic control-plane/worker commit,
+  corruption and rollback rejection, stale-worker fencing, and a 24-writer
+  linear-chain test on PostgreSQL 16/17.
+- [ ] Complete RFC-0003 pending node results, attempt/tool ledgers, outbox,
+  recovery scheduling, quarantine, role isolation, retention, failover, restore,
+  and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

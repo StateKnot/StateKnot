@@ -1,0 +1,140 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-checkpoint/1.0.0",
+  "supersteps": {
+    "valid": ["0", "1", "9223372036854775807"],
+    "invalid": ["", "00", "01", "-1", "9223372036854775808", 0, null]
+  },
+  "node_ids": {
+    "valid": ["authorize", "CapturePayment", "order.reserve-v2", "node_42"],
+    "invalid": ["", ".", "..", "_private", "node/name", "node name", null]
+  },
+  "checkpoints": [
+    {
+      "tenant_id": "tenant-production",
+      "run_id": "01912345-6789-7abc-8def-0123456789ae",
+      "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+      "superstep": "0",
+      "graph": {
+        "identity": {
+          "owner": {
+            "issuer": "https://issuer.example.com/stateknot",
+            "subject": "workflow-registry"
+          },
+          "capability": {
+            "name": "orders.fulfillment",
+            "version": "1.4.0"
+          }
+        },
+        "definition_digest": "sha256:2d996e7daac5b294a0fed7e4168049872f0cab52c51d4c8468d90bea2bf69f45",
+        "state_schema": {
+          "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44"
+        }
+      },
+      "state": {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44"
+        },
+        "data": {
+          "order_id": "order-42",
+          "status": "pending"
+        },
+        "digest": "sha256:2d763a4d41c4c9b66d6b5201cfe7e08b2fd6774defcc2c0ef43804537b9a12de"
+      },
+      "ready_nodes": ["authorize", "reserve-stock"],
+      "intent_digest": "sha256:d3767a526c5388dd9eda5015179f0b250d8044181931337eca16f3f1609aec7d",
+      "journal_head": {
+        "tenant_id": "tenant-production",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "sequence": "1",
+        "event_id": "01912345-6789-7abc-8def-0123456789c1",
+        "recorded_at": "2030-01-01T00:00:01.000000Z",
+        "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3"
+      },
+      "digest": "sha256:69a58e9d26ce89b84988c2d62700abedbfebfdde0934f843a99086e156692900"
+    },
+    {
+      "tenant_id": "tenant-production",
+      "run_id": "01912345-6789-7abc-8def-0123456789ae",
+      "checkpoint_id": "01912345-6789-7abc-8def-0123456789d2",
+      "superstep": "1",
+      "graph": {
+        "identity": {
+          "owner": {
+            "issuer": "https://issuer.example.com/stateknot",
+            "subject": "workflow-registry"
+          },
+          "capability": {
+            "name": "orders.fulfillment",
+            "version": "1.4.0"
+          }
+        },
+        "definition_digest": "sha256:2d996e7daac5b294a0fed7e4168049872f0cab52c51d4c8468d90bea2bf69f45",
+        "state_schema": {
+          "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44"
+        }
+      },
+      "state": {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44"
+        },
+        "data": {
+          "order_id": "order-42",
+          "status": "reserved"
+        },
+        "digest": "sha256:9703b12ba69560f12f85db0b1fd817bd216753d0e7ef658f38cd0eb2c710218d"
+      },
+      "ready_nodes": ["capture-payment"],
+      "parent": {
+        "tenant_id": "tenant-production",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+        "superstep": "0",
+        "graph": {
+          "identity": {
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            },
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            }
+          },
+          "definition_digest": "sha256:2d996e7daac5b294a0fed7e4168049872f0cab52c51d4c8468d90bea2bf69f45",
+          "state_schema": {
+            "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+            "version": "1.0.0",
+            "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44"
+          }
+        },
+        "journal_head": {
+          "tenant_id": "tenant-production",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "sequence": "1",
+          "event_id": "01912345-6789-7abc-8def-0123456789c1",
+          "recorded_at": "2030-01-01T00:00:01.000000Z",
+          "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3"
+        },
+        "digest": "sha256:69a58e9d26ce89b84988c2d62700abedbfebfdde0934f843a99086e156692900"
+      },
+      "intent_digest": "sha256:3e4a004237830bcedb29916e64dfd25c76c1c298fb7148b69322cf0b7a90eb00",
+      "journal_head": {
+        "tenant_id": "tenant-production",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "sequence": "3",
+        "event_id": "01912345-6789-7abc-8def-0123456789c3",
+        "recorded_at": "2030-01-01T00:00:03.000000Z",
+        "digest": "sha256:16ef3dfa3443da1374dc980a2a33f3007be1b5fc4d2823ee0265b7d76ff556f8"
+      },
+      "digest": "sha256:ddc6225edbd6441287ede4265b46a11e26cfed92f459b51b7f72bc6894b6b4b3"
+    }
+  ]
+}

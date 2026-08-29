@@ -418,6 +418,10 @@ define_generated_id!(
 define_generated_id!(InterruptId, "A tenant-scoped interrupt identifier.");
 define_generated_id!(TimerId, "A tenant-scoped durable timer identifier.");
 define_generated_id!(
+    CheckpointId,
+    "A tenant-scoped immutable checkpoint identifier."
+);
+define_generated_id!(
     AttemptId,
     "A tenant-scoped node or dependency attempt identifier."
 );
@@ -503,6 +507,7 @@ mod tests {
         assert_id!(InvocationId);
         assert_id!(InterruptId);
         assert_id!(TimerId);
+        assert_id!(CheckpointId);
         assert_id!(AttemptId);
     }
 

@@ -144,6 +144,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   database-clock lease fencing, record model, recovery/quarantine, retention,
   migration, backup/restore, security, and release evidence required before the
   durability layer can be called production-ready.
+- Draft RFC-0002 plus database-neutral immutable graph checkpoint contracts for
+  bounded supersteps, stable node identities, deterministic ready sets,
+  graph/state-schema pins, exact parent and journal heads, RFC 8785 state, and
+  domain-separated state/intent/checkpoint integrity.
 - Initial unpublished `stateknot-store-postgres` slice for PostgreSQL 16/17,
   with exact checksum-pinned migration verification, strict runtime startup,
   secure TLS defaults, bounded pools/transactions, tenant-scoped admission,
@@ -153,6 +157,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   idempotency, monotonic fencing epochs, exact worker predicates on event and
   run-head writes, lost-ack convergence, post-insert rollback injection, and
   digest-pinned PostgreSQL 16/17 CI covering 100 concurrent appenders.
+- Immutable PostgreSQL checkpoint persistence with projection-bound journal
+  idempotency, exact parent and journal anchoring, atomic lifecycle/event/
+  checkpoint/head commits, fenced worker writes, fail-closed recovery reads,
+  v1-to-v2 data migration coverage, injected rollback/corruption tests, and 24
+  concurrent checkpoint writers on PostgreSQL 16/17.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

@@ -4,6 +4,7 @@
 use std::{borrow::Cow, fmt, sync::LazyLock, time::Duration};
 
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 use sqlx_core::{
     from_row::FromRow,
     migrate::{Migration, MigrationType, Migrator},
@@ -15,27 +16,37 @@ use sqlx_core::{
 };
 use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
-    AgentResultProvenance, AttemptId, BoundedJson, CanonicalJson, Digest, EventId, FencingEpoch,
-    JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent,
-    JournalEventSource, JournalHead, JournalSequence, JsonLimits, RunFence, RunId, RunLease,
-    RunLeaseValidationError, RunLifecycle, RunStatus, TenantId, Timestamp,
+    AgentResultProvenance, AttemptId, BoundedJson, CanonicalJson, Checkpoint, CheckpointId,
+    CheckpointWrite, Digest, EventId, FencingEpoch, JournalAppend, JournalChainVerifier,
+    JournalEvent, JournalEventError, JournalEventIntent, JournalEventSource, JournalHead,
+    JournalSequence, JsonLimits, RunFence, RunId, RunLease, RunLeaseValidationError, RunLifecycle,
+    RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp,
 };
 use uuid::Uuid;
 
 use crate::{
-    AdmissionOutcome, AppendOutcome, JournalPage, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, PostgresStoreOptions, RunProjection, StoreError,
-    StoredRun,
+    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointPointer, JournalPage,
+    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    PostgresStoreOptions, RunProjection, StoreError, StoredRun,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
-    migrations: Cow::Owned(vec![Migration::new(
-        1,
-        Cow::Borrowed("initial"),
-        MigrationType::Simple,
-        Cow::Borrowed(include_str!("../migrations/0001_initial.sql")),
-        false,
-    )]),
+    migrations: Cow::Owned(vec![
+        Migration::new(
+            1,
+            Cow::Borrowed("initial"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0001_initial.sql")),
+            false,
+        ),
+        Migration::new(
+            2,
+            Cow::Borrowed("checkpoints"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0002_checkpoints.sql")),
+            false,
+        ),
+    ]),
     ignore_missing: false,
     locking: true,
     no_tx: false,
@@ -43,6 +54,8 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
 
 const MIN_POSTGRES_VERSION_NUMBER: i32 = 160_000;
 const MAX_POSTGRES_VERSION_NUMBER: i32 = 179_999;
+const MAX_CHECKPOINT_BYTES: usize = 2_621_440;
+const PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-run-projection-v1\0";
 
 const SELECT_RUN: &str = r"
 SELECT
@@ -59,6 +72,9 @@ SELECT
     journal_event_id,
     journal_recorded_at,
     journal_digest,
+    checkpoint_id,
+    checkpoint_superstep,
+    checkpoint_digest,
     fencing_epoch,
     lease_attempt_id,
     lease_acquired_at,
@@ -84,6 +100,9 @@ SELECT
     journal_event_id,
     journal_recorded_at,
     journal_digest,
+    checkpoint_id,
+    checkpoint_superstep,
+    checkpoint_digest,
     fencing_epoch,
     lease_attempt_id,
     lease_acquired_at,
@@ -112,6 +131,7 @@ SELECT
     payload_bytes,
     payload_digest,
     intent_digest,
+    projection_digest,
     previous_digest,
     event_digest
 FROM stateknot.run_events
@@ -135,6 +155,7 @@ SELECT
     payload_bytes,
     payload_digest,
     intent_digest,
+    projection_digest,
     previous_digest,
     event_digest
 FROM stateknot.run_events
@@ -158,12 +179,63 @@ SELECT
     payload_bytes,
     payload_digest,
     intent_digest,
+    projection_digest,
     previous_digest,
     event_digest
 FROM stateknot.run_events
 WHERE tenant_id = $1 AND run_id = $2 AND sequence > $3
 ORDER BY sequence ASC
 LIMIT $4
+";
+
+const SELECT_CHECKPOINT_BY_ID: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    checkpoint_id,
+    superstep,
+    parent_checkpoint_id,
+    parent_superstep,
+    parent_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    graph_definition_digest,
+    state_schema_id,
+    state_schema_version,
+    state_schema_digest,
+    state_digest,
+    intent_digest,
+    checkpoint_digest,
+    checkpoint_bytes
+FROM stateknot.run_checkpoints
+WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $3
+";
+
+const SELECT_CHECKPOINT_BY_ANCHOR: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    checkpoint_id,
+    superstep,
+    parent_checkpoint_id,
+    parent_superstep,
+    parent_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    graph_definition_digest,
+    state_schema_id,
+    state_schema_version,
+    state_schema_digest,
+    state_digest,
+    intent_digest,
+    checkpoint_digest,
+    checkpoint_bytes
+FROM stateknot.run_checkpoints
+WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
 ";
 
 /// Connected `PostgreSQL` durability provider.
@@ -269,6 +341,7 @@ impl PostgresStore {
         let complete = query_scalar::<_, bool>(
             "SELECT to_regclass('stateknot.runs') IS NOT NULL \
                  AND to_regclass('stateknot.run_events') IS NOT NULL \
+                 AND to_regclass('stateknot.run_checkpoints') IS NOT NULL \
                  AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL",
         )
         .fetch_one(&self.pool)
@@ -422,6 +495,98 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             return Err(StoreError::corrupt("run scope"));
         }
         Ok(stored)
+    }
+
+    /// Loads and verifies one immutable tenant/run-scoped checkpoint by ID.
+    ///
+    /// This does not require the checkpoint to remain the run's current head;
+    /// it is suitable for audit and exact lost-acknowledgement recovery.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::CheckpointNotFound`], a corruption failure, or a
+    /// database error.
+    pub async fn load_checkpoint(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        checkpoint_id: CheckpointId,
+    ) -> Result<Checkpoint, StoreError> {
+        let mut transaction = self.begin_repeatable_read("checkpoint load").await?;
+        let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*checkpoint_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint load", source))?
+            .ok_or(StoreError::CheckpointNotFound)?;
+        let checkpoint = decode_checkpoint(row)?;
+        if checkpoint.tenant_id() != tenant_id
+            || checkpoint.run_id() != run_id
+            || checkpoint.checkpoint_id() != checkpoint_id
+        {
+            return Err(StoreError::corrupt("checkpoint scope"));
+        }
+        verify_checkpoint_anchor(&mut transaction, &checkpoint).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("checkpoint load commit", source))?;
+        Ok(checkpoint)
+    }
+
+    /// Loads the run's exact current checkpoint in one repeatable-read snapshot.
+    ///
+    /// `None` means the admitted run has not yet committed its first graph
+    /// barrier. The compact pointer and full checkpoint must agree exactly.
+    ///
+    /// # Errors
+    ///
+    /// Returns a corruption failure if the pointer is dangling or mismatched,
+    /// otherwise a database error.
+    pub async fn load_current_checkpoint(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+    ) -> Result<Option<Checkpoint>, StoreError> {
+        let mut transaction = self.begin_repeatable_read("current checkpoint").await?;
+        let row = query_as::<_, RunRow>(SELECT_RUN)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint run snapshot", source))?
+            .ok_or(StoreError::RunNotFound)?;
+        let run = decode_run(row)?;
+        let checkpoint = if let Some(pointer) = run.checkpoint() {
+            let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*pointer.checkpoint_id().as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("current checkpoint load", source))?
+                .ok_or_else(|| StoreError::corrupt("current checkpoint pointer"))?;
+            let checkpoint = decode_checkpoint(row)?;
+            if checkpoint.tenant_id() != tenant_id
+                || checkpoint.run_id() != run_id
+                || checkpoint.checkpoint_id() != pointer.checkpoint_id()
+                || checkpoint.superstep() != pointer.superstep()
+                || checkpoint.digest() != pointer.digest()
+            {
+                return Err(StoreError::corrupt("current checkpoint projection"));
+            }
+            verify_checkpoint_anchor(&mut transaction, &checkpoint).await?;
+            Some(checkpoint)
+        } else {
+            None
+        };
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("current checkpoint commit", source))?;
+        Ok(checkpoint)
     }
 
     /// Claims an unowned or expired runnable run for a stable `UUIDv7` attempt.
@@ -755,6 +920,57 @@ WHERE tenant_id = $1
             .await
     }
 
+    /// Atomically appends a control-plane event and commits one graph barrier.
+    ///
+    /// The checkpoint write must belong to the same tenant/run, its exact
+    /// parent must match the locked run pointer, and its anchoring event and
+    /// optional lifecycle projection commit in the same transaction.
+    ///
+    /// # Errors
+    ///
+    /// Rejects worker sources and returns explicit idempotency, parent, journal,
+    /// integrity, or database failures.
+    pub async fn append_control_plane_checkpoint(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        checkpoint: CheckpointWrite,
+    ) -> Result<CheckpointCommitOutcome, StoreError> {
+        if append.worker_fence().is_some() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        self.append_checkpoint(
+            append,
+            projection,
+            checkpoint,
+            AppendAuthority::ControlPlane,
+        )
+        .await
+    }
+
+    /// Atomically appends a fenced worker event and commits one graph barrier.
+    ///
+    /// The database rechecks the exact unexpired lease while inserting the
+    /// event, checkpoint, and updated run heads. Expiry at any statement rolls
+    /// back the complete transaction.
+    ///
+    /// # Errors
+    ///
+    /// Rejects control-plane sources and returns explicit fencing, idempotency,
+    /// parent, journal, integrity, or database failures.
+    pub async fn append_worker_checkpoint(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        checkpoint: CheckpointWrite,
+    ) -> Result<CheckpointCommitOutcome, StoreError> {
+        if append.worker_fence().is_none() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        self.append_checkpoint(append, projection, checkpoint, AppendAuthority::Worker)
+            .await
+    }
+
     /// Reads one repeatable-read, bounded page and verifies its hash-chain suffix.
     ///
     /// `after` is an exact trusted cursor, not only a sequence number. The first
@@ -853,6 +1069,7 @@ WHERE tenant_id = $1
         let tenant_id = append.intent().tenant_id().clone();
         let run_id = append.intent().run_id();
         let event_id = append.intent().event_id();
+        let projection_digest = projection_digest(&projection)?;
         let mut transaction = self.begin_mutation("journal append").await?;
         let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
         let stored = decode_run(row)?;
@@ -865,9 +1082,30 @@ WHERE tenant_id = $1
             .await
             .map_err(|source| StoreError::database("journal idempotency lookup", source))?;
         if let Some(row) = existing {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "journal projection digest"))
+                .transpose()?;
             let event = decode_event(row)?;
             if !event.matches_intent(append.intent()) {
                 return Err(StoreError::EventIdConflict);
+            }
+            if committed_projection != Some(projection_digest) {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            let checkpoint = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ANCHOR)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(
+                    i64::try_from(event.sequence().get())
+                        .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                )
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("journal checkpoint lookup", source))?;
+            if checkpoint.is_some() {
+                return Err(StoreError::CheckpointCommitConflict);
             }
             transaction.commit().await.map_err(|source| {
                 StoreError::database("idempotent journal append commit", source)
@@ -903,7 +1141,7 @@ WHERE tenant_id = $1
         let prepared_projection = prepare_projection(&stored, &append, projection, recorded_at)?;
         let event = JournalEvent::commit(append, recorded_at)
             .map_err(|error| map_event_commit_error(&error))?;
-        insert_event(&mut transaction, &event).await?;
+        insert_event(&mut transaction, &event, projection_digest).await?;
         update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
 
         transaction
@@ -911,6 +1149,130 @@ WHERE tenant_id = $1
             .await
             .map_err(|source| StoreError::database("journal append commit", source))?;
         Ok(AppendOutcome::Committed(event))
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn append_checkpoint(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        checkpoint_write: CheckpointWrite,
+        authority: AppendAuthority,
+    ) -> Result<CheckpointCommitOutcome, StoreError> {
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if checkpoint_write.tenant_id() != &tenant_id || checkpoint_write.run_id() != run_id {
+            return Err(StoreError::CheckpointCommitConflict);
+        }
+        let projection_digest = projection_digest(&projection)?;
+
+        let mut transaction = self.begin_mutation("checkpoint append").await?;
+        let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(row)?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint event lookup", source))?;
+        if let Some(row) = existing_event {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "journal projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            if committed_projection != Some(projection_digest) {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ANCHOR)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(
+                    i64::try_from(event.sequence().get())
+                        .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                )
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("checkpoint anchor lookup", source))?
+                .ok_or(StoreError::CheckpointCommitConflict)?;
+            let checkpoint = decode_checkpoint(row)?;
+            if checkpoint.checkpoint_id() != checkpoint_write.checkpoint_id()
+                || !checkpoint.matches_write(&checkpoint_write)
+                || checkpoint.journal_head() != &event.head()
+            {
+                return Err(StoreError::CheckpointCommitConflict);
+            }
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent checkpoint append commit", source)
+            })?;
+            return Ok(CheckpointCommitOutcome::Idempotent { event, checkpoint });
+        }
+
+        let existing_checkpoint = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*checkpoint_write.checkpoint_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint idempotency lookup", source))?;
+        if existing_checkpoint.is_some() {
+            return Err(StoreError::CheckpointIdConflict);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id).await?;
+        let expected_parent = current_checkpoint.as_ref().map(Checkpoint::head);
+        if checkpoint_write.parent() != expected_parent.as_ref() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+
+        let observed_at = database_now(&mut transaction, "checkpoint append clock").await?;
+        match authority {
+            AppendAuthority::ControlPlane => {
+                if append.worker_fence().is_some() {
+                    return Err(StoreError::WrongAppendAuthority);
+                }
+            }
+            AppendAuthority::Worker => {
+                let fence = append
+                    .worker_fence()
+                    .ok_or(StoreError::WrongAppendAuthority)?;
+                authorize_worker(&stored, fence, observed_at)?;
+            }
+        }
+
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let prepared_projection = prepare_projection(&stored, &append, projection, recorded_at)?;
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let checkpoint = Checkpoint::commit(checkpoint_write, event.head())
+            .map_err(|_| StoreError::encoding("checkpoint commit"))?;
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        insert_checkpoint(&mut transaction, &checkpoint, event.source()).await?;
+        update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
+        update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("checkpoint append commit", source))?;
+        Ok(CheckpointCommitOutcome::Committed { event, checkpoint })
     }
 
     async fn begin_mutation(
@@ -978,6 +1340,9 @@ struct RunRow {
     journal_event_id: Option<Uuid>,
     journal_recorded_at: Option<DateTime<Utc>>,
     journal_digest: Option<Vec<u8>>,
+    checkpoint_id: Option<Uuid>,
+    checkpoint_superstep: Option<i64>,
+    checkpoint_digest: Option<Vec<u8>>,
     fencing_epoch: i64,
     lease_attempt_id: Option<Uuid>,
     lease_acquired_at: Option<DateTime<Utc>>,
@@ -1002,8 +1367,31 @@ struct EventRow {
     payload_bytes: Vec<u8>,
     payload_digest: Vec<u8>,
     intent_digest: Vec<u8>,
+    projection_digest: Option<Vec<u8>>,
     previous_digest: Option<Vec<u8>>,
     event_digest: Vec<u8>,
+}
+
+struct CheckpointRow {
+    tenant_id: String,
+    run_id: Uuid,
+    checkpoint_id: Uuid,
+    superstep: i64,
+    parent_checkpoint_id: Option<Uuid>,
+    parent_superstep: Option<i64>,
+    parent_digest: Option<Vec<u8>>,
+    journal_sequence: i64,
+    journal_event_id: Uuid,
+    journal_recorded_at: DateTime<Utc>,
+    journal_digest: Vec<u8>,
+    graph_definition_digest: Vec<u8>,
+    state_schema_id: String,
+    state_schema_version: String,
+    state_schema_digest: Vec<u8>,
+    state_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    checkpoint_digest: Vec<u8>,
+    checkpoint_bytes: Vec<u8>,
 }
 
 impl<'row> FromRow<'row, PgRow> for RunRow {
@@ -1022,6 +1410,9 @@ impl<'row> FromRow<'row, PgRow> for RunRow {
             journal_event_id: row.try_get("journal_event_id")?,
             journal_recorded_at: row.try_get("journal_recorded_at")?,
             journal_digest: row.try_get("journal_digest")?,
+            checkpoint_id: row.try_get("checkpoint_id")?,
+            checkpoint_superstep: row.try_get("checkpoint_superstep")?,
+            checkpoint_digest: row.try_get("checkpoint_digest")?,
             fencing_epoch: row.try_get("fencing_epoch")?,
             lease_attempt_id: row.try_get("lease_attempt_id")?,
             lease_acquired_at: row.try_get("lease_acquired_at")?,
@@ -1050,8 +1441,35 @@ impl<'row> FromRow<'row, PgRow> for EventRow {
             payload_bytes: row.try_get("payload_bytes")?,
             payload_digest: row.try_get("payload_digest")?,
             intent_digest: row.try_get("intent_digest")?,
+            projection_digest: row.try_get("projection_digest")?,
             previous_digest: row.try_get("previous_digest")?,
             event_digest: row.try_get("event_digest")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for CheckpointRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            checkpoint_id: row.try_get("checkpoint_id")?,
+            superstep: row.try_get("superstep")?,
+            parent_checkpoint_id: row.try_get("parent_checkpoint_id")?,
+            parent_superstep: row.try_get("parent_superstep")?,
+            parent_digest: row.try_get("parent_digest")?,
+            journal_sequence: row.try_get("journal_sequence")?,
+            journal_event_id: row.try_get("journal_event_id")?,
+            journal_recorded_at: row.try_get("journal_recorded_at")?,
+            journal_digest: row.try_get("journal_digest")?,
+            graph_definition_digest: row.try_get("graph_definition_digest")?,
+            state_schema_id: row.try_get("state_schema_id")?,
+            state_schema_version: row.try_get("state_schema_version")?,
+            state_schema_digest: row.try_get("state_schema_digest")?,
+            state_digest: row.try_get("state_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            checkpoint_digest: row.try_get("checkpoint_digest")?,
+            checkpoint_bytes: row.try_get("checkpoint_bytes")?,
         })
     }
 }
@@ -1061,6 +1479,16 @@ struct PreparedProjection {
     revision: String,
     status: &'static str,
     changed_at: DateTime<Utc>,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum ProjectionDigestWire<'a> {
+    Unchanged,
+    Transition {
+        expected_revision: &'a RunRevision,
+        transition: &'a RunTransition,
+    },
 }
 
 async fn apply_transaction_timeouts(
@@ -1107,6 +1535,57 @@ async fn fetch_locked_run_row(
         .ok_or(StoreError::RunNotFound)
 }
 
+async fn load_locked_current_checkpoint(
+    transaction: &mut Transaction<'_, Postgres>,
+    stored: &StoredRun,
+    tenant_id: &TenantId,
+    run_id: RunId,
+) -> Result<Option<Checkpoint>, StoreError> {
+    let Some(pointer) = stored.checkpoint() else {
+        return Ok(None);
+    };
+    let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(*pointer.checkpoint_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("locked checkpoint load", source))?
+        .ok_or_else(|| StoreError::corrupt("locked checkpoint pointer"))?;
+    let checkpoint = decode_checkpoint(row)?;
+    if checkpoint.tenant_id() != tenant_id
+        || checkpoint.run_id() != run_id
+        || checkpoint.checkpoint_id() != pointer.checkpoint_id()
+        || checkpoint.superstep() != pointer.superstep()
+        || checkpoint.digest() != pointer.digest()
+    {
+        return Err(StoreError::corrupt("locked checkpoint projection"));
+    }
+    verify_checkpoint_anchor(transaction, &checkpoint).await?;
+    Ok(Some(checkpoint))
+}
+
+async fn verify_checkpoint_anchor(
+    transaction: &mut Transaction<'_, Postgres>,
+    checkpoint: &Checkpoint,
+) -> Result<(), StoreError> {
+    let sequence = i64::try_from(checkpoint.journal_head().sequence().get())
+        .map_err(|_| StoreError::corrupt("checkpoint journal sequence"))?;
+    let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(checkpoint.tenant_id().as_str())
+        .bind(*checkpoint.run_id().as_uuid())
+        .bind(sequence)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("checkpoint anchor verification", source))?
+        .ok_or_else(|| StoreError::corrupt("checkpoint journal anchor"))?;
+    let event = decode_event(row)?;
+    if event.head() != *checkpoint.journal_head() {
+        return Err(StoreError::corrupt("checkpoint journal anchor"));
+    }
+    Ok(())
+}
+
 fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
     let tenant_id =
         TenantId::try_from(row.tenant_id).map_err(|_| StoreError::corrupt("run tenant"))?;
@@ -1150,6 +1629,21 @@ fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
         _ => return Err(StoreError::corrupt("journal head shape")),
     };
 
+    let checkpoint = match (
+        row.checkpoint_id,
+        row.checkpoint_superstep,
+        row.checkpoint_digest,
+    ) {
+        (None, None, None) => None,
+        (Some(checkpoint_id), Some(superstep), Some(digest)) => Some(CheckpointPointer {
+            checkpoint_id: CheckpointId::from_uuid(checkpoint_id)
+                .map_err(|_| StoreError::corrupt("checkpoint pointer identity"))?,
+            superstep: nonnegative_superstep(superstep)?,
+            digest: decode_digest(&digest, "checkpoint pointer digest")?,
+        }),
+        _ => return Err(StoreError::corrupt("checkpoint pointer shape")),
+    };
+
     let last_fencing_epoch = if row.fencing_epoch == 0 {
         None
     } else {
@@ -1190,6 +1684,7 @@ fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
         journal_head,
         lease,
         last_fencing_epoch,
+        checkpoint,
         quarantined: row.quarantined_at.is_some(),
     })
 }
@@ -1216,7 +1711,112 @@ fn decode_lifecycle(bytes: &[u8]) -> Result<RunLifecycle, StoreError> {
         .map_err(|_| StoreError::corrupt("run lifecycle value"))
 }
 
+fn encode_checkpoint(checkpoint: &Checkpoint) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(checkpoint)
+        .map_err(|_| StoreError::encoding("checkpoint"))?;
+    if bytes.is_empty() || bytes.len() > MAX_CHECKPOINT_BYTES {
+        return Err(StoreError::encoding("checkpoint size"));
+    }
+    Ok(bytes)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_checkpoint(row: CheckpointRow) -> Result<Checkpoint, StoreError> {
+    if row.checkpoint_bytes.is_empty() || row.checkpoint_bytes.len() > MAX_CHECKPOINT_BYTES {
+        return Err(StoreError::corrupt("checkpoint byte length"));
+    }
+    let checkpoint = serde_json::from_slice::<Checkpoint>(&row.checkpoint_bytes)
+        .map_err(|_| StoreError::corrupt("checkpoint value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&checkpoint)
+        .map_err(|_| StoreError::corrupt("checkpoint canonicalization"))?;
+    if canonical != row.checkpoint_bytes {
+        return Err(StoreError::corrupt("checkpoint canonical bytes"));
+    }
+
+    let tenant_id =
+        TenantId::try_from(row.tenant_id).map_err(|_| StoreError::corrupt("checkpoint tenant"))?;
+    let run_id =
+        RunId::from_uuid(row.run_id).map_err(|_| StoreError::corrupt("checkpoint run identity"))?;
+    let checkpoint_id = CheckpointId::from_uuid(row.checkpoint_id)
+        .map_err(|_| StoreError::corrupt("checkpoint identity"))?;
+    let superstep = nonnegative_superstep(row.superstep)?;
+    let journal_sequence = positive_sequence(row.journal_sequence)?;
+    let journal_event_id = EventId::from_uuid(row.journal_event_id)
+        .map_err(|_| StoreError::corrupt("checkpoint journal event identity"))?;
+    let journal_recorded_at = from_database_time(row.journal_recorded_at)?;
+    let journal_digest = decode_digest(&row.journal_digest, "checkpoint journal digest")?;
+    let graph_definition_digest = decode_digest(
+        &row.graph_definition_digest,
+        "checkpoint graph definition digest",
+    )?;
+    let state_schema_digest =
+        decode_digest(&row.state_schema_digest, "checkpoint state schema digest")?;
+    let state_digest = decode_digest(&row.state_digest, "checkpoint state digest")?;
+    let intent_digest = decode_digest(&row.intent_digest, "checkpoint intent digest")?;
+    let checkpoint_digest = decode_digest(&row.checkpoint_digest, "checkpoint complete digest")?;
+
+    let parent_matches = match (
+        checkpoint.parent(),
+        row.parent_checkpoint_id,
+        row.parent_superstep,
+        row.parent_digest,
+    ) {
+        (None, None, None, None) => true,
+        (Some(parent), Some(parent_id), Some(parent_superstep), Some(parent_digest)) => {
+            CheckpointId::from_uuid(parent_id).ok() == Some(parent.checkpoint_id())
+                && nonnegative_superstep(parent_superstep).ok() == Some(parent.superstep())
+                && decode_digest(&parent_digest, "checkpoint parent digest").ok()
+                    == Some(parent.digest())
+        }
+        _ => false,
+    };
+
+    let schema = checkpoint.graph().state_schema();
+    if checkpoint.tenant_id() != &tenant_id
+        || checkpoint.run_id() != run_id
+        || checkpoint.checkpoint_id() != checkpoint_id
+        || checkpoint.superstep() != superstep
+        || !parent_matches
+        || checkpoint.journal_head().sequence() != journal_sequence
+        || checkpoint.journal_head().event_id() != journal_event_id
+        || checkpoint.journal_head().recorded_at() != journal_recorded_at
+        || checkpoint.journal_head().digest() != journal_digest
+        || checkpoint.graph().definition_digest() != graph_definition_digest
+        || schema.id().as_str() != row.state_schema_id
+        || schema.version().to_string() != row.state_schema_version
+        || schema.digest() != state_schema_digest
+        || checkpoint.state().digest() != state_digest
+        || checkpoint.intent_digest() != intent_digest
+        || checkpoint.digest() != checkpoint_digest
+    {
+        return Err(StoreError::corrupt("checkpoint projection"));
+    }
+    Ok(checkpoint)
+}
+
+fn projection_digest(projection: &RunProjection) -> Result<Digest, StoreError> {
+    let wire = match projection {
+        RunProjection::Unchanged => ProjectionDigestWire::Unchanged,
+        RunProjection::Transition {
+            expected_revision,
+            transition,
+        } => ProjectionDigestWire::Transition {
+            expected_revision,
+            transition,
+        },
+    };
+    let canonical = serde_json_canonicalizer::to_vec(&wire)
+        .map_err(|_| StoreError::encoding("run projection intent"))?;
+    let mut preimage = Vec::with_capacity(PROJECTION_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(PROJECTION_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
+}
+
 fn decode_event(row: EventRow) -> Result<JournalEvent, StoreError> {
+    if let Some(bytes) = row.projection_digest.as_deref() {
+        decode_digest(bytes, "journal projection digest")?;
+    }
     let tenant_id = TenantId::try_from(row.tenant_id)
         .map_err(|_| StoreError::corrupt("journal event tenant"))?;
     let run_id = RunId::from_uuid(row.run_id)
@@ -1321,6 +1921,7 @@ fn prepare_projection(
 async fn insert_event(
     transaction: &mut Transaction<'_, Postgres>,
     event: &JournalEvent,
+    projection_digest: Digest,
 ) -> Result<(), StoreError> {
     let (source_kind, worker_attempt_id, worker_epoch, worker_write) = match event.source() {
         JournalEventSource::ControlPlane => ("control_plane", None, None, false),
@@ -1360,11 +1961,12 @@ INSERT INTO stateknot.run_events (
     payload_bytes,
     payload_digest,
     intent_digest,
+    projection_digest,
     previous_digest,
     event_digest
 )
 SELECT
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
 FROM stateknot.runs AS lease_run
 WHERE lease_run.tenant_id = $1
   AND lease_run.run_id = $2
@@ -1394,6 +1996,7 @@ WHERE lease_run.tenant_id = $1
     .bind(payload.as_bytes())
     .bind(event.payload_digest().as_bytes())
     .bind(event.intent_digest().as_bytes())
+    .bind(projection_digest.as_bytes())
     .bind(
         event
             .previous_digest()
@@ -1409,6 +2012,194 @@ WHERE lease_run.tenant_id = $1
             return Err(StoreError::LeaseExpired);
         }
         return Err(StoreError::corrupt("journal insert row count"));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_checkpoint(
+    transaction: &mut Transaction<'_, Postgres>,
+    checkpoint: &Checkpoint,
+    source: &JournalEventSource,
+) -> Result<(), StoreError> {
+    let checkpoint_bytes = encode_checkpoint(checkpoint)?;
+    let superstep = i64::try_from(checkpoint.superstep().get())
+        .map_err(|_| StoreError::encoding("checkpoint superstep"))?;
+    let journal_sequence = i64::try_from(checkpoint.journal_head().sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let (parent_id, parent_superstep, parent_digest) =
+        checkpoint.parent().map_or((None, None, None), |parent| {
+            (
+                Some(*parent.checkpoint_id().as_uuid()),
+                i64::try_from(parent.superstep().get()).ok(),
+                Some(parent.digest().as_bytes().to_vec()),
+            )
+        });
+    if checkpoint.parent().is_some() && parent_superstep.is_none() {
+        return Err(StoreError::encoding("checkpoint parent superstep"));
+    }
+    let (worker_attempt_id, worker_epoch, worker_write) = match source {
+        JournalEventSource::ControlPlane => (None, None, false),
+        JournalEventSource::Worker { fence } => (
+            Some(*fence.attempt_id().as_uuid()),
+            Some(i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?),
+            true,
+        ),
+    };
+    let schema = checkpoint.graph().state_schema();
+
+    let inserted = query(
+        r"
+INSERT INTO stateknot.run_checkpoints (
+    tenant_id,
+    run_id,
+    checkpoint_id,
+    superstep,
+    parent_checkpoint_id,
+    parent_superstep,
+    parent_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    graph_definition_digest,
+    state_schema_id,
+    state_schema_version,
+    state_schema_digest,
+    state_digest,
+    intent_digest,
+    checkpoint_digest,
+    checkpoint_bytes
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND (
+      ($5::uuid IS NULL AND current_run.checkpoint_id IS NULL)
+      OR (
+          current_run.checkpoint_id = $5
+          AND current_run.checkpoint_superstep = $6
+          AND current_run.checkpoint_digest = $7
+      )
+  )
+  AND (
+      $20::uuid IS NULL
+      OR (
+          current_run.lease_attempt_id = $20
+          AND current_run.fencing_epoch = $21
+          AND current_run.lease_expires_at > clock_timestamp()
+      )
+  )
+",
+    )
+    .bind(checkpoint.tenant_id().as_str())
+    .bind(*checkpoint.run_id().as_uuid())
+    .bind(*checkpoint.checkpoint_id().as_uuid())
+    .bind(superstep)
+    .bind(parent_id)
+    .bind(parent_superstep)
+    .bind(parent_digest)
+    .bind(journal_sequence)
+    .bind(*checkpoint.journal_head().event_id().as_uuid())
+    .bind(to_database_time(checkpoint.journal_head().recorded_at())?)
+    .bind(checkpoint.journal_head().digest().as_bytes())
+    .bind(checkpoint.graph().definition_digest().as_bytes())
+    .bind(schema.id().as_str())
+    .bind(schema.version().to_string())
+    .bind(schema.digest().as_bytes())
+    .bind(checkpoint.state().digest().as_bytes())
+    .bind(checkpoint.intent_digest().as_bytes())
+    .bind(checkpoint.digest().as_bytes())
+    .bind(checkpoint_bytes)
+    .bind(worker_attempt_id)
+    .bind(worker_epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("checkpoint insert", source))?
+    .rows_affected();
+    if inserted != 1 {
+        if worker_write {
+            return Err(StoreError::LeaseExpired);
+        }
+        return Err(StoreError::StaleCheckpointHead);
+    }
+    Ok(())
+}
+
+async fn update_checkpoint_pointer(
+    transaction: &mut Transaction<'_, Postgres>,
+    checkpoint: &Checkpoint,
+    source: &JournalEventSource,
+) -> Result<(), StoreError> {
+    let superstep = i64::try_from(checkpoint.superstep().get())
+        .map_err(|_| StoreError::encoding("checkpoint superstep"))?;
+    let (parent_id, parent_superstep, parent_digest) =
+        checkpoint.parent().map_or((None, None, None), |parent| {
+            (
+                Some(*parent.checkpoint_id().as_uuid()),
+                i64::try_from(parent.superstep().get()).ok(),
+                Some(parent.digest().as_bytes().to_vec()),
+            )
+        });
+    if checkpoint.parent().is_some() && parent_superstep.is_none() {
+        return Err(StoreError::encoding("checkpoint parent superstep"));
+    }
+    let (worker_attempt_id, worker_epoch, worker_write) = match source {
+        JournalEventSource::ControlPlane => (None, None, false),
+        JournalEventSource::Worker { fence } => (
+            Some(*fence.attempt_id().as_uuid()),
+            Some(i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?),
+            true,
+        ),
+    };
+
+    let updated = query(
+        r"
+UPDATE stateknot.runs
+SET checkpoint_id = $3,
+    checkpoint_superstep = $4,
+    checkpoint_digest = $5
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND (
+      ($6::uuid IS NULL AND checkpoint_id IS NULL)
+      OR (
+          checkpoint_id = $6
+          AND checkpoint_superstep = $7
+          AND checkpoint_digest = $8
+      )
+  )
+  AND (
+      $9::uuid IS NULL
+      OR (
+          lease_attempt_id = $9
+          AND fencing_epoch = $10
+          AND lease_expires_at > clock_timestamp()
+      )
+  )
+",
+    )
+    .bind(checkpoint.tenant_id().as_str())
+    .bind(*checkpoint.run_id().as_uuid())
+    .bind(*checkpoint.checkpoint_id().as_uuid())
+    .bind(superstep)
+    .bind(checkpoint.digest().as_bytes())
+    .bind(parent_id)
+    .bind(parent_superstep)
+    .bind(parent_digest)
+    .bind(worker_attempt_id)
+    .bind(worker_epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("checkpoint pointer update", source))?
+    .rows_affected();
+    if updated != 1 {
+        if worker_write {
+            return Err(StoreError::LeaseExpired);
+        }
+        return Err(StoreError::StaleCheckpointHead);
     }
     Ok(())
 }
@@ -1546,6 +2337,11 @@ fn positive_sequence(value: i64) -> Result<JournalSequence, StoreError> {
     JournalSequence::new(value).map_err(|_| StoreError::corrupt("journal sequence"))
 }
 
+fn nonnegative_superstep(value: i64) -> Result<Superstep, StoreError> {
+    let value = u64::try_from(value).map_err(|_| StoreError::corrupt("checkpoint superstep"))?;
+    Superstep::new(value).map_err(|_| StoreError::corrupt("checkpoint superstep"))
+}
+
 fn decode_digest(bytes: &[u8], record: &'static str) -> Result<Digest, StoreError> {
     let bytes: [u8; Digest::SHA256_LEN] =
         bytes.try_into().map_err(|_| StoreError::corrupt(record))?;
@@ -1677,5 +2473,25 @@ mod tests {
     fn retry_classification_is_conservative() {
         assert!(StoreError::database("test", sqlx_core::Error::PoolTimedOut).is_retryable());
         assert!(!StoreError::RunNotFound.is_retryable());
+    }
+
+    #[test]
+    fn projection_intent_digests_are_versioned_and_frozen() {
+        let unchanged = projection_digest(&RunProjection::unchanged()).unwrap();
+        assert_eq!(
+            unchanged.to_string(),
+            "sha256:c1bee6a7d79cfc7b48f7dc9bbf625ccd3f1bf87bfdb2d624fe40517ad19534d8"
+        );
+
+        let transition = RunProjection::transition(
+            RunRevision::ZERO,
+            RunTransition::Start {
+                started_at: "2030-01-01T00:00:01.000000Z".parse().unwrap(),
+            },
+        );
+        assert_eq!(
+            projection_digest(&transition).unwrap().to_string(),
+            "sha256:9f2dfecd7af4cee03f6cc1b9f95ac3e3f191303def4b037ea1c6ac29df0e225b"
+        );
     }
 }

@@ -352,6 +352,33 @@ pub struct BoundedJson {
 }
 
 impl BoundedJson {
+    /// Deserializes one value using caller-selected validated limits.
+    ///
+    /// This crate-private entry point lets enclosing domain types enforce a
+    /// deliberately larger or smaller limit without first materializing an
+    /// unbounded [`Value`]. Transport layers must still cap the raw record or
+    /// body size because a generic Serde deserializer cannot observe enclosing
+    /// whitespace or bytes.
+    pub(crate) fn deserialize_with_limits<'de, D>(
+        deserializer: D,
+        limits: JsonLimits,
+    ) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let mut tracker = Tracker::new(limits);
+        let value = ValueSeed {
+            tracker: &mut tracker,
+            parent_depth: 0,
+        }
+        .deserialize(deserializer)?;
+
+        Ok(Self {
+            value,
+            stats: tracker.stats(),
+        })
+    }
+
     /// Parses one JSON value with [`JsonLimits::DEFAULT`].
     ///
     /// # Errors
@@ -536,17 +563,7 @@ impl<'de> Deserialize<'de> for BoundedJson {
     where
         D: Deserializer<'de>,
     {
-        let mut tracker = Tracker::new(JsonLimits::DEFAULT);
-        let value = ValueSeed {
-            tracker: &mut tracker,
-            parent_depth: 0,
-        }
-        .deserialize(deserializer)?;
-
-        Ok(Self {
-            value,
-            stats: tracker.stats(),
-        })
+        Self::deserialize_with_limits(deserializer, JsonLimits::DEFAULT)
     }
 }
 

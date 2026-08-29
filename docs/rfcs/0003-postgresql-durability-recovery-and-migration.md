@@ -119,29 +119,56 @@ The provider- and database-neutral `stateknot-core` crate now contains:
 - `JournalEvent`: committed metadata, payload/intent/predecessor digests, and a
   domain-separated event digest;
 - `JournalChainVerifier`: streaming validation for a complete history or a
-  suffix after a trusted checkpoint/archive head.
+  suffix after a trusted checkpoint/archive head;
+- `Superstep`, `NodeId`, and `ReadyNodes`: bounded deterministic barrier and
+  scheduling identities compatible with PostgreSQL constraints;
+- `GraphReference`: capability identity plus compiled-graph and state-schema
+  digests pinned to one run;
+- `CheckpointState`, `CheckpointWrite`, and `Checkpoint`: bounded RFC 8785 state,
+  exact parent/journal anchors, graph/schema continuity, idempotent intent, and
+  complete checkpoint integrity validation.
 
 These types validate intrinsic values and are used in model/fault tests. They do
 not replace database authorization or atomicity.
 
 ## User-facing store shape
 
-The runtime store API will preserve separate control-plane and worker entry
-points. The following is illustrative; the trait is not public until its SQL
-implementation and fault tests exist:
+The current concrete PostgreSQL store preserves separate control-plane and worker
+entry points. A future provider-neutral trait will not be published until a
+second implementation or runtime boundary proves its shape:
 
 ```rust,ignore
 async fn append_control_plane(
     &self,
     append: JournalAppend,
-    projection: ProjectionWrite,
-) -> Result<JournalEvent, StoreError>;
+    projection: RunProjection,
+) -> Result<AppendOutcome, StoreError>;
 
 async fn append_worker(
     &self,
     append: JournalAppend,
-    projection: ProjectionWrite,
-) -> Result<JournalEvent, StoreError>;
+    projection: RunProjection,
+) -> Result<AppendOutcome, StoreError>;
+
+async fn append_control_plane_checkpoint(
+    &self,
+    append: JournalAppend,
+    projection: RunProjection,
+    checkpoint: CheckpointWrite,
+) -> Result<CheckpointCommitOutcome, StoreError>;
+
+async fn append_worker_checkpoint(
+    &self,
+    append: JournalAppend,
+    projection: RunProjection,
+    checkpoint: CheckpointWrite,
+) -> Result<CheckpointCommitOutcome, StoreError>;
+
+async fn load_current_checkpoint(
+    &self,
+    tenant_id: &TenantId,
+    run_id: RunId,
+) -> Result<Option<Checkpoint>, StoreError>;
 ```
 
 `append_worker` rejects an append without a worker source. It never accepts a
@@ -154,7 +181,7 @@ An append result has three distinct outcomes:
 
 - `Committed(event)`: a new event and all projections committed;
 - `Idempotent(event)`: the same event ID already committed with an identical
-  intent;
+  event and lifecycle-projection intent;
 - error: conflicting event ID, stale head, stale/expired fence, invalid
   transition, corruption, unsupported schema, unavailable database, or another
   explicit store category.
@@ -216,9 +243,12 @@ For one requested append the store performs this order:
 1. begin a transaction with bounded `lock_timeout` and `statement_timeout`;
 2. lock the composite `(tenant_id, run_id)` row with `SELECT ... FOR UPDATE`;
 3. look up `(tenant_id, run_id, event_id)`:
-   - if found and `intent_digest` plus immutable intent fields match, return the
-     existing record idempotently after commit/rollback of the read transaction;
-   - if found but any intent field differs, return `EventIdConflict`;
+   - if found and `intent_digest`, `projection_digest`, and immutable intent
+     fields match, return the existing record idempotently after commit/rollback
+     of the read transaction;
+   - if the event intent differs, return `EventIdConflict`; if only the
+     projection intent differs or is unknowable for a migration-1 event, return
+     `ProjectionIntentConflict`;
 4. compare the complete current journal head with `JournalExpectation`;
 5. for worker writes, compare tenant, run, attempt, epoch, and
    `db_now < lease_expires_at` on the locked row;
@@ -228,8 +258,11 @@ For one requested append the store performs this order:
 8. choose `recorded_at = max(database_clock, previous_recorded_at)` so wall-clock
    correction cannot make durable time regress; sequence remains authoritative;
 9. construct and insert the canonical journal event;
-10. update the run head and every related projection/checkpoint/outbox row;
-11. commit; only then acknowledge the event.
+10. for a checkpoint append, compare its ID/intent and exact parent before stale
+    head/fence rejection, then insert the immutable checkpoint anchored to the
+    event created in step 9;
+11. update the run head and every related projection/checkpoint/outbox row;
+12. commit; only then acknowledge the event.
 
 The idempotency lookup intentionally precedes head/fence rejection. A worker
 whose acknowledgement was lost may retrieve the event it already committed
@@ -290,6 +323,8 @@ The row owns:
 - tenant/run/thread identity and pinned graph/state/policy/provider versions;
 - current validated lifecycle bytes and optimistic lifecycle revision;
 - current journal sequence, event ID, recorded time, and digest;
+- current checkpoint ID, superstep, and digest as one all-null or all-present
+  pointer;
 - last issued fencing epoch plus nullable active attempt/renewal/expiry;
 - readiness time/priority/admission class and terminal/retention metadata;
 - resolved budget, cumulative usage, and quarantine reason.
@@ -312,7 +347,7 @@ Required columns include:
 - nullable worker attempt and epoch with source-shape checks;
 - event kind and pinned schema ID/version/digest;
 - exact canonical payload bytes and byte length;
-- payload, intent, previous, and event digests.
+- payload, intent, nullable projection-intent, previous, and event digests.
 
 The primary key is `(tenant_id, run_id, sequence)`. A unique constraint on
 `(tenant_id, run_id, event_id)` implements idempotency. Sequence one requires a
@@ -322,10 +357,17 @@ JSONB nor an ORM struct serialization becomes the integrity source.
 
 ### Checkpoints and attempts
 
-`checkpoints` bind tenant/run, graph and state-schema versions, superstep,
+`run_checkpoints` bind tenant/run, graph and state-schema versions, superstep,
 parent checkpoint, the exact journal head, canonical inline state or an
-integrity-bound blob reference, pending writes, and checksum. A checkpoint is
+integrity-bound blob reference, the sorted next-ready set, and checksum. Pending
+node results are separate immutable rows anchored to the base checkpoint; a
+successful barrier consumes them into the next checkpoint. A checkpoint is
 usable only if its journal head is an ancestor of the current verified head.
+
+The exact barrier, logical activation, stable reduction, and checkpoint
+lineage semantics are defined by
+[RFC-0002](0002-deterministic-graph-and-scheduler.md). The database must not
+invent ordering from physical attempt or completion time.
 
 `node_attempts` bind logical node/superstep identity, physical attempt,
 deterministic input hash, status, pending/committed update, failure, usage, and
@@ -540,26 +582,33 @@ explicit unknown outcome otherwise.
 ### Current implementation evidence
 
 The unpublished `stateknot-store-postgres` crate implements the first
-run/journal/lease subset of this RFC rather than a separate transitional
-backend. Its initial migration creates tenant-scoped `runs` and `run_events`
-records with database constraints; runtime connection refuses absent, extra,
-failed, checksum-mismatched, or incomplete migration state. Migration uses a
-separate temporary pool so DDL credentials are not retained by the runtime.
+run/journal/checkpoint/lease subset of this RFC rather than a separate
+transitional backend. Two exact migrations create tenant-scoped `runs`,
+`run_events`, and immutable `run_checkpoints` records with database constraints;
+runtime connection refuses absent, extra, failed, checksum-mismatched, or
+incomplete migration state. Migration uses a separate temporary pool so DDL
+credentials are not retained by the runtime.
 
-The append implementation locks the run row, performs event-ID idempotency
-before head/fence rejection, applies a supplied `RunTransition` to the locked
-lifecycle, rejects observations later than the commit clock, and atomically
-commits canonical event bytes, the complete head, and the lifecycle projection.
-Worker event insertion and head update each repeat the exact attempt/epoch and
-exclusive-expiry predicate in SQL. Reads reconstruct every integrity layer and
+The append implementation locks the run row, performs event-ID and exact
+projection-intent idempotency before head/fence rejection, applies a supplied
+`RunTransition` to the locked lifecycle, rejects observations later than the
+commit clock, and atomically commits canonical event bytes, the complete head,
+and the lifecycle projection. Checkpoint append additionally commits the exact
+parented graph/state barrier and current pointer in that transaction. Worker
+event, checkpoint, and head writes repeat the exact attempt/epoch,
+exclusive-expiry, and checkpoint-parent predicates in SQL. Reads reconstruct
+every integrity layer, verify a checkpoint's exact journal-anchor event, and
 stream-verify the suffix to the exact run head.
 
-Digest-pinned PostgreSQL 16 and 17 integration jobs currently cover migration
-retry/startup refusal, admission, append conflict and lost acknowledgement,
-renewal/expiry/release/supersession, stale fences, a failure injected after event
-insert but before head update, bounded suffix paging, invalid/future lifecycle
-transitions, and 100 concurrent appenders producing one contiguous history.
-This is evidence for those boundaries only. Checkpoints, other durable ledgers,
+Thirteen integration tests run against digest-pinned PostgreSQL 16 and 17. They
+cover fresh migration, startup refusal, existing v1-history upgrade, admission,
+event/projection/checkpoint conflicts and lost acknowledgements,
+renewal/expiry/release/supersession, stale fences including retry after takeover,
+failures injected after event and checkpoint insertion, bounded suffix paging,
+corrupted checkpoint/anchor bytes, invalid/future lifecycle transitions, 100
+concurrent journal appenders, and 24 competing checkpoint writers producing one
+contiguous lineage. This is evidence for those boundaries only. Pending node
+writes, attempt/invocation ledgers,
 automatic quarantine, role-separated database procedures, the 10,000 stale-race
 trial, failover, archive, backup/restore, and soak gates below remain incomplete;
 the RFC therefore remains Draft.

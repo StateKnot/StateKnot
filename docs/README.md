@@ -26,7 +26,8 @@ conformance output, and the release gates in these documents.
 7. [PostgreSQL provider operations](postgresql-provider.md) — the implemented
    durability slice, deployment boundary, validation, and explicit blockers.
 
-Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md)
+Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
+the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),
 and the [PostgreSQL durability contract](rfcs/0003-postgresql-durability-recovery-and-migration.md).
 
 ## Normative language

@@ -17,6 +17,7 @@ mod artifact;
 mod budget;
 mod canonical;
 mod capability;
+mod checkpoint;
 mod content;
 mod decimal;
 mod digest;
@@ -74,6 +75,11 @@ pub use capability::{
     CapabilityMetadataError, CapabilityName, CapabilityNameError, CapabilityReference,
     CapabilityTitle, CapabilityTitleError,
 };
+pub use checkpoint::{
+    Checkpoint, CheckpointError, CheckpointHead, CheckpointHeadError, CheckpointIntegrityError,
+    CheckpointState, CheckpointStateError, CheckpointWrite, CheckpointWriteError, GraphReference,
+    NodeId, NodeIdError, ReadyNodes, ReadyNodesError, Superstep, SuperstepError,
+};
 pub use content::{
     ContentMetadata, ContentSource, ContentTrust, JsonContent, LanguageTag, LanguageTagError,
     RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,
@@ -89,8 +95,8 @@ pub use failure::{
 };
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
-    ArtifactId, AttemptId, EventId, FailureId, GeneratedIdError, InterruptId, InvocationId,
-    MessageId, RunId, TenantId, TenantIdError, ThreadId, TimerId,
+    ArtifactId, AttemptId, CheckpointId, EventId, FailureId, GeneratedIdError, InterruptId,
+    InvocationId, MessageId, RunId, TenantId, TenantIdError, ThreadId, TimerId,
 };
 pub use journal::{
     JournalAppend, JournalAppendError, JournalAuthorityError, JournalChainError,

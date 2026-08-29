@@ -101,9 +101,24 @@ pub enum StoreError {
     /// A stable event ID was reused for a different immutable intent.
     #[error("journal event identity conflicts with a committed intent")]
     EventIdConflict,
+    /// A retry reused an event ID with a different or unverifiable projection intent.
+    #[error("journal event projection conflicts with the committed projection intent")]
+    ProjectionIntentConflict,
     /// The supplied complete journal head did not match the locked run row.
     #[error("journal expectation does not match the current durable head")]
     StaleJournalHead,
+    /// No checkpoint exists for the supplied tenant/run/checkpoint identity.
+    #[error("checkpoint was not found in the tenant-scoped run")]
+    CheckpointNotFound,
+    /// A stable checkpoint ID was reused for a different immutable write intent.
+    #[error("checkpoint identity conflicts with a committed write intent")]
+    CheckpointIdConflict,
+    /// Event and checkpoint idempotency records do not describe one atomic commit.
+    #[error("journal event and checkpoint identities conflict with an atomic commit")]
+    CheckpointCommitConflict,
+    /// The supplied complete checkpoint parent did not match the locked run row.
+    #[error("checkpoint parent does not match the current durable checkpoint")]
+    StaleCheckpointHead,
     /// A pagination cursor did not identify the exact stored event head.
     #[error("journal cursor does not match a durable event")]
     InvalidJournalCursor,

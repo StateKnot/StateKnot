@@ -47,12 +47,13 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 The project is in the **architecture-contract and vertical-validation phase**.
 The unpublished core crate validates model, tool, agent admission/result,
-durable run-lifecycle, canonical journal-envelope, and lease/fencing contracts.
-The first PostgreSQL 16/17 durability slice now implements run admission,
-canonical journal append/read, locked lifecycle transitions, schema verification,
-and database-enforced lease fencing. Checkpoints, node/tool ledgers, outbox,
-recovery scheduling, quarantine workflows, and a runnable agent loop have not
-shipped yet.
+durable run-lifecycle, canonical journal-envelope, graph-checkpoint, and
+lease/fencing contracts. The PostgreSQL 16/17 durability slice now implements
+run admission, canonical journal append/read, locked lifecycle transitions,
+projection-bound idempotency, immutable superstep checkpoints, exact checkpoint
+lineage and journal anchoring, schema verification, and database-enforced lease
+fencing. Pending node/tool ledgers, outbox, recovery scheduling, quarantine
+workflows, and a runnable agent loop have not shipped yet.
 
 The current milestone is to:
 
@@ -71,8 +72,8 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
-crates/stateknot-core/   Validated domain, run, journal, and ownership contracts
-crates/stateknot-store-postgres/  PostgreSQL run/journal/lease durability slice
+crates/stateknot-core/   Validated domain, run, journal, graph-checkpoint, and ownership contracts
+crates/stateknot-store-postgres/  PostgreSQL run/journal/checkpoint/lease durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 .github/                 Contribution templates and automated quality gates
 ```

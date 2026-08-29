@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use stateknot_core::{
-    FencingEpoch, JournalEvent, JournalHead, RunLease, RunLifecycle, RunRevision, RunTransition,
+    Checkpoint, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead, RunLease,
+    RunLifecycle, RunRevision, RunTransition, Superstep,
 };
 
 use crate::StoreError;
@@ -37,6 +38,44 @@ pub enum AppendOutcome {
     Idempotent(JournalEvent),
 }
 
+/// Result of atomically committing a journal event and graph checkpoint.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum CheckpointCommitOutcome {
+    /// A new event, checkpoint, run head, and optional lifecycle projection committed.
+    Committed {
+        /// Newly committed journal event.
+        event: JournalEvent,
+        /// Newly committed immutable checkpoint.
+        checkpoint: Checkpoint,
+    },
+    /// The exact event, projection, and checkpoint intent had already committed.
+    Idempotent {
+        /// Previously committed journal event.
+        event: JournalEvent,
+        /// Previously committed immutable checkpoint.
+        checkpoint: Checkpoint,
+    },
+}
+
+impl CheckpointCommitOutcome {
+    /// Returns the validated anchoring journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the validated immutable checkpoint.
+    #[must_use]
+    pub const fn checkpoint(&self) -> &Checkpoint {
+        match self {
+            Self::Committed { checkpoint, .. } | Self::Idempotent { checkpoint, .. } => checkpoint,
+        }
+    }
+}
+
 impl AppendOutcome {
     /// Returns the validated committed event.
     #[must_use]
@@ -60,6 +99,36 @@ pub enum RunProjection {
         /// Transition to apply to the locked durable lifecycle.
         transition: RunTransition,
     },
+}
+
+/// Compact current-checkpoint pointer projected into the locked run row.
+///
+/// The full checkpoint must still be loaded and validated before recovery.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CheckpointPointer {
+    pub(crate) checkpoint_id: CheckpointId,
+    pub(crate) superstep: Superstep,
+    pub(crate) digest: Digest,
+}
+
+impl CheckpointPointer {
+    /// Returns the immutable checkpoint identity.
+    #[must_use]
+    pub const fn checkpoint_id(&self) -> CheckpointId {
+        self.checkpoint_id
+    }
+
+    /// Returns the current committed barrier position.
+    #[must_use]
+    pub const fn superstep(&self) -> Superstep {
+        self.superstep
+    }
+
+    /// Returns the complete checkpoint checksum.
+    #[must_use]
+    pub const fn digest(&self) -> Digest {
+        self.digest
+    }
 }
 
 impl RunProjection {
@@ -86,6 +155,7 @@ pub struct StoredRun {
     pub(crate) journal_head: Option<JournalHead>,
     pub(crate) lease: Option<RunLease>,
     pub(crate) last_fencing_epoch: Option<FencingEpoch>,
+    pub(crate) checkpoint: Option<CheckpointPointer>,
     pub(crate) quarantined: bool,
 }
 
@@ -112,6 +182,13 @@ impl StoredRun {
     #[must_use]
     pub const fn last_fencing_epoch(&self) -> Option<FencingEpoch> {
         self.last_fencing_epoch
+    }
+
+    /// Returns the compact current-checkpoint pointer, if the graph has reached
+    /// its first durable barrier.
+    #[must_use]
+    pub const fn checkpoint(&self) -> Option<&CheckpointPointer> {
+        self.checkpoint.as_ref()
     }
 
     /// Returns whether integrity or operator policy quarantined the run.

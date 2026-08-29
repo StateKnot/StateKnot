@@ -13,6 +13,7 @@ security, or operational commitments.
 | RFC | Status | Topic |
 |---|---|---|
 | [0001](0001-core-domain-and-capability-model.md) | Draft | Core domain and capability model |
+| [0002](0002-deterministic-graph-and-scheduler.md) | Draft | Deterministic graph execution and scheduling |
 | [0003](0003-postgresql-durability-recovery-and-migration.md) | Draft | PostgreSQL durability, recovery, and migration |
 
 ## When an RFC is required
