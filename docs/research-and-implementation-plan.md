@@ -428,11 +428,53 @@ response extension。
 provider adapter 必须把有序 instruction 映射到自身最高优先级的指令通道，并保持
 顺序；durable `Message` 只包含 user/assistant/tool 语义角色，不能把外部内容提升为
 instruction。无法无损保持层级、顺序、schema、finish 或 usage 约束时必须失败。
-下一切片统一 `ModelEvent`，覆盖 message delta、tool-call delta/completed、usage、
-provider metadata、finish 和 error；event state machine 必须最终收敛为已验证的同一
-`ModelResponse`，partial content 永远不是 committed completion。pricing、rate limit、
-service tier、region availability 与 provider knob 属于可变 policy/adapter 数据，
-不固化进模型 capability snapshot。
+
+已冻结的 `ModelEvent` 不是任何供应商 SSE object 的并集，而是一套独立语义协议：
+
+- 每个 event 绑定 `AttemptId` 和从 0 开始、严格连续的 semantic sequence；上限为
+  1,048,576 个 event。provider ping、空 delta 和 framing 在编号前过滤。这个 sequence
+  不是 journal `EventId` 或 SSE resume cursor；
+- 事件闭集为 started、output-started、output-delta、output-completed、usage-updated、
+  completed。output start 必须连续注册最终顺序位置，已注册的多个位置可以交错流式；
+- start header 固定 text/JSON/artifact/readable-summary/tool-call 类型和最终 metadata。
+  artifact 只传 immutable ref，不把 binary/base64 放进 core stream；
+- 每个非空 delta 最多 64 KiB；text/JSON/summary/tool-arguments 类型不能混用。JSON 与
+  tool 参数在 item close 前允许是 partial JSON，close 时才按原始拼接 bytes 做 bounded
+  parse；tool 根必须为 object，失败或截断片段永远不能获得 `InvocationId`；
+- 单 item 沿用 256 KiB 限制，active buffer 与 completed item 共同受 64 MiB response
+  inline ceiling；output count、tool count 和 provider call ID uniqueness 在分配/执行前
+  fail closed；
+- usage update 必须是完整 cumulative snapshot，inclusive input/output 和已知 subset
+  只能单调增加，已知 cached/reasoning breakdown 不得重新变为 unknown。terminal usage
+  是权威值，且每次 snapshot 都受 request limit；
+- `ModelEventAccumulator` 固定 attempt + descriptor + streaming request，并在收 event 前
+  对完整 derived requirements 重新做 capability negotiation；任何 gap、重排、type
+  confusion、资源违规或 binding 错误都会永久 poison。只有 completed event 能调用
+  `ModelResponse::new` 并产生唯一终态；transport EOF 必须再经 `finish()`，不能把断流当
+  成完成。provider error/cancel/unknown terminal 仍走 `Result<ModelEvent, ModelError>`，
+  不伪造成成功事件。
+
+这套交集逐项核对了当前一手流协议：
+
+- [OpenAI Responses streaming](https://platform.openai.com/docs/api-reference/responses-streaming)
+  自带 sequence number、output/content index、text/reasoning/function-argument delta，并以
+  carrying full response 的 terminal event 收束；adapter 改用 core sequence 并只构造
+  一次终态，避免重复保留完整 payload；
+- [Anthropic streaming Messages](https://platform.claude.com/docs/en/build-with-claude/streaming)
+  定义 message start、indexed content-block start/delta/stop、cumulative usage、ping 与
+  error；tool input delta 明确是 partial JSON string，必须拼接后解析；
+- [Gemini streamGenerateContent](https://ai.google.dev/api/generate-content#method:-models.streamgeneratecontent)
+  以 SSE 连续返回 `GenerateContentResponse` chunk，而不是统一 event/sequence 体系，因此
+  adapter 必须自行分配 core sequence 和有序 output lifecycle；
+- [Bedrock ConverseStream](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html#conversation-inference-supported-models-features)
+  使用 message/content-block start/delta/stop、message stop 与最后的 metadata usage，且
+  text/reasoning/tool-use delta 共用 indexed block。adapter 必须等到 usage metadata 后再
+  发唯一 core terminal。
+
+canonical fixture 已证明 streaming state machine 最终重建的 wire 与既有 unary
+`ModelResponse` 完全一致；partial content 永远不是 committed completion。pricing、
+rate limit、service tier、region availability 与 provider knob 属于可变 policy/adapter
+数据，不固化进模型 capability snapshot。
 
 建议 v1 只提供两个高保真第一方 adapter：OpenAI Responses/OpenAI-compatible 与 Anthropic Messages。其他 provider 在有明确用户需求和契约测试后再加入。
 

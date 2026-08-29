@@ -91,6 +91,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   checks, aggregate resource ceilings, redacted provider identifiers and
   diagnostics, closed schemas, property tests, and an independent versioned
   wire fixture.
+- Bounded provider-neutral model streaming with contiguous per-attempt semantic
+  sequences, typed output headers and exact text/JSON/tool deltas, interleaved
+  ordered outputs, cumulative monotonic usage, authoritative terminal events,
+  a permanently poisoning response accumulator, strict EOF/resource handling,
+  convergence to the unary `ModelResponse` contract, closed schemas, property
+  tests, and an independent versioned wire fixture.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

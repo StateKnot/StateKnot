@@ -1,0 +1,357 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-model-event/1.0.0",
+  "chunks": {
+    "valid": [
+      "Incident summary ",
+      "is ready.",
+      "{\"amount_minor\":"
+    ],
+    "invalid": [
+      "",
+      42,
+      "bad\u0000control",
+      "bad￿noncharacter"
+    ]
+  },
+  "output_starts": {
+    "valid": [
+      {
+        "type": "text",
+        "content": {
+          "language": "en-us",
+          "metadata": {
+            "source": "model",
+            "trust": "untrusted",
+            "security_label": "internal/model-output",
+            "redaction": "not_applied"
+          }
+        }
+      },
+      {
+        "type": "json",
+        "content": {
+          "metadata": {
+            "source": "model",
+            "trust": "untrusted",
+            "security_label": "internal/model-output",
+            "redaction": "not_applied"
+          }
+        }
+      },
+      {
+        "type": "tool_call",
+        "content": {
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          },
+          "provider_call_id": "call_01JABCDEF",
+          "extensions": {}
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "type": "text",
+        "content": {
+          "metadata": {
+            "source": "user",
+            "trust": "untrusted",
+            "security_label": "internal/model-output",
+            "redaction": "not_applied"
+          }
+        }
+      },
+      {
+        "type": "reasoning_summary",
+        "content": {
+          "metadata": {
+            "source": "model",
+            "trust": "application_controlled",
+            "security_label": "internal/model-output",
+            "redaction": "not_applied"
+          }
+        }
+      },
+      {
+        "type": "tool_call",
+        "content": {
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          },
+          "provider_call_id": "has space",
+          "extensions": {}
+        }
+      },
+      {
+        "type": "provider_blob",
+        "content": {}
+      }
+    ]
+  },
+  "delta_kinds": {
+    "valid": [
+      "text",
+      "json",
+      "reasoning_summary",
+      "tool_arguments"
+    ],
+    "invalid": [
+      "artifact_bytes",
+      "provider_delta",
+      null
+    ]
+  },
+  "deltas": {
+    "valid": [
+      {
+        "type": "text",
+        "delta": "Incident summary "
+      },
+      {
+        "type": "json",
+        "delta": "{\"answer\":"
+      },
+      {
+        "type": "reasoning_summary",
+        "delta": "Checked policy."
+      },
+      {
+        "type": "tool_arguments",
+        "delta": "{\"amount_minor\":"
+      }
+    ],
+    "invalid": [
+      {
+        "type": "text",
+        "delta": ""
+      },
+      {
+        "type": "artifact",
+        "delta": "AAAA"
+      },
+      {
+        "type": "json",
+        "delta": 42
+      },
+      {
+        "type": "text",
+        "delta": "ok",
+        "provider": "openai"
+      }
+    ]
+  },
+  "events": {
+    "valid": [
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "0",
+        "event": {
+          "type": "started",
+          "content": {
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "model": {
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-registry"
+                },
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                }
+              },
+              "provider_model_id": "gpt-5.6-2026-08-15",
+              "provider_response_id": "resp_01JABCDEF"
+            }
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "1",
+        "event": {
+          "type": "output_started",
+          "content": {
+            "output_index": "0",
+            "start": {
+              "type": "text",
+              "content": {
+                "language": "en-us",
+                "metadata": {
+                  "source": "model",
+                  "trust": "untrusted",
+                  "security_label": "internal/model-output",
+                  "redaction": "not_applied"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "2",
+        "event": {
+          "type": "output_delta",
+          "content": {
+            "output_index": "0",
+            "delta": {
+              "type": "text",
+              "delta": "Incident summary "
+            }
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "3",
+        "event": {
+          "type": "usage_updated",
+          "content": {
+            "usage": {
+              "input_tokens": "120",
+              "cached_input_tokens": "20",
+              "output_tokens": "10",
+              "reasoning_tokens": "1"
+            }
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "4",
+        "event": {
+          "type": "output_delta",
+          "content": {
+            "output_index": "0",
+            "delta": {
+              "type": "text",
+              "delta": "is ready."
+            }
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "5",
+        "event": {
+          "type": "output_completed",
+          "content": {
+            "output_index": "0"
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "6",
+        "event": {
+          "type": "completed",
+          "content": {
+            "finish_reason": "completed",
+            "usage": {
+              "input_tokens": "120",
+              "cached_input_tokens": "20",
+              "output_tokens": "30",
+              "reasoning_tokens": "5"
+            },
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "1048576",
+        "event": {
+          "type": "usage_updated",
+          "content": {
+            "usage": {
+              "input_tokens": "1",
+              "output_tokens": "0"
+            }
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "1",
+        "event": {
+          "type": "output_completed",
+          "content": {
+            "output_index": "1280"
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+        "sequence": "0",
+        "event": {
+          "type": "started",
+          "content": {
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "model": {
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-registry"
+                },
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "1",
+        "event": {
+          "type": "output_started",
+          "content": {
+            "output_index": "0",
+            "start": {
+              "type": "text",
+              "content": {
+                "metadata": {
+                  "source": "user",
+                  "trust": "untrusted",
+                  "security_label": "internal/model-output",
+                  "redaction": "not_applied"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "sequence": "0",
+        "event": {
+          "type": "provider_ping",
+          "content": {}
+        }
+      }
+    ]
+  },
+  "raw_invalid_events": [
+    "{\"attempt_id\":\"01912345-6789-7abc-8def-0123456789ab\",\"attempt_id\":\"01912345-6789-7abc-8def-0123456789ab\",\"sequence\":\"0\",\"event\":{\"type\":\"completed\",\"content\":{\"finish_reason\":\"completed\",\"usage\":{\"input_tokens\":\"1\",\"output_tokens\":\"1\"},\"extensions\":{}}}}",
+    "{\"attempt_id\":\"01912345-6789-7abc-8def-0123456789ab\",\"sequence\":\"0\",\"event\":{\"type\":\"output_delta\",\"content\":{\"output_index\":\"0\",\"delta\":{\"type\":\"text\",\"delta\":\"a\",\"delta\":\"b\"}}}}"
+  ]
+}

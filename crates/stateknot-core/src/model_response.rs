@@ -692,7 +692,7 @@ impl ModelOutputItem {
         }
     }
 
-    fn validate_intrinsic(&self) -> Result<(), ModelOutputItemError> {
+    pub(crate) fn validate_intrinsic(&self) -> Result<(), ModelOutputItemError> {
         match self {
             Self::Content(content) => {
                 let expected_source = match content {
@@ -708,7 +708,7 @@ impl ModelOutputItem {
         }
     }
 
-    fn inline_payload_bytes(&self) -> usize {
+    pub(crate) fn inline_payload_bytes(&self) -> usize {
         match self {
             Self::Content(content) => content.inline_payload_bytes(),
             Self::ReasoningSummary(summary) => summary.text().len(),
@@ -719,7 +719,7 @@ impl ModelOutputItem {
     }
 }
 
-fn validate_output_metadata(
+pub(crate) fn validate_output_metadata(
     kind: ModelOutputItemKind,
     metadata: &crate::ContentMetadata,
     expected_source: ContentSource,

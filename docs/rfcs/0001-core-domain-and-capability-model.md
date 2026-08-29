@@ -981,9 +981,61 @@ claims or recover the request snapshot, so durable and remote values must call
 performs both layers automatically. This separation keeps historical values
 readable without treating a wire claim as execution authority.
 
-Streaming emits semantic `ModelEvent` values. Adapters may coalesce provider
-deltas, but must produce one validated terminal response or one error. Partial
-content is never treated as a committed complete response.
+Streaming emits provider-neutral semantic `ModelEvent` values, not provider SSE
+frames. Every envelope repeats its `AttemptId` and carries a zero-based
+`ExecutionCount` sequence. Sequence zero must be `started`; every later sequence
+is contiguous after the adapter has removed pings, empty deltas, transport
+framing, and other non-semantic provider events. One attempt accepts at most
+1,048,576 semantic events. This sequence orders model semantics only: it is not
+the durable journal `EventId`, an SSE reconnect cursor, or an idempotency key.
+
+The closed event body is `started | output_started | output_delta |
+output_completed | usage_updated | completed`. `started` fixes the same
+`ModelResponseProvenance` used by unary responses. Output starts register
+zero-based positions contiguously in provider order; once registered, different
+positions may receive deltas and close in interleaved order. An output header
+fixes exactly one of text, JSON, external artifact reference, readable reasoning
+summary, or tool call. Text/JSON/summary headers carry their final security and
+language/schema metadata. Tool headers carry the exact requested capability
+identity, optional provider call ID, and bounded extensions. Artifact headers
+carry only a complete immutable reference and never accept inline binary/base64
+deltas.
+
+`ModelStreamChunk` retains exact non-empty UTF-8, rejects disallowed controls and
+Unicode noncharacters, is redacted in `Debug`, and is limited to 64 KiB per
+event. Text, JSON, reasoning-summary, and tool-argument delta kinds cannot be
+cross-applied. JSON and tool fragments are allowed to be syntactically
+incomplete while active; exact concatenated bytes are parsed once at
+`output_completed`. The resulting JSON remains under the normal 256 KiB JSON
+limits, tool arguments must be an object, and a proposal still receives no
+`InvocationId`. Invalid or truncated tool arguments never become executable
+proposals. Each active or completed item stays under its normal 256 KiB bound,
+and active buffers plus completed response inline payload share the response's
+64 MiB aggregate ceiling. A hard total item count prevents sparse-index or
+allocation attacks.
+
+Every `usage_updated` value is a complete cumulative per-attempt snapshot, not a
+provider delta. Inclusive input/output counts and any already-known cached-input
+or reasoning subset can only increase; a known optional subset cannot disappear.
+Every snapshot is checked against the immutable request limits. A terminal
+`completed` event repeats authoritative final usage, supplies the portable
+finish reason and bounded response extensions, and must not leave an output
+open. Provider pings have no core event. Provider failures, cancellation,
+malformed output, unknown terminal states, and in-stream error frames remain
+`Err(ModelError)` on the model stream rather than successful semantic events.
+
+`ModelEventAccumulator` is the normative state machine. It binds an expected
+attempt, descriptor, and streaming request; rejects the descriptor before any
+event unless it satisfies every derived request requirement; checks attempts,
+exact sequences, output lifecycle/type, resource accounting, provider call-ID
+uniqueness, and usage monotonicity; then calls `ModelResponse::new` at the sole terminal event.
+The accumulator owns that response and requires `finish()` after transport EOF,
+so a disconnected stream cannot be confused with success. Any validation error
+before terminal permanently poisons the accumulator and cannot be ignored to
+resume at a later sequence. A canonical fixture proves that its terminal value
+is byte-for-byte the same wire `ModelResponse` as the unary contract, rather than
+a second streaming-only response type. Partial deltas are observable but never
+committed as a complete response.
 
 ## Identity and delegation
 
