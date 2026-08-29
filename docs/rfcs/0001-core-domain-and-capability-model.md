@@ -95,7 +95,6 @@ the M0 contract examples compile against the implementation.
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use stateknot::prelude::*;
-use std::time::Duration;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 struct RestartInput {
@@ -110,51 +109,50 @@ struct RestartOutput {
     accepted_revision: String,
 }
 
-struct RestartService;
+struct RestartService {
+    descriptor: ToolDescriptor,
+    deployment_api: DeploymentClient,
+}
 
 impl Tool for RestartService {
     type Input = RestartInput;
     type Output = RestartOutput;
 
-    fn descriptor(&self) -> Result<ToolDescriptor, DescriptorError> {
-        ToolDescriptor::builder("ops.restart-service", Version::new(1, 0, 0))
-            .description("Restart one allowlisted service deployment")
-            .risk(ToolRisk::IdempotentWrite)
-            .required_scope("ops:restart")
-            .timeout_ceiling(Duration::from_secs(30))
-            .build()
+    fn descriptor(&self) -> &ToolDescriptor {
+        &self.descriptor
     }
 
-    fn call<'a>(
-        &'a self,
+    fn call(
+        &self,
         ctx: ToolContext,
         input: Self::Input,
-    ) -> BoxFuture<'a, Result<Self::Output, ToolError>> {
+    ) -> BoxFuture<'_, Result<ToolOutput<Self::Output>, ToolError>> {
         Box::pin(async move {
-            let key = ctx.required_idempotency_key()?;
-            let credential = ctx.credentials().resolve("deployment-api").await?;
-            restart_with_key(credential, key, input).await
+            let key = ctx.required_idempotency_key()
+                .expect("registration requires a runtime-provided key");
+            let output = self.deployment_api.restart_with_key(key, input).await?;
+            Ok(ToolOutput::inline(output))
         })
     }
 }
-# fn restart_with_key(
-#     _: ResolvedCredential,
-#     _: IdempotencyKey,
-#     input: RestartInput,
-# ) -> BoxFuture<'static, Result<RestartOutput, ToolError>> {
-#     Box::pin(async move {
-#         Ok(RestartOutput {
-#             deployment_id: String::from("deployment-42"),
-#             accepted_revision: input.expected_revision,
-#         })
-#     })
+# struct DeploymentClient;
+# impl DeploymentClient {
+#     async fn restart_with_key(
+#         &self,
+#         _: ToolIdempotencyKey,
+#         input: RestartInput,
+#     ) -> Result<RestartOutput, ToolError> {
+#         Ok(RestartOutput { deployment_id: String::from("deployment-42"), accepted_revision: input.expected_revision })
+#     }
 # }
 # fn main() {}
 ```
 
-The builder is fallible because capability names, versions, scopes, descriptions,
-timeouts, schemas, and extension sizes are validated. The typed tool is wrapped
-by an erased adapter only after both generated schemas pass validation.
+Descriptor construction is fallible because capability names, versions, scopes,
+descriptions, timeouts, schemas, and extension sizes are validated. The tool
+binding owns its capability-scoped dependency client; raw credentials do not
+enter `ToolContext`. The typed tool is wrapped by an erased adapter only after
+both generated schemas pass local registry validation.
 
 ### Model invocation
 
@@ -814,24 +812,47 @@ pub trait Tool: Send + Sync + 'static {
     type Input: serde::de::DeserializeOwned + schemars::JsonSchema + Send + 'static;
     type Output: serde::Serialize + schemars::JsonSchema + Send + 'static;
 
-    fn descriptor(&self) -> Result<ToolDescriptor, DescriptorError>;
+    fn descriptor(&self) -> &ToolDescriptor;
 
-    fn call<'a>(
-        &'a self,
+    fn call(
+        &self,
         context: ToolContext,
         input: Self::Input,
-    ) -> BoxFuture<'a, Result<Self::Output, ToolError>>;
+    ) -> BoxFuture<'_, Result<ToolOutput<Self::Output>, ToolError>>;
 }
 ```
 
-StateKnot owns an object-safe erased adapter used by registries and the runtime.
-The erased interface is not the recommended application-authoring API. It:
+`ToolAdapter::new` snapshots the descriptor and asks a trusted offline
+`ToolSchemaRegistry` to bind both generated Rust type schemas to their exact
+digest-pinned contracts. StateKnot then exposes an object-safe `ErasedTool` used
+by heterogeneous registries and the runtime. The erased interface is not the
+recommended application-authoring API. It:
 
-1. validates canonical JSON input against the descriptor schema;
+1. binds object-root bounded JSON input to the exact invocation and descriptor,
+   then validates it against the registered input schema;
 2. deserializes into `Tool::Input`;
 3. invokes the typed implementation;
-4. serializes and validates `Tool::Output`;
-5. returns a bounded `ToolResult` with artifacts and external references.
+4. serializes, bounds, and validates `Tool::Output`;
+5. returns a `ToolResult` whose inline JSON, artifact count/aggregate bytes,
+   tenant, run, owner, capability version, logical invocation, and physical
+   attempt are independently revalidated before durable commit.
+
+`InvocationId` identifies the logical external operation and derives the
+provider-facing `ToolIdempotencyKey`; it remains stable when a scheduler creates
+a new `AttemptId`. `ToolError` records phase separately from
+`ToolExternalEffect::{NotApplicable, NotStarted, NotApplied, Applied, Unknown}`.
+`Unknown` and `FailureCategory::AmbiguousExternalOutcome` are an exact pair and
+therefore require `RetryAdvice::ReconcileFirst`. A timeout, cancellation, MCP
+error, or closed transport cannot by itself produce `NotApplied` evidence.
+
+When the descriptor allows progress and the runtime supplies a durable sink,
+`ToolContext::progress` exposes a cloneable reporter bound to the exact
+invocation, attempt, and tool version. It assigns contiguous zero-based
+sequences, requires strictly increasing completed units, freezes a declared
+total, and enforces the descriptor event ceiling. Async emissions are serialized:
+concurrent emission is rejected, while a sink failure or dropped in-flight
+future permanently poisons the reporter so later events cannot hide a gap.
+Progress is observation only and never commits a successful tool result.
 
 No tool receives a raw provider request, database transaction, bearer token, or
 unrestricted service locator.
@@ -1181,6 +1202,15 @@ object-safe runtime adapter whose state is permanent and whose wait future must
 be race-safe. A registered model binding owns its capability-limited credential
 resolution; raw credentials never enter `ModelContext`.
 
+The callable tool boundary additionally binds the immutable tool identity,
+logical `InvocationId`, physical `AttemptId`, descriptor idempotency mechanism,
+and already narrowed positive timeout. Its deadline is the minimum of that
+timeout and the remaining run deadline. Required idempotency keys derive only
+from `InvocationId`, so recovery reuses the same key across attempts. Contexts
+remain non-serializable and validate back against the descriptor before erased
+dispatch. An optional runtime progress reporter is similarly identity-bound,
+finite, ordered, and fail-closed on any possible sequence gap.
+
 `CredentialResolver` returns a non-serializable, non-cloneable or explicitly
 zeroizing short-lived credential scoped to one named capability and audience.
 Credential resolution is audited without recording secret material.
@@ -1226,6 +1256,15 @@ descriptor, request mode, and token ceilings. Missing usage remains unknown,
 never zero. Mid-stream provider error frames, transport failure, cancellation,
 deadline, malformed output, and EOF before the semantic terminal all end the
 stream with this error and discard partial output as a completed response.
+
+`ToolError` adds logical invocation/physical attempt/tool identity, a closed
+preparation/execution/result phase, and explicit external-effect evidence.
+Read-only failures use `NotApplicable`; writes cannot. A nominal typed `Ok`
+asserts the operation completed, so a later output serialization/schema/result
+failure is recorded as `Applied` for a write. Invalid or contradictory error
+evidence from a write implementation is conservatively replaced with
+`Unknown + AmbiguousExternalOutcome + ReconcileFirst`, never passed through as
+retry-safe evidence.
 
 Each occurrence has its own `FailureId`. `Failure` also contains a stable
 machine code, origin, explicitly public-safe message, retry advice, optional

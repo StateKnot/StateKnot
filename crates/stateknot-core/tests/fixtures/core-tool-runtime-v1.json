@@ -1,0 +1,506 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-tool-runtime/1.0.0",
+  "phases": {
+    "valid": [
+      "preparation",
+      "execution",
+      "result"
+    ],
+    "invalid": [
+      "dispatch",
+      "cancelled",
+      "result_validation",
+      "",
+      42,
+      null
+    ]
+  },
+  "external_effects": {
+    "valid": [
+      "not_applicable",
+      "not_started",
+      "not_applied",
+      "applied",
+      "unknown"
+    ],
+    "invalid": [
+      "none",
+      "maybe",
+      "rolled_back",
+      "",
+      true,
+      null
+    ]
+  },
+  "progress_updates": {
+    "valid": [
+      {
+        "completed": "0"
+      },
+      {
+        "completed": "2",
+        "total": "10"
+      }
+    ],
+    "invalid": [
+      {
+        "completed": "0",
+        "total": "0"
+      },
+      {
+        "completed": "11",
+        "total": "10"
+      },
+      {
+        "completed": "1",
+        "message": "unbounded"
+      },
+      null
+    ]
+  },
+  "progress_provenances": {
+    "valid": [
+      {
+        "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        }
+      },
+      null
+    ]
+  },
+  "progress_events": {
+    "valid": [
+      {
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        },
+        "sequence": "0",
+        "update": {
+          "completed": "2",
+          "total": "10"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        },
+        "sequence": "0",
+        "update": {
+          "completed": "11",
+          "total": "10"
+        }
+      },
+      {
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        },
+        "sequence": "0",
+        "update": {
+          "completed": "1"
+        },
+        "final": false
+      },
+      null
+    ]
+  },
+  "inputs": {
+    "valid": [
+      {
+        "schema": {
+          "id": "https://schemas.example.com/tools/capture-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": {
+          "amount": 42,
+          "currency": "CNY"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "schema": {
+          "id": "https://schemas.example.com/tools/capture-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": [42]
+      },
+      {
+        "value": {}
+      },
+      {
+        "schema": {
+          "id": "https://schemas.example.com/tools/capture-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "value": {},
+        "provider": "mcp"
+      },
+      null
+    ]
+  },
+  "result_provenances": {
+    "valid": [
+      {
+        "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        }
+      },
+      {
+        "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "request_id": "2"
+      },
+      null
+    ]
+  },
+  "results": {
+    "valid": [
+      {
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        },
+        "output_schema": {
+          "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "output": {
+          "accepted": true,
+          "transaction_id": "txn_42"
+        },
+        "artifacts": []
+      }
+    ],
+    "invalid": [
+      {
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        },
+        "output_schema": {
+          "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "output": {}
+      },
+      {
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        },
+        "output_schema": {
+          "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "output": {},
+        "artifacts": [],
+        "is_error": false
+      },
+      null
+    ]
+  },
+  "error_provenances": {
+    "valid": [
+      {
+        "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab"
+      },
+      null
+    ]
+  },
+  "errors": {
+    "valid": [
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b1",
+          "category": "invalid_input",
+          "code": "tool.input_invalid",
+          "origin": "stateknot.tool_adapter",
+          "message": "Tool input does not satisfy its registered schema.",
+          "retry_advice": {
+            "kind": "never"
+          }
+        },
+        "phase": "preparation",
+        "external_effect": "not_started",
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b2",
+          "category": "ambiguous_external_outcome",
+          "code": "tool.outcome_unknown",
+          "origin": "tool.payments",
+          "message": "The payment outcome must be reconciled.",
+          "retry_advice": {
+            "kind": "reconcile_first"
+          }
+        },
+        "phase": "execution",
+        "external_effect": "unknown",
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b3",
+          "category": "internal",
+          "code": "tool.outcome_unknown",
+          "origin": "tool.payments",
+          "message": "The tool outcome is unknown.",
+          "retry_advice": {
+            "kind": "never"
+          }
+        },
+        "phase": "execution",
+        "external_effect": "unknown",
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b4",
+          "category": "ambiguous_external_outcome",
+          "code": "tool.outcome_unknown",
+          "origin": "tool.payments",
+          "message": "The payment outcome must be reconciled.",
+          "retry_advice": {
+            "kind": "reconcile_first"
+          }
+        },
+        "phase": "execution",
+        "external_effect": "applied",
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        }
+      },
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b5",
+          "category": "internal",
+          "code": "tool.result_invalid",
+          "origin": "stateknot.tool_adapter",
+          "message": "The tool result is invalid.",
+          "retry_advice": {
+            "kind": "never"
+          }
+        },
+        "phase": "preparation",
+        "external_effect": "applied",
+        "provenance": {
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          }
+        }
+      },
+      null
+    ]
+  },
+  "raw_invalid_errors": [
+    "{\"failure\":{\"id\":\"01912345-6789-7abc-8def-0123456789b6\",\"category\":\"internal\",\"code\":\"tool.failed\",\"origin\":\"tool.example\",\"message\":\"The tool failed.\",\"retry_advice\":{\"kind\":\"never\"}},\"phase\":\"execution\",\"phase\":\"result\",\"external_effect\":\"applied\",\"provenance\":{\"invocation_id\":\"01912345-6789-7abc-8def-0123456789ad\",\"attempt_id\":\"01912345-6789-7abc-8def-0123456789ab\",\"tool\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"registry-owner\"},\"capability\":{\"name\":\"payments.capture\",\"version\":\"2.1.0\"}}}}"
+  ]
+}

@@ -103,6 +103,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   provider request correlation, phase-aware public-safe failures, explicit
   hidden-retry prohibition, closed schemas, compile-time boundary tests, and an
   independent versioned wire fixture.
+- Production-shaped callable tool contracts with a strongly typed authoring API,
+  object-safe erased dispatch, trusted offline schema-registry gate, frozen
+  descriptors, logical invocation and physical attempt identity, stable derived
+  idempotency keys, intersected durable/monotonic deadlines, bounded inline JSON
+  and artifact references, tenant/run/tool provenance checks, finite ordered
+  progress reporting that poisons on concurrency gaps, dropped futures, or sink
+  failures, explicit external side-effect evidence, reconciliation-safe failures,
+  hidden-retry prohibition, redacted diagnostics, and an independent versioned
+  wire fixture.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

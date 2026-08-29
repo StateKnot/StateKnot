@@ -557,16 +557,37 @@ sandbox executor，或直接拒绝。approval policy、价格/成本和精确资
 才能映射进上述语义。
 
 ```rust
-pub trait Tool: Send + Sync {
-    fn spec(&self) -> &ToolSpec;
+pub trait Tool: Send + Sync + 'static {
+    type Input: serde::de::DeserializeOwned + schemars::JsonSchema + Send + 'static;
+    type Output: serde::Serialize + schemars::JsonSchema + Send + 'static;
+
+    fn descriptor(&self) -> &ToolDescriptor;
 
     fn call(
         &self,
         ctx: ToolContext,
-        input: serde_json::Value,
-    ) -> BoxFuture<'_, Result<ToolOutput, ToolError>>;
+        input: Self::Input,
+    ) -> BoxFuture<'_, Result<ToolOutput<Self::Output>, ToolError>>;
 }
 ```
+
+框架拥有的 `ToolAdapter` 在注册时通过可信、离线的 `ToolSchemaRegistry` 将 Rust
+类型 schema 绑定到 digest-pinned contract，并向运行时提供 object-safe
+`ErasedTool`。调用时依次完成 context/descriptor/input binding、input schema、typed
+decode、单次执行、output encode/schema、inline/artifact/budget/provenance 校验；任何
+一步失败都保留 `InvocationId`（逻辑调用）、`AttemptId`（物理尝试）和独立的外部副作用
+证据。required-key 工具的 key 只由 `InvocationId` 派生，跨 attempt 必须稳定。
+runtime 可选注入的 progress reporter 绑定 exact invocation/attempt/tool，分配连续序号，
+强制 completed 单调递增、total 一旦声明不可改变，并执行 descriptor event 上限；并发
+emit、sink failure 或 in-flight future 被 drop 都 fail closed，不能用后续事件掩盖缺口。
+
+[MCP tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+要求 server 校验输入、client 校验结构化结果，并区分 JSON-RPC protocol error 与
+可反馈给模型的 execution error；
+[MCP cancellation](https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/cancellation)
+明确允许完成/取消竞态。因此 `isError`、超时和 cancel 都不能自动成为“写操作未发生”
+证明。A2A 的 task status 与 artifact update 仍在协议 adapter 中映射为独立有序事件，
+不会塞入 local tool 的 inline JSON。
 
 local function、MCP tool、workflow-as-tool 和 remote A2A agent 都可适配为可执行 capability，但必须保留各自身份、风险和生命周期，不能假装它们完全相同。
 

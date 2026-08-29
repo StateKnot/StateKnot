@@ -32,6 +32,7 @@ mod schema;
 mod scope;
 mod time;
 mod tool;
+mod tool_runtime;
 mod version;
 
 pub use accounting::{
@@ -117,5 +118,15 @@ pub use tool::{
     ToolCancellationSupport, ToolDescriptor, ToolDescriptorError, ToolExecutionLimits,
     ToolExecutionLimitsError, ToolExecutionSemantics, ToolExecutionSemanticsError, ToolIdempotency,
     ToolInvocationCapabilities, ToolResourceAccess, ToolResourceRequirements, ToolRisk,
+};
+pub use tool_runtime::{
+    ErasedTool, Tool, ToolAdapter, ToolAdapterBuildError, ToolArtifacts, ToolArtifactsError,
+    ToolContext, ToolContextBindingError, ToolContextError, ToolError, ToolErrorBuildError,
+    ToolErrorPhase, ToolErrorProvenance, ToolErrorValidationError, ToolExternalEffect,
+    ToolIdempotencyKey, ToolInput, ToolInputError, ToolInputValidationError, ToolOutput,
+    ToolProgressError, ToolProgressEvent, ToolProgressEventValidationError, ToolProgressProvenance,
+    ToolProgressReporter, ToolProgressSink, ToolProgressSinkError, ToolProgressUpdate,
+    ToolProgressUpdateError, ToolResult, ToolResultProvenance, ToolResultValidationError,
+    ToolSchemaRegistry, ToolSchemaRole, ToolSchemaValidationError, ToolStopReason,
 };
 pub use version::{Version, VersionComponent, VersionError};
