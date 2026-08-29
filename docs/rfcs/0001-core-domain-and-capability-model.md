@@ -655,6 +655,27 @@ binding. It is not a timeless assertion about a model family: the same weights
 can expose different features through OpenAI-compatible, Anthropic Messages,
 Bedrock Converse, regional, or hosted endpoints.
 
+`ModelDescriptor` is the immutable specialized registry record. It contains
+exactly common `CapabilityMetadata` whose kind is `model` and one validated
+`ModelCapabilities` snapshot. Its owner-qualified, version-pinned StateKnot
+identity is the stable registry key. Provider model IDs and aliases, API
+surfaces, endpoints, regions, credential handles, and adapter configuration are
+held in the trusted registry's versioned execution binding behind that key and
+are snapshotted with the attempt. Changing that binding or its capabilities
+requires a new StateKnot capability version; an existing descriptor is never
+rewritten in place.
+
+This avoids inventing false common semantics. The
+[OpenAI model object](https://platform.openai.com/docs/api-reference/models/object)
+only exposes a basic ID, creation time, and owner; the
+[Anthropic Models API](https://platform.claude.com/docs/en/api/models/retrieve)
+can resolve aliases to model IDs; [Gemini](https://ai.google.dev/gemini-api/docs/models)
+distinguishes stable, preview, latest, and experimental names with different
+drift guarantees; and [Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/foundation-models-reference.html)
+accepts base IDs, ARNs, provisioned resources, and inference profiles. These raw
+identifiers may be recorded as bounded adapter provenance but are not a portable
+core identity or authorization claim.
+
 The snapshot records:
 
 - non-empty, sorted input and output `ModelModalities` chosen from text, image,
@@ -810,7 +831,10 @@ streaming invocation through runtime-neutral futures and streams:
 ```rust
 pub trait Model: Send + Sync + 'static {
     fn descriptor(&self) -> &ModelDescriptor;
-    fn capabilities(&self) -> &ModelCapabilities;
+
+    fn capabilities(&self) -> &ModelCapabilities {
+        self.descriptor().capabilities()
+    }
 
     fn invoke<'a>(
         &'a self,

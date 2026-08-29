@@ -15,7 +15,7 @@ use serde::{
 };
 use thiserror::Error;
 
-use crate::{ExecutionCount, SchemaReference, TokenCount};
+use crate::{CapabilityKind, CapabilityMetadata, ExecutionCount, SchemaReference, TokenCount};
 
 /// Coarse semantic media understood or produced by a model binding.
 ///
@@ -1122,6 +1122,96 @@ pub enum ModelCapabilitiesError {
     ReasoningSummaryRequiresTextOutput,
 }
 
+/// Immutable, protocol-neutral description of one executable model binding.
+///
+/// The owner-qualified metadata identity is the stable `StateKnot` registry key;
+/// provider model names, aliases, endpoints, regions, and adapter configuration
+/// remain in the registry's versioned execution binding because their formats
+/// and mutability differ across providers. Registration authenticates the
+/// metadata owner, resolves aliases to the intended provider binding, validates
+/// every referenced schema profile locally, and snapshots this descriptor for
+/// each execution attempt.
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModelDescriptor {
+    metadata: CapabilityMetadata,
+    capabilities: ModelCapabilities,
+}
+
+impl ModelDescriptor {
+    /// Constructs a descriptor and validates its specialized classification.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ModelDescriptorError`] when common metadata is not classified
+    /// as a model.
+    pub fn new(
+        metadata: CapabilityMetadata,
+        capabilities: ModelCapabilities,
+    ) -> Result<Self, ModelDescriptorError> {
+        if metadata.kind() != CapabilityKind::Model {
+            return Err(ModelDescriptorError::WrongCapabilityKind {
+                actual: metadata.kind(),
+            });
+        }
+        Ok(Self {
+            metadata,
+            capabilities,
+        })
+    }
+
+    /// Returns common identity, discovery, lifecycle, scope, and extension data.
+    #[must_use]
+    pub const fn metadata(&self) -> &CapabilityMetadata {
+        &self.metadata
+    }
+
+    /// Returns capabilities for this exact registered execution binding.
+    #[must_use]
+    pub const fn capabilities(&self) -> &ModelCapabilities {
+        &self.capabilities
+    }
+}
+
+impl fmt::Debug for ModelDescriptor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ModelDescriptor")
+            .field("metadata", &self.metadata)
+            .field("capabilities", &self.capabilities)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ModelDescriptorWire {
+    metadata: CapabilityMetadata,
+    capabilities: ModelCapabilities,
+}
+
+impl<'de> Deserialize<'de> for ModelDescriptor {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = ModelDescriptorWire::deserialize(deserializer)?;
+        Self::new(wire.metadata, wire.capabilities).map_err(de::Error::custom)
+    }
+}
+
+/// Invalid cross-component model descriptor.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ModelDescriptorError {
+    /// Common metadata classified the capability as something other than a model.
+    #[error("model descriptor requires kind=model, received {actual:?}")]
+    WrongCapabilityKind {
+        /// Conflicting capability kind.
+        actual: CapabilityKind,
+    },
+}
+
 /// Minimum tool support needed by one model request.
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -1772,7 +1862,11 @@ mod tests {
     use proptest::prelude::*;
     use serde_json::{Value, from_value, json, to_value};
 
-    use crate::{Digest, SchemaId, Version};
+    use crate::{
+        CapabilityDescription, CapabilityIdentity, CapabilityLifecycle, CapabilityName,
+        CapabilityReference, Digest, Extensions, IssuerId, PrincipalIdentity, SchemaId, ScopeSet,
+        SubjectId, Version,
+    };
 
     fn schema(name: &str) -> SchemaReference {
         SchemaReference::new(
@@ -1828,6 +1922,34 @@ mod tests {
             .unwrap(),
         )
         .unwrap()
+    }
+
+    fn metadata(kind: CapabilityKind, description: &str) -> CapabilityMetadata {
+        CapabilityMetadata::new(
+            CapabilityIdentity::new(
+                PrincipalIdentity::new(
+                    "https://issuer.example.com/tenant"
+                        .parse::<IssuerId>()
+                        .unwrap(),
+                    "model-registry".parse::<SubjectId>().unwrap(),
+                ),
+                CapabilityReference::new(
+                    "models.primary".parse::<CapabilityName>().unwrap(),
+                    Version::new(1, 0, 0),
+                ),
+            ),
+            kind,
+            None,
+            CapabilityDescription::new(description).unwrap(),
+            CapabilityLifecycle::active(),
+            ScopeSet::empty(),
+            Extensions::default(),
+        )
+        .unwrap()
+    }
+
+    fn descriptor(description: &str) -> ModelDescriptor {
+        ModelDescriptor::new(metadata(CapabilityKind::Model, description), capabilities()).unwrap()
     }
 
     #[test]
@@ -2187,6 +2309,47 @@ mod tests {
     }
 
     #[test]
+    fn descriptors_bind_model_metadata_to_one_capability_snapshot() {
+        let descriptor = descriptor("Private model registry description.");
+        assert_eq!(descriptor.metadata().kind(), CapabilityKind::Model);
+        assert_eq!(
+            descriptor
+                .metadata()
+                .identity()
+                .capability()
+                .name()
+                .as_str(),
+            "models.primary"
+        );
+        assert!(descriptor.capabilities().supports_streaming());
+
+        let encoded = to_value(&descriptor).unwrap();
+        assert_eq!(
+            from_value::<ModelDescriptor>(encoded.clone()).unwrap(),
+            descriptor
+        );
+        assert!(!format!("{descriptor:?}").contains("Private model registry description."));
+
+        assert_eq!(
+            ModelDescriptor::new(
+                metadata(CapabilityKind::Tool, "Wrong kind."),
+                capabilities(),
+            ),
+            Err(ModelDescriptorError::WrongCapabilityKind {
+                actual: CapabilityKind::Tool,
+            })
+        );
+
+        let mut wrong_kind = encoded.clone();
+        wrong_kind["metadata"]["kind"] = json!("tool");
+        assert!(from_value::<ModelDescriptor>(wrong_kind).is_err());
+
+        let mut unknown = encoded;
+        unknown["provider_model"] = json!("mutable-alias");
+        assert!(from_value::<ModelDescriptor>(unknown).is_err());
+    }
+
+    #[test]
     fn requirements_reject_implicit_or_incoherent_demands() {
         let required_tools = ModelToolRequirements::new(
             ExecutionCount::new(12),
@@ -2458,6 +2621,7 @@ mod tests {
             to_value(schemars::schema_for!(ModelToolCapabilities)).unwrap(),
             to_value(schemars::schema_for!(ModelStructuredOutputCapabilities)).unwrap(),
             to_value(schemars::schema_for!(ModelCapabilities)).unwrap(),
+            to_value(schemars::schema_for!(ModelDescriptor)).unwrap(),
             to_value(schemars::schema_for!(ModelToolRequirements)).unwrap(),
             to_value(schemars::schema_for!(ModelRequirements)).unwrap(),
         ] {

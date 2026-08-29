@@ -1,0 +1,158 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-model-descriptor/1.0.0",
+  "descriptors": {
+    "valid": [
+      {
+        "metadata": {
+          "identity": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          },
+          "kind": "model",
+          "description": "Primary production model binding.",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": [],
+          "extensions": {}
+        },
+        "capabilities": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "tools": {
+            "max_definitions": "0",
+            "max_calls_per_response": "0",
+            "choices": [],
+            "strict_arguments": false
+          },
+          "structured_output": {
+            "level": "unsupported"
+          },
+          "reasoning_summaries": false,
+          "token_limits": {}
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "metadata": {
+          "identity": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          },
+          "kind": "tool",
+          "description": "Wrong specialized kind.",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": [],
+          "extensions": {}
+        },
+        "capabilities": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "tools": {
+            "max_definitions": "0",
+            "max_calls_per_response": "0",
+            "choices": [],
+            "strict_arguments": false
+          },
+          "structured_output": {
+            "level": "unsupported"
+          },
+          "reasoning_summaries": false,
+          "token_limits": {}
+        }
+      },
+      {
+        "metadata": {
+          "identity": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          },
+          "kind": "model",
+          "description": "Missing capability snapshot.",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": [],
+          "extensions": {}
+        }
+      },
+      {
+        "metadata": {
+          "identity": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          },
+          "kind": "model",
+          "description": "Unexpected mutable provider alias.",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": [],
+          "extensions": {}
+        },
+        "capabilities": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "tools": {
+            "max_definitions": "0",
+            "max_calls_per_response": "0",
+            "choices": [],
+            "strict_arguments": false
+          },
+          "structured_output": {
+            "level": "unsupported"
+          },
+          "reasoning_summaries": false,
+          "token_limits": {}
+        },
+        "provider_model": "mutable-alias"
+      },
+      null
+    ]
+  },
+  "raw_invalid": [
+    "{\"metadata\":{\"identity\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"model-registry\"},\"capability\":{\"name\":\"models.primary\",\"version\":\"1.0.0\"}},\"kind\":\"model\",\"description\":\"Duplicate capability snapshot.\",\"lifecycle\":{\"status\":\"active\"},\"required_scopes\":[],\"extensions\":{}},\"capabilities\":{\"input_modalities\":[\"text\"],\"output_modalities\":[\"text\"],\"streaming\":false,\"tools\":{\"max_definitions\":\"0\",\"max_calls_per_response\":\"0\",\"choices\":[],\"strict_arguments\":false},\"structured_output\":{\"level\":\"unsupported\"},\"reasoning_summaries\":false,\"token_limits\":{}},\"capabilities\":{\"input_modalities\":[\"text\"],\"output_modalities\":[\"text\"],\"streaming\":false,\"tools\":{\"max_definitions\":\"0\",\"max_calls_per_response\":\"0\",\"choices\":[],\"strict_arguments\":false},\"structured_output\":{\"level\":\"unsupported\"},\"reasoning_summaries\":false,\"token_limits\":{}}}"
+  ]
+}

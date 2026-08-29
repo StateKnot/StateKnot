@@ -78,11 +78,12 @@ pub use message::{
 };
 pub use model::{
     ModelCapabilities, ModelCapabilitiesError, ModelCapabilityIssue, ModelCapabilityMismatch,
-    ModelCapabilityMismatchError, ModelModalities, ModelModalitiesError, ModelModality,
-    ModelRequirements, ModelRequirementsError, ModelStructuredOutputCapabilities,
-    ModelStructuredOutputCapabilitiesError, ModelStructuredOutputLevel, ModelTokenLimits,
-    ModelTokenLimitsError, ModelToolCapabilities, ModelToolCapabilitiesError, ModelToolChoice,
-    ModelToolChoices, ModelToolChoicesError, ModelToolRequirements, ModelToolRequirementsError,
+    ModelCapabilityMismatchError, ModelDescriptor, ModelDescriptorError, ModelModalities,
+    ModelModalitiesError, ModelModality, ModelRequirements, ModelRequirementsError,
+    ModelStructuredOutputCapabilities, ModelStructuredOutputCapabilitiesError,
+    ModelStructuredOutputLevel, ModelTokenLimits, ModelTokenLimitsError, ModelToolCapabilities,
+    ModelToolCapabilitiesError, ModelToolChoice, ModelToolChoices, ModelToolChoicesError,
+    ModelToolRequirements, ModelToolRequirementsError,
 };
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};

@@ -254,6 +254,18 @@ model + adapter + API surface + endpoint binding，不是对某个模型家族�
 宣传标签。同一模型通过 OpenAI-compatible、Anthropic Messages、Bedrock Converse
 或不同 region/hosted endpoint 暴露的能力可能不同。
 
+`ModelDescriptor` 只组合 `kind=model` 的 owner-qualified、version-pinned
+`CapabilityMetadata` 与一个 `ModelCapabilities` 快照。StateKnot identity 是受信
+tenant registry 的稳定键；provider model ID/alias、API surface、endpoint、region、
+credential handle 和 adapter config 属于该键背后的版本化 execution binding，注册
+时解析并在 attempt 中一同快照，不能作为可变字符串塞进 descriptor。这样既能覆盖
+[OpenAI 的基本 model object](https://platform.openai.com/docs/api-reference/models/object)、
+[Anthropic alias 到 model ID 的解析](https://platform.claude.com/docs/en/api/models/retrieve)、
+[Gemini stable/latest/preview 的不同漂移语义](https://ai.google.dev/gemini-api/docs/models)
+以及 [Bedrock ID/ARN/inference profile](https://docs.aws.amazon.com/bedrock/latest/userguide/foundation-models-reference.html)，
+也不会错误宣称这些供应商字段拥有相同生命周期或语法。registry 若改变绑定或能力，
+必须发布新的 StateKnot capability version；旧 attempt 继续引用旧快照。
+
 已冻结的 capability negotiation 契约为：
 
 - input/output `ModelModalities` 各自是非空、排序、拒绝重复的闭集，当前只包含

@@ -72,6 +72,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   parallel semantics, tiered structured output, readable reasoning summaries,
   fail-closed unknown token ceilings, exhaustive requirement mismatch reports,
   closed schemas, property tests, and versioned wire fixtures.
+- Immutable model descriptors that bind owner-qualified, version-pinned common
+  metadata to one validated capability snapshot, reject non-model metadata and
+  keep mutable provider/endpoint bindings behind the trusted registry identity,
+  preserve redacted discovery diagnostics, and publish an independent versioned
+  wire fixture without mutating prior fixtures.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/
