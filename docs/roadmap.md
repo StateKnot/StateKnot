@@ -45,9 +45,13 @@ from the repository.
   PostgreSQL commits, lost-ack convergence, bounded verified history, rollback,
   corruption, exact-checkpoint advancement guards for unsettled calls, and
   24-writer race tests on PostgreSQL 16/17.
-- [ ] Complete RFC-0003 pending node results, node/model attempt ledgers, outbox,
-  recovery scheduling, quarantine, role isolation, retention, failover, restore,
-  and stale-race gates.
+- [x] Validate the core model-invocation ledger with exact activation,
+  descriptor, request, physical-attempt, response/error, journal, predecessor,
+  and digest binding; explicit delayed retries; complete history replay; and
+  frozen cross-version integrity fixtures.
+- [ ] Complete RFC-0003 pending node results, PostgreSQL node/model attempt and
+  model-invocation ledgers, outbox, recovery scheduling, quarantine, role
+  isolation, retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

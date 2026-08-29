@@ -496,6 +496,13 @@ rate limit、service tier、region availability 与 provider knob 属于可变 p
 - `ModelError::validate_for` 对 context attempt、descriptor identity、request response
   mode 与 token ceiling 重新绑定。stream 中的 error 是唯一终止项，之后禁止继续产出；
   partial events 永远不能提交为 response；
+- `ModelInvocationIntent` 将 exact checkpoint/node activation、完整 descriptor 与 request
+  固定为一个协商并校验摘要的逻辑调用；retired binding 或 capability mismatch 在准备阶段
+  fail closed。`ModelInvocation` 只允许 prepared → executing → committed/failed，失败后只有
+  显式 `safe_after` 且 durable journal clock 已跨过完整 delay 才能用新 `AttemptId` 重试；
+- intent、transition、record 分别使用版本化 domain-separated digest，revision/predecessor/
+  journal head/attempt/response/error 全部参与绑定；恢复必须从 revision 0 用
+  `ModelInvocationHistoryVerifier` 完整回放，单条尾记录不能单独证明 retry 合法；
 - provider SDK 自动 retry 必须关闭，或者每次真实 exchange 前回到 runtime 创建新的
   `AttemptId` 并重新通过 deadline、budget、attempt、retry 与 policy 闸门；一个 attempt
   里隐藏多个网络调用会破坏账本、审计和限额，因此属于契约违规。
@@ -793,6 +800,7 @@ hash chain 用于发现损坏、缺失和乱序，不冒充能抵抗数据库管
 | `checkpoints` | superstep、parent、state blob/ref、state schema、graph version、hash |
 | `node_attempts` | node、attempt、input hash、status、pending/committed update、错误与时间 |
 | `tool_invocations` + `tool_invocation_revisions` | immutable intent/descriptor/input、exact checkpoint+journal anchor、hash-linked revision、logical invocation/physical attempt、prepared/executing/committed/failed/unknown、结果/错误与 reconcile evidence |
+| `model_invocations` + `model_invocation_revisions` | negotiated immutable descriptor/request、exact checkpoint+journal anchor、hash-linked revision、logical invocation/physical provider attempt、prepared/executing/committed/failed、完整 response/error/usage evidence |
 | `interrupts` | kind、payload、required principal/scope、expiry、resolution 与 resolver |
 | `outbox` | 需要可靠发送的 push/webhook/event，含 retry 与 delivery 状态 |
 | `artifacts` | metadata、BlobRef、hash、provenance、retention 与 security label |
@@ -810,7 +818,9 @@ lease/fencing、完整 journal cursor 分页、有界 reverse checkpoint-lineage
 checksum/startup refusal，以及 PostgreSQL 16/17 的 corruption、rollback、lost-ack、100 并发
 journal appender、24 并发 checkpoint writer 和 24 并发 invocation writer 测试。该 guard 只防止
 checkpoint 越过未结算外部调用；尚未证明 committed tool result 已被 node update 消费。它不是完整
-runtime；pending node writes、node/model attempt、interrupt/outbox、自动 quarantine、recovery
+runtime。core 已完成 model-invocation 的 closed state machine、attempt/provenance binding、
+delayed retry、完整历史回放与跨版本 digest fixture，但 PostgreSQL model ledger 尚未实现；
+pending node writes、node/model attempt、interrupt/outbox、自动 quarantine、recovery
 scheduler、角色隔离、归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
@@ -1020,7 +1030,8 @@ GET    /health/ready
 - blob store、retention、tenant isolation 与 RLS 可选配置。
 
 进度：run/journal/checkpoint/tool-invocation/lease 与 migration/startup 的首个生产形态切片已
-完成并进入主干验证；pending writes、node/model attempt ledger、recovery scheduler、outbox，
+完成并进入主干验证；core model-invocation ledger 已完成，PostgreSQL model ledger、pending
+writes、node/model attempt ledger、recovery scheduler、outbox，
 以及阶段 3 的其余运维与故障门禁未完成，不能据此提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
@@ -1111,7 +1122,7 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 3. `RFC-0003 PostgreSQL Durability, Recovery and Migration`（Draft）；
 4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
 
-RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0002/0003 的 journal、checkpoint、tool-invocation、lease/fencing 值契约；`stateknot-store-postgres` 已把 run/journal/checkpoint/tool-invocation/lease 与 migration/startup 语义落到 PostgreSQL 16/17，但 pending node writes、node/model attempt ledgers、完整恢复调度和运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
+RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0002/0003 的 journal、checkpoint、tool/model-invocation、lease/fencing 值契约；`stateknot-store-postgres` 已把 run/journal/checkpoint/tool-invocation/lease 与 migration/startup 语义落到 PostgreSQL 16/17，但 PostgreSQL model-invocation、pending node writes、node/model attempt ledgers、完整恢复调度和运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
 
 ## 22. 主要一手资料
 

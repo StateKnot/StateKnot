@@ -134,6 +134,14 @@ The provider- and database-neutral `stateknot-core` crate now contains:
   anchoring, and a complete optimistic comparison token;
 - `ToolInvocationHistoryVerifier`: constant-state ascending validation of
   transition legality, hash links, safe retries, and exact paged continuation.
+- `ModelInvocationIntent`, `ModelInvocation`, and `ModelInvocationHead`:
+  negotiated immutable descriptor/request intent, one physical attempt per
+  provider exchange, complete response or public-safe failure evidence, exact
+  journal/predecessor anchoring, and closed prepared/executing/committed/failed
+  revisions;
+- `ModelInvocationHistoryVerifier`: constant-state ascending validation of
+  transition legality, attempt provenance, explicit delayed retry evidence,
+  hash links, and complete recovery history.
 
 These types validate intrinsic values and are used in model/fault tests. They do
 not replace database authorization or atomicity.
@@ -435,6 +443,17 @@ they are not requested again merely to rebuild a process-local transcript.
   parent is prepared, executing, failed, or unknown. A committed invocation
   releases this orphan-prevention guard; the pending node-result ledger must
   separately prove consumption into the barrier state.
+- `model_invocations` stores one negotiated immutable model descriptor/request
+  snapshot and exact base-checkpoint activation. `model_invocation_revisions`
+  stores hash-linked prepared, executing, failed, and committed records. Every
+  real provider exchange has a fresh run-wide unique physical `AttemptId`; the
+  provider call starts only after its executing revision is durable.
+- A model response commits only after exact attempt/model/request validation.
+  A stream is merely transient evidence until it closes into one complete
+  `ModelResponse`; partial content never becomes a committed result. A failed
+  invocation may start another attempt only when its explicit `RetryAdvice` is
+  `safe_after`, the journal clock proves the full delay elapsed, and the new
+  attempt identity differs. SDK-level hidden retries violate this contract.
 - `interrupts` stores request payload, bound action digest, required principal
   and scopes, exclusive expiry, version, and one authenticated resolution.
 - `timers` stores indexed due time and one firing event identity; the scheduler
@@ -692,10 +711,10 @@ admitting exactly one physical attempt. Non-ready and unsupported nested
 activations are rejected without durable residue, and cancellation races retain
 in-flight results without admitting new work. Checkpoint advancement is rejected
 until exact-parent invocations commit. This is evidence for those boundaries
-only. Pending node writes, node/model attempt and model-invocation ledgers,
-automatic quarantine, role-separated database procedures, the 10,000 stale-race
-trial, failover, archive, backup/restore, and soak gates below remain incomplete;
-the RFC therefore remains Draft.
+only. Pending node writes, PostgreSQL node/model attempt and model-invocation
+ledgers, automatic quarantine, role-separated database procedures, the 10,000
+stale-race trial, failover, archive, backup/restore, and soak gates below remain
+incomplete; the RFC therefore remains Draft.
 
 Before RFC acceptance:
 

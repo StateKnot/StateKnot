@@ -471,9 +471,29 @@ impl ModelError {
         descriptor: &ModelDescriptor,
         request: &ModelRequest,
     ) -> Result<(), ModelErrorValidationError> {
-        if self.provenance.attempt_id != context.attempt_id {
+        self.validate_for_attempt(context.attempt_id, descriptor, request)
+    }
+
+    /// Revalidates this failure against a durable attempt identity and exact
+    /// descriptor/request snapshot.
+    ///
+    /// This is the persistence-safe counterpart to [`Self::validate_for`]: a
+    /// recovered ledger has no process-local monotonic clock or cancellation
+    /// handle, but it must still reject attempt, model, delivery-mode, and usage
+    /// substitution before using the failure as retry evidence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ModelErrorValidationError`] for any binding mismatch.
+    pub fn validate_for_attempt(
+        &self,
+        attempt_id: AttemptId,
+        descriptor: &ModelDescriptor,
+        request: &ModelRequest,
+    ) -> Result<(), ModelErrorValidationError> {
+        if self.provenance.attempt_id != attempt_id {
             return Err(ModelErrorValidationError::AttemptMismatch {
-                expected: context.attempt_id,
+                expected: attempt_id,
                 actual: self.provenance.attempt_id,
             });
         }

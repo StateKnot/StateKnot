@@ -31,6 +31,7 @@ mod lease;
 mod message;
 mod model;
 mod model_event;
+mod model_invocation;
 mod model_request;
 mod model_response;
 mod model_runtime;
@@ -129,6 +130,13 @@ pub use model_event::{
     ModelEvent, ModelEventAccumulator, ModelEventError, ModelEventKind, ModelEventStreamError,
     ModelOutputDelta, ModelOutputDeltaKind, ModelOutputStart, ModelStreamChunk,
     ModelStreamChunkError, ModelUsageField,
+};
+pub use model_invocation::{
+    ModelInvocation, ModelInvocationError, ModelInvocationHead, ModelInvocationHeadError,
+    ModelInvocationHistoryError, ModelInvocationHistoryVerifier, ModelInvocationIntegrityError,
+    ModelInvocationIntent, ModelInvocationIntentError, ModelInvocationRevision,
+    ModelInvocationRevisionError, ModelInvocationState, ModelInvocationStatus,
+    ModelInvocationTransition, ModelInvocationTransitionKind,
 };
 pub use model_request::{
     ModelRequest, ModelRequestBuilder, ModelRequestError, ModelRequestLimits,

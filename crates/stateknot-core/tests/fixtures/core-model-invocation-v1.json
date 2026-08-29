@@ -1,0 +1,49 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-model-invocation/1.0.0",
+  "revisions": {
+    "valid": ["0", "1", "9223372036854775807"],
+    "invalid": ["", "00", "01", "-1", "9223372036854775808", 0, null]
+  },
+  "expected": {
+    "intent_digest": "sha256:bae1f48737367eb53c780c3c573846676c08966bf60641877b734d030ce9eba2",
+    "records": [
+      {
+        "revision": "0",
+        "status": "prepared",
+        "digest": "sha256:3fe5962f5c4de1c55bf14e186436d6b0e1b317cc0c1eb328b26f0e6a963620f9"
+      },
+      {
+        "revision": "1",
+        "status": "executing",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "transition": "start_attempt",
+        "transition_digest": "sha256:938b10a24b93cddc8d2d4f709050510b1bdc5390b6447ba45c482ec53ebbe0c5",
+        "digest": "sha256:0be3c15c10d9df0cd3771549fe08a8e6d47066cadc560b61fbc68cff4329ee4e"
+      },
+      {
+        "revision": "2",
+        "status": "failed",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "transition": "record_error",
+        "transition_digest": "sha256:20b016bb1d78fbd50d0b95b31616bfa1b3c102d51ea7cc8fe72bd7bbb0630962",
+        "digest": "sha256:70c9ea3b90617a38dbfe509d3222c5a3d97dca1d452d73ed3b3dd65c5d516a2d"
+      },
+      {
+        "revision": "3",
+        "status": "executing",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+        "transition": "start_attempt",
+        "transition_digest": "sha256:ed8d629883d0ade646c9e15df588a21e324c48836bcb0e00abe826d604d758b0",
+        "digest": "sha256:8133365ea71d02a77120803c6a8f5c75da05481fe577e64bbb7c901c4d7c9e88"
+      },
+      {
+        "revision": "4",
+        "status": "committed",
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+        "transition": "record_response",
+        "transition_digest": "sha256:c4ae81101056439f381b522e722b9a68d0538b4e7cd5ebb0c5280937ec791964",
+        "digest": "sha256:b5b0b4e963c4bca881a8f20e2e355f9a0a52f22b992dc73501feb861e0ae29e7"
+      }
+    ]
+  }
+}
