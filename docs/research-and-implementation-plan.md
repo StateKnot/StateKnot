@@ -347,6 +347,67 @@ request 边界还逐项对照了多家当前一手 API，而不是用某一家�
   `additionalModelRequestFields` 承载模型特有字段。这正对应 core 契约加注册 adapter
   extension 的边界，而不是无类型 map 穿透整个 runtime。
 
+已冻结的 `ModelResponse` 同样只保留能够安全归一化的交集：
+
+- `ModelResponseProvenance` 固定 `AttemptId` 和精确的 owner-qualified model
+  identity；provider model/response ID 只是 1..=512 bytes、无空白/控制字符的
+  opaque correlation value，`Debug` 脱敏，不能用于授权、registry lookup 或重放；
+- `ModelOutputItem` 在一个数组中保持 content、readable reasoning summary、tool
+  proposal 的原始相对顺序。最多 256 个 content/summary、1024 个 proposal、合计
+  1280 个 item，inline text/JSON/summary/arguments/每个 proposal extension 合计不超过 64 MiB；artifact
+  外部 bytes 不进入内存计数，但继续受 artifact、budget、policy 和 resolver 上限；
+- inline text/JSON 强制 `model + untrusted`，artifact 强制 `artifact + untrusted`。
+  reasoning summary 必须由 request 显式启用；opaque/signed/encrypted thought state
+  仍只保存在 adapter 的有界私有状态，不能转换成 summary；
+- `ModelToolCallProposal` 只含 request 中精确的 `CapabilityIdentity`、可选且响应内
+  唯一的 provider call ID、object-root `BoundedJson` arguments 和注册 extension。
+  它没有 `InvocationId`；只有 schema、policy、budget、approval 和 invocation
+  ledger 全部通过后，runtime 才创建真正调用；
+- `ModelFinishReason` 封闭为 completed/tool-calls/output-limit/context-limit/refused/
+  content-filtered/paused。tool-calls 必须至少有一个完整 proposal，其他终态禁止
+  executable proposal；unknown、failed、cancelled、malformed provider 状态进入
+  `ModelError`，不能映射成 completed；
+- 单 attempt `ModelUsage` 必须提供 inclusive input/output；cached-input/reasoning 是
+  可选 subset，缺失表示 unavailable 而不是 0，subset 不能大于 inclusive total，
+  input + output checked。它与 run 累计 `BudgetUsage` 是不同类型，避免把一次调用
+  冒充全局账本；
+- `ModelResponse::new` 同时对 descriptor/request snapshot 做绑定校验：model
+  identity、request token ceiling、output modality、reasoning opt-in、tool identity/
+  choice/count 和 completed structured output 都必须一致。普通 text completion 可为空；
+  completed JSON 必须恰有一个 typed `JsonContent`，JSON Schema 模式还必须携带请求的
+  digest-pinned reference，且 adapter 已用本地可信 schema bytes 验证实际 value；
+- Serde 只能验证资源、metadata、usage 与 finish 的内在不变量，不能认证 registry
+  claim。读取 durable/remote wire 后必须调用 `validate_for(descriptor, request)`；
+  adapter 的 `new` 路径会强制完成两层校验。
+
+response/stop/usage 映射也逐项核对当前官方接口：
+
+- [OpenAI Responses](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
+  使用有序 output item，function call 与 message/reasoning item 可交错；response status
+  还包含 queued/in-progress/failed/cancelled/incomplete，只有可证明的终态进入 core。
+  usage 的 cached input 和 reasoning 都是 inclusive input/output 的明细 subset；
+- [Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create) 的
+  end-turn/max-tokens/stop-sequence/tool-use/pause-turn/refusal/context-window-exceeded
+  分别显式映射。inclusive input 必须由普通 input、cache creation、cache read 三类相加，
+  不能把缓存命中从预算中扣掉；
+- [Gemini generateContent](https://ai.google.dev/api/generate-content) 的 candidate
+  finish reasons 还包含 safety、recitation、blocklist、prohibited content、SPII、
+  malformed function call/response、unexpected/too-many tool calls 等。安全类可归一化为
+  content-filtered；malformed/unknown 类必须失败。`promptTokenCount` 已包含 cached
+  content，`totalTokenCount` 官方定义为 prompt + thoughts + response candidates，因此
+  core output 为 candidates + thoughts；单列的 tool-use prompt 明细保存在注册
+  extension，不能再次相加；
+- [Bedrock Converse](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html)
+  提供 end-turn/tool-use/max-tokens/stop-sequence/guardrail-intervened/content-filtered/
+  malformed-model-output/malformed-tool-use/context-window-exceeded，以及 inclusive
+  input/output/total 和 cache read/write 明细；malformed 类进入 error，cache 明细不
+  改写 inclusive totals。
+
+任何 provider-reported total 都必须与 adapter 的归一化等式一致；无法证明 inclusive
+input/output 的 terminal 结果返回错误，不能用 0 填充。provider stop sequence、原始
+finish/status、cache write、modality breakdown、service tier 等只可进入注册且有界的
+response extension。
+
 这些维度来自多家一手接口，而非只复刻 LangChain：
 
 - [OpenAI model catalog](https://developers.openai.com/api/docs/models/compare) 按模型
@@ -366,10 +427,12 @@ request 边界还逐项对照了多家当前一手 API，而不是用某一家�
 
 provider adapter 必须把有序 instruction 映射到自身最高优先级的指令通道，并保持
 顺序；durable `Message` 只包含 user/assistant/tool 语义角色，不能把外部内容提升为
-instruction。无法无损保持层级、顺序或 schema 约束时必须在 I/O 前失败。后续统一
-`ModelEvent` 覆盖 message delta、tool-call delta/completed、usage、provider metadata、
-finish 和 error。pricing、rate limit、service tier、region availability 与 provider
-knob 属于可变 policy/adapter 数据，不固化进模型 capability snapshot。
+instruction。无法无损保持层级、顺序、schema、finish 或 usage 约束时必须失败。
+下一切片统一 `ModelEvent`，覆盖 message delta、tool-call delta/completed、usage、
+provider metadata、finish 和 error；event state machine 必须最终收敛为已验证的同一
+`ModelResponse`，partial content 永远不是 committed completion。pricing、rate limit、
+service tier、region availability 与 provider knob 属于可变 policy/adapter 数据，
+不固化进模型 capability snapshot。
 
 建议 v1 只提供两个高保真第一方 adapter：OpenAI Responses/OpenAI-compatible 与 Anthropic Messages。其他 provider 在有明确用户需求和契约测试后再加入。
 

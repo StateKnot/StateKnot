@@ -1,0 +1,670 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-model-response/1.0.0",
+  "provider_model_ids": {
+    "valid": [
+      "gpt-5.6-2026-08-15",
+      "anthropic.claude-v4:1",
+      "projects/p/locations/us/models/gemini-3"
+    ],
+    "invalid": [
+      "",
+      "model alias",
+      "模型",
+      42,
+      null
+    ]
+  },
+  "provider_response_ids": {
+    "valid": [
+      "resp_01JABCDEF",
+      "provider/response:42"
+    ],
+    "invalid": [
+      "",
+      "response\n42",
+      "response 42",
+      false,
+      null
+    ]
+  },
+  "provider_tool_call_ids": {
+    "valid": [
+      "call_01JABCDEF",
+      "function-call/42:v1"
+    ],
+    "invalid": [
+      "",
+      "call\t42",
+      "调用-42",
+      {},
+      null
+    ]
+  },
+  "finish_reasons": {
+    "valid": [
+      "completed",
+      "tool_calls",
+      "output_limit",
+      "context_limit",
+      "refused",
+      "content_filtered",
+      "paused"
+    ],
+    "invalid": [
+      "failed",
+      "cancelled",
+      "other",
+      "malformed_tool_use",
+      "",
+      42,
+      null
+    ]
+  },
+  "provenances": {
+    "valid": [
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        },
+        "provider_model_id": "gpt-5.6-2026-08-15",
+        "provider_response_id": "resp_01JABCDEF"
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-4abc-8def-0123456789ab",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        },
+        "provider_response_id": "response 42"
+      },
+      {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "model": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "model-registry"
+          },
+          "capability": {
+            "name": "models.primary",
+            "version": "1.0.0"
+          }
+        },
+        "provider": "openai"
+      },
+      null
+    ]
+  },
+  "usages": {
+    "valid": [
+      {
+        "input_tokens": "120",
+        "cached_input_tokens": "20",
+        "output_tokens": "30",
+        "reasoning_tokens": "5"
+      },
+      {
+        "input_tokens": "0",
+        "output_tokens": "0"
+      },
+      {
+        "input_tokens": "0",
+        "cached_input_tokens": "0",
+        "output_tokens": "0",
+        "reasoning_tokens": "0"
+      }
+    ],
+    "invalid": [
+      {
+        "input_tokens": "2",
+        "cached_input_tokens": "3",
+        "output_tokens": "0"
+      },
+      {
+        "input_tokens": "0",
+        "output_tokens": "2",
+        "reasoning_tokens": "3"
+      },
+      {
+        "input_tokens": "18446744073709551615",
+        "output_tokens": "1"
+      },
+      {
+        "input_tokens": 1,
+        "output_tokens": "1"
+      },
+      {
+        "input_tokens": "1"
+      },
+      {
+        "input_tokens": "1",
+        "output_tokens": "1",
+        "total_tokens": "2"
+      },
+      null
+    ]
+  },
+  "tool_call_proposals": {
+    "valid": [
+      {
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "provider_call_id": "call_01JABCDEF",
+        "arguments": {
+          "amount_minor": 4200,
+          "currency": "USD"
+        },
+        "extensions": {}
+      },
+      {
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "arguments": {},
+        "extensions": {}
+      }
+    ],
+    "invalid": [
+      {
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "arguments": [],
+        "extensions": {}
+      },
+      {
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "provider_call_id": "call 42",
+        "arguments": {},
+        "extensions": {}
+      },
+      {
+        "tool": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          },
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          }
+        },
+        "arguments": {},
+        "extensions": {},
+        "approved": true
+      },
+      null
+    ]
+  },
+  "output_items": {
+    "valid": [
+      {
+        "type": "content",
+        "content": {
+          "type": "text",
+          "content": {
+            "text": "Payment requires approval.",
+            "language": "en-us",
+            "metadata": {
+              "source": "model",
+              "trust": "untrusted",
+              "security_label": "internal/model-output",
+              "redaction": "not_applied"
+            }
+          }
+        }
+      },
+      {
+        "type": "reasoning_summary",
+        "content": {
+          "text": "The request meets the documented prerequisites.",
+          "metadata": {
+            "source": "model",
+            "trust": "untrusted",
+            "security_label": "internal/model-output",
+            "redaction": "not_applied"
+          }
+        }
+      },
+      {
+        "type": "tool_call",
+        "content": {
+          "tool": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            },
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            }
+          },
+          "provider_call_id": "call_01JABCDEF",
+          "arguments": {
+            "amount_minor": 4200,
+            "currency": "USD"
+          },
+          "extensions": {}
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "type": "content",
+        "content": {
+          "type": "text",
+          "content": {
+            "text": "Incorrect trust claim.",
+            "metadata": {
+              "source": "model",
+              "trust": "application_controlled",
+              "security_label": "internal/model-output",
+              "redaction": "not_applied"
+            }
+          }
+        }
+      },
+      {
+        "type": "reasoning_summary",
+        "content": {
+          "text": "Incorrect source claim.",
+          "metadata": {
+            "source": "user",
+            "trust": "untrusted",
+            "security_label": "internal/model-output",
+            "redaction": "not_applied"
+          }
+        }
+      },
+      {
+        "type": "function_call",
+        "content": {}
+      },
+      null
+    ]
+  },
+  "responses": {
+    "valid": [
+      {
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          },
+          "provider_model_id": "gpt-5.6-2026-08-15",
+          "provider_response_id": "resp_01JABCDEF"
+        },
+        "output": [
+          {
+            "type": "content",
+            "content": {
+              "type": "text",
+              "content": {
+                "text": "Incident summary is ready.",
+                "language": "en-us",
+                "metadata": {
+                  "source": "model",
+                  "trust": "untrusted",
+                  "security_label": "internal/model-output",
+                  "redaction": "not_applied"
+                }
+              }
+            }
+          }
+        ],
+        "finish_reason": "completed",
+        "usage": {
+          "input_tokens": "120",
+          "cached_input_tokens": "20",
+          "output_tokens": "30",
+          "reasoning_tokens": "5"
+        },
+        "extensions": {}
+      },
+      {
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "output": [
+          {
+            "type": "content",
+            "content": {
+              "type": "text",
+              "content": {
+                "text": "Approval is required before capture.",
+                "metadata": {
+                  "source": "model",
+                  "trust": "untrusted",
+                  "security_label": "internal/model-output",
+                  "redaction": "not_applied"
+                }
+              }
+            }
+          },
+          {
+            "type": "tool_call",
+            "content": {
+              "tool": {
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                },
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                }
+              },
+              "provider_call_id": "call_01JABCDEF",
+              "arguments": {
+                "amount_minor": 4200,
+                "currency": "USD"
+              },
+              "extensions": {}
+            }
+          }
+        ],
+        "finish_reason": "tool_calls",
+        "usage": {
+          "input_tokens": "80",
+          "output_tokens": "16"
+        },
+        "extensions": {}
+      },
+      {
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ad",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "output": [],
+        "finish_reason": "paused",
+        "usage": {
+          "input_tokens": "12",
+          "output_tokens": "0"
+        },
+        "extensions": {}
+      }
+    ],
+    "invalid": [
+      {
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "output": [],
+        "finish_reason": "tool_calls",
+        "usage": {
+          "input_tokens": "1",
+          "output_tokens": "1"
+        },
+        "extensions": {}
+      },
+      {
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "output": [
+          {
+            "type": "tool_call",
+            "content": {
+              "tool": {
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                },
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                }
+              },
+              "arguments": {},
+              "extensions": {}
+            }
+          }
+        ],
+        "finish_reason": "completed",
+        "usage": {
+          "input_tokens": "1",
+          "output_tokens": "1"
+        },
+        "extensions": {}
+      },
+      {
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "output": [
+          {
+            "type": "tool_call",
+            "content": {
+              "tool": {
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                },
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                }
+              },
+              "provider_call_id": "duplicate",
+              "arguments": {},
+              "extensions": {}
+            }
+          },
+          {
+            "type": "tool_call",
+            "content": {
+              "tool": {
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                },
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                }
+              },
+              "provider_call_id": "duplicate",
+              "arguments": {},
+              "extensions": {}
+            }
+          }
+        ],
+        "finish_reason": "tool_calls",
+        "usage": {
+          "input_tokens": "1",
+          "output_tokens": "1"
+        },
+        "extensions": {}
+      },
+      {
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "output": [],
+        "finish_reason": "failed",
+        "usage": {
+          "input_tokens": "1",
+          "output_tokens": "0"
+        },
+        "extensions": {}
+      },
+      {
+        "provenance": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "model": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "model-registry"
+            },
+            "capability": {
+              "name": "models.primary",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "output": [],
+        "finish_reason": "completed",
+        "usage": {
+          "input_tokens": "1",
+          "output_tokens": "0"
+        },
+        "extensions": {},
+        "stored": true
+      },
+      null
+    ]
+  },
+  "raw_invalid_responses": [
+    "{\"provenance\":{\"attempt_id\":\"01912345-6789-7abc-8def-0123456789ab\",\"model\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"model-registry\"},\"capability\":{\"name\":\"models.primary\",\"version\":\"1.0.0\"}}},\"output\":[],\"finish_reason\":\"completed\",\"finish_reason\":\"paused\",\"usage\":{\"input_tokens\":\"1\",\"output_tokens\":\"0\"},\"extensions\":{}}"
+  ]
+}

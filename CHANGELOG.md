@@ -84,6 +84,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   derived capability requirements, tamper-resistant deserialization, redacted
   diagnostics, closed schemas, property tests, and an independent versioned
   wire fixture.
+- Immutable provider-neutral model responses with attempt/model provenance,
+  ordered typed content, readable reasoning summaries, unapproved exact-identity
+  tool proposals, closed portable finish reasons, inclusive per-attempt token
+  accounting, request/descriptor binding, strict structured-output and modality
+  checks, aggregate resource ceilings, redacted provider identifiers and
+  diagnostics, closed schemas, property tests, and an independent versioned
+  wire fixture.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

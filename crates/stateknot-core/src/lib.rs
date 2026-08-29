@@ -25,6 +25,7 @@ mod json;
 mod message;
 mod model;
 mod model_request;
+mod model_response;
 mod schema;
 mod scope;
 mod time;
@@ -89,6 +90,12 @@ pub use model::{
 pub use model_request::{
     ModelRequest, ModelRequestBuilder, ModelRequestError, ModelRequestLimits,
     ModelRequestLimitsError, ModelResponseMode, ModelTextOutputFormat, ModelToolSelection,
+};
+pub use model_response::{
+    ModelFinishReason, ModelOutputItem, ModelOutputItemError, ModelOutputItemKind,
+    ModelProviderIdentifierError, ModelProviderModelId, ModelProviderResponseId,
+    ModelProviderToolCallId, ModelResponse, ModelResponseError, ModelResponseProvenance,
+    ModelToolCallProposal, ModelToolCallProposalError, ModelUsage, ModelUsageError,
 };
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};

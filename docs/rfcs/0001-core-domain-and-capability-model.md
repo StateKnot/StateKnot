@@ -908,10 +908,78 @@ validated adapter extensions. Deadline and cumulative token/cost/tool budgets
 belong to `ModelContext` and the resolved run budget, not this per-invocation
 value. A request never contains a provider SDK object or bearer credential.
 
-`ModelResponse` contains typed content, validated tool-call proposals, finish
-reason, usage, adapter/provider identifiers, and redacted provider metadata.
-Tool-call proposals are not invocations until StateKnot validates schema,
-policy, budget, approval, and invocation-ledger state.
+`ModelResponse` is the immutable, ordered, provider-neutral result of exactly one
+attempt. `ModelResponseProvenance` binds it to an `AttemptId` and the exact
+owner-qualified `ModelDescriptor` identity. Optional provider model and response
+IDs preserve diagnostic correlation as opaque 1--512 byte visible-ASCII values;
+they are redacted from `Debug` and never become registry, authorization, replay,
+or idempotency keys.
+
+The response preserves provider order across three `ModelOutputItem` variants:
+
+- user-visible `ContentPart` values. Inline text/JSON must be
+  `model + untrusted`; artifact references retain `artifact + untrusted`;
+- explicitly requested, provider-authored readable reasoning summaries as
+  `TextContent`, never hidden chain of thought; and
+- complete `ModelToolCallProposal` values with an exact requested
+  `CapabilityIdentity`, optional opaque provider call ID, bounded object-root
+  JSON arguments, and bounded extensions required for registered provider
+  continuation/signature data.
+
+A proposal intentionally has no `InvocationId`. `AttemptId + ordered output
+index` is its durable pre-authorization identity. The runtime assigns an
+`InvocationId` only after resolving the exact tool from the authenticated tenant
+registry, validating arguments against its digest-pinned input schema, and
+passing policy, budget, approval, and invocation-ledger checks. Present provider
+call IDs must be unique within the response but remain correlation data.
+
+One response contains at most 256 content/summary items and 1024 complete tool
+proposals, therefore at most 1280 ordered items. Aggregate retained inline text,
+JSON, reasoning-summary, tool-argument, and per-proposal extension payload is
+limited to 64 MiB. An artifact reference contributes no inline bytes; its declared external byte
+length remains subject to artifact, run-budget, policy, storage, and downstream
+resolver limits rather than forcing large media into the response allocation.
+
+`ModelFinishReason` is the closed portable set `completed | tool_calls |
+output_limit | context_limit | refused | content_filtered | paused`.
+`tool_calls` requires at least one complete proposal, and every other reason
+forbids executable proposals. Truncated or malformed tool fragments never become
+proposals. Unknown provider terminal states, provider failures/cancellation, and
+malformed model/tool output map to `ModelError`; adapters cannot call them
+completed. Empty ordinary text completion is valid because a provider may bill
+output tokens without a visible block, but structured completion still requires
+exactly one typed `JsonContent`.
+
+`ModelUsage` records required inclusive input and output token counts for the
+attempt, plus optional cached-input and reasoning subsets. Absence of a subset
+means unavailable, never zero. Subsets cannot exceed their inclusive totals and
+input plus output uses checked arithmetic. OpenAI's input/output totals already
+contain their cached/reasoning subsets; Anthropic input is normalized as base
+input plus cache-creation plus cache-read tokens; Gemini input uses the effective
+prompt total and output uses candidates plus thoughts; Bedrock uses its inclusive
+input/output totals. Provider-specific cache write/read, modality, tool-prompt,
+and service-tier breakdowns remain registered response extensions. An adapter
+must reconcile any provider total instead of inventing or double-counting a
+category, and a terminal result without accountable input/output usage is an
+error rather than fabricated zero usage.
+
+`ModelResponse::new` binds every value to the immutable descriptor and request
+snapshot. It rejects a different model identity, usage above the request's input
+or output ceiling, unrequested output modalities or reasoning summaries,
+unknown/version-substituted tools, tool counts above the request ceiling, and
+violations of required/specific selection. On nominal completion, plain text
+cannot masquerade as typed JSON; `json` requires exactly one schema-free
+`JsonContent`; `json_schema` requires exactly one `JsonContent` carrying the
+same digest-pinned `SchemaReference`. The adapter must have already validated
+the value against trusted local schema bytes. Non-complete terminal states may
+carry partial text but are never decoded as structured success.
+
+Deserialization repeats all intrinsic resource, metadata, usage, and
+finish-reason validation. It cannot authenticate serialized descriptor/tool
+claims or recover the request snapshot, so durable and remote values must call
+`validate_for(descriptor, request)` before consumption. The adapter constructor
+performs both layers automatically. This separation keeps historical values
+readable without treating a wire claim as execution authority.
 
 Streaming emits semantic `ModelEvent` values. Adapters may coalesce provider
 deltas, but must produce one validated terminal response or one error. Partial
