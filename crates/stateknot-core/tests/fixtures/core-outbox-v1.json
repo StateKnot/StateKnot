@@ -1,0 +1,12 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-outbox/1.0.0",
+  "expected": {
+    "intent": "sha256:f079ff92bbcbfe3fe3ccc84cd1da97208238bb353590e5ceb597f4cba3ccaa8c",
+    "delivery": "sha256:745d2bed5591cbf8e91b9da65267b174269165980a79f75b55239afe123e9f76",
+    "start": "sha256:ad51c7ee2a6e912e7130ed3202e479c6cdeaed5ef1a7a49674ff5f6d482f30f8",
+    "acknowledgement": "sha256:b4db2fb44531fbbf2215f334bd7d126613e9090fcce7b229d2b1a53e67210675",
+    "acknowledged_wire": "sha256:349ee5e380a9e7e4ed84a1adea20a19175a14a9b2befe8c4c8af8c6d836d2b4c",
+    "failure": "sha256:0e0f2c60ad15eafa6b51777ca59467bcd9f8255f4c3f73785bf40b8935bd63b1",
+    "failed_wire": "sha256:78493d47cf5bbb2a02682a6aeebddcbe9e7d70d7d040e294c4efa2912ec28ef4"
+  }
+}

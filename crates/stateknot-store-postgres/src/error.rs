@@ -46,6 +46,9 @@ pub enum ConfigurationError {
     /// Initial leases exceeded the configured renewal safety horizon.
     #[error("lease duration must not exceed the maximum lease horizon")]
     LeaseDurationExceedsMaximumHorizon,
+    /// Fixed outbox attempt lease exceeded the core five-minute bound.
+    #[error("outbox attempt lease must not exceed five minutes")]
+    OutboxAttemptLeaseTooLong,
 }
 
 /// Durable `PostgreSQL` operation failure with payload-redacted diagnostics.
@@ -233,6 +236,51 @@ pub enum StoreError {
     /// A runnable-run cursor crossed tenant scope or contained an invalid key.
     #[error("runnable run cursor is invalid")]
     InvalidRunnableRunCursor,
+    /// An outbox enqueue batch was empty, duplicated, or exceeded its hard bound.
+    #[error("outbox enqueue batch is invalid")]
+    InvalidOutboxBatch,
+    /// Destination snapshot digest did not match its canonical configuration.
+    #[error("outbox destination snapshot does not match its canonical configuration")]
+    OutboxDestinationSnapshotMismatch,
+    /// No immutable destination snapshot exists in the tenant boundary.
+    #[error("outbox destination snapshot was not found in the tenant boundary")]
+    OutboxDestinationNotFound,
+    /// A destination snapshot identity conflicts with durable configuration.
+    #[error("outbox destination snapshot conflicts with durable configuration")]
+    OutboxDestinationConflict,
+    /// No outbox delivery exists in the supplied tenant/run boundary.
+    #[error("outbox delivery was not found in the tenant-scoped run")]
+    OutboxDeliveryNotFound,
+    /// A stable delivery identity conflicts with a committed immutable intent.
+    #[error("outbox delivery identity conflicts with a committed intent")]
+    OutboxDeliveryIdConflict,
+    /// Journal event and complete outbox set do not describe one atomic commit.
+    #[error("journal event and outbox deliveries conflict with an atomic commit")]
+    OutboxEnqueueConflict,
+    /// A physical outbox attempt identity was already claimed by another owner.
+    #[error("outbox attempt identity conflicts with a committed owner")]
+    OutboxAttemptIdConflict,
+    /// The supplied delivery fence is not the exact current attempt.
+    #[error("outbox delivery fencing token is stale")]
+    StaleOutboxFence,
+    /// The current outbox attempt reached its exclusive database expiry.
+    #[error("outbox attempt lease has expired")]
+    OutboxAttemptExpired,
+    /// A delivery attempt has no durable start in the tenant-scoped run.
+    #[error("outbox attempt was not found in the tenant-scoped run")]
+    OutboxAttemptNotFound,
+    /// A completion conflicts with an already committed terminal attempt.
+    #[error("outbox attempt completion conflicts with durable evidence")]
+    OutboxCompletionConflict,
+    /// The requested outbox state transition is invalid for durable history.
+    #[error("outbox attempt transition is invalid for the locked history")]
+    InvalidOutboxTransition,
+    /// An outbox history cursor did not identify the exact stored attempt.
+    #[error("outbox attempt history cursor does not match a durable attempt")]
+    InvalidOutboxAttemptCursor,
+    /// An outbox-attempt page size exceeded its decoded-memory safety bound.
+    #[error("outbox attempt history page size is invalid")]
+    InvalidOutboxAttemptPageSize,
     /// The run journal advanced after an earlier pending-result page snapshot.
     #[error("pending node result page snapshot is stale and must be restarted")]
     StalePendingNodeResultSnapshot,

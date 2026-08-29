@@ -3,7 +3,11 @@
 
 //! Real `PostgreSQL` migration, transaction, idempotency, and fencing tests.
 
-use std::{borrow::Cow, time::Duration};
+use std::{
+    borrow::Cow,
+    collections::BTreeSet,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use serde_json::json;
 use sqlx_core::{
@@ -15,27 +19,29 @@ use sqlx_postgres::{PgPool, PgPoolOptions};
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, BudgetUsage, CapabilityIdentity, CapabilityName,
     CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
-    CheckpointState, CheckpointWrite, Digest, DurationMillis, EventId, Failure, FailureCategory,
-    FailureCode, FailureId, FailureMessage, FailureOrigin, GraphNamespace, GraphReference,
-    InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
-    JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
-    ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
-    ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus,
-    NodeControl, NodeId, NodeInvocationBinding, NodeInvocationBindings, NodeStateChange,
-    NodeStateUpdate, PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, ReadyNodes,
-    RetryAdvice, RunCancellationRequest, RunId, RunStatus, RunTransition, SchemaId,
-    SchemaReference, SubjectId, TenantId, ThreadId, Timestamp, ToolArtifacts, ToolDescriptor,
-    ToolInput, ToolInvocation, ToolInvocationIntent, ToolInvocationStatus,
-    ToolInvocationTransition, ToolResult, ToolResultProvenance, Version,
+    CheckpointState, CheckpointWrite, DeliveryId, DestinationId, Digest, DurationMillis, EventId,
+    Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
+    GraphNamespace, GraphReference, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
+    JournalEventKind, JournalExpectation, JournalHead, JournalPayload, JournalSequence,
+    ModelDescriptor, ModelError, ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent,
+    ModelInvocationStatus, ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation,
+    NodeAttemptStatus, NodeControl, NodeId, NodeInvocationBinding, NodeInvocationBindings,
+    NodeStateChange, NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef,
+    PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, ReadyNodes, RetryAdvice,
+    RunCancellationRequest, RunId, RunStatus, RunTransition, SchemaId, SchemaReference, SubjectId,
+    TenantId, ThreadId, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation,
+    ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
+    ToolResultProvenance, Version,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
     CheckpointLineagePageSize, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome,
     LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
-    NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, PendingNodeResultCommitOutcome,
-    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
-    RunProjection, RunnableRunPageSize, StoreError, ToolInvocationCommitOutcome,
-    ToolInvocationHistoryPageSize,
+    NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize,
+    OutboxClaimOutcome, OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome,
+    OutboxEnqueueOutcome, PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore,
+    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, RunnableRunPageSize,
+    StoreError, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -47,6 +53,17 @@ async fn test_store() -> Option<PostgresStore> {
 }
 
 async fn test_store_with_lease_duration(lease_duration: Duration) -> Option<PostgresStore> {
+    test_store_with_options(test_options(lease_duration)).await
+}
+
+async fn test_store_with_outbox_attempt_lease(lease_duration: Duration) -> Option<PostgresStore> {
+    test_store_with_options(
+        test_options(Duration::from_secs(30)).with_outbox_attempt_lease(lease_duration),
+    )
+    .await
+}
+
+async fn test_store_with_options(options: PostgresStoreOptions) -> Option<PostgresStore> {
     let database_url = match std::env::var(DATABASE_URL_ENV) {
         Ok(value) => value,
         Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
@@ -57,7 +74,6 @@ async fn test_store_with_lease_duration(lease_duration: Duration) -> Option<Post
             panic!("PostgreSQL test URL must be valid Unicode")
         }
     };
-    let options = test_options(lease_duration);
     PostgresStore::migrate_database(&database_url, options.clone())
         .await
         .expect("migrations must succeed");
@@ -75,7 +91,88 @@ fn test_options(lease_duration: Duration) -> PostgresStoreOptions {
         .with_lease_timing(lease_duration, Duration::from_secs(5 * 60))
 }
 
+async fn remove_transactional_outbox(pool: &PgPool) {
+    query(
+        "ALTER TABLE stateknot.outbox_deliveries \
+         DROP CONSTRAINT outbox_deliveries_current_attempt_fk, \
+         DROP CONSTRAINT outbox_deliveries_last_completion_fk",
+    )
+    .execute(pool)
+    .await
+    .expect("v8 delivery back-references must be removed from the fixture");
+    for table in [
+        "stateknot.outbox_attempt_completions",
+        "stateknot.outbox_attempts",
+        "stateknot.outbox_deliveries",
+        "stateknot.outbox_destinations",
+    ] {
+        query(&format!("DROP TABLE {table}"))
+            .execute(pool)
+            .await
+            .expect("v8 outbox table must be removed from the fixture");
+    }
+    query(
+        "ALTER TABLE stateknot.run_attempt_claims \
+         DROP CONSTRAINT run_attempt_claims_outbox_exact_unique, \
+         DROP CONSTRAINT run_attempt_claims_ids_are_uuid_v7, \
+         DROP CONSTRAINT run_attempt_claims_kind_valid, \
+         DROP CONSTRAINT run_attempt_claims_owner_shape, \
+         DROP CONSTRAINT run_attempt_claims_clock_valid",
+    )
+    .execute(pool)
+    .await
+    .expect("v8 attempt-registry constraints must be removed from the fixture");
+    query("DROP INDEX stateknot.run_attempt_claims_non_outbox_anchor_unique")
+        .execute(pool)
+        .await
+        .expect("v8 partial attempt-anchor index must be removed from the fixture");
+    query(
+        "ALTER TABLE stateknot.run_attempt_claims \
+         DROP COLUMN delivery_id, \
+         DROP COLUMN delivery_epoch, \
+         ADD CONSTRAINT run_attempt_claims_anchor_unique UNIQUE ( \
+             tenant_id, run_id, journal_sequence \
+         ), \
+         ADD CONSTRAINT run_attempt_claims_ids_are_uuid_v7 CHECK ( \
+             stateknot.is_uuid_v7(run_id) \
+             AND stateknot.is_uuid_v7(attempt_id) \
+             AND (invocation_id IS NULL OR stateknot.is_uuid_v7(invocation_id)) \
+             AND stateknot.is_uuid_v7(journal_event_id) \
+         ), \
+         ADD CONSTRAINT run_attempt_claims_kind_valid CHECK ( \
+             claim_kind IN ('tool_invocation', 'model_invocation', 'node_attempt') \
+         ), \
+         ADD CONSTRAINT run_attempt_claims_owner_shape CHECK ( \
+             ( \
+                 claim_kind IN ('tool_invocation', 'model_invocation') \
+                 AND invocation_id IS NOT NULL \
+                 AND invocation_revision > 0 \
+                 AND activation_digest IS NULL \
+             ) \
+             OR ( \
+                 claim_kind = 'node_attempt' \
+                 AND invocation_id IS NULL \
+                 AND invocation_revision IS NULL \
+                 AND octet_length(activation_digest) = 32 \
+             ) \
+         ), \
+         ADD CONSTRAINT run_attempt_claims_clock_valid CHECK ( \
+             claimed_at = journal_recorded_at \
+         )",
+    )
+    .execute(pool)
+    .await
+    .expect("attempt registry must be restored to its exact v7 shape");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 8")
+        .execute(pool)
+        .await
+        .expect("v8 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
 async fn remove_scheduler_readiness(pool: &PgPool) {
+    remove_transactional_outbox(pool).await;
     query("DROP INDEX stateknot.runs_scheduler_ready")
         .execute(pool)
         .await
@@ -1537,6 +1634,216 @@ async fn migration_seven_backfills_an_indexed_fail_closed_scheduler_projection()
     administration.close().await;
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_eight_preserves_v7_attempts_and_installs_exact_outbox_guards() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v8_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .expect("test administration connection must open");
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .expect("isolated v8 upgrade database must be created");
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("fixture database must initially reach the current schema");
+    let fixture_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("fixture store must connect");
+    let tenant_id = tenant("v8-attempt-upgrade");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(
+        &fixture_store,
+        &tenant_id,
+        run_id,
+        740,
+    ))
+    .await;
+    let lease = fixture_store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let activation = pending_activation(checkpoint.checkpoint(), b"v8 preserved node attempt");
+    let node_attempt_id = AttemptId::generate();
+    let started = fixture_store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                741,
+            ),
+            activation,
+            node_attempt_id,
+        )
+        .await
+        .expect("authentic v7 node attempt fixture must commit");
+    fixture_store.close().await;
+
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .expect("isolated v8 fixture administration connection must open");
+    remove_transactional_outbox(&fixture_pool).await;
+    let legacy_version = query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+        .fetch_one(&fixture_pool)
+        .await
+        .unwrap();
+    assert_eq!(legacy_version, 7);
+    let preserved_claims = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.run_attempt_claims \
+         WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3 \
+           AND claim_kind = 'node_attempt'",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*node_attempt_id.as_uuid())
+    .fetch_one(&fixture_pool)
+    .await
+    .unwrap();
+    assert_eq!(preserved_claims, 1);
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 8 must upgrade the exact v7 attempt registry");
+    let upgraded_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("the upgraded v8 runtime schema must be accepted");
+    upgraded_store.verify_schema().await.unwrap();
+    let restored = upgraded_store
+        .load_node_attempt(&tenant_id, &run_id, node_attempt_id)
+        .await
+        .expect("pre-v8 node attempt must remain fully verifiable");
+    assert_eq!(restored.start().head(), started.attempt().start().head());
+
+    let verification_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    for index in [
+        "outbox_deliveries_ready",
+        "outbox_deliveries_expiry",
+        "outbox_deliveries_abandoned_limit",
+        "run_attempt_claims_non_outbox_anchor_unique",
+    ] {
+        let definition = query_scalar::<_, String>(
+            "SELECT indexdef FROM pg_catalog.pg_indexes \
+             WHERE schemaname = 'stateknot' AND indexname = $1",
+        )
+        .bind(index)
+        .fetch_one(&verification_pool)
+        .await
+        .expect("v8 operational index must exist");
+        assert!(definition.to_ascii_lowercase().contains("where"));
+    }
+    query("SET enable_seqscan = off")
+        .execute(&verification_pool)
+        .await
+        .unwrap();
+    let ready_plan = query_scalar::<_, String>(
+        "EXPLAIN (COSTS OFF) \
+         SELECT tenant_id, run_id, delivery_id \
+         FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 \
+           AND status IN ('pending', 'delivering', 'retry_scheduled') \
+           AND attempt_count < 64 \
+           AND next_attempt_at <= clock_timestamp() \
+           AND expires_at > clock_timestamp() \
+         ORDER BY next_attempt_at ASC, delivery_id ASC \
+         FOR UPDATE SKIP LOCKED LIMIT 1",
+    )
+    .bind(tenant_id.as_str())
+    .fetch_all(&verification_pool)
+    .await
+    .unwrap()
+    .join("\n")
+    .to_ascii_lowercase();
+    query("RESET enable_seqscan")
+        .execute(&verification_pool)
+        .await
+        .unwrap();
+    assert!(ready_plan.contains("outbox_deliveries_ready"));
+
+    let (destination, config) = outbox_destination(&tenant_id, 8);
+    upgraded_store
+        .register_outbox_destination(destination.clone(), config)
+        .await
+        .unwrap();
+    let event_id = EventId::generate();
+    upgraded_store
+        .append_control_plane_with_outbox(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                event_id,
+                JournalExpectation::exact(started.event().head()),
+                742,
+            ),
+            RunProjection::unchanged(),
+            vec![outbox_intent(
+                &tenant_id,
+                run_id,
+                event_id,
+                DeliveryId::generate(),
+                &destination,
+                8,
+                Duration::from_secs(60),
+            )],
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        upgraded_store
+            .claim_outbox_delivery(&tenant_id, node_attempt_id)
+            .await,
+        Err(StoreError::OutboxAttemptIdConflict)
+    ));
+    assert!(matches!(
+        upgraded_store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::Claimed(_)
+    ));
+
+    verification_pool.close().await;
+    upgraded_store.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .expect("isolated v8 upgrade database must be dropped");
+    administration.close().await;
+}
+
 fn database_url_with_name(database_url: &str, database_name: &str) -> String {
     let (prefix, current_database) = database_url
         .rsplit_once('/')
@@ -1590,6 +1897,134 @@ fn payload(index: u64) -> JournalPayload {
     .unwrap()
 }
 
+fn outbox_destination_config(index: u64) -> JournalPayload {
+    let schema = SchemaReference::new(
+        "https://stateknot.github.io/schema/outbox-destination/1.0.0"
+            .parse::<SchemaId>()
+            .unwrap(),
+        Version::new(1, 0, 0),
+        Digest::sha256(b"stateknot outbox destination schema v1"),
+    );
+    JournalPayload::new(
+        schema,
+        JournalEventKind::new("outbox-destination").unwrap(),
+        BoundedJson::try_from_value(json!({
+            "adapter": "a2a-push-v1",
+            "credential_handle": format!("vault://integration/outbox/{index}"),
+            "endpoint": format!("https://receiver{index}.example.invalid/a2a/push")
+        }))
+        .unwrap(),
+    )
+    .unwrap()
+}
+
+fn outbox_destination(tenant_id: &TenantId, index: u64) -> (OutboxDestinationRef, JournalPayload) {
+    let config = outbox_destination_config(index);
+    let destination = OutboxDestinationRef::new(
+        tenant_id.clone(),
+        DestinationId::generate(),
+        config.digest(),
+    );
+    (destination, config)
+}
+
+fn outbox_payload(index: u64) -> JournalPayload {
+    let schema = SchemaReference::new(
+        "https://stateknot.github.io/schema/a2a-push/1.0.0"
+            .parse::<SchemaId>()
+            .unwrap(),
+        Version::new(1, 0, 0),
+        Digest::sha256(b"stateknot a2a push schema v1"),
+    );
+    JournalPayload::new(
+        schema,
+        JournalEventKind::new("a2a-task-update").unwrap(),
+        BoundedJson::try_from_value(json!({
+            "state": "completed",
+            "task_id": format!("task-{index}")
+        }))
+        .unwrap(),
+    )
+    .unwrap()
+}
+
+fn timestamp_after(duration: Duration) -> Timestamp {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("integration-test clock must be after the Unix epoch");
+    let now_micros = i64::try_from(now.as_micros()).expect("current time must fit Timestamp");
+    let added_micros = i64::try_from(duration.as_micros()).expect("test duration must fit i64");
+    Timestamp::from_unix_micros(now_micros.checked_add(added_micros).unwrap()).unwrap()
+}
+
+fn outbox_intent(
+    tenant_id: &TenantId,
+    run_id: RunId,
+    event_id: EventId,
+    delivery_id: DeliveryId,
+    destination: &OutboxDestinationRef,
+    index: u64,
+    expires_after: Duration,
+) -> OutboxDeliveryIntent {
+    OutboxDeliveryIntent::new(
+        tenant_id.clone(),
+        run_id,
+        delivery_id,
+        event_id,
+        destination.clone(),
+        outbox_payload(index),
+        timestamp_after(expires_after),
+    )
+    .unwrap()
+}
+
+async fn enqueue_outbox_fixture(
+    store: &PostgresStore,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    count: u64,
+    expires_after: Duration,
+) -> (OutboxDestinationRef, OutboxEnqueueOutcome) {
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let (destination, config) = outbox_destination(tenant_id, count);
+    store
+        .register_outbox_destination(destination.clone(), config)
+        .await
+        .unwrap();
+    let event_id = EventId::generate();
+    let intents = (0..count)
+        .map(|index| {
+            outbox_intent(
+                tenant_id,
+                run_id,
+                event_id,
+                DeliveryId::generate(),
+                &destination,
+                index,
+                expires_after,
+            )
+        })
+        .collect();
+    let outcome = store
+        .append_control_plane_with_outbox(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                event_id,
+                JournalExpectation::empty(),
+                count,
+            ),
+            RunProjection::unchanged(),
+            intents,
+        )
+        .await
+        .unwrap();
+    (destination, outcome)
+}
+
 fn cancellation_request(requested_at: Timestamp) -> RunCancellationRequest {
     let failure = Failure::new(
         FailureId::generate(),
@@ -1601,6 +2036,23 @@ fn cancellation_request(requested_at: Timestamp) -> RunCancellationRequest {
     )
     .unwrap();
     RunCancellationRequest::new(failure, requested_at).unwrap()
+}
+
+fn outbox_failure(index: u64, retry_advice: RetryAdvice) -> Failure {
+    let category = if matches!(retry_advice, RetryAdvice::ReconcileFirst) {
+        FailureCategory::AmbiguousExternalOutcome
+    } else {
+        FailureCategory::DependencyUnavailable
+    };
+    Failure::new(
+        FailureId::generate(),
+        category,
+        FailureCode::new(format!("outbox.delivery-{index}")).unwrap(),
+        FailureOrigin::new("test.outbox-adapter").unwrap(),
+        FailureMessage::new("The test destination did not acknowledge delivery.").unwrap(),
+        retry_advice,
+    )
+    .unwrap()
 }
 
 fn checkpoint_graph() -> GraphReference {
@@ -2079,6 +2531,1300 @@ fn control_append(
     let intent =
         JournalEventIntent::control_plane(tenant_id, run_id, event_id, payload(index)).unwrap();
     JournalAppend::new(expectation, intent).unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn outbox_destination_and_atomic_enqueue_are_fail_closed_and_idempotent() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("outbox-enqueue");
+    let run_id = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+
+    let (destination, config) = outbox_destination(&tenant_id, 1);
+    let mismatched = OutboxDestinationRef::new(
+        tenant_id.clone(),
+        destination.destination_id(),
+        Digest::sha256(b"not the destination configuration"),
+    );
+    assert!(matches!(
+        store
+            .register_outbox_destination(mismatched, config.clone())
+            .await,
+        Err(StoreError::OutboxDestinationSnapshotMismatch)
+    ));
+    let registered = store
+        .register_outbox_destination(destination.clone(), config.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        registered,
+        OutboxDestinationRegistrationOutcome::Registered(_)
+    ));
+    assert_eq!(registered.destination().destination(), &destination);
+    assert_eq!(registered.destination().config(), &config);
+    let idempotent_destination = store
+        .register_outbox_destination(destination.clone(), config.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        idempotent_destination,
+        OutboxDestinationRegistrationOutcome::Idempotent(_)
+    ));
+    assert_eq!(
+        store.load_outbox_destination(&destination).await.unwrap(),
+        registered.destination().clone()
+    );
+    let crossed_destination = OutboxDestinationRef::new(
+        tenant("outbox-crossed-destination"),
+        destination.destination_id(),
+        destination.snapshot_digest(),
+    );
+    assert!(matches!(
+        store.load_outbox_destination(&crossed_destination).await,
+        Err(StoreError::OutboxDestinationNotFound)
+    ));
+
+    let invalid_batch_event = EventId::generate();
+    let invalid_batch_append = || {
+        control_append(
+            tenant_id.clone(),
+            run_id,
+            invalid_batch_event,
+            JournalExpectation::empty(),
+            9,
+        )
+    };
+    assert!(matches!(
+        store
+            .append_control_plane_with_outbox(
+                invalid_batch_append(),
+                RunProjection::unchanged(),
+                Vec::new(),
+            )
+            .await,
+        Err(StoreError::InvalidOutboxBatch)
+    ));
+    let duplicated = outbox_intent(
+        &tenant_id,
+        run_id,
+        invalid_batch_event,
+        DeliveryId::generate(),
+        &destination,
+        9,
+        Duration::from_secs(60),
+    );
+    assert!(matches!(
+        store
+            .append_control_plane_with_outbox(
+                invalid_batch_append(),
+                RunProjection::unchanged(),
+                vec![duplicated.clone(), duplicated],
+            )
+            .await,
+        Err(StoreError::InvalidOutboxBatch)
+    ));
+    let wrong_origin = outbox_intent(
+        &tenant_id,
+        run_id,
+        EventId::generate(),
+        DeliveryId::generate(),
+        &destination,
+        9,
+        Duration::from_secs(60),
+    );
+    assert!(matches!(
+        store
+            .append_control_plane_with_outbox(
+                invalid_batch_append(),
+                RunProjection::unchanged(),
+                vec![wrong_origin],
+            )
+            .await,
+        Err(StoreError::InvalidOutboxBatch)
+    ));
+    let oversized = (0..65)
+        .map(|index| {
+            outbox_intent(
+                &tenant_id,
+                run_id,
+                invalid_batch_event,
+                DeliveryId::generate(),
+                &destination,
+                index,
+                Duration::from_secs(60),
+            )
+        })
+        .collect();
+    assert!(matches!(
+        store
+            .append_control_plane_with_outbox(
+                invalid_batch_append(),
+                RunProjection::unchanged(),
+                oversized,
+            )
+            .await,
+        Err(StoreError::InvalidOutboxBatch)
+    ));
+
+    let missing_event_id = EventId::generate();
+    let missing_destination = OutboxDestinationRef::new(
+        tenant_id.clone(),
+        DestinationId::generate(),
+        Digest::sha256(b"missing destination snapshot"),
+    );
+    let missing_intent = outbox_intent(
+        &tenant_id,
+        run_id,
+        missing_event_id,
+        DeliveryId::generate(),
+        &missing_destination,
+        10,
+        Duration::from_secs(60),
+    );
+    assert!(matches!(
+        store
+            .append_control_plane_with_outbox(
+                control_append(
+                    tenant_id.clone(),
+                    run_id,
+                    missing_event_id,
+                    JournalExpectation::empty(),
+                    10,
+                ),
+                RunProjection::unchanged(),
+                vec![missing_intent],
+            )
+            .await,
+        Err(StoreError::OutboxDestinationNotFound)
+    ));
+    assert!(
+        store
+            .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(4).unwrap())
+            .await
+            .unwrap()
+            .events()
+            .is_empty()
+    );
+
+    let event_id = EventId::generate();
+    let first_delivery_id = DeliveryId::generate();
+    let second_delivery_id = DeliveryId::generate();
+    let first_intent = outbox_intent(
+        &tenant_id,
+        run_id,
+        event_id,
+        first_delivery_id,
+        &destination,
+        11,
+        Duration::from_secs(60),
+    );
+    let second_intent = outbox_intent(
+        &tenant_id,
+        run_id,
+        event_id,
+        second_delivery_id,
+        &destination,
+        12,
+        Duration::from_secs(60),
+    );
+    let enqueue = || {
+        control_append(
+            tenant_id.clone(),
+            run_id,
+            event_id,
+            JournalExpectation::empty(),
+            11,
+        )
+    };
+    let committed = store
+        .append_control_plane_with_outbox(
+            enqueue(),
+            RunProjection::unchanged(),
+            vec![first_intent.clone(), second_intent.clone()],
+        )
+        .await
+        .unwrap();
+    assert!(matches!(committed, OutboxEnqueueOutcome::Committed { .. }));
+    assert_eq!(committed.deliveries().len(), 2);
+    for delivery in committed.deliveries() {
+        assert_eq!(
+            store
+                .load_outbox_delivery(&tenant_id, run_id, delivery.intent().delivery_id())
+                .await
+                .unwrap(),
+            *delivery
+        );
+        assert_eq!(delivery.origin(), &committed.event().head());
+    }
+
+    let lost_ack = store
+        .append_control_plane_with_outbox(
+            enqueue(),
+            RunProjection::unchanged(),
+            vec![first_intent.clone(), second_intent.clone()],
+        )
+        .await
+        .unwrap();
+    assert!(matches!(lost_ack, OutboxEnqueueOutcome::Idempotent { .. }));
+    assert_eq!(lost_ack.event(), committed.event());
+    assert_eq!(lost_ack.deliveries(), committed.deliveries());
+    assert!(matches!(
+        store
+            .append_control_plane_with_outbox(
+                enqueue(),
+                RunProjection::unchanged(),
+                vec![first_intent],
+            )
+            .await,
+        Err(StoreError::OutboxEnqueueConflict)
+    ));
+
+    let next_event_id = EventId::generate();
+    let reused_delivery = outbox_intent(
+        &tenant_id,
+        run_id,
+        next_event_id,
+        first_delivery_id,
+        &destination,
+        13,
+        Duration::from_secs(60),
+    );
+    assert!(matches!(
+        store
+            .append_control_plane_with_outbox(
+                control_append(
+                    tenant_id.clone(),
+                    run_id,
+                    next_event_id,
+                    JournalExpectation::exact(committed.event().head()),
+                    13,
+                ),
+                RunProjection::unchanged(),
+                vec![reused_delivery],
+            )
+            .await,
+        Err(StoreError::OutboxDeliveryIdConflict)
+    ));
+    assert_eq!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .journal_head(),
+        Some(&committed.event().head())
+    );
+
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT IF EXISTS test_outbox_atomic_rollback")
+        .execute(&administration)
+        .await
+        .unwrap();
+    query(&format!(
+        "ALTER TABLE stateknot.runs ADD CONSTRAINT test_outbox_atomic_rollback \
+         CHECK (tenant_id <> '{}' OR journal_sequence <= 1) NOT VALID",
+        tenant_id.as_str()
+    ))
+    .execute(&administration)
+    .await
+    .unwrap();
+    let rollback_event_id = EventId::generate();
+    let rollback_delivery_id = DeliveryId::generate();
+    let rollback_result = store
+        .append_control_plane_with_outbox(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                rollback_event_id,
+                JournalExpectation::exact(committed.event().head()),
+                14,
+            ),
+            RunProjection::unchanged(),
+            vec![outbox_intent(
+                &tenant_id,
+                run_id,
+                rollback_event_id,
+                rollback_delivery_id,
+                &destination,
+                14,
+                Duration::from_secs(60),
+            )],
+        )
+        .await;
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT test_outbox_atomic_rollback")
+        .execute(&administration)
+        .await
+        .unwrap();
+    assert!(matches!(rollback_result, Err(StoreError::Database { .. })));
+    assert!(matches!(
+        store
+            .load_outbox_delivery(&tenant_id, run_id, rollback_delivery_id)
+            .await,
+        Err(StoreError::OutboxDeliveryNotFound)
+    ));
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(4).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(journal.events(), &[committed.event().clone()]);
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn worker_outbox_enqueue_is_fenced_but_preserves_committed_lost_ack_retries() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(30)).await else {
+        return;
+    };
+    let tenant_id = tenant("outbox-worker-fence");
+    let run_id = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let (destination, config) = outbox_destination(&tenant_id, 20);
+    store
+        .register_outbox_destination(destination.clone(), config)
+        .await
+        .unwrap();
+    let event_id = EventId::generate();
+    let delivery_id = DeliveryId::generate();
+    let delivery = outbox_intent(
+        &tenant_id,
+        run_id,
+        event_id,
+        delivery_id,
+        &destination,
+        20,
+        Duration::from_secs(60),
+    );
+    let first_append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            event_id,
+            JournalExpectation::empty(),
+            first_lease.fence().clone(),
+            20,
+        )
+    };
+    let committed = store
+        .append_worker_with_outbox(
+            first_append(),
+            RunProjection::unchanged(),
+            vec![delivery.clone()],
+        )
+        .await
+        .unwrap();
+    assert!(matches!(committed, OutboxEnqueueOutcome::Committed { .. }));
+
+    let current_lease = store
+        .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let lost_ack = store
+        .append_worker_with_outbox(first_append(), RunProjection::unchanged(), vec![delivery])
+        .await
+        .expect("a committed event must remain recoverable after fence takeover");
+    assert!(matches!(lost_ack, OutboxEnqueueOutcome::Idempotent { .. }));
+    assert_eq!(lost_ack.event(), committed.event());
+
+    let stale_event_id = EventId::generate();
+    let stale_delivery_id = DeliveryId::generate();
+    assert!(matches!(
+        store
+            .append_worker_with_outbox(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    stale_event_id,
+                    JournalExpectation::exact(committed.event().head()),
+                    first_lease.fence().clone(),
+                    21,
+                ),
+                RunProjection::unchanged(),
+                vec![outbox_intent(
+                    &tenant_id,
+                    run_id,
+                    stale_event_id,
+                    stale_delivery_id,
+                    &destination,
+                    21,
+                    Duration::from_secs(60),
+                )],
+            )
+            .await,
+        Err(StoreError::StaleFence)
+    ));
+    assert!(matches!(
+        store
+            .load_outbox_delivery(&tenant_id, run_id, stale_delivery_id)
+            .await,
+        Err(StoreError::OutboxDeliveryNotFound)
+    ));
+
+    let current_event_id = EventId::generate();
+    let current_delivery_id = DeliveryId::generate();
+    let current = store
+        .append_worker_with_outbox(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                current_event_id,
+                JournalExpectation::exact(committed.event().head()),
+                current_lease.fence().clone(),
+                22,
+            ),
+            RunProjection::unchanged(),
+            vec![outbox_intent(
+                &tenant_id,
+                run_id,
+                current_event_id,
+                current_delivery_id,
+                &destination,
+                22,
+                Duration::from_secs(60),
+            )],
+        )
+        .await
+        .unwrap();
+    assert_eq!(current.event().sequence().get(), 2);
+    assert_eq!(
+        store
+            .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(4).unwrap())
+            .await
+            .unwrap()
+            .events()
+            .len(),
+        2
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[allow(clippy::too_many_lines)]
+async fn concurrent_outbox_claims_are_unique_durable_and_lost_ack_safe() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(2)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("outbox-concurrent-claim");
+    let run_id = RunId::generate();
+    let (_, enqueued) =
+        enqueue_outbox_fixture(&store, &tenant_id, run_id, 24, Duration::from_secs(120)).await;
+    let expected_ids = enqueued
+        .deliveries()
+        .iter()
+        .map(|delivery| delivery.intent().delivery_id())
+        .collect::<BTreeSet<_>>();
+
+    let mut tasks = Vec::new();
+    for _ in 0..24 {
+        let store = store.clone();
+        let tenant_id = tenant_id.clone();
+        let attempt_id = AttemptId::generate();
+        tasks.push(tokio::spawn(async move {
+            (
+                attempt_id,
+                store.claim_outbox_delivery(&tenant_id, attempt_id).await,
+            )
+        }));
+    }
+    let mut claims = Vec::new();
+    for task in tasks {
+        let (attempt_id, outcome) = task.await.unwrap();
+        match outcome.unwrap() {
+            OutboxClaimOutcome::Claimed(claim) => {
+                assert_eq!(claim.fence().attempt_id(), attempt_id);
+                assert_eq!(claim.fence().tenant_id(), &tenant_id);
+                assert_eq!(claim.destination().destination().tenant_id(), &tenant_id);
+                claims.push(claim);
+            }
+            other => panic!("fresh concurrent attempt must claim one row: {other:?}"),
+        }
+    }
+    let claimed_ids = claims
+        .iter()
+        .map(|claim| claim.delivery().intent().delivery_id())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(claimed_ids, expected_ids);
+    assert_eq!(claims.len(), 24);
+
+    let first = claims.first().unwrap().clone();
+    let durable_before_dispatch = query_scalar::<_, bool>(
+        "SELECT EXISTS ( \
+             SELECT 1 \
+             FROM stateknot.outbox_attempts AS attempt \
+             JOIN stateknot.run_attempt_claims AS claim \
+               ON claim.tenant_id = attempt.tenant_id \
+              AND claim.run_id = attempt.run_id \
+              AND claim.attempt_id = attempt.attempt_id \
+             JOIN stateknot.outbox_deliveries AS delivery \
+               ON delivery.tenant_id = attempt.tenant_id \
+              AND delivery.run_id = attempt.run_id \
+              AND delivery.delivery_id = attempt.delivery_id \
+             WHERE attempt.tenant_id = $1 \
+               AND attempt.run_id = $2 \
+               AND attempt.attempt_id = $3 \
+               AND claim.claim_kind = 'outbox_attempt' \
+               AND delivery.status = 'delivering' \
+         )",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*first.fence().attempt_id().as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert!(durable_before_dispatch);
+
+    let recovered = store
+        .claim_outbox_delivery(&tenant_id, first.fence().attempt_id())
+        .await
+        .unwrap();
+    let recovered = match recovered {
+        OutboxClaimOutcome::Idempotent(claim) => claim,
+        other => panic!("live claim retry must recover the exact start: {other:?}"),
+    };
+    assert_eq!(recovered.start(), first.start());
+    assert_eq!(recovered.delivery(), first.delivery());
+
+    let evidence = Digest::sha256(b"bounded protocol acknowledgement");
+    let acknowledged = store
+        .acknowledge_outbox_attempt(first.fence(), Some(evidence))
+        .await
+        .unwrap();
+    assert!(matches!(
+        acknowledged,
+        OutboxCompletionOutcome::Committed { .. }
+    ));
+    let completion_digest = acknowledged.completion().unwrap().digest();
+    let lost_ack = store
+        .acknowledge_outbox_attempt(first.fence(), Some(evidence))
+        .await
+        .unwrap();
+    assert!(matches!(
+        lost_ack,
+        OutboxCompletionOutcome::Idempotent { .. }
+    ));
+    assert_eq!(lost_ack.completion().unwrap().digest(), completion_digest);
+    assert!(matches!(
+        store
+            .acknowledge_outbox_attempt(
+                first.fence(),
+                Some(Digest::sha256(b"conflicting acknowledgement evidence")),
+            )
+            .await,
+        Err(StoreError::OutboxCompletionConflict)
+    ));
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant_id, first.fence().attempt_id())
+            .await,
+        Err(StoreError::StaleOutboxFence)
+    ));
+
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::NoWork
+    ));
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant("outbox-isolated-claim"), AttemptId::generate(),)
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::NoWork
+    ));
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn outbox_retry_takeover_dead_letter_expiry_and_history_follow_database_time() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_outbox_attempt_lease(Duration::from_secs(2)).await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("outbox-retry");
+    let run_id = RunId::generate();
+    let (_, enqueued) =
+        enqueue_outbox_fixture(&store, &tenant_id, run_id, 1, Duration::from_secs(10)).await;
+    let delivery_id = enqueued.deliveries()[0].intent().delivery_id();
+
+    let first_attempt_id = AttemptId::generate();
+    let first = match store
+        .claim_outbox_delivery(&tenant_id, first_attempt_id)
+        .await
+        .unwrap()
+    {
+        OutboxClaimOutcome::Claimed(claim) => claim,
+        other => panic!("first delivery attempt must be claimed: {other:?}"),
+    };
+    assert_eq!(first.fence().epoch().get(), 1);
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::NoWork
+    ));
+
+    tokio::time::sleep(Duration::from_millis(2_200)).await;
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant_id, first_attempt_id)
+            .await,
+        Err(StoreError::OutboxAttemptExpired)
+    ));
+    assert!(matches!(
+        store.acknowledge_outbox_attempt(first.fence(), None).await,
+        Err(StoreError::OutboxAttemptExpired)
+    ));
+    let second = match store
+        .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+        .await
+        .unwrap()
+    {
+        OutboxClaimOutcome::Claimed(claim) => claim,
+        other => panic!("expired attempt must be taken over: {other:?}"),
+    };
+    assert_eq!(second.delivery(), first.delivery());
+    assert_eq!(second.fence().epoch().get(), 2);
+    assert!(matches!(
+        store.acknowledge_outbox_attempt(first.fence(), None).await,
+        Err(StoreError::StaleOutboxFence)
+    ));
+
+    assert!(matches!(
+        store
+            .fail_outbox_attempt(
+                second.fence(),
+                outbox_failure(0, RetryAdvice::ReconcileFirst)
+            )
+            .await,
+        Err(StoreError::InvalidOutboxTransition)
+    ));
+
+    let retry_failure = outbox_failure(
+        1,
+        RetryAdvice::SafeAfter {
+            delay: DurationMillis::new(1_000).unwrap(),
+        },
+    );
+    assert!(matches!(
+        store
+            .fail_outbox_attempt(second.fence(), retry_failure)
+            .await
+            .unwrap(),
+        OutboxCompletionOutcome::Committed { .. }
+    ));
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::NoWork
+    ));
+
+    let first_page = store
+        .load_outbox_attempt_history_page(
+            &tenant_id,
+            run_id,
+            delivery_id,
+            None,
+            OutboxAttemptHistoryPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(first_page.records().len(), 1);
+    assert!(first_page.has_more());
+    assert_eq!(first_page.records()[0].start(), first.start());
+    let cursor = first_page.next_cursor().unwrap();
+    let second_page = store
+        .load_outbox_attempt_history_page(
+            &tenant_id,
+            run_id,
+            delivery_id,
+            Some(&cursor),
+            OutboxAttemptHistoryPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(second_page.records().len(), 1);
+    assert!(!second_page.has_more());
+    assert_eq!(second_page.records()[0].start(), second.start());
+
+    tokio::time::sleep(Duration::from_millis(1_200)).await;
+    let third = match store
+        .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+        .await
+        .unwrap()
+    {
+        OutboxClaimOutcome::Claimed(claim) => claim,
+        other => panic!("safe-after boundary must release work: {other:?}"),
+    };
+    assert_eq!(third.fence().epoch().get(), 3);
+    let terminal_failure = outbox_failure(2, RetryAdvice::Never);
+    let terminal = store
+        .fail_outbox_attempt(third.fence(), terminal_failure.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        terminal,
+        OutboxCompletionOutcome::Committed { .. }
+    ));
+    let terminal_digest = terminal.completion().unwrap().digest();
+    let terminal_lost_ack = store
+        .fail_outbox_attempt(third.fence(), terminal_failure)
+        .await
+        .unwrap();
+    assert!(matches!(
+        terminal_lost_ack,
+        OutboxCompletionOutcome::Idempotent { .. }
+    ));
+    assert_eq!(
+        terminal_lost_ack.completion().unwrap().digest(),
+        terminal_digest
+    );
+    assert!(matches!(
+        store
+            .fail_outbox_attempt(third.fence(), outbox_failure(3, RetryAdvice::Never))
+            .await,
+        Err(StoreError::OutboxCompletionConflict)
+    ));
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::NoWork
+    ));
+    let status = query_scalar::<_, String>(
+        "SELECT status FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*delivery_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!(status, "dead_letter");
+
+    let expiry_tenant = tenant("outbox-expiry");
+    let expiry_run = RunId::generate();
+    let (_, expiry_enqueue) = enqueue_outbox_fixture(
+        &store,
+        &expiry_tenant,
+        expiry_run,
+        1,
+        Duration::from_secs(1),
+    )
+    .await;
+    let expiry_delivery = expiry_enqueue.deliveries()[0].intent().delivery_id();
+    tokio::time::sleep(Duration::from_millis(1_200)).await;
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&expiry_tenant, AttemptId::generate())
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::NoWork
+    ));
+    let expired = query_scalar::<_, bool>(
+        "SELECT status = 'expired' \
+                AND next_attempt_at IS NULL \
+                AND terminal_at = expires_at \
+                AND updated_at = expires_at \
+         FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3",
+    )
+    .bind(expiry_tenant.as_str())
+    .bind(*expiry_run.as_uuid())
+    .bind(*expiry_delivery.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert!(expired);
+    store
+        .load_outbox_delivery(&expiry_tenant, expiry_run, expiry_delivery)
+        .await
+        .expect("a terminal expired delivery remains audit-readable");
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn outbox_attempt_limit_is_hard_bounded_for_completed_and_abandoned_attempts() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_outbox_attempt_lease(Duration::from_secs(3)).await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("outbox-attempt-limit");
+    let run_id = RunId::generate();
+    let (destination, first_enqueue) =
+        enqueue_outbox_fixture(&store, &tenant_id, run_id, 1, Duration::from_secs(5 * 60)).await;
+    let first_delivery_id = first_enqueue.deliveries()[0].intent().delivery_id();
+
+    for expected_epoch in 1..=64_u64 {
+        let claim = match store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap()
+        {
+            OutboxClaimOutcome::Claimed(claim) => claim,
+            other => panic!("attempt {expected_epoch} must be claimable: {other:?}"),
+        };
+        assert_eq!(claim.delivery().intent().delivery_id(), first_delivery_id);
+        assert_eq!(claim.fence().epoch().get(), expected_epoch);
+        assert!(matches!(
+            store
+                .fail_outbox_attempt(
+                    claim.fence(),
+                    outbox_failure(
+                        expected_epoch,
+                        RetryAdvice::SafeAfter {
+                            delay: DurationMillis::ZERO,
+                        },
+                    ),
+                )
+                .await
+                .unwrap(),
+            OutboxCompletionOutcome::Committed { .. }
+        ));
+    }
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::NoWork
+    ));
+    let completed_limit = query_scalar::<_, bool>(
+        "SELECT status = 'dead_letter' \
+                AND attempt_count = 64 \
+                AND next_attempt_at IS NULL \
+                AND last_completion_digest IS NOT NULL \
+                AND terminal_at = updated_at \
+         FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*first_delivery_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert!(completed_limit);
+
+    let mut cursor = None;
+    let mut epochs = Vec::new();
+    loop {
+        let page = store
+            .load_outbox_attempt_history_page(
+                &tenant_id,
+                run_id,
+                first_delivery_id,
+                cursor.as_ref(),
+                OutboxAttemptHistoryPageSize::new(16).unwrap(),
+            )
+            .await
+            .unwrap();
+        epochs.extend(
+            page.records()
+                .iter()
+                .map(|attempt| attempt.start().fence().epoch().get()),
+        );
+        if !page.has_more() {
+            break;
+        }
+        cursor = page.next_cursor();
+    }
+    assert_eq!(epochs, (1..=64).collect::<Vec<_>>());
+
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    let second_event_id = EventId::generate();
+    let second_delivery_id = DeliveryId::generate();
+    store
+        .append_control_plane_with_outbox(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                second_event_id,
+                JournalExpectation::exact(run.journal_head().unwrap().clone()),
+                65,
+            ),
+            RunProjection::unchanged(),
+            vec![outbox_intent(
+                &tenant_id,
+                run_id,
+                second_event_id,
+                second_delivery_id,
+                &destination,
+                65,
+                Duration::from_secs(5 * 60),
+            )],
+        )
+        .await
+        .unwrap();
+    for expected_epoch in 1..64_u64 {
+        let claim = match store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap()
+        {
+            OutboxClaimOutcome::Claimed(claim) => claim,
+            other => panic!("abandoned fixture attempt {expected_epoch} must claim: {other:?}"),
+        };
+        assert_eq!(claim.delivery().intent().delivery_id(), second_delivery_id);
+        assert_eq!(claim.fence().epoch().get(), expected_epoch);
+        store
+            .fail_outbox_attempt(
+                claim.fence(),
+                outbox_failure(
+                    100 + expected_epoch,
+                    RetryAdvice::SafeAfter {
+                        delay: DurationMillis::ZERO,
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+    }
+    let abandoned = match store
+        .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+        .await
+        .unwrap()
+    {
+        OutboxClaimOutcome::Claimed(claim) => claim,
+        other => panic!("64th abandoned fixture attempt must claim: {other:?}"),
+    };
+    assert_eq!(abandoned.fence().epoch().get(), 64);
+    tokio::time::sleep(Duration::from_millis(3_300)).await;
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&tenant_id, AttemptId::generate())
+            .await
+            .unwrap(),
+        OutboxClaimOutcome::NoWork
+    ));
+    let abandoned_limit = query_scalar::<_, bool>(
+        "SELECT status = 'dead_letter' \
+                AND attempt_count = 64 \
+                AND next_attempt_at IS NULL \
+                AND last_completion_digest IS NULL \
+                AND terminal_at = current_attempt_expires_at \
+                AND updated_at = current_attempt_expires_at \
+         FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*second_delivery_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert!(abandoned_limit);
+    store
+        .load_outbox_delivery(&tenant_id, run_id, second_delivery_id)
+        .await
+        .expect("attempt-limit dead letters remain fully audit-readable");
+    let last_page = store
+        .load_outbox_attempt_history_page(
+            &tenant_id,
+            run_id,
+            second_delivery_id,
+            None,
+            OutboxAttemptHistoryPageSize::new(16).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(last_page.has_more());
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn outbox_load_claim_and_completion_fail_closed_on_every_durable_anchor() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+
+    let destination_tenant = tenant("outbox-corrupt-destination");
+    let destination_run = RunId::generate();
+    let (destination, destination_enqueue) = enqueue_outbox_fixture(
+        &store,
+        &destination_tenant,
+        destination_run,
+        1,
+        Duration::from_secs(60),
+    )
+    .await;
+    let destination_delivery = destination_enqueue.deliveries()[0].intent().delivery_id();
+    query(
+        "UPDATE stateknot.outbox_destinations \
+         SET config_bytes = config_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND destination_id = $2 AND snapshot_digest = $3",
+    )
+    .bind(destination_tenant.as_str())
+    .bind(*destination.destination_id().as_uuid())
+    .bind(destination.snapshot_digest().as_bytes())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store.load_outbox_destination(&destination).await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .load_outbox_delivery(&destination_tenant, destination_run, destination_delivery,)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&destination_tenant, AttemptId::generate())
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let delivery_tenant = tenant("outbox-corrupt-delivery");
+    let delivery_run = RunId::generate();
+    let (_, delivery_enqueue) = enqueue_outbox_fixture(
+        &store,
+        &delivery_tenant,
+        delivery_run,
+        1,
+        Duration::from_secs(60),
+    )
+    .await;
+    let delivery_id = delivery_enqueue.deliveries()[0].intent().delivery_id();
+    query(
+        "UPDATE stateknot.outbox_deliveries \
+         SET delivery_bytes = delivery_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3",
+    )
+    .bind(delivery_tenant.as_str())
+    .bind(*delivery_run.as_uuid())
+    .bind(*delivery_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_outbox_delivery(&delivery_tenant, delivery_run, delivery_id)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&delivery_tenant, AttemptId::generate())
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let origin_tenant = tenant("outbox-corrupt-origin");
+    let origin_run = RunId::generate();
+    let (_, origin_enqueue) = enqueue_outbox_fixture(
+        &store,
+        &origin_tenant,
+        origin_run,
+        1,
+        Duration::from_secs(60),
+    )
+    .await;
+    let origin_delivery = origin_enqueue.deliveries()[0].intent().delivery_id();
+    query(
+        "UPDATE stateknot.run_events \
+         SET payload_bytes = payload_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND sequence = 1",
+    )
+    .bind(origin_tenant.as_str())
+    .bind(*origin_run.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_outbox_delivery(&origin_tenant, origin_run, origin_delivery)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .claim_outbox_delivery(&origin_tenant, AttemptId::generate())
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let start_tenant = tenant("outbox-corrupt-start");
+    let start_run = RunId::generate();
+    let (_, start_enqueue) =
+        enqueue_outbox_fixture(&store, &start_tenant, start_run, 1, Duration::from_secs(60)).await;
+    let start_delivery = start_enqueue.deliveries()[0].intent().delivery_id();
+    let start_claim = match store
+        .claim_outbox_delivery(&start_tenant, AttemptId::generate())
+        .await
+        .unwrap()
+    {
+        OutboxClaimOutcome::Claimed(claim) => claim,
+        other => panic!("start corruption fixture must claim: {other:?}"),
+    };
+    query(
+        "UPDATE stateknot.outbox_attempts \
+         SET start_bytes = start_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3 AND epoch = 1",
+    )
+    .bind(start_tenant.as_str())
+    .bind(*start_run.as_uuid())
+    .bind(*start_delivery.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_outbox_attempt_history_page(
+                &start_tenant,
+                start_run,
+                start_delivery,
+                None,
+                OutboxAttemptHistoryPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .acknowledge_outbox_attempt(start_claim.fence(), None)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let completion_tenant = tenant("outbox-corrupt-completion");
+    let completion_run = RunId::generate();
+    let (_, completion_enqueue) = enqueue_outbox_fixture(
+        &store,
+        &completion_tenant,
+        completion_run,
+        1,
+        Duration::from_secs(60),
+    )
+    .await;
+    let completion_delivery = completion_enqueue.deliveries()[0].intent().delivery_id();
+    let completion_claim = match store
+        .claim_outbox_delivery(&completion_tenant, AttemptId::generate())
+        .await
+        .unwrap()
+    {
+        OutboxClaimOutcome::Claimed(claim) => claim,
+        other => panic!("completion corruption fixture must claim: {other:?}"),
+    };
+    store
+        .acknowledge_outbox_attempt(completion_claim.fence(), None)
+        .await
+        .unwrap();
+    query(
+        "UPDATE stateknot.outbox_attempt_completions \
+         SET completion_bytes = completion_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3 AND epoch = 1",
+    )
+    .bind(completion_tenant.as_str())
+    .bind(*completion_run.as_uuid())
+    .bind(*completion_delivery.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_outbox_delivery(&completion_tenant, completion_run, completion_delivery,)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .acknowledge_outbox_attempt(completion_claim.fence(), None)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let failed_claim_count = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.outbox_attempts \
+         WHERE (tenant_id = $1 AND run_id = $2) \
+            OR (tenant_id = $3 AND run_id = $4) \
+            OR (tenant_id = $5 AND run_id = $6)",
+    )
+    .bind(destination_tenant.as_str())
+    .bind(*destination_run.as_uuid())
+    .bind(delivery_tenant.as_str())
+    .bind(*delivery_run.as_uuid())
+    .bind(origin_tenant.as_str())
+    .bind(*origin_run.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!(
+        failed_claim_count, 0,
+        "failed validation must roll back claim starts"
+    );
+
+    administration.close().await;
+    store.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

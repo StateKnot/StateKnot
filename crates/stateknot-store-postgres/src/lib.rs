@@ -8,9 +8,11 @@
 //! facts with their lifecycle projection, checkpoints, invocation revisions, or
 //! durable node-attempt starts/completions and immutable pending results in one
 //! transaction. An indexed, tenant-scoped readiness projection supplies bounded
-//! stable-snapshot scheduler candidates without reserving them. The provider
-//! never holds a database transaction across node, model, tool, remote-agent,
-//! or human work.
+//! stable-snapshot scheduler candidates without reserving them. Transactional
+//! outbox deliveries bind an immutable destination and payload to the exact
+//! origin event; fixed fenced attempts commit before dispatch and recover with
+//! explicit at-least-once semantics. The provider never holds a database
+//! transaction across node, model, tool, remote-agent, or human work.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
 //! its database credentials to untrusted workers; role-separated procedures and
@@ -31,9 +33,11 @@ pub use model::{
     JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
     ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
     NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
+    OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome,
+    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
     PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
     PendingNodeResultPageSize, RunProjection, RunnableRunCandidate, RunnableRunPage,
-    RunnableRunPageCursor, RunnableRunPageSize, StoredRun, ToolInvocationCommitOutcome,
-    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
+    RunnableRunPageCursor, RunnableRunPageSize, StoredOutboxDestination, StoredRun,
+    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
 };
 pub use store::PostgresStore;

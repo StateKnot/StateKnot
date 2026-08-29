@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use stateknot_core::{
-    Checkpoint, CheckpointHead, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead,
-    ModelInvocation, NodeAttempt, PendingNodeResult, PendingNodeResultHead, RunLease, RunLifecycle,
-    RunRevision, RunTransition, Superstep, ToolInvocation,
+    Checkpoint, CheckpointHead, CheckpointId, DeliveryFence, Digest, FencingEpoch, JournalEvent,
+    JournalHead, JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt,
+    OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef,
+    PendingNodeResult, PendingNodeResultHead, RunLease, RunLifecycle, RunRevision, RunTransition,
+    Superstep, Timestamp, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -271,6 +273,235 @@ impl NodeAttemptCommitOutcome {
         match self {
             Self::Committed { attempt, .. } | Self::Idempotent { attempt, .. } => attempt,
         }
+    }
+}
+
+/// Fully validated immutable destination snapshot used by dispatch adapters.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StoredOutboxDestination {
+    pub(crate) destination: OutboxDestinationRef,
+    pub(crate) config: JournalPayload,
+    pub(crate) created_at: Timestamp,
+}
+
+impl StoredOutboxDestination {
+    /// Returns the immutable destination identity and snapshot checksum.
+    #[must_use]
+    pub const fn destination(&self) -> &OutboxDestinationRef {
+        &self.destination
+    }
+
+    /// Returns the canonical schema-pinned non-secret routing configuration.
+    #[must_use]
+    pub const fn config(&self) -> &JournalPayload {
+        &self.config
+    }
+
+    /// Returns the database registration observation.
+    #[must_use]
+    pub const fn created_at(&self) -> Timestamp {
+        self.created_at
+    }
+}
+
+/// Result of idempotently registering one immutable destination snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum OutboxDestinationRegistrationOutcome {
+    /// A new immutable destination snapshot committed.
+    Registered(StoredOutboxDestination),
+    /// The exact snapshot was already registered.
+    Idempotent(StoredOutboxDestination),
+}
+
+impl OutboxDestinationRegistrationOutcome {
+    /// Returns the validated immutable destination snapshot.
+    #[must_use]
+    pub const fn destination(&self) -> &StoredOutboxDestination {
+        match self {
+            Self::Registered(destination) | Self::Idempotent(destination) => destination,
+        }
+    }
+}
+
+/// Result of atomically appending one journal fact and its exact outbox set.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum OutboxEnqueueOutcome {
+    /// The event and every requested delivery committed in one transaction.
+    Committed {
+        /// Newly committed journal event.
+        event: JournalEvent,
+        /// Immutable deliveries in caller order.
+        deliveries: Vec<OutboxDelivery>,
+    },
+    /// The exact event and complete delivery set had already committed.
+    Idempotent {
+        /// Previously committed journal event.
+        event: JournalEvent,
+        /// Fully validated durable deliveries in caller order.
+        deliveries: Vec<OutboxDelivery>,
+    },
+}
+
+impl OutboxEnqueueOutcome {
+    /// Returns the atomically anchoring journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the complete immutable delivery set.
+    #[must_use]
+    pub fn deliveries(&self) -> &[OutboxDelivery] {
+        match self {
+            Self::Committed { deliveries, .. } | Self::Idempotent { deliveries, .. } => deliveries,
+        }
+    }
+}
+
+/// One atomically claimed delivery and its durable-before-dispatch start.
+#[derive(Clone, Debug)]
+pub struct OutboxClaim {
+    pub(crate) destination: StoredOutboxDestination,
+    pub(crate) delivery: OutboxDelivery,
+    pub(crate) start: OutboxAttemptStart,
+}
+
+impl OutboxClaim {
+    /// Returns the pinned destination snapshot needed by the adapter.
+    #[must_use]
+    pub const fn destination(&self) -> &StoredOutboxDestination {
+        &self.destination
+    }
+
+    /// Returns the immutable delivery and protocol payload.
+    #[must_use]
+    pub const fn delivery(&self) -> &OutboxDelivery {
+        &self.delivery
+    }
+
+    /// Returns the durable attempt start that must precede network I/O.
+    #[must_use]
+    pub const fn start(&self) -> &OutboxAttemptStart {
+        &self.start
+    }
+
+    /// Returns the exact completion fence.
+    #[must_use]
+    pub const fn fence(&self) -> &DeliveryFence {
+        self.start.fence()
+    }
+}
+
+/// Result of an atomic tenant queue claim with a stable physical attempt ID.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum OutboxClaimOutcome {
+    /// New ownership committed before dispatch may begin.
+    Claimed(OutboxClaim),
+    /// The same attempt ID had already claimed this exact delivery.
+    Idempotent(OutboxClaim),
+    /// No eligible unlocked delivery was visible at the database observation.
+    NoWork,
+}
+
+impl OutboxClaimOutcome {
+    /// Returns the claimed work, if any.
+    #[must_use]
+    pub const fn claim(&self) -> Option<&OutboxClaim> {
+        match self {
+            Self::Claimed(claim) | Self::Idempotent(claim) => Some(claim),
+            Self::NoWork => None,
+        }
+    }
+}
+
+/// Result of idempotently committing one delivery-attempt completion.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum OutboxCompletionOutcome {
+    /// A new immutable completion and projection update committed.
+    Committed {
+        /// Fully restored terminal physical attempt.
+        attempt: OutboxAttempt,
+    },
+    /// The exact semantic completion had already committed.
+    Idempotent {
+        /// Fully restored terminal physical attempt.
+        attempt: OutboxAttempt,
+    },
+}
+
+impl OutboxCompletionOutcome {
+    /// Returns the fully restored completed attempt.
+    #[must_use]
+    pub const fn attempt(&self) -> &OutboxAttempt {
+        match self {
+            Self::Committed { attempt } | Self::Idempotent { attempt } => attempt,
+        }
+    }
+
+    /// Returns the immutable completion.
+    #[must_use]
+    pub const fn completion(&self) -> Option<&OutboxAttemptCompletion> {
+        self.attempt().completion()
+    }
+}
+
+/// Hard-bounded number of outbox attempts returned in one history page.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct OutboxAttemptHistoryPageSize(u8);
+
+impl OutboxAttemptHistoryPageSize {
+    /// Largest decoded page accepted by the provider.
+    pub const MAX: u8 = 16;
+
+    /// Constructs a positive bounded page size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidOutboxAttemptPageSize`] outside `1..=16`.
+    pub const fn new(value: u8) -> Result<Self, StoreError> {
+        if value == 0 || value > Self::MAX {
+            return Err(StoreError::InvalidOutboxAttemptPageSize);
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the page size as an integer.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// One bounded, fully verified ascending outbox-attempt history page.
+#[derive(Clone, Debug)]
+pub struct OutboxAttemptHistoryPage {
+    pub(crate) records: Vec<OutboxAttempt>,
+    pub(crate) has_more: bool,
+}
+
+impl OutboxAttemptHistoryPage {
+    /// Returns immutable attempts in ascending fencing-epoch order.
+    #[must_use]
+    pub fn records(&self) -> &[OutboxAttempt] {
+        &self.records
+    }
+
+    /// Returns whether a later attempt remains.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    /// Returns the exact next-page cursor.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<OutboxAttempt> {
+        self.records.last().cloned()
     }
 }
 

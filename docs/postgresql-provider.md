@@ -33,7 +33,7 @@ The provider currently supplies:
   attempt identities, bounded ascending history verification, closed tool
   prepared/executing/committed/failed/unknown outcomes, and closed model
   prepared/executing/committed/failed outcomes;
-- a run-wide node/tool/model physical-attempt registry whose primary key
+- a run-wide node/tool/model/outbox physical-attempt registry whose primary key
   prevents cross-ledger reuse and whose deferred exact-owner foreign keys make
   each claim inseparable from its immutable node start or invocation revision;
 - atomic fenced prepare/advance APIs whose event, invocation revision, current
@@ -71,6 +71,25 @@ The provider currently supplies:
   16 fully decoded runs plus one look-ahead row. Live leases delay availability
   until their exclusive expiry without a timer update, while waiting, terminal,
   and quarantined runs stay outside the hot index;
+- migration-8 transactional outbox storage with immutable tenant-owned
+  destination snapshots, schema-pinned canonical payloads, and non-empty
+  event-scoped batches of at most 64 deliveries. Control-plane and worker
+  enqueue APIs commit the exact journal event, complete delivery set, run head,
+  and lifecycle projection together; retries compare the whole set, and worker
+  inserts repeat the live run-fence predicate in SQL;
+- tenant-scoped `SKIP LOCKED` delivery claims backed by a partial ready index.
+  Each claim inserts a fresh run-wide `AttemptId`, monotonic delivery epoch, and
+  canonical fixed start before returning anything dispatchable. Leases are
+  non-renewable and bounded to five minutes; ACK/failure completion requires
+  the exact live fence and database clock, while identical lost-ACK retries
+  converge and conflicting evidence fails closed;
+- explicit at-least-once recovery: unfinished requests may be replaced only
+  after their fixed expiry, `SafeAfter` uses a durable database-time boundary,
+  `Never` and attempt 64 dead-letter, and a bounded indexed reaper projects
+  deadline expiry or an abandoned 64th attempt without fabricating completion
+  evidence. All reads and claims revalidate delivery bytes, origin journal,
+  destination snapshot, complete attempt/completion history, and redundant SQL
+  projections;
 - bounded repeatable-read journal paging with complete cursors and hash-chain
   verification, plus bounded newest-to-oldest checkpoint-lineage paging whose
   complete cursors remain valid across later barrier commits and whose reads
@@ -112,7 +131,11 @@ column-scoped `UPDATE` only for
 `stateknot.model_invocation_revisions`, `stateknot.run_attempt_claims`,
 `stateknot.node_attempts`, `stateknot.node_attempt_completions`,
 `stateknot.pending_node_results`, both pending-result binding tables, and
-`stateknot.pending_node_result_consumptions`. Do not grant runtime DDL,
+`stateknot.pending_node_result_consumptions`; `SELECT`/`INSERT` on
+`stateknot.outbox_destinations`, `stateknot.outbox_attempts`, and
+`stateknot.outbox_attempt_completions`; and `SELECT`/`INSERT` plus only the
+claim/completion/reaper projection columns on `stateknot.outbox_deliveries`.
+Do not grant runtime DDL,
 checkpoint, node-attempt, invocation-revision, pending-result, or consumption
 update/delete permissions. Exact role/grant SQL will be
 shipped only with the role-separated server boundary so this document does not
@@ -124,10 +147,10 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 49 integration tests against PostgreSQL 16 and
+The current database suite runs 56 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
-v7 without guessed projection or physical-attempt provenance, real v3
+v8 without guessed projection or physical-attempt provenance, real v3
 tool-attempt history backfilled into the run-wide registry, admission, direct
 lifecycle transition enforcement, future-clock rejection, event and projection-intent
 conflicts, lost-ack idempotency, bounded journal and
@@ -171,6 +194,19 @@ new admission, database-observed lifecycle requeue, terminal removal, automatic
 visibility after lease expiry, and one winner among 24 concurrent exact-run
 claims.
 
+Outbox coverage proves exact v7-to-v8 upgrade while preserving existing
+node/tool/model claims, required partial indexes and the ready-query plan,
+destination registration and tenant isolation, empty/duplicate/oversized batch
+rejection, missing-destination and injected post-delivery rollback, exact whole-set
+enqueue idempotency, delivery-ID conflict, worker-fence takeover with committed
+lost-ACK recovery, 24 concurrent unique claims, durable-before-dispatch rows,
+ACK and failure lost-ACK convergence, conflicting evidence rejection, fixed-lease
+takeover, database-time `SafeAfter`, absorbing `Never`, deadline expiry, four-page
+64-record history, completed and abandoned attempt-64 dead-letter paths, and
+fail-closed destination/delivery/origin/start/completion corruption. The same
+seven new scenarios run against PostgreSQL 16 and 17; the hard-limit case uses
+real transactions and canonical history rather than injecting a projection.
+
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
 ```console
@@ -195,6 +231,46 @@ ownership. The scheduler selects an exact run, allocates a fresh `AttemptId`,
 calls `claim_lease`, and treats `LeaseHeld` as ordinary contention. Cross-tenant
 weighting and fairness remain scheduler policy rather than database queue
 semantics; neither an empty page nor a lost claim means global work is absent.
+
+## Transactional outbox dispatch
+
+Register each immutable, tenant-owned destination revision with
+`register_outbox_destination`. Its `OutboxDestinationRef::snapshot_digest`
+must equal the canonical configuration digest. Store only protocol routing and
+external credential handles; adapters resolve scoped secrets after claim, and
+raw credentials, response bodies, or tokens never enter durable records.
+
+Create stable `DeliveryId` values before calling
+`append_control_plane_with_outbox` or `append_worker_with_outbox`. Every intent
+must name that append's exact `EventId`; the batch is non-empty, duplicate-free,
+and capped at 64. An uncertain enqueue is retried with the same event and
+complete delivery set. A subset, changed payload/deadline/destination, or reused
+delivery identity is a conflict rather than a second enqueue.
+
+Dispatch workers allocate a fresh `AttemptId` and call
+`claim_outbox_delivery(tenant, attempt_id)`. `Claimed` or live `Idempotent`
+contains the validated destination, immutable delivery, and fixed
+`DeliveryFence`; only then may the adapter perform network I/O. `NoWork` means
+only that no eligible unlocked row was visible. The adapter's total request
+timeout must be strictly shorter than `with_outbox_attempt_lease`, and that
+lease cannot exceed five minutes or be renewed. A repeated claim after its
+exclusive expiry fails instead of authorizing late dispatch.
+
+Commit protocol-defined success through `acknowledge_outbox_attempt`, or a
+public-safe `Failure` through `fail_outbox_attempt`. `SafeAfter` schedules from
+the database completion time, while `Never` dead-letters. `ReconcileFirst` is
+rejected because this queue deliberately supports only duplicate-tolerant
+at-least-once notifications; model/tool side effects with ambiguous outcomes
+stay in their dedicated ledgers. Losing an external acknowledgement can cause
+the same `DeliveryId` and payload to be sent again, so a protocol adapter may
+claim receiver-side deduplication only when its negotiated binding actually
+carries and enforces that identity.
+
+Audit code can call `load_outbox_delivery` and page
+`load_outbox_attempt_history_page`. Each page request replays the complete
+bounded predecessor history so a constructed cursor cannot hide corruption.
+Terminal expiry and an unfinished 64th attempt are projected by a bounded
+indexed reap step at claim time; no synthetic network outcome is written.
 
 Recovery can then call `load_checkpoint_lineage_page` without a cursor and follow
 each exact `next_cursor` until the superstep-zero root. The first returned value
@@ -306,13 +382,29 @@ null owner because no historical start can be reconstructed truthfully; their
 original event/projection integrity remains fully verified. The migration and
 its migration-5 upgrade fixture are checksum-pinned on PostgreSQL 16 and 17.
 
+Migration 7 adds the validated `scheduler_ready_at` projection and its partial
+effective-availability index. It backfills pending and leased runs from durable
+timestamps without inventing a scheduler observation. Fixed-snapshot paging,
+constraint removal, and exact v6 upgrade behavior are tested on PostgreSQL 16
+and 17.
+
+Migration 8 adds `outbox_destinations`, `outbox_deliveries`, immutable
+`outbox_attempts`, and append-only `outbox_attempt_completions`. It extends the
+existing run-wide claim registry with an exact outbox owner while preserving
+the original one-event/one-non-outbox-attempt anchor rule through a partial
+unique index. Composite foreign keys bind delivery→journal/destination,
+attempt→delivery/claim, completion→start, and mutable current projections back
+to their immutable evidence. Ready, expiry, abandoned-limit, and origin indexes
+serve bounded operational queries. The exact v7 registry upgrade and existing
+node-attempt readability are exercised on PostgreSQL 16 and 17.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
-interrupt persistence, timers, outbox, artifacts, scheduling/readiness queues,
-automatic corruption quarantine,
-retention/archive/legal hold, backup/restore, failover qualification, or the
-10,000-race stale-worker gate.
+interrupt persistence, timers, protocol-specific outbox dispatch adapters,
+artifacts, cross-tenant scheduler fairness and the recovery/dispatch loop,
+automatic corruption quarantine, retention/archive/legal hold, backup/restore,
+failover qualification, or the 10,000-race stale-worker gate.
 
 The current pool is a trusted server-side persistence boundary. Database
 credentials must not be distributed to untrusted workers: PostgreSQL

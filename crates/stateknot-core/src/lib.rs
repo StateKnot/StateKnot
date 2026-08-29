@@ -38,6 +38,7 @@ mod model_response;
 mod model_runtime;
 mod node_attempt;
 mod node_result;
+mod outbox;
 mod run;
 mod schema;
 mod scope;
@@ -105,8 +106,9 @@ pub use failure::{
 };
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
-    ArtifactId, AttemptId, CheckpointId, EventId, FailureId, GeneratedIdError, InterruptId,
-    InvocationId, MessageId, RunId, TenantId, TenantIdError, ThreadId, TimerId,
+    ArtifactId, AttemptId, CheckpointId, DeliveryId, DestinationId, EventId, FailureId,
+    GeneratedIdError, InterruptId, InvocationId, MessageId, RunId, TenantId, TenantIdError,
+    ThreadId, TimerId,
 };
 pub use journal::{
     JournalAppend, JournalAppendError, JournalAuthorityError, JournalChainError,
@@ -173,6 +175,14 @@ pub use node_result::{
     NodeTerminalOutputError, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
     PendingNodeResultIntegrityError, PendingNodeResultIntent, PendingNodeResultIntentError,
     RouteId, RouteIdError,
+};
+pub use outbox::{
+    DeliveryFence, MAX_OUTBOX_ATTEMPT_LEASE_MILLIS, MAX_OUTBOX_ATTEMPTS, OutboxAttempt,
+    OutboxAttemptCompletion, OutboxAttemptError, OutboxAttemptHistoryError,
+    OutboxAttemptHistoryVerifier, OutboxAttemptIntegrityError, OutboxAttemptOutcome,
+    OutboxAttemptStart, OutboxAttemptStartHead, OutboxAttemptStatus, OutboxDelivery,
+    OutboxDeliveryError, OutboxDeliveryHead, OutboxDeliveryIntegrityError, OutboxDeliveryIntent,
+    OutboxDeliveryStatus, OutboxDestinationRef,
 };
 pub use run::{
     RunCancellation, RunCancellationError, RunCancellationRequest, RunFailure, RunFailureError,

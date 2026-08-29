@@ -89,9 +89,15 @@ from the repository.
   lease-expiry availability, release/lifecycle requeue timestamps, terminal
   removal, cross-tenant cursor rejection, migration-6 backfill, corruption
   guards, and a 24-scheduler single-winner lease race on PostgreSQL 16/17.
+- [x] Persist the transactional outbox with immutable tenant destination
+  snapshots, event-and-delivery atomicity, run-wide durable-before-dispatch
+  attempt claims, fixed non-renewable fencing, at-least-once lost-ack recovery,
+  database-time safe-after/dead-letter/expiry projection, a hard 64-attempt
+  bound, bounded verified history, v7 upgrade preservation, indexed claim/reap
+  paths, and corruption/rollback/24-worker tests on PostgreSQL 16/17.
 - [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
-  outbox, quarantine, role isolation,
-  retention, failover, restore, and stale-race gates.
+  protocol-specific outbox adapters, quarantine, role isolation, retention,
+  failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

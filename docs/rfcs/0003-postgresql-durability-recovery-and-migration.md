@@ -548,19 +548,41 @@ effective availability, so no per-run timer update is needed at expiry.
   `safe_after`, the journal clock proves the full delay elapsed, and the new
   attempt identity differs. SDK-level hidden retries violate this contract.
 - `run_attempt_claims` is the one run-wide physical-attempt namespace shared by
-  node, tool, and model ledgers. Its primary key rejects reuse; generated kind
+  node, tool, model, and outbox ledgers. Its primary key rejects reuse; generated kind
   plus deferred composite foreign keys bind tool/model claims to exact
   invocation revisions and node claims to exact immutable starts. Migration 4
   backfills all v3 tool attempt claims before model dispatch becomes possible;
-  migration 6 extends the same namespace to node execution.
+  migration 6 extends the same namespace to node execution, and migration 8
+  adds exact delivery/epoch ownership while retaining non-outbox anchor
+  uniqueness through a partial index.
 - `interrupts` stores request payload, bound action digest, required principal
   and scopes, exclusive expiry, version, and one authenticated resolution.
 - `timers` stores indexed due time and one firing event identity; the scheduler
   does not poll every suspended run.
-- `outbox` stores an event/delivery ID, destination policy reference, payload
-  digest/reference, next attempt, retry state, and terminal delivery evidence.
-  Enqueue is atomic with the originating journal fact; delivery is at least
-  once and receivers deduplicate by stable ID.
+- `outbox` stores a stable `DeliveryId`, the exact originating `JournalHead`, an
+  immutable tenant-owned destination snapshot reference, a schema-pinned
+  canonical payload, an exclusive delivery deadline, retry state, and bounded
+  terminal evidence. `OutboxDeliveryIntent` names the origin `EventId` before
+  commit; the store materializes it only against that exact journal head and
+  inserts both in one transaction. Retrying an enqueue succeeds only when the
+  complete intent digest matches.
+- Every network request first commits a fresh `AttemptId` and exact successor
+  delivery fencing epoch under a fixed, non-renewable lease. The full request
+  timeout must be below that lease, the lease is at most five minutes, and a
+  completion is accepted only before its exclusive database-clock expiry.
+  Unfinished attempts may be replaced only after expiry. Safe failures retry
+  only after their durable `safe_after` boundary; `never`, 64 attempts, or the
+  delivery deadline terminates in dead-letter/expiry. Acknowledgement is
+  absorbing.
+- Delivery is at least once. A lost acknowledgement can therefore cause the
+  same `DeliveryId` and payload to be sent again. Only duplicate-tolerant
+  notification protocols may use this outbox; ambiguous non-idempotent model
+  and tool effects remain in their invocation ledgers. A protocol binding may
+  carry `DeliveryId` in a negotiated header, claim, or extension, but the core
+  does not claim that A2A or every webhook receiver standardizes such a field.
+  Raw credentials never enter the destination snapshot, payload, failure, or
+  acknowledgement evidence; adapters resolve scoped credential handles only
+  at dispatch.
 
 Large payloads use an S3-compatible object store through a prepare/commit
 protocol. The database never commits a reference until size, media type,

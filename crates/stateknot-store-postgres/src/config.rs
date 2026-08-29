@@ -49,6 +49,7 @@ pub struct PostgresStoreOptions {
     pub(crate) statement_timeout: Duration,
     pub(crate) lease_duration: Duration,
     pub(crate) maximum_lease_horizon: Duration,
+    pub(crate) outbox_attempt_lease_duration: Duration,
 }
 
 impl PostgresStoreOptions {
@@ -121,6 +122,17 @@ impl PostgresStoreOptions {
         self
     }
 
+    /// Sets the fixed, non-renewable lease for one outbox network attempt.
+    ///
+    /// Validation rejects zero, sub-microsecond, or greater-than-five-minute
+    /// values when the store connects. Adapter request timeouts must be lower
+    /// than this lease.
+    #[must_use]
+    pub const fn with_outbox_attempt_lease(mut self, lease_duration: Duration) -> Self {
+        self.outbox_attempt_lease_duration = lease_duration;
+        self
+    }
+
     pub(crate) fn validate(&self) -> Result<(), ConfigurationError> {
         if self.max_connections == 0 {
             return Err(ConfigurationError::ZeroMaximumConnections);
@@ -134,6 +146,10 @@ impl PostgresStoreOptions {
             ("statement timeout", self.statement_timeout),
             ("lease duration", self.lease_duration),
             ("maximum lease horizon", self.maximum_lease_horizon),
+            (
+                "outbox attempt lease duration",
+                self.outbox_attempt_lease_duration,
+            ),
         ] {
             validate_nonzero_duration(name, duration)?;
         }
@@ -146,8 +162,15 @@ impl PostgresStoreOptions {
         }
         validate_lease_timing("lease duration", self.lease_duration)?;
         validate_lease_timing("maximum lease horizon", self.maximum_lease_horizon)?;
+        validate_lease_timing(
+            "outbox attempt lease duration",
+            self.outbox_attempt_lease_duration,
+        )?;
         if self.lease_duration > self.maximum_lease_horizon {
             return Err(ConfigurationError::LeaseDurationExceedsMaximumHorizon);
+        }
+        if self.outbox_attempt_lease_duration > Duration::from_secs(5 * 60) {
+            return Err(ConfigurationError::OutboxAttemptLeaseTooLong);
         }
         if let Some(duration) = self.idle_timeout {
             validate_nonzero_duration("idle timeout", duration)?;
@@ -204,6 +227,7 @@ impl Default for PostgresStoreOptions {
             statement_timeout: Duration::from_secs(15),
             lease_duration: Duration::from_secs(30),
             maximum_lease_horizon: Duration::from_secs(5 * 60),
+            outbox_attempt_lease_duration: Duration::from_secs(60),
         }
     }
 }

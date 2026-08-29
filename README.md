@@ -48,27 +48,30 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 The project is in the **architecture-contract and vertical-validation phase**.
 The unpublished core crate validates model, tool, agent admission/result,
 durable run-lifecycle, canonical journal-envelope, graph-checkpoint,
-tool- and model-invocation state machines, immutable pending node results, and
-physical node-attempt start/completion recovery plus lease/fencing contracts.
+tool- and model-invocation state machines, immutable pending node results,
+physical node-attempt recovery, and fixed-fence at-least-once outbox contracts.
 The PostgreSQL 16/17 durability slice now implements
 run admission, canonical journal append/read,
 locked lifecycle transitions, projection-bound idempotency, immutable superstep
 checkpoints, exact checkpoint parenting, bounded reverse-lineage verification,
 immutable hash-linked tool- and model-invocation ledgers, exact journal
-anchoring, a run-wide node/tool/model physical-attempt registry, durable node
+anchoring, a run-wide node/tool/model/outbox physical-attempt registry, durable node
 starts and append-only completions, database-time retry gates, higher-fence
 crash takeover, checkpoint advancement guards for unsettled invocations,
 attempt-owned immutable pending node results with exact committed invocation
 bindings and semantic idempotency, bounded verified attempt/result paging,
 an indexed tenant-scoped runnable projection, database-time fixed keyset pages
 whose decoded memory is hard-bounded, lease-expiry-aware discovery without
-per-run polling, schema verification, and database-enforced lease fencing.
+per-run polling, a transactional outbox with immutable destination snapshots,
+atomic event enqueue, durable-before-dispatch fixed attempts, explicit
+at-least-once retry/dead-letter/expiry recovery, schema verification, and
+database-enforced lease fencing.
 Complete ready-set barriers now atomically bind and consume the exact immutable
 result set while committing their event, successor checkpoint, lifecycle
 projection, and run heads; raw successor checkpoint and pending-result writes
-that bypass a durable node attempt are rejected. Cross-tenant fairness, the
-recovery/dispatch loop, outbox, quarantine workflows, and a runnable agent loop
-have not shipped yet.
+that bypass a durable node attempt are rejected. Protocol-specific outbox
+dispatch adapters, cross-tenant fairness, the recovery/dispatch loop,
+quarantine workflows, and a runnable agent loop have not shipped yet.
 
 The current milestone is to:
 
@@ -88,7 +91,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
-crates/stateknot-store-postgres/  PostgreSQL run/journal/checkpoint/invocation/lease durability slice
+crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 .github/                 Contribution templates and automated quality gates
 ```

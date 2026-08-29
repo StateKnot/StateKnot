@@ -18,15 +18,18 @@ use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BarrierResultHeads, BoundedJson, BudgetUsage, CanonicalJson,
     Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointLineageVerifier,
-    CheckpointWrite, Digest, EventId, Failure, FencingEpoch, GraphNamespace, InvocationId,
-    JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent,
-    JournalEventSource, JournalHead, JournalSequence, JsonLimits, ModelInvocation,
-    ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
-    ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
-    ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeAttempt,
-    NodeAttemptCompletion, NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart,
-    NodeAttemptStartHead, NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding,
-    NodeInvocationBindingKind, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
+    CheckpointWrite, DeliveryFence, DeliveryId, DestinationId, Digest, EventId, Failure,
+    FencingEpoch, GraphNamespace, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
+    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalPayload,
+    JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
+    ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
+    ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
+    ModelInvocationTransitionKind, NodeActivation, NodeAttempt, NodeAttemptCompletion,
+    NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart, NodeAttemptStartHead,
+    NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding, NodeInvocationBindingKind,
+    OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptHistoryVerifier, OutboxAttemptOutcome,
+    OutboxAttemptStart, OutboxDelivery, OutboxDeliveryIntent, OutboxDeliveryStatus,
+    OutboxDestinationRef, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
     PendingNodeResultIntent, RetryAdvice, RunFence, RunId, RunLease, RunLeaseValidationError,
     RunLifecycle, RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp,
     ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
@@ -41,10 +44,13 @@ use crate::{
     JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
     ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
     NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
+    OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome,
+    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
     PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
     PendingNodeResultPageSize, PostgresStoreOptions, RunProjection, RunnableRunCandidate,
-    RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize, StoreError, StoredRun,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
+    RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize, StoreError,
+    StoredOutboxDestination, StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    ToolInvocationHistoryPageSize,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -98,6 +104,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0007_scheduler_readiness.sql")),
             false,
         ),
+        Migration::new(
+            8,
+            Cow::Borrowed("transactional outbox"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0008_transactional_outbox.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -114,6 +127,12 @@ const MAX_MODEL_INVOCATION_RECORD_BYTES: usize = 134_217_728;
 const MAX_PENDING_NODE_RESULT_BYTES: usize = 16_777_216;
 const MAX_NODE_ATTEMPT_START_BYTES: usize = 1_048_576;
 const MAX_NODE_ATTEMPT_COMPLETION_BYTES: usize = 16_777_216;
+const MAX_OUTBOX_DESTINATION_BYTES: usize = 2_097_152;
+const MAX_OUTBOX_DELIVERY_BYTES: usize = 4_194_304;
+const MAX_OUTBOX_ATTEMPT_START_BYTES: usize = 1_048_576;
+const MAX_OUTBOX_ATTEMPT_COMPLETION_BYTES: usize = 1_048_576;
+const MAX_OUTBOX_DELIVERIES_PER_EVENT: usize = 64;
+const OUTBOX_TERMINAL_REAP_BATCH_SIZE: i64 = 64;
 const PENDING_TOOL_BINDING_BATCH_SIZE: usize = ToolInvocationHistoryPageSize::MAX as usize;
 const PENDING_MODEL_BINDING_BATCH_SIZE: usize = ModelInvocationHistoryPageSize::MAX as usize;
 const PENDING_INVOCATION_ANCHOR_BATCH_SIZE: usize = 8;
@@ -1224,6 +1243,167 @@ WHERE tenant_id = $1
 ORDER BY invocation_id ASC, revision ASC
 ";
 
+const SELECT_OUTBOX_DESTINATION: &str = r"
+SELECT
+    tenant_id,
+    destination_id,
+    snapshot_digest,
+    config_kind,
+    schema_id,
+    schema_version,
+    schema_digest,
+    config_bytes,
+    created_at
+FROM stateknot.outbox_destinations
+WHERE tenant_id = $1
+  AND destination_id = $2
+  AND snapshot_digest = $3
+";
+
+const OUTBOX_DELIVERY_COLUMNS: &str = r"
+    tenant_id,
+    run_id,
+    delivery_id,
+    origin_sequence,
+    origin_event_id,
+    origin_recorded_at,
+    origin_digest,
+    destination_id,
+    destination_snapshot_digest,
+    intent_digest,
+    expires_at,
+    delivery_digest,
+    delivery_bytes,
+    status,
+    attempt_count,
+    current_attempt_id,
+    current_epoch,
+    current_attempt_started_at,
+    current_attempt_expires_at,
+    next_attempt_at,
+    last_completion_digest,
+    terminal_at,
+    created_at,
+    updated_at
+";
+
+static SELECT_OUTBOX_DELIVERY: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {OUTBOX_DELIVERY_COLUMNS} FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3"
+    )
+});
+
+static SELECT_OUTBOX_DELIVERY_FOR_UPDATE: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {OUTBOX_DELIVERY_COLUMNS} FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3 FOR UPDATE"
+    )
+});
+
+static SELECT_OUTBOX_DELIVERIES_BY_ORIGIN: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {OUTBOX_DELIVERY_COLUMNS} FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 AND run_id = $2 AND origin_sequence = $3 \
+         ORDER BY delivery_id ASC"
+    )
+});
+
+static SELECT_OUTBOX_CLAIM_CANDIDATE: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {OUTBOX_DELIVERY_COLUMNS} FROM stateknot.outbox_deliveries \
+         WHERE tenant_id = $1 \
+           AND status IN ('pending', 'delivering', 'retry_scheduled') \
+           AND attempt_count < 64 \
+           AND next_attempt_at <= $2 \
+           AND expires_at > $2 \
+         ORDER BY next_attempt_at ASC, delivery_id ASC \
+         FOR UPDATE SKIP LOCKED LIMIT 1"
+    )
+});
+
+const OUTBOX_ATTEMPT_COLUMNS: &str = r"
+    tenant_id,
+    run_id,
+    delivery_id,
+    delivery_expires_at,
+    delivery_digest,
+    epoch,
+    attempt_id,
+    started_at,
+    expires_at,
+    start_digest,
+    start_bytes,
+    created_at
+";
+
+static SELECT_OUTBOX_ATTEMPT_BY_ID: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {OUTBOX_ATTEMPT_COLUMNS} FROM stateknot.outbox_attempts \
+         WHERE tenant_id = $1 AND attempt_id = $2"
+    )
+});
+
+static SELECT_OUTBOX_ATTEMPT_BY_FENCE: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {OUTBOX_ATTEMPT_COLUMNS} FROM stateknot.outbox_attempts \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3 \
+           AND epoch = $4 AND attempt_id = $5"
+    )
+});
+
+static SELECT_OUTBOX_ATTEMPT_HISTORY: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {OUTBOX_ATTEMPT_COLUMNS} FROM stateknot.outbox_attempts \
+         WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3 AND epoch > $4 \
+         ORDER BY epoch ASC LIMIT $5"
+    )
+});
+
+const SELECT_OUTBOX_ATTEMPT_COMPLETION: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    delivery_id,
+    epoch,
+    attempt_id,
+    started_at,
+    attempt_expires_at,
+    start_digest,
+    outcome_kind,
+    retry_advice_kind,
+    retry_delay_millis,
+    completed_at,
+    completion_digest,
+    completion_bytes,
+    created_at
+FROM stateknot.outbox_attempt_completions
+WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3 AND epoch = $4
+";
+
+const SELECT_OUTBOX_ATTEMPT_COMPLETION_HISTORY: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    delivery_id,
+    epoch,
+    attempt_id,
+    started_at,
+    attempt_expires_at,
+    start_digest,
+    outcome_kind,
+    retry_advice_kind,
+    retry_delay_millis,
+    completed_at,
+    completion_digest,
+    completion_bytes,
+    created_at
+FROM stateknot.outbox_attempt_completions
+WHERE tenant_id = $1 AND run_id = $2 AND delivery_id = $3
+ORDER BY epoch ASC
+LIMIT $4
+";
+
 /// Connected `PostgreSQL` durability provider.
 ///
 /// Clones share one bounded connection pool. `Debug` intentionally omits pool
@@ -1340,6 +1520,13 @@ impl PostgresStore {
                  AND to_regclass('stateknot.node_attempts') IS NOT NULL \
                  AND to_regclass('stateknot.node_attempt_completions') IS NOT NULL \
                  AND to_regclass('stateknot.runs_scheduler_ready') IS NOT NULL \
+                 AND to_regclass('stateknot.outbox_destinations') IS NOT NULL \
+                 AND to_regclass('stateknot.outbox_deliveries') IS NOT NULL \
+                 AND to_regclass('stateknot.outbox_attempts') IS NOT NULL \
+                 AND to_regclass('stateknot.outbox_attempt_completions') IS NOT NULL \
+                 AND to_regclass('stateknot.outbox_deliveries_ready') IS NOT NULL \
+                 AND to_regclass('stateknot.outbox_deliveries_expiry') IS NOT NULL \
+                 AND to_regclass('stateknot.outbox_deliveries_abandoned_limit') IS NOT NULL \
                  AND EXISTS ( \
                      SELECT 1 FROM pg_catalog.pg_constraint \
                      WHERE conrelid = to_regclass('stateknot.runs') \
@@ -1601,6 +1788,166 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             records,
             has_more,
         })
+    }
+
+    /// Idempotently registers one immutable, tenant-owned destination snapshot.
+    ///
+    /// `config` is a canonical schema-pinned routing envelope. Its digest must
+    /// equal `destination.snapshot_digest()`. Raw credentials are outside this
+    /// contract; configurations may name only external credential handles.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for digest mismatch, conflicting durable bytes,
+    /// resource bounds, corruption, or database failure.
+    pub async fn register_outbox_destination(
+        &self,
+        destination: OutboxDestinationRef,
+        config: JournalPayload,
+    ) -> Result<OutboxDestinationRegistrationOutcome, StoreError> {
+        if destination.snapshot_digest() != config.digest() {
+            return Err(StoreError::OutboxDestinationSnapshotMismatch);
+        }
+        let config_bytes = encode_outbox_destination_config(&config)?;
+        let schema = config.schema();
+        let mut transaction = self
+            .begin_mutation("outbox destination registration")
+            .await?;
+        let observed_at = database_now(&mut transaction, "outbox destination clock").await?;
+        let inserted = query(
+            r"
+INSERT INTO stateknot.outbox_destinations (
+    tenant_id,
+    destination_id,
+    snapshot_digest,
+    config_kind,
+    schema_id,
+    schema_version,
+    schema_digest,
+    config_bytes,
+    created_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
+",
+        )
+        .bind(destination.tenant_id().as_str())
+        .bind(*destination.destination_id().as_uuid())
+        .bind(destination.snapshot_digest().as_bytes())
+        .bind(config.kind().as_str())
+        .bind(schema.id().as_str())
+        .bind(schema.version().to_string())
+        .bind(schema.digest().as_bytes())
+        .bind(&config_bytes)
+        .bind(to_database_time(observed_at)?)
+        .execute(&mut *transaction)
+        .await
+        .map_err(|source| StoreError::database("outbox destination insert", source))?
+        .rows_affected();
+
+        let row = load_outbox_destination_row(&mut transaction, &destination)
+            .await?
+            .ok_or(StoreError::OutboxDestinationConflict)?;
+        let stored = decode_outbox_destination(row)?;
+        if stored.destination() != &destination || stored.config() != &config {
+            return Err(StoreError::OutboxDestinationConflict);
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("outbox destination commit", source))?;
+        Ok(if inserted == 1 {
+            OutboxDestinationRegistrationOutcome::Registered(stored)
+        } else {
+            OutboxDestinationRegistrationOutcome::Idempotent(stored)
+        })
+    }
+
+    /// Loads and validates one immutable destination snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::OutboxDestinationNotFound`] when absent, or a
+    /// corruption/database error.
+    pub async fn load_outbox_destination(
+        &self,
+        destination: &OutboxDestinationRef,
+    ) -> Result<StoredOutboxDestination, StoreError> {
+        let mut transaction = self
+            .begin_repeatable_read("outbox destination load")
+            .await?;
+        let row = load_outbox_destination_row(&mut transaction, destination)
+            .await?
+            .ok_or(StoreError::OutboxDestinationNotFound)?;
+        let stored = decode_outbox_destination(row)?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("outbox destination load commit", source))?;
+        Ok(stored)
+    }
+
+    /// Loads and fully validates one immutable outbox delivery.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::OutboxDeliveryNotFound`] when absent, or a
+    /// corruption/database error.
+    pub async fn load_outbox_delivery(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        delivery_id: DeliveryId,
+    ) -> Result<OutboxDelivery, StoreError> {
+        let mut transaction = self.begin_repeatable_read("outbox delivery load").await?;
+        let row = load_outbox_delivery_row(&mut transaction, tenant_id, run_id, delivery_id, false)
+            .await?
+            .ok_or(StoreError::OutboxDeliveryNotFound)?;
+        let delivery = decode_outbox_delivery(&row)?;
+        verify_outbox_projection(&mut transaction, &row, &delivery).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("outbox delivery load commit", source))?;
+        Ok(delivery)
+    }
+
+    /// Atomically appends a control-plane event and a non-empty delivery set.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for invalid batch/scope, idempotency conflict,
+    /// stale run state, missing destinations, corruption, or database failure.
+    pub async fn append_control_plane_with_outbox(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        deliveries: Vec<OutboxDeliveryIntent>,
+    ) -> Result<OutboxEnqueueOutcome, StoreError> {
+        self.append_with_outbox(
+            append,
+            projection,
+            AppendAuthority::ControlPlane,
+            deliveries,
+        )
+        .await
+    }
+
+    /// Atomically appends a worker event and a non-empty delivery set under the
+    /// exact current run fence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for invalid batch/scope, stale/expired fencing,
+    /// idempotency conflict, missing destinations, corruption, or database failure.
+    pub async fn append_worker_with_outbox(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        deliveries: Vec<OutboxDeliveryIntent>,
+    ) -> Result<OutboxEnqueueOutcome, StoreError> {
+        self.append_with_outbox(append, projection, AppendAuthority::Worker, deliveries)
+            .await
     }
 
     /// Loads and verifies one immutable tenant/run-scoped checkpoint by ID.
@@ -2448,6 +2795,302 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             records,
             has_more,
         })
+    }
+
+    /// Loads one bounded, fully verified outbox-attempt history page.
+    ///
+    /// The provider replays the complete bounded history on every page so a
+    /// cursor cannot hide an invalid predecessor. At most 64 small attempt
+    /// records exist for one delivery.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidOutboxAttemptCursor`] for a crossed or
+    /// non-exact cursor, and otherwise explicit not-found, corruption, or
+    /// database failures.
+    pub async fn load_outbox_attempt_history_page(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        delivery_id: DeliveryId,
+        after: Option<&OutboxAttempt>,
+        page_size: OutboxAttemptHistoryPageSize,
+    ) -> Result<OutboxAttemptHistoryPage, StoreError> {
+        if after.is_some_and(|attempt| {
+            attempt.start().delivery().tenant_id() != tenant_id
+                || attempt.start().delivery().run_id() != run_id
+                || attempt.start().delivery().delivery_id() != delivery_id
+        }) {
+            return Err(StoreError::InvalidOutboxAttemptCursor);
+        }
+        let mut transaction = self.begin_repeatable_read("outbox attempt history").await?;
+        let row = load_outbox_delivery_row(&mut transaction, tenant_id, run_id, delivery_id, false)
+            .await?
+            .ok_or(StoreError::OutboxDeliveryNotFound)?;
+        let delivery = decode_outbox_delivery(&row)?;
+        let all = load_and_verify_outbox_attempts(&mut transaction, &delivery).await?;
+        verify_outbox_projection_records(&row, &delivery, &all)?;
+
+        let start_index = if let Some(cursor) = after {
+            all.iter()
+                .position(|record| outbox_attempts_equal(record, cursor))
+                .map(|index| index + 1)
+                .ok_or(StoreError::InvalidOutboxAttemptCursor)?
+        } else {
+            0
+        };
+        let remaining = &all[start_index..];
+        let has_more = remaining.len() > usize::from(page_size.get());
+        let records = remaining
+            .iter()
+            .take(usize::from(page_size.get()))
+            .cloned()
+            .collect();
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("outbox attempt history commit", source))?;
+        Ok(OutboxAttemptHistoryPage { records, has_more })
+    }
+
+    /// Atomically claims the earliest eligible unlocked delivery for one tenant.
+    ///
+    /// A fresh start and run-wide attempt claim commit before the caller may
+    /// perform network I/O. Retrying with the same `attempt_id` returns the
+    /// original claim. [`OutboxClaimOutcome::NoWork`] means no eligible *unlocked*
+    /// row was visible; another worker may temporarily hold skipped work.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for attempt identity conflict, corrupt history,
+    /// timing exhaustion, or database failure.
+    pub async fn claim_outbox_delivery(
+        &self,
+        tenant_id: &TenantId,
+        attempt_id: AttemptId,
+    ) -> Result<OutboxClaimOutcome, StoreError> {
+        let mut transaction = self.begin_mutation("outbox delivery claim").await?;
+        let observed_at = database_now(&mut transaction, "outbox claim clock").await?;
+        reap_outbox_terminals(&mut transaction, tenant_id, observed_at).await?;
+
+        if let Some(claim) =
+            load_idempotent_outbox_claim(&mut transaction, tenant_id, attempt_id).await?
+        {
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("idempotent outbox claim commit", source))?;
+            return Ok(OutboxClaimOutcome::Idempotent(claim));
+        }
+
+        let Some(row) = query_as::<_, OutboxDeliveryRow>(SELECT_OUTBOX_CLAIM_CANDIDATE.as_str())
+            .bind(tenant_id.as_str())
+            .bind(to_database_time(observed_at)?)
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("outbox claim candidate", source))?
+        else {
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("empty outbox claim commit", source))?;
+            return Ok(OutboxClaimOutcome::NoWork);
+        };
+
+        let delivery = decode_outbox_delivery(&row)?;
+        verify_outbox_delivery_anchor(&mut transaction, &delivery).await?;
+        let destination =
+            load_and_decode_outbox_destination(&mut transaction, delivery.intent().destination())
+                .await?;
+        let history = load_and_verify_outbox_attempts(&mut transaction, &delivery).await?;
+        verify_outbox_projection_records(&row, &delivery, &history)?;
+        let mut verifier = OutboxAttemptHistoryVerifier::new(&delivery);
+        for attempt in &history {
+            verifier
+                .verify_next(attempt)
+                .map_err(|_| StoreError::corrupt("outbox attempt history"))?;
+        }
+        if verifier
+            .status_at(observed_at)
+            .map_err(|_| StoreError::corrupt("outbox delivery status"))?
+            != OutboxDeliveryStatus::Pending
+        {
+            return Err(StoreError::corrupt("outbox ready projection"));
+        }
+
+        let next_count = row
+            .attempt_count
+            .checked_add(1)
+            .ok_or(StoreError::InvalidOutboxTransition)?;
+        if usize::try_from(next_count)
+            .ok()
+            .is_none_or(|count| count > MAX_OUTBOX_ATTEMPTS)
+        {
+            return Err(StoreError::InvalidOutboxTransition);
+        }
+        let epoch = FencingEpoch::new(
+            u64::try_from(next_count).map_err(|_| StoreError::InvalidOutboxTransition)?,
+        )
+        .map_err(|_| StoreError::InvalidOutboxTransition)?;
+        let configured_expiry =
+            add_duration(observed_at, self.options.outbox_attempt_lease_duration)?;
+        let expires_at = configured_expiry.min(delivery.intent().expires_at());
+        let fence = DeliveryFence::new(
+            tenant_id.clone(),
+            delivery.intent().run_id(),
+            delivery.intent().delivery_id(),
+            attempt_id,
+            epoch,
+        );
+        let start = OutboxAttemptStart::new(&delivery, fence, observed_at, expires_at)
+            .map_err(|_| StoreError::InvalidOutboxTransition)?;
+
+        insert_outbox_attempt_claim(&mut transaction, &delivery, &start).await?;
+        insert_outbox_attempt_start(&mut transaction, &delivery, &start).await?;
+        update_outbox_delivery_claim(&mut transaction, &delivery, &start, row.attempt_count)
+            .await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("outbox claim commit", source))?;
+        Ok(OutboxClaimOutcome::Claimed(OutboxClaim {
+            destination,
+            delivery,
+            start,
+        }))
+    }
+
+    /// Commits a protocol acknowledgement under the exact live delivery fence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for stale/expired fencing, conflicting lost-ack
+    /// retries, corruption, or database failure.
+    pub async fn acknowledge_outbox_attempt(
+        &self,
+        fence: &DeliveryFence,
+        evidence_digest: Option<Digest>,
+    ) -> Result<OutboxCompletionOutcome, StoreError> {
+        self.complete_outbox_attempt(
+            fence,
+            OutboxAttemptOutcome::Acknowledged { evidence_digest },
+        )
+        .await
+    }
+
+    /// Commits public-safe failure evidence under the exact live delivery fence.
+    ///
+    /// `safe_after` schedules another attempt at a durable database-clock
+    /// boundary; `never` moves the delivery to dead-letter. Reconcile-first is
+    /// rejected by the core duplicate-tolerant outbox contract.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for stale/expired fencing, unsafe advice,
+    /// conflicting lost-ack retries, corruption, or database failure.
+    pub async fn fail_outbox_attempt(
+        &self,
+        fence: &DeliveryFence,
+        failure: Failure,
+    ) -> Result<OutboxCompletionOutcome, StoreError> {
+        self.complete_outbox_attempt(fence, OutboxAttemptOutcome::Failed { failure })
+            .await
+    }
+
+    async fn complete_outbox_attempt(
+        &self,
+        fence: &DeliveryFence,
+        requested_outcome: OutboxAttemptOutcome,
+    ) -> Result<OutboxCompletionOutcome, StoreError> {
+        let mut transaction = self.begin_mutation("outbox attempt completion").await?;
+        let delivery_row = load_outbox_delivery_row(
+            &mut transaction,
+            fence.tenant_id(),
+            fence.run_id(),
+            fence.delivery_id(),
+            true,
+        )
+        .await?
+        .ok_or(StoreError::OutboxDeliveryNotFound)?;
+        let delivery = decode_outbox_delivery(&delivery_row)?;
+        verify_outbox_projection(&mut transaction, &delivery_row, &delivery).await?;
+        let epoch =
+            i64::try_from(fence.epoch().get()).map_err(|_| StoreError::InvalidOutboxTransition)?;
+        let start_row =
+            query_as::<_, OutboxAttemptStartRow>(SELECT_OUTBOX_ATTEMPT_BY_FENCE.as_str())
+                .bind(fence.tenant_id().as_str())
+                .bind(*fence.run_id().as_uuid())
+                .bind(*fence.delivery_id().as_uuid())
+                .bind(epoch)
+                .bind(*fence.attempt_id().as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("outbox completion start load", source))?
+                .ok_or(StoreError::OutboxAttemptNotFound)?;
+        let start = decode_outbox_attempt_start(&start_row)?;
+        if start.delivery() != &delivery.head() || start.fence() != fence {
+            return Err(StoreError::StaleOutboxFence);
+        }
+
+        if let Some(row) = load_outbox_attempt_completion_row(
+            &mut transaction,
+            fence.tenant_id(),
+            fence.run_id(),
+            fence.delivery_id(),
+            epoch,
+        )
+        .await?
+        {
+            let completion = decode_outbox_attempt_completion(&row)?;
+            if completion.start() != &start.head()
+                || !outbox_outcomes_equal(completion.outcome(), &requested_outcome)
+            {
+                return Err(StoreError::OutboxCompletionConflict);
+            }
+            let attempt = OutboxAttempt::restore(start, Some(completion))
+                .map_err(|_| StoreError::corrupt("outbox completed attempt"))?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent outbox completion commit", source)
+            })?;
+            return Ok(OutboxCompletionOutcome::Idempotent { attempt });
+        }
+
+        if delivery_row.status != "delivering"
+            || delivery_row.current_attempt_id != Some(*fence.attempt_id().as_uuid())
+            || delivery_row.current_epoch != Some(epoch)
+        {
+            return Err(StoreError::StaleOutboxFence);
+        }
+        let observed_at = database_now(&mut transaction, "outbox completion clock").await?;
+        if observed_at >= start.expires_at() {
+            return Err(StoreError::OutboxAttemptExpired);
+        }
+        let completion = match requested_outcome {
+            OutboxAttemptOutcome::Acknowledged { evidence_digest } => {
+                OutboxAttemptCompletion::acknowledge(&start, evidence_digest, observed_at)
+            }
+            OutboxAttemptOutcome::Failed { failure } => {
+                OutboxAttemptCompletion::fail(&start, failure, observed_at)
+            }
+            _ => return Err(StoreError::InvalidOutboxTransition),
+        }
+        .map_err(|_| StoreError::InvalidOutboxTransition)?;
+        insert_outbox_attempt_completion(&mut transaction, &completion).await?;
+        update_outbox_delivery_completion(
+            &mut transaction,
+            &delivery,
+            &start,
+            &completion,
+            delivery_row.attempt_count,
+        )
+        .await?;
+        let attempt = OutboxAttempt::restore(start, Some(completion))
+            .map_err(|_| StoreError::corrupt("outbox completed attempt"))?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("outbox completion commit", source))?;
+        Ok(OutboxCompletionOutcome::Committed { attempt })
     }
 
     /// Claims an unowned or expired runnable run for a stable `UUIDv7` attempt.
@@ -4289,6 +4932,147 @@ WHERE tenant_id = $1
     }
 
     #[allow(clippy::too_many_lines)]
+    async fn append_with_outbox(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        authority: AppendAuthority,
+        intents: Vec<OutboxDeliveryIntent>,
+    ) -> Result<OutboxEnqueueOutcome, StoreError> {
+        validate_outbox_batch(&append, &intents)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        let projection_digest = projection_digest(&projection)?;
+        let mut transaction = self.begin_mutation("journal outbox append").await?;
+        let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(row)?;
+
+        let existing = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("outbox event idempotency lookup", source))?;
+        if let Some(row) = existing {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "journal projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            if committed_projection != Some(projection_digest) {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            let checkpoint = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ANCHOR)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(
+                    i64::try_from(event.sequence().get())
+                        .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                )
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("outbox checkpoint lookup", source))?;
+            if checkpoint.is_some() {
+                return Err(StoreError::CheckpointCommitConflict);
+            }
+
+            let expected = materialize_outbox_deliveries(intents, &event)?;
+            let rows =
+                query_as::<_, OutboxDeliveryRow>(SELECT_OUTBOX_DELIVERIES_BY_ORIGIN.as_str())
+                    .bind(tenant_id.as_str())
+                    .bind(*run_id.as_uuid())
+                    .bind(
+                        i64::try_from(event.sequence().get())
+                            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                    )
+                    .fetch_all(&mut *transaction)
+                    .await
+                    .map_err(|source| {
+                        StoreError::database("outbox idempotency set load", source)
+                    })?;
+            let mut durable = BTreeMap::new();
+            for row in rows {
+                let delivery = decode_outbox_delivery(&row)?;
+                verify_outbox_projection(&mut transaction, &row, &delivery).await?;
+                if durable
+                    .insert(delivery.intent().delivery_id(), delivery)
+                    .is_some()
+                {
+                    return Err(StoreError::corrupt("outbox delivery identity set"));
+                }
+            }
+            if durable.len() != expected.len()
+                || expected
+                    .iter()
+                    .any(|delivery| durable.get(&delivery.intent().delivery_id()) != Some(delivery))
+            {
+                return Err(StoreError::OutboxEnqueueConflict);
+            }
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent journal outbox append commit", source)
+            })?;
+            return Ok(OutboxEnqueueOutcome::Idempotent {
+                event,
+                deliveries: expected,
+            });
+        }
+
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let observed_at = database_now(&mut transaction, "journal outbox append clock").await?;
+        match authority {
+            AppendAuthority::ControlPlane => {
+                if append.worker_fence().is_some() {
+                    return Err(StoreError::WrongAppendAuthority);
+                }
+            }
+            AppendAuthority::Worker => {
+                let fence = append
+                    .worker_fence()
+                    .ok_or(StoreError::WrongAppendAuthority)?;
+                authorize_worker(&stored, fence, observed_at)?;
+            }
+        }
+
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let prepared_projection = prepare_projection(&stored, &append, projection, recorded_at)?;
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let deliveries = materialize_outbox_deliveries(intents, &event)?;
+        for delivery in &deliveries {
+            if load_outbox_destination_row(&mut transaction, delivery.intent().destination())
+                .await?
+                .is_none()
+            {
+                return Err(StoreError::OutboxDestinationNotFound);
+            }
+        }
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        for delivery in &deliveries {
+            insert_outbox_delivery(&mut transaction, delivery, event.source()).await?;
+        }
+        update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("journal outbox append commit", source))?;
+        Ok(OutboxEnqueueOutcome::Committed { event, deliveries })
+    }
+
+    #[allow(clippy::too_many_lines)]
     async fn append_checkpoint(
         &self,
         append: JournalAppend,
@@ -4983,6 +5767,78 @@ struct PendingNodeResultBindingRow {
     invocation_journal_digest: Vec<u8>,
 }
 
+struct OutboxDestinationRow {
+    tenant_id: String,
+    destination_id: Uuid,
+    snapshot_digest: Vec<u8>,
+    config_kind: String,
+    schema_id: String,
+    schema_version: String,
+    schema_digest: Vec<u8>,
+    config_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
+struct OutboxDeliveryRow {
+    tenant_id: String,
+    run_id: Uuid,
+    delivery_id: Uuid,
+    origin_sequence: i64,
+    origin_event_id: Uuid,
+    origin_recorded_at: DateTime<Utc>,
+    origin_digest: Vec<u8>,
+    destination_id: Uuid,
+    destination_snapshot_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    expires_at: DateTime<Utc>,
+    delivery_digest: Vec<u8>,
+    delivery_bytes: Vec<u8>,
+    status: String,
+    attempt_count: i64,
+    current_attempt_id: Option<Uuid>,
+    current_epoch: Option<i64>,
+    current_attempt_started_at: Option<DateTime<Utc>>,
+    current_attempt_expires_at: Option<DateTime<Utc>>,
+    next_attempt_at: Option<DateTime<Utc>>,
+    last_completion_digest: Option<Vec<u8>>,
+    terminal_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+struct OutboxAttemptStartRow {
+    tenant_id: String,
+    run_id: Uuid,
+    delivery_id: Uuid,
+    delivery_expires_at: DateTime<Utc>,
+    delivery_digest: Vec<u8>,
+    epoch: i64,
+    attempt_id: Uuid,
+    started_at: DateTime<Utc>,
+    expires_at: DateTime<Utc>,
+    start_digest: Vec<u8>,
+    start_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
+struct OutboxAttemptCompletionRow {
+    tenant_id: String,
+    run_id: Uuid,
+    delivery_id: Uuid,
+    epoch: i64,
+    attempt_id: Uuid,
+    started_at: DateTime<Utc>,
+    attempt_expires_at: DateTime<Utc>,
+    start_digest: Vec<u8>,
+    outcome_kind: String,
+    retry_advice_kind: Option<String>,
+    retry_delay_millis: Option<i64>,
+    completed_at: DateTime<Utc>,
+    completion_digest: Vec<u8>,
+    completion_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
 impl<'row> FromRow<'row, PgRow> for RunRow {
     fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
         Ok(Self {
@@ -5327,6 +6183,94 @@ impl<'row> FromRow<'row, PgRow> for PendingNodeResultBindingRow {
             invocation_journal_sequence: row.try_get("invocation_journal_sequence")?,
             invocation_journal_recorded_at: row.try_get("invocation_journal_recorded_at")?,
             invocation_journal_digest: row.try_get("invocation_journal_digest")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for OutboxDestinationRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            destination_id: row.try_get("destination_id")?,
+            snapshot_digest: row.try_get("snapshot_digest")?,
+            config_kind: row.try_get("config_kind")?,
+            schema_id: row.try_get("schema_id")?,
+            schema_version: row.try_get("schema_version")?,
+            schema_digest: row.try_get("schema_digest")?,
+            config_bytes: row.try_get("config_bytes")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for OutboxDeliveryRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            delivery_id: row.try_get("delivery_id")?,
+            origin_sequence: row.try_get("origin_sequence")?,
+            origin_event_id: row.try_get("origin_event_id")?,
+            origin_recorded_at: row.try_get("origin_recorded_at")?,
+            origin_digest: row.try_get("origin_digest")?,
+            destination_id: row.try_get("destination_id")?,
+            destination_snapshot_digest: row.try_get("destination_snapshot_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            expires_at: row.try_get("expires_at")?,
+            delivery_digest: row.try_get("delivery_digest")?,
+            delivery_bytes: row.try_get("delivery_bytes")?,
+            status: row.try_get("status")?,
+            attempt_count: row.try_get("attempt_count")?,
+            current_attempt_id: row.try_get("current_attempt_id")?,
+            current_epoch: row.try_get("current_epoch")?,
+            current_attempt_started_at: row.try_get("current_attempt_started_at")?,
+            current_attempt_expires_at: row.try_get("current_attempt_expires_at")?,
+            next_attempt_at: row.try_get("next_attempt_at")?,
+            last_completion_digest: row.try_get("last_completion_digest")?,
+            terminal_at: row.try_get("terminal_at")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for OutboxAttemptStartRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            delivery_id: row.try_get("delivery_id")?,
+            delivery_expires_at: row.try_get("delivery_expires_at")?,
+            delivery_digest: row.try_get("delivery_digest")?,
+            epoch: row.try_get("epoch")?,
+            attempt_id: row.try_get("attempt_id")?,
+            started_at: row.try_get("started_at")?,
+            expires_at: row.try_get("expires_at")?,
+            start_digest: row.try_get("start_digest")?,
+            start_bytes: row.try_get("start_bytes")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for OutboxAttemptCompletionRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            delivery_id: row.try_get("delivery_id")?,
+            epoch: row.try_get("epoch")?,
+            attempt_id: row.try_get("attempt_id")?,
+            started_at: row.try_get("started_at")?,
+            attempt_expires_at: row.try_get("attempt_expires_at")?,
+            start_digest: row.try_get("start_digest")?,
+            outcome_kind: row.try_get("outcome_kind")?,
+            retry_advice_kind: row.try_get("retry_advice_kind")?,
+            retry_delay_millis: row.try_get("retry_delay_millis")?,
+            completed_at: row.try_get("completed_at")?,
+            completion_digest: row.try_get("completion_digest")?,
+            completion_bytes: row.try_get("completion_bytes")?,
+            created_at: row.try_get("created_at")?,
         })
     }
 }
@@ -6386,6 +7330,596 @@ async fn verify_model_invocation_anchor(
         return Err(StoreError::corrupt("model invocation journal anchor"));
     }
     Ok(())
+}
+
+fn encode_outbox_destination_config(config: &JournalPayload) -> Result<Vec<u8>, StoreError> {
+    let canonical = config
+        .canonical_json()
+        .map_err(|_| StoreError::encoding("outbox destination config"))?;
+    let bytes = canonical.as_bytes().to_vec();
+    if bytes.is_empty() || bytes.len() > MAX_OUTBOX_DESTINATION_BYTES {
+        return Err(StoreError::encoding("outbox destination config size"));
+    }
+    Ok(bytes)
+}
+
+fn decode_outbox_destination(
+    row: OutboxDestinationRow,
+) -> Result<StoredOutboxDestination, StoreError> {
+    if row.config_bytes.is_empty() || row.config_bytes.len() > MAX_OUTBOX_DESTINATION_BYTES {
+        return Err(StoreError::corrupt("outbox destination byte length"));
+    }
+    let config = serde_json::from_slice::<JournalPayload>(&row.config_bytes)
+        .map_err(|_| StoreError::corrupt("outbox destination config"))?;
+    let canonical = config
+        .canonical_json()
+        .map_err(|_| StoreError::corrupt("outbox destination canonicalization"))?;
+    if canonical.as_bytes() != row.config_bytes {
+        return Err(StoreError::corrupt("outbox destination canonical bytes"));
+    }
+    let tenant_id = TenantId::try_from(row.tenant_id)
+        .map_err(|_| StoreError::corrupt("outbox destination tenant"))?;
+    let destination_id = DestinationId::from_uuid(row.destination_id)
+        .map_err(|_| StoreError::corrupt("outbox destination identity"))?;
+    let snapshot_digest = decode_digest(&row.snapshot_digest, "outbox destination digest")?;
+    if config.digest() != snapshot_digest
+        || config.kind().as_str() != row.config_kind
+        || config.schema().id().as_str() != row.schema_id
+        || config.schema().version().to_string() != row.schema_version
+        || config.schema().digest()
+            != decode_digest(&row.schema_digest, "outbox destination schema digest")?
+    {
+        return Err(StoreError::corrupt("outbox destination projection"));
+    }
+    Ok(StoredOutboxDestination {
+        destination: OutboxDestinationRef::new(tenant_id, destination_id, snapshot_digest),
+        config,
+        created_at: from_database_time(row.created_at)?,
+    })
+}
+
+async fn load_outbox_destination_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    destination: &OutboxDestinationRef,
+) -> Result<Option<OutboxDestinationRow>, StoreError> {
+    query_as::<_, OutboxDestinationRow>(SELECT_OUTBOX_DESTINATION)
+        .bind(destination.tenant_id().as_str())
+        .bind(*destination.destination_id().as_uuid())
+        .bind(destination.snapshot_digest().as_bytes())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("outbox destination load", source))
+}
+
+async fn load_and_decode_outbox_destination(
+    transaction: &mut Transaction<'_, Postgres>,
+    destination: &OutboxDestinationRef,
+) -> Result<StoredOutboxDestination, StoreError> {
+    let row = load_outbox_destination_row(transaction, destination)
+        .await?
+        .ok_or(StoreError::OutboxDestinationNotFound)?;
+    let stored = decode_outbox_destination(row)?;
+    if stored.destination() != destination {
+        return Err(StoreError::corrupt("outbox destination binding"));
+    }
+    Ok(stored)
+}
+
+fn encode_outbox_delivery(delivery: &OutboxDelivery) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(delivery)
+        .map_err(|_| StoreError::encoding("outbox delivery"))?;
+    if bytes.is_empty() || bytes.len() > MAX_OUTBOX_DELIVERY_BYTES {
+        return Err(StoreError::encoding("outbox delivery size"));
+    }
+    Ok(bytes)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_outbox_delivery(row: &OutboxDeliveryRow) -> Result<OutboxDelivery, StoreError> {
+    if row.delivery_bytes.is_empty() || row.delivery_bytes.len() > MAX_OUTBOX_DELIVERY_BYTES {
+        return Err(StoreError::corrupt("outbox delivery byte length"));
+    }
+    let delivery = serde_json::from_slice::<OutboxDelivery>(&row.delivery_bytes)
+        .map_err(|_| StoreError::corrupt("outbox delivery value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&delivery)
+        .map_err(|_| StoreError::corrupt("outbox delivery canonicalization"))?;
+    if canonical != row.delivery_bytes {
+        return Err(StoreError::corrupt("outbox delivery canonical bytes"));
+    }
+    let intent = delivery.intent();
+    let origin = delivery.origin();
+    let destination = intent.destination();
+    let origin_sequence = i64::try_from(origin.sequence().get())
+        .map_err(|_| StoreError::corrupt("outbox origin sequence"))?;
+    if intent.tenant_id().as_str() != row.tenant_id
+        || *intent.run_id().as_uuid() != row.run_id
+        || *intent.delivery_id().as_uuid() != row.delivery_id
+        || origin_sequence != row.origin_sequence
+        || *origin.event_id().as_uuid() != row.origin_event_id
+        || origin.recorded_at() != from_database_time(row.origin_recorded_at)?
+        || origin.digest() != decode_digest(&row.origin_digest, "outbox origin digest")?
+        || *destination.destination_id().as_uuid() != row.destination_id
+        || destination.snapshot_digest()
+            != decode_digest(
+                &row.destination_snapshot_digest,
+                "outbox destination snapshot digest",
+            )?
+        || intent.intent_digest() != decode_digest(&row.intent_digest, "outbox intent digest")?
+        || intent.expires_at() != from_database_time(row.expires_at)?
+        || delivery.digest() != decode_digest(&row.delivery_digest, "outbox delivery digest")?
+        || origin.recorded_at() != from_database_time(row.created_at)?
+        || from_database_time(row.updated_at)? < origin.recorded_at()
+    {
+        return Err(StoreError::corrupt("outbox delivery projection"));
+    }
+    Ok(delivery)
+}
+
+async fn load_outbox_delivery_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    delivery_id: DeliveryId,
+    for_update: bool,
+) -> Result<Option<OutboxDeliveryRow>, StoreError> {
+    let statement = if for_update {
+        SELECT_OUTBOX_DELIVERY_FOR_UPDATE.as_str()
+    } else {
+        SELECT_OUTBOX_DELIVERY.as_str()
+    };
+    query_as::<_, OutboxDeliveryRow>(statement)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(*delivery_id.as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("outbox delivery load", source))
+}
+
+fn encode_outbox_attempt_start(start: &OutboxAttemptStart) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(start)
+        .map_err(|_| StoreError::encoding("outbox attempt start"))?;
+    if bytes.is_empty() || bytes.len() > MAX_OUTBOX_ATTEMPT_START_BYTES {
+        return Err(StoreError::encoding("outbox attempt start size"));
+    }
+    Ok(bytes)
+}
+
+fn decode_outbox_attempt_start(
+    row: &OutboxAttemptStartRow,
+) -> Result<OutboxAttemptStart, StoreError> {
+    if row.start_bytes.is_empty() || row.start_bytes.len() > MAX_OUTBOX_ATTEMPT_START_BYTES {
+        return Err(StoreError::corrupt("outbox attempt start byte length"));
+    }
+    let start = serde_json::from_slice::<OutboxAttemptStart>(&row.start_bytes)
+        .map_err(|_| StoreError::corrupt("outbox attempt start value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&start)
+        .map_err(|_| StoreError::corrupt("outbox attempt start canonicalization"))?;
+    if canonical != row.start_bytes {
+        return Err(StoreError::corrupt("outbox attempt start canonical bytes"));
+    }
+    let delivery = start.delivery();
+    let fence = start.fence();
+    let epoch = i64::try_from(fence.epoch().get())
+        .map_err(|_| StoreError::corrupt("outbox attempt epoch"))?;
+    if delivery.tenant_id().as_str() != row.tenant_id
+        || *delivery.run_id().as_uuid() != row.run_id
+        || *delivery.delivery_id().as_uuid() != row.delivery_id
+        || delivery.expires_at() != from_database_time(row.delivery_expires_at)?
+        || delivery.digest() != decode_digest(&row.delivery_digest, "outbox delivery digest")?
+        || epoch != row.epoch
+        || *fence.attempt_id().as_uuid() != row.attempt_id
+        || start.started_at() != from_database_time(row.started_at)?
+        || start.expires_at() != from_database_time(row.expires_at)?
+        || start.digest() != decode_digest(&row.start_digest, "outbox attempt start digest")?
+        || start.started_at() != from_database_time(row.created_at)?
+    {
+        return Err(StoreError::corrupt("outbox attempt start projection"));
+    }
+    Ok(start)
+}
+
+fn encode_outbox_attempt_completion(
+    completion: &OutboxAttemptCompletion,
+) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(completion)
+        .map_err(|_| StoreError::encoding("outbox attempt completion"))?;
+    if bytes.is_empty() || bytes.len() > MAX_OUTBOX_ATTEMPT_COMPLETION_BYTES {
+        return Err(StoreError::encoding("outbox attempt completion size"));
+    }
+    Ok(bytes)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_outbox_attempt_completion(
+    row: &OutboxAttemptCompletionRow,
+) -> Result<OutboxAttemptCompletion, StoreError> {
+    if row.completion_bytes.is_empty()
+        || row.completion_bytes.len() > MAX_OUTBOX_ATTEMPT_COMPLETION_BYTES
+    {
+        return Err(StoreError::corrupt("outbox attempt completion byte length"));
+    }
+    let completion = serde_json::from_slice::<OutboxAttemptCompletion>(&row.completion_bytes)
+        .map_err(|_| StoreError::corrupt("outbox attempt completion value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&completion)
+        .map_err(|_| StoreError::corrupt("outbox attempt completion canonicalization"))?;
+    if canonical != row.completion_bytes {
+        return Err(StoreError::corrupt(
+            "outbox attempt completion canonical bytes",
+        ));
+    }
+    let start = completion.start();
+    let fence = start.fence();
+    let delivery = start.delivery();
+    let epoch = i64::try_from(fence.epoch().get())
+        .map_err(|_| StoreError::corrupt("outbox completion epoch"))?;
+    let (outcome_kind, retry_kind, retry_delay) = outbox_completion_projection(&completion)?;
+    if delivery.tenant_id().as_str() != row.tenant_id
+        || *delivery.run_id().as_uuid() != row.run_id
+        || *delivery.delivery_id().as_uuid() != row.delivery_id
+        || epoch != row.epoch
+        || *fence.attempt_id().as_uuid() != row.attempt_id
+        || start.started_at() != from_database_time(row.started_at)?
+        || start.expires_at() != from_database_time(row.attempt_expires_at)?
+        || start.digest() != decode_digest(&row.start_digest, "outbox completion start digest")?
+        || outcome_kind != row.outcome_kind
+        || retry_kind != row.retry_advice_kind.as_deref()
+        || retry_delay != row.retry_delay_millis
+        || completion.completed_at() != from_database_time(row.completed_at)?
+        || completion.digest() != decode_digest(&row.completion_digest, "outbox completion digest")?
+        || completion.completed_at() != from_database_time(row.created_at)?
+    {
+        return Err(StoreError::corrupt("outbox attempt completion projection"));
+    }
+    Ok(completion)
+}
+
+fn outbox_completion_projection(
+    completion: &OutboxAttemptCompletion,
+) -> Result<(&'static str, Option<&'static str>, Option<i64>), StoreError> {
+    match completion.outcome() {
+        OutboxAttemptOutcome::Acknowledged { .. } => Ok(("acknowledged", None, None)),
+        OutboxAttemptOutcome::Failed { failure } => match failure.retry_advice() {
+            RetryAdvice::Never => Ok(("failed", Some("never"), None)),
+            RetryAdvice::SafeAfter { delay } => {
+                Ok(("failed", Some("safe_after"), Some(delay.as_i64())))
+            }
+            RetryAdvice::ReconcileFirst => Err(StoreError::InvalidOutboxTransition),
+        },
+        _ => Err(StoreError::InvalidOutboxTransition),
+    }
+}
+
+async fn load_outbox_attempt_completion_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    delivery_id: DeliveryId,
+    epoch: i64,
+) -> Result<Option<OutboxAttemptCompletionRow>, StoreError> {
+    query_as::<_, OutboxAttemptCompletionRow>(SELECT_OUTBOX_ATTEMPT_COMPLETION)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(*delivery_id.as_uuid())
+        .bind(epoch)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("outbox attempt completion load", source))
+}
+
+async fn load_and_verify_outbox_attempts(
+    transaction: &mut Transaction<'_, Postgres>,
+    delivery: &OutboxDelivery,
+) -> Result<Vec<OutboxAttempt>, StoreError> {
+    let rows = query_as::<_, OutboxAttemptStartRow>(SELECT_OUTBOX_ATTEMPT_HISTORY.as_str())
+        .bind(delivery.intent().tenant_id().as_str())
+        .bind(*delivery.intent().run_id().as_uuid())
+        .bind(*delivery.intent().delivery_id().as_uuid())
+        .bind(0_i64)
+        .bind(i64::try_from(MAX_OUTBOX_ATTEMPTS + 1).unwrap_or(i64::MAX))
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("outbox attempt history load", source))?;
+    if rows.len() > MAX_OUTBOX_ATTEMPTS {
+        return Err(StoreError::corrupt("outbox attempt history bound"));
+    }
+    let completion_rows =
+        query_as::<_, OutboxAttemptCompletionRow>(SELECT_OUTBOX_ATTEMPT_COMPLETION_HISTORY)
+            .bind(delivery.intent().tenant_id().as_str())
+            .bind(*delivery.intent().run_id().as_uuid())
+            .bind(*delivery.intent().delivery_id().as_uuid())
+            .bind(i64::try_from(MAX_OUTBOX_ATTEMPTS + 1).unwrap_or(i64::MAX))
+            .fetch_all(&mut **transaction)
+            .await
+            .map_err(|source| StoreError::database("outbox completion history load", source))?;
+    if completion_rows.len() > MAX_OUTBOX_ATTEMPTS {
+        return Err(StoreError::corrupt("outbox completion history bound"));
+    }
+    let mut completions = BTreeMap::new();
+    for row in completion_rows {
+        let epoch = row.epoch;
+        if completions.insert(epoch, row).is_some() {
+            return Err(StoreError::corrupt("outbox completion history identity"));
+        }
+    }
+    let mut verifier = OutboxAttemptHistoryVerifier::new(delivery);
+    let mut attempts = Vec::with_capacity(rows.len());
+    for row in rows {
+        let start = decode_outbox_attempt_start(&row)?;
+        if start.delivery() != &delivery.head() {
+            return Err(StoreError::corrupt("outbox attempt delivery binding"));
+        }
+        let epoch = i64::try_from(start.fence().epoch().get())
+            .map_err(|_| StoreError::corrupt("outbox attempt epoch"))?;
+        let completion = completions
+            .remove(&epoch)
+            .map(|row| decode_outbox_attempt_completion(&row))
+            .transpose()?;
+        let attempt = OutboxAttempt::restore(start, completion)
+            .map_err(|_| StoreError::corrupt("outbox attempt join"))?;
+        verifier
+            .verify_next(&attempt)
+            .map_err(|_| StoreError::corrupt("outbox attempt history"))?;
+        attempts.push(attempt);
+    }
+    if !completions.is_empty() {
+        return Err(StoreError::corrupt("outbox completion without start"));
+    }
+    Ok(attempts)
+}
+
+async fn verify_outbox_projection(
+    transaction: &mut Transaction<'_, Postgres>,
+    row: &OutboxDeliveryRow,
+    delivery: &OutboxDelivery,
+) -> Result<(), StoreError> {
+    verify_outbox_delivery_anchor(transaction, delivery).await?;
+    let destination =
+        load_and_decode_outbox_destination(transaction, delivery.intent().destination()).await?;
+    if destination.destination() != delivery.intent().destination() {
+        return Err(StoreError::corrupt("outbox delivery destination binding"));
+    }
+    let attempts = load_and_verify_outbox_attempts(transaction, delivery).await?;
+    verify_outbox_projection_records(row, delivery, &attempts)
+}
+
+async fn verify_outbox_delivery_anchor(
+    transaction: &mut Transaction<'_, Postgres>,
+    delivery: &OutboxDelivery,
+) -> Result<(), StoreError> {
+    let sequence = i64::try_from(delivery.origin().sequence().get())
+        .map_err(|_| StoreError::corrupt("outbox origin sequence"))?;
+    let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(delivery.intent().tenant_id().as_str())
+        .bind(*delivery.intent().run_id().as_uuid())
+        .bind(sequence)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("outbox journal anchor load", source))?
+        .ok_or_else(|| StoreError::corrupt("outbox journal anchor"))?;
+    let event = decode_event(row)?;
+    if event.head() != *delivery.origin() {
+        return Err(StoreError::corrupt("outbox journal anchor"));
+    }
+    Ok(())
+}
+
+fn verify_outbox_projection_records(
+    row: &OutboxDeliveryRow,
+    delivery: &OutboxDelivery,
+    attempts: &[OutboxAttempt],
+) -> Result<(), StoreError> {
+    if usize::try_from(row.attempt_count).ok() != Some(attempts.len())
+        || row.attempt_count < 0
+        || usize::try_from(row.attempt_count)
+            .ok()
+            .is_none_or(|count| count > MAX_OUTBOX_ATTEMPTS)
+    {
+        return Err(StoreError::corrupt("outbox attempt count projection"));
+    }
+    if row.status == "expired" {
+        return verify_expired_outbox_projection(row, delivery, attempts);
+    }
+    let Some(last) = attempts.last() else {
+        return verify_initial_outbox_projection(row, delivery);
+    };
+    let updated_at = from_database_time(row.updated_at)?;
+    let next_attempt_at = row.next_attempt_at.map(from_database_time).transpose()?;
+    let terminal_at = row.terminal_at.map(from_database_time).transpose()?;
+    let last_completion_digest = row
+        .last_completion_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "outbox last completion digest"))
+        .transpose()?;
+
+    let start = last.start();
+    verify_outbox_current_attempt_projection(row, start)?;
+
+    let Some(completion) = last.completion() else {
+        if attempts.len() == MAX_OUTBOX_ATTEMPTS
+            && start.expires_at() < delivery.intent().expires_at()
+            && row.status == "dead_letter"
+            && next_attempt_at.is_none()
+            && last_completion_digest.is_none()
+            && terminal_at == Some(start.expires_at())
+            && updated_at == start.expires_at()
+        {
+            return Ok(());
+        }
+        if row.status != "delivering"
+            || next_attempt_at != Some(start.expires_at())
+            || last_completion_digest.is_some()
+            || terminal_at.is_some()
+            || updated_at != start.started_at()
+        {
+            return Err(StoreError::corrupt("outbox delivering projection"));
+        }
+        return Ok(());
+    };
+
+    if last_completion_digest != Some(completion.digest())
+        || updated_at != completion.completed_at()
+    {
+        return Err(StoreError::corrupt("outbox completion projection"));
+    }
+    match completion.outcome() {
+        OutboxAttemptOutcome::Acknowledged { .. } => {
+            if row.status != "acknowledged"
+                || next_attempt_at.is_some()
+                || terminal_at != Some(completion.completed_at())
+            {
+                return Err(StoreError::corrupt("outbox acknowledgement projection"));
+            }
+        }
+        OutboxAttemptOutcome::Failed { failure } => match failure.retry_advice() {
+            RetryAdvice::Never => {
+                if row.status != "dead_letter"
+                    || next_attempt_at.is_some()
+                    || terminal_at != Some(completion.completed_at())
+                {
+                    return Err(StoreError::corrupt("outbox dead-letter projection"));
+                }
+            }
+            RetryAdvice::SafeAfter { .. } if attempts.len() == MAX_OUTBOX_ATTEMPTS => {
+                if row.status != "dead_letter"
+                    || next_attempt_at.is_some()
+                    || terminal_at != Some(completion.completed_at())
+                {
+                    return Err(StoreError::corrupt("outbox attempt-limit projection"));
+                }
+            }
+            RetryAdvice::SafeAfter { delay } => {
+                let retry_at = add_duration(
+                    completion.completed_at(),
+                    Duration::from_millis(
+                        u64::try_from(delay.as_i64())
+                            .map_err(|_| StoreError::corrupt("outbox retry delay"))?,
+                    ),
+                )?;
+                if row.status != "retry_scheduled"
+                    || next_attempt_at != Some(retry_at)
+                    || terminal_at.is_some()
+                {
+                    return Err(StoreError::corrupt("outbox retry projection"));
+                }
+            }
+            RetryAdvice::ReconcileFirst => {
+                return Err(StoreError::corrupt("outbox retry advice"));
+            }
+        },
+        _ => return Err(StoreError::corrupt("outbox attempt outcome")),
+    }
+    Ok(())
+}
+
+fn verify_initial_outbox_projection(
+    row: &OutboxDeliveryRow,
+    delivery: &OutboxDelivery,
+) -> Result<(), StoreError> {
+    let next_attempt_at = row.next_attempt_at.map(from_database_time).transpose()?;
+    if row.status != "pending"
+        || row.current_attempt_id.is_some()
+        || row.current_epoch.is_some()
+        || row.current_attempt_started_at.is_some()
+        || row.current_attempt_expires_at.is_some()
+        || next_attempt_at != Some(delivery.origin().recorded_at())
+        || row.last_completion_digest.is_some()
+        || row.terminal_at.is_some()
+        || from_database_time(row.updated_at)? != delivery.origin().recorded_at()
+    {
+        return Err(StoreError::corrupt("outbox initial projection"));
+    }
+    Ok(())
+}
+
+fn verify_expired_outbox_projection(
+    row: &OutboxDeliveryRow,
+    delivery: &OutboxDelivery,
+    attempts: &[OutboxAttempt],
+) -> Result<(), StoreError> {
+    let mut verifier = OutboxAttemptHistoryVerifier::new(delivery);
+    for attempt in attempts {
+        verifier
+            .verify_next(attempt)
+            .map_err(|_| StoreError::corrupt("outbox expired history"))?;
+    }
+    let next_attempt_at = row.next_attempt_at.map(from_database_time).transpose()?;
+    let terminal_at = row.terminal_at.map(from_database_time).transpose()?;
+    let updated_at = from_database_time(row.updated_at)?;
+    let last_completion_digest = row
+        .last_completion_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "outbox last completion digest"))
+        .transpose()?;
+    if verifier
+        .status_at(delivery.intent().expires_at())
+        .map_err(|_| StoreError::corrupt("outbox expiry projection"))?
+        != OutboxDeliveryStatus::Expired
+        || next_attempt_at.is_some()
+        || terminal_at != Some(delivery.intent().expires_at())
+        || updated_at != delivery.intent().expires_at()
+        || last_completion_digest
+            != attempts
+                .last()
+                .and_then(OutboxAttempt::completion)
+                .map(OutboxAttemptCompletion::digest)
+    {
+        return Err(StoreError::corrupt("outbox expiry projection"));
+    }
+    if let Some(last) = attempts.last() {
+        verify_outbox_current_attempt_projection(row, last.start())?;
+    } else if row.current_attempt_id.is_some()
+        || row.current_epoch.is_some()
+        || row.current_attempt_started_at.is_some()
+        || row.current_attempt_expires_at.is_some()
+    {
+        return Err(StoreError::corrupt("outbox expired current attempt"));
+    }
+    Ok(())
+}
+
+fn verify_outbox_current_attempt_projection(
+    row: &OutboxDeliveryRow,
+    start: &OutboxAttemptStart,
+) -> Result<(), StoreError> {
+    let epoch = i64::try_from(start.fence().epoch().get())
+        .map_err(|_| StoreError::corrupt("outbox current epoch"))?;
+    if row.current_attempt_id != Some(*start.fence().attempt_id().as_uuid())
+        || row.current_epoch != Some(epoch)
+        || row
+            .current_attempt_started_at
+            .map(from_database_time)
+            .transpose()?
+            != Some(start.started_at())
+        || row
+            .current_attempt_expires_at
+            .map(from_database_time)
+            .transpose()?
+            != Some(start.expires_at())
+    {
+        return Err(StoreError::corrupt("outbox current attempt projection"));
+    }
+    Ok(())
+}
+
+fn outbox_outcomes_equal(left: &OutboxAttemptOutcome, right: &OutboxAttemptOutcome) -> bool {
+    match (
+        serde_json_canonicalizer::to_vec(left),
+        serde_json_canonicalizer::to_vec(right),
+    ) {
+        (Ok(left), Ok(right)) => left == right,
+        _ => false,
+    }
+}
+
+fn outbox_attempts_equal(left: &OutboxAttempt, right: &OutboxAttempt) -> bool {
+    match (
+        serde_json_canonicalizer::to_vec(left),
+        serde_json_canonicalizer::to_vec(right),
+    ) {
+        (Ok(left), Ok(right)) => left == right,
+        _ => false,
+    }
 }
 
 fn encode_node_attempt(attempt: &NodeAttempt) -> Result<Vec<u8>, StoreError> {
@@ -7815,6 +9349,561 @@ fn prepare_projection(
         status: run_status_text(lifecycle.status()),
         changed_at: to_database_time(lifecycle.changed_at())?,
     }))
+}
+
+fn validate_outbox_batch(
+    append: &JournalAppend,
+    intents: &[OutboxDeliveryIntent],
+) -> Result<(), StoreError> {
+    if intents.is_empty() || intents.len() > MAX_OUTBOX_DELIVERIES_PER_EVENT {
+        return Err(StoreError::InvalidOutboxBatch);
+    }
+    let mut identities = BTreeMap::new();
+    for intent in intents {
+        if intent.tenant_id() != append.intent().tenant_id()
+            || intent.run_id() != append.intent().run_id()
+            || intent.origin_event_id() != append.intent().event_id()
+            || identities
+                .insert(intent.delivery_id(), intent.intent_digest())
+                .is_some()
+        {
+            return Err(StoreError::InvalidOutboxBatch);
+        }
+    }
+    Ok(())
+}
+
+fn materialize_outbox_deliveries(
+    intents: Vec<OutboxDeliveryIntent>,
+    event: &JournalEvent,
+) -> Result<Vec<OutboxDelivery>, StoreError> {
+    intents
+        .into_iter()
+        .map(|intent| {
+            OutboxDelivery::commit(intent, event.head())
+                .map_err(|_| StoreError::OutboxEnqueueConflict)
+        })
+        .collect()
+}
+
+async fn reap_outbox_terminals(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    observed_at: Timestamp,
+) -> Result<(), StoreError> {
+    let observed_at = to_database_time(observed_at)?;
+    query(
+        r"
+WITH candidates AS (
+    SELECT tenant_id, run_id, delivery_id
+    FROM stateknot.outbox_deliveries
+    WHERE tenant_id = $1
+      AND status = 'delivering'
+      AND attempt_count = 64
+      AND last_completion_digest IS NULL
+      AND current_attempt_expires_at <= $2
+      AND current_attempt_expires_at < expires_at
+    ORDER BY current_attempt_expires_at ASC, delivery_id ASC
+    FOR UPDATE SKIP LOCKED
+    LIMIT $3
+)
+UPDATE stateknot.outbox_deliveries AS delivery
+SET status = 'dead_letter',
+    next_attempt_at = NULL,
+    terminal_at = delivery.current_attempt_expires_at,
+    updated_at = delivery.current_attempt_expires_at
+FROM candidates
+WHERE delivery.tenant_id = candidates.tenant_id
+  AND delivery.run_id = candidates.run_id
+  AND delivery.delivery_id = candidates.delivery_id
+",
+    )
+    .bind(tenant_id.as_str())
+    .bind(observed_at)
+    .bind(OUTBOX_TERMINAL_REAP_BATCH_SIZE)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("outbox attempt-limit reap", source))?;
+
+    query(
+        r"
+WITH candidates AS (
+    SELECT tenant_id, run_id, delivery_id
+    FROM stateknot.outbox_deliveries
+    WHERE tenant_id = $1
+      AND status IN ('pending', 'delivering', 'retry_scheduled')
+      AND expires_at <= $2
+    ORDER BY expires_at ASC, delivery_id ASC
+    FOR UPDATE SKIP LOCKED
+    LIMIT $3
+)
+UPDATE stateknot.outbox_deliveries AS delivery
+SET status = 'expired',
+    next_attempt_at = NULL,
+    terminal_at = delivery.expires_at,
+    updated_at = delivery.expires_at
+FROM candidates
+WHERE delivery.tenant_id = candidates.tenant_id
+  AND delivery.run_id = candidates.run_id
+  AND delivery.delivery_id = candidates.delivery_id
+",
+    )
+    .bind(tenant_id.as_str())
+    .bind(observed_at)
+    .bind(OUTBOX_TERMINAL_REAP_BATCH_SIZE)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("outbox delivery-expiry reap", source))?;
+    Ok(())
+}
+
+async fn load_idempotent_outbox_claim(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    attempt_id: AttemptId,
+) -> Result<Option<OutboxClaim>, StoreError> {
+    let Some(start_row) =
+        query_as::<_, OutboxAttemptStartRow>(SELECT_OUTBOX_ATTEMPT_BY_ID.as_str())
+            .bind(tenant_id.as_str())
+            .bind(*attempt_id.as_uuid())
+            .fetch_optional(&mut **transaction)
+            .await
+            .map_err(|source| StoreError::database("outbox claim idempotency lookup", source))?
+    else {
+        return Ok(None);
+    };
+    let start = decode_outbox_attempt_start(&start_row)?;
+    let delivery_row = load_outbox_delivery_row(
+        transaction,
+        tenant_id,
+        start.delivery().run_id(),
+        start.delivery().delivery_id(),
+        true,
+    )
+    .await?
+    .ok_or_else(|| StoreError::corrupt("outbox claim delivery"))?;
+    let delivery = decode_outbox_delivery(&delivery_row)?;
+    if delivery.head() != *start.delivery() {
+        return Err(StoreError::corrupt("outbox claim start binding"));
+    }
+    verify_outbox_projection(transaction, &delivery_row, &delivery).await?;
+    let current_observation = database_now(transaction, "idempotent outbox claim clock").await?;
+    let epoch = i64::try_from(start.fence().epoch().get())
+        .map_err(|_| StoreError::InvalidOutboxTransition)?;
+    if delivery_row.status != "delivering"
+        || delivery_row.current_attempt_id != Some(*start.fence().attempt_id().as_uuid())
+        || delivery_row.current_epoch != Some(epoch)
+    {
+        return Err(StoreError::StaleOutboxFence);
+    }
+    if current_observation >= start.expires_at() {
+        return Err(StoreError::OutboxAttemptExpired);
+    }
+    let destination =
+        load_and_decode_outbox_destination(transaction, delivery.intent().destination()).await?;
+    Ok(Some(OutboxClaim {
+        destination,
+        delivery,
+        start,
+    }))
+}
+
+async fn insert_outbox_delivery(
+    transaction: &mut Transaction<'_, Postgres>,
+    delivery: &OutboxDelivery,
+    source: &JournalEventSource,
+) -> Result<(), StoreError> {
+    let intent = delivery.intent();
+    let origin = delivery.origin();
+    let destination = intent.destination();
+    let bytes = encode_outbox_delivery(delivery)?;
+    let sequence =
+        i64::try_from(origin.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let (source_kind, worker_attempt_id, worker_epoch) = match source {
+        JournalEventSource::ControlPlane => ("control_plane", None, None),
+        JournalEventSource::Worker { fence } => (
+            "worker",
+            Some(*fence.attempt_id().as_uuid()),
+            Some(i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?),
+        ),
+    };
+    let inserted = query(
+        r"
+INSERT INTO stateknot.outbox_deliveries (
+    tenant_id,
+    run_id,
+    delivery_id,
+    origin_sequence,
+    origin_event_id,
+    origin_recorded_at,
+    origin_digest,
+    destination_id,
+    destination_snapshot_digest,
+    intent_digest,
+    expires_at,
+    delivery_digest,
+    delivery_bytes,
+    status,
+    attempt_count,
+    current_attempt_id,
+    current_epoch,
+    current_attempt_started_at,
+    current_attempt_expires_at,
+    next_attempt_at,
+    last_completion_digest,
+    terminal_at,
+    created_at,
+    updated_at
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+    'pending', 0, NULL, NULL, NULL, NULL, $6, NULL, NULL, $6, $6
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND (
+      $14 = 'control_plane'
+      OR (
+          $14 = 'worker'
+          AND current_run.lease_attempt_id = $15
+          AND current_run.fencing_epoch = $16
+          AND current_run.lease_expires_at > clock_timestamp()
+      )
+  )
+",
+    )
+    .bind(intent.tenant_id().as_str())
+    .bind(*intent.run_id().as_uuid())
+    .bind(*intent.delivery_id().as_uuid())
+    .bind(sequence)
+    .bind(*origin.event_id().as_uuid())
+    .bind(to_database_time(origin.recorded_at())?)
+    .bind(origin.digest().as_bytes())
+    .bind(*destination.destination_id().as_uuid())
+    .bind(destination.snapshot_digest().as_bytes())
+    .bind(intent.intent_digest().as_bytes())
+    .bind(to_database_time(intent.expires_at())?)
+    .bind(delivery.digest().as_bytes())
+    .bind(&bytes)
+    .bind(source_kind)
+    .bind(worker_attempt_id)
+    .bind(worker_epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| {
+        if has_database_constraint(&source, "outbox_deliveries_pkey") {
+            StoreError::OutboxDeliveryIdConflict
+        } else if has_database_constraint(&source, "outbox_deliveries_destination_fk") {
+            StoreError::OutboxDestinationNotFound
+        } else {
+            StoreError::database("outbox delivery insert", source)
+        }
+    })?
+    .rows_affected();
+    if inserted != 1 {
+        return Err(if source_kind == "worker" {
+            StoreError::LeaseExpired
+        } else {
+            StoreError::corrupt("outbox delivery insert row count")
+        });
+    }
+    Ok(())
+}
+
+async fn insert_outbox_attempt_claim(
+    transaction: &mut Transaction<'_, Postgres>,
+    delivery: &OutboxDelivery,
+    start: &OutboxAttemptStart,
+) -> Result<(), StoreError> {
+    let origin = delivery.origin();
+    let sequence =
+        i64::try_from(origin.sequence().get()).map_err(|_| StoreError::InvalidOutboxTransition)?;
+    let epoch = i64::try_from(start.fence().epoch().get())
+        .map_err(|_| StoreError::InvalidOutboxTransition)?;
+    query(
+        r"
+INSERT INTO stateknot.run_attempt_claims (
+    tenant_id,
+    run_id,
+    attempt_id,
+    claim_kind,
+    invocation_id,
+    invocation_revision,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    claimed_at,
+    activation_digest,
+    delivery_id,
+    delivery_epoch
+)
+VALUES ($1, $2, $3, 'outbox_attempt', NULL, NULL, $4, $5, $6, $7, $8, NULL, $9, $10)
+",
+    )
+    .bind(start.delivery().tenant_id().as_str())
+    .bind(*start.delivery().run_id().as_uuid())
+    .bind(*start.fence().attempt_id().as_uuid())
+    .bind(sequence)
+    .bind(*origin.event_id().as_uuid())
+    .bind(to_database_time(origin.recorded_at())?)
+    .bind(origin.digest().as_bytes())
+    .bind(to_database_time(start.started_at())?)
+    .bind(*start.delivery().delivery_id().as_uuid())
+    .bind(epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| {
+        if has_database_error_code(&source, "23505") {
+            StoreError::OutboxAttemptIdConflict
+        } else {
+            StoreError::database("outbox attempt claim insert", source)
+        }
+    })?;
+    Ok(())
+}
+
+async fn insert_outbox_attempt_start(
+    transaction: &mut Transaction<'_, Postgres>,
+    delivery: &OutboxDelivery,
+    start: &OutboxAttemptStart,
+) -> Result<(), StoreError> {
+    let bytes = encode_outbox_attempt_start(start)?;
+    let epoch = i64::try_from(start.fence().epoch().get())
+        .map_err(|_| StoreError::InvalidOutboxTransition)?;
+    query(
+        r"
+INSERT INTO stateknot.outbox_attempts (
+    tenant_id,
+    run_id,
+    delivery_id,
+    delivery_expires_at,
+    delivery_digest,
+    epoch,
+    attempt_id,
+    started_at,
+    expires_at,
+    start_digest,
+    start_bytes,
+    created_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $8)
+",
+    )
+    .bind(start.delivery().tenant_id().as_str())
+    .bind(*start.delivery().run_id().as_uuid())
+    .bind(*start.delivery().delivery_id().as_uuid())
+    .bind(to_database_time(delivery.intent().expires_at())?)
+    .bind(delivery.digest().as_bytes())
+    .bind(epoch)
+    .bind(*start.fence().attempt_id().as_uuid())
+    .bind(to_database_time(start.started_at())?)
+    .bind(to_database_time(start.expires_at())?)
+    .bind(start.digest().as_bytes())
+    .bind(&bytes)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| {
+        if has_database_error_code(&source, "23505") {
+            StoreError::OutboxAttemptIdConflict
+        } else {
+            StoreError::database("outbox attempt start insert", source)
+        }
+    })?;
+    Ok(())
+}
+
+async fn update_outbox_delivery_claim(
+    transaction: &mut Transaction<'_, Postgres>,
+    delivery: &OutboxDelivery,
+    start: &OutboxAttemptStart,
+    previous_count: i64,
+) -> Result<(), StoreError> {
+    let epoch = i64::try_from(start.fence().epoch().get())
+        .map_err(|_| StoreError::InvalidOutboxTransition)?;
+    let updated = query(
+        r"
+UPDATE stateknot.outbox_deliveries
+SET status = 'delivering',
+    attempt_count = $4,
+    current_attempt_id = $5,
+    current_epoch = $4,
+    current_attempt_started_at = $6,
+    current_attempt_expires_at = $7,
+    next_attempt_at = $7,
+    last_completion_digest = NULL,
+    terminal_at = NULL,
+    updated_at = $6
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND delivery_id = $3
+  AND delivery_digest = $8
+  AND attempt_count = $9
+  AND status IN ('pending', 'delivering', 'retry_scheduled')
+  AND next_attempt_at <= $6
+  AND expires_at > $6
+",
+    )
+    .bind(start.delivery().tenant_id().as_str())
+    .bind(*start.delivery().run_id().as_uuid())
+    .bind(*start.delivery().delivery_id().as_uuid())
+    .bind(epoch)
+    .bind(*start.fence().attempt_id().as_uuid())
+    .bind(to_database_time(start.started_at())?)
+    .bind(to_database_time(start.expires_at())?)
+    .bind(delivery.digest().as_bytes())
+    .bind(previous_count)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("outbox delivery claim update", source))?
+    .rows_affected();
+    if updated != 1 {
+        return Err(StoreError::InvalidOutboxTransition);
+    }
+    Ok(())
+}
+
+async fn insert_outbox_attempt_completion(
+    transaction: &mut Transaction<'_, Postgres>,
+    completion: &OutboxAttemptCompletion,
+) -> Result<(), StoreError> {
+    let start = completion.start();
+    let fence = start.fence();
+    let delivery = start.delivery();
+    let epoch =
+        i64::try_from(fence.epoch().get()).map_err(|_| StoreError::InvalidOutboxTransition)?;
+    let bytes = encode_outbox_attempt_completion(completion)?;
+    let (outcome_kind, retry_kind, retry_delay) = outbox_completion_projection(completion)?;
+    query(
+        r"
+INSERT INTO stateknot.outbox_attempt_completions (
+    tenant_id,
+    run_id,
+    delivery_id,
+    epoch,
+    attempt_id,
+    started_at,
+    attempt_expires_at,
+    start_digest,
+    outcome_kind,
+    retry_advice_kind,
+    retry_delay_millis,
+    completed_at,
+    completion_digest,
+    completion_bytes,
+    created_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $12)
+",
+    )
+    .bind(delivery.tenant_id().as_str())
+    .bind(*delivery.run_id().as_uuid())
+    .bind(*delivery.delivery_id().as_uuid())
+    .bind(epoch)
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(to_database_time(start.started_at())?)
+    .bind(to_database_time(start.expires_at())?)
+    .bind(start.digest().as_bytes())
+    .bind(outcome_kind)
+    .bind(retry_kind)
+    .bind(retry_delay)
+    .bind(to_database_time(completion.completed_at())?)
+    .bind(completion.digest().as_bytes())
+    .bind(&bytes)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| {
+        if has_database_error_code(&source, "23505") {
+            StoreError::OutboxCompletionConflict
+        } else {
+            StoreError::database("outbox attempt completion insert", source)
+        }
+    })?;
+    Ok(())
+}
+
+async fn update_outbox_delivery_completion(
+    transaction: &mut Transaction<'_, Postgres>,
+    delivery: &OutboxDelivery,
+    start: &OutboxAttemptStart,
+    completion: &OutboxAttemptCompletion,
+    attempt_count: i64,
+) -> Result<(), StoreError> {
+    let (status, next_attempt_at, terminal_at) = match completion.outcome() {
+        OutboxAttemptOutcome::Acknowledged { .. } => (
+            "acknowledged",
+            None,
+            Some(to_database_time(completion.completed_at())?),
+        ),
+        OutboxAttemptOutcome::Failed { failure } => match failure.retry_advice() {
+            RetryAdvice::Never => (
+                "dead_letter",
+                None,
+                Some(to_database_time(completion.completed_at())?),
+            ),
+            RetryAdvice::SafeAfter { .. }
+                if usize::try_from(attempt_count).ok() == Some(MAX_OUTBOX_ATTEMPTS) =>
+            {
+                (
+                    "dead_letter",
+                    None,
+                    Some(to_database_time(completion.completed_at())?),
+                )
+            }
+            RetryAdvice::SafeAfter { delay } => {
+                let duration = Duration::from_millis(
+                    u64::try_from(delay.as_i64())
+                        .map_err(|_| StoreError::InvalidOutboxTransition)?,
+                );
+                let retry_at = add_duration(completion.completed_at(), duration)?;
+                ("retry_scheduled", Some(to_database_time(retry_at)?), None)
+            }
+            RetryAdvice::ReconcileFirst => return Err(StoreError::InvalidOutboxTransition),
+        },
+        _ => return Err(StoreError::InvalidOutboxTransition),
+    };
+    let epoch = i64::try_from(start.fence().epoch().get())
+        .map_err(|_| StoreError::InvalidOutboxTransition)?;
+    let updated = query(
+        r"
+UPDATE stateknot.outbox_deliveries
+SET status = $6,
+    next_attempt_at = $7,
+    last_completion_digest = $8,
+    terminal_at = $9,
+    updated_at = $10
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND delivery_id = $3
+  AND delivery_digest = $4
+  AND attempt_count = $5
+  AND status = 'delivering'
+  AND current_attempt_id = $11
+  AND current_epoch = $12
+  AND current_attempt_expires_at > $10
+  AND last_completion_digest IS NULL
+",
+    )
+    .bind(start.delivery().tenant_id().as_str())
+    .bind(*start.delivery().run_id().as_uuid())
+    .bind(*start.delivery().delivery_id().as_uuid())
+    .bind(delivery.digest().as_bytes())
+    .bind(attempt_count)
+    .bind(status)
+    .bind(next_attempt_at)
+    .bind(completion.digest().as_bytes())
+    .bind(terminal_at)
+    .bind(to_database_time(completion.completed_at())?)
+    .bind(*start.fence().attempt_id().as_uuid())
+    .bind(epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("outbox delivery completion update", source))?
+    .rows_affected();
+    if updated != 1 {
+        return Err(StoreError::StaleOutboxFence);
+    }
+    Ok(())
 }
 
 async fn insert_event(
@@ -9941,6 +12030,34 @@ mod tests {
                 name: "lock timeout"
             })
         );
+        assert_eq!(
+            PostgresStoreOptions::default()
+                .with_outbox_attempt_lease(Duration::ZERO)
+                .validate(),
+            Err(ConfigurationError::ZeroDuration {
+                name: "outbox attempt lease duration"
+            })
+        );
+        assert_eq!(
+            PostgresStoreOptions::default()
+                .with_outbox_attempt_lease(Duration::from_nanos(1_500))
+                .validate(),
+            Err(ConfigurationError::LeaseTimingNotMicrosecondAligned {
+                name: "outbox attempt lease duration"
+            })
+        );
+        assert!(
+            PostgresStoreOptions::default()
+                .with_outbox_attempt_lease(Duration::from_secs(5 * 60))
+                .validate()
+                .is_ok()
+        );
+        assert_eq!(
+            PostgresStoreOptions::default()
+                .with_outbox_attempt_lease(Duration::from_micros(300_000_001))
+                .validate(),
+            Err(ConfigurationError::OutboxAttemptLeaseTooLong)
+        );
     }
 
     #[test]
@@ -9975,6 +12092,11 @@ mod tests {
         assert!(RunnableRunPageSize::new(RunnableRunPageSize::MAX).is_ok());
         assert!(RunnableRunPageSize::new(0).is_err());
         assert!(RunnableRunPageSize::new(RunnableRunPageSize::MAX + 1).is_err());
+
+        assert!(OutboxAttemptHistoryPageSize::new(1).is_ok());
+        assert!(OutboxAttemptHistoryPageSize::new(OutboxAttemptHistoryPageSize::MAX).is_ok());
+        assert!(OutboxAttemptHistoryPageSize::new(0).is_err());
+        assert!(OutboxAttemptHistoryPageSize::new(OutboxAttemptHistoryPageSize::MAX + 1).is_err());
     }
 
     #[test]

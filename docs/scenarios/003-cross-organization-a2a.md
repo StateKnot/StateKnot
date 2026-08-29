@@ -111,7 +111,7 @@ cross-tenant identifiers, extension confusion, and oversized payloads.
 | Remote timeout after task acceptance | Query/reconcile the known task before creating another task |
 | Cancellation crosses terminal completion | Preserve the first valid committed terminal state and expose the race in audit evidence |
 | Push receiver returns 429/5xx | Retry through outbox policy without blocking task commit |
-| Push succeeds but acknowledgement is lost | Deliver at least once; receiver deduplicates by delivery/event ID |
+| Push succeeds but acknowledgement is lost | Deliver at least once with the same internal `DeliveryId`; apply receiver deduplication only through a binding that explicitly carries and honors it |
 | URL redirects to a private address | Reject before connection and emit a redacted security event |
 | DNS answer changes after validation | Revalidate the actual connection target and reject forbidden ranges |
 | Oversized/decompression-bomb payload | Stop within configured byte and CPU limits without process-wide memory growth |
@@ -129,7 +129,9 @@ In addition to the [shared objectives](README.md#shared-service-objectives):
   internal task outcome;
 - no injected duplicate creates a second committed internal action or artifact;
 - push delivery loses zero committed notifications and intentionally may
-  duplicate; duplicate receiver effects remain zero;
+  duplicate; duplicate receiver effects remain zero for the declared
+  idempotent/negotiated binding, without claiming base A2A defines a universal
+  delivery-id field;
 - stream interruption loses zero committed updates and produces no event-seq
   forks;
 - all malicious URL, redirect, DNS, token, tenant, payload, extension, and replay
