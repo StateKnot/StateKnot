@@ -18,10 +18,12 @@ use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, CanonicalJson, Checkpoint, CheckpointHead,
     CheckpointId, CheckpointLineageVerifier, CheckpointWrite, Digest, EventId, FencingEpoch,
-    JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent,
-    JournalEventSource, JournalHead, JournalSequence, JsonLimits, RunFence, RunId, RunLease,
-    RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTransition, Superstep,
-    TenantId, Timestamp,
+    InvocationId, JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError,
+    JournalEventIntent, JournalEventSource, JournalHead, JournalSequence, JsonLimits, RunFence,
+    RunId, RunLease, RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTransition,
+    Superstep, TenantId, Timestamp, ToolInvocation, ToolInvocationHead,
+    ToolInvocationHistoryVerifier, ToolInvocationIntent, ToolInvocationRevision,
+    ToolInvocationStatus, ToolInvocationTransition, ToolInvocationTransitionKind,
 };
 use uuid::Uuid;
 
@@ -29,7 +31,8 @@ use crate::{
     AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
     CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
     LeaseReleaseOutcome, LeaseRenewalOutcome, PostgresStoreOptions, RunProjection, StoreError,
-    StoredRun,
+    StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    ToolInvocationHistoryPageSize,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -48,6 +51,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0002_checkpoints.sql")),
             false,
         ),
+        Migration::new(
+            3,
+            Cow::Borrowed("tool invocations"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0003_tool_invocations.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -57,6 +67,8 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
 const MIN_POSTGRES_VERSION_NUMBER: i32 = 160_000;
 const MAX_POSTGRES_VERSION_NUMBER: i32 = 179_999;
 const MAX_CHECKPOINT_BYTES: usize = 2_621_440;
+const MAX_TOOL_INVOCATION_INTENT_BYTES: usize = 4_194_304;
+const MAX_TOOL_INVOCATION_RECORD_BYTES: usize = 16_777_216;
 const PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-run-projection-v1\0";
 
 const SELECT_RUN: &str = r"
@@ -309,6 +321,143 @@ WHERE tenant_id = $1 AND run_id = $2 AND sequence = ANY($3)
 ORDER BY sequence DESC
 ";
 
+const SELECT_TOOL_INVOCATION: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    intent_bytes,
+    current_revision,
+    current_status,
+    current_attempt_id,
+    current_record_digest,
+    created_at,
+    updated_at
+FROM stateknot.tool_invocations
+WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = $3
+";
+
+const SELECT_TOOL_INVOCATION_FOR_UPDATE: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    intent_bytes,
+    current_revision,
+    current_status,
+    current_attempt_id,
+    current_record_digest,
+    created_at,
+    updated_at
+FROM stateknot.tool_invocations
+WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = $3
+FOR UPDATE
+";
+
+const SELECT_TOOL_INVOCATION_REVISION: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+FROM stateknot.tool_invocation_revisions
+WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = $3 AND revision = $4
+";
+
+const SELECT_TOOL_INVOCATION_REVISION_BY_ANCHOR: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+FROM stateknot.tool_invocation_revisions
+WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
+";
+
+const SELECT_TOOL_INVOCATION_HISTORY: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+FROM stateknot.tool_invocation_revisions
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND invocation_id = $3
+  AND revision > $4
+ORDER BY revision ASC
+LIMIT $5
+";
+
+const SELECT_UNSETTLED_TOOL_INVOCATION_EXISTS: &str = r"
+SELECT EXISTS (
+    SELECT 1
+    FROM stateknot.tool_invocations
+    WHERE tenant_id = $1
+      AND run_id = $2
+      AND base_checkpoint_id = $3
+      AND base_superstep = $4
+      AND base_checkpoint_digest = $5
+      AND current_status <> 'committed'
+)
+";
+
 /// Connected `PostgreSQL` durability provider.
 ///
 /// Clones share one bounded connection pool. `Debug` intentionally omits pool
@@ -413,6 +562,8 @@ impl PostgresStore {
             "SELECT to_regclass('stateknot.runs') IS NOT NULL \
                  AND to_regclass('stateknot.run_events') IS NOT NULL \
                  AND to_regclass('stateknot.run_checkpoints') IS NOT NULL \
+                 AND to_regclass('stateknot.tool_invocations') IS NOT NULL \
+                 AND to_regclass('stateknot.tool_invocation_revisions') IS NOT NULL \
                  AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL",
         )
         .fetch_one(&self.pool)
@@ -782,6 +933,181 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
         })
     }
 
+    /// Loads the exact current revision of one logical tool invocation.
+    ///
+    /// The intent, redundant current pointer, canonical record bytes, base
+    /// checkpoint, and anchoring journal event are verified in one repeatable-
+    /// read snapshot. Use [`Self::load_tool_invocation_history_page`] when a
+    /// complete transition-chain audit is required.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ToolInvocationNotFound`], a corruption failure, or
+    /// a database error.
+    pub async fn load_tool_invocation(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        invocation_id: InvocationId,
+    ) -> Result<ToolInvocation, StoreError> {
+        let mut transaction = self.begin_repeatable_read("tool invocation load").await?;
+        let row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*invocation_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("tool invocation load", source))?
+            .ok_or(StoreError::ToolInvocationNotFound)?;
+        let intent = decode_tool_invocation_intent(&row)?;
+        if intent.tenant_id() != tenant_id
+            || intent.run_id() != run_id
+            || intent.invocation_id() != invocation_id
+        {
+            return Err(StoreError::corrupt("tool invocation scope"));
+        }
+        let current_revision = nonnegative_tool_invocation_revision(row.current_revision)?;
+        let revision_row = load_tool_invocation_revision_row(
+            &mut transaction,
+            tenant_id,
+            run_id,
+            invocation_id,
+            current_revision,
+        )
+        .await?;
+        let invocation = decode_tool_invocation_revision(revision_row, &intent)?;
+        validate_tool_invocation_current_projection(&row, &invocation)?;
+        verify_tool_invocation_base_checkpoint(&mut transaction, &intent).await?;
+        verify_tool_invocation_anchor(&mut transaction, &invocation).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("tool invocation load commit", source))?;
+        Ok(invocation)
+    }
+
+    /// Loads one bounded ascending page of immutable invocation revisions.
+    ///
+    /// The first page starts at revision zero. A continuation must pass the full
+    /// exact last record returned by [`ToolInvocationHistoryPage::next_cursor`],
+    /// because retry validation needs the predecessor's failure evidence rather
+    /// than only a compact head. The final page must converge to the current
+    /// invocation pointer observed in the same repeatable-read snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidToolInvocationCursor`] for a crossed or
+    /// non-exact cursor; otherwise returns explicit not-found, corruption, or
+    /// database failures.
+    pub async fn load_tool_invocation_history_page(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        invocation_id: InvocationId,
+        after: Option<&ToolInvocation>,
+        page_size: ToolInvocationHistoryPageSize,
+    ) -> Result<ToolInvocationHistoryPage, StoreError> {
+        if after.is_some_and(|cursor| {
+            cursor.intent().tenant_id() != tenant_id
+                || cursor.intent().run_id() != run_id
+                || cursor.intent().invocation_id() != invocation_id
+        }) {
+            return Err(StoreError::InvalidToolInvocationCursor);
+        }
+
+        let mut transaction = self
+            .begin_repeatable_read("tool invocation history")
+            .await?;
+        let row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*invocation_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("tool invocation history intent", source))?
+            .ok_or(StoreError::ToolInvocationNotFound)?;
+        let intent = decode_tool_invocation_intent(&row)?;
+        let current_revision = nonnegative_tool_invocation_revision(row.current_revision)?;
+        verify_tool_invocation_base_checkpoint(&mut transaction, &intent).await?;
+
+        let cursor = if let Some(cursor) = after {
+            if cursor.revision() > current_revision || cursor.intent() != &intent {
+                return Err(StoreError::InvalidToolInvocationCursor);
+            }
+            let cursor_row = load_tool_invocation_revision_row(
+                &mut transaction,
+                tenant_id,
+                run_id,
+                invocation_id,
+                cursor.revision(),
+            )
+            .await
+            .map_err(|error| match error {
+                StoreError::ToolInvocationNotFound => StoreError::InvalidToolInvocationCursor,
+                other => other,
+            })?;
+            let stored_cursor = decode_tool_invocation_revision(cursor_row, &intent)?;
+            if encode_tool_invocation_record(&stored_cursor)?
+                != encode_tool_invocation_record(cursor)?
+            {
+                return Err(StoreError::InvalidToolInvocationCursor);
+            }
+            verify_tool_invocation_anchor(&mut transaction, &stored_cursor).await?;
+            Some(stored_cursor)
+        } else {
+            None
+        };
+
+        let after_revision = cursor.as_ref().map_or(-1_i64, |cursor| {
+            i64::try_from(cursor.revision().get()).unwrap_or(i64::MAX)
+        });
+        let query_limit = i64::from(page_size.get());
+        let rows = query_as::<_, ToolInvocationRevisionRow>(SELECT_TOOL_INVOCATION_HISTORY)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*invocation_id.as_uuid())
+            .bind(after_revision)
+            .bind(query_limit)
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("tool invocation history load", source))?;
+
+        let mut verifier = cursor
+            .clone()
+            .map_or_else(ToolInvocationHistoryVerifier::new, |cursor| {
+                ToolInvocationHistoryVerifier::after(cursor)
+            });
+        let mut records = Vec::with_capacity(rows.len());
+        for row in rows {
+            let record = decode_tool_invocation_revision(row, &intent)?;
+            verifier
+                .verify_next(&record)
+                .map_err(|_| StoreError::corrupt("tool invocation history"))?;
+            verify_tool_invocation_anchor(&mut transaction, &record).await?;
+            records.push(record);
+        }
+        let final_record = records
+            .last()
+            .or(cursor.as_ref())
+            .ok_or_else(|| StoreError::corrupt("tool invocation empty history"))?;
+        let has_more = final_record.revision() < current_revision;
+        if has_more && records.is_empty() {
+            return Err(StoreError::corrupt("tool invocation history gap"));
+        }
+        if !has_more {
+            validate_tool_invocation_current_projection(&row, final_record)?;
+            if verifier.head() != Some(final_record.head()) {
+                return Err(StoreError::corrupt("tool invocation history head"));
+            }
+        }
+
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("tool invocation history commit", source))?;
+        Ok(ToolInvocationHistoryPage { records, has_more })
+    }
+
     /// Claims an unowned or expired runnable run for a stable `UUIDv7` attempt.
     ///
     /// The database row is locked before the database clock is observed. An
@@ -1113,6 +1439,349 @@ WHERE tenant_id = $1
             .await
     }
 
+    /// Atomically prepares one fenced logical tool invocation and journal event.
+    ///
+    /// The activation's exact base checkpoint must still be the locked run's
+    /// current checkpoint. The database rechecks the worker fence while inserting
+    /// the event, intent, revision zero, and updated run head. An identical event
+    /// retry converges even after the lease or journal head has advanced.
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit authority, lifecycle, idempotency, checkpoint,
+    /// activation, fencing, integrity, transition, or database failures.
+    pub async fn prepare_tool_invocation(
+        &self,
+        append: JournalAppend,
+        intent: ToolInvocationIntent,
+    ) -> Result<ToolInvocationCommitOutcome, StoreError> {
+        Box::pin(self.prepare_tool_invocation_inner(append, intent)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn prepare_tool_invocation_inner(
+        &self,
+        append: JournalAppend,
+        intent: ToolInvocationIntent,
+    ) -> Result<ToolInvocationCommitOutcome, StoreError> {
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(StoreError::WrongAppendAuthority)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if intent.tenant_id() != &tenant_id || intent.run_id() != run_id {
+            return Err(StoreError::ToolInvocationCommitConflict);
+        }
+
+        let mut transaction = self.begin_mutation("tool invocation prepare").await?;
+        let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(run_row)?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("tool invocation event lookup", source))?;
+        if let Some(row) = existing_event {
+            let projection_digest = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "tool invocation projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            let intent_row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*intent.invocation_id().as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| {
+                    StoreError::database("tool invocation idempotency intent", source)
+                })?
+                .ok_or(StoreError::ToolInvocationCommitConflict)?;
+            let stored_intent = decode_tool_invocation_intent(&intent_row)?;
+            if stored_intent != intent {
+                return Err(StoreError::ToolInvocationIdConflict);
+            }
+            let revision_row =
+                query_as::<_, ToolInvocationRevisionRow>(SELECT_TOOL_INVOCATION_REVISION_BY_ANCHOR)
+                    .bind(tenant_id.as_str())
+                    .bind(*run_id.as_uuid())
+                    .bind(
+                        i64::try_from(event.sequence().get())
+                            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                    )
+                    .fetch_optional(&mut *transaction)
+                    .await
+                    .map_err(|source| {
+                        StoreError::database("tool invocation idempotency revision", source)
+                    })?
+                    .ok_or(StoreError::ToolInvocationCommitConflict)?;
+            if revision_row.invocation_id != *intent.invocation_id().as_uuid() {
+                return Err(StoreError::ToolInvocationCommitConflict);
+            }
+            let invocation = decode_tool_invocation_revision(revision_row, &stored_intent)?;
+            let expected = ToolInvocation::prepare(intent, event.head())
+                .map_err(|_| StoreError::ToolInvocationCommitConflict)?;
+            if projection_digest != Some(invocation.digest())
+                || encode_tool_invocation_record(&invocation)?
+                    != encode_tool_invocation_record(&expected)?
+            {
+                return Err(StoreError::ToolInvocationCommitConflict);
+            }
+            verify_tool_invocation_base_checkpoint(&mut transaction, &stored_intent).await?;
+            verify_tool_invocation_anchor(&mut transaction, &invocation).await?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent tool invocation prepare commit", source)
+            })?;
+            return Ok(ToolInvocationCommitOutcome::Idempotent { event, invocation });
+        }
+
+        let existing_intent = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*intent.invocation_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("tool invocation identity lookup", source))?;
+        if existing_intent.is_some() {
+            return Err(StoreError::ToolInvocationIdConflict);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Active {
+            return Err(StoreError::RunNotRunnable);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !tool_invocation_activation_is_ready(&current_checkpoint, &intent) {
+            return Err(StoreError::InvalidToolInvocationActivation);
+        }
+
+        let observed_at = database_now(&mut transaction, "tool invocation prepare clock").await?;
+        authorize_worker(&stored, &fence, observed_at)?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let invocation = ToolInvocation::prepare(intent, event.head())
+            .map_err(|_| StoreError::InvalidToolInvocationTransition)?;
+
+        insert_event(&mut transaction, &event, invocation.digest()).await?;
+        insert_tool_invocation_intent(&mut transaction, &invocation, &fence).await?;
+        insert_initial_tool_invocation_revision(&mut transaction, &invocation, &fence).await?;
+        update_run_head(&mut transaction, &event, None).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("tool invocation prepare commit", source))?;
+        Ok(ToolInvocationCommitOutcome::Committed { event, invocation })
+    }
+
+    /// Atomically advances one fenced logical tool invocation and journal event.
+    ///
+    /// The full durable current record is reloaded under the run and invocation
+    /// locks, compared with `expected`, and passed through the core state machine.
+    /// Every SQL mutation rechecks the exact live run fence. No transaction
+    /// contains external tool work: `StartAttempt` commits before dispatch,
+    /// while result, error, and reconciliation evidence is obtained before its
+    /// corresponding outcome transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit authority, lifecycle, idempotency, stale-head,
+    /// checkpoint, fencing, transition, integrity, or database failures.
+    pub async fn advance_tool_invocation(
+        &self,
+        append: JournalAppend,
+        expected: &ToolInvocationHead,
+        transition: ToolInvocationTransition,
+    ) -> Result<ToolInvocationCommitOutcome, StoreError> {
+        Box::pin(self.advance_tool_invocation_inner(append, expected, transition)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn advance_tool_invocation_inner(
+        &self,
+        append: JournalAppend,
+        expected: &ToolInvocationHead,
+        transition: ToolInvocationTransition,
+    ) -> Result<ToolInvocationCommitOutcome, StoreError> {
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(StoreError::WrongAppendAuthority)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if expected.tenant_id() != &tenant_id || expected.run_id() != run_id {
+            return Err(StoreError::StaleToolInvocationHead);
+        }
+
+        let mut transaction = self.begin_mutation("tool invocation advance").await?;
+        let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(run_row)?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("tool invocation event lookup", source))?;
+        if let Some(row) = existing_event {
+            let projection_digest = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "tool invocation projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            let intent_row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*expected.invocation_id().as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| {
+                    StoreError::database("tool invocation idempotency intent", source)
+                })?
+                .ok_or(StoreError::ToolInvocationCommitConflict)?;
+            let intent = decode_tool_invocation_intent(&intent_row)?;
+            let previous_row = load_tool_invocation_revision_row(
+                &mut transaction,
+                &tenant_id,
+                run_id,
+                expected.invocation_id(),
+                expected.revision(),
+            )
+            .await
+            .map_err(|error| match error {
+                StoreError::ToolInvocationNotFound => StoreError::ToolInvocationCommitConflict,
+                other => other,
+            })?;
+            let previous = decode_tool_invocation_revision(previous_row, &intent)?;
+            if previous.head() != *expected {
+                return Err(StoreError::ToolInvocationCommitConflict);
+            }
+            let expected_invocation = previous
+                .advance(transition, event.head())
+                .map_err(|_| StoreError::ToolInvocationCommitConflict)?;
+            let revision_row =
+                query_as::<_, ToolInvocationRevisionRow>(SELECT_TOOL_INVOCATION_REVISION_BY_ANCHOR)
+                    .bind(tenant_id.as_str())
+                    .bind(*run_id.as_uuid())
+                    .bind(
+                        i64::try_from(event.sequence().get())
+                            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                    )
+                    .fetch_optional(&mut *transaction)
+                    .await
+                    .map_err(|source| {
+                        StoreError::database("tool invocation idempotency revision", source)
+                    })?
+                    .ok_or(StoreError::ToolInvocationCommitConflict)?;
+            if revision_row.invocation_id != *expected.invocation_id().as_uuid() {
+                return Err(StoreError::ToolInvocationCommitConflict);
+            }
+            let invocation = decode_tool_invocation_revision(revision_row, &intent)?;
+            if projection_digest != Some(invocation.digest())
+                || encode_tool_invocation_record(&invocation)?
+                    != encode_tool_invocation_record(&expected_invocation)?
+            {
+                return Err(StoreError::ToolInvocationCommitConflict);
+            }
+            verify_tool_invocation_base_checkpoint(&mut transaction, &intent).await?;
+            verify_tool_invocation_anchor(&mut transaction, &invocation).await?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent tool invocation advance commit", source)
+            })?;
+            return Ok(ToolInvocationCommitOutcome::Idempotent { event, invocation });
+        }
+
+        let intent_row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION_FOR_UPDATE)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*expected.invocation_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("tool invocation row lock", source))?
+            .ok_or(StoreError::ToolInvocationNotFound)?;
+        let intent = decode_tool_invocation_intent(&intent_row)?;
+        let current_revision = nonnegative_tool_invocation_revision(intent_row.current_revision)?;
+        let current_row = load_tool_invocation_revision_row(
+            &mut transaction,
+            &tenant_id,
+            run_id,
+            expected.invocation_id(),
+            current_revision,
+        )
+        .await?;
+        let current = decode_tool_invocation_revision(current_row, &intent)?;
+        validate_tool_invocation_current_projection(&intent_row, &current)?;
+        if current.head() != *expected {
+            return Err(StoreError::StaleToolInvocationHead);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        validate_tool_invocation_transition_lifecycle(&stored, transition.kind())?;
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !tool_invocation_activation_is_ready(&current_checkpoint, &intent) {
+            return Err(StoreError::corrupt("tool invocation activation"));
+        }
+
+        let observed_at = database_now(&mut transaction, "tool invocation advance clock").await?;
+        authorize_worker(&stored, &fence, observed_at)?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let invocation = current
+            .advance(transition, event.head())
+            .map_err(|_| StoreError::InvalidToolInvocationTransition)?;
+
+        insert_event(&mut transaction, &event, invocation.digest()).await?;
+        insert_successor_tool_invocation_revision(&mut transaction, &invocation, expected, &fence)
+            .await?;
+        update_tool_invocation_current(&mut transaction, &invocation, expected, &fence).await?;
+        update_run_head(&mut transaction, &event, None).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("tool invocation advance commit", source))?;
+        Ok(ToolInvocationCommitOutcome::Committed { event, invocation })
+    }
+
     /// Atomically appends a control-plane event and commits one graph barrier.
     ///
     /// The checkpoint write must belong to the same tenant/run, its exact
@@ -1431,6 +2100,9 @@ WHERE tenant_id = $1
         if checkpoint_write.parent() != expected_parent.as_ref() {
             return Err(StoreError::StaleCheckpointHead);
         }
+        if let Some(parent) = current_checkpoint.as_ref() {
+            ensure_no_unsettled_tool_invocations(&mut transaction, parent).await?;
+        }
 
         let observed_at = database_now(&mut transaction, "checkpoint append clock").await?;
         match authority {
@@ -1587,6 +2259,47 @@ struct CheckpointRow {
     checkpoint_bytes: Vec<u8>,
 }
 
+struct ToolInvocationRow {
+    tenant_id: String,
+    run_id: Uuid,
+    invocation_id: Uuid,
+    base_checkpoint_id: Uuid,
+    base_superstep: i64,
+    base_checkpoint_digest: Vec<u8>,
+    graph_namespace: String,
+    node_id: String,
+    activation_input_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    intent_bytes: Vec<u8>,
+    current_revision: i64,
+    current_status: String,
+    current_attempt_id: Option<Uuid>,
+    current_record_digest: Vec<u8>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+struct ToolInvocationRevisionRow {
+    tenant_id: String,
+    run_id: Uuid,
+    invocation_id: Uuid,
+    revision: i64,
+    previous_revision: Option<i64>,
+    previous_digest: Option<Vec<u8>>,
+    journal_sequence: i64,
+    journal_event_id: Uuid,
+    journal_recorded_at: DateTime<Utc>,
+    journal_digest: Vec<u8>,
+    status: String,
+    attempt_id: Option<Uuid>,
+    transition_kind: Option<String>,
+    started_attempt_id: Option<Uuid>,
+    transition_digest: Option<Vec<u8>>,
+    record_digest: Vec<u8>,
+    record_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
 impl<'row> FromRow<'row, PgRow> for RunRow {
     fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
         Ok(Self {
@@ -1663,6 +2376,55 @@ impl<'row> FromRow<'row, PgRow> for CheckpointRow {
             intent_digest: row.try_get("intent_digest")?,
             checkpoint_digest: row.try_get("checkpoint_digest")?,
             checkpoint_bytes: row.try_get("checkpoint_bytes")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for ToolInvocationRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            invocation_id: row.try_get("invocation_id")?,
+            base_checkpoint_id: row.try_get("base_checkpoint_id")?,
+            base_superstep: row.try_get("base_superstep")?,
+            base_checkpoint_digest: row.try_get("base_checkpoint_digest")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            node_id: row.try_get("node_id")?,
+            activation_input_digest: row.try_get("activation_input_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            intent_bytes: row.try_get("intent_bytes")?,
+            current_revision: row.try_get("current_revision")?,
+            current_status: row.try_get("current_status")?,
+            current_attempt_id: row.try_get("current_attempt_id")?,
+            current_record_digest: row.try_get("current_record_digest")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for ToolInvocationRevisionRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            invocation_id: row.try_get("invocation_id")?,
+            revision: row.try_get("revision")?,
+            previous_revision: row.try_get("previous_revision")?,
+            previous_digest: row.try_get("previous_digest")?,
+            journal_sequence: row.try_get("journal_sequence")?,
+            journal_event_id: row.try_get("journal_event_id")?,
+            journal_recorded_at: row.try_get("journal_recorded_at")?,
+            journal_digest: row.try_get("journal_digest")?,
+            status: row.try_get("status")?,
+            attempt_id: row.try_get("attempt_id")?,
+            transition_kind: row.try_get("transition_kind")?,
+            started_attempt_id: row.try_get("started_attempt_id")?,
+            transition_digest: row.try_get("transition_digest")?,
+            record_digest: row.try_get("record_digest")?,
+            record_bytes: row.try_get("record_bytes")?,
+            created_at: row.try_get("created_at")?,
         })
     }
 }
@@ -1852,7 +2614,7 @@ fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
     let run_id = RunId::from_uuid(row.run_id).map_err(|_| StoreError::corrupt("run identity"))?;
     let thread_id = stateknot_core::ThreadId::from_uuid(row.thread_id)
         .map_err(|_| StoreError::corrupt("run thread identity"))?;
-    let invocation_id = stateknot_core::InvocationId::from_uuid(row.invocation_id)
+    let invocation_id = InvocationId::from_uuid(row.invocation_id)
         .map_err(|_| StoreError::corrupt("run invocation identity"))?;
     let lifecycle = decode_lifecycle(&row.lifecycle_bytes)?;
     let provenance = lifecycle.provenance();
@@ -2052,6 +2814,296 @@ fn decode_checkpoint(row: CheckpointRow) -> Result<Checkpoint, StoreError> {
         return Err(StoreError::corrupt("checkpoint projection"));
     }
     Ok(checkpoint)
+}
+
+fn encode_tool_invocation_intent(intent: &ToolInvocationIntent) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(intent)
+        .map_err(|_| StoreError::encoding("tool invocation intent"))?;
+    if bytes.is_empty() || bytes.len() > MAX_TOOL_INVOCATION_INTENT_BYTES {
+        return Err(StoreError::encoding("tool invocation intent size"));
+    }
+    Ok(bytes)
+}
+
+fn encode_tool_invocation_record(invocation: &ToolInvocation) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(invocation)
+        .map_err(|_| StoreError::encoding("tool invocation record"))?;
+    if bytes.is_empty() || bytes.len() > MAX_TOOL_INVOCATION_RECORD_BYTES {
+        return Err(StoreError::encoding("tool invocation record size"));
+    }
+    Ok(bytes)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_tool_invocation_intent(
+    row: &ToolInvocationRow,
+) -> Result<ToolInvocationIntent, StoreError> {
+    if row.intent_bytes.is_empty() || row.intent_bytes.len() > MAX_TOOL_INVOCATION_INTENT_BYTES {
+        return Err(StoreError::corrupt("tool invocation intent byte length"));
+    }
+    let intent = serde_json::from_slice::<ToolInvocationIntent>(&row.intent_bytes)
+        .map_err(|_| StoreError::corrupt("tool invocation intent value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&intent)
+        .map_err(|_| StoreError::corrupt("tool invocation intent canonicalization"))?;
+    if canonical != row.intent_bytes {
+        return Err(StoreError::corrupt(
+            "tool invocation intent canonical bytes",
+        ));
+    }
+
+    let tenant_id = TenantId::try_from(row.tenant_id.as_str())
+        .map_err(|_| StoreError::corrupt("tool invocation tenant"))?;
+    let run_id = RunId::from_uuid(row.run_id)
+        .map_err(|_| StoreError::corrupt("tool invocation run identity"))?;
+    let invocation_id = InvocationId::from_uuid(row.invocation_id)
+        .map_err(|_| StoreError::corrupt("tool invocation identity"))?;
+    let base_checkpoint_id = CheckpointId::from_uuid(row.base_checkpoint_id)
+        .map_err(|_| StoreError::corrupt("tool invocation base checkpoint identity"))?;
+    let base_superstep = nonnegative_superstep(row.base_superstep)?;
+    let base_digest = decode_digest(
+        &row.base_checkpoint_digest,
+        "tool invocation base checkpoint digest",
+    )?;
+    let activation = intent.activation();
+    if intent.tenant_id() != &tenant_id
+        || intent.run_id() != run_id
+        || intent.invocation_id() != invocation_id
+        || activation.base_checkpoint().checkpoint_id() != base_checkpoint_id
+        || activation.base_checkpoint().superstep() != base_superstep
+        || activation.base_checkpoint().digest() != base_digest
+        || activation.graph_namespace().as_str() != row.graph_namespace
+        || activation.node_id().as_str() != row.node_id
+        || activation.input_digest()
+            != decode_digest(
+                &row.activation_input_digest,
+                "tool invocation activation input digest",
+            )?
+        || intent.intent_digest()
+            != decode_digest(&row.intent_digest, "tool invocation intent digest")?
+    {
+        return Err(StoreError::corrupt("tool invocation intent projection"));
+    }
+    from_database_time(row.created_at)?;
+    from_database_time(row.updated_at)?;
+    Ok(intent)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_tool_invocation_revision(
+    row: ToolInvocationRevisionRow,
+    intent: &ToolInvocationIntent,
+) -> Result<ToolInvocation, StoreError> {
+    if row.record_bytes.is_empty() || row.record_bytes.len() > MAX_TOOL_INVOCATION_RECORD_BYTES {
+        return Err(StoreError::corrupt("tool invocation record byte length"));
+    }
+    let invocation = serde_json::from_slice::<ToolInvocation>(&row.record_bytes)
+        .map_err(|_| StoreError::corrupt("tool invocation record value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&invocation)
+        .map_err(|_| StoreError::corrupt("tool invocation record canonicalization"))?;
+    if canonical != row.record_bytes {
+        return Err(StoreError::corrupt(
+            "tool invocation record canonical bytes",
+        ));
+    }
+
+    let tenant_id = TenantId::try_from(row.tenant_id)
+        .map_err(|_| StoreError::corrupt("tool invocation revision tenant"))?;
+    let run_id = RunId::from_uuid(row.run_id)
+        .map_err(|_| StoreError::corrupt("tool invocation revision run identity"))?;
+    let invocation_id = InvocationId::from_uuid(row.invocation_id)
+        .map_err(|_| StoreError::corrupt("tool invocation revision identity"))?;
+    let revision = nonnegative_tool_invocation_revision(row.revision)?;
+    let previous_matches = match (
+        invocation.previous(),
+        row.previous_revision,
+        row.previous_digest,
+    ) {
+        (None, None, None) => true,
+        (Some(previous), Some(previous_revision), Some(previous_digest)) => {
+            nonnegative_tool_invocation_revision(previous_revision).ok()
+                == Some(previous.revision())
+                && decode_digest(&previous_digest, "tool invocation predecessor digest").ok()
+                    == Some(previous.digest())
+        }
+        _ => false,
+    };
+    let journal_sequence = positive_sequence(row.journal_sequence)?;
+    let journal_event_id = EventId::from_uuid(row.journal_event_id)
+        .map_err(|_| StoreError::corrupt("tool invocation journal event identity"))?;
+    let journal_recorded_at = from_database_time(row.journal_recorded_at)?;
+    let journal_digest = decode_digest(&row.journal_digest, "tool invocation journal digest")?;
+    let attempt_id = row
+        .attempt_id
+        .map(AttemptId::from_uuid)
+        .transpose()
+        .map_err(|_| StoreError::corrupt("tool invocation attempt identity"))?;
+    let started_attempt_id = row
+        .started_attempt_id
+        .map(AttemptId::from_uuid)
+        .transpose()
+        .map_err(|_| StoreError::corrupt("tool invocation started attempt identity"))?;
+    let transition_kind = invocation.transition().map(ToolInvocationTransition::kind);
+    let expected_started = match invocation.transition() {
+        Some(ToolInvocationTransition::StartAttempt { attempt_id }) => Some(*attempt_id),
+        _ => None,
+    };
+    let transition_digest = row
+        .transition_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "tool invocation transition digest"))
+        .transpose()?;
+
+    if invocation.intent() != intent
+        || invocation.intent().tenant_id() != &tenant_id
+        || invocation.intent().run_id() != run_id
+        || invocation.intent().invocation_id() != invocation_id
+        || invocation.revision() != revision
+        || !previous_matches
+        || invocation.journal_head().sequence() != journal_sequence
+        || invocation.journal_head().event_id() != journal_event_id
+        || invocation.journal_head().recorded_at() != journal_recorded_at
+        || invocation.journal_head().digest() != journal_digest
+        || tool_invocation_status_text(invocation.status()) != row.status
+        || invocation.attempt_id() != attempt_id
+        || transition_kind.map(tool_invocation_transition_kind_text)
+            != row.transition_kind.as_deref()
+        || expected_started != started_attempt_id
+        || invocation.transition_digest() != transition_digest
+        || invocation.digest()
+            != decode_digest(&row.record_digest, "tool invocation record digest")?
+        || from_database_time(row.created_at)? != invocation.journal_head().recorded_at()
+    {
+        return Err(StoreError::corrupt("tool invocation revision projection"));
+    }
+    Ok(invocation)
+}
+
+fn nonnegative_tool_invocation_revision(value: i64) -> Result<ToolInvocationRevision, StoreError> {
+    let value =
+        u64::try_from(value).map_err(|_| StoreError::corrupt("tool invocation revision"))?;
+    ToolInvocationRevision::new(value).map_err(|_| StoreError::corrupt("tool invocation revision"))
+}
+
+fn validate_tool_invocation_current_projection(
+    row: &ToolInvocationRow,
+    current: &ToolInvocation,
+) -> Result<(), StoreError> {
+    let current_revision = nonnegative_tool_invocation_revision(row.current_revision)?;
+    let current_attempt = row
+        .current_attempt_id
+        .map(AttemptId::from_uuid)
+        .transpose()
+        .map_err(|_| StoreError::corrupt("tool invocation current attempt"))?;
+    let current_digest = decode_digest(
+        &row.current_record_digest,
+        "tool invocation current record digest",
+    )?;
+    if current.revision() != current_revision
+        || tool_invocation_status_text(current.status()) != row.current_status
+        || current.attempt_id() != current_attempt
+        || current.digest() != current_digest
+        || from_database_time(row.updated_at)? != current.journal_head().recorded_at()
+    {
+        return Err(StoreError::corrupt("tool invocation current projection"));
+    }
+    Ok(())
+}
+
+async fn load_tool_invocation_revision_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+    revision: ToolInvocationRevision,
+) -> Result<ToolInvocationRevisionRow, StoreError> {
+    let revision = i64::try_from(revision.get())
+        .map_err(|_| StoreError::corrupt("tool invocation revision"))?;
+    query_as::<_, ToolInvocationRevisionRow>(SELECT_TOOL_INVOCATION_REVISION)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(*invocation_id.as_uuid())
+        .bind(revision)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("tool invocation revision load", source))?
+        .ok_or(StoreError::ToolInvocationNotFound)
+}
+
+async fn verify_tool_invocation_base_checkpoint(
+    transaction: &mut Transaction<'_, Postgres>,
+    intent: &ToolInvocationIntent,
+) -> Result<(), StoreError> {
+    let head = intent.activation().base_checkpoint();
+    let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+        .bind(intent.tenant_id().as_str())
+        .bind(*intent.run_id().as_uuid())
+        .bind(*head.checkpoint_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("tool invocation base checkpoint", source))?
+        .ok_or_else(|| StoreError::corrupt("tool invocation base checkpoint"))?;
+    let checkpoint = decode_checkpoint(row)?;
+    if checkpoint.head() != *head || !tool_invocation_activation_is_ready(&checkpoint, intent) {
+        return Err(StoreError::corrupt("tool invocation base checkpoint"));
+    }
+    verify_checkpoint_anchor(transaction, &checkpoint).await
+}
+
+fn tool_invocation_activation_is_ready(
+    checkpoint: &Checkpoint,
+    intent: &ToolInvocationIntent,
+) -> bool {
+    let activation = intent.activation();
+    activation.graph_namespace().is_root()
+        && checkpoint.ready_nodes().contains(activation.node_id())
+}
+
+async fn ensure_no_unsettled_tool_invocations(
+    transaction: &mut Transaction<'_, Postgres>,
+    checkpoint: &Checkpoint,
+) -> Result<(), StoreError> {
+    let superstep = i64::try_from(checkpoint.superstep().get())
+        .map_err(|_| StoreError::corrupt("checkpoint superstep"))?;
+    let exists = query_scalar::<_, bool>(SELECT_UNSETTLED_TOOL_INVOCATION_EXISTS)
+        .bind(checkpoint.tenant_id().as_str())
+        .bind(*checkpoint.run_id().as_uuid())
+        .bind(*checkpoint.checkpoint_id().as_uuid())
+        .bind(superstep)
+        .bind(checkpoint.digest().as_bytes())
+        .fetch_one(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("tool invocation barrier check", source))?;
+    if exists {
+        return Err(StoreError::CheckpointBlockedByToolInvocation);
+    }
+    Ok(())
+}
+
+async fn verify_tool_invocation_anchor(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ToolInvocation,
+) -> Result<(), StoreError> {
+    let sequence = i64::try_from(invocation.journal_head().sequence().get())
+        .map_err(|_| StoreError::corrupt("tool invocation journal sequence"))?;
+    let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(invocation.intent().tenant_id().as_str())
+        .bind(*invocation.intent().run_id().as_uuid())
+        .bind(sequence)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("tool invocation anchor", source))?
+        .ok_or_else(|| StoreError::corrupt("tool invocation journal anchor"))?;
+    let projection_digest = row
+        .projection_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "tool invocation projection digest"))
+        .transpose()?;
+    let event = decode_event(row)?;
+    if event.head() != *invocation.journal_head() || projection_digest != Some(invocation.digest())
+    {
+        return Err(StoreError::corrupt("tool invocation journal anchor"));
+    }
+    Ok(())
 }
 
 fn projection_digest(projection: &RunProjection) -> Result<Digest, StoreError> {
@@ -2272,6 +3324,297 @@ WHERE lease_run.tenant_id = $1
             return Err(StoreError::LeaseExpired);
         }
         return Err(StoreError::corrupt("journal insert row count"));
+    }
+    Ok(())
+}
+
+async fn insert_tool_invocation_intent(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ToolInvocation,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let intent = invocation.intent();
+    let activation = intent.activation();
+    let base = activation.base_checkpoint();
+    let intent_bytes = encode_tool_invocation_intent(intent)?;
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::encoding("tool invocation base superstep"))?;
+    let current_revision = i64::try_from(invocation.revision().get())
+        .map_err(|_| StoreError::encoding("tool invocation revision"))?;
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let created_at = to_database_time(invocation.journal_head().recorded_at())?;
+    let inserted = query(
+        r"
+INSERT INTO stateknot.tool_invocations (
+    tenant_id,
+    run_id,
+    invocation_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    intent_bytes,
+    current_revision,
+    current_status,
+    current_attempt_id,
+    current_record_digest,
+    created_at,
+    updated_at
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.checkpoint_id = $4
+  AND current_run.checkpoint_superstep = $5
+  AND current_run.checkpoint_digest = $6
+  AND current_run.lease_attempt_id = $17
+  AND current_run.fencing_epoch = $18
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(intent.tenant_id().as_str())
+    .bind(*intent.run_id().as_uuid())
+    .bind(*intent.invocation_id().as_uuid())
+    .bind(*base.checkpoint_id().as_uuid())
+    .bind(base_superstep)
+    .bind(base.digest().as_bytes())
+    .bind(activation.graph_namespace().as_str())
+    .bind(activation.node_id().as_str())
+    .bind(activation.input_digest().as_bytes())
+    .bind(intent.intent_digest().as_bytes())
+    .bind(intent_bytes)
+    .bind(current_revision)
+    .bind(tool_invocation_status_text(invocation.status()))
+    .bind(invocation.attempt_id().map(|attempt| *attempt.as_uuid()))
+    .bind(invocation.digest().as_bytes())
+    .bind(created_at)
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("tool invocation intent insert", source))?
+    .rows_affected();
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+async fn insert_initial_tool_invocation_revision(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ToolInvocation,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    insert_tool_invocation_revision(transaction, invocation, None, fence).await
+}
+
+async fn insert_successor_tool_invocation_revision(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ToolInvocation,
+    expected: &ToolInvocationHead,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    insert_tool_invocation_revision(transaction, invocation, Some(expected), fence).await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_tool_invocation_revision(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ToolInvocation,
+    expected: Option<&ToolInvocationHead>,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let intent = invocation.intent();
+    let record_bytes = encode_tool_invocation_record(invocation)?;
+    let revision = i64::try_from(invocation.revision().get())
+        .map_err(|_| StoreError::encoding("tool invocation revision"))?;
+    let (previous_revision, previous_digest) =
+        invocation.previous().map_or((None, None), |previous| {
+            (
+                i64::try_from(previous.revision().get()).ok(),
+                Some(previous.digest().as_bytes().to_vec()),
+            )
+        });
+    if invocation.previous().is_some() && previous_revision.is_none() {
+        return Err(StoreError::encoding("tool invocation predecessor revision"));
+    }
+    let journal_sequence = i64::try_from(invocation.journal_head().sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let transition_kind = invocation
+        .transition()
+        .map(ToolInvocationTransition::kind)
+        .map(tool_invocation_transition_kind_text);
+    let started_attempt = match invocation.transition() {
+        Some(ToolInvocationTransition::StartAttempt { attempt_id }) => Some(*attempt_id.as_uuid()),
+        _ => None,
+    };
+    let (expected_revision, expected_digest) = expected.map_or((None, None), |head| {
+        (
+            i64::try_from(head.revision().get()).ok(),
+            Some(head.digest().as_bytes().to_vec()),
+        )
+    });
+    if expected.is_some() && expected_revision.is_none() {
+        return Err(StoreError::encoding("tool invocation expected revision"));
+    }
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let created_at = to_database_time(invocation.journal_head().recorded_at())?;
+
+    let result = query(
+        r"
+INSERT INTO stateknot.tool_invocation_revisions (
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+FROM stateknot.runs AS current_run
+JOIN stateknot.tool_invocations AS current_invocation
+  ON current_invocation.tenant_id = current_run.tenant_id
+ AND current_invocation.run_id = current_run.run_id
+ AND current_invocation.invocation_id = $3
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND (
+      (
+          $19::bigint IS NULL
+          AND current_invocation.current_revision = $4
+          AND current_invocation.current_record_digest = $16
+      )
+      OR
+      (
+          $19::bigint IS NOT NULL
+          AND current_invocation.current_revision = $19
+          AND current_invocation.current_record_digest = $20
+      )
+  )
+  AND current_run.lease_attempt_id = $21
+  AND current_run.fencing_epoch = $22
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(intent.tenant_id().as_str())
+    .bind(*intent.run_id().as_uuid())
+    .bind(*intent.invocation_id().as_uuid())
+    .bind(revision)
+    .bind(previous_revision)
+    .bind(previous_digest)
+    .bind(journal_sequence)
+    .bind(*invocation.journal_head().event_id().as_uuid())
+    .bind(to_database_time(invocation.journal_head().recorded_at())?)
+    .bind(invocation.journal_head().digest().as_bytes())
+    .bind(tool_invocation_status_text(invocation.status()))
+    .bind(invocation.attempt_id().map(|attempt| *attempt.as_uuid()))
+    .bind(transition_kind)
+    .bind(started_attempt)
+    .bind(
+        invocation
+            .transition_digest()
+            .map(|digest| digest.as_bytes().to_vec()),
+    )
+    .bind(invocation.digest().as_bytes())
+    .bind(record_bytes)
+    .bind(created_at)
+    .bind(expected_revision)
+    .bind(expected_digest)
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .execute(&mut **transaction)
+    .await;
+    let inserted = match result {
+        Ok(result) => result.rows_affected(),
+        Err(source)
+            if has_database_constraint(
+                &source,
+                "tool_invocation_revisions_started_attempt_unique",
+            ) =>
+        {
+            return Err(StoreError::InvalidToolInvocationTransition);
+        }
+        Err(source) => {
+            return Err(StoreError::database(
+                "tool invocation revision insert",
+                source,
+            ));
+        }
+    };
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+async fn update_tool_invocation_current(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ToolInvocation,
+    expected: &ToolInvocationHead,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let revision = i64::try_from(invocation.revision().get())
+        .map_err(|_| StoreError::encoding("tool invocation revision"))?;
+    let expected_revision = i64::try_from(expected.revision().get())
+        .map_err(|_| StoreError::StaleToolInvocationHead)?;
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let updated = query(
+        r"
+UPDATE stateknot.tool_invocations AS current_invocation
+SET current_revision = $4,
+    current_status = $5,
+    current_attempt_id = $6,
+    current_record_digest = $7,
+    updated_at = $8
+FROM stateknot.runs AS current_run
+WHERE current_invocation.tenant_id = $1
+  AND current_invocation.run_id = $2
+  AND current_invocation.invocation_id = $3
+  AND current_invocation.current_revision = $9
+  AND current_invocation.current_record_digest = $10
+  AND current_run.tenant_id = current_invocation.tenant_id
+  AND current_run.run_id = current_invocation.run_id
+  AND current_run.lease_attempt_id = $11
+  AND current_run.fencing_epoch = $12
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(invocation.intent().tenant_id().as_str())
+    .bind(*invocation.intent().run_id().as_uuid())
+    .bind(*invocation.intent().invocation_id().as_uuid())
+    .bind(revision)
+    .bind(tool_invocation_status_text(invocation.status()))
+    .bind(invocation.attempt_id().map(|attempt| *attempt.as_uuid()))
+    .bind(invocation.digest().as_bytes())
+    .bind(to_database_time(invocation.journal_head().recorded_at())?)
+    .bind(expected_revision)
+    .bind(expected.digest().as_bytes())
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("tool invocation current update", source))?
+    .rows_affected();
+    if updated != 1 {
+        return Err(StoreError::LeaseExpired);
     }
     Ok(())
 }
@@ -2592,6 +3935,27 @@ fn validate_runnable(stored: &StoredRun) -> Result<(), StoreError> {
     Ok(())
 }
 
+fn validate_tool_invocation_transition_lifecycle(
+    stored: &StoredRun,
+    transition: ToolInvocationTransitionKind,
+) -> Result<(), StoreError> {
+    let status = stored.lifecycle().status();
+    let allowed = match transition {
+        ToolInvocationTransitionKind::StartAttempt => status == RunStatus::Active,
+        ToolInvocationTransitionKind::RecordResult
+        | ToolInvocationTransitionKind::RecordError
+        | ToolInvocationTransitionKind::ReconcileResult
+        | ToolInvocationTransitionKind::ReconcileError => matches!(
+            status,
+            RunStatus::Active | RunStatus::Waiting | RunStatus::CancellationRequested
+        ),
+    };
+    if !allowed {
+        return Err(StoreError::RunNotRunnable);
+    }
+    Ok(())
+}
+
 fn positive_sequence(value: i64) -> Result<JournalSequence, StoreError> {
     let value = u64::try_from(value).map_err(|_| StoreError::corrupt("journal sequence"))?;
     JournalSequence::new(value).map_err(|_| StoreError::corrupt("journal sequence"))
@@ -2640,6 +4004,26 @@ const fn run_status_text(status: RunStatus) -> &'static str {
     }
 }
 
+const fn tool_invocation_status_text(status: ToolInvocationStatus) -> &'static str {
+    match status {
+        ToolInvocationStatus::Prepared => "prepared",
+        ToolInvocationStatus::Executing => "executing",
+        ToolInvocationStatus::Committed => "committed",
+        ToolInvocationStatus::Failed => "failed",
+        ToolInvocationStatus::Unknown => "unknown",
+    }
+}
+
+const fn tool_invocation_transition_kind_text(kind: ToolInvocationTransitionKind) -> &'static str {
+    match kind {
+        ToolInvocationTransitionKind::StartAttempt => "start_attempt",
+        ToolInvocationTransitionKind::RecordResult => "record_result",
+        ToolInvocationTransitionKind::RecordError => "record_error",
+        ToolInvocationTransitionKind::ReconcileResult => "reconcile_result",
+        ToolInvocationTransitionKind::ReconcileError => "reconcile_error",
+    }
+}
+
 fn map_event_commit_error(error: &JournalEventError) -> StoreError {
     match error {
         JournalEventError::SequenceOverflow => StoreError::JournalSequenceExhausted,
@@ -2652,6 +4036,14 @@ fn has_database_error_code(error: &sqlx_core::Error, expected: &str) -> bool {
         error,
         sqlx_core::Error::Database(database)
             if database.code().is_some_and(|code| code.as_ref() == expected)
+    )
+}
+
+fn has_database_constraint(error: &sqlx_core::Error, expected: &str) -> bool {
+    matches!(
+        error,
+        sqlx_core::Error::Database(database)
+            if database.constraint().is_some_and(|constraint| constraint == expected)
     )
 }
 
@@ -2732,6 +4124,13 @@ mod tests {
         assert!(CheckpointLineagePageSize::new(CheckpointLineagePageSize::MAX).is_ok());
         assert!(CheckpointLineagePageSize::new(0).is_err());
         assert!(CheckpointLineagePageSize::new(CheckpointLineagePageSize::MAX + 1).is_err());
+
+        assert!(ToolInvocationHistoryPageSize::new(1).is_ok());
+        assert!(ToolInvocationHistoryPageSize::new(ToolInvocationHistoryPageSize::MAX).is_ok());
+        assert!(ToolInvocationHistoryPageSize::new(0).is_err());
+        assert!(
+            ToolInvocationHistoryPageSize::new(ToolInvocationHistoryPageSize::MAX + 1).is_err()
+        );
     }
 
     #[test]

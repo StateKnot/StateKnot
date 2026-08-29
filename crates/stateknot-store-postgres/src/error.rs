@@ -119,12 +119,36 @@ pub enum StoreError {
     /// The supplied complete checkpoint parent did not match the locked run row.
     #[error("checkpoint parent does not match the current durable checkpoint")]
     StaleCheckpointHead,
+    /// A tool invocation on the current checkpoint has not committed a result.
+    #[error("checkpoint advancement is blocked by an unsettled tool invocation")]
+    CheckpointBlockedByToolInvocation,
+    /// No logical tool invocation exists in the supplied tenant/run boundary.
+    #[error("tool invocation was not found in the tenant-scoped run")]
+    ToolInvocationNotFound,
+    /// A stable invocation ID was reused with a different immutable intent.
+    #[error("tool invocation identity conflicts with a committed intent")]
+    ToolInvocationIdConflict,
+    /// Event and invocation records do not describe one atomic commit.
+    #[error("journal event and tool invocation identities conflict with an atomic commit")]
+    ToolInvocationCommitConflict,
+    /// The supplied complete invocation head did not match its durable current row.
+    #[error("tool invocation head is stale")]
+    StaleToolInvocationHead,
+    /// The requested invocation state transition was invalid for durable state.
+    #[error("tool invocation transition is invalid for the locked record")]
+    InvalidToolInvocationTransition,
+    /// The invocation activation is not a ready root-graph node of its checkpoint.
+    #[error("tool invocation activation is not ready in the base checkpoint")]
+    InvalidToolInvocationActivation,
     /// A pagination cursor did not identify the exact stored event head.
     #[error("journal cursor does not match a durable event")]
     InvalidJournalCursor,
     /// A reverse-lineage cursor did not identify the exact stored checkpoint head.
     #[error("checkpoint lineage cursor does not match a durable checkpoint")]
     InvalidCheckpointCursor,
+    /// An invocation-history cursor did not identify the exact stored revision.
+    #[error("tool invocation history cursor does not match a durable revision")]
+    InvalidToolInvocationCursor,
     /// No higher signed `PostgreSQL` journal sequence exists.
     #[error("journal sequence is exhausted")]
     JournalSequenceExhausted,
@@ -167,6 +191,9 @@ pub enum StoreError {
     /// A requested checkpoint-lineage page exceeded its memory-safety bound.
     #[error("checkpoint lineage page size is invalid")]
     InvalidCheckpointPageSize,
+    /// A requested invocation-history page exceeded its memory-safety bound.
+    #[error("tool invocation history page size is invalid")]
+    InvalidToolInvocationPageSize,
     /// Trusted in-process domain data could not be serialized canonically.
     #[error("{record} could not be encoded for durable storage")]
     Encoding {

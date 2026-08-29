@@ -27,6 +27,15 @@ The provider currently supplies:
 - atomic control-plane and worker checkpoint APIs whose event, lifecycle
   projection, checkpoint row, journal head, and checkpoint pointer commit or
   roll back together;
+- immutable tool-invocation intents and hash-linked revisions with exact base
+  checkpoint and journal anchors, explicit
+  prepared/executing/committed/failed/unknown outcomes, stable logical versus
+  physical attempt identities, and bounded ascending history verification;
+- atomic fenced prepare/advance APIs whose event, invocation revision, current
+  invocation pointer, and run journal head commit or roll back together, with
+  exact lost-ack convergence and no blind retry from an unknown outcome;
+- successor-checkpoint rejection while any invocation rooted at the exact
+  current checkpoint remains prepared, executing, failed, or unknown;
 - database-clock lease claim, renewal, release, forced supersession, monotonically
   increasing fencing epochs, and exact worker predicates on both event and run
   head writes;
@@ -62,8 +71,12 @@ The migration role needs database `CONNECT`/`CREATE` and permission to create
 superuser. The runtime role needs `CONNECT`, schema `USAGE`, read access to
 `public._sqlx_migrations`, `SELECT`/`INSERT`/`UPDATE` on `stateknot.runs`, and
 `SELECT`/`INSERT` on both `stateknot.run_events` and
-`stateknot.run_checkpoints`. Do not grant runtime DDL, checkpoint update, or
-delete permissions. Exact role/grant SQL will be shipped only with the
+`stateknot.run_checkpoints`, `SELECT`/`INSERT` on
+`stateknot.tool_invocations` plus column-scoped `UPDATE` only for
+`current_revision`, `current_status`, `current_attempt_id`,
+`current_record_digest`, and `updated_at`, and `SELECT`/`INSERT` on
+`stateknot.tool_invocation_revisions`. Do not grant runtime DDL, checkpoint or
+invocation-revision update, or delete permissions. Exact role/grant SQL will be shipped only with the
 role-separated server boundary so this document does not invent
 deployment-specific role names.
 
@@ -73,19 +86,24 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-CI runs 14 integration tests against digest-pinned PostgreSQL 16 and 17 images.
+CI runs 20 integration tests against digest-pinned PostgreSQL 16 and 17 images.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
-v2 without guessed projection intent, admission, direct lifecycle transition
+v3 without guessed projection intent, admission, direct lifecycle transition
 enforcement, future-clock rejection, event and projection-intent conflicts,
 lost-ack idempotency, bounded journal and reverse-checkpoint-lineage paging,
 exact/crossed cursor rejection, continuation across a concurrently advanced
 current checkpoint,
 renewal/expiry/release/supersession, stale-worker fencing and retry after
 takeover, clock-regression rejection after renewal, atomic rollback after
-injected event/checkpoint inserts, fail-closed checkpoint and journal-anchor
-corruption, a missing parent exactly beyond a page boundary, 100 concurrent
-journal appenders, and 24 competing checkpoint writers converging on one
-contiguous lineage.
+injected event/checkpoint/invocation writes, fail-closed checkpoint,
+invocation-byte, journal-anchor, and projection-binding corruption, a missing
+parent exactly beyond a page boundary, 100 concurrent journal appenders, 24
+competing checkpoint writers converging on one contiguous lineage, and 24
+competing invocation advances admitting exactly one physical attempt. Invalid
+non-ready and nested-namespace activations leave no event or invocation row;
+cancellation blocks new tool work while preserving an already executing
+attempt's outcome evidence. A checkpoint cannot advance past a prepared or
+otherwise unsettled invocation, and a committed result releases that guard.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -109,17 +127,46 @@ that barrier's trusted journal head with `load_journal_page`. This composes the
 durable checkpoint-and-suffix input; the scheduler that replays the suffix and
 resumes ready nodes is not implemented yet.
 
+Tool recovery loads the current record with `load_tool_invocation` or follows
+`load_tool_invocation_history_page` from revision zero using its exact full-record
+cursor. Both APIs revalidate canonical intent/record bytes, redundant SQL
+projections, the base checkpoint, and every restored record's exact journal
+event plus projection digest; the history API additionally replays every
+hash-linked transition. A `Prepared` record may claim one physical attempt;
+`Unknown` can only enter an explicit reconciliation transition, never a blind
+execution retry. The current checkpoint format carries a root-graph
+`ReadyNodes` set, so this provider accepts only root-namespace activations whose
+node is present in that exact set; nested activations fail closed until a
+namespaced checkpoint-ready contract is implemented. New preparation and
+`StartAttempt` commits require an `Active` run. Result, error, and reconciliation
+commits may also finish while the run is `Waiting` or
+`CancellationRequested`; terminal runs reject new worker mutations, while an
+exact already-committed event retry still converges. Checkpoint append holds the
+same run lock and rejects an exact current checkpoint that still owns a
+`Prepared`, `Executing`, `Failed`, or `Unknown` invocation. `Committed` releases
+this orphan-prevention guard. It does not yet prove that a node update consumed
+the tool result; that stronger barrier contract depends on the pending
+node-result ledger listed below.
+
 Migration 2 adds nullable `run_events.projection_digest` because migration-1
 rows do not contain enough information to reconstruct the caller's projection
 intent. Those events remain readable and verifiable. A same-ID mutation retry
 against one of them fails closed with `ProjectionIntentConflict` rather than
 guessing that the projections match.
 
+Migration 3 adds `tool_invocations` and `tool_invocation_revisions`. The former
+owns the immutable intent and exact current pointer; the latter owns canonical
+full records, predecessor digests, journal anchors, and globally run-unique
+physical attempt claims. A deferred exact-current foreign key permits revision
+zero and its intent to commit atomically without exposing a dangling pointer. A
+partial index over non-committed current rows serves the checkpoint guard
+without retaining committed rows in the index.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
-pending node-result writes, node attempts, tool/invocation ledgers, interrupts,
-timers, outbox, artifacts, scheduling/readiness queues, automatic corruption
+pending node-result writes, node/model attempts, model invocation ledgers,
+interrupts, timers, outbox, artifacts, scheduling/readiness queues, automatic corruption
 quarantine, retention/archive/legal hold, backup/restore, failover
 qualification, or the 10,000-race stale-worker gate.
 

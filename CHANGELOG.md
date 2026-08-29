@@ -166,6 +166,18 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   repeatable-read pages with exact continuation heads, batched fully decoded
   journal-anchor checks, later-barrier safety, and fail-closed cursor/ancestor
   corruption coverage on PostgreSQL 16/17.
+- Durable tool-invocation intents and hash-linked revision state machines with
+  exact checkpoint/node/journal ownership, stable logical and physical attempt
+  identities, prepared/executing/committed/failed/unknown outcomes,
+  reconciliation-only ambiguity, evidence-gated delayed retries, provenance and
+  output-limit validation, redacted diagnostics, closed schemas, and a versioned
+  canonical history fixture.
+- Atomic fenced PostgreSQL tool-invocation preparation, transition, current-load,
+  and bounded history APIs with exact lost-ack convergence, root ready-node and
+  run-lifecycle admission, database-enforced attempt uniqueness, rollback and
+  corruption injection, cancellation-race coverage, checkpoint advancement
+  rejection while an invocation remains unsettled, and 24-writer single-winner
+  tests on PostgreSQL 16/17.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

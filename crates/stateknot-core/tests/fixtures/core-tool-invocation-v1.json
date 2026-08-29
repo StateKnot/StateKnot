@@ -1,0 +1,270 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-tool-invocation/1.0.0",
+  "graph_namespaces": {
+    "valid": ["", "parent", "parent/child-v2", "a.b/c_d"],
+    "invalid": ["/node", "node/", "node//child", ".", "parent/..", null]
+  },
+  "revisions": {
+    "valid": ["0", "1", "9223372036854775807"],
+    "invalid": ["", "00", "01", "-1", "9223372036854775808", 0, null]
+  },
+  "intent": {
+    "activation": {
+      "base_checkpoint": {
+        "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+        "digest": "sha256:69a58e9d26ce89b84988c2d62700abedbfebfdde0934f843a99086e156692900",
+        "graph": {
+          "definition_digest": "sha256:2d996e7daac5b294a0fed7e4168049872f0cab52c51d4c8468d90bea2bf69f45",
+          "identity": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          },
+          "state_schema": {
+            "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+            "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+            "version": "1.0.0"
+          }
+        },
+        "journal_head": {
+          "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+          "event_id": "01912345-6789-7abc-8def-0123456789c1",
+          "recorded_at": "2030-01-01T00:00:01.000000Z",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "sequence": "1",
+          "tenant_id": "tenant-production"
+        },
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "superstep": "0",
+        "tenant_id": "tenant-production"
+      },
+      "graph_namespace": "",
+      "input_digest": "sha256:8e6070618215bc80f473914ea839813fb1cdc0cdc34804db620ced93c9aa25f8",
+      "node_id": "authorize"
+    },
+    "descriptor": {
+      "input_schema": {
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "id": "https://schemas.example.com/tools/capture-input/1.0.0",
+        "version": "1.0.0"
+      },
+      "invocation": {
+        "cancellation": "cooperative",
+        "max_progress_events": "128"
+      },
+      "limits": {
+        "max_artifacts": "4",
+        "max_concurrency": "16",
+        "max_inline_result_bytes": "262144",
+        "max_input_bytes": "65536",
+        "max_total_artifact_bytes": "26214400",
+        "timeout": "30000"
+      },
+      "metadata": {
+        "description": "Capture exactly one approved payment.",
+        "extensions": {},
+        "identity": {
+          "capability": {
+            "name": "payments.capture",
+            "version": "2.1.0"
+          },
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "registry-owner"
+          }
+        },
+        "kind": "tool",
+        "lifecycle": {
+          "status": "active"
+        },
+        "required_scopes": ["payments:capture"],
+        "title": "Capture payment"
+      },
+      "output_schema": {
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+        "version": "1.0.0"
+      },
+      "resources": {
+        "credentials": true,
+        "dynamic_code": false,
+        "filesystem": "none",
+        "network": "read_write"
+      },
+      "semantics": {
+        "compensation": true,
+        "idempotency": "required_key",
+        "risk": "idempotent_write",
+        "status_query": true
+      }
+    },
+    "effective_limits": {
+      "max_artifacts": "4",
+      "max_concurrency": "16",
+      "max_inline_result_bytes": "262144",
+      "max_input_bytes": "65536",
+      "max_total_artifact_bytes": "26214400",
+      "timeout": "30000"
+    },
+    "input": {
+      "schema": {
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "id": "https://schemas.example.com/tools/capture-input/1.0.0",
+        "version": "1.0.0"
+      },
+      "value": {
+        "amount": 42,
+        "currency": "CNY"
+      }
+    },
+    "intent_digest": "sha256:d5aec917b2835adde4ad528f2fab596e903c2d58e9b1e5268e04abe995fc4631",
+    "invocation_id": "01912345-6789-7abc-8def-0123456789ad"
+  },
+  "records": [
+    {
+      "digest": "sha256:ebc3aadc5bba3d6aa325e3476aedbe76d45014f84ac11efda9774e35c345969c",
+      "journal_head": {
+        "digest": "sha256:cd04a4754498e06db5a13c5f371f1f04ff6d2470f24aa9bd886540e5dce77f70",
+        "event_id": "01912345-6789-7abc-8def-0123456789c2",
+        "recorded_at": "2030-01-01T00:00:02.000000Z",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "sequence": "2",
+        "tenant_id": "tenant-production"
+      },
+      "revision": "0",
+      "state": {
+        "status": "prepared"
+      }
+    },
+    {
+      "digest": "sha256:ff06a63a6cd0e47a7cd1eaded98f3a8e325c3664908ae462adccc2229605bedd",
+      "journal_head": {
+        "digest": "sha256:d5688a52d55a02ec4aea5ec1eadfffe1c9e0ee6a4ddbe2377f98326d42dfc975",
+        "event_id": "01912345-6789-7abc-8def-0123456789c3",
+        "recorded_at": "2030-01-01T00:00:03.000000Z",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "sequence": "3",
+        "tenant_id": "tenant-production"
+      },
+      "previous": {
+        "digest": "sha256:ebc3aadc5bba3d6aa325e3476aedbe76d45014f84ac11efda9774e35c345969c",
+        "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+        "journal_head": {
+          "digest": "sha256:cd04a4754498e06db5a13c5f371f1f04ff6d2470f24aa9bd886540e5dce77f70",
+          "event_id": "01912345-6789-7abc-8def-0123456789c2",
+          "recorded_at": "2030-01-01T00:00:02.000000Z",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "sequence": "2",
+          "tenant_id": "tenant-production"
+        },
+        "revision": "0",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "status": "prepared",
+        "tenant_id": "tenant-production"
+      },
+      "revision": "1",
+      "state": {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "status": "executing"
+      },
+      "transition": {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "kind": "start_attempt"
+      },
+      "transition_digest": "sha256:e877717f3254b4e3de8e5d850f38d6e5e23547b24af6e0ad81c9bdaeaeeb2e52"
+    },
+    {
+      "digest": "sha256:9aa477b73acfc52c2f4d7d237bc7c90a548c198e31518f092d7299a9aaf98364",
+      "journal_head": {
+        "digest": "sha256:8005f02d43fa06e7d0585fb64c961d57e318b27a145c857bcd3a6bdb413ff7fc",
+        "event_id": "01912345-6789-7abc-8def-0123456789c4",
+        "recorded_at": "2030-01-01T00:00:04.000000Z",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "sequence": "4",
+        "tenant_id": "tenant-production"
+      },
+      "previous": {
+        "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+        "digest": "sha256:ff06a63a6cd0e47a7cd1eaded98f3a8e325c3664908ae462adccc2229605bedd",
+        "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+        "journal_head": {
+          "digest": "sha256:d5688a52d55a02ec4aea5ec1eadfffe1c9e0ee6a4ddbe2377f98326d42dfc975",
+          "event_id": "01912345-6789-7abc-8def-0123456789c3",
+          "recorded_at": "2030-01-01T00:00:03.000000Z",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "sequence": "3",
+          "tenant_id": "tenant-production"
+        },
+        "revision": "1",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "status": "executing",
+        "tenant_id": "tenant-production"
+      },
+      "revision": "2",
+      "state": {
+        "result": {
+          "artifacts": [],
+          "output": {
+            "accepted": true,
+            "transaction_id": "txn_42"
+          },
+          "output_schema": {
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+            "version": "1.0.0"
+          },
+          "provenance": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+            "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+            "tool": {
+              "capability": {
+                "name": "payments.capture",
+                "version": "2.1.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "registry-owner"
+              }
+            }
+          }
+        },
+        "status": "committed"
+      },
+      "transition": {
+        "kind": "record_result",
+        "result": {
+          "artifacts": [],
+          "output": {
+            "accepted": true,
+            "transaction_id": "txn_42"
+          },
+          "output_schema": {
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+            "version": "1.0.0"
+          },
+          "provenance": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+            "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+            "tool": {
+              "capability": {
+                "name": "payments.capture",
+                "version": "2.1.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "registry-owner"
+              }
+            }
+          }
+        }
+      },
+      "transition_digest": "sha256:fd5c4c28ceef96d9a1b475baf5af7bea7c39a680cb51c6193a1acec74e825b18"
+    }
+  ]
+}

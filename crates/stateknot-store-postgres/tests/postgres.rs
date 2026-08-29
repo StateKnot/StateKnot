@@ -14,15 +14,19 @@ use sqlx_postgres::PgPoolOptions;
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, CapabilityIdentity, CapabilityName,
     CapabilityReference, Checkpoint, CheckpointHead, CheckpointId, CheckpointState,
-    CheckpointWrite, Digest, EventId, GraphReference, InvocationId, IssuerId, JournalAppend,
-    JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload, NodeId,
-    PrincipalIdentity, ReadyNodes, RunId, RunTransition, SchemaId, SchemaReference, SubjectId,
-    TenantId, ThreadId, Timestamp, Version,
+    CheckpointWrite, Digest, EventId, Failure, FailureCategory, FailureCode, FailureId,
+    FailureMessage, FailureOrigin, GraphNamespace, GraphReference, InvocationId, IssuerId,
+    JournalAppend, JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload,
+    NodeActivation, NodeId, PrincipalIdentity, ReadyNodes, RetryAdvice, RunCancellationRequest,
+    RunId, RunStatus, RunTransition, SchemaId, SchemaReference, SubjectId, TenantId, ThreadId,
+    Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocationIntent,
+    ToolInvocationStatus, ToolInvocationTransition, ToolResult, ToolResultProvenance, Version,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePageSize,
     JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, PostgresStore,
     PostgresStoreOptions, PostgresTransportSecurity, RunProjection, StoreError,
+    ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -541,6 +545,19 @@ fn payload(index: u64) -> JournalPayload {
     .unwrap()
 }
 
+fn cancellation_request(requested_at: Timestamp) -> RunCancellationRequest {
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Cancelled,
+        FailureCode::new("run.cancelled").unwrap(),
+        FailureOrigin::new("test.scheduler").unwrap(),
+        FailureMessage::new("The integration run was cancelled.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap();
+    RunCancellationRequest::new(failure, requested_at).unwrap()
+}
+
 fn checkpoint_graph() -> GraphReference {
     let owner = PrincipalIdentity::new(
         "https://issuer.example.com/stateknot"
@@ -614,6 +631,138 @@ fn successor_checkpoint_write(
         ready_node(index + 1),
     )
     .unwrap()
+}
+
+async fn start_run_with_checkpoint(
+    store: &PostgresStore,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    event_index: u64,
+) -> CheckpointCommitOutcome {
+    let admitted = store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let lifecycle = admitted.lifecycle();
+    store
+        .append_control_plane_checkpoint(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                event_index,
+            ),
+            RunProjection::transition(
+                lifecycle.revision(),
+                RunTransition::Start {
+                    started_at: lifecycle.admitted_at(),
+                },
+            ),
+            initial_checkpoint_write(tenant_id.clone(), run_id, CheckpointId::generate()),
+        )
+        .await
+        .unwrap()
+}
+
+fn tool_descriptor() -> ToolDescriptor {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-tool-v1.json"
+    ))
+    .unwrap();
+    serde_json::from_value(fixture["descriptors"]["valid"][0].clone()).unwrap()
+}
+
+fn tool_input(descriptor: &ToolDescriptor) -> ToolInput {
+    ToolInput::new(
+        descriptor.input_schema().clone(),
+        BoundedJson::try_from_value(json!({
+            "amount": 42,
+            "currency": "CNY"
+        }))
+        .unwrap(),
+    )
+    .unwrap()
+}
+
+fn tool_invocation_intent(
+    checkpoint: &Checkpoint,
+    invocation_id: InvocationId,
+) -> ToolInvocationIntent {
+    let descriptor = tool_descriptor();
+    ToolInvocationIntent::new(
+        NodeActivation::new(
+            checkpoint.head(),
+            GraphNamespace::root(),
+            checkpoint
+                .ready_nodes()
+                .iter()
+                .next()
+                .expect("integration checkpoint must have a ready node")
+                .clone(),
+            Digest::sha256(b"integration node activation input"),
+        ),
+        invocation_id,
+        descriptor.clone(),
+        tool_input(&descriptor),
+        descriptor.limits().clone(),
+    )
+    .unwrap()
+}
+
+fn tool_result(intent: &ToolInvocationIntent, attempt_id: AttemptId) -> ToolResult {
+    ToolResult::new(
+        ToolResultProvenance::new(
+            intent.invocation_id(),
+            attempt_id,
+            intent.descriptor().metadata().identity().clone(),
+        ),
+        intent.descriptor().output_schema().clone(),
+        BoundedJson::try_from_value(json!({
+            "accepted": true,
+            "transaction_id": "txn-integration"
+        }))
+        .unwrap(),
+        ToolArtifacts::empty(),
+    )
+}
+
+async fn prepare_tool_invocation_fixture(
+    store: &PostgresStore,
+    tenant_prefix: &str,
+    event_index: u64,
+) -> (TenantId, RunId, InvocationId, ToolInvocationCommitOutcome) {
+    let tenant_id = tenant(tenant_prefix);
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(
+        store,
+        &tenant_id,
+        run_id,
+        event_index,
+    ))
+    .await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let invocation_id = InvocationId::generate();
+    let prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                event_index + 1,
+            ),
+            tool_invocation_intent(checkpoint.checkpoint(), invocation_id),
+        )
+        .await
+        .unwrap();
+    (tenant_id, run_id, invocation_id, prepared)
 }
 
 fn worker_append(
@@ -1362,6 +1511,950 @@ async fn checkpoint_commits_fence_stale_workers_but_preserve_lost_ack_retries() 
         .await
         .expect("current fence must commit checkpoint successor");
     assert_eq!(current.checkpoint().superstep().get(), 1);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn tool_invocation_preparation_requires_a_ready_root_activation() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("tool-invocation-activation");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 880)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let ready_node = checkpoint
+        .checkpoint()
+        .ready_nodes()
+        .iter()
+        .next()
+        .unwrap()
+        .clone();
+    let invalid_activations = [
+        (
+            GraphNamespace::root(),
+            NodeId::new("not-a-ready-node").unwrap(),
+        ),
+        (GraphNamespace::new("nested").unwrap(), ready_node),
+    ];
+
+    for (index, (namespace, node_id)) in invalid_activations.into_iter().enumerate() {
+        let descriptor = tool_descriptor();
+        let invocation_id = InvocationId::generate();
+        let intent = ToolInvocationIntent::new(
+            NodeActivation::new(
+                checkpoint.checkpoint().head(),
+                namespace,
+                node_id,
+                Digest::sha256(b"invalid integration activation input"),
+            ),
+            invocation_id,
+            descriptor.clone(),
+            tool_input(&descriptor),
+            descriptor.limits().clone(),
+        )
+        .unwrap();
+        assert!(matches!(
+            store
+                .prepare_tool_invocation(
+                    worker_append(
+                        tenant_id.clone(),
+                        run_id,
+                        EventId::generate(),
+                        JournalExpectation::exact(checkpoint.event().head()),
+                        lease.fence().clone(),
+                        881 + u64::try_from(index).unwrap(),
+                    ),
+                    intent,
+                )
+                .await,
+            Err(StoreError::InvalidToolInvocationActivation)
+        ));
+        assert!(matches!(
+            store
+                .load_tool_invocation(&tenant_id, run_id, invocation_id)
+                .await,
+            Err(StoreError::ToolInvocationNotFound)
+        ));
+    }
+
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(journal.events().len(), 1);
+    assert_eq!(journal.events().last().unwrap(), checkpoint.event());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn cancellation_blocks_new_tool_work_but_accepts_an_inflight_result() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("tool-invocation-cancellation");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 890)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+
+    let first_invocation_id = InvocationId::generate();
+    let first_intent = tool_invocation_intent(checkpoint.checkpoint(), first_invocation_id);
+    let first_prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                891,
+            ),
+            first_intent.clone(),
+        )
+        .await
+        .unwrap();
+    let first_attempt_id = AttemptId::generate();
+    let first_executing = store
+        .advance_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(first_prepared.event().head()),
+                lease.fence().clone(),
+                892,
+            ),
+            &first_prepared.invocation().head(),
+            ToolInvocationTransition::StartAttempt {
+                attempt_id: first_attempt_id,
+            },
+        )
+        .await
+        .unwrap();
+
+    let second_invocation_id = InvocationId::generate();
+    let second_prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(first_executing.event().head()),
+                lease.fence().clone(),
+                893,
+            ),
+            tool_invocation_intent(checkpoint.checkpoint(), second_invocation_id),
+        )
+        .await
+        .unwrap();
+
+    let active = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(active.lifecycle().status(), RunStatus::Active);
+    let cancellation = store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(second_prepared.event().head()),
+                894,
+            ),
+            RunProjection::transition(
+                active.lifecycle().revision(),
+                RunTransition::RequestCancellation {
+                    request: cancellation_request(second_prepared.event().recorded_at()),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        store
+            .advance_tool_invocation(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(cancellation.event().head()),
+                    lease.fence().clone(),
+                    895,
+                ),
+                &second_prepared.invocation().head(),
+                ToolInvocationTransition::StartAttempt {
+                    attempt_id: AttemptId::generate(),
+                },
+            )
+            .await,
+        Err(StoreError::RunNotRunnable)
+    ));
+    let blocked_invocation_id = InvocationId::generate();
+    assert!(matches!(
+        store
+            .prepare_tool_invocation(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(cancellation.event().head()),
+                    lease.fence().clone(),
+                    896,
+                ),
+                tool_invocation_intent(checkpoint.checkpoint(), blocked_invocation_id),
+            )
+            .await,
+        Err(StoreError::RunNotRunnable)
+    ));
+
+    let completed = store
+        .advance_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(cancellation.event().head()),
+                lease.fence().clone(),
+                897,
+            ),
+            &first_executing.invocation().head(),
+            ToolInvocationTransition::RecordResult {
+                result: tool_result(&first_intent, first_attempt_id),
+            },
+        )
+        .await
+        .expect("an in-flight external result remains durable after cancellation intent");
+    assert_eq!(
+        completed.invocation().status(),
+        ToolInvocationStatus::Committed
+    );
+    assert_eq!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, second_invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ToolInvocationStatus::Prepared
+    );
+    assert!(matches!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, blocked_invocation_id)
+            .await,
+        Err(StoreError::ToolInvocationNotFound)
+    ));
+    assert_eq!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .lifecycle()
+            .status(),
+        RunStatus::CancellationRequested
+    );
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(journal.events().len(), 6);
+    assert_eq!(journal.events().last().unwrap(), completed.event());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("tool-invocation");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 800)).await;
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+
+    let invocation_id = InvocationId::generate();
+    let intent = tool_invocation_intent(checkpoint.checkpoint(), invocation_id);
+    let prepare_event_id = EventId::generate();
+    let prepare_append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            prepare_event_id,
+            JournalExpectation::exact(checkpoint.event().head()),
+            first_lease.fence().clone(),
+            801,
+        )
+    };
+    let prepared = store
+        .prepare_tool_invocation(prepare_append(), intent.clone())
+        .await
+        .expect("tool invocation preparation must commit");
+    assert!(matches!(
+        prepared,
+        ToolInvocationCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(
+        prepared.invocation().status(),
+        ToolInvocationStatus::Prepared
+    );
+    assert_eq!(prepared.event().sequence().get(), 2);
+
+    let prepare_retry = store
+        .prepare_tool_invocation(prepare_append(), intent.clone())
+        .await
+        .expect("lost preparation acknowledgement must converge");
+    assert!(matches!(
+        prepare_retry,
+        ToolInvocationCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(
+        prepare_retry.invocation().head(),
+        prepared.invocation().head()
+    );
+    let crossed_invocation_id = InvocationId::generate();
+    assert!(matches!(
+        store
+            .prepare_tool_invocation(
+                prepare_append(),
+                tool_invocation_intent(checkpoint.checkpoint(), crossed_invocation_id),
+            )
+            .await,
+        Err(StoreError::ToolInvocationCommitConflict)
+    ));
+    assert!(matches!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, crossed_invocation_id)
+            .await,
+        Err(StoreError::ToolInvocationNotFound)
+    ));
+    assert_eq!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap()
+            .head(),
+        prepared.invocation().head()
+    );
+
+    assert!(matches!(
+        store
+            .append_worker_checkpoint(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(prepared.event().head()),
+                    first_lease.fence().clone(),
+                    806,
+                ),
+                RunProjection::unchanged(),
+                successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1,),
+            )
+            .await,
+        Err(StoreError::CheckpointBlockedByToolInvocation)
+    ));
+
+    let physical_attempt = AttemptId::generate();
+    let start_event_id = EventId::generate();
+    let start_append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            start_event_id,
+            JournalExpectation::exact(prepared.event().head()),
+            first_lease.fence().clone(),
+            802,
+        )
+    };
+    let executing = store
+        .advance_tool_invocation(
+            start_append(),
+            &prepared.invocation().head(),
+            ToolInvocationTransition::StartAttempt {
+                attempt_id: physical_attempt,
+            },
+        )
+        .await
+        .expect("physical attempt claim must commit");
+    assert_eq!(
+        executing.invocation().status(),
+        ToolInvocationStatus::Executing
+    );
+
+    let current_lease = store
+        .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let start_retry = store
+        .advance_tool_invocation(
+            start_append(),
+            &prepared.invocation().head(),
+            ToolInvocationTransition::StartAttempt {
+                attempt_id: physical_attempt,
+            },
+        )
+        .await
+        .expect("committed attempt claim must survive lease takeover");
+    assert!(matches!(
+        start_retry,
+        ToolInvocationCommitOutcome::Idempotent { .. }
+    ));
+
+    let result_event_id = EventId::generate();
+    let result_append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            result_event_id,
+            JournalExpectation::exact(executing.event().head()),
+            current_lease.fence().clone(),
+            803,
+        )
+    };
+    let committed = store
+        .advance_tool_invocation(
+            result_append(),
+            &executing.invocation().head(),
+            ToolInvocationTransition::RecordResult {
+                result: tool_result(&intent, physical_attempt),
+            },
+        )
+        .await
+        .expect("validated tool result must commit");
+    assert_eq!(
+        committed.invocation().status(),
+        ToolInvocationStatus::Committed
+    );
+    assert_eq!(committed.invocation().revision().get(), 2);
+
+    let result_retry = store
+        .advance_tool_invocation(
+            result_append(),
+            &executing.invocation().head(),
+            ToolInvocationTransition::RecordResult {
+                result: tool_result(&intent, physical_attempt),
+            },
+        )
+        .await
+        .expect("lost result acknowledgement must converge");
+    assert!(matches!(
+        result_retry,
+        ToolInvocationCommitOutcome::Idempotent { .. }
+    ));
+
+    let mut cursor = None;
+    let mut statuses = Vec::new();
+    loop {
+        let page = store
+            .load_tool_invocation_history_page(
+                &tenant_id,
+                run_id,
+                invocation_id,
+                cursor.as_ref(),
+                ToolInvocationHistoryPageSize::new(1).unwrap(),
+            )
+            .await
+            .expect("each invocation history page must verify");
+        statuses.extend(
+            page.records()
+                .iter()
+                .map(stateknot_core::ToolInvocation::status),
+        );
+        cursor = page.next_cursor();
+        if !page.has_more() {
+            break;
+        }
+    }
+    assert_eq!(
+        statuses,
+        vec![
+            ToolInvocationStatus::Prepared,
+            ToolInvocationStatus::Executing,
+            ToolInvocationStatus::Committed,
+        ]
+    );
+    assert_eq!(
+        cursor.expect("final cursor").head(),
+        committed.invocation().head()
+    );
+
+    assert!(matches!(
+        store
+            .advance_tool_invocation(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(committed.event().head()),
+                    current_lease.fence().clone(),
+                    804,
+                ),
+                &prepared.invocation().head(),
+                ToolInvocationTransition::StartAttempt {
+                    attempt_id: AttemptId::generate(),
+                },
+            )
+            .await,
+        Err(StoreError::StaleToolInvocationHead)
+    ));
+
+    let second_intent = tool_invocation_intent(checkpoint.checkpoint(), InvocationId::generate());
+    assert!(matches!(
+        store
+            .prepare_tool_invocation(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(committed.event().head()),
+                    first_lease.fence().clone(),
+                    805,
+                ),
+                second_intent,
+            )
+            .await,
+        Err(StoreError::StaleFence)
+    ));
+
+    let barrier = store
+        .append_worker_checkpoint(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(committed.event().head()),
+                current_lease.fence().clone(),
+                807,
+            ),
+            RunProjection::unchanged(),
+            successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1),
+        )
+        .await
+        .expect("a committed tool invocation must release the checkpoint barrier");
+    assert_eq!(barrier.checkpoint().superstep().get(), 1);
+    assert_eq!(barrier.event().sequence().get(), 5);
+    assert_eq!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ToolInvocationStatus::Committed
+    );
+
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(journal.events().len(), 5);
+    assert_eq!(journal.events().last().unwrap(), barrier.event());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn failed_invocation_projection_update_rolls_back_event_and_revision() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .expect("test administration connection must open");
+    let tenant_id = tenant("tool-invocation-rollback");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 810)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let invocation_id = InvocationId::generate();
+    let prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                811,
+            ),
+            tool_invocation_intent(checkpoint.checkpoint(), invocation_id),
+        )
+        .await
+        .unwrap();
+
+    query(
+        "ALTER TABLE stateknot.tool_invocations \
+         DROP CONSTRAINT IF EXISTS test_tool_invocation_rollback",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+    let reject_projection = format!(
+        "ALTER TABLE stateknot.tool_invocations \
+         ADD CONSTRAINT test_tool_invocation_rollback \
+         CHECK (tenant_id <> '{}' OR current_status = 'prepared') NOT VALID",
+        tenant_id.as_str()
+    );
+    query(&reject_projection)
+        .execute(&administration)
+        .await
+        .unwrap();
+
+    let advance = store
+        .advance_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(prepared.event().head()),
+                lease.fence().clone(),
+                812,
+            ),
+            &prepared.invocation().head(),
+            ToolInvocationTransition::StartAttempt {
+                attempt_id: AttemptId::generate(),
+            },
+        )
+        .await;
+
+    query(
+        "ALTER TABLE stateknot.tool_invocations \
+         DROP CONSTRAINT test_tool_invocation_rollback",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+    administration.close().await;
+    assert!(matches!(advance, Err(StoreError::Database { .. })));
+
+    let current = store
+        .load_tool_invocation(&tenant_id, run_id, invocation_id)
+        .await
+        .expect("a failed advance must retain the prepared projection");
+    assert_eq!(current.head(), prepared.invocation().head());
+    let history = store
+        .load_tool_invocation_history_page(
+            &tenant_id,
+            run_id,
+            invocation_id,
+            None,
+            ToolInvocationHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .expect("a rolled-back revision must not appear in history");
+    assert_eq!(history.records().len(), 1);
+    assert_eq!(history.records()[0].head(), prepared.invocation().head());
+    assert!(!history.has_more());
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .expect("a rolled-back invocation event must not appear in the journal");
+    assert_eq!(journal.events().len(), 2);
+    assert_eq!(journal.events().last().unwrap(), prepared.event());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[allow(clippy::too_many_lines)]
+async fn concurrent_invocation_advances_admit_exactly_one_physical_attempt() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("tool-invocation-concurrency");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 820)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let invocation_id = InvocationId::generate();
+    let prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                821,
+            ),
+            tool_invocation_intent(checkpoint.checkpoint(), invocation_id),
+        )
+        .await
+        .unwrap();
+    let prepared_head = prepared.invocation().head();
+    let prepared_journal_head = prepared.event().head();
+
+    let writers = 24_u64;
+    let mut tasks = Vec::new();
+    for index in 0..writers {
+        let store = store.clone();
+        let tenant_id = tenant_id.clone();
+        let fence = lease.fence().clone();
+        let expected = prepared_head.clone();
+        let journal_head = prepared_journal_head.clone();
+        tasks.push(tokio::spawn(async move {
+            store
+                .advance_tool_invocation(
+                    worker_append(
+                        tenant_id,
+                        run_id,
+                        EventId::generate(),
+                        JournalExpectation::exact(journal_head),
+                        fence,
+                        822 + index,
+                    ),
+                    &expected,
+                    ToolInvocationTransition::StartAttempt {
+                        attempt_id: AttemptId::generate(),
+                    },
+                )
+                .await
+        }));
+    }
+
+    let mut winners = Vec::new();
+    for task in tasks {
+        match task.await.expect("invocation writer must not panic") {
+            Ok(outcome) => winners.push(outcome),
+            Err(StoreError::StaleToolInvocationHead) => {}
+            Err(error) => panic!("unexpected invocation writer failure: {error}"),
+        }
+    }
+    assert_eq!(winners.len(), 1);
+    let winner = winners.pop().unwrap();
+    assert!(matches!(
+        winner,
+        ToolInvocationCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(
+        winner.invocation().status(),
+        ToolInvocationStatus::Executing
+    );
+
+    let current = store
+        .load_tool_invocation(&tenant_id, run_id, invocation_id)
+        .await
+        .unwrap();
+    assert_eq!(current.head(), winner.invocation().head());
+    let history = store
+        .load_tool_invocation_history_page(
+            &tenant_id,
+            run_id,
+            invocation_id,
+            None,
+            ToolInvocationHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .expect("the winning transition must form one complete history");
+    assert_eq!(
+        history
+            .records()
+            .iter()
+            .map(stateknot_core::ToolInvocation::status)
+            .collect::<Vec<_>>(),
+        vec![
+            ToolInvocationStatus::Prepared,
+            ToolInvocationStatus::Executing,
+        ]
+    );
+    assert!(!history.has_more());
+    let journal = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(journal.events().len(), 3);
+    assert_eq!(journal.events().last().unwrap(), winner.event());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn invocation_reads_fail_closed_on_corrupt_canonical_bytes_and_anchors() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .expect("test administration connection must open");
+
+    let (intent_tenant, intent_run, intent_id, _) = Box::pin(prepare_tool_invocation_fixture(
+        &store,
+        "tool-intent-corruption",
+        840,
+    ))
+    .await;
+    query(
+        "UPDATE stateknot.tool_invocations \
+         SET intent_bytes = intent_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = $3",
+    )
+    .bind(intent_tenant.as_str())
+    .bind(*intent_run.as_uuid())
+    .bind(*intent_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_tool_invocation(&intent_tenant, intent_run, intent_id)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .load_tool_invocation_history_page(
+                &intent_tenant,
+                intent_run,
+                intent_id,
+                None,
+                ToolInvocationHistoryPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let (record_tenant, record_run, record_id, _) = Box::pin(prepare_tool_invocation_fixture(
+        &store,
+        "tool-record-corruption",
+        850,
+    ))
+    .await;
+    query(
+        "UPDATE stateknot.tool_invocation_revisions \
+         SET record_bytes = record_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = $3 AND revision = 0",
+    )
+    .bind(record_tenant.as_str())
+    .bind(*record_run.as_uuid())
+    .bind(*record_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_tool_invocation(&record_tenant, record_run, record_id)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .load_tool_invocation_history_page(
+                &record_tenant,
+                record_run,
+                record_id,
+                None,
+                ToolInvocationHistoryPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let (anchor_tenant, anchor_run, anchor_id, anchor_prepared) = Box::pin(
+        prepare_tool_invocation_fixture(&store, "tool-anchor-corruption", 860),
+    )
+    .await;
+    query(
+        "UPDATE stateknot.run_events \
+         SET payload_bytes = payload_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND sequence = $3",
+    )
+    .bind(anchor_tenant.as_str())
+    .bind(*anchor_run.as_uuid())
+    .bind(i64::try_from(anchor_prepared.event().sequence().get()).unwrap())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_tool_invocation(&anchor_tenant, anchor_run, anchor_id)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .load_tool_invocation_history_page(
+                &anchor_tenant,
+                anchor_run,
+                anchor_id,
+                None,
+                ToolInvocationHistoryPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let (projection_tenant, projection_run, projection_id, projection_prepared) = Box::pin(
+        prepare_tool_invocation_fixture(&store, "tool-projection-corruption", 870),
+    )
+    .await;
+    let wrong_projection = Digest::sha256(b"wrong tool invocation projection");
+    query(
+        "UPDATE stateknot.run_events \
+         SET projection_digest = $4 \
+         WHERE tenant_id = $1 AND run_id = $2 AND sequence = $3",
+    )
+    .bind(projection_tenant.as_str())
+    .bind(*projection_run.as_uuid())
+    .bind(i64::try_from(projection_prepared.event().sequence().get()).unwrap())
+    .bind(wrong_projection.as_bytes())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_tool_invocation(&projection_tenant, projection_run, projection_id)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .load_tool_invocation_history_page(
+                &projection_tenant,
+                projection_run,
+                projection_id,
+                None,
+                ToolInvocationHistoryPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    administration.close().await;
     store.close().await;
 }
 

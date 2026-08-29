@@ -858,6 +858,39 @@ Progress is observation only and never commits a successful tool result.
 No tool receives a raw provider request, database transaction, bearer token, or
 unrestricted service locator.
 
+### Durable tool invocation records
+
+The core also defines the storage-neutral facts needed to recover external tool
+work without replaying it from process memory:
+
+- `GraphNamespace` and `NodeActivation` bind the exact tenant/run checkpoint,
+  graph namespace, node, and logical input digest that requested the work;
+- `ToolInvocationIntent` snapshots the stable logical `InvocationId`, complete
+  owner-qualified `ToolDescriptor`, schema-bound `ToolInput`, and effective
+  narrowed execution limits. Its domain-separated digest excludes credentials
+  but includes every value that can change execution semantics;
+- `ToolInvocation` is an immutable revision in the closed lifecycle
+  `Prepared | Executing | Committed | Failed | Unknown`, anchored to one exact
+  `JournalHead` and hash-linked to its exact predecessor;
+- `ToolInvocationHead` is the complete optimistic cursor: tenant/run/invocation,
+  revision, status, physical attempt, journal head, and record digest; and
+- `ToolInvocationHistoryVerifier` validates ascending records in constant
+  state, including page continuation from a fully restored exact predecessor.
+
+Only explicit transitions exist: `StartAttempt`, `RecordResult`, `RecordError`,
+`ReconcileResult`, and `ReconcileError`. A committed record is terminal.
+`Unknown` cannot start another physical execution and can only be reconciled.
+A failed write may retry only when its recorded `RetryAdvice::SafeAfter` delay
+has elapsed according to durable journal time and its external-effect evidence,
+tool risk, and idempotency mechanism make repetition safe. Every retry allocates
+a new `AttemptId`; the logical `InvocationId` and peer idempotency key remain
+stable. Result/error provenance, tool identity, schema, artifact ownership, and
+resolved byte/count ceilings are revalidated on every transition.
+
+The ledger does not claim exactly-once external effects. It makes the durable
+decision and evidence exact, reuses committed results, and preserves ambiguous
+outcomes for reconciliation instead of guessing that a timeout was safe.
+
 ## Model boundary
 
 The object-safe `Model` trait exposes descriptor/capabilities plus unary and

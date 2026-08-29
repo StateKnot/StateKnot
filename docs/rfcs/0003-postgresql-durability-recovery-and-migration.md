@@ -129,6 +129,11 @@ The provider- and database-neutral `stateknot-core` crate now contains:
   complete checkpoint integrity validation;
 - `CheckpointLineageVerifier`: constant-memory newest-to-oldest validation from
   an exact compact tip through the superstep-zero root.
+- `ToolInvocationIntent`, `ToolInvocation`, and `ToolInvocationHead`: immutable
+  execution intent, closed lifecycle revision, exact journal/predecessor
+  anchoring, and a complete optimistic comparison token;
+- `ToolInvocationHistoryVerifier`: constant-state ascending validation of
+  transition legality, hash links, safe retries, and exact paged continuation.
 
 These types validate intrinsic values and are used in model/fault tests. They do
 not replace database authorization or atomicity.
@@ -179,6 +184,35 @@ async fn load_checkpoint_lineage_page(
     from: Option<&CheckpointHead>,
     page_size: CheckpointLineagePageSize,
 ) -> Result<CheckpointLineagePage, StoreError>;
+
+async fn prepare_tool_invocation(
+    &self,
+    append: JournalAppend,
+    intent: ToolInvocationIntent,
+) -> Result<ToolInvocationCommitOutcome, StoreError>;
+
+async fn advance_tool_invocation(
+    &self,
+    append: JournalAppend,
+    expected: &ToolInvocationHead,
+    transition: ToolInvocationTransition,
+) -> Result<ToolInvocationCommitOutcome, StoreError>;
+
+async fn load_tool_invocation(
+    &self,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+) -> Result<ToolInvocation, StoreError>;
+
+async fn load_tool_invocation_history_page(
+    &self,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+    after: Option<&ToolInvocation>,
+    page_size: ToolInvocationHistoryPageSize,
+) -> Result<ToolInvocationHistoryPage, StoreError>;
 ```
 
 `append_worker` rejects an append without a worker source. It never accepts a
@@ -269,8 +303,9 @@ For one requested append the store performs this order:
    correction cannot make durable time regress; sequence remains authoritative;
 9. construct and insert the canonical journal event;
 10. for a checkpoint append, compare its ID/intent and exact parent before stale
-    head/fence rejection, then insert the immutable checkpoint anchored to the
-    event created in step 9;
+    head/fence rejection, reject any non-committed invocation rooted at that
+    exact parent, then insert the immutable checkpoint anchored to the event
+    created in step 9;
 11. update the run head and every related projection/checkpoint/outbox row;
 12. commit; only then acknowledge the event.
 
@@ -386,9 +421,20 @@ they are not requested again merely to rebuild a process-local transcript.
 
 ### Invocation ledger, interrupts, timers, and outbox
 
-- `tool_invocations` distinguishes prepared, executing, committed, failed, and
-  unknown external outcomes; it retains the logical invocation and stable
-  idempotency key across physical attempts.
+- `tool_invocations` stores one immutable canonical intent with the complete
+  descriptor/input/effective-limit snapshot, exact base-checkpoint activation,
+  and an exact current-revision/status/attempt/digest pointer.
+- `tool_invocation_revisions` stores canonical full records with contiguous
+  revision, exact predecessor and journal heads, transition/status projections,
+  and a run-wide unique physical attempt claim. The closed states are prepared,
+  executing, committed, failed, and unknown; the logical invocation and stable
+  peer idempotency key survive physical attempts. Unknown outcomes admit only a
+  reconciliation transition, and retryable failures retain the evidence and
+  durable not-before time needed to prove a later attempt safe.
+- A successor checkpoint cannot commit while an invocation rooted at its exact
+  parent is prepared, executing, failed, or unknown. A committed invocation
+  releases this orphan-prevention guard; the pending node-result ledger must
+  separately prove consumption into the barrier state.
 - `interrupts` stores request payload, bound action digest, required principal
   and scopes, exclusive expiry, version, and one authenticated resolution.
 - `timers` stores indexed due time and one firing event identity; the scheduler
@@ -592,9 +638,10 @@ explicit unknown outcome otherwise.
 ### Current implementation evidence
 
 The unpublished `stateknot-store-postgres` crate implements the first
-run/journal/checkpoint/lease subset of this RFC rather than a separate
-transitional backend. Two exact migrations create tenant-scoped `runs`,
-`run_events`, and immutable `run_checkpoints` records with database constraints;
+run/journal/checkpoint/tool-invocation/lease subset of this RFC rather than a
+separate transitional backend. Three exact migrations create tenant-scoped
+`runs`, `run_events`, immutable `run_checkpoints`, `tool_invocations`, and
+immutable `tool_invocation_revisions` records with database constraints;
 runtime connection refuses absent, extra, failed, checksum-mismatched, or
 incomplete migration state. Migration uses a separate temporary pool so DDL
 credentials are not retained by the runtime.
@@ -613,17 +660,39 @@ use hard-bounded repeatable-read pages, exact full-head cursors, recursive paren
 identity joins, and batched fully decoded journal-anchor verification. Immutable
 continuations remain valid when a later barrier advances the run pointer.
 
-Fourteen integration tests run against digest-pinned PostgreSQL 16 and 17. They
+Tool preparation and transition lock the run plus invocation, apply the closed
+core state machine, and atomically commit the event, immutable revision, exact
+current pointer, and run journal head. Every worker mutation repeats the live
+attempt/epoch/exclusive-expiry predicate in SQL. Same-event retries compare the
+complete canonical intent/transition result before converging. Reads reconstruct
+canonical bytes and redundant projections, validate the base checkpoint and
+exact journal projection binding, and stream-verify hard-bounded ascending
+history pages from complete cursors. Until the checkpoint contract represents
+namespaced ready activations, preparation accepts only a root namespace and a
+node present in the exact base checkpoint's `ReadyNodes`; all other activations
+fail closed before an event is inserted. Preparation and `StartAttempt` require
+an active run; cancellation and waiting may accept outcome/reconciliation
+evidence for work already in flight but cannot dispatch new tool work. Under the
+same locked run row, checkpoint advancement rejects any non-committed invocation
+rooted at the exact current checkpoint. This prevents an in-flight external call
+from being orphaned but does not substitute for the pending node-result
+consumption proof that remains unimplemented.
+
+Twenty integration tests run against digest-pinned PostgreSQL 16 and 17. They
 cover fresh migration, startup refusal, existing v1-history upgrade, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
 renewal/expiry/release/supersession, stale fences including retry after takeover,
-failures injected after event and checkpoint insertion, bounded suffix and
+failures injected after event, checkpoint, and invocation-revision insertion, bounded suffix and
 reverse-lineage paging, exact/crossed cursor rejection, continuation after a
 later checkpoint commit, a missing page-edge parent, corrupted
-checkpoint/anchor bytes, invalid/future lifecycle transitions, 100
-concurrent journal appenders, and 24 competing checkpoint writers producing one
-contiguous lineage. This is evidence for those boundaries only. Pending node
-writes, attempt/invocation ledgers,
+checkpoint/invocation/anchor bytes and projection bindings, invalid/future
+lifecycle transitions, 100 concurrent journal appenders, 24 competing checkpoint
+writers producing one contiguous lineage, and 24 competing invocation writers
+admitting exactly one physical attempt. Non-ready and unsupported nested
+activations are rejected without durable residue, and cancellation races retain
+in-flight results without admitting new work. Checkpoint advancement is rejected
+until exact-parent invocations commit. This is evidence for those boundaries
+only. Pending node writes, node/model attempt and model-invocation ledgers,
 automatic quarantine, role-separated database procedures, the 10,000 stale-race
 trial, failover, archive, backup/restore, and soak gates below remain incomplete;
 the RFC therefore remains Draft.

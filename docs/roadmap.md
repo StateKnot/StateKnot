@@ -39,7 +39,13 @@ from the repository.
   cursors, repeatable-read pages, batched journal-anchor verification, safe
   continuation across later barrier commits, and corruption tests on PostgreSQL
   16/17.
-- [ ] Complete RFC-0003 pending node results, attempt/tool ledgers, outbox,
+- [x] Implement the tool-invocation ledger with immutable intent snapshots,
+  prepared/executing/committed/failed/unknown transitions, safe-retry and
+  reconcile-first rules, exact checkpoint/journal anchors, atomic fenced
+  PostgreSQL commits, lost-ack convergence, bounded verified history, rollback,
+  corruption, exact-checkpoint advancement guards for unsettled calls, and
+  24-writer race tests on PostgreSQL 16/17.
+- [ ] Complete RFC-0003 pending node results, node/model attempt ledgers, outbox,
   recovery scheduling, quarantine, role isolation, retention, failover, restore,
   and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.

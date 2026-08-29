@@ -3,7 +3,7 @@
 
 use stateknot_core::{
     Checkpoint, CheckpointHead, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead,
-    RunLease, RunLifecycle, RunRevision, RunTransition, Superstep,
+    RunLease, RunLifecycle, RunRevision, RunTransition, Superstep, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -73,6 +73,102 @@ impl CheckpointCommitOutcome {
         match self {
             Self::Committed { checkpoint, .. } | Self::Idempotent { checkpoint, .. } => checkpoint,
         }
+    }
+}
+
+/// Result of atomically committing a journal event and tool invocation revision.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum ToolInvocationCommitOutcome {
+    /// A new event and immutable invocation revision committed atomically.
+    Committed {
+        /// Newly committed journal event.
+        event: JournalEvent,
+        /// Newly committed invocation revision.
+        invocation: ToolInvocation,
+    },
+    /// The exact event and invocation mutation had already committed.
+    Idempotent {
+        /// Previously committed journal event.
+        event: JournalEvent,
+        /// Previously committed invocation revision.
+        invocation: ToolInvocation,
+    },
+}
+
+impl ToolInvocationCommitOutcome {
+    /// Returns the validated anchoring journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the validated immutable invocation revision.
+    #[must_use]
+    pub const fn invocation(&self) -> &ToolInvocation {
+        match self {
+            Self::Committed { invocation, .. } | Self::Idempotent { invocation, .. } => invocation,
+        }
+    }
+}
+
+/// Hard-bounded number of invocation revisions returned in one history page.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ToolInvocationHistoryPageSize(u8);
+
+impl ToolInvocationHistoryPageSize {
+    /// Largest page accepted by the provider.
+    ///
+    /// One canonical record may occupy up to 16 MiB, so two records cap the
+    /// provider-owned decoded page near 32 MiB before driver overhead.
+    pub const MAX: u8 = 2;
+
+    /// Constructs a positive bounded history page size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidToolInvocationPageSize`] for zero or values
+    /// above two.
+    pub const fn new(value: u8) -> Result<Self, StoreError> {
+        if value == 0 || value > Self::MAX {
+            return Err(StoreError::InvalidToolInvocationPageSize);
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the page size as an integer.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// One bounded, fully verified ascending invocation-history page.
+#[derive(Clone, Debug)]
+pub struct ToolInvocationHistoryPage {
+    pub(crate) records: Vec<ToolInvocation>,
+    pub(crate) has_more: bool,
+}
+
+impl ToolInvocationHistoryPage {
+    /// Returns immutable revisions in ascending order.
+    #[must_use]
+    pub fn records(&self) -> &[ToolInvocation] {
+        &self.records
+    }
+
+    /// Returns whether a later revision remains in the observed snapshot.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    /// Returns the full last record required as the exact next-page cursor.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<ToolInvocation> {
+        self.records.last().cloned()
     }
 }
 

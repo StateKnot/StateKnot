@@ -39,6 +39,7 @@ mod schema;
 mod scope;
 mod time;
 mod tool;
+mod tool_invocation;
 mod tool_runtime;
 mod version;
 
@@ -158,6 +159,14 @@ pub use tool::{
     ToolCancellationSupport, ToolDescriptor, ToolDescriptorError, ToolExecutionLimits,
     ToolExecutionLimitsError, ToolExecutionSemantics, ToolExecutionSemanticsError, ToolIdempotency,
     ToolInvocationCapabilities, ToolResourceAccess, ToolResourceRequirements, ToolRisk,
+};
+pub use tool_invocation::{
+    GraphNamespace, GraphNamespaceError, NodeActivation, ToolArtifactBinding, ToolInvocation,
+    ToolInvocationError, ToolInvocationHead, ToolInvocationHeadError, ToolInvocationHistoryError,
+    ToolInvocationHistoryVerifier, ToolInvocationIntegrityError, ToolInvocationIntent,
+    ToolInvocationIntentError, ToolInvocationLimit, ToolInvocationRevision,
+    ToolInvocationRevisionError, ToolInvocationState, ToolInvocationStatus,
+    ToolInvocationTransition, ToolInvocationTransitionKind,
 };
 pub use tool_runtime::{
     ErasedTool, Tool, ToolAdapter, ToolAdapterBuildError, ToolArtifacts, ToolArtifactsError,
