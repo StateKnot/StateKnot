@@ -30,8 +30,8 @@ use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePageSize,
     JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
     ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize, PendingNodeResultCommitOutcome,
-    PostgresStore, PostgresStoreOptions, PostgresTransportSecurity, RunProjection, StoreError,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
+    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
+    RunProjection, StoreError, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -967,6 +967,48 @@ async fn start_run_with_checkpoint(
         .unwrap()
 }
 
+async fn start_run_with_ready_checkpoint(
+    store: &PostgresStore,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    event_index: u64,
+    ready_nodes: ReadyNodes,
+) -> CheckpointCommitOutcome {
+    let admitted = store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let graph = checkpoint_graph();
+    let write = CheckpointWrite::initial(
+        tenant_id.clone(),
+        run_id,
+        CheckpointId::generate(),
+        graph.clone(),
+        checkpoint_state(&graph, 0),
+        ready_nodes,
+    )
+    .unwrap();
+    store
+        .append_control_plane_checkpoint(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                event_index,
+            ),
+            RunProjection::transition(
+                admitted.lifecycle().revision(),
+                RunTransition::Start {
+                    started_at: admitted.lifecycle().admitted_at(),
+                },
+            ),
+            write,
+        )
+        .await
+        .unwrap()
+}
+
 fn tool_descriptor() -> ToolDescriptor {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
         "../../stateknot-core/tests/fixtures/core-tool-v1.json"
@@ -1422,6 +1464,156 @@ async fn pending_node_results_are_fenced_semantically_idempotent_and_load_verifi
         store.load_pending_node_result(&stale_activation).await,
         Err(StoreError::PendingNodeResultNotFound)
     ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn unconsumed_pending_result_pages_are_stable_bounded_and_fully_verified() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("pending-result-page");
+    let run_id = RunId::generate();
+    let ready_nodes = ReadyNodes::try_new(
+        ["node-delta", "node-alpha", "node-charlie", "node-bravo"]
+            .into_iter()
+            .map(|node| NodeId::new(node).unwrap()),
+    )
+    .unwrap();
+    let checkpoint = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &tenant_id,
+        run_id,
+        1_120,
+        ready_nodes,
+    ))
+    .await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let mut journal_head = checkpoint.event().head();
+
+    for (index, node) in ["node-charlie", "node-alpha", "node-bravo"]
+        .into_iter()
+        .enumerate()
+    {
+        let activation = NodeActivation::new(
+            checkpoint.checkpoint().head(),
+            GraphNamespace::root(),
+            NodeId::new(node).unwrap(),
+            Digest::sha256(format!("pending page input {node}")),
+        );
+        let committed = store
+            .commit_pending_node_result(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(journal_head),
+                    lease.fence().clone(),
+                    1_121 + u64::try_from(index).unwrap(),
+                ),
+                pending_result_intent(activation, NodeInvocationBindings::empty()),
+            )
+            .await
+            .unwrap();
+        journal_head = committed.event().head();
+    }
+
+    let first = store
+        .load_unconsumed_pending_node_result_page(
+            &checkpoint.checkpoint().head(),
+            None,
+            PendingNodeResultPageSize::new(2).unwrap(),
+        )
+        .await
+        .expect("first pending-result page must be fully verified");
+    assert_eq!(first.records().len(), 2);
+    assert_eq!(
+        first
+            .records()
+            .iter()
+            .map(|result| result.intent().activation().node_id().as_str())
+            .collect::<Vec<_>>(),
+        vec!["node-alpha", "node-bravo"]
+    );
+    assert!(first.has_more());
+    assert_eq!(first.snapshot_journal_head(), &journal_head);
+    let first_cursor = first.next_cursor().unwrap();
+
+    let second = store
+        .load_unconsumed_pending_node_result_page(
+            &checkpoint.checkpoint().head(),
+            Some(&first_cursor),
+            PendingNodeResultPageSize::new(2).unwrap(),
+        )
+        .await
+        .expect("unchanged journal snapshot must continue exactly");
+    assert_eq!(second.records().len(), 1);
+    assert_eq!(
+        second.records()[0].intent().activation().node_id().as_str(),
+        "node-charlie"
+    );
+    assert!(!second.has_more());
+    assert_eq!(
+        second.snapshot_journal_head(),
+        first.snapshot_journal_head()
+    );
+
+    let delta_activation = NodeActivation::new(
+        checkpoint.checkpoint().head(),
+        GraphNamespace::root(),
+        NodeId::new("node-delta").unwrap(),
+        Digest::sha256(b"pending page input node-delta"),
+    );
+    let delta = store
+        .commit_pending_node_result(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(journal_head),
+                lease.fence().clone(),
+                1_124,
+            ),
+            pending_result_intent(delta_activation, NodeInvocationBindings::empty()),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        store
+            .load_unconsumed_pending_node_result_page(
+                &checkpoint.checkpoint().head(),
+                Some(&first_cursor),
+                PendingNodeResultPageSize::new(2).unwrap(),
+            )
+            .await,
+        Err(StoreError::StalePendingNodeResultSnapshot)
+    ));
+
+    let restarted = store
+        .load_unconsumed_pending_node_result_page(
+            &checkpoint.checkpoint().head(),
+            None,
+            PendingNodeResultPageSize::new(2).unwrap(),
+        )
+        .await
+        .expect("stale scanning must restart from a new exact snapshot");
+    assert_eq!(restarted.snapshot_journal_head(), &delta.event().head());
+    assert_eq!(
+        restarted
+            .records()
+            .iter()
+            .map(|result| result.intent().activation().node_id().as_str())
+            .collect::<Vec<_>>(),
+        vec!["node-alpha", "node-bravo"]
+    );
+    assert!(restarted.has_more());
     store.close().await;
 }
 

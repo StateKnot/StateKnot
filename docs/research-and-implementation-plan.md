@@ -815,7 +815,8 @@ archive anchor、expand/contract migration 与 backup/restore 门禁以
 immutable `run_checkpoints`、immutable/hash-linked tool/model invocation ledger、run-wide
 tool/model physical-attempt registry、immutable pending node-result ledger、canonical bytes/digests、
 projection-bound 与 semantic-result idempotency、locked pure transition、exact-head/parent append、数据库时钟 lease/fencing、完整 journal cursor
-分页、有界 reverse checkpoint-lineage 与 invocation-history 分页、未结算 invocation 的
+分页、有界 reverse checkpoint-lineage、invocation-history 与 journal-head 固定的
+unconsumed pending-result 分页、未结算 invocation 的
 exact-checkpoint advancement guard、精确 migration checksum/startup refusal，以及 PostgreSQL
 16/17 的 v3 Attempt 回填、corruption、rollback、lost-ack、delayed retry、100 并发 journal
 appender、24 并发 checkpoint writer、24 并发 tool/model invocation writer 和 24 并发 pending-result writer 测试。该 guard
@@ -1032,7 +1033,8 @@ GET    /health/ready
 - blob store、retention、tenant isolation 与 RLS 可选配置。
 
 进度：run/journal/checkpoint/tool/model-invocation/lease、run-wide physical-attempt registry、
-pending node-result 核心契约及 PostgreSQL immutable commit/load ledger 已完成并通过 PG16/17
+pending node-result 与 exact-ready-set barrier 核心契约、PostgreSQL immutable commit/load
+ledger 及 stable-snapshot unconsumed-result paging 已完成并通过 PG16/17
 验证；atomic pending-result barrier、node-attempt ledger、recovery scheduler、outbox，
 以及阶段 3 的其余运维与故障门禁未完成，不能据此提前宣称阶段完成。
 

@@ -46,6 +46,10 @@ The provider currently supplies:
   every redundant SQL projection, the base checkpoint, worker event source and
   projection digest, binding rows, full invocation intents/revisions, and all
   invocation journal anchors in bounded batches;
+- two-record unconsumed pending-result pages with compact look-ahead rows,
+  canonical `(graph_namespace, node_id)` order, full-record verification, and a
+  cursor that pins the base checkpoint, last result head, and run journal head;
+  concurrent result commits make continuation explicitly stale;
 - successor-checkpoint rejection while any invocation rooted at the exact
   current checkpoint remains prepared, executing, failed, or unknown;
 - database-clock lease claim, renewal, release, forced supersession, monotonically
@@ -229,9 +233,11 @@ keys prove the exact base checkpoint, worker event/fence, logical invocation
 activation, committed revision, and causal journal order without polymorphic
 triggers. One logical `(tenant, run, base checkpoint, namespace, node)` key
 admits one semantic result; changing the activation input is a conflict rather
-than a second row. The consumption table and its exact successor-checkpoint key
-are installed for the next slice, but no public barrier-consumption API claims
-that behavior yet.
+than a second row. Recovery scans unconsumed rows through a two-record decoded
+page bound and compact look-ahead. Its cursor pins the observed run journal head
+so concurrent insertions cannot create keyset-pagination gaps. The consumption
+table and its exact successor-checkpoint key are installed for the next slice,
+but no public barrier-consumption API claims that behavior yet.
 
 ## Not yet implemented
 

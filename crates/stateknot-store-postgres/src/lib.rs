@@ -27,7 +27,8 @@ pub use model::{
     CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
     LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
     ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, PendingNodeResultCommitOutcome,
-    RunProjection, StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize, RunProjection,
+    StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
     ToolInvocationHistoryPageSize,
 };
 pub use store::PostgresStore;

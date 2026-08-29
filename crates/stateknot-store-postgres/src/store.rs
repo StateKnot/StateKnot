@@ -18,17 +18,17 @@ use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, CanonicalJson, Checkpoint, CheckpointHead,
     CheckpointId, CheckpointLineageVerifier, CheckpointWrite, Digest, EventId, FencingEpoch,
-    InvocationId, JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError,
-    JournalEventIntent, JournalEventSource, JournalHead, JournalSequence, JsonLimits,
-    ModelInvocation, ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
-    ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
+    GraphNamespace, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
+    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalSequence,
+    JsonLimits, ModelInvocation, ModelInvocationHead, ModelInvocationHistoryVerifier,
+    ModelInvocationIntent, ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
     ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeControlKind,
-    NodeInvocationBinding, NodeInvocationBindingKind, PendingNodeResult, PendingNodeResultError,
-    PendingNodeResultIntent, RunFence, RunId, RunLease, RunLeaseValidationError, RunLifecycle,
-    RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp, ToolInvocation,
-    ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
-    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
-    ToolInvocationTransitionKind,
+    NodeId, NodeInvocationBinding, NodeInvocationBindingKind, PendingNodeResult,
+    PendingNodeResultError, PendingNodeResultHead, PendingNodeResultIntent, RunFence, RunId,
+    RunLease, RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTransition,
+    Superstep, TenantId, Timestamp, ToolInvocation, ToolInvocationHead,
+    ToolInvocationHistoryVerifier, ToolInvocationIntent, ToolInvocationRevision,
+    ToolInvocationStatus, ToolInvocationTransition, ToolInvocationTransitionKind,
 };
 use uuid::Uuid;
 
@@ -37,6 +37,7 @@ use crate::{
     CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
     LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
     ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, PendingNodeResultCommitOutcome,
+    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize,
     PostgresStoreOptions, RunProjection, StoreError, StoredRun, ToolInvocationCommitOutcome,
     ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
 };
@@ -683,6 +684,107 @@ SELECT
     created_at
 FROM stateknot.pending_node_results
 WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
+";
+
+const SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS: &str = r"
+SELECT
+    pending.tenant_id,
+    pending.run_id,
+    pending.base_checkpoint_id,
+    pending.base_superstep,
+    pending.base_checkpoint_digest,
+    pending.graph_namespace,
+    pending.node_id,
+    pending.activation_input_digest,
+    pending.intent_digest,
+    pending.fence_attempt_id,
+    pending.fence_epoch,
+    pending.journal_sequence,
+    pending.journal_event_id,
+    pending.journal_recorded_at,
+    pending.journal_digest,
+    pending.record_digest
+FROM stateknot.pending_node_results AS pending
+WHERE pending.tenant_id = $1
+  AND pending.run_id = $2
+  AND pending.base_checkpoint_id = $3
+  AND pending.base_superstep = $4
+  AND pending.base_checkpoint_digest = $5
+  AND NOT EXISTS (
+      SELECT 1
+      FROM stateknot.pending_node_result_consumptions AS consumed
+      WHERE consumed.tenant_id = pending.tenant_id
+        AND consumed.run_id = pending.run_id
+        AND consumed.base_checkpoint_id = pending.base_checkpoint_id
+        AND consumed.graph_namespace = pending.graph_namespace
+        AND consumed.node_id = pending.node_id
+  )
+ORDER BY pending.graph_namespace ASC, pending.node_id ASC
+LIMIT $6
+";
+
+const SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS_AFTER: &str = r"
+SELECT
+    pending.tenant_id,
+    pending.run_id,
+    pending.base_checkpoint_id,
+    pending.base_superstep,
+    pending.base_checkpoint_digest,
+    pending.graph_namespace,
+    pending.node_id,
+    pending.activation_input_digest,
+    pending.intent_digest,
+    pending.fence_attempt_id,
+    pending.fence_epoch,
+    pending.journal_sequence,
+    pending.journal_event_id,
+    pending.journal_recorded_at,
+    pending.journal_digest,
+    pending.record_digest
+FROM stateknot.pending_node_results AS pending
+WHERE pending.tenant_id = $1
+  AND pending.run_id = $2
+  AND pending.base_checkpoint_id = $3
+  AND pending.base_superstep = $4
+  AND pending.base_checkpoint_digest = $5
+  AND (pending.graph_namespace, pending.node_id) > ($6, $7)
+  AND NOT EXISTS (
+      SELECT 1
+      FROM stateknot.pending_node_result_consumptions AS consumed
+      WHERE consumed.tenant_id = pending.tenant_id
+        AND consumed.run_id = pending.run_id
+        AND consumed.base_checkpoint_id = pending.base_checkpoint_id
+        AND consumed.graph_namespace = pending.graph_namespace
+        AND consumed.node_id = pending.node_id
+  )
+ORDER BY pending.graph_namespace ASC, pending.node_id ASC
+LIMIT $8
+";
+
+const SELECT_PENDING_NODE_RESULT_HEAD: &str = r"
+SELECT
+    pending.tenant_id,
+    pending.run_id,
+    pending.base_checkpoint_id,
+    pending.base_superstep,
+    pending.base_checkpoint_digest,
+    pending.graph_namespace,
+    pending.node_id,
+    pending.activation_input_digest,
+    pending.intent_digest,
+    pending.fence_attempt_id,
+    pending.fence_epoch,
+    pending.journal_sequence,
+    pending.journal_event_id,
+    pending.journal_recorded_at,
+    pending.journal_digest,
+    pending.record_digest
+FROM stateknot.pending_node_results AS pending
+WHERE pending.tenant_id = $1
+  AND pending.run_id = $2
+  AND pending.base_checkpoint_id = $3
+  AND pending.graph_namespace = $4
+  AND pending.node_id = $5
 ";
 
 const SELECT_PENDING_NODE_RESULT_TOOL_BINDINGS: &str = r"
@@ -1709,6 +1811,131 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .await
             .map_err(|source| StoreError::database("pending node result load commit", source))?;
         Ok(result)
+    }
+
+    /// Loads one stable-snapshot page of fully verified unconsumed node results.
+    ///
+    /// The first call passes no cursor. A continuation must use the exact
+    /// [`PendingNodeResultPage::next_cursor`] from the preceding page. The
+    /// cursor pins the run journal head, so any concurrent result commit makes
+    /// continuation return [`StoreError::StalePendingNodeResultSnapshot`]
+    /// instead of allowing keyset pagination to miss a lower activation key.
+    /// Only the compact look-ahead row exceeds `page_size`; full result and
+    /// invocation records are decoded within their independent hard bounds.
+    ///
+    /// # Errors
+    ///
+    /// Returns an invalid/stale cursor error, stale checkpoint error, durable
+    /// corruption, or database failure. The supplied base must still be the
+    /// exact current checkpoint of the run.
+    pub async fn load_unconsumed_pending_node_result_page(
+        &self,
+        base: &CheckpointHead,
+        cursor: Option<&PendingNodeResultPageCursor>,
+        page_size: PendingNodeResultPageSize,
+    ) -> Result<PendingNodeResultPage, StoreError> {
+        if cursor.is_some_and(|cursor| !pending_result_cursor_matches_base(cursor, base)) {
+            return Err(StoreError::InvalidPendingNodeResultCursor);
+        }
+
+        let tenant_id = base.tenant_id();
+        let run_id = base.run_id();
+        let mut transaction = self
+            .begin_repeatable_read("unconsumed pending node result page")
+            .await?;
+        let run_row = query_as::<_, RunRow>(SELECT_RUN)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("pending result page run snapshot", source))?
+            .ok_or(StoreError::RunNotFound)?;
+        let stored = decode_run(run_row)?;
+        let checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if checkpoint.head() != *base {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        let snapshot_journal_head = stored
+            .journal_head()
+            .cloned()
+            .ok_or_else(|| StoreError::corrupt("pending result page run journal head"))?;
+        if cursor.is_some_and(|cursor| cursor.snapshot_journal_head != snapshot_journal_head) {
+            return Err(StoreError::StalePendingNodeResultSnapshot);
+        }
+
+        if let Some(cursor) = cursor {
+            let row = load_pending_node_result_head_row(&mut transaction, cursor.after()).await?;
+            let durable = decode_pending_node_result_head(row, base)?;
+            if durable != cursor.after {
+                return Err(StoreError::InvalidPendingNodeResultCursor);
+            }
+        }
+
+        let base_superstep = i64::try_from(base.superstep().get())
+            .map_err(|_| StoreError::InvalidPendingNodeResultCursor)?;
+        let query_limit = i64::from(page_size.get()) + 1;
+        let rows = if let Some(cursor) = cursor {
+            query_as::<_, PendingNodeResultHeadRow>(
+                SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS_AFTER,
+            )
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*base.checkpoint_id().as_uuid())
+            .bind(base_superstep)
+            .bind(base.digest().as_bytes())
+            .bind(cursor.after().activation().graph_namespace().as_str())
+            .bind(cursor.after().activation().node_id().as_str())
+            .bind(query_limit)
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| {
+                StoreError::database("unconsumed pending result continuation", source)
+            })?
+        } else {
+            query_as::<_, PendingNodeResultHeadRow>(SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*base.checkpoint_id().as_uuid())
+                .bind(base_superstep)
+                .bind(base.digest().as_bytes())
+                .bind(query_limit)
+                .fetch_all(&mut *transaction)
+                .await
+                .map_err(|source| {
+                    StoreError::database("unconsumed pending result first page", source)
+                })?
+        };
+        let has_more = rows.len() > usize::from(page_size.get());
+        let retained = rows.into_iter().take(usize::from(page_size.get()));
+        let mut records = Vec::with_capacity(usize::from(page_size.get()));
+        for compact_row in retained {
+            let compact = decode_pending_node_result_head(compact_row, base)?;
+            let row = load_pending_node_result_row(&mut transaction, compact.activation())
+                .await?
+                .ok_or_else(|| StoreError::corrupt("pending result page row"))?;
+            let result = decode_pending_node_result(&row)?;
+            if result.head() != compact {
+                return Err(StoreError::corrupt("pending result page compact head"));
+            }
+            verify_pending_node_result(&mut transaction, &result).await?;
+            records.push(result);
+        }
+        if has_more && records.is_empty() {
+            return Err(StoreError::corrupt("pending result page look-ahead"));
+        }
+
+        transaction.commit().await.map_err(|source| {
+            StoreError::database("unconsumed pending result page commit", source)
+        })?;
+        Ok(PendingNodeResultPage {
+            base_checkpoint: base.clone(),
+            snapshot_journal_head,
+            records,
+            has_more,
+        })
     }
 
     /// Claims an unowned or expired runnable run for a stable `UUIDv7` attempt.
@@ -3490,6 +3717,25 @@ struct PendingNodeResultRow {
     created_at: DateTime<Utc>,
 }
 
+struct PendingNodeResultHeadRow {
+    tenant_id: String,
+    run_id: Uuid,
+    base_checkpoint_id: Uuid,
+    base_superstep: i64,
+    base_checkpoint_digest: Vec<u8>,
+    graph_namespace: String,
+    node_id: String,
+    activation_input_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    fence_attempt_id: Uuid,
+    fence_epoch: i64,
+    journal_sequence: i64,
+    journal_event_id: Uuid,
+    journal_recorded_at: DateTime<Utc>,
+    journal_digest: Vec<u8>,
+    record_digest: Vec<u8>,
+}
+
 struct PendingNodeResultBindingRow {
     tenant_id: String,
     run_id: Uuid,
@@ -3715,6 +3961,29 @@ impl<'row> FromRow<'row, PgRow> for PendingNodeResultRow {
             record_digest: row.try_get("record_digest")?,
             result_bytes: row.try_get("result_bytes")?,
             created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for PendingNodeResultHeadRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            base_checkpoint_id: row.try_get("base_checkpoint_id")?,
+            base_superstep: row.try_get("base_superstep")?,
+            base_checkpoint_digest: row.try_get("base_checkpoint_digest")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            node_id: row.try_get("node_id")?,
+            activation_input_digest: row.try_get("activation_input_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            fence_attempt_id: row.try_get("fence_attempt_id")?,
+            fence_epoch: row.try_get("fence_epoch")?,
+            journal_sequence: row.try_get("journal_sequence")?,
+            journal_event_id: row.try_get("journal_event_id")?,
+            journal_recorded_at: row.try_get("journal_recorded_at")?,
+            journal_digest: row.try_get("journal_digest")?,
+            record_digest: row.try_get("record_digest")?,
         })
     }
 }
@@ -4852,6 +5121,97 @@ async fn load_pending_node_result_row(
         .fetch_optional(&mut **transaction)
         .await
         .map_err(|source| StoreError::database("pending node result lookup", source))
+}
+
+async fn load_pending_node_result_head_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    head: &PendingNodeResultHead,
+) -> Result<PendingNodeResultHeadRow, StoreError> {
+    let activation = head.activation();
+    query_as::<_, PendingNodeResultHeadRow>(SELECT_PENDING_NODE_RESULT_HEAD)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*activation.base_checkpoint().checkpoint_id().as_uuid())
+        .bind(activation.graph_namespace().as_str())
+        .bind(activation.node_id().as_str())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("pending node result cursor lookup", source))?
+        .ok_or(StoreError::InvalidPendingNodeResultCursor)
+}
+
+fn decode_pending_node_result_head(
+    row: PendingNodeResultHeadRow,
+    base: &CheckpointHead,
+) -> Result<PendingNodeResultHead, StoreError> {
+    let base_superstep = nonnegative_superstep(row.base_superstep)?;
+    if row.tenant_id != base.tenant_id().as_str()
+        || row.run_id != *base.run_id().as_uuid()
+        || row.base_checkpoint_id != *base.checkpoint_id().as_uuid()
+        || base_superstep != base.superstep()
+        || decode_digest(
+            &row.base_checkpoint_digest,
+            "pending result compact base digest",
+        )? != base.digest()
+    {
+        return Err(StoreError::corrupt("pending result compact base"));
+    }
+    let graph_namespace = GraphNamespace::new(row.graph_namespace)
+        .map_err(|_| StoreError::corrupt("pending result compact namespace"))?;
+    let node_id =
+        NodeId::new(row.node_id).map_err(|_| StoreError::corrupt("pending result compact node"))?;
+    let activation = NodeActivation::new(
+        base.clone(),
+        graph_namespace,
+        node_id,
+        decode_digest(
+            &row.activation_input_digest,
+            "pending result compact input digest",
+        )?,
+    );
+    let fence_epoch = u64::try_from(row.fence_epoch)
+        .ok()
+        .and_then(|value| FencingEpoch::new(value).ok())
+        .ok_or_else(|| StoreError::corrupt("pending result compact fence epoch"))?;
+    let fence = RunFence::new(
+        base.tenant_id().clone(),
+        base.run_id(),
+        AttemptId::from_uuid(row.fence_attempt_id)
+            .map_err(|_| StoreError::corrupt("pending result compact attempt"))?,
+        fence_epoch,
+    );
+    let journal = JournalHead::new(
+        base.tenant_id().clone(),
+        base.run_id(),
+        positive_sequence(row.journal_sequence)?,
+        EventId::from_uuid(row.journal_event_id)
+            .map_err(|_| StoreError::corrupt("pending result compact event"))?,
+        from_database_time(row.journal_recorded_at)?,
+        decode_digest(&row.journal_digest, "pending result compact journal digest")?,
+    );
+    PendingNodeResultHead::new(
+        activation,
+        decode_digest(&row.intent_digest, "pending result compact intent digest")?,
+        fence,
+        journal,
+        decode_digest(&row.record_digest, "pending result compact record digest")?,
+    )
+    .map_err(|_| StoreError::corrupt("pending result compact head"))
+}
+
+fn pending_result_cursor_matches_base(
+    cursor: &PendingNodeResultPageCursor,
+    base: &CheckpointHead,
+) -> bool {
+    let snapshot = cursor.snapshot_journal_head();
+    let after = cursor.after();
+    cursor.base_checkpoint() == base
+        && snapshot.tenant_id() == base.tenant_id()
+        && snapshot.run_id() == base.run_id()
+        && snapshot.sequence() >= after.journal_head().sequence()
+        && snapshot.recorded_at() >= after.journal_head().recorded_at()
+        && after.activation().base_checkpoint() == base
+        && after.activation().graph_namespace().is_root()
 }
 
 fn pending_node_result_activation_is_ready(
@@ -7153,6 +7513,11 @@ mod tests {
         assert!(ModelInvocationHistoryPageSize::new(1).is_ok());
         assert!(ModelInvocationHistoryPageSize::new(0).is_err());
         assert!(ModelInvocationHistoryPageSize::new(2).is_err());
+
+        assert!(PendingNodeResultPageSize::new(1).is_ok());
+        assert!(PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX).is_ok());
+        assert!(PendingNodeResultPageSize::new(0).is_err());
+        assert!(PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX + 1).is_err());
     }
 
     #[test]

@@ -3,8 +3,8 @@
 
 use stateknot_core::{
     Checkpoint, CheckpointHead, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead,
-    ModelInvocation, PendingNodeResult, RunLease, RunLifecycle, RunRevision, RunTransition,
-    Superstep, ToolInvocation,
+    ModelInvocation, PendingNodeResult, PendingNodeResultHead, RunLease, RunLifecycle, RunRevision,
+    RunTransition, Superstep, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -188,6 +188,119 @@ impl PendingNodeResultCommitOutcome {
         match self {
             Self::Committed { result, .. } | Self::Idempotent { result, .. } => result,
         }
+    }
+}
+
+/// Hard-bounded number of fully decoded pending results in one recovery page.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct PendingNodeResultPageSize(u8);
+
+impl PendingNodeResultPageSize {
+    /// Largest page accepted by the provider.
+    ///
+    /// One canonical pending result may occupy 16 MiB and can reference large
+    /// model records that are verified in bounded sub-batches. Two retained
+    /// results cap provider-owned decoded page memory near 32 MiB before driver
+    /// and invocation-verification overhead. Look-ahead rows remain compact.
+    pub const MAX: u8 = 2;
+
+    /// Constructs a positive bounded pending-result page size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidPendingNodeResultPageSize`] for zero or
+    /// values above two.
+    pub const fn new(value: u8) -> Result<Self, StoreError> {
+        if value == 0 || value > Self::MAX {
+            return Err(StoreError::InvalidPendingNodeResultPageSize);
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the page size as an integer.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// Exact stable-snapshot continuation for unconsumed pending-result scanning.
+///
+/// The cursor binds the immutable base checkpoint, the run journal head seen
+/// by the first page, and the last fully verified result. A later result commit
+/// changes the run journal head, making continuation fail explicitly instead
+/// of silently skipping a newly inserted lower sort key.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PendingNodeResultPageCursor {
+    pub(crate) base_checkpoint: CheckpointHead,
+    pub(crate) snapshot_journal_head: JournalHead,
+    pub(crate) after: PendingNodeResultHead,
+}
+
+impl PendingNodeResultPageCursor {
+    /// Returns the exact checkpoint whose unconsumed set is being scanned.
+    #[must_use]
+    pub const fn base_checkpoint(&self) -> &CheckpointHead {
+        &self.base_checkpoint
+    }
+
+    /// Returns the run head that must remain unchanged across page calls.
+    #[must_use]
+    pub const fn snapshot_journal_head(&self) -> &JournalHead {
+        &self.snapshot_journal_head
+    }
+
+    /// Returns the last fully verified result from the preceding page.
+    #[must_use]
+    pub const fn after(&self) -> &PendingNodeResultHead {
+        &self.after
+    }
+}
+
+/// One bounded, fully verified page of unconsumed pending node results.
+#[derive(Clone, Debug)]
+pub struct PendingNodeResultPage {
+    pub(crate) base_checkpoint: CheckpointHead,
+    pub(crate) snapshot_journal_head: JournalHead,
+    pub(crate) records: Vec<PendingNodeResult>,
+    pub(crate) has_more: bool,
+}
+
+impl PendingNodeResultPage {
+    /// Returns the exact base checkpoint observed by this page.
+    #[must_use]
+    pub const fn base_checkpoint(&self) -> &CheckpointHead {
+        &self.base_checkpoint
+    }
+
+    /// Returns the stable run journal head shared by every page continuation.
+    #[must_use]
+    pub const fn snapshot_journal_head(&self) -> &JournalHead {
+        &self.snapshot_journal_head
+    }
+
+    /// Returns immutable pending results in canonical activation order.
+    #[must_use]
+    pub fn records(&self) -> &[PendingNodeResult] {
+        &self.records
+    }
+
+    /// Returns whether a later result remains in the observed snapshot.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    /// Returns the exact continuation required for the next page.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<PendingNodeResultPageCursor> {
+        self.records
+            .last()
+            .map(|result| PendingNodeResultPageCursor {
+                base_checkpoint: self.base_checkpoint.clone(),
+                snapshot_journal_head: self.snapshot_journal_head.clone(),
+                after: result.head(),
+            })
     }
 }
 

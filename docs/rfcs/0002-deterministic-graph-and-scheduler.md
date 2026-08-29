@@ -309,8 +309,12 @@ checkpoint. They are intentionally not copied into or used to mutate that
 checkpoint. Recovery loads them beside the latest checkpoint and the journal
 suffix; a successful barrier consumes them into the next immutable checkpoint.
 The current PostgreSQL slice can atomically commit and fully verify one exact
-activation result. Bounded unconsumed-result scanning and atomic
-successor-barrier consumption remain the next implementation slice.
+activation result and scan unconsumed results in two-record decoded pages. A
+complete cursor pins the base checkpoint, last result head, and observed run
+journal head; any concurrent result commit makes continuation stale instead of
+allowing a lower canonical key to be skipped. The core `CheckpointBarrier`
+binds exact ready-set coverage, canonical result heads, and the successor write.
+Atomic successor-barrier consumption remains the next implementation slice.
 
 ## Recovery
 

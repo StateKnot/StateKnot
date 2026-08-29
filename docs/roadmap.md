@@ -65,6 +65,10 @@ from the repository.
   foreign keys, full fail-closed recovery, lease-takeover idempotency,
   cancellation/corruption/rollback tests, and a 24-writer race on PostgreSQL
   16/17.
+- [x] Bind checkpoint-barrier inputs to the exact base ready set, canonically
+  ordered result heads, and successor write; expose bounded stable-snapshot
+  PostgreSQL scanning whose journal-pinned cursor cannot miss concurrent
+  lower-key result commits.
 - [ ] Complete atomic pending-result barrier consumption, the node-attempt
   ledger, outbox, recovery scheduling, quarantine, role isolation, retention,
   failover, restore, and stale-race gates.

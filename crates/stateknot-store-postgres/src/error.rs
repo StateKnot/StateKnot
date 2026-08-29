@@ -179,6 +179,15 @@ pub enum StoreError {
     /// A pending result named an absent, non-committed, or crossed invocation revision.
     #[error("pending node result contains an invalid external invocation binding")]
     InvalidPendingNodeResultBinding,
+    /// A pending-result page size exceeded its decoded-memory safety bound.
+    #[error("pending node result page size is invalid")]
+    InvalidPendingNodeResultPageSize,
+    /// A pending-result page cursor crossed scope or did not match its durable row.
+    #[error("pending node result cursor is invalid")]
+    InvalidPendingNodeResultCursor,
+    /// The run journal advanced after an earlier pending-result page snapshot.
+    #[error("pending node result page snapshot is stale and must be restarted")]
+    StalePendingNodeResultSnapshot,
     /// A pagination cursor did not identify the exact stored event head.
     #[error("journal cursor does not match a durable event")]
     InvalidJournalCursor,
