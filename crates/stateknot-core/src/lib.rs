@@ -108,8 +108,8 @@ pub use failure::{
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
     ArtifactId, AttemptId, CheckpointId, DeliveryId, DestinationId, EventId, FailureId,
-    GeneratedIdError, InterruptId, InvocationId, MessageId, RunId, TenantId, TenantIdError,
-    ThreadId, TimerId,
+    GeneratedIdError, InterruptId, InvocationId, MessageId, QuarantineId, RunId, TenantId,
+    TenantIdError, ThreadId, TimerId,
 };
 pub use journal::{
     JournalAppend, JournalAppendError, JournalAuthorityError, JournalChainError,

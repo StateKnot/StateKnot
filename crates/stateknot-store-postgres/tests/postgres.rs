@@ -29,12 +29,12 @@ use stateknot_core::{
     ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus,
     NodeControl, NodeId, NodeInvocationBinding, NodeInvocationBindings, NodeStateChange,
     NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead,
-    PendingNodeResultIntent, PrincipalIdentity, ReadyNodes, RetryAdvice, RunCancellationRequest,
-    RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind, RunTransition, SchemaId,
-    SchemaReference, Scope, ScopeSet, SubjectId, TenantId, ThreadId, TimerFiringIntent, TimerId,
-    TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation,
-    ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
-    ToolResultProvenance, Version, WaitRegistrationIntent,
+    PendingNodeResultIntent, PrincipalIdentity, QuarantineId, ReadyNodes, RetryAdvice,
+    RunCancellationRequest, RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind,
+    RunTransition, SchemaId, SchemaReference, Scope, ScopeSet, SubjectId, TenantId, ThreadId,
+    TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor,
+    ToolInput, ToolInvocation, ToolInvocationIntent, ToolInvocationStatus,
+    ToolInvocationTransition, ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
@@ -44,7 +44,8 @@ use stateknot_store_postgres::{
     OutboxAttemptHistoryPageSize, OutboxClaimOutcome, OutboxCompletionOutcome,
     OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
     PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
-    RunProjection, RunnableRunPageSize, StoreError, TimerFiringCommitOutcome,
+    RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
+    RunQuarantineRequest, RunnableRunPageSize, StoreError, TimerFiringCommitOutcome,
     ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome,
     WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
@@ -178,6 +179,7 @@ async fn remove_transactional_outbox(pool: &PgPool) {
 }
 
 async fn remove_durable_waits(pool: &PgPool) {
+    remove_run_quarantines(pool).await;
     query(
         "ALTER TABLE stateknot.run_wait_registrations \
          DROP CONSTRAINT run_wait_registrations_resolution_fk, \
@@ -213,6 +215,19 @@ async fn remove_durable_waits(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v9 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_run_quarantines(pool: &PgPool) {
+    query("DROP TABLE stateknot.run_quarantines")
+        .execute(pool)
+        .await
+        .expect("v10 run-quarantine table must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 10")
+        .execute(pool)
+        .await
+        .expect("v10 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -339,6 +354,156 @@ async fn idempotent_claim_rejects_clock_before_latest_renewal() {
         Err(StoreError::DatabaseClockRegression)
     ));
     administration.close().await;
+    store.close().await;
+}
+
+#[test]
+fn run_quarantine_contract_rejects_unbounded_or_crossed_codes() {
+    for invalid in ["", "Uppercase", "contains space", "contains/slash"] {
+        assert!(matches!(
+            RunQuarantineComponent::new(invalid),
+            Err(StoreError::InvalidRunQuarantineComponent)
+        ));
+    }
+    assert!(matches!(
+        RunQuarantineComponent::new("a".repeat(RunQuarantineComponent::MAX_LEN + 1)),
+        Err(StoreError::InvalidRunQuarantineComponent)
+    ));
+    assert_eq!(
+        RunQuarantineComponent::from_corrupt_store_error(&StoreError::CorruptData {
+            record: "run lifecycle bytes",
+        })
+        .unwrap()
+        .as_str(),
+        "store.run_lifecycle_bytes"
+    );
+    assert!(matches!(
+        RunQuarantineComponent::from_corrupt_store_error(&StoreError::RunNotFound),
+        Err(StoreError::InvalidRunQuarantineRequest)
+    ));
+
+    let tenant_id = tenant("quarantine-contract");
+    let run_id = RunId::generate();
+    let crossed_head = JournalHead::new(
+        tenant_id.clone(),
+        RunId::generate(),
+        JournalSequence::new(1).unwrap(),
+        EventId::generate(),
+        Timestamp::from_unix_micros(1).unwrap(),
+        Digest::sha256(b"crossed quarantine head"),
+    );
+    assert!(matches!(
+        RunQuarantineRequest::new(
+            tenant_id,
+            run_id,
+            QuarantineId::generate(),
+            JournalExpectation::exact(crossed_head),
+            RunQuarantineCause::IntegrityFailure,
+            RunQuarantineComponent::new("checkpoint.digest").unwrap(),
+            Digest::sha256(b"evidence"),
+        ),
+        Err(StoreError::InvalidRunQuarantineRequest)
+    ));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn run_quarantine_is_atomic_idempotent_and_removes_execution_ownership() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("run-quarantine");
+    let run_id = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .expect("the fixture must hold execution ownership before quarantine");
+    let quarantine_id = QuarantineId::generate();
+    let request = quarantine_request(
+        tenant_id.clone(),
+        run_id,
+        quarantine_id,
+        JournalExpectation::empty(),
+        RunQuarantineCause::ProjectionMismatch,
+        "recovery.lifecycle_projection",
+        b"redacted projection evidence",
+    );
+
+    let committed = store
+        .quarantine_run(request.clone())
+        .await
+        .expect("quarantine evidence and projection must commit atomically");
+    let RunQuarantineCommitOutcome::Committed(quarantine) = committed else {
+        panic!("first quarantine request must commit")
+    };
+    assert_eq!(quarantine.request(), &request);
+    assert_eq!(
+        store.load_run_quarantine(&tenant_id, run_id).await.unwrap(),
+        quarantine
+    );
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert!(run.is_quarantined());
+    assert!(run.lease().is_none());
+    assert!(
+        store
+            .load_runnable_run_page(&tenant_id, None, RunnableRunPageSize::new(16).unwrap())
+            .await
+            .unwrap()
+            .records()
+            .iter()
+            .all(|candidate| candidate.run().lifecycle().provenance().run_id() != run_id)
+    );
+    assert!(matches!(
+        store
+            .claim_lease(&tenant_id, run_id, AttemptId::generate())
+            .await,
+        Err(StoreError::RunQuarantined)
+    ));
+
+    let retry = store
+        .quarantine_run(request.clone())
+        .await
+        .expect("same-ID lost-ack retry must converge");
+    assert!(matches!(
+        retry,
+        RunQuarantineCommitOutcome::Idempotent(ref value) if value == &quarantine
+    ));
+    let changed = quarantine_request(
+        tenant_id.clone(),
+        run_id,
+        quarantine_id,
+        JournalExpectation::empty(),
+        RunQuarantineCause::IntegrityFailure,
+        "recovery.changed_intent",
+        b"different evidence",
+    );
+    assert!(matches!(
+        store.quarantine_run(changed).await,
+        Err(StoreError::RunQuarantineIdConflict)
+    ));
+    assert!(matches!(
+        store
+            .quarantine_run(quarantine_request(
+                tenant_id.clone(),
+                run_id,
+                QuarantineId::generate(),
+                JournalExpectation::empty(),
+                RunQuarantineCause::ProjectionMismatch,
+                "recovery.lifecycle_projection",
+                b"redacted projection evidence",
+            ))
+            .await,
+        Err(StoreError::RunQuarantineConflict)
+    ));
+    let other_tenant = tenant("run-quarantine-crossed");
+    assert!(matches!(
+        store.load_run_quarantine(&other_tenant, run_id).await,
+        Err(StoreError::RunNotFound)
+    ));
     store.close().await;
 }
 
@@ -2110,6 +2275,161 @@ async fn migration_nine_quarantines_legacy_waits_without_fabricating_evidence() 
     administration.close().await;
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_ten_preserves_legacy_quarantine_without_fabricating_evidence() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v10_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .expect("test administration connection must open");
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .expect("isolated v10 upgrade database must be created");
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("v10 fixture database must initially reach the current schema");
+    let fixture_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("v10 fixture store must connect");
+    let legacy_tenant = tenant("v10-legacy-quarantine");
+    let legacy_run = RunId::generate();
+    fixture_store
+        .admit_run(provenance(legacy_tenant.clone(), legacy_run))
+        .await
+        .unwrap();
+    let preserved_tenant = tenant("v10-preserved");
+    let preserved_run = RunId::generate();
+    fixture_store
+        .admit_run(provenance(preserved_tenant.clone(), preserved_run))
+        .await
+        .unwrap();
+    fixture_store.close().await;
+
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .expect("isolated v10 fixture administration connection must open");
+    query(
+        "UPDATE stateknot.runs \
+         SET quarantined_at = clock_timestamp(), \
+             quarantine_reason = 'legacy operator quarantine without structured evidence' \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(legacy_tenant.as_str())
+    .bind(*legacy_run.as_uuid())
+    .execute(&fixture_pool)
+    .await
+    .unwrap();
+    remove_run_quarantines(&fixture_pool).await;
+    let legacy_version = query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+        .fetch_one(&fixture_pool)
+        .await
+        .unwrap();
+    assert_eq!(legacy_version, 9);
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 10 must upgrade the exact v9 fixture");
+    let upgraded_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("the upgraded v10 runtime schema must be accepted");
+    upgraded_store.verify_schema().await.unwrap();
+    assert!(
+        upgraded_store
+            .load_run(&legacy_tenant, legacy_run)
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+    assert!(matches!(
+        upgraded_store
+            .load_run_quarantine(&legacy_tenant, legacy_run)
+            .await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+    assert!(
+        !upgraded_store
+            .load_run(&preserved_tenant, preserved_run)
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+
+    let committed = upgraded_store
+        .quarantine_run(quarantine_request(
+            preserved_tenant.clone(),
+            preserved_run,
+            QuarantineId::generate(),
+            JournalExpectation::empty(),
+            RunQuarantineCause::IntegrityFailure,
+            "migration10.post_upgrade",
+            b"post-upgrade quarantine evidence",
+        ))
+        .await
+        .expect("post-upgrade structured quarantine must commit");
+    assert!(matches!(
+        committed,
+        RunQuarantineCommitOutcome::Committed(_)
+    ));
+
+    let verification_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    let evidence_count = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.run_quarantines WHERE tenant_id = $1",
+    )
+    .bind(preserved_tenant.as_str())
+    .fetch_one(&verification_pool)
+    .await
+    .unwrap();
+    assert_eq!(evidence_count, 1);
+    let index_definition = query_scalar::<_, String>(
+        "SELECT indexdef FROM pg_catalog.pg_indexes \
+         WHERE schemaname = 'stateknot' AND indexname = 'run_quarantines_observed'",
+    )
+    .fetch_one(&verification_pool)
+    .await
+    .expect("v10 operational quarantine index must exist")
+    .to_ascii_lowercase();
+    assert!(index_definition.contains("tenant_id"));
+    assert!(index_definition.contains("quarantined_at"));
+    assert!(index_definition.contains("run_id"));
+
+    verification_pool.close().await;
+    upgraded_store.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .expect("isolated v10 upgrade database must be dropped");
+    administration.close().await;
+}
+
 fn database_url_with_name(database_url: &str, database_name: &str) -> String {
     let (prefix, current_database) = database_url
         .rsplit_once('/')
@@ -2145,6 +2465,27 @@ fn provenance(tenant_id: TenantId, run_id: RunId) -> AgentResultProvenance {
 
 fn tenant(prefix: &str) -> TenantId {
     TenantId::new(format!("{prefix}-{}", RunId::generate())).unwrap()
+}
+
+fn quarantine_request(
+    tenant_id: TenantId,
+    run_id: RunId,
+    quarantine_id: QuarantineId,
+    expectation: JournalExpectation,
+    cause: RunQuarantineCause,
+    component: &str,
+    evidence: &[u8],
+) -> RunQuarantineRequest {
+    RunQuarantineRequest::new(
+        tenant_id,
+        run_id,
+        quarantine_id,
+        expectation,
+        cause,
+        RunQuarantineComponent::new(component).unwrap(),
+        Digest::sha256(evidence),
+    )
+    .unwrap()
 }
 
 fn payload(index: u64) -> JournalPayload {
@@ -11698,6 +12039,212 @@ async fn due_and_expired_wait_discovery_pages_are_bounded_stable_and_tenant_scop
         second_expired.records()[0].marker().interrupt_id(),
         interrupt_two_id
     );
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn stale_quarantine_observation_cannot_stop_a_newer_run_head() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("stale-quarantine");
+    let run_id = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let appended = store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                930,
+            ),
+            RunProjection::unchanged(),
+        )
+        .await
+        .unwrap();
+    let stale = quarantine_request(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        RunQuarantineCause::IntegrityFailure,
+        "journal.stale_observation",
+        b"stale evidence",
+    );
+    assert!(matches!(
+        store.quarantine_run(stale).await,
+        Err(StoreError::StaleRunQuarantineObservation)
+    ));
+    assert!(
+        !store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+    assert!(matches!(
+        store.load_run_quarantine(&tenant_id, run_id).await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+
+    let exact = quarantine_request(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(appended.event().head()),
+        RunQuarantineCause::IntegrityFailure,
+        "journal.chain",
+        b"exact journal evidence",
+    );
+    store
+        .quarantine_run(exact)
+        .await
+        .expect("exact current observation must quarantine");
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+async fn concurrent_identical_quarantine_requests_converge_on_one_record() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let options = test_options(Duration::from_secs(30))
+        .with_transaction_timeouts(Duration::from_secs(15), Duration::from_secs(45));
+    let Some(store) = test_store_with_options(options).await else {
+        return;
+    };
+    let tenant_id = tenant("quarantine-race");
+    let run_id = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let request = quarantine_request(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        RunQuarantineCause::IntegrityFailure,
+        "checkpoint.concurrent_digest",
+        b"shared concurrent evidence",
+    );
+    let mut tasks = tokio::task::JoinSet::new();
+    for _ in 0..24 {
+        let store = store.clone();
+        let request = request.clone();
+        tasks.spawn(async move { store.quarantine_run(request).await });
+    }
+    let mut committed = 0;
+    let mut idempotent = 0;
+    while let Some(joined) = tasks.join_next().await {
+        match joined
+            .expect("quarantine contender must not panic")
+            .unwrap()
+        {
+            RunQuarantineCommitOutcome::Committed(_) => committed += 1,
+            RunQuarantineCommitOutcome::Idempotent(_) => idempotent += 1,
+            _ => unreachable!("quarantine outcomes are closed for this provider version"),
+        }
+    }
+    assert_eq!(committed, 1);
+    assert_eq!(idempotent, 23);
+    assert_eq!(
+        store
+            .load_run_quarantine(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .request(),
+        &request
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn quarantine_update_failure_rolls_back_evidence_and_corruption_fails_closed() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("quarantine-rollback");
+    let run_id = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let request = quarantine_request(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        RunQuarantineCause::IntegrityFailure,
+        "checkpoint.rollback",
+        b"rollback evidence",
+    );
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT IF EXISTS test_quarantine_rollback")
+        .execute(&administration)
+        .await
+        .unwrap();
+    let reject_target = format!(
+        "ALTER TABLE stateknot.runs ADD CONSTRAINT test_quarantine_rollback CHECK (tenant_id <> '{}') NOT VALID",
+        tenant_id.as_str()
+    );
+    query(&reject_target)
+        .execute(&administration)
+        .await
+        .unwrap();
+    assert!(matches!(
+        store.quarantine_run(request.clone()).await,
+        Err(StoreError::Database { .. })
+    ));
+    let evidence_count = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.run_quarantines WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!(evidence_count, 0);
+    assert!(
+        !store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT test_quarantine_rollback")
+        .execute(&administration)
+        .await
+        .unwrap();
+
+    store
+        .quarantine_run(request)
+        .await
+        .expect("same request must recover after rollback");
+    query(
+        "UPDATE stateknot.run_quarantines \
+         SET record_digest = decode(repeat('00', 32), 'hex') \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store.load_run_quarantine(&tenant_id, run_id).await,
+        Err(StoreError::CorruptData { .. })
+    ));
     administration.close().await;
     store.close().await;
 }

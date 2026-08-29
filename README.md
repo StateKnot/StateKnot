@@ -70,14 +70,19 @@ at-least-once retry/dead-letter/expiry recovery, schema verification, and
 database-enforced lease fencing. Integrity-bound interrupt requests and durable
 timers now persist with database-clock resolution/firing, indexed due/expiry
 discovery, exact audit loads, and explicit cancellation/failure abandonment.
+Recovery and trusted control-plane code can also commit a structured run
+quarantine outside a potentially corrupt journal: the request binds a stable
+ID, closed cause, bounded non-secret component, evidence checksum, and exact
+journal observation, then atomically clears execution ownership and removes the
+run from scheduler discovery with lost-ack convergence.
 Complete ready-set barriers now atomically bind and consume the exact immutable
 result set while committing their event, successor checkpoint, lifecycle
 projection, and run heads; the specialized wait-barrier commits that same unit
 with a complete interrupt/timer batch. Raw successor checkpoint, generic wait
 projection, and pending-result writes that bypass their durable evidence are
 rejected. Protocol-specific outbox dispatch adapters, cross-tenant fairness,
-the recovery/dispatch loop, automated quarantine workflows, and a runnable
-agent loop have not shipped yet.
+the recovery/dispatch loop (including automatic quarantine invocation), and a
+runnable agent loop have not shipped yet.
 
 The current milestone is to:
 

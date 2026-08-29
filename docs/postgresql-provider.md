@@ -146,7 +146,8 @@ claim/completion/reaper projection columns on `stateknot.outbox_deliveries`.
 It also needs `SELECT`/`INSERT` on `stateknot.interrupt_resolutions`,
 `stateknot.timer_firings`, and `stateknot.wait_abandonments`, plus
 `SELECT`/`INSERT` and terminal-projection-only `UPDATE` on
-`stateknot.run_wait_registrations`.
+`stateknot.run_wait_registrations`; and `SELECT`/`INSERT` on
+`stateknot.run_quarantines`.
 Do not grant runtime DDL,
 checkpoint, node-attempt, invocation-revision, pending-result, or consumption
 update/delete permissions. Exact role/grant SQL will be
@@ -159,7 +160,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 65 integration tests against PostgreSQL 16 and
+The current database suite runs 71 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v8 without guessed projection or physical-attempt provenance, real v3
@@ -226,7 +227,14 @@ and scope authorization, exclusive interrupt expiry, inclusive timer due time,
 fixed-cutoff tenant-scoped discovery, exact lost-ACK retries, cancellation and
 failure abandonment, immutable audit loading, injected rollback of every joined
 projection, fail-closed digest/reason corruption, released-fence retry, and 24
-identical interrupt resolutions converging on one physical commit. All 65 tests
+identical interrupt resolutions converging on one physical commit.
+
+Run-quarantine coverage proves exact v9-to-v10 migration without fabricating
+evidence for legacy quarantines, bounded machine-code validation, exact journal
+observation fencing, atomic lease removal and runnable-index exclusion,
+same-ID lost-ACK recovery, cross-tenant isolation, injected projection rollback,
+fail-closed record-digest corruption, and 24 identical requests converging on
+one immutable observation. All 71 tests
 run independently against PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -444,11 +452,21 @@ journal evidence. Fresh install, exact v8 upgrade, index plan, schema removal,
 and full transaction behavior are checksum-pinned and exercised on PostgreSQL
 16 and 17.
 
+Migration 10 adds `run_quarantines`, an immutable tenant/run-scoped observation
+outside the journal it may report as corrupt. New evidence binds a stable
+`QuarantineId`, closed cause, bounded non-secret component, caller-retained
+evidence digest, exact empty/current journal observation, database time, and a
+canonical record digest. The same transaction clears any active lease and sets
+the existing quarantine projection, which removes the run from the partial
+runnable index. Existing quarantined rows remain untouched and deliberately
+have no fabricated structured evidence.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
 protocol-specific outbox dispatch adapters, artifacts, cross-tenant scheduler
-fairness and the recovery/dispatch loop, automatic corruption quarantine,
+fairness and the recovery/dispatch loop (including automatic calls to the
+implemented quarantine transaction after recovery detects corruption),
 retention/archive/legal hold, backup/restore, failover qualification, or the
 10,000-race stale-worker gate.
 

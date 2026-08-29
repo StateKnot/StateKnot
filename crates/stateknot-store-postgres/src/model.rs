@@ -1,17 +1,275 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use stateknot_core::{
     Checkpoint, CheckpointHead, CheckpointId, DeliveryFence, Digest, DurableTimer,
     DurableTimerRecord, DurableWait, FencingEpoch, InterruptRecord, InterruptRequest, JournalEvent,
-    JournalHead, JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt,
+    JournalExpectation, JournalHead, JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt,
     OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef,
-    PendingNodeResult, PendingNodeResultHead, RunLease, RunLifecycle, RunRevision, RunTransition,
-    Superstep, Timestamp, ToolInvocation,
+    PendingNodeResult, PendingNodeResultHead, QuarantineId, RunId, RunLease, RunLifecycle,
+    RunRevision, RunTransition, Superstep, TenantId, Timestamp, ToolInvocation,
 };
 
 use crate::StoreError;
+
+/// Closed reason taxonomy for stopping all execution of one durable run.
+///
+/// The caller stores only a stable component code and an integrity digest; raw
+/// payloads, credentials, SQL, and private error text are intentionally outside
+/// this record.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum RunQuarantineCause {
+    /// Canonical bytes, digests, links, or immutable history failed validation.
+    IntegrityFailure,
+    /// A required durable schema or graph format is unsupported by this binary.
+    UnsupportedSchema,
+    /// Required integrity-bound external storage evidence is unavailable.
+    MissingArtifact,
+    /// A durable reference escaped its tenant boundary.
+    CrossTenantReference,
+    /// Authoritative history and a mutable projection disagree.
+    ProjectionMismatch,
+    /// No higher safe fencing epoch can be issued.
+    FencingEpochExhausted,
+    /// A trusted operator policy explicitly prohibited further execution.
+    OperatorPolicy,
+}
+
+impl RunQuarantineCause {
+    /// Returns the stable storage and metrics code.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::IntegrityFailure => "integrity_failure",
+            Self::UnsupportedSchema => "unsupported_schema",
+            Self::MissingArtifact => "missing_artifact",
+            Self::CrossTenantReference => "cross_tenant_reference",
+            Self::ProjectionMismatch => "projection_mismatch",
+            Self::FencingEpochExhausted => "fencing_epoch_exhausted",
+            Self::OperatorPolicy => "operator_policy",
+        }
+    }
+}
+
+/// Bounded non-secret machine code identifying the failed recovery component.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct RunQuarantineComponent(Box<str>);
+
+impl RunQuarantineComponent {
+    /// Maximum encoded component-code length.
+    pub const MAX_LEN: usize = 128;
+
+    /// Validates a lowercase ASCII component code.
+    ///
+    /// Codes use `a-z`, `0-9`, `.`, `_`, `:`, and `-`. They are suitable for
+    /// metrics and audit routing, not for user-controlled diagnostic text.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidRunQuarantineComponent`] when the code is
+    /// empty, oversized, or outside the documented grammar.
+    pub fn new(value: impl Into<String>) -> Result<Self, StoreError> {
+        let value = value.into();
+        if value.is_empty()
+            || value.len() > Self::MAX_LEN
+            || value.bytes().any(|byte| {
+                !byte.is_ascii_lowercase()
+                    && !byte.is_ascii_digit()
+                    && !matches!(byte, b'.' | b'_' | b':' | b'-')
+            })
+        {
+            return Err(StoreError::InvalidRunQuarantineComponent);
+        }
+        Ok(Self(value.into_boxed_str()))
+    }
+
+    /// Derives a stable `store.*` component from a payload-redacted corruption.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidRunQuarantineRequest`] when `error` is not
+    /// [`StoreError::CorruptData`], or
+    /// [`StoreError::InvalidRunQuarantineComponent`] if a future record category
+    /// cannot fit the bounded component grammar.
+    pub fn from_corrupt_store_error(error: &StoreError) -> Result<Self, StoreError> {
+        let record = error
+            .corrupt_record()
+            .ok_or(StoreError::InvalidRunQuarantineRequest)?;
+        let mut component = String::with_capacity("store.".len() + record.len());
+        component.push_str("store.");
+        let mut previous_separator = false;
+        for byte in record.bytes() {
+            let normalized = if byte.is_ascii_alphanumeric() {
+                byte.to_ascii_lowercase()
+            } else if matches!(byte, b'.' | b':' | b'-') {
+                byte
+            } else {
+                b'_'
+            };
+            if normalized == b'_' {
+                if previous_separator {
+                    continue;
+                }
+                previous_separator = true;
+            } else {
+                previous_separator = false;
+            }
+            component.push(char::from(normalized));
+        }
+        while component.ends_with('_') {
+            component.pop();
+        }
+        Self::new(component)
+    }
+
+    /// Returns the stable component code.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Immutable idempotency intent for quarantining one tenant-scoped run.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RunQuarantineRequest {
+    pub(crate) tenant_id: TenantId,
+    pub(crate) run_id: RunId,
+    pub(crate) quarantine_id: QuarantineId,
+    pub(crate) expectation: JournalExpectation,
+    pub(crate) cause: RunQuarantineCause,
+    pub(crate) component: RunQuarantineComponent,
+    pub(crate) evidence_digest: Digest,
+}
+
+impl RunQuarantineRequest {
+    /// Constructs an exact, tenant-bound quarantine observation intent.
+    ///
+    /// `evidence_digest` identifies a caller-retained, redacted evidence bundle;
+    /// evidence bytes are deliberately not copied into the operational store.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidRunQuarantineRequest`] when an exact journal
+    /// expectation belongs to another tenant or run.
+    pub fn new(
+        tenant_id: TenantId,
+        run_id: RunId,
+        quarantine_id: QuarantineId,
+        expectation: JournalExpectation,
+        cause: RunQuarantineCause,
+        component: RunQuarantineComponent,
+        evidence_digest: Digest,
+    ) -> Result<Self, StoreError> {
+        if expectation
+            .head()
+            .is_some_and(|head| head.tenant_id() != &tenant_id || head.run_id() != run_id)
+        {
+            return Err(StoreError::InvalidRunQuarantineRequest);
+        }
+        Ok(Self {
+            tenant_id,
+            run_id,
+            quarantine_id,
+            expectation,
+            cause,
+            component,
+            evidence_digest,
+        })
+    }
+
+    /// Returns the tenant boundary.
+    #[must_use]
+    pub const fn tenant_id(&self) -> &TenantId {
+        &self.tenant_id
+    }
+
+    /// Returns the quarantined run identity.
+    #[must_use]
+    pub const fn run_id(&self) -> RunId {
+        self.run_id
+    }
+
+    /// Returns the stable lost-acknowledgement identity.
+    #[must_use]
+    pub const fn quarantine_id(&self) -> QuarantineId {
+        self.quarantine_id
+    }
+
+    /// Returns the exact journal observation that this evidence describes.
+    #[must_use]
+    pub const fn expectation(&self) -> &JournalExpectation {
+        &self.expectation
+    }
+
+    /// Returns the closed quarantine cause.
+    #[must_use]
+    pub const fn cause(&self) -> RunQuarantineCause {
+        self.cause
+    }
+
+    /// Returns the non-secret recovery component code.
+    #[must_use]
+    pub const fn component(&self) -> &RunQuarantineComponent {
+        &self.component
+    }
+
+    /// Returns the caller-retained evidence checksum.
+    #[must_use]
+    pub const fn evidence_digest(&self) -> Digest {
+        self.evidence_digest
+    }
+}
+
+/// Fully verified immutable quarantine observation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RunQuarantine {
+    pub(crate) request: RunQuarantineRequest,
+    pub(crate) quarantined_at: Timestamp,
+    pub(crate) digest: Digest,
+}
+
+impl RunQuarantine {
+    /// Returns the immutable quarantine request.
+    #[must_use]
+    pub const fn request(&self) -> &RunQuarantineRequest {
+        &self.request
+    }
+
+    /// Returns the database-clock observation that removed the run from execution.
+    #[must_use]
+    pub const fn quarantined_at(&self) -> Timestamp {
+        self.quarantined_at
+    }
+
+    /// Returns the canonical observation checksum.
+    #[must_use]
+    pub const fn digest(&self) -> Digest {
+        self.digest
+    }
+}
+
+/// Result of atomically recording evidence and removing a run from execution.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum RunQuarantineCommitOutcome {
+    /// New immutable evidence and the run quarantine projection committed.
+    Committed(RunQuarantine),
+    /// The exact stable request had already committed.
+    Idempotent(RunQuarantine),
+}
+
+impl RunQuarantineCommitOutcome {
+    /// Returns the fully verified durable quarantine observation.
+    #[must_use]
+    pub const fn quarantine(&self) -> &RunQuarantine {
+        match self {
+            Self::Committed(quarantine) | Self::Idempotent(quarantine) => quarantine,
+        }
+    }
+}
 
 /// Result of idempotent run admission.
 #[derive(Clone, Debug)]

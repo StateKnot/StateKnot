@@ -106,9 +106,15 @@ from the repository.
   indexed due/expiry discovery and exact audit loads, quarantine evidence-free
   legacy waits, and prove migration, lost-ack, authorization, corruption,
   rollback, fencing, and 24-request convergence on PostgreSQL 16/17.
+- [x] Persist an audit-grade run quarantine outside a potentially corrupt
+  journal with stable identity, closed causes, bounded non-secret component
+  codes, evidence and record digests, exact journal-observation fencing,
+  atomic lease removal/runnable exclusion, legacy-evidence honesty, lost-ack
+  convergence, rollback/corruption rejection, and a 24-request race on
+  PostgreSQL 16/17.
 - [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
-  protocol-specific outbox adapters, quarantine, role isolation, retention,
-  failover, restore, and stale-race gates.
+  protocol-specific outbox adapters, automatic recovery-triggered quarantine,
+  role isolation, retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

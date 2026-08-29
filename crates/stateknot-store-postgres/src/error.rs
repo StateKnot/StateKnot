@@ -95,6 +95,27 @@ pub enum StoreError {
     /// The run is quarantined and cannot execute or mutate normally.
     #[error("run is quarantined")]
     RunQuarantined,
+    /// A quarantine component code violated its bounded machine grammar.
+    #[error("run quarantine component code is invalid")]
+    InvalidRunQuarantineComponent,
+    /// A quarantine request crossed its tenant/run journal observation.
+    #[error("run quarantine request is invalid")]
+    InvalidRunQuarantineRequest,
+    /// No audit-grade quarantine observation exists for the supplied run.
+    #[error("run quarantine evidence was not found in the tenant-scoped run")]
+    RunQuarantineNotFound,
+    /// A stable quarantine identity was reused for another immutable intent.
+    #[error("run quarantine identity conflicts with durable evidence")]
+    RunQuarantineIdConflict,
+    /// Another immutable quarantine observation already owns the run.
+    #[error("run already has different durable quarantine evidence")]
+    RunQuarantineConflict,
+    /// The run journal changed after the evidence observation was constructed.
+    #[error("run quarantine journal observation is stale")]
+    StaleRunQuarantineObservation,
+    /// Immutable quarantine evidence and the mutable run projection disagree.
+    #[error("run quarantine evidence conflicts with its durable projection")]
+    RunQuarantineCommitConflict,
     /// The run lifecycle is not currently runnable.
     #[error("run lifecycle is not runnable")]
     RunNotRunnable,
@@ -417,6 +438,18 @@ impl StoreError {
 
     pub(crate) const fn encoding(record: &'static str) -> Self {
         Self::Encoding { record }
+    }
+
+    /// Returns the stable, payload-free record category for an integrity error.
+    ///
+    /// Recovery code can map this value to a bounded quarantine component and
+    /// hash its separately retained evidence without exposing durable payloads.
+    #[must_use]
+    pub const fn corrupt_record(&self) -> Option<&'static str> {
+        match self {
+            Self::CorruptData { record } => Some(record),
+            _ => None,
+        }
     }
 
     /// Returns whether retrying the complete transaction with identical stable

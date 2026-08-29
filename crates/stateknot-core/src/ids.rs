@@ -430,6 +430,10 @@ define_generated_id!(
     "A tenant-scoped immutable checkpoint identifier."
 );
 define_generated_id!(
+    QuarantineId,
+    "A tenant-scoped durable run-quarantine observation identifier."
+);
+define_generated_id!(
     AttemptId,
     "A tenant-scoped node or dependency attempt identifier."
 );
@@ -518,6 +522,7 @@ mod tests {
         assert_id!(DeliveryId);
         assert_id!(DestinationId);
         assert_id!(CheckpointId);
+        assert_id!(QuarantineId);
         assert_id!(AttemptId);
     }
 

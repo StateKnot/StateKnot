@@ -839,8 +839,11 @@ due、closed schema、属性测试及 canonical fixture 均已验证。Migration
 落到 PostgreSQL：initial/successor wait-barrier 原子提交、canonical registration、
 resolution/firing、固定数据库时间的 due/expiry 索引发现、取消/失败 abandonment audit、
 v8 legacy waiting quarantine、lost-ack、fencing、corruption、rollback 与 24 请求并发收敛
-均在 PostgreSQL 16/17 验证。它仍不是完整 runtime。协议专用 outbox dispatch adapter、
-自动 runtime quarantine、跨租户公平与 recovery/dispatch loop、角色隔离、
+均在 PostgreSQL 16/17 验证。Migration 10 又增加了 journal 外的结构化 run quarantine：
+稳定 ID、封闭原因、受限非敏感 component、evidence/record digest、精确 journal observation、
+原子清除 lease/调度可见性、旧隔离不伪造证据、lost-ack、rollback、corruption 与 24 请求
+并发收敛均已在 PostgreSQL 16/17 验证。它仍不是完整 runtime。协议专用 outbox dispatch adapter、
+recovery loop 自动触发 quarantine、跨租户公平与 recovery/dispatch loop、角色隔离、
 归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证

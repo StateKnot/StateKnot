@@ -782,12 +782,13 @@ explicit unknown outcome otherwise.
 ### Current implementation evidence
 
 The unpublished `stateknot-store-postgres` crate implements the first
-run/journal/checkpoint/invocation/node-attempt/outbox/durable-wait/lease subset
-of this RFC rather than a separate transitional backend. Nine exact migrations
+run/journal/checkpoint/invocation/node-attempt/outbox/durable-wait/quarantine/lease
+subset of this RFC rather than a separate transitional backend. Ten exact migrations
 create tenant-scoped `runs`, `run_events`, immutable `run_checkpoints`,
 tool/model intent and revision ledgers, the shared `run_attempt_claims`
 registry, pending results and consumptions, transactional outbox records, and
-durable interrupt/timer evidence with database constraints; runtime connection
+durable interrupt/timer evidence and out-of-journal quarantine observations
+with database constraints; runtime connection
 refuses absent, extra, failed,
 checksum-mismatched, or incomplete migration state. Migration uses a separate
 temporary pool so DDL credentials are not retained by the runtime. Migration 4
@@ -847,7 +848,16 @@ failure from waiting records an append-only abandonment fact for every
 outstanding wait; migration 9 quarantines evidence-free legacy waiting rows
 rather than fabricating requests, deadlines, authority, or journal anchors.
 
-Sixty-five integration tests run against PostgreSQL 16 and 17.
+Migration 10 and `quarantine_run` persist one immutable observation outside a
+journal that may itself be corrupt. The request binds a stable quarantine ID,
+closed cause, bounded non-secret component code, caller-retained evidence
+digest, and exact journal observation. The transaction uses database time,
+clears active execution ownership, and sets the run quarantine projection that
+excludes scheduler discovery. Exact retries survive a lost acknowledgement;
+different evidence conflicts. Pre-v10 quarantines remain blocked but do not gain
+invented observation records.
+
+Seventy-one integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -879,8 +889,12 @@ authorization, exclusive expiry, inclusive due time, tamper rejection, and
 versioned canonical fixtures. Their PostgreSQL coverage adds exact v8 upgrade,
 indexed discovery, initial/successor checkpoint atomicity, lost-ACK convergence,
 fencing, abandonment audit, corruption and rollback rejection, plus 24-request
-single-commit convergence. This is evidence for those boundaries only.
-Automated runtime quarantine, role-separated database procedures, the 10,000
+single-commit convergence. Quarantine coverage adds v9 upgrade honesty, exact
+journal observation fencing, atomic lease removal and scheduler exclusion,
+same-ID lost-ACK recovery, corruption/rollback rejection, and 24-request
+single-record convergence. This is evidence for those boundaries only.
+Automatic recovery-loop quarantine invocation, role-separated database
+procedures, the 10,000
 stale-race trial, failover, archive, backup/restore, and soak gates below remain
 incomplete; the RFC therefore remains Draft.
 
