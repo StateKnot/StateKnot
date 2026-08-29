@@ -95,6 +95,15 @@ from the repository.
   database-time safe-after/dead-letter/expiry projection, a hard 64-attempt
   bound, bounded verified history, v7 upgrade preservation, indexed claim/reap
   paths, and corruption/rollback/24-worker tests on PostgreSQL 16/17.
+- [x] Validate integrity-bound core interrupt request/resolution and durable
+  timer registration/firing records with exact journal causality,
+  schema-pinned bounded payloads, action digests, principal/scope subset
+  authorization, exclusive interrupt expiry, inclusive timer due time, closed
+  schemas, tamper tests, property tests, and frozen cross-version wire digests.
+- [ ] Persist interrupt/timer registration and completion atomically with the
+  waiting lifecycle/checkpoint, reject generic projection bypass, expose
+  indexed due/expiry discovery, and prove migration, lost-ack, authorization,
+  corruption, rollback, and concurrency behavior on PostgreSQL 16/17.
 - [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
   protocol-specific outbox adapters, quarantine, role isolation, retention,
   failover, restore, and stale-race gates.

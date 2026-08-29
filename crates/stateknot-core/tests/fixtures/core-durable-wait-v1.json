@@ -1,0 +1,15 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-durable-wait/1.0.0",
+  "expected": {
+    "interrupt_intent": "sha256:4e9d3cff0611940e7ec178a88c8320ea1974afa4a1fcfb553b09b4ac932f17a4",
+    "interrupt_request": "sha256:966f6eb594474895349834c0321c6bd8df542ee8adb9370b4a0ec43ef79badcd",
+    "resolution_intent": "sha256:4b07adeae277fbb366abf87f5ea49aaffbf135c5a25bec1c907ea59cd688cd11",
+    "resolution": "sha256:8b6ea8495a0e4a714a30404f7fd2a446a7e62c74e7f2abf9b417c796c6527b55",
+    "interrupt_record_wire": "sha256:dd82da5c52ca4026d1a0708c076ebe90f796afc201955318b5327d49c8774011",
+    "timer_intent": "sha256:b5cb4fd0660add7f756550759d61881ce8ec2a14a7992cc73c9b58cd61552fcc",
+    "timer": "sha256:c288da382d2896a0f030e167d95ee80816fcd9b3b4ad250824cff894d620796d",
+    "firing_intent": "sha256:5e214d70abcf00b447cec21062b988cd2a24d8cf0223f2a9f0615a319fc314e3",
+    "firing": "sha256:edbf4512b52eb9db1195596d45519983e1dd5049223c1f119f0fdc4ae652c9ce",
+    "timer_record_wire": "sha256:86c967ef37335904ff36911a9c9501dc4f43e3636f0324de87dafe15dacba90d"
+  }
+}

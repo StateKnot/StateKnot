@@ -832,8 +832,12 @@ pending-result API 已关闭。Migration 7 还增加了数据库观测的 runnab
 destination snapshot、journal event 与完整 delivery set 单事务提交、durable-before-dispatch
 固定 attempt fence、明确 at-least-once/lost-ack 语义、数据库时钟 safe-after、dead-letter、
 expiry 与 64 次硬上限、有界历史和 indexed claim/reap；v7 升级、24 worker 竞争、损坏与
-回滚同样在 PostgreSQL 16/17 验证。它仍不是完整 runtime。interrupt/timer、协议专用
-outbox dispatch adapter、自动 quarantine、跨租户公平与 recovery/dispatch loop、角色隔离、
+回滚同样在 PostgreSQL 16/17 验证。Core 已进一步冻结 integrity-bound interrupt
+request/resolution 与 durable timer registration/firing：精确 journal 因果、schema-pinned
+payload、action digest、principal/scope 子集授权、exclusive interrupt expiry、inclusive timer
+due、closed schema、属性测试及 canonical fixture 均已验证。它仍不是完整 runtime。
+interrupt/timer 的 PostgreSQL 原子持久化、协议专用 outbox dispatch adapter、自动
+quarantine、跨租户公平与 recovery/dispatch loop、角色隔离、
 归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
@@ -1043,10 +1047,10 @@ GET    /health/ready
 - blob store、retention、tenant isolation 与 RLS 可选配置。
 
 进度：run/journal/checkpoint/tool/model-invocation/node-attempt/lease、run-wide physical-attempt
-registry、pending node-result、transactional outbox 与 exact-ready-set barrier 核心契约、PostgreSQL immutable
+registry、pending node-result、transactional outbox、durable interrupt/timer record 与 exact-ready-set barrier 核心契约、PostgreSQL immutable
 commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending-result barrier
 以及 tenant-level indexed runnable discovery 已完成并通过 PG16/17 验证；cross-tenant
-fairness、recovery/dispatch loop、协议 dispatch adapter，以及阶段 3 的其余运维与故障门禁
+fairness、interrupt/timer PostgreSQL 持久化、recovery/dispatch loop、协议 dispatch adapter，以及阶段 3 的其余运维与故障门禁
 未完成，不能据此提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
@@ -1137,7 +1141,7 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 3. `RFC-0003 PostgreSQL Durability, Recovery and Migration`（Draft）；
 4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
 
-RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0002/0003 的 journal、checkpoint、tool/model-invocation、pending node-result、node-attempt start/completion/history、transactional outbox、lease/fencing 值契约；`stateknot-store-postgres` 已把 run/journal/checkpoint/tool/model-invocation/node-attempt、attempt-owned pending node-result commit/load/scan/atomic barrier consumption、run-wide node/tool/model/outbox attempt claim、outbox enqueue/recovery、lease 与 migration/startup 语义落到 PostgreSQL 16/17，但协议 dispatch adapter、完整恢复调度和运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
+RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0002/0003 的 journal、checkpoint、tool/model-invocation、pending node-result、node-attempt start/completion/history、transactional outbox、durable interrupt/timer record、lease/fencing 值契约；`stateknot-store-postgres` 已把 run/journal/checkpoint/tool/model-invocation/node-attempt、attempt-owned pending node-result commit/load/scan/atomic barrier consumption、run-wide node/tool/model/outbox attempt claim、outbox enqueue/recovery、lease 与 migration/startup 语义落到 PostgreSQL 16/17，但 interrupt/timer PostgreSQL 持久化、协议 dispatch adapter、完整恢复调度和运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
 
 ## 22. 主要一手资料
 

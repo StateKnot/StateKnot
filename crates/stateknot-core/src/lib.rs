@@ -47,6 +47,7 @@ mod tool;
 mod tool_invocation;
 mod tool_runtime;
 mod version;
+mod wait;
 
 pub use accounting::{
     ByteCount, CountParseError, CurrencyCode, CurrencyCodeError, ExecutionCount, Money,
@@ -217,3 +218,9 @@ pub use tool_runtime::{
     ToolSchemaRegistry, ToolSchemaRole, ToolSchemaValidationError, ToolStopReason,
 };
 pub use version::{Version, VersionComponent, VersionError};
+pub use wait::{
+    DurableTimer, DurableTimerHead, DurableTimerRecord, DurableWait, DurableWaitError,
+    InterruptRecord, InterruptRequest, InterruptRequestHead, InterruptRequestIntent,
+    InterruptResolution, InterruptResolutionIntent, InterruptResolver, TimerFiring,
+    TimerFiringIntent, TimerRegistrationIntent, WaitRegistrationIntent,
+};

@@ -49,7 +49,9 @@ The project is in the **architecture-contract and vertical-validation phase**.
 The unpublished core crate validates model, tool, agent admission/result,
 durable run-lifecycle, canonical journal-envelope, graph-checkpoint,
 tool- and model-invocation state machines, immutable pending node results,
-physical node-attempt recovery, and fixed-fence at-least-once outbox contracts.
+physical node-attempt recovery, fixed-fence at-least-once outbox contracts, and
+integrity-bound interrupt request/resolution plus timer registration/firing
+records with exact authorization and journal causality.
 The PostgreSQL 16/17 durability slice now implements
 run admission, canonical journal append/read,
 locked lifecycle transitions, projection-bound idempotency, immutable superstep
@@ -69,9 +71,10 @@ database-enforced lease fencing.
 Complete ready-set barriers now atomically bind and consume the exact immutable
 result set while committing their event, successor checkpoint, lifecycle
 projection, and run heads; raw successor checkpoint and pending-result writes
-that bypass a durable node attempt are rejected. Protocol-specific outbox
-dispatch adapters, cross-tenant fairness, the recovery/dispatch loop,
-quarantine workflows, and a runnable agent loop have not shipped yet.
+that bypass a durable node attempt are rejected. PostgreSQL interrupt/timer
+persistence, protocol-specific outbox dispatch adapters, cross-tenant fairness,
+the recovery/dispatch loop, quarantine workflows, and a runnable agent loop
+have not shipped yet.
 
 The current milestone is to:
 

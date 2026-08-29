@@ -860,8 +860,12 @@ consumption, lost acknowledgements, stale fences, injected rollback, and
 24-writer linearity. Node-attempt coverage proves durable start and terminal
 commit idempotency, success/result/barrier binding, same-epoch retry rejection,
 higher-fence recovery, database-time delayed retry, bounded history, run-wide
-cross-kind attempt identity, and fail-closed corrupted-byte recovery. This is
-evidence for those boundaries only. Automatic quarantine, role-separated
+cross-kind attempt identity, and fail-closed corrupted-byte recovery. The core
+also freezes integrity-bound interrupt request/resolution and timer
+registration/firing records with exact journal causality, principal/scope
+authorization, exclusive expiry, inclusive due time, tamper rejection, and
+versioned canonical fixtures; their PostgreSQL transaction and index layer is
+not implemented yet. This is evidence for those boundaries only. Automatic quarantine, role-separated
 database procedures, the 10,000 stale-race trial, failover, archive,
 backup/restore, and soak gates below remain incomplete; the RFC therefore
 remains Draft.
