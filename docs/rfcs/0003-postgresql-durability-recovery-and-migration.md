@@ -142,6 +142,11 @@ The provider- and database-neutral `stateknot-core` crate now contains:
 - `ModelInvocationHistoryVerifier`: constant-state ascending validation of
   transition legality, attempt provenance, explicit delayed retry evidence,
   hash links, and complete recovery history.
+- `NodeAttemptStart`, `NodeAttemptCompletion`, and `NodeAttempt`: a durable
+  pre-execution claim with node/worker attempt separation, exact activation and
+  journal integrity, append-only success/failure completion, usage evidence,
+  explicit delayed retry, higher-epoch takeover of unfinished work, and a
+  streaming recovery-history verifier.
 
 These types validate intrinsic values and are used in model/fault tests. They do
 not replace database authorization or atomicity.
@@ -474,10 +479,17 @@ lineage semantics are defined by
 [RFC-0002](0002-deterministic-graph-and-scheduler.md). The database must not
 invent ordering from physical attempt or completion time.
 
-`node_attempts` bind logical node/superstep identity, physical attempt,
-deterministic input hash, status, pending/committed update, failure, usage, and
-timestamps. Committed external model/tool results are reused after recovery;
-they are not requested again merely to rebuild a process-local transcript.
+`node_attempts` bind logical node/superstep identity, a run-wide unique physical
+node attempt, its distinct authorizing worker fence, deterministic input hash,
+start event, and start time before user code executes. An append-only completion
+binds exactly one success or failure plus usage and its later event/time.
+Success references the pending result committed in that same transaction;
+failure retains public-safe evidence and explicit recovery advice. A missing
+completion is recoverable only after the worker fence is superseded. Committed
+external model/tool results are reused after recovery; they are not requested
+again merely to rebuild a process-local transcript. These provider-neutral
+types and frozen wire fixtures are implemented; the PostgreSQL tables and
+transactions remain the next durability slice.
 
 ### Invocation ledger, interrupts, timers, and outbox
 

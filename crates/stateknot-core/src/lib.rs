@@ -36,6 +36,7 @@ mod model_invocation;
 mod model_request;
 mod model_response;
 mod model_runtime;
+mod node_attempt;
 mod node_result;
 mod run;
 mod schema;
@@ -159,6 +160,11 @@ pub use model_runtime::{
     BoxFuture, BoxStream, CancellationObserver, CancellationSignal, Model, ModelContext,
     ModelContextError, ModelError, ModelErrorPhase, ModelErrorProvenance,
     ModelErrorValidationError, ModelStopReason,
+};
+pub use node_attempt::{
+    NodeAttempt, NodeAttemptCompletion, NodeAttemptError, NodeAttemptHistoryError,
+    NodeAttemptHistoryVerifier, NodeAttemptIntegrityError, NodeAttemptOutcome, NodeAttemptStart,
+    NodeAttemptStartHead, NodeAttemptStatus,
 };
 pub use node_result::{
     NodeControl, NodeControlKind, NodeInvocationBinding, NodeInvocationBindingError,

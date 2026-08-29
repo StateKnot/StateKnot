@@ -60,6 +60,11 @@ from the repository.
   closed continue/route/wait/terminal control, committed activation-bound
   tool/model references, causal journal anchors, semantic idempotency, closed
   schemas, tamper tests, and a frozen canonical-wire digest fixture.
+- [x] Validate durable core node-attempt starts and append-only completions with
+  separate node/worker physical identity, exact journal causality, atomic
+  pending-result success binding, public-safe failures, explicit delayed retry,
+  higher-epoch recovery of unfinished work, closed schemas, tamper tests, and
+  frozen success/failure wire fixtures.
 - [x] Persist PostgreSQL pending node results with an immutable semantic key,
   exact worker fence and journal anchor, activation-bound committed tool/model
   foreign keys, full fail-closed recovery, lease-takeover idempotency,
@@ -74,7 +79,7 @@ from the repository.
   rows, projection-bound idempotency, per-statement worker fencing, rollback
   injection, unsettled-invocation guards, and 24-writer linear-chain tests on
   PostgreSQL 16/17; reject every raw successor-checkpoint write.
-- [ ] Complete the node-attempt ledger, outbox, recovery scheduling,
+- [ ] Persist the node-attempt ledger, then complete outbox, recovery scheduling,
   quarantine, role isolation, retention, failover, restore, and stale-race
   gates.
 - [ ] Compile the four public contract examples against the proposed APIs.

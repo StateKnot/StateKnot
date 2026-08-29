@@ -1,0 +1,11 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-node-attempt/1.0.0",
+  "expected": {
+    "activation": "sha256:eb3abf034fbf440d19fc92f6c0ec3a0673c876e30da2172437b3e75867a56170",
+    "start": "sha256:4d505ef56800b60e297dd33bb7e8becb587a0cb154b8bf898b8f47a0a2741a4a",
+    "success_completion": "sha256:3b8ffbfa4b094067937f7d9414eb6d8f9f6eacbc93dde55eac3822169f29aee5",
+    "success_wire": "sha256:419378abd1b017fd30346506387397a62b0749a1a98bce6f439ce0e94d3e568f",
+    "failure_completion": "sha256:c1982c31de2bcf168d4a288e2811dd0b6e416d0ad4da20d12d52c45ee90ff9cb",
+    "failure_wire": "sha256:1059cd73eb3a29c91a75ea28e2ccf95f31d03d4db03645e6abf3082ba768bbe6"
+  }
+}

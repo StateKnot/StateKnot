@@ -196,6 +196,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 - Integrity-bound checkpoint-barrier inputs that require exact root ready-set
   coverage, canonical result ordering, one immutable base checkpoint, an exact
   successor write, closed schemas, and frozen intent/wire digest fixtures.
+- Durable core node-attempt starts and append-only completions with a physical
+  node `AttemptId` distinct from the authorizing worker `RunFence`, exact
+  activation/start/completion journal binding, atomic success references,
+  public-safe failure causation, explicit delayed retry, higher-epoch crash
+  takeover, absorbing success/non-retryable failure, redacted diagnostics,
+  closed schemas, and frozen success/failure wire fixtures. PostgreSQL
+  persistence for this contract remains pending.
 - PostgreSQL migration 5 and atomic pending node-result commit/load APIs with
   immutable canonical records, exact base-checkpoint and worker-event anchors,
   separate tool/model composite foreign keys for activation-bound committed

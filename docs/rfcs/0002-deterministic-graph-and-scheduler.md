@@ -222,6 +222,19 @@ Bindings are bounded, duplicate-free, and canonically ordered by invocation
 kind and logical invocation ID. The pending result's journal anchor must
 strictly follow the base checkpoint and every bound external result.
 
+The implementation-backed node-attempt contract makes execution ownership
+durable before user node code runs. `NodeAttemptStart` binds the logical
+activation to a fresh physical node `AttemptId`, the distinct worker
+`RunFence`, and an exact journal anchor. Its optional append-only completion is
+either a success referencing the pending result committed by the same worker
+event or a public-safe failure naming that event as its direct cause. Automatic
+retry requires explicit `SafeAfter` advice and a durably late enough successor
+start. A start left incomplete by a crash may be replaced only under a higher
+worker fencing epoch; success and non-retryable failure are absorbing. The core
+history verifier enforces these rules independently of completion order, while
+the PostgreSQL transaction remains responsible for run-wide attempt uniqueness
+and exact row-level fencing.
+
 ## Parallel execution and barrier commit
 
 All nodes active in one superstep read the same checkpoint. Completion order is
