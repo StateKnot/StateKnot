@@ -35,6 +35,7 @@ mod model_invocation;
 mod model_request;
 mod model_response;
 mod model_runtime;
+mod node_result;
 mod run;
 mod schema;
 mod scope;
@@ -153,6 +154,14 @@ pub use model_runtime::{
     BoxFuture, BoxStream, CancellationObserver, CancellationSignal, Model, ModelContext,
     ModelContextError, ModelError, ModelErrorPhase, ModelErrorProvenance,
     ModelErrorValidationError, ModelStopReason,
+};
+pub use node_result::{
+    NodeControl, NodeControlKind, NodeInvocationBinding, NodeInvocationBindingError,
+    NodeInvocationBindingKind, NodeInvocationBindings, NodeInvocationBindingsError,
+    NodeStateChange, NodeStateUpdate, NodeStateUpdateError, NodeTerminalOutput,
+    NodeTerminalOutputError, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
+    PendingNodeResultIntegrityError, PendingNodeResultIntent, PendingNodeResultIntentError,
+    RouteId, RouteIdError,
 };
 pub use run::{
     RunCancellation, RunCancellationError, RunCancellationRequest, RunFailure, RunFailureError,

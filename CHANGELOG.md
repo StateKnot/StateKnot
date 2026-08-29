@@ -187,6 +187,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   and corruption rejection, delayed-retry and 24-writer tests, plus migration 4
   with a run-wide tool/model attempt registry, v3 tool-attempt backfill, and
   exact kind/invocation/revision foreign keys verified on PostgreSQL 16/17.
+- Immutable pending node-result contracts with exact logical activations,
+  schema-pinned bounded updates and terminal output, stable conditional route
+  identities, non-empty durable waits, canonical committed tool/model bindings,
+  semantic idempotency separated from physical worker fencing, strict journal
+  causality, redacted diagnostics, closed schemas, adversarial tests, and a
+  versioned canonical-wire digest fixture.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

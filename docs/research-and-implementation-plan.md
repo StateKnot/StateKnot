@@ -1030,9 +1030,9 @@ GET    /health/ready
 - testcontainers、kill/restart、网络分区和数据库 failover 测试；
 - blob store、retention、tenant isolation 与 RLS 可选配置。
 
-进度：run/journal/checkpoint/tool/model-invocation/lease、run-wide physical-attempt registry 与
-migration/startup 的首个生产形态切片已完成并进入主干验证；pending writes、node-attempt
-ledger、recovery scheduler、outbox，
+进度：run/journal/checkpoint/tool/model-invocation/lease、run-wide physical-attempt registry、
+pending node-result 核心契约与 migration/startup 的首个生产形态切片已完成并进入主干验证；
+PostgreSQL pending-result/barrier、node-attempt ledger、recovery scheduler、outbox，
 以及阶段 3 的其余运维与故障门禁未完成，不能据此提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）

@@ -1,0 +1,13 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-node-result/1.0.0",
+  "route_ids": {
+    "valid": ["captured", "retry-path", "route.v2", "A_1"],
+    "invalid": ["", ".", "..", "-route", "route/path", "route space", null]
+  },
+  "expected": {
+    "update": "sha256:4f345f32d6bcd436b67d894d9b6841463b1a8e94ccbe3b09525b70b05fa44889",
+    "intent": "sha256:adc2249c0b1cfe20ee52bba7f92ab4867f3ffb88a46869a6269af85991ce2a86",
+    "record": "sha256:d465c2f8fb4b15d490e54793cfb828df507e5643924d291cf4c5df336d24a468",
+    "canonical_wire": "sha256:aaa824c9f7e709779a7c6a9c1ecfa291083ac4b75c2dbe4758e82e97633a4aac"
+  }
+}

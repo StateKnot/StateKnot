@@ -55,9 +55,14 @@ from the repository.
   rollback/corruption rejection, checkpoint guards, 24-writer races, and a
   run-wide tool/model `AttemptId` registry whose v3 backfill and exact foreign
   keys are verified on PostgreSQL 16/17.
-- [ ] Complete RFC-0003 pending node results, the PostgreSQL node-attempt
-  ledger, outbox, recovery scheduling, quarantine, role isolation, retention,
-  failover, restore, and stale-race gates.
+- [x] Validate immutable core pending node results with exact activation and
+  worker-fence provenance, bounded schema-pinned update/terminal payloads,
+  closed continue/route/wait/terminal control, committed activation-bound
+  tool/model references, causal journal anchors, semantic idempotency, closed
+  schemas, tamper tests, and a frozen canonical-wire digest fixture.
+- [ ] Complete PostgreSQL pending node results and atomic barrier consumption,
+  the node-attempt ledger, outbox, recovery scheduling, quarantine, role
+  isolation, retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

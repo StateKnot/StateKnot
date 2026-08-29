@@ -207,6 +207,21 @@ tests compile together. The observable contract is fixed:
 - cancellation or dropped futures do not erase already observed external
   effects, which remain ledger evidence.
 
+The implementation-backed pending-result wire makes these outcomes closed. A
+state contribution is either `unchanged` or one schema-pinned, RFC 8785
+checksummed bounded JSON update. Control is exactly one of `continue`, one
+declared `RouteId`, a non-empty `RunWaits` batch, or schema-pinned terminal
+output. `RouteId` selects a conditional branch in the pinned graph definition;
+it is not a caller-selected destination node, so dynamic graph mutation remains
+impossible.
+
+Every external-result binding contains the exact committed tool/model revision
+head and the owning `NodeActivation`. The storage adapter reloads the complete
+invocation revision and proves that activation before accepting a binding.
+Bindings are bounded, duplicate-free, and canonically ordered by invocation
+kind and logical invocation ID. The pending result's journal anchor must
+strictly follow the base checkpoint and every bound external result.
+
 ## Parallel execution and barrier commit
 
 All nodes active in one superstep read the same checkpoint. Completion order is
@@ -218,6 +233,13 @@ idempotent. Reusing it with a different input digest, update digest, route,
 wait, terminal outcome, or external-result binding is a conflict and
 quarantines the run unless an operator can prove storage corruption did not
 occur.
+
+The semantic intent digest covers the exact activation, state contribution,
+control outcome, and external bindings, but deliberately excludes physical
+ownership. The immutable record separately binds the winning `RunFence` and
+journal head. A lost acknowledgement can therefore compare semantic identity
+without making a replacement worker's attempt/epoch part of graph semantics,
+while the stored winner retains complete stale-writer provenance.
 
 When all required activations for the superstep have committed a result, one
 barrier transaction:

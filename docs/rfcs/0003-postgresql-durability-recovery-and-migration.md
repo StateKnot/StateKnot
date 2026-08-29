@@ -446,6 +446,17 @@ node results are separate immutable rows anchored to the base checkpoint; a
 successful barrier consumes them into the next checkpoint. A checkpoint is
 usable only if its journal head is an ancestor of the current verified head.
 
+The core `PendingNodeResultIntent` is the logical idempotency value. It binds
+the base checkpoint, graph namespace, node ID, activation input digest, bounded
+schema-pinned update, closed route/wait/terminal/continue outcome, and a
+canonical set of exact committed model/tool revision heads. The immutable
+`PendingNodeResult` additionally binds the winning worker attempt/epoch and its
+exact journal head. SQL must prove the base checkpoint and every invocation
+revision through composite tenant/run foreign keys, verify the worker source
+matches the stored fence, and reject a result anchor that does not follow all
+dependencies. Consumption metadata may advance once to one exact successor
+checkpoint, but no integrity-bearing result field is updated.
+
 The exact barrier, logical activation, stable reduction, and checkpoint
 lineage semantics are defined by
 [RFC-0002](0002-deterministic-graph-and-scheduler.md). The database must not
