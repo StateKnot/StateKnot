@@ -15,6 +15,7 @@ mod agent;
 mod agent_runtime;
 mod artifact;
 mod budget;
+mod canonical;
 mod capability;
 mod content;
 mod decimal;
@@ -23,7 +24,9 @@ mod extension;
 mod failure;
 mod identity;
 mod ids;
+mod journal;
 mod json;
+mod lease;
 mod message;
 mod model;
 mod model_event;
@@ -64,6 +67,7 @@ pub use budget::{
     BudgetUsage, BudgetUsageBuilder, BudgetUsageError, CostCollectionError, CostLimits, KnownCosts,
     MAX_BUDGET_LAYERS, MAX_COST_CURRENCIES, ResolvedBudget,
 };
+pub use canonical::{CanonicalJson, CanonicalJsonError};
 pub use capability::{
     CapabilityDescription, CapabilityDescriptionError, CapabilityIdentity, CapabilityKind,
     CapabilityLifecycle, CapabilityLifecycleError, CapabilityLifecycleState, CapabilityMetadata,
@@ -88,7 +92,17 @@ pub use ids::{
     ArtifactId, AttemptId, EventId, FailureId, GeneratedIdError, InterruptId, InvocationId,
     MessageId, RunId, TenantId, TenantIdError, ThreadId, TimerId,
 };
+pub use journal::{
+    JournalAppend, JournalAppendError, JournalAuthorityError, JournalChainError,
+    JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent, JournalEventKind,
+    JournalEventKindError, JournalEventSource, JournalExpectation, JournalHead,
+    JournalIntegrityError, JournalIntentError, JournalPayload, JournalPayloadError,
+    JournalSequence, JournalSequenceError,
+};
 pub use json::{BoundedJson, BoundedJsonError, JsonLimit, JsonLimits, JsonLimitsError, JsonStats};
+pub use lease::{
+    FencingEpoch, FencingEpochError, RunFence, RunLease, RunLeaseError, RunLeaseValidationError,
+};
 pub use message::{
     Instruction, InstructionContent, InstructionError, InstructionIdentity, InstructionName,
     InstructionNameError, InstructionProvenance, Message, MessageError, MessageParts,

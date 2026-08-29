@@ -1585,8 +1585,9 @@ defined string or integer forms. Hashes include the schema identifier and kind.
 The sorted object representation inside `BoundedJson` makes ordinary output
 deterministic under StateKnot's dependency configuration, but MUST NOT be used
 as RFC 8785 output or as approval, signature, digest, or idempotency bytes. The
-canonicalization layer remains an explicit, separately tested operation after
-schema validation.
+separately tested `CanonicalJson` layer now performs that explicit operation
+after schema validation, rejects integers outside the interoperable I-JSON safe
+range, and publishes RFC vectors without changing `BoundedJson` semantics.
 
 Ordinary API JSON may be pretty-printed or reordered, but approval action
 hashes, idempotency input hashes, schema digests, event checksums, and fixture
@@ -1599,7 +1600,9 @@ versions fail explicitly and never fall back to best-effort decoding.
 
 ## Persistence and migration
 
-This RFC defines serializable values but not table layout. RFC-0003 must ensure:
+This RFC defines serializable values but not table layout. Draft
+[RFC-0003](0003-postgresql-durability-recovery-and-migration.md) specifies that the
+store must ensure:
 
 - every persisted domain payload carries its schema identifier and checksum;
 - durable data uses explicit conversion records rather than serializing arbitrary

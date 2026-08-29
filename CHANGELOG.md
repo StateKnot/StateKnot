@@ -132,6 +132,18 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   two-phase cancellation precedence, immutable terminal usage/failure records,
   closed schemas, randomized model testing, and an independent versioned wire
   fixture. Worker attempts, leases, and fencing remain separate runtime state.
+- Explicit RFC 8785 canonical JSON with fail-closed I-JSON integer validation,
+  plus PostgreSQL-compatible journal sequences and fencing epochs, run-scoped
+  attempt tokens, exclusive-expiry lease renewal/supersession, schema-bound
+  canonical event payloads, stable EventId append intents, exact-head optimistic
+  requests, payload/intent/event digest layers, streaming hash-chain validation,
+  closed schemas, randomized state tests, and an independent versioned wire
+  fixture. The database-neutral types do not claim authority without the
+  conditional PostgreSQL transaction specified by draft RFC-0003.
+- Draft RFC-0003 defining the PostgreSQL append transaction, idempotency order,
+  database-clock lease fencing, record model, recovery/quarantine, retention,
+  migration, backup/restore, security, and release evidence required before the
+  durability layer can be called production-ready.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

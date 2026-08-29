@@ -24,6 +24,9 @@ from the repository.
 - [x] Validate the first protocol-neutral run lifecycle, interrupt/timer wait,
   cancellation-race, terminal-outcome, schema, property, and wire contracts in
   the unpublished `stateknot-core` crate.
+- [x] Validate RFC 8785 payload bytes, journal append identity/head/hash-chain,
+  lease renewal, fencing epoch, stale-attempt, schema, property, and wire
+  contracts in the unpublished `stateknot-core` crate.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

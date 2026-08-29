@@ -1,0 +1,272 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-journal/1.0.0",
+  "fencing_epochs": {
+    "valid": ["1", "2", "9223372036854775807"],
+    "invalid": ["0", "01", "9223372036854775808", 1, null]
+  },
+  "journal_sequences": {
+    "valid": ["1", "2", "9223372036854775807"],
+    "invalid": ["0", "01", "9223372036854775808", 1, null]
+  },
+  "event_kinds": {
+    "valid": ["run-admitted", "run-transition-applied", "tool2-result"],
+    "invalid": ["", "Run-Admitted", "9event", "run--admitted", "run-admitted-", "run_admitted", null]
+  },
+  "schema_reference": {
+    "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+    "version": "1.0.0",
+    "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+  },
+  "fence": {
+    "tenant_id": "tenant-production",
+    "run_id": "01912345-6789-7abc-8def-0123456789ae",
+    "attempt_id": "01912345-6789-7abc-8def-0123456789b1",
+    "epoch": "1"
+  },
+  "lease": {
+    "fence": {
+      "tenant_id": "tenant-production",
+      "run_id": "01912345-6789-7abc-8def-0123456789ae",
+      "attempt_id": "01912345-6789-7abc-8def-0123456789b1",
+      "epoch": "1"
+    },
+    "acquired_at": "2030-01-01T00:00:01.000000Z",
+    "renewed_at": "2030-01-01T00:00:01.000000Z",
+    "expires_at": "2030-01-01T00:00:10.000000Z"
+  },
+  "payloads": [
+    {
+      "schema": {
+        "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+        "version": "1.0.0",
+        "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+      },
+      "kind": "run-transition-applied",
+      "data": {
+        "revision": "0",
+        "state": "pending"
+      }
+    },
+    {
+      "schema": {
+        "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+        "version": "1.0.0",
+        "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+      },
+      "kind": "run-transition-applied",
+      "data": {
+        "revision": "1",
+        "state": "active"
+      }
+    }
+  ],
+  "canonical_payloads": [
+    {
+      "text": "{\"data\":{\"revision\":\"0\",\"state\":\"pending\"},\"kind\":\"run-transition-applied\",\"schema\":{\"digest\":\"sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66\",\"id\":\"https://stateknot.github.io/schema/run-event/1.0.0\",\"version\":\"1.0.0\"}}",
+      "digest": "sha256:673b84119beac060e40f7fea2a87db465307a441f3270d5ee65a7082395a5c99"
+    },
+    {
+      "text": "{\"data\":{\"revision\":\"1\",\"state\":\"active\"},\"kind\":\"run-transition-applied\",\"schema\":{\"digest\":\"sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66\",\"id\":\"https://stateknot.github.io/schema/run-event/1.0.0\",\"version\":\"1.0.0\"}}",
+      "digest": "sha256:ae9ca397ae79b1724b2212c26e33bfe9578cdcce10590348231ce400c300b4f6"
+    }
+  ],
+  "intents": [
+    {
+      "tenant_id": "tenant-production",
+      "run_id": "01912345-6789-7abc-8def-0123456789ae",
+      "event_id": "01912345-6789-7abc-8def-0123456789c1",
+      "source": {
+        "kind": "control_plane"
+      },
+      "payload": {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+        },
+        "kind": "run-transition-applied",
+        "data": {
+          "revision": "0",
+          "state": "pending"
+        }
+      },
+      "intent_digest": "sha256:848bff53d37f805b1fa4515f4eba189ed0440936970d40758fe27f0ae4f571a2"
+    },
+    {
+      "tenant_id": "tenant-production",
+      "run_id": "01912345-6789-7abc-8def-0123456789ae",
+      "event_id": "01912345-6789-7abc-8def-0123456789c2",
+      "source": {
+        "kind": "worker",
+        "fence": {
+          "tenant_id": "tenant-production",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789b1",
+          "epoch": "1"
+        }
+      },
+      "payload": {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+        },
+        "kind": "run-transition-applied",
+        "data": {
+          "revision": "1",
+          "state": "active"
+        }
+      },
+      "intent_digest": "sha256:dcaca5cedada6054d83ad2b618db1504d282c5086f8d7e5490f1a1c9773f16b9"
+    }
+  ],
+  "expectations": [
+    {
+      "kind": "empty"
+    },
+    {
+      "kind": "exact",
+      "head": {
+        "tenant_id": "tenant-production",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "sequence": "1",
+        "event_id": "01912345-6789-7abc-8def-0123456789c1",
+        "recorded_at": "2030-01-01T00:00:01.000000Z",
+        "digest": "sha256:fe8b10e3f359c7b8e7648ef9008e35c9c90802edd200e3141f9356c0c4af998a"
+      }
+    }
+  ],
+  "appends": [
+    {
+      "expectation": {
+        "kind": "empty"
+      },
+      "intent": {
+        "tenant_id": "tenant-production",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "event_id": "01912345-6789-7abc-8def-0123456789c1",
+        "source": {
+          "kind": "control_plane"
+        },
+        "payload": {
+          "schema": {
+            "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+            "version": "1.0.0",
+            "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+          },
+          "kind": "run-transition-applied",
+          "data": {
+            "revision": "0",
+            "state": "pending"
+          }
+        },
+        "intent_digest": "sha256:848bff53d37f805b1fa4515f4eba189ed0440936970d40758fe27f0ae4f571a2"
+      }
+    },
+    {
+      "expectation": {
+        "kind": "exact",
+        "head": {
+          "tenant_id": "tenant-production",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "sequence": "1",
+          "event_id": "01912345-6789-7abc-8def-0123456789c1",
+          "recorded_at": "2030-01-01T00:00:01.000000Z",
+          "digest": "sha256:fe8b10e3f359c7b8e7648ef9008e35c9c90802edd200e3141f9356c0c4af998a"
+        }
+      },
+      "intent": {
+        "tenant_id": "tenant-production",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "event_id": "01912345-6789-7abc-8def-0123456789c2",
+        "source": {
+          "kind": "worker",
+          "fence": {
+            "tenant_id": "tenant-production",
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "attempt_id": "01912345-6789-7abc-8def-0123456789b1",
+            "epoch": "1"
+          }
+        },
+        "payload": {
+          "schema": {
+            "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+            "version": "1.0.0",
+            "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+          },
+          "kind": "run-transition-applied",
+          "data": {
+            "revision": "1",
+            "state": "active"
+          }
+        },
+        "intent_digest": "sha256:dcaca5cedada6054d83ad2b618db1504d282c5086f8d7e5490f1a1c9773f16b9"
+      }
+    }
+  ],
+  "events": [
+    {
+      "tenant_id": "tenant-production",
+      "run_id": "01912345-6789-7abc-8def-0123456789ae",
+      "sequence": "1",
+      "event_id": "01912345-6789-7abc-8def-0123456789c1",
+      "recorded_at": "2030-01-01T00:00:01.000000Z",
+      "source": {
+        "kind": "control_plane"
+      },
+      "payload": {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+        },
+        "kind": "run-transition-applied",
+        "data": {
+          "revision": "0",
+          "state": "pending"
+        }
+      },
+      "payload_digest": "sha256:673b84119beac060e40f7fea2a87db465307a441f3270d5ee65a7082395a5c99",
+      "intent_digest": "sha256:848bff53d37f805b1fa4515f4eba189ed0440936970d40758fe27f0ae4f571a2",
+      "digest": "sha256:fe8b10e3f359c7b8e7648ef9008e35c9c90802edd200e3141f9356c0c4af998a"
+    },
+    {
+      "tenant_id": "tenant-production",
+      "run_id": "01912345-6789-7abc-8def-0123456789ae",
+      "sequence": "2",
+      "event_id": "01912345-6789-7abc-8def-0123456789c2",
+      "recorded_at": "2030-01-01T00:00:02.000000Z",
+      "source": {
+        "kind": "worker",
+        "fence": {
+          "tenant_id": "tenant-production",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "attempt_id": "01912345-6789-7abc-8def-0123456789b1",
+          "epoch": "1"
+        }
+      },
+      "payload": {
+        "schema": {
+          "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66"
+        },
+        "kind": "run-transition-applied",
+        "data": {
+          "revision": "1",
+          "state": "active"
+        }
+      },
+      "payload_digest": "sha256:ae9ca397ae79b1724b2212c26e33bfe9578cdcce10590348231ce400c300b4f6",
+      "intent_digest": "sha256:dcaca5cedada6054d83ad2b618db1504d282c5086f8d7e5490f1a1c9773f16b9",
+      "previous_digest": "sha256:fe8b10e3f359c7b8e7648ef9008e35c9c90802edd200e3141f9356c0c4af998a",
+      "digest": "sha256:63b44ae6a8efed4b2322ba37ebe2998139c43129e1e7fce040ab15678da9e878"
+    }
+  ],
+  "raw_invalid_payloads": [
+    "{\"schema\":{\"id\":\"https://stateknot.github.io/schema/run-event/1.0.0\",\"version\":\"1.0.0\",\"digest\":\"sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66\"},\"kind\":\"run-transition-applied\",\"data\":{},\"data\":{}}"
+  ],
+  "raw_invalid_events": [
+    "{\"tenant_id\":\"tenant-production\",\"tenant_id\":\"tenant-production\",\"run_id\":\"01912345-6789-7abc-8def-0123456789ae\",\"sequence\":\"1\",\"event_id\":\"01912345-6789-7abc-8def-0123456789c1\",\"recorded_at\":\"2030-01-01T00:00:01.000000Z\",\"source\":{\"kind\":\"control_plane\"},\"payload\":{\"schema\":{\"id\":\"https://stateknot.github.io/schema/run-event/1.0.0\",\"version\":\"1.0.0\",\"digest\":\"sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66\"},\"kind\":\"run-transition-applied\",\"data\":{\"revision\":\"0\",\"state\":\"pending\"}},\"payload_digest\":\"sha256:673b84119beac060e40f7fea2a87db465307a441f3270d5ee65a7082395a5c99\",\"intent_digest\":\"sha256:848bff53d37f805b1fa4515f4eba189ed0440936970d40758fe27f0ae4f571a2\",\"digest\":\"sha256:fe8b10e3f359c7b8e7648ef9008e35c9c90802edd200e3141f9356c0c4af998a\"}"
+  ]
+}

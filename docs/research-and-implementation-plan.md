@@ -747,9 +747,12 @@ expiry 等值视为过期，timer 早到一律拒绝。
 作为独立 ledger evidence 保存，绝不能伪造“副作用未发生”。
 
 `RunLifecycle` 只负责业务状态。`AttemptId`、journal sequence、lease owner/expiry 与 fencing
-epoch 属于 runtime/store；worker 崩溃或换租约不制造业务状态转换。interrupt 的 payload、
-action digest、required principal/scope、resolution 和 resolver 也是独立持久实体，必须与
-对应 transition 在 expected revision + fencing 条件下单事务提交。
+epoch 仍是独立的 runtime/store 状态；worker 崩溃或换租约不制造业务状态转换。core 已实现
+`RunFence`/`RunLease` 的纯值与状态契约，但只有
+[RFC-0003](rfcs/0003-postgresql-durability-recovery-and-migration.md) 规定的数据库行锁、数据库
+时钟和同事务条件写才具有权威性。interrupt 的 payload、action digest、required
+principal/scope、resolution 和 resolver 也是独立持久实体，必须与对应 transition 在
+expected revision + fencing 条件下单事务提交。
 
 [A2A 1.0 TaskState](https://a2a-protocol.org/v1.0.0/specification/#413-taskstate)
 只在 adapter 投影：`SUBMITTED/WORKING` 对应内部 pending/active/scheduler evidence，
@@ -775,12 +778,18 @@ LLM 与外部工具天然不确定，不能假设“重新执行得到同样结�
 4. 恢复时重用已提交结果，只调度尚未完成的节点；
 5. event journal 是流式恢复与审计的事实源。
 
-### 10.2 推荐 PostgreSQL 实体
+已实现的 journal core 使用稳定 `EventId` 做幂等身份、empty/exact `JournalHead` 做乐观
+追加条件，以 RFC 8785 `{schema, kind, data}` bytes 计算 payload digest，再以 domain-separated
+intent/event digest 绑定 tenant、run、source/fence、sequence、database observation 与前一条
+event digest。`JournalChainVerifier` 可从空历史或可信 checkpoint/archive head 流式验证 suffix；
+hash chain 用于发现损坏、缺失和乱序，不冒充能抵抗数据库管理员的签名证明。
+
+### 10.2 PostgreSQL 实体基线
 
 | 表 | 关键内容 |
 |---|---|
 | `runs` | tenant/run/thread、graph+version、status、budget、deadline、lease owner/epoch/expiry、输入输出摘要 |
-| `run_events` | run 内单调 `seq`、event type、payload、schema version、checksum、created_at |
+| `run_events` | run 内连续 `seq`、stable event ID、source/fence、RFC 8785 payload bytes、schema pin、payload/intent/previous/event digests、database recorded time |
 | `checkpoints` | superstep、parent、state blob/ref、state schema、graph version、hash |
 | `node_attempts` | node、attempt、input hash、status、pending/committed update、错误与时间 |
 | `tool_invocations` | invocation/idempotency key、risk class、prepared/executing/committed/unknown、外部引用和结果 |
@@ -789,6 +798,9 @@ LLM 与外部工具天然不确定，不能假设“重新执行得到同样结�
 | `artifacts` | metadata、BlobRef、hash、provenance、retention 与 security label |
 
 所有主键至少包含 `tenant_id`。大模型内容、图片和文件不直接无限写入 JSONB；超过阈值转到 S3-compatible blob store，并做 hash、MIME、大小和访问策略校验。
+具体 append 幂等顺序、`SELECT ... FOR UPDATE`、lease claim/renew/release、corruption quarantine、
+archive anchor、expand/contract migration 与 backup/restore 门禁以
+[RFC-0003](rfcs/0003-postgresql-durability-recovery-and-migration.md) 为准。
 
 ### 10.3 可以承诺的执行保证
 
@@ -1081,10 +1093,10 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 
 1. `RFC-0001 Core Domain and Capability Model`（Draft）；
 2. `RFC-0002 Graph Execution and Deterministic Reduction`；
-3. `RFC-0003 PostgreSQL Journal, Checkpoint and Recovery`；
+3. `RFC-0003 PostgreSQL Durability, Recovery and Migration`（Draft）；
 4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
 
-RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的类型契约；RFC 评审期间的实现不得作为稳定 API 或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
+RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0003 的 journal/lease/fencing 值契约；RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
 
 ## 22. 主要一手资料
 
@@ -1106,6 +1118,7 @@ RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵
 - [AGNTCY](https://github.com/agntcy)、[SLIM](https://github.com/agntcy/slim)、[AP2](https://ap2-protocol.org/ap2/specification/)
 - [Restate durable agents](https://docs.restate.dev/ai/patterns/durable-agents) 与 [Restate Rust SDK](https://github.com/restatedev/sdk-rust)
 - [Restate journal/epoch architecture](https://docs.restate.dev/references/architecture) 与 [Temporal workflow history events](https://github.com/temporalio/documentation/blob/main/docs/references/events.mdx)
+- [PostgreSQL explicit locking](https://www.postgresql.org/docs/current/explicit-locking.html) 与 [RFC 8785 JSON Canonicalization Scheme](https://www.rfc-editor.org/rfc/rfc8785)
 - [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai)
 - [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - [NIST AI RMF Generative AI Profile](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence)
