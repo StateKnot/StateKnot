@@ -782,11 +782,13 @@ explicit unknown outcome otherwise.
 ### Current implementation evidence
 
 The unpublished `stateknot-store-postgres` crate implements the first
-run/journal/checkpoint/tool-and-model-invocation/lease subset of this RFC rather
-than a separate transitional backend. Five exact migrations create
-tenant-scoped `runs`, `run_events`, immutable `run_checkpoints`, tool/model
-intent and revision ledgers, and the shared `run_attempt_claims` registry with
-database constraints; runtime connection refuses absent, extra, failed,
+run/journal/checkpoint/invocation/node-attempt/outbox/durable-wait/lease subset
+of this RFC rather than a separate transitional backend. Nine exact migrations
+create tenant-scoped `runs`, `run_events`, immutable `run_checkpoints`,
+tool/model intent and revision ledgers, the shared `run_attempt_claims`
+registry, pending results and consumptions, transactional outbox records, and
+durable interrupt/timer evidence with database constraints; runtime connection
+refuses absent, extra, failed,
 checksum-mismatched, or incomplete migration state. Migration uses a separate
 temporary pool so DDL credentials are not retained by the runtime. Migration 4
 backfills every v3 tool attempt and installs exact claim foreign keys before it
@@ -835,7 +837,17 @@ responses/errors may finish after waiting or cancellation intent, but new
 preparation and dispatch require an active run. Model and tool claims cannot
 cross even when invocation identifiers collide.
 
-Forty-six integration tests run against PostgreSQL 16 and 17.
+Durable-wait commits persist the canonical interrupt/timer batch with the
+waiting lifecycle and either an initial checkpoint or a complete successor
+result barrier. Database-clock terminal APIs enforce authorization, exclusive
+interrupt expiry, and inclusive timer due time while atomically advancing the
+lifecycle and run head. Fixed-cutoff, tenant-scoped partial-index pages discover
+due timers and expired interrupts without per-run polling. Cancellation or
+failure from waiting records an append-only abandonment fact for every
+outstanding wait; migration 9 quarantines evidence-free legacy waiting rows
+rather than fabricating requests, deadlines, authority, or journal anchors.
+
+Sixty-five integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -864,11 +876,13 @@ cross-kind attempt identity, and fail-closed corrupted-byte recovery. The core
 also freezes integrity-bound interrupt request/resolution and timer
 registration/firing records with exact journal causality, principal/scope
 authorization, exclusive expiry, inclusive due time, tamper rejection, and
-versioned canonical fixtures; their PostgreSQL transaction and index layer is
-not implemented yet. This is evidence for those boundaries only. Automatic quarantine, role-separated
-database procedures, the 10,000 stale-race trial, failover, archive,
-backup/restore, and soak gates below remain incomplete; the RFC therefore
-remains Draft.
+versioned canonical fixtures. Their PostgreSQL coverage adds exact v8 upgrade,
+indexed discovery, initial/successor checkpoint atomicity, lost-ACK convergence,
+fencing, abandonment audit, corruption and rollback rejection, plus 24-request
+single-commit convergence. This is evidence for those boundaries only.
+Automated runtime quarantine, role-separated database procedures, the 10,000
+stale-race trial, failover, archive, backup/restore, and soak gates below remain
+incomplete; the RFC therefore remains Draft.
 
 Before RFC acceptance:
 

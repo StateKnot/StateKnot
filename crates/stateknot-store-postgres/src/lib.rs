@@ -11,8 +11,11 @@
 //! stable-snapshot scheduler candidates without reserving them. Transactional
 //! outbox deliveries bind an immutable destination and payload to the exact
 //! origin event; fixed fenced attempts commit before dispatch and recover with
-//! explicit at-least-once semantics. The provider never holds a database
-//! transaction across node, model, tool, remote-agent, or human work.
+//! explicit at-least-once semantics. Durable interrupt/timer batches commit
+//! with initial or successor checkpoint barriers; database-clock terminal APIs,
+//! indexed discovery, and explicit cancellation/failure abandonment preserve
+//! complete wait evidence. The provider never holds a database transaction
+//! across node, model, tool, remote-agent, or human work.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
 //! its database credentials to untrusted workers; role-separated procedures and
@@ -29,15 +32,19 @@ pub use config::{PostgresStoreOptions, PostgresTransportSecurity};
 pub use error::{ConfigurationError, StoreError};
 pub use model::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, JournalPage,
-    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
-    ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
-    NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
-    OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome,
-    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
-    PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
-    PendingNodeResultPageSize, RunProjection, RunnableRunCandidate, RunnableRunPage,
-    RunnableRunPageCursor, RunnableRunPageSize, StoredOutboxDestination, StoredRun,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
+    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, DueTimerPage,
+    DueTimerPageCursor, ExpiredInterruptPage, ExpiredInterruptPageCursor,
+    InterruptResolutionCommitOutcome, JournalPage, JournalPageSize, LeaseClaimOutcome,
+    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
+    NodeAttemptHistoryPage, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage,
+    OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome,
+    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
+    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize, RunProjection,
+    RunnableRunCandidate, RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize,
+    StoredOutboxDestination, StoredRun, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize, WaitAbandonment,
+    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
+    WaitDiscoveryPageSize,
 };
 pub use store::PostgresStore;

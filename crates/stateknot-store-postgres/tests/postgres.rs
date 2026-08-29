@@ -13,6 +13,7 @@ use serde_json::json;
 use sqlx_core::{
     migrate::{Migration, MigrationType, Migrator},
     query::query,
+    query_as::query_as,
     query_scalar::query_scalar,
 };
 use sqlx_postgres::{PgPool, PgPoolOptions};
@@ -21,27 +22,31 @@ use stateknot_core::{
     CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
     CheckpointState, CheckpointWrite, DeliveryId, DestinationId, Digest, DurationMillis, EventId,
     Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
-    GraphNamespace, GraphReference, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
-    JournalEventKind, JournalExpectation, JournalHead, JournalPayload, JournalSequence,
-    ModelDescriptor, ModelError, ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent,
-    ModelInvocationStatus, ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation,
-    NodeAttemptStatus, NodeControl, NodeId, NodeInvocationBinding, NodeInvocationBindings,
-    NodeStateChange, NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef,
-    PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, ReadyNodes, RetryAdvice,
-    RunCancellationRequest, RunId, RunStatus, RunTransition, SchemaId, SchemaReference, SubjectId,
-    TenantId, ThreadId, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation,
+    GraphNamespace, GraphReference, InterruptId, InterruptRequestIntent, InterruptResolutionIntent,
+    InterruptResolver, InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
+    JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
+    ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
+    ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus,
+    NodeControl, NodeId, NodeInvocationBinding, NodeInvocationBindings, NodeStateChange,
+    NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead,
+    PendingNodeResultIntent, PrincipalIdentity, ReadyNodes, RetryAdvice, RunCancellationRequest,
+    RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind, RunTransition, SchemaId,
+    SchemaReference, Scope, ScopeSet, SubjectId, TenantId, ThreadId, TimerFiringIntent, TimerId,
+    TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation,
     ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
-    ToolResultProvenance, Version,
+    ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePageSize, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome,
-    LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
-    NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize,
-    OutboxClaimOutcome, OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome,
-    OutboxEnqueueOutcome, PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore,
-    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, RunnableRunPageSize,
-    StoreError, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
+    CheckpointLineagePageSize, InterruptResolutionCommitOutcome, JournalPageSize,
+    LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize,
+    OutboxAttemptHistoryPageSize, OutboxClaimOutcome, OutboxCompletionOutcome,
+    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
+    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
+    RunProjection, RunnableRunPageSize, StoreError, TimerFiringCommitOutcome,
+    ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome,
+    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -92,6 +97,7 @@ fn test_options(lease_duration: Duration) -> PostgresStoreOptions {
 }
 
 async fn remove_transactional_outbox(pool: &PgPool) {
+    remove_durable_waits(pool).await;
     query(
         "ALTER TABLE stateknot.outbox_deliveries \
          DROP CONSTRAINT outbox_deliveries_current_attempt_fk, \
@@ -167,6 +173,46 @@ async fn remove_transactional_outbox(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v8 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_durable_waits(pool: &PgPool) {
+    query(
+        "ALTER TABLE stateknot.run_wait_registrations \
+         DROP CONSTRAINT run_wait_registrations_resolution_fk, \
+         DROP CONSTRAINT run_wait_registrations_firing_fk, \
+         DROP CONSTRAINT run_wait_registrations_abandonment_fk",
+    )
+    .execute(pool)
+    .await
+    .expect("v9 wait terminal back-references must be removed from the fixture");
+    for table in [
+        "stateknot.interrupt_resolutions",
+        "stateknot.timer_firings",
+        "stateknot.wait_abandonments",
+        "stateknot.run_wait_registrations",
+    ] {
+        query(&format!("DROP TABLE {table}"))
+            .execute(pool)
+            .await
+            .expect("v9 durable wait table must be removed from the fixture");
+    }
+    query(
+        "ALTER TABLE stateknot.runs \
+         DROP CONSTRAINT runs_wait_projection_shape, \
+         DROP COLUMN wait_set_digest, \
+         DROP COLUMN unresolved_wait_count, \
+         DROP COLUMN next_timer_due_at, \
+         DROP COLUMN next_interrupt_expiry_at",
+    )
+    .execute(pool)
+    .await
+    .expect("v9 run wait projection must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 9")
+        .execute(pool)
+        .await
+        .expect("v9 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -1844,6 +1890,226 @@ async fn migration_eight_preserves_v7_attempts_and_installs_exact_outbox_guards(
     administration.close().await;
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_nine_quarantines_legacy_waits_without_fabricating_evidence() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v9_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .expect("test administration connection must open");
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .expect("isolated v9 upgrade database must be created");
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("v9 fixture database must initially reach the current schema");
+    let fixture_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("v9 fixture store must connect");
+    let preserved_tenant = tenant("v9-preserved");
+    let preserved_run = RunId::generate();
+    fixture_store
+        .admit_run(provenance(preserved_tenant.clone(), preserved_run))
+        .await
+        .unwrap();
+
+    let legacy_tenant = tenant("v9-legacy-wait");
+    let legacy_run = RunId::generate();
+    let admitted = fixture_store
+        .admit_run(provenance(legacy_tenant.clone(), legacy_run))
+        .await
+        .unwrap();
+    let started = fixture_store
+        .append_control_plane(
+            control_append(
+                legacy_tenant.clone(),
+                legacy_run,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                750,
+            ),
+            RunProjection::transition(
+                admitted.lifecycle().revision(),
+                RunTransition::Start {
+                    started_at: admitted.lifecycle().admitted_at(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    let active = fixture_store
+        .load_run(&legacy_tenant, legacy_run)
+        .await
+        .unwrap();
+    let wait_event_id = EventId::generate();
+    fixture_store
+        .append_control_plane_initial_wait_checkpoint(
+            control_append(
+                legacy_tenant.clone(),
+                legacy_run,
+                wait_event_id,
+                JournalExpectation::exact(started.event().head()),
+                751,
+            ),
+            active.lifecycle().revision(),
+            initial_checkpoint_write(legacy_tenant.clone(), legacy_run, CheckpointId::generate()),
+            vec![WaitRegistrationIntent::timer(
+                TimerRegistrationIntent::new(
+                    legacy_tenant.clone(),
+                    legacy_run,
+                    TimerId::generate(),
+                    wait_event_id,
+                    RunTimerKind::Sleep,
+                    timestamp_after(Duration::from_secs(60)),
+                )
+                .unwrap(),
+            )],
+        )
+        .await
+        .unwrap();
+    fixture_store.close().await;
+
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .expect("isolated v9 fixture administration connection must open");
+    remove_durable_waits(&fixture_pool).await;
+    let legacy_version = query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+        .fetch_one(&fixture_pool)
+        .await
+        .unwrap();
+    assert_eq!(legacy_version, 8);
+    let legacy_quarantine = query_scalar::<_, Option<String>>(
+        "SELECT quarantine_reason FROM stateknot.runs \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(legacy_tenant.as_str())
+    .bind(*legacy_run.as_uuid())
+    .fetch_one(&fixture_pool)
+    .await
+    .unwrap();
+    assert!(legacy_quarantine.is_none());
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 9 must upgrade the exact v8 fixture");
+    let upgraded_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("the upgraded v9 runtime schema must be accepted");
+    let preserved = upgraded_store
+        .load_run(&preserved_tenant, preserved_run)
+        .await
+        .unwrap();
+    assert!(!preserved.is_quarantined());
+    assert_eq!(preserved.unresolved_wait_count(), 0);
+    let legacy = upgraded_store
+        .load_run(&legacy_tenant, legacy_run)
+        .await
+        .unwrap();
+    assert!(legacy.is_quarantined());
+    assert_eq!(legacy.lifecycle().status(), RunStatus::Waiting);
+    assert_eq!(legacy.unresolved_wait_count(), 0);
+    assert!(legacy.wait_set_digest().is_none());
+
+    let verification_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    let quarantine_reason = query_scalar::<_, String>(
+        "SELECT quarantine_reason FROM stateknot.runs \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(legacy_tenant.as_str())
+    .bind(*legacy_run.as_uuid())
+    .fetch_one(&verification_pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        quarantine_reason,
+        "migration-9: legacy waiting lifecycle has no durable wait records"
+    );
+    let durable_evidence = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(legacy_tenant.as_str())
+    .bind(*legacy_run.as_uuid())
+    .fetch_one(&verification_pool)
+    .await
+    .unwrap();
+    assert_eq!(durable_evidence, 0);
+    for index in [
+        "run_wait_registrations_due",
+        "run_wait_registrations_expiry",
+    ] {
+        let definition = query_scalar::<_, String>(
+            "SELECT indexdef FROM pg_catalog.pg_indexes \
+             WHERE schemaname = 'stateknot' AND indexname = $1",
+        )
+        .bind(index)
+        .fetch_one(&verification_pool)
+        .await
+        .expect("v9 operational wait index must exist");
+        assert!(definition.to_ascii_lowercase().contains("where"));
+    }
+    query("SET enable_seqscan = off")
+        .execute(&verification_pool)
+        .await
+        .unwrap();
+    let due_plan = query_scalar::<_, String>(
+        "EXPLAIN (COSTS OFF) \
+         SELECT tenant_id, due_at, run_id, wait_id \
+         FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 AND wait_kind = 'timer' \
+           AND status = 'outstanding' AND due_at <= clock_timestamp() \
+         ORDER BY due_at, run_id, wait_id LIMIT 1",
+    )
+    .bind(legacy_tenant.as_str())
+    .fetch_all(&verification_pool)
+    .await
+    .unwrap()
+    .join("\n")
+    .to_ascii_lowercase();
+    query("RESET enable_seqscan")
+        .execute(&verification_pool)
+        .await
+        .unwrap();
+    assert!(due_plan.contains("run_wait_registrations_due"));
+
+    verification_pool.close().await;
+    upgraded_store.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .expect("isolated v9 upgrade database must be dropped");
+    administration.close().await;
+}
+
 fn database_url_with_name(database_url: &str, database_name: &str) -> String {
     let (prefix, current_database) = database_url
         .rsplit_once('/')
@@ -2036,6 +2302,110 @@ fn cancellation_request(requested_at: Timestamp) -> RunCancellationRequest {
     )
     .unwrap();
     RunCancellationRequest::new(failure, requested_at).unwrap()
+}
+
+fn terminal_run_failure(event_id: EventId, completed_at: Timestamp) -> RunFailure {
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Internal,
+        FailureCode::new("run.integration_failed").unwrap(),
+        FailureOrigin::new("test.scheduler").unwrap(),
+        FailureMessage::new("The integration run failed safely.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap()
+    .with_caused_by_event(event_id);
+    RunFailure::new(failure, completed_at, BudgetUsage::zero()).unwrap()
+}
+
+struct InitialWaitPair {
+    run_id: RunId,
+    interrupt_id: InterruptId,
+    timer_id: TimerId,
+    commit: WaitCheckpointCommitOutcome,
+}
+
+async fn start_initial_wait_pair(
+    store: &PostgresStore,
+    tenant_id: &TenantId,
+    event_seed: u64,
+) -> InitialWaitPair {
+    let run_id = RunId::generate();
+    let admitted = store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let started = store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                event_seed,
+            ),
+            RunProjection::transition(
+                admitted.lifecycle().revision(),
+                RunTransition::Start {
+                    started_at: admitted.lifecycle().admitted_at(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    let active = store.load_run(tenant_id, run_id).await.unwrap();
+    let wait_event_id = EventId::generate();
+    let interrupt_id = InterruptId::generate();
+    let timer_id = TimerId::generate();
+    let registrations = vec![
+        WaitRegistrationIntent::interrupt(
+            InterruptRequestIntent::new(
+                tenant_id.clone(),
+                run_id,
+                interrupt_id,
+                wait_event_id,
+                RunInterruptKind::Approval,
+                payload(event_seed + 1),
+                Digest::sha256(format!("wait-action-{event_seed}").as_bytes()),
+                None,
+                ScopeSet::empty(),
+                Some(timestamp_after(Duration::from_secs(3_600))),
+            )
+            .unwrap(),
+        ),
+        WaitRegistrationIntent::timer(
+            TimerRegistrationIntent::new(
+                tenant_id.clone(),
+                run_id,
+                timer_id,
+                wait_event_id,
+                RunTimerKind::Sleep,
+                timestamp_after(Duration::from_secs(1_800)),
+            )
+            .unwrap(),
+        ),
+    ];
+    let commit = store
+        .append_control_plane_initial_wait_checkpoint(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                wait_event_id,
+                JournalExpectation::exact(started.event().head()),
+                event_seed + 2,
+            ),
+            active.lifecycle().revision(),
+            initial_checkpoint_write(tenant_id.clone(), run_id, CheckpointId::generate()),
+            registrations,
+        )
+        .await
+        .unwrap();
+    InitialWaitPair {
+        run_id,
+        interrupt_id,
+        timer_id,
+        commit,
+    }
 }
 
 fn outbox_failure(index: u64, retry_advice: RetryAdvice) -> Failure {
@@ -5025,6 +5395,348 @@ async fn worker_barrier_atomically_consumes_complete_results_and_is_idempotent()
     .await
     .unwrap();
     assert_eq!(consumption_count, 2);
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn worker_wait_barrier_atomically_consumes_results_checkpoints_and_waits() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("worker-wait-barrier");
+    let run_id = RunId::generate();
+    let base = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &tenant_id,
+        run_id,
+        1_140,
+        ready_node(1),
+    ))
+    .await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let (result_heads, result_journal) =
+        commit_ready_results(&store, base.checkpoint(), lease.fence(), 1_141).await;
+    let successor = CheckpointWrite::successor(
+        CheckpointId::generate(),
+        base.checkpoint(),
+        checkpoint_state(base.checkpoint().graph(), 1),
+        ready_node(2),
+    )
+    .unwrap();
+    let barrier = CheckpointBarrier::new(base.checkpoint(), successor, result_heads).unwrap();
+    let waiting_before = store.load_run(&tenant_id, run_id).await.unwrap();
+    let wait_event_id = EventId::generate();
+    let interrupt_id = InterruptId::generate();
+    let timer_id = TimerId::generate();
+    let registrations = vec![
+        WaitRegistrationIntent::interrupt(
+            InterruptRequestIntent::new(
+                tenant_id.clone(),
+                run_id,
+                interrupt_id,
+                wait_event_id,
+                RunInterruptKind::Approval,
+                payload(1_142),
+                Digest::sha256(b"worker wait barrier action"),
+                None,
+                ScopeSet::empty(),
+                Some(timestamp_after(Duration::from_secs(3_600))),
+            )
+            .unwrap(),
+        ),
+        WaitRegistrationIntent::timer(
+            TimerRegistrationIntent::new(
+                tenant_id.clone(),
+                run_id,
+                timer_id,
+                wait_event_id,
+                RunTimerKind::Sleep,
+                timestamp_after(Duration::from_secs(1_800)),
+            )
+            .unwrap(),
+        ),
+    ];
+    let append = worker_append(
+        tenant_id.clone(),
+        run_id,
+        wait_event_id,
+        JournalExpectation::exact(result_journal),
+        lease.fence().clone(),
+        1_143,
+    );
+    let committed = store
+        .append_worker_wait_barrier(
+            append.clone(),
+            waiting_before.lifecycle().revision(),
+            barrier.clone(),
+            registrations.clone(),
+        )
+        .await
+        .expect("the complete worker wait barrier must commit atomically");
+    assert!(matches!(
+        committed,
+        WaitCheckpointCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(committed.waits().len(), 2);
+    assert_eq!(
+        committed.checkpoint().parent(),
+        Some(&base.checkpoint().head())
+    );
+    assert_eq!(
+        committed.checkpoint().journal_head(),
+        &committed.event().head()
+    );
+    let waiting = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(waiting.lifecycle().status(), RunStatus::Waiting);
+    assert_eq!(waiting.unresolved_wait_count(), 2);
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tenant_id, run_id)
+            .await
+            .unwrap(),
+        Some(committed.checkpoint().clone())
+    );
+    assert_eq!(
+        store
+            .load_interrupt_request(&tenant_id, run_id, interrupt_id)
+            .await
+            .unwrap()
+            .journal(),
+        &committed.event().head()
+    );
+    assert_eq!(
+        store
+            .load_durable_timer(&tenant_id, run_id, timer_id)
+            .await
+            .unwrap()
+            .journal(),
+        &committed.event().head()
+    );
+
+    store.release_lease(lease.fence()).await.unwrap();
+    let retry = store
+        .append_worker_wait_barrier(
+            append.clone(),
+            waiting_before.lifecycle().revision(),
+            barrier.clone(),
+            registrations,
+        )
+        .await
+        .expect("lost wait-barrier acknowledgement must ignore a released old fence");
+    assert!(matches!(
+        retry,
+        WaitCheckpointCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(retry.event(), committed.event());
+    assert_eq!(retry.checkpoint(), committed.checkpoint());
+    assert_eq!(retry.waits(), committed.waits());
+    assert!(matches!(
+        store
+            .append_control_plane_wait_barrier(
+                append,
+                waiting_before.lifecycle().revision(),
+                barrier,
+                Vec::new(),
+            )
+            .await,
+        Err(StoreError::WrongAppendAuthority)
+    ));
+
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let (consumption_count, wait_count) = query_as::<_, (i64, i64)>(
+        "SELECT \
+             (SELECT count(*) FROM stateknot.pending_node_result_consumptions \
+              WHERE tenant_id = $1 AND run_id = $2 AND base_checkpoint_id = $3), \
+             (SELECT count(*) FROM stateknot.run_wait_registrations \
+              WHERE tenant_id = $1 AND run_id = $2 AND registration_event_id = $4)",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*base.checkpoint().checkpoint_id().as_uuid())
+    .bind(*wait_event_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!((consumption_count, wait_count), (1, 2));
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn wait_barrier_failure_rolls_back_every_joined_projection() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("wait-barrier-rollback");
+    let run_id = RunId::generate();
+    let base = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &tenant_id,
+        run_id,
+        1_145,
+        ready_node(1),
+    ))
+    .await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let (result_heads, result_journal) =
+        commit_ready_results(&store, base.checkpoint(), lease.fence(), 1_146).await;
+    let successor_id = CheckpointId::generate();
+    let barrier = CheckpointBarrier::new(
+        base.checkpoint(),
+        CheckpointWrite::successor(
+            successor_id,
+            base.checkpoint(),
+            checkpoint_state(base.checkpoint().graph(), 1),
+            ready_node(2),
+        )
+        .unwrap(),
+        result_heads,
+    )
+    .unwrap();
+    let active = store.load_run(&tenant_id, run_id).await.unwrap();
+    let wait_event_id = EventId::generate();
+    let interrupt_id = InterruptId::generate();
+    let timer_id = TimerId::generate();
+    let registrations = vec![
+        WaitRegistrationIntent::interrupt(
+            InterruptRequestIntent::new(
+                tenant_id.clone(),
+                run_id,
+                interrupt_id,
+                wait_event_id,
+                RunInterruptKind::Approval,
+                payload(1_147),
+                Digest::sha256(b"wait barrier rollback action"),
+                None,
+                ScopeSet::empty(),
+                Some(timestamp_after(Duration::from_secs(3_600))),
+            )
+            .unwrap(),
+        ),
+        WaitRegistrationIntent::timer(
+            TimerRegistrationIntent::new(
+                tenant_id.clone(),
+                run_id,
+                timer_id,
+                wait_event_id,
+                RunTimerKind::RetryBackoff,
+                timestamp_after(Duration::from_secs(1_800)),
+            )
+            .unwrap(),
+        ),
+    ];
+    let append = worker_append(
+        tenant_id.clone(),
+        run_id,
+        wait_event_id,
+        JournalExpectation::exact(result_journal.clone()),
+        lease.fence().clone(),
+        1_148,
+    );
+
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT IF EXISTS test_wait_barrier_rollback")
+        .execute(&administration)
+        .await
+        .unwrap();
+    let reject_target = format!(
+        "ALTER TABLE stateknot.runs ADD CONSTRAINT test_wait_barrier_rollback \
+         CHECK (tenant_id <> '{}') NOT VALID",
+        tenant_id.as_str()
+    );
+    query(&reject_target)
+        .execute(&administration)
+        .await
+        .unwrap();
+    let result = store
+        .append_worker_wait_barrier(
+            append.clone(),
+            active.lifecycle().revision(),
+            barrier.clone(),
+            registrations.clone(),
+        )
+        .await;
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT test_wait_barrier_rollback")
+        .execute(&administration)
+        .await
+        .unwrap();
+    assert!(matches!(result, Err(StoreError::Database { .. })));
+
+    let unchanged = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(unchanged.lifecycle().status(), RunStatus::Active);
+    assert_eq!(unchanged.unresolved_wait_count(), 0);
+    assert_eq!(unchanged.journal_head(), Some(&result_journal));
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tenant_id, run_id)
+            .await
+            .unwrap(),
+        Some(base.checkpoint().clone())
+    );
+    let (event_count, checkpoint_count, wait_count, consumption_count) =
+        query_as::<_, (i64, i64, i64, i64)>(
+            "SELECT \
+                 (SELECT count(*) FROM stateknot.run_events \
+                  WHERE tenant_id = $1 AND run_id = $2 AND event_id = $3), \
+                 (SELECT count(*) FROM stateknot.run_checkpoints \
+                  WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $4), \
+                 (SELECT count(*) FROM stateknot.run_wait_registrations \
+                  WHERE tenant_id = $1 AND run_id = $2 AND registration_event_id = $3), \
+                 (SELECT count(*) FROM stateknot.pending_node_result_consumptions \
+                  WHERE tenant_id = $1 AND run_id = $2 AND successor_checkpoint_id = $4)",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(*wait_event_id.as_uuid())
+        .bind(*successor_id.as_uuid())
+        .fetch_one(&administration)
+        .await
+        .unwrap();
+    assert_eq!(
+        (event_count, checkpoint_count, wait_count, consumption_count),
+        (0, 0, 0, 0)
+    );
+
+    let recovered = store
+        .append_worker_wait_barrier(
+            append,
+            active.lifecycle().revision(),
+            barrier,
+            registrations,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        recovered,
+        WaitCheckpointCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(recovered.waits().len(), 2);
+
     administration.close().await;
     store.close().await;
 }
@@ -9899,5 +10611,1093 @@ async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
         usize::try_from(writers * 3 + 1).unwrap()
     );
     assert!(!page.has_more());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn initial_wait_checkpoint_is_atomic_exact_and_fail_closed() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("initial-wait");
+    let run_id = RunId::generate();
+    let admitted = store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let started = store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                900,
+            ),
+            RunProjection::transition(
+                admitted.lifecycle().revision(),
+                RunTransition::Start {
+                    started_at: admitted.lifecycle().admitted_at(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    let active = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(active.lifecycle().status(), RunStatus::Active);
+
+    let wait_event_id = EventId::generate();
+    let interrupt_id = InterruptId::generate();
+    let timer_id = TimerId::generate();
+    let interrupt = InterruptRequestIntent::new(
+        tenant_id.clone(),
+        run_id,
+        interrupt_id,
+        wait_event_id,
+        RunInterruptKind::Approval,
+        payload(901),
+        Digest::sha256(b"production wait action"),
+        Some(PrincipalIdentity::new(
+            "https://issuer.example.com/waits"
+                .parse::<IssuerId>()
+                .unwrap(),
+            "integration-approver".parse::<SubjectId>().unwrap(),
+        )),
+        ScopeSet::try_new([
+            "run.resolve".parse::<Scope>().unwrap(),
+            "action.approve".parse::<Scope>().unwrap(),
+        ])
+        .unwrap(),
+        Some(timestamp_after(Duration::from_secs(600))),
+    )
+    .unwrap();
+    let timer = TimerRegistrationIntent::new(
+        tenant_id.clone(),
+        run_id,
+        timer_id,
+        wait_event_id,
+        RunTimerKind::RetryBackoff,
+        timestamp_after(Duration::from_secs(300)),
+    )
+    .unwrap();
+    let registrations = vec![
+        WaitRegistrationIntent::interrupt(interrupt),
+        WaitRegistrationIntent::timer(timer),
+    ];
+    let checkpoint_write =
+        initial_checkpoint_write(tenant_id.clone(), run_id, CheckpointId::generate());
+    let wait_append = control_append(
+        tenant_id.clone(),
+        run_id,
+        wait_event_id,
+        JournalExpectation::exact(started.event().head()),
+        902,
+    );
+    let committed = store
+        .append_control_plane_initial_wait_checkpoint(
+            wait_append.clone(),
+            active.lifecycle().revision(),
+            checkpoint_write.clone(),
+            registrations.clone(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        committed,
+        WaitCheckpointCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(committed.waits().len(), 2);
+
+    let waiting = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(waiting.lifecycle().status(), RunStatus::Waiting);
+    assert_eq!(waiting.unresolved_wait_count(), 2);
+    assert!(waiting.wait_set_digest().is_some());
+    assert!(waiting.next_timer_due_at().is_some());
+    assert!(waiting.next_interrupt_expiry_at().is_some());
+    assert_eq!(
+        store
+            .load_interrupt_request(&tenant_id, run_id, interrupt_id)
+            .await
+            .unwrap()
+            .journal(),
+        &committed.event().head()
+    );
+    assert_eq!(
+        store
+            .load_durable_timer(&tenant_id, run_id, timer_id)
+            .await
+            .unwrap()
+            .journal(),
+        &committed.event().head()
+    );
+    assert!(matches!(
+        store
+            .load_durable_timer(
+                &tenant_id,
+                run_id,
+                TimerId::from_uuid(*interrupt_id.as_uuid()).unwrap()
+            )
+            .await,
+        Err(StoreError::WaitRegistrationKindMismatch)
+    ));
+
+    let retry = store
+        .append_control_plane_initial_wait_checkpoint(
+            wait_append,
+            active.lifecycle().revision(),
+            checkpoint_write,
+            registrations,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        retry,
+        WaitCheckpointCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(retry.event(), committed.event());
+    assert_eq!(retry.checkpoint(), committed.checkpoint());
+    assert_eq!(retry.waits(), committed.waits());
+
+    let bypass = store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(committed.event().head()),
+                903,
+            ),
+            RunProjection::transition(
+                waiting.lifecycle().revision(),
+                RunTransition::ResolveInterrupt {
+                    interrupt_id,
+                    resolved_at: committed.event().recorded_at(),
+                },
+            ),
+        )
+        .await;
+    assert!(matches!(
+        bypass,
+        Err(StoreError::DurableWaitMutationRequired)
+    ));
+
+    let row_count = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!(row_count, 2);
+
+    let updated = query(
+        "UPDATE stateknot.runs SET wait_set_digest = $3 \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(vec![0_u8; Digest::SHA256_LEN])
+    .execute(&administration)
+    .await
+    .unwrap()
+    .rows_affected();
+    assert_eq!(updated, 1);
+    assert!(matches!(
+        store.load_run(&tenant_id, run_id).await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn interrupt_resolution_and_timer_firing_are_atomic_and_retry_exact() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("wait-terminal");
+    let run_id = RunId::generate();
+    let admitted = store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let started = store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                910,
+            ),
+            RunProjection::transition(
+                admitted.lifecycle().revision(),
+                RunTransition::Start {
+                    started_at: admitted.lifecycle().admitted_at(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    let active = store.load_run(&tenant_id, run_id).await.unwrap();
+    let database_micros =
+        query_scalar::<_, i64>("SELECT (extract(epoch FROM clock_timestamp()) * 1000000)::bigint")
+            .fetch_one(&administration)
+            .await
+            .unwrap();
+    let due_at = Timestamp::from_unix_micros(database_micros + 5_000_000).unwrap();
+    let expires_at = Timestamp::from_unix_micros(database_micros + 60_000_000).unwrap();
+    let wait_event_id = EventId::generate();
+    let interrupt_id = InterruptId::generate();
+    let timer_id = TimerId::generate();
+    let required_principal = PrincipalIdentity::new(
+        "https://issuer.example.com/waits"
+            .parse::<IssuerId>()
+            .unwrap(),
+        "terminal-approver".parse::<SubjectId>().unwrap(),
+    );
+    let required_scopes = ScopeSet::try_new([
+        "run.resolve".parse::<Scope>().unwrap(),
+        "action.approve".parse::<Scope>().unwrap(),
+    ])
+    .unwrap();
+    let registrations = vec![
+        WaitRegistrationIntent::interrupt(
+            InterruptRequestIntent::new(
+                tenant_id.clone(),
+                run_id,
+                interrupt_id,
+                wait_event_id,
+                RunInterruptKind::Approval,
+                payload(911),
+                Digest::sha256(b"terminal wait action"),
+                Some(required_principal.clone()),
+                required_scopes.clone(),
+                Some(expires_at),
+            )
+            .unwrap(),
+        ),
+        WaitRegistrationIntent::timer(
+            TimerRegistrationIntent::new(
+                tenant_id.clone(),
+                run_id,
+                timer_id,
+                wait_event_id,
+                RunTimerKind::Sleep,
+                due_at,
+            )
+            .unwrap(),
+        ),
+    ];
+    let waiting_commit = store
+        .append_control_plane_initial_wait_checkpoint(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                wait_event_id,
+                JournalExpectation::exact(started.event().head()),
+                912,
+            ),
+            active.lifecycle().revision(),
+            initial_checkpoint_write(tenant_id.clone(), run_id, CheckpointId::generate()),
+            registrations,
+        )
+        .await
+        .unwrap();
+    let waiting = store.load_run(&tenant_id, run_id).await.unwrap();
+
+    let request = store
+        .load_interrupt_request(&tenant_id, run_id, interrupt_id)
+        .await
+        .unwrap();
+    let resolution_event_id = EventId::generate();
+    let resolution_intent = InterruptResolutionIntent::new(
+        &request,
+        resolution_event_id,
+        payload(913),
+        InterruptResolver::new(
+            required_principal,
+            ScopeSet::try_new([
+                "run.resolve".parse::<Scope>().unwrap(),
+                "action.approve".parse::<Scope>().unwrap(),
+                "audit.read".parse::<Scope>().unwrap(),
+            ])
+            .unwrap(),
+        ),
+    )
+    .unwrap();
+    let resolution_append = control_append(
+        tenant_id.clone(),
+        run_id,
+        resolution_event_id,
+        JournalExpectation::exact(waiting_commit.event().head()),
+        914,
+    );
+    let resolved = store
+        .resolve_interrupt(
+            resolution_append.clone(),
+            waiting.lifecycle().revision(),
+            resolution_intent.clone(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        resolved,
+        InterruptResolutionCommitOutcome::Committed { .. }
+    ));
+    assert!(!resolved.record().is_outstanding());
+    let resolution_retry = store
+        .resolve_interrupt(
+            resolution_append,
+            waiting.lifecycle().revision(),
+            resolution_intent,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        resolution_retry,
+        InterruptResolutionCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(resolution_retry.record(), resolved.record());
+    assert_eq!(
+        store
+            .load_interrupt_record(&tenant_id, run_id, interrupt_id)
+            .await
+            .unwrap(),
+        *resolved.record()
+    );
+
+    let remaining = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(remaining.lifecycle().status(), RunStatus::Waiting);
+    assert_eq!(remaining.unresolved_wait_count(), 1);
+    assert!(remaining.next_interrupt_expiry_at().is_none());
+    assert_eq!(remaining.next_timer_due_at(), Some(due_at));
+    let timer = store
+        .load_durable_timer(&tenant_id, run_id, timer_id)
+        .await
+        .unwrap();
+    let firing_event_id = EventId::generate();
+    let firing_intent = TimerFiringIntent::new(&timer, firing_event_id).unwrap();
+    let firing_append = control_append(
+        tenant_id.clone(),
+        run_id,
+        firing_event_id,
+        JournalExpectation::exact(resolved.event().head()),
+        915,
+    );
+    assert!(matches!(
+        store
+            .fire_timer(
+                firing_append.clone(),
+                remaining.lifecycle().revision(),
+                firing_intent.clone(),
+            )
+            .await,
+        Err(StoreError::InvalidTimerFiring)
+    ));
+    let observed_micros =
+        query_scalar::<_, i64>("SELECT (extract(epoch FROM clock_timestamp()) * 1000000)::bigint")
+            .fetch_one(&administration)
+            .await
+            .unwrap();
+    let remaining_micros = due_at
+        .unix_micros()
+        .saturating_sub(observed_micros)
+        .saturating_add(100_000);
+    tokio::time::sleep(Duration::from_micros(
+        u64::try_from(remaining_micros.max(0)).unwrap(),
+    ))
+    .await;
+    let fired = store
+        .fire_timer(
+            firing_append.clone(),
+            remaining.lifecycle().revision(),
+            firing_intent.clone(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(fired, TimerFiringCommitOutcome::Committed { .. }));
+    assert!(!fired.record().is_pending());
+    let firing_retry = store
+        .fire_timer(
+            firing_append,
+            remaining.lifecycle().revision(),
+            firing_intent,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        firing_retry,
+        TimerFiringCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(firing_retry.record(), fired.record());
+    assert_eq!(
+        store
+            .load_durable_timer_record(&tenant_id, run_id, timer_id)
+            .await
+            .unwrap(),
+        *fired.record()
+    );
+
+    let active_again = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(active_again.lifecycle().status(), RunStatus::Active);
+    assert_eq!(active_again.unresolved_wait_count(), 0);
+    assert!(active_again.wait_set_digest().is_none());
+    assert!(active_again.scheduler_ready_at().is_some());
+    let resolution_count = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.interrupt_resolutions \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    let firing_count = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.timer_firings \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!((resolution_count, firing_count), (1, 1));
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+async fn concurrent_identical_interrupt_resolutions_converge_on_one_commit() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let options = test_options(Duration::from_secs(30))
+        .with_transaction_timeouts(Duration::from_secs(15), Duration::from_secs(45));
+    let Some(store) = test_store_with_options(options).await else {
+        return;
+    };
+    let tenant_id = tenant("interrupt-resolution-race");
+    let fixture = start_initial_wait_pair(&store, &tenant_id, 1_490).await;
+    let waiting = store.load_run(&tenant_id, fixture.run_id).await.unwrap();
+    let request = store
+        .load_interrupt_request(&tenant_id, fixture.run_id, fixture.interrupt_id)
+        .await
+        .unwrap();
+    let resolution_event_id = EventId::generate();
+    let resolution = InterruptResolutionIntent::new(
+        &request,
+        resolution_event_id,
+        payload(1_493),
+        InterruptResolver::new(
+            PrincipalIdentity::new(
+                "https://issuer.example.com/waits"
+                    .parse::<IssuerId>()
+                    .unwrap(),
+                "race-resolver".parse::<SubjectId>().unwrap(),
+            ),
+            ScopeSet::empty(),
+        ),
+    )
+    .unwrap();
+    let append = control_append(
+        tenant_id.clone(),
+        fixture.run_id,
+        resolution_event_id,
+        JournalExpectation::exact(fixture.commit.event().head()),
+        1_494,
+    );
+    let expected_revision = waiting.lifecycle().revision();
+
+    let mut tasks = tokio::task::JoinSet::new();
+    for _ in 0..24 {
+        let store = store.clone();
+        let append = append.clone();
+        let resolution = resolution.clone();
+        tasks.spawn(async move {
+            store
+                .resolve_interrupt(append, expected_revision, resolution)
+                .await
+        });
+    }
+    let mut committed = 0_u64;
+    let mut idempotent = 0_u64;
+    while let Some(joined) = tasks.join_next().await {
+        match joined
+            .expect("resolution contender must not panic")
+            .unwrap()
+        {
+            InterruptResolutionCommitOutcome::Committed { .. } => committed += 1,
+            InterruptResolutionCommitOutcome::Idempotent { .. } => idempotent += 1,
+            outcome => panic!("unexpected resolution outcome: {outcome:?}"),
+        }
+    }
+    assert_eq!((committed, idempotent), (1, 23));
+    let remaining = store.load_run(&tenant_id, fixture.run_id).await.unwrap();
+    assert_eq!(remaining.lifecycle().status(), RunStatus::Waiting);
+    assert_eq!(remaining.unresolved_wait_count(), 1);
+    assert_eq!(
+        store
+            .load_interrupt_record(&tenant_id, fixture.run_id, fixture.interrupt_id)
+            .await
+            .unwrap()
+            .resolution()
+            .unwrap()
+            .intent(),
+        &resolution
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn waiting_run_cancellation_and_failure_abandon_every_wait_exactly_once() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+
+    let cancellation_tenant = tenant("wait-abandon-cancellation");
+    let cancellation_fixture = start_initial_wait_pair(&store, &cancellation_tenant, 1_500).await;
+    let waiting = store
+        .load_run(&cancellation_tenant, cancellation_fixture.run_id)
+        .await
+        .unwrap();
+    let cancellation_event_id = EventId::generate();
+    let cancellation_append = control_append(
+        cancellation_tenant.clone(),
+        cancellation_fixture.run_id,
+        cancellation_event_id,
+        JournalExpectation::exact(cancellation_fixture.commit.event().head()),
+        1_503,
+    );
+    let cancellation_transition = RunTransition::RequestCancellation {
+        request: cancellation_request(waiting.lifecycle().changed_at()),
+    };
+    assert!(matches!(
+        store
+            .append_control_plane(
+                cancellation_append.clone(),
+                RunProjection::transition(
+                    waiting.lifecycle().revision(),
+                    cancellation_transition.clone(),
+                ),
+            )
+            .await,
+        Err(StoreError::DurableWaitMutationRequired)
+    ));
+    let cancellation = store
+        .append_control_plane_abandon_waits(
+            cancellation_append.clone(),
+            waiting.lifecycle().revision(),
+            cancellation_transition.clone(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        cancellation,
+        WaitAbandonmentCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(cancellation.abandonments().len(), 2);
+    assert!(cancellation.abandonments().iter().all(|abandonment| {
+        abandonment.reason() == WaitAbandonmentReason::RunCancellation
+            && abandonment.journal() == &cancellation.event().head()
+    }));
+    let cancelled = store
+        .load_run(&cancellation_tenant, cancellation_fixture.run_id)
+        .await
+        .unwrap();
+    assert_eq!(
+        cancelled.lifecycle().status(),
+        RunStatus::CancellationRequested
+    );
+    assert_eq!(cancelled.unresolved_wait_count(), 0);
+    assert!(cancelled.wait_set_digest().is_none());
+    assert!(cancelled.next_timer_due_at().is_none());
+    assert!(cancelled.next_interrupt_expiry_at().is_none());
+
+    let interrupt_abandonment = store
+        .load_interrupt_abandonment(
+            &cancellation_tenant,
+            cancellation_fixture.run_id,
+            cancellation_fixture.interrupt_id,
+        )
+        .await
+        .unwrap();
+    let timer_abandonment = store
+        .load_timer_abandonment(
+            &cancellation_tenant,
+            cancellation_fixture.run_id,
+            cancellation_fixture.timer_id,
+        )
+        .await
+        .unwrap();
+    assert!(cancellation.abandonments().contains(&interrupt_abandonment));
+    assert!(cancellation.abandonments().contains(&timer_abandonment));
+    assert!(matches!(
+        store
+            .load_interrupt_record(
+                &cancellation_tenant,
+                cancellation_fixture.run_id,
+                cancellation_fixture.interrupt_id,
+            )
+            .await,
+        Err(StoreError::WaitWasAbandoned)
+    ));
+    assert!(matches!(
+        store
+            .load_durable_timer_record(
+                &cancellation_tenant,
+                cancellation_fixture.run_id,
+                cancellation_fixture.timer_id,
+            )
+            .await,
+        Err(StoreError::WaitWasAbandoned)
+    ));
+
+    let cancellation_retry = store
+        .append_control_plane_abandon_waits(
+            cancellation_append,
+            waiting.lifecycle().revision(),
+            cancellation_transition,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        cancellation_retry,
+        WaitAbandonmentCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(cancellation_retry.event(), cancellation.event());
+    assert_eq!(
+        cancellation_retry.abandonments(),
+        cancellation.abandonments()
+    );
+
+    let failure_tenant = tenant("wait-abandon-failure");
+    let failure_fixture = start_initial_wait_pair(&store, &failure_tenant, 1_510).await;
+    let failure_waiting = store
+        .load_run(&failure_tenant, failure_fixture.run_id)
+        .await
+        .unwrap();
+    let failure_event_id = EventId::generate();
+    let failure_append = control_append(
+        failure_tenant.clone(),
+        failure_fixture.run_id,
+        failure_event_id,
+        JournalExpectation::exact(failure_fixture.commit.event().head()),
+        1_513,
+    );
+    let failure_transition = RunTransition::Fail {
+        failure: terminal_run_failure(failure_event_id, failure_waiting.lifecycle().changed_at()),
+    };
+    let failed = store
+        .append_control_plane_abandon_waits(
+            failure_append.clone(),
+            failure_waiting.lifecycle().revision(),
+            failure_transition.clone(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        failed,
+        WaitAbandonmentCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(failed.abandonments().len(), 2);
+    assert!(
+        failed
+            .abandonments()
+            .iter()
+            .all(|abandonment| abandonment.reason() == WaitAbandonmentReason::RunFailure)
+    );
+    let failed_run = store
+        .load_run(&failure_tenant, failure_fixture.run_id)
+        .await
+        .unwrap();
+    assert_eq!(failed_run.lifecycle().status(), RunStatus::Failed);
+    assert_eq!(failed_run.unresolved_wait_count(), 0);
+    let failure_retry = store
+        .append_control_plane_abandon_waits(
+            failure_append,
+            failure_waiting.lifecycle().revision(),
+            failure_transition,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        failure_retry,
+        WaitAbandonmentCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(failure_retry.event(), failed.event());
+    assert_eq!(failure_retry.abandonments(), failed.abandonments());
+
+    let (abandonment_count, abandoned_projection_count) = query_as::<_, (i64, i64)>(
+        "SELECT \
+                 (SELECT count(*) FROM stateknot.wait_abandonments \
+                  WHERE tenant_id IN ($1, $2)), \
+                 (SELECT count(*) FROM stateknot.run_wait_registrations \
+                  WHERE tenant_id IN ($1, $2) AND status = 'abandoned')",
+    )
+    .bind(cancellation_tenant.as_str())
+    .bind(failure_tenant.as_str())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!((abandonment_count, abandoned_projection_count), (4, 4));
+
+    let corrupted = query(
+        "UPDATE stateknot.wait_abandonments SET reason_kind = 'run_failure' \
+         WHERE tenant_id = $1 AND run_id = $2 AND wait_id = $3",
+    )
+    .bind(cancellation_tenant.as_str())
+    .bind(*cancellation_fixture.run_id.as_uuid())
+    .bind(*cancellation_fixture.interrupt_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap()
+    .rows_affected();
+    assert_eq!(corrupted, 1);
+    assert!(matches!(
+        store
+            .load_interrupt_abandonment(
+                &cancellation_tenant,
+                cancellation_fixture.run_id,
+                cancellation_fixture.interrupt_id,
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn wait_abandonment_failure_rolls_back_event_details_projections_and_lifecycle() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("wait-abandon-rollback");
+    let fixture = start_initial_wait_pair(&store, &tenant_id, 1_520).await;
+    let waiting = store.load_run(&tenant_id, fixture.run_id).await.unwrap();
+    let abandonment_event_id = EventId::generate();
+    let abandonment_append = control_append(
+        tenant_id.clone(),
+        fixture.run_id,
+        abandonment_event_id,
+        JournalExpectation::exact(fixture.commit.event().head()),
+        1_523,
+    );
+    let transition = RunTransition::RequestCancellation {
+        request: cancellation_request(waiting.lifecycle().changed_at()),
+    };
+
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT IF EXISTS test_wait_abandon_rollback")
+        .execute(&administration)
+        .await
+        .unwrap();
+    let reject_target = format!(
+        "ALTER TABLE stateknot.runs ADD CONSTRAINT test_wait_abandon_rollback \
+         CHECK (tenant_id <> '{}') NOT VALID",
+        tenant_id.as_str()
+    );
+    query(&reject_target)
+        .execute(&administration)
+        .await
+        .unwrap();
+    let result = store
+        .append_control_plane_abandon_waits(
+            abandonment_append.clone(),
+            waiting.lifecycle().revision(),
+            transition.clone(),
+        )
+        .await;
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT test_wait_abandon_rollback")
+        .execute(&administration)
+        .await
+        .unwrap();
+    assert!(matches!(result, Err(StoreError::Database { .. })));
+
+    let unchanged = store.load_run(&tenant_id, fixture.run_id).await.unwrap();
+    assert_eq!(unchanged.lifecycle().status(), RunStatus::Waiting);
+    assert_eq!(unchanged.unresolved_wait_count(), 2);
+    assert_eq!(
+        unchanged.journal_head(),
+        Some(&fixture.commit.event().head())
+    );
+    let (event_count, abandonment_count, outstanding_count) = query_as::<_, (i64, i64, i64)>(
+        "SELECT \
+                 (SELECT count(*) FROM stateknot.run_events \
+                  WHERE tenant_id = $1 AND run_id = $2 AND event_id = $3), \
+                 (SELECT count(*) FROM stateknot.wait_abandonments \
+                  WHERE tenant_id = $1 AND run_id = $2), \
+                 (SELECT count(*) FROM stateknot.run_wait_registrations \
+                  WHERE tenant_id = $1 AND run_id = $2 AND status = 'outstanding')",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*fixture.run_id.as_uuid())
+    .bind(*abandonment_event_id.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!(
+        (event_count, abandonment_count, outstanding_count),
+        (0, 0, 2)
+    );
+
+    let recovered = store
+        .append_control_plane_abandon_waits(
+            abandonment_append,
+            waiting.lifecycle().revision(),
+            transition,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        recovered,
+        WaitAbandonmentCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(recovered.abandonments().len(), 2);
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn due_and_expired_wait_discovery_pages_are_bounded_stable_and_tenant_scoped() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("wait-discovery");
+    let run_id = RunId::generate();
+    let admitted = store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let started = store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                920,
+            ),
+            RunProjection::transition(
+                admitted.lifecycle().revision(),
+                RunTransition::Start {
+                    started_at: admitted.lifecycle().admitted_at(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    let active = store.load_run(&tenant_id, run_id).await.unwrap();
+    let database_micros =
+        query_scalar::<_, i64>("SELECT (extract(epoch FROM clock_timestamp()) * 1000000)::bigint")
+            .fetch_one(&administration)
+            .await
+            .unwrap();
+    let timer_one_due = Timestamp::from_unix_micros(database_micros + 3_000_000).unwrap();
+    let timer_two_due = Timestamp::from_unix_micros(database_micros + 3_200_000).unwrap();
+    let interrupt_one_expiry = Timestamp::from_unix_micros(database_micros + 3_100_000).unwrap();
+    let interrupt_two_expiry = Timestamp::from_unix_micros(database_micros + 3_300_000).unwrap();
+    let timer_one_id = TimerId::generate();
+    let timer_two_id = TimerId::generate();
+    let interrupt_one_id = InterruptId::generate();
+    let interrupt_two_id = InterruptId::generate();
+    let wait_event_id = EventId::generate();
+    let required_scopes = ScopeSet::try_new(["run.resolve".parse::<Scope>().unwrap()]).unwrap();
+    let registrations = vec![
+        WaitRegistrationIntent::timer(
+            TimerRegistrationIntent::new(
+                tenant_id.clone(),
+                run_id,
+                timer_one_id,
+                wait_event_id,
+                RunTimerKind::Sleep,
+                timer_one_due,
+            )
+            .unwrap(),
+        ),
+        WaitRegistrationIntent::timer(
+            TimerRegistrationIntent::new(
+                tenant_id.clone(),
+                run_id,
+                timer_two_id,
+                wait_event_id,
+                RunTimerKind::RetryBackoff,
+                timer_two_due,
+            )
+            .unwrap(),
+        ),
+        WaitRegistrationIntent::interrupt(
+            InterruptRequestIntent::new(
+                tenant_id.clone(),
+                run_id,
+                interrupt_one_id,
+                wait_event_id,
+                RunInterruptKind::ExternalSignal,
+                payload(921),
+                Digest::sha256(b"expired interrupt one"),
+                None,
+                required_scopes.clone(),
+                Some(interrupt_one_expiry),
+            )
+            .unwrap(),
+        ),
+        WaitRegistrationIntent::interrupt(
+            InterruptRequestIntent::new(
+                tenant_id.clone(),
+                run_id,
+                interrupt_two_id,
+                wait_event_id,
+                RunInterruptKind::Reconciliation,
+                payload(922),
+                Digest::sha256(b"expired interrupt two"),
+                None,
+                required_scopes,
+                Some(interrupt_two_expiry),
+            )
+            .unwrap(),
+        ),
+    ];
+    let waiting_commit = store
+        .append_control_plane_initial_wait_checkpoint(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                wait_event_id,
+                JournalExpectation::exact(started.event().head()),
+                923,
+            ),
+            active.lifecycle().revision(),
+            initial_checkpoint_write(tenant_id.clone(), run_id, CheckpointId::generate()),
+            registrations,
+        )
+        .await
+        .unwrap();
+    let observed_micros =
+        query_scalar::<_, i64>("SELECT (extract(epoch FROM clock_timestamp()) * 1000000)::bigint")
+            .fetch_one(&administration)
+            .await
+            .unwrap();
+    let remaining_micros = interrupt_two_expiry
+        .unix_micros()
+        .saturating_sub(observed_micros)
+        .saturating_add(100_000);
+    tokio::time::sleep(Duration::from_micros(
+        u64::try_from(remaining_micros.max(0)).unwrap(),
+    ))
+    .await;
+
+    let page_size = WaitDiscoveryPageSize::new(1).unwrap();
+    let first_due = store
+        .load_due_timer_page(&tenant_id, None, page_size)
+        .await
+        .unwrap();
+    assert_eq!(first_due.records().len(), 1);
+    assert!(first_due.has_more());
+    assert_eq!(first_due.records()[0].marker().timer_id(), timer_one_id);
+    let due_cursor = first_due.next_cursor().unwrap();
+    let wrong_tenant = tenant("wait-discovery-crossed");
+    assert!(matches!(
+        store
+            .load_due_timer_page(&wrong_tenant, Some(&due_cursor), page_size)
+            .await,
+        Err(StoreError::InvalidDueTimerCursor)
+    ));
+
+    let waiting = store.load_run(&tenant_id, run_id).await.unwrap();
+    let firing_event_id = EventId::generate();
+    store
+        .fire_timer(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                firing_event_id,
+                JournalExpectation::exact(waiting_commit.event().head()),
+                924,
+            ),
+            waiting.lifecycle().revision(),
+            TimerFiringIntent::new(&first_due.records()[0], firing_event_id).unwrap(),
+        )
+        .await
+        .unwrap();
+    let second_due = store
+        .load_due_timer_page(&tenant_id, Some(&due_cursor), page_size)
+        .await
+        .unwrap();
+    assert_eq!(second_due.snapshot_at(), first_due.snapshot_at());
+    assert_eq!(second_due.records().len(), 1);
+    assert!(!second_due.has_more());
+    assert_eq!(second_due.records()[0].marker().timer_id(), timer_two_id);
+
+    let first_expired = store
+        .load_expired_interrupt_page(&tenant_id, None, page_size)
+        .await
+        .unwrap();
+    assert_eq!(first_expired.records().len(), 1);
+    assert!(first_expired.has_more());
+    assert_eq!(
+        first_expired.records()[0].marker().interrupt_id(),
+        interrupt_one_id
+    );
+    let expired_cursor = first_expired.next_cursor().unwrap();
+    assert!(matches!(
+        store
+            .load_expired_interrupt_page(&wrong_tenant, Some(&expired_cursor), page_size)
+            .await,
+        Err(StoreError::InvalidExpiredInterruptCursor)
+    ));
+    let second_expired = store
+        .load_expired_interrupt_page(&tenant_id, Some(&expired_cursor), page_size)
+        .await
+        .unwrap();
+    assert_eq!(second_expired.snapshot_at(), first_expired.snapshot_at());
+    assert_eq!(second_expired.records().len(), 1);
+    assert!(!second_expired.has_more());
+    assert_eq!(
+        second_expired.records()[0].marker().interrupt_id(),
+        interrupt_two_id
+    );
+    administration.close().await;
     store.close().await;
 }

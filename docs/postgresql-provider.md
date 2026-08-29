@@ -60,6 +60,14 @@ The provider currently supplies:
   exact complete compact result set, and commit the projection-bound event,
   successor checkpoint, append-only consumption rows, lifecycle, journal head,
   and checkpoint pointer in one transaction;
+- migration-9 durable interrupt/timer evidence with canonical immutable
+  registrations, resolutions and firings, mutable terminal projections backed
+  by deferred exact foreign keys, database-clock exclusive expiry/inclusive due
+  enforcement, and tenant-scoped bounded due/expiry keyset pages. Initial and
+  successor wait-barrier APIs atomically join event, checkpoint, result
+  consumption, full wait batch, lifecycle, journal, and checkpoint pointers;
+  cancellation/failure records one immutable abandonment fact per outstanding
+  wait instead of silently discarding evidence;
 - successor-checkpoint rejection while any invocation rooted at the exact
   current checkpoint remains prepared, executing, failed, or unknown;
 - database-clock lease claim, renewal, release, forced supersession, monotonically
@@ -135,6 +143,10 @@ column-scoped `UPDATE` only for
 `stateknot.outbox_destinations`, `stateknot.outbox_attempts`, and
 `stateknot.outbox_attempt_completions`; and `SELECT`/`INSERT` plus only the
 claim/completion/reaper projection columns on `stateknot.outbox_deliveries`.
+It also needs `SELECT`/`INSERT` on `stateknot.interrupt_resolutions`,
+`stateknot.timer_firings`, and `stateknot.wait_abandonments`, plus
+`SELECT`/`INSERT` and terminal-projection-only `UPDATE` on
+`stateknot.run_wait_registrations`.
 Do not grant runtime DDL,
 checkpoint, node-attempt, invocation-revision, pending-result, or consumption
 update/delete permissions. Exact role/grant SQL will be
@@ -147,7 +159,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 56 integration tests against PostgreSQL 16 and
+The current database suite runs 65 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v8 without guessed projection or physical-attempt provenance, real v3
@@ -206,6 +218,16 @@ takeover, database-time `SafeAfter`, absorbing `Never`, deadline expiry, four-pa
 fail-closed destination/delivery/origin/start/completion corruption. The same
 seven new scenarios run against PostgreSQL 16 and 17; the hard-limit case uses
 real transactions and canonical history rather than injecting a projection.
+
+Durable-wait coverage proves fresh and exact v8-to-v9 migration, quarantine of
+legacy waiting lifecycles without fabricated evidence, atomic initial and
+successor wait-barrier commits, generic-projection bypass rejection, principal
+and scope authorization, exclusive interrupt expiry, inclusive timer due time,
+fixed-cutoff tenant-scoped discovery, exact lost-ACK retries, cancellation and
+failure abandonment, immutable audit loading, injected rollback of every joined
+projection, fail-closed digest/reason corruption, released-fence retry, and 24
+identical interrupt resolutions converging on one physical commit. All 65 tests
+run independently against PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -339,6 +361,21 @@ and unsettled invocations, and append one consumption row per result alongside
 the exact successor. Reducers and graph callbacks run before this API; none
 execute while a database transaction is open.
 
+Waiting at a root checkpoint uses
+`append_control_plane_initial_wait_checkpoint` or its fenced worker form.
+Waiting after node execution uses `append_control_plane_wait_barrier` or
+`append_worker_wait_barrier`; this consumes the exact complete pending-result
+barrier and registers the full interrupt/timer set in the same transaction.
+`resolve_interrupt` and `fire_timer` use the database clock and update exactly
+one registration plus the lifecycle. A final resolution/firing requeues the run
+as active. `append_*_abandon_waits` is mandatory when cancellation or failure
+wins while waiting and writes complete append-only abandonment evidence.
+`load_due_timer_page` and `load_expired_interrupt_page` use fixed database-time
+cutoffs and bounded keyset cursors; callers still commit the returned item
+through the exact terminal API. Immutable registration and terminal/audit loads
+recheck canonical bytes, redundant projections, registration and terminal
+journal anchors, and the current lifecycle wait-set projection.
+
 Migration 2 adds nullable `run_events.projection_digest` because migration-1
 rows do not contain enough information to reconstruct the caller's projection
 intent. Those events remain readable and verifiable. A same-ID mutation retry
@@ -398,13 +435,22 @@ to their immutable evidence. Ready, expiry, abandoned-limit, and origin indexes
 serve bounded operational queries. The exact v7 registry upgrade and existing
 node-attempt readability are exercised on PostgreSQL 16 and 17.
 
+Migration 9 adds the run wait-set digest/count/deadline projection, canonical
+`run_wait_registrations`, append-only `interrupt_resolutions`, `timer_firings`,
+and `wait_abandonments`, deferred terminal back-references, and partial due and
+expiry indexes. Evidence-free waiting rows from migration 8 are preserved but
+quarantined; the migration never invents payload, authority, deadline, or
+journal evidence. Fresh install, exact v8 upgrade, index plan, schema removal,
+and full transaction behavior are checksum-pinned and exercised on PostgreSQL
+16 and 17.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
-interrupt persistence, timers, protocol-specific outbox dispatch adapters,
-artifacts, cross-tenant scheduler fairness and the recovery/dispatch loop,
-automatic corruption quarantine, retention/archive/legal hold, backup/restore,
-failover qualification, or the 10,000-race stale-worker gate.
+protocol-specific outbox dispatch adapters, artifacts, cross-tenant scheduler
+fairness and the recovery/dispatch loop, automatic corruption quarantine,
+retention/archive/legal hold, backup/restore, failover qualification, or the
+10,000-race stale-worker gate.
 
 The current pool is a trusted server-side persistence boundary. Database
 credentials must not be distributed to untrusted workers: PostgreSQL

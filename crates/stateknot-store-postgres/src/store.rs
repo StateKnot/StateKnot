@@ -18,10 +18,12 @@ use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BarrierResultHeads, BoundedJson, BudgetUsage, CanonicalJson,
     Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointLineageVerifier,
-    CheckpointWrite, DeliveryFence, DeliveryId, DestinationId, Digest, EventId, Failure,
-    FencingEpoch, GraphNamespace, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
-    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalPayload,
-    JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
+    CheckpointWrite, DeliveryFence, DeliveryId, DestinationId, Digest, DurableTimer,
+    DurableTimerRecord, DurableWait, EventId, Failure, FencingEpoch, GraphNamespace, InterruptId,
+    InterruptRecord, InterruptRequest, InterruptResolution, InterruptResolutionIntent,
+    InvocationId, JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError,
+    JournalEventIntent, JournalEventSource, JournalHead, JournalPayload, JournalSequence,
+    JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
     ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
     ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
     ModelInvocationTransitionKind, NodeActivation, NodeAttempt, NodeAttemptCompletion,
@@ -30,27 +32,31 @@ use stateknot_core::{
     OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptHistoryVerifier, OutboxAttemptOutcome,
     OutboxAttemptStart, OutboxDelivery, OutboxDeliveryIntent, OutboxDeliveryStatus,
     OutboxDestinationRef, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
-    PendingNodeResultIntent, RetryAdvice, RunFence, RunId, RunLease, RunLeaseValidationError,
-    RunLifecycle, RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp,
-    ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
-    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
-    ToolInvocationTransitionKind,
+    PendingNodeResultIntent, RetryAdvice, RunFence, RunId, RunInterruptKind, RunLease,
+    RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTimerKind, RunTransition,
+    RunTransitionKind, RunWaits, Superstep, TenantId, TimerFiring, TimerFiringIntent, TimerId,
+    Timestamp, ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier,
+    ToolInvocationIntent, ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    ToolInvocationTransitionKind, WaitRegistrationIntent,
 };
 use uuid::Uuid;
 
 use crate::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, JournalPage,
-    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
-    ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
-    NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
-    OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome,
-    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
-    PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
-    PendingNodeResultPageSize, PostgresStoreOptions, RunProjection, RunnableRunCandidate,
-    RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize, StoreError,
-    StoredOutboxDestination, StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
-    ToolInvocationHistoryPageSize,
+    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, DueTimerPage,
+    DueTimerPageCursor, ExpiredInterruptPage, ExpiredInterruptPageCursor,
+    InterruptResolutionCommitOutcome, JournalPage, JournalPageSize, LeaseClaimOutcome,
+    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
+    NodeAttemptHistoryPage, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage,
+    OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome,
+    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
+    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize,
+    PostgresStoreOptions, RunProjection, RunnableRunCandidate, RunnableRunPage,
+    RunnableRunPageCursor, RunnableRunPageSize, StoreError, StoredOutboxDestination, StoredRun,
+    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,
+    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -111,6 +117,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0008_transactional_outbox.sql")),
             false,
         ),
+        Migration::new(
+            9,
+            Cow::Borrowed("durable waits"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0009_durable_waits.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -131,6 +144,9 @@ const MAX_OUTBOX_DESTINATION_BYTES: usize = 2_097_152;
 const MAX_OUTBOX_DELIVERY_BYTES: usize = 4_194_304;
 const MAX_OUTBOX_ATTEMPT_START_BYTES: usize = 1_048_576;
 const MAX_OUTBOX_ATTEMPT_COMPLETION_BYTES: usize = 1_048_576;
+const MAX_WAIT_REGISTRATION_BYTES: usize = 4_194_304;
+const MAX_INTERRUPT_RESOLUTION_BYTES: usize = 4_194_304;
+const MAX_TIMER_FIRING_BYTES: usize = 1_048_576;
 const MAX_OUTBOX_DELIVERIES_PER_EVENT: usize = 64;
 const OUTBOX_TERMINAL_REAP_BATCH_SIZE: i64 = 64;
 const PENDING_TOOL_BINDING_BATCH_SIZE: usize = ToolInvocationHistoryPageSize::MAX as usize;
@@ -140,6 +156,18 @@ const MODEL_INVOCATION_RECORD_SCHEMA: &str =
     "https://stateknot.github.io/schema/storage/model-invocation-revision/1.0.0";
 const PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-run-projection-v1\0";
 const BARRIER_PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-barrier-projection-v1\0";
+const WAIT_SET_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-wait-set-v1\0";
+const WAIT_REGISTRATION_PROJECTION_DIGEST_DOMAIN: &[u8] =
+    b"stateknot-postgres-wait-registration-projection-v1\0";
+const WAIT_BARRIER_PROJECTION_DIGEST_DOMAIN: &[u8] =
+    b"stateknot-postgres-wait-barrier-projection-v1\0";
+const INTERRUPT_RESOLUTION_PROJECTION_DIGEST_DOMAIN: &[u8] =
+    b"stateknot-postgres-interrupt-resolution-projection-v1\0";
+const TIMER_FIRING_PROJECTION_DIGEST_DOMAIN: &[u8] =
+    b"stateknot-postgres-timer-firing-projection-v1\0";
+const WAIT_ABANDONMENT_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-wait-abandonment-v1\0";
+const WAIT_ABANDONMENT_PROJECTION_DIGEST_DOMAIN: &[u8] =
+    b"stateknot-postgres-wait-abandonment-projection-v1\0";
 
 const SELECT_RUN: &str = r"
 SELECT
@@ -165,6 +193,10 @@ SELECT
     lease_renewed_at,
     lease_expires_at,
     scheduler_ready_at,
+    wait_set_digest,
+    unresolved_wait_count,
+    next_timer_due_at,
+    next_interrupt_expiry_at,
     quarantined_at
 FROM stateknot.runs
 WHERE tenant_id = $1 AND run_id = $2
@@ -194,6 +226,10 @@ SELECT
     lease_renewed_at,
     lease_expires_at,
     scheduler_ready_at,
+    wait_set_digest,
+    unresolved_wait_count,
+    next_timer_due_at,
+    next_interrupt_expiry_at,
     quarantined_at
 FROM stateknot.runs
 WHERE tenant_id = $1 AND run_id = $2
@@ -224,6 +260,10 @@ SELECT
     lease_renewed_at,
     lease_expires_at,
     scheduler_ready_at,
+    wait_set_digest,
+    unresolved_wait_count,
+    next_timer_due_at,
+    next_interrupt_expiry_at,
     quarantined_at
 FROM stateknot.runs
 WHERE tenant_id = $1
@@ -326,6 +366,184 @@ WHERE tenant_id = $1 AND run_id = $2 AND sequence > $3
 ORDER BY sequence ASC
 LIMIT $4
 ";
+
+const WAIT_REGISTRATION_COLUMNS: &str = r"
+    tenant_id,
+    run_id,
+    wait_id,
+    wait_kind,
+    interrupt_kind,
+    timer_kind,
+    registered_at,
+    due_at,
+    expires_at,
+    action_digest,
+    registration_sequence,
+    registration_event_id,
+    registration_event_digest,
+    intent_digest,
+    record_digest,
+    record_bytes,
+    status,
+    terminal_sequence,
+    terminal_event_id,
+    terminal_recorded_at,
+    terminal_event_digest,
+    resolution_digest,
+    firing_digest,
+    abandonment_digest,
+    created_at,
+    updated_at
+";
+
+static SELECT_WAIT_REGISTRATIONS_BY_ORIGIN: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_REGISTRATION_COLUMNS} \
+         FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 AND run_id = $2 AND registration_sequence = $3 \
+         ORDER BY wait_id"
+    )
+});
+
+static SELECT_WAIT_REGISTRATION_BY_ID: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_REGISTRATION_COLUMNS} \
+         FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 AND run_id = $2 AND wait_id = $3"
+    )
+});
+
+static SELECT_WAIT_REGISTRATION_BY_ID_FOR_UPDATE: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_REGISTRATION_COLUMNS} \
+         FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 AND run_id = $2 AND wait_id = $3 \
+         FOR UPDATE"
+    )
+});
+
+static SELECT_OUTSTANDING_WAIT_REGISTRATIONS: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_REGISTRATION_COLUMNS} \
+         FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 AND run_id = $2 AND status = 'outstanding' \
+         ORDER BY wait_id"
+    )
+});
+
+static SELECT_OUTSTANDING_WAIT_REGISTRATIONS_FOR_UPDATE: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_REGISTRATION_COLUMNS} \
+         FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 AND run_id = $2 AND status = 'outstanding' \
+         ORDER BY wait_id FOR UPDATE"
+    )
+});
+
+const SELECT_INTERRUPT_RESOLUTION: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    interrupt_id,
+    request_digest,
+    resolution_sequence,
+    resolution_event_id,
+    resolved_at,
+    resolution_event_digest,
+    intent_digest,
+    resolution_digest,
+    resolution_bytes,
+    created_at
+FROM stateknot.interrupt_resolutions
+WHERE tenant_id = $1 AND run_id = $2 AND interrupt_id = $3
+";
+
+const SELECT_TIMER_FIRING: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    timer_id,
+    timer_digest,
+    firing_sequence,
+    firing_event_id,
+    fired_at,
+    firing_event_digest,
+    intent_digest,
+    firing_digest,
+    firing_bytes,
+    created_at
+FROM stateknot.timer_firings
+WHERE tenant_id = $1 AND run_id = $2 AND timer_id = $3
+";
+
+static SELECT_DUE_TIMER_PAGE: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_REGISTRATION_COLUMNS} \
+         FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 \
+           AND wait_kind = 'timer' \
+           AND status = 'outstanding' \
+           AND due_at <= $2 \
+           AND (due_at, run_id, wait_id) > ( \
+               COALESCE($3::timestamptz, '-infinity'::timestamptz), \
+               COALESCE($4::uuid, '00000000-0000-0000-0000-000000000000'::uuid), \
+               COALESCE($5::uuid, '00000000-0000-0000-0000-000000000000'::uuid) \
+           ) \
+         ORDER BY due_at, run_id, wait_id \
+         LIMIT $6"
+    )
+});
+
+static SELECT_EXPIRED_INTERRUPT_PAGE: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_REGISTRATION_COLUMNS} \
+         FROM stateknot.run_wait_registrations \
+         WHERE tenant_id = $1 \
+           AND wait_kind = 'interrupt' \
+           AND status = 'outstanding' \
+           AND expires_at IS NOT NULL \
+           AND expires_at <= $2 \
+           AND (expires_at, run_id, wait_id) > ( \
+               COALESCE($3::timestamptz, '-infinity'::timestamptz), \
+               COALESCE($4::uuid, '00000000-0000-0000-0000-000000000000'::uuid), \
+               COALESCE($5::uuid, '00000000-0000-0000-0000-000000000000'::uuid) \
+           ) \
+         ORDER BY expires_at, run_id, wait_id \
+         LIMIT $6"
+    )
+});
+
+const WAIT_ABANDONMENT_COLUMNS: &str = r"
+    tenant_id,
+    run_id,
+    wait_id,
+    wait_kind,
+    registration_digest,
+    reason_kind,
+    abandonment_sequence,
+    abandonment_event_id,
+    abandoned_at,
+    abandonment_event_digest,
+    abandonment_digest,
+    created_at
+";
+
+static SELECT_WAIT_ABANDONMENTS_BY_EVENT: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_ABANDONMENT_COLUMNS} \
+         FROM stateknot.wait_abandonments \
+         WHERE tenant_id = $1 AND run_id = $2 AND abandonment_sequence = $3 \
+         ORDER BY wait_id"
+    )
+});
+
+static SELECT_WAIT_ABANDONMENT_BY_ID: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "SELECT {WAIT_ABANDONMENT_COLUMNS} \
+         FROM stateknot.wait_abandonments \
+         WHERE tenant_id = $1 AND run_id = $2 AND wait_id = $3"
+    )
+});
 
 const SELECT_CHECKPOINT_BY_ID: &str = r"
 SELECT
@@ -1527,10 +1745,22 @@ impl PostgresStore {
                  AND to_regclass('stateknot.outbox_deliveries_ready') IS NOT NULL \
                  AND to_regclass('stateknot.outbox_deliveries_expiry') IS NOT NULL \
                  AND to_regclass('stateknot.outbox_deliveries_abandoned_limit') IS NOT NULL \
+                 AND to_regclass('stateknot.run_wait_registrations') IS NOT NULL \
+                 AND to_regclass('stateknot.interrupt_resolutions') IS NOT NULL \
+                 AND to_regclass('stateknot.timer_firings') IS NOT NULL \
+                 AND to_regclass('stateknot.wait_abandonments') IS NOT NULL \
+                 AND to_regclass('stateknot.run_wait_registrations_due') IS NOT NULL \
+                 AND to_regclass('stateknot.run_wait_registrations_expiry') IS NOT NULL \
                  AND EXISTS ( \
                      SELECT 1 FROM pg_catalog.pg_constraint \
                      WHERE conrelid = to_regclass('stateknot.runs') \
                        AND conname = 'runs_scheduler_ready_shape' \
+                       AND convalidated \
+                 ) \
+                 AND EXISTS ( \
+                     SELECT 1 FROM pg_catalog.pg_constraint \
+                     WHERE conrelid = to_regclass('stateknot.runs') \
+                       AND conname = 'runs_wait_projection_shape' \
                        AND convalidated \
                  ) \
                  AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL",
@@ -1673,10 +1903,11 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
         tenant_id: &TenantId,
         run_id: RunId,
     ) -> Result<StoredRun, StoreError> {
+        let mut transaction = self.begin_repeatable_read("run load").await?;
         let row = query_as::<_, RunRow>(SELECT_RUN)
             .bind(tenant_id.as_str())
             .bind(*run_id.as_uuid())
-            .fetch_optional(&self.pool)
+            .fetch_optional(&mut *transaction)
             .await
             .map_err(|source| StoreError::database("run load", source))?
             .ok_or(StoreError::RunNotFound)?;
@@ -1686,7 +1917,394 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
         {
             return Err(StoreError::corrupt("run scope"));
         }
+        verify_current_wait_set(&mut transaction, &stored).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("run load commit", source))?;
         Ok(stored)
+    }
+
+    /// Loads and verifies the immutable request half of one durable interrupt.
+    ///
+    /// The request remains available after resolution or explicit abandonment;
+    /// terminal history is exposed by the corresponding terminal APIs.
+    ///
+    /// # Errors
+    ///
+    /// Returns an exact not-found/kind mismatch, corruption, or database error.
+    pub async fn load_interrupt_request(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        interrupt_id: InterruptId,
+    ) -> Result<InterruptRequest, StoreError> {
+        let mut transaction = self.begin_repeatable_read("interrupt request load").await?;
+        let wait = load_and_verify_wait_registration(
+            &mut transaction,
+            tenant_id,
+            run_id,
+            *interrupt_id.as_uuid(),
+        )
+        .await?;
+        let DurableWait::Interrupt { request } = wait else {
+            return Err(StoreError::WaitRegistrationKindMismatch);
+        };
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("interrupt request load commit", source))?;
+        Ok(*request)
+    }
+
+    /// Loads and verifies one immutable durable timer registration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an exact not-found/kind mismatch, corruption, or database error.
+    pub async fn load_durable_timer(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        timer_id: TimerId,
+    ) -> Result<DurableTimer, StoreError> {
+        let mut transaction = self.begin_repeatable_read("durable timer load").await?;
+        let wait = load_and_verify_wait_registration(
+            &mut transaction,
+            tenant_id,
+            run_id,
+            *timer_id.as_uuid(),
+        )
+        .await?;
+        let DurableWait::Timer { timer } = wait else {
+            return Err(StoreError::WaitRegistrationKindMismatch);
+        };
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("durable timer load commit", source))?;
+        Ok(*timer)
+    }
+
+    /// Loads and validates the complete request/resolution history of one interrupt.
+    ///
+    /// # Errors
+    ///
+    /// Returns not-found, kind/conflict, corruption, or database failures.
+    pub async fn load_interrupt_record(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        interrupt_id: InterruptId,
+    ) -> Result<InterruptRecord, StoreError> {
+        let mut transaction = self.begin_repeatable_read("interrupt history load").await?;
+        let row = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID.as_str())
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*interrupt_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("interrupt registration load", source))?
+            .ok_or(StoreError::WaitRegistrationNotFound)?;
+        let record = load_interrupt_record_from_row(&mut transaction, &row).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("interrupt history load commit", source))?;
+        Ok(record)
+    }
+
+    /// Loads and validates the complete registration/firing history of one timer.
+    ///
+    /// # Errors
+    ///
+    /// Returns not-found, kind/conflict, corruption, or database failures.
+    pub async fn load_durable_timer_record(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        timer_id: TimerId,
+    ) -> Result<DurableTimerRecord, StoreError> {
+        let mut transaction = self.begin_repeatable_read("timer history load").await?;
+        let row = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID.as_str())
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*timer_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("timer registration load", source))?
+            .ok_or(StoreError::WaitRegistrationNotFound)?;
+        let record = load_timer_record_from_row(&mut transaction, &row).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("timer history load commit", source))?;
+        Ok(record)
+    }
+
+    /// Loads and validates the immutable audit fact for one abandoned interrupt.
+    ///
+    /// # Errors
+    ///
+    /// Returns exact registration/abandonment not-found, kind mismatch,
+    /// corruption, or database failures.
+    pub async fn load_interrupt_abandonment(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        interrupt_id: InterruptId,
+    ) -> Result<WaitAbandonment, StoreError> {
+        let mut transaction = self
+            .begin_repeatable_read("interrupt abandonment load")
+            .await?;
+        let abandonment = load_wait_abandonment_by_id(
+            &mut transaction,
+            tenant_id,
+            run_id,
+            *interrupt_id.as_uuid(),
+        )
+        .await?;
+        if !matches!(abandonment.wait(), DurableWait::Interrupt { .. }) {
+            return Err(StoreError::WaitRegistrationKindMismatch);
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("interrupt abandonment load commit", source))?;
+        Ok(abandonment)
+    }
+
+    /// Loads and validates the immutable audit fact for one abandoned timer.
+    ///
+    /// # Errors
+    ///
+    /// Returns exact registration/abandonment not-found, kind mismatch,
+    /// corruption, or database failures.
+    pub async fn load_timer_abandonment(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        timer_id: TimerId,
+    ) -> Result<WaitAbandonment, StoreError> {
+        let mut transaction = self.begin_repeatable_read("timer abandonment load").await?;
+        let abandonment =
+            load_wait_abandonment_by_id(&mut transaction, tenant_id, run_id, *timer_id.as_uuid())
+                .await?;
+        if !matches!(abandonment.wait(), DurableWait::Timer { .. }) {
+            return Err(StoreError::WaitRegistrationKindMismatch);
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("timer abandonment load commit", source))?;
+        Ok(abandonment)
+    }
+
+    /// Loads one fixed-database-cutoff page of outstanding timers whose due
+    /// instant has been reached.
+    ///
+    /// New registrations cannot enter an existing cutoff because a timer's due
+    /// instant is strictly after its registration observation. Concurrent
+    /// firings may remove rows, while the exact keyset cursor prevents repeats.
+    ///
+    /// # Errors
+    ///
+    /// Returns cursor, clock, corruption, or database failures.
+    pub async fn load_due_timer_page(
+        &self,
+        tenant_id: &TenantId,
+        cursor: Option<&DueTimerPageCursor>,
+        page_size: WaitDiscoveryPageSize,
+    ) -> Result<DueTimerPage, StoreError> {
+        if cursor.is_some_and(|cursor| {
+            &cursor.tenant_id != tenant_id || cursor.due_at > cursor.snapshot_at
+        }) {
+            return Err(StoreError::InvalidDueTimerCursor);
+        }
+        let mut transaction = self.begin_repeatable_read("due timer page").await?;
+        let (transaction_started_at, observed_at) =
+            database_scheduler_times(&mut transaction, "due timer page clock").await?;
+        let snapshot_at = cursor.map_or(transaction_started_at, |cursor| cursor.snapshot_at);
+        if observed_at < transaction_started_at || observed_at < snapshot_at {
+            return Err(StoreError::DatabaseClockRegression);
+        }
+        let mut rows = query_as::<_, WaitRegistrationRow>(SELECT_DUE_TIMER_PAGE.as_str())
+            .bind(tenant_id.as_str())
+            .bind(to_database_time(snapshot_at)?)
+            .bind(
+                cursor
+                    .map(|cursor| to_database_time(cursor.due_at))
+                    .transpose()?,
+            )
+            .bind(cursor.map(|cursor| *cursor.run_id.as_uuid()))
+            .bind(cursor.map(|cursor| *cursor.timer_id.as_uuid()))
+            .bind(i64::from(page_size.get()) + 1)
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("due timer page query", source))?;
+        let has_more = rows.len() > usize::from(page_size.get());
+        rows.truncate(usize::from(page_size.get()));
+        let mut owners = BTreeMap::new();
+        let mut records = Vec::with_capacity(rows.len());
+        let mut previous = cursor.map(|cursor| (cursor.due_at, cursor.run_id, cursor.timer_id));
+        for row in rows {
+            let sequence = row.registration_sequence;
+            let wait = decode_wait_registration(&row)?;
+            let DurableWait::Timer { timer } = wait else {
+                return Err(StoreError::corrupt("due timer page kind"));
+            };
+            verify_wait_registration_event(
+                &mut transaction,
+                &DurableWait::Timer {
+                    timer: timer.clone(),
+                },
+                sequence,
+            )
+            .await?;
+            let key = (
+                timer.marker().due_at(),
+                timer.intent().run_id(),
+                timer.marker().timer_id(),
+            );
+            if key.0 > snapshot_at
+                || previous
+                    .as_ref()
+                    .is_some_and(|previous| !wait_discovery_key_after(&key, previous))
+            {
+                return Err(StoreError::corrupt("due timer page order"));
+            }
+            let owner = load_discovery_wait_owner(
+                &mut transaction,
+                &mut owners,
+                tenant_id,
+                timer.intent().run_id(),
+            )
+            .await?;
+            if owner
+                .lifecycle()
+                .waits()
+                .and_then(|waits| waits.timer(timer.marker().timer_id()))
+                != Some(timer.marker())
+            {
+                return Err(StoreError::corrupt("due timer lifecycle owner"));
+            }
+            previous = Some(key);
+            records.push(*timer);
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("due timer page commit", source))?;
+        Ok(DueTimerPage {
+            tenant_id: tenant_id.clone(),
+            snapshot_at,
+            records,
+            has_more,
+        })
+    }
+
+    /// Loads one fixed-database-cutoff page of unresolved interrupts at or past
+    /// their exclusive expiry.
+    ///
+    /// # Errors
+    ///
+    /// Returns cursor, clock, corruption, or database failures.
+    pub async fn load_expired_interrupt_page(
+        &self,
+        tenant_id: &TenantId,
+        cursor: Option<&ExpiredInterruptPageCursor>,
+        page_size: WaitDiscoveryPageSize,
+    ) -> Result<ExpiredInterruptPage, StoreError> {
+        if cursor.is_some_and(|cursor| {
+            &cursor.tenant_id != tenant_id || cursor.expires_at > cursor.snapshot_at
+        }) {
+            return Err(StoreError::InvalidExpiredInterruptCursor);
+        }
+        let mut transaction = self.begin_repeatable_read("expired interrupt page").await?;
+        let (transaction_started_at, observed_at) =
+            database_scheduler_times(&mut transaction, "expired interrupt page clock").await?;
+        let snapshot_at = cursor.map_or(transaction_started_at, |cursor| cursor.snapshot_at);
+        if observed_at < transaction_started_at || observed_at < snapshot_at {
+            return Err(StoreError::DatabaseClockRegression);
+        }
+        let mut rows = query_as::<_, WaitRegistrationRow>(SELECT_EXPIRED_INTERRUPT_PAGE.as_str())
+            .bind(tenant_id.as_str())
+            .bind(to_database_time(snapshot_at)?)
+            .bind(
+                cursor
+                    .map(|cursor| to_database_time(cursor.expires_at))
+                    .transpose()?,
+            )
+            .bind(cursor.map(|cursor| *cursor.run_id.as_uuid()))
+            .bind(cursor.map(|cursor| *cursor.interrupt_id.as_uuid()))
+            .bind(i64::from(page_size.get()) + 1)
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("expired interrupt page query", source))?;
+        let has_more = rows.len() > usize::from(page_size.get());
+        rows.truncate(usize::from(page_size.get()));
+        let mut owners = BTreeMap::new();
+        let mut records = Vec::with_capacity(rows.len());
+        let mut previous =
+            cursor.map(|cursor| (cursor.expires_at, cursor.run_id, cursor.interrupt_id));
+        for row in rows {
+            let sequence = row.registration_sequence;
+            let wait = decode_wait_registration(&row)?;
+            let DurableWait::Interrupt { request } = wait else {
+                return Err(StoreError::corrupt("expired interrupt page kind"));
+            };
+            verify_wait_registration_event(
+                &mut transaction,
+                &DurableWait::Interrupt {
+                    request: request.clone(),
+                },
+                sequence,
+            )
+            .await?;
+            let expires_at = request
+                .marker()
+                .expires_at()
+                .ok_or_else(|| StoreError::corrupt("expired interrupt finite expiry"))?;
+            let key = (
+                expires_at,
+                request.intent().run_id(),
+                request.marker().interrupt_id(),
+            );
+            if expires_at > snapshot_at
+                || previous
+                    .as_ref()
+                    .is_some_and(|previous| !wait_discovery_key_after(&key, previous))
+            {
+                return Err(StoreError::corrupt("expired interrupt page order"));
+            }
+            let owner = load_discovery_wait_owner(
+                &mut transaction,
+                &mut owners,
+                tenant_id,
+                request.intent().run_id(),
+            )
+            .await?;
+            if owner
+                .lifecycle()
+                .waits()
+                .and_then(|waits| waits.interrupt(request.marker().interrupt_id()))
+                != Some(request.marker())
+            {
+                return Err(StoreError::corrupt("expired interrupt lifecycle owner"));
+            }
+            previous = Some(key);
+            records.push(*request);
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("expired interrupt page commit", source))?;
+        Ok(ExpiredInterruptPage {
+            tenant_id: tenant_id.clone(),
+            snapshot_at,
+            records,
+            has_more,
+        })
     }
 
     /// Loads one tenant-scoped, stable-snapshot page of runnable candidates.
@@ -4700,6 +5318,219 @@ WHERE tenant_id = $1
             .await
     }
 
+    /// Atomically commits the first graph checkpoint while suspending an active
+    /// run on a complete durable interrupt/timer set.
+    ///
+    /// The database clock materializes every compact lifecycle marker, so the
+    /// caller supplies immutable registration intents rather than guessed
+    /// registration timestamps. Successor wait barriers use the separate
+    /// complete-result barrier API.
+    ///
+    /// # Errors
+    ///
+    /// Rejects worker sources, non-root checkpoints, invalid wait batches,
+    /// stale lifecycle/journal state, identity conflicts, or database failures.
+    pub async fn append_control_plane_initial_wait_checkpoint(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        checkpoint: CheckpointWrite,
+        registrations: Vec<WaitRegistrationIntent>,
+    ) -> Result<WaitCheckpointCommitOutcome, StoreError> {
+        if append.worker_fence().is_some() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        if checkpoint.parent().is_some() {
+            return Err(StoreError::CheckpointBarrierRequired);
+        }
+        self.append_initial_wait_checkpoint(
+            append,
+            expected_revision,
+            checkpoint,
+            registrations,
+            AppendAuthority::ControlPlane,
+        )
+        .await
+    }
+
+    /// Fenced worker form of
+    /// [`Self::append_control_plane_initial_wait_checkpoint`].
+    ///
+    /// # Errors
+    ///
+    /// Rejects control-plane sources, non-root checkpoints, expired fencing,
+    /// invalid wait batches, conflicts, corruption, or database failures.
+    pub async fn append_worker_initial_wait_checkpoint(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        checkpoint: CheckpointWrite,
+        registrations: Vec<WaitRegistrationIntent>,
+    ) -> Result<WaitCheckpointCommitOutcome, StoreError> {
+        if append.worker_fence().is_none() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        if checkpoint.parent().is_some() {
+            return Err(StoreError::CheckpointBarrierRequired);
+        }
+        self.append_initial_wait_checkpoint(
+            append,
+            expected_revision,
+            checkpoint,
+            registrations,
+            AppendAuthority::Worker,
+        )
+        .await
+    }
+
+    /// Atomically commits an authenticated resolution and removes exactly one
+    /// outstanding interrupt from the lifecycle wait set.
+    ///
+    /// Resolution is a control-plane operation: the core intent already carries
+    /// the authenticated principal and bounded scope snapshot evaluated again at
+    /// the authoritative database observation.
+    ///
+    /// # Errors
+    ///
+    /// Rejects worker sources, stale state, expired/unauthorized/substituted
+    /// resolutions, terminal conflicts, corruption, or database failures.
+    pub async fn resolve_interrupt(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        resolution: InterruptResolutionIntent,
+    ) -> Result<InterruptResolutionCommitOutcome, StoreError> {
+        if append.worker_fence().is_some() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        self.commit_interrupt_resolution(append, expected_revision, resolution)
+            .await
+    }
+
+    /// Atomically records a database-clock-valid firing and removes exactly one
+    /// outstanding timer from the lifecycle wait set.
+    ///
+    /// # Errors
+    ///
+    /// Rejects worker sources, early/substituted firings, stale state, terminal
+    /// conflicts, corruption, or database failures.
+    pub async fn fire_timer(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        firing: TimerFiringIntent,
+    ) -> Result<TimerFiringCommitOutcome, StoreError> {
+        if append.worker_fence().is_some() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        self.commit_timer_firing(append, expected_revision, firing)
+            .await
+    }
+
+    /// Atomically applies cancellation/failure to a waiting run and records one
+    /// abandonment fact for every outstanding interrupt and timer.
+    ///
+    /// # Errors
+    ///
+    /// Rejects worker sources, non-cancellation/failure transitions, stale
+    /// state, incomplete evidence sets, corruption, or database failures.
+    pub async fn append_control_plane_abandon_waits(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        transition: RunTransition,
+    ) -> Result<WaitAbandonmentCommitOutcome, StoreError> {
+        if append.worker_fence().is_some() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        self.commit_wait_abandonment(
+            append,
+            expected_revision,
+            transition,
+            AppendAuthority::ControlPlane,
+        )
+        .await
+    }
+
+    /// Fenced worker form of [`Self::append_control_plane_abandon_waits`].
+    ///
+    /// # Errors
+    ///
+    /// Rejects control-plane sources, invalid transitions, stale/expired
+    /// fencing, incomplete evidence, corruption, or database failures.
+    pub async fn append_worker_abandon_waits(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        transition: RunTransition,
+    ) -> Result<WaitAbandonmentCommitOutcome, StoreError> {
+        if append.worker_fence().is_none() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        self.commit_wait_abandonment(
+            append,
+            expected_revision,
+            transition,
+            AppendAuthority::Worker,
+        )
+        .await
+    }
+
+    /// Atomically consumes a complete result barrier, commits its successor
+    /// checkpoint, and suspends the run on one durable wait batch.
+    ///
+    /// # Errors
+    ///
+    /// Rejects worker sources, incomplete/substituted barriers, invalid wait
+    /// batches, stale lifecycle/journal/checkpoint state, corruption, or
+    /// database failures.
+    pub async fn append_control_plane_wait_barrier(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        barrier: CheckpointBarrier,
+        registrations: Vec<WaitRegistrationIntent>,
+    ) -> Result<WaitCheckpointCommitOutcome, StoreError> {
+        if append.worker_fence().is_some() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        Box::pin(self.append_wait_barrier(
+            append,
+            expected_revision,
+            barrier,
+            registrations,
+            AppendAuthority::ControlPlane,
+        ))
+        .await
+    }
+
+    /// Fenced worker form of [`Self::append_control_plane_wait_barrier`].
+    ///
+    /// # Errors
+    ///
+    /// Rejects control-plane sources, incomplete/substituted barriers, invalid
+    /// waits, stale/expired fencing or durable state, corruption, or database
+    /// failures.
+    pub async fn append_worker_wait_barrier(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        barrier: CheckpointBarrier,
+        registrations: Vec<WaitRegistrationIntent>,
+    ) -> Result<WaitCheckpointCommitOutcome, StoreError> {
+        if append.worker_fence().is_none() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        Box::pin(self.append_wait_barrier(
+            append,
+            expected_revision,
+            barrier,
+            registrations,
+            AppendAuthority::Worker,
+        ))
+        .await
+    }
+
     /// Atomically consumes a complete result barrier and commits its
     /// control-plane event and successor checkpoint.
     ///
@@ -5073,6 +5904,572 @@ WHERE tenant_id = $1
     }
 
     #[allow(clippy::too_many_lines)]
+    async fn commit_interrupt_resolution(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        resolution_intent: InterruptResolutionIntent,
+    ) -> Result<InterruptResolutionCommitOutcome, StoreError> {
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        let request_head = resolution_intent.request();
+        if request_head.tenant_id() != &tenant_id
+            || request_head.run_id() != run_id
+            || resolution_intent.resolution_event_id() != event_id
+        {
+            return Err(StoreError::InvalidInterruptResolution);
+        }
+        let interrupt_id = request_head.interrupt_id();
+        let projection_digest = wait_terminal_projection_digest(
+            INTERRUPT_RESOLUTION_PROJECTION_DIGEST_DOMAIN,
+            expected_revision,
+            resolution_intent.intent_digest(),
+        )?;
+        let mut transaction = self.begin_mutation("interrupt resolution").await?;
+        let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(row)?;
+        verify_current_wait_set(&mut transaction, &stored).await?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("interrupt resolution event lookup", source))?;
+        if let Some(row) = existing_event {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "interrupt resolution projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            if committed_projection != Some(projection_digest) {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            let row = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID.as_str())
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*interrupt_id.as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| {
+                    StoreError::database("interrupt resolution registration lookup", source)
+                })?
+                .ok_or(StoreError::InterruptResolutionCommitConflict)?;
+            let record = load_interrupt_record_from_row(&mut transaction, &row).await?;
+            let expected = InterruptResolution::commit(resolution_intent, event.head())
+                .map_err(|_| StoreError::InvalidInterruptResolution)?;
+            if record.request().head() != *expected.intent().request()
+                || record.resolution() != Some(&expected)
+                || expected.journal() != &event.head()
+            {
+                return Err(StoreError::InterruptResolutionCommitConflict);
+            }
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent interrupt resolution commit", source)
+            })?;
+            return Ok(InterruptResolutionCommitOutcome::Idempotent { event, record });
+        }
+
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Waiting {
+            return Err(StoreError::InvalidInterruptResolution);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let registration =
+            query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID_FOR_UPDATE.as_str())
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*interrupt_id.as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("interrupt registration lock", source))?
+                .ok_or(StoreError::WaitRegistrationNotFound)?;
+        let wait = decode_wait_registration(&registration)?;
+        let DurableWait::Interrupt { request } = wait else {
+            return Err(StoreError::WaitRegistrationKindMismatch);
+        };
+        if registration.status != "outstanding" || request.head() != *request_head {
+            return Err(StoreError::InvalidInterruptResolution);
+        }
+
+        let observed_at = database_now(&mut transaction, "interrupt resolution clock").await?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let resolution = InterruptResolution::commit(resolution_intent, event.head())
+            .map_err(|_| StoreError::InvalidInterruptResolution)?;
+        let prepared_projection = prepare_durable_wait_projection(
+            &stored,
+            &tenant_id,
+            run_id,
+            expected_revision,
+            RunTransition::ResolveInterrupt {
+                interrupt_id,
+                resolved_at: resolution.resolved_at(),
+            },
+            recorded_at,
+        )?;
+        let record = InterruptRecord::restore(*request, Some(resolution.clone()))
+            .map_err(|_| StoreError::InvalidInterruptResolution)?;
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        insert_interrupt_resolution(&mut transaction, record.request(), &resolution).await?;
+        project_interrupt_resolution(&mut transaction, record.request(), &resolution).await?;
+        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("interrupt resolution commit", source))?;
+        Ok(InterruptResolutionCommitOutcome::Committed { event, record })
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn commit_timer_firing(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        firing_intent: TimerFiringIntent,
+    ) -> Result<TimerFiringCommitOutcome, StoreError> {
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        let timer_head = firing_intent.timer();
+        if timer_head.tenant_id() != &tenant_id
+            || timer_head.run_id() != run_id
+            || firing_intent.firing_event_id() != event_id
+        {
+            return Err(StoreError::InvalidTimerFiring);
+        }
+        let timer_id = timer_head.timer_id();
+        let projection_digest = wait_terminal_projection_digest(
+            TIMER_FIRING_PROJECTION_DIGEST_DOMAIN,
+            expected_revision,
+            firing_intent.intent_digest(),
+        )?;
+        let mut transaction = self.begin_mutation("timer firing").await?;
+        let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(row)?;
+        verify_current_wait_set(&mut transaction, &stored).await?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("timer firing event lookup", source))?;
+        if let Some(row) = existing_event {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "timer firing projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            if committed_projection != Some(projection_digest) {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            let row = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID.as_str())
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*timer_id.as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("timer firing registration lookup", source))?
+                .ok_or(StoreError::TimerFiringCommitConflict)?;
+            let record = load_timer_record_from_row(&mut transaction, &row).await?;
+            let expected = TimerFiring::commit(firing_intent, event.head())
+                .map_err(|_| StoreError::InvalidTimerFiring)?;
+            if record.timer().head() != *expected.intent().timer()
+                || record.firing() != Some(&expected)
+                || expected.journal() != &event.head()
+            {
+                return Err(StoreError::TimerFiringCommitConflict);
+            }
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("idempotent timer firing commit", source))?;
+            return Ok(TimerFiringCommitOutcome::Idempotent { event, record });
+        }
+
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Waiting {
+            return Err(StoreError::InvalidTimerFiring);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let registration =
+            query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID_FOR_UPDATE.as_str())
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*timer_id.as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("timer registration lock", source))?
+                .ok_or(StoreError::WaitRegistrationNotFound)?;
+        let wait = decode_wait_registration(&registration)?;
+        let DurableWait::Timer { timer } = wait else {
+            return Err(StoreError::WaitRegistrationKindMismatch);
+        };
+        if registration.status != "outstanding" || timer.head() != *timer_head {
+            return Err(StoreError::InvalidTimerFiring);
+        }
+
+        let observed_at = database_now(&mut transaction, "timer firing clock").await?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let firing = TimerFiring::commit(firing_intent, event.head())
+            .map_err(|_| StoreError::InvalidTimerFiring)?;
+        let prepared_projection = prepare_durable_wait_projection(
+            &stored,
+            &tenant_id,
+            run_id,
+            expected_revision,
+            RunTransition::FireTimer {
+                timer_id,
+                fired_at: firing.fired_at(),
+            },
+            recorded_at,
+        )?;
+        let record = DurableTimerRecord::restore(*timer, Some(firing.clone()))
+            .map_err(|_| StoreError::InvalidTimerFiring)?;
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        insert_timer_firing(&mut transaction, record.timer(), &firing).await?;
+        project_timer_firing(&mut transaction, record.timer(), &firing).await?;
+        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("timer firing commit", source))?;
+        Ok(TimerFiringCommitOutcome::Committed { event, record })
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn commit_wait_abandonment(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        transition: RunTransition,
+        authority: AppendAuthority,
+    ) -> Result<WaitAbandonmentCommitOutcome, StoreError> {
+        let reason = wait_abandonment_transition_reason(&transition)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        let run_projection = RunProjection::transition(expected_revision, transition.clone());
+
+        let mut transaction = self.begin_mutation("wait abandonment").await?;
+        let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(row)?;
+        verify_current_wait_set(&mut transaction, &stored).await?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("wait abandonment event lookup", source))?;
+        if let Some(row) = existing_event {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "wait abandonment projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            let abandonments = load_wait_abandonment_set(&mut transaction, &event).await?;
+            if abandonments
+                .iter()
+                .any(|abandonment| abandonment.reason() != reason)
+            {
+                return Err(StoreError::WaitAbandonmentCommitConflict);
+            }
+            let waits = abandonments
+                .iter()
+                .map(|abandonment| abandonment.wait().clone())
+                .collect::<Vec<_>>();
+            if committed_projection
+                != Some(wait_abandonment_projection_digest(&run_projection, &waits)?)
+            {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent wait abandonment commit", source)
+            })?;
+            return Ok(WaitAbandonmentCommitOutcome::Idempotent {
+                event,
+                abandonments,
+            });
+        }
+
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Waiting {
+            return Err(StoreError::InvalidWaitAbandonment);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let rows = query_as::<_, WaitRegistrationRow>(
+            SELECT_OUTSTANDING_WAIT_REGISTRATIONS_FOR_UPDATE.as_str(),
+        )
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .fetch_all(&mut *transaction)
+        .await
+        .map_err(|source| StoreError::database("wait abandonment registration lock", source))?;
+        if rows.is_empty()
+            || rows.len() > RunWaits::MAX_LEN
+            || rows.len() != usize::from(stored.unresolved_wait_count())
+        {
+            return Err(StoreError::WaitAbandonmentCommitConflict);
+        }
+        let mut waits = Vec::with_capacity(rows.len());
+        for row in rows {
+            let sequence = row.registration_sequence;
+            let wait = decode_wait_registration(&row)?;
+            if row.status != "outstanding" {
+                return Err(StoreError::WaitAbandonmentCommitConflict);
+            }
+            verify_wait_registration_event(&mut transaction, &wait, sequence).await?;
+            waits.push(wait);
+        }
+
+        let observed_at = database_now(&mut transaction, "wait abandonment clock").await?;
+        match authority {
+            AppendAuthority::ControlPlane => {
+                if append.worker_fence().is_some() {
+                    return Err(StoreError::WrongAppendAuthority);
+                }
+            }
+            AppendAuthority::Worker => {
+                let fence = append
+                    .worker_fence()
+                    .ok_or(StoreError::WrongAppendAuthority)?;
+                authorize_worker(&stored, fence, observed_at)?;
+            }
+        }
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let prepared_projection = prepare_durable_wait_projection(
+            &stored,
+            &tenant_id,
+            run_id,
+            expected_revision,
+            transition,
+            recorded_at,
+        )?;
+        let projection_digest = wait_abandonment_projection_digest(&run_projection, &waits)?;
+        let abandonments = waits
+            .into_iter()
+            .map(|wait| materialize_wait_abandonment(wait, reason, event.head()))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        for abandonment in &abandonments {
+            insert_wait_abandonment(&mut transaction, abandonment).await?;
+            project_wait_abandonment(&mut transaction, abandonment).await?;
+        }
+        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("wait abandonment commit", source))?;
+        Ok(WaitAbandonmentCommitOutcome::Committed {
+            event,
+            abandonments,
+        })
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn append_initial_wait_checkpoint(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        checkpoint_write: CheckpointWrite,
+        registrations: Vec<WaitRegistrationIntent>,
+        authority: AppendAuthority,
+    ) -> Result<WaitCheckpointCommitOutcome, StoreError> {
+        validate_wait_registration_batch(&append, &registrations)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if checkpoint_write.tenant_id() != &tenant_id
+            || checkpoint_write.run_id() != run_id
+            || checkpoint_write.parent().is_some()
+        {
+            return Err(StoreError::WaitRegistrationCommitConflict);
+        }
+        let projection_digest = wait_registration_projection_digest(
+            expected_revision,
+            &checkpoint_write,
+            &registrations,
+        )?;
+
+        let mut transaction = self.begin_mutation("initial wait checkpoint").await?;
+        let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(row)?;
+        verify_current_wait_set(&mut transaction, &stored).await?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("wait checkpoint event lookup", source))?;
+        if let Some(row) = existing_event {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "wait registration projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            if committed_projection != Some(projection_digest) {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ANCHOR)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(
+                    i64::try_from(event.sequence().get())
+                        .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                )
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("wait checkpoint anchor lookup", source))?
+                .ok_or(StoreError::WaitRegistrationCommitConflict)?;
+            let checkpoint = decode_checkpoint(row)?;
+            if checkpoint.checkpoint_id() != checkpoint_write.checkpoint_id()
+                || !checkpoint.matches_write(&checkpoint_write)
+                || checkpoint.journal_head() != &event.head()
+            {
+                return Err(StoreError::WaitRegistrationCommitConflict);
+            }
+            let waits = materialize_wait_registrations(registrations, &event)?;
+            verify_wait_registration_set(&mut transaction, &event, &waits).await?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent initial wait checkpoint commit", source)
+            })?;
+            return Ok(WaitCheckpointCommitOutcome::Idempotent {
+                event,
+                checkpoint,
+                waits,
+            });
+        }
+
+        let existing_checkpoint = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*checkpoint_write.checkpoint_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("wait checkpoint identity lookup", source))?;
+        if existing_checkpoint.is_some() {
+            return Err(StoreError::CheckpointIdConflict);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Active {
+            return Err(StoreError::RunNotRunnable);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        if load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+            .await?
+            .is_some()
+        {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+
+        let observed_at = database_now(&mut transaction, "initial wait checkpoint clock").await?;
+        match authority {
+            AppendAuthority::ControlPlane => {
+                if append.worker_fence().is_some() {
+                    return Err(StoreError::WrongAppendAuthority);
+                }
+            }
+            AppendAuthority::Worker => {
+                let fence = append
+                    .worker_fence()
+                    .ok_or(StoreError::WrongAppendAuthority)?;
+                authorize_worker(&stored, fence, observed_at)?;
+            }
+        }
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let waits = materialize_wait_registrations(registrations, &event)?;
+        let lifecycle_waits = RunWaits::try_new(waits.iter().map(DurableWait::marker))
+            .map_err(|_| StoreError::InvalidWaitRegistrationBatch)?;
+        let prepared_projection = prepare_durable_wait_projection(
+            &stored,
+            &tenant_id,
+            run_id,
+            expected_revision,
+            RunTransition::Wait {
+                waits: lifecycle_waits,
+            },
+            recorded_at,
+        )?;
+        let checkpoint = Checkpoint::commit(checkpoint_write, event.head())
+            .map_err(|_| StoreError::encoding("wait checkpoint commit"))?;
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        insert_checkpoint(&mut transaction, &checkpoint, event.source()).await?;
+        for wait in &waits {
+            insert_wait_registration(&mut transaction, wait).await?;
+        }
+        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
+        update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("initial wait checkpoint commit", source))?;
+        Ok(WaitCheckpointCommitOutcome::Committed {
+            event,
+            checkpoint,
+            waits,
+        })
+    }
+
+    #[allow(clippy::too_many_lines)]
     async fn append_checkpoint(
         &self,
         append: JournalAppend,
@@ -5237,6 +6634,196 @@ WHERE tenant_id = $1
             StoreError::database("checkpoint barrier preflight commit", source)
         })?;
         Ok(())
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn append_wait_barrier(
+        &self,
+        append: JournalAppend,
+        expected_revision: RunRevision,
+        barrier: CheckpointBarrier,
+        registrations: Vec<WaitRegistrationIntent>,
+        authority: AppendAuthority,
+    ) -> Result<WaitCheckpointCommitOutcome, StoreError> {
+        validate_wait_registration_batch(&append, &registrations)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        let base = barrier.base_checkpoint();
+        let successor = barrier.successor();
+        if base.tenant_id() != &tenant_id
+            || base.run_id() != run_id
+            || successor.tenant_id() != &tenant_id
+            || successor.run_id() != run_id
+        {
+            return Err(StoreError::CheckpointBarrierCommitConflict);
+        }
+        let projection_digest = wait_barrier_projection_digest(
+            expected_revision,
+            barrier.intent_digest(),
+            &registrations,
+        )?;
+        self.verify_checkpoint_barrier_preflight(&barrier).await?;
+
+        let mut transaction = self
+            .begin_mutation("wait checkpoint barrier append")
+            .await?;
+        let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(row)?;
+        verify_current_wait_set(&mut transaction, &stored).await?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("wait barrier event lookup", source))?;
+        if let Some(row) = existing_event {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "wait barrier projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            if committed_projection != Some(projection_digest) {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ANCHOR)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(
+                    i64::try_from(event.sequence().get())
+                        .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                )
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("wait barrier anchor lookup", source))?
+                .ok_or(StoreError::CheckpointBarrierCommitConflict)?;
+            let checkpoint = decode_checkpoint(row)?;
+            if checkpoint.checkpoint_id() != successor.checkpoint_id()
+                || !checkpoint.matches_write(successor)
+                || checkpoint.journal_head() != &event.head()
+            {
+                return Err(StoreError::CheckpointBarrierCommitConflict);
+            }
+            let waits = materialize_wait_registrations(registrations, &event)?;
+            verify_barrier_consumptions(&mut transaction, &barrier, &checkpoint).await?;
+            verify_wait_registration_set(&mut transaction, &event, &waits).await?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent wait checkpoint barrier commit", source)
+            })?;
+            return Ok(WaitCheckpointCommitOutcome::Idempotent {
+                event,
+                checkpoint,
+                waits,
+            });
+        }
+
+        let existing_checkpoint = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*successor.checkpoint_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("wait barrier checkpoint lookup", source))?;
+        if existing_checkpoint.is_some() {
+            return Err(StoreError::CheckpointIdConflict);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Active {
+            return Err(StoreError::RunNotRunnable);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *base {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if current_checkpoint.ready_nodes() != barrier.base_ready_nodes() {
+            return Err(StoreError::InvalidCheckpointBarrier);
+        }
+        ensure_no_unsettled_tool_invocations(&mut transaction, &current_checkpoint).await?;
+        ensure_no_unsettled_model_invocations(&mut transaction, &current_checkpoint).await?;
+
+        let existing_consumptions = load_barrier_consumption_rows(&mut transaction, base).await?;
+        if !existing_consumptions.is_empty() {
+            return Err(StoreError::CheckpointBarrierResultConflict);
+        }
+        let durable_heads = load_locked_barrier_result_heads(&mut transaction, base).await?;
+        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads())?;
+        let current_journal = stored
+            .journal_head()
+            .ok_or_else(|| StoreError::corrupt("wait barrier run journal head"))?;
+        if barrier.result_heads().iter().any(|head| {
+            head.journal_head().sequence() > current_journal.sequence()
+                || head.journal_head().recorded_at() > current_journal.recorded_at()
+        }) {
+            return Err(StoreError::CheckpointBarrierResultConflict);
+        }
+
+        let observed_at = database_now(&mut transaction, "wait checkpoint barrier clock").await?;
+        match authority {
+            AppendAuthority::ControlPlane => {
+                if append.worker_fence().is_some() {
+                    return Err(StoreError::WrongAppendAuthority);
+                }
+            }
+            AppendAuthority::Worker => {
+                let fence = append
+                    .worker_fence()
+                    .ok_or(StoreError::WrongAppendAuthority)?;
+                authorize_worker(&stored, fence, observed_at)?;
+            }
+        }
+
+        let recorded_at = observed_at.max(current_journal.recorded_at());
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let waits = materialize_wait_registrations(registrations, &event)?;
+        let lifecycle_waits = RunWaits::try_new(waits.iter().map(DurableWait::marker))
+            .map_err(|_| StoreError::InvalidWaitRegistrationBatch)?;
+        let prepared_projection = prepare_durable_wait_projection(
+            &stored,
+            &tenant_id,
+            run_id,
+            expected_revision,
+            RunTransition::Wait {
+                waits: lifecycle_waits,
+            },
+            recorded_at,
+        )?;
+        let checkpoint = Checkpoint::commit(successor.clone(), event.head())
+            .map_err(|_| StoreError::encoding("wait checkpoint barrier commit"))?;
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        insert_checkpoint(&mut transaction, &checkpoint, event.source()).await?;
+        for wait in &waits {
+            insert_wait_registration(&mut transaction, wait).await?;
+        }
+        insert_barrier_consumptions(&mut transaction, &barrier, &checkpoint, event.source())
+            .await?;
+        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
+        update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("wait checkpoint barrier commit", source))?;
+        Ok(WaitCheckpointCommitOutcome::Committed {
+            event,
+            checkpoint,
+            waits,
+        })
     }
 
     #[allow(clippy::too_many_lines)]
@@ -5494,6 +7081,10 @@ struct RunRow {
     lease_renewed_at: Option<DateTime<Utc>>,
     lease_expires_at: Option<DateTime<Utc>>,
     scheduler_ready_at: Option<DateTime<Utc>>,
+    wait_set_digest: Option<Vec<u8>>,
+    unresolved_wait_count: i16,
+    next_timer_due_at: Option<DateTime<Utc>>,
+    next_interrupt_expiry_at: Option<DateTime<Utc>>,
     quarantined_at: Option<DateTime<Utc>>,
 }
 
@@ -5516,6 +7107,80 @@ struct EventRow {
     projection_digest: Option<Vec<u8>>,
     previous_digest: Option<Vec<u8>>,
     event_digest: Vec<u8>,
+}
+
+struct WaitRegistrationRow {
+    tenant_id: String,
+    run_id: Uuid,
+    wait_id: Uuid,
+    wait_kind: String,
+    interrupt_kind: Option<String>,
+    timer_kind: Option<String>,
+    registered_at: DateTime<Utc>,
+    due_at: Option<DateTime<Utc>>,
+    expires_at: Option<DateTime<Utc>>,
+    action_digest: Option<Vec<u8>>,
+    registration_sequence: i64,
+    registration_event_id: Uuid,
+    registration_event_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    record_digest: Vec<u8>,
+    record_bytes: Vec<u8>,
+    status: String,
+    terminal_sequence: Option<i64>,
+    terminal_event_id: Option<Uuid>,
+    terminal_recorded_at: Option<DateTime<Utc>>,
+    terminal_event_digest: Option<Vec<u8>>,
+    resolution_digest: Option<Vec<u8>>,
+    firing_digest: Option<Vec<u8>>,
+    abandonment_digest: Option<Vec<u8>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+struct InterruptResolutionRow {
+    tenant_id: String,
+    run_id: Uuid,
+    interrupt_id: Uuid,
+    request_digest: Vec<u8>,
+    resolution_sequence: i64,
+    resolution_event_id: Uuid,
+    resolved_at: DateTime<Utc>,
+    resolution_event_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    resolution_digest: Vec<u8>,
+    resolution_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
+struct TimerFiringRow {
+    tenant_id: String,
+    run_id: Uuid,
+    timer_id: Uuid,
+    timer_digest: Vec<u8>,
+    firing_sequence: i64,
+    firing_event_id: Uuid,
+    fired_at: DateTime<Utc>,
+    firing_event_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    firing_digest: Vec<u8>,
+    firing_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
+struct WaitAbandonmentRow {
+    tenant_id: String,
+    run_id: Uuid,
+    wait_id: Uuid,
+    wait_kind: String,
+    registration_digest: Vec<u8>,
+    reason_kind: String,
+    abandonment_sequence: i64,
+    abandonment_event_id: Uuid,
+    abandoned_at: DateTime<Utc>,
+    abandonment_event_digest: Vec<u8>,
+    abandonment_digest: Vec<u8>,
+    created_at: DateTime<Utc>,
 }
 
 struct CheckpointRow {
@@ -5864,6 +7529,10 @@ impl<'row> FromRow<'row, PgRow> for RunRow {
             lease_renewed_at: row.try_get("lease_renewed_at")?,
             lease_expires_at: row.try_get("lease_expires_at")?,
             scheduler_ready_at: row.try_get("scheduler_ready_at")?,
+            wait_set_digest: row.try_get("wait_set_digest")?,
+            unresolved_wait_count: row.try_get("unresolved_wait_count")?,
+            next_timer_due_at: row.try_get("next_timer_due_at")?,
+            next_interrupt_expiry_at: row.try_get("next_interrupt_expiry_at")?,
             quarantined_at: row.try_get("quarantined_at")?,
         })
     }
@@ -5890,6 +7559,96 @@ impl<'row> FromRow<'row, PgRow> for EventRow {
             projection_digest: row.try_get("projection_digest")?,
             previous_digest: row.try_get("previous_digest")?,
             event_digest: row.try_get("event_digest")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for WaitRegistrationRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            wait_id: row.try_get("wait_id")?,
+            wait_kind: row.try_get("wait_kind")?,
+            interrupt_kind: row.try_get("interrupt_kind")?,
+            timer_kind: row.try_get("timer_kind")?,
+            registered_at: row.try_get("registered_at")?,
+            due_at: row.try_get("due_at")?,
+            expires_at: row.try_get("expires_at")?,
+            action_digest: row.try_get("action_digest")?,
+            registration_sequence: row.try_get("registration_sequence")?,
+            registration_event_id: row.try_get("registration_event_id")?,
+            registration_event_digest: row.try_get("registration_event_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            record_digest: row.try_get("record_digest")?,
+            record_bytes: row.try_get("record_bytes")?,
+            status: row.try_get("status")?,
+            terminal_sequence: row.try_get("terminal_sequence")?,
+            terminal_event_id: row.try_get("terminal_event_id")?,
+            terminal_recorded_at: row.try_get("terminal_recorded_at")?,
+            terminal_event_digest: row.try_get("terminal_event_digest")?,
+            resolution_digest: row.try_get("resolution_digest")?,
+            firing_digest: row.try_get("firing_digest")?,
+            abandonment_digest: row.try_get("abandonment_digest")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for InterruptResolutionRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            interrupt_id: row.try_get("interrupt_id")?,
+            request_digest: row.try_get("request_digest")?,
+            resolution_sequence: row.try_get("resolution_sequence")?,
+            resolution_event_id: row.try_get("resolution_event_id")?,
+            resolved_at: row.try_get("resolved_at")?,
+            resolution_event_digest: row.try_get("resolution_event_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            resolution_digest: row.try_get("resolution_digest")?,
+            resolution_bytes: row.try_get("resolution_bytes")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for TimerFiringRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            timer_id: row.try_get("timer_id")?,
+            timer_digest: row.try_get("timer_digest")?,
+            firing_sequence: row.try_get("firing_sequence")?,
+            firing_event_id: row.try_get("firing_event_id")?,
+            fired_at: row.try_get("fired_at")?,
+            firing_event_digest: row.try_get("firing_event_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            firing_digest: row.try_get("firing_digest")?,
+            firing_bytes: row.try_get("firing_bytes")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for WaitAbandonmentRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            wait_id: row.try_get("wait_id")?,
+            wait_kind: row.try_get("wait_kind")?,
+            registration_digest: row.try_get("registration_digest")?,
+            reason_kind: row.try_get("reason_kind")?,
+            abandonment_sequence: row.try_get("abandonment_sequence")?,
+            abandonment_event_id: row.try_get("abandonment_event_id")?,
+            abandoned_at: row.try_get("abandoned_at")?,
+            abandonment_event_digest: row.try_get("abandonment_event_digest")?,
+            abandonment_digest: row.try_get("abandonment_digest")?,
+            created_at: row.try_get("created_at")?,
         })
     }
 }
@@ -6280,6 +8039,17 @@ struct PreparedProjection {
     revision: String,
     status: &'static str,
     changed_at: DateTime<Utc>,
+    wait_set_digest: Option<Digest>,
+    unresolved_wait_count: i16,
+    next_timer_due_at: Option<DateTime<Utc>>,
+    next_interrupt_expiry_at: Option<DateTime<Utc>>,
+}
+
+struct WaitSetProjection {
+    digest: Option<Digest>,
+    count: i16,
+    next_timer_due_at: Option<Timestamp>,
+    next_interrupt_expiry_at: Option<Timestamp>,
 }
 
 #[derive(Serialize)]
@@ -6296,6 +8066,53 @@ enum ProjectionDigestWire<'a> {
 struct BarrierProjectionDigestWire {
     run_projection_digest: Digest,
     barrier_intent_digest: Digest,
+}
+
+#[derive(Serialize)]
+struct WaitRegistrationProjectionDigestWire<'a> {
+    expected_revision: &'a RunRevision,
+    checkpoint_intent_digest: Digest,
+    registrations: &'a [WaitRegistrationProjectionItem],
+}
+
+#[derive(Serialize)]
+struct WaitBarrierProjectionDigestWire<'a> {
+    expected_revision: &'a RunRevision,
+    barrier_intent_digest: Digest,
+    registrations: &'a [WaitRegistrationProjectionItem],
+}
+
+#[derive(Serialize)]
+struct WaitRegistrationProjectionItem {
+    wait_kind: &'static str,
+    wait_id: String,
+    intent_digest: Digest,
+}
+
+#[derive(Serialize)]
+struct WaitTerminalProjectionDigestWire<'a> {
+    expected_revision: &'a RunRevision,
+    intent_digest: Digest,
+}
+
+#[derive(Serialize)]
+struct WaitAbandonmentProjectionDigestWire<'a> {
+    run_projection_digest: Digest,
+    registrations: &'a [WaitAbandonmentProjectionItem],
+}
+
+#[derive(Serialize)]
+struct WaitAbandonmentProjectionItem {
+    wait_kind: &'static str,
+    wait_id: String,
+    registration_digest: Digest,
+}
+
+#[derive(Serialize)]
+struct WaitAbandonmentDigestWire<'a> {
+    registration_digest: Digest,
+    reason: WaitAbandonmentReason,
+    journal: &'a JournalHead,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -6373,6 +8190,255 @@ async fn fetch_locked_run_row(
         .await
         .map_err(|source| StoreError::database("run row lock", source))?
         .ok_or(StoreError::RunNotFound)
+}
+
+async fn load_and_verify_wait_registration(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    wait_id: Uuid,
+) -> Result<DurableWait, StoreError> {
+    let row = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID.as_str())
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(wait_id)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("wait registration load", source))?
+        .ok_or(StoreError::WaitRegistrationNotFound)?;
+    let sequence = row.registration_sequence;
+    let wait = decode_wait_registration(&row)?;
+    verify_wait_registration_event(transaction, &wait, sequence).await?;
+    if wait.tenant_id() != tenant_id
+        || wait.run_id() != run_id
+        || durable_wait_identity(&wait) != wait_id
+    {
+        return Err(StoreError::corrupt("wait registration event anchor"));
+    }
+    Ok(wait)
+}
+
+async fn verify_wait_registration_event(
+    transaction: &mut Transaction<'_, Postgres>,
+    wait: &DurableWait,
+    sequence: i64,
+) -> Result<(), StoreError> {
+    let event_row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(wait.tenant_id().as_str())
+        .bind(*wait.run_id().as_uuid())
+        .bind(sequence)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("wait registration event load", source))?
+        .ok_or_else(|| StoreError::corrupt("wait registration event anchor"))?;
+    let event = decode_event(event_row)?;
+    if wait.journal() != &event.head() {
+        return Err(StoreError::corrupt("wait registration event anchor"));
+    }
+    Ok(())
+}
+
+async fn verify_current_wait_set(
+    transaction: &mut Transaction<'_, Postgres>,
+    stored: &StoredRun,
+) -> Result<(), StoreError> {
+    if stored.is_quarantined()
+        && stored.lifecycle().status() == RunStatus::Waiting
+        && stored.unresolved_wait_count() == 0
+    {
+        return Ok(());
+    }
+    let provenance = stored.lifecycle().provenance();
+    let rows = query_as::<_, WaitRegistrationRow>(SELECT_OUTSTANDING_WAIT_REGISTRATIONS.as_str())
+        .bind(provenance.tenant_id().as_str())
+        .bind(*provenance.run_id().as_uuid())
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("current wait-set load", source))?;
+    let expected = stored.lifecycle().waits();
+    if rows.len() != expected.map_or(0, RunWaits::len) {
+        return Err(StoreError::corrupt("current durable wait set"));
+    }
+    let mut durable = BTreeMap::new();
+    for row in rows {
+        let sequence = row.registration_sequence;
+        let wait = decode_wait_registration(&row)?;
+        verify_wait_registration_event(transaction, &wait, sequence).await?;
+        let marker = wait.marker();
+        if durable.insert(run_wait_identity(&marker), marker).is_some() {
+            return Err(StoreError::corrupt("current durable wait set"));
+        }
+    }
+    if expected.is_some_and(|waits| {
+        waits
+            .iter()
+            .any(|marker| durable.get(&run_wait_identity(marker)) != Some(marker))
+    }) || !durable.is_empty() && expected.is_none()
+    {
+        return Err(StoreError::corrupt("current durable wait set"));
+    }
+    Ok(())
+}
+
+async fn load_discovery_wait_owner<'owners>(
+    transaction: &mut Transaction<'_, Postgres>,
+    owners: &'owners mut BTreeMap<RunId, StoredRun>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+) -> Result<&'owners StoredRun, StoreError> {
+    match owners.entry(run_id) {
+        std::collections::btree_map::Entry::Occupied(entry) => Ok(entry.into_mut()),
+        std::collections::btree_map::Entry::Vacant(entry) => {
+            let row = query_as::<_, RunRow>(SELECT_RUN)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .fetch_optional(&mut **transaction)
+                .await
+                .map_err(|source| StoreError::database("wait discovery owner load", source))?
+                .ok_or_else(|| StoreError::corrupt("wait discovery owner"))?;
+            let owner = decode_run(row)?;
+            if owner.lifecycle().provenance().tenant_id() != tenant_id
+                || owner.lifecycle().provenance().run_id() != run_id
+                || owner.lifecycle().status() != RunStatus::Waiting
+                || owner.is_quarantined()
+            {
+                return Err(StoreError::corrupt("wait discovery owner"));
+            }
+            verify_current_wait_set(transaction, &owner).await?;
+            Ok(entry.insert(owner))
+        }
+    }
+}
+
+fn wait_discovery_key_after<Identity: Ord>(
+    current: &(Timestamp, RunId, Identity),
+    previous: &(Timestamp, RunId, Identity),
+) -> bool {
+    current > previous
+}
+
+async fn load_interrupt_record_from_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    registration: &WaitRegistrationRow,
+) -> Result<InterruptRecord, StoreError> {
+    let wait = decode_wait_registration(registration)?;
+    let DurableWait::Interrupt { request } = wait else {
+        return Err(StoreError::WaitRegistrationKindMismatch);
+    };
+    verify_wait_registration_event(
+        transaction,
+        &DurableWait::Interrupt {
+            request: request.clone(),
+        },
+        registration.registration_sequence,
+    )
+    .await?;
+    let row = query_as::<_, InterruptResolutionRow>(SELECT_INTERRUPT_RESOLUTION)
+        .bind(request.intent().tenant_id().as_str())
+        .bind(*request.intent().run_id().as_uuid())
+        .bind(*request.marker().interrupt_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("interrupt resolution load", source))?;
+    let resolution = match (registration.status.as_str(), row) {
+        ("outstanding", None) => None,
+        ("abandoned", None) => return Err(StoreError::WaitWasAbandoned),
+        ("resolved", Some(row)) => {
+            let resolution = decode_interrupt_resolution(&row, &request)?;
+            if registration
+                .resolution_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "interrupt projected resolution digest"))
+                .transpose()?
+                != Some(resolution.digest())
+                || registration.terminal_sequence != Some(row.resolution_sequence)
+                || registration.terminal_event_id != Some(row.resolution_event_id)
+                || registration.terminal_recorded_at != Some(row.resolved_at)
+                || registration.terminal_event_digest.as_deref()
+                    != Some(row.resolution_event_digest.as_slice())
+            {
+                return Err(StoreError::corrupt("interrupt terminal projection"));
+            }
+            verify_terminal_event(transaction, resolution.journal()).await?;
+            Some(resolution)
+        }
+        _ => return Err(StoreError::InterruptResolutionCommitConflict),
+    };
+    InterruptRecord::restore(*request, resolution)
+        .map_err(|_| StoreError::corrupt("interrupt history"))
+}
+
+async fn load_timer_record_from_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    registration: &WaitRegistrationRow,
+) -> Result<DurableTimerRecord, StoreError> {
+    let wait = decode_wait_registration(registration)?;
+    let DurableWait::Timer { timer } = wait else {
+        return Err(StoreError::WaitRegistrationKindMismatch);
+    };
+    verify_wait_registration_event(
+        transaction,
+        &DurableWait::Timer {
+            timer: timer.clone(),
+        },
+        registration.registration_sequence,
+    )
+    .await?;
+    let row = query_as::<_, TimerFiringRow>(SELECT_TIMER_FIRING)
+        .bind(timer.intent().tenant_id().as_str())
+        .bind(*timer.intent().run_id().as_uuid())
+        .bind(*timer.marker().timer_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("timer firing load", source))?;
+    let firing = match (registration.status.as_str(), row) {
+        ("outstanding", None) => None,
+        ("abandoned", None) => return Err(StoreError::WaitWasAbandoned),
+        ("fired", Some(row)) => {
+            let firing = decode_timer_firing(&row, &timer)?;
+            if registration
+                .firing_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "timer projected firing digest"))
+                .transpose()?
+                != Some(firing.digest())
+                || registration.terminal_sequence != Some(row.firing_sequence)
+                || registration.terminal_event_id != Some(row.firing_event_id)
+                || registration.terminal_recorded_at != Some(row.fired_at)
+                || registration.terminal_event_digest.as_deref()
+                    != Some(row.firing_event_digest.as_slice())
+            {
+                return Err(StoreError::corrupt("timer terminal projection"));
+            }
+            verify_terminal_event(transaction, firing.journal()).await?;
+            Some(firing)
+        }
+        _ => return Err(StoreError::TimerFiringCommitConflict),
+    };
+    DurableTimerRecord::restore(*timer, firing)
+        .map_err(|_| StoreError::corrupt("durable timer history"))
+}
+
+async fn verify_terminal_event(
+    transaction: &mut Transaction<'_, Postgres>,
+    journal: &JournalHead,
+) -> Result<(), StoreError> {
+    let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(journal.tenant_id().as_str())
+        .bind(*journal.run_id().as_uuid())
+        .bind(
+            i64::try_from(journal.sequence().get())
+                .map_err(|_| StoreError::corrupt("wait terminal sequence"))?,
+        )
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("wait terminal event load", source))?
+        .ok_or_else(|| StoreError::corrupt("wait terminal event anchor"))?;
+    let event = decode_event(row)?;
+    if event.head() != *journal {
+        return Err(StoreError::corrupt("wait terminal event anchor"));
+    }
+    Ok(())
 }
 
 async fn load_locked_current_checkpoint(
@@ -6493,6 +8559,7 @@ async fn verify_checkpoint_anchors(
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
     let tenant_id =
         TenantId::try_from(row.tenant_id).map_err(|_| StoreError::corrupt("run tenant"))?;
@@ -6586,6 +8653,35 @@ fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
         _ => return Err(StoreError::corrupt("lease shape")),
     };
     let scheduler_ready_at = decode_scheduler_readiness(row.scheduler_ready_at, &lifecycle)?;
+    let quarantined = row.quarantined_at.is_some();
+    let expected_waits = wait_set_projection(&lifecycle)
+        .map_err(|()| StoreError::corrupt("run wait-set projection"))?;
+    let stored_wait_digest = row
+        .wait_set_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "run wait-set digest"))
+        .transpose()?;
+    let stored_next_timer_due_at = row.next_timer_due_at.map(from_database_time).transpose()?;
+    let stored_next_interrupt_expiry_at = row
+        .next_interrupt_expiry_at
+        .map(from_database_time)
+        .transpose()?;
+    let legacy_quarantined_wait = quarantined
+        && lifecycle.status() == RunStatus::Waiting
+        && stored_wait_digest.is_none()
+        && row.unresolved_wait_count == 0
+        && stored_next_timer_due_at.is_none()
+        && stored_next_interrupt_expiry_at.is_none();
+    if !legacy_quarantined_wait
+        && (stored_wait_digest != expected_waits.digest
+            || row.unresolved_wait_count != expected_waits.count
+            || stored_next_timer_due_at != expected_waits.next_timer_due_at
+            || stored_next_interrupt_expiry_at != expected_waits.next_interrupt_expiry_at)
+    {
+        return Err(StoreError::corrupt("run wait-set projection"));
+    }
+    let unresolved_wait_count = u8::try_from(row.unresolved_wait_count)
+        .map_err(|_| StoreError::corrupt("run wait-set count"))?;
 
     Ok(StoredRun {
         lifecycle,
@@ -6594,7 +8690,43 @@ fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
         last_fencing_epoch,
         checkpoint,
         scheduler_ready_at,
-        quarantined: row.quarantined_at.is_some(),
+        wait_set_digest: stored_wait_digest,
+        unresolved_wait_count,
+        next_timer_due_at: stored_next_timer_due_at,
+        next_interrupt_expiry_at: stored_next_interrupt_expiry_at,
+        quarantined,
+    })
+}
+
+fn wait_set_projection(lifecycle: &RunLifecycle) -> Result<WaitSetProjection, ()> {
+    let Some(waits) = lifecycle.waits() else {
+        return Ok(WaitSetProjection {
+            digest: None,
+            count: 0,
+            next_timer_due_at: None,
+            next_interrupt_expiry_at: None,
+        });
+    };
+    let canonical = serde_json_canonicalizer::to_vec(waits).map_err(|_| ())?;
+    let mut preimage = Vec::with_capacity(WAIT_SET_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(WAIT_SET_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    let next_timer_due_at = waits
+        .iter()
+        .filter_map(|wait| wait.as_timer().map(stateknot_core::RunTimer::due_at))
+        .min();
+    let next_interrupt_expiry_at = waits
+        .iter()
+        .filter_map(|wait| {
+            wait.as_interrupt()
+                .and_then(stateknot_core::RunInterrupt::expires_at)
+        })
+        .min();
+    Ok(WaitSetProjection {
+        digest: Some(Digest::sha256(preimage)),
+        count: i16::try_from(waits.len()).map_err(|_| ())?,
+        next_timer_due_at,
+        next_interrupt_expiry_at,
     })
 }
 
@@ -6623,6 +8755,341 @@ fn encode_lifecycle(lifecycle: &RunLifecycle) -> Result<Vec<u8>, StoreError> {
     let canonical =
         CanonicalJson::new(&bounded).map_err(|_| StoreError::encoding("run lifecycle"))?;
     Ok(canonical.as_bytes().to_vec())
+}
+
+fn encode_durable_wait(wait: &DurableWait) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(wait)
+        .map_err(|_| StoreError::encoding("durable wait registration"))?;
+    if bytes.is_empty() || bytes.len() > MAX_WAIT_REGISTRATION_BYTES {
+        return Err(StoreError::InvalidWaitRegistrationBatch);
+    }
+    Ok(bytes)
+}
+
+fn durable_wait_identity(wait: &DurableWait) -> Uuid {
+    match wait {
+        DurableWait::Interrupt { request } => *request.marker().interrupt_id().as_uuid(),
+        DurableWait::Timer { timer } => *timer.marker().timer_id().as_uuid(),
+    }
+}
+
+fn run_wait_identity(wait: &stateknot_core::RunWait) -> Uuid {
+    match wait {
+        stateknot_core::RunWait::Interrupt { interrupt } => *interrupt.interrupt_id().as_uuid(),
+        stateknot_core::RunWait::Timer { timer } => *timer.timer_id().as_uuid(),
+    }
+}
+
+fn durable_wait_digest(wait: &DurableWait) -> Digest {
+    match wait {
+        DurableWait::Interrupt { request } => request.digest(),
+        DurableWait::Timer { timer } => timer.digest(),
+    }
+}
+
+fn durable_wait_kind_text(wait: &DurableWait) -> &'static str {
+    match wait {
+        DurableWait::Interrupt { .. } => "interrupt",
+        DurableWait::Timer { .. } => "timer",
+    }
+}
+
+const fn wait_abandonment_reason_text(reason: WaitAbandonmentReason) -> &'static str {
+    match reason {
+        WaitAbandonmentReason::RunCancellation => "run_cancellation",
+        WaitAbandonmentReason::RunFailure => "run_failure",
+    }
+}
+
+fn wait_abandonment_reason_from_text(value: &str) -> Result<WaitAbandonmentReason, StoreError> {
+    match value {
+        "run_cancellation" => Ok(WaitAbandonmentReason::RunCancellation),
+        "run_failure" => Ok(WaitAbandonmentReason::RunFailure),
+        _ => Err(StoreError::corrupt("wait abandonment reason")),
+    }
+}
+
+fn materialize_wait_abandonment(
+    wait: DurableWait,
+    reason: WaitAbandonmentReason,
+    journal: JournalHead,
+) -> Result<WaitAbandonment, StoreError> {
+    if wait.tenant_id() != journal.tenant_id()
+        || wait.run_id() != journal.run_id()
+        || journal.sequence() <= wait.journal().sequence()
+        || journal.recorded_at() < wait.journal().recorded_at()
+    {
+        return Err(StoreError::InvalidWaitAbandonment);
+    }
+    let canonical = serde_json_canonicalizer::to_vec(&WaitAbandonmentDigestWire {
+        registration_digest: durable_wait_digest(&wait),
+        reason,
+        journal: &journal,
+    })
+    .map_err(|_| StoreError::encoding("wait abandonment"))?;
+    let mut preimage = Vec::with_capacity(WAIT_ABANDONMENT_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(WAIT_ABANDONMENT_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    Ok(WaitAbandonment {
+        wait,
+        reason,
+        journal,
+        digest: Digest::sha256(preimage),
+    })
+}
+
+fn decode_wait_abandonment(
+    row: &WaitAbandonmentRow,
+    wait: DurableWait,
+) -> Result<WaitAbandonment, StoreError> {
+    let reason = wait_abandonment_reason_from_text(&row.reason_kind)?;
+    let journal = JournalHead::new(
+        wait.tenant_id().clone(),
+        wait.run_id(),
+        positive_sequence(row.abandonment_sequence)?,
+        EventId::from_uuid(row.abandonment_event_id)
+            .map_err(|_| StoreError::corrupt("wait abandonment event identity"))?,
+        from_database_time(row.abandoned_at)?,
+        decode_digest(
+            &row.abandonment_event_digest,
+            "wait abandonment event digest",
+        )?,
+    );
+    let abandonment = materialize_wait_abandonment(wait, reason, journal)?;
+    if row.tenant_id != abandonment.wait().tenant_id().as_str()
+        || row.run_id != *abandonment.wait().run_id().as_uuid()
+        || row.wait_id != durable_wait_identity(abandonment.wait())
+        || row.wait_kind != durable_wait_kind_text(abandonment.wait())
+        || decode_digest(
+            &row.registration_digest,
+            "wait abandonment registration digest",
+        )? != durable_wait_digest(abandonment.wait())
+        || row.created_at != row.abandoned_at
+        || decode_digest(&row.abandonment_digest, "wait abandonment digest")?
+            != abandonment.digest()
+    {
+        return Err(StoreError::corrupt("wait abandonment projection"));
+    }
+    Ok(abandonment)
+}
+
+fn decode_wait_registration(row: &WaitRegistrationRow) -> Result<DurableWait, StoreError> {
+    let wait = serde_json::from_slice::<DurableWait>(&row.record_bytes)
+        .map_err(|_| StoreError::corrupt("durable wait registration bytes"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&wait)
+        .map_err(|_| StoreError::corrupt("durable wait registration bytes"))?;
+    if canonical != row.record_bytes
+        || row.tenant_id != wait.tenant_id().as_str()
+        || row.run_id != *wait.run_id().as_uuid()
+        || row.wait_id != durable_wait_identity(&wait)
+        || from_database_time(row.registered_at)? != wait.journal().recorded_at()
+        || row.registration_sequence
+            != i64::try_from(wait.journal().sequence().get())
+                .map_err(|_| StoreError::corrupt("wait registration sequence"))?
+        || row.registration_event_id != *wait.journal().event_id().as_uuid()
+        || decode_digest(
+            &row.registration_event_digest,
+            "wait registration event digest",
+        )? != wait.journal().digest()
+        || row.created_at != row.registered_at
+        || row.updated_at < row.created_at
+    {
+        return Err(StoreError::corrupt("durable wait registration projection"));
+    }
+
+    match &wait {
+        DurableWait::Interrupt { request } => {
+            let marker = request.marker();
+            if row.wait_kind != "interrupt"
+                || row.interrupt_kind.as_deref() != Some(interrupt_kind_text(marker.kind()))
+                || row.timer_kind.is_some()
+                || row.due_at.is_some()
+                || row.expires_at.map(from_database_time).transpose()? != marker.expires_at()
+                || row
+                    .action_digest
+                    .as_deref()
+                    .map(|bytes| decode_digest(bytes, "interrupt action digest"))
+                    .transpose()?
+                    != Some(request.intent().action_digest())
+                || decode_digest(&row.intent_digest, "interrupt registration intent digest")?
+                    != request.intent().intent_digest()
+                || decode_digest(&row.record_digest, "interrupt request digest")?
+                    != request.digest()
+            {
+                return Err(StoreError::corrupt("interrupt registration projection"));
+            }
+        }
+        DurableWait::Timer { timer } => {
+            let marker = timer.marker();
+            if row.wait_kind != "timer"
+                || row.interrupt_kind.is_some()
+                || row.timer_kind.as_deref() != Some(timer_kind_text(marker.kind()))
+                || row.due_at.map(from_database_time).transpose()? != Some(marker.due_at())
+                || row.expires_at.is_some()
+                || row.action_digest.is_some()
+                || decode_digest(&row.intent_digest, "timer registration intent digest")?
+                    != timer.intent().intent_digest()
+                || decode_digest(&row.record_digest, "durable timer digest")? != timer.digest()
+            {
+                return Err(StoreError::corrupt("timer registration projection"));
+            }
+        }
+    }
+    validate_wait_terminal_projection(row, &wait)?;
+    Ok(wait)
+}
+
+fn validate_wait_terminal_projection(
+    row: &WaitRegistrationRow,
+    wait: &DurableWait,
+) -> Result<(), StoreError> {
+    let terminal_shape = (
+        row.terminal_sequence,
+        row.terminal_event_id,
+        row.terminal_recorded_at,
+        row.terminal_event_digest.as_deref(),
+    );
+    match row.status.as_str() {
+        "outstanding" => {
+            if terminal_shape != (None, None, None, None)
+                || row.resolution_digest.is_some()
+                || row.firing_digest.is_some()
+                || row.abandonment_digest.is_some()
+                || row.updated_at != row.registered_at
+            {
+                return Err(StoreError::corrupt("outstanding wait projection"));
+            }
+        }
+        "resolved" | "fired" | "abandoned" => {
+            let (Some(sequence), Some(event_id), Some(recorded_at), Some(event_digest)) =
+                terminal_shape
+            else {
+                return Err(StoreError::corrupt("terminal wait projection"));
+            };
+            if sequence <= row.registration_sequence
+                || stateknot_core::EventId::from_uuid(event_id).is_err()
+                || recorded_at < row.registered_at
+                || row.updated_at != recorded_at
+                || decode_digest(event_digest, "terminal wait event digest").is_err()
+            {
+                return Err(StoreError::corrupt("terminal wait projection"));
+            }
+            let exact_kind = match (row.status.as_str(), wait) {
+                ("resolved", DurableWait::Interrupt { request }) => {
+                    row.resolution_digest.is_some()
+                        && row.firing_digest.is_none()
+                        && row.abandonment_digest.is_none()
+                        && request.marker().expires_at().is_none_or(|expires_at| {
+                            from_database_time(recorded_at)
+                                .is_ok_and(|resolved_at| resolved_at < expires_at)
+                        })
+                }
+                ("fired", DurableWait::Timer { timer }) => {
+                    row.resolution_digest.is_none()
+                        && row.firing_digest.is_some()
+                        && row.abandonment_digest.is_none()
+                        && from_database_time(recorded_at)
+                            .is_ok_and(|fired_at| fired_at >= timer.marker().due_at())
+                }
+                ("abandoned", _) => {
+                    row.resolution_digest.is_none()
+                        && row.firing_digest.is_none()
+                        && row.abandonment_digest.is_some()
+                }
+                _ => false,
+            };
+            if !exact_kind {
+                return Err(StoreError::corrupt("terminal wait projection"));
+            }
+        }
+        _ => return Err(StoreError::corrupt("wait registration status")),
+    }
+    Ok(())
+}
+
+fn encode_interrupt_resolution(resolution: &InterruptResolution) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(resolution)
+        .map_err(|_| StoreError::encoding("interrupt resolution"))?;
+    if bytes.is_empty() || bytes.len() > MAX_INTERRUPT_RESOLUTION_BYTES {
+        return Err(StoreError::InvalidInterruptResolution);
+    }
+    Ok(bytes)
+}
+
+fn decode_interrupt_resolution(
+    row: &InterruptResolutionRow,
+    request: &InterruptRequest,
+) -> Result<InterruptResolution, StoreError> {
+    let resolution = serde_json::from_slice::<InterruptResolution>(&row.resolution_bytes)
+        .map_err(|_| StoreError::corrupt("interrupt resolution bytes"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&resolution)
+        .map_err(|_| StoreError::corrupt("interrupt resolution bytes"))?;
+    let journal = resolution.journal();
+    if canonical != row.resolution_bytes
+        || row.tenant_id != request.intent().tenant_id().as_str()
+        || row.run_id != *request.intent().run_id().as_uuid()
+        || row.interrupt_id != *request.marker().interrupt_id().as_uuid()
+        || decode_digest(&row.request_digest, "interrupt resolution request digest")?
+            != request.digest()
+        || row.resolution_sequence
+            != i64::try_from(journal.sequence().get())
+                .map_err(|_| StoreError::corrupt("interrupt resolution sequence"))?
+        || row.resolution_event_id != *journal.event_id().as_uuid()
+        || from_database_time(row.resolved_at)? != journal.recorded_at()
+        || decode_digest(
+            &row.resolution_event_digest,
+            "interrupt resolution event digest",
+        )? != journal.digest()
+        || decode_digest(&row.intent_digest, "interrupt resolution intent digest")?
+            != resolution.intent().intent_digest()
+        || decode_digest(&row.resolution_digest, "interrupt resolution digest")?
+            != resolution.digest()
+        || row.created_at != row.resolved_at
+        || resolution.intent().request() != &request.head()
+    {
+        return Err(StoreError::corrupt("interrupt resolution projection"));
+    }
+    Ok(resolution)
+}
+
+fn encode_timer_firing(firing: &TimerFiring) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(firing)
+        .map_err(|_| StoreError::encoding("timer firing"))?;
+    if bytes.is_empty() || bytes.len() > MAX_TIMER_FIRING_BYTES {
+        return Err(StoreError::InvalidTimerFiring);
+    }
+    Ok(bytes)
+}
+
+fn decode_timer_firing(
+    row: &TimerFiringRow,
+    timer: &DurableTimer,
+) -> Result<TimerFiring, StoreError> {
+    let firing = serde_json::from_slice::<TimerFiring>(&row.firing_bytes)
+        .map_err(|_| StoreError::corrupt("timer firing bytes"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&firing)
+        .map_err(|_| StoreError::corrupt("timer firing bytes"))?;
+    let journal = firing.journal();
+    if canonical != row.firing_bytes
+        || row.tenant_id != timer.intent().tenant_id().as_str()
+        || row.run_id != *timer.intent().run_id().as_uuid()
+        || row.timer_id != *timer.marker().timer_id().as_uuid()
+        || decode_digest(&row.timer_digest, "timer firing registration digest")? != timer.digest()
+        || row.firing_sequence
+            != i64::try_from(journal.sequence().get())
+                .map_err(|_| StoreError::corrupt("timer firing sequence"))?
+        || row.firing_event_id != *journal.event_id().as_uuid()
+        || from_database_time(row.fired_at)? != journal.recorded_at()
+        || decode_digest(&row.firing_event_digest, "timer firing event digest")? != journal.digest()
+        || decode_digest(&row.intent_digest, "timer firing intent digest")?
+            != firing.intent().intent_digest()
+        || decode_digest(&row.firing_digest, "timer firing digest")? != firing.digest()
+        || row.created_at != row.fired_at
+        || firing.intent().timer() != &timer.head()
+    {
+        return Err(StoreError::corrupt("timer firing projection"));
+    }
+    Ok(firing)
 }
 
 fn decode_lifecycle(bytes: &[u8]) -> Result<RunLifecycle, StoreError> {
@@ -9246,6 +11713,207 @@ fn barrier_projection_digest(
     Ok(Digest::sha256(preimage))
 }
 
+fn wait_registration_projection_digest(
+    expected_revision: RunRevision,
+    checkpoint_write: &CheckpointWrite,
+    intents: &[WaitRegistrationIntent],
+) -> Result<Digest, StoreError> {
+    let registrations = intents
+        .iter()
+        .map(wait_registration_projection_item)
+        .collect::<Vec<_>>();
+    let wire = WaitRegistrationProjectionDigestWire {
+        expected_revision: &expected_revision,
+        checkpoint_intent_digest: checkpoint_write.intent_digest(),
+        registrations: &registrations,
+    };
+    let canonical = serde_json_canonicalizer::to_vec(&wire)
+        .map_err(|_| StoreError::encoding("wait registration projection intent"))?;
+    let mut preimage =
+        Vec::with_capacity(WAIT_REGISTRATION_PROJECTION_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(WAIT_REGISTRATION_PROJECTION_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
+}
+
+fn wait_barrier_projection_digest(
+    expected_revision: RunRevision,
+    barrier_intent_digest: Digest,
+    intents: &[WaitRegistrationIntent],
+) -> Result<Digest, StoreError> {
+    let registrations = intents
+        .iter()
+        .map(wait_registration_projection_item)
+        .collect::<Vec<_>>();
+    let wire = WaitBarrierProjectionDigestWire {
+        expected_revision: &expected_revision,
+        barrier_intent_digest,
+        registrations: &registrations,
+    };
+    let canonical = serde_json_canonicalizer::to_vec(&wire)
+        .map_err(|_| StoreError::encoding("wait barrier projection intent"))?;
+    let mut preimage =
+        Vec::with_capacity(WAIT_BARRIER_PROJECTION_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(WAIT_BARRIER_PROJECTION_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
+}
+
+fn wait_terminal_projection_digest(
+    domain: &[u8],
+    expected_revision: RunRevision,
+    intent_digest: Digest,
+) -> Result<Digest, StoreError> {
+    let canonical = serde_json_canonicalizer::to_vec(&WaitTerminalProjectionDigestWire {
+        expected_revision: &expected_revision,
+        intent_digest,
+    })
+    .map_err(|_| StoreError::encoding("wait terminal projection intent"))?;
+    let mut preimage = Vec::with_capacity(domain.len() + canonical.len());
+    preimage.extend_from_slice(domain);
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
+}
+
+fn wait_abandonment_projection_digest(
+    projection: &RunProjection,
+    waits: &[DurableWait],
+) -> Result<Digest, StoreError> {
+    let mut registrations = waits
+        .iter()
+        .map(|wait| WaitAbandonmentProjectionItem {
+            wait_kind: durable_wait_kind_text(wait),
+            wait_id: durable_wait_identity(wait).to_string(),
+            registration_digest: durable_wait_digest(wait),
+        })
+        .collect::<Vec<_>>();
+    registrations.sort_unstable_by(|left, right| left.wait_id.cmp(&right.wait_id));
+    let wire = WaitAbandonmentProjectionDigestWire {
+        run_projection_digest: projection_digest(projection)?,
+        registrations: &registrations,
+    };
+    let canonical = serde_json_canonicalizer::to_vec(&wire)
+        .map_err(|_| StoreError::encoding("wait abandonment projection intent"))?;
+    let mut preimage =
+        Vec::with_capacity(WAIT_ABANDONMENT_PROJECTION_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(WAIT_ABANDONMENT_PROJECTION_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
+}
+
+fn wait_abandonment_transition_reason(
+    transition: &RunTransition,
+) -> Result<WaitAbandonmentReason, StoreError> {
+    match transition {
+        RunTransition::RequestCancellation { .. } => Ok(WaitAbandonmentReason::RunCancellation),
+        RunTransition::Fail { .. } => Ok(WaitAbandonmentReason::RunFailure),
+        _ => Err(StoreError::InvalidWaitAbandonment),
+    }
+}
+
+fn wait_registration_projection_item(
+    intent: &WaitRegistrationIntent,
+) -> WaitRegistrationProjectionItem {
+    match intent {
+        WaitRegistrationIntent::Interrupt { request } => WaitRegistrationProjectionItem {
+            wait_kind: "interrupt",
+            wait_id: request.interrupt_id().to_string(),
+            intent_digest: request.intent_digest(),
+        },
+        WaitRegistrationIntent::Timer { timer } => WaitRegistrationProjectionItem {
+            wait_kind: "timer",
+            wait_id: timer.timer_id().to_string(),
+            intent_digest: timer.intent_digest(),
+        },
+    }
+}
+
+fn validate_wait_registration_batch(
+    append: &JournalAppend,
+    intents: &[WaitRegistrationIntent],
+) -> Result<(), StoreError> {
+    if intents.is_empty() || intents.len() > RunWaits::MAX_LEN {
+        return Err(StoreError::InvalidWaitRegistrationBatch);
+    }
+    let tenant_id = append.intent().tenant_id();
+    let run_id = append.intent().run_id();
+    let event_id = append.intent().event_id();
+    let mut identities = BTreeMap::new();
+    for intent in intents {
+        let item = wait_registration_projection_item(intent);
+        if intent.tenant_id() != tenant_id
+            || intent.run_id() != run_id
+            || intent.registration_event_id() != event_id
+            || identities
+                .insert(item.wait_id, (item.wait_kind, item.intent_digest))
+                .is_some()
+        {
+            return Err(StoreError::InvalidWaitRegistrationBatch);
+        }
+    }
+    Ok(())
+}
+
+fn materialize_wait_registrations(
+    intents: Vec<WaitRegistrationIntent>,
+    event: &JournalEvent,
+) -> Result<Vec<DurableWait>, StoreError> {
+    intents
+        .into_iter()
+        .map(|intent| {
+            intent
+                .commit(event.head())
+                .map_err(|_| StoreError::InvalidWaitRegistrationBatch)
+        })
+        .collect()
+}
+
+fn prepare_durable_wait_projection(
+    stored: &StoredRun,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    expected_revision: RunRevision,
+    transition: RunTransition,
+    recorded_at: Timestamp,
+) -> Result<PreparedProjection, StoreError> {
+    let current = stored.lifecycle();
+    if current.revision() != expected_revision {
+        return Err(StoreError::StaleLifecycleRevision);
+    }
+    if current.provenance().tenant_id() != tenant_id || current.provenance().run_id() != run_id {
+        return Err(StoreError::InvalidLifecycleTransition);
+    }
+    let lifecycle = current
+        .clone()
+        .apply(transition)
+        .map_err(|_| StoreError::InvalidLifecycleTransition)?;
+    if lifecycle.changed_at() > recorded_at {
+        return Err(StoreError::LifecycleObservationAfterCommit);
+    }
+    prepared_projection(&lifecycle)
+}
+
+fn prepared_projection(lifecycle: &RunLifecycle) -> Result<PreparedProjection, StoreError> {
+    let wait_projection = wait_set_projection(lifecycle)
+        .map_err(|()| StoreError::encoding("run wait-set projection"))?;
+    Ok(PreparedProjection {
+        lifecycle_bytes: encode_lifecycle(lifecycle)?,
+        revision: lifecycle.revision().to_string(),
+        status: run_status_text(lifecycle.status()),
+        changed_at: to_database_time(lifecycle.changed_at())?,
+        wait_set_digest: wait_projection.digest,
+        unresolved_wait_count: wait_projection.count,
+        next_timer_due_at: wait_projection
+            .next_timer_due_at
+            .map(to_database_time)
+            .transpose()?,
+        next_interrupt_expiry_at: wait_projection
+            .next_interrupt_expiry_at
+            .map(to_database_time)
+            .transpose()?,
+    })
+}
+
 fn decode_event(row: EventRow) -> Result<JournalEvent, StoreError> {
     if let Some(bytes) = row.projection_digest.as_deref() {
         decode_digest(bytes, "journal projection digest")?;
@@ -9335,6 +12003,19 @@ fn prepare_projection(
     {
         return Err(StoreError::InvalidLifecycleTransition);
     }
+    if matches!(
+        transition.kind(),
+        RunTransitionKind::Wait
+            | RunTransitionKind::ResolveInterrupt
+            | RunTransitionKind::FireTimer
+    ) || (current.status() == RunStatus::Waiting
+        && matches!(
+            transition.kind(),
+            RunTransitionKind::RequestCancellation | RunTransitionKind::Fail
+        ))
+    {
+        return Err(StoreError::DurableWaitMutationRequired);
+    }
     let lifecycle = current
         .clone()
         .apply(transition)
@@ -9343,12 +12024,7 @@ fn prepare_projection(
         return Err(StoreError::LifecycleObservationAfterCommit);
     }
 
-    Ok(Some(PreparedProjection {
-        lifecycle_bytes: encode_lifecycle(&lifecycle)?,
-        revision: lifecycle.revision().to_string(),
-        status: run_status_text(lifecycle.status()),
-        changed_at: to_database_time(lifecycle.changed_at())?,
-    }))
+    prepared_projection(&lifecycle).map(Some)
 }
 
 fn validate_outbox_batch(
@@ -10002,6 +12678,521 @@ WHERE lease_run.tenant_id = $1
         return Err(StoreError::corrupt("journal insert row count"));
     }
     Ok(())
+}
+
+async fn insert_wait_registration(
+    transaction: &mut Transaction<'_, Postgres>,
+    wait: &DurableWait,
+) -> Result<(), StoreError> {
+    let record_bytes = encode_durable_wait(wait)?;
+    let sequence = i64::try_from(wait.journal().sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let registered_at = to_database_time(wait.journal().recorded_at())?;
+    let (
+        wait_id,
+        wait_kind,
+        interrupt_kind,
+        timer_kind,
+        due_at,
+        expires_at,
+        action_digest,
+        intent_digest,
+        record_digest,
+    ) = match wait {
+        DurableWait::Interrupt { request } => (
+            *request.marker().interrupt_id().as_uuid(),
+            "interrupt",
+            Some(interrupt_kind_text(request.marker().kind())),
+            None,
+            None,
+            request
+                .marker()
+                .expires_at()
+                .map(to_database_time)
+                .transpose()?,
+            Some(request.intent().action_digest()),
+            request.intent().intent_digest(),
+            request.digest(),
+        ),
+        DurableWait::Timer { timer } => (
+            *timer.marker().timer_id().as_uuid(),
+            "timer",
+            None,
+            Some(timer_kind_text(timer.marker().kind())),
+            Some(to_database_time(timer.marker().due_at())?),
+            None,
+            None,
+            timer.intent().intent_digest(),
+            timer.digest(),
+        ),
+    };
+    let result = query(
+        r"
+INSERT INTO stateknot.run_wait_registrations (
+    tenant_id,
+    run_id,
+    wait_id,
+    wait_kind,
+    interrupt_kind,
+    timer_kind,
+    registered_at,
+    due_at,
+    expires_at,
+    action_digest,
+    registration_sequence,
+    registration_event_id,
+    registration_event_digest,
+    intent_digest,
+    record_digest,
+    record_bytes,
+    status,
+    created_at,
+    updated_at
+)
+VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+    'outstanding', $7, $7
+)
+",
+    )
+    .bind(wait.tenant_id().as_str())
+    .bind(*wait.run_id().as_uuid())
+    .bind(wait_id)
+    .bind(wait_kind)
+    .bind(interrupt_kind)
+    .bind(timer_kind)
+    .bind(registered_at)
+    .bind(due_at)
+    .bind(expires_at)
+    .bind(action_digest.as_ref().map(Digest::as_bytes))
+    .bind(sequence)
+    .bind(*wait.journal().event_id().as_uuid())
+    .bind(wait.journal().digest().as_bytes())
+    .bind(intent_digest.as_bytes())
+    .bind(record_digest.as_bytes())
+    .bind(&record_bytes)
+    .execute(&mut **transaction)
+    .await;
+    match result {
+        Ok(result) if result.rows_affected() == 1 => Ok(()),
+        Ok(_) => Err(StoreError::corrupt("wait registration insert row count")),
+        Err(source) if has_database_error_code(&source, "23505") => {
+            Err(StoreError::WaitRegistrationCommitConflict)
+        }
+        Err(source) => Err(StoreError::database("wait registration insert", source)),
+    }
+}
+
+async fn verify_wait_registration_set(
+    transaction: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+    expected: &[DurableWait],
+) -> Result<(), StoreError> {
+    let sequence =
+        i64::try_from(event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let rows = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATIONS_BY_ORIGIN.as_str())
+        .bind(event.tenant_id().as_str())
+        .bind(*event.run_id().as_uuid())
+        .bind(sequence)
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("wait registration set load", source))?;
+    let mut durable = BTreeMap::new();
+    for row in rows {
+        let wait = decode_wait_registration(&row)?;
+        if wait.journal() != &event.head()
+            || durable.insert(durable_wait_identity(&wait), wait).is_some()
+        {
+            return Err(StoreError::corrupt("wait registration set"));
+        }
+    }
+    if durable.len() != expected.len()
+        || expected
+            .iter()
+            .any(|wait| durable.get(&durable_wait_identity(wait)) != Some(wait))
+    {
+        return Err(StoreError::WaitRegistrationCommitConflict);
+    }
+    Ok(())
+}
+
+async fn insert_interrupt_resolution(
+    transaction: &mut Transaction<'_, Postgres>,
+    request: &InterruptRequest,
+    resolution: &InterruptResolution,
+) -> Result<(), StoreError> {
+    let bytes = encode_interrupt_resolution(resolution)?;
+    let journal = resolution.journal();
+    let result = query(
+        r"
+INSERT INTO stateknot.interrupt_resolutions (
+    tenant_id,
+    run_id,
+    interrupt_id,
+    request_digest,
+    resolution_sequence,
+    resolution_event_id,
+    resolved_at,
+    resolution_event_digest,
+    intent_digest,
+    resolution_digest,
+    resolution_bytes,
+    created_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $7)
+",
+    )
+    .bind(request.intent().tenant_id().as_str())
+    .bind(*request.intent().run_id().as_uuid())
+    .bind(*request.marker().interrupt_id().as_uuid())
+    .bind(request.digest().as_bytes())
+    .bind(
+        i64::try_from(journal.sequence().get())
+            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+    )
+    .bind(*journal.event_id().as_uuid())
+    .bind(to_database_time(journal.recorded_at())?)
+    .bind(journal.digest().as_bytes())
+    .bind(resolution.intent().intent_digest().as_bytes())
+    .bind(resolution.digest().as_bytes())
+    .bind(&bytes)
+    .execute(&mut **transaction)
+    .await;
+    match result {
+        Ok(result) if result.rows_affected() == 1 => Ok(()),
+        Ok(_) => Err(StoreError::corrupt("interrupt resolution insert row count")),
+        Err(source) if has_database_error_code(&source, "23505") => {
+            Err(StoreError::InterruptResolutionCommitConflict)
+        }
+        Err(source) => Err(StoreError::database("interrupt resolution insert", source)),
+    }
+}
+
+async fn project_interrupt_resolution(
+    transaction: &mut Transaction<'_, Postgres>,
+    request: &InterruptRequest,
+    resolution: &InterruptResolution,
+) -> Result<(), StoreError> {
+    let journal = resolution.journal();
+    let updated = query(
+        r"
+UPDATE stateknot.run_wait_registrations
+SET status = 'resolved',
+    terminal_sequence = $5,
+    terminal_event_id = $6,
+    terminal_recorded_at = $7,
+    terminal_event_digest = $8,
+    resolution_digest = $9,
+    updated_at = $7
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND wait_id = $3
+  AND wait_kind = 'interrupt'
+  AND record_digest = $4
+  AND status = 'outstanding'
+",
+    )
+    .bind(request.intent().tenant_id().as_str())
+    .bind(*request.intent().run_id().as_uuid())
+    .bind(*request.marker().interrupt_id().as_uuid())
+    .bind(request.digest().as_bytes())
+    .bind(
+        i64::try_from(journal.sequence().get())
+            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+    )
+    .bind(*journal.event_id().as_uuid())
+    .bind(to_database_time(journal.recorded_at())?)
+    .bind(journal.digest().as_bytes())
+    .bind(resolution.digest().as_bytes())
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("interrupt resolution projection", source))?
+    .rows_affected();
+    if updated != 1 {
+        return Err(StoreError::InterruptResolutionCommitConflict);
+    }
+    Ok(())
+}
+
+async fn insert_timer_firing(
+    transaction: &mut Transaction<'_, Postgres>,
+    timer: &DurableTimer,
+    firing: &TimerFiring,
+) -> Result<(), StoreError> {
+    let bytes = encode_timer_firing(firing)?;
+    let journal = firing.journal();
+    let result = query(
+        r"
+INSERT INTO stateknot.timer_firings (
+    tenant_id,
+    run_id,
+    timer_id,
+    timer_digest,
+    firing_sequence,
+    firing_event_id,
+    fired_at,
+    firing_event_digest,
+    intent_digest,
+    firing_digest,
+    firing_bytes,
+    created_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $7)
+",
+    )
+    .bind(timer.intent().tenant_id().as_str())
+    .bind(*timer.intent().run_id().as_uuid())
+    .bind(*timer.marker().timer_id().as_uuid())
+    .bind(timer.digest().as_bytes())
+    .bind(
+        i64::try_from(journal.sequence().get())
+            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+    )
+    .bind(*journal.event_id().as_uuid())
+    .bind(to_database_time(journal.recorded_at())?)
+    .bind(journal.digest().as_bytes())
+    .bind(firing.intent().intent_digest().as_bytes())
+    .bind(firing.digest().as_bytes())
+    .bind(&bytes)
+    .execute(&mut **transaction)
+    .await;
+    match result {
+        Ok(result) if result.rows_affected() == 1 => Ok(()),
+        Ok(_) => Err(StoreError::corrupt("timer firing insert row count")),
+        Err(source) if has_database_error_code(&source, "23505") => {
+            Err(StoreError::TimerFiringCommitConflict)
+        }
+        Err(source) => Err(StoreError::database("timer firing insert", source)),
+    }
+}
+
+async fn project_timer_firing(
+    transaction: &mut Transaction<'_, Postgres>,
+    timer: &DurableTimer,
+    firing: &TimerFiring,
+) -> Result<(), StoreError> {
+    let journal = firing.journal();
+    let updated = query(
+        r"
+UPDATE stateknot.run_wait_registrations
+SET status = 'fired',
+    terminal_sequence = $5,
+    terminal_event_id = $6,
+    terminal_recorded_at = $7,
+    terminal_event_digest = $8,
+    firing_digest = $9,
+    updated_at = $7
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND wait_id = $3
+  AND wait_kind = 'timer'
+  AND record_digest = $4
+  AND status = 'outstanding'
+",
+    )
+    .bind(timer.intent().tenant_id().as_str())
+    .bind(*timer.intent().run_id().as_uuid())
+    .bind(*timer.marker().timer_id().as_uuid())
+    .bind(timer.digest().as_bytes())
+    .bind(
+        i64::try_from(journal.sequence().get())
+            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+    )
+    .bind(*journal.event_id().as_uuid())
+    .bind(to_database_time(journal.recorded_at())?)
+    .bind(journal.digest().as_bytes())
+    .bind(firing.digest().as_bytes())
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("timer firing projection", source))?
+    .rows_affected();
+    if updated != 1 {
+        return Err(StoreError::TimerFiringCommitConflict);
+    }
+    Ok(())
+}
+
+async fn insert_wait_abandonment(
+    transaction: &mut Transaction<'_, Postgres>,
+    abandonment: &WaitAbandonment,
+) -> Result<(), StoreError> {
+    let result = query(
+        r"
+INSERT INTO stateknot.wait_abandonments (
+    tenant_id,
+    run_id,
+    wait_id,
+    wait_kind,
+    registration_digest,
+    reason_kind,
+    abandonment_sequence,
+    abandonment_event_id,
+    abandoned_at,
+    abandonment_event_digest,
+    abandonment_digest,
+    created_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $9)
+",
+    )
+    .bind(abandonment.wait().tenant_id().as_str())
+    .bind(*abandonment.wait().run_id().as_uuid())
+    .bind(durable_wait_identity(abandonment.wait()))
+    .bind(durable_wait_kind_text(abandonment.wait()))
+    .bind(durable_wait_digest(abandonment.wait()).as_bytes())
+    .bind(wait_abandonment_reason_text(abandonment.reason()))
+    .bind(
+        i64::try_from(abandonment.journal().sequence().get())
+            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+    )
+    .bind(*abandonment.journal().event_id().as_uuid())
+    .bind(to_database_time(abandonment.journal().recorded_at())?)
+    .bind(abandonment.journal().digest().as_bytes())
+    .bind(abandonment.digest().as_bytes())
+    .execute(&mut **transaction)
+    .await;
+    match result {
+        Ok(result) if result.rows_affected() == 1 => Ok(()),
+        Ok(_) => Err(StoreError::corrupt("wait abandonment insert row count")),
+        Err(source) if has_database_error_code(&source, "23505") => {
+            Err(StoreError::WaitAbandonmentCommitConflict)
+        }
+        Err(source) => Err(StoreError::database("wait abandonment insert", source)),
+    }
+}
+
+async fn project_wait_abandonment(
+    transaction: &mut Transaction<'_, Postgres>,
+    abandonment: &WaitAbandonment,
+) -> Result<(), StoreError> {
+    let updated = query(
+        r"
+UPDATE stateknot.run_wait_registrations
+SET status = 'abandoned',
+    terminal_sequence = $5,
+    terminal_event_id = $6,
+    terminal_recorded_at = $7,
+    terminal_event_digest = $8,
+    abandonment_digest = $9,
+    updated_at = $7
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND wait_id = $3
+  AND record_digest = $4
+  AND status = 'outstanding'
+",
+    )
+    .bind(abandonment.wait().tenant_id().as_str())
+    .bind(*abandonment.wait().run_id().as_uuid())
+    .bind(durable_wait_identity(abandonment.wait()))
+    .bind(durable_wait_digest(abandonment.wait()).as_bytes())
+    .bind(
+        i64::try_from(abandonment.journal().sequence().get())
+            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+    )
+    .bind(*abandonment.journal().event_id().as_uuid())
+    .bind(to_database_time(abandonment.journal().recorded_at())?)
+    .bind(abandonment.journal().digest().as_bytes())
+    .bind(abandonment.digest().as_bytes())
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("wait abandonment projection", source))?
+    .rows_affected();
+    if updated != 1 {
+        return Err(StoreError::WaitAbandonmentCommitConflict);
+    }
+    Ok(())
+}
+
+async fn load_wait_abandonment_set(
+    transaction: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+) -> Result<Vec<WaitAbandonment>, StoreError> {
+    let sequence =
+        i64::try_from(event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let rows = query_as::<_, WaitAbandonmentRow>(SELECT_WAIT_ABANDONMENTS_BY_EVENT.as_str())
+        .bind(event.tenant_id().as_str())
+        .bind(*event.run_id().as_uuid())
+        .bind(sequence)
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("wait abandonment set load", source))?;
+    if rows.is_empty() || rows.len() > RunWaits::MAX_LEN {
+        return Err(StoreError::WaitAbandonmentCommitConflict);
+    }
+    let mut abandonments = Vec::with_capacity(rows.len());
+    for row in rows {
+        let registration =
+            query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID.as_str())
+                .bind(event.tenant_id().as_str())
+                .bind(*event.run_id().as_uuid())
+                .bind(row.wait_id)
+                .fetch_optional(&mut **transaction)
+                .await
+                .map_err(|source| StoreError::database("abandoned registration load", source))?
+                .ok_or(StoreError::WaitAbandonmentCommitConflict)?;
+        let wait = decode_wait_registration(&registration)?;
+        let abandonment = decode_wait_abandonment(&row, wait)?;
+        if registration.status != "abandoned"
+            || registration.abandonment_digest.as_deref() != Some(row.abandonment_digest.as_slice())
+            || registration.terminal_sequence != Some(row.abandonment_sequence)
+            || registration.terminal_event_id != Some(row.abandonment_event_id)
+            || registration.terminal_recorded_at != Some(row.abandoned_at)
+            || registration.terminal_event_digest.as_deref()
+                != Some(row.abandonment_event_digest.as_slice())
+            || abandonment.journal() != &event.head()
+        {
+            return Err(StoreError::corrupt("wait abandonment terminal projection"));
+        }
+        verify_wait_registration_event(
+            transaction,
+            abandonment.wait(),
+            registration.registration_sequence,
+        )
+        .await?;
+        abandonments.push(abandonment);
+    }
+    Ok(abandonments)
+}
+
+async fn load_wait_abandonment_by_id(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    wait_id: Uuid,
+) -> Result<WaitAbandonment, StoreError> {
+    let registration = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATION_BY_ID.as_str())
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(wait_id)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("abandoned registration load", source))?
+        .ok_or(StoreError::WaitRegistrationNotFound)?;
+    let wait = decode_wait_registration(&registration)?;
+    verify_wait_registration_event(transaction, &wait, registration.registration_sequence).await?;
+
+    let row = query_as::<_, WaitAbandonmentRow>(SELECT_WAIT_ABANDONMENT_BY_ID.as_str())
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(wait_id)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("wait abandonment load", source))?
+        .ok_or(StoreError::WaitAbandonmentNotFound)?;
+    let abandonment = decode_wait_abandonment(&row, wait)?;
+    if registration.status != "abandoned"
+        || registration.abandonment_digest.as_deref() != Some(row.abandonment_digest.as_slice())
+        || registration.terminal_sequence != Some(row.abandonment_sequence)
+        || registration.terminal_event_id != Some(row.abandonment_event_id)
+        || registration.terminal_recorded_at != Some(row.abandoned_at)
+        || registration.terminal_event_digest.as_deref()
+            != Some(row.abandonment_event_digest.as_slice())
+    {
+        return Err(StoreError::corrupt("wait abandonment terminal projection"));
+    }
+    verify_terminal_event(transaction, abandonment.journal()).await?;
+    Ok(abandonment)
 }
 
 async fn insert_tool_invocation_intent(
@@ -11630,6 +14821,7 @@ WHERE tenant_id = $1
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 async fn update_run_head(
     transaction: &mut Transaction<'_, Postgres>,
     event: &JournalEvent,
@@ -11662,14 +14854,18 @@ SET journal_sequence = $3,
         WHEN $9 IN ('pending', 'active', 'cancellation_requested') THEN $5
         ELSE NULL
     END,
+    wait_set_digest = $11,
+    unresolved_wait_count = $12,
+    next_timer_due_at = $13,
+    next_interrupt_expiry_at = $14,
     updated_at = $5
 WHERE tenant_id = $1
   AND run_id = $2
   AND (
-      $11::uuid IS NULL
+      $15::uuid IS NULL
       OR (
-          lease_attempt_id = $11
-          AND fencing_epoch = $12
+          lease_attempt_id = $15
+          AND fencing_epoch = $16
           AND lease_expires_at > clock_timestamp()
       )
   )
@@ -11685,6 +14881,15 @@ WHERE tenant_id = $1
         .bind(&projection.revision)
         .bind(projection.status)
         .bind(projection.changed_at)
+        .bind(
+            projection
+                .wait_set_digest
+                .as_ref()
+                .map(stateknot_core::Digest::as_bytes),
+        )
+        .bind(projection.unresolved_wait_count)
+        .bind(projection.next_timer_due_at)
+        .bind(projection.next_interrupt_expiry_at)
         .bind(worker_attempt_id)
         .bind(worker_epoch)
         .execute(&mut **transaction)
@@ -11862,6 +15067,23 @@ const fn run_status_text(status: RunStatus) -> &'static str {
         RunStatus::Succeeded => "succeeded",
         RunStatus::Failed => "failed",
         RunStatus::Cancelled => "cancelled",
+    }
+}
+
+const fn interrupt_kind_text(kind: RunInterruptKind) -> &'static str {
+    match kind {
+        RunInterruptKind::Approval => "approval",
+        RunInterruptKind::Input => "input",
+        RunInterruptKind::Authentication => "authentication",
+        RunInterruptKind::ExternalSignal => "external_signal",
+        RunInterruptKind::Reconciliation => "reconciliation",
+    }
+}
+
+const fn timer_kind_text(kind: RunTimerKind) -> &'static str {
+    match kind {
+        RunTimerKind::Sleep => "sleep",
+        RunTimerKind::RetryBackoff => "retry_backoff",
     }
 }
 

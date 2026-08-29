@@ -67,14 +67,17 @@ whose decoded memory is hard-bounded, lease-expiry-aware discovery without
 per-run polling, a transactional outbox with immutable destination snapshots,
 atomic event enqueue, durable-before-dispatch fixed attempts, explicit
 at-least-once retry/dead-letter/expiry recovery, schema verification, and
-database-enforced lease fencing.
+database-enforced lease fencing. Integrity-bound interrupt requests and durable
+timers now persist with database-clock resolution/firing, indexed due/expiry
+discovery, exact audit loads, and explicit cancellation/failure abandonment.
 Complete ready-set barriers now atomically bind and consume the exact immutable
 result set while committing their event, successor checkpoint, lifecycle
-projection, and run heads; raw successor checkpoint and pending-result writes
-that bypass a durable node attempt are rejected. PostgreSQL interrupt/timer
-persistence, protocol-specific outbox dispatch adapters, cross-tenant fairness,
-the recovery/dispatch loop, quarantine workflows, and a runnable agent loop
-have not shipped yet.
+projection, and run heads; the specialized wait-barrier commits that same unit
+with a complete interrupt/timer batch. Raw successor checkpoint, generic wait
+projection, and pending-result writes that bypass their durable evidence are
+rejected. Protocol-specific outbox dispatch adapters, cross-tenant fairness,
+the recovery/dispatch loop, automated quarantine workflows, and a runnable
+agent loop have not shipped yet.
 
 The current milestone is to:
 

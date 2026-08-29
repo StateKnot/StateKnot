@@ -119,6 +119,51 @@ pub enum StoreError {
     /// Event and checkpoint idempotency records do not describe one atomic commit.
     #[error("journal event and checkpoint identities conflict with an atomic commit")]
     CheckpointCommitConflict,
+    /// A wait batch was empty, oversized, duplicated, or crossed scope/event identity.
+    #[error("durable wait registration batch is invalid")]
+    InvalidWaitRegistrationBatch,
+    /// Wait event, checkpoint, lifecycle markers, and registration rows disagree.
+    #[error("durable wait registration conflicts with the atomic commit")]
+    WaitRegistrationCommitConflict,
+    /// No durable wait registration exists under the supplied tenant/run/identity.
+    #[error("durable wait registration was not found in the tenant-scoped run")]
+    WaitRegistrationNotFound,
+    /// A wait identity was loaded through the wrong interrupt/timer API.
+    #[error("durable wait registration kind does not match the requested API")]
+    WaitRegistrationKindMismatch,
+    /// Resolution intent did not match an outstanding durable interrupt.
+    #[error("interrupt resolution is invalid for the locked durable request")]
+    InvalidInterruptResolution,
+    /// Resolution event, immutable detail, and mutable wait projection disagree.
+    #[error("interrupt resolution conflicts with the atomic commit")]
+    InterruptResolutionCommitConflict,
+    /// Timer firing intent did not match an outstanding due durable timer.
+    #[error("timer firing is invalid for the locked durable timer")]
+    InvalidTimerFiring,
+    /// Firing event, immutable detail, and mutable wait projection disagree.
+    #[error("timer firing conflicts with the atomic commit")]
+    TimerFiringCommitConflict,
+    /// A wait-discovery page size was zero or exceeded the decoded-memory bound.
+    #[error("wait discovery page size is invalid")]
+    InvalidWaitDiscoveryPageSize,
+    /// A due-timer page cursor crossed tenant/cutoff/order scope.
+    #[error("due timer page cursor is invalid")]
+    InvalidDueTimerCursor,
+    /// An expired-interrupt page cursor crossed tenant/cutoff/order scope.
+    #[error("expired interrupt page cursor is invalid")]
+    InvalidExpiredInterruptCursor,
+    /// The supplied run-level edge was not cancellation/failure from waiting.
+    #[error("wait abandonment transition is invalid")]
+    InvalidWaitAbandonment,
+    /// Abandonment event, detail set, and mutable wait projections disagree.
+    #[error("wait abandonment conflicts with the atomic commit")]
+    WaitAbandonmentCommitConflict,
+    /// The requested wait has no immutable abandonment audit fact.
+    #[error("wait abandonment was not found in the tenant-scoped run")]
+    WaitAbandonmentNotFound,
+    /// Resolution/firing history was requested for a wait abandoned by the run.
+    #[error("durable wait was abandoned without resolution or firing")]
+    WaitWasAbandoned,
     /// A successor checkpoint must prove the complete result barrier it consumes.
     #[error("successor checkpoint commit requires a complete checkpoint barrier")]
     CheckpointBarrierRequired,
@@ -305,6 +350,9 @@ pub enum StoreError {
     /// The requested lifecycle transition was not a valid direct successor.
     #[error("lifecycle transition is invalid for the locked run state")]
     InvalidLifecycleTransition,
+    /// A durable-wait edge was attempted through a journal-only mutation path.
+    #[error("durable wait lifecycle changes require the atomic wait persistence API")]
+    DurableWaitMutationRequired,
     /// A lifecycle observation claimed to occur after the journal commit clock.
     #[error("lifecycle transition observation is later than the journal commit observation")]
     LifecycleObservationAfterCommit,

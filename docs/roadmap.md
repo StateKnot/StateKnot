@@ -100,10 +100,12 @@ from the repository.
   schema-pinned bounded payloads, action digests, principal/scope subset
   authorization, exclusive interrupt expiry, inclusive timer due time, closed
   schemas, tamper tests, property tests, and frozen cross-version wire digests.
-- [ ] Persist interrupt/timer registration and completion atomically with the
-  waiting lifecycle/checkpoint, reject generic projection bypass, expose
-  indexed due/expiry discovery, and prove migration, lost-ack, authorization,
-  corruption, rollback, and concurrency behavior on PostgreSQL 16/17.
+- [x] Persist interrupt/timer registration, resolution, firing, and explicit
+  cancellation/failure abandonment atomically with initial or successor
+  wait-barrier checkpoints; reject generic projection bypass, expose bounded
+  indexed due/expiry discovery and exact audit loads, quarantine evidence-free
+  legacy waits, and prove migration, lost-ack, authorization, corruption,
+  rollback, fencing, and 24-request convergence on PostgreSQL 16/17.
 - [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
   protocol-specific outbox adapters, quarantine, role isolation, retention,
   failover, restore, and stale-race gates.

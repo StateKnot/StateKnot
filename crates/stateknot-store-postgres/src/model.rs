@@ -1,8 +1,10 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use serde::Serialize;
 use stateknot_core::{
-    Checkpoint, CheckpointHead, CheckpointId, DeliveryFence, Digest, FencingEpoch, JournalEvent,
+    Checkpoint, CheckpointHead, CheckpointId, DeliveryFence, Digest, DurableTimer,
+    DurableTimerRecord, DurableWait, FencingEpoch, InterruptRecord, InterruptRequest, JournalEvent,
     JournalHead, JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt,
     OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef,
     PendingNodeResult, PendingNodeResultHead, RunLease, RunLifecycle, RunRevision, RunTransition,
@@ -76,6 +78,220 @@ impl CheckpointCommitOutcome {
     pub const fn checkpoint(&self) -> &Checkpoint {
         match self {
             Self::Committed { checkpoint, .. } | Self::Idempotent { checkpoint, .. } => checkpoint,
+        }
+    }
+}
+
+/// Result of atomically entering `waiting` with a checkpoint and complete
+/// durable interrupt/timer registration set.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum WaitCheckpointCommitOutcome {
+    /// The event, checkpoint, lifecycle projection, and registrations committed.
+    Committed {
+        /// Newly committed anchoring journal event.
+        event: JournalEvent,
+        /// Newly committed immutable checkpoint.
+        checkpoint: Checkpoint,
+        /// Complete materialized registration batch in semantic order.
+        waits: Vec<DurableWait>,
+    },
+    /// The exact complete transaction had already committed.
+    Idempotent {
+        /// Previously committed anchoring journal event.
+        event: JournalEvent,
+        /// Previously committed immutable checkpoint.
+        checkpoint: Checkpoint,
+        /// Complete verified registration batch in semantic order.
+        waits: Vec<DurableWait>,
+    },
+}
+
+impl WaitCheckpointCommitOutcome {
+    /// Returns the exact anchoring event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the immutable checkpoint committed at the wait barrier.
+    #[must_use]
+    pub const fn checkpoint(&self) -> &Checkpoint {
+        match self {
+            Self::Committed { checkpoint, .. } | Self::Idempotent { checkpoint, .. } => checkpoint,
+        }
+    }
+
+    /// Returns every durable registration in lifecycle semantic order.
+    #[must_use]
+    pub fn waits(&self) -> &[DurableWait] {
+        match self {
+            Self::Committed { waits, .. } | Self::Idempotent { waits, .. } => waits,
+        }
+    }
+}
+
+/// Result of atomically resolving one exact durable interrupt.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum InterruptResolutionCommitOutcome {
+    /// The event, resolution, lifecycle, and wait projection committed.
+    Committed {
+        /// Newly committed resolution event.
+        event: JournalEvent,
+        /// Complete immutable interrupt history.
+        record: InterruptRecord,
+    },
+    /// The exact complete resolution transaction had already committed.
+    Idempotent {
+        /// Previously committed resolution event.
+        event: JournalEvent,
+        /// Complete verified interrupt history.
+        record: InterruptRecord,
+    },
+}
+
+impl InterruptResolutionCommitOutcome {
+    /// Returns the exact resolution event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the complete interrupt history.
+    #[must_use]
+    pub const fn record(&self) -> &InterruptRecord {
+        match self {
+            Self::Committed { record, .. } | Self::Idempotent { record, .. } => record,
+        }
+    }
+}
+
+/// Result of atomically firing one exact due durable timer.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum TimerFiringCommitOutcome {
+    /// The event, firing, lifecycle, and wait projection committed.
+    Committed {
+        /// Newly committed firing event.
+        event: JournalEvent,
+        /// Complete immutable timer history.
+        record: DurableTimerRecord,
+    },
+    /// The exact complete firing transaction had already committed.
+    Idempotent {
+        /// Previously committed firing event.
+        event: JournalEvent,
+        /// Complete verified timer history.
+        record: DurableTimerRecord,
+    },
+}
+
+impl TimerFiringCommitOutcome {
+    /// Returns the exact firing event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the complete timer history.
+    #[must_use]
+    pub const fn record(&self) -> &DurableTimerRecord {
+        match self {
+            Self::Committed { record, .. } | Self::Idempotent { record, .. } => record,
+        }
+    }
+}
+
+/// Durable reason an outstanding wait was abandoned without resolution/firing.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum WaitAbandonmentReason {
+    /// The run entered cooperative cancellation.
+    RunCancellation,
+    /// The run committed a terminal non-cancellation failure.
+    RunFailure,
+}
+
+/// One integrity-bound audit fact for a wait abandoned by a run-level edge.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WaitAbandonment {
+    pub(crate) wait: DurableWait,
+    pub(crate) reason: WaitAbandonmentReason,
+    pub(crate) journal: JournalHead,
+    pub(crate) digest: Digest,
+}
+
+impl WaitAbandonment {
+    /// Returns the immutable registration that was abandoned.
+    #[must_use]
+    pub const fn wait(&self) -> &DurableWait {
+        &self.wait
+    }
+
+    /// Returns the run-level reason for abandonment.
+    #[must_use]
+    pub const fn reason(&self) -> WaitAbandonmentReason {
+        self.reason
+    }
+
+    /// Returns the exact journal event that abandoned the wait.
+    #[must_use]
+    pub const fn journal(&self) -> &JournalHead {
+        &self.journal
+    }
+
+    /// Returns the provider-domain integrity checksum.
+    #[must_use]
+    pub const fn digest(&self) -> Digest {
+        self.digest
+    }
+}
+
+/// Result of atomically cancelling/failing a waiting run and abandoning its
+/// complete outstanding wait set.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum WaitAbandonmentCommitOutcome {
+    /// The event, lifecycle edge, and every abandonment fact committed.
+    Committed {
+        /// Newly committed run-level event.
+        event: JournalEvent,
+        /// Complete abandoned set in deterministic registration identity order.
+        abandonments: Vec<WaitAbandonment>,
+    },
+    /// The exact complete abandonment transaction had already committed.
+    Idempotent {
+        /// Previously committed run-level event.
+        event: JournalEvent,
+        /// Complete verified abandoned set.
+        abandonments: Vec<WaitAbandonment>,
+    },
+}
+
+impl WaitAbandonmentCommitOutcome {
+    /// Returns the exact run-level event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns every abandonment fact.
+    #[must_use]
+    pub fn abandonments(&self) -> &[WaitAbandonment] {
+        match self {
+            Self::Committed { abandonments, .. } | Self::Idempotent { abandonments, .. } => {
+                abandonments
+            }
         }
     }
 }
@@ -923,6 +1139,136 @@ impl RunProjection {
     }
 }
 
+/// Hard-bounded size for tenant-level timer/interrupt discovery pages.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct WaitDiscoveryPageSize(u8);
+
+impl WaitDiscoveryPageSize {
+    /// Largest page accepted by the provider.
+    pub const MAX: u8 = 16;
+
+    /// Constructs a positive bounded discovery page size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidWaitDiscoveryPageSize`] outside `1..=16`.
+    pub const fn new(value: u8) -> Result<Self, StoreError> {
+        if value == 0 || value > Self::MAX {
+            return Err(StoreError::InvalidWaitDiscoveryPageSize);
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the page size as an integer.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// Opaque continuation for one fixed-cutoff due-timer scan.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DueTimerPageCursor {
+    pub(crate) tenant_id: stateknot_core::TenantId,
+    pub(crate) snapshot_at: Timestamp,
+    pub(crate) due_at: Timestamp,
+    pub(crate) run_id: stateknot_core::RunId,
+    pub(crate) timer_id: stateknot_core::TimerId,
+}
+
+/// One bounded tenant-level page of fully verified outstanding due timers.
+#[derive(Clone, Debug)]
+pub struct DueTimerPage {
+    pub(crate) tenant_id: stateknot_core::TenantId,
+    pub(crate) snapshot_at: Timestamp,
+    pub(crate) records: Vec<DurableTimer>,
+    pub(crate) has_more: bool,
+}
+
+impl DueTimerPage {
+    /// Returns the database-time cutoff fixed for this page chain.
+    #[must_use]
+    pub const fn snapshot_at(&self) -> Timestamp {
+        self.snapshot_at
+    }
+
+    /// Returns timers ordered by due time, run identity, then timer identity.
+    #[must_use]
+    pub fn records(&self) -> &[DurableTimer] {
+        &self.records
+    }
+
+    /// Returns whether another matching row remained after this page.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    /// Returns the exact key required to continue the fixed-cutoff scan.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<DueTimerPageCursor> {
+        self.records.last().map(|timer| DueTimerPageCursor {
+            tenant_id: self.tenant_id.clone(),
+            snapshot_at: self.snapshot_at,
+            due_at: timer.marker().due_at(),
+            run_id: timer.intent().run_id(),
+            timer_id: timer.marker().timer_id(),
+        })
+    }
+}
+
+/// Opaque continuation for one fixed-cutoff expired-interrupt scan.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExpiredInterruptPageCursor {
+    pub(crate) tenant_id: stateknot_core::TenantId,
+    pub(crate) snapshot_at: Timestamp,
+    pub(crate) expires_at: Timestamp,
+    pub(crate) run_id: stateknot_core::RunId,
+    pub(crate) interrupt_id: stateknot_core::InterruptId,
+}
+
+/// One bounded tenant-level page of fully verified outstanding expired interrupts.
+#[derive(Clone, Debug)]
+pub struct ExpiredInterruptPage {
+    pub(crate) tenant_id: stateknot_core::TenantId,
+    pub(crate) snapshot_at: Timestamp,
+    pub(crate) records: Vec<InterruptRequest>,
+    pub(crate) has_more: bool,
+}
+
+impl ExpiredInterruptPage {
+    /// Returns the database-time cutoff fixed for this page chain.
+    #[must_use]
+    pub const fn snapshot_at(&self) -> Timestamp {
+        self.snapshot_at
+    }
+
+    /// Returns requests ordered by expiry, run identity, then interrupt identity.
+    #[must_use]
+    pub fn records(&self) -> &[InterruptRequest] {
+        &self.records
+    }
+
+    /// Returns whether another matching row remained after this page.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    /// Returns the exact key required to continue the fixed-cutoff scan.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<ExpiredInterruptPageCursor> {
+        let request = self.records.last()?;
+        Some(ExpiredInterruptPageCursor {
+            tenant_id: self.tenant_id.clone(),
+            snapshot_at: self.snapshot_at,
+            expires_at: request.marker().expires_at()?,
+            run_id: request.intent().run_id(),
+            interrupt_id: request.marker().interrupt_id(),
+        })
+    }
+}
+
 /// Validated durable snapshot of one tenant-scoped run row.
 #[derive(Clone, Debug)]
 pub struct StoredRun {
@@ -932,6 +1278,10 @@ pub struct StoredRun {
     pub(crate) last_fencing_epoch: Option<FencingEpoch>,
     pub(crate) checkpoint: Option<CheckpointPointer>,
     pub(crate) scheduler_ready_at: Option<stateknot_core::Timestamp>,
+    pub(crate) wait_set_digest: Option<Digest>,
+    pub(crate) unresolved_wait_count: u8,
+    pub(crate) next_timer_due_at: Option<Timestamp>,
+    pub(crate) next_interrupt_expiry_at: Option<Timestamp>,
     pub(crate) quarantined: bool,
 }
 
@@ -974,6 +1324,30 @@ impl StoredRun {
     #[must_use]
     pub const fn scheduler_ready_at(&self) -> Option<stateknot_core::Timestamp> {
         self.scheduler_ready_at
+    }
+
+    /// Returns the integrity checksum of the current ordered outstanding wait set.
+    #[must_use]
+    pub const fn wait_set_digest(&self) -> Option<Digest> {
+        self.wait_set_digest
+    }
+
+    /// Returns the number of outstanding interrupt/timer registrations.
+    #[must_use]
+    pub const fn unresolved_wait_count(&self) -> u8 {
+        self.unresolved_wait_count
+    }
+
+    /// Returns the earliest outstanding timer due instant, when present.
+    #[must_use]
+    pub const fn next_timer_due_at(&self) -> Option<Timestamp> {
+        self.next_timer_due_at
+    }
+
+    /// Returns the earliest finite outstanding interrupt expiry, when present.
+    #[must_use]
+    pub const fn next_interrupt_expiry_at(&self) -> Option<Timestamp> {
+        self.next_interrupt_expiry_at
     }
 
     /// Returns whether integrity or operator policy quarantined the run.
