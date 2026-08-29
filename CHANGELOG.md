@@ -77,6 +77,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   keep mutable provider/endpoint bindings behind the trusted registry identity,
   preserve redacted discovery diagnostics, and publish an independent versioned
   wire fixture without mutating prior fixtures.
+- Immutable provider-neutral model requests with ordered bounded instructions,
+  durable multimodal messages, canonical pinned tool descriptors, exact tool
+  selection and call ceilings, structured text output, complete/streaming and
+  readable-reasoning controls, finite token/content limits, automatically
+  derived capability requirements, tamper-resistant deserialization, redacted
+  diagnostics, closed schemas, property tests, and an independent versioned
+  wire fixture.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

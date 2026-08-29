@@ -299,6 +299,54 @@ minima。`satisfies` 返回排序、有界、非空的 `ModelCapabilityMismatch`
 registry 对照 capability 中 digest-pinned profile 验证，协商不能删除不支持的
 keyword 后静默降级。
 
+已冻结的 `ModelRequest` 契约只承载多家接口都能严格映射的语义：
+
+- 最多 32 条有序、identity 不重复的 application-controlled instruction，解析后
+  内容合计不超过 8 MiB，artifact instruction 只能是 text；最多 256 条有序、
+  message ID 不重复的 durable message，解析后内容合计不超过 64 MiB；
+- message 的 inline JSON 按 text modality 协商；artifact 的 text/image/audio/video/
+  document 可直接映射，structured-data/archive/binary 必须先由 application 或
+  adapter 显式预处理，不能冒充 provider 可移植输入；
+- 最多 128 个非 retired `ToolDescriptor`，按 provider-visible 本地名称规范排序并
+  跨 owner/version 拒绝同名；tool choice 封闭为 none/auto/required/specific，
+  specific 必须引用已提供名称；启用工具时每响应调用上限必须为 1..=1024，
+  strict arguments 是独立要求；
+- output modalities 非空；包含 text 时必须明确选择 text/json/json-schema，后者
+  使用 digest-pinned `SchemaReference`，不包含 text 时禁止附带 text format；
+- response delivery 明确为 complete/streaming，reasoning 只请求 readable summary；
+  input/output token ceiling 和 content-byte ceiling 都是有限正数，前两者 checked
+  求和形成协商需要的 context capacity，content 上限不得超过 64 MiB；
+- wire 中保存自动派生的 `ModelRequirements` 以便审计，但反序列化必须重新计算并
+  精确比对，不能信任调用方声明。所有 collection、资源上限和 unknown/duplicate
+  field 在 builder 与 Serde 两条入口保持同一 fail-closed 语义。
+
+该 wire 是内部持久化/adapter 契约，不是授权协议；结构校验不能证明 instruction
+owner 或 tool descriptor 的 registry 身份。HTTP、MCP、A2A 等外部入口不得接受调用
+方自报的 trusted instruction/可执行 descriptor，必须从已认证 tenant registry 解析
+并固定精确版本。
+
+core 固定单 candidate、禁止隐式 truncation，也不保存 provider conversation ID、
+background/store 状态或 credential。temperature、top-p/top-k、stop、service tier 等
+采样/供应商开关经注册的有界 adapter extension 传递；adapter 必须验证自己拥有的
+extension，遇到不支持的值直接报错。deadline 与累计 token/cost/tool-call budget 属于
+`ModelContext` 和 resolved run budget，不能混入一次 request 后绕过全局策略。
+
+request 边界还逐项对照了多家当前一手 API，而不是用某一家字段作为所谓通用层：
+
+- [OpenAI Responses create](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
+  区分 instructions/input/tools/tool choice/output ceiling，并允许 provider 自动
+  truncation，因此 core 必须显式禁用而不能继承默认行为；
+- [Anthropic Messages create](https://platform.claude.com/docs/en/api/messages/create)
+  使用顶层 system、messages、tools、tool choice、max tokens 和 output config，且新
+  模型对 temperature/top-p/top-k 的可用组合已有差异，证明采样值不是稳定公共语义；
+- [Gemini generateContent](https://ai.google.dev/api/generate-content) 分离 contents、
+  system instruction、tools/tool config 和 generation config，并对 stop sequence 等
+  字段给出自身限制；
+- [Bedrock Converse](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html)
+  分离 messages/system/tool config/common inference config，并用
+  `additionalModelRequestFields` 承载模型特有字段。这正对应 core 契约加注册 adapter
+  extension 的边界，而不是无类型 map 穿透整个 runtime。
+
 这些维度来自多家一手接口，而非只复刻 LangChain：
 
 - [OpenAI model catalog](https://developers.openai.com/api/docs/models/compare) 按模型
@@ -316,11 +364,12 @@ keyword 后静默降级。
 - MCP 2026-07-28 已弃用 Sampling，因此 v1 不以 MCP sampling preference 构造新的
   core model-selection 抽象。
 
-request 还必须明确 system/developer/user/tool 层级、tool choice、response schema、
-sampling、budget、deadline 与 metadata；统一 `ModelEvent` 覆盖 message delta、
-tool-call delta/completed、usage、provider metadata、finish 和 error。pricing、rate
-limit、service tier、region availability 与 provider knob 属于可变 policy/adapter
-数据，不固化进模型 capability snapshot。
+provider adapter 必须把有序 instruction 映射到自身最高优先级的指令通道，并保持
+顺序；durable `Message` 只包含 user/assistant/tool 语义角色，不能把外部内容提升为
+instruction。无法无损保持层级、顺序或 schema 约束时必须在 I/O 前失败。后续统一
+`ModelEvent` 覆盖 message delta、tool-call delta/completed、usage、provider metadata、
+finish 和 error。pricing、rate limit、service tier、region availability 与 provider
+knob 属于可变 policy/adapter 数据，不固化进模型 capability snapshot。
 
 建议 v1 只提供两个高保真第一方 adapter：OpenAI Responses/OpenAI-compatible 与 Anthropic Messages。其他 provider 在有明确用户需求和契约测试后再加入。
 

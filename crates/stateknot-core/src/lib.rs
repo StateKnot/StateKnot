@@ -24,6 +24,7 @@ mod ids;
 mod json;
 mod message;
 mod model;
+mod model_request;
 mod schema;
 mod scope;
 mod time;
@@ -84,6 +85,10 @@ pub use model::{
     ModelStructuredOutputLevel, ModelTokenLimits, ModelTokenLimitsError, ModelToolCapabilities,
     ModelToolCapabilitiesError, ModelToolChoice, ModelToolChoices, ModelToolChoicesError,
     ModelToolRequirements, ModelToolRequirementsError,
+};
+pub use model_request::{
+    ModelRequest, ModelRequestBuilder, ModelRequestError, ModelRequestLimits,
+    ModelRequestLimitsError, ModelResponseMode, ModelTextOutputFormat, ModelToolSelection,
 };
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};

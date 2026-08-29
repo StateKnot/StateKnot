@@ -171,15 +171,25 @@ struct IncidentSummary {
 async fn invoke(
     model: &dyn Model,
     ctx: ModelContext,
+    instruction: Instruction,
+    message: Message,
+    output_schema: SchemaReference,
 ) -> Result<IncidentSummary, Box<dyn std::error::Error>> {
-    let request = ModelRequest::builder()
-        .instruction(Instruction::trusted("Return a typed incident summary")?)
-        .message(Message::user([ContentPart::text("Investigate incident 42")?])?)
-        .require_structured_output(ModelStructuredOutputLevel::JsonSchema)
-        .output_schema(JsonSchemaDocument::for_type::<IncidentSummary>()?)
+    let limits = ModelRequestLimits::new(
+        TokenCount::new(8_192),
+        TokenCount::new(1_024),
+        ByteCount::new(1_048_576),
+    )?;
+    let request = ModelRequest::builder(limits)
+        .instruction(instruction)
+        .message(message)
+        .text_output_format(Some(ModelTextOutputFormat::json_schema(output_schema)))
         .build()?;
 
-    model.capabilities().satisfies(request.requirements())?;
+    model
+        .descriptor()
+        .capabilities()
+        .satisfies(request.requirements())?;
     let response = model.invoke(ctx, request).await?;
     Ok(response.decode_structured()?)
 }
@@ -713,6 +723,9 @@ including the known available capacity where relevant. Mismatch wire data also
 rejects duplicate dimensions and claims where available capacity already meets
 the requirement. Actual request schemas must additionally validate against the
 pinned profiles; feature negotiation alone never rewrites or weakens a schema.
+`ModelRequest` computes this value from its validated fields; the canonical wire
+form includes the derived value for auditability, and deserialization recomputes
+and rejects any mismatch rather than trusting the serialized claim.
 
 This separation follows current provider surfaces. OpenAI publishes context,
 output, streaming, function-calling, structured-output, and image-input support
@@ -850,9 +863,50 @@ pub trait Model: Send + Sync + 'static {
 }
 ```
 
-`ModelRequest` contains ordered instructions, messages, available tool
-descriptors, required capabilities, output schema, sampling/limit values, and a
-bounded extension map. It does not contain a provider SDK request object.
+`ModelRequest` is an immutable, provider-neutral invocation value. Its v1
+contract is deliberately finite and fail-closed:
+
+- up to 32 unique, ordered application-controlled instructions with at most
+  8 MiB of resolved text content; instruction artifacts must have the text
+  modality;
+- up to 256 ordered durable messages with unique IDs and at most 64 MiB of
+  resolved content. Inline JSON negotiates as text; text, image, audio, video,
+  and document artifacts map to the corresponding model modality, while
+  structured-data, archive, and binary artifacts require explicit application
+  or adapter preprocessing;
+- up to 128 active or deprecated `ToolDescriptor` values, canonicalized by
+  registry-local name. Names collide across owners and versions because they
+  are provider-visible. Selection is exactly none, auto, required, or one
+  supplied name; an active tool set requires a positive per-response call
+  ceiling no greater than 1024, and may require strict complete arguments;
+- a non-empty output modality set. Text output has exactly one explicit
+  `text`, `json`, or digest-pinned `json_schema` format; non-text-only output
+  has no text format;
+- complete or streaming delivery, an explicit readable-reasoning-summary flag,
+  positive input/output token ceilings whose sum is representable, and a
+  caller content ceiling no greater than 64 MiB; and
+- a bounded registered extension map. Every adapter validates the extensions
+  it owns and rejects unsupported values rather than silently dropping them.
+
+Construction derives input modalities, tool/structured-output requirements,
+streaming, reasoning, and the context/input/output token minima into
+`ModelRequirements`. Deserialization repeats all collection and cross-field
+validation and verifies the serialized derived requirements exactly. Capability
+negotiation therefore cannot be bypassed by wire tampering.
+
+This wire form is a durable internal contract, not an authorization protocol.
+Serde validation cannot authenticate an instruction owner or tool registry
+claim. Public API, MCP, and A2A adapters must ignore caller attempts to supply
+trusted instructions or executable descriptors and instead resolve authorized,
+version-pinned values from the tenant registry.
+
+Portable core v1 intentionally fixes one candidate and no implicit truncation.
+Provider conversation IDs, stored/background execution, service tiers,
+temperature, top-p/top-k, stop sequences, and other provider controls do not
+pretend to have common semantics; when supported they use registered,
+validated adapter extensions. Deadline and cumulative token/cost/tool budgets
+belong to `ModelContext` and the resolved run budget, not this per-invocation
+value. A request never contains a provider SDK object or bearer credential.
 
 `ModelResponse` contains typed content, validated tool-call proposals, finish
 reason, usage, adapter/provider identifiers, and redacted provider metadata.

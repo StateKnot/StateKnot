@@ -1,0 +1,469 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-model-request/1.0.0",
+  "response_modes": {
+    "valid": [
+      "complete",
+      "streaming"
+    ],
+    "invalid": [
+      "incremental",
+      "Complete",
+      "",
+      42,
+      null
+    ]
+  },
+  "tool_selections": {
+    "valid": [
+      {
+        "mode": "none"
+      },
+      {
+        "mode": "auto"
+      },
+      {
+        "mode": "required"
+      },
+      {
+        "mode": "specific",
+        "name": "payments.capture"
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "mode": "none",
+        "name": "payments.capture"
+      },
+      {
+        "mode": "specific"
+      },
+      {
+        "mode": "parallel"
+      },
+      null
+    ]
+  },
+  "text_output_formats": {
+    "valid": [
+      {
+        "type": "text"
+      },
+      {
+        "type": "json"
+      },
+      {
+        "type": "json_schema",
+        "schema": {
+          "id": "https://schemas.example.com/model-output/incident/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "type": "text",
+        "schema": {
+          "id": "https://schemas.example.com/model-output/incident/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      {
+        "type": "json_schema"
+      },
+      {
+        "type": "xml"
+      },
+      null
+    ]
+  },
+  "limits": {
+    "valid": [
+      {
+        "max_input_tokens": "8192",
+        "max_output_tokens": "1024",
+        "max_content_bytes": "1048576"
+      },
+      {
+        "max_input_tokens": "1",
+        "max_output_tokens": "1",
+        "max_content_bytes": "67108864"
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "max_input_tokens": "0",
+        "max_output_tokens": "1",
+        "max_content_bytes": "1"
+      },
+      {
+        "max_input_tokens": "1",
+        "max_output_tokens": "0",
+        "max_content_bytes": "1"
+      },
+      {
+        "max_input_tokens": "1",
+        "max_output_tokens": "1",
+        "max_content_bytes": "0"
+      },
+      {
+        "max_input_tokens": "1",
+        "max_output_tokens": "1",
+        "max_content_bytes": "67108865"
+      },
+      {
+        "max_input_tokens": "18446744073709551615",
+        "max_output_tokens": "1",
+        "max_content_bytes": "1"
+      },
+      {
+        "max_input_tokens": "1",
+        "max_output_tokens": "1",
+        "max_content_bytes": "1",
+        "unlimited": true
+      },
+      null
+    ]
+  },
+  "requests": {
+    "valid": [
+      {
+        "instructions": [
+          {
+            "identity": {
+              "name": "incident.summary",
+              "version": "1.2.3"
+            },
+            "content_digest": "sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6",
+            "content": {
+              "type": "text",
+              "content": {
+                "text": "Return a typed incident summary",
+                "language": "en-us",
+                "metadata": {
+                  "source": "application",
+                  "trust": "application_controlled",
+                  "security_label": "internal/config",
+                  "redaction": "not_applied"
+                }
+              }
+            },
+            "provenance": {
+              "owner": {
+                "issuer": "https://issuer.example.com",
+                "subject": "service-account"
+              }
+            }
+          }
+        ],
+        "messages": [],
+        "tools": [],
+        "tool_selection": {
+          "mode": "none"
+        },
+        "max_tool_calls_per_response": "0",
+        "strict_tool_arguments": false,
+        "output_modalities": [
+          "text"
+        ],
+        "text_output_format": {
+          "type": "text"
+        },
+        "response_mode": "complete",
+        "reasoning_summaries": false,
+        "limits": {
+          "max_input_tokens": "8192",
+          "max_output_tokens": "1024",
+          "max_content_bytes": "1048576"
+        },
+        "extensions": {},
+        "requirements": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "tools": {
+            "min_definitions": "0",
+            "min_calls_per_response": "0",
+            "choices": [],
+            "strict_arguments": false
+          },
+          "structured_output": "unsupported",
+          "reasoning_summaries": false,
+          "min_context_tokens": "9216",
+          "min_input_tokens": "8192",
+          "min_output_tokens": "1024"
+        }
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "instructions": [],
+        "messages": [],
+        "tools": [],
+        "tool_selection": {
+          "mode": "none"
+        },
+        "max_tool_calls_per_response": "0",
+        "strict_tool_arguments": false,
+        "output_modalities": [
+          "text"
+        ],
+        "text_output_format": {
+          "type": "text"
+        },
+        "response_mode": "complete",
+        "reasoning_summaries": false,
+        "limits": {
+          "max_input_tokens": "8192",
+          "max_output_tokens": "1024",
+          "max_content_bytes": "1048576"
+        },
+        "extensions": {},
+        "requirements": {
+          "input_modalities": [],
+          "output_modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "tools": {
+            "min_definitions": "0",
+            "min_calls_per_response": "0",
+            "choices": [],
+            "strict_arguments": false
+          },
+          "structured_output": "unsupported",
+          "reasoning_summaries": false,
+          "min_context_tokens": "9216",
+          "min_input_tokens": "8192",
+          "min_output_tokens": "1024"
+        }
+      },
+      {
+        "instructions": [
+          {
+            "identity": {
+              "name": "incident.summary",
+              "version": "1.2.3"
+            },
+            "content_digest": "sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6",
+            "content": {
+              "type": "text",
+              "content": {
+                "text": "Return a typed incident summary",
+                "language": "en-us",
+                "metadata": {
+                  "source": "application",
+                  "trust": "application_controlled",
+                  "security_label": "internal/config",
+                  "redaction": "not_applied"
+                }
+              }
+            },
+            "provenance": {
+              "owner": {
+                "issuer": "https://issuer.example.com",
+                "subject": "service-account"
+              }
+            }
+          }
+        ],
+        "messages": [],
+        "tools": [],
+        "tool_selection": {
+          "mode": "none"
+        },
+        "max_tool_calls_per_response": "0",
+        "strict_tool_arguments": false,
+        "output_modalities": [
+          "text"
+        ],
+        "text_output_format": {
+          "type": "text"
+        },
+        "response_mode": "complete",
+        "reasoning_summaries": false,
+        "limits": {
+          "max_input_tokens": "8192",
+          "max_output_tokens": "1024",
+          "max_content_bytes": "1048576"
+        },
+        "extensions": {},
+        "requirements": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "streaming": true,
+          "tools": {
+            "min_definitions": "0",
+            "min_calls_per_response": "0",
+            "choices": [],
+            "strict_arguments": false
+          },
+          "structured_output": "unsupported",
+          "reasoning_summaries": false,
+          "min_context_tokens": "9216",
+          "min_input_tokens": "8192",
+          "min_output_tokens": "1024"
+        }
+      },
+      {
+        "instructions": [
+          {
+            "identity": {
+              "name": "incident.summary",
+              "version": "1.2.3"
+            },
+            "content_digest": "sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6",
+            "content": {
+              "type": "text",
+              "content": {
+                "text": "Return a typed incident summary",
+                "language": "en-us",
+                "metadata": {
+                  "source": "application",
+                  "trust": "application_controlled",
+                  "security_label": "internal/config",
+                  "redaction": "not_applied"
+                }
+              }
+            },
+            "provenance": {
+              "owner": {
+                "issuer": "https://issuer.example.com",
+                "subject": "service-account"
+              }
+            }
+          }
+        ],
+        "messages": [],
+        "tools": [],
+        "tool_selection": {
+          "mode": "auto"
+        },
+        "max_tool_calls_per_response": "0",
+        "strict_tool_arguments": false,
+        "output_modalities": [
+          "text"
+        ],
+        "text_output_format": {
+          "type": "text"
+        },
+        "response_mode": "complete",
+        "reasoning_summaries": false,
+        "limits": {
+          "max_input_tokens": "8192",
+          "max_output_tokens": "1024",
+          "max_content_bytes": "1048576"
+        },
+        "extensions": {},
+        "requirements": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "tools": {
+            "min_definitions": "0",
+            "min_calls_per_response": "0",
+            "choices": [],
+            "strict_arguments": false
+          },
+          "structured_output": "unsupported",
+          "reasoning_summaries": false,
+          "min_context_tokens": "9216",
+          "min_input_tokens": "8192",
+          "min_output_tokens": "1024"
+        }
+      },
+      {
+        "instructions": [
+          {
+            "identity": {
+              "name": "incident.summary",
+              "version": "1.2.3"
+            },
+            "content_digest": "sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6",
+            "content": {
+              "type": "text",
+              "content": {
+                "text": "Return a typed incident summary",
+                "language": "en-us",
+                "metadata": {
+                  "source": "application",
+                  "trust": "application_controlled",
+                  "security_label": "internal/config",
+                  "redaction": "not_applied"
+                }
+              }
+            },
+            "provenance": {
+              "owner": {
+                "issuer": "https://issuer.example.com",
+                "subject": "service-account"
+              }
+            }
+          }
+        ],
+        "messages": [],
+        "tools": [],
+        "tool_selection": {
+          "mode": "none"
+        },
+        "max_tool_calls_per_response": "0",
+        "strict_tool_arguments": false,
+        "output_modalities": [
+          "text"
+        ],
+        "text_output_format": {
+          "type": "text"
+        },
+        "response_mode": "complete",
+        "reasoning_summaries": false,
+        "limits": {
+          "max_input_tokens": "8192",
+          "max_output_tokens": "1024",
+          "max_content_bytes": "1048576"
+        },
+        "extensions": {},
+        "requirements": {
+          "input_modalities": [
+            "text"
+          ],
+          "output_modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "tools": {
+            "min_definitions": "0",
+            "min_calls_per_response": "0",
+            "choices": [],
+            "strict_arguments": false
+          },
+          "structured_output": "unsupported",
+          "reasoning_summaries": false,
+          "min_context_tokens": "9216",
+          "min_input_tokens": "8192",
+          "min_output_tokens": "1024"
+        },
+        "store": true
+      }
+    ]
+  },
+  "raw_invalid_requests": [
+    "{\"instructions\":[{\"identity\":{\"name\":\"incident.summary\",\"version\":\"1.2.3\"},\"content_digest\":\"sha256:a6256bced1f9533dbaeefa5cc54d3acfd66eac0621fb1a282857a642212edfb6\",\"content\":{\"type\":\"text\",\"content\":{\"text\":\"Return a typed incident summary\",\"language\":\"en-us\",\"metadata\":{\"source\":\"application\",\"trust\":\"application_controlled\",\"security_label\":\"internal/config\",\"redaction\":\"not_applied\"}}},\"provenance\":{\"owner\":{\"issuer\":\"https://issuer.example.com\",\"subject\":\"service-account\"}}}],\"messages\":[],\"tools\":[],\"tool_selection\":{\"mode\":\"none\"},\"max_tool_calls_per_response\":\"0\",\"strict_tool_arguments\":false,\"output_modalities\":[\"text\"],\"text_output_format\":{\"type\":\"text\"},\"response_mode\":\"complete\",\"response_mode\":\"streaming\",\"reasoning_summaries\":false,\"limits\":{\"max_input_tokens\":\"8192\",\"max_output_tokens\":\"1024\",\"max_content_bytes\":\"1048576\"},\"extensions\":{},\"requirements\":{\"input_modalities\":[\"text\"],\"output_modalities\":[\"text\"],\"streaming\":false,\"tools\":{\"min_definitions\":\"0\",\"min_calls_per_response\":\"0\",\"choices\":[],\"strict_arguments\":false},\"structured_output\":\"unsupported\",\"reasoning_summaries\":false,\"min_context_tokens\":\"9216\",\"min_input_tokens\":\"8192\",\"min_output_tokens\":\"1024\"}}"
+  ]
+}
