@@ -1,0 +1,399 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-agent/1.0.0",
+  "structured_output_strategies": {
+    "valid": [
+      "model_native",
+      "tool_call"
+    ],
+    "invalid": [
+      "auto",
+      "native",
+      null,
+      1
+    ]
+  },
+  "tool_concurrencies": {
+    "valid": [
+      {
+        "mode": "sequential"
+      },
+      {
+        "mode": "parallel_read_only",
+        "max_concurrency": "2"
+      }
+    ],
+    "invalid": [
+      {
+        "mode": "parallel"
+      },
+      {
+        "mode": "sequential",
+        "max_concurrency": "2"
+      },
+      {
+        "mode": "parallel_read_only"
+      }
+    ]
+  },
+  "execution_configs": {
+    "valid": [
+      {
+        "structured_output": "model_native",
+        "max_model_turns": "12",
+        "max_output_repair_turns": "2",
+        "max_tool_calls_per_turn": "4",
+        "tool_concurrency": {
+          "mode": "sequential"
+        }
+      },
+      {
+        "structured_output": "tool_call",
+        "max_model_turns": "10",
+        "max_output_repair_turns": "1",
+        "max_tool_calls_per_turn": "4",
+        "tool_concurrency": {
+          "mode": "parallel_read_only",
+          "max_concurrency": "2"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "structured_output": "model_native",
+        "max_model_turns": "0",
+        "max_output_repair_turns": "0",
+        "max_tool_calls_per_turn": "0",
+        "tool_concurrency": {
+          "mode": "sequential"
+        }
+      },
+      {
+        "structured_output": "model_native",
+        "max_model_turns": "3",
+        "max_output_repair_turns": "3",
+        "max_tool_calls_per_turn": "0",
+        "tool_concurrency": {
+          "mode": "sequential"
+        }
+      },
+      {
+        "structured_output": "tool_call",
+        "max_model_turns": "10",
+        "max_output_repair_turns": "1",
+        "max_tool_calls_per_turn": "4",
+        "tool_concurrency": {
+          "mode": "parallel_read_only",
+          "max_concurrency": "1"
+        }
+      },
+      {
+        "structured_output": "tool_call",
+        "max_model_turns": "10",
+        "max_output_repair_turns": "1",
+        "max_tool_calls_per_turn": "2",
+        "tool_concurrency": {
+          "mode": "parallel_read_only",
+          "max_concurrency": "3"
+        }
+      },
+      {
+        "structured_output": "model_native",
+        "max_model_turns": "12",
+        "max_output_repair_turns": "2",
+        "max_tool_calls_per_turn": "4",
+        "tool_concurrency": {
+          "mode": "sequential"
+        },
+        "unlimited": true
+      }
+    ]
+  },
+  "descriptors": {
+    "valid": [
+      {
+        "budget_limits": {
+          "model_turns": "12",
+          "tool_calls": "24",
+          "write_calls": "1"
+        },
+        "execution": {
+          "max_model_turns": "12",
+          "max_output_repair_turns": "2",
+          "max_tool_calls_per_turn": "4",
+          "structured_output": "model_native",
+          "tool_concurrency": {
+            "mode": "sequential"
+          }
+        },
+        "input_schema": {
+          "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+          "id": "https://schemas.example.com/incident-request/1.0.0",
+          "version": "1.0.0"
+        },
+        "instructions": [
+          {
+            "content": {
+              "content": {
+                "metadata": {
+                  "redaction": "not_applied",
+                  "security_label": "internal",
+                  "source": "application",
+                  "trust": "application_controlled"
+                },
+                "text": "never-log-this-instruction"
+              },
+              "type": "text"
+            },
+            "content_digest": "sha256:5c2483e4df0fbc70f554aba4c4dff7fb69c38c7746e086dba29d9f54b06a52f1",
+            "identity": {
+              "name": "incident.base",
+              "version": "1.0.0"
+            },
+            "provenance": {
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "instruction-owner"
+              }
+            }
+          }
+        ],
+        "metadata": {
+          "description": "never-log-this-instruction",
+          "extensions": {},
+          "identity": {
+            "capability": {
+              "name": "agents.incident",
+              "version": "1.0.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "agent-owner"
+            }
+          },
+          "kind": "agent",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": []
+        },
+        "model": {
+          "capabilities": {
+            "input_modalities": [
+              "text"
+            ],
+            "output_modalities": [
+              "text"
+            ],
+            "reasoning_summaries": false,
+            "streaming": true,
+            "structured_output": {
+              "level": "json_schema",
+              "schema_profile": {
+                "digest": "sha256:a0f922a715001985eddf0d617edc9bb26b64be3323770e0d385404e622a07db0",
+                "id": "https://schemas.example.com/model-output-profile/1.0.0",
+                "version": "1.0.0"
+              }
+            },
+            "token_limits": {
+              "max_context_tokens": "128000",
+              "max_input_tokens": "120000",
+              "max_output_tokens": "16384"
+            },
+            "tools": {
+              "choices": [
+                "auto"
+              ],
+              "max_calls_per_response": "4",
+              "max_definitions": "8",
+              "schema_profile": {
+                "digest": "sha256:96921d2d2ee50209de4e045ccd295bc6802c9c2777020ac05c7b7a44ecfb951f",
+                "id": "https://schemas.example.com/model-tool-profile/1.0.0",
+                "version": "1.0.0"
+              },
+              "strict_arguments": true
+            }
+          },
+          "metadata": {
+            "description": "Pinned model binding",
+            "extensions": {},
+            "identity": {
+              "capability": {
+                "name": "models.primary",
+                "version": "1.0.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "model-owner"
+              }
+            },
+            "kind": "model",
+            "lifecycle": {
+              "status": "active"
+            },
+            "required_scopes": []
+          }
+        },
+        "output_schema": {
+          "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+          "id": "https://schemas.example.com/incident-report/1.0.0",
+          "version": "1.0.0"
+        },
+        "tools": [
+          {
+            "input_schema": {
+              "digest": "sha256:dc6417707d2c53db6363aa6687c30b1fe2a891bc99e0814e0c77c653098dd5dd",
+              "id": "https://schemas.example.com/tools.lookup-input/1.0.0",
+              "version": "1.0.0"
+            },
+            "invocation": {
+              "cancellation": "cooperative",
+              "max_progress_events": "32"
+            },
+            "limits": {
+              "max_artifacts": "4",
+              "max_concurrency": "16",
+              "max_inline_result_bytes": "262144",
+              "max_input_bytes": "65536",
+              "max_total_artifact_bytes": "26214400",
+              "timeout": "30000"
+            },
+            "metadata": {
+              "description": "Read-only test tool",
+              "extensions": {},
+              "identity": {
+                "capability": {
+                  "name": "tools.lookup",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "tool-owner"
+                }
+              },
+              "kind": "tool",
+              "lifecycle": {
+                "status": "active"
+              },
+              "required_scopes": []
+            },
+            "output_schema": {
+              "digest": "sha256:b4b149fe40b3cd4735e555b8f6c8a9d148ddc60dea5644b93ac1ab90a1cc5893",
+              "id": "https://schemas.example.com/tools.lookup-output/1.0.0",
+              "version": "1.0.0"
+            },
+            "resources": {
+              "credentials": false,
+              "dynamic_code": false,
+              "filesystem": "none",
+              "network": "none"
+            },
+            "semantics": {
+              "compensation": false,
+              "idempotency": "not_applicable",
+              "risk": "read_only",
+              "status_query": false
+            }
+          }
+        ]
+      }
+    ],
+    "invalid": [
+      {},
+      null,
+      []
+    ]
+  },
+  "raw_invalid_execution_configs": [
+    "{\"structured_output\":\"model_native\",\"max_model_turns\":\"12\",\"max_model_turns\":\"13\",\"max_output_repair_turns\":\"2\",\"max_tool_calls_per_turn\":\"0\",\"tool_concurrency\":{\"mode\":\"sequential\"}}"
+  ],
+  "raw_invalid_descriptors": [
+    "{\"metadata\":null,\"metadata\":null}"
+  ],
+  "descriptor_mutations": [
+    {
+      "name": "wrong-agent-kind",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/metadata/kind",
+          "value": "workflow"
+        }
+      ]
+    },
+    {
+      "name": "zero-model-turns",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/execution/max_model_turns",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "name": "repairs-consume-all-turns",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/execution/max_output_repair_turns",
+          "value": "12"
+        }
+      ]
+    },
+    {
+      "name": "model-call-capacity-too-small",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/execution/max_tool_calls_per_turn",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "name": "native-output-capability-too-weak",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/model/capabilities/structured_output",
+          "value": {
+            "level": "json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reserved-output-tool-shadowed",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/execution/structured_output",
+          "value": "tool_call"
+        },
+        {
+          "op": "replace",
+          "pointer": "/tools/0/metadata/identity/capability/name",
+          "value": "stateknot_final_output"
+        }
+      ]
+    },
+    {
+      "name": "duplicate-instruction",
+      "changes": [
+        {
+          "op": "duplicate_first",
+          "pointer": "/instructions"
+        }
+      ]
+    },
+    {
+      "name": "duplicate-tool",
+      "changes": [
+        {
+          "op": "duplicate_first",
+          "pointer": "/tools"
+        }
+      ]
+    }
+  ]
+}

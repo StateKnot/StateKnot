@@ -17,8 +17,8 @@ SPDX-License-Identifier: Apache-2.0
 This RFC defines the stable domain boundary shared by the embedded SDK,
 durable runtime, model and tool integrations, server API, MCP adapter, and A2A
 adapter. It standardizes identifiers, content, messages, artifacts, schemas,
-capabilities, identity, budgets, execution context, errors, and the typed/erased
-tool boundary.
+capabilities, identity, budgets, execution context, errors, callable model/tool
+boundaries, and immutable agent definitions.
 
 The core model is provider-, protocol-, database-, and async-runtime-neutral.
 Provider SDK types, MCP/A2A wire types, SQL records, Axum extractors, and Tokio
@@ -1065,6 +1065,63 @@ resume at a later sequence. A canonical fixture proves that its terminal value
 is byte-for-byte the same wire `ModelResponse` as the unary contract, rather than
 a second streaming-only response type. Partial deltas are observable but never
 committed as a complete response.
+
+## Agent definition
+
+An `AgentDescriptor` is an immutable, executable definition snapshot. It binds
+one `kind=agent` capability version to exact input/output schemas, one resolved
+`ModelDescriptor`, an ordered non-empty set of application-controlled
+instructions, a canonically ordered set of resolved `ToolDescriptor` values, a
+resolved structured-output strategy, finite loop limits, and an optional
+agent-level budget layer. A reusable descriptor cannot embed the budget's
+absolute `deadline`; the runtime derives that instant from run admission and
+the applicable relative policy. A run snapshots this value; registry aliases, model
+profiles, tool schemas, prompts, and lifecycle changes cannot silently alter an
+already-started run.
+
+StateKnot supports two durable structured-output strategies:
+
+- `model_native` requires the pinned model binding to advertise JSON Schema
+  output and requires the exact output schema to pass that binding's local,
+  digest-pinned schema profile;
+- `tool_call` reserves a framework-owned final-output tool definition. A final
+  output call is accepted only when it is the sole completed call in that model
+  response, and its arguments pass local schema validation. It is an output
+  marker, never a user tool invocation, and therefore cannot create a tool
+  ledger entry or external effect.
+
+There is deliberately no serialized `auto` strategy. An ergonomic builder may
+choose a strategy once while resolving a definition, but the resulting
+descriptor and run snapshot record the exact choice. Model upgrades therefore
+cannot change a recovered run from tool-based output to provider-native output
+or the reverse.
+
+`AgentExecutionConfig` has positive finite model-turn and per-response tool-call
+ceilings, a finite output-repair allowance strictly below the turn ceiling, and
+an explicit tool concurrency mode. `parallel_read_only` can parallelize only
+tools whose trusted descriptor says `read_only`; writes remain serialized in
+model proposal order. Regardless of completion order, tool results re-enter the
+model transcript in proposal order. The effective run budget is still the
+intersection of system, tenant, agent, and request layers and may stop the loop
+before these descriptor ceilings.
+
+Descriptor construction fails before execution when the pinned model cannot
+accept every exposed tool definition, cannot emit the configured number of
+calls, cannot implement the resolved output strategy, when tool names collide,
+when a framework-reserved output name is shadowed, or when an instruction/tool
+collection exceeds its hard count or byte limits. Schema references are
+identities, not validation evidence: the trusted local registry must validate
+input, output, tool, and provider-profile schemas before a descriptor becomes
+selectable.
+
+The ordinary agent loop is compiled by `stateknot-runtime` onto the same durable
+graph/journal semantics as a hand-authored graph. Core does not expose an async
+`Agent::run` implementation that could hide model attempts, tool effects,
+approvals, or checkpoints inside one opaque future. Handoff and agent-as-tool
+remain distinct orchestration operations: a handoff transfers task ownership,
+whereas agent-as-tool returns control to the calling agent. Their run and
+delegation records are specified by RFC-0002 through RFC-0004 rather than being
+encoded as ordinary local tool success.
 
 ## Identity and delegation
 

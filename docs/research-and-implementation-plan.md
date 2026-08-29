@@ -653,7 +653,18 @@ adapter 保存和验证；只有显式、无碰撞的 registry mapping 可以将
 
 ### 9.1 预置 Agent loop
 
-用户不应为最常见场景手写图。`AgentBuilder` 应组合 model、instructions、tools、output schema、memory、middleware、limits，直接得到可运行 Agent。
+用户不应为最常见场景手写图。已实现的 `AgentDescriptor` 先把 owner-qualified
+agent metadata、input/output schema、精确 model snapshot、有序可信 instructions、
+canonical tool snapshots、结构化输出策略、loop limits 和 agent budget layer 冻结成
+不可变定义。后续 `AgentBuilder<Input, Output>` 只提供 typed ergonomics，并在 trusted
+schema registry 完成校验后生成该 descriptor；它不能绕过相同的 durable graph、policy、
+ledger 和 checkpoint 边界。
+
+结构化输出只保存已经解析的 `model_native | tool_call`，不把 `auto` 写入持久定义。
+`tool_call` 使用框架保留的 final-output marker，它不是外部 Tool invocation，也不产生
+tool ledger 或副作用。普通工具数量加 marker 不能超过 core model request 的 128 个
+definition 上限。可复用 agent budget 不接受绝对 deadline；run admission 根据当次请求
+和相对策略计算并冻结绝对 deadline。
 
 默认 loop：
 
@@ -665,7 +676,9 @@ adapter 保存和验证；只有显式、无碰撞的 registry mapping 可以将
 6. 记录结果并继续，直到得到 final output 或达到预算；
 7. 对结构化输出做 schema 校验，可配置有限次数的修复回合。
 
-handoff 推荐表示为显式工具调用和 graph transition，并记录委派主体、scope 收窄、输入摘要与返回 artifact。
+handoff 与 agent-as-tool 必须保持不同语义：handoff 转移当前任务所有权，agent-as-tool
+完成子任务后把控制权交还调用者。二者都由显式 graph transition/delegation record
+表达并记录委派主体、scope 收窄、输入摘要与返回 artifact，不能伪装成本地普通工具成功。
 
 ### 9.2 Typed graph
 

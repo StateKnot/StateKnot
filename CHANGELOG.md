@@ -112,6 +112,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   failures, explicit external side-effect evidence, reconciliation-safe failures,
   hidden-retry prohibition, redacted diagnostics, and an independent versioned
   wire fixture.
+- Immutable agent definition snapshots binding exact input/output schemas, a
+  pinned model, ordered application-controlled instructions, canonical resolved
+  tools, a resolved native-or-tool-call structured-output strategy, finite
+  model/repair/tool-call limits, deterministic sequential or read-only parallel
+  scheduling, reusable budget layers, model-capability preflight, reserved-name
+  protection, redacted diagnostics, closed schemas, property tests, and an
+  independent versioned wire fixture.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

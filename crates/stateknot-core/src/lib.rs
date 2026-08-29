@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 mod accounting;
+mod agent;
 mod artifact;
 mod budget;
 mod capability;
@@ -38,6 +39,11 @@ mod version;
 pub use accounting::{
     ByteCount, CountParseError, CurrencyCode, CurrencyCodeError, ExecutionCount, Money,
     MoneyArithmeticError, TokenCount,
+};
+pub use agent::{
+    AgentDescriptor, AgentDescriptorError, AgentExecutionConfig, AgentExecutionConfigError,
+    AgentInstructions, AgentInstructionsError, AgentStructuredOutputStrategy, AgentToolConcurrency,
+    AgentTools, AgentToolsError,
 };
 pub use artifact::{
     ArtifactDescription, ArtifactDescriptionError, ArtifactIdentity, ArtifactModality,

@@ -605,6 +605,8 @@ const fn map_artifact_modality(modality: ArtifactModality) -> Option<ModelModali
 struct RequestTools(BTreeMap<CapabilityName, ToolDescriptor>);
 
 impl RequestTools {
+    // Keep this wire/container bound equal to
+    // `ModelRequest::MAX_TOOL_DEFINITIONS`.
     const MAX_LEN: usize = 128;
 
     fn len(&self) -> usize {
@@ -784,6 +786,9 @@ pub struct ModelRequest {
 }
 
 impl ModelRequest {
+    /// Maximum tool definitions accepted by one provider-neutral request.
+    pub const MAX_TOOL_DEFINITIONS: ExecutionCount = ExecutionCount::new(128);
+
     /// Maximum tool calls accepted from one model response.
     pub const MAX_TOOL_CALLS_PER_RESPONSE: ExecutionCount = ExecutionCount::new(1024);
 
