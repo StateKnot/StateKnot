@@ -825,8 +825,12 @@ appender、24 并发 result/barrier checkpoint writer、24 并发 tool/model inv
 有界历史、跨类型 attempt 冲突、corruption fail-closed 与 v5 legacy truth preservation。Barrier
 在锁外完整验证大记录、锁内重验 canonical compact set，并将 event、successor checkpoint、
 consumption rows 与 run heads 一次提交；原始 successor checkpoint 及绕过 node-attempt 的
-pending-result API 已关闭。它仍不是完整 runtime。interrupt/outbox、自动 quarantine、recovery
-scheduler、角色隔离、归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
+pending-result API 已关闭。Migration 7 还增加了数据库观测的 runnable readiness、租约到期
+有效可用时间、租户级 partial expression index，以及固定数据库时间的 16-record keyset
+候选分页；释放、生命周期重新入队、终态退出、跨租户游标拒绝和 24 scheduler 单赢家抢占
+均在 PostgreSQL 16/17 验证。它仍不是完整 runtime。interrupt/outbox、自动 quarantine、
+跨租户公平与 recovery/dispatch loop、角色隔离、归档、failover 与 restore 仍按 RFC 门禁
+继续实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
 
@@ -1037,8 +1041,9 @@ GET    /health/ready
 进度：run/journal/checkpoint/tool/model-invocation/node-attempt/lease、run-wide physical-attempt
 registry、pending node-result 与 exact-ready-set barrier 核心契约、PostgreSQL immutable
 commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending-result barrier
-已完成并通过 PG16/17 验证；recovery scheduler、outbox，以及阶段 3 的其余运维与故障门禁
-未完成，不能据此提前宣称阶段完成。
+以及 tenant-level indexed runnable discovery 已完成并通过 PG16/17 验证；cross-tenant
+fairness、recovery/dispatch loop、outbox，以及阶段 3 的其余运维与故障门禁未完成，不能据此
+提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
 

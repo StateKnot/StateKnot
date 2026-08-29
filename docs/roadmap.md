@@ -84,7 +84,13 @@ from the repository.
   database-time delayed retry, higher-fence crash takeover, bounded verified
   history, run-wide node/tool/model identity, migration-5 truth preservation,
   lost-ack convergence, corruption rejection, and atomic barrier integration.
-- [ ] Complete outbox, recovery scheduling, quarantine, role isolation,
+- [x] Persist an indexed tenant-level runnable projection and expose
+  16-record fixed-database-time keyset pages with complete run decoding,
+  lease-expiry availability, release/lifecycle requeue timestamps, terminal
+  removal, cross-tenant cursor rejection, migration-6 backfill, corruption
+  guards, and a 24-scheduler single-winner lease race on PostgreSQL 16/17.
+- [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
+  outbox, quarantine, role isolation,
   retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.

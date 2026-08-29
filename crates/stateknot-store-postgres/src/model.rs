@@ -700,6 +700,7 @@ pub struct StoredRun {
     pub(crate) lease: Option<RunLease>,
     pub(crate) last_fencing_epoch: Option<FencingEpoch>,
     pub(crate) checkpoint: Option<CheckpointPointer>,
+    pub(crate) scheduler_ready_at: Option<stateknot_core::Timestamp>,
     pub(crate) quarantined: bool,
 }
 
@@ -735,10 +736,127 @@ impl StoredRun {
         self.checkpoint.as_ref()
     }
 
+    /// Returns when the run most recently entered the durable scheduler queue.
+    ///
+    /// Waiting and terminal runs have no readiness observation. A live or
+    /// expired lease can delay actual availability beyond this instant.
+    #[must_use]
+    pub const fn scheduler_ready_at(&self) -> Option<stateknot_core::Timestamp> {
+        self.scheduler_ready_at
+    }
+
     /// Returns whether integrity or operator policy quarantined the run.
     #[must_use]
     pub const fn is_quarantined(&self) -> bool {
         self.quarantined
+    }
+}
+
+/// Hard-bounded number of fully decoded runnable runs in one scheduler page.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct RunnableRunPageSize(u8);
+
+impl RunnableRunPageSize {
+    /// Largest page accepted by the provider.
+    ///
+    /// One lifecycle envelope may occupy two MiB. Sixteen retained records plus
+    /// one driver look-ahead row bound provider-owned page memory near 34 MiB.
+    pub const MAX: u8 = 16;
+
+    /// Constructs a positive bounded runnable-run page size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidRunnableRunPageSize`] for zero or values
+    /// above sixteen.
+    pub const fn new(value: u8) -> Result<Self, StoreError> {
+        if value == 0 || value > Self::MAX {
+            return Err(StoreError::InvalidRunnableRunPageSize);
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the page size as an integer.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// One fully validated run visible to the tenant-level scheduler scan.
+#[derive(Clone, Debug)]
+pub struct RunnableRunCandidate {
+    pub(crate) run: StoredRun,
+    pub(crate) ready_at: stateknot_core::Timestamp,
+    pub(crate) available_at: stateknot_core::Timestamp,
+}
+
+impl RunnableRunCandidate {
+    /// Returns the complete validated durable run projection.
+    #[must_use]
+    pub const fn run(&self) -> &StoredRun {
+        &self.run
+    }
+
+    /// Returns the database observation that inserted the run into the queue.
+    #[must_use]
+    pub const fn ready_at(&self) -> stateknot_core::Timestamp {
+        self.ready_at
+    }
+
+    /// Returns the effective claim time after applying any lease expiry.
+    #[must_use]
+    pub const fn available_at(&self) -> stateknot_core::Timestamp {
+        self.available_at
+    }
+}
+
+/// Opaque continuation for one fixed runnable-run database snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RunnableRunPageCursor {
+    pub(crate) tenant_id: stateknot_core::TenantId,
+    pub(crate) snapshot_at: stateknot_core::Timestamp,
+    pub(crate) available_at: stateknot_core::Timestamp,
+    pub(crate) run_id: stateknot_core::RunId,
+}
+
+/// One stable, bounded tenant-level scheduler candidate page.
+#[derive(Clone, Debug)]
+pub struct RunnableRunPage {
+    pub(crate) tenant_id: stateknot_core::TenantId,
+    pub(crate) snapshot_at: stateknot_core::Timestamp,
+    pub(crate) records: Vec<RunnableRunCandidate>,
+    pub(crate) has_more: bool,
+}
+
+impl RunnableRunPage {
+    /// Returns the database time fixed for the complete page chain.
+    #[must_use]
+    pub const fn snapshot_at(&self) -> stateknot_core::Timestamp {
+        self.snapshot_at
+    }
+
+    /// Returns candidates ordered by effective availability then run identity.
+    #[must_use]
+    pub fn records(&self) -> &[RunnableRunCandidate] {
+        &self.records
+    }
+
+    /// Returns whether another candidate remained in this fixed snapshot.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    /// Returns the opaque exact key required to continue this snapshot.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<RunnableRunPageCursor> {
+        self.records.last().map(|candidate| RunnableRunPageCursor {
+            tenant_id: self.tenant_id.clone(),
+            snapshot_at: self.snapshot_at,
+            available_at: candidate.available_at,
+            run_id: candidate.run.lifecycle().provenance().run_id(),
+        })
     }
 }
 

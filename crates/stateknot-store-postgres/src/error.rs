@@ -227,6 +227,12 @@ pub enum StoreError {
     /// A node-attempt history page size exceeded its decoded-memory safety bound.
     #[error("node attempt history page size is invalid")]
     InvalidNodeAttemptPageSize,
+    /// A runnable-run page size exceeded its decoded-memory safety bound.
+    #[error("runnable run page size is invalid")]
+    InvalidRunnableRunPageSize,
+    /// A runnable-run cursor crossed tenant scope or contained an invalid key.
+    #[error("runnable run cursor is invalid")]
+    InvalidRunnableRunCursor,
     /// The run journal advanced after an earlier pending-result page snapshot.
     #[error("pending node result page snapshot is stale and must be restarted")]
     StalePendingNodeResultSnapshot,

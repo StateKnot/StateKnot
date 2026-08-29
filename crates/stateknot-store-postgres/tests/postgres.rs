@@ -11,7 +11,7 @@ use sqlx_core::{
     query::query,
     query_scalar::query_scalar,
 };
-use sqlx_postgres::PgPoolOptions;
+use sqlx_postgres::{PgPool, PgPoolOptions};
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, BudgetUsage, CapabilityIdentity, CapabilityName,
     CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
@@ -34,7 +34,8 @@ use stateknot_store_postgres::{
     LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
     NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, PendingNodeResultCommitOutcome,
     PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
-    RunProjection, StoreError, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
+    RunProjection, RunnableRunPageSize, StoreError, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPageSize,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -72,6 +73,27 @@ fn test_options(lease_duration: Duration) -> PostgresStoreOptions {
         .with_pool_size(1, 48)
         .with_transaction_timeouts(Duration::from_secs(5), Duration::from_secs(20))
         .with_lease_timing(lease_duration, Duration::from_secs(5 * 60))
+}
+
+async fn remove_scheduler_readiness(pool: &PgPool) {
+    query("DROP INDEX stateknot.runs_scheduler_ready")
+        .execute(pool)
+        .await
+        .expect("v7 scheduler index must be removed from the fixture");
+    query(
+        "ALTER TABLE stateknot.runs \
+         DROP CONSTRAINT runs_scheduler_ready_shape, \
+         DROP COLUMN scheduler_ready_at",
+    )
+    .execute(pool)
+    .await
+    .expect("v7 scheduler projection must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 7")
+        .execute(pool)
+        .await
+        .expect("v7 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
 }
 
 trait PendingNodeResultTestExt {
@@ -225,6 +247,281 @@ async fn expired_renewal_retry_confirms_only_the_already_committed_expiry() {
         store.renew_lease(lease.fence(), later_expiry).await,
         Err(StoreError::LeaseExpired)
     ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn runnable_run_pages_are_tenant_scoped_snapshot_stable_and_lease_aware() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_millis(250)).await else {
+        return;
+    };
+    let tenant_id = tenant("scheduler-page");
+    let foreign_tenant = tenant("scheduler-page-foreign");
+    let first_initial = RunId::generate();
+    let second_initial = RunId::generate();
+    let foreign_run = RunId::generate();
+    for run_id in [first_initial, second_initial] {
+        store
+            .admit_run(provenance(tenant_id.clone(), run_id))
+            .await
+            .expect("initial runnable run must be admitted");
+    }
+    store
+        .admit_run(provenance(foreign_tenant.clone(), foreign_run))
+        .await
+        .expect("foreign runnable run must be admitted");
+
+    let first_page = store
+        .load_runnable_run_page(&tenant_id, None, RunnableRunPageSize::new(1).unwrap())
+        .await
+        .expect("first scheduler page must load");
+    assert_eq!(first_page.records().len(), 1);
+    assert!(first_page.has_more());
+    let first_candidate = &first_page.records()[0];
+    assert_eq!(first_candidate.ready_at(), first_candidate.available_at());
+    let first_run = first_candidate.run().lifecycle().provenance().run_id();
+    let remaining_initial = if first_run == first_initial {
+        second_initial
+    } else {
+        first_initial
+    };
+    let cursor = first_page.next_cursor().unwrap();
+    assert!(matches!(
+        store
+            .load_runnable_run_page(
+                &foreign_tenant,
+                Some(&cursor),
+                RunnableRunPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::InvalidRunnableRunCursor)
+    ));
+
+    let first_lease = store
+        .claim_lease(&tenant_id, first_run, AttemptId::generate())
+        .await
+        .expect("the exact page candidate must be claimable")
+        .lease()
+        .clone();
+    assert!(matches!(
+        store.release_lease(first_lease.fence()).await.unwrap(),
+        LeaseReleaseOutcome::Released
+    ));
+    let released = store.load_run(&tenant_id, first_run).await.unwrap();
+    assert!(released.scheduler_ready_at().unwrap() > first_page.snapshot_at());
+
+    let late_run = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), late_run))
+        .await
+        .expect("a post-snapshot run must be admitted");
+    let continuation = store
+        .load_runnable_run_page(
+            &tenant_id,
+            Some(&cursor),
+            RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+        )
+        .await
+        .expect("snapshot continuation must remain valid after queue mutations");
+    let continuation_ids = continuation
+        .records()
+        .iter()
+        .map(|candidate| candidate.run().lifecycle().provenance().run_id())
+        .collect::<Vec<_>>();
+    assert_eq!(continuation.snapshot_at(), first_page.snapshot_at());
+    assert_eq!(continuation_ids, vec![remaining_initial]);
+    assert!(!continuation.has_more());
+
+    let fresh = store
+        .load_runnable_run_page(
+            &tenant_id,
+            None,
+            RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+        )
+        .await
+        .expect("a fresh snapshot must observe requeued and newly admitted work");
+    let fresh_ids = fresh
+        .records()
+        .iter()
+        .map(|candidate| candidate.run().lifecycle().provenance().run_id())
+        .collect::<Vec<_>>();
+    assert_eq!(fresh_ids.len(), 3);
+    assert!(fresh_ids.contains(&first_initial));
+    assert!(fresh_ids.contains(&second_initial));
+    assert!(fresh_ids.contains(&late_run));
+    assert!(!fresh_ids.contains(&foreign_run));
+
+    let delayed_lease = store
+        .claim_lease(&tenant_id, remaining_initial, AttemptId::generate())
+        .await
+        .expect("another exact candidate must be claimable")
+        .lease()
+        .clone();
+    let before_expiry = store
+        .load_runnable_run_page(
+            &tenant_id,
+            None,
+            RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+        )
+        .await
+        .expect("a live lease must be hidden from a new scheduler snapshot");
+    assert!(before_expiry.records().iter().all(|candidate| {
+        candidate.run().lifecycle().provenance().run_id() != remaining_initial
+    }));
+
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    let after_expiry = store
+        .load_runnable_run_page(
+            &tenant_id,
+            None,
+            RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+        )
+        .await
+        .expect("an expired lease must become discoverable without a polling update");
+    let expired_candidate = after_expiry
+        .records()
+        .iter()
+        .find(|candidate| candidate.run().lifecycle().provenance().run_id() == remaining_initial)
+        .expect("the expired candidate must reappear");
+    assert_eq!(expired_candidate.available_at(), delayed_lease.expires_at());
+    assert!(expired_candidate.available_at() > expired_candidate.ready_at());
+
+    let before_cancellation = store.load_run(&tenant_id, late_run).await.unwrap();
+    let cancellation = store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                late_run,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                732,
+            ),
+            RunProjection::transition(
+                before_cancellation.lifecycle().revision(),
+                RunTransition::RequestCancellation {
+                    request: cancellation_request(before_cancellation.lifecycle().admitted_at()),
+                },
+            ),
+        )
+        .await
+        .expect("a cancellation request must remain scheduler-runnable");
+    let cancellation_requested = store.load_run(&tenant_id, late_run).await.unwrap();
+    assert_eq!(
+        cancellation_requested.lifecycle().status(),
+        RunStatus::CancellationRequested
+    );
+    assert!(
+        cancellation_requested.scheduler_ready_at().unwrap()
+            > cancellation_requested.lifecycle().changed_at(),
+        "a lifecycle transition must requeue at its database commit observation"
+    );
+    let cancellation_page = store
+        .load_runnable_run_page(
+            &tenant_id,
+            None,
+            RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        cancellation_page
+            .records()
+            .iter()
+            .any(|candidate| { candidate.run().lifecycle().provenance().run_id() == late_run })
+    );
+
+    store
+        .append_control_plane(
+            control_append(
+                tenant_id.clone(),
+                late_run,
+                EventId::generate(),
+                JournalExpectation::exact(cancellation.event().head()),
+                733,
+            ),
+            RunProjection::transition(
+                cancellation_requested.lifecycle().revision(),
+                RunTransition::ConfirmCancellation {
+                    completed_at: cancellation.event().recorded_at(),
+                    usage: BudgetUsage::zero(),
+                },
+            ),
+        )
+        .await
+        .expect("terminal cancellation must commit");
+    let terminal = store.load_run(&tenant_id, late_run).await.unwrap();
+    assert_eq!(terminal.lifecycle().status(), RunStatus::Cancelled);
+    assert_eq!(terminal.scheduler_ready_at(), None);
+    let terminal_page = store
+        .load_runnable_run_page(
+            &tenant_id,
+            None,
+            RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        terminal_page
+            .records()
+            .iter()
+            .all(|candidate| { candidate.run().lifecycle().provenance().run_id() != late_run })
+    );
+
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+async fn concurrent_schedulers_claim_exactly_one_discovered_run() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("scheduler-claim-race");
+    let run_id = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let page = store
+        .load_runnable_run_page(&tenant_id, None, RunnableRunPageSize::new(1).unwrap())
+        .await
+        .expect("the shared candidate must be discoverable");
+    assert_eq!(
+        page.records()[0].run().lifecycle().provenance().run_id(),
+        run_id
+    );
+
+    let mut tasks = tokio::task::JoinSet::new();
+    for _ in 0..24 {
+        let store = store.clone();
+        let tenant_id = tenant_id.clone();
+        tasks.spawn(async move {
+            store
+                .claim_lease(&tenant_id, run_id, AttemptId::generate())
+                .await
+        });
+    }
+    let mut claimed = 0_u64;
+    let mut held = 0_u64;
+    while let Some(joined) = tasks.join_next().await {
+        match joined.expect("scheduler contender must not panic") {
+            Ok(LeaseClaimOutcome::Claimed(_)) => claimed += 1,
+            Err(StoreError::LeaseHeld) => held += 1,
+            outcome => panic!("unexpected scheduler claim outcome: {outcome:?}"),
+        }
+    }
+    assert_eq!(claimed, 1);
+    assert_eq!(held, 23);
+    assert!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .lease()
+            .is_some()
+    );
     store.close().await;
 }
 
@@ -648,6 +945,7 @@ async fn migration_four_backfills_existing_tool_attempts_into_the_run_registry()
         .connect(&isolated_url)
         .await
         .expect("isolated fixture administration connection must open");
+    remove_scheduler_readiness(&legacy_pool).await;
     query("DROP TABLE stateknot.node_attempt_completions")
         .execute(&legacy_pool)
         .await
@@ -944,6 +1242,7 @@ async fn migration_six_preserves_legacy_results_without_fabricating_starts() {
         .connect(&isolated_url)
         .await
         .expect("isolated fixture administration connection must open");
+    remove_scheduler_readiness(&fixture_pool).await;
     query(
         "UPDATE stateknot.run_events SET projection_digest = $3 \
          WHERE tenant_id = $1 AND run_id = $2 AND event_id = $4",
@@ -1064,6 +1363,177 @@ async fn migration_six_preserves_legacy_results_without_fabricating_starts() {
         .execute(&administration)
         .await
         .expect("isolated v6 upgrade database must be dropped");
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_seven_backfills_an_indexed_fail_closed_scheduler_projection() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v7_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .expect("test administration connection must open");
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .expect("isolated v7 upgrade database must be created");
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("fixture database must initially reach the current schema");
+    let fixture_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("fixture store must connect");
+    let tenant_id = tenant("v7-scheduler-upgrade");
+    let pending_run = RunId::generate();
+    let leased_run = RunId::generate();
+    fixture_store
+        .admit_run(provenance(tenant_id.clone(), pending_run))
+        .await
+        .expect("the v6-style pending fixture must be admitted");
+    Box::pin(start_run_with_checkpoint(
+        &fixture_store,
+        &tenant_id,
+        leased_run,
+        730,
+    ))
+    .await;
+    fixture_store
+        .claim_lease(&tenant_id, leased_run, AttemptId::generate())
+        .await
+        .expect("the v6-style active fixture must retain a lease");
+    fixture_store.close().await;
+
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .expect("isolated fixture administration connection must open");
+    remove_scheduler_readiness(&fixture_pool).await;
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 7 must upgrade the exact v6 run projection");
+    let upgraded_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .expect("the upgraded v7 runtime schema must be accepted");
+    upgraded_store
+        .verify_schema()
+        .await
+        .expect("the scheduler index and validated shape constraint must be present");
+
+    let verification_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .expect("upgraded fixture verification connection must open");
+    let backfill_is_exact = query_scalar::<_, bool>(
+        "SELECT \
+             (SELECT scheduler_ready_at = updated_at \
+              FROM stateknot.runs WHERE tenant_id = $1 AND run_id = $2) \
+             AND \
+             (SELECT scheduler_ready_at = changed_at \
+                     AND GREATEST( \
+                         scheduler_ready_at, \
+                         COALESCE(lease_expires_at, scheduler_ready_at) \
+                     ) = lease_expires_at \
+              FROM stateknot.runs WHERE tenant_id = $1 AND run_id = $3)",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*pending_run.as_uuid())
+    .bind(*leased_run.as_uuid())
+    .fetch_one(&verification_pool)
+    .await
+    .expect("v7 readiness backfill must be queryable");
+    assert!(backfill_is_exact);
+
+    let index_definition = query_scalar::<_, String>(
+        "SELECT indexdef FROM pg_catalog.pg_indexes \
+         WHERE schemaname = 'stateknot' AND indexname = 'runs_scheduler_ready'",
+    )
+    .fetch_one(&verification_pool)
+    .await
+    .expect("the scheduler index must exist");
+    let index_definition = index_definition.to_ascii_lowercase();
+    assert!(index_definition.contains("greatest(scheduler_ready_at"));
+    assert!(index_definition.contains("quarantined_at is null"));
+
+    let page = upgraded_store
+        .load_runnable_run_page(
+            &tenant_id,
+            None,
+            RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+        )
+        .await
+        .expect("the upgraded pending run must be schedulable");
+    let page_ids = page
+        .records()
+        .iter()
+        .map(|candidate| candidate.run().lifecycle().provenance().run_id())
+        .collect::<Vec<_>>();
+    assert_eq!(page_ids, vec![pending_run]);
+
+    assert!(
+        query(
+            "UPDATE stateknot.runs SET scheduler_ready_at = NULL \
+             WHERE tenant_id = $1 AND run_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*pending_run.as_uuid())
+        .execute(&verification_pool)
+        .await
+        .is_err(),
+        "the validated v7 shape must reject a missing runnable projection"
+    );
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT runs_scheduler_ready_shape")
+        .execute(&verification_pool)
+        .await
+        .expect("the isolated corruption fixture must remove the shape guard");
+    assert!(matches!(
+        upgraded_store.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
+    query(
+        "UPDATE stateknot.runs SET scheduler_ready_at = NULL \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*pending_run.as_uuid())
+    .execute(&verification_pool)
+    .await
+    .expect("the isolated corruption fixture must bypass the removed guard");
+    assert!(matches!(
+        upgraded_store.load_run(&tenant_id, pending_run).await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    verification_pool.close().await;
+    upgraded_store.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .expect("isolated v7 upgrade database must be dropped");
     administration.close().await;
 }
 

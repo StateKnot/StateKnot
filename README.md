@@ -60,12 +60,15 @@ starts and append-only completions, database-time retry gates, higher-fence
 crash takeover, checkpoint advancement guards for unsettled invocations,
 attempt-owned immutable pending node results with exact committed invocation
 bindings and semantic idempotency, bounded verified attempt/result paging,
-schema verification, and database-enforced lease fencing. Complete ready-set
-barriers now atomically bind and consume the exact immutable result set while
-committing their event, successor checkpoint, lifecycle projection, and run
-heads; raw successor checkpoint and pending-result writes that bypass a durable
-node attempt are rejected. The outbox, recovery scheduler, quarantine
-workflows, and a runnable agent loop have not shipped yet.
+an indexed tenant-scoped runnable projection, database-time fixed keyset pages
+whose decoded memory is hard-bounded, lease-expiry-aware discovery without
+per-run polling, schema verification, and database-enforced lease fencing.
+Complete ready-set barriers now atomically bind and consume the exact immutable
+result set while committing their event, successor checkpoint, lifecycle
+projection, and run heads; raw successor checkpoint and pending-result writes
+that bypass a durable node attempt are rejected. Cross-tenant fairness, the
+recovery/dispatch loop, outbox, quarantine workflows, and a runnable agent loop
+have not shipped yet.
 
 The current milestone is to:
 

@@ -42,7 +42,8 @@ use crate::{
     ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
     NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
     PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
-    PendingNodeResultPageSize, PostgresStoreOptions, RunProjection, StoreError, StoredRun,
+    PendingNodeResultPageSize, PostgresStoreOptions, RunProjection, RunnableRunCandidate,
+    RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize, StoreError, StoredRun,
     ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
 };
 
@@ -88,6 +89,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed("node attempts"),
             MigrationType::Simple,
             Cow::Borrowed(include_str!("../migrations/0006_node_attempts.sql")),
+            false,
+        ),
+        Migration::new(
+            7,
+            Cow::Borrowed("scheduler readiness"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0007_scheduler_readiness.sql")),
             false,
         ),
     ]),
@@ -137,6 +145,7 @@ SELECT
     lease_acquired_at,
     lease_renewed_at,
     lease_expires_at,
+    scheduler_ready_at,
     quarantined_at
 FROM stateknot.runs
 WHERE tenant_id = $1 AND run_id = $2
@@ -165,10 +174,64 @@ SELECT
     lease_acquired_at,
     lease_renewed_at,
     lease_expires_at,
+    scheduler_ready_at,
     quarantined_at
 FROM stateknot.runs
 WHERE tenant_id = $1 AND run_id = $2
 FOR UPDATE
+";
+
+const SELECT_RUNNABLE_RUN_PAGE: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    thread_id,
+    invocation_id,
+    lifecycle_bytes,
+    lifecycle_revision::text AS lifecycle_revision,
+    lifecycle_status,
+    admitted_at,
+    changed_at,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    checkpoint_id,
+    checkpoint_superstep,
+    checkpoint_digest,
+    fencing_epoch,
+    lease_attempt_id,
+    lease_acquired_at,
+    lease_renewed_at,
+    lease_expires_at,
+    scheduler_ready_at,
+    quarantined_at
+FROM stateknot.runs
+WHERE tenant_id = $1
+  AND quarantined_at IS NULL
+  AND scheduler_ready_at IS NOT NULL
+  AND lifecycle_status IN ('pending', 'active', 'cancellation_requested')
+  AND GREATEST(
+          scheduler_ready_at,
+          COALESCE(lease_expires_at, scheduler_ready_at)
+      ) <= $2
+  AND (
+      GREATEST(
+          scheduler_ready_at,
+          COALESCE(lease_expires_at, scheduler_ready_at)
+      ),
+      run_id
+  ) > (
+      COALESCE($3::timestamptz, '-infinity'::timestamptz),
+      COALESCE($4::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+  )
+ORDER BY
+    GREATEST(
+        scheduler_ready_at,
+        COALESCE(lease_expires_at, scheduler_ready_at)
+    ),
+    run_id
+LIMIT $5
 ";
 
 const SELECT_EVENT_BY_ID: &str = r"
@@ -1276,6 +1339,13 @@ impl PostgresStore {
                  AND to_regclass('stateknot.pending_node_result_consumptions') IS NOT NULL \
                  AND to_regclass('stateknot.node_attempts') IS NOT NULL \
                  AND to_regclass('stateknot.node_attempt_completions') IS NOT NULL \
+                 AND to_regclass('stateknot.runs_scheduler_ready') IS NOT NULL \
+                 AND EXISTS ( \
+                     SELECT 1 FROM pg_catalog.pg_constraint \
+                     WHERE conrelid = to_regclass('stateknot.runs') \
+                       AND conname = 'runs_scheduler_ready_shape' \
+                       AND convalidated \
+                 ) \
                  AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL",
         )
         .fetch_one(&self.pool)
@@ -1366,9 +1436,10 @@ INSERT INTO stateknot.runs (
     lifecycle_revision,
     lifecycle_status,
     admitted_at,
-    changed_at
+    changed_at,
+    scheduler_ready_at
 )
-VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $8)
+VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $8, $8)
 ON CONFLICT (tenant_id, run_id) DO NOTHING
 ",
         )
@@ -1429,6 +1500,107 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             return Err(StoreError::corrupt("run scope"));
         }
         Ok(stored)
+    }
+
+    /// Loads one tenant-scoped, stable-snapshot page of runnable candidates.
+    ///
+    /// The first page fixes a database transaction timestamp. Continuations
+    /// retain that cutoff even when leases expire or new work arrives, so one
+    /// bounded scan never chases a moving queue. Records are ordered by their
+    /// effective availability and run identity. This method does not reserve a
+    /// record: a scheduler must call [`Self::claim_lease`] for the selected run
+    /// and handle [`StoreError::LeaseHeld`] as normal contention.
+    ///
+    /// Scheduling fairness across tenants is deliberately outside the storage
+    /// contract; callers choose a tenant before scanning its durable queue.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidRunnableRunCursor`] when a continuation
+    /// crosses tenant scope or has an impossible key, and otherwise returns a
+    /// clock-regression, corruption, or database failure.
+    pub async fn load_runnable_run_page(
+        &self,
+        tenant_id: &TenantId,
+        cursor: Option<&RunnableRunPageCursor>,
+        page_size: RunnableRunPageSize,
+    ) -> Result<RunnableRunPage, StoreError> {
+        if cursor.is_some_and(|cursor| {
+            &cursor.tenant_id != tenant_id || cursor.available_at > cursor.snapshot_at
+        }) {
+            return Err(StoreError::InvalidRunnableRunCursor);
+        }
+
+        let mut transaction = self.begin_repeatable_read("runnable run page").await?;
+        let (transaction_started_at, observed_at) =
+            database_scheduler_times(&mut transaction, "runnable run page clock").await?;
+        let snapshot_at = cursor.map_or(transaction_started_at, |cursor| cursor.snapshot_at);
+        if observed_at < transaction_started_at || observed_at < snapshot_at {
+            return Err(StoreError::DatabaseClockRegression);
+        }
+
+        let after_available_at = cursor
+            .map(|cursor| to_database_time(cursor.available_at))
+            .transpose()?;
+        let after_run_id = cursor.map(|cursor| *cursor.run_id.as_uuid());
+        let limit = i64::from(page_size.get()) + 1;
+        let mut rows = query_as::<_, RunRow>(SELECT_RUNNABLE_RUN_PAGE)
+            .bind(tenant_id.as_str())
+            .bind(to_database_time(snapshot_at)?)
+            .bind(after_available_at)
+            .bind(after_run_id)
+            .bind(limit)
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("runnable run page query", source))?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("runnable run page commit", source))?;
+
+        let has_more = rows.len() > usize::from(page_size.get());
+        rows.truncate(usize::from(page_size.get()));
+        let mut records = Vec::with_capacity(rows.len());
+        let mut previous = cursor.map(|cursor| (cursor.available_at, cursor.run_id));
+        for row in rows {
+            let stored = decode_run(row)?;
+            let provenance = stored.lifecycle().provenance();
+            if provenance.tenant_id() != tenant_id
+                || stored.is_quarantined()
+                || !lifecycle_is_scheduler_runnable(stored.lifecycle().status())
+            {
+                return Err(StoreError::corrupt("runnable run page scope"));
+            }
+            let ready_at = stored
+                .scheduler_ready_at()
+                .ok_or_else(|| StoreError::corrupt("runnable run readiness"))?;
+            let available_at = stored.lease().map_or(ready_at, |lease| {
+                std::cmp::max(ready_at, lease.expires_at())
+            });
+            let run_id = provenance.run_id();
+            if available_at > snapshot_at
+                || previous.is_some_and(|(previous_available_at, previous_run_id)| {
+                    available_at < previous_available_at
+                        || (available_at == previous_available_at
+                            && run_id.as_uuid() <= previous_run_id.as_uuid())
+                })
+            {
+                return Err(StoreError::corrupt("runnable run page order"));
+            }
+            previous = Some((available_at, run_id));
+            records.push(RunnableRunCandidate {
+                run: stored,
+                ready_at,
+                available_at,
+            });
+        }
+
+        Ok(RunnableRunPage {
+            tenant_id: tenant_id.clone(),
+            snapshot_at,
+            records,
+            has_more,
+        })
     }
 
     /// Loads and verifies one immutable tenant/run-scoped checkpoint by ID.
@@ -2544,6 +2716,10 @@ SET lease_attempt_id = NULL,
     lease_acquired_at = NULL,
     lease_renewed_at = NULL,
     lease_expires_at = NULL,
+    scheduler_ready_at = CASE
+        WHEN lifecycle_status IN ('pending', 'active', 'cancellation_requested') THEN $5
+        ELSE NULL
+    END,
     updated_at = $5
 WHERE tenant_id = $1
   AND run_id = $2
@@ -4533,6 +4709,7 @@ struct RunRow {
     lease_acquired_at: Option<DateTime<Utc>>,
     lease_renewed_at: Option<DateTime<Utc>>,
     lease_expires_at: Option<DateTime<Utc>>,
+    scheduler_ready_at: Option<DateTime<Utc>>,
     quarantined_at: Option<DateTime<Utc>>,
 }
 
@@ -4830,6 +5007,7 @@ impl<'row> FromRow<'row, PgRow> for RunRow {
             lease_acquired_at: row.try_get("lease_acquired_at")?,
             lease_renewed_at: row.try_get("lease_renewed_at")?,
             lease_expires_at: row.try_get("lease_expires_at")?,
+            scheduler_ready_at: row.try_get("scheduler_ready_at")?,
             quarantined_at: row.try_get("quarantined_at")?,
         })
     }
@@ -5223,6 +5401,22 @@ async fn database_now(
     from_database_time(value)
 }
 
+async fn database_scheduler_times(
+    transaction: &mut Transaction<'_, Postgres>,
+    operation: &'static str,
+) -> Result<(Timestamp, Timestamp), StoreError> {
+    let (transaction_started_at, observed_at) = query_as::<_, (DateTime<Utc>, DateTime<Utc>)>(
+        "SELECT transaction_timestamp(), clock_timestamp()",
+    )
+    .fetch_one(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database(operation, source))?;
+    Ok((
+        from_database_time(transaction_started_at)?,
+        from_database_time(observed_at)?,
+    ))
+}
+
 async fn fetch_locked_run_row(
     transaction: &mut Transaction<'_, Postgres>,
     tenant_id: &TenantId,
@@ -5447,6 +5641,7 @@ fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
         }
         _ => return Err(StoreError::corrupt("lease shape")),
     };
+    let scheduler_ready_at = decode_scheduler_readiness(row.scheduler_ready_at, &lifecycle)?;
 
     Ok(StoredRun {
         lifecycle,
@@ -5454,8 +5649,26 @@ fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
         lease,
         last_fencing_epoch,
         checkpoint,
+        scheduler_ready_at,
         quarantined: row.quarantined_at.is_some(),
     })
+}
+
+fn decode_scheduler_readiness(
+    scheduler_ready_at: Option<DateTime<Utc>>,
+    lifecycle: &RunLifecycle,
+) -> Result<Option<Timestamp>, StoreError> {
+    let scheduler_ready_at = scheduler_ready_at.map(from_database_time).transpose()?;
+    if lifecycle_is_scheduler_runnable(lifecycle.status()) {
+        let ready_at = scheduler_ready_at
+            .ok_or_else(|| StoreError::corrupt("run scheduler readiness shape"))?;
+        if ready_at < lifecycle.admitted_at() {
+            return Err(StoreError::corrupt("run scheduler readiness time"));
+        }
+    } else if scheduler_ready_at.is_some() {
+        return Err(StoreError::corrupt("run scheduler readiness shape"));
+    }
+    Ok(scheduler_ready_at)
 }
 
 fn encode_lifecycle(lifecycle: &RunLifecycle) -> Result<Vec<u8>, StoreError> {
@@ -9356,6 +9569,10 @@ SET journal_sequence = $3,
     lifecycle_revision = $8::numeric,
     lifecycle_status = $9,
     changed_at = $10,
+    scheduler_ready_at = CASE
+        WHEN $9 IN ('pending', 'active', 'cancellation_requested') THEN $5
+        ELSE NULL
+    END,
     updated_at = $5
 WHERE tenant_id = $1
   AND run_id = $2
@@ -9447,13 +9664,17 @@ fn validate_runnable(stored: &StoredRun) -> Result<(), StoreError> {
     if stored.is_quarantined() {
         return Err(StoreError::RunQuarantined);
     }
-    if !matches!(
-        stored.lifecycle().status(),
-        RunStatus::Pending | RunStatus::Active | RunStatus::CancellationRequested
-    ) {
+    if !lifecycle_is_scheduler_runnable(stored.lifecycle().status()) {
         return Err(StoreError::RunNotRunnable);
     }
     Ok(())
+}
+
+const fn lifecycle_is_scheduler_runnable(status: RunStatus) -> bool {
+    matches!(
+        status,
+        RunStatus::Pending | RunStatus::Active | RunStatus::CancellationRequested
+    )
 }
 
 fn validate_tool_invocation_transition_lifecycle(
@@ -9749,6 +9970,11 @@ mod tests {
         assert!(PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX).is_ok());
         assert!(PendingNodeResultPageSize::new(0).is_err());
         assert!(PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX + 1).is_err());
+
+        assert!(RunnableRunPageSize::new(1).is_ok());
+        assert!(RunnableRunPageSize::new(RunnableRunPageSize::MAX).is_ok());
+        assert!(RunnableRunPageSize::new(0).is_err());
+        assert!(RunnableRunPageSize::new(RunnableRunPageSize::MAX + 1).is_err());
     }
 
     #[test]

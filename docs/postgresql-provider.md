@@ -65,6 +65,12 @@ The provider currently supplies:
 - database-clock lease claim, renewal, release, forced supersession, monotonically
   increasing fencing epochs, and exact worker predicates on both event and run
   head writes;
+- migration-7 runnable readiness projected into every admission, lifecycle
+  transition, and lease release; a partial tenant/exact-availability/run index;
+  and stable keyset pages fixed to a database transaction timestamp, bounded to
+  16 fully decoded runs plus one look-ahead row. Live leases delay availability
+  until their exclusive expiry without a timer update, while waiting, terminal,
+  and quarantined runs stay outside the hot index;
 - bounded repeatable-read journal paging with complete cursors and hash-chain
   verification, plus bounded newest-to-oldest checkpoint-lineage paging whose
   complete cursors remain valid across later barrier commits and whose reads
@@ -118,10 +124,10 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 46 integration tests against PostgreSQL 16 and
+The current database suite runs 49 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
-v6 without guessed projection or physical-attempt provenance, real v3
+v7 without guessed projection or physical-attempt provenance, real v3
 tool-attempt history backfilled into the run-wide registry, admission, direct
 lifecycle transition enforcement, future-clock rejection, event and projection-intent
 conflicts, lost-ack idempotency, bounded journal and
@@ -157,7 +163,13 @@ atomic success/result/barrier binding, same-epoch unsafe retry rejection,
 higher-fence recovery of unfinished execution, database-time delayed retry,
 bounded exact history paging, cross-kind run-wide attempt identity, corrupted
 start/completion rejection, and migration-5 result readability without
-fabricating a historical start.
+fabricating a historical start. Scheduler coverage additionally proves exact
+migration-6 readiness backfill, presence of the partial expression index and
+validated shape constraint, startup refusal after constraint removal,
+tenant-scoped cursor rejection, fixed-snapshot continuation across release and
+new admission, database-observed lifecycle requeue, terminal removal, automatic
+visibility after lease expiry, and one winner among 24 concurrent exact-run
+claims.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -172,14 +184,27 @@ the unmigrated-startup path can be tested. Without the URL, local workspace test
 skip external-database cases; CI sets `STATEKNOT_REQUIRE_POSTGRES_TESTS=1` so a
 missing service cannot appear green.
 
-Recovery can now call `load_checkpoint_lineage_page` without a cursor and follow
+Scheduler discovery first calls `load_runnable_run_page` for a tenant. The
+first call fixes `snapshot_at` to the PostgreSQL transaction timestamp and
+returns at most 16 complete `StoredRun` values ordered by
+`(available_at, run_id)`; `available_at` is the later of durable queue entry and
+lease expiry. Following the opaque `next_cursor` retains that cutoff, so newly
+admitted or requeued work cannot move behind the cursor and an expired lease
+cannot make a bounded scan chase time. Discovery is read-only and never grants
+ownership. The scheduler selects an exact run, allocates a fresh `AttemptId`,
+calls `claim_lease`, and treats `LeaseHeld` as ordinary contention. Cross-tenant
+weighting and fairness remain scheduler policy rather than database queue
+semantics; neither an empty page nor a lost claim means global work is absent.
+
+Recovery can then call `load_checkpoint_lineage_page` without a cursor and follow
 each exact `next_cursor` until the superstep-zero root. The first returned value
 is the current barrier observed in the initial repeatable-read snapshot; immutable
 continuation cursors remain valid if a later barrier advances the run between
 pages. After the lineage validates, recovery pages the journal strictly after
 that barrier's trusted journal head with `load_journal_page`. This composes the
-durable checkpoint-and-suffix input; the scheduler that replays the suffix and
-resumes ready nodes is not implemented yet.
+durable checkpoint-and-suffix input. Runnable discovery and exact ownership now
+exist, but the runtime loop that replays the suffix, applies cross-tenant
+fairness, and resumes ready nodes is not implemented yet.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record

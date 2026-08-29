@@ -255,6 +255,13 @@ async fn load_model_invocation_history_page(
     after: Option<&ModelInvocation>,
     page_size: ModelInvocationHistoryPageSize,
 ) -> Result<ModelInvocationHistoryPage, StoreError>;
+
+async fn load_runnable_run_page(
+    &self,
+    tenant_id: &TenantId,
+    cursor: Option<&RunnableRunPageCursor>,
+    page_size: RunnableRunPageSize,
+) -> Result<RunnableRunPage, StoreError>;
 ```
 
 `append_worker` rejects an append without a worker source. It never accepts a
@@ -364,9 +371,18 @@ retryable only at the whole transaction boundary with the same event ID.
 
 ### Claim
 
-The scheduler discovers candidates with an indexed readiness query. It may use
-`FOR UPDATE SKIP LOCKED` only for queue-like work distribution; a skipped row is
-not interpreted as absent. Under the selected run lock, a claim:
+The scheduler discovers candidates with a tenant-scoped indexed readiness
+query. Discovery is read-only: it does not use `FOR UPDATE SKIP LOCKED`, does
+not reserve a row, and is never interpreted as proof that global work is
+absent. The first bounded page fixes a PostgreSQL transaction timestamp; every
+opaque continuation keeps that cutoff and advances by
+`(effective_available_at, run_id)`. Effective availability is the later of the
+database-observed queue-entry time and any durable lease expiry. New admission,
+release, or runnable lifecycle transition receives a later database observation
+and therefore cannot be inserted behind an existing cursor. Waiting, terminal,
+and quarantined rows are excluded.
+
+After policy selects one exact candidate, `claim_lease` takes that run lock and:
 
 - verifies that business state is runnable and no unexpired lease blocks it;
 - allocates a new UUIDv7 `AttemptId` before dispatch;
@@ -413,7 +429,9 @@ The row owns:
 - current checkpoint ID, superstep, and digest as one all-null or all-present
   pointer;
 - last issued fencing epoch plus nullable active attempt/renewal/expiry;
-- readiness time/priority/admission class and terminal/retention metadata;
+- nullable database-observed scheduler readiness, with waiting and terminal
+  states required to be null; future priority/admission-class and
+  terminal/retention metadata;
 - resolved budget, cumulative usage, and quarantine reason.
 
 Journal sequence and fencing epoch use `BIGINT` with non-negative checks; active
@@ -491,6 +509,17 @@ again merely to rebuild a process-local transcript. Migration 6 implements the
 tables and atomic start/fail/succeed transactions, bounded fully verified
 history, database-clock retry gates, and truthful migration-5 result recovery.
 
+Migration 7 adds `scheduler_ready_at`, backfills runnable migration-6 rows
+without fabricating lifecycle events, enforces runnable/non-runnable shape with
+a validated check constraint, and creates a partial expression index on
+`(tenant_id, greatest(scheduler_ready_at,
+coalesce(lease_expires_at, scheduler_ready_at)), run_id)` for non-quarantined
+runnable rows. Admission stores its database observation;
+runnable lifecycle transitions and orderly lease release requeue at their
+commit observation; waiting or terminal transitions clear the projection.
+Claim, renewal, and supersession retain queue entry while lease expiry delays
+effective availability, so no per-run timer update is needed at expiry.
+
 ### Invocation ledger, interrupts, timers, and outbox
 
 - `tool_invocations` stores one immutable canonical intent with the complete
@@ -540,7 +569,11 @@ are garbage-collected after a safety window.
 
 ## Recovery and corruption handling
 
-Recovery performs:
+Runnable discovery is only an index-backed candidate source. Cross-tenant
+weighting, fairness, admission classes, and dispatch limits belong to the
+scheduler policy in RFC-0002. A scheduler must claim one selected run with a
+fresh physical attempt identity and treat `LeaseHeld` as normal contention
+before recovery performs:
 
 1. load the tenant-scoped run row and pinned versions;
 2. load the newest compatible checkpoint and verify its checksum/blob;

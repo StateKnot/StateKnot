@@ -7,8 +7,10 @@
 //! row lock, checks worker fencing with the database clock, and commits journal
 //! facts with their lifecycle projection, checkpoints, invocation revisions, or
 //! durable node-attempt starts/completions and immutable pending results in one
-//! transaction. It never holds a database transaction across node, model, tool,
-//! remote-agent, or human work.
+//! transaction. An indexed, tenant-scoped readiness projection supplies bounded
+//! stable-snapshot scheduler candidates without reserving them. The provider
+//! never holds a database transaction across node, model, tool, remote-agent,
+//! or human work.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
 //! its database credentials to untrusted workers; role-separated procedures and
@@ -30,7 +32,8 @@ pub use model::{
     ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
     NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
     PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
-    PendingNodeResultPageSize, RunProjection, StoredRun, ToolInvocationCommitOutcome,
+    PendingNodeResultPageSize, RunProjection, RunnableRunCandidate, RunnableRunPage,
+    RunnableRunPageCursor, RunnableRunPageSize, StoredRun, ToolInvocationCommitOutcome,
     ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
 };
 pub use store::PostgresStore;
