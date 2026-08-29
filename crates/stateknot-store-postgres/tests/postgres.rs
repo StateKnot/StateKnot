@@ -9,29 +9,32 @@ use serde_json::json;
 use sqlx_core::{
     migrate::{Migration, MigrationType, Migrator},
     query::query,
+    query_scalar::query_scalar,
 };
 use sqlx_postgres::PgPoolOptions;
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, CapabilityIdentity, CapabilityName,
-    CapabilityReference, Checkpoint, CheckpointHead, CheckpointId, CheckpointState,
-    CheckpointWrite, Digest, DurationMillis, EventId, Failure, FailureCategory, FailureCode,
-    FailureId, FailureMessage, FailureOrigin, GraphNamespace, GraphReference, InvocationId,
-    IssuerId, JournalAppend, JournalEventIntent, JournalEventKind, JournalExpectation, JournalHead,
-    JournalPayload, JournalSequence, ModelDescriptor, ModelError, ModelErrorPhase,
-    ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus, ModelInvocationTransition,
-    ModelRequest, ModelResponse, NodeActivation, NodeControl, NodeId, NodeInvocationBinding,
-    NodeInvocationBindings, NodeStateChange, NodeStateUpdate, PendingNodeResultIntent,
-    PrincipalIdentity, ReadyNodes, RetryAdvice, RunCancellationRequest, RunId, RunStatus,
-    RunTransition, SchemaId, SchemaReference, SubjectId, TenantId, ThreadId, Timestamp,
-    ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation, ToolInvocationIntent,
-    ToolInvocationStatus, ToolInvocationTransition, ToolResult, ToolResultProvenance, Version,
+    CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
+    CheckpointState, CheckpointWrite, Digest, DurationMillis, EventId, Failure, FailureCategory,
+    FailureCode, FailureId, FailureMessage, FailureOrigin, GraphNamespace, GraphReference,
+    InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
+    JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
+    ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
+    ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeControl, NodeId,
+    NodeInvocationBinding, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
+    PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, ReadyNodes, RetryAdvice,
+    RunCancellationRequest, RunId, RunStatus, RunTransition, SchemaId, SchemaReference, SubjectId,
+    TenantId, ThreadId, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation,
+    ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
+    ToolResultProvenance, Version,
 };
 use stateknot_store_postgres::{
-    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePageSize,
-    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
-    ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize, PendingNodeResultCommitOutcome,
-    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
-    RunProjection, StoreError, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
+    AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
+    CheckpointLineagePageSize, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome,
+    LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
+    PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions,
+    PostgresTransportSecurity, RunProjection, StoreError, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPageSize,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -1200,6 +1203,41 @@ fn pending_result_intent(
     .unwrap()
 }
 
+async fn commit_ready_results(
+    store: &PostgresStore,
+    checkpoint: &Checkpoint,
+    fence: &stateknot_core::RunFence,
+    first_event_index: u64,
+) -> (Vec<PendingNodeResultHead>, JournalHead) {
+    let mut journal_head = checkpoint.journal_head().clone();
+    let mut result_heads = Vec::with_capacity(checkpoint.ready_nodes().len());
+    for (offset, node_id) in checkpoint.ready_nodes().iter().cloned().enumerate() {
+        let activation = NodeActivation::new(
+            checkpoint.head(),
+            GraphNamespace::root(),
+            node_id.clone(),
+            Digest::sha256(format!("ready result input {node_id}")),
+        );
+        let committed = store
+            .commit_pending_node_result(
+                worker_append(
+                    checkpoint.tenant_id().clone(),
+                    checkpoint.run_id(),
+                    EventId::generate(),
+                    JournalExpectation::exact(journal_head),
+                    fence.clone(),
+                    first_event_index + u64::try_from(offset).unwrap(),
+                ),
+                pending_result_intent(activation, NodeInvocationBindings::empty()),
+            )
+            .await
+            .unwrap();
+        journal_head = committed.event().head();
+        result_heads.push(committed.result().head());
+    }
+    (result_heads, journal_head)
+}
+
 async fn prepare_tool_invocation_fixture(
     store: &PostgresStore,
     tenant_prefix: &str,
@@ -1614,6 +1652,782 @@ async fn unconsumed_pending_result_pages_are_stable_bounded_and_fully_verified()
         vec!["node-alpha", "node-bravo"]
     );
     assert!(restarted.has_more());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn worker_barrier_atomically_consumes_complete_results_and_is_idempotent() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("worker-barrier-commit");
+    let run_id = RunId::generate();
+    let ready_nodes = ReadyNodes::try_new(
+        ["node-bravo", "node-alpha"]
+            .into_iter()
+            .map(|node| NodeId::new(node).unwrap()),
+    )
+    .unwrap();
+    let initial = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &tenant_id,
+        run_id,
+        1_130,
+        ready_nodes,
+    ))
+    .await;
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let mut journal_head = initial.event().head();
+    let mut result_heads = Vec::new();
+    for (index, node) in ["node-bravo", "node-alpha"].into_iter().enumerate() {
+        let activation = NodeActivation::new(
+            initial.checkpoint().head(),
+            GraphNamespace::root(),
+            NodeId::new(node).unwrap(),
+            Digest::sha256(format!("barrier input {node}")),
+        );
+        let committed = store
+            .commit_pending_node_result(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(journal_head),
+                    first_lease.fence().clone(),
+                    1_131 + u64::try_from(index).unwrap(),
+                ),
+                pending_result_intent(activation, NodeInvocationBindings::empty()),
+            )
+            .await
+            .unwrap();
+        journal_head = committed.event().head();
+        result_heads.push(committed.result().head());
+    }
+
+    let successor_write = CheckpointWrite::successor(
+        CheckpointId::generate(),
+        initial.checkpoint(),
+        checkpoint_state(initial.checkpoint().graph(), 1),
+        ready_node(3),
+    )
+    .unwrap();
+    let barrier =
+        CheckpointBarrier::new(initial.checkpoint(), successor_write, result_heads).unwrap();
+    let barrier_event_id = EventId::generate();
+    let append = worker_append(
+        tenant_id.clone(),
+        run_id,
+        barrier_event_id,
+        JournalExpectation::exact(journal_head),
+        first_lease.fence().clone(),
+        1_133,
+    );
+    let committed = store
+        .append_worker_barrier(append.clone(), RunProjection::unchanged(), barrier.clone())
+        .await
+        .expect("complete worker barrier must commit atomically");
+    assert!(matches!(committed, BarrierCommitOutcome::Committed { .. }));
+    assert_eq!(
+        committed.checkpoint().parent(),
+        Some(&initial.checkpoint().head())
+    );
+    assert_eq!(
+        committed.checkpoint().journal_head(),
+        &committed.event().head()
+    );
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tenant_id, run_id)
+            .await
+            .unwrap(),
+        Some(committed.checkpoint().clone())
+    );
+
+    store
+        .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap();
+    let retry = store
+        .append_worker_barrier(append, RunProjection::unchanged(), barrier)
+        .await
+        .expect("lost barrier acknowledgement must survive lease takeover");
+    assert!(matches!(retry, BarrierCommitOutcome::Idempotent { .. }));
+    assert_eq!(retry.event(), committed.event());
+    assert_eq!(retry.checkpoint(), committed.checkpoint());
+
+    assert!(matches!(
+        store
+            .load_unconsumed_pending_node_result_page(
+                &initial.checkpoint().head(),
+                None,
+                PendingNodeResultPageSize::new(2).unwrap(),
+            )
+            .await,
+        Err(StoreError::StaleCheckpointHead)
+    ));
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let consumption_count = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.pending_node_result_consumptions \
+         WHERE tenant_id = $1 AND run_id = $2 AND base_checkpoint_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*initial.checkpoint().checkpoint_id().as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!(consumption_count, 2);
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn barrier_rejects_incomplete_conflicting_and_stale_fenced_inputs_without_mutation() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+
+    let incomplete_tenant = tenant("barrier-incomplete");
+    let incomplete_run = RunId::generate();
+    let incomplete_ready = ReadyNodes::try_new(
+        ["node-alpha", "node-bravo"]
+            .into_iter()
+            .map(|node| NodeId::new(node).unwrap()),
+    )
+    .unwrap();
+    let incomplete_base = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &incomplete_tenant,
+        incomplete_run,
+        1_150,
+        incomplete_ready,
+    ))
+    .await;
+    let incomplete_lease = store
+        .claim_lease(&incomplete_tenant, incomplete_run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let alpha_activation = NodeActivation::new(
+        incomplete_base.checkpoint().head(),
+        GraphNamespace::root(),
+        NodeId::new("node-alpha").unwrap(),
+        Digest::sha256(b"incomplete alpha input"),
+    );
+    let alpha = store
+        .commit_pending_node_result(
+            worker_append(
+                incomplete_tenant.clone(),
+                incomplete_run,
+                EventId::generate(),
+                JournalExpectation::exact(incomplete_base.event().head()),
+                incomplete_lease.fence().clone(),
+                1_151,
+            ),
+            pending_result_intent(alpha_activation, NodeInvocationBindings::empty()),
+        )
+        .await
+        .unwrap();
+    let fabricated_bravo = PendingNodeResultHead::new(
+        NodeActivation::new(
+            incomplete_base.checkpoint().head(),
+            GraphNamespace::root(),
+            NodeId::new("node-bravo").unwrap(),
+            Digest::sha256(b"missing bravo input"),
+        ),
+        Digest::sha256(b"missing bravo intent"),
+        incomplete_lease.fence().clone(),
+        alpha.event().head(),
+        Digest::sha256(b"missing bravo result"),
+    )
+    .unwrap();
+    let incomplete_successor_id = CheckpointId::generate();
+    let incomplete_barrier = CheckpointBarrier::new(
+        incomplete_base.checkpoint(),
+        CheckpointWrite::successor(
+            incomplete_successor_id,
+            incomplete_base.checkpoint(),
+            checkpoint_state(incomplete_base.checkpoint().graph(), 1),
+            ready_node(2),
+        )
+        .unwrap(),
+        [alpha.result().head(), fabricated_bravo],
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .append_worker_barrier(
+                worker_append(
+                    incomplete_tenant.clone(),
+                    incomplete_run,
+                    EventId::generate(),
+                    JournalExpectation::exact(alpha.event().head()),
+                    incomplete_lease.fence().clone(),
+                    1_152,
+                ),
+                RunProjection::unchanged(),
+                incomplete_barrier,
+            )
+            .await,
+        Err(StoreError::CheckpointBarrierIncomplete)
+    ));
+    assert_eq!(
+        store
+            .load_current_checkpoint(&incomplete_tenant, incomplete_run)
+            .await
+            .unwrap(),
+        Some(incomplete_base.checkpoint().clone())
+    );
+    assert!(matches!(
+        store
+            .load_checkpoint(&incomplete_tenant, incomplete_run, incomplete_successor_id,)
+            .await,
+        Err(StoreError::CheckpointNotFound)
+    ));
+
+    let conflict_tenant = tenant("barrier-result-conflict");
+    let conflict_run = RunId::generate();
+    let conflict_base = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &conflict_tenant,
+        conflict_run,
+        1_160,
+        ready_node(1),
+    ))
+    .await;
+    let conflict_lease = store
+        .claim_lease(&conflict_tenant, conflict_run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let (mut conflict_heads, conflict_journal) = commit_ready_results(
+        &store,
+        conflict_base.checkpoint(),
+        conflict_lease.fence(),
+        1_161,
+    )
+    .await;
+    let authentic = conflict_heads[0].clone();
+    conflict_heads[0] = PendingNodeResultHead::new(
+        authentic.activation().clone(),
+        authentic.intent_digest(),
+        authentic.fence().clone(),
+        authentic.journal_head().clone(),
+        Digest::sha256(b"substituted barrier result digest"),
+    )
+    .unwrap();
+    let conflict_successor_id = CheckpointId::generate();
+    let conflict_barrier = CheckpointBarrier::new(
+        conflict_base.checkpoint(),
+        CheckpointWrite::successor(
+            conflict_successor_id,
+            conflict_base.checkpoint(),
+            checkpoint_state(conflict_base.checkpoint().graph(), 1),
+            ready_node(2),
+        )
+        .unwrap(),
+        conflict_heads,
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .append_worker_barrier(
+                worker_append(
+                    conflict_tenant.clone(),
+                    conflict_run,
+                    EventId::generate(),
+                    JournalExpectation::exact(conflict_journal),
+                    conflict_lease.fence().clone(),
+                    1_162,
+                ),
+                RunProjection::unchanged(),
+                conflict_barrier,
+            )
+            .await,
+        Err(StoreError::CheckpointBarrierResultConflict)
+    ));
+    assert!(matches!(
+        store
+            .load_checkpoint(&conflict_tenant, conflict_run, conflict_successor_id)
+            .await,
+        Err(StoreError::CheckpointNotFound)
+    ));
+
+    let stale_tenant = tenant("barrier-stale-fence");
+    let stale_run = RunId::generate();
+    let stale_base = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &stale_tenant,
+        stale_run,
+        1_170,
+        ready_node(1),
+    ))
+    .await;
+    let stale_lease = store
+        .claim_lease(&stale_tenant, stale_run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let (stale_heads, stale_journal) =
+        commit_ready_results(&store, stale_base.checkpoint(), stale_lease.fence(), 1_171).await;
+    store
+        .supersede_lease(&stale_tenant, stale_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let stale_barrier = CheckpointBarrier::new(
+        stale_base.checkpoint(),
+        CheckpointWrite::successor(
+            CheckpointId::generate(),
+            stale_base.checkpoint(),
+            checkpoint_state(stale_base.checkpoint().graph(), 1),
+            ready_node(2),
+        )
+        .unwrap(),
+        stale_heads,
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .append_worker_barrier(
+                worker_append(
+                    stale_tenant.clone(),
+                    stale_run,
+                    EventId::generate(),
+                    JournalExpectation::exact(stale_journal.clone()),
+                    stale_lease.fence().clone(),
+                    1_172,
+                ),
+                RunProjection::unchanged(),
+                stale_barrier.clone(),
+            )
+            .await,
+        Err(StoreError::StaleFence)
+    ));
+    let control_plane = store
+        .append_control_plane_barrier(
+            control_append(
+                stale_tenant,
+                stale_run,
+                EventId::generate(),
+                JournalExpectation::exact(stale_journal),
+                1_173,
+            ),
+            RunProjection::unchanged(),
+            stale_barrier,
+        )
+        .await
+        .expect("control plane must be able to commit the still-current complete barrier");
+    assert!(matches!(
+        control_plane,
+        BarrierCommitOutcome::Committed { .. }
+    ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn barrier_rejects_complete_results_while_external_invocations_are_unsettled() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+
+    let tool_tenant = tenant("barrier-unsettled-tool");
+    let tool_run = RunId::generate();
+    let tool_base = Box::pin(start_run_with_checkpoint(
+        &store,
+        &tool_tenant,
+        tool_run,
+        1_174,
+    ))
+    .await;
+    let tool_lease = store
+        .claim_lease(&tool_tenant, tool_run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let tool_intent = tool_invocation_intent(tool_base.checkpoint(), InvocationId::generate());
+    let tool_prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tool_tenant.clone(),
+                tool_run,
+                EventId::generate(),
+                JournalExpectation::exact(tool_base.event().head()),
+                tool_lease.fence().clone(),
+                1_175,
+            ),
+            tool_intent.clone(),
+        )
+        .await
+        .unwrap();
+    let tool_result = store
+        .commit_pending_node_result(
+            worker_append(
+                tool_tenant.clone(),
+                tool_run,
+                EventId::generate(),
+                JournalExpectation::exact(tool_prepared.event().head()),
+                tool_lease.fence().clone(),
+                1_176,
+            ),
+            pending_result_intent(
+                tool_intent.activation().clone(),
+                NodeInvocationBindings::empty(),
+            ),
+        )
+        .await
+        .unwrap();
+    let tool_barrier = CheckpointBarrier::new(
+        tool_base.checkpoint(),
+        successor_checkpoint_write(CheckpointId::generate(), tool_base.checkpoint(), 1),
+        [tool_result.result().head()],
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .append_worker_barrier(
+                worker_append(
+                    tool_tenant.clone(),
+                    tool_run,
+                    EventId::generate(),
+                    JournalExpectation::exact(tool_result.event().head()),
+                    tool_lease.fence().clone(),
+                    1_177,
+                ),
+                RunProjection::unchanged(),
+                tool_barrier,
+            )
+            .await,
+        Err(StoreError::CheckpointBlockedByToolInvocation)
+    ));
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tool_tenant, tool_run)
+            .await
+            .unwrap(),
+        Some(tool_base.checkpoint().clone())
+    );
+
+    let model_tenant = tenant("barrier-unsettled-model");
+    let model_run = RunId::generate();
+    let model_base = Box::pin(start_run_with_checkpoint(
+        &store,
+        &model_tenant,
+        model_run,
+        1_178,
+    ))
+    .await;
+    let model_lease = store
+        .claim_lease(&model_tenant, model_run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let model_intent = model_invocation_intent(model_base.checkpoint(), InvocationId::generate());
+    let model_prepared = store
+        .prepare_model_invocation(
+            worker_append(
+                model_tenant.clone(),
+                model_run,
+                EventId::generate(),
+                JournalExpectation::exact(model_base.event().head()),
+                model_lease.fence().clone(),
+                1_179,
+            ),
+            model_intent.clone(),
+        )
+        .await
+        .unwrap();
+    let model_result = store
+        .commit_pending_node_result(
+            worker_append(
+                model_tenant.clone(),
+                model_run,
+                EventId::generate(),
+                JournalExpectation::exact(model_prepared.event().head()),
+                model_lease.fence().clone(),
+                1_180,
+            ),
+            pending_result_intent(
+                model_intent.activation().clone(),
+                NodeInvocationBindings::empty(),
+            ),
+        )
+        .await
+        .unwrap();
+    let model_barrier = CheckpointBarrier::new(
+        model_base.checkpoint(),
+        successor_checkpoint_write(CheckpointId::generate(), model_base.checkpoint(), 1),
+        [model_result.result().head()],
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .append_worker_barrier(
+                worker_append(
+                    model_tenant.clone(),
+                    model_run,
+                    EventId::generate(),
+                    JournalExpectation::exact(model_result.event().head()),
+                    model_lease.fence().clone(),
+                    1_181,
+                ),
+                RunProjection::unchanged(),
+                model_barrier,
+            )
+            .await,
+        Err(StoreError::CheckpointBlockedByModelInvocation)
+    ));
+    assert_eq!(
+        store
+            .load_current_checkpoint(&model_tenant, model_run)
+            .await
+            .unwrap(),
+        Some(model_base.checkpoint().clone())
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn barrier_consumption_failure_rolls_back_event_checkpoint_and_run_heads() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    let tenant_id = tenant("barrier-rollback");
+    let run_id = RunId::generate();
+    let base = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &tenant_id,
+        run_id,
+        1_180,
+        ready_node(1),
+    ))
+    .await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let (result_heads, result_journal) =
+        commit_ready_results(&store, base.checkpoint(), lease.fence(), 1_181).await;
+    let successor_id = CheckpointId::generate();
+    let barrier = CheckpointBarrier::new(
+        base.checkpoint(),
+        CheckpointWrite::successor(
+            successor_id,
+            base.checkpoint(),
+            checkpoint_state(base.checkpoint().graph(), 1),
+            ready_node(2),
+        )
+        .unwrap(),
+        result_heads,
+    )
+    .unwrap();
+
+    query(
+        "ALTER TABLE stateknot.pending_node_result_consumptions \
+         DROP CONSTRAINT IF EXISTS test_barrier_consumption_rollback",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+    let reject_target = format!(
+        "ALTER TABLE stateknot.pending_node_result_consumptions \
+         ADD CONSTRAINT test_barrier_consumption_rollback \
+         CHECK (tenant_id <> '{}') NOT VALID",
+        tenant_id.as_str()
+    );
+    query(&reject_target)
+        .execute(&administration)
+        .await
+        .unwrap();
+    let barrier_event_id = EventId::generate();
+    let result = store
+        .append_control_plane_barrier(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                barrier_event_id,
+                JournalExpectation::exact(result_journal.clone()),
+                1_182,
+            ),
+            RunProjection::unchanged(),
+            barrier,
+        )
+        .await;
+    query(
+        "ALTER TABLE stateknot.pending_node_result_consumptions \
+         DROP CONSTRAINT test_barrier_consumption_rollback",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(result, Err(StoreError::Database { .. })));
+
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(run.journal_head(), Some(&result_journal));
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tenant_id, run_id)
+            .await
+            .unwrap(),
+        Some(base.checkpoint().clone())
+    );
+    assert!(matches!(
+        store
+            .load_checkpoint(&tenant_id, run_id, successor_id)
+            .await,
+        Err(StoreError::CheckpointNotFound)
+    ));
+    let consumption_count = query_scalar::<_, i64>(
+        "SELECT count(*) FROM stateknot.pending_node_result_consumptions \
+         WHERE tenant_id = $1 AND run_id = $2 AND base_checkpoint_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*base.checkpoint().checkpoint_id().as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!(consumption_count, 0);
+    let events = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(events.events().len(), 2);
+    assert!(
+        events
+            .events()
+            .iter()
+            .all(|event| event.event_id() != barrier_event_id)
+    );
+    let pending = store
+        .load_unconsumed_pending_node_result_page(
+            &base.checkpoint().head(),
+            None,
+            PendingNodeResultPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(pending.records().len(), 1);
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+async fn concurrent_identical_barriers_converge_on_one_physical_commit() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("barrier-concurrency");
+    let run_id = RunId::generate();
+    let base = Box::pin(start_run_with_ready_checkpoint(
+        &store,
+        &tenant_id,
+        run_id,
+        1_190,
+        ready_node(1),
+    ))
+    .await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let (result_heads, result_journal) =
+        commit_ready_results(&store, base.checkpoint(), lease.fence(), 1_191).await;
+    let barrier = CheckpointBarrier::new(
+        base.checkpoint(),
+        CheckpointWrite::successor(
+            CheckpointId::generate(),
+            base.checkpoint(),
+            checkpoint_state(base.checkpoint().graph(), 1),
+            ready_node(2),
+        )
+        .unwrap(),
+        result_heads,
+    )
+    .unwrap();
+    let append = worker_append(
+        tenant_id.clone(),
+        run_id,
+        EventId::generate(),
+        JournalExpectation::exact(result_journal),
+        lease.fence().clone(),
+        1_192,
+    );
+    let mut tasks = tokio::task::JoinSet::new();
+    for _ in 0..24 {
+        let store = store.clone();
+        let append = append.clone();
+        let barrier = barrier.clone();
+        tasks.spawn(async move {
+            store
+                .append_worker_barrier(append, RunProjection::unchanged(), barrier)
+                .await
+        });
+    }
+
+    let mut committed = 0_u64;
+    let mut idempotent = 0_u64;
+    let mut winner = None;
+    while let Some(joined) = tasks.join_next().await {
+        let outcome = joined
+            .expect("barrier task must not panic")
+            .expect("identical barrier contenders must converge");
+        let identity = (outcome.event().head(), outcome.checkpoint().head());
+        if let Some(winner) = &winner {
+            assert_eq!(&identity, winner);
+        } else {
+            winner = Some(identity);
+        }
+        match outcome {
+            BarrierCommitOutcome::Committed { .. } => committed += 1,
+            BarrierCommitOutcome::Idempotent { .. } => idempotent += 1,
+            _ => panic!("unexpected barrier outcome"),
+        }
+    }
+    assert_eq!(committed, 1);
+    assert_eq!(idempotent, 23);
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .unwrap()
+            .head(),
+        winner.unwrap().1
+    );
     store.close().await;
 }
 
@@ -2885,27 +3699,7 @@ async fn checkpoint_commit_recovery_idempotency_and_projection_binding() {
         Err(StoreError::CheckpointCommitConflict)
     ));
 
-    let first_checkpoint = first.checkpoint().clone();
-    let second_event_id = EventId::generate();
-    let second_checkpoint_id = CheckpointId::generate();
-    let second = store
-        .append_control_plane_checkpoint(
-            control_append(
-                tenant_id.clone(),
-                run_id,
-                second_event_id,
-                JournalExpectation::exact(first.event().head()),
-                101,
-            ),
-            RunProjection::unchanged(),
-            successor_checkpoint_write(second_checkpoint_id, &first_checkpoint, 1),
-        )
-        .await
-        .expect("successor checkpoint must commit");
-    assert_eq!(second.checkpoint().superstep().get(), 1);
-    assert_eq!(second.checkpoint().parent(), Some(&first_checkpoint.head()));
-
-    let stale_branch = successor_checkpoint_write(CheckpointId::generate(), &first_checkpoint, 2);
+    let successor_id = CheckpointId::generate();
     assert!(matches!(
         store
             .append_control_plane_checkpoint(
@@ -2913,40 +3707,21 @@ async fn checkpoint_commit_recovery_idempotency_and_projection_binding() {
                     tenant_id.clone(),
                     run_id,
                     EventId::generate(),
-                    JournalExpectation::exact(second.event().head()),
-                    102,
+                    JournalExpectation::exact(first.event().head()),
+                    101,
                 ),
                 RunProjection::unchanged(),
-                stale_branch,
+                successor_checkpoint_write(successor_id, first.checkpoint(), 1),
             )
             .await,
-        Err(StoreError::StaleCheckpointHead)
+        Err(StoreError::CheckpointBarrierRequired)
     ));
-
-    let reused_old_id = successor_checkpoint_write(first_checkpoint_id, second.checkpoint(), 2);
-    assert!(matches!(
-        store
-            .append_control_plane_checkpoint(
-                control_append(
-                    tenant_id.clone(),
-                    run_id,
-                    EventId::generate(),
-                    JournalExpectation::exact(second.event().head()),
-                    103,
-                ),
-                RunProjection::unchanged(),
-                reused_old_id,
-            )
-            .await,
-        Err(StoreError::CheckpointIdConflict)
-    ));
-
     assert_eq!(
         store
             .load_current_checkpoint(&tenant_id, run_id)
             .await
             .unwrap(),
-        Some(second.checkpoint().clone())
+        Some(first.checkpoint().clone())
     );
     assert!(matches!(
         store
@@ -2997,7 +3772,7 @@ async fn checkpoint_commits_fence_stale_workers_but_preserve_lost_ack_retries() 
         .await
         .unwrap();
 
-    let current_lease = store
+    let _current_lease = store
         .supersede_lease(&tenant_id, run_id, AttemptId::generate())
         .await
         .unwrap()
@@ -3028,25 +3803,33 @@ async fn checkpoint_commits_fence_stale_workers_but_preserve_lost_ack_retries() 
                 stale_write,
             )
             .await,
-        Err(StoreError::StaleFence)
+        Err(StoreError::CheckpointBarrierRequired)
     ));
 
-    let current = store
-        .append_worker_checkpoint(
-            worker_append(
-                tenant_id.clone(),
-                run_id,
-                EventId::generate(),
-                JournalExpectation::exact(first.event().head()),
-                current_lease.fence().clone(),
-                202,
-            ),
-            RunProjection::unchanged(),
-            successor_checkpoint_write(CheckpointId::generate(), first.checkpoint(), 1),
-        )
-        .await
-        .expect("current fence must commit checkpoint successor");
-    assert_eq!(current.checkpoint().superstep().get(), 1);
+    assert!(matches!(
+        store
+            .append_worker_checkpoint(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(first.event().head()),
+                    first_lease.fence().clone(),
+                    202,
+                ),
+                RunProjection::unchanged(),
+                successor_checkpoint_write(CheckpointId::generate(), first.checkpoint(), 1),
+            )
+            .await,
+        Err(StoreError::CheckpointBarrierRequired)
+    ));
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tenant_id, run_id)
+            .await
+            .unwrap(),
+        Some(first.checkpoint().clone())
+    );
     store.close().await;
 }
 
@@ -3661,7 +4444,7 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
                 successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1,),
             )
             .await,
-        Err(StoreError::CheckpointBlockedByToolInvocation)
+        Err(StoreError::CheckpointBarrierRequired)
     ));
 
     let physical_attempt = AttemptId::generate();
@@ -3828,8 +4611,14 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         Err(StoreError::StaleFence)
     ));
 
-    let barrier = store
-        .append_worker_checkpoint(
+    let activation = intent.activation().clone();
+    let bindings = NodeInvocationBindings::try_new(
+        &activation,
+        [NodeInvocationBinding::from_tool(committed.invocation()).unwrap()],
+    )
+    .unwrap();
+    let pending = store
+        .commit_pending_node_result(
             worker_append(
                 tenant_id.clone(),
                 run_id,
@@ -3838,13 +4627,33 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
                 current_lease.fence().clone(),
                 807,
             ),
+            pending_result_intent(activation, bindings),
+        )
+        .await
+        .expect("a settled tool binding must commit its node result");
+    let barrier_intent = CheckpointBarrier::new(
+        checkpoint.checkpoint(),
+        successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1),
+        [pending.result().head()],
+    )
+    .unwrap();
+    let barrier = store
+        .append_worker_barrier(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(pending.event().head()),
+                current_lease.fence().clone(),
+                808,
+            ),
             RunProjection::unchanged(),
-            successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1),
+            barrier_intent,
         )
         .await
         .expect("a committed tool invocation must release the checkpoint barrier");
     assert_eq!(barrier.checkpoint().superstep().get(), 1);
-    assert_eq!(barrier.event().sequence().get(), 5);
+    assert_eq!(barrier.event().sequence().get(), 6);
     assert_eq!(
         store
             .load_tool_invocation(&tenant_id, run_id, invocation_id)
@@ -3858,7 +4667,7 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
         .await
         .unwrap();
-    assert_eq!(journal.events().len(), 5);
+    assert_eq!(journal.events().len(), 6);
     assert_eq!(journal.events().last().unwrap(), barrier.event());
     store.close().await;
 }
@@ -4186,7 +4995,7 @@ async fn model_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
                 successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1,),
             )
             .await,
-        Err(StoreError::CheckpointBlockedByModelInvocation)
+        Err(StoreError::CheckpointBarrierRequired)
     ));
 
     let physical_attempt = AttemptId::generate();
@@ -4353,8 +5162,14 @@ async fn model_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         Err(StoreError::StaleFence)
     ));
 
-    let barrier = store
-        .append_worker_checkpoint(
+    let activation = intent.activation().clone();
+    let bindings = NodeInvocationBindings::try_new(
+        &activation,
+        [NodeInvocationBinding::from_model(committed.invocation()).unwrap()],
+    )
+    .unwrap();
+    let pending = store
+        .commit_pending_node_result(
             worker_append(
                 tenant_id.clone(),
                 run_id,
@@ -4363,13 +5178,33 @@ async fn model_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
                 current_lease.fence().clone(),
                 907,
             ),
+            pending_result_intent(activation, bindings),
+        )
+        .await
+        .expect("a settled model binding must commit its node result");
+    let barrier_intent = CheckpointBarrier::new(
+        checkpoint.checkpoint(),
+        successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1),
+        [pending.result().head()],
+    )
+    .unwrap();
+    let barrier = store
+        .append_worker_barrier(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(pending.event().head()),
+                current_lease.fence().clone(),
+                908,
+            ),
             RunProjection::unchanged(),
-            successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1),
+            barrier_intent,
         )
         .await
         .expect("a committed model invocation must release the checkpoint barrier");
     assert_eq!(barrier.checkpoint().superstep().get(), 1);
-    assert_eq!(barrier.event().sequence().get(), 5);
+    assert_eq!(barrier.event().sequence().get(), 6);
     assert_eq!(
         store
             .load_model_invocation(&tenant_id, run_id, invocation_id)
@@ -4383,7 +5218,7 @@ async fn model_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(10).unwrap())
         .await
         .unwrap();
-    assert_eq!(journal.events().len(), 5);
+    assert_eq!(journal.events().len(), 6);
     assert_eq!(journal.events().last().unwrap(), barrier.event());
     store.close().await;
 }
@@ -5269,47 +6104,38 @@ async fn checkpoint_lineage_pages_are_exact_bounded_and_advance_safe() {
     };
     let tenant_id = tenant("checkpoint-lineage");
     let run_id = RunId::generate();
-    store
-        .admit_run(provenance(tenant_id.clone(), run_id))
+    let first = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 600)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
         .await
-        .unwrap();
-
-    let first = store
-        .append_control_plane_checkpoint(
-            control_append(
-                tenant_id.clone(),
-                run_id,
-                EventId::generate(),
-                JournalExpectation::empty(),
-                600,
-            ),
-            RunProjection::unchanged(),
-            initial_checkpoint_write(tenant_id.clone(), run_id, CheckpointId::generate()),
-        )
-        .await
-        .unwrap();
+        .unwrap()
+        .lease()
+        .clone();
     let mut checkpoints = vec![first.checkpoint().clone()];
-    let mut journal_head = first.event().head();
     for index in 1..=5_u64 {
+        let parent = checkpoints.last().unwrap();
+        let (result_heads, result_journal) =
+            commit_ready_results(&store, parent, lease.fence(), 600 + index * 2).await;
+        let barrier = CheckpointBarrier::new(
+            parent,
+            successor_checkpoint_write(CheckpointId::generate(), parent, index),
+            result_heads,
+        )
+        .unwrap();
         let outcome = store
-            .append_control_plane_checkpoint(
+            .append_control_plane_barrier(
                 control_append(
                     tenant_id.clone(),
                     run_id,
                     EventId::generate(),
-                    JournalExpectation::exact(journal_head),
-                    600 + index,
+                    JournalExpectation::exact(result_journal),
+                    601 + index * 2,
                 ),
                 RunProjection::unchanged(),
-                successor_checkpoint_write(
-                    CheckpointId::generate(),
-                    checkpoints.last().unwrap(),
-                    index,
-                ),
+                barrier,
             )
             .await
             .unwrap();
-        journal_head = outcome.event().head();
         checkpoints.push(outcome.checkpoint().clone());
     }
 
@@ -5336,17 +6162,25 @@ async fn checkpoint_lineage_pages_are_exact_bounded_and_advance_safe() {
         .expect("a bounded first page must expose its exact parent");
     assert_eq!(continuation, checkpoints[3].head());
 
+    let (advanced_results, advanced_journal) =
+        commit_ready_results(&store, checkpoints.last().unwrap(), lease.fence(), 620).await;
+    let advanced_barrier = CheckpointBarrier::new(
+        checkpoints.last().unwrap(),
+        successor_checkpoint_write(CheckpointId::generate(), checkpoints.last().unwrap(), 6),
+        advanced_results,
+    )
+    .unwrap();
     let advanced = store
-        .append_control_plane_checkpoint(
+        .append_control_plane_barrier(
             control_append(
                 tenant_id.clone(),
                 run_id,
                 EventId::generate(),
-                JournalExpectation::exact(journal_head),
-                606,
+                JournalExpectation::exact(advanced_journal),
+                621,
             ),
             RunProjection::unchanged(),
-            successor_checkpoint_write(CheckpointId::generate(), checkpoints.last().unwrap(), 6),
+            advanced_barrier,
         )
         .await
         .expect("a later barrier must be allowed to advance the current pointer");
@@ -5428,35 +6262,38 @@ async fn checkpoint_lineage_pages_are_exact_bounded_and_advance_safe() {
 
     let broken_tenant = tenant("broken-checkpoint-lineage");
     let broken_run = RunId::generate();
-    store
-        .admit_run(provenance(broken_tenant.clone(), broken_run))
+    let broken_root = Box::pin(start_run_with_checkpoint(
+        &store,
+        &broken_tenant,
+        broken_run,
+        630,
+    ))
+    .await;
+    let broken_lease = store
+        .claim_lease(&broken_tenant, broken_run, AttemptId::generate())
         .await
-        .unwrap();
-    let broken_root = store
-        .append_control_plane_checkpoint(
+        .unwrap()
+        .lease()
+        .clone();
+    let (broken_results, broken_journal) =
+        commit_ready_results(&store, broken_root.checkpoint(), broken_lease.fence(), 631).await;
+    let broken_barrier = CheckpointBarrier::new(
+        broken_root.checkpoint(),
+        successor_checkpoint_write(CheckpointId::generate(), broken_root.checkpoint(), 1),
+        broken_results,
+    )
+    .unwrap();
+    store
+        .append_control_plane_barrier(
             control_append(
                 broken_tenant.clone(),
                 broken_run,
                 EventId::generate(),
-                JournalExpectation::empty(),
-                607,
+                JournalExpectation::exact(broken_journal),
+                632,
             ),
             RunProjection::unchanged(),
-            initial_checkpoint_write(broken_tenant.clone(), broken_run, CheckpointId::generate()),
-        )
-        .await
-        .unwrap();
-    store
-        .append_control_plane_checkpoint(
-            control_append(
-                broken_tenant.clone(),
-                broken_run,
-                EventId::generate(),
-                JournalExpectation::exact(broken_root.event().head()),
-                608,
-            ),
-            RunProjection::unchanged(),
-            successor_checkpoint_write(CheckpointId::generate(), broken_root.checkpoint(), 1),
+            broken_barrier,
         )
         .await
         .unwrap();
@@ -5500,10 +6337,11 @@ async fn checkpoint_lineage_pages_are_exact_bounded_and_advance_safe() {
     query(
         "UPDATE stateknot.run_events \
          SET payload_bytes = payload_bytes || convert_to(' ', 'UTF8') \
-         WHERE tenant_id = $1 AND run_id = $2 AND sequence = 3",
+         WHERE tenant_id = $1 AND run_id = $2 AND sequence = $3",
     )
     .bind(tenant_id.as_str())
     .bind(*run_id.as_uuid())
+    .bind(i64::try_from(checkpoints[2].journal_head().sequence().get()).unwrap())
     .execute(&administration)
     .await
     .unwrap();
@@ -5673,31 +6511,21 @@ async fn checkpoint_load_fails_closed_on_corrupt_bytes_and_journal_anchor() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[allow(clippy::too_many_lines)]
 async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
-    let Some(store) = test_store().await else {
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(120)).await else {
         return;
     };
     let tenant_id = tenant("checkpoint-concurrency");
     let run_id = RunId::generate();
-    store
-        .admit_run(provenance(tenant_id.clone(), run_id))
+    let initial = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 500)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
         .await
-        .unwrap();
-    let initial = store
-        .append_control_plane_checkpoint(
-            control_append(
-                tenant_id.clone(),
-                run_id,
-                EventId::generate(),
-                JournalExpectation::empty(),
-                500,
-            ),
-            RunProjection::unchanged(),
-            initial_checkpoint_write(tenant_id.clone(), run_id, CheckpointId::generate()),
-        )
-        .await
-        .unwrap();
+        .unwrap()
+        .lease()
+        .clone();
     assert_eq!(initial.checkpoint().superstep().get(), 0);
 
     let writers = 24_u64;
@@ -5705,9 +6533,8 @@ async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
     for index in 1..=writers {
         let store = store.clone();
         let tenant_id = tenant_id.clone();
+        let fence = lease.fence().clone();
         tasks.push(tokio::spawn(async move {
-            let event_id = EventId::generate();
-            let checkpoint_id = CheckpointId::generate();
             loop {
                 let parent = store
                     .load_current_checkpoint(&tenant_id, run_id)
@@ -5715,22 +6542,63 @@ async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
                     .unwrap()
                     .expect("initial checkpoint must remain present");
                 let run = store.load_run(&tenant_id, run_id).await.unwrap();
-                let append = control_append(
-                    tenant_id.clone(),
-                    run_id,
-                    event_id,
-                    JournalExpectation::exact(run.journal_head().unwrap().clone()),
-                    500 + index,
+                let activation = NodeActivation::new(
+                    parent.head(),
+                    GraphNamespace::root(),
+                    parent.ready_nodes().iter().next().unwrap().clone(),
+                    Digest::sha256(b"concurrent checkpoint result"),
                 );
-                let write = successor_checkpoint_write(checkpoint_id, &parent, index);
+                let result = match store
+                    .commit_pending_node_result(
+                        worker_append(
+                            tenant_id.clone(),
+                            run_id,
+                            EventId::generate(),
+                            JournalExpectation::exact(run.journal_head().unwrap().clone()),
+                            fence.clone(),
+                            500 + index,
+                        ),
+                        pending_result_intent(activation, NodeInvocationBindings::empty()),
+                    )
+                    .await
+                {
+                    Ok(outcome) => outcome,
+                    Err(StoreError::StaleJournalHead | StoreError::StaleCheckpointHead) => {
+                        tokio::task::yield_now().await;
+                        continue;
+                    }
+                    Err(error) if error.is_retryable() => {
+                        tokio::task::yield_now().await;
+                        continue;
+                    }
+                    Err(error) => panic!("unexpected concurrent result failure: {error}"),
+                };
+                let run = store.load_run(&tenant_id, run_id).await.unwrap();
+                let barrier = CheckpointBarrier::new(
+                    &parent,
+                    successor_checkpoint_write(CheckpointId::generate(), &parent, index),
+                    [result.result().head()],
+                )
+                .unwrap();
                 match store
-                    .append_control_plane_checkpoint(append, RunProjection::unchanged(), write)
+                    .append_control_plane_barrier(
+                        control_append(
+                            tenant_id.clone(),
+                            run_id,
+                            EventId::generate(),
+                            JournalExpectation::exact(run.journal_head().unwrap().clone()),
+                            600 + index,
+                        ),
+                        RunProjection::unchanged(),
+                        barrier,
+                    )
                     .await
                 {
                     Ok(outcome) => return outcome.checkpoint().superstep(),
                     Err(StoreError::StaleJournalHead | StoreError::StaleCheckpointHead) => {
                         tokio::task::yield_now().await;
                     }
+                    Err(error) if error.is_retryable() => tokio::task::yield_now().await,
                     Err(error) => panic!("unexpected checkpoint writer failure: {error}"),
                 }
             }
@@ -5746,12 +6614,15 @@ async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
         .unwrap()
         .unwrap();
     assert_eq!(current.superstep().get(), writers);
-    assert_eq!(current.journal_head().sequence().get(), writers + 1);
+    assert_eq!(current.journal_head().sequence().get(), writers * 2 + 1);
     let page = store
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(128).unwrap())
         .await
         .unwrap();
-    assert_eq!(page.events().len(), usize::try_from(writers + 1).unwrap());
+    assert_eq!(
+        page.events().len(),
+        usize::try_from(writers * 2 + 1).unwrap()
+    );
     assert!(!page.has_more());
     store.close().await;
 }

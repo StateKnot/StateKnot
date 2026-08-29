@@ -58,8 +58,10 @@ anchoring, a run-wide physical-attempt registry, checkpoint advancement guards
 for unsettled invocations, immutable worker-fenced pending node results with
 exact committed invocation bindings and semantic idempotency, bounded
 stable-snapshot unconsumed-result paging, schema verification, and
-database-enforced lease fencing. Atomic pending-result
-consumption into graph barriers, the node-attempt ledger, outbox, recovery
+database-enforced lease fencing. Complete ready-set barriers now atomically
+bind and consume the exact immutable result set while committing their event,
+successor checkpoint, lifecycle projection, and run heads; raw successor
+checkpoint writes are rejected. The node-attempt ledger, outbox, recovery
 scheduling, quarantine workflows, and a runnable agent loop have not shipped
 yet.
 

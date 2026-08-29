@@ -69,9 +69,14 @@ from the repository.
   ordered result heads, and successor write; expose bounded stable-snapshot
   PostgreSQL scanning whose journal-pinned cursor cannot miss concurrent
   lower-key result commits.
-- [ ] Complete atomic pending-result barrier consumption, the node-attempt
-  ledger, outbox, recovery scheduling, quarantine, role isolation, retention,
-  failover, restore, and stale-race gates.
+- [x] Atomically consume complete pending-result barriers with lock-free full
+  record preflight, locked compact-set revalidation, append-only consumption
+  rows, projection-bound idempotency, per-statement worker fencing, rollback
+  injection, unsettled-invocation guards, and 24-writer linear-chain tests on
+  PostgreSQL 16/17; reject every raw successor-checkpoint write.
+- [ ] Complete the node-attempt ledger, outbox, recovery scheduling,
+  quarantine, role isolation, retention, failover, restore, and stale-race
+  gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

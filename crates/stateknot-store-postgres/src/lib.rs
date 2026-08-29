@@ -23,12 +23,12 @@ mod store;
 pub use config::{PostgresStoreOptions, PostgresTransportSecurity};
 pub use error::{ConfigurationError, StoreError};
 pub use model::{
-    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
-    CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
-    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, PendingNodeResultCommitOutcome,
-    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize, RunProjection,
-    StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
-    ToolInvocationHistoryPageSize,
+    AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
+    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, JournalPage,
+    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
+    PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
+    PendingNodeResultPageSize, RunProjection, StoredRun, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
 };
 pub use store::PostgresStore;

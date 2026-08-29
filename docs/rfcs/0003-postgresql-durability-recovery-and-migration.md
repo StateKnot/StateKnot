@@ -457,16 +457,17 @@ matches the stored fence, and reject a result anchor that does not follow all
 dependencies. Consumption metadata may advance once to one exact successor
 checkpoint, but no integrity-bearing result field is updated.
 
-Migration 5 and the current store implement the immutable write/read half of
-this contract. `pending_node_results` has one logical activation key, exact
+Migration 5 and the current store implement the immutable write/read and atomic
+consumption boundary of this contract. `pending_node_results` has one logical activation key, exact
 base-checkpoint and worker-event/fence foreign keys, bounded canonical bytes,
 and separate tool/model binding tables whose ordinary composite foreign keys
 prove exact activation plus committed revision. Identical semantic retries
 return the original winner even after lease takeover; changed semantics
 conflict. Recovery revalidates the full record, binding projections, full
 invocation records, and journal anchors in one repeatable-read snapshot. The
-append-only consumption table is present, but the atomic successor-barrier API
-remains unimplemented and must not be inferred from the schema alone.
+barrier APIs revalidate those full records outside the run lock, compare the
+complete compact set under the lock, and append exact consumption rows with the
+successor event/checkpoint and run heads in one transaction.
 
 The exact barrier, logical activation, stable reduction, and checkpoint
 lineage semantics are defined by
@@ -714,7 +715,7 @@ explicit unknown outcome otherwise.
 
 The unpublished `stateknot-store-postgres` crate implements the first
 run/journal/checkpoint/tool-and-model-invocation/lease subset of this RFC rather
-than a separate transitional backend. Four exact migrations create
+than a separate transitional backend. Five exact migrations create
 tenant-scoped `runs`, `run_events`, immutable `run_checkpoints`, tool/model
 intent and revision ledgers, and the shared `run_attempt_claims` registry with
 database constraints; runtime connection refuses absent, extra, failed,
@@ -752,8 +753,8 @@ an active run; cancellation and waiting may accept outcome/reconciliation
 evidence for work already in flight but cannot dispatch new tool work. Under the
 same locked run row, checkpoint advancement rejects any non-committed invocation
 rooted at the exact current checkpoint. This prevents an in-flight external call
-from being orphaned but does not substitute for the pending node-result
-consumption proof that remains unimplemented.
+from being orphaned; the barrier transaction separately proves and records the
+exact complete pending-result consumption set.
 
 Model preparation and transition use the same atomic and fencing boundary with
 the model-specific closed state machine. The intent snapshots the negotiated
@@ -766,7 +767,7 @@ responses/errors may finish after waiting or cancellation intent, but new
 preparation and dispatch require an active run. Model and tool claims cannot
 cross even when invocation identifiers collide.
 
-Thirty-four integration tests run against PostgreSQL 16 and 17.
+Forty integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -786,8 +787,9 @@ event/result/bindings/head on an invalid reference, and 24 contenders producing
 one physical winner. Non-ready and unsupported nested activations are rejected without
 durable residue, and cancellation races retain in-flight results without
 admitting new work. Checkpoint advancement is rejected until exact-parent
-invocations commit. This is evidence for those boundaries only. Pending node
-result consumption/barriers, the PostgreSQL node-attempt ledger, automatic
+invocations commit. Atomic barrier tests additionally cover complete-set
+consumption, lost acknowledgements, stale fences, injected rollback, and
+24-writer linearity. This is evidence for those boundaries only. The PostgreSQL node-attempt ledger, automatic
 quarantine, role-separated database procedures, the 10,000 stale-race trial,
 failover, archive,
 backup/restore, and soak gates below remain incomplete; the RFC therefore

@@ -116,6 +116,21 @@ pub enum StoreError {
     /// Event and checkpoint idempotency records do not describe one atomic commit.
     #[error("journal event and checkpoint identities conflict with an atomic commit")]
     CheckpointCommitConflict,
+    /// A successor checkpoint must prove the complete result barrier it consumes.
+    #[error("successor checkpoint commit requires a complete checkpoint barrier")]
+    CheckpointBarrierRequired,
+    /// The supplied barrier did not match its fully restored durable base.
+    #[error("checkpoint barrier does not match its durable base checkpoint")]
+    InvalidCheckpointBarrier,
+    /// At least one result required by the complete barrier is not durable.
+    #[error("checkpoint barrier is incomplete")]
+    CheckpointBarrierIncomplete,
+    /// Durable pending-result identities do not equal the supplied complete barrier.
+    #[error("checkpoint barrier result set conflicts with durable pending results")]
+    CheckpointBarrierResultConflict,
+    /// Barrier event, checkpoint, and consumption rows do not describe one atomic commit.
+    #[error("checkpoint barrier identities conflict with an atomic commit")]
+    CheckpointBarrierCommitConflict,
     /// The supplied complete checkpoint parent did not match the locked run row.
     #[error("checkpoint parent does not match the current durable checkpoint")]
     StaleCheckpointHead,

@@ -16,30 +16,31 @@ use sqlx_core::{
 };
 use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
-    AgentResultProvenance, AttemptId, BoundedJson, CanonicalJson, Checkpoint, CheckpointHead,
-    CheckpointId, CheckpointLineageVerifier, CheckpointWrite, Digest, EventId, FencingEpoch,
-    GraphNamespace, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
-    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalSequence,
-    JsonLimits, ModelInvocation, ModelInvocationHead, ModelInvocationHistoryVerifier,
-    ModelInvocationIntent, ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
-    ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeControlKind,
-    NodeId, NodeInvocationBinding, NodeInvocationBindingKind, PendingNodeResult,
-    PendingNodeResultError, PendingNodeResultHead, PendingNodeResultIntent, RunFence, RunId,
-    RunLease, RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTransition,
-    Superstep, TenantId, Timestamp, ToolInvocation, ToolInvocationHead,
-    ToolInvocationHistoryVerifier, ToolInvocationIntent, ToolInvocationRevision,
-    ToolInvocationStatus, ToolInvocationTransition, ToolInvocationTransitionKind,
+    AgentResultProvenance, AttemptId, BarrierResultHeads, BoundedJson, CanonicalJson, Checkpoint,
+    CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointLineageVerifier, CheckpointWrite,
+    Digest, EventId, FencingEpoch, GraphNamespace, InvocationId, JournalAppend,
+    JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent, JournalEventSource,
+    JournalHead, JournalSequence, JsonLimits, ModelInvocation, ModelInvocationHead,
+    ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
+    ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
+    ModelInvocationTransitionKind, NodeActivation, NodeControlKind, NodeId, NodeInvocationBinding,
+    NodeInvocationBindingKind, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
+    PendingNodeResultIntent, RunFence, RunId, RunLease, RunLeaseValidationError, RunLifecycle,
+    RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp, ToolInvocation,
+    ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
+    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    ToolInvocationTransitionKind,
 };
 use uuid::Uuid;
 
 use crate::{
-    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
-    CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
-    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, PendingNodeResultCommitOutcome,
-    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize,
-    PostgresStoreOptions, RunProjection, StoreError, StoredRun, ToolInvocationCommitOutcome,
-    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
+    AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
+    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer, JournalPage,
+    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
+    PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
+    PendingNodeResultPageSize, PostgresStoreOptions, RunProjection, StoreError, StoredRun,
+    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -99,6 +100,7 @@ const PENDING_INVOCATION_ANCHOR_BATCH_SIZE: usize = 8;
 const MODEL_INVOCATION_RECORD_SCHEMA: &str =
     "https://stateknot.github.io/schema/storage/model-invocation-revision/1.0.0";
 const PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-run-projection-v1\0";
+const BARRIER_PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-barrier-projection-v1\0";
 
 const SELECT_RUN: &str = r"
 SELECT
@@ -785,6 +787,57 @@ WHERE pending.tenant_id = $1
   AND pending.base_checkpoint_id = $3
   AND pending.graph_namespace = $4
   AND pending.node_id = $5
+";
+
+const SELECT_PENDING_NODE_RESULT_HEADS_FOR_BARRIER: &str = r"
+SELECT
+    pending.tenant_id,
+    pending.run_id,
+    pending.base_checkpoint_id,
+    pending.base_superstep,
+    pending.base_checkpoint_digest,
+    pending.graph_namespace,
+    pending.node_id,
+    pending.activation_input_digest,
+    pending.intent_digest,
+    pending.fence_attempt_id,
+    pending.fence_epoch,
+    pending.journal_sequence,
+    pending.journal_event_id,
+    pending.journal_recorded_at,
+    pending.journal_digest,
+    pending.record_digest
+FROM stateknot.pending_node_results AS pending
+WHERE pending.tenant_id = $1
+  AND pending.run_id = $2
+  AND pending.base_checkpoint_id = $3
+ORDER BY pending.graph_namespace ASC, pending.node_id ASC
+LIMIT $4
+";
+
+const SELECT_PENDING_NODE_RESULT_CONSUMPTIONS_BY_BASE: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    result_record_digest,
+    successor_checkpoint_id,
+    successor_superstep,
+    successor_checkpoint_digest,
+    successor_journal_sequence,
+    successor_journal_event_id,
+    successor_journal_recorded_at,
+    successor_journal_digest,
+    created_at
+FROM stateknot.pending_node_result_consumptions
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND base_checkpoint_id = $3
+ORDER BY graph_namespace ASC, node_id ASC
 ";
 
 const SELECT_PENDING_NODE_RESULT_TOOL_BINDINGS: &str = r"
@@ -3109,11 +3162,12 @@ WHERE tenant_id = $1
         Ok(PendingNodeResultCommitOutcome::Committed { event, result })
     }
 
-    /// Atomically appends a control-plane event and commits one graph barrier.
+    /// Atomically appends a control-plane event and commits the initial graph
+    /// checkpoint.
     ///
-    /// The checkpoint write must belong to the same tenant/run, its exact
-    /// parent must match the locked run pointer, and its anchoring event and
-    /// optional lifecycle projection commit in the same transaction.
+    /// Successor checkpoints must use [`Self::append_control_plane_barrier`] so
+    /// the exact complete pending-result set is consumed in the same
+    /// transaction.
     ///
     /// # Errors
     ///
@@ -3128,6 +3182,9 @@ WHERE tenant_id = $1
         if append.worker_fence().is_some() {
             return Err(StoreError::WrongAppendAuthority);
         }
+        if checkpoint.parent().is_some() {
+            return Err(StoreError::CheckpointBarrierRequired);
+        }
         self.append_checkpoint(
             append,
             projection,
@@ -3137,11 +3194,12 @@ WHERE tenant_id = $1
         .await
     }
 
-    /// Atomically appends a fenced worker event and commits one graph barrier.
+    /// Atomically appends a fenced worker event and commits the initial graph
+    /// checkpoint.
     ///
     /// The database rechecks the exact unexpired lease while inserting the
-    /// event, checkpoint, and updated run heads. Expiry at any statement rolls
-    /// back the complete transaction.
+    /// event, checkpoint, and updated run heads. Successors must use
+    /// [`Self::append_worker_barrier`] so results cannot be bypassed.
     ///
     /// # Errors
     ///
@@ -3156,8 +3214,62 @@ WHERE tenant_id = $1
         if append.worker_fence().is_none() {
             return Err(StoreError::WrongAppendAuthority);
         }
+        if checkpoint.parent().is_some() {
+            return Err(StoreError::CheckpointBarrierRequired);
+        }
         self.append_checkpoint(append, projection, checkpoint, AppendAuthority::Worker)
             .await
+    }
+
+    /// Atomically consumes a complete result barrier and commits its
+    /// control-plane event and successor checkpoint.
+    ///
+    /// Full checkpoint and result records are verified in a repeatable-read
+    /// preflight without the run lock. The mutation transaction then locks the
+    /// run, rechecks every compact result identity, and inserts the event,
+    /// checkpoint, append-only consumption rows, lifecycle projection, and run
+    /// pointers atomically.
+    ///
+    /// # Errors
+    ///
+    /// Rejects worker sources and returns explicit barrier completeness,
+    /// conflict, idempotency, lifecycle, checkpoint, journal, integrity, or
+    /// database failures.
+    pub async fn append_control_plane_barrier(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        barrier: CheckpointBarrier,
+    ) -> Result<BarrierCommitOutcome, StoreError> {
+        if append.worker_fence().is_some() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        Box::pin(self.append_barrier(append, projection, barrier, AppendAuthority::ControlPlane))
+            .await
+    }
+
+    /// Atomically consumes a complete result barrier and commits its fenced
+    /// worker event and successor checkpoint.
+    ///
+    /// Every write statement rechecks the exact unexpired lease against the
+    /// database clock. Lease expiry at any statement rolls back the event,
+    /// checkpoint, every consumption row, and both run pointers.
+    ///
+    /// # Errors
+    ///
+    /// Rejects control-plane sources and returns explicit barrier completeness,
+    /// conflict, idempotency, lifecycle, checkpoint, journal, fencing,
+    /// integrity, or database failures.
+    pub async fn append_worker_barrier(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        barrier: CheckpointBarrier,
+    ) -> Result<BarrierCommitOutcome, StoreError> {
+        if append.worker_fence().is_none() {
+            return Err(StoreError::WrongAppendAuthority);
+        }
+        Box::pin(self.append_barrier(append, projection, barrier, AppendAuthority::Worker)).await
     }
 
     /// Reads one repeatable-read, bounded page and verifies its hash-chain suffix.
@@ -3468,6 +3580,205 @@ WHERE tenant_id = $1
         Ok(CheckpointCommitOutcome::Committed { event, checkpoint })
     }
 
+    async fn verify_checkpoint_barrier_preflight(
+        &self,
+        barrier: &CheckpointBarrier,
+    ) -> Result<(), StoreError> {
+        let base = barrier.base_checkpoint();
+        let mut transaction = self
+            .begin_repeatable_read("checkpoint barrier preflight")
+            .await?;
+        let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+            .bind(base.tenant_id().as_str())
+            .bind(*base.run_id().as_uuid())
+            .bind(*base.checkpoint_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint barrier base load", source))?
+            .ok_or(StoreError::InvalidCheckpointBarrier)?;
+        let checkpoint = decode_checkpoint(row)?;
+        if checkpoint.head() != *base || checkpoint.ready_nodes() != barrier.base_ready_nodes() {
+            return Err(StoreError::InvalidCheckpointBarrier);
+        }
+        verify_checkpoint_anchor(&mut transaction, &checkpoint).await?;
+
+        for expected in barrier.result_heads().iter() {
+            let row = load_pending_node_result_row(&mut transaction, expected.activation())
+                .await?
+                .ok_or(StoreError::CheckpointBarrierIncomplete)?;
+            let result = decode_pending_node_result(&row)?;
+            if result.head() != *expected {
+                return Err(StoreError::CheckpointBarrierResultConflict);
+            }
+            verify_pending_node_result_anchor(&mut transaction, &result).await?;
+            verify_pending_node_result_bindings(&mut transaction, &result).await?;
+        }
+
+        transaction.commit().await.map_err(|source| {
+            StoreError::database("checkpoint barrier preflight commit", source)
+        })?;
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn append_barrier(
+        &self,
+        append: JournalAppend,
+        projection: RunProjection,
+        barrier: CheckpointBarrier,
+        authority: AppendAuthority,
+    ) -> Result<BarrierCommitOutcome, StoreError> {
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        let base = barrier.base_checkpoint();
+        let successor = barrier.successor();
+        if base.tenant_id() != &tenant_id
+            || base.run_id() != run_id
+            || successor.tenant_id() != &tenant_id
+            || successor.run_id() != run_id
+        {
+            return Err(StoreError::CheckpointBarrierCommitConflict);
+        }
+        let projection_digest = barrier_projection_digest(&projection, barrier.intent_digest())?;
+        self.verify_checkpoint_barrier_preflight(&barrier).await?;
+
+        let mut transaction = self.begin_mutation("checkpoint barrier append").await?;
+        let row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(row)?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint barrier event lookup", source))?;
+        if let Some(row) = existing_event {
+            let committed_projection = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "checkpoint barrier projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            if committed_projection != Some(projection_digest) {
+                return Err(StoreError::ProjectionIntentConflict);
+            }
+            let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ANCHOR)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(
+                    i64::try_from(event.sequence().get())
+                        .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                )
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("checkpoint barrier anchor lookup", source))?
+                .ok_or(StoreError::CheckpointBarrierCommitConflict)?;
+            let checkpoint = decode_checkpoint(row)?;
+            if checkpoint.checkpoint_id() != successor.checkpoint_id()
+                || !checkpoint.matches_write(successor)
+                || checkpoint.journal_head() != &event.head()
+            {
+                return Err(StoreError::CheckpointBarrierCommitConflict);
+            }
+            verify_barrier_consumptions(&mut transaction, &barrier, &checkpoint).await?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent checkpoint barrier commit", source)
+            })?;
+            return Ok(BarrierCommitOutcome::Idempotent { event, checkpoint });
+        }
+
+        let existing_checkpoint = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*successor.checkpoint_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| {
+                StoreError::database("checkpoint barrier idempotency lookup", source)
+            })?;
+        if existing_checkpoint.is_some() {
+            return Err(StoreError::CheckpointIdConflict);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Active {
+            return Err(StoreError::RunNotRunnable);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *base {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if current_checkpoint.ready_nodes() != barrier.base_ready_nodes() {
+            return Err(StoreError::InvalidCheckpointBarrier);
+        }
+        ensure_no_unsettled_tool_invocations(&mut transaction, &current_checkpoint).await?;
+        ensure_no_unsettled_model_invocations(&mut transaction, &current_checkpoint).await?;
+
+        let existing_consumptions = load_barrier_consumption_rows(&mut transaction, base).await?;
+        if !existing_consumptions.is_empty() {
+            return Err(StoreError::CheckpointBarrierResultConflict);
+        }
+        let durable_heads = load_locked_barrier_result_heads(&mut transaction, base).await?;
+        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads())?;
+        let current_journal = stored
+            .journal_head()
+            .ok_or_else(|| StoreError::corrupt("checkpoint barrier run journal head"))?;
+        if barrier.result_heads().iter().any(|head| {
+            head.journal_head().sequence() > current_journal.sequence()
+                || head.journal_head().recorded_at() > current_journal.recorded_at()
+        }) {
+            return Err(StoreError::CheckpointBarrierResultConflict);
+        }
+
+        let observed_at = database_now(&mut transaction, "checkpoint barrier clock").await?;
+        match authority {
+            AppendAuthority::ControlPlane => {
+                if append.worker_fence().is_some() {
+                    return Err(StoreError::WrongAppendAuthority);
+                }
+            }
+            AppendAuthority::Worker => {
+                let fence = append
+                    .worker_fence()
+                    .ok_or(StoreError::WrongAppendAuthority)?;
+                authorize_worker(&stored, fence, observed_at)?;
+            }
+        }
+
+        let recorded_at = observed_at.max(current_journal.recorded_at());
+        let prepared_projection = prepare_projection(&stored, &append, projection, recorded_at)?;
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let checkpoint = Checkpoint::commit(successor.clone(), event.head())
+            .map_err(|_| StoreError::encoding("checkpoint barrier commit"))?;
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        insert_checkpoint(&mut transaction, &checkpoint, event.source()).await?;
+        insert_barrier_consumptions(&mut transaction, &barrier, &checkpoint, event.source())
+            .await?;
+        update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
+        update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("checkpoint barrier commit", source))?;
+        Ok(BarrierCommitOutcome::Committed { event, checkpoint })
+    }
+
     async fn begin_mutation(
         &self,
         operation: &'static str,
@@ -3736,6 +4047,25 @@ struct PendingNodeResultHeadRow {
     record_digest: Vec<u8>,
 }
 
+struct PendingNodeResultConsumptionRow {
+    tenant_id: String,
+    run_id: Uuid,
+    base_checkpoint_id: Uuid,
+    base_superstep: i64,
+    base_checkpoint_digest: Vec<u8>,
+    graph_namespace: String,
+    node_id: String,
+    result_record_digest: Vec<u8>,
+    successor_checkpoint_id: Uuid,
+    successor_superstep: i64,
+    successor_checkpoint_digest: Vec<u8>,
+    successor_journal_sequence: i64,
+    successor_journal_event_id: Uuid,
+    successor_journal_recorded_at: DateTime<Utc>,
+    successor_journal_digest: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
 struct PendingNodeResultBindingRow {
     tenant_id: String,
     run_id: Uuid,
@@ -3988,6 +4318,29 @@ impl<'row> FromRow<'row, PgRow> for PendingNodeResultHeadRow {
     }
 }
 
+impl<'row> FromRow<'row, PgRow> for PendingNodeResultConsumptionRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            base_checkpoint_id: row.try_get("base_checkpoint_id")?,
+            base_superstep: row.try_get("base_superstep")?,
+            base_checkpoint_digest: row.try_get("base_checkpoint_digest")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            node_id: row.try_get("node_id")?,
+            result_record_digest: row.try_get("result_record_digest")?,
+            successor_checkpoint_id: row.try_get("successor_checkpoint_id")?,
+            successor_superstep: row.try_get("successor_superstep")?,
+            successor_checkpoint_digest: row.try_get("successor_checkpoint_digest")?,
+            successor_journal_sequence: row.try_get("successor_journal_sequence")?,
+            successor_journal_event_id: row.try_get("successor_journal_event_id")?,
+            successor_journal_recorded_at: row.try_get("successor_journal_recorded_at")?,
+            successor_journal_digest: row.try_get("successor_journal_digest")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
 impl<'row> FromRow<'row, PgRow> for PendingNodeResultBindingRow {
     fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
         Ok(Self {
@@ -4028,6 +4381,12 @@ enum ProjectionDigestWire<'a> {
         expected_revision: &'a RunRevision,
         transition: &'a RunTransition,
     },
+}
+
+#[derive(Serialize)]
+struct BarrierProjectionDigestWire {
+    run_projection_digest: Digest,
+    barrier_intent_digest: Digest,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -5199,6 +5558,105 @@ fn decode_pending_node_result_head(
     .map_err(|_| StoreError::corrupt("pending result compact head"))
 }
 
+async fn load_locked_barrier_result_heads(
+    transaction: &mut Transaction<'_, Postgres>,
+    base: &CheckpointHead,
+) -> Result<Vec<PendingNodeResultHead>, StoreError> {
+    let query_limit = i64::try_from(BarrierResultHeads::MAX_LEN + 1)
+        .map_err(|_| StoreError::InvalidCheckpointBarrier)?;
+    let rows =
+        query_as::<_, PendingNodeResultHeadRow>(SELECT_PENDING_NODE_RESULT_HEADS_FOR_BARRIER)
+            .bind(base.tenant_id().as_str())
+            .bind(*base.run_id().as_uuid())
+            .bind(*base.checkpoint_id().as_uuid())
+            .bind(query_limit)
+            .fetch_all(&mut **transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint barrier result heads", source))?;
+    rows.into_iter()
+        .map(|row| decode_pending_node_result_head(row, base))
+        .collect()
+}
+
+fn validate_complete_barrier_result_heads(
+    durable: &[PendingNodeResultHead],
+    expected: &BarrierResultHeads,
+) -> Result<(), StoreError> {
+    if durable == expected.as_slice() {
+        return Ok(());
+    }
+    if durable.len() < expected.len()
+        && durable
+            .iter()
+            .all(|head| expected.iter().any(|expected| expected == head))
+    {
+        return Err(StoreError::CheckpointBarrierIncomplete);
+    }
+    Err(StoreError::CheckpointBarrierResultConflict)
+}
+
+async fn load_barrier_consumption_rows(
+    transaction: &mut Transaction<'_, Postgres>,
+    base: &CheckpointHead,
+) -> Result<Vec<PendingNodeResultConsumptionRow>, StoreError> {
+    query_as::<_, PendingNodeResultConsumptionRow>(SELECT_PENDING_NODE_RESULT_CONSUMPTIONS_BY_BASE)
+        .bind(base.tenant_id().as_str())
+        .bind(*base.run_id().as_uuid())
+        .bind(*base.checkpoint_id().as_uuid())
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("checkpoint barrier consumptions", source))
+}
+
+async fn verify_barrier_consumptions(
+    transaction: &mut Transaction<'_, Postgres>,
+    barrier: &CheckpointBarrier,
+    successor: &Checkpoint,
+) -> Result<(), StoreError> {
+    let base = barrier.base_checkpoint();
+    let rows = load_barrier_consumption_rows(transaction, base).await?;
+    if rows.len() != barrier.result_heads().len() {
+        return Err(StoreError::CheckpointBarrierCommitConflict);
+    }
+    for (row, result) in rows.iter().zip(barrier.result_heads().iter()) {
+        let activation = result.activation();
+        if row.tenant_id != base.tenant_id().as_str()
+            || row.run_id != *base.run_id().as_uuid()
+            || row.base_checkpoint_id != *base.checkpoint_id().as_uuid()
+            || nonnegative_superstep(row.base_superstep)? != base.superstep()
+            || decode_digest(
+                &row.base_checkpoint_digest,
+                "checkpoint barrier consumption base digest",
+            )? != base.digest()
+            || row.graph_namespace != activation.graph_namespace().as_str()
+            || row.node_id != activation.node_id().as_str()
+            || decode_digest(
+                &row.result_record_digest,
+                "checkpoint barrier consumption result digest",
+            )? != result.digest()
+            || row.successor_checkpoint_id != *successor.checkpoint_id().as_uuid()
+            || nonnegative_superstep(row.successor_superstep)? != successor.superstep()
+            || decode_digest(
+                &row.successor_checkpoint_digest,
+                "checkpoint barrier consumption successor digest",
+            )? != successor.digest()
+            || positive_sequence(row.successor_journal_sequence)?
+                != successor.journal_head().sequence()
+            || row.successor_journal_event_id != *successor.journal_head().event_id().as_uuid()
+            || from_database_time(row.successor_journal_recorded_at)?
+                != successor.journal_head().recorded_at()
+            || decode_digest(
+                &row.successor_journal_digest,
+                "checkpoint barrier consumption journal digest",
+            )? != successor.journal_head().digest()
+            || from_database_time(row.created_at)? != successor.journal_head().recorded_at()
+        {
+            return Err(StoreError::CheckpointBarrierCommitConflict);
+        }
+    }
+    Ok(())
+}
+
 fn pending_result_cursor_matches_base(
     cursor: &PendingNodeResultPageCursor,
     base: &CheckpointHead,
@@ -5728,6 +6186,22 @@ fn projection_digest(projection: &RunProjection) -> Result<Digest, StoreError> {
         .map_err(|_| StoreError::encoding("run projection intent"))?;
     let mut preimage = Vec::with_capacity(PROJECTION_DIGEST_DOMAIN.len() + canonical.len());
     preimage.extend_from_slice(PROJECTION_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
+}
+
+fn barrier_projection_digest(
+    projection: &RunProjection,
+    barrier_intent_digest: Digest,
+) -> Result<Digest, StoreError> {
+    let wire = BarrierProjectionDigestWire {
+        run_projection_digest: projection_digest(projection)?,
+        barrier_intent_digest,
+    };
+    let canonical = serde_json_canonicalizer::to_vec(&wire)
+        .map_err(|_| StoreError::encoding("checkpoint barrier projection intent"))?;
+    let mut preimage = Vec::with_capacity(BARRIER_PROJECTION_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(BARRIER_PROJECTION_DIGEST_DOMAIN);
     preimage.extend_from_slice(&canonical);
     Ok(Digest::sha256(preimage))
 }
@@ -6921,6 +7395,153 @@ WHERE current_run.tenant_id = $1
 }
 
 #[allow(clippy::too_many_lines)]
+async fn insert_barrier_consumptions(
+    transaction: &mut Transaction<'_, Postgres>,
+    barrier: &CheckpointBarrier,
+    successor: &Checkpoint,
+    source: &JournalEventSource,
+) -> Result<(), StoreError> {
+    let base = barrier.base_checkpoint();
+    let base_superstep =
+        i64::try_from(base.superstep().get()).map_err(|_| StoreError::InvalidCheckpointBarrier)?;
+    let successor_superstep = i64::try_from(successor.superstep().get())
+        .map_err(|_| StoreError::encoding("checkpoint barrier successor superstep"))?;
+    let successor_sequence = i64::try_from(successor.journal_head().sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let graph_namespaces = barrier
+        .result_heads()
+        .iter()
+        .map(|head| head.activation().graph_namespace().as_str().to_owned())
+        .collect::<Vec<_>>();
+    let node_ids = barrier
+        .result_heads()
+        .iter()
+        .map(|head| head.activation().node_id().as_str().to_owned())
+        .collect::<Vec<_>>();
+    let result_digests = barrier
+        .result_heads()
+        .iter()
+        .map(|head| head.digest().as_bytes().to_vec())
+        .collect::<Vec<_>>();
+    let (worker_attempt_id, worker_epoch, worker_write) = match source {
+        JournalEventSource::ControlPlane => (None, None, false),
+        JournalEventSource::Worker { fence } => (
+            Some(*fence.attempt_id().as_uuid()),
+            Some(i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?),
+            true,
+        ),
+    };
+
+    let inserted = query(
+        r"
+INSERT INTO stateknot.pending_node_result_consumptions (
+    tenant_id,
+    run_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    result_record_digest,
+    successor_checkpoint_id,
+    successor_superstep,
+    successor_checkpoint_digest,
+    successor_journal_sequence,
+    successor_journal_event_id,
+    successor_journal_recorded_at,
+    successor_journal_digest,
+    created_at
+)
+SELECT
+    $1, $2, $3, $4, $5,
+    expected.graph_namespace,
+    expected.node_id,
+    expected.result_record_digest,
+    $6, $7, $8, $9, $10, $11, $12, $11
+FROM UNNEST(
+    $13::text[],
+    $14::text[],
+    $15::bytea[]
+) AS expected (graph_namespace, node_id, result_record_digest)
+JOIN stateknot.pending_node_results AS pending
+  ON pending.tenant_id = $1
+ AND pending.run_id = $2
+ AND pending.base_checkpoint_id = $3
+ AND pending.base_superstep = $4
+ AND pending.base_checkpoint_digest = $5
+ AND pending.graph_namespace = expected.graph_namespace
+ AND pending.node_id = expected.node_id
+ AND pending.record_digest = expected.result_record_digest
+CROSS JOIN stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.checkpoint_id = $3
+  AND current_run.checkpoint_superstep = $4
+  AND current_run.checkpoint_digest = $5
+  AND (
+      $16::uuid IS NULL
+      OR (
+          current_run.lease_attempt_id = $16
+          AND current_run.fencing_epoch = $17
+          AND current_run.lease_expires_at > clock_timestamp()
+      )
+  )
+",
+    )
+    .bind(base.tenant_id().as_str())
+    .bind(*base.run_id().as_uuid())
+    .bind(*base.checkpoint_id().as_uuid())
+    .bind(base_superstep)
+    .bind(base.digest().as_bytes())
+    .bind(*successor.checkpoint_id().as_uuid())
+    .bind(successor_superstep)
+    .bind(successor.digest().as_bytes())
+    .bind(successor_sequence)
+    .bind(*successor.journal_head().event_id().as_uuid())
+    .bind(to_database_time(successor.journal_head().recorded_at())?)
+    .bind(successor.journal_head().digest().as_bytes())
+    .bind(&graph_namespaces)
+    .bind(&node_ids)
+    .bind(&result_digests)
+    .bind(worker_attempt_id)
+    .bind(worker_epoch)
+    .execute(&mut **transaction)
+    .await;
+    let inserted = match inserted {
+        Ok(result) => result.rows_affected(),
+        Err(source)
+            if has_database_constraint(&source, "pending_node_result_consumptions_result_fk")
+                || has_database_constraint(&source, "pending_node_result_consumptions_pkey") =>
+        {
+            return Err(StoreError::CheckpointBarrierResultConflict);
+        }
+        Err(source)
+            if has_database_constraint(
+                &source,
+                "pending_node_result_consumptions_successor_fk",
+            ) =>
+        {
+            return Err(StoreError::CheckpointBarrierCommitConflict);
+        }
+        Err(source) => {
+            return Err(StoreError::database(
+                "checkpoint barrier consumption insert",
+                source,
+            ));
+        }
+    };
+    let expected_count = u64::try_from(barrier.result_heads().len())
+        .map_err(|_| StoreError::InvalidCheckpointBarrier)?;
+    if inserted != expected_count {
+        if worker_write {
+            return Err(StoreError::LeaseExpired);
+        }
+        return Err(StoreError::CheckpointBarrierResultConflict);
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
 async fn insert_checkpoint(
     transaction: &mut Transaction<'_, Postgres>,
     checkpoint: &Checkpoint,
@@ -7543,6 +8164,17 @@ mod tests {
         assert_eq!(
             projection_digest(&transition).unwrap().to_string(),
             "sha256:9f2dfecd7af4cee03f6cc1b9f95ac3e3f191303def4b037ea1c6ac29df0e225b"
+        );
+
+        let barrier_intent =
+            "sha256:3b454071dfa5f18b7dd7ac7084236afdf88e5f73fc3aa4382d32f82ca974112b"
+                .parse()
+                .unwrap();
+        assert_eq!(
+            barrier_projection_digest(&RunProjection::unchanged(), barrier_intent)
+                .unwrap()
+                .to_string(),
+            "sha256:dafe1bdef91699c3db6ce24b1272af5bb6da7fbd7055d25bc0cd2223bb29b195"
         );
     }
 }

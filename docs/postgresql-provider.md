@@ -24,9 +24,10 @@ The provider currently supplies:
 - immutable graph/state checkpoints with exact parent and journal anchors,
   graph/state-schema pins, canonical state bytes, sorted next-ready nodes, and a
   validated current-checkpoint pointer;
-- atomic control-plane and worker checkpoint APIs whose event, lifecycle
-  projection, checkpoint row, journal head, and checkpoint pointer commit or
-  roll back together;
+- atomic control-plane and worker initial-checkpoint APIs whose event,
+  lifecycle projection, checkpoint row, journal head, and checkpoint pointer
+  commit or roll back together; raw successor writes fail with
+  `CheckpointBarrierRequired`;
 - immutable tool- and model-invocation intents and hash-linked revisions with
   exact base-checkpoint and journal anchors, stable logical versus physical
   attempt identities, bounded ascending history verification, closed tool
@@ -50,6 +51,11 @@ The provider currently supplies:
   canonical `(graph_namespace, node_id)` order, full-record verification, and a
   cursor that pins the base checkpoint, last result head, and run journal head;
   concurrent result commits make continuation explicitly stale;
+- atomic control-plane and fenced-worker barrier APIs that verify the base and
+  every full result in a repeatable-read preflight, lock the run, recheck the
+  exact complete compact result set, and commit the projection-bound event,
+  successor checkpoint, append-only consumption rows, lifecycle, journal head,
+  and checkpoint pointer in one transaction;
 - successor-checkpoint rejection while any invocation rooted at the exact
   current checkpoint remains prepared, executing, failed, or unknown;
 - database-clock lease claim, renewal, release, forced supersession, monotonically
@@ -94,10 +100,10 @@ column-scoped `UPDATE` only for
 `current_record_digest`, and `updated_at`, and `SELECT`/`INSERT` on
 `stateknot.tool_invocation_revisions`,
 `stateknot.model_invocation_revisions`, `stateknot.run_attempt_claims`,
-`stateknot.pending_node_results`, and both pending-result binding tables. The
-future barrier boundary will also require `SELECT`/`INSERT` on the append-only
-consumption table. Do not grant runtime DDL, checkpoint, invocation-revision,
-pending-result update, or delete permissions. Exact role/grant SQL will be
+`stateknot.pending_node_results`, both pending-result binding tables, and
+`stateknot.pending_node_result_consumptions`. Do not grant runtime DDL,
+checkpoint, invocation-revision, pending-result, or consumption update/delete
+permissions. Exact role/grant SQL will be
 shipped only with the role-separated server boundary so this document does not
 invent deployment-specific role names.
 
@@ -107,7 +113,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 34 integration tests against PostgreSQL 16 and
+The current database suite runs 40 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v4 without guessed projection intent, real v3 tool-attempt history
@@ -136,7 +142,11 @@ revision, current pointer, and attempt claim as one unit. Invalid non-ready and
 nested-namespace activations leave no event or invocation row; cancellation
 blocks new tool/model work while preserving already executing outcome evidence.
 A checkpoint cannot advance past a prepared or otherwise unsettled invocation,
-and a committed result releases that guard.
+and a committed result releases that guard. Barrier coverage proves complete
+ready-set consumption, missing/conflicting result rejection, stale fencing,
+lost-ack idempotency after lease takeover, rollback when consumption insertion
+fails, 24 identical contenders producing one physical commit, and 24
+concurrent writers producing a contiguous 49-event result/barrier lineage.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -177,9 +187,9 @@ commits may also finish while the run is `Waiting` or
 exact already-committed event retry still converges. Checkpoint append holds the
 same run lock and rejects an exact current checkpoint that still owns a
 `Prepared`, `Executing`, `Failed`, or `Unknown` invocation. `Committed` releases
-this orphan-prevention guard. It does not yet prove that a node update consumed
-the tool result; that stronger barrier contract depends on the pending
-node-result ledger listed below.
+this orphan-prevention guard. A successor additionally requires the exact
+pending-result barrier described below; the initial-checkpoint APIs cannot
+bypass it.
 
 Model recovery uses `load_model_invocation` and one-record
 `load_model_invocation_history_page` pages. The immutable intent stores the
@@ -202,8 +212,13 @@ new-record path requires an active run, the exact current root-ready activation,
 an exact journal expectation, and a live fence. `load_pending_node_result`
 accepts the complete activation and fails closed unless the immutable row, base
 checkpoint, worker event, all binding rows, full committed invocation records,
-and their journal projections agree. Result consumption is not inferred from a
-committed invocation and does not occur until the atomic barrier API is added.
+and their journal projections agree. `append_control_plane_barrier` and
+`append_worker_barrier` accept a core `CheckpointBarrier` only after full-record
+verification. Under the run lock they compare the entire canonical compact set,
+reject missing or additional results and unsettled invocations, and append one
+consumption row per result alongside the exact successor. Reducers and graph
+callbacks run before this API; none execute while a database transaction is
+open.
 
 Migration 2 adds nullable `run_events.projection_digest` because migration-1
 rows do not contain enough information to reconstruct the caller's projection
@@ -236,13 +251,13 @@ admits one semantic result; changing the activation input is a conflict rather
 than a second row. Recovery scans unconsumed rows through a two-record decoded
 page bound and compact look-ahead. Its cursor pins the observed run journal head
 so concurrent insertions cannot create keyset-pagination gaps. The consumption
-table and its exact successor-checkpoint key are installed for the next slice,
-but no public barrier-consumption API claims that behavior yet.
+table records one immutable mapping from every exact result to the immediately
+following checkpoint. Barrier-event idempotency binds both the lifecycle
+projection and the core barrier intent digest.
 
 ## Not yet implemented
 
-This slice is not the complete durable runtime. It does not yet implement
-atomic pending-result consumption into successor barriers, node
+This slice is not the complete durable runtime. It does not yet implement node
 execution-attempt records, interrupts, timers, outbox, artifacts,
 scheduling/readiness queues, automatic corruption quarantine,
 retention/archive/legal hold, backup/restore, failover qualification, or the

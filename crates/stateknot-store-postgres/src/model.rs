@@ -39,7 +39,8 @@ pub enum AppendOutcome {
     Idempotent(JournalEvent),
 }
 
-/// Result of atomically committing a journal event and graph checkpoint.
+/// Result of atomically committing a journal event and initial graph
+/// checkpoint.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum CheckpointCommitOutcome {
@@ -69,6 +70,46 @@ impl CheckpointCommitOutcome {
     }
 
     /// Returns the validated immutable checkpoint.
+    #[must_use]
+    pub const fn checkpoint(&self) -> &Checkpoint {
+        match self {
+            Self::Committed { checkpoint, .. } | Self::Idempotent { checkpoint, .. } => checkpoint,
+        }
+    }
+}
+
+/// Result of atomically consuming one complete result barrier and committing
+/// its anchoring event and successor checkpoint.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum BarrierCommitOutcome {
+    /// The event, successor checkpoint, and every result-consumption record
+    /// committed in one transaction.
+    Committed {
+        /// Newly committed anchoring journal event.
+        event: JournalEvent,
+        /// Newly committed immutable successor checkpoint.
+        checkpoint: Checkpoint,
+    },
+    /// The exact barrier transaction had already committed.
+    Idempotent {
+        /// Previously committed anchoring journal event.
+        event: JournalEvent,
+        /// Previously committed immutable successor checkpoint.
+        checkpoint: Checkpoint,
+    },
+}
+
+impl BarrierCommitOutcome {
+    /// Returns the validated anchoring journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the validated immutable successor checkpoint.
     #[must_use]
     pub const fn checkpoint(&self) -> &Checkpoint {
         match self {

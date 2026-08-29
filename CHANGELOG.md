@@ -205,8 +205,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   24-writer single-winner tests on PostgreSQL 16/17, plus two-record
   stable-snapshot unconsumed-result pages whose complete cursor rejects
   concurrent journal advancement rather than skipping lower sort keys. The
-  append-only consumption schema is installed; atomic barrier consumption is
-  still pending.
+  append-only consumption schema.
+- Atomic PostgreSQL checkpoint-barrier APIs that verify full immutable inputs
+  outside the run lock, recheck the exact complete compact result set under the
+  lock, and commit the event, successor checkpoint, append-only consumption
+  rows, lifecycle projection, journal head, and checkpoint pointer as one
+  fenced transaction. Raw successor-checkpoint writes now fail closed;
+  PG16/17 coverage includes lost acknowledgements after lease takeover,
+  incomplete/conflicting sets, unsettled invocations, injected rollback, and
+  24-way single-commit and linear-chain races.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

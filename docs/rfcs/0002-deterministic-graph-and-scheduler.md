@@ -314,7 +314,10 @@ complete cursor pins the base checkpoint, last result head, and observed run
 journal head; any concurrent result commit makes continuation stale instead of
 allowing a lower canonical key to be skipped. The core `CheckpointBarrier`
 binds exact ready-set coverage, canonical result heads, and the successor write.
-Atomic successor-barrier consumption remains the next implementation slice.
+The store verifies full records outside the run lock, rechecks the complete
+compact set under the lock, and atomically appends one consumption proof per
+result with the successor event/checkpoint and run heads. Raw successor writes
+are rejected.
 
 ## Recovery
 
