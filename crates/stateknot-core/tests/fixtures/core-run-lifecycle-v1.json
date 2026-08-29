@@ -1,0 +1,379 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-run-lifecycle/1.0.0",
+  "provenance": {
+    "tenant_id": "tenant-production",
+    "run_id": "01912345-6789-7abc-8def-0123456789ae",
+    "thread_id": "01912345-6789-7abc-8def-0123456789af",
+    "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+    "agent": {
+      "owner": {
+        "issuer": "https://issuer.example.com/tenant",
+        "subject": "agent-owner"
+      },
+      "capability": {
+        "name": "agents.incident",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "zero_usage": {
+    "graph_depth": "0",
+    "graph_steps": "0",
+    "model_attempts": "0",
+    "model_turns": "0",
+    "input_tokens": "0",
+    "cached_input_tokens": "0",
+    "reasoning_tokens": "0",
+    "output_tokens": "0",
+    "tool_calls": "0",
+    "write_calls": "0",
+    "remote_agent_delegations": "0",
+    "retries": "0",
+    "concurrent_branches": "0",
+    "fan_out": "0",
+    "input_bytes": "0",
+    "output_bytes": "0",
+    "event_bytes": "0",
+    "checkpoint_bytes": "0",
+    "artifact_bytes": "0",
+    "known_costs": [],
+    "unpriced_cost_events": "0"
+  },
+  "revisions": {
+    "valid": ["0", "1", "18446744073709551615"],
+    "invalid": ["00", "18446744073709551616", 1, -1, null]
+  },
+  "statuses": {
+    "valid": [
+      "pending",
+      "active",
+      "waiting",
+      "cancellation_requested",
+      "succeeded",
+      "failed",
+      "cancelled"
+    ],
+    "invalid": ["running", "input_required", "rejected", null]
+  },
+  "interrupt_kinds": {
+    "valid": [
+      "approval",
+      "input",
+      "authentication",
+      "external_signal",
+      "reconciliation"
+    ],
+    "invalid": ["auth_required", "unknown", null]
+  },
+  "timer_kinds": {
+    "valid": ["sleep", "retry_backoff"],
+    "invalid": ["deadline", "poll", null]
+  },
+  "transition_kinds": {
+    "valid": [
+      "start",
+      "wait",
+      "resolve_interrupt",
+      "fire_timer",
+      "request_cancellation",
+      "confirm_cancellation",
+      "succeed",
+      "fail"
+    ],
+    "invalid": ["cancel", "complete", "unknown", null]
+  },
+  "interrupts": {
+    "valid": [
+      {
+        "interrupt_id": "01912345-6789-7abc-8def-0123456789b1",
+        "kind": "approval",
+        "requested_at": "2030-01-01T00:00:02.000000Z",
+        "expires_at": "2030-01-01T00:00:10.000000Z"
+      },
+      {
+        "interrupt_id": "01912345-6789-7abc-8def-0123456789b2",
+        "kind": "external_signal",
+        "requested_at": "2030-01-01T00:00:02.000000Z"
+      }
+    ],
+    "invalid": [
+      {
+        "interrupt_id": "01912345-6789-7abc-8def-0123456789b1",
+        "kind": "approval",
+        "requested_at": "2030-01-01T00:00:02.000000Z",
+        "expires_at": "2030-01-01T00:00:02.000000Z"
+      },
+      {
+        "interrupt_id": "01912345-6789-7abc-8def-0123456789b1",
+        "kind": "approval",
+        "requested_at": "2030-01-01T00:00:02.000000Z",
+        "payload": {}
+      }
+    ]
+  },
+  "timers": {
+    "valid": [
+      {
+        "timer_id": "01912345-6789-7abc-8def-0123456789b3",
+        "kind": "sleep",
+        "scheduled_at": "2030-01-01T00:00:02.000000Z",
+        "due_at": "2030-01-01T00:00:05.000000Z"
+      },
+      {
+        "timer_id": "01912345-6789-7abc-8def-0123456789b4",
+        "kind": "retry_backoff",
+        "scheduled_at": "2030-01-01T00:00:02.000000Z",
+        "due_at": "2030-01-01T00:00:06.000000Z"
+      }
+    ],
+    "invalid": [
+      {
+        "timer_id": "01912345-6789-7abc-8def-0123456789b3",
+        "kind": "sleep",
+        "scheduled_at": "2030-01-01T00:00:02.000000Z",
+        "due_at": "2030-01-01T00:00:02.000000Z"
+      },
+      {
+        "timer_id": "550e8400-e29b-41d4-a716-446655440000",
+        "kind": "sleep",
+        "scheduled_at": "2030-01-01T00:00:02.000000Z",
+        "due_at": "2030-01-01T00:00:05.000000Z"
+      }
+    ]
+  },
+  "waits": {
+    "valid": [
+      [
+        {
+          "kind": "interrupt",
+          "interrupt": {
+            "interrupt_id": "01912345-6789-7abc-8def-0123456789b1",
+            "kind": "approval",
+            "requested_at": "2030-01-01T00:00:02.000000Z",
+            "expires_at": "2030-01-01T00:00:10.000000Z"
+          }
+        },
+        {
+          "kind": "timer",
+          "timer": {
+            "timer_id": "01912345-6789-7abc-8def-0123456789b3",
+            "kind": "sleep",
+            "scheduled_at": "2030-01-01T00:00:02.000000Z",
+            "due_at": "2030-01-01T00:00:05.000000Z"
+          }
+        }
+      ]
+    ],
+    "invalid": [
+      [],
+      [
+        {
+          "kind": "interrupt",
+          "interrupt": {
+            "interrupt_id": "01912345-6789-7abc-8def-0123456789b1",
+            "kind": "approval",
+            "requested_at": "2030-01-01T00:00:02.000000Z"
+          }
+        },
+        {
+          "kind": "timer",
+          "timer": {
+            "timer_id": "01912345-6789-7abc-8def-0123456789b3",
+            "kind": "sleep",
+            "scheduled_at": "2030-01-01T00:00:03.000000Z",
+            "due_at": "2030-01-01T00:00:05.000000Z"
+          }
+        }
+      ]
+    ]
+  },
+  "cancellation_requests": {
+    "valid": [
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b5",
+          "category": "cancelled",
+          "code": "runtime.cancelled",
+          "origin": "stateknot.runtime",
+          "message": "Cancellation was requested.",
+          "retry_advice": { "kind": "never" }
+        },
+        "requested_at": "2030-01-01T00:00:06.000000Z"
+      }
+    ],
+    "invalid": [
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b5",
+          "category": "internal",
+          "code": "runtime.cancelled",
+          "origin": "stateknot.runtime",
+          "message": "Cancellation was requested.",
+          "retry_advice": { "kind": "never" }
+        },
+        "requested_at": "2030-01-01T00:00:06.000000Z"
+      }
+    ]
+  },
+  "cancellations": {
+    "valid": [
+      {
+        "request": {
+          "failure": {
+            "id": "01912345-6789-7abc-8def-0123456789b5",
+            "category": "cancelled",
+            "code": "runtime.cancelled",
+            "origin": "stateknot.runtime",
+            "message": "Cancellation was requested.",
+            "retry_advice": { "kind": "never" }
+          },
+          "requested_at": "2030-01-01T00:00:06.000000Z"
+        },
+        "completed_at": "2030-01-01T00:00:07.000000Z",
+        "usage": {
+          "graph_depth": "0",
+          "graph_steps": "0",
+          "model_attempts": "0",
+          "model_turns": "0",
+          "input_tokens": "0",
+          "cached_input_tokens": "0",
+          "reasoning_tokens": "0",
+          "output_tokens": "0",
+          "tool_calls": "0",
+          "write_calls": "0",
+          "remote_agent_delegations": "0",
+          "retries": "0",
+          "concurrent_branches": "0",
+          "fan_out": "0",
+          "input_bytes": "0",
+          "output_bytes": "0",
+          "event_bytes": "0",
+          "checkpoint_bytes": "0",
+          "artifact_bytes": "0",
+          "known_costs": [],
+          "unpriced_cost_events": "0"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "request": {
+          "failure": {
+            "id": "01912345-6789-7abc-8def-0123456789b5",
+            "category": "cancelled",
+            "code": "runtime.cancelled",
+            "origin": "stateknot.runtime",
+            "message": "Cancellation was requested.",
+            "retry_advice": { "kind": "never" }
+          },
+          "requested_at": "2030-01-01T00:00:06.000000Z"
+        },
+        "completed_at": "2030-01-01T00:00:05.000000Z",
+        "usage": {
+          "graph_depth": "0",
+          "graph_steps": "0",
+          "model_attempts": "0",
+          "model_turns": "0",
+          "input_tokens": "0",
+          "cached_input_tokens": "0",
+          "reasoning_tokens": "0",
+          "output_tokens": "0",
+          "tool_calls": "0",
+          "write_calls": "0",
+          "remote_agent_delegations": "0",
+          "retries": "0",
+          "concurrent_branches": "0",
+          "fan_out": "0",
+          "input_bytes": "0",
+          "output_bytes": "0",
+          "event_bytes": "0",
+          "checkpoint_bytes": "0",
+          "artifact_bytes": "0",
+          "known_costs": [],
+          "unpriced_cost_events": "0"
+        }
+      }
+    ]
+  },
+  "failures": {
+    "valid": [
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b6",
+          "category": "internal",
+          "code": "runtime.failed",
+          "origin": "stateknot.runtime",
+          "message": "The run failed terminally.",
+          "retry_advice": { "kind": "never" }
+        },
+        "completed_at": "2030-01-01T00:00:06.000000Z",
+        "usage": {
+          "graph_depth": "0",
+          "graph_steps": "0",
+          "model_attempts": "0",
+          "model_turns": "0",
+          "input_tokens": "0",
+          "cached_input_tokens": "0",
+          "reasoning_tokens": "0",
+          "output_tokens": "0",
+          "tool_calls": "0",
+          "write_calls": "0",
+          "remote_agent_delegations": "0",
+          "retries": "0",
+          "concurrent_branches": "0",
+          "fan_out": "0",
+          "input_bytes": "0",
+          "output_bytes": "0",
+          "event_bytes": "0",
+          "checkpoint_bytes": "0",
+          "artifact_bytes": "0",
+          "known_costs": [],
+          "unpriced_cost_events": "0"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "failure": {
+          "id": "01912345-6789-7abc-8def-0123456789b6",
+          "category": "cancelled",
+          "code": "runtime.failed",
+          "origin": "stateknot.runtime",
+          "message": "The run failed terminally.",
+          "retry_advice": { "kind": "never" }
+        },
+        "completed_at": "2030-01-01T00:00:06.000000Z",
+        "usage": {
+          "graph_depth": "0",
+          "graph_steps": "0",
+          "model_attempts": "0",
+          "model_turns": "0",
+          "input_tokens": "0",
+          "cached_input_tokens": "0",
+          "reasoning_tokens": "0",
+          "output_tokens": "0",
+          "tool_calls": "0",
+          "write_calls": "0",
+          "remote_agent_delegations": "0",
+          "retries": "0",
+          "concurrent_branches": "0",
+          "fan_out": "0",
+          "input_bytes": "0",
+          "output_bytes": "0",
+          "event_bytes": "0",
+          "checkpoint_bytes": "0",
+          "artifact_bytes": "0",
+          "known_costs": [],
+          "unpriced_cost_events": "0"
+        }
+      }
+    ]
+  },
+  "raw_invalid_transitions": [
+    "{\"kind\":\"start\",\"kind\":\"start\",\"started_at\":\"2030-01-01T00:00:01.000000Z\"}",
+    "{\"kind\":\"start\",\"started_at\":\"2030-01-01T00:00:01.000000Z\",\"extra\":true}"
+  ],
+  "raw_invalid_lifecycles": [
+    "{\"provenance\":{\"tenant_id\":\"tenant-production\",\"run_id\":\"01912345-6789-7abc-8def-0123456789ae\",\"thread_id\":\"01912345-6789-7abc-8def-0123456789af\",\"invocation_id\":\"01912345-6789-7abc-8def-0123456789b0\",\"agent\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"agent-owner\"},\"capability\":{\"name\":\"agents.incident\",\"version\":\"1.0.0\"}}},\"admitted_at\":\"2030-01-01T00:00:00.000000Z\",\"revision\":\"0\",\"revision\":\"0\",\"state\":{\"kind\":\"pending\"}}"
+  ]
+}

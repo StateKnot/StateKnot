@@ -126,6 +126,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   references, cumulative usage reconciliation, completion-time enforcement,
   redacted diagnostics, closed schemas, adversarial mutation coverage, and an
   independent versioned wire fixture.
+- A protocol-neutral durable run lifecycle with typed optimistic revisions,
+  pending/active/waiting/cancellation-requested and exclusive terminal states,
+  bounded multi-interrupt and durable-timer waits, strict expiry/firing rules,
+  two-phase cancellation precedence, immutable terminal usage/failure records,
+  closed schemas, randomized model testing, and an independent versioned wire
+  fixture. Worker attempts, leases, and fencing remain separate runtime state.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

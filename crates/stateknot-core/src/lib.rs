@@ -30,6 +30,7 @@ mod model_event;
 mod model_request;
 mod model_response;
 mod model_runtime;
+mod run;
 mod schema;
 mod scope;
 mod time;
@@ -85,7 +86,7 @@ pub use failure::{
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
     ArtifactId, AttemptId, EventId, FailureId, GeneratedIdError, InterruptId, InvocationId,
-    MessageId, RunId, TenantId, TenantIdError, ThreadId,
+    MessageId, RunId, TenantId, TenantIdError, ThreadId, TimerId,
 };
 pub use json::{BoundedJson, BoundedJsonError, JsonLimit, JsonLimits, JsonLimitsError, JsonStats};
 pub use message::{
@@ -122,6 +123,12 @@ pub use model_runtime::{
     BoxFuture, BoxStream, CancellationObserver, CancellationSignal, Model, ModelContext,
     ModelContextError, ModelError, ModelErrorPhase, ModelErrorProvenance,
     ModelErrorValidationError, ModelStopReason,
+};
+pub use run::{
+    RunCancellation, RunCancellationError, RunCancellationRequest, RunFailure, RunFailureError,
+    RunInterrupt, RunInterruptError, RunInterruptKind, RunLifecycle, RunLifecycleError,
+    RunRevision, RunStatus, RunTimer, RunTimerError, RunTimerKind, RunTransition,
+    RunTransitionError, RunTransitionKind, RunWait, RunWaits, RunWaitsError,
 };
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};

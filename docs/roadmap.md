@@ -21,6 +21,9 @@ from the repository.
 - [ ] Accept RFC-0002 for deterministic graph and scheduler semantics.
 - [ ] Accept RFC-0003 for PostgreSQL durability, recovery, and migration.
 - [ ] Accept RFC-0004 for MCP/A2A identity and security mapping.
+- [x] Validate the first protocol-neutral run lifecycle, interrupt/timer wait,
+  cancellation-race, terminal-outcome, schema, property, and wire contracts in
+  the unpublished `stateknot-core` crate.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

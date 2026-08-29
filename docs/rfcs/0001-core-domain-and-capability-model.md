@@ -18,7 +18,7 @@ This RFC defines the stable domain boundary shared by the embedded SDK,
 durable runtime, model and tool integrations, server API, MCP adapter, and A2A
 adapter. It standardizes identifiers, content, messages, artifacts, schemas,
 capabilities, identity, budgets, execution context, errors, callable model/tool
-boundaries, and immutable agent definitions.
+boundaries, immutable agent definitions, and the protocol-neutral run lifecycle.
 
 The core model is provider-, protocol-, database-, and async-runtime-neutral.
 Provider SDK types, MCP/A2A wire types, SQL records, Axum extractors, and Tokio
@@ -57,8 +57,9 @@ pre-designing excluded v1 features.
 
 ### Non-goals
 
-- graph topology, superstep, reducer, scheduler, or interrupt state-machine
-  semantics, which belong to RFC-0002;
+- graph topology, superstep, reducer, scheduler, interrupt payload/authorization,
+  and node-attempt semantics, which belong to RFC-0002; this RFC retains only
+  the protocol-neutral run lifecycle needed by all of those layers;
 - SQL schema, transactions, leases, outbox, checkpoint layout, and recovery,
   which belong to RFC-0003;
 - MCP and A2A wire mappings or OAuth flows, which belong to RFC-0004;
@@ -275,10 +276,10 @@ global, and tenant-scoped storage and authorization still include the separate
 ### StateKnot-generated IDs
 
 `RunId`, `ThreadId`, `EventId`, `FailureId`, `MessageId`, `ArtifactId`,
-`InvocationId`, `InterruptId`, and `AttemptId` are distinct newtypes generated
-from UUIDv7 values. Their canonical wire form is lowercase hyphenated UUID
-text. Parsing accepts only the canonical form for security-bearing and durable
-APIs; human-facing CLI input may offer a separate permissive parser.
+`InvocationId`, `InterruptId`, `TimerId`, and `AttemptId` are distinct newtypes
+generated from UUIDv7 values. Their canonical wire form is lowercase hyphenated
+UUID text. Parsing accepts only the canonical form for security-bearing and
+durable APIs; human-facing CLI input may offer a separate permissive parser.
 
 An ID never conveys authorization. Storage keys and lookups include `TenantId`,
 and authorization is evaluated before revealing whether an ID exists.
@@ -1160,6 +1161,57 @@ remain distinct orchestration operations: a handoff transfers task ownership,
 whereas agent-as-tool returns control to the calling agent. Their run and
 delegation records are specified by RFC-0002 through RFC-0004 rather than being
 encoded as ordinary local tool success.
+
+### Protocol-neutral run lifecycle
+
+`RunLifecycle` is the immutable business-state snapshot for one admitted root
+agent invocation. It carries trusted `AgentResultProvenance`, the admission
+clock observation, a typed `RunRevision`, and exactly one closed state:
+
+```text
+pending -> active -> waiting -> active
+   |          |         |
+   +----------+---------+-> cancellation_requested -> cancelled
+              +-----------> succeeded | failed
+```
+
+`pending` means admission committed but semantic execution has not started;
+`active` means the run may make progress and does not assert that a worker
+currently holds a lease. `waiting` contains one to 64 outstanding conditions
+registered atomically at the same observed instant. Conditions are either an
+`InterruptId` with approval/input/authentication/external-signal/reconciliation
+semantics and an optional exclusive expiry, or a `TimerId` with sleep/retry
+backoff semantics and an inclusive due instant. Parallel conditions resolve
+independently, preserve stable order, and return the run to `active` only after
+the final condition resolves. A resolution observed at interrupt expiry and a
+timer firing before its due instant both fail closed.
+
+Cancellation is deliberately two-phase. `request_cancellation` commits one
+immutable `FailureCategory::Cancelled` occurrence with `RetryAdvice::Never`;
+after that revision wins, ordinary success and failure commits are invalid.
+`confirm_cancellation` records completion and cumulative usage after cooperative
+cleanup or an enforced stop. Conversely, a success/failure revision committed
+first is terminal and rejects a late cancellation request. This gives the
+database layer an unambiguous first-valid-commit rule while preserving late
+tool/provider evidence separately; cancellation never rewrites a committed
+external effect as though it did not occur.
+
+`succeeded`, `failed`, and `cancelled` are absorbing and structurally exclusive.
+Success embeds only an `AgentResult`; failure embeds only a non-cancellation
+`Failure` plus terminal usage; cancellation retains the exact request plus
+terminal usage. Every transition has a non-regressing durable timestamp and
+increments `RunRevision` exactly once with checked overflow. Deserialization
+revalidates revision/state, admission-time, partial-wait, terminal-category,
+and success-provenance relationships.
+
+This lifecycle is not a worker state machine. `AttemptId`, journal sequence,
+lease ownership, lease expiry, and fencing epoch belong to RFC-0003 and can
+change without changing business status. Interrupt request/resolution payloads,
+action digests, required principals/scopes, and resolver provenance are separate
+durable records committed atomically with the matching transition under
+RFC-0002/0003. A2A `SUBMITTED`, `WORKING`, `INPUT_REQUIRED`, `AUTH_REQUIRED`,
+and terminal task states are adapter projections; A2A `REJECTED` is normally an
+admission rejection for which no internal run exists.
 
 ## Identity and delegation
 

@@ -723,14 +723,45 @@ pub trait Node<S: GraphState>: Send + Sync {
 
 ### 9.3 Run 状态机
 
-内部状态建议为：
+已实现的 protocol-neutral core 状态为：
 
 ```text
-Queued -> Running -> WaitingInput | WaitingApproval | WaitingAuth | Sleeping
-                    -> Succeeded | Failed | Cancelled | Rejected
+Pending -> Active -> Waiting -> Active
+   |         |          |
+   +---------+----------+-> CancellationRequested -> Cancelled
+             +-----------> Succeeded | Failed
 ```
 
-状态转换必须持久化为事件，并由乐观版本或 fencing token 防止并发写入。A2A 状态在 adapter 中映射，例如内部 `WaitingApproval` 可对外映射为 `INPUT_REQUIRED`，但内部信息不能因此丢失。
+`Pending` 表示 admission 已提交但尚未开始语义执行；`Active` 表示允许推进，不表示
+某个 worker 正持有 lease。`Waiting` 是 1–64 个同一 clock observation 原子注册的闭集：
+可以包含带独立 UUIDv7、kind 和 exclusive expiry 的 approval/input/authentication/
+external-signal/reconciliation interrupt，也可以包含带 inclusive due instant 的 sleep/
+retry-backoff durable timer。并行条件逐个解析，只有最后一个移除后才回到 `Active`；
+expiry 等值视为过期，timer 早到一律拒绝。
+
+取消采用两阶段：`RequestCancellation` 先提交不可替换的 `Cancelled + Never` failure，
+一旦该 revision 获胜，普通 success/failure 不得再提交；cleanup 或强制停止完成后才以
+`ConfirmCancellation` 写入终态 usage。反之，success/failure 先提交时迟到 cancel 被拒绝。
+三个终态互斥且 absorbing，时间不得倒退，revision 每次只做 checked `+1`。这比把 cancel
+当一个易丢失的进程内 token 更严格，同时仍要求把取消后到达的真实 provider/tool effect
+作为独立 ledger evidence 保存，绝不能伪造“副作用未发生”。
+
+`RunLifecycle` 只负责业务状态。`AttemptId`、journal sequence、lease owner/expiry 与 fencing
+epoch 属于 runtime/store；worker 崩溃或换租约不制造业务状态转换。interrupt 的 payload、
+action digest、required principal/scope、resolution 和 resolver 也是独立持久实体，必须与
+对应 transition 在 expected revision + fencing 条件下单事务提交。
+
+[A2A 1.0 TaskState](https://a2a-protocol.org/v1.0.0/specification/#413-taskstate)
+只在 adapter 投影：`SUBMITTED/WORKING` 对应内部 pending/active/scheduler evidence，
+`INPUT_REQUIRED/AUTH_REQUIRED` 对应 typed interrupt，terminal 显式映射；`REJECTED` 通常是
+未创建 Run 的 admission rejection。LangGraph 的
+[interrupt/resume](https://docs.langchain.com/oss/python/langgraph/interrupts) 说明恢复会从持久
+checkpoint 重入，因此 interrupt 前的外部动作必须 ledger/idempotent；Temporal 将
+[cancel requested 与 canceled 分成独立 history event](https://github.com/temporalio/documentation/blob/main/docs/references/events.mdx)，
+而 Restate 的
+[journal commit 与 epoch fencing](https://docs.restate.dev/references/architecture) 进一步说明
+已提交业务步骤和 worker ownership 必须分层。StateKnot 借鉴这些不变量，但不复制任何一套
+外部状态枚举。
 
 ## 10. 持久化与故障恢复
 
@@ -1074,6 +1105,7 @@ RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵
 - [AG-UI](https://github.com/ag-ui-protocol/ag-ui)、[MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview)、[A2UI](https://github.com/a2ui-project/a2ui/blob/main/specification/v1_0/docs/a2ui_protocol.md)
 - [AGNTCY](https://github.com/agntcy)、[SLIM](https://github.com/agntcy/slim)、[AP2](https://ap2-protocol.org/ap2/specification/)
 - [Restate durable agents](https://docs.restate.dev/ai/patterns/durable-agents) 与 [Restate Rust SDK](https://github.com/restatedev/sdk-rust)
+- [Restate journal/epoch architecture](https://docs.restate.dev/references/architecture) 与 [Temporal workflow history events](https://github.com/temporalio/documentation/blob/main/docs/references/events.mdx)
 - [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai)
 - [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
 - [NIST AI RMF Generative AI Profile](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence)

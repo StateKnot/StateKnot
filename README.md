@@ -45,7 +45,12 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 ## Current milestone
 
-The project is in the **architecture-contract and vertical-validation phase**:
+The project is in the **architecture-contract and vertical-validation phase**.
+The unpublished core crate now validates model, tool, agent admission/result,
+and durable run-lifecycle contracts; PostgreSQL durability and a runnable agent
+loop have not shipped yet.
+
+The current milestone is to:
 
 1. validate the three frozen production scenarios and their load/failure models;
 2. accept the core domain, graph, durability, and protocol/security RFCs;
@@ -61,7 +66,7 @@ and the [completeness audit](docs/plan-completeness-audit.md).
 
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
-crates/stateknot-core/   Validated domain plus model, tool, and agent execution contracts
+crates/stateknot-core/   Validated domain, execution boundaries, and run lifecycle
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 .github/                 Contribution templates and automated quality gates
 ```
