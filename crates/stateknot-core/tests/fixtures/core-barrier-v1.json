@@ -1,0 +1,7 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-barrier/1.0.0",
+  "expected": {
+    "intent": "sha256:3b454071dfa5f18b7dd7ac7084236afdf88e5f73fc3aa4382d32f82ca974112b",
+    "canonical_wire": "sha256:1d173423fb235cdad91e73e791ac37c823427b354dcaba8f4ded6603335075b0"
+  }
+}

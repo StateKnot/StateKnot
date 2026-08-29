@@ -14,6 +14,7 @@ mod accounting;
 mod agent;
 mod agent_runtime;
 mod artifact;
+mod barrier;
 mod budget;
 mod canonical;
 mod capability;
@@ -65,6 +66,10 @@ pub use artifact::{
     ArtifactProvenance, ArtifactRef, ArtifactRefError, ArtifactRepresentation,
     ArtifactRepresentationError, ContentPart, MediaType, MediaTypeError, RetentionClass,
     RetentionClassError,
+};
+pub use barrier::{
+    BarrierResultHeads, BarrierResultHeadsError, CheckpointBarrier, CheckpointBarrierError,
+    CheckpointBarrierIntegrityError,
 };
 pub use budget::{
     BudgetDimension, BudgetEvaluationError, BudgetLimits, BudgetRemaining, BudgetResolutionError,
