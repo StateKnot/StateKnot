@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use stateknot_core::{
-    Checkpoint, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead, RunLease,
-    RunLifecycle, RunRevision, RunTransition, Superstep,
+    Checkpoint, CheckpointHead, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead,
+    RunLease, RunLifecycle, RunRevision, RunTransition, Superstep,
 };
 
 use crate::StoreError;
@@ -128,6 +128,65 @@ impl CheckpointPointer {
     #[must_use]
     pub const fn digest(&self) -> Digest {
         self.digest
+    }
+}
+
+/// Hard-bounded number of checkpoints returned in one lineage page.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct CheckpointLineagePageSize(u8);
+
+impl CheckpointLineagePageSize {
+    /// Largest page accepted by the provider.
+    ///
+    /// One checkpoint envelope may occupy roughly 2.5 MiB, so this deliberately
+    /// remains much smaller than [`JournalPageSize::MAX`]. The provider may
+    /// decode one additional parent as a fail-closed lineage look-ahead.
+    pub const MAX: u8 = 8;
+
+    /// Constructs a positive bounded checkpoint-lineage page size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidCheckpointPageSize`] for zero or values
+    /// above eight.
+    pub const fn new(value: u8) -> Result<Self, StoreError> {
+        if value == 0 || value > Self::MAX {
+            return Err(StoreError::InvalidCheckpointPageSize);
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the page size as an integer.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// One bounded, fully verified reverse checkpoint-lineage page.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CheckpointLineagePage {
+    pub(crate) checkpoints: Vec<Checkpoint>,
+    pub(crate) next_cursor: Option<CheckpointHead>,
+}
+
+impl CheckpointLineagePage {
+    /// Returns checkpoints in newest-to-oldest lineage order.
+    #[must_use]
+    pub fn checkpoints(&self) -> &[Checkpoint] {
+        &self.checkpoints
+    }
+
+    /// Returns whether older ancestors remain before the superstep-zero root.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.next_cursor.is_some()
+    }
+
+    /// Returns the exact parent head at which the next reverse page must start.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<CheckpointHead> {
+        self.next_cursor.clone()
     }
 }
 

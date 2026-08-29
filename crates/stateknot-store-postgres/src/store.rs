@@ -1,7 +1,7 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{borrow::Cow, fmt, sync::LazyLock, time::Duration};
+use std::{borrow::Cow, collections::BTreeMap, fmt, sync::LazyLock, time::Duration};
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -16,18 +16,20 @@ use sqlx_core::{
 };
 use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
-    AgentResultProvenance, AttemptId, BoundedJson, CanonicalJson, Checkpoint, CheckpointId,
-    CheckpointWrite, Digest, EventId, FencingEpoch, JournalAppend, JournalChainVerifier,
-    JournalEvent, JournalEventError, JournalEventIntent, JournalEventSource, JournalHead,
-    JournalSequence, JsonLimits, RunFence, RunId, RunLease, RunLeaseValidationError, RunLifecycle,
-    RunRevision, RunStatus, RunTransition, Superstep, TenantId, Timestamp,
+    AgentResultProvenance, AttemptId, BoundedJson, CanonicalJson, Checkpoint, CheckpointHead,
+    CheckpointId, CheckpointLineageVerifier, CheckpointWrite, Digest, EventId, FencingEpoch,
+    JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent,
+    JournalEventSource, JournalHead, JournalSequence, JsonLimits, RunFence, RunId, RunLease,
+    RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTransition, Superstep,
+    TenantId, Timestamp,
 };
 use uuid::Uuid;
 
 use crate::{
-    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointPointer, JournalPage,
-    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
-    PostgresStoreOptions, RunProjection, StoreError, StoredRun,
+    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
+    CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
+    LeaseReleaseOutcome, LeaseRenewalOutcome, PostgresStoreOptions, RunProjection, StoreError,
+    StoredRun,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -236,6 +238,75 @@ SELECT
     checkpoint_bytes
 FROM stateknot.run_checkpoints
 WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
+";
+
+const SELECT_CHECKPOINT_LINEAGE: &str = r"
+WITH RECURSIVE checkpoint_lineage AS (
+    SELECT current_checkpoint.*, 0::bigint AS lineage_depth
+    FROM stateknot.run_checkpoints AS current_checkpoint
+    WHERE current_checkpoint.tenant_id = $1
+      AND current_checkpoint.run_id = $2
+      AND current_checkpoint.checkpoint_id = $3
+
+    UNION ALL
+
+    SELECT parent_checkpoint.*, child.lineage_depth + 1
+    FROM stateknot.run_checkpoints AS parent_checkpoint
+    JOIN checkpoint_lineage AS child
+      ON parent_checkpoint.tenant_id = child.tenant_id
+     AND parent_checkpoint.run_id = child.run_id
+     AND parent_checkpoint.checkpoint_id = child.parent_checkpoint_id
+     AND parent_checkpoint.superstep = child.parent_superstep
+     AND parent_checkpoint.checkpoint_digest = child.parent_digest
+    WHERE child.lineage_depth + 1 < $4
+)
+SELECT
+    tenant_id,
+    run_id,
+    checkpoint_id,
+    superstep,
+    parent_checkpoint_id,
+    parent_superstep,
+    parent_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    graph_definition_digest,
+    state_schema_id,
+    state_schema_version,
+    state_schema_digest,
+    state_digest,
+    intent_digest,
+    checkpoint_digest,
+    checkpoint_bytes
+FROM checkpoint_lineage
+ORDER BY lineage_depth ASC
+";
+
+const SELECT_EVENTS_BY_SEQUENCES: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    sequence,
+    event_id,
+    recorded_at,
+    source_kind,
+    worker_attempt_id,
+    worker_epoch,
+    event_kind,
+    schema_id,
+    schema_version,
+    schema_digest,
+    payload_bytes,
+    payload_digest,
+    intent_digest,
+    projection_digest,
+    previous_digest,
+    event_digest
+FROM stateknot.run_events
+WHERE tenant_id = $1 AND run_id = $2 AND sequence = ANY($3)
+ORDER BY sequence DESC
 ";
 
 /// Connected `PostgreSQL` durability provider.
@@ -587,6 +658,128 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .await
             .map_err(|source| StoreError::database("current checkpoint commit", source))?;
         Ok(checkpoint)
+    }
+
+    /// Loads one bounded checkpoint lineage page in newest-to-oldest order.
+    ///
+    /// With no `from` cursor, the page starts at the current checkpoint observed
+    /// together with the run row in one repeatable-read snapshot. A continuation
+    /// must use the exact [`CheckpointLineagePage::next_cursor`] returned by the
+    /// preceding verified page. Checkpoints are immutable, so later barrier
+    /// commits cannot change the ancestry behind that cursor.
+    ///
+    /// Every returned checkpoint is decoded from canonical bytes, matched to
+    /// its redundant columns, linked to the preceding child, and bound to the
+    /// exact fully decoded journal event at its anchor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidCheckpointCursor`] for a crossed, future, or
+    /// non-exact cursor; otherwise returns explicit run, corruption, or database
+    /// failures.
+    pub async fn load_checkpoint_lineage_page(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        from: Option<&CheckpointHead>,
+        page_size: CheckpointLineagePageSize,
+    ) -> Result<CheckpointLineagePage, StoreError> {
+        if from.is_some_and(|cursor| cursor.tenant_id() != tenant_id || cursor.run_id() != run_id) {
+            return Err(StoreError::InvalidCheckpointCursor);
+        }
+
+        let mut transaction = self.begin_repeatable_read("checkpoint lineage").await?;
+        let row = query_as::<_, RunRow>(SELECT_RUN)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint lineage run snapshot", source))?
+            .ok_or(StoreError::RunNotFound)?;
+        let run = decode_run(row)?;
+        let Some(pointer) = run.checkpoint() else {
+            if from.is_some() {
+                return Err(StoreError::InvalidCheckpointCursor);
+            }
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("empty checkpoint lineage commit", source)
+            })?;
+            return Ok(CheckpointLineagePage {
+                checkpoints: Vec::new(),
+                next_cursor: None,
+            });
+        };
+
+        if let Some(cursor) = from {
+            if cursor.superstep() > pointer.superstep()
+                || (cursor.superstep() == pointer.superstep()
+                    && (cursor.checkpoint_id() != pointer.checkpoint_id()
+                        || cursor.digest() != pointer.digest()))
+            {
+                return Err(StoreError::InvalidCheckpointCursor);
+            }
+        }
+        let start_id = from.map_or(pointer.checkpoint_id(), CheckpointHead::checkpoint_id);
+        let query_limit = i64::from(page_size.get()) + 1;
+        let rows = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_LINEAGE)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*start_id.as_uuid())
+            .bind(query_limit)
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("checkpoint lineage load", source))?;
+        if rows.is_empty() {
+            return Err(if from.is_some() {
+                StoreError::InvalidCheckpointCursor
+            } else {
+                StoreError::corrupt("current checkpoint lineage pointer")
+            });
+        }
+
+        let (checkpoints, lookahead) =
+            decode_checkpoint_lineage(rows, tenant_id, run_id, page_size)?;
+
+        let first = checkpoints
+            .first()
+            .ok_or_else(|| StoreError::corrupt("checkpoint lineage page"))?;
+        let expected_tip = if let Some(cursor) = from {
+            if first.head() != *cursor {
+                return Err(StoreError::InvalidCheckpointCursor);
+            }
+            cursor.clone()
+        } else {
+            if first.checkpoint_id() != pointer.checkpoint_id()
+                || first.superstep() != pointer.superstep()
+                || first.digest() != pointer.digest()
+            {
+                return Err(StoreError::corrupt("current checkpoint lineage projection"));
+            }
+            first.head()
+        };
+
+        let mut verifier = CheckpointLineageVerifier::from_tip(expected_tip);
+        for checkpoint in &checkpoints {
+            verifier
+                .verify_next(checkpoint)
+                .map_err(|_| StoreError::corrupt("checkpoint lineage"))?;
+        }
+        match (verifier.expected(), lookahead) {
+            (None, None) => {}
+            (Some(expected), Some(parent)) if parent.head() == *expected => {}
+            _ => return Err(StoreError::corrupt("checkpoint lineage parent")),
+        }
+        verify_checkpoint_anchors(&mut transaction, &checkpoints).await?;
+
+        let next_cursor = verifier.expected().cloned();
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("checkpoint lineage commit", source))?;
+        Ok(CheckpointLineagePage {
+            checkpoints,
+            next_cursor,
+        })
     }
 
     /// Claims an unowned or expired runnable run for a stable `UUIDv7` attempt.
@@ -1586,6 +1779,73 @@ async fn verify_checkpoint_anchor(
     Ok(())
 }
 
+fn decode_checkpoint_lineage(
+    rows: Vec<CheckpointRow>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    page_size: CheckpointLineagePageSize,
+) -> Result<(Vec<Checkpoint>, Option<Checkpoint>), StoreError> {
+    let mut checkpoints = rows
+        .into_iter()
+        .map(decode_checkpoint)
+        .collect::<Result<Vec<_>, _>>()?;
+    if checkpoints
+        .iter()
+        .any(|checkpoint| checkpoint.tenant_id() != tenant_id || checkpoint.run_id() != run_id)
+    {
+        return Err(StoreError::corrupt("checkpoint lineage scope"));
+    }
+    let lookahead = if checkpoints.len() > usize::from(page_size.get()) {
+        checkpoints.pop()
+    } else {
+        None
+    };
+    Ok((checkpoints, lookahead))
+}
+
+async fn verify_checkpoint_anchors(
+    transaction: &mut Transaction<'_, Postgres>,
+    checkpoints: &[Checkpoint],
+) -> Result<(), StoreError> {
+    let first = checkpoints
+        .first()
+        .ok_or_else(|| StoreError::corrupt("checkpoint lineage page"))?;
+    let mut sequences = Vec::with_capacity(checkpoints.len());
+    for checkpoint in checkpoints {
+        sequences.push(
+            i64::try_from(checkpoint.journal_head().sequence().get())
+                .map_err(|_| StoreError::corrupt("checkpoint journal sequence"))?,
+        );
+    }
+    let rows = query_as::<_, EventRow>(SELECT_EVENTS_BY_SEQUENCES)
+        .bind(first.tenant_id().as_str())
+        .bind(*first.run_id().as_uuid())
+        .bind(&sequences)
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("checkpoint lineage anchors", source))?;
+    if rows.len() != checkpoints.len() {
+        return Err(StoreError::corrupt("checkpoint lineage anchors"));
+    }
+
+    let mut anchors = BTreeMap::new();
+    for row in rows {
+        let event = decode_event(row)?;
+        if anchors.insert(event.sequence(), event).is_some() {
+            return Err(StoreError::corrupt("checkpoint lineage anchors"));
+        }
+    }
+    for checkpoint in checkpoints {
+        let event = anchors
+            .get(&checkpoint.journal_head().sequence())
+            .ok_or_else(|| StoreError::corrupt("checkpoint lineage anchor"))?;
+        if event.head() != *checkpoint.journal_head() {
+            return Err(StoreError::corrupt("checkpoint lineage anchor"));
+        }
+    }
+    Ok(())
+}
+
 fn decode_run(row: RunRow) -> Result<StoredRun, StoreError> {
     let tenant_id =
         TenantId::try_from(row.tenant_id).map_err(|_| StoreError::corrupt("run tenant"))?;
@@ -2467,6 +2727,11 @@ mod tests {
         assert!(JournalPageSize::new(JournalPageSize::MAX).is_ok());
         assert!(JournalPageSize::new(0).is_err());
         assert!(JournalPageSize::new(JournalPageSize::MAX + 1).is_err());
+
+        assert!(CheckpointLineagePageSize::new(1).is_ok());
+        assert!(CheckpointLineagePageSize::new(CheckpointLineagePageSize::MAX).is_ok());
+        assert!(CheckpointLineagePageSize::new(0).is_err());
+        assert!(CheckpointLineagePageSize::new(CheckpointLineagePageSize::MAX + 1).is_err());
     }
 
     #[test]

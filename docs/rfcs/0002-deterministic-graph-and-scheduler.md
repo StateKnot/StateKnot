@@ -276,6 +276,12 @@ The latest checkpoint is usable only after its checkpoint chain validates and
 its journal head is proven to be an ancestor of the current verified run head.
 A snapshot never overrides a contradictory journal fact.
 
+The current PostgreSQL implementation exposes hard-bounded reverse-lineage
+pages. Each page starts from the current run pointer or an exact full-head
+continuation, validates newest-to-oldest parent linkage, and fully verifies each
+journal anchor. A continuation remains usable after later barrier commits
+because checkpoints and their parent identities are immutable.
+
 Pending node results are separate immutable rows anchored to the base
 checkpoint. They are intentionally not copied into or used to mutate that
 checkpoint. Recovery loads them beside the latest checkpoint and the journal

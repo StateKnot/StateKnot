@@ -51,8 +51,9 @@ durable run-lifecycle, canonical journal-envelope, graph-checkpoint, and
 lease/fencing contracts. The PostgreSQL 16/17 durability slice now implements
 run admission, canonical journal append/read, locked lifecycle transitions,
 projection-bound idempotency, immutable superstep checkpoints, exact checkpoint
-lineage and journal anchoring, schema verification, and database-enforced lease
-fencing. Pending node/tool ledgers, outbox, recovery scheduling, quarantine
+parenting, bounded reverse-lineage verification, exact journal anchoring, schema
+verification, and database-enforced lease fencing. Pending node/tool ledgers,
+outbox, recovery scheduling, quarantine
 workflows, and a runnable agent loop have not shipped yet.
 
 The current milestone is to:

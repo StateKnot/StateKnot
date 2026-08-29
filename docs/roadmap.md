@@ -35,6 +35,10 @@ from the repository.
   anchoring, projection-bound retry identity, atomic control-plane/worker commit,
   corruption and rollback rejection, stale-worker fencing, and a 24-writer
   linear-chain test on PostgreSQL 16/17.
+- [x] Implement bounded reverse checkpoint-lineage recovery with exact durable
+  cursors, repeatable-read pages, batched journal-anchor verification, safe
+  continuation across later barrier commits, and corruption tests on PostgreSQL
+  16/17.
 - [ ] Complete RFC-0003 pending node results, attempt/tool ledgers, outbox,
   recovery scheduling, quarantine, role isolation, retention, failover, restore,
   and stale-race gates.

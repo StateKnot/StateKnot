@@ -122,6 +122,9 @@ pub enum StoreError {
     /// A pagination cursor did not identify the exact stored event head.
     #[error("journal cursor does not match a durable event")]
     InvalidJournalCursor,
+    /// A reverse-lineage cursor did not identify the exact stored checkpoint head.
+    #[error("checkpoint lineage cursor does not match a durable checkpoint")]
+    InvalidCheckpointCursor,
     /// No higher signed `PostgreSQL` journal sequence exists.
     #[error("journal sequence is exhausted")]
     JournalSequenceExhausted,
@@ -161,6 +164,9 @@ pub enum StoreError {
     /// A requested journal page exceeded the hard bound.
     #[error("journal page size is invalid")]
     InvalidPageSize,
+    /// A requested checkpoint-lineage page exceeded its memory-safety bound.
+    #[error("checkpoint lineage page size is invalid")]
+    InvalidCheckpointPageSize,
     /// Trusted in-process domain data could not be serialized canonically.
     #[error("{record} could not be encoded for durable storage")]
     Encoding {

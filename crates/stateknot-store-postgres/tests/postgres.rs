@@ -13,16 +13,16 @@ use sqlx_core::{
 use sqlx_postgres::PgPoolOptions;
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, CapabilityIdentity, CapabilityName,
-    CapabilityReference, Checkpoint, CheckpointId, CheckpointState, CheckpointWrite, Digest,
-    EventId, GraphReference, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
-    JournalEventKind, JournalExpectation, JournalPayload, NodeId, PrincipalIdentity, ReadyNodes,
-    RunId, RunTransition, SchemaId, SchemaReference, SubjectId, TenantId, ThreadId, Timestamp,
-    Version,
+    CapabilityReference, Checkpoint, CheckpointHead, CheckpointId, CheckpointState,
+    CheckpointWrite, Digest, EventId, GraphReference, InvocationId, IssuerId, JournalAppend,
+    JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload, NodeId,
+    PrincipalIdentity, ReadyNodes, RunId, RunTransition, SchemaId, SchemaReference, SubjectId,
+    TenantId, ThreadId, Timestamp, Version,
 };
 use stateknot_store_postgres::{
-    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, PostgresStore, PostgresStoreOptions,
-    PostgresTransportSecurity, RunProjection, StoreError,
+    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePageSize,
+    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, PostgresStore,
+    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, StoreError,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -1440,6 +1440,302 @@ async fn failure_after_checkpoint_insert_rolls_back_every_projection() {
         .await
         .unwrap();
     assert!(page.events().is_empty());
+    let lineage = store
+        .load_checkpoint_lineage_page(
+            &tenant_id,
+            run_id,
+            None,
+            CheckpointLineagePageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(lineage.checkpoints().is_empty());
+    assert!(!lineage.has_more());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn checkpoint_lineage_pages_are_exact_bounded_and_advance_safe() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("checkpoint-lineage");
+    let run_id = RunId::generate();
+    store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+
+    let first = store
+        .append_control_plane_checkpoint(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                600,
+            ),
+            RunProjection::unchanged(),
+            initial_checkpoint_write(tenant_id.clone(), run_id, CheckpointId::generate()),
+        )
+        .await
+        .unwrap();
+    let mut checkpoints = vec![first.checkpoint().clone()];
+    let mut journal_head = first.event().head();
+    for index in 1..=5_u64 {
+        let outcome = store
+            .append_control_plane_checkpoint(
+                control_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(journal_head),
+                    600 + index,
+                ),
+                RunProjection::unchanged(),
+                successor_checkpoint_write(
+                    CheckpointId::generate(),
+                    checkpoints.last().unwrap(),
+                    index,
+                ),
+            )
+            .await
+            .unwrap();
+        journal_head = outcome.event().head();
+        checkpoints.push(outcome.checkpoint().clone());
+    }
+
+    let first_page = store
+        .load_checkpoint_lineage_page(
+            &tenant_id,
+            run_id,
+            None,
+            CheckpointLineagePageSize::new(2).unwrap(),
+        )
+        .await
+        .expect("the current reverse-lineage page must validate");
+    assert_eq!(
+        first_page
+            .checkpoints()
+            .iter()
+            .map(|checkpoint| checkpoint.superstep().get())
+            .collect::<Vec<_>>(),
+        vec![5, 4]
+    );
+    assert!(first_page.has_more());
+    let continuation = first_page
+        .next_cursor()
+        .expect("a bounded first page must expose its exact parent");
+    assert_eq!(continuation, checkpoints[3].head());
+
+    let advanced = store
+        .append_control_plane_checkpoint(
+            control_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(journal_head),
+                606,
+            ),
+            RunProjection::unchanged(),
+            successor_checkpoint_write(CheckpointId::generate(), checkpoints.last().unwrap(), 6),
+        )
+        .await
+        .expect("a later barrier must be allowed to advance the current pointer");
+
+    let second_page = store
+        .load_checkpoint_lineage_page(
+            &tenant_id,
+            run_id,
+            Some(&continuation),
+            CheckpointLineagePageSize::new(2).unwrap(),
+        )
+        .await
+        .expect("an immutable continuation must survive a later barrier");
+    assert_eq!(
+        second_page
+            .checkpoints()
+            .iter()
+            .map(|checkpoint| checkpoint.superstep().get())
+            .collect::<Vec<_>>(),
+        vec![3, 2]
+    );
+    let final_page = store
+        .load_checkpoint_lineage_page(
+            &tenant_id,
+            run_id,
+            second_page.next_cursor().as_ref(),
+            CheckpointLineagePageSize::new(2).unwrap(),
+        )
+        .await
+        .expect("the final page must terminate exactly at the root");
+    assert_eq!(
+        final_page
+            .checkpoints()
+            .iter()
+            .map(|checkpoint| checkpoint.superstep().get())
+            .collect::<Vec<_>>(),
+        vec![1, 0]
+    );
+    assert!(!final_page.has_more());
+    assert_eq!(final_page.next_cursor(), None);
+
+    let current_page = store
+        .load_checkpoint_lineage_page(
+            &tenant_id,
+            run_id,
+            None,
+            CheckpointLineagePageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(current_page.checkpoints(), &[advanced.checkpoint().clone()]);
+    assert_eq!(current_page.next_cursor(), Some(checkpoints[5].head()));
+
+    let mut tampered_value = serde_json::to_value(checkpoints[3].head()).unwrap();
+    tampered_value["digest"] = json!(Digest::sha256(b"tampered checkpoint cursor"));
+    let tampered_cursor: CheckpointHead = serde_json::from_value(tampered_value).unwrap();
+    assert!(matches!(
+        store
+            .load_checkpoint_lineage_page(
+                &tenant_id,
+                run_id,
+                Some(&tampered_cursor),
+                CheckpointLineagePageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::InvalidCheckpointCursor)
+    ));
+    assert!(matches!(
+        store
+            .load_checkpoint_lineage_page(
+                &tenant("crossed-checkpoint-lineage"),
+                run_id,
+                Some(&continuation),
+                CheckpointLineagePageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::InvalidCheckpointCursor)
+    ));
+
+    let broken_tenant = tenant("broken-checkpoint-lineage");
+    let broken_run = RunId::generate();
+    store
+        .admit_run(provenance(broken_tenant.clone(), broken_run))
+        .await
+        .unwrap();
+    let broken_root = store
+        .append_control_plane_checkpoint(
+            control_append(
+                broken_tenant.clone(),
+                broken_run,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                607,
+            ),
+            RunProjection::unchanged(),
+            initial_checkpoint_write(broken_tenant.clone(), broken_run, CheckpointId::generate()),
+        )
+        .await
+        .unwrap();
+    store
+        .append_control_plane_checkpoint(
+            control_append(
+                broken_tenant.clone(),
+                broken_run,
+                EventId::generate(),
+                JournalExpectation::exact(broken_root.event().head()),
+                608,
+            ),
+            RunProjection::unchanged(),
+            successor_checkpoint_write(CheckpointId::generate(), broken_root.checkpoint(), 1),
+        )
+        .await
+        .unwrap();
+
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    query("SET session_replication_role = replica")
+        .execute(&administration)
+        .await
+        .unwrap();
+    query(
+        "DELETE FROM stateknot.run_checkpoints \
+         WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $3",
+    )
+    .bind(broken_tenant.as_str())
+    .bind(*broken_run.as_uuid())
+    .bind(*broken_root.checkpoint().checkpoint_id().as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    query("SET session_replication_role = origin")
+        .execute(&administration)
+        .await
+        .unwrap();
+    assert!(matches!(
+        store
+            .load_checkpoint_lineage_page(
+                &broken_tenant,
+                broken_run,
+                None,
+                CheckpointLineagePageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    query(
+        "UPDATE stateknot.run_events \
+         SET payload_bytes = payload_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND sequence = 3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_checkpoint_lineage_page(
+                &tenant_id,
+                run_id,
+                Some(&checkpoints[2].head()),
+                CheckpointLineagePageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    query(
+        "UPDATE stateknot.run_checkpoints \
+         SET checkpoint_bytes = checkpoint_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*checkpoints[0].checkpoint_id().as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_checkpoint_lineage_page(
+                &tenant_id,
+                run_id,
+                Some(&checkpoints[0].head()),
+                CheckpointLineagePageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    administration.close().await;
     store.close().await;
 }
 
@@ -1500,6 +1796,17 @@ async fn checkpoint_load_fails_closed_on_corrupt_bytes_and_journal_anchor() {
         store.load_current_checkpoint(&tenant_id, run_id).await,
         Err(StoreError::CorruptData { .. })
     ));
+    assert!(matches!(
+        store
+            .load_checkpoint_lineage_page(
+                &tenant_id,
+                run_id,
+                None,
+                CheckpointLineagePageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
 
     let anchor_tenant = tenant("checkpoint-anchor-corruption");
     let anchor_run = RunId::generate();
@@ -1541,6 +1848,17 @@ async fn checkpoint_load_fails_closed_on_corrupt_bytes_and_journal_anchor() {
     assert!(matches!(
         store
             .load_current_checkpoint(&anchor_tenant, anchor_run)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    assert!(matches!(
+        store
+            .load_checkpoint_lineage_page(
+                &anchor_tenant,
+                anchor_run,
+                None,
+                CheckpointLineagePageSize::new(1).unwrap(),
+            )
             .await,
         Err(StoreError::CorruptData { .. })
     ));

@@ -22,8 +22,8 @@ mod store;
 pub use config::{PostgresStoreOptions, PostgresTransportSecurity};
 pub use error::{ConfigurationError, StoreError};
 pub use model::{
-    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointPointer, JournalPage,
-    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, RunProjection,
-    StoredRun,
+    AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
+    CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
+    LeaseReleaseOutcome, LeaseRenewalOutcome, RunProjection, StoredRun,
 };
 pub use store::PostgresStore;

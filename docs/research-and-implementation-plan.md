@@ -804,7 +804,8 @@ archive anchor、expand/contract migration 与 backup/restore 门禁以
 
 当前已落地 `stateknot-store-postgres` 的第一段最终持久化边界：`runs`、`run_events`、
 immutable `run_checkpoints`、canonical bytes/digests、projection-bound idempotency、locked pure
-transition、exact-head/parent append、数据库时钟 lease/fencing、完整 cursor 分页、精确
+transition、exact-head/parent append、数据库时钟 lease/fencing、完整 journal cursor 分页、
+有界 reverse checkpoint-lineage 分页与精确 continuation head、精确
 migration checksum/startup refusal，以及 PostgreSQL 16/17 的 corruption、rollback、lost-ack、
 100 并发 journal appender 和 24 并发 checkpoint writer 测试。它不是完整 runtime；pending
 node writes、node/tool attempt、interrupt/outbox、自动 quarantine、recovery scheduler、角色隔离、

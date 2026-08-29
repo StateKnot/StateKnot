@@ -1534,6 +1534,71 @@ impl CheckpointError {
     }
 }
 
+/// Streaming verifier for a checkpoint lineage read from newest to oldest.
+///
+/// The verifier starts from an exact trusted tip and accepts only the full
+/// checkpoint named by that head, followed by its exact parent, until the
+/// superstep-zero root is reached. It buffers one compact head rather than the
+/// checkpoint state history, so stores can validate arbitrarily long lineages
+/// through bounded reverse pages. Rejection leaves the verifier unchanged.
+#[derive(Debug)]
+pub struct CheckpointLineageVerifier {
+    expected: Option<CheckpointHead>,
+}
+
+impl CheckpointLineageVerifier {
+    /// Constructs a reverse-lineage verifier from an exact checkpoint tip.
+    #[must_use]
+    pub const fn from_tip(tip: CheckpointHead) -> Self {
+        Self {
+            expected: Some(tip),
+        }
+    }
+
+    /// Returns the exact checkpoint head required next, or `None` at the root.
+    #[must_use]
+    pub const fn expected(&self) -> Option<&CheckpointHead> {
+        self.expected.as_ref()
+    }
+
+    /// Returns whether the complete lineage through superstep zero was accepted.
+    #[must_use]
+    pub const fn is_complete(&self) -> bool {
+        self.expected.is_none()
+    }
+
+    /// Verifies and accepts the next checkpoint in newest-to-oldest order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CheckpointLineageError::HeadMismatch`] when `checkpoint` is
+    /// not the exact full value named by the expected head, or
+    /// [`CheckpointLineageError::AlreadyComplete`] after the root was accepted.
+    pub fn verify_next(&mut self, checkpoint: &Checkpoint) -> Result<(), CheckpointLineageError> {
+        let Some(expected) = &self.expected else {
+            return Err(CheckpointLineageError::AlreadyComplete);
+        };
+        if checkpoint.head() != *expected {
+            return Err(CheckpointLineageError::HeadMismatch);
+        }
+        self.expected.clone_from(&checkpoint.parent);
+        Ok(())
+    }
+}
+
+/// Rejected checkpoint in reverse lineage verification.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum CheckpointLineageError {
+    /// A checkpoint did not materialize the exact expected compact head.
+    #[error("checkpoint does not match the expected lineage head")]
+    HeadMismatch,
+
+    /// Another checkpoint appeared after the superstep-zero root.
+    #[error("checkpoint lineage is already complete")]
+    AlreadyComplete,
+}
+
 /// Failure to produce a domain-separated checkpoint checksum.
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
@@ -2126,6 +2191,34 @@ mod tests {
         let ready_schema = to_value(schemars::schema_for!(ReadyNodes)).unwrap();
         assert_eq!(ready_schema["maxItems"], ReadyNodes::MAX_LEN);
         assert_eq!(ready_schema["uniqueItems"], true);
+    }
+
+    #[test]
+    fn reverse_lineage_verifier_is_streaming_exact_and_transactional() {
+        let root = initial_checkpoint();
+        let tip = successor_checkpoint();
+        let mut verifier = CheckpointLineageVerifier::from_tip(tip.head());
+
+        assert_eq!(verifier.expected(), Some(&tip.head()));
+        assert_eq!(
+            verifier.verify_next(&root),
+            Err(CheckpointLineageError::HeadMismatch)
+        );
+        assert_eq!(
+            verifier.expected(),
+            Some(&tip.head()),
+            "rejection must not advance the verifier"
+        );
+
+        verifier.verify_next(&tip).unwrap();
+        assert_eq!(verifier.expected(), Some(&root.head()));
+        verifier.verify_next(&root).unwrap();
+        assert!(verifier.is_complete());
+        assert_eq!(verifier.expected(), None);
+        assert_eq!(
+            verifier.verify_next(&root),
+            Err(CheckpointLineageError::AlreadyComplete)
+        );
     }
 
     proptest! {

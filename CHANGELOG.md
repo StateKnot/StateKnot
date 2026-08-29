@@ -162,6 +162,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   checkpoint/head commits, fenced worker writes, fail-closed recovery reads,
   v1-to-v2 data migration coverage, injected rollback/corruption tests, and 24
   concurrent checkpoint writers on PostgreSQL 16/17.
+- Streaming reverse checkpoint-lineage verification plus bounded PostgreSQL
+  repeatable-read pages with exact continuation heads, batched fully decoded
+  journal-anchor checks, later-barrier safety, and fail-closed cursor/ancestor
+  corruption coverage on PostgreSQL 16/17.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

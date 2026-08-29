@@ -77,8 +77,9 @@ pub use capability::{
 };
 pub use checkpoint::{
     Checkpoint, CheckpointError, CheckpointHead, CheckpointHeadError, CheckpointIntegrityError,
-    CheckpointState, CheckpointStateError, CheckpointWrite, CheckpointWriteError, GraphReference,
-    NodeId, NodeIdError, ReadyNodes, ReadyNodesError, Superstep, SuperstepError,
+    CheckpointLineageError, CheckpointLineageVerifier, CheckpointState, CheckpointStateError,
+    CheckpointWrite, CheckpointWriteError, GraphReference, NodeId, NodeIdError, ReadyNodes,
+    ReadyNodesError, Superstep, SuperstepError,
 };
 pub use content::{
     ContentMetadata, ContentSource, ContentTrust, JsonContent, LanguageTag, LanguageTagError,

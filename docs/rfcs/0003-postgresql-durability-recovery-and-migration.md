@@ -126,7 +126,9 @@ The provider- and database-neutral `stateknot-core` crate now contains:
   digests pinned to one run;
 - `CheckpointState`, `CheckpointWrite`, and `Checkpoint`: bounded RFC 8785 state,
   exact parent/journal anchors, graph/schema continuity, idempotent intent, and
-  complete checkpoint integrity validation.
+  complete checkpoint integrity validation;
+- `CheckpointLineageVerifier`: constant-memory newest-to-oldest validation from
+  an exact compact tip through the superstep-zero root.
 
 These types validate intrinsic values and are used in model/fault tests. They do
 not replace database authorization or atomicity.
@@ -169,6 +171,14 @@ async fn load_current_checkpoint(
     tenant_id: &TenantId,
     run_id: RunId,
 ) -> Result<Option<Checkpoint>, StoreError>;
+
+async fn load_checkpoint_lineage_page(
+    &self,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    from: Option<&CheckpointHead>,
+    page_size: CheckpointLineagePageSize,
+) -> Result<CheckpointLineagePage, StoreError>;
 ```
 
 `append_worker` rejects an append without a worker source. It never accepts a
@@ -598,14 +608,19 @@ parented graph/state barrier and current pointer in that transaction. Worker
 event, checkpoint, and head writes repeat the exact attempt/epoch,
 exclusive-expiry, and checkpoint-parent predicates in SQL. Reads reconstruct
 every integrity layer, verify a checkpoint's exact journal-anchor event, and
-stream-verify the suffix to the exact run head.
+stream-verify the suffix to the exact run head. Reverse checkpoint-lineage reads
+use hard-bounded repeatable-read pages, exact full-head cursors, recursive parent
+identity joins, and batched fully decoded journal-anchor verification. Immutable
+continuations remain valid when a later barrier advances the run pointer.
 
-Thirteen integration tests run against digest-pinned PostgreSQL 16 and 17. They
+Fourteen integration tests run against digest-pinned PostgreSQL 16 and 17. They
 cover fresh migration, startup refusal, existing v1-history upgrade, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
 renewal/expiry/release/supersession, stale fences including retry after takeover,
-failures injected after event and checkpoint insertion, bounded suffix paging,
-corrupted checkpoint/anchor bytes, invalid/future lifecycle transitions, 100
+failures injected after event and checkpoint insertion, bounded suffix and
+reverse-lineage paging, exact/crossed cursor rejection, continuation after a
+later checkpoint commit, a missing page-edge parent, corrupted
+checkpoint/anchor bytes, invalid/future lifecycle transitions, 100
 concurrent journal appenders, and 24 competing checkpoint writers producing one
 contiguous lineage. This is evidence for those boundaries only. Pending node
 writes, attempt/invocation ledgers,

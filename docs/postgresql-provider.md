@@ -31,8 +31,10 @@ The provider currently supplies:
   increasing fencing epochs, and exact worker predicates on both event and run
   head writes;
 - bounded repeatable-read journal paging with complete cursors and hash-chain
-  verification, plus checkpoint reads that validate canonical bytes, redundant
-  columns, checkpoint integrity, and the exact journal-anchor event;
+  verification, plus bounded newest-to-oldest checkpoint-lineage paging whose
+  complete cursors remain valid across later barrier commits and whose reads
+  validate canonical bytes, redundant columns, parent links, checkpoint
+  integrity, and every exact journal-anchor event;
 - startup refusal for missing, newer, older, checksum-mismatched, or incomplete
   schema state;
 - secure TLS verification by default, bounded pools/timeouts, explicit
@@ -71,16 +73,19 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-CI runs 13 integration tests against digest-pinned PostgreSQL 16 and 17 images.
+CI runs 14 integration tests against digest-pinned PostgreSQL 16 and 17 images.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v2 without guessed projection intent, admission, direct lifecycle transition
 enforcement, future-clock rejection, event and projection-intent conflicts,
-lost-ack idempotency, bounded paging,
+lost-ack idempotency, bounded journal and reverse-checkpoint-lineage paging,
+exact/crossed cursor rejection, continuation across a concurrently advanced
+current checkpoint,
 renewal/expiry/release/supersession, stale-worker fencing and retry after
 takeover, clock-regression rejection after renewal, atomic rollback after
 injected event/checkpoint inserts, fail-closed checkpoint and journal-anchor
-corruption, 100 concurrent journal appenders, and 24 competing checkpoint
-writers converging on one contiguous lineage.
+corruption, a missing parent exactly beyond a page boundary, 100 concurrent
+journal appenders, and 24 competing checkpoint writers converging on one
+contiguous lineage.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -95,11 +100,14 @@ the unmigrated-startup path can be tested. Without the URL, local workspace test
 skip external-database cases; CI sets `STATEKNOT_REQUIRE_POSTGRES_TESTS=1` so a
 missing service cannot appear green.
 
-Recovery can now load and verify the latest committed barrier with
-`load_current_checkpoint`, then page the journal strictly after that checkpoint's
-trusted head with `load_journal_page`. This composes the durable recovery input;
-the scheduler that replays the suffix and resumes ready nodes is not implemented
-yet.
+Recovery can now call `load_checkpoint_lineage_page` without a cursor and follow
+each exact `next_cursor` until the superstep-zero root. The first returned value
+is the current barrier observed in the initial repeatable-read snapshot; immutable
+continuation cursors remain valid if a later barrier advances the run between
+pages. After the lineage validates, recovery pages the journal strictly after
+that barrier's trusted journal head with `load_journal_page`. This composes the
+durable checkpoint-and-suffix input; the scheduler that replays the suffix and
+resumes ready nodes is not implemented yet.
 
 Migration 2 adds nullable `run_events.projection_digest` because migration-1
 rows do not contain enough information to reconstruct the caller's projection
