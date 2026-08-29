@@ -53,11 +53,12 @@ PostgreSQL 16/17 durability slice now implements run admission, canonical
 journal append/read,
 locked lifecycle transitions, projection-bound idempotency, immutable superstep
 checkpoints, exact checkpoint parenting, bounded reverse-lineage verification,
-an immutable hash-linked tool-invocation ledger, exact journal anchoring,
-checkpoint advancement guards for unsettled tool invocations, schema
-verification, and database-enforced lease fencing. PostgreSQL model-invocation
-persistence, pending node/model attempt ledgers, outbox, recovery scheduling,
-quarantine workflows, and a runnable agent loop have not shipped yet.
+immutable hash-linked tool- and model-invocation ledgers, exact journal
+anchoring, a run-wide physical-attempt registry, checkpoint advancement guards
+for unsettled invocations, schema verification, and database-enforced lease
+fencing. Pending node-result and node-attempt ledgers, outbox, recovery
+scheduling, quarantine workflows, and a runnable agent loop have not shipped
+yet.
 
 The current milestone is to:
 

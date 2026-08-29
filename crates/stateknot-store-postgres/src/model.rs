@@ -3,7 +3,7 @@
 
 use stateknot_core::{
     Checkpoint, CheckpointHead, CheckpointId, Digest, FencingEpoch, JournalEvent, JournalHead,
-    RunLease, RunLifecycle, RunRevision, RunTransition, Superstep, ToolInvocation,
+    ModelInvocation, RunLease, RunLifecycle, RunRevision, RunTransition, Superstep, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -111,6 +111,101 @@ impl ToolInvocationCommitOutcome {
         match self {
             Self::Committed { invocation, .. } | Self::Idempotent { invocation, .. } => invocation,
         }
+    }
+}
+
+/// Result of atomically committing a journal event and model invocation revision.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum ModelInvocationCommitOutcome {
+    /// A new event and immutable invocation revision committed atomically.
+    Committed {
+        /// Newly committed journal event.
+        event: JournalEvent,
+        /// Newly committed invocation revision.
+        invocation: ModelInvocation,
+    },
+    /// The exact event and invocation mutation had already committed.
+    Idempotent {
+        /// Previously committed journal event.
+        event: JournalEvent,
+        /// Previously committed invocation revision.
+        invocation: ModelInvocation,
+    },
+}
+
+impl ModelInvocationCommitOutcome {
+    /// Returns the validated anchoring journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the validated immutable invocation revision.
+    #[must_use]
+    pub const fn invocation(&self) -> &ModelInvocation {
+        match self {
+            Self::Committed { invocation, .. } | Self::Idempotent { invocation, .. } => invocation,
+        }
+    }
+}
+
+/// Hard-bounded number of model invocation revisions in one history page.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ModelInvocationHistoryPageSize(u8);
+
+impl ModelInvocationHistoryPageSize {
+    /// Largest page accepted by the provider.
+    ///
+    /// A compact revision and its separately loaded intent may each occupy up
+    /// to 128 MiB, so the provider admits only one revision per decoded page.
+    pub const MAX: u8 = 1;
+
+    /// Constructs a positive bounded history page size.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidModelInvocationPageSize`] unless `value` is one.
+    pub const fn new(value: u8) -> Result<Self, StoreError> {
+        if value != Self::MAX {
+            return Err(StoreError::InvalidModelInvocationPageSize);
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the page size as an integer.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// One bounded, fully verified ascending model-invocation history page.
+#[derive(Clone, Debug)]
+pub struct ModelInvocationHistoryPage {
+    pub(crate) records: Vec<ModelInvocation>,
+    pub(crate) has_more: bool,
+}
+
+impl ModelInvocationHistoryPage {
+    /// Returns immutable revisions in ascending order.
+    #[must_use]
+    pub fn records(&self) -> &[ModelInvocation] {
+        &self.records
+    }
+
+    /// Returns whether a later revision remains in the observed snapshot.
+    #[must_use]
+    pub const fn has_more(&self) -> bool {
+        self.has_more
+    }
+
+    /// Returns the full last record required as the exact next-page cursor.
+    #[must_use]
+    pub fn next_cursor(&self) -> Option<ModelInvocation> {
+        self.records.last().cloned()
     }
 }
 

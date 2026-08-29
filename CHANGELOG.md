@@ -178,6 +178,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   corruption injection, cancellation-race coverage, checkpoint advancement
   rejection while an invocation remains unsettled, and 24-writer single-winner
   tests on PostgreSQL 16/17.
+- Durable model-invocation intents and compact hash-linked revisions with exact
+  descriptor/request/response/error provenance, fresh physical attempts,
+  database-clock-compatible delayed retry evidence, closed schemas, complete
+  history verification, and a versioned canonical fixture.
+- Atomic fenced PostgreSQL model-invocation prepare/advance/load/history APIs,
+  exact lost-ack and cancellation-race behavior, checkpoint guards, rollback
+  and corruption rejection, delayed-retry and 24-writer tests, plus migration 4
+  with a run-wide tool/model attempt registry, v3 tool-attempt backfill, and
+  exact kind/invocation/revision foreign keys verified on PostgreSQL 16/17.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

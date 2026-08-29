@@ -140,6 +140,27 @@ pub enum StoreError {
     /// The invocation activation is not a ready root-graph node of its checkpoint.
     #[error("tool invocation activation is not ready in the base checkpoint")]
     InvalidToolInvocationActivation,
+    /// A model invocation on the current checkpoint has not committed a response.
+    #[error("checkpoint advancement is blocked by an unsettled model invocation")]
+    CheckpointBlockedByModelInvocation,
+    /// No logical model invocation exists in the supplied tenant/run boundary.
+    #[error("model invocation was not found in the tenant-scoped run")]
+    ModelInvocationNotFound,
+    /// A stable model invocation ID was reused with a different immutable intent.
+    #[error("model invocation identity conflicts with a committed intent")]
+    ModelInvocationIdConflict,
+    /// Event and model invocation records do not describe one atomic commit.
+    #[error("journal event and model invocation identities conflict with an atomic commit")]
+    ModelInvocationCommitConflict,
+    /// The supplied complete model invocation head did not match its durable current row.
+    #[error("model invocation head is stale")]
+    StaleModelInvocationHead,
+    /// The requested model invocation transition was invalid for durable state.
+    #[error("model invocation transition is invalid for the locked record")]
+    InvalidModelInvocationTransition,
+    /// The model invocation activation is not a ready root-graph node of its checkpoint.
+    #[error("model invocation activation is not ready in the base checkpoint")]
+    InvalidModelInvocationActivation,
     /// A pagination cursor did not identify the exact stored event head.
     #[error("journal cursor does not match a durable event")]
     InvalidJournalCursor,
@@ -149,6 +170,9 @@ pub enum StoreError {
     /// An invocation-history cursor did not identify the exact stored revision.
     #[error("tool invocation history cursor does not match a durable revision")]
     InvalidToolInvocationCursor,
+    /// A model-invocation history cursor did not identify the exact stored revision.
+    #[error("model invocation history cursor does not match a durable revision")]
+    InvalidModelInvocationCursor,
     /// No higher signed `PostgreSQL` journal sequence exists.
     #[error("journal sequence is exhausted")]
     JournalSequenceExhausted,
@@ -194,6 +218,9 @@ pub enum StoreError {
     /// A requested invocation-history page exceeded its memory-safety bound.
     #[error("tool invocation history page size is invalid")]
     InvalidToolInvocationPageSize,
+    /// A requested model-invocation history page exceeded its memory-safety bound.
+    #[error("model invocation history page size is invalid")]
+    InvalidModelInvocationPageSize,
     /// Trusted in-process domain data could not be serialized canonically.
     #[error("{record} could not be encoded for durable storage")]
     Encoding {

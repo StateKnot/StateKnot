@@ -27,10 +27,14 @@ The provider currently supplies:
 - atomic control-plane and worker checkpoint APIs whose event, lifecycle
   projection, checkpoint row, journal head, and checkpoint pointer commit or
   roll back together;
-- immutable tool-invocation intents and hash-linked revisions with exact base
-  checkpoint and journal anchors, explicit
-  prepared/executing/committed/failed/unknown outcomes, stable logical versus
-  physical attempt identities, and bounded ascending history verification;
+- immutable tool- and model-invocation intents and hash-linked revisions with
+  exact base-checkpoint and journal anchors, stable logical versus physical
+  attempt identities, bounded ascending history verification, closed tool
+  prepared/executing/committed/failed/unknown outcomes, and closed model
+  prepared/executing/committed/failed outcomes;
+- a run-wide tool/model physical-attempt registry whose primary key prevents
+  cross-ledger reuse and whose deferred exact-kind/invocation/revision foreign
+  keys make each `StartAttempt` claim inseparable from its immutable revision;
 - atomic fenced prepare/advance APIs whose event, invocation revision, current
   invocation pointer, and run journal head commit or roll back together, with
   exact lost-ack convergence and no blind retry from an unknown outcome;
@@ -72,13 +76,16 @@ superuser. The runtime role needs `CONNECT`, schema `USAGE`, read access to
 `public._sqlx_migrations`, `SELECT`/`INSERT`/`UPDATE` on `stateknot.runs`, and
 `SELECT`/`INSERT` on both `stateknot.run_events` and
 `stateknot.run_checkpoints`, `SELECT`/`INSERT` on
-`stateknot.tool_invocations` plus column-scoped `UPDATE` only for
+`stateknot.tool_invocations` and `stateknot.model_invocations` plus
+column-scoped `UPDATE` only for
 `current_revision`, `current_status`, `current_attempt_id`,
 `current_record_digest`, and `updated_at`, and `SELECT`/`INSERT` on
-`stateknot.tool_invocation_revisions`. Do not grant runtime DDL, checkpoint or
-invocation-revision update, or delete permissions. Exact role/grant SQL will be shipped only with the
-role-separated server boundary so this document does not invent
-deployment-specific role names.
+`stateknot.tool_invocation_revisions`,
+`stateknot.model_invocation_revisions`, and `stateknot.run_attempt_claims`. Do
+not grant runtime DDL, checkpoint or invocation-revision update, or delete
+permissions. Exact role/grant SQL will be shipped only with the role-separated
+server boundary so this document does not invent deployment-specific role
+names.
 
 `PostgresTransportSecurity::VerifyFull` is the default and overrides weaker URL
 settings. `RequireEncryption` deliberately forgoes server-identity verification.
@@ -86,24 +93,28 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-CI runs 20 integration tests against digest-pinned PostgreSQL 16 and 17 images.
+CI runs 27 integration tests against digest-pinned PostgreSQL 16 and 17 images.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
-v3 without guessed projection intent, admission, direct lifecycle transition
-enforcement, future-clock rejection, event and projection-intent conflicts,
-lost-ack idempotency, bounded journal and reverse-checkpoint-lineage paging,
-exact/crossed cursor rejection, continuation across a concurrently advanced
-current checkpoint,
+v4 without guessed projection intent, real v3 tool-attempt history
+backfilled into the v4 run-wide registry, admission, direct lifecycle
+transition enforcement, future-clock rejection, event and projection-intent
+conflicts, lost-ack idempotency, bounded journal and
+reverse-checkpoint-lineage paging, exact/crossed cursor rejection,
+continuation across a concurrently advanced current checkpoint,
 renewal/expiry/release/supersession, stale-worker fencing and retry after
 takeover, clock-regression rejection after renewal, atomic rollback after
 injected event/checkpoint/invocation writes, fail-closed checkpoint,
 invocation-byte, journal-anchor, and projection-binding corruption, a missing
 parent exactly beyond a page boundary, 100 concurrent journal appenders, 24
 competing checkpoint writers converging on one contiguous lineage, and 24
-competing invocation advances admitting exactly one physical attempt. Invalid
-non-ready and nested-namespace activations leave no event or invocation row;
-cancellation blocks new tool work while preserving an already executing
-attempt's outcome evidence. A checkpoint cannot advance past a prepared or
-otherwise unsettled invocation, and a committed result releases that guard.
+competing tool and model invocation advances admitting exactly one physical
+attempt. Model coverage additionally proves delayed retry, cross-tool/model
+attempt rejection, exact response provenance, and rollback of an event,
+revision, current pointer, and attempt claim as one unit. Invalid non-ready and
+nested-namespace activations leave no event or invocation row; cancellation
+blocks new tool/model work while preserving already executing outcome evidence.
+A checkpoint cannot advance past a prepared or otherwise unsettled invocation,
+and a committed result releases that guard.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -148,6 +159,18 @@ this orphan-prevention guard. It does not yet prove that a node update consumed
 the tool result; that stronger barrier contract depends on the pending
 node-result ledger listed below.
 
+Model recovery uses `load_model_invocation` and one-record
+`load_model_invocation_history_page` pages. The immutable intent stores the
+exact negotiated descriptor and request once, while each compact revision is
+rejoined with that verified intent and checked against its SQL projection,
+predecessor, journal event, and response/error provenance. A real provider
+exchange starts only after a fresh run-wide `AttemptId` reaches `Executing`.
+Complete responses and public-safe errors may finish while the run is active,
+waiting, or cancellation-requested. A failed invocation can dispatch another
+attempt only after explicit `SafeAfter` advice and the database-recorded journal
+clock prove the delay; hidden SDK retries are outside this contract and must be
+disabled.
+
 Migration 2 adds nullable `run_events.projection_digest` because migration-1
 rows do not contain enough information to reconstruct the caller's projection
 intent. Those events remain readable and verifiable. A same-ID mutation retry
@@ -162,13 +185,21 @@ zero and its intent to commit atomically without exposing a dangling pointer. A
 partial index over non-committed current rows serves the checkpoint guard
 without retaining committed rows in the index.
 
+Migration 4 adds `run_attempt_claims`, `model_invocations`, and
+`model_invocation_revisions`. It first backfills every v3 tool `StartAttempt`,
+then installs deferred exact-kind/invocation/revision claim foreign keys before
+model work is admitted. Model intents are stored once; compact revision bytes
+retain an intent digest and are rejoined through the core integrity validator.
+The migration is checksum-pinned and the v3 backfill is exercised on both
+PostgreSQL 16 and 17.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
-pending node-result writes, node/model attempts, model invocation ledgers,
-interrupts, timers, outbox, artifacts, scheduling/readiness queues, automatic corruption
-quarantine, retention/archive/legal hold, backup/restore, failover
-qualification, or the 10,000-race stale-worker gate.
+pending node-result writes, node execution-attempt records, interrupts, timers,
+outbox, artifacts, scheduling/readiness queues, automatic corruption quarantine,
+retention/archive/legal hold, backup/restore, failover qualification, or the
+10,000-race stale-worker gate.
 
 The current pool is a trusted server-side persistence boundary. Database
 credentials must not be distributed to untrusted workers: PostgreSQL

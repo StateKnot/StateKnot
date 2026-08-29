@@ -49,9 +49,15 @@ from the repository.
   descriptor, request, physical-attempt, response/error, journal, predecessor,
   and digest binding; explicit delayed retries; complete history replay; and
   frozen cross-version integrity fixtures.
-- [ ] Complete RFC-0003 pending node results, PostgreSQL node/model attempt and
-  model-invocation ledgers, outbox, recovery scheduling, quarantine, role
-  isolation, retention, failover, restore, and stale-race gates.
+- [x] Persist the model-invocation ledger on PostgreSQL with immutable intent
+  snapshots, compact hash-linked revisions, exact journal/checkpoint/provenance
+  binding, delayed retry, cancellation-race completion, lost-ack convergence,
+  rollback/corruption rejection, checkpoint guards, 24-writer races, and a
+  run-wide tool/model `AttemptId` registry whose v3 backfill and exact foreign
+  keys are verified on PostgreSQL 16/17.
+- [ ] Complete RFC-0003 pending node results, the PostgreSQL node-attempt
+  ledger, outbox, recovery scheduling, quarantine, role isolation, retention,
+  failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

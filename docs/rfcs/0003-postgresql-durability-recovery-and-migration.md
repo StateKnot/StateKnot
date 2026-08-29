@@ -221,6 +221,35 @@ async fn load_tool_invocation_history_page(
     after: Option<&ToolInvocation>,
     page_size: ToolInvocationHistoryPageSize,
 ) -> Result<ToolInvocationHistoryPage, StoreError>;
+
+async fn prepare_model_invocation(
+    &self,
+    append: JournalAppend,
+    intent: ModelInvocationIntent,
+) -> Result<ModelInvocationCommitOutcome, StoreError>;
+
+async fn advance_model_invocation(
+    &self,
+    append: JournalAppend,
+    expected: &ModelInvocationHead,
+    transition: ModelInvocationTransition,
+) -> Result<ModelInvocationCommitOutcome, StoreError>;
+
+async fn load_model_invocation(
+    &self,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+) -> Result<ModelInvocation, StoreError>;
+
+async fn load_model_invocation_history_page(
+    &self,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+    after: Option<&ModelInvocation>,
+    page_size: ModelInvocationHistoryPageSize,
+) -> Result<ModelInvocationHistoryPage, StoreError>;
 ```
 
 `append_worker` rejects an append without a worker source. It never accepts a
@@ -454,6 +483,11 @@ they are not requested again merely to rebuild a process-local transcript.
   invocation may start another attempt only when its explicit `RetryAdvice` is
   `safe_after`, the journal clock proves the full delay elapsed, and the new
   attempt identity differs. SDK-level hidden retries violate this contract.
+- `run_attempt_claims` is the one run-wide physical-attempt namespace shared by
+  tool and model ledgers. Its primary key rejects reuse, while generated ledger
+  kind plus deferred composite foreign keys bind every claim to the exact
+  invocation and `StartAttempt` revision. Migration 4 backfills all v3 tool
+  attempt claims before model dispatch becomes possible.
 - `interrupts` stores request payload, bound action digest, required principal
   and scopes, exclusive expiry, version, and one authenticated resolution.
 - `timers` stores indexed due time and one firing event identity; the scheduler
@@ -657,13 +691,15 @@ explicit unknown outcome otherwise.
 ### Current implementation evidence
 
 The unpublished `stateknot-store-postgres` crate implements the first
-run/journal/checkpoint/tool-invocation/lease subset of this RFC rather than a
-separate transitional backend. Three exact migrations create tenant-scoped
-`runs`, `run_events`, immutable `run_checkpoints`, `tool_invocations`, and
-immutable `tool_invocation_revisions` records with database constraints;
-runtime connection refuses absent, extra, failed, checksum-mismatched, or
-incomplete migration state. Migration uses a separate temporary pool so DDL
-credentials are not retained by the runtime.
+run/journal/checkpoint/tool-and-model-invocation/lease subset of this RFC rather
+than a separate transitional backend. Four exact migrations create
+tenant-scoped `runs`, `run_events`, immutable `run_checkpoints`, tool/model
+intent and revision ledgers, and the shared `run_attempt_claims` registry with
+database constraints; runtime connection refuses absent, extra, failed,
+checksum-mismatched, or incomplete migration state. Migration uses a separate
+temporary pool so DDL credentials are not retained by the runtime. Migration 4
+backfills every v3 tool attempt and installs exact claim foreign keys before it
+admits model history.
 
 The append implementation locks the run row, performs event-ID and exact
 projection-intent idempotency before head/fence rejection, applies a supplied
@@ -697,24 +733,38 @@ rooted at the exact current checkpoint. This prevents an in-flight external call
 from being orphaned but does not substitute for the pending node-result
 consumption proof that remains unimplemented.
 
-Twenty integration tests run against digest-pinned PostgreSQL 16 and 17. They
-cover fresh migration, startup refusal, existing v1-history upgrade, admission,
+Model preparation and transition use the same atomic and fencing boundary with
+the model-specific closed state machine. The intent snapshots the negotiated
+descriptor and complete request once; compact revisions retain exact intent,
+predecessor, journal, transition, response/error, and attempt bindings without
+repeating the request bytes. Reads rejoin and canonicalize both layers. A new
+provider exchange requires a fresh run-wide attempt claim, explicit failed-state
+`SafeAfter` evidence, and elapsed database-recorded journal time. Complete
+responses/errors may finish after waiting or cancellation intent, but new
+preparation and dispatch require an active run. Model and tool claims cannot
+cross even when invocation identifiers collide.
+
+Twenty-seven integration tests run against digest-pinned PostgreSQL 16 and 17.
+They cover fresh migration, startup refusal, existing v1-history upgrade, v3
+tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
 renewal/expiry/release/supersession, stale fences including retry after takeover,
-failures injected after event, checkpoint, and invocation-revision insertion, bounded suffix and
-reverse-lineage paging, exact/crossed cursor rejection, continuation after a
-later checkpoint commit, a missing page-edge parent, corrupted
-checkpoint/invocation/anchor bytes and projection bindings, invalid/future
-lifecycle transitions, 100 concurrent journal appenders, 24 competing checkpoint
-writers producing one contiguous lineage, and 24 competing invocation writers
-admitting exactly one physical attempt. Non-ready and unsupported nested
-activations are rejected without durable residue, and cancellation races retain
-in-flight results without admitting new work. Checkpoint advancement is rejected
-until exact-parent invocations commit. This is evidence for those boundaries
-only. Pending node writes, PostgreSQL node/model attempt and model-invocation
-ledgers, automatic quarantine, role-separated database procedures, the 10,000
-stale-race trial, failover, archive, backup/restore, and soak gates below remain
-incomplete; the RFC therefore remains Draft.
+failures injected after event, checkpoint, invocation-revision, and attempt-claim
+insertion, bounded suffix and reverse-lineage paging, exact/crossed cursor
+rejection, continuation after a later checkpoint commit, a missing page-edge
+parent, corrupted checkpoint/invocation/anchor bytes and projection bindings,
+invalid/future lifecycle transitions, model delayed retry and exact response
+provenance, cross-tool/model attempt rejection, 100 concurrent journal
+appenders, 24 competing checkpoint writers producing one contiguous lineage,
+and 24 competing tool/model invocation writers admitting exactly one physical
+attempt. Non-ready and unsupported nested activations are rejected without
+durable residue, and cancellation races retain in-flight results without
+admitting new work. Checkpoint advancement is rejected until exact-parent
+invocations commit. This is evidence for those boundaries only. Pending node
+writes, the PostgreSQL node-attempt ledger, automatic quarantine, role-separated
+database procedures, the 10,000 stale-race trial, failover, archive,
+backup/restore, and soak gates below remain incomplete; the RFC therefore
+remains Draft.
 
 Before RFC acceptance:
 

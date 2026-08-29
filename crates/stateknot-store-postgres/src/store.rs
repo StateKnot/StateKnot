@@ -4,7 +4,7 @@
 use std::{borrow::Cow, collections::BTreeMap, fmt, sync::LazyLock, time::Duration};
 
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx_core::{
     from_row::FromRow,
     migrate::{Migration, MigrationType, Migrator},
@@ -19,19 +19,23 @@ use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, CanonicalJson, Checkpoint, CheckpointHead,
     CheckpointId, CheckpointLineageVerifier, CheckpointWrite, Digest, EventId, FencingEpoch,
     InvocationId, JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError,
-    JournalEventIntent, JournalEventSource, JournalHead, JournalSequence, JsonLimits, RunFence,
-    RunId, RunLease, RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTransition,
-    Superstep, TenantId, Timestamp, ToolInvocation, ToolInvocationHead,
-    ToolInvocationHistoryVerifier, ToolInvocationIntent, ToolInvocationRevision,
-    ToolInvocationStatus, ToolInvocationTransition, ToolInvocationTransitionKind,
+    JournalEventIntent, JournalEventSource, JournalHead, JournalSequence, JsonLimits,
+    ModelInvocation, ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
+    ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
+    ModelInvocationTransition, ModelInvocationTransitionKind, RunFence, RunId, RunLease,
+    RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTransition, Superstep,
+    TenantId, Timestamp, ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier,
+    ToolInvocationIntent, ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    ToolInvocationTransitionKind,
 };
 use uuid::Uuid;
 
 use crate::{
     AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
     CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, PostgresStoreOptions, RunProjection, StoreError,
-    StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, PostgresStoreOptions,
+    RunProjection, StoreError, StoredRun, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
     ToolInvocationHistoryPageSize,
 };
 
@@ -58,6 +62,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0003_tool_invocations.sql")),
             false,
         ),
+        Migration::new(
+            4,
+            Cow::Borrowed("model invocations"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0004_model_invocations.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -69,6 +80,10 @@ const MAX_POSTGRES_VERSION_NUMBER: i32 = 179_999;
 const MAX_CHECKPOINT_BYTES: usize = 2_621_440;
 const MAX_TOOL_INVOCATION_INTENT_BYTES: usize = 4_194_304;
 const MAX_TOOL_INVOCATION_RECORD_BYTES: usize = 16_777_216;
+const MAX_MODEL_INVOCATION_INTENT_BYTES: usize = 134_217_728;
+const MAX_MODEL_INVOCATION_RECORD_BYTES: usize = 134_217_728;
+const MODEL_INVOCATION_RECORD_SCHEMA: &str =
+    "https://stateknot.github.io/schema/storage/model-invocation-revision/1.0.0";
 const PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-run-projection-v1\0";
 
 const SELECT_RUN: &str = r"
@@ -458,6 +473,143 @@ SELECT EXISTS (
 )
 ";
 
+const SELECT_MODEL_INVOCATION: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    intent_bytes,
+    current_revision,
+    current_status,
+    current_attempt_id,
+    current_record_digest,
+    created_at,
+    updated_at
+FROM stateknot.model_invocations
+WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = $3
+";
+
+const SELECT_MODEL_INVOCATION_FOR_UPDATE: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    intent_bytes,
+    current_revision,
+    current_status,
+    current_attempt_id,
+    current_record_digest,
+    created_at,
+    updated_at
+FROM stateknot.model_invocations
+WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = $3
+FOR UPDATE
+";
+
+const SELECT_MODEL_INVOCATION_REVISION: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+FROM stateknot.model_invocation_revisions
+WHERE tenant_id = $1 AND run_id = $2 AND invocation_id = $3 AND revision = $4
+";
+
+const SELECT_MODEL_INVOCATION_REVISION_BY_ANCHOR: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+FROM stateknot.model_invocation_revisions
+WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
+";
+
+const SELECT_MODEL_INVOCATION_HISTORY: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+FROM stateknot.model_invocation_revisions
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND invocation_id = $3
+  AND revision > $4
+ORDER BY revision ASC
+LIMIT $5
+";
+
+const SELECT_UNSETTLED_MODEL_INVOCATION_EXISTS: &str = r"
+SELECT EXISTS (
+    SELECT 1
+    FROM stateknot.model_invocations
+    WHERE tenant_id = $1
+      AND run_id = $2
+      AND base_checkpoint_id = $3
+      AND base_superstep = $4
+      AND base_checkpoint_digest = $5
+      AND current_status <> 'committed'
+)
+";
+
 /// Connected `PostgreSQL` durability provider.
 ///
 /// Clones share one bounded connection pool. `Debug` intentionally omits pool
@@ -564,6 +716,9 @@ impl PostgresStore {
                  AND to_regclass('stateknot.run_checkpoints') IS NOT NULL \
                  AND to_regclass('stateknot.tool_invocations') IS NOT NULL \
                  AND to_regclass('stateknot.tool_invocation_revisions') IS NOT NULL \
+                 AND to_regclass('stateknot.run_attempt_claims') IS NOT NULL \
+                 AND to_regclass('stateknot.model_invocations') IS NOT NULL \
+                 AND to_regclass('stateknot.model_invocation_revisions') IS NOT NULL \
                  AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL",
         )
         .fetch_one(&self.pool)
@@ -1106,6 +1261,178 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .await
             .map_err(|source| StoreError::database("tool invocation history commit", source))?;
         Ok(ToolInvocationHistoryPage { records, has_more })
+    }
+
+    /// Loads the exact current revision of one logical model invocation.
+    ///
+    /// The immutable intent, compact revision wire, redundant current pointer,
+    /// base checkpoint, and journal anchor are verified in one repeatable-read
+    /// snapshot. Use [`Self::load_model_invocation_history_page`] to prove a
+    /// complete retry chain.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ModelInvocationNotFound`], a corruption failure,
+    /// or a database error.
+    pub async fn load_model_invocation(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        invocation_id: InvocationId,
+    ) -> Result<ModelInvocation, StoreError> {
+        let mut transaction = self.begin_repeatable_read("model invocation load").await?;
+        let row = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATION)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*invocation_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("model invocation load", source))?
+            .ok_or(StoreError::ModelInvocationNotFound)?;
+        let intent = decode_model_invocation_intent(&row)?;
+        if intent.tenant_id() != tenant_id
+            || intent.run_id() != run_id
+            || intent.invocation_id() != invocation_id
+        {
+            return Err(StoreError::corrupt("model invocation scope"));
+        }
+        let current_revision = nonnegative_model_invocation_revision(row.current_revision)?;
+        let revision_row = load_model_invocation_revision_row(
+            &mut transaction,
+            tenant_id,
+            run_id,
+            invocation_id,
+            current_revision,
+        )
+        .await?;
+        let invocation = decode_model_invocation_revision(revision_row, &intent)?;
+        validate_model_invocation_current_projection(&row, &invocation)?;
+        verify_model_invocation_base_checkpoint(&mut transaction, &intent).await?;
+        verify_model_invocation_anchor(&mut transaction, &invocation).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("model invocation load commit", source))?;
+        Ok(invocation)
+    }
+
+    /// Loads one bounded ascending page of immutable model revisions.
+    ///
+    /// A continuation cursor is the full prior record because a failed record's
+    /// error and durable timestamp are required to validate a delayed retry.
+    /// The page size is one to bound decoding of maximum-size model payloads.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidModelInvocationCursor`] for a crossed or
+    /// non-exact cursor; otherwise returns not-found, corruption, or database
+    /// failures.
+    pub async fn load_model_invocation_history_page(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        invocation_id: InvocationId,
+        after: Option<&ModelInvocation>,
+        page_size: ModelInvocationHistoryPageSize,
+    ) -> Result<ModelInvocationHistoryPage, StoreError> {
+        if after.is_some_and(|cursor| {
+            cursor.intent().tenant_id() != tenant_id
+                || cursor.intent().run_id() != run_id
+                || cursor.intent().invocation_id() != invocation_id
+        }) {
+            return Err(StoreError::InvalidModelInvocationCursor);
+        }
+
+        let mut transaction = self
+            .begin_repeatable_read("model invocation history")
+            .await?;
+        let row = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATION)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*invocation_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("model invocation history intent", source))?
+            .ok_or(StoreError::ModelInvocationNotFound)?;
+        let intent = decode_model_invocation_intent(&row)?;
+        let current_revision = nonnegative_model_invocation_revision(row.current_revision)?;
+        verify_model_invocation_base_checkpoint(&mut transaction, &intent).await?;
+
+        let cursor = if let Some(cursor) = after {
+            if cursor.revision() > current_revision || cursor.intent() != &intent {
+                return Err(StoreError::InvalidModelInvocationCursor);
+            }
+            let cursor_row = load_model_invocation_revision_row(
+                &mut transaction,
+                tenant_id,
+                run_id,
+                invocation_id,
+                cursor.revision(),
+            )
+            .await
+            .map_err(|error| match error {
+                StoreError::ModelInvocationNotFound => StoreError::InvalidModelInvocationCursor,
+                other => other,
+            })?;
+            let stored_cursor = decode_model_invocation_revision(cursor_row, &intent)?;
+            if encode_model_invocation_record(&stored_cursor)?
+                != encode_model_invocation_record(cursor)?
+            {
+                return Err(StoreError::InvalidModelInvocationCursor);
+            }
+            verify_model_invocation_anchor(&mut transaction, &stored_cursor).await?;
+            Some(stored_cursor)
+        } else {
+            None
+        };
+
+        let after_revision = cursor.as_ref().map_or(-1_i64, |cursor| {
+            i64::try_from(cursor.revision().get()).unwrap_or(i64::MAX)
+        });
+        let rows = query_as::<_, ModelInvocationRevisionRow>(SELECT_MODEL_INVOCATION_HISTORY)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*invocation_id.as_uuid())
+            .bind(after_revision)
+            .bind(i64::from(page_size.get()))
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("model invocation history load", source))?;
+
+        let mut verifier = cursor
+            .clone()
+            .map_or_else(ModelInvocationHistoryVerifier::new, |cursor| {
+                ModelInvocationHistoryVerifier::after(cursor)
+            });
+        let mut records = Vec::with_capacity(rows.len());
+        for row in rows {
+            let record = decode_model_invocation_revision(row, &intent)?;
+            verifier
+                .verify_next(&record)
+                .map_err(|_| StoreError::corrupt("model invocation history"))?;
+            verify_model_invocation_anchor(&mut transaction, &record).await?;
+            records.push(record);
+        }
+        let final_record = records
+            .last()
+            .or(cursor.as_ref())
+            .ok_or_else(|| StoreError::corrupt("model invocation empty history"))?;
+        let has_more = final_record.revision() < current_revision;
+        if has_more && records.is_empty() {
+            return Err(StoreError::corrupt("model invocation history gap"));
+        }
+        if !has_more {
+            validate_model_invocation_current_projection(&row, final_record)?;
+            if verifier.head() != Some(final_record.head()) {
+                return Err(StoreError::corrupt("model invocation history head"));
+            }
+        }
+
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("model invocation history commit", source))?;
+        Ok(ModelInvocationHistoryPage { records, has_more })
     }
 
     /// Claims an unowned or expired runnable run for a stable `UUIDv7` attempt.
@@ -1782,6 +2109,348 @@ WHERE tenant_id = $1
         Ok(ToolInvocationCommitOutcome::Committed { event, invocation })
     }
 
+    /// Atomically prepares one fenced logical model invocation and journal event.
+    ///
+    /// The exact activation checkpoint must still be current and ready. No
+    /// provider I/O belongs in this transaction; dispatch starts only after the
+    /// caller separately commits a `StartAttempt` revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit authority, lifecycle, idempotency, checkpoint,
+    /// activation, fencing, integrity, transition, or database failures.
+    pub async fn prepare_model_invocation(
+        &self,
+        append: JournalAppend,
+        intent: ModelInvocationIntent,
+    ) -> Result<ModelInvocationCommitOutcome, StoreError> {
+        Box::pin(self.prepare_model_invocation_inner(append, intent)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn prepare_model_invocation_inner(
+        &self,
+        append: JournalAppend,
+        intent: ModelInvocationIntent,
+    ) -> Result<ModelInvocationCommitOutcome, StoreError> {
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(StoreError::WrongAppendAuthority)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if intent.tenant_id() != &tenant_id || intent.run_id() != run_id {
+            return Err(StoreError::ModelInvocationCommitConflict);
+        }
+
+        let mut transaction = self.begin_mutation("model invocation prepare").await?;
+        let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(run_row)?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("model invocation event lookup", source))?;
+        if let Some(row) = existing_event {
+            let projection_digest = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "model invocation projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            let intent_row = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATION)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*intent.invocation_id().as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| {
+                    StoreError::database("model invocation idempotency intent", source)
+                })?
+                .ok_or(StoreError::ModelInvocationCommitConflict)?;
+            let stored_intent = decode_model_invocation_intent(&intent_row)?;
+            if stored_intent != intent {
+                return Err(StoreError::ModelInvocationIdConflict);
+            }
+            let revision_row = query_as::<_, ModelInvocationRevisionRow>(
+                SELECT_MODEL_INVOCATION_REVISION_BY_ANCHOR,
+            )
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(
+                i64::try_from(event.sequence().get())
+                    .map_err(|_| StoreError::JournalSequenceExhausted)?,
+            )
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| {
+                StoreError::database("model invocation idempotency revision", source)
+            })?
+            .ok_or(StoreError::ModelInvocationCommitConflict)?;
+            if revision_row.invocation_id != *intent.invocation_id().as_uuid() {
+                return Err(StoreError::ModelInvocationCommitConflict);
+            }
+            let invocation = decode_model_invocation_revision(revision_row, &stored_intent)?;
+            let expected = ModelInvocation::prepare(intent, event.head())
+                .map_err(|_| StoreError::ModelInvocationCommitConflict)?;
+            if projection_digest != Some(invocation.digest())
+                || encode_model_invocation_record(&invocation)?
+                    != encode_model_invocation_record(&expected)?
+            {
+                return Err(StoreError::ModelInvocationCommitConflict);
+            }
+            verify_model_invocation_base_checkpoint(&mut transaction, &stored_intent).await?;
+            verify_model_invocation_anchor(&mut transaction, &invocation).await?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent model invocation prepare commit", source)
+            })?;
+            return Ok(ModelInvocationCommitOutcome::Idempotent { event, invocation });
+        }
+
+        let existing_intent = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATION)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*intent.invocation_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("model invocation identity lookup", source))?;
+        if existing_intent.is_some() {
+            return Err(StoreError::ModelInvocationIdConflict);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if stored.lifecycle().status() != RunStatus::Active {
+            return Err(StoreError::RunNotRunnable);
+        }
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !model_invocation_activation_is_ready(&current_checkpoint, &intent) {
+            return Err(StoreError::InvalidModelInvocationActivation);
+        }
+
+        let observed_at = database_now(&mut transaction, "model invocation prepare clock").await?;
+        authorize_worker(&stored, &fence, observed_at)?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let invocation = ModelInvocation::prepare(intent, event.head())
+            .map_err(|_| StoreError::InvalidModelInvocationTransition)?;
+
+        insert_event(&mut transaction, &event, invocation.digest()).await?;
+        insert_model_invocation_intent(&mut transaction, &invocation, &fence).await?;
+        insert_initial_model_invocation_revision(&mut transaction, &invocation, &fence).await?;
+        update_run_head(&mut transaction, &event, None).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("model invocation prepare commit", source))?;
+        Ok(ModelInvocationCommitOutcome::Committed { event, invocation })
+    }
+
+    /// Atomically advances one fenced logical model invocation and journal event.
+    ///
+    /// The complete current record is restored under run and invocation locks,
+    /// compared with `expected`, and passed through the core state machine. A
+    /// `StartAttempt` revision and global attempt claim commit before exactly one
+    /// provider exchange; a complete response or failure commits afterward.
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit authority, lifecycle, idempotency, stale-head,
+    /// checkpoint, fencing, transition, integrity, or database failures.
+    pub async fn advance_model_invocation(
+        &self,
+        append: JournalAppend,
+        expected: &ModelInvocationHead,
+        transition: ModelInvocationTransition,
+    ) -> Result<ModelInvocationCommitOutcome, StoreError> {
+        Box::pin(self.advance_model_invocation_inner(append, expected, transition)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn advance_model_invocation_inner(
+        &self,
+        append: JournalAppend,
+        expected: &ModelInvocationHead,
+        transition: ModelInvocationTransition,
+    ) -> Result<ModelInvocationCommitOutcome, StoreError> {
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(StoreError::WrongAppendAuthority)?;
+        let tenant_id = append.intent().tenant_id().clone();
+        let run_id = append.intent().run_id();
+        let event_id = append.intent().event_id();
+        if expected.tenant_id() != &tenant_id || expected.run_id() != run_id {
+            return Err(StoreError::StaleModelInvocationHead);
+        }
+
+        let mut transaction = self.begin_mutation("model invocation advance").await?;
+        let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let stored = decode_run(run_row)?;
+
+        let existing_event = query_as::<_, EventRow>(SELECT_EVENT_BY_ID)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*event_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("model invocation event lookup", source))?;
+        if let Some(row) = existing_event {
+            let projection_digest = row
+                .projection_digest
+                .as_deref()
+                .map(|bytes| decode_digest(bytes, "model invocation projection digest"))
+                .transpose()?;
+            let event = decode_event(row)?;
+            if !event.matches_intent(append.intent()) {
+                return Err(StoreError::EventIdConflict);
+            }
+            let intent_row = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATION)
+                .bind(tenant_id.as_str())
+                .bind(*run_id.as_uuid())
+                .bind(*expected.invocation_id().as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| {
+                    StoreError::database("model invocation idempotency intent", source)
+                })?
+                .ok_or(StoreError::ModelInvocationCommitConflict)?;
+            let intent = decode_model_invocation_intent(&intent_row)?;
+            let previous_row = load_model_invocation_revision_row(
+                &mut transaction,
+                &tenant_id,
+                run_id,
+                expected.invocation_id(),
+                expected.revision(),
+            )
+            .await
+            .map_err(|error| match error {
+                StoreError::ModelInvocationNotFound => StoreError::ModelInvocationCommitConflict,
+                other => other,
+            })?;
+            let previous = decode_model_invocation_revision(previous_row, &intent)?;
+            if previous.head() != *expected {
+                return Err(StoreError::ModelInvocationCommitConflict);
+            }
+            let expected_invocation = previous
+                .advance(transition, event.head())
+                .map_err(|_| StoreError::ModelInvocationCommitConflict)?;
+            let revision_row = query_as::<_, ModelInvocationRevisionRow>(
+                SELECT_MODEL_INVOCATION_REVISION_BY_ANCHOR,
+            )
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(
+                i64::try_from(event.sequence().get())
+                    .map_err(|_| StoreError::JournalSequenceExhausted)?,
+            )
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| {
+                StoreError::database("model invocation idempotency revision", source)
+            })?
+            .ok_or(StoreError::ModelInvocationCommitConflict)?;
+            if revision_row.invocation_id != *expected.invocation_id().as_uuid() {
+                return Err(StoreError::ModelInvocationCommitConflict);
+            }
+            let invocation = decode_model_invocation_revision(revision_row, &intent)?;
+            if projection_digest != Some(invocation.digest())
+                || encode_model_invocation_record(&invocation)?
+                    != encode_model_invocation_record(&expected_invocation)?
+            {
+                return Err(StoreError::ModelInvocationCommitConflict);
+            }
+            verify_model_invocation_base_checkpoint(&mut transaction, &intent).await?;
+            verify_model_invocation_anchor(&mut transaction, &invocation).await?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent model invocation advance commit", source)
+            })?;
+            return Ok(ModelInvocationCommitOutcome::Idempotent { event, invocation });
+        }
+
+        let intent_row = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATION_FOR_UPDATE)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*expected.invocation_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("model invocation row lock", source))?
+            .ok_or(StoreError::ModelInvocationNotFound)?;
+        let intent = decode_model_invocation_intent(&intent_row)?;
+        let current_revision = nonnegative_model_invocation_revision(intent_row.current_revision)?;
+        let current_row = load_model_invocation_revision_row(
+            &mut transaction,
+            &tenant_id,
+            run_id,
+            expected.invocation_id(),
+            current_revision,
+        )
+        .await?;
+        let current = decode_model_invocation_revision(current_row, &intent)?;
+        validate_model_invocation_current_projection(&intent_row, &current)?;
+        if current.head() != *expected {
+            return Err(StoreError::StaleModelInvocationHead);
+        }
+        if stored.is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        validate_model_invocation_transition_lifecycle(&stored, transition.kind())?;
+        if append.expectation().head() != stored.journal_head() {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let current_checkpoint =
+            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !model_invocation_activation_is_ready(&current_checkpoint, &intent) {
+            return Err(StoreError::corrupt("model invocation activation"));
+        }
+
+        let observed_at = database_now(&mut transaction, "model invocation advance clock").await?;
+        authorize_worker(&stored, &fence, observed_at)?;
+        let recorded_at = stored
+            .journal_head()
+            .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
+        let event = JournalEvent::commit(append, recorded_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let invocation = current
+            .advance(transition, event.head())
+            .map_err(|_| StoreError::InvalidModelInvocationTransition)?;
+
+        insert_event(&mut transaction, &event, invocation.digest()).await?;
+        insert_successor_model_invocation_revision(&mut transaction, &invocation, expected, &fence)
+            .await?;
+        update_model_invocation_current(&mut transaction, &invocation, expected, &fence).await?;
+        update_run_head(&mut transaction, &event, None).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("model invocation advance commit", source))?;
+        Ok(ModelInvocationCommitOutcome::Committed { event, invocation })
+    }
+
     /// Atomically appends a control-plane event and commits one graph barrier.
     ///
     /// The checkpoint write must belong to the same tenant/run, its exact
@@ -2102,6 +2771,7 @@ WHERE tenant_id = $1
         }
         if let Some(parent) = current_checkpoint.as_ref() {
             ensure_no_unsettled_tool_invocations(&mut transaction, parent).await?;
+            ensure_no_unsettled_model_invocations(&mut transaction, parent).await?;
         }
 
         let observed_at = database_now(&mut transaction, "checkpoint append clock").await?;
@@ -2189,6 +2859,28 @@ impl fmt::Debug for PostgresStore {
 enum AppendAuthority {
     ControlPlane,
     Worker,
+}
+
+#[derive(Clone, Copy)]
+enum InvocationAttemptKind {
+    Tool,
+    Model,
+}
+
+impl InvocationAttemptKind {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Tool => "tool_invocation",
+            Self::Model => "model_invocation",
+        }
+    }
+
+    const fn conflict(self) -> StoreError {
+        match self {
+            Self::Tool => StoreError::InvalidToolInvocationTransition,
+            Self::Model => StoreError::InvalidModelInvocationTransition,
+        }
+    }
 }
 
 struct RunRow {
@@ -2280,6 +2972,47 @@ struct ToolInvocationRow {
 }
 
 struct ToolInvocationRevisionRow {
+    tenant_id: String,
+    run_id: Uuid,
+    invocation_id: Uuid,
+    revision: i64,
+    previous_revision: Option<i64>,
+    previous_digest: Option<Vec<u8>>,
+    journal_sequence: i64,
+    journal_event_id: Uuid,
+    journal_recorded_at: DateTime<Utc>,
+    journal_digest: Vec<u8>,
+    status: String,
+    attempt_id: Option<Uuid>,
+    transition_kind: Option<String>,
+    started_attempt_id: Option<Uuid>,
+    transition_digest: Option<Vec<u8>>,
+    record_digest: Vec<u8>,
+    record_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
+struct ModelInvocationRow {
+    tenant_id: String,
+    run_id: Uuid,
+    invocation_id: Uuid,
+    base_checkpoint_id: Uuid,
+    base_superstep: i64,
+    base_checkpoint_digest: Vec<u8>,
+    graph_namespace: String,
+    node_id: String,
+    activation_input_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    intent_bytes: Vec<u8>,
+    current_revision: i64,
+    current_status: String,
+    current_attempt_id: Option<Uuid>,
+    current_record_digest: Vec<u8>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+struct ModelInvocationRevisionRow {
     tenant_id: String,
     run_id: Uuid,
     invocation_id: Uuid,
@@ -2429,6 +3162,55 @@ impl<'row> FromRow<'row, PgRow> for ToolInvocationRevisionRow {
     }
 }
 
+impl<'row> FromRow<'row, PgRow> for ModelInvocationRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            invocation_id: row.try_get("invocation_id")?,
+            base_checkpoint_id: row.try_get("base_checkpoint_id")?,
+            base_superstep: row.try_get("base_superstep")?,
+            base_checkpoint_digest: row.try_get("base_checkpoint_digest")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            node_id: row.try_get("node_id")?,
+            activation_input_digest: row.try_get("activation_input_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            intent_bytes: row.try_get("intent_bytes")?,
+            current_revision: row.try_get("current_revision")?,
+            current_status: row.try_get("current_status")?,
+            current_attempt_id: row.try_get("current_attempt_id")?,
+            current_record_digest: row.try_get("current_record_digest")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for ModelInvocationRevisionRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            invocation_id: row.try_get("invocation_id")?,
+            revision: row.try_get("revision")?,
+            previous_revision: row.try_get("previous_revision")?,
+            previous_digest: row.try_get("previous_digest")?,
+            journal_sequence: row.try_get("journal_sequence")?,
+            journal_event_id: row.try_get("journal_event_id")?,
+            journal_recorded_at: row.try_get("journal_recorded_at")?,
+            journal_digest: row.try_get("journal_digest")?,
+            status: row.try_get("status")?,
+            attempt_id: row.try_get("attempt_id")?,
+            transition_kind: row.try_get("transition_kind")?,
+            started_attempt_id: row.try_get("started_attempt_id")?,
+            transition_digest: row.try_get("transition_digest")?,
+            record_digest: row.try_get("record_digest")?,
+            record_bytes: row.try_get("record_bytes")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
 struct PreparedProjection {
     lifecycle_bytes: Vec<u8>,
     revision: String,
@@ -2444,6 +3226,23 @@ enum ProjectionDigestWire<'a> {
         expected_revision: &'a RunRevision,
         transition: &'a RunTransition,
     },
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ModelInvocationRecordWire {
+    schema: String,
+    intent_digest: Digest,
+    revision: ModelInvocationRevision,
+    state: ModelInvocationState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    previous: Option<ModelInvocationHead>,
+    journal_head: JournalHead,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    transition: Option<ModelInvocationTransition>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    transition_digest: Option<Digest>,
+    digest: Digest,
 }
 
 async fn apply_transaction_timeouts(
@@ -3106,6 +3905,328 @@ async fn verify_tool_invocation_anchor(
     Ok(())
 }
 
+fn encode_model_invocation_intent(intent: &ModelInvocationIntent) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(intent)
+        .map_err(|_| StoreError::encoding("model invocation intent"))?;
+    if bytes.is_empty() || bytes.len() > MAX_MODEL_INVOCATION_INTENT_BYTES {
+        return Err(StoreError::encoding("model invocation intent size"));
+    }
+    Ok(bytes)
+}
+
+fn model_invocation_record_wire(invocation: &ModelInvocation) -> ModelInvocationRecordWire {
+    ModelInvocationRecordWire {
+        schema: MODEL_INVOCATION_RECORD_SCHEMA.to_owned(),
+        intent_digest: invocation.intent().intent_digest(),
+        revision: invocation.revision(),
+        state: invocation.state().clone(),
+        previous: invocation.previous().cloned(),
+        journal_head: invocation.journal_head().clone(),
+        transition: invocation.transition().cloned(),
+        transition_digest: invocation.transition_digest(),
+        digest: invocation.digest(),
+    }
+}
+
+fn encode_model_invocation_record(invocation: &ModelInvocation) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(&model_invocation_record_wire(invocation))
+        .map_err(|_| StoreError::encoding("model invocation record"))?;
+    if bytes.is_empty() || bytes.len() > MAX_MODEL_INVOCATION_RECORD_BYTES {
+        return Err(StoreError::encoding("model invocation record size"));
+    }
+    Ok(bytes)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_model_invocation_intent(
+    row: &ModelInvocationRow,
+) -> Result<ModelInvocationIntent, StoreError> {
+    if row.intent_bytes.is_empty() || row.intent_bytes.len() > MAX_MODEL_INVOCATION_INTENT_BYTES {
+        return Err(StoreError::corrupt("model invocation intent byte length"));
+    }
+    let intent = serde_json::from_slice::<ModelInvocationIntent>(&row.intent_bytes)
+        .map_err(|_| StoreError::corrupt("model invocation intent value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&intent)
+        .map_err(|_| StoreError::corrupt("model invocation intent canonicalization"))?;
+    if canonical != row.intent_bytes {
+        return Err(StoreError::corrupt(
+            "model invocation intent canonical bytes",
+        ));
+    }
+
+    let tenant_id = TenantId::try_from(row.tenant_id.as_str())
+        .map_err(|_| StoreError::corrupt("model invocation tenant"))?;
+    let run_id = RunId::from_uuid(row.run_id)
+        .map_err(|_| StoreError::corrupt("model invocation run identity"))?;
+    let invocation_id = InvocationId::from_uuid(row.invocation_id)
+        .map_err(|_| StoreError::corrupt("model invocation identity"))?;
+    let base_checkpoint_id = CheckpointId::from_uuid(row.base_checkpoint_id)
+        .map_err(|_| StoreError::corrupt("model invocation base checkpoint identity"))?;
+    let base_superstep = nonnegative_superstep(row.base_superstep)?;
+    let base_digest = decode_digest(
+        &row.base_checkpoint_digest,
+        "model invocation base checkpoint digest",
+    )?;
+    let activation = intent.activation();
+    if intent.tenant_id() != &tenant_id
+        || intent.run_id() != run_id
+        || intent.invocation_id() != invocation_id
+        || activation.base_checkpoint().checkpoint_id() != base_checkpoint_id
+        || activation.base_checkpoint().superstep() != base_superstep
+        || activation.base_checkpoint().digest() != base_digest
+        || activation.graph_namespace().as_str() != row.graph_namespace
+        || activation.node_id().as_str() != row.node_id
+        || activation.input_digest()
+            != decode_digest(
+                &row.activation_input_digest,
+                "model invocation activation input digest",
+            )?
+        || intent.intent_digest()
+            != decode_digest(&row.intent_digest, "model invocation intent digest")?
+    {
+        return Err(StoreError::corrupt("model invocation intent projection"));
+    }
+    from_database_time(row.created_at)?;
+    from_database_time(row.updated_at)?;
+    Ok(intent)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_model_invocation_revision(
+    row: ModelInvocationRevisionRow,
+    intent: &ModelInvocationIntent,
+) -> Result<ModelInvocation, StoreError> {
+    if row.record_bytes.is_empty() || row.record_bytes.len() > MAX_MODEL_INVOCATION_RECORD_BYTES {
+        return Err(StoreError::corrupt("model invocation record byte length"));
+    }
+    let wire = serde_json::from_slice::<ModelInvocationRecordWire>(&row.record_bytes)
+        .map_err(|_| StoreError::corrupt("model invocation record value"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&wire)
+        .map_err(|_| StoreError::corrupt("model invocation record canonicalization"))?;
+    if canonical != row.record_bytes {
+        return Err(StoreError::corrupt(
+            "model invocation record canonical bytes",
+        ));
+    }
+    if wire.schema != MODEL_INVOCATION_RECORD_SCHEMA || wire.intent_digest != intent.intent_digest()
+    {
+        return Err(StoreError::corrupt("model invocation record format"));
+    }
+    let invocation = ModelInvocation::restore(
+        intent.clone(),
+        wire.revision,
+        wire.state,
+        wire.previous,
+        wire.journal_head,
+        wire.transition,
+        wire.transition_digest,
+        wire.digest,
+    )
+    .map_err(|_| StoreError::corrupt("model invocation record integrity"))?;
+
+    let tenant_id = TenantId::try_from(row.tenant_id)
+        .map_err(|_| StoreError::corrupt("model invocation revision tenant"))?;
+    let run_id = RunId::from_uuid(row.run_id)
+        .map_err(|_| StoreError::corrupt("model invocation revision run identity"))?;
+    let invocation_id = InvocationId::from_uuid(row.invocation_id)
+        .map_err(|_| StoreError::corrupt("model invocation revision identity"))?;
+    let revision = nonnegative_model_invocation_revision(row.revision)?;
+    let previous_matches = match (
+        invocation.previous(),
+        row.previous_revision,
+        row.previous_digest,
+    ) {
+        (None, None, None) => true,
+        (Some(previous), Some(previous_revision), Some(previous_digest)) => {
+            nonnegative_model_invocation_revision(previous_revision).ok()
+                == Some(previous.revision())
+                && decode_digest(&previous_digest, "model invocation predecessor digest").ok()
+                    == Some(previous.digest())
+        }
+        _ => false,
+    };
+    let journal_sequence = positive_sequence(row.journal_sequence)?;
+    let journal_event_id = EventId::from_uuid(row.journal_event_id)
+        .map_err(|_| StoreError::corrupt("model invocation journal event identity"))?;
+    let journal_recorded_at = from_database_time(row.journal_recorded_at)?;
+    let journal_digest = decode_digest(&row.journal_digest, "model invocation journal digest")?;
+    let attempt_id = row
+        .attempt_id
+        .map(AttemptId::from_uuid)
+        .transpose()
+        .map_err(|_| StoreError::corrupt("model invocation attempt identity"))?;
+    let started_attempt_id = row
+        .started_attempt_id
+        .map(AttemptId::from_uuid)
+        .transpose()
+        .map_err(|_| StoreError::corrupt("model invocation started attempt identity"))?;
+    let transition_kind = invocation.transition().map(ModelInvocationTransition::kind);
+    let expected_started = match invocation.transition() {
+        Some(ModelInvocationTransition::StartAttempt { attempt_id }) => Some(*attempt_id),
+        _ => None,
+    };
+    let transition_digest = row
+        .transition_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "model invocation transition digest"))
+        .transpose()?;
+
+    if invocation.intent() != intent
+        || invocation.intent().tenant_id() != &tenant_id
+        || invocation.intent().run_id() != run_id
+        || invocation.intent().invocation_id() != invocation_id
+        || invocation.revision() != revision
+        || !previous_matches
+        || invocation.journal_head().sequence() != journal_sequence
+        || invocation.journal_head().event_id() != journal_event_id
+        || invocation.journal_head().recorded_at() != journal_recorded_at
+        || invocation.journal_head().digest() != journal_digest
+        || model_invocation_status_text(invocation.status()) != row.status
+        || invocation.attempt_id() != attempt_id
+        || transition_kind.map(model_invocation_transition_kind_text)
+            != row.transition_kind.as_deref()
+        || expected_started != started_attempt_id
+        || invocation.transition_digest() != transition_digest
+        || invocation.digest()
+            != decode_digest(&row.record_digest, "model invocation record digest")?
+        || from_database_time(row.created_at)? != invocation.journal_head().recorded_at()
+    {
+        return Err(StoreError::corrupt("model invocation revision projection"));
+    }
+    Ok(invocation)
+}
+
+fn nonnegative_model_invocation_revision(
+    value: i64,
+) -> Result<ModelInvocationRevision, StoreError> {
+    let value =
+        u64::try_from(value).map_err(|_| StoreError::corrupt("model invocation revision"))?;
+    ModelInvocationRevision::new(value)
+        .map_err(|_| StoreError::corrupt("model invocation revision"))
+}
+
+fn validate_model_invocation_current_projection(
+    row: &ModelInvocationRow,
+    current: &ModelInvocation,
+) -> Result<(), StoreError> {
+    let current_revision = nonnegative_model_invocation_revision(row.current_revision)?;
+    let current_attempt = row
+        .current_attempt_id
+        .map(AttemptId::from_uuid)
+        .transpose()
+        .map_err(|_| StoreError::corrupt("model invocation current attempt"))?;
+    let current_digest = decode_digest(
+        &row.current_record_digest,
+        "model invocation current record digest",
+    )?;
+    if current.revision() != current_revision
+        || model_invocation_status_text(current.status()) != row.current_status
+        || current.attempt_id() != current_attempt
+        || current.digest() != current_digest
+        || from_database_time(row.updated_at)? != current.journal_head().recorded_at()
+    {
+        return Err(StoreError::corrupt("model invocation current projection"));
+    }
+    Ok(())
+}
+
+async fn load_model_invocation_revision_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+    revision: ModelInvocationRevision,
+) -> Result<ModelInvocationRevisionRow, StoreError> {
+    let revision = i64::try_from(revision.get())
+        .map_err(|_| StoreError::corrupt("model invocation revision"))?;
+    query_as::<_, ModelInvocationRevisionRow>(SELECT_MODEL_INVOCATION_REVISION)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(*invocation_id.as_uuid())
+        .bind(revision)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("model invocation revision load", source))?
+        .ok_or(StoreError::ModelInvocationNotFound)
+}
+
+async fn verify_model_invocation_base_checkpoint(
+    transaction: &mut Transaction<'_, Postgres>,
+    intent: &ModelInvocationIntent,
+) -> Result<(), StoreError> {
+    let head = intent.activation().base_checkpoint();
+    let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+        .bind(intent.tenant_id().as_str())
+        .bind(*intent.run_id().as_uuid())
+        .bind(*head.checkpoint_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("model invocation base checkpoint", source))?
+        .ok_or_else(|| StoreError::corrupt("model invocation base checkpoint"))?;
+    let checkpoint = decode_checkpoint(row)?;
+    if checkpoint.head() != *head || !model_invocation_activation_is_ready(&checkpoint, intent) {
+        return Err(StoreError::corrupt("model invocation base checkpoint"));
+    }
+    verify_checkpoint_anchor(transaction, &checkpoint).await
+}
+
+fn model_invocation_activation_is_ready(
+    checkpoint: &Checkpoint,
+    intent: &ModelInvocationIntent,
+) -> bool {
+    let activation = intent.activation();
+    activation.graph_namespace().is_root()
+        && checkpoint.ready_nodes().contains(activation.node_id())
+}
+
+async fn ensure_no_unsettled_model_invocations(
+    transaction: &mut Transaction<'_, Postgres>,
+    checkpoint: &Checkpoint,
+) -> Result<(), StoreError> {
+    let superstep = i64::try_from(checkpoint.superstep().get())
+        .map_err(|_| StoreError::corrupt("checkpoint superstep"))?;
+    let exists = query_scalar::<_, bool>(SELECT_UNSETTLED_MODEL_INVOCATION_EXISTS)
+        .bind(checkpoint.tenant_id().as_str())
+        .bind(*checkpoint.run_id().as_uuid())
+        .bind(*checkpoint.checkpoint_id().as_uuid())
+        .bind(superstep)
+        .bind(checkpoint.digest().as_bytes())
+        .fetch_one(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("model invocation barrier check", source))?;
+    if exists {
+        return Err(StoreError::CheckpointBlockedByModelInvocation);
+    }
+    Ok(())
+}
+
+async fn verify_model_invocation_anchor(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ModelInvocation,
+) -> Result<(), StoreError> {
+    let sequence = i64::try_from(invocation.journal_head().sequence().get())
+        .map_err(|_| StoreError::corrupt("model invocation journal sequence"))?;
+    let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(invocation.intent().tenant_id().as_str())
+        .bind(*invocation.intent().run_id().as_uuid())
+        .bind(sequence)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("model invocation anchor", source))?
+        .ok_or_else(|| StoreError::corrupt("model invocation journal anchor"))?;
+    let projection_digest = row
+        .projection_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "model invocation projection digest"))
+        .transpose()?;
+    let event = decode_event(row)?;
+    if event.head() != *invocation.journal_head() || projection_digest != Some(invocation.digest())
+    {
+        return Err(StoreError::corrupt("model invocation journal anchor"));
+    }
+    Ok(())
+}
+
 fn projection_digest(projection: &RunProjection) -> Result<Digest, StoreError> {
     let wire = match projection {
         RunProjection::Unchanged => ProjectionDigestWire::Unchanged,
@@ -3405,6 +4526,85 @@ WHERE current_run.tenant_id = $1
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
+async fn insert_invocation_attempt_claim(
+    transaction: &mut Transaction<'_, Postgres>,
+    claim_kind: InvocationAttemptKind,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+    revision: i64,
+    attempt_id: AttemptId,
+    journal_head: &JournalHead,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let journal_sequence = i64::try_from(journal_head.sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let claimed_at = to_database_time(journal_head.recorded_at())?;
+    let result = query(
+        r"
+INSERT INTO stateknot.run_attempt_claims (
+    tenant_id,
+    run_id,
+    attempt_id,
+    claim_kind,
+    invocation_id,
+    invocation_revision,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    claimed_at
+)
+SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $9
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.lease_attempt_id = $11
+  AND current_run.fencing_epoch = $12
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*attempt_id.as_uuid())
+    .bind(claim_kind.as_str())
+    .bind(*invocation_id.as_uuid())
+    .bind(revision)
+    .bind(journal_sequence)
+    .bind(*journal_head.event_id().as_uuid())
+    .bind(claimed_at)
+    .bind(journal_head.digest().as_bytes())
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .execute(&mut **transaction)
+    .await;
+    let inserted = match result {
+        Ok(result) => result.rows_affected(),
+        Err(source)
+            if has_database_constraint(&source, "run_attempt_claims_pkey")
+                || has_database_constraint(
+                    &source,
+                    "run_attempt_claims_logical_revision_unique",
+                )
+                || has_database_constraint(&source, "run_attempt_claims_anchor_unique") =>
+        {
+            return Err(claim_kind.conflict());
+        }
+        Err(source) => {
+            return Err(StoreError::database(
+                "invocation attempt claim insert",
+                source,
+            ));
+        }
+    };
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
 async fn insert_initial_tool_invocation_revision(
     transaction: &mut Transaction<'_, Postgres>,
     invocation: &ToolInvocation,
@@ -3450,7 +4650,7 @@ async fn insert_tool_invocation_revision(
         .map(ToolInvocationTransition::kind)
         .map(tool_invocation_transition_kind_text);
     let started_attempt = match invocation.transition() {
-        Some(ToolInvocationTransition::StartAttempt { attempt_id }) => Some(*attempt_id.as_uuid()),
+        Some(ToolInvocationTransition::StartAttempt { attempt_id }) => Some(*attempt_id),
         _ => None,
     };
     let (expected_revision, expected_digest) = expected.map_or((None, None), |head| {
@@ -3464,6 +4664,21 @@ async fn insert_tool_invocation_revision(
     }
     let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
     let created_at = to_database_time(invocation.journal_head().recorded_at())?;
+
+    if let Some(attempt_id) = started_attempt {
+        insert_invocation_attempt_claim(
+            transaction,
+            InvocationAttemptKind::Tool,
+            intent.tenant_id(),
+            intent.run_id(),
+            intent.invocation_id(),
+            revision,
+            attempt_id,
+            invocation.journal_head(),
+            fence,
+        )
+        .await?;
+    }
 
     let result = query(
         r"
@@ -3527,7 +4742,7 @@ WHERE current_run.tenant_id = $1
     .bind(tool_invocation_status_text(invocation.status()))
     .bind(invocation.attempt_id().map(|attempt| *attempt.as_uuid()))
     .bind(transition_kind)
-    .bind(started_attempt)
+    .bind(started_attempt.map(|attempt| *attempt.as_uuid()))
     .bind(
         invocation
             .transition_digest()
@@ -3612,6 +4827,314 @@ WHERE current_invocation.tenant_id = $1
     .execute(&mut **transaction)
     .await
     .map_err(|source| StoreError::database("tool invocation current update", source))?
+    .rows_affected();
+    if updated != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+async fn insert_model_invocation_intent(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ModelInvocation,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let intent = invocation.intent();
+    let activation = intent.activation();
+    let base = activation.base_checkpoint();
+    let intent_bytes = encode_model_invocation_intent(intent)?;
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::encoding("model invocation base superstep"))?;
+    let current_revision = i64::try_from(invocation.revision().get())
+        .map_err(|_| StoreError::encoding("model invocation revision"))?;
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let created_at = to_database_time(invocation.journal_head().recorded_at())?;
+    let inserted = query(
+        r"
+INSERT INTO stateknot.model_invocations (
+    tenant_id,
+    run_id,
+    invocation_id,
+    base_checkpoint_id,
+    base_superstep,
+    base_checkpoint_digest,
+    graph_namespace,
+    node_id,
+    activation_input_digest,
+    intent_digest,
+    intent_bytes,
+    current_revision,
+    current_status,
+    current_attempt_id,
+    current_record_digest,
+    created_at,
+    updated_at
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16
+FROM stateknot.runs AS current_run
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND current_run.checkpoint_id = $4
+  AND current_run.checkpoint_superstep = $5
+  AND current_run.checkpoint_digest = $6
+  AND current_run.lease_attempt_id = $17
+  AND current_run.fencing_epoch = $18
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(intent.tenant_id().as_str())
+    .bind(*intent.run_id().as_uuid())
+    .bind(*intent.invocation_id().as_uuid())
+    .bind(*base.checkpoint_id().as_uuid())
+    .bind(base_superstep)
+    .bind(base.digest().as_bytes())
+    .bind(activation.graph_namespace().as_str())
+    .bind(activation.node_id().as_str())
+    .bind(activation.input_digest().as_bytes())
+    .bind(intent.intent_digest().as_bytes())
+    .bind(intent_bytes)
+    .bind(current_revision)
+    .bind(model_invocation_status_text(invocation.status()))
+    .bind(invocation.attempt_id().map(|attempt| *attempt.as_uuid()))
+    .bind(invocation.digest().as_bytes())
+    .bind(created_at)
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("model invocation intent insert", source))?
+    .rows_affected();
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+async fn insert_initial_model_invocation_revision(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ModelInvocation,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    insert_model_invocation_revision(transaction, invocation, None, fence).await
+}
+
+async fn insert_successor_model_invocation_revision(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ModelInvocation,
+    expected: &ModelInvocationHead,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    insert_model_invocation_revision(transaction, invocation, Some(expected), fence).await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_model_invocation_revision(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ModelInvocation,
+    expected: Option<&ModelInvocationHead>,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let intent = invocation.intent();
+    let record_bytes = encode_model_invocation_record(invocation)?;
+    let revision = i64::try_from(invocation.revision().get())
+        .map_err(|_| StoreError::encoding("model invocation revision"))?;
+    let (previous_revision, previous_digest) =
+        invocation.previous().map_or((None, None), |previous| {
+            (
+                i64::try_from(previous.revision().get()).ok(),
+                Some(previous.digest().as_bytes().to_vec()),
+            )
+        });
+    if invocation.previous().is_some() && previous_revision.is_none() {
+        return Err(StoreError::encoding(
+            "model invocation predecessor revision",
+        ));
+    }
+    let journal_sequence = i64::try_from(invocation.journal_head().sequence().get())
+        .map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let transition_kind = invocation
+        .transition()
+        .map(ModelInvocationTransition::kind)
+        .map(model_invocation_transition_kind_text);
+    let started_attempt = match invocation.transition() {
+        Some(ModelInvocationTransition::StartAttempt { attempt_id }) => Some(*attempt_id),
+        _ => None,
+    };
+    let (expected_revision, expected_digest) = expected.map_or((None, None), |head| {
+        (
+            i64::try_from(head.revision().get()).ok(),
+            Some(head.digest().as_bytes().to_vec()),
+        )
+    });
+    if expected.is_some() && expected_revision.is_none() {
+        return Err(StoreError::encoding("model invocation expected revision"));
+    }
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let created_at = to_database_time(invocation.journal_head().recorded_at())?;
+
+    if let Some(attempt_id) = started_attempt {
+        insert_invocation_attempt_claim(
+            transaction,
+            InvocationAttemptKind::Model,
+            intent.tenant_id(),
+            intent.run_id(),
+            intent.invocation_id(),
+            revision,
+            attempt_id,
+            invocation.journal_head(),
+            fence,
+        )
+        .await?;
+    }
+
+    let result = query(
+        r"
+INSERT INTO stateknot.model_invocation_revisions (
+    tenant_id,
+    run_id,
+    invocation_id,
+    revision,
+    previous_revision,
+    previous_digest,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    status,
+    attempt_id,
+    transition_kind,
+    started_attempt_id,
+    transition_digest,
+    record_digest,
+    record_bytes,
+    created_at
+)
+SELECT
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+FROM stateknot.runs AS current_run
+JOIN stateknot.model_invocations AS current_invocation
+  ON current_invocation.tenant_id = current_run.tenant_id
+ AND current_invocation.run_id = current_run.run_id
+ AND current_invocation.invocation_id = $3
+WHERE current_run.tenant_id = $1
+  AND current_run.run_id = $2
+  AND (
+      (
+          $19::bigint IS NULL
+          AND current_invocation.current_revision = $4
+          AND current_invocation.current_record_digest = $16
+      )
+      OR
+      (
+          $19::bigint IS NOT NULL
+          AND current_invocation.current_revision = $19
+          AND current_invocation.current_record_digest = $20
+      )
+  )
+  AND current_run.lease_attempt_id = $21
+  AND current_run.fencing_epoch = $22
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(intent.tenant_id().as_str())
+    .bind(*intent.run_id().as_uuid())
+    .bind(*intent.invocation_id().as_uuid())
+    .bind(revision)
+    .bind(previous_revision)
+    .bind(previous_digest)
+    .bind(journal_sequence)
+    .bind(*invocation.journal_head().event_id().as_uuid())
+    .bind(to_database_time(invocation.journal_head().recorded_at())?)
+    .bind(invocation.journal_head().digest().as_bytes())
+    .bind(model_invocation_status_text(invocation.status()))
+    .bind(invocation.attempt_id().map(|attempt| *attempt.as_uuid()))
+    .bind(transition_kind)
+    .bind(started_attempt.map(|attempt| *attempt.as_uuid()))
+    .bind(
+        invocation
+            .transition_digest()
+            .map(|digest| digest.as_bytes().to_vec()),
+    )
+    .bind(invocation.digest().as_bytes())
+    .bind(record_bytes)
+    .bind(created_at)
+    .bind(expected_revision)
+    .bind(expected_digest)
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .execute(&mut **transaction)
+    .await;
+    let inserted = match result {
+        Ok(result) => result.rows_affected(),
+        Err(source)
+            if has_database_constraint(
+                &source,
+                "model_invocation_revisions_started_attempt_unique",
+            ) =>
+        {
+            return Err(StoreError::InvalidModelInvocationTransition);
+        }
+        Err(source) => {
+            return Err(StoreError::database(
+                "model invocation revision insert",
+                source,
+            ));
+        }
+    };
+    if inserted != 1 {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+async fn update_model_invocation_current(
+    transaction: &mut Transaction<'_, Postgres>,
+    invocation: &ModelInvocation,
+    expected: &ModelInvocationHead,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    let revision = i64::try_from(invocation.revision().get())
+        .map_err(|_| StoreError::encoding("model invocation revision"))?;
+    let expected_revision = i64::try_from(expected.revision().get())
+        .map_err(|_| StoreError::StaleModelInvocationHead)?;
+    let fence_epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    let updated = query(
+        r"
+UPDATE stateknot.model_invocations AS current_invocation
+SET current_revision = $4,
+    current_status = $5,
+    current_attempt_id = $6,
+    current_record_digest = $7,
+    updated_at = $8
+FROM stateknot.runs AS current_run
+WHERE current_invocation.tenant_id = $1
+  AND current_invocation.run_id = $2
+  AND current_invocation.invocation_id = $3
+  AND current_invocation.current_revision = $9
+  AND current_invocation.current_record_digest = $10
+  AND current_run.tenant_id = current_invocation.tenant_id
+  AND current_run.run_id = current_invocation.run_id
+  AND current_run.lease_attempt_id = $11
+  AND current_run.fencing_epoch = $12
+  AND current_run.lease_expires_at > clock_timestamp()
+",
+    )
+    .bind(invocation.intent().tenant_id().as_str())
+    .bind(*invocation.intent().run_id().as_uuid())
+    .bind(*invocation.intent().invocation_id().as_uuid())
+    .bind(revision)
+    .bind(model_invocation_status_text(invocation.status()))
+    .bind(invocation.attempt_id().map(|attempt| *attempt.as_uuid()))
+    .bind(invocation.digest().as_bytes())
+    .bind(to_database_time(invocation.journal_head().recorded_at())?)
+    .bind(expected_revision)
+    .bind(expected.digest().as_bytes())
+    .bind(*fence.attempt_id().as_uuid())
+    .bind(fence_epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("model invocation current update", source))?
     .rows_affected();
     if updated != 1 {
         return Err(StoreError::LeaseExpired);
@@ -3956,6 +5479,25 @@ fn validate_tool_invocation_transition_lifecycle(
     Ok(())
 }
 
+fn validate_model_invocation_transition_lifecycle(
+    stored: &StoredRun,
+    transition: ModelInvocationTransitionKind,
+) -> Result<(), StoreError> {
+    let status = stored.lifecycle().status();
+    let allowed = match transition {
+        ModelInvocationTransitionKind::StartAttempt => status == RunStatus::Active,
+        ModelInvocationTransitionKind::RecordResponse
+        | ModelInvocationTransitionKind::RecordError => matches!(
+            status,
+            RunStatus::Active | RunStatus::Waiting | RunStatus::CancellationRequested
+        ),
+    };
+    if !allowed {
+        return Err(StoreError::RunNotRunnable);
+    }
+    Ok(())
+}
+
 fn positive_sequence(value: i64) -> Result<JournalSequence, StoreError> {
     let value = u64::try_from(value).map_err(|_| StoreError::corrupt("journal sequence"))?;
     JournalSequence::new(value).map_err(|_| StoreError::corrupt("journal sequence"))
@@ -4021,6 +5563,25 @@ const fn tool_invocation_transition_kind_text(kind: ToolInvocationTransitionKind
         ToolInvocationTransitionKind::RecordError => "record_error",
         ToolInvocationTransitionKind::ReconcileResult => "reconcile_result",
         ToolInvocationTransitionKind::ReconcileError => "reconcile_error",
+    }
+}
+
+const fn model_invocation_status_text(status: ModelInvocationStatus) -> &'static str {
+    match status {
+        ModelInvocationStatus::Prepared => "prepared",
+        ModelInvocationStatus::Executing => "executing",
+        ModelInvocationStatus::Committed => "committed",
+        ModelInvocationStatus::Failed => "failed",
+    }
+}
+
+const fn model_invocation_transition_kind_text(
+    kind: ModelInvocationTransitionKind,
+) -> &'static str {
+    match kind {
+        ModelInvocationTransitionKind::StartAttempt => "start_attempt",
+        ModelInvocationTransitionKind::RecordResponse => "record_response",
+        ModelInvocationTransitionKind::RecordError => "record_error",
     }
 }
 
@@ -4131,6 +5692,10 @@ mod tests {
         assert!(
             ToolInvocationHistoryPageSize::new(ToolInvocationHistoryPageSize::MAX + 1).is_err()
         );
+
+        assert!(ModelInvocationHistoryPageSize::new(1).is_ok());
+        assert!(ModelInvocationHistoryPageSize::new(0).is_err());
+        assert!(ModelInvocationHistoryPageSize::new(2).is_err());
     }
 
     #[test]

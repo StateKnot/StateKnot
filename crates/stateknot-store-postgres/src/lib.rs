@@ -24,7 +24,8 @@ pub use error::{ConfigurationError, StoreError};
 pub use model::{
     AdmissionOutcome, AppendOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
     CheckpointLineagePageSize, CheckpointPointer, JournalPage, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, RunProjection, StoredRun,
+    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, RunProjection, StoredRun,
     ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
 };
 pub use store::PostgresStore;
