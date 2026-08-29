@@ -119,6 +119,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   scheduling, reusable budget layers, model-capability preflight, reserved-name
   protection, redacted diagnostics, closed schemas, property tests, and an
   independent versioned wire fixture.
+- Runtime-neutral agent admission and successful-result contracts with
+  schema-bound bounded input/output, request-local restrictive budget layers,
+  deterministic full-budget resolution, new-admission retirement fencing,
+  tenant/run/thread/invocation/agent provenance, bounded final artifact
+  references, cumulative usage reconciliation, completion-time enforcement,
+  redacted diagnostics, closed schemas, adversarial mutation coverage, and an
+  independent versioned wire fixture.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

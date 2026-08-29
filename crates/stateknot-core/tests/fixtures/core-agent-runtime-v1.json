@@ -1,0 +1,469 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-agent-runtime/1.0.0",
+  "base_budget_layers": [
+    {
+      "deadline": "2030-01-01T00:00:00.000000Z",
+      "graph_depth": "32",
+      "graph_steps": "1000",
+      "model_attempts": "50",
+      "model_turns": "40",
+      "input_tokens": "1000000",
+      "cached_input_tokens": "500000",
+      "reasoning_tokens": "25000",
+      "output_tokens": "100000",
+      "tool_calls": "100",
+      "write_calls": "20",
+      "remote_agent_delegations": "10",
+      "retries": "25",
+      "concurrent_branches": "16",
+      "fan_out": "32",
+      "input_bytes": "10485760",
+      "output_bytes": "10485760",
+      "event_bytes": "20971520",
+      "checkpoint_bytes": "10485760",
+      "artifact_bytes": "104857600",
+      "costs": [
+        {
+          "currency": "CNY",
+          "micro_units": "7000000"
+        },
+        {
+          "currency": "USD",
+          "micro_units": "1000000"
+        }
+      ]
+    }
+  ],
+  "requests": {
+    "valid": [
+      {
+        "input_schema": {
+          "id": "https://schemas.example.com/incident-request/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea"
+        },
+        "input": {
+          "incident_id": "INC-42",
+          "question": "Summarize the evidence"
+        },
+        "budget_limits": {
+          "deadline": "2030-01-01T00:00:00.000000Z",
+          "input_bytes": "10485760",
+          "output_bytes": "4096"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "input_schema": {
+          "id": "https://schemas.example.com/incident-request/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea"
+        },
+        "input": {},
+        "budget_limits": {},
+        "raw_prompt": "must not cross the core boundary"
+      },
+      {
+        "input": {},
+        "budget_limits": {}
+      }
+    ]
+  },
+  "result_provenances": {
+    "valid": [
+      {
+        "tenant_id": "tenant-production",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "thread_id": "01912345-6789-7abc-8def-0123456789af",
+        "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+        "agent": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "agent-owner"
+          },
+          "capability": {
+            "name": "agents.incident",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "tenant_id": "tenant-production",
+        "run_id": "550e8400-e29b-41d4-a716-446655440000",
+        "thread_id": "01912345-6789-7abc-8def-0123456789af",
+        "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+        "agent": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "agent-owner"
+          },
+          "capability": {
+            "name": "agents.incident",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ]
+  },
+  "artifacts": {
+    "valid": [
+      [],
+      [
+        {
+          "identity": {
+            "tenant_id": "tenant-production",
+            "artifact_id": "01912345-6789-7abc-8def-0123456789ab"
+          },
+          "presentation": {
+            "name": "incident-report.pdf",
+            "description": "Sanitized incident report"
+          },
+          "representation": {
+            "media_type": "application/pdf",
+            "modality": "document",
+            "byte_length": "12",
+            "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+          },
+          "metadata": {
+            "source": "artifact",
+            "trust": "untrusted",
+            "security_label": "internal/pii",
+            "redaction": "not_applied"
+          },
+          "retention_class": "audit/7y",
+          "provenance": {
+            "principal": {
+              "issuer": "https://issuer.example.com",
+              "subject": "service-account"
+            },
+            "capability": {
+              "name": "files.convert",
+              "version": "1.2.3"
+            },
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "event_id": "01912345-6789-7abc-8def-0123456789af"
+          },
+          "parents": [
+            "01912345-6789-7abc-8def-0123456789ac",
+            "01912345-6789-7abc-8def-0123456789ad"
+          ]
+        }
+      ]
+    ],
+    "invalid": []
+  },
+  "results": {
+    "valid": [
+      {
+        "provenance": {
+          "tenant_id": "tenant-production",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "thread_id": "01912345-6789-7abc-8def-0123456789af",
+          "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+          "agent": {
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "agent-owner"
+            },
+            "capability": {
+              "name": "agents.incident",
+              "version": "1.0.0"
+            }
+          }
+        },
+        "completed_at": "2029-12-31T23:59:59.000000Z",
+        "output_schema": {
+          "id": "https://schemas.example.com/incident-report/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec"
+        },
+        "output": {
+          "summary": "Database latency caused the incident.",
+          "severity": "high"
+        },
+        "artifacts": [
+          {
+            "identity": {
+              "tenant_id": "tenant-production",
+              "artifact_id": "01912345-6789-7abc-8def-0123456789ab"
+            },
+            "presentation": {
+              "name": "incident-report.pdf",
+              "description": "Sanitized incident report"
+            },
+            "representation": {
+              "media_type": "application/pdf",
+              "modality": "document",
+              "byte_length": "12",
+              "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80"
+            },
+            "metadata": {
+              "source": "artifact",
+              "trust": "untrusted",
+              "security_label": "internal/pii",
+              "redaction": "not_applied"
+            },
+            "retention_class": "audit/7y",
+            "provenance": {
+              "principal": {
+                "issuer": "https://issuer.example.com",
+                "subject": "service-account"
+              },
+              "capability": {
+                "name": "files.convert",
+                "version": "1.2.3"
+              },
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "event_id": "01912345-6789-7abc-8def-0123456789af"
+            },
+            "parents": [
+              "01912345-6789-7abc-8def-0123456789ac",
+              "01912345-6789-7abc-8def-0123456789ad"
+            ]
+          }
+        ],
+        "usage": {
+          "graph_depth": "1",
+          "graph_steps": "6",
+          "model_attempts": "3",
+          "model_turns": "2",
+          "input_tokens": "800",
+          "cached_input_tokens": "100",
+          "reasoning_tokens": "50",
+          "output_tokens": "200",
+          "tool_calls": "1",
+          "write_calls": "0",
+          "remote_agent_delegations": "0",
+          "retries": "1",
+          "concurrent_branches": "1",
+          "fan_out": "1",
+          "input_bytes": "1024",
+          "output_bytes": "2048",
+          "event_bytes": "8192",
+          "checkpoint_bytes": "4096",
+          "artifact_bytes": "12",
+          "known_costs": [
+            {
+              "currency": "USD",
+              "micro_units": "1000"
+            }
+          ],
+          "unpriced_cost_events": "0"
+        }
+      }
+    ],
+    "invalid": []
+  },
+  "raw_invalid_requests": [
+    "{\"input_schema\":{\"id\":\"https://schemas.example.com/incident-request/1.0.0\",\"version\":\"1.0.0\",\"digest\":\"sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea\"},\"input_schema\":{\"id\":\"https://schemas.example.com/incident-request/1.0.0\",\"version\":\"1.0.0\",\"digest\":\"sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea\"},\"input\":{},\"budget_limits\":{}}"
+  ],
+  "raw_invalid_result_provenances": [
+    "{\"tenant_id\":\"tenant-production\",\"run_id\":\"01912345-6789-7abc-8def-0123456789ae\",\"run_id\":\"01912345-6789-7abc-8def-0123456789ae\",\"thread_id\":\"01912345-6789-7abc-8def-0123456789af\",\"invocation_id\":\"01912345-6789-7abc-8def-0123456789b0\",\"agent\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"agent-owner\"},\"capability\":{\"name\":\"agents.incident\",\"version\":\"1.0.0\"}}}"
+  ],
+  "raw_invalid_results": [
+    "{\"provenance\":{\"tenant_id\":\"tenant-production\",\"run_id\":\"01912345-6789-7abc-8def-0123456789ae\",\"thread_id\":\"01912345-6789-7abc-8def-0123456789af\",\"invocation_id\":\"01912345-6789-7abc-8def-0123456789b0\",\"agent\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"agent-owner\"},\"capability\":{\"name\":\"agents.incident\",\"version\":\"1.0.0\"}}},\"provenance\":{\"tenant_id\":\"tenant-production\",\"run_id\":\"01912345-6789-7abc-8def-0123456789ae\",\"thread_id\":\"01912345-6789-7abc-8def-0123456789af\",\"invocation_id\":\"01912345-6789-7abc-8def-0123456789b0\",\"agent\":{\"owner\":{\"issuer\":\"https://issuer.example.com/tenant\",\"subject\":\"agent-owner\"},\"capability\":{\"name\":\"agents.incident\",\"version\":\"1.0.0\"}}}}"
+  ],
+  "request_validation_mutations": [
+    {
+      "name": "input schema substitution",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/input_schema/id",
+          "value": "https://schemas.example.com/incident-report/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "input byte budget too small",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/budget_limits/input_bytes",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "request deadline already reached",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/budget_limits/deadline",
+          "value": "2029-12-31T23:59:58.000000Z"
+        }
+      ]
+    }
+  ],
+  "result_decode_mutations": [
+    {
+      "name": "missing model turn",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/usage/model_turns",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "name": "attempts below turns",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/usage/model_attempts",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "inline output bytes underreported",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/usage/output_bytes",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "artifact bytes underreported",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/usage/artifact_bytes",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "name": "artifact tenant substitution",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/artifacts/0/identity/tenant_id",
+          "value": "tenant-other"
+        }
+      ]
+    },
+    {
+      "name": "artifact run substitution",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/artifacts/0/provenance/run_id",
+          "value": "01912345-6789-7abc-8def-0123456789ad"
+        }
+      ]
+    },
+    {
+      "name": "duplicate artifact identity",
+      "changes": [
+        {
+          "op": "duplicate_first",
+          "pointer": "/artifacts"
+        }
+      ]
+    }
+  ],
+  "result_validation_mutations": [
+    {
+      "name": "run substitution",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/provenance/run_id",
+          "value": "01912345-6789-7abc-8def-0123456789ad"
+        },
+        {
+          "op": "replace",
+          "pointer": "/artifacts/0/provenance/run_id",
+          "value": "01912345-6789-7abc-8def-0123456789ad"
+        }
+      ]
+    },
+    {
+      "name": "thread substitution",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/provenance/thread_id",
+          "value": "01912345-6789-7abc-8def-0123456789ad"
+        }
+      ]
+    },
+    {
+      "name": "invocation substitution",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/provenance/invocation_id",
+          "value": "01912345-6789-7abc-8def-0123456789ad"
+        }
+      ]
+    },
+    {
+      "name": "agent version substitution",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/provenance/agent/capability/version",
+          "value": "1.0.1"
+        }
+      ]
+    },
+    {
+      "name": "output schema substitution",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/output_schema/id",
+          "value": "https://schemas.example.com/incident-request/1.0.0"
+        }
+      ]
+    },
+    {
+      "name": "initial input bytes underreported",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/usage/input_bytes",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "resolved output byte budget exceeded",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/usage/output_bytes",
+          "value": "4097"
+        }
+      ]
+    },
+    {
+      "name": "completion at deadline",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/completed_at",
+          "value": "2030-01-01T00:00:00.000000Z"
+        }
+      ]
+    },
+    {
+      "name": "unpriced provider activity",
+      "changes": [
+        {
+          "op": "replace",
+          "pointer": "/usage/unpriced_cost_events",
+          "value": "1"
+        }
+      ]
+    }
+  ]
+}

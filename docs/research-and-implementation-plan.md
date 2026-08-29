@@ -666,6 +666,21 @@ tool ledger 或副作用。普通工具数量加 marker 不能超过 core model 
 definition 上限。可复用 agent budget 不接受绝对 deadline；run admission 根据当次请求
 和相对策略计算并冻结绝对 deadline。
 
+已实现的 `AgentRequest` 只包含精确 input schema、bounded JSON input 和只能收紧的
+request budget layer，不接受客户端伪造 tenant/run/thread/invocation/model/tool ID。
+admission 在显式 clock observation 下，把 system/tenant/policy、agent、request 各层一次
+解析为唯一 `ResolvedBudget`，执行 16 层硬上限、退休版本 fencing、deadline 和 compact
+input byte 检查；恢复可继续读取已快照但后来 retired 的版本。
+
+成功终态使用 `AgentResult`：它绑定 tenant/run/thread/logical invocation/精确 agent
+version、`completed_at`、output schema、bounded final JSON、最多 64 个唯一 artifact ref 和
+完整累计 `BudgetUsage`。提交前重新绑定 trusted admission provenance/request/descriptor/
+resolved budget，并证明初始输入、最终输出、返回 artifact bytes 已入账。artifact 必须属于
+同 tenant/run，但保留真实 model/tool/workflow/remote-agent producer；失败、cancel、approval
+pause 和 handoff 继续作为显式 run transition，不编码成半成功结果。messages、raw model
+responses、tool ledger 和审批历史只保存在有序 journal，避免 terminal result 复制一份可能
+与 checkpoint 分叉的 process-local transcript。
+
 默认 loop：
 
 1. 组装受信指令与上下文；

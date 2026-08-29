@@ -1075,9 +1075,9 @@ instructions, a canonically ordered set of resolved `ToolDescriptor` values, a
 resolved structured-output strategy, finite loop limits, and an optional
 agent-level budget layer. A reusable descriptor cannot embed the budget's
 absolute `deadline`; the runtime derives that instant from run admission and
-the applicable relative policy. A run snapshots this value; registry aliases, model
-profiles, tool schemas, prompts, and lifecycle changes cannot silently alter an
-already-started run.
+the applicable relative policy. A run snapshots this value; registry aliases,
+model profiles, tool schemas, prompts, and lifecycle changes cannot silently
+alter an already-started run.
 
 StateKnot supports two durable structured-output strategies:
 
@@ -1113,6 +1113,44 @@ collection exceeds its hard count or byte limits. Schema references are
 identities, not validation evidence: the trusted local registry must validate
 input, output, tool, and provider-profile schemas before a descriptor becomes
 selectable.
+
+`AgentRequest` is the runtime-neutral pre-admission value. It carries only the
+exact input schema reference, bounded JSON input, and a request-local
+`BudgetLimits` layer. It does not accept caller-supplied tenant, run, thread,
+invocation, model, or tool identities. Unlike model tool arguments, agent input
+is not forced to have an object root: the digest-pinned agent input schema owns
+that decision. New admission rejects a retired descriptor, while recovery may
+revalidate a snapshotted request against the same now-retired version.
+
+Admission supplies an explicitly recorded clock observation and the selected
+system, tenant, and policy budget layers. Core appends the immutable agent and
+request layers, rejects more than 16 total layers, resolves every dimension by
+finite minimum, rejects a deadline reached at equality, and accounts the compact
+input bytes. Returning `ResolvedBudget` from this single operation prevents an
+executor from validating against one set of layers and committing another.
+Local input-schema evaluation still runs before admission commit; a
+`SchemaReference` alone is never proof that the instance is valid.
+
+`AgentResult` represents successful termination only. It binds tenant, run,
+thread, logical invocation, and exact agent version to a completion timestamp,
+the pinned output schema, bounded final JSON, at most 64 unique final artifact
+references, and complete cumulative `BudgetUsage`. Final artifacts must belong
+to the same tenant and run, but may truthfully name the model, tool, workflow,
+or remote capability that produced them. StateKnot does not rewrite their
+provenance to make the top-level agent appear to be the producer.
+
+Before terminal commit, validation rebinds the result to trusted admission
+provenance, the request, descriptor, and exact resolved budget; requires initial
+input, final output, and returned run-created artifact bytes to be accounted;
+and evaluates every budget dimension at `completed_at`. The compact result does
+not duplicate messages, raw model responses, tool ledgers, approval records, or
+handoff history; clients retrieve those from the ordered journal. Failure,
+cancellation, pause/approval, and handoff are run-state transitions, never
+partially populated successful results. This intentionally differs from
+in-memory SDK result objects that retain convenient run items or messages, such
+as [OpenAI Agents results](https://openai.github.io/openai-agents-python/results/)
+and [Pydantic AI run results](https://ai.pydantic.dev/api/run/): durability and
+resume are defined by the journal rather than one process-local return value.
 
 The ordinary agent loop is compiled by `stateknot-runtime` onto the same durable
 graph/journal semantics as a hand-authored graph. Core does not expose an async

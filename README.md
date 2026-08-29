@@ -61,7 +61,7 @@ and the [completeness audit](docs/plan-completeness-audit.md).
 
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
-crates/stateknot-core/   Validated domain, model/tool calls, and immutable agent definitions
+crates/stateknot-core/   Validated domain plus model, tool, and agent execution contracts
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 .github/                 Contribution templates and automated quality gates
 ```
