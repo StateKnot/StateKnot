@@ -23,6 +23,7 @@ mod identity;
 mod ids;
 mod json;
 mod message;
+mod model;
 mod schema;
 mod scope;
 mod time;
@@ -74,6 +75,14 @@ pub use message::{
     Instruction, InstructionContent, InstructionError, InstructionIdentity, InstructionName,
     InstructionNameError, InstructionProvenance, Message, MessageError, MessageParts,
     MessagePartsError, MessageProducer, MessageProducerKind, MessageProvenance, MessageRole,
+};
+pub use model::{
+    ModelCapabilities, ModelCapabilitiesError, ModelCapabilityIssue, ModelCapabilityMismatch,
+    ModelCapabilityMismatchError, ModelModalities, ModelModalitiesError, ModelModality,
+    ModelRequirements, ModelRequirementsError, ModelStructuredOutputCapabilities,
+    ModelStructuredOutputCapabilitiesError, ModelStructuredOutputLevel, ModelTokenLimits,
+    ModelTokenLimitsError, ModelToolCapabilities, ModelToolCapabilitiesError, ModelToolChoice,
+    ModelToolChoices, ModelToolChoicesError, ModelToolRequirements, ModelToolRequirementsError,
 };
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};

@@ -1,0 +1,631 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-model-capability/1.0.0",
+  "modalities": {
+    "valid": [
+      "text",
+      "image",
+      "audio",
+      "video",
+      "document"
+    ],
+    "invalid": [
+      "archive",
+      "",
+      1,
+      null
+    ]
+  },
+  "tool_choices": {
+    "valid": [
+      "auto",
+      "none",
+      "required",
+      "specific"
+    ],
+    "invalid": [
+      "forced",
+      "",
+      true,
+      null
+    ]
+  },
+  "structured_levels": {
+    "valid": [
+      "unsupported",
+      "json",
+      "json_schema"
+    ],
+    "invalid": [
+      "json_object",
+      "",
+      false,
+      null
+    ]
+  },
+  "modality_sets": {
+    "valid": [
+      [],
+      [
+        "text"
+      ],
+      [
+        "text",
+        "image",
+        "audio",
+        "video",
+        "document"
+      ]
+    ],
+    "invalid": [
+      [
+        "text",
+        "text"
+      ],
+      [
+        "text",
+        "archive"
+      ],
+      {},
+      null
+    ]
+  },
+  "choice_sets": {
+    "valid": [
+      [],
+      [
+        "auto"
+      ],
+      [
+        "auto",
+        "none",
+        "required",
+        "specific"
+      ]
+    ],
+    "invalid": [
+      [
+        "auto",
+        "auto"
+      ],
+      [
+        "auto",
+        "forced"
+      ],
+      {},
+      null
+    ]
+  },
+  "token_limits": {
+    "valid": [
+      {},
+      {
+        "max_context_tokens": "128000",
+        "max_input_tokens": "120000",
+        "max_output_tokens": "16384"
+      },
+      {
+        "max_input_tokens": "1048576",
+        "max_output_tokens": "65536"
+      }
+    ],
+    "invalid": [
+      {
+        "max_context_tokens": "0"
+      },
+      {
+        "max_input_tokens": "0"
+      },
+      {
+        "max_output_tokens": "0"
+      },
+      {
+        "max_context_tokens": "10",
+        "max_input_tokens": "11"
+      },
+      {
+        "max_context_tokens": "10",
+        "max_output_tokens": "11"
+      },
+      {
+        "max_context_tokens": 128000
+      },
+      {
+        "unlimited": true
+      },
+      null
+    ]
+  },
+  "tool_capabilities": {
+    "valid": [
+      {
+        "max_definitions": "0",
+        "max_calls_per_response": "0",
+        "choices": [],
+        "strict_arguments": false
+      },
+      {
+        "schema_profile": {
+          "id": "https://schemas.example.com/model-profiles/tool-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "max_definitions": "64",
+        "max_calls_per_response": "8",
+        "choices": [
+          "auto",
+          "none",
+          "required",
+          "specific"
+        ],
+        "strict_arguments": true
+      }
+    ],
+    "invalid": [
+      {
+        "max_definitions": "1",
+        "max_calls_per_response": "1",
+        "choices": [
+          "auto"
+        ],
+        "strict_arguments": false
+      },
+      {
+        "schema_profile": {
+          "id": "https://schemas.example.com/model-profiles/tool-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "max_definitions": "0",
+        "max_calls_per_response": "1",
+        "choices": [
+          "auto"
+        ],
+        "strict_arguments": false
+      },
+      {
+        "schema_profile": {
+          "id": "https://schemas.example.com/model-profiles/tool-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "max_definitions": "1",
+        "max_calls_per_response": "0",
+        "choices": [
+          "auto"
+        ],
+        "strict_arguments": false
+      },
+      {
+        "schema_profile": {
+          "id": "https://schemas.example.com/model-profiles/tool-input/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "max_definitions": "1",
+        "max_calls_per_response": "1",
+        "choices": [
+          "required"
+        ],
+        "strict_arguments": false
+      },
+      {
+        "max_definitions": "0",
+        "max_calls_per_response": "0",
+        "choices": [],
+        "strict_arguments": false,
+        "parallel": false
+      },
+      null
+    ]
+  },
+  "structured_outputs": {
+    "valid": [
+      {
+        "level": "unsupported"
+      },
+      {
+        "level": "json"
+      },
+      {
+        "level": "json_schema",
+        "schema_profile": {
+          "id": "https://schemas.example.com/model-profiles/structured-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "level": "json_schema"
+      },
+      {
+        "level": "unsupported",
+        "schema_profile": {
+          "id": "https://schemas.example.com/model-profiles/structured-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      {
+        "level": "json",
+        "schema_profile": {
+          "id": "https://schemas.example.com/model-profiles/structured-output/1.0.0",
+          "version": "1.0.0",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      {
+        "level": "json",
+        "strict": true
+      },
+      null
+    ]
+  },
+  "tool_requirements": {
+    "valid": [
+      {
+        "min_definitions": "0",
+        "min_calls_per_response": "0",
+        "choices": [],
+        "strict_arguments": false
+      },
+      {
+        "min_definitions": "12",
+        "min_calls_per_response": "4",
+        "choices": [
+          "auto",
+          "specific"
+        ],
+        "strict_arguments": true
+      }
+    ],
+    "invalid": [
+      {
+        "min_definitions": "1",
+        "min_calls_per_response": "0",
+        "choices": [],
+        "strict_arguments": false
+      },
+      {
+        "min_definitions": "0",
+        "min_calls_per_response": "1",
+        "choices": [],
+        "strict_arguments": false
+      },
+      {
+        "min_definitions": "0",
+        "min_calls_per_response": "0",
+        "choices": [
+          "auto"
+        ],
+        "strict_arguments": false
+      },
+      {
+        "min_definitions": "0",
+        "min_calls_per_response": "0",
+        "choices": [],
+        "strict_arguments": true
+      },
+      null
+    ]
+  },
+  "requirements": {
+    "valid": [
+      {
+        "input_modalities": [],
+        "output_modalities": [],
+        "streaming": false,
+        "tools": {
+          "min_definitions": "0",
+          "min_calls_per_response": "0",
+          "choices": [],
+          "strict_arguments": false
+        },
+        "structured_output": "unsupported",
+        "reasoning_summaries": false
+      },
+      {
+        "input_modalities": [
+          "text",
+          "image"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "streaming": true,
+        "tools": {
+          "min_definitions": "12",
+          "min_calls_per_response": "4",
+          "choices": [
+            "auto",
+            "specific"
+          ],
+          "strict_arguments": true
+        },
+        "structured_output": "json_schema",
+        "reasoning_summaries": true,
+        "min_context_tokens": "64000",
+        "min_input_tokens": "48000",
+        "min_output_tokens": "8192"
+      }
+    ],
+    "invalid": [
+      {
+        "input_modalities": [],
+        "output_modalities": [],
+        "streaming": false,
+        "tools": {
+          "min_definitions": "0",
+          "min_calls_per_response": "0",
+          "choices": [],
+          "strict_arguments": false
+        },
+        "structured_output": "unsupported",
+        "reasoning_summaries": false,
+        "min_context_tokens": "0"
+      },
+      {
+        "input_modalities": [],
+        "output_modalities": [],
+        "streaming": false,
+        "tools": {
+          "min_definitions": "0",
+          "min_calls_per_response": "0",
+          "choices": [],
+          "strict_arguments": false
+        },
+        "structured_output": "unsupported",
+        "reasoning_summaries": false,
+        "fallback": true
+      },
+      null
+    ]
+  },
+  "capabilities": {
+    "valid": [
+      {
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "streaming": false,
+        "tools": {
+          "max_definitions": "0",
+          "max_calls_per_response": "0",
+          "choices": [],
+          "strict_arguments": false
+        },
+        "structured_output": {
+          "level": "unsupported"
+        },
+        "reasoning_summaries": false,
+        "token_limits": {}
+      },
+      {
+        "input_modalities": [
+          "text",
+          "image",
+          "document"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "streaming": true,
+        "tools": {
+          "schema_profile": {
+            "id": "https://schemas.example.com/model-profiles/tool-input/1.0.0",
+            "version": "1.0.0",
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "max_definitions": "64",
+          "max_calls_per_response": "8",
+          "choices": [
+            "auto",
+            "none",
+            "required",
+            "specific"
+          ],
+          "strict_arguments": true
+        },
+        "structured_output": {
+          "level": "json_schema",
+          "schema_profile": {
+            "id": "https://schemas.example.com/model-profiles/structured-output/1.0.0",
+            "version": "1.0.0",
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "reasoning_summaries": true,
+        "token_limits": {
+          "max_context_tokens": "128000",
+          "max_input_tokens": "120000",
+          "max_output_tokens": "16384"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "input_modalities": [],
+        "output_modalities": [
+          "text"
+        ],
+        "streaming": false,
+        "tools": {
+          "max_definitions": "0",
+          "max_calls_per_response": "0",
+          "choices": [],
+          "strict_arguments": false
+        },
+        "structured_output": {
+          "level": "unsupported"
+        },
+        "reasoning_summaries": false,
+        "token_limits": {}
+      },
+      {
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [],
+        "streaming": false,
+        "tools": {
+          "max_definitions": "0",
+          "max_calls_per_response": "0",
+          "choices": [],
+          "strict_arguments": false
+        },
+        "structured_output": {
+          "level": "unsupported"
+        },
+        "reasoning_summaries": false,
+        "token_limits": {}
+      },
+      {
+        "input_modalities": [
+          "image"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "streaming": false,
+        "tools": {
+          "schema_profile": {
+            "id": "https://schemas.example.com/model-profiles/tool-input/1.0.0",
+            "version": "1.0.0",
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "max_definitions": "1",
+          "max_calls_per_response": "1",
+          "choices": [
+            "auto"
+          ],
+          "strict_arguments": false
+        },
+        "structured_output": {
+          "level": "unsupported"
+        },
+        "reasoning_summaries": false,
+        "token_limits": {}
+      },
+      {
+        "input_modalities": [
+          "image"
+        ],
+        "output_modalities": [
+          "image"
+        ],
+        "streaming": false,
+        "tools": {
+          "max_definitions": "0",
+          "max_calls_per_response": "0",
+          "choices": [],
+          "strict_arguments": false
+        },
+        "structured_output": {
+          "level": "json"
+        },
+        "reasoning_summaries": false,
+        "token_limits": {}
+      },
+      {
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "streaming": false,
+        "tools": {
+          "max_definitions": "0",
+          "max_calls_per_response": "0",
+          "choices": [],
+          "strict_arguments": false
+        },
+        "structured_output": {
+          "level": "unsupported"
+        },
+        "reasoning_summaries": false,
+        "token_limits": {},
+        "endpoint": "default"
+      },
+      null
+    ]
+  },
+  "mismatches": {
+    "valid": [
+      [
+        {
+          "requirement": "streaming"
+        }
+      ],
+      [
+        {
+          "requirement": "input_modality",
+          "required": "image"
+        },
+        {
+          "requirement": "tool_definitions",
+          "required": "5",
+          "available": "2"
+        },
+        {
+          "requirement": "structured_output",
+          "required": "json_schema",
+          "available": "json"
+        },
+        {
+          "requirement": "output_tokens",
+          "required": "16384"
+        }
+      ]
+    ],
+    "invalid": [
+      [],
+      [
+        {
+          "requirement": "streaming"
+        },
+        {
+          "requirement": "streaming"
+        }
+      ],
+      [
+        {
+          "requirement": "tool_definitions",
+          "required": "5",
+          "available": "2"
+        },
+        {
+          "requirement": "tool_definitions",
+          "required": "6",
+          "available": "2"
+        }
+      ],
+      [
+        {
+          "requirement": "output_tokens",
+          "required": "10",
+          "available": "10"
+        }
+      ],
+      [
+        {
+          "requirement": "unknown"
+        }
+      ],
+      {},
+      null
+    ]
+  },
+  "raw_invalid": {
+    "token_limits": [
+      "{\"max_context_tokens\":\"128000\",\"max_context_tokens\":\"64000\"}"
+    ],
+    "capabilities": [
+      "{\"input_modalities\":[\"text\"],\"output_modalities\":[\"text\"],\"streaming\":false,\"streaming\":true,\"tools\":{\"max_definitions\":\"0\",\"max_calls_per_response\":\"0\",\"choices\":[],\"strict_arguments\":false},\"structured_output\":{\"level\":\"unsupported\"},\"reasoning_summaries\":false,\"token_limits\":{}}"
+    ]
+  }
+}

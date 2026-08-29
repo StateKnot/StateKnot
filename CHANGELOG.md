@@ -67,6 +67,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   redacted discovery text, closed kinds, validated active/deprecated/retired
   lifecycles, self-replacement rejection, required scopes, bounded extensions,
   closed schemas, property tests, and versioned wire fixtures.
+- Endpoint-bound model capabilities with sorted multimodal input/output sets,
+  schema-profiled and finitely bounded tool calling, explicit strict/choice/
+  parallel semantics, tiered structured output, readable reasoning summaries,
+  fail-closed unknown token ceilings, exhaustive requirement mismatch reports,
+  closed schemas, property tests, and versioned wire fixtures.
 - Protocol-neutral tool descriptors with digest-pinned schemas, closed and
   cross-validated side-effect/idempotency semantics, non-granting resource
   requirements, bounded cancellation/progress behavior, finite input/output/

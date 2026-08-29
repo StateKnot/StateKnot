@@ -175,8 +175,7 @@ async fn invoke(
     let request = ModelRequest::builder()
         .instruction(Instruction::trusted("Return a typed incident summary")?)
         .message(Message::user([ContentPart::text("Investigate incident 42")?])?)
-        .required(ModelRequirement::ToolCalling)
-        .required(ModelRequirement::StructuredOutput)
+        .require_structured_output(ModelStructuredOutputLevel::JsonSchema)
         .output_schema(JsonSchemaDocument::for_type::<IncidentSummary>()?)
         .build()?;
 
@@ -188,7 +187,10 @@ async fn invoke(
 
 Capability mismatch fails before provider invocation. Provider-specific options
 may be supplied through a registered, namespaced extension, but cannot weaken
-budgets, policy, schema validation, or durable guarantees.
+the normalized `ModelRequirements` derived by `ModelRequest::build`, budgets,
+policy, schema validation, or durable guarantees. The digest-pinned output
+schema must also pass the selected adapter profile; feature negotiation alone
+is not schema validation.
 
 ### Bounded run context
 
@@ -648,22 +650,74 @@ one invocation contract.
 
 ### Model capabilities
 
-`ModelCapabilities` explicitly records:
+`ModelCapabilities` describes one exact model, adapter, API surface, and endpoint
+binding. It is not a timeless assertion about a model family: the same weights
+can expose different features through OpenAI-compatible, Anthropic Messages,
+Bedrock Converse, regional, or hosted endpoints.
 
-- supported input and output modalities;
-- streaming support;
-- tool-calling and parallel-tool-calling support;
-- structured-output support and accepted schema subset;
-- known context/output token limits;
-- provider features represented by registered extension keys.
+The snapshot records:
 
-`ModelRequirement` records the capabilities a request needs. Negotiation returns
-a `CapabilityMismatch` listing every unmet requirement. A runtime snapshots the
-negotiated capabilities with the attempt so recovery can detect adapter or
-provider drift.
+- non-empty, sorted input and output `ModelModalities` chosen from text, image,
+  audio, video, and document;
+- response streaming support;
+- `ModelToolCapabilities` with a digest-pinned accepted schema profile, finite
+  tool-definition and per-response tool-call ceilings, supported auto/none/
+  required/specific choices, and strict-argument support; a per-response call
+  ceiling greater than one is the portable definition of parallel tool calling;
+- structured output at the ordered `unsupported | json | json_schema` levels,
+  with a digest-pinned accepted profile exactly for `json_schema`;
+- explicit readable reasoning-summary support, never access to raw hidden chain
+  of thought;
+- independently known total-context, input, and output token ceilings. Each may
+  be explicitly unknown; unknown fails a positive capacity requirement and is
+  never interpreted as unlimited.
 
-Capability data is evidence from an adapter and may become stale. It does not
-override provider errors, tenant policy, or configured safety limits.
+Modalities are coarse negotiation facts. Exact MIME types, image dimensions,
+document/page counts, audio/video duration, request bytes, and provider-specific
+limits remain in a validated adapter profile. Tool and structured-output schema
+profile URLs are offline identities: a trusted local registry resolves their
+bytes and verifies versions and digests before a request can be selected.
+
+Supported tool calling requires text input and output. JSON and JSON Schema
+output and readable reasoning summaries require text output. Tool support
+without a schema profile, active fields on an unsupported capability, zero
+supported capacity, and schema profiles attached to weaker structured-output
+levels are rejected during construction and deserialization.
+
+`ModelRequirements` is the normalized request-derived contract. It contains
+required modalities and feature levels, finite tool capacities/choices, and
+positive known-token minima. `ModelCapabilities::satisfies` returns a sorted,
+bounded, non-empty `ModelCapabilityMismatch` containing every unmet dimension,
+including the known available capacity where relevant. Mismatch wire data also
+rejects duplicate dimensions and claims where available capacity already meets
+the requirement. Actual request schemas must additionally validate against the
+pinned profiles; feature negotiation alone never rewrites or weakens a schema.
+
+This separation follows current provider surfaces. OpenAI publishes context,
+output, streaming, function-calling, structured-output, and image-input support
+per model, permits multiple calls on supported models, and documents a strict
+[JSON Schema subset](https://developers.openai.com/api/docs/guides/structured-outputs).
+Anthropic independently controls
+[parallel tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/parallel-tool-use),
+[strict tool schemas and structured output](https://platform.claude.com/docs/en/build-with-claude/structured-outputs),
+and counts both request and generated output in its
+[context window](https://platform.claude.com/docs/en/build-with-claude/context-windows).
+The Gemini Models API exposes separate input/output token limits and supported
+actions, while Amazon Bedrock exposes modalities and streaming support per
+deployed model binding through `GetFoundationModel`.
+
+Readable reasoning summaries are opt-in, provider-authored summaries. Opaque,
+signed, or encrypted reasoning-continuation blocks required by a provider are
+preserved only in its bounded adapter state and passed back unchanged; they are
+not logged, interpreted, exposed as summaries, or converted into core content.
+Pricing, rate limits, service tiers, regional availability, and provider knobs
+remain versioned policy/adapter data because they can change without a model
+version change.
+
+Capability data is evidence from an adapter and may become stale. The runtime
+snapshots it with the attempt so recovery can detect drift. It does not override
+provider errors, tenant policy, configured safety limits, or the resolved finite
+run budget.
 
 ### Tool capabilities
 

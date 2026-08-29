@@ -249,13 +249,66 @@ flowchart TB
 
 ### 8.3 Model
 
-公共接口不能只抽象成 `prompt -> String`。至少需要：
+公共接口不能只抽象成 `prompt -> String`。`ModelCapabilities` 描述的是精确
+model + adapter + API surface + endpoint binding，不是对某个模型家族永久有效的
+宣传标签。同一模型通过 OpenAI-compatible、Anthropic Messages、Bedrock Converse
+或不同 region/hosted endpoint 暴露的能力可能不同。
 
-- `ModelCapabilities`：tool calling、parallel tools、structured output、vision/audio/files、reasoning summary、streaming、max context 等；
-- request 中明确 system/developer/user/tool 层级、tool choice、response schema、sampling、budget、deadline 与 metadata；
-- 统一 `ModelEvent`：message delta、tool-call delta/completed、usage、provider metadata、finish、error；
-- adapter 在执行前做 capability negotiation，不支持时返回 typed error，不静默降级；
-- 只暴露 provider 允许输出的 reasoning summary，不记录或转发隐藏思维链。
+已冻结的 capability negotiation 契约为：
+
+- input/output `ModelModalities` 各自是非空、排序、拒绝重复的闭集，当前只包含
+  text/image/audio/video/document；它只是粗粒度协商，精确 MIME、尺寸、页数、
+  duration、数量和 byte 上限属于 adapter profile，不能由 modality 推导；
+- streaming 独立声明；不能因为某个 provider 有 stream API 就假设所有模型或
+  endpoint 都支持；
+- `ModelToolCapabilities` 必须带本地可解析、version + digest 固定的 schema
+  profile，并给出有限 max definitions、有限 max calls per response、支持的
+  auto/none/required/specific choice 和 strict-arguments。单响应 calls 上限大于一
+  才表示可接受 parallel tool calls；strict 只约束完整 tool-call item，core 仍
+  必须本地解析和校验每个参数；
+- structured output 分成 `unsupported | json | json_schema` 三级；只有
+  `json_schema` 能携带接受的 schema profile。refusal、安全中断或 token 截断是
+  独立终态，不伪装成 schema-valid success；
+- reasoning 只声明是否能按请求返回 provider 生成的 readable summary。供应商为
+  多轮连续性要求回传的 signed/encrypted opaque reasoning block 只能保存在有界
+  adapter state，原样回传，不进入 core content、日志或 summary；
+- token limit 分别记录已知的 total context、input、output ceiling。三者可分别
+  unknown；unknown 对任何正数容量需求 fail closed，不能解释成 unlimited。
+  input/output 各自不得超过已知 total context，但两个独立最大值不必能同时达到；
+- tool calling 必须同时有 text input/output；JSON、JSON Schema 和 reasoning
+  summary 必须有 text output。unsupported 状态携带活动字段、零支持容量和错误的
+  profile/level 组合都在构造与反序列化时拒绝。
+
+`ModelRequirements` 由实际 request 规范化生成，包含 modality、streaming、tool
+容量/choice/strict、structured-output level、reasoning summary 和正数 token
+minima。`satisfies` 返回排序、有界、非空的 `ModelCapabilityMismatch`，一次列全
+所有未满足维度以及已知 available capacity；诊断 wire 自身也拒绝重复维度和
+`available >= required` 的伪 mismatch。实际 tool/output schema 仍必须在本地
+registry 对照 capability 中 digest-pinned profile 验证，协商不能删除不支持的
+keyword 后静默降级。
+
+这些维度来自多家一手接口，而非只复刻 LangChain：
+
+- [OpenAI model catalog](https://developers.openai.com/api/docs/models/compare) 按模型
+  给出 context/output、streaming、function calling、structured output 和 image
+  input；function calling 与 strict structured output 各有独立限制；
+- Anthropic 分别定义
+  [parallel tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/parallel-tool-use)、
+  [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
+  和包含生成输出的 [context window](https://platform.claude.com/docs/en/build-with-claude/context-windows)；
+- [Gemini Models API](https://ai.google.dev/api/models) 直接返回 input/output token
+  limit 与 supported actions；
+- [Amazon Bedrock model discovery](https://docs.aws.amazon.com/bedrock/latest/userguide/inference-api.html)
+  按部署返回 input/output modalities 和 response streaming support，证明能力必须
+  绑定 endpoint；
+- MCP 2026-07-28 已弃用 Sampling，因此 v1 不以 MCP sampling preference 构造新的
+  core model-selection 抽象。
+
+request 还必须明确 system/developer/user/tool 层级、tool choice、response schema、
+sampling、budget、deadline 与 metadata；统一 `ModelEvent` 覆盖 message delta、
+tool-call delta/completed、usage、provider metadata、finish 和 error。pricing、rate
+limit、service tier、region availability 与 provider knob 属于可变 policy/adapter
+数据，不固化进模型 capability snapshot。
 
 建议 v1 只提供两个高保真第一方 adapter：OpenAI Responses/OpenAI-compatible 与 Anthropic Messages。其他 provider 在有明确用户需求和契约测试后再加入。
 
