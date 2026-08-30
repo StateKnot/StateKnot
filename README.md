@@ -85,14 +85,31 @@ pages inherit one stable quarantine intent, and migration 11 records the
 detecting attempt/epoch in a v2 audit digest. The quarantine transaction repeats
 that unexpired fence predicate, so a superseded worker cannot stop its successor
 even when no journal event separated their leases.
+`ClaimedRunRecovery::plan_ready_nodes` now pins that verified checkpoint and
+journal observation, derives canonical root-node activations, streams immutable
+results and complete attempt histories through bounded verifiers, and emits a
+stable `NodeId`-ordered classification of completed, dispatchable, deferred,
+same-fence in-flight, terminally failed, or hard-limit-exhausted work at a
+database-observed time. Per activation, 64 physical attempts is the closed
+safety ceiling enforced by both planning and the start transaction.
+Completed siblings become exact barrier inputs; contradictory activation,
+result, attempt, fence, journal, or clock evidence fails closed through the
+same fenced quarantine path. `start_recovered_node_attempt` is the production
+handoff for a dispatchable decision: it binds the plan to an exact worker
+append and atomically commits/revalidates the durable physical start before
+node code. Only a newly `Committed` start grants that caller launch authority;
+an `Idempotent` result is treated as already in flight and can be orphan-recovered
+only under a higher fence. Lost acknowledgements and 24-way identical-start
+races converge on one physical row on PostgreSQL 16/17.
 Complete ready-set barriers now atomically bind and consume the exact immutable
 result set while committing their event, successor checkpoint, lifecycle
 projection, and run heads; the specialized wait-barrier commits that same unit
 with a complete interrupt/timer batch. Raw successor checkpoint, generic wait
 projection, and pending-result writes that bypass their durable evidence are
 rejected. Protocol-specific outbox dispatch adapters, cross-tenant fairness,
-deterministic replay and ready-node execution inside the complete
-recovery/dispatch loop, and a runnable agent loop have not shipped yet.
+pinned graph-registry revalidation, route/reducer/successor evaluation, durable
+delayed-retry wakeup, the complete recovery/barrier dispatch loop, and a
+runnable agent loop have not shipped yet.
 
 The current milestone is to:
 

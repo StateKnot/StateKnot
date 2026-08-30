@@ -20,7 +20,10 @@
 //! triggers that transaction only for payload-redacted integrity failures.
 //! Fence-bound claimed recovery sessions additionally scope every exposed page
 //! to one run and persist/recheck the detecting attempt and epoch before
-//! quarantine, preventing superseded workers from isolating a successor. The
+//! quarantine, preventing superseded workers from isolating a successor. Their
+//! bounded ready-node planner deterministically reuses completed results,
+//! classifies fresh/crash/retry/in-flight/terminal work at database time, and
+//! feeds a plan-bound durable node-start handoff before any node code runs. The
 //! provider never holds a database transaction across node, model, tool,
 //! remote-agent, or human work.
 //!

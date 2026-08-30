@@ -849,8 +849,17 @@ Migration 11 在不改变旧 v1 audit digest 的前提下为 recovery quarantine
 同一租户/run、稳定 quarantine identity、精确 journal observation 与 live fence，隔离投影更新
 再次执行未过期 fence SQL predicate。PG16/17 竞态测试已证明：旧 worker 被 supersede 后即使
 随后读到真实损坏 checkpoint，也只能得到 `StaleFence`，不能清除新 owner；当前 owner 才能隔离。
-它仍不是完整 runtime。协议专用 outbox dispatch adapter、确定性 replay/ready-node 执行、
-跨租户公平与 recovery/dispatch loop、角色隔离、
+Core 现在还用 checkpoint digest、root namespace 与 `NodeId` 确定性派生 ready activation；
+有界 planner 将已验证 result 与完整 node-attempt history 收敛为 canonical
+`Completed/Dispatchable/Deferred/InFlight/Failed/Exhausted` 决策，并绑定 final journal
+head、live fence 与数据库时间；第 64 个 physical attempt 是硬上限。PostgreSQL recovery
+session 会自动分页构建该计划、对矛盾证据执行 fenced
+quarantine；plan-bound start handoff 在任何 node code 前再次验证 checkpoint/latest
+predecessor/retry time/journal/fence 并提交 durable start。顺序不变属性、crash takeover、result reuse、lost-ACK 与
+24 路相同启动单物理提交已在 PG16/17 验证。
+它仍不是完整 runtime。协议专用 outbox dispatch adapter、pinned graph registry 重验、
+route/reducer/successor 与 barrier 驱动、durable deferred wakeup、跨租户公平与完整
+recovery/dispatch loop、角色隔离、
 归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
@@ -1064,9 +1073,11 @@ registry、pending node-result、transactional outbox、durable interrupt/timer 
 commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending-result barrier
 以及 tenant-level indexed runnable/due-timer/expired-interrupt discovery、durable wait
 registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；cross-tenant
-fairness、recovery 的确定性 replay/ready-node/dispatch loop、协议 dispatch adapter，以及
-阶段 3 的其余运维与故障门禁未完成，不能据此提前宣称阶段完成。已完成的 claimed recovery
-read surface 只提供 fence-bound、corruption-quarantining 的恢复输入边界，不等同于完整 runtime。
+fairness、pinned graph registry 重验、route/reducer/successor 与 barrier 驱动、durable
+deferred wakeup、完整 recovery/dispatch loop、协议 dispatch adapter，以及阶段 3 的其余运维
+与故障门禁未完成，不能据此提前宣称阶段完成。已完成的 claimed recovery surface 已提供
+fence-bound、corruption-quarantining 的恢复输入、确定性 root ready-node 计划与 durable start
+handoff，但仍不等同于完整 runtime。
 
 ### 阶段 4：协议正式支持（4–5 周）
 

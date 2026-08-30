@@ -119,6 +119,15 @@ pub enum StoreError {
     /// Durable journal progress invalidated the claimed recovery observation.
     #[error("claimed run recovery journal observation is stale")]
     StaleClaimedRunRecoveryObservation,
+    /// Ready-node recovery was requested before an initial checkpoint exists.
+    #[error("ready-node recovery requires a current graph checkpoint")]
+    ReadyNodeRecoveryCheckpointMissing,
+    /// A recovery plan, journal append, fence, or node selection crossed scope.
+    #[error("ready-node dispatch plan is invalid for the requested durable start")]
+    InvalidReadyNodeDispatchPlan,
+    /// The selected recovery-plan node does not authorize a new physical start.
+    #[error("ready-node recovery decision is not dispatchable")]
+    ReadyNodeNotDispatchable,
     /// Immutable quarantine evidence and the mutable run projection disagree.
     #[error("run quarantine evidence conflicts with its durable projection")]
     RunQuarantineCommitConflict,
@@ -293,6 +302,9 @@ pub enum StoreError {
     /// The requested physical-attempt transition is invalid for durable history.
     #[error("node attempt transition is invalid for the locked history")]
     InvalidNodeAttemptTransition,
+    /// One logical activation reached the hard physical-attempt ceiling.
+    #[error("node attempt history reached its hard physical-attempt limit")]
+    NodeAttemptLimitExceeded,
     /// The supplied exact start does not match the durable physical attempt.
     #[error("node attempt start is stale")]
     StaleNodeAttemptStart,

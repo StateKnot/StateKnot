@@ -18,15 +18,16 @@ use thiserror::Error;
 
 use crate::decimal::{UnsignedDecimalError, parse_bounded_u64};
 use crate::{
-    AttemptId, ByteCount, CheckpointHead, Digest, ExecutionCount, InvocationId, JournalHead,
-    JournalSequence, NodeId, RetryAdvice, RunId, TenantId, Timestamp, ToolDescriptor, ToolError,
-    ToolExecutionLimits, ToolExternalEffect, ToolInput, ToolResult, ToolRisk,
+    AttemptId, ByteCount, Checkpoint, CheckpointHead, Digest, ExecutionCount, InvocationId,
+    JournalHead, JournalSequence, NodeId, RetryAdvice, RunId, TenantId, Timestamp, ToolDescriptor,
+    ToolError, ToolExecutionLimits, ToolExternalEffect, ToolInput, ToolResult, ToolRisk,
 };
 
 const MAX_DATABASE_ORDINAL: u64 = i64::MAX as u64;
 const INVOCATION_REVISION_PATTERN: &str = "^(0|[1-9][0-9]{0,18})$";
 const GRAPH_NAMESPACE_PATTERN: &str =
     "^(?:[A-Za-z0-9][A-Za-z0-9_.-]{0,127}(?:/[A-Za-z0-9][A-Za-z0-9_.-]{0,127})*)?$";
+const READY_NODE_INPUT_DIGEST_DOMAIN: &[u8] = b"stateknot-ready-node-input-v1\0";
 const INTENT_DIGEST_DOMAIN: &[u8] = b"stateknot-tool-invocation-intent-v1\0";
 const TRANSITION_DIGEST_DOMAIN: &[u8] = b"stateknot-tool-invocation-transition-v1\0";
 const RECORD_DIGEST_DOMAIN: &[u8] = b"stateknot-tool-invocation-record-v1\0";
@@ -402,6 +403,38 @@ impl NodeActivation {
         }
     }
 
+    /// Derives the canonical root-graph activation for one ready node.
+    ///
+    /// The logical input digest is domain-separated from every other checksum
+    /// and binds the complete base-checkpoint digest, root namespace, and node
+    /// identity. Replaying the same checkpoint therefore produces byte-for-byte
+    /// identical activations without consulting a process clock, worker ID, or
+    /// completion order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NodeActivationError::NodeNotReady`] when `node_id` is absent
+    /// from the checkpoint's exact ready set, or
+    /// [`NodeActivationError::CanonicalSerialization`] if the closed digest
+    /// preimage cannot be encoded canonically.
+    pub fn for_ready_root(
+        checkpoint: &Checkpoint,
+        node_id: NodeId,
+    ) -> Result<Self, NodeActivationError> {
+        if !checkpoint.ready_nodes().contains(&node_id) {
+            return Err(NodeActivationError::NodeNotReady { node_id });
+        }
+        let graph_namespace = GraphNamespace::root();
+        let input_digest =
+            compute_ready_node_input_digest(checkpoint.digest(), &graph_namespace, &node_id)?;
+        Ok(Self::new(
+            checkpoint.head(),
+            graph_namespace,
+            node_id,
+            input_digest,
+        ))
+    }
+
     /// Returns the exact base checkpoint head.
     #[must_use]
     pub const fn base_checkpoint(&self) -> &CheckpointHead {
@@ -437,6 +470,21 @@ impl NodeActivation {
     pub const fn run_id(&self) -> RunId {
         self.base_checkpoint.run_id()
     }
+}
+
+/// Invalid deterministic construction of a ready-node activation.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum NodeActivationError {
+    /// The requested node is absent from the checkpoint's exact ready set.
+    #[error("node {node_id:?} is not ready in the base checkpoint")]
+    NodeNotReady {
+        /// Rejected node identity.
+        node_id: NodeId,
+    },
+    /// The closed activation-input checksum preimage could not be canonicalized.
+    #[error("ready-node activation input canonical serialization failed")]
+    CanonicalSerialization,
 }
 
 /// One resolved limit field used in narrowed-limit diagnostics.
@@ -1594,6 +1642,13 @@ pub enum ToolInvocationIntegrityError {
 }
 
 #[derive(Serialize)]
+struct ReadyNodeInputDigestWire<'a> {
+    base_checkpoint_digest: Digest,
+    graph_namespace: &'a GraphNamespace,
+    node_id: &'a NodeId,
+}
+
+#[derive(Serialize)]
 struct ToolInvocationIntentDigestWire<'a> {
     activation: &'a NodeActivation,
     invocation_id: InvocationId,
@@ -1612,6 +1667,23 @@ struct ToolInvocationRecordDigestWire<'a> {
     journal_head: &'a JournalHead,
     #[serde(skip_serializing_if = "Option::is_none")]
     transition_digest: Option<Digest>,
+}
+
+fn compute_ready_node_input_digest(
+    base_checkpoint_digest: Digest,
+    graph_namespace: &GraphNamespace,
+    node_id: &NodeId,
+) -> Result<Digest, NodeActivationError> {
+    let canonical = serde_json_canonicalizer::to_vec(&ReadyNodeInputDigestWire {
+        base_checkpoint_digest,
+        graph_namespace,
+        node_id,
+    })
+    .map_err(|_| NodeActivationError::CanonicalSerialization)?;
+    let mut preimage = Vec::with_capacity(READY_NODE_INPUT_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(READY_NODE_INPUT_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
 }
 
 fn compute_intent_digest(
@@ -2406,6 +2478,37 @@ mod tests {
         ] {
             assert!(from_value::<ToolInvocationRevision>(invalid).is_err());
         }
+    }
+
+    #[test]
+    fn ready_root_activation_is_deterministic_and_checkpoint_bound() {
+        let checkpoint = checkpoint();
+        let node_id = NodeId::new("authorize").unwrap();
+        let first = NodeActivation::for_ready_root(&checkpoint, node_id.clone()).unwrap();
+        let replayed = NodeActivation::for_ready_root(&checkpoint, node_id).unwrap();
+
+        assert_eq!(first, replayed);
+        assert_eq!(first.base_checkpoint(), &checkpoint.head());
+        assert!(first.graph_namespace().is_root());
+        assert_eq!(first.node_id().as_str(), "authorize");
+        assert_eq!(
+            first.input_digest(),
+            "sha256:fe68cf4a42614bfc0bf4b41ab0fd3e552840e2a389bb61354af2dbdff086bb2c"
+                .parse()
+                .unwrap()
+        );
+
+        let sibling =
+            NodeActivation::for_ready_root(&checkpoint, NodeId::new("reserve-stock").unwrap())
+                .unwrap();
+        assert_ne!(first.input_digest(), sibling.input_digest());
+
+        assert_eq!(
+            NodeActivation::for_ready_root(&checkpoint, NodeId::new("not-ready").unwrap(),),
+            Err(NodeActivationError::NodeNotReady {
+                node_id: NodeId::new("not-ready").unwrap(),
+            })
+        );
     }
 
     #[test]

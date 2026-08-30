@@ -236,6 +236,34 @@ PostgreSQL migration 6 implements the corresponding start/completion ledger,
 run-wide node/tool/model/outbox attempt uniqueness, exact row-level fencing, and
 attempt-owned result commit boundary.
 
+The implementation-backed root activation is also deterministic. For a node in
+the checkpoint's exact `ReadyNodes`, `NodeActivation::for_ready_root` computes
+its logical input as `SHA-256("stateknot-ready-node-input-v1\\0" || JCS({
+base_checkpoint_digest, graph_namespace, node_id }))`. This binds the complete
+checkpoint digest rather than its mutable database location and consults no
+clock, worker identity, random source, or sibling completion order. The current
+constructor deliberately rejects nodes outside the ready set and does not
+invent nested-graph readiness; a future namespaced checkpoint contract must be
+accepted before nested activations use this path.
+
+`ReadyNodeRecoveryPlanner` incrementally retains at most one compact result head
+and the latest fully verified attempt per ready node. At one exact live fence,
+final verified journal head, and database timestamp it produces a canonical
+`NodeId`-ordered closed decision: reuse `Completed`, start `FirstAttempt`, take
+over an unfinished lower-fence attempt, admit an elapsed `SafeRetry`, retain a
+same-fence `InFlight` start, durably `Deferred` until the inclusive retry time,
+surface a terminal `Failed` result, or stop at the closed 64-attempt
+`Exhausted` safety ceiling. Success without its immutable result,
+input drift, unsafe retry, history/fence contradiction, or a journal/clock
+observation behind evidence is corruption, never runnable work. A plan still
+does not authorize node code: the PostgreSQL handoff repeats current
+checkpoint and latest durable predecessor checks, plus database-clock retry,
+lifecycle, journal, and fence validation, while committing the physical start
+first. Only the caller that receives the new `Committed` outcome may launch;
+`Idempotent` is evidence
+of an existing in-flight start and an orphan can be replaced only under a
+higher fence.
+
 ## Parallel execution and barrier commit
 
 All nodes active in one superstep read the same checkpoint. Completion order is
@@ -356,6 +384,14 @@ Recovery does not call a model or tool merely to rebuild an in-memory transcript
 Committed external results are read from their ledgers. An external write with
 an unknown outcome remains blocked for reconciliation rather than becoming an
 ordinary retry.
+
+The current PostgreSQL vertical slice implements steps 1, 3/4 for its trusted
+checkpoint/journal boundary, 6, 8, and the physical-attempt part of 9 for the
+root ready set. It returns the closed recovery plan above and a plan-bound
+durable-start handoff. Loading the pinned graph implementation and schema
+registry by digest, independently recomputing the ready set, applying
+route/reducer/successor semantics, scheduling a durable deferred wakeup, and
+driving the complete barrier loop remain required before this RFC is accepted.
 
 ## Wait, resume, and cancellation
 

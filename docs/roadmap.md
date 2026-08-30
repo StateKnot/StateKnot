@@ -117,9 +117,19 @@ from the repository.
   recovery surface scopes checkpoint/journal/invocation/node-result reads to
   one stable quarantine intent, revalidates handoff, and proves that a
   superseded worker cannot quarantine its successor.
+- [x] Derive canonical root-node activations from the exact checkpoint, stream
+  completed results and complete attempt histories through a bounded recovery
+  planner, classify every ready node as completed/dispatchable/deferred/
+  in-flight/failed/exhausted using one live fence and database time, enforce a
+  64-attempt hard ceiling in planning and mutation, bind the canonical plan to
+  its final journal observation, quarantine contradictions, and commit a
+  plan-selected physical start before node code. Property-order invariance,
+  crash takeover, result reuse, lost-ACK, scope/limit rejection, and a
+  24-request single-start race pass on PostgreSQL 16/17.
 - [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
-  deterministic replay and ready-node execution, protocol-specific outbox
-  adapters, role isolation, retention, failover, restore, and stale-race gates.
+  pinned graph-registry replay, route/reducer/successor and barrier driving,
+  durable delayed-retry wakeup, protocol-specific outbox adapters, role
+  isolation, retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

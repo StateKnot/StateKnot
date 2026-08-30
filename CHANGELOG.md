@@ -210,6 +210,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   attempt-owned pending results committed with successful completions. Existing
   migration-5 results remain readable without fabricated physical provenance;
   direct result writes that bypass an attempt now fail closed.
+- Deterministic root ready-node activation derivation plus a bounded recovery
+  planner that reuses immutable results, verifies complete physical histories,
+  binds decisions to an exact checkpoint/fence/journal/database time, exposes
+  completed/dispatchable/deferred/in-flight/failed/exhausted states, and
+  enforces a 64-attempt ceiling. PostgreSQL claimed recovery builds and
+  corruption-quarantines that plan, while its plan-scoped start transaction
+  grants launch authority only for a fresh durable commit; PostgreSQL 16/17
+  coverage includes crash takeover, result reuse, drift rejection, lost-ACK,
+  24-way single-commit convergence, and the no-residue hard-limit boundary.
 - PostgreSQL migration 5 and atomic pending node-result commit/load APIs with
   immutable canonical records, exact base-checkpoint and worker-event anchors,
   separate tool/model composite foreign keys for activation-bound committed

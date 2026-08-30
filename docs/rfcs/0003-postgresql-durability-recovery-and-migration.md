@@ -612,12 +612,21 @@ requires one exact live `RunFence` and the candidate's exact journal
 observation. Its bounded lineage, journal, invocation-history, node-attempt, and
 pending-result reads share one stable corruption evidence identity; recovery
 revalidates the same fence and head before handing work to a durable start
-transaction. A recovery-originated quarantine persists the detecting attempt
-and epoch in its versioned digest and repeats the exact unexpired-fence predicate
-while revoking the lease. Consequently, a worker superseded without an
-intervening journal event cannot use subsequently observed corruption to stop
-the successor. Unfenced control-plane quarantine remains explicit and retains
-its v1 audit format.
+transaction. Its ready-node planner pins the current checkpoint, streams
+verified pending results and complete histories in bounded pages, classifies
+the exact root ready set at database time, and binds the canonical plan to the
+final journal observation. `start_recovered_node_attempt` accepts only a
+dispatchable plan decision and then repeats the current checkpoint,
+latest-predecessor transition, retry-time, lifecycle, journal, and live-fence
+checks while atomically committing the start before node code. Only a new
+`Committed` outcome grants that caller launch authority; an `Idempotent` start
+remains in flight until its owner finishes or a higher fence takes it over. A
+recovery-originated quarantine persists the detecting attempt and epoch in its
+versioned digest and repeats the exact unexpired-fence predicate while revoking
+the lease. Consequently, a worker
+superseded without an intervening journal event cannot use subsequently
+observed corruption to stop the successor. Unfenced control-plane quarantine
+remains explicit and retains its v1 audit format.
 
 A checksum mismatch, sequence gap, unsupported required schema, missing blob,
 cross-tenant reference, or projection disagreement quarantines the run. The
@@ -875,7 +884,7 @@ code. The recovery read finishes before the separate quarantine transaction;
 an advanced journal head returns a stale-observation error rather than stopping
 newer state.
 
-Seventy-two integration tests run against PostgreSQL 16 and 17.
+Eighty-two integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -912,9 +921,15 @@ journal observation fencing, atomic lease removal and scheduler exclusion,
 same-ID lost-ACK recovery, corruption/rollback rejection, and 24-request
 single-record convergence. A real corrupted-checkpoint recovery read also
 proves corruption-only automatic isolation, ordinary-error pass-through,
-idempotent retry, and stale-observation rejection. This is evidence for those
-boundaries only. Complete recovery-loop integration, role-separated database
-procedures, the 10,000
+idempotent retry, and stale-observation rejection. Ready-node recovery coverage
+adds deterministic fresh dispatch, higher-fence crash takeover, immutable
+result reuse as barrier input, noncanonical-activation admission rejection,
+ordinary pre-checkpoint handling, plan scoping, lost-ACK convergence, and 24 identical
+starts producing one physical commit on PostgreSQL 16/17. The 64-attempt hard
+ceiling is also recovery-readable, rejects a 65th new start without journal
+residue, and preserves exact lost-ACK idempotency at the boundary. This is
+evidence for those boundaries only. Complete graph-registry/reducer/route/barrier
+loop integration, durable deferred wakeup, role-separated database procedures, the 10,000
 stale-race trial, failover, archive, backup/restore, and soak gates below remain
 incomplete; the RFC therefore remains Draft.
 

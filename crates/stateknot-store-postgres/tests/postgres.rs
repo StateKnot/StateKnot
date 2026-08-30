@@ -6,6 +6,7 @@
 use std::{
     borrow::Cow,
     collections::BTreeSet,
+    sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -27,14 +28,15 @@ use stateknot_core::{
     JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
     ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
     ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus,
-    NodeControl, NodeId, NodeInvocationBinding, NodeInvocationBindings, NodeStateChange,
-    NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead,
-    PendingNodeResultIntent, PrincipalIdentity, QuarantineId, ReadyNodes, RetryAdvice,
-    RunCancellationRequest, RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind,
-    RunTransition, SchemaId, SchemaReference, Scope, ScopeSet, SubjectId, TenantId, ThreadId,
-    TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor,
-    ToolInput, ToolInvocation, ToolInvocationIntent, ToolInvocationStatus,
-    ToolInvocationTransition, ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
+    NodeControl, NodeDispatchReason, NodeId, NodeInvocationBinding, NodeInvocationBindings,
+    NodeStateChange, NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef,
+    PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, QuarantineId,
+    ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind, RetryAdvice, RunCancellationRequest,
+    RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind, RunTransition, SchemaId,
+    SchemaReference, Scope, ScopeSet, SubjectId, TenantId, ThreadId, TimerFiringIntent, TimerId,
+    TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation,
+    ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
+    ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
@@ -2970,20 +2972,7 @@ fn tool_invocation_intent(
     checkpoint: &Checkpoint,
     invocation_id: InvocationId,
 ) -> ToolInvocationIntent {
-    tool_invocation_intent_for_activation(
-        NodeActivation::new(
-            checkpoint.head(),
-            GraphNamespace::root(),
-            checkpoint
-                .ready_nodes()
-                .iter()
-                .next()
-                .expect("integration checkpoint must have a ready node")
-                .clone(),
-            Digest::sha256(b"integration node activation input"),
-        ),
-        invocation_id,
-    )
+    tool_invocation_intent_for_activation(pending_activation(checkpoint, &[]), invocation_id)
 }
 
 fn tool_invocation_intent_for_activation(
@@ -3038,20 +3027,7 @@ fn model_invocation_intent(
     checkpoint: &Checkpoint,
     invocation_id: InvocationId,
 ) -> ModelInvocationIntent {
-    model_invocation_intent_for_activation(
-        NodeActivation::new(
-            checkpoint.head(),
-            GraphNamespace::root(),
-            checkpoint
-                .ready_nodes()
-                .iter()
-                .next()
-                .expect("integration checkpoint must have a ready node")
-                .clone(),
-            Digest::sha256(b"integration model activation input"),
-        ),
-        invocation_id,
-    )
+    model_invocation_intent_for_activation(pending_activation(checkpoint, &[]), invocation_id)
 }
 
 fn model_invocation_intent_for_activation(
@@ -3110,7 +3086,20 @@ fn model_error(
     )
 }
 
-fn pending_activation(checkpoint: &Checkpoint, input: &[u8]) -> NodeActivation {
+fn pending_activation(checkpoint: &Checkpoint, _input: &[u8]) -> NodeActivation {
+    NodeActivation::for_ready_root(
+        checkpoint,
+        checkpoint
+            .ready_nodes()
+            .iter()
+            .next()
+            .expect("integration checkpoint must have a ready node")
+            .clone(),
+    )
+    .unwrap()
+}
+
+fn drifted_pending_activation(checkpoint: &Checkpoint, input: &[u8]) -> NodeActivation {
     NodeActivation::new(
         checkpoint.head(),
         GraphNamespace::root(),
@@ -3146,12 +3135,7 @@ async fn commit_ready_results(
     let mut journal_head = checkpoint.journal_head().clone();
     let mut result_heads = Vec::with_capacity(checkpoint.ready_nodes().len());
     for (offset, node_id) in checkpoint.ready_nodes().iter().cloned().enumerate() {
-        let activation = NodeActivation::new(
-            checkpoint.head(),
-            GraphNamespace::root(),
-            node_id.clone(),
-            Digest::sha256(format!("ready result input {node_id}")),
-        );
+        let activation = NodeActivation::for_ready_root(checkpoint, node_id).unwrap();
         let committed = store
             .commit_test_pending_node_result(
                 worker_append(
@@ -4774,6 +4758,171 @@ async fn node_attempt_failure_is_atomic_idempotent_and_blocks_unsafe_retry() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[allow(clippy::too_many_lines)]
+async fn node_attempt_hard_limit_is_recoverable_and_rejects_a_sixty_fifth_start() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(5 * 60)).await else {
+        return;
+    };
+    let tenant_id = tenant("node-attempt-hard-limit");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_320)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let fence = lease.fence().clone();
+    let activation =
+        NodeActivation::for_ready_root(checkpoint.checkpoint(), NodeId::new("node-0001").unwrap())
+            .unwrap();
+    let mut journal_head = checkpoint.event().head().clone();
+    let mut last_start = None;
+
+    for index in 0..ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
+        let ordinal = u64::try_from(index).unwrap();
+        let start_event_id = EventId::generate();
+        let attempt_id = AttemptId::generate();
+        let start_parent = journal_head.clone();
+        let start_payload = 1_321 + ordinal * 2;
+        let started = store
+            .start_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    start_event_id,
+                    JournalExpectation::exact(start_parent.clone()),
+                    fence.clone(),
+                    start_payload,
+                ),
+                activation.clone(),
+                attempt_id,
+            )
+            .await
+            .expect("every start through the hard ceiling must commit");
+        assert!(matches!(
+            started,
+            NodeAttemptCommitOutcome::Committed { .. }
+        ));
+        if index + 1 == ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
+            last_start = Some((start_event_id, start_parent, start_payload, attempt_id));
+        }
+
+        let failure_event_id = EventId::generate();
+        let failure = Failure::new(
+            FailureId::generate(),
+            FailureCategory::Internal,
+            FailureCode::new("node.retryable_limit_test").unwrap(),
+            FailureOrigin::new("graph.integration").unwrap(),
+            FailureMessage::new("The bounded integration node failed safely.").unwrap(),
+            RetryAdvice::SafeAfter {
+                delay: DurationMillis::ZERO,
+            },
+        )
+        .unwrap()
+        .with_caused_by_event(failure_event_id);
+        let failed = store
+            .fail_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    failure_event_id,
+                    JournalExpectation::exact(started.event().head()),
+                    fence.clone(),
+                    start_payload + 1,
+                ),
+                &started.attempt().start().head(),
+                failure,
+                BudgetUsage::zero(),
+            )
+            .await
+            .expect("retryable failure through the hard ceiling must commit");
+        assert!(matches!(failed, NodeAttemptCommitOutcome::Committed { .. }));
+        journal_head = failed.event().head().clone();
+    }
+
+    let context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(journal_head.clone()),
+        Digest::sha256(b"bounded node-attempt recovery evidence"),
+    )
+    .unwrap();
+    let recovery = store
+        .begin_claimed_run_recovery(fence.clone(), context)
+        .await
+        .unwrap();
+    let plan = recovery.plan_ready_nodes().await.unwrap();
+    assert_eq!(plan.nodes()[0].kind(), RecoveryNodeKind::Exhausted);
+    assert!(plan.nodes()[0].exhausted_attempt().is_some());
+    assert!(matches!(
+        store
+            .start_recovered_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(journal_head.clone()),
+                    fence.clone(),
+                    1_450,
+                ),
+                &plan,
+                activation.node_id(),
+                AttemptId::generate(),
+            )
+            .await,
+        Err(StoreError::ReadyNodeNotDispatchable)
+    ));
+    assert!(matches!(
+        store
+            .start_node_attempt(
+                worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    JournalExpectation::exact(journal_head.clone()),
+                    fence.clone(),
+                    1_451,
+                ),
+                activation.clone(),
+                AttemptId::generate(),
+            )
+            .await,
+        Err(StoreError::NodeAttemptLimitExceeded)
+    ));
+
+    let (last_event_id, last_parent, last_payload, last_attempt_id) =
+        last_start.expect("the final allowed start must be retained");
+    let retry = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                last_event_id,
+                JournalExpectation::exact(last_parent),
+                fence,
+                last_payload,
+            ),
+            activation,
+            last_attempt_id,
+        )
+        .await
+        .expect("an exact lost-ACK retry at the limit must remain idempotent");
+    assert!(matches!(retry, NodeAttemptCommitOutcome::Idempotent { .. }));
+    assert_eq!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .journal_head(),
+        Some(&journal_head)
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
 async fn node_attempt_recovery_requires_takeover_and_database_safe_after_time() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
@@ -5433,7 +5582,8 @@ async fn pending_node_results_are_attempt_owned_fenced_and_load_verifiable() {
             .await,
         Err(StoreError::InvalidNodeAttemptTransition)
     ));
-    let crossed_input = pending_activation(checkpoint.checkpoint(), b"another activation input");
+    let crossed_input =
+        drifted_pending_activation(checkpoint.checkpoint(), b"another activation input");
     assert!(matches!(
         store.load_pending_node_result(&crossed_input).await,
         Err(StoreError::PendingNodeResultNotFound)
@@ -5518,12 +5668,9 @@ async fn unconsumed_pending_result_pages_are_stable_bounded_and_fully_verified()
         .into_iter()
         .enumerate()
     {
-        let activation = NodeActivation::new(
-            checkpoint.checkpoint().head(),
-            GraphNamespace::root(),
-            NodeId::new(node).unwrap(),
-            Digest::sha256(format!("pending page input {node}")),
-        );
+        let activation =
+            NodeActivation::for_ready_root(checkpoint.checkpoint(), NodeId::new(node).unwrap())
+                .unwrap();
         let committed = store
             .commit_test_pending_node_result(
                 worker_append(
@@ -5581,12 +5728,9 @@ async fn unconsumed_pending_result_pages_are_stable_bounded_and_fully_verified()
         first.snapshot_journal_head()
     );
 
-    let delta_activation = NodeActivation::new(
-        checkpoint.checkpoint().head(),
-        GraphNamespace::root(),
-        NodeId::new("node-delta").unwrap(),
-        Digest::sha256(b"pending page input node-delta"),
-    );
+    let delta_activation =
+        NodeActivation::for_ready_root(checkpoint.checkpoint(), NodeId::new("node-delta").unwrap())
+            .unwrap();
     let delta = store
         .commit_test_pending_node_result(
             worker_append(
@@ -5665,12 +5809,9 @@ async fn worker_barrier_atomically_consumes_complete_results_and_is_idempotent()
     let mut journal_head = initial.event().head();
     let mut result_heads = Vec::new();
     for (index, node) in ["node-bravo", "node-alpha"].into_iter().enumerate() {
-        let activation = NodeActivation::new(
-            initial.checkpoint().head(),
-            GraphNamespace::root(),
-            NodeId::new(node).unwrap(),
-            Digest::sha256(format!("barrier input {node}")),
-        );
+        let activation =
+            NodeActivation::for_ready_root(initial.checkpoint(), NodeId::new(node).unwrap())
+                .unwrap();
         let committed = store
             .commit_test_pending_node_result(
                 worker_append(
@@ -6143,12 +6284,11 @@ async fn barrier_rejects_incomplete_conflicting_and_stale_fenced_inputs_without_
         .unwrap()
         .lease()
         .clone();
-    let alpha_activation = NodeActivation::new(
-        incomplete_base.checkpoint().head(),
-        GraphNamespace::root(),
+    let alpha_activation = NodeActivation::for_ready_root(
+        incomplete_base.checkpoint(),
         NodeId::new("node-alpha").unwrap(),
-        Digest::sha256(b"incomplete alpha input"),
-    );
+    )
+    .unwrap();
     let alpha = store
         .commit_test_pending_node_result(
             worker_append(
@@ -6164,12 +6304,11 @@ async fn barrier_rejects_incomplete_conflicting_and_stale_fenced_inputs_without_
         .await
         .unwrap();
     let fabricated_bravo = PendingNodeResultHead::new(
-        NodeActivation::new(
-            incomplete_base.checkpoint().head(),
-            GraphNamespace::root(),
+        NodeActivation::for_ready_root(
+            incomplete_base.checkpoint(),
             NodeId::new("node-bravo").unwrap(),
-            Digest::sha256(b"missing bravo input"),
-        ),
+        )
+        .unwrap(),
         Digest::sha256(b"missing bravo intent"),
         incomplete_lease.fence().clone(),
         alpha.event().head(),
@@ -8195,23 +8334,29 @@ async fn tool_invocation_preparation_requires_a_ready_root_activation() {
         .unwrap()
         .clone();
     let invalid_activations = [
-        (
+        NodeActivation::new(
+            checkpoint.checkpoint().head(),
             GraphNamespace::root(),
             NodeId::new("not-a-ready-node").unwrap(),
+            Digest::sha256(b"invalid non-ready integration activation input"),
         ),
-        (GraphNamespace::new("nested").unwrap(), ready_node),
+        NodeActivation::new(
+            checkpoint.checkpoint().head(),
+            GraphNamespace::new("nested").unwrap(),
+            ready_node,
+            Digest::sha256(b"invalid nested integration activation input"),
+        ),
+        drifted_pending_activation(
+            checkpoint.checkpoint(),
+            b"invalid canonical integration activation input",
+        ),
     ];
 
-    for (index, (namespace, node_id)) in invalid_activations.into_iter().enumerate() {
+    for (index, activation) in invalid_activations.into_iter().enumerate() {
         let descriptor = tool_descriptor();
         let invocation_id = InvocationId::generate();
         let intent = ToolInvocationIntent::new(
-            NodeActivation::new(
-                checkpoint.checkpoint().head(),
-                namespace,
-                node_id,
-                Digest::sha256(b"invalid integration activation input"),
-            ),
+            activation,
             invocation_id,
             descriptor.clone(),
             tool_input(&descriptor),
@@ -8275,22 +8420,28 @@ async fn model_invocation_preparation_requires_a_ready_root_activation() {
         .unwrap()
         .clone();
     let invalid_activations = [
-        (
+        NodeActivation::new(
+            checkpoint.checkpoint().head(),
             GraphNamespace::root(),
             NodeId::new("not-a-ready-model-node").unwrap(),
+            Digest::sha256(b"invalid non-ready integration model activation input"),
         ),
-        (GraphNamespace::new("nested").unwrap(), ready_node),
+        NodeActivation::new(
+            checkpoint.checkpoint().head(),
+            GraphNamespace::new("nested").unwrap(),
+            ready_node,
+            Digest::sha256(b"invalid nested integration model activation input"),
+        ),
+        drifted_pending_activation(
+            checkpoint.checkpoint(),
+            b"invalid canonical integration model activation input",
+        ),
     ];
 
-    for (index, (namespace, node_id)) in invalid_activations.into_iter().enumerate() {
+    for (index, activation) in invalid_activations.into_iter().enumerate() {
         let invocation_id = InvocationId::generate();
         let intent = ModelInvocationIntent::new(
-            NodeActivation::new(
-                checkpoint.checkpoint().head(),
-                namespace,
-                node_id,
-                Digest::sha256(b"invalid integration model activation input"),
-            ),
+            activation,
             invocation_id,
             model_descriptor(),
             model_request(),
@@ -10897,12 +11048,11 @@ async fn concurrent_checkpoint_writers_form_one_linear_barrier_chain() {
                     .unwrap()
                     .expect("initial checkpoint must remain present");
                 let run = store.load_run(&tenant_id, run_id).await.unwrap();
-                let activation = NodeActivation::new(
-                    parent.head(),
-                    GraphNamespace::root(),
+                let activation = NodeActivation::for_ready_root(
+                    &parent,
                     parent.ready_nodes().iter().next().unwrap().clone(),
-                    Digest::sha256(b"concurrent checkpoint result"),
-                );
+                )
+                .unwrap();
                 let result = match store
                     .commit_test_pending_node_result(
                         worker_append(
@@ -12803,6 +12953,468 @@ async fn claimed_recovery_quarantine_cannot_cross_a_successor_fence() {
     ));
 
     administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn claimed_recovery_plans_fresh_ready_nodes_deterministically() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+
+    let fresh_tenant = tenant("ready-plan-fresh");
+    let fresh_run = RunId::generate();
+    let fresh_checkpoint = Box::pin(start_run_with_checkpoint(
+        &store,
+        &fresh_tenant,
+        fresh_run,
+        960,
+    ))
+    .await;
+    let fresh_claim = store
+        .claim_lease(&fresh_tenant, fresh_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let fresh_fence = fresh_claim.lease().fence().clone();
+    let fresh_context = CorruptionQuarantineContext::new(
+        fresh_tenant.clone(),
+        fresh_run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(fresh_checkpoint.event().head()),
+        Digest::sha256(b"fresh ready-plan evidence"),
+    )
+    .unwrap();
+    let fresh_recovery = store
+        .begin_claimed_run_recovery(fresh_fence.clone(), fresh_context)
+        .await
+        .unwrap();
+    let fresh_plan = fresh_recovery.plan_ready_nodes().await.unwrap();
+    assert!(fresh_plan.observed_at() >= fresh_recovery.initial_observed_at());
+    assert_eq!(fresh_plan.fence(), &fresh_fence);
+    assert_eq!(fresh_plan.checkpoint(), fresh_checkpoint.checkpoint());
+    assert_eq!(fresh_plan.nodes().len(), 1);
+    assert_eq!(fresh_plan.nodes()[0].kind(), RecoveryNodeKind::Dispatchable);
+    assert_eq!(
+        fresh_plan.nodes()[0].dispatch_reason(),
+        Some(NodeDispatchReason::FirstAttempt)
+    );
+    assert_eq!(
+        fresh_plan.nodes()[0].activation(),
+        &NodeActivation::for_ready_root(
+            fresh_checkpoint.checkpoint(),
+            NodeId::new("node-0001").unwrap(),
+        )
+        .unwrap()
+    );
+    fresh_recovery.revalidate().await.unwrap();
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn claimed_recovery_plans_superseded_attempt_for_crash_takeover() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let takeover_tenant = tenant("ready-plan-takeover");
+    let takeover_run = RunId::generate();
+    let takeover_checkpoint = Box::pin(start_run_with_checkpoint(
+        &store,
+        &takeover_tenant,
+        takeover_run,
+        970,
+    ))
+    .await;
+    let old_claim = store
+        .claim_lease(&takeover_tenant, takeover_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let activation = NodeActivation::for_ready_root(
+        takeover_checkpoint.checkpoint(),
+        NodeId::new("node-0001").unwrap(),
+    )
+    .unwrap();
+    let started = store
+        .start_node_attempt(
+            worker_append(
+                takeover_tenant.clone(),
+                takeover_run,
+                EventId::generate(),
+                JournalExpectation::exact(takeover_checkpoint.event().head()),
+                old_claim.lease().fence().clone(),
+                971,
+            ),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let successor = store
+        .supersede_lease(&takeover_tenant, takeover_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let successor_fence = successor.lease().fence().clone();
+    let takeover_context = CorruptionQuarantineContext::new(
+        takeover_tenant.clone(),
+        takeover_run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(started.event().head()),
+        Digest::sha256(b"takeover ready-plan evidence"),
+    )
+    .unwrap();
+    let takeover_recovery = store
+        .begin_claimed_run_recovery(successor_fence.clone(), takeover_context)
+        .await
+        .unwrap();
+    let takeover_plan = takeover_recovery.plan_ready_nodes().await.unwrap();
+    assert_eq!(takeover_plan.nodes().len(), 1);
+    assert_eq!(takeover_plan.nodes()[0].activation(), &activation);
+    assert_eq!(
+        takeover_plan.nodes()[0].dispatch_reason(),
+        Some(NodeDispatchReason::SupersededAttempt)
+    );
+    takeover_recovery.revalidate().await.unwrap();
+    assert!(matches!(
+        store
+            .load_run_quarantine(&takeover_tenant, takeover_run)
+            .await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[allow(clippy::too_many_lines)]
+async fn recovered_node_start_is_durable_idempotent_and_plan_scoped() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("ready-plan-dispatch");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 975)).await;
+    let claim = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap();
+    let fence = claim.lease().fence().clone();
+    let context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(checkpoint.event().head()),
+        Digest::sha256(b"ready-plan dispatch evidence"),
+    )
+    .unwrap();
+    let recovery = store
+        .begin_claimed_run_recovery(fence.clone(), context)
+        .await
+        .unwrap();
+    let plan = Arc::new(recovery.plan_ready_nodes().await.unwrap());
+    let node_id = NodeId::new("node-0001").unwrap();
+    let event_id = EventId::generate();
+    let attempt_id = AttemptId::generate();
+    let append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            event_id,
+            JournalExpectation::exact(plan.journal_head().clone()),
+            fence.clone(),
+            976,
+        )
+    };
+
+    let mut tasks = tokio::task::JoinSet::new();
+    for _ in 0..24 {
+        let store = store.clone();
+        let tenant_id = tenant_id.clone();
+        let fence = fence.clone();
+        let plan = Arc::clone(&plan);
+        let node_id = node_id.clone();
+        tasks.spawn(async move {
+            for _ in 0..64 {
+                let append = worker_append(
+                    tenant_id.clone(),
+                    run_id,
+                    event_id,
+                    JournalExpectation::exact(plan.journal_head().clone()),
+                    fence.clone(),
+                    976,
+                );
+                match store
+                    .start_recovered_node_attempt(append, &plan, &node_id, attempt_id)
+                    .await
+                {
+                    result @ Ok(_) => return result,
+                    Err(error) if error.is_retryable() => tokio::task::yield_now().await,
+                    error @ Err(_) => return error,
+                }
+            }
+            panic!("identical recovered starts did not converge within the test bound")
+        });
+    }
+
+    let mut committed = 0_u64;
+    let mut idempotent = 0_u64;
+    let mut winner = None;
+    while let Some(joined) = tasks.join_next().await {
+        let outcome = joined
+            .expect("recovered start task must not panic")
+            .expect("all identical recovered starts must converge");
+        let observed = (
+            outcome.event().head().clone(),
+            outcome.attempt().start().head().clone(),
+        );
+        if let Some(winner) = &winner {
+            assert_eq!(&observed, winner);
+        } else {
+            winner = Some(observed);
+        }
+        match outcome {
+            NodeAttemptCommitOutcome::Committed { .. } => committed += 1,
+            NodeAttemptCommitOutcome::Idempotent { .. } => idempotent += 1,
+            _ => panic!("unexpected recovered node-start outcome"),
+        }
+    }
+    assert_eq!(committed, 1);
+    assert_eq!(idempotent, 23);
+    let (winner_event, winner_start) = winner.expect("one physical start must win");
+    assert_eq!(winner_start.activation(), plan.nodes()[0].activation());
+
+    let retry = store
+        .start_recovered_node_attempt(append(), &plan, &node_id, attempt_id)
+        .await
+        .expect("lost durable-start acknowledgement must converge");
+    assert!(matches!(retry, NodeAttemptCommitOutcome::Idempotent { .. }));
+    assert_eq!(retry.attempt().start().head(), winner_start);
+    assert_eq!(
+        store
+            .load_node_attempt(&tenant_id, &run_id, attempt_id)
+            .await
+            .unwrap()
+            .start()
+            .head(),
+        winner_start
+    );
+
+    assert!(matches!(
+        store
+            .start_recovered_node_attempt(
+                append(),
+                &plan,
+                &NodeId::new("absent-node").unwrap(),
+                AttemptId::generate(),
+            )
+            .await,
+        Err(StoreError::ReadyNodeNotDispatchable)
+    ));
+    let control_append = control_append(
+        tenant_id,
+        run_id,
+        EventId::generate(),
+        JournalExpectation::exact(winner_event),
+        977,
+    );
+    assert!(matches!(
+        store
+            .start_recovered_node_attempt(control_append, &plan, &node_id, AttemptId::generate(),)
+            .await,
+        Err(StoreError::InvalidReadyNodeDispatchPlan)
+    ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn claimed_recovery_reuses_attempt_owned_results_as_barrier_input() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("ready-plan-completed");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 980)).await;
+    let claim = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap();
+    let fence = claim.lease().fence().clone();
+    let activation =
+        NodeActivation::for_ready_root(checkpoint.checkpoint(), NodeId::new("node-0001").unwrap())
+            .unwrap();
+    let started = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                fence.clone(),
+                981,
+            ),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let completed = store
+        .succeed_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(started.event().head()),
+                fence.clone(),
+                982,
+            ),
+            &started.attempt().start().head(),
+            pending_result_intent(activation.clone(), NodeInvocationBindings::empty()),
+            BudgetUsage::zero(),
+        )
+        .await
+        .unwrap();
+    let durable_result = store.load_pending_node_result(&activation).await.unwrap();
+    let context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(completed.event().head()),
+        Digest::sha256(b"completed ready-plan evidence"),
+    )
+    .unwrap();
+    let recovery = store
+        .begin_claimed_run_recovery(fence, context)
+        .await
+        .unwrap();
+    let plan = recovery.plan_ready_nodes().await.unwrap();
+    assert!(plan.is_barrier_ready());
+    assert_eq!(plan.nodes()[0].kind(), RecoveryNodeKind::Completed);
+    assert_eq!(plan.nodes()[0].result(), Some(&durable_result.head()));
+    assert_eq!(
+        plan.barrier_result_heads().unwrap().unwrap().as_slice(),
+        &[durable_result.head()]
+    );
+    recovery.revalidate().await.unwrap();
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn claimed_recovery_ready_plan_treats_missing_checkpoint_as_ordinary_state() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+
+    let pending_tenant = tenant("ready-plan-no-checkpoint");
+    let pending_run = RunId::generate();
+    store
+        .admit_run(provenance(pending_tenant.clone(), pending_run))
+        .await
+        .unwrap();
+    let pending_claim = store
+        .claim_lease(&pending_tenant, pending_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let pending_context = CorruptionQuarantineContext::new(
+        pending_tenant.clone(),
+        pending_run,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        Digest::sha256(b"missing checkpoint ready-plan evidence"),
+    )
+    .unwrap();
+    let pending_recovery = store
+        .begin_claimed_run_recovery(pending_claim.lease().fence().clone(), pending_context)
+        .await
+        .unwrap();
+    assert!(matches!(
+        pending_recovery.plan_ready_nodes().await,
+        Err(StoreError::ReadyNodeRecoveryCheckpointMissing)
+    ));
+    assert!(matches!(
+        store
+            .load_run_quarantine(&pending_tenant, pending_run)
+            .await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn noncanonical_ready_activation_is_rejected_before_recovery() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let drift_tenant = tenant("ready-plan-drift");
+    let drift_run = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(
+        &store,
+        &drift_tenant,
+        drift_run,
+        990,
+    ))
+    .await;
+    let claim = store
+        .claim_lease(&drift_tenant, drift_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let fence = claim.lease().fence().clone();
+    let drifted_activation =
+        drifted_pending_activation(checkpoint.checkpoint(), b"drifted input digest");
+    assert!(matches!(
+        store
+            .start_node_attempt(
+                worker_append(
+                    drift_tenant.clone(),
+                    drift_run,
+                    EventId::generate(),
+                    JournalExpectation::exact(checkpoint.event().head()),
+                    fence.clone(),
+                    991,
+                ),
+                drifted_activation.clone(),
+                AttemptId::generate(),
+            )
+            .await,
+        Err(StoreError::InvalidNodeAttemptActivation)
+    ));
+    let drift_context = CorruptionQuarantineContext::new(
+        drift_tenant.clone(),
+        drift_run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(checkpoint.event().head()),
+        Digest::sha256(b"drifted ready-plan evidence"),
+    )
+    .unwrap();
+    let drift_recovery = store
+        .begin_claimed_run_recovery(fence.clone(), drift_context)
+        .await
+        .unwrap();
+    let plan = drift_recovery.plan_ready_nodes().await.unwrap();
+    assert_eq!(
+        plan.nodes()[0].activation(),
+        &NodeActivation::for_ready_root(
+            checkpoint.checkpoint(),
+            NodeId::new("node-0001").unwrap(),
+        )
+        .unwrap()
+    );
+    assert_eq!(plan.nodes()[0].kind(), RecoveryNodeKind::Dispatchable);
+    assert!(matches!(
+        store.load_run_quarantine(&drift_tenant, drift_run).await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+    assert_eq!(
+        store
+            .load_run(&drift_tenant, drift_run)
+            .await
+            .unwrap()
+            .journal_head()
+            .cloned(),
+        Some(checkpoint.event().head())
+    );
     store.close().await;
 }
 

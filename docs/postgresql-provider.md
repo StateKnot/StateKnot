@@ -160,7 +160,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 75 integration tests against PostgreSQL 16 and
+The current database suite runs 82 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v8 without guessed projection or physical-attempt provenance, real v3
@@ -246,7 +246,15 @@ checkpoint/journal and invocation/node-result histories through the same stable
 quarantine intent, and revalidates ownership before handoff. The race test
 supersedes that fence before exposing real corrupted checkpoint bytes: the old
 session returns `StaleFence` and leaves the successor running; only the current
-owner may commit quarantine. All 75 tests
+owner may commit quarantine. Ready-node recovery additionally proves canonical
+fresh dispatch, higher-fence unfinished-attempt takeover, attempt-owned result
+reuse as exact barrier input, ordinary missing-checkpoint handling, activation
+input-drift admission rejection with zero residue, plan scope rejection,
+lost-ACK convergence, and 24 identical starts producing one new `Committed`
+launch grant plus 23
+non-dispatching `Idempotent` observations. A 64-attempt history remains fully
+recoverable as `Exhausted`, the 65th unique start leaves no residue, and exact
+lost-ACK replay at the ceiling remains idempotent. All 82 tests
 run independently against PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -325,11 +333,39 @@ superstep-zero root. The first value is the current barrier observed in the
 initial repeatable-read snapshot; immutable continuation cursors remain valid if
 a later barrier advances the run between pages. Then page the journal strictly
 after the trusted checkpoint/archive head. Call `revalidate` after deterministic
-replay and before preparing durable work. This composes a corruption-isolating
+replay and before preparing durable work when consuming those pages manually.
+This composes a corruption-isolating
 checkpoint-and-suffix input without treating a read as dispatch authority;
 node/model/tool/outbox start transactions still perform the decisive fence.
-The runtime loop that applies replay, cross-tenant fairness, and ready-node
-execution is not implemented yet.
+
+For the current root ready set, prefer `plan_ready_nodes`. It loads the pinned
+checkpoint, streams all unconsumed results and every ready activation's complete
+history, and performs its own final live-fence/journal revalidation at database
+time. Decisions are returned in canonical `NodeId` order:
+
+| Decision | Runtime action |
+|---|---|
+| `Completed` | Reuse the immutable result; never run the node again |
+| `Dispatchable` | Call `start_recovered_node_attempt`; only a newly `Committed` start grants this caller permission to launch node code |
+| `Deferred` | Do not execute before `not_before`; durable scheduler wakeup is still a release blocker |
+| `InFlight` | Do not create another same-fence physical attempt |
+| `Failed` | Surface the terminal public-safe failure; do not infer retryability |
+| `Exhausted` | Surface hard attempt-limit exhaustion; no new physical start is legal |
+
+The worker append passed to `start_recovered_node_attempt` must carry the same
+fence and an exact journal expectation at or after the plan observation. For
+multiple ready siblings, advance that expectation after every committed start.
+A stale concurrent append is ordinary contention; reload the current head and
+retry the intended sibling. Retrying the same `EventId` and node `AttemptId`
+converges on the existing start, but an `Idempotent` outcome is not fresh
+dispatch authority: it cannot distinguish a lost acknowledgement from a
+concurrent executor and must be treated as in flight. If that executor is gone,
+allow lease expiry/supersession and recover the unfinished start under a higher
+fence. Never invoke node code before a fresh `Committed` handoff.
+
+The complete runtime loop that reloads the pinned graph registry, recomputes
+routes/reducers/successors, persists deferred wakeups, applies cross-tenant
+fairness, and drives the barrier is not implemented yet.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record
@@ -492,8 +528,10 @@ been cleared.
 
 This slice is not the complete durable runtime. It does not yet implement
 protocol-specific outbox dispatch adapters, artifacts, cross-tenant scheduler
-fairness and the deterministic replay/ready-node/dispatch portions of the
-recovery loop (the claimed recovery read surface is implemented),
+fairness, pinned graph-registry revalidation, route/reducer/successor and
+barrier driving, durable deferred-retry wakeup, or the complete recovery loop
+(deterministic root ready-node planning and durable start handoff are
+implemented),
 retention/archive/legal hold, backup/restore, failover qualification, or the
 10,000-race stale-worker gate.
 

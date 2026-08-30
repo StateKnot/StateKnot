@@ -39,6 +39,7 @@ mod model_runtime;
 mod node_attempt;
 mod node_result;
 mod outbox;
+mod recovery;
 mod run;
 mod schema;
 mod scope;
@@ -185,6 +186,10 @@ pub use outbox::{
     OutboxDeliveryError, OutboxDeliveryHead, OutboxDeliveryIntegrityError, OutboxDeliveryIntent,
     OutboxDeliveryStatus, OutboxDestinationRef,
 };
+pub use recovery::{
+    NodeDispatchReason, ReadyNodeRecoveryError, ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner,
+    RecoveryNode, RecoveryNodeKind,
+};
 pub use run::{
     RunCancellation, RunCancellationError, RunCancellationRequest, RunFailure, RunFailureError,
     RunInterrupt, RunInterruptError, RunInterruptKind, RunLifecycle, RunLifecycleError,
@@ -200,10 +205,10 @@ pub use tool::{
     ToolInvocationCapabilities, ToolResourceAccess, ToolResourceRequirements, ToolRisk,
 };
 pub use tool_invocation::{
-    GraphNamespace, GraphNamespaceError, NodeActivation, ToolArtifactBinding, ToolInvocation,
-    ToolInvocationError, ToolInvocationHead, ToolInvocationHeadError, ToolInvocationHistoryError,
-    ToolInvocationHistoryVerifier, ToolInvocationIntegrityError, ToolInvocationIntent,
-    ToolInvocationIntentError, ToolInvocationLimit, ToolInvocationRevision,
+    GraphNamespace, GraphNamespaceError, NodeActivation, NodeActivationError, ToolArtifactBinding,
+    ToolInvocation, ToolInvocationError, ToolInvocationHead, ToolInvocationHeadError,
+    ToolInvocationHistoryError, ToolInvocationHistoryVerifier, ToolInvocationIntegrityError,
+    ToolInvocationIntent, ToolInvocationIntentError, ToolInvocationLimit, ToolInvocationRevision,
     ToolInvocationRevisionError, ToolInvocationState, ToolInvocationStatus,
     ToolInvocationTransition, ToolInvocationTransitionKind,
 };

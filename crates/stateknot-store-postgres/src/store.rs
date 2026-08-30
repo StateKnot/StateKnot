@@ -34,13 +34,13 @@ use stateknot_core::{
     OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptHistoryVerifier, OutboxAttemptOutcome,
     OutboxAttemptStart, OutboxDelivery, OutboxDeliveryIntent, OutboxDeliveryStatus,
     OutboxDestinationRef, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
-    PendingNodeResultIntent, QuarantineId, RetryAdvice, RunFence, RunId, RunInterruptKind,
-    RunLease, RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTimerKind,
-    RunTransition, RunTransitionKind, RunWaits, Superstep, TenantId, TimerFiring,
-    TimerFiringIntent, TimerId, Timestamp, ToolInvocation, ToolInvocationHead,
-    ToolInvocationHistoryVerifier, ToolInvocationIntent, ToolInvocationRevision,
-    ToolInvocationStatus, ToolInvocationTransition, ToolInvocationTransitionKind,
-    WaitRegistrationIntent,
+    PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner,
+    RetryAdvice, RunFence, RunId, RunInterruptKind, RunLease, RunLeaseValidationError,
+    RunLifecycle, RunRevision, RunStatus, RunTimerKind, RunTransition, RunTransitionKind, RunWaits,
+    Superstep, TenantId, TimerFiring, TimerFiringIntent, TimerId, Timestamp, ToolInvocation,
+    ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
+    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    ToolInvocationTransitionKind, WaitRegistrationIntent,
 };
 use uuid::Uuid;
 
@@ -916,6 +916,19 @@ ORDER BY journal_sequence ASC
 LIMIT $10
 ";
 
+const SELECT_NODE_ATTEMPT_COUNT: &str = r"
+SELECT count(*)
+FROM stateknot.node_attempts
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND base_checkpoint_id = $3
+  AND base_superstep = $4
+  AND base_checkpoint_digest = $5
+  AND graph_namespace = $6
+  AND node_id = $7
+  AND activation_input_digest = $8
+";
+
 const SELECT_LATEST_NODE_ATTEMPT_FOR_UPDATE: &str = r"
 SELECT
     tenant_id,
@@ -1747,14 +1760,22 @@ pub struct PostgresStore {
 /// cursor, contention, and stale-observation failures never quarantine.
 ///
 /// The initial snapshot is evidence about the recovery starting point, not an
-/// authorization to perform external I/O. Call [`Self::revalidate`] before
-/// handing recovered work to the durable node/model/tool/outbox start APIs;
-/// those mutations remain the authoritative dispatch fence.
+/// authorization to perform external I/O. Manual page consumers call
+/// [`Self::revalidate`] before handing recovered work to a durable start API.
+/// [`Self::plan_ready_nodes`] performs that final revalidation itself, and
+/// [`PostgresStore::start_recovered_node_attempt`] remains the authoritative
+/// transactional dispatch fence.
 pub struct ClaimedRunRecovery<'store> {
     store: &'store PostgresStore,
     fence: RunFence,
     context: CorruptionQuarantineContext,
     initial_run: StoredRun,
+    initial_observed_at: Timestamp,
+}
+
+struct ClaimedRunRecoveryObservation {
+    run: StoredRun,
+    observed_at: Timestamp,
 }
 
 impl ClaimedRunRecovery<'_> {
@@ -1776,6 +1797,13 @@ impl ClaimedRunRecovery<'_> {
         &self.initial_run
     }
 
+    /// Returns the database clock observed atomically with the initial run and
+    /// live-fence validation.
+    #[must_use]
+    pub const fn initial_observed_at(&self) -> Timestamp {
+        self.initial_observed_at
+    }
+
     /// Rechecks the live fence, runnable projection, and exact journal head.
     ///
     /// Recovery callers should invoke this after consuming their bounded pages
@@ -1795,6 +1823,153 @@ impl ClaimedRunRecovery<'_> {
                     .load_claimed_run_recovery_snapshot(&self.fence, &self.context),
             )
             .await
+            .map(|observation| observation.run)
+    }
+
+    /// Reconstructs the exact current checkpoint ready set into one
+    /// deterministic, database-time recovery plan.
+    ///
+    /// The provider loads the immutable checkpoint pinned when this session
+    /// began, streams fully verified unconsumed results in bounded pages, then
+    /// streams every ready activation's complete physical-attempt history.
+    /// A final database snapshot revalidates the exact journal observation and
+    /// live fence before classifying fresh work, crash takeover, delayed retry,
+    /// same-fence in-flight work, terminal failure, attempt exhaustion, or
+    /// barrier-ready reuse.
+    ///
+    /// The returned plan is not dispatch authority. Hand each selected node to
+    /// [`PostgresStore::start_recovered_node_attempt`]; that API binds the plan
+    /// to an exact worker append and repeats the decisive checkpoint, latest
+    /// history transition, database-clock retry, journal, lifecycle, and
+    /// live-fence checks.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ReadyNodeRecoveryCheckpointMissing`] before the
+    /// run has an initial checkpoint. Cursor, availability, lifecycle, or
+    /// fencing races are explicit and do not quarantine. Any durable
+    /// checkpoint/result/attempt contradiction is converted to payload-redacted
+    /// corruption and fenced quarantine before return.
+    pub async fn plan_ready_nodes(&self) -> Result<ReadyNodeRecoveryPlan, StoreError> {
+        Box::pin(self.read(self.plan_ready_nodes_inner())).await
+    }
+
+    async fn load_ready_node_checkpoint(
+        &self,
+        pointer: &CheckpointPointer,
+    ) -> Result<Checkpoint, StoreError> {
+        let checkpoint = match self
+            .store
+            .load_checkpoint(
+                self.fence.tenant_id(),
+                self.fence.run_id(),
+                pointer.checkpoint_id(),
+            )
+            .await
+        {
+            Ok(checkpoint) => checkpoint,
+            Err(StoreError::CheckpointNotFound) => {
+                return Err(StoreError::corrupt(
+                    "ready node recovery checkpoint pointer",
+                ));
+            }
+            Err(error) => return Err(error),
+        };
+        if checkpoint.superstep() != pointer.superstep() || checkpoint.digest() != pointer.digest()
+        {
+            return Err(StoreError::corrupt(
+                "ready node recovery checkpoint pointer",
+            ));
+        }
+        if checkpoint.ready_nodes().is_empty() {
+            return Err(StoreError::corrupt("ready node recovery empty ready set"));
+        }
+        Ok(checkpoint)
+    }
+
+    async fn plan_ready_nodes_inner(&self) -> Result<ReadyNodeRecoveryPlan, StoreError> {
+        let pointer = self
+            .initial_run
+            .checkpoint()
+            .ok_or(StoreError::ReadyNodeRecoveryCheckpointMissing)?;
+        let checkpoint = self.load_ready_node_checkpoint(pointer).await?;
+
+        let base = checkpoint.head();
+        let mut planner = ReadyNodeRecoveryPlanner::new(checkpoint, self.fence.clone())
+            .map_err(|_| StoreError::corrupt("ready node recovery activation"))?;
+        let result_page_size = PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX)?;
+        let mut result_cursor = None;
+        loop {
+            let page = self
+                .store
+                .load_unconsumed_pending_node_result_page(
+                    &base,
+                    result_cursor.as_ref(),
+                    result_page_size,
+                )
+                .await?;
+            if self.context.expectation().head() != Some(page.snapshot_journal_head()) {
+                return Err(StoreError::StaleClaimedRunRecoveryObservation);
+            }
+            for result in page.records() {
+                planner
+                    .observe_result(result)
+                    .map_err(|_| StoreError::corrupt("ready node recovery result set"))?;
+            }
+            if !page.has_more() {
+                break;
+            }
+            result_cursor = Some(
+                page.next_cursor()
+                    .ok_or_else(|| StoreError::corrupt("ready node recovery result cursor"))?,
+            );
+        }
+
+        let attempt_page_size = NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX)?;
+        for activation in planner.activations() {
+            let mut attempt_cursor = None;
+            loop {
+                let page = self
+                    .store
+                    .load_node_attempt_history_page(
+                        &activation,
+                        attempt_cursor.as_ref(),
+                        attempt_page_size,
+                    )
+                    .await?;
+                for attempt in page.records() {
+                    planner
+                        .observe_attempt(attempt)
+                        .map_err(|_| StoreError::corrupt("ready node recovery attempt history"))?;
+                }
+                if !page.has_more() {
+                    break;
+                }
+                attempt_cursor =
+                    Some(page.next_cursor().ok_or_else(|| {
+                        StoreError::corrupt("ready node recovery attempt cursor")
+                    })?);
+            }
+        }
+
+        let observation = self
+            .store
+            .load_claimed_run_recovery_snapshot(&self.fence, &self.context)
+            .await?;
+        if observation.run.checkpoint() != Some(pointer) {
+            return Err(StoreError::corrupt(
+                "ready node recovery checkpoint projection",
+            ));
+        }
+        let journal_head = self
+            .context
+            .expectation()
+            .head()
+            .cloned()
+            .ok_or_else(|| StoreError::corrupt("ready node recovery journal observation"))?;
+        planner
+            .finish(journal_head, observation.observed_at)
+            .map_err(|_| StoreError::corrupt("ready node recovery plan"))
     }
 
     /// Loads one bounded current checkpoint-lineage page through quarantine.
@@ -2418,7 +2593,7 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             return Err(StoreError::InvalidClaimedRunRecoveryContext);
         }
         let context = context.with_expected_fence(fence.clone())?;
-        let initial_run = self
+        let observation = self
             .with_corruption_quarantine(
                 context.clone(),
                 self.load_claimed_run_recovery_snapshot(&fence, &context),
@@ -2428,7 +2603,8 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             store: self,
             fence,
             context,
-            initial_run,
+            initial_run: observation.run,
+            initial_observed_at: observation.observed_at,
         })
     }
 
@@ -2436,7 +2612,7 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
         &self,
         fence: &RunFence,
         context: &CorruptionQuarantineContext,
-    ) -> Result<StoredRun, StoreError> {
+    ) -> Result<ClaimedRunRecoveryObservation, StoreError> {
         let mut transaction = self.begin_repeatable_read("claimed run recovery").await?;
         let row = query_as::<_, RunRow>(SELECT_RUN)
             .bind(fence.tenant_id().as_str())
@@ -2462,7 +2638,10 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .commit()
             .await
             .map_err(|source| StoreError::database("claimed run recovery commit", source))?;
-        Ok(stored)
+        Ok(ClaimedRunRecoveryObservation {
+            run: stored,
+            observed_at,
+        })
     }
 
     /// Loads and fully verifies the immutable quarantine observation for a run.
@@ -5319,9 +5498,15 @@ WHERE tenant_id = $1
     /// an unfinished attempt only under a higher fencing epoch, and may follow
     /// a failure only after its explicit database-observed safe-after delay.
     ///
+    /// For a start call, only [`NodeAttemptCommitOutcome::Committed`] grants
+    /// this caller permission to launch node code. `Idempotent` proves the exact
+    /// start already exists but cannot distinguish a lost acknowledgement from
+    /// a concurrent owner; treat it as in flight and never launch from that
+    /// outcome alone. An orphaned start is recovered under a higher run fence.
+    ///
     /// # Errors
     ///
-    /// Returns explicit authority, activation, retry-history, lifecycle,
+    /// Returns explicit authority, activation, retry-history/limit, lifecycle,
     /// checkpoint, journal, fencing, idempotency, integrity, or database errors.
     pub async fn start_node_attempt(
         &self,
@@ -5330,6 +5515,76 @@ WHERE tenant_id = $1
         attempt_id: AttemptId,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
         Box::pin(self.start_node_attempt_inner(append, activation, attempt_id)).await
+    }
+
+    /// Durably starts one node selected by a verified recovery plan.
+    ///
+    /// This is the production handoff from deterministic replay to execution:
+    /// the plan must bind the same tenant/run, checkpoint and worker fence; the
+    /// selected node must be classified as dispatchable; and the append's exact
+    /// journal expectation cannot precede the plan observation. The ordinary
+    /// node-attempt transaction then reloads current state and the latest
+    /// durable predecessor, verifies the proposed successor and retry timing
+    /// with the database clock, repeats the live-fence predicate in SQL,
+    /// commits the start, and only then returns.
+    ///
+    /// Multiple ready siblings may use one plan one at a time with an advancing
+    /// exact journal expectation. A concurrent stale append fails explicitly
+    /// and can be rebuilt from the newly committed head without rerunning the
+    /// recovery planner. Retrying the identical event and physical attempt ID
+    /// preserves the underlying lost-acknowledgement convergence.
+    ///
+    /// Only [`NodeAttemptCommitOutcome::Committed`] grants this caller a fresh
+    /// launch. `Idempotent` is durable in-flight evidence, not dispatch
+    /// authority; never launch node code from it alone. No user node code or
+    /// external I/O runs inside this method.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidReadyNodeDispatchPlan`] for crossed plan,
+    /// append, checkpoint, journal, or fence scope;
+    /// [`StoreError::ReadyNodeNotDispatchable`] for completed, deferred,
+    /// in-flight, failed, exhausted, or absent nodes; otherwise returns the same
+    /// durable, idempotency, lifecycle, history, fencing, and database failures
+    /// as [`Self::start_node_attempt`].
+    pub async fn start_recovered_node_attempt(
+        &self,
+        append: JournalAppend,
+        plan: &ReadyNodeRecoveryPlan,
+        node_id: &NodeId,
+        attempt_id: AttemptId,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        let fence = append
+            .worker_fence()
+            .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
+        let expected_head = append
+            .expectation()
+            .head()
+            .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
+        if fence != plan.fence()
+            || plan.checkpoint().tenant_id() != fence.tenant_id()
+            || plan.checkpoint().run_id() != fence.run_id()
+            || plan.journal_head().tenant_id() != fence.tenant_id()
+            || plan.journal_head().run_id() != fence.run_id()
+            || expected_head.tenant_id() != fence.tenant_id()
+            || expected_head.run_id() != fence.run_id()
+            || expected_head.sequence() < plan.journal_head().sequence()
+            || expected_head.recorded_at() < plan.journal_head().recorded_at()
+        {
+            return Err(StoreError::InvalidReadyNodeDispatchPlan);
+        }
+        let decision = plan
+            .nodes()
+            .iter()
+            .find(|decision| decision.activation().node_id() == node_id)
+            .ok_or(StoreError::ReadyNodeNotDispatchable)?;
+        if decision.dispatch_reason().is_none()
+            || decision.activation().base_checkpoint() != &plan.checkpoint().head()
+        {
+            return Err(StoreError::ReadyNodeNotDispatchable);
+        }
+        self.start_node_attempt(append, decision.activation().clone(), attempt_id)
+            .await
     }
 
     #[allow(clippy::too_many_lines)]
@@ -5422,6 +5677,15 @@ WHERE tenant_id = $1
             return Err(StoreError::InvalidNodeAttemptActivation);
         }
 
+        let attempt_count = count_node_attempts(&mut transaction, &activation).await?;
+        if attempt_count > ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
+            return Err(StoreError::corrupt(
+                "node attempt history exceeds hard limit",
+            ));
+        }
+        if attempt_count == ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
+            return Err(StoreError::NodeAttemptLimitExceeded);
+        }
         let previous = load_latest_locked_node_attempt(&mut transaction, &activation).await?;
         if let Some(previous) = previous.as_ref() {
             verify_node_attempt(&mut transaction, previous).await?;
@@ -10509,9 +10773,7 @@ fn tool_invocation_activation_is_ready(
     checkpoint: &Checkpoint,
     intent: &ToolInvocationIntent,
 ) -> bool {
-    let activation = intent.activation();
-    activation.graph_namespace().is_root()
-        && checkpoint.ready_nodes().contains(activation.node_id())
+    activation_is_canonical_ready_root(checkpoint, intent.activation())
 }
 
 async fn ensure_no_unsettled_tool_invocations(
@@ -10831,9 +11093,7 @@ fn model_invocation_activation_is_ready(
     checkpoint: &Checkpoint,
     intent: &ModelInvocationIntent,
 ) -> bool {
-    let activation = intent.activation();
-    activation.graph_namespace().is_root()
-        && checkpoint.ready_nodes().contains(activation.node_id())
+    activation_is_canonical_ready_root(checkpoint, intent.activation())
 }
 
 async fn ensure_no_unsettled_model_invocations(
@@ -11781,6 +12041,28 @@ async fn load_latest_locked_node_attempt(
     }
 }
 
+async fn count_node_attempts(
+    transaction: &mut Transaction<'_, Postgres>,
+    activation: &NodeActivation,
+) -> Result<usize, StoreError> {
+    let base = activation.base_checkpoint();
+    let base_superstep = i64::try_from(base.superstep().get())
+        .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+    let count = query_scalar::<_, i64>(SELECT_NODE_ATTEMPT_COUNT)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*base.checkpoint_id().as_uuid())
+        .bind(base_superstep)
+        .bind(base.digest().as_bytes())
+        .bind(activation.graph_namespace().as_str())
+        .bind(activation.node_id().as_str())
+        .bind(activation.input_digest().as_bytes())
+        .fetch_one(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("node attempt history count", source))?;
+    usize::try_from(count).map_err(|_| StoreError::corrupt("node attempt history count"))
+}
+
 async fn verify_node_attempt_anchor(
     transaction: &mut Transaction<'_, Postgres>,
     journal: &JournalHead,
@@ -11828,10 +12110,7 @@ async fn verify_node_attempt_base_checkpoint(
         .map_err(|source| StoreError::database("node attempt base checkpoint", source))?
         .ok_or_else(|| StoreError::corrupt("node attempt base checkpoint"))?;
     let checkpoint = decode_checkpoint(row)?;
-    if checkpoint.head() != *base
-        || !activation.graph_namespace().is_root()
-        || !checkpoint.ready_nodes().contains(activation.node_id())
-    {
+    if checkpoint.head() != *base || !node_attempt_activation_is_ready(&checkpoint, activation) {
         return Err(StoreError::corrupt("node attempt base checkpoint"));
     }
     verify_checkpoint_anchor(transaction, &checkpoint).await
@@ -12169,14 +12448,19 @@ fn pending_node_result_activation_is_ready(
     checkpoint: &Checkpoint,
     intent: &PendingNodeResultIntent,
 ) -> bool {
-    let activation = intent.activation();
-    activation.graph_namespace().is_root()
-        && checkpoint.ready_nodes().contains(activation.node_id())
+    activation_is_canonical_ready_root(checkpoint, intent.activation())
 }
 
 fn node_attempt_activation_is_ready(checkpoint: &Checkpoint, activation: &NodeActivation) -> bool {
-    activation.graph_namespace().is_root()
-        && checkpoint.ready_nodes().contains(activation.node_id())
+    activation_is_canonical_ready_root(checkpoint, activation)
+}
+
+fn activation_is_canonical_ready_root(
+    checkpoint: &Checkpoint,
+    activation: &NodeActivation,
+) -> bool {
+    NodeActivation::for_ready_root(checkpoint, activation.node_id().clone())
+        .is_ok_and(|expected| expected == *activation)
 }
 
 async fn reject_reused_node_worker_attempt(
