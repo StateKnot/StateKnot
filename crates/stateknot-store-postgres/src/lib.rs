@@ -17,7 +17,10 @@
 //! complete wait evidence. Structured quarantine observations live outside a
 //! journal that may be corrupt and atomically revoke execution ownership with
 //! exact journal-observation and lost-ack safeguards. A recovery-read combinator
-//! triggers that transaction only for payload-redacted integrity failures. The
+//! triggers that transaction only for payload-redacted integrity failures.
+//! Fence-bound claimed recovery sessions additionally scope every exposed page
+//! to one run and persist/recheck the detecting attempt and epoch before
+//! quarantine, preventing superseded workers from isolating a successor. The
 //! provider never holds a database transaction across node, model, tool,
 //! remote-agent, or human work.
 //!
@@ -52,4 +55,4 @@ pub use model::{
     WaitAbandonment, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
     WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
-pub use store::PostgresStore;
+pub use store::{ClaimedRunRecovery, PostgresStore};

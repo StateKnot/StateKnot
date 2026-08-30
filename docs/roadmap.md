@@ -112,11 +112,14 @@ from the repository.
   atomic lease removal/runnable exclusion, legacy-evidence honesty, lost-ack
   convergence, rollback/corruption rejection, a 24-request race, and a
   corruption-only recovery-read combinator that rejects stale observations on
-  PostgreSQL 16/17.
+  PostgreSQL 16/17. Migration 11 further preserves v1 evidence while adding
+  optional exact attempt/epoch binding and a v2 digest; a fence-bound claimed
+  recovery surface scopes checkpoint/journal/invocation/node-result reads to
+  one stable quarantine intent, revalidates handoff, and proves that a
+  superseded worker cannot quarantine its successor.
 - [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
-  protocol-specific outbox adapters, complete recovery-loop quarantine
-  integration, role isolation, retention, failover, restore, and stale-race
-  gates.
+  deterministic replay and ready-node execution, protocol-specific outbox
+  adapters, role isolation, retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

@@ -607,6 +607,18 @@ before recovery performs:
 7. require the computed final head to equal the run row;
 8. make runnable work visible only after every check succeeds.
 
+The implementation starts this path with `begin_claimed_run_recovery`, which
+requires one exact live `RunFence` and the candidate's exact journal
+observation. Its bounded lineage, journal, invocation-history, node-attempt, and
+pending-result reads share one stable corruption evidence identity; recovery
+revalidates the same fence and head before handing work to a durable start
+transaction. A recovery-originated quarantine persists the detecting attempt
+and epoch in its versioned digest and repeats the exact unexpired-fence predicate
+while revoking the lease. Consequently, a worker superseded without an
+intervening journal event cannot use subsequently observed corruption to stop
+the successor. Unfenced control-plane quarantine remains explicit and retains
+its v1 audit format.
+
 A checksum mismatch, sequence gap, unsupported required schema, missing blob,
 cross-tenant reference, or projection disagreement quarantines the run. The
 worker does not skip, repair, or reinterpret the record. Operator tooling can

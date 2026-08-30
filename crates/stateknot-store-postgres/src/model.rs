@@ -7,8 +7,8 @@ use stateknot_core::{
     DurableTimerRecord, DurableWait, FencingEpoch, InterruptRecord, InterruptRequest, JournalEvent,
     JournalExpectation, JournalHead, JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt,
     OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef,
-    PendingNodeResult, PendingNodeResultHead, QuarantineId, RunId, RunLease, RunLifecycle,
-    RunRevision, RunTransition, Superstep, TenantId, Timestamp, ToolInvocation,
+    PendingNodeResult, PendingNodeResultHead, QuarantineId, RunFence, RunId, RunLease,
+    RunLifecycle, RunRevision, RunTransition, Superstep, TenantId, Timestamp, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -142,6 +142,7 @@ pub struct RunQuarantineRequest {
     pub(crate) cause: RunQuarantineCause,
     pub(crate) component: RunQuarantineComponent,
     pub(crate) evidence_digest: Digest,
+    pub(crate) expected_fence: Option<RunFence>,
 }
 
 impl RunQuarantineRequest {
@@ -177,7 +178,33 @@ impl RunQuarantineRequest {
             cause,
             component,
             evidence_digest,
+            expected_fence: None,
         })
+    }
+
+    /// Binds this observation to the exact live worker fence that detected it.
+    ///
+    /// A fenced quarantine commits only while that attempt and epoch still own
+    /// an unexpired lease. This prevents a superseded or expired recovery worker
+    /// from stopping a successor that happens to share the same journal head.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidRunQuarantineRequest`] when the fence
+    /// crosses the request tenant or run.
+    pub fn with_expected_fence(mut self, fence: RunFence) -> Result<Self, StoreError> {
+        if fence.tenant_id() != &self.tenant_id || fence.run_id() != self.run_id {
+            return Err(StoreError::InvalidRunQuarantineRequest);
+        }
+        if self
+            .expected_fence
+            .as_ref()
+            .is_some_and(|expected| expected != &fence)
+        {
+            return Err(StoreError::InvalidRunQuarantineRequest);
+        }
+        self.expected_fence = Some(fence);
+        Ok(self)
     }
 
     /// Returns the tenant boundary.
@@ -221,6 +248,12 @@ impl RunQuarantineRequest {
     pub const fn evidence_digest(&self) -> Digest {
         self.evidence_digest
     }
+
+    /// Returns the exact recovery fence that must still own the run, if any.
+    #[must_use]
+    pub const fn expected_fence(&self) -> Option<&RunFence> {
+        self.expected_fence.as_ref()
+    }
 }
 
 /// Stable context for automatically quarantining one failed recovery read.
@@ -235,6 +268,7 @@ pub struct CorruptionQuarantineContext {
     pub(crate) quarantine_id: QuarantineId,
     pub(crate) expectation: JournalExpectation,
     pub(crate) evidence_digest: Digest,
+    pub(crate) expected_fence: Option<RunFence>,
 }
 
 impl CorruptionQuarantineContext {
@@ -263,7 +297,29 @@ impl CorruptionQuarantineContext {
             quarantine_id,
             expectation,
             evidence_digest,
+            expected_fence: None,
         })
+    }
+
+    /// Binds all corruption quarantines from this context to one live fence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidClaimedRunRecoveryContext`] when the fence
+    /// crosses the context tenant or run.
+    pub fn with_expected_fence(mut self, fence: RunFence) -> Result<Self, StoreError> {
+        if fence.tenant_id() != &self.tenant_id || fence.run_id() != self.run_id {
+            return Err(StoreError::InvalidClaimedRunRecoveryContext);
+        }
+        if self
+            .expected_fence
+            .as_ref()
+            .is_some_and(|expected| expected != &fence)
+        {
+            return Err(StoreError::InvalidClaimedRunRecoveryContext);
+        }
+        self.expected_fence = Some(fence);
+        Ok(self)
     }
 
     /// Returns the tenant boundary.
@@ -296,11 +352,17 @@ impl CorruptionQuarantineContext {
         self.evidence_digest
     }
 
+    /// Returns the exact live fence required for quarantine, when bound.
+    #[must_use]
+    pub const fn expected_fence(&self) -> Option<&RunFence> {
+        self.expected_fence.as_ref()
+    }
+
     pub(crate) fn into_request(
         self,
         component: RunQuarantineComponent,
     ) -> Result<RunQuarantineRequest, StoreError> {
-        RunQuarantineRequest::new(
+        let request = RunQuarantineRequest::new(
             self.tenant_id,
             self.run_id,
             self.quarantine_id,
@@ -308,7 +370,11 @@ impl CorruptionQuarantineContext {
             RunQuarantineCause::IntegrityFailure,
             component,
             self.evidence_digest,
-        )
+        )?;
+        match self.expected_fence {
+            Some(fence) => request.with_expected_fence(fence),
+            None => Ok(request),
+        }
     }
 }
 

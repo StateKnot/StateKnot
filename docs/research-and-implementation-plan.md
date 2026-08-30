@@ -844,7 +844,12 @@ v8 legacy waiting quarantine、lost-ack、fencing、corruption、rollback 与 24
 原子清除 lease/调度可见性、旧隔离不伪造证据、lost-ack、rollback、corruption 与 24 请求
 并发收敛均已在 PostgreSQL 16/17 验证；read-only recovery combinator 还只在
 `CorruptData` 时自动隔离，普通错误透传，并用精确 journal observation 阻止陈旧检测误停新状态。
-它仍不是完整 runtime。协议专用 outbox dispatch adapter、完整 recovery loop 接入、
+Migration 11 在不改变旧 v1 audit digest 的前提下为 recovery quarantine 增加可选的
+`AttemptId + FencingEpoch` 和 v2 digest；`ClaimedRunRecovery` 创建、分页读取和最终交接均绑定
+同一租户/run、稳定 quarantine identity、精确 journal observation 与 live fence，隔离投影更新
+再次执行未过期 fence SQL predicate。PG16/17 竞态测试已证明：旧 worker 被 supersede 后即使
+随后读到真实损坏 checkpoint，也只能得到 `StaleFence`，不能清除新 owner；当前 owner 才能隔离。
+它仍不是完整 runtime。协议专用 outbox dispatch adapter、确定性 replay/ready-node 执行、
 跨租户公平与 recovery/dispatch loop、角色隔离、
 归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
 
@@ -1059,8 +1064,9 @@ registry、pending node-result、transactional outbox、durable interrupt/timer 
 commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending-result barrier
 以及 tenant-level indexed runnable/due-timer/expired-interrupt discovery、durable wait
 registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；cross-tenant
-fairness、recovery/dispatch loop、协议 dispatch adapter，以及阶段 3 的其余运维与故障门禁
-未完成，不能据此提前宣称阶段完成。
+fairness、recovery 的确定性 replay/ready-node/dispatch loop、协议 dispatch adapter，以及
+阶段 3 的其余运维与故障门禁未完成，不能据此提前宣称阶段完成。已完成的 claimed recovery
+read surface 只提供 fence-bound、corruption-quarantining 的恢复输入边界，不等同于完整 runtime。
 
 ### 阶段 4：协议正式支持（4–5 周）
 

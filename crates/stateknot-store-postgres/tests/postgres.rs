@@ -50,6 +50,7 @@ use stateknot_store_postgres::{
     WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
     WaitDiscoveryPageSize,
 };
+use uuid::Uuid;
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
 const REQUIRE_DATABASE_ENV: &str = "STATEKNOT_REQUIRE_POSTGRES_TESTS";
@@ -221,6 +222,7 @@ async fn remove_durable_waits(pool: &PgPool) {
 }
 
 async fn remove_run_quarantines(pool: &PgPool) {
+    remove_fenced_recovery_quarantines(pool).await;
     query("DROP TABLE stateknot.run_quarantines")
         .execute(pool)
         .await
@@ -229,6 +231,24 @@ async fn remove_run_quarantines(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v10 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_fenced_recovery_quarantines(pool: &PgPool) {
+    query(
+        "ALTER TABLE stateknot.run_quarantines \
+         DROP CONSTRAINT run_quarantines_fence_shape, \
+         DROP COLUMN expected_fence_attempt_id, \
+         DROP COLUMN expected_fence_epoch",
+    )
+    .execute(pool)
+    .await
+    .expect("v11 fenced quarantine columns must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 11")
+        .execute(pool)
+        .await
+        .expect("v11 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -12431,4 +12451,501 @@ async fn recovery_wrapper_quarantines_only_corruption_and_rejects_stale_observat
 
     administration.close().await;
     store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn claimed_run_recovery_requires_exact_live_fence_and_journal_observation() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("claimed-recovery");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 950)).await;
+    let claim = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .expect("runnable run must be claimable");
+    let fence = claim.lease().fence().clone();
+    let context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(checkpoint.event().head()),
+        Digest::sha256(b"claimed recovery evidence"),
+    )
+    .unwrap();
+    let recovery = store
+        .begin_claimed_run_recovery(fence.clone(), context)
+        .await
+        .expect("exact live ownership must start recovery");
+    assert_eq!(recovery.fence(), &fence);
+    assert_eq!(recovery.quarantine_context().expected_fence(), Some(&fence));
+    assert_eq!(
+        recovery
+            .initial_run()
+            .lease()
+            .expect("recovery starts under a live lease")
+            .fence(),
+        &fence
+    );
+
+    let lineage = recovery
+        .load_checkpoint_lineage_page(None, CheckpointLineagePageSize::new(8).unwrap())
+        .await
+        .expect("checkpoint lineage must recover through the guarded surface");
+    assert_eq!(lineage.checkpoints(), &[checkpoint.checkpoint().clone()]);
+    assert!(lineage.next_cursor().is_none());
+    let journal = recovery
+        .load_journal_page(None, JournalPageSize::new(16).unwrap())
+        .await
+        .expect("journal must recover through the guarded surface");
+    assert_eq!(journal.events(), &[checkpoint.event().clone()]);
+    assert!(!journal.has_more());
+
+    assert!(matches!(
+        recovery
+            .load_tool_invocation_history_page(
+                InvocationId::generate(),
+                None,
+                ToolInvocationHistoryPageSize::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::ToolInvocationNotFound)
+    ));
+    assert!(matches!(
+        store.load_run_quarantine(&tenant_id, run_id).await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+    recovery
+        .revalidate()
+        .await
+        .expect("unchanged live recovery must revalidate");
+
+    let stale_observation = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        Digest::sha256(b"stale claimed recovery evidence"),
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .begin_claimed_run_recovery(fence.clone(), stale_observation)
+            .await,
+        Err(StoreError::StaleClaimedRunRecoveryObservation)
+    ));
+
+    let crossed = CorruptionQuarantineContext::new(
+        tenant("claimed-recovery-crossed"),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::empty(),
+        Digest::sha256(b"crossed claimed recovery evidence"),
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .begin_claimed_run_recovery(fence.clone(), crossed)
+            .await,
+        Err(StoreError::InvalidClaimedRunRecoveryContext)
+    ));
+
+    let successor = store
+        .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .expect("trusted takeover must issue a successor fence");
+    assert!(matches!(
+        recovery.revalidate().await,
+        Err(StoreError::StaleFence)
+    ));
+    let successor_context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(checkpoint.event().head()),
+        Digest::sha256(b"successor claimed recovery evidence"),
+    )
+    .unwrap();
+    store
+        .begin_claimed_run_recovery(successor.lease().fence().clone(), successor_context)
+        .await
+        .expect("the exact successor may recover the unchanged journal");
+    assert!(matches!(
+        store.load_run_quarantine(&tenant_id, run_id).await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn claimed_recovery_quarantine_cannot_cross_a_successor_fence() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+
+    let current_tenant = tenant("claimed-recovery-current");
+    let current_run = RunId::generate();
+    let current_checkpoint = Box::pin(start_run_with_checkpoint(
+        &store,
+        &current_tenant,
+        current_run,
+        951,
+    ))
+    .await;
+    let current_claim = store
+        .claim_lease(&current_tenant, current_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let current_fence = current_claim.lease().fence().clone();
+    let current_context = CorruptionQuarantineContext::new(
+        current_tenant.clone(),
+        current_run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(current_checkpoint.event().head()),
+        Digest::sha256(b"current fenced corruption evidence"),
+    )
+    .unwrap();
+    let current_recovery = store
+        .begin_claimed_run_recovery(current_fence.clone(), current_context)
+        .await
+        .unwrap();
+    corrupt_checkpoint_bytes(
+        &administration,
+        &current_tenant,
+        current_run,
+        current_checkpoint.checkpoint().checkpoint_id(),
+    )
+    .await;
+    for _ in 0..2 {
+        assert!(matches!(
+            current_recovery
+                .load_checkpoint_lineage_page(None, CheckpointLineagePageSize::new(8).unwrap())
+                .await,
+            Err(StoreError::RunQuarantined)
+        ));
+    }
+    let current_quarantine = store
+        .load_run_quarantine(&current_tenant, current_run)
+        .await
+        .expect("fenced evidence must be auditable");
+    assert_eq!(
+        current_quarantine.request().expected_fence(),
+        Some(&current_fence)
+    );
+    let stopped = store.load_run(&current_tenant, current_run).await.unwrap();
+    assert!(stopped.is_quarantined());
+    assert!(stopped.lease().is_none());
+    query(
+        "UPDATE stateknot.runs SET fencing_epoch = fencing_epoch + 1 \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(current_tenant.as_str())
+    .bind(*current_run.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_run_quarantine(&current_tenant, current_run)
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    let stale_tenant = tenant("claimed-recovery-stale-owner");
+    let stale_run = RunId::generate();
+    let stale_checkpoint = Box::pin(start_run_with_checkpoint(
+        &store,
+        &stale_tenant,
+        stale_run,
+        952,
+    ))
+    .await;
+    let stale_claim = store
+        .claim_lease(&stale_tenant, stale_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let stale_fence = stale_claim.lease().fence().clone();
+    let stale_context = CorruptionQuarantineContext::new(
+        stale_tenant.clone(),
+        stale_run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(stale_checkpoint.event().head()),
+        Digest::sha256(b"stale owner corruption evidence"),
+    )
+    .unwrap();
+    let stale_recovery = store
+        .begin_claimed_run_recovery(stale_fence, stale_context)
+        .await
+        .unwrap();
+    let successor = store
+        .supersede_lease(&stale_tenant, stale_run, AttemptId::generate())
+        .await
+        .expect("successor must replace the recovery owner");
+    corrupt_checkpoint_bytes(
+        &administration,
+        &stale_tenant,
+        stale_run,
+        stale_checkpoint.checkpoint().checkpoint_id(),
+    )
+    .await;
+    assert!(matches!(
+        stale_recovery
+            .load_checkpoint_lineage_page(None, CheckpointLineagePageSize::new(8).unwrap())
+            .await,
+        Err(StoreError::StaleFence)
+    ));
+    let still_owned = store.load_run(&stale_tenant, stale_run).await.unwrap();
+    assert!(!still_owned.is_quarantined());
+    assert_eq!(
+        still_owned
+            .lease()
+            .expect("successor lease must remain")
+            .fence(),
+        successor.lease().fence()
+    );
+    assert!(matches!(
+        store.load_run_quarantine(&stale_tenant, stale_run).await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+
+    let successor_context = CorruptionQuarantineContext::new(
+        stale_tenant.clone(),
+        stale_run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(stale_checkpoint.event().head()),
+        Digest::sha256(b"successor corruption evidence"),
+    )
+    .unwrap();
+    let successor_recovery = store
+        .begin_claimed_run_recovery(successor.lease().fence().clone(), successor_context)
+        .await
+        .expect("successor may inspect the same corrupt durable state");
+    assert!(matches!(
+        successor_recovery
+            .load_checkpoint_lineage_page(None, CheckpointLineagePageSize::new(8).unwrap())
+            .await,
+        Err(StoreError::RunQuarantined)
+    ));
+
+    let expired_tenant = tenant("claimed-recovery-expired-owner");
+    let expired_run = RunId::generate();
+    let expired_checkpoint = Box::pin(start_run_with_checkpoint(
+        &store,
+        &expired_tenant,
+        expired_run,
+        953,
+    ))
+    .await;
+    let expired_claim = store
+        .claim_lease(&expired_tenant, expired_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let expired_context = CorruptionQuarantineContext::new(
+        expired_tenant.clone(),
+        expired_run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(expired_checkpoint.event().head()),
+        Digest::sha256(b"expired owner corruption evidence"),
+    )
+    .unwrap();
+    let expired_recovery = store
+        .begin_claimed_run_recovery(expired_claim.lease().fence().clone(), expired_context)
+        .await
+        .unwrap();
+    query(
+        "UPDATE stateknot.runs \
+         SET lease_acquired_at = clock_timestamp() - interval '2 seconds', \
+             lease_renewed_at = clock_timestamp() - interval '1 second', \
+             lease_expires_at = clock_timestamp() - interval '1 microsecond' \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(expired_tenant.as_str())
+    .bind(*expired_run.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    corrupt_checkpoint_bytes(
+        &administration,
+        &expired_tenant,
+        expired_run,
+        expired_checkpoint.checkpoint().checkpoint_id(),
+    )
+    .await;
+    assert!(matches!(
+        expired_recovery
+            .load_checkpoint_lineage_page(None, CheckpointLineagePageSize::new(8).unwrap())
+            .await,
+        Err(StoreError::LeaseExpired)
+    ));
+    assert!(
+        !store
+            .load_run(&expired_tenant, expired_run)
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+    assert!(matches!(
+        store
+            .load_run_quarantine(&expired_tenant, expired_run)
+            .await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn claimed_recovery_migration_eleven_preserves_unfenced_v1_quarantine_evidence() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v11_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let fixture_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .unwrap();
+    let tenant_id = tenant("v11-unfenced-evidence");
+    let run_id = RunId::generate();
+    fixture_store
+        .admit_run(provenance(tenant_id.clone(), run_id))
+        .await
+        .unwrap();
+    let original = fixture_store
+        .quarantine_run(quarantine_request(
+            tenant_id.clone(),
+            run_id,
+            QuarantineId::generate(),
+            JournalExpectation::empty(),
+            RunQuarantineCause::OperatorPolicy,
+            "migration11.v1_preserved",
+            b"migration eleven v1 evidence",
+        ))
+        .await
+        .unwrap()
+        .quarantine()
+        .clone();
+    assert!(original.request().expected_fence().is_none());
+    fixture_store.close().await;
+
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_fenced_recovery_quarantines(&fixture_pool).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture_pool)
+            .await
+            .unwrap(),
+        10
+    );
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 11 must upgrade the exact v10 fixture");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    assert_eq!(
+        upgraded
+            .load_run_quarantine(&tenant_id, run_id)
+            .await
+            .expect("v1 evidence must retain its exact digest"),
+        original
+    );
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    let fence_columns = query_as::<_, (Option<Uuid>, Option<i64>)>(
+        "SELECT expected_fence_attempt_id, expected_fence_epoch \
+         FROM stateknot.run_quarantines WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .fetch_one(&verification)
+    .await
+    .unwrap();
+    assert_eq!(fence_columns, (None, None));
+    let fence_constraint = query_scalar::<_, bool>(
+        "SELECT EXISTS ( \
+             SELECT 1 FROM pg_catalog.pg_constraint \
+             WHERE conrelid = to_regclass('stateknot.run_quarantines') \
+               AND conname = 'run_quarantines_fence_shape' \
+               AND convalidated \
+         )",
+    )
+    .fetch_one(&verification)
+    .await
+    .unwrap();
+    assert!(fence_constraint);
+
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+async fn corrupt_checkpoint_bytes(
+    administration: &PgPool,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    checkpoint_id: CheckpointId,
+) {
+    query(
+        "UPDATE stateknot.run_checkpoints \
+         SET checkpoint_bytes = checkpoint_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $3",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .bind(*checkpoint_id.as_uuid())
+    .execute(administration)
+    .await
+    .unwrap();
 }

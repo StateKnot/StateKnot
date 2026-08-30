@@ -136,6 +136,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0010_run_quarantines.sql")),
             false,
         ),
+        Migration::new(
+            11,
+            Cow::Borrowed("fenced recovery quarantines"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0011_fenced_recovery_quarantines.sql"
+            )),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -159,7 +168,8 @@ const MAX_OUTBOX_ATTEMPT_COMPLETION_BYTES: usize = 1_048_576;
 const MAX_WAIT_REGISTRATION_BYTES: usize = 4_194_304;
 const MAX_INTERRUPT_RESOLUTION_BYTES: usize = 4_194_304;
 const MAX_TIMER_FIRING_BYTES: usize = 1_048_576;
-const RUN_QUARANTINE_DIGEST_DOMAIN: &[u8] = b"stateknot.run-quarantine.v1\0";
+const RUN_QUARANTINE_DIGEST_DOMAIN_V1: &[u8] = b"stateknot.run-quarantine.v1\0";
+const RUN_QUARANTINE_DIGEST_DOMAIN_V2: &[u8] = b"stateknot.run-quarantine.v2\0";
 const MAX_OUTBOX_DELIVERIES_PER_EVENT: usize = 64;
 const OUTBOX_TERMINAL_REAP_BATCH_SIZE: i64 = 64;
 const PENDING_TOOL_BINDING_BATCH_SIZE: usize = ToolInvocationHistoryPageSize::MAX as usize;
@@ -1241,6 +1251,10 @@ SELECT
     journal_event_id,
     journal_recorded_at,
     journal_digest,
+    lease_attempt_id,
+    fencing_epoch,
+    lease_renewed_at,
+    lease_expires_at,
     quarantined_at,
     quarantine_reason
 FROM stateknot.runs
@@ -1261,6 +1275,8 @@ SELECT
     q.expected_journal_event_id,
     q.expected_journal_recorded_at,
     q.expected_journal_digest,
+    q.expected_fence_attempt_id,
+    q.expected_fence_epoch,
     q.record_digest,
     q.created_at,
     r.quarantined_at AS run_quarantined_at,
@@ -1269,6 +1285,7 @@ SELECT
     r.lease_acquired_at AS run_lease_acquired_at,
     r.lease_renewed_at AS run_lease_renewed_at,
     r.lease_expires_at AS run_lease_expires_at,
+    r.fencing_epoch AS run_fencing_epoch,
     r.scheduler_ready_at AS run_scheduler_ready_at,
     r.updated_at AS run_updated_at
 FROM stateknot.run_quarantines AS q
@@ -1290,6 +1307,8 @@ SELECT
     q.expected_journal_event_id,
     q.expected_journal_recorded_at,
     q.expected_journal_digest,
+    q.expected_fence_attempt_id,
+    q.expected_fence_epoch,
     q.record_digest,
     q.created_at,
     r.quarantined_at AS run_quarantined_at,
@@ -1298,6 +1317,7 @@ SELECT
     r.lease_acquired_at AS run_lease_acquired_at,
     r.lease_renewed_at AS run_lease_renewed_at,
     r.lease_expires_at AS run_lease_expires_at,
+    r.fencing_epoch AS run_fencing_epoch,
     r.scheduler_ready_at AS run_scheduler_ready_at,
     r.updated_at AS run_updated_at
 FROM stateknot.run_quarantines AS q
@@ -1718,6 +1738,218 @@ pub struct PostgresStore {
     options: PostgresStoreOptions,
 }
 
+/// Fence-bound, corruption-quarantining read surface for one claimed run.
+///
+/// A session is created only after the database confirms the exact live
+/// [`RunFence`], runnable projection, tenant/run scope, and journal observation.
+/// Every recovery read exposed here maps durable [`StoreError::CorruptData`]
+/// through one stable [`CorruptionQuarantineContext`]. Ordinary availability,
+/// cursor, contention, and stale-observation failures never quarantine.
+///
+/// The initial snapshot is evidence about the recovery starting point, not an
+/// authorization to perform external I/O. Call [`Self::revalidate`] before
+/// handing recovered work to the durable node/model/tool/outbox start APIs;
+/// those mutations remain the authoritative dispatch fence.
+pub struct ClaimedRunRecovery<'store> {
+    store: &'store PostgresStore,
+    fence: RunFence,
+    context: CorruptionQuarantineContext,
+    initial_run: StoredRun,
+}
+
+impl ClaimedRunRecovery<'_> {
+    /// Returns the exact worker fence validated when this session was created.
+    #[must_use]
+    pub const fn fence(&self) -> &RunFence {
+        &self.fence
+    }
+
+    /// Returns the stable corruption evidence intent used by every read.
+    #[must_use]
+    pub const fn quarantine_context(&self) -> &CorruptionQuarantineContext {
+        &self.context
+    }
+
+    /// Returns the fully validated run snapshot observed at session creation.
+    #[must_use]
+    pub const fn initial_run(&self) -> &StoredRun {
+        &self.initial_run
+    }
+
+    /// Rechecks the live fence, runnable projection, and exact journal head.
+    ///
+    /// Recovery callers should invoke this after consuming their bounded pages
+    /// and before preparing any durable dispatch attempt. A lease renewal under
+    /// the same fence is accepted; expiry, supersession, quarantine, lifecycle
+    /// removal, or journal progress aborts the handoff explicitly.
+    ///
+    /// # Errors
+    ///
+    /// Returns fencing, lifecycle, stale-observation, corruption/quarantine, or
+    /// database failures. Corruption is quarantined before this method returns.
+    pub async fn revalidate(&self) -> Result<StoredRun, StoreError> {
+        self.store
+            .with_corruption_quarantine(
+                self.context.clone(),
+                self.store
+                    .load_claimed_run_recovery_snapshot(&self.fence, &self.context),
+            )
+            .await
+    }
+
+    /// Loads one bounded current checkpoint-lineage page through quarantine.
+    ///
+    /// # Errors
+    ///
+    /// Returns the underlying cursor, durable-state, fencing-independent read,
+    /// quarantine, or database failure. Corruption is quarantined first.
+    pub async fn load_checkpoint_lineage_page(
+        &self,
+        from: Option<&CheckpointHead>,
+        page_size: CheckpointLineagePageSize,
+    ) -> Result<CheckpointLineagePage, StoreError> {
+        self.read(self.store.load_checkpoint_lineage_page(
+            self.fence.tenant_id(),
+            self.fence.run_id(),
+            from,
+            page_size,
+        ))
+        .await
+    }
+
+    /// Loads one bounded journal page through quarantine.
+    ///
+    /// # Errors
+    ///
+    /// Returns the underlying cursor, durable-state, quarantine, or database
+    /// failure. Corruption is quarantined first.
+    pub async fn load_journal_page(
+        &self,
+        after: Option<&JournalHead>,
+        page_size: JournalPageSize,
+    ) -> Result<JournalPage, StoreError> {
+        self.read(self.store.load_journal_page(
+            self.fence.tenant_id(),
+            self.fence.run_id(),
+            after,
+            page_size,
+        ))
+        .await
+    }
+
+    /// Loads one bounded tool-invocation history page through quarantine.
+    ///
+    /// # Errors
+    ///
+    /// Returns the underlying not-found, cursor, durable-state, quarantine, or
+    /// database failure. Corruption is quarantined first.
+    pub async fn load_tool_invocation_history_page(
+        &self,
+        invocation_id: InvocationId,
+        after: Option<&ToolInvocation>,
+        page_size: ToolInvocationHistoryPageSize,
+    ) -> Result<ToolInvocationHistoryPage, StoreError> {
+        Box::pin(self.read(self.store.load_tool_invocation_history_page(
+            self.fence.tenant_id(),
+            self.fence.run_id(),
+            invocation_id,
+            after,
+            page_size,
+        )))
+        .await
+    }
+
+    /// Loads one bounded model-invocation history page through quarantine.
+    ///
+    /// # Errors
+    ///
+    /// Returns the underlying not-found, cursor, durable-state, quarantine, or
+    /// database failure. Corruption is quarantined first.
+    pub async fn load_model_invocation_history_page(
+        &self,
+        invocation_id: InvocationId,
+        after: Option<&ModelInvocation>,
+        page_size: ModelInvocationHistoryPageSize,
+    ) -> Result<ModelInvocationHistoryPage, StoreError> {
+        Box::pin(self.read(self.store.load_model_invocation_history_page(
+            self.fence.tenant_id(),
+            self.fence.run_id(),
+            invocation_id,
+            after,
+            page_size,
+        )))
+        .await
+    }
+
+    /// Loads one bounded physical node-attempt history page through quarantine.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidClaimedRunRecoveryContext`] when the
+    /// activation crosses this session, otherwise the underlying cursor,
+    /// durable-state, quarantine, or database failure.
+    pub async fn load_node_attempt_history_page(
+        &self,
+        activation: &NodeActivation,
+        cursor: Option<&NodeAttempt>,
+        page_size: NodeAttemptHistoryPageSize,
+    ) -> Result<NodeAttemptHistoryPage, StoreError> {
+        self.validate_activation_scope(activation)?;
+        Box::pin(
+            self.read(
+                self.store
+                    .load_node_attempt_history_page(activation, cursor, page_size),
+            ),
+        )
+        .await
+    }
+
+    /// Loads one bounded page of unconsumed node results through quarantine.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidClaimedRunRecoveryContext`] when the base
+    /// checkpoint crosses this session, otherwise the underlying cursor,
+    /// durable-state, quarantine, or database failure.
+    pub async fn load_unconsumed_pending_node_result_page(
+        &self,
+        base: &CheckpointHead,
+        cursor: Option<&PendingNodeResultPageCursor>,
+        page_size: PendingNodeResultPageSize,
+    ) -> Result<PendingNodeResultPage, StoreError> {
+        self.validate_checkpoint_scope(base)?;
+        Box::pin(
+            self.read(
+                self.store
+                    .load_unconsumed_pending_node_result_page(base, cursor, page_size),
+            ),
+        )
+        .await
+    }
+
+    async fn read<T, F>(&self, recovery_read: F) -> Result<T, StoreError>
+    where
+        F: Future<Output = Result<T, StoreError>>,
+    {
+        self.store
+            .with_corruption_quarantine(self.context.clone(), recovery_read)
+            .await
+    }
+
+    fn validate_checkpoint_scope(&self, checkpoint: &CheckpointHead) -> Result<(), StoreError> {
+        if checkpoint.tenant_id() != self.fence.tenant_id()
+            || checkpoint.run_id() != self.fence.run_id()
+        {
+            return Err(StoreError::InvalidClaimedRunRecoveryContext);
+        }
+        Ok(())
+    }
+
+    fn validate_activation_scope(&self, activation: &NodeActivation) -> Result<(), StoreError> {
+        self.validate_checkpoint_scope(activation.base_checkpoint())
+    }
+}
+
 impl PostgresStore {
     /// Connects to a qualified `PostgreSQL` 16 or 17 server and verifies its schema.
     ///
@@ -1839,6 +2071,12 @@ impl PostgresStore {
                  AND to_regclass('stateknot.run_wait_registrations_expiry') IS NOT NULL \
                  AND to_regclass('stateknot.run_quarantines') IS NOT NULL \
                  AND to_regclass('stateknot.run_quarantines_observed') IS NOT NULL \
+                 AND EXISTS ( \
+                     SELECT 1 FROM pg_catalog.pg_constraint \
+                     WHERE conrelid = to_regclass('stateknot.run_quarantines') \
+                       AND conname = 'run_quarantines_fence_shape' \
+                       AND convalidated \
+                 ) \
                  AND EXISTS ( \
                      SELECT 1 FROM pg_catalog.pg_constraint \
                      WHERE conrelid = to_regclass('stateknot.runs') \
@@ -2018,10 +2256,12 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
     /// Quarantine facts are stored outside the run journal because that journal
     /// may be the object that failed verification. The exact journal expectation
     /// prevents a stale observation from quarantining a run after durable
-    /// progress. A committed quarantine clears the active lease and is excluded
-    /// from the runnable index in the same transaction. Losing the commit
-    /// acknowledgement is recovered by retrying the identical `quarantine_id`
-    /// and request.
+    /// progress. A request carrying an expected fence additionally requires that
+    /// exact attempt and epoch to own an unexpired lease in this transaction, so
+    /// a stale recovery worker cannot quarantine its successor. A committed
+    /// quarantine clears the active lease and is excluded from the runnable
+    /// index in the same transaction. Losing the commit acknowledgement is
+    /// recovered by retrying the identical `quarantine_id` and request.
     ///
     /// # Errors
     ///
@@ -2079,39 +2319,15 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             }
             return Err(StoreError::RunQuarantineConflict);
         }
+        let observed_at = database_now(&mut transaction, "run quarantine clock").await?;
+        authorize_quarantine_fence(&target, request.expected_fence(), observed_at)?;
         if !quarantine_expectation_matches(&target, request.expectation())? {
             return Err(StoreError::StaleRunQuarantineObservation);
         }
 
-        let observed_at = database_now(&mut transaction, "run quarantine clock").await?;
         let quarantine = materialize_run_quarantine(request, observed_at)?;
         insert_run_quarantine(&mut transaction, &quarantine).await?;
-
-        let reason = run_quarantine_reason(quarantine.request());
-        let updated = query(
-            r"
-UPDATE stateknot.runs
-SET quarantined_at = $3,
-    quarantine_reason = $4,
-    lease_attempt_id = NULL,
-    lease_acquired_at = NULL,
-    lease_renewed_at = NULL,
-    lease_expires_at = NULL,
-    updated_at = GREATEST(updated_at, $3)
-WHERE tenant_id = $1 AND run_id = $2 AND quarantined_at IS NULL
-",
-        )
-        .bind(quarantine.request().tenant_id().as_str())
-        .bind(*quarantine.request().run_id().as_uuid())
-        .bind(to_database_time(quarantine.quarantined_at())?)
-        .bind(&reason)
-        .execute(&mut *transaction)
-        .await
-        .map_err(|source| StoreError::database("run quarantine projection update", source))?
-        .rows_affected();
-        if updated != 1 {
-            return Err(StoreError::RunQuarantineCommitConflict);
-        }
+        commit_run_quarantine_projection(&mut transaction, &quarantine).await?;
 
         let restored_row = load_run_quarantine_row_by_run(
             &mut transaction,
@@ -2139,8 +2355,9 @@ WHERE tenant_id = $1 AND run_id = $2 AND quarantined_at IS NULL
     /// non-corruption failures are returned unchanged. For
     /// [`StoreError::CorruptData`], the provider derives the bounded component
     /// code, commits (or exactly recovers) the quarantine, then returns
-    /// [`StoreError::RunQuarantined`]. A stale journal observation or unavailable
-    /// database is returned instead of claiming that isolation committed.
+    /// [`StoreError::RunQuarantined`]. A stale journal/fence observation,
+    /// expired lease, or unavailable database is returned instead of claiming
+    /// that isolation committed.
     ///
     /// This helper does not grant execution authority: recovery still needs a
     /// live run fence and must re-check the quarantined run projection before
@@ -2171,6 +2388,81 @@ WHERE tenant_id = $1 AND run_id = $2 AND quarantined_at IS NULL
                 Err(StoreError::RunQuarantined)
             }
         }
+    }
+
+    /// Starts one fence-bound recovery session for a claimed runnable run.
+    ///
+    /// The supplied fence and quarantine context must name the same tenant/run.
+    /// In one repeatable-read transaction the provider verifies the complete
+    /// run projection and wait set, exact live lease against the database clock,
+    /// runnable/quarantine state, and the context's exact journal observation.
+    /// The returned session then supplies only scope-bound recovery reads that
+    /// automatically use the same stable corruption quarantine intent.
+    ///
+    /// Creating a session does not authorize external dispatch. Recovered work
+    /// must still enter the corresponding durable-before-dispatch start API
+    /// under the exact fence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidClaimedRunRecoveryContext`] for crossed
+    /// scope, [`StoreError::StaleClaimedRunRecoveryObservation`] for journal
+    /// progress, or explicit lifecycle, fencing, corruption/quarantine, and
+    /// database failures. Corruption is quarantined before this method returns.
+    pub async fn begin_claimed_run_recovery(
+        &self,
+        fence: RunFence,
+        context: CorruptionQuarantineContext,
+    ) -> Result<ClaimedRunRecovery<'_>, StoreError> {
+        if context.tenant_id() != fence.tenant_id() || context.run_id() != fence.run_id() {
+            return Err(StoreError::InvalidClaimedRunRecoveryContext);
+        }
+        let context = context.with_expected_fence(fence.clone())?;
+        let initial_run = self
+            .with_corruption_quarantine(
+                context.clone(),
+                self.load_claimed_run_recovery_snapshot(&fence, &context),
+            )
+            .await?;
+        Ok(ClaimedRunRecovery {
+            store: self,
+            fence,
+            context,
+            initial_run,
+        })
+    }
+
+    async fn load_claimed_run_recovery_snapshot(
+        &self,
+        fence: &RunFence,
+        context: &CorruptionQuarantineContext,
+    ) -> Result<StoredRun, StoreError> {
+        let mut transaction = self.begin_repeatable_read("claimed run recovery").await?;
+        let row = query_as::<_, RunRow>(SELECT_RUN)
+            .bind(fence.tenant_id().as_str())
+            .bind(*fence.run_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("claimed run recovery load", source))?
+            .ok_or(StoreError::RunNotFound)?;
+        let stored = decode_run(row)?;
+        if stored.lifecycle().provenance().tenant_id() != fence.tenant_id()
+            || stored.lifecycle().provenance().run_id() != fence.run_id()
+        {
+            return Err(StoreError::corrupt("claimed run recovery scope"));
+        }
+        verify_current_wait_set(&mut transaction, &stored).await?;
+        validate_runnable(&stored)?;
+        if !journal_expectation_matches_stored(&stored, context.expectation()) {
+            return Err(StoreError::StaleClaimedRunRecoveryObservation);
+        }
+        let observed_at = database_now(&mut transaction, "claimed run recovery clock").await?;
+        authorize_worker(&stored, fence, observed_at)?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("claimed run recovery commit", source))?;
+        Ok(stored)
     }
 
     /// Loads and fully verifies the immutable quarantine observation for a run.
@@ -7354,6 +7646,10 @@ struct RunQuarantineTargetRow {
     journal_event_id: Option<Uuid>,
     journal_recorded_at: Option<DateTime<Utc>>,
     journal_digest: Option<Vec<u8>>,
+    lease_attempt_id: Option<Uuid>,
+    fencing_epoch: i64,
+    lease_renewed_at: Option<DateTime<Utc>>,
+    lease_expires_at: Option<DateTime<Utc>>,
     quarantined_at: Option<DateTime<Utc>>,
     quarantine_reason: Option<String>,
 }
@@ -7370,6 +7666,8 @@ struct RunQuarantineRow {
     expected_journal_event_id: Option<Uuid>,
     expected_journal_recorded_at: Option<DateTime<Utc>>,
     expected_journal_digest: Option<Vec<u8>>,
+    expected_fence_attempt_id: Option<Uuid>,
+    expected_fence_epoch: Option<i64>,
     record_digest: Vec<u8>,
     created_at: DateTime<Utc>,
     run_quarantined_at: Option<DateTime<Utc>>,
@@ -7378,6 +7676,7 @@ struct RunQuarantineRow {
     run_lease_acquired_at: Option<DateTime<Utc>>,
     run_lease_renewed_at: Option<DateTime<Utc>>,
     run_lease_expires_at: Option<DateTime<Utc>>,
+    run_fencing_epoch: i64,
     run_scheduler_ready_at: Option<DateTime<Utc>>,
     run_updated_at: DateTime<Utc>,
 }
@@ -7837,6 +8136,10 @@ impl<'row> FromRow<'row, PgRow> for RunQuarantineTargetRow {
             journal_event_id: row.try_get("journal_event_id")?,
             journal_recorded_at: row.try_get("journal_recorded_at")?,
             journal_digest: row.try_get("journal_digest")?,
+            lease_attempt_id: row.try_get("lease_attempt_id")?,
+            fencing_epoch: row.try_get("fencing_epoch")?,
+            lease_renewed_at: row.try_get("lease_renewed_at")?,
+            lease_expires_at: row.try_get("lease_expires_at")?,
             quarantined_at: row.try_get("quarantined_at")?,
             quarantine_reason: row.try_get("quarantine_reason")?,
         })
@@ -7857,6 +8160,8 @@ impl<'row> FromRow<'row, PgRow> for RunQuarantineRow {
             expected_journal_event_id: row.try_get("expected_journal_event_id")?,
             expected_journal_recorded_at: row.try_get("expected_journal_recorded_at")?,
             expected_journal_digest: row.try_get("expected_journal_digest")?,
+            expected_fence_attempt_id: row.try_get("expected_fence_attempt_id")?,
+            expected_fence_epoch: row.try_get("expected_fence_epoch")?,
             record_digest: row.try_get("record_digest")?,
             created_at: row.try_get("created_at")?,
             run_quarantined_at: row.try_get("run_quarantined_at")?,
@@ -7865,6 +8170,7 @@ impl<'row> FromRow<'row, PgRow> for RunQuarantineRow {
             run_lease_acquired_at: row.try_get("run_lease_acquired_at")?,
             run_lease_renewed_at: row.try_get("run_lease_renewed_at")?,
             run_lease_expires_at: row.try_get("run_lease_expires_at")?,
+            run_fencing_epoch: row.try_get("run_fencing_epoch")?,
             run_scheduler_ready_at: row.try_get("run_scheduler_ready_at")?,
             run_updated_at: row.try_get("run_updated_at")?,
         })
@@ -8483,12 +8789,26 @@ struct WaitAbandonmentDigestWire<'a> {
 }
 
 #[derive(Serialize)]
-struct RunQuarantineDigestWire<'a> {
+struct RunQuarantineDigestWireV1<'a> {
     schema_version: u8,
     tenant_id: &'a TenantId,
     run_id: RunId,
     quarantine_id: QuarantineId,
     expectation: &'a stateknot_core::JournalExpectation,
+    cause: RunQuarantineCause,
+    component: &'a str,
+    evidence_digest: Digest,
+    quarantined_at: Timestamp,
+}
+
+#[derive(Serialize)]
+struct RunQuarantineDigestWireV2<'a> {
+    schema_version: u8,
+    tenant_id: &'a TenantId,
+    run_id: RunId,
+    quarantine_id: QuarantineId,
+    expectation: &'a stateknot_core::JournalExpectation,
+    expected_fence: &'a RunFence,
     cause: RunQuarantineCause,
     component: &'a str,
     evidence_digest: Digest,
@@ -8620,6 +8940,57 @@ fn quarantine_expectation_matches(
     }
 }
 
+fn authorize_quarantine_fence(
+    target: &RunQuarantineTargetRow,
+    expected: Option<&RunFence>,
+    observed_at: Timestamp,
+) -> Result<(), StoreError> {
+    let Some(expected) = expected else {
+        return Ok(());
+    };
+    if target.tenant_id != expected.tenant_id().as_str()
+        || target.run_id != *expected.run_id().as_uuid()
+    {
+        return Err(StoreError::InvalidRunQuarantineRequest);
+    }
+    let expected_epoch =
+        i64::try_from(expected.epoch().get()).map_err(|_| StoreError::StaleFence)?;
+    match (
+        target.lease_attempt_id,
+        target.lease_renewed_at,
+        target.lease_expires_at,
+    ) {
+        (Some(attempt_id), Some(renewed_at), Some(expires_at)) => {
+            if attempt_id != *expected.attempt_id().as_uuid()
+                || target.fencing_epoch != expected_epoch
+            {
+                return Err(StoreError::StaleFence);
+            }
+            let renewed_at = from_database_time(renewed_at)?;
+            let expires_at = from_database_time(expires_at)?;
+            if observed_at < renewed_at {
+                return Err(StoreError::DatabaseClockRegression);
+            }
+            if observed_at >= expires_at {
+                return Err(StoreError::LeaseExpired);
+            }
+            Ok(())
+        }
+        (None, None, None) => Err(StoreError::StaleFence),
+        _ => Err(StoreError::corrupt("run quarantine target lease")),
+    }
+}
+
+fn journal_expectation_matches_stored(
+    stored: &StoredRun,
+    expectation: &stateknot_core::JournalExpectation,
+) -> bool {
+    match expectation.head() {
+        None => stored.journal_head().is_none(),
+        Some(expected) => stored.journal_head() == Some(expected),
+    }
+}
+
 fn run_quarantine_cause_from_text(value: &str) -> Result<RunQuarantineCause, StoreError> {
     match value {
         "integrity_failure" => Ok(RunQuarantineCause::IntegrityFailure),
@@ -8652,20 +9023,42 @@ fn materialize_run_quarantine(
     {
         return Err(StoreError::DatabaseClockRegression);
     }
-    let canonical = serde_json_canonicalizer::to_vec(&RunQuarantineDigestWire {
-        schema_version: 1,
-        tenant_id: request.tenant_id(),
-        run_id: request.run_id(),
-        quarantine_id: request.quarantine_id(),
-        expectation: request.expectation(),
-        cause: request.cause(),
-        component: request.component().as_str(),
-        evidence_digest: request.evidence_digest(),
-        quarantined_at,
-    })
-    .map_err(|_| StoreError::encoding("run quarantine"))?;
-    let mut preimage = Vec::with_capacity(RUN_QUARANTINE_DIGEST_DOMAIN.len() + canonical.len());
-    preimage.extend_from_slice(RUN_QUARANTINE_DIGEST_DOMAIN);
+    let (domain, canonical) = if let Some(expected_fence) = request.expected_fence() {
+        (
+            RUN_QUARANTINE_DIGEST_DOMAIN_V2,
+            serde_json_canonicalizer::to_vec(&RunQuarantineDigestWireV2 {
+                schema_version: 2,
+                tenant_id: request.tenant_id(),
+                run_id: request.run_id(),
+                quarantine_id: request.quarantine_id(),
+                expectation: request.expectation(),
+                expected_fence,
+                cause: request.cause(),
+                component: request.component().as_str(),
+                evidence_digest: request.evidence_digest(),
+                quarantined_at,
+            })
+            .map_err(|_| StoreError::encoding("run quarantine"))?,
+        )
+    } else {
+        (
+            RUN_QUARANTINE_DIGEST_DOMAIN_V1,
+            serde_json_canonicalizer::to_vec(&RunQuarantineDigestWireV1 {
+                schema_version: 1,
+                tenant_id: request.tenant_id(),
+                run_id: request.run_id(),
+                quarantine_id: request.quarantine_id(),
+                expectation: request.expectation(),
+                cause: request.cause(),
+                component: request.component().as_str(),
+                evidence_digest: request.evidence_digest(),
+                quarantined_at,
+            })
+            .map_err(|_| StoreError::encoding("run quarantine"))?,
+        )
+    };
+    let mut preimage = Vec::with_capacity(domain.len() + canonical.len());
+    preimage.extend_from_slice(domain);
     preimage.extend_from_slice(&canonical);
     Ok(RunQuarantine {
         request,
@@ -8690,6 +9083,13 @@ async fn insert_run_quarantine(
         .map(|head| to_database_time(head.recorded_at()))
         .transpose()?;
     let expected_digest = expected.map(|head| head.digest().as_bytes().to_vec());
+    let expected_fence_attempt_id = request
+        .expected_fence()
+        .map(|fence| *fence.attempt_id().as_uuid());
+    let expected_fence_epoch = request
+        .expected_fence()
+        .map(|fence| i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence))
+        .transpose()?;
     query(
         r"
 INSERT INTO stateknot.run_quarantines (
@@ -8704,10 +9104,12 @@ INSERT INTO stateknot.run_quarantines (
     expected_journal_event_id,
     expected_journal_recorded_at,
     expected_journal_digest,
+    expected_fence_attempt_id,
+    expected_fence_epoch,
     record_digest,
     created_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $4)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $4)
 ",
     )
     .bind(request.tenant_id().as_str())
@@ -8721,11 +9123,68 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $4)
     .bind(expected_event_id)
     .bind(expected_recorded_at)
     .bind(expected_digest)
+    .bind(expected_fence_attempt_id)
+    .bind(expected_fence_epoch)
     .bind(quarantine.digest().as_bytes())
     .execute(&mut **transaction)
     .await
     .map_err(|source| StoreError::database("run quarantine evidence insert", source))?;
     Ok(())
+}
+
+async fn commit_run_quarantine_projection(
+    transaction: &mut Transaction<'_, Postgres>,
+    quarantine: &RunQuarantine,
+) -> Result<(), StoreError> {
+    let request = quarantine.request();
+    let expected_fence_attempt_id = request
+        .expected_fence()
+        .map(|fence| *fence.attempt_id().as_uuid());
+    let expected_fence_epoch = request
+        .expected_fence()
+        .map(|fence| i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence))
+        .transpose()?;
+    let updated = query(
+        r"
+UPDATE stateknot.runs
+SET quarantined_at = $3,
+    quarantine_reason = $4,
+    lease_attempt_id = NULL,
+    lease_acquired_at = NULL,
+    lease_renewed_at = NULL,
+    lease_expires_at = NULL,
+    updated_at = GREATEST(updated_at, $3)
+WHERE tenant_id = $1
+  AND run_id = $2
+  AND quarantined_at IS NULL
+  AND (
+      $5::uuid IS NULL
+      OR (
+          lease_attempt_id = $5
+          AND fencing_epoch = $6
+          AND lease_expires_at > clock_timestamp()
+      )
+  )
+",
+    )
+    .bind(request.tenant_id().as_str())
+    .bind(*request.run_id().as_uuid())
+    .bind(to_database_time(quarantine.quarantined_at())?)
+    .bind(run_quarantine_reason(request))
+    .bind(expected_fence_attempt_id)
+    .bind(expected_fence_epoch)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("run quarantine projection update", source))?
+    .rows_affected();
+    if updated == 1 {
+        return Ok(());
+    }
+    Err(if request.expected_fence().is_some() {
+        StoreError::LeaseExpired
+    } else {
+        StoreError::RunQuarantineCommitConflict
+    })
 }
 
 fn decode_run_quarantine(row: &RunQuarantineRow) -> Result<RunQuarantine, StoreError> {
@@ -8758,7 +9217,22 @@ fn decode_run_quarantine(row: &RunQuarantineRow) -> Result<RunQuarantine, StoreE
     let cause = run_quarantine_cause_from_text(&row.cause_kind)?;
     let component = RunQuarantineComponent::new(row.component.clone())
         .map_err(|_| StoreError::corrupt("run quarantine component"))?;
-    let request = RunQuarantineRequest::new(
+    let expected_fence = match (row.expected_fence_attempt_id, row.expected_fence_epoch) {
+        (None, None) => None,
+        (Some(attempt_id), Some(epoch)) => Some(RunFence::new(
+            tenant_id.clone(),
+            run_id,
+            AttemptId::from_uuid(attempt_id)
+                .map_err(|_| StoreError::corrupt("run quarantine fence attempt"))?,
+            FencingEpoch::new(
+                u64::try_from(epoch)
+                    .map_err(|_| StoreError::corrupt("run quarantine fence epoch"))?,
+            )
+            .map_err(|_| StoreError::corrupt("run quarantine fence epoch"))?,
+        )),
+        _ => return Err(StoreError::corrupt("run quarantine fence shape")),
+    };
+    let mut request = RunQuarantineRequest::new(
         tenant_id,
         run_id,
         quarantine_id,
@@ -8768,9 +9242,22 @@ fn decode_run_quarantine(row: &RunQuarantineRow) -> Result<RunQuarantine, StoreE
         decode_digest(&row.evidence_digest, "run quarantine evidence digest")?,
     )
     .map_err(|_| StoreError::corrupt("run quarantine request"))?;
+    if let Some(expected_fence) = expected_fence {
+        request = request
+            .with_expected_fence(expected_fence)
+            .map_err(|_| StoreError::corrupt("run quarantine request fence"))?;
+    }
     let quarantine = materialize_run_quarantine(request, from_database_time(row.quarantined_at)?)
         .map_err(|_| StoreError::corrupt("run quarantine record"))?;
     let reason = run_quarantine_reason(quarantine.request());
+    let expected_fencing_epoch = quarantine
+        .request()
+        .expected_fence()
+        .map(|fence| {
+            i64::try_from(fence.epoch().get())
+                .map_err(|_| StoreError::corrupt("run quarantine fence epoch projection"))
+        })
+        .transpose()?;
     if row.created_at != row.quarantined_at
         || decode_digest(&row.record_digest, "run quarantine record digest")? != quarantine.digest()
         || row.run_quarantined_at != Some(row.quarantined_at)
@@ -8779,6 +9266,7 @@ fn decode_run_quarantine(row: &RunQuarantineRow) -> Result<RunQuarantine, StoreE
         || row.run_lease_acquired_at.is_some()
         || row.run_lease_renewed_at.is_some()
         || row.run_lease_expires_at.is_some()
+        || expected_fencing_epoch.is_some_and(|epoch| row.run_fencing_epoch != epoch)
         || row.run_updated_at < row.quarantined_at
         || row
             .run_scheduler_ready_at

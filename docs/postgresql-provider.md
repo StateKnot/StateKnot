@@ -160,7 +160,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 72 integration tests against PostgreSQL 16 and
+The current database suite runs 75 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v8 without guessed projection or physical-attempt provenance, real v3
@@ -238,7 +238,15 @@ one immutable observation. The recovery-read combinator additionally proves
 that successful reads pass through, ordinary not-found errors do not quarantine,
 real corrupted checkpoint bytes do quarantine with a derived non-secret
 component, exact retries converge, and stale observations cannot stop a newer
-head. All 72 tests
+head. Migration 11 and claimed-recovery coverage preserve existing unfenced v1
+evidence byte-for-byte while adding optional attempt/epoch evidence under a v2
+record digest. A `ClaimedRunRecovery` starts only for an exact live fence and
+journal observation, passes ordinary read errors without isolation, pages the
+checkpoint/journal and invocation/node-result histories through the same stable
+quarantine intent, and revalidates ownership before handoff. The race test
+supersedes that fence before exposing real corrupted checkpoint bytes: the old
+session returns `StaleFence` and leaves the successor running; only the current
+owner may commit quarantine. All 75 tests
 run independently against PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -306,15 +314,22 @@ bounded predecessor history so a constructed cursor cannot hide corruption.
 Terminal expiry and an unfinished 64th attempt are projected by a bounded
 indexed reap step at claim time; no synthetic network outcome is written.
 
-Recovery can then call `load_checkpoint_lineage_page` without a cursor and follow
-each exact `next_cursor` until the superstep-zero root. The first returned value
-is the current barrier observed in the initial repeatable-read snapshot; immutable
-continuation cursors remain valid if a later barrier advances the run between
-pages. After the lineage validates, recovery pages the journal strictly after
-that barrier's trusted journal head with `load_journal_page`. This composes the
-durable checkpoint-and-suffix input. Runnable discovery and exact ownership now
-exist, but the runtime loop that replays the suffix, applies cross-tenant
-fairness, and resumes ready nodes is not implemented yet.
+After a scheduler claims a candidate, construct one stable
+`CorruptionQuarantineContext` from that candidate's exact journal head and call
+`begin_claimed_run_recovery` with the returned `RunFence`. The resulting
+`ClaimedRunRecovery` binds the context to that fence, verifies the live lease
+with the database clock, and supplies scope-bound checkpoint-lineage, journal,
+tool/model-history, node-attempt-history, and unconsumed-result pages. Start the
+lineage without a cursor and follow each exact `next_cursor` until the
+superstep-zero root. The first value is the current barrier observed in the
+initial repeatable-read snapshot; immutable continuation cursors remain valid if
+a later barrier advances the run between pages. Then page the journal strictly
+after the trusted checkpoint/archive head. Call `revalidate` after deterministic
+replay and before preparing durable work. This composes a corruption-isolating
+checkpoint-and-suffix input without treating a read as dispatch authority;
+node/model/tool/outbox start transactions still perform the decisive fence.
+The runtime loop that applies replay, cross-tenant fairness, and ready-node
+execution is not implemented yet.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record
@@ -465,12 +480,20 @@ the existing quarantine projection, which removes the run from the partial
 runnable index. Existing quarantined rows remain untouched and deliberately
 have no fabricated structured evidence.
 
+Migration 11 adds an optional exact recovery `AttemptId` and `FencingEpoch` to
+that evidence. Fenced records use a versioned v2 digest; existing unfenced rows
+retain their v1 digest and nullable columns. The quarantine transaction locks
+the run, checks that exact fence against an unexpired database-clock lease, and
+repeats the predicate in the projection update that revokes ownership. Lost-ACK
+retries still resolve by the same immutable quarantine ID after the lease has
+been cleared.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
 protocol-specific outbox dispatch adapters, artifacts, cross-tenant scheduler
-fairness and the recovery/dispatch loop (including automatic calls to the
-implemented quarantine transaction around every applicable recovery read),
+fairness and the deterministic replay/ready-node/dispatch portions of the
+recovery loop (the claimed recovery read surface is implemented),
 retention/archive/legal hold, backup/restore, failover qualification, or the
 10,000-race stale-worker gate.
 

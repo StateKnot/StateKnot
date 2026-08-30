@@ -113,6 +113,12 @@ pub enum StoreError {
     /// The run journal changed after the evidence observation was constructed.
     #[error("run quarantine journal observation is stale")]
     StaleRunQuarantineObservation,
+    /// A claimed recovery session crossed its fence, tenant, or run boundary.
+    #[error("claimed run recovery context is invalid")]
+    InvalidClaimedRunRecoveryContext,
+    /// Durable journal progress invalidated the claimed recovery observation.
+    #[error("claimed run recovery journal observation is stale")]
+    StaleClaimedRunRecoveryObservation,
     /// Immutable quarantine evidence and the mutable run projection disagree.
     #[error("run quarantine evidence conflicts with its durable projection")]
     RunQuarantineCommitConflict,
