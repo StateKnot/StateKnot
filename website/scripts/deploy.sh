@@ -115,10 +115,22 @@ if ! sudo -n nginx -t; then
   exit 78
 fi
 
-previous_release="$(sudo -n readlink -f "$remote_root/current" 2>/dev/null || true)"
+previous_release=""
+if sudo -n test -L "$remote_root/current"; then
+  previous_candidate="$(
+    sudo -n readlink -f "$remote_root/current" 2>/dev/null || true
+  )"
+  case "$previous_candidate" in
+    "$remote_root"/releases/*)
+      if sudo -n test -d "$previous_candidate"; then
+        previous_release="$previous_candidate"
+      fi
+      ;;
+  esac
+fi
 
 rollback_release() {
-  if [[ -n "$previous_release" && -d "$previous_release" ]]; then
+  if [[ -n "$previous_release" ]] && sudo -n test -d "$previous_release"; then
     sudo -n ln -sfn "$previous_release" "$next_link"
     sudo -n mv -Tf "$next_link" "$remote_root/current"
   else
