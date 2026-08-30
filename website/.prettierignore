@@ -1,0 +1,9 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+
+.astro/
+dist/
+node_modules/
+package-lock.json
+playwright-report/
+test-results/

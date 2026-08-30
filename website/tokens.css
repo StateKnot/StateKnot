@@ -1,0 +1,88 @@
+/* Hallmark · macrostructure: Map / Diagram · theme: Cobalt · tone: technical-austere · anchor hue: electric cobalt · nav: N13 · footer: Ft5 · slop: pass (42–45) */
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V5 */
+/* Hallmark · contrast: pass (40–41) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · icons: pass (30) · mobile: pass (34, 49, 50–57) */
+/* Copyright 2026 StateKnot contributors · SPDX-License-Identifier: Apache-2.0 */
+
+:root {
+  color-scheme: light;
+
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-paper: oklch(98.5% 0.004 250);
+  --color-paper-veil: oklch(98.5% 0.004 250 / 0.94);
+  --color-paper-2: oklch(96.5% 0.007 250);
+  --color-paper-3: oklch(93.5% 0.009 250);
+  --color-ink: oklch(24% 0.02 258);
+  --color-ink-2: oklch(34% 0.018 257);
+  --color-neutral: oklch(42% 0.016 257);
+  --color-muted: oklch(46% 0.014 257);
+  --color-rule: oklch(88% 0.01 250);
+  --color-rule-2: oklch(76% 0.016 252);
+  --color-control: oklch(58% 0.018 252);
+  --color-accent: oklch(58% 0.2 256);
+  --color-accent-strong: oklch(43% 0.16 256);
+  --color-accent-soft: oklch(94% 0.035 256);
+  --color-accent-ink: oklch(98.5% 0.004 250);
+  --color-focus: oklch(43% 0.16 256);
+  --color-graphite: oklch(20% 0.016 260);
+  --color-graphite-2: oklch(25% 0.018 260);
+  --color-on-dark: oklch(95% 0.006 250);
+  --color-muted-dark: oklch(75% 0.014 252);
+  --color-code-accent: oklch(76% 0.13 255);
+  --color-backdrop: oklch(16% 0.018 260 / 0.58);
+  --color-danger: oklch(45% 0.17 25);
+  --color-danger-soft: oklch(95% 0.025 25);
+  --color-success: oklch(39% 0.11 153);
+  --color-success-soft: oklch(95% 0.025 153);
+  --color-disabled: oklch(56% 0.01 255);
+
+  --font-display: "Space Grotesk Variable", "Space Grotesk", sans-serif;
+  --font-body: "Inter Variable", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: clamp(1.0625rem, 0.35vw + 0.98rem, 1.25rem);
+  --text-xl: clamp(1.35rem, 0.9vw + 1.1rem, 1.85rem);
+  --text-2xl: clamp(2rem, 3.2vw + 1rem, 4.75rem);
+  --text-statement: clamp(2.15rem, 5vw + 0.8rem, 6.25rem);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 5rem;
+  --space-10: 6rem;
+  --space-12: 8rem;
+  --space-14: 10rem;
+  --space-fluid-wide: clamp(var(--space-7), 7vw, var(--space-12));
+  --space-fluid-wider: clamp(var(--space-7), 8vw, var(--space-12));
+
+  --page-gutter: clamp(1rem, 4vw, 4rem);
+  --content-max: 90rem;
+  --reading-max: 68ch;
+
+  --rule-hair: 1px;
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  --shadow-command: 0 1.5rem 4rem oklch(16% 0.018 260 / 0.18);
+  --shadow-focus-outer: 0 0 0 4px var(--color-ink);
+
+  --z-base: 0;
+  --z-header: 20;
+  --z-dialog: 70;
+}

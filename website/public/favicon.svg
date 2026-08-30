@@ -1,0 +1,10 @@
+<!--
+Copyright 2026 StateKnot contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5">
+    <path d="M7 11.5h9a4.5 4.5 0 0 1 0 9H7v-9Z" />
+    <path d="M25 20.5h-9a4.5 4.5 0 0 1 0-9h9v9Z" />
+  </g>
+</svg>

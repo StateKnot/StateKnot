@@ -1,0 +1,58 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/jetbrains-mono/wght.css";
+import "@fontsource-variable/space-grotesk/wght.css";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  indexable?: boolean;
+}
+
+const {
+  title = "StateKnot — durable agent orchestration for Rust",
+  description = "StateKnot is an Apache-2.0 Rust framework under development for typed, durable, protocol-native agent systems.",
+  indexable = true,
+} = Astro.props;
+
+const canonicalUrl =
+  indexable && Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined;
+---
+
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="cobalt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="robots"
+      content={indexable ? "index,follow" : "noindex,follow"}
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="StateKnot" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <slot />
+    <script>
+      import "../scripts/site";
+    </script>
+  </body>
+</html>

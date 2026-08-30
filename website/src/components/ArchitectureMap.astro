@@ -1,0 +1,99 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+---
+
+<figure class="architecture-figure">
+  <figcaption class="sr-only">
+    StateKnot architecture from core contracts through graph execution,
+    PostgreSQL durability, protocol adapters, and operations. Each node states
+    whether its implementation exists in the pre-alpha repository.
+  </figcaption>
+
+  <div class="map-legend" aria-label="Implementation status legend">
+    <span
+      ><i class="legend-mark legend-mark--implemented" aria-hidden="true"
+      ></i>Implemented slice</span
+    >
+    <span
+      ><i class="legend-mark legend-mark--active" aria-hidden="true"></i>In
+      progress</span
+    >
+    <span
+      ><i class="legend-mark legend-mark--planned" aria-hidden="true"
+      ></i>Planned</span
+    >
+  </div>
+
+  <div class="architecture-map">
+    <section class="map-column" aria-labelledby="map-contracts">
+      <h3 id="map-contracts">Core contracts</h3>
+      <div class="map-node map-node--implemented">
+        <span class="map-node__status">Implemented slice</span>
+        <strong>Typed domain</strong>
+        <small>Capabilities, content, identity, scope, budgets</small>
+      </div>
+      <div class="map-node map-node--implemented">
+        <span class="map-node__status">Implemented slice</span>
+        <strong>Durable facts</strong>
+        <small>Runs, journal, checkpoints, invocations</small>
+      </div>
+    </section>
+
+    <section class="map-column" aria-labelledby="map-execution">
+      <h3 id="map-execution">Graph execution</h3>
+      <div class="map-node map-node--implemented">
+        <span class="map-node__status">Implemented slice</span>
+        <strong>Barrier contracts</strong>
+        <small>Immutable results and successor checkpoints</small>
+      </div>
+      <div class="map-node map-node--active">
+        <span class="map-node__status">In progress</span>
+        <strong>Runtime loop</strong>
+        <small>Routing, reducers, dispatch, retry wakeups</small>
+      </div>
+    </section>
+
+    <section class="map-column map-column--anchor" aria-labelledby="map-store">
+      <h3 id="map-store">PostgreSQL durability</h3>
+      <div class="map-node map-node--implemented">
+        <span class="map-node__status">Implemented slice</span>
+        <strong>Fenced persistence</strong>
+        <small>Leases, attempts, outbox, interrupts, timers</small>
+      </div>
+      <div class="map-node map-node--implemented">
+        <span class="map-node__status">Implemented slice</span>
+        <strong>Recovery evidence</strong>
+        <small>Quarantine, bounded planning, durable starts</small>
+      </div>
+    </section>
+
+    <section class="map-column" aria-labelledby="map-protocols">
+      <h3 id="map-protocols">Protocols</h3>
+      <div class="map-node map-node--planned">
+        <span class="map-node__status">Planned</span>
+        <strong>MCP adapters</strong>
+        <small>Client and server boundaries</small>
+      </div>
+      <div class="map-node map-node--planned">
+        <span class="map-node__status">Planned</span>
+        <strong>A2A adapters</strong>
+        <small>REST and JSON-RPC client/server</small>
+      </div>
+    </section>
+
+    <section class="map-column" aria-labelledby="map-operations">
+      <h3 id="map-operations">Operations</h3>
+      <div class="map-node map-node--planned">
+        <span class="map-node__status">Planned</span>
+        <strong>Control plane</strong>
+        <small>Policy, tenancy, budgets, graph registry</small>
+      </div>
+      <div class="map-node map-node--planned">
+        <span class="map-node__status">Planned</span>
+        <strong>Qualification</strong>
+        <small>Telemetry, evaluation, compatibility, faults</small>
+      </div>
+    </section>
+  </div>
+</figure>

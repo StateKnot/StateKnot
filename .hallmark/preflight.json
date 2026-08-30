@@ -1,0 +1,25 @@
+{
+  "date": "2026-08-30",
+  "scope": "page",
+  "project": "StateKnot public website",
+  "signals": {
+    "design_system": null,
+    "font_stack": null,
+    "palette": null,
+    "motion_library": null,
+    "spacing_scale": null,
+    "web_framework": null
+  },
+  "preserve": [
+    "Apache-2.0 project identity",
+    "pre-alpha truth boundary",
+    "existing Rust repository and CI conventions"
+  ],
+  "introduce": [
+    "Astro static-site workspace",
+    "Cobalt design tokens",
+    "accessible command palette",
+    "responsive and accessibility regression tests",
+    "atomic Nginx deployment"
+  ]
+}

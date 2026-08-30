@@ -1,0 +1,26 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Page not found — StateKnot"
+  description="The requested StateKnot page does not exist."
+  indexable={false}
+>
+  <SiteHeader />
+  <main id="main-content" class="not-found" tabindex="-1">
+    <p class="hero-status">404 · route not found</p>
+    <h1>This path has no durable successor.</h1>
+    <p>
+      The page may have moved, or the link may refer to a part of StateKnot that
+      has not shipped.
+    </p>
+    <a class="button button--primary affordance" href="/">Return home</a>
+  </main>
+  <SiteFooter />
+</BaseLayout>

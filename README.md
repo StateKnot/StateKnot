@@ -131,6 +131,7 @@ crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
+website/                 Public Astro site, browser tests, and Nginx deployment
 .github/                 Contribution templates and automated quality gates
 ```
 
@@ -149,6 +150,9 @@ cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo test --workspace --all-targets --all-features --locked
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
 ```
+
+The public site has its own locked Node.js toolchain and verification workflow;
+see the [website guide](website/README.md).
 
 Before proposing an implementation, read [CONTRIBUTING.md](CONTRIBUTING.md).
 Changes to public APIs, durable semantics, protocols, persistence, or security

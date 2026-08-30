@@ -1,0 +1,258 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import ArchitectureMap from "../components/ArchitectureMap.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const currentCut = [
+  {
+    surface: "Core domain contracts",
+    state: "Implemented slice",
+    evidence: "Canonical, typed, security-bounded values",
+    href: "https://github.com/StateKnot/StateKnot/tree/main/crates/stateknot-core",
+  },
+  {
+    surface: "PostgreSQL store",
+    state: "Implemented slice",
+    evidence: "Mandatory PostgreSQL 16 and 17 CI matrix",
+    href: "https://github.com/StateKnot/StateKnot/tree/main/crates/stateknot-store-postgres",
+  },
+  {
+    surface: "Recovery planner",
+    state: "Implemented slice",
+    evidence: "Fence-bound planning and durable start handoff",
+    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/postgresql-provider.md",
+  },
+  {
+    surface: "Runnable agent loop",
+    state: "Not shipped",
+    evidence: "Blocked on the complete recovery/dispatch path",
+    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md",
+  },
+  {
+    surface: "MCP and A2A adapters",
+    state: "Not shipped",
+    evidence: "In v1 scope; wire boundaries remain planned",
+    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/v1-scope.md",
+  },
+];
+
+const roadmap = [
+  {
+    index: "01",
+    state: "Now",
+    title: "Close the durable execution path",
+    body: "Finish route, reducer, successor, retry-wakeup, and barrier dispatch semantics around the existing recovery evidence.",
+  },
+  {
+    index: "02",
+    state: "Next",
+    title: "Ship a runnable agent loop",
+    body: "Bind model and tool execution to durable attempts without weakening the core contracts or holding database transactions across external work.",
+  },
+  {
+    index: "03",
+    state: "Planned",
+    title: "Add protocol adapters",
+    body: "Map MCP and A2A wire models into versioned internal types, with policy and tenant boundaries enforced at admission.",
+  },
+  {
+    index: "04",
+    state: "Before v1",
+    title: "Publish qualification evidence",
+    body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
+  },
+];
+---
+
+<BaseLayout>
+  <SiteHeader />
+
+  <main id="main-content" tabindex="-1">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="hero-status">Pre-alpha · no stable public API</p>
+          <h1 id="hero-title">
+            Durable agent orchestration, written for Rust.
+          </h1>
+          <p class="hero-lede">
+            StateKnot is building typed graph execution and PostgreSQL-backed
+            recovery around explicit durability contracts. The runtime loop and
+            protocol adapters are still under development.
+          </p>
+          <div class="hero-actions">
+            <a
+              class="button button--primary affordance"
+              href="https://github.com/StateKnot/StateKnot/tree/main/docs"
+              >Read the contracts</a
+            >
+            <a
+              class="text-link affordance"
+              href="https://github.com/StateKnot/StateKnot"
+              >Inspect source <span aria-hidden="true">↗</span></a
+            >
+          </div>
+        </div>
+
+        <figure class="hero-terminal" aria-labelledby="terminal-caption">
+          <figcaption id="terminal-caption">Repository validation</figcaption>
+          <pre
+            tabindex="0"
+            aria-label="Repository validation: workspace tests, PostgreSQL store integration tests on versions 16 and 17, Apache-2.0 license, pre-alpha status"><code><span class="code-muted">$</span> <span aria-hidden="true" data-type-line data-text="cargo test --workspace --all-targets --all-features --locked">cargo test --workspace --all-targets --all-features --locked</span>
+
+<span class="code-muted">$</span> cargo test -p stateknot-store-postgres \
+    --test postgres --locked
+
+<span class="code-key">CI matrix</span>  PostgreSQL 16 / 17
+<span class="code-key">License</span>    Apache-2.0
+<span class="code-key">Status</span>     <span class="code-accent">pre-alpha</span></code></pre>
+        </figure>
+      </div>
+    </section>
+
+    <section
+      class="section architecture-section"
+      id="architecture"
+      aria-labelledby="architecture-title"
+    >
+      <div class="section-head">
+        <h2 id="architecture-title">
+          The architecture is a set of evidence boundaries.
+        </h2>
+        <p>
+          Wire protocols stay outside the stable domain. External work stays
+          outside database transactions. Recovery decisions are derived from
+          bounded, integrity-checked facts.
+        </p>
+      </div>
+      <ArchitectureMap />
+    </section>
+
+    <section
+      class="section current-section"
+      id="current-cut"
+      aria-labelledby="current-title"
+    >
+      <div class="section-head section-head--narrow">
+        <h2 id="current-title">Current cut, without roadmap theatre.</h2>
+        <p>
+          “Implemented” means code exists in the pre-alpha repository. It does
+          not mean the API is stable or the framework is ready for production.
+        </p>
+      </div>
+
+      <div class="spec-head" aria-hidden="true">
+        <span>Surface</span>
+        <span>Repository state</span>
+        <span>Evidence</span>
+        <span>Source</span>
+      </div>
+      <ul class="spec-list">
+        {
+          currentCut.map((item) => (
+            <li class="spec-row">
+              <strong>{item.surface}</strong>
+              <span>{item.state}</span>
+              <span>{item.evidence}</span>
+              <a
+                class="spec-link affordance"
+                href={item.href}
+                aria-label={`Inspect ${item.surface} source`}
+              >
+                Inspect <span aria-hidden="true">↗</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section
+      class="quickstart"
+      id="quickstart"
+      aria-labelledby="quickstart-title"
+    >
+      <div class="quickstart-inner">
+        <div class="quickstart-copy">
+          <h2 id="quickstart-title">
+            Validate the repository before trusting the claims.
+          </h2>
+          <p>
+            The facade crate is intentionally unpublished. Today’s honest
+            quickstart is for contributors reviewing the implementation and its
+            failure semantics.
+          </p>
+          <a
+            class="dark-link affordance"
+            href="https://github.com/StateKnot/StateKnot/blob/main/CONTRIBUTING.md"
+            >Read the contribution contract <span aria-hidden="true">↗</span></a
+          >
+        </div>
+
+        <div class="quickstart-code">
+          <div class="code-label-row">
+            <span>Shell · contributor checkout</span>
+            <button
+              class="copy-button affordance"
+              type="button"
+              data-copy-button
+              data-copy-target="quickstart-code"
+            >
+              <span data-copy-label aria-live="polite">Copy</span>
+            </button>
+          </div>
+          <pre
+            id="quickstart-code"
+            tabindex="0"
+            aria-label="Contributor quickstart commands"><code>git clone https://github.com/StateKnot/StateKnot.git
+cd StateKnot
+cargo fmt --all --check
+cargo test --workspace --all-targets --all-features --locked</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="section roadmap-section"
+      id="roadmap"
+      aria-labelledby="roadmap-title"
+    >
+      <div class="section-head section-head--narrow">
+        <h2 id="roadmap-title">The road ahead is ordered by proof.</h2>
+        <p>
+          Protocol breadth comes after one end-to-end durable path survives
+          crashes, retries, stale workers, and lost acknowledgements.
+        </p>
+      </div>
+
+      <ol class="roadmap-list">
+        {
+          roadmap.map((item) => (
+            <li class="roadmap-item">
+              <span class="roadmap-index" aria-hidden="true">
+                {item.index}
+              </span>
+              <div>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </div>
+              <span class="roadmap-state">{item.state}</span>
+            </li>
+          ))
+        }
+      </ol>
+
+      <a
+        class="text-link affordance"
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md"
+        >Open the complete roadmap <span aria-hidden="true">↗</span></a
+      >
+    </section>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>

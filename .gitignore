@@ -14,3 +14,9 @@ coverage/
 .env
 .env.*
 !.env.example
+
+/website/node_modules/
+/website/dist/
+/website/.astro/
+/website/playwright-report/
+/website/test-results/
