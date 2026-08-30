@@ -44,6 +44,12 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+      - name: Check deployment script syntax
+        run: |
+          bash -n scripts/bootstrap-tls.sh
+          bash -n scripts/deploy.sh
+          sh -n deploy/reload-nginx.sh
+
       - name: Check Astro and TypeScript
         run: npm run check
 

@@ -151,8 +151,8 @@ fi
 
 if ! curl --fail --silent --show-error --max-time 5 \
   --retry 5 --retry-all-errors --retry-delay 1 \
-  --header 'Host: 49.232.33.76' \
-  http://127.0.0.1/healthz | grep -Fx 'stateknot-ok'; then
+  --resolve 'stknot.com:443:127.0.0.1' \
+  https://stknot.com/healthz | grep -Fx 'stateknot-ok'; then
   rollback_release
   restore_config
   sudo -n nginx -t
@@ -163,7 +163,7 @@ REMOTE
 
 curl --fail --silent --show-error --max-time 10 \
   --retry 5 --retry-all-errors --retry-delay 1 \
-  "http://49.232.33.76/healthz" | grep -Fx 'stateknot-ok'
+  "https://stknot.com/healthz" | grep -Fx 'stateknot-ok'
 
 trap - EXIT
-echo "deployed release ${release_id} to http://49.232.33.76/"
+echo "deployed release ${release_id} to https://stknot.com/"
