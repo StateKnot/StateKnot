@@ -150,6 +150,7 @@ if ! sudo -n systemctl reload nginx; then
 fi
 
 if ! curl --fail --silent --show-error --max-time 5 \
+  --retry 5 --retry-all-errors --retry-delay 1 \
   --header 'Host: 49.232.33.76' \
   http://127.0.0.1/healthz | grep -Fx 'stateknot-ok'; then
   rollback_release
@@ -161,6 +162,7 @@ fi
 REMOTE
 
 curl --fail --silent --show-error --max-time 10 \
+  --retry 5 --retry-all-errors --retry-delay 1 \
   "http://49.232.33.76/healthz" | grep -Fx 'stateknot-ok'
 
 trap - EXIT
