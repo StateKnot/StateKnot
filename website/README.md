@@ -31,17 +31,23 @@ origin during a production build so Astro emits canonical URLs.
 ## Deployment
 
 The production origin is `https://stknot.com`; `www.stknot.com` and direct HTTP
-requests permanently redirect to it. Both DNS names must resolve to the server
-before the one-time TLS bootstrap:
+requests permanently redirect to it. Both DNS names must resolve to the server,
+and inbound TCP ports 80 and 443 must be allowed, before the one-time TLS
+bootstrap:
 
 ```console
 STATEKNOT_SSH_IDENTITY=/path/to/stateknot_deploy \
   ./scripts/bootstrap-tls.sh ubuntu@49.232.33.76
 ```
 
-The bootstrap uses the ACME webroot challenge, installs the certificate renewal
-timer and a deploy hook that validates and reloads Nginx after renewal. It is
-safe to rerun because Certbot keeps a certificate that is not due for renewal.
+The bootstrap installs the Ubuntu security-maintained Caddy package, validates
+the committed Caddyfile, and switches from the bootstrap Nginx service with a
+failure rollback. Certificate issuance is restricted to ACME TLS-ALPN-01 because
+the server's mainland HTTP path may be intercepted before ICP filing. Caddy
+stores certificates under its protected application data directory and renews
+them automatically without stopping the web service. The script is idempotent
+and verifies trusted certificates for both hostnames before committing the
+service migration.
 
 The deployment layout uses immutable releases and an atomic `current` symlink:
 
@@ -60,9 +66,9 @@ STATEKNOT_SSH_IDENTITY=/path/to/stateknot_deploy \
   ./scripts/deploy.sh ubuntu@49.232.33.76
 ```
 
-The script refuses to overwrite an existing release, validates Nginx before the
-symlink switch, reloads Nginx only after a valid configuration, rolls back local
+The script refuses to overwrite an existing release, validates Caddy before the
+symlink switch, reloads Caddy only after a valid configuration, rolls back local
 activation failures, and checks a release-backed health endpoint locally and
-externally over TLS. It requires passwordless `sudo` on the target host. The
-HTTPS virtual host enables TLS 1.2/1.3, one year of HSTS without preload, and
-the same restrictive application security headers used by the site.
+externally over TLS. It requires passwordless `sudo` on the target host. Caddy's
+secure defaults enforce TLS 1.2/1.3; the site adds one year of HSTS without
+preload and the same restrictive application security headers used locally.

@@ -131,7 +131,7 @@ crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
-website/                 Public Astro site, browser tests, and Nginx deployment
+website/                 Public Astro site, browser tests, and Caddy deployment
 .github/                 Contribution templates and automated quality gates
 ```
 
