@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use stateknot_core::{
-    Checkpoint, CheckpointHead, CheckpointId, DeliveryFence, Digest, DurableTimer,
+    Checkpoint, CheckpointHead, CheckpointId, CompiledGraph, DeliveryFence, Digest, DurableTimer,
     DurableTimerRecord, DurableWait, FencingEpoch, InterruptRecord, InterruptRequest, JournalEvent,
     JournalExpectation, JournalHead, JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt,
     OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef,
@@ -12,6 +12,54 @@ use stateknot_core::{
 };
 
 use crate::StoreError;
+
+/// Fully validated immutable graph definition in one tenant registry.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StoredGraphDefinition {
+    pub(crate) tenant_id: TenantId,
+    pub(crate) graph: CompiledGraph,
+    pub(crate) registered_at: Timestamp,
+}
+
+impl StoredGraphDefinition {
+    /// Returns the tenant registry that owns this durable registration.
+    #[must_use]
+    pub const fn tenant_id(&self) -> &TenantId {
+        &self.tenant_id
+    }
+
+    /// Returns the fully recompiled and integrity-checked graph definition.
+    #[must_use]
+    pub const fn graph(&self) -> &CompiledGraph {
+        &self.graph
+    }
+
+    /// Returns the database-clock registration observation.
+    #[must_use]
+    pub const fn registered_at(&self) -> Timestamp {
+        self.registered_at
+    }
+}
+
+/// Result of idempotently registering one immutable compiled graph version.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum GraphDefinitionRegistrationOutcome {
+    /// A new owner-qualified graph version committed.
+    Registered(StoredGraphDefinition),
+    /// The exact canonical graph definition was already registered.
+    Idempotent(StoredGraphDefinition),
+}
+
+impl GraphDefinitionRegistrationOutcome {
+    /// Returns the fully validated durable graph definition.
+    #[must_use]
+    pub const fn definition(&self) -> &StoredGraphDefinition {
+        match self {
+            Self::Registered(definition) | Self::Idempotent(definition) => definition,
+        }
+    }
+}
 
 /// Closed reason taxonomy for stopping all execution of one durable run.
 ///

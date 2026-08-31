@@ -86,6 +86,12 @@ pub enum StoreError {
     /// Migration metadata exists but required schema objects are missing.
     #[error("StateKnot PostgreSQL schema objects are incomplete")]
     IncompleteSchema,
+    /// No exact compiled graph exists inside the supplied tenant registry.
+    #[error("compiled graph definition was not found in the tenant registry")]
+    GraphDefinitionNotFound,
+    /// A graph version was already registered with different immutable bytes.
+    #[error("compiled graph identity already exists with a different definition")]
+    GraphDefinitionConflict,
     /// No run exists inside the supplied tenant boundary.
     #[error("run was not found in the tenant boundary")]
     RunNotFound,

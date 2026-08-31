@@ -20,12 +20,12 @@ use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BarrierResultHeads, BoundedJson, BudgetUsage, CanonicalJson,
     Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointLineageVerifier,
-    CheckpointWrite, DeliveryFence, DeliveryId, DestinationId, Digest, DurableTimer,
-    DurableTimerRecord, DurableWait, EventId, Failure, FencingEpoch, GraphNamespace, InterruptId,
-    InterruptRecord, InterruptRequest, InterruptResolution, InterruptResolutionIntent,
-    InvocationId, JournalAppend, JournalChainVerifier, JournalEvent, JournalEventError,
-    JournalEventIntent, JournalEventSource, JournalHead, JournalPayload, JournalSequence,
-    JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
+    CheckpointWrite, CompiledGraph, DeliveryFence, DeliveryId, DestinationId, Digest, DurableTimer,
+    DurableTimerRecord, DurableWait, EventId, Failure, FencingEpoch, GraphNamespace,
+    GraphReference, InterruptId, InterruptRecord, InterruptRequest, InterruptResolution,
+    InterruptResolutionIntent, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
+    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalPayload,
+    JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
     ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
     ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
     ModelInvocationTransitionKind, NodeActivation, NodeAttempt, NodeAttemptCompletion,
@@ -48,16 +48,17 @@ use crate::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
     CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
     CorruptionQuarantineContext, DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor,
-    ExpiredInterruptPage, ExpiredInterruptPageCursor, InterruptResolutionCommitOutcome,
-    JournalPage, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
-    ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
-    NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
-    OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome,
-    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
-    PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
-    PendingNodeResultPageSize, PostgresStoreOptions, RunProjection, RunQuarantine,
-    RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest,
-    RunnableRunCandidate, RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize, StoreError,
+    ExpiredInterruptPage, ExpiredInterruptPageCursor, GraphDefinitionRegistrationOutcome,
+    InterruptResolutionCommitOutcome, JournalPage, JournalPageSize, LeaseClaimOutcome,
+    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
+    NodeAttemptHistoryPage, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage,
+    OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome,
+    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
+    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize,
+    PostgresStoreOptions, RunProjection, RunQuarantine, RunQuarantineCause,
+    RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest, RunnableRunCandidate,
+    RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize, StoreError, StoredGraphDefinition,
     StoredOutboxDestination, StoredRun, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
     ToolInvocationHistoryPage, ToolInvocationHistoryPageSize, WaitAbandonment,
     WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
@@ -152,6 +153,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0012_delayed_retry_wakeup.sql")),
             false,
         ),
+        Migration::new(
+            13,
+            Cow::Borrowed("compiled graph registry"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0013_graph_registry.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -161,6 +169,7 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
 const MIN_POSTGRES_VERSION_NUMBER: i32 = 160_000;
 const MAX_POSTGRES_VERSION_NUMBER: i32 = 179_999;
 const MAX_CHECKPOINT_BYTES: usize = 2_621_440;
+const MAX_COMPILED_GRAPH_BYTES: usize = CompiledGraph::MAX_DEFINITION_BYTES + 128;
 const MAX_TOOL_INVOCATION_INTENT_BYTES: usize = 4_194_304;
 const MAX_TOOL_INVOCATION_RECORD_BYTES: usize = 16_777_216;
 const MAX_MODEL_INVOCATION_INTENT_BYTES: usize = 134_217_728;
@@ -198,6 +207,96 @@ const TIMER_FIRING_PROJECTION_DIGEST_DOMAIN: &[u8] =
 const WAIT_ABANDONMENT_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-wait-abandonment-v1\0";
 const WAIT_ABANDONMENT_PROJECTION_DIGEST_DOMAIN: &[u8] =
     b"stateknot-postgres-wait-abandonment-projection-v1\0";
+
+const SELECT_GRAPH_DEFINITION: &str = r"
+SELECT
+    tenant_id,
+    owner_issuer,
+    owner_subject,
+    graph_name,
+    graph_version,
+    definition_digest,
+    definition_bytes,
+    registered_at
+FROM stateknot.graph_definitions
+WHERE tenant_id = $1
+  AND owner_issuer = $2
+  AND owner_subject = $3
+  AND graph_name = $4
+  AND graph_version = $5
+";
+
+const VERIFY_SCHEMA_OBJECTS: &str = r"
+SELECT to_regclass('stateknot.runs') IS NOT NULL
+   AND to_regclass('stateknot.graph_definitions') IS NOT NULL
+   AND to_regclass('stateknot.graph_definitions_digest_lookup') IS NOT NULL
+   AND to_regclass('stateknot.run_events') IS NOT NULL
+   AND to_regclass('stateknot.run_checkpoints') IS NOT NULL
+   AND to_regclass('stateknot.tool_invocations') IS NOT NULL
+   AND to_regclass('stateknot.tool_invocation_revisions') IS NOT NULL
+   AND to_regclass('stateknot.run_attempt_claims') IS NOT NULL
+   AND to_regclass('stateknot.model_invocations') IS NOT NULL
+   AND to_regclass('stateknot.model_invocation_revisions') IS NOT NULL
+   AND to_regclass('stateknot.pending_node_results') IS NOT NULL
+   AND to_regclass('stateknot.pending_node_result_tool_bindings') IS NOT NULL
+   AND to_regclass('stateknot.pending_node_result_model_bindings') IS NOT NULL
+   AND to_regclass('stateknot.pending_node_result_consumptions') IS NOT NULL
+   AND to_regclass('stateknot.node_attempts') IS NOT NULL
+   AND to_regclass('stateknot.node_attempt_completions') IS NOT NULL
+   AND to_regclass('stateknot.runs_scheduler_ready') IS NOT NULL
+   AND to_regclass('stateknot.outbox_destinations') IS NOT NULL
+   AND to_regclass('stateknot.outbox_deliveries') IS NOT NULL
+   AND to_regclass('stateknot.outbox_attempts') IS NOT NULL
+   AND to_regclass('stateknot.outbox_attempt_completions') IS NOT NULL
+   AND to_regclass('stateknot.outbox_deliveries_ready') IS NOT NULL
+   AND to_regclass('stateknot.outbox_deliveries_expiry') IS NOT NULL
+   AND to_regclass('stateknot.outbox_deliveries_abandoned_limit') IS NOT NULL
+   AND to_regclass('stateknot.run_wait_registrations') IS NOT NULL
+   AND to_regclass('stateknot.interrupt_resolutions') IS NOT NULL
+   AND to_regclass('stateknot.timer_firings') IS NOT NULL
+   AND to_regclass('stateknot.wait_abandonments') IS NOT NULL
+   AND to_regclass('stateknot.run_wait_registrations_due') IS NOT NULL
+   AND to_regclass('stateknot.run_wait_registrations_expiry') IS NOT NULL
+   AND to_regclass('stateknot.run_quarantines') IS NOT NULL
+   AND to_regclass('stateknot.run_quarantines_observed') IS NOT NULL
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.graph_definitions')
+         AND conname = 'graph_definitions_exact_reference_unique'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.graph_definitions')
+         AND conname = 'graph_definitions_bytes_bounded'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.run_quarantines')
+         AND conname = 'run_quarantines_fence_shape'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.runs')
+         AND conname = 'runs_scheduler_ready_shape'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.runs')
+         AND conname = 'runs_scheduler_not_before_shape'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.runs')
+         AND conname = 'runs_wait_projection_shape'
+         AND convalidated
+   )
+   AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL
+";
 
 const SELECT_RUN: &str = r"
 SELECT
@@ -1839,6 +1938,77 @@ impl ClaimedRunRecovery<'_> {
             .map(|observation| observation.run)
     }
 
+    /// Loads the exact compiled graph pinned by this recovery checkpoint.
+    ///
+    /// The method revalidates the live fence and journal observation both
+    /// before and after loading the immutable checkpoint and tenant registry
+    /// row. It recompiles the canonical definition, verifies its digest and
+    /// owner-qualified identity, and rejects unknown ready nodes or an initial
+    /// ready set that differs from the compiled entry set.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ReadyNodeRecoveryCheckpointMissing`] before an
+    /// initial checkpoint exists. A missing, mismatched, or corrupt pinned
+    /// definition is quarantined before returning [`StoreError::RunQuarantined`].
+    pub async fn load_pinned_graph(&self) -> Result<StoredGraphDefinition, StoreError> {
+        Box::pin(self.read(self.load_pinned_graph_inner())).await
+    }
+
+    async fn load_pinned_graph_inner(&self) -> Result<StoredGraphDefinition, StoreError> {
+        let before = self
+            .store
+            .load_claimed_run_recovery_snapshot(&self.fence, &self.context)
+            .await?;
+        let pointer = before
+            .run
+            .checkpoint()
+            .ok_or(StoreError::ReadyNodeRecoveryCheckpointMissing)?;
+        if self.initial_run.checkpoint() != Some(pointer) {
+            return Err(StoreError::corrupt("pinned graph checkpoint projection"));
+        }
+        let checkpoint = self.load_recovery_checkpoint(pointer).await?;
+        let definition = self.load_graph_for_checkpoint(&checkpoint).await?;
+        let after = self
+            .store
+            .load_claimed_run_recovery_snapshot(&self.fence, &self.context)
+            .await?;
+        if after.run.checkpoint() != Some(pointer) {
+            return Err(StoreError::corrupt("pinned graph checkpoint projection"));
+        }
+        Ok(definition)
+    }
+
+    async fn load_graph_for_checkpoint(
+        &self,
+        checkpoint: &Checkpoint,
+    ) -> Result<StoredGraphDefinition, StoreError> {
+        let definition = match self
+            .store
+            .load_graph_definition(self.fence.tenant_id(), checkpoint.graph())
+            .await
+        {
+            Ok(definition) => definition,
+            Err(StoreError::GraphDefinitionNotFound) => {
+                return Err(StoreError::corrupt("pinned graph definition"));
+            }
+            Err(error) => return Err(error),
+        };
+        let graph = definition.graph();
+        if graph.reference() != *checkpoint.graph()
+            || checkpoint.ready_nodes().len() > usize::from(graph.limits().maximum_parallelism())
+            || checkpoint
+                .ready_nodes()
+                .iter()
+                .any(|node_id| graph.node(node_id).is_none())
+            || (checkpoint.superstep() == Superstep::INITIAL
+                && checkpoint.ready_nodes() != graph.entry_nodes())
+        {
+            return Err(StoreError::corrupt("pinned graph checkpoint binding"));
+        }
+        Ok(definition)
+    }
+
     /// Reconstructs the exact current checkpoint ready set into one
     /// deterministic, database-time recovery plan.
     ///
@@ -1871,6 +2041,17 @@ impl ClaimedRunRecovery<'_> {
         &self,
         pointer: &CheckpointPointer,
     ) -> Result<Checkpoint, StoreError> {
+        let checkpoint = self.load_recovery_checkpoint(pointer).await?;
+        if checkpoint.ready_nodes().is_empty() {
+            return Err(StoreError::corrupt("ready node recovery empty ready set"));
+        }
+        Ok(checkpoint)
+    }
+
+    async fn load_recovery_checkpoint(
+        &self,
+        pointer: &CheckpointPointer,
+    ) -> Result<Checkpoint, StoreError> {
         let checkpoint = match self
             .store
             .load_checkpoint(
@@ -1894,9 +2075,6 @@ impl ClaimedRunRecovery<'_> {
                 "ready node recovery checkpoint pointer",
             ));
         }
-        if checkpoint.ready_nodes().is_empty() {
-            return Err(StoreError::corrupt("ready node recovery empty ready set"));
-        }
         Ok(checkpoint)
     }
 
@@ -1906,6 +2084,7 @@ impl ClaimedRunRecovery<'_> {
             .checkpoint()
             .ok_or(StoreError::ReadyNodeRecoveryCheckpointMissing)?;
         let checkpoint = self.load_ready_node_checkpoint(pointer).await?;
+        self.load_graph_for_checkpoint(&checkpoint).await?;
 
         let base = checkpoint.head();
         let mut planner = ReadyNodeRecoveryPlanner::new(checkpoint, self.fence.clone())
@@ -2228,66 +2407,10 @@ impl PostgresStore {
             return Err(StoreError::IncompatibleSchema);
         }
 
-        let complete = query_scalar::<_, bool>(
-            "SELECT to_regclass('stateknot.runs') IS NOT NULL \
-                 AND to_regclass('stateknot.run_events') IS NOT NULL \
-                 AND to_regclass('stateknot.run_checkpoints') IS NOT NULL \
-                 AND to_regclass('stateknot.tool_invocations') IS NOT NULL \
-                 AND to_regclass('stateknot.tool_invocation_revisions') IS NOT NULL \
-                 AND to_regclass('stateknot.run_attempt_claims') IS NOT NULL \
-                 AND to_regclass('stateknot.model_invocations') IS NOT NULL \
-                 AND to_regclass('stateknot.model_invocation_revisions') IS NOT NULL \
-                 AND to_regclass('stateknot.pending_node_results') IS NOT NULL \
-                 AND to_regclass('stateknot.pending_node_result_tool_bindings') IS NOT NULL \
-                 AND to_regclass('stateknot.pending_node_result_model_bindings') IS NOT NULL \
-                 AND to_regclass('stateknot.pending_node_result_consumptions') IS NOT NULL \
-                 AND to_regclass('stateknot.node_attempts') IS NOT NULL \
-                 AND to_regclass('stateknot.node_attempt_completions') IS NOT NULL \
-                 AND to_regclass('stateknot.runs_scheduler_ready') IS NOT NULL \
-                 AND to_regclass('stateknot.outbox_destinations') IS NOT NULL \
-                 AND to_regclass('stateknot.outbox_deliveries') IS NOT NULL \
-                 AND to_regclass('stateknot.outbox_attempts') IS NOT NULL \
-                 AND to_regclass('stateknot.outbox_attempt_completions') IS NOT NULL \
-                 AND to_regclass('stateknot.outbox_deliveries_ready') IS NOT NULL \
-                 AND to_regclass('stateknot.outbox_deliveries_expiry') IS NOT NULL \
-                 AND to_regclass('stateknot.outbox_deliveries_abandoned_limit') IS NOT NULL \
-                 AND to_regclass('stateknot.run_wait_registrations') IS NOT NULL \
-                 AND to_regclass('stateknot.interrupt_resolutions') IS NOT NULL \
-                 AND to_regclass('stateknot.timer_firings') IS NOT NULL \
-                 AND to_regclass('stateknot.wait_abandonments') IS NOT NULL \
-                 AND to_regclass('stateknot.run_wait_registrations_due') IS NOT NULL \
-                 AND to_regclass('stateknot.run_wait_registrations_expiry') IS NOT NULL \
-                 AND to_regclass('stateknot.run_quarantines') IS NOT NULL \
-                 AND to_regclass('stateknot.run_quarantines_observed') IS NOT NULL \
-                 AND EXISTS ( \
-                     SELECT 1 FROM pg_catalog.pg_constraint \
-                     WHERE conrelid = to_regclass('stateknot.run_quarantines') \
-                       AND conname = 'run_quarantines_fence_shape' \
-                       AND convalidated \
-                 ) \
-                 AND EXISTS ( \
-                     SELECT 1 FROM pg_catalog.pg_constraint \
-                     WHERE conrelid = to_regclass('stateknot.runs') \
-                       AND conname = 'runs_scheduler_ready_shape' \
-                       AND convalidated \
-                 ) \
-                 AND EXISTS ( \
-                     SELECT 1 FROM pg_catalog.pg_constraint \
-                     WHERE conrelid = to_regclass('stateknot.runs') \
-                       AND conname = 'runs_scheduler_not_before_shape' \
-                       AND convalidated \
-                 ) \
-                 AND EXISTS ( \
-                     SELECT 1 FROM pg_catalog.pg_constraint \
-                     WHERE conrelid = to_regclass('stateknot.runs') \
-                       AND conname = 'runs_wait_projection_shape' \
-                       AND convalidated \
-                 ) \
-                 AND to_regprocedure('stateknot.is_uuid_v7(uuid)') IS NOT NULL",
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|source| StoreError::database("schema object check", source))?;
+        let complete = query_scalar::<_, bool>(VERIFY_SCHEMA_OBJECTS)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|source| StoreError::database("schema object check", source))?;
         if !complete {
             return Err(StoreError::IncompleteSchema);
         }
@@ -2334,6 +2457,112 @@ impl PostgresStore {
     /// Gracefully closes the shared connection pool.
     pub async fn close(&self) {
         self.pool.close().await;
+    }
+
+    /// Idempotently registers one immutable compiled graph version.
+    ///
+    /// The tenant boundary is independent from the graph's authenticated owner
+    /// identity. Once an owner/name/version tuple commits in that tenant, every
+    /// schema, reducer, node, route, limit, and digest is immutable; publish a
+    /// new semantic version for any change.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::GraphDefinitionConflict`] when the graph identity
+    /// already owns different canonical bytes, or an encoding, corruption, or
+    /// database error.
+    pub async fn register_graph_definition(
+        &self,
+        tenant_id: TenantId,
+        graph: CompiledGraph,
+    ) -> Result<GraphDefinitionRegistrationOutcome, StoreError> {
+        let definition_bytes = encode_graph_definition(&graph)?;
+        let identity = graph.identity();
+        let owner = identity.owner();
+        let version = identity.version().to_string();
+        let reference = graph.reference();
+        let mut transaction = self.begin_mutation("graph definition registration").await?;
+        let registered_at = database_now(&mut transaction, "graph definition clock").await?;
+        let inserted = query(
+            r"
+INSERT INTO stateknot.graph_definitions (
+    tenant_id,
+    owner_issuer,
+    owner_subject,
+    graph_name,
+    graph_version,
+    definition_digest,
+    definition_bytes,
+    registered_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (
+    tenant_id,
+    owner_issuer,
+    owner_subject,
+    graph_name,
+    graph_version
+) DO NOTHING
+",
+        )
+        .bind(tenant_id.as_str())
+        .bind(owner.issuer().as_str())
+        .bind(owner.subject().as_str())
+        .bind(identity.name().as_str())
+        .bind(&version)
+        .bind(graph.definition_digest().as_bytes())
+        .bind(&definition_bytes)
+        .bind(to_database_time(registered_at)?)
+        .execute(&mut *transaction)
+        .await
+        .map_err(|source| StoreError::database("graph definition insert", source))?
+        .rows_affected();
+
+        let row = load_graph_definition_row(&mut transaction, &tenant_id, &reference)
+            .await?
+            .ok_or(StoreError::GraphDefinitionConflict)?;
+        let stored = decode_graph_definition(row)?;
+        if stored.tenant_id() != &tenant_id || stored.graph() != &graph {
+            return Err(StoreError::GraphDefinitionConflict);
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("graph definition commit", source))?;
+        Ok(if inserted == 1 {
+            GraphDefinitionRegistrationOutcome::Registered(stored)
+        } else {
+            GraphDefinitionRegistrationOutcome::Idempotent(stored)
+        })
+    }
+
+    /// Loads one exact graph reference from a tenant registry.
+    ///
+    /// Canonical bytes are deserialized through the compiler again and checked
+    /// against every redundant key column before the definition is returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::GraphDefinitionNotFound`] when no exact identity,
+    /// digest, and state-schema binding exists, or a corruption/database error.
+    pub async fn load_graph_definition(
+        &self,
+        tenant_id: &TenantId,
+        reference: &GraphReference,
+    ) -> Result<StoredGraphDefinition, StoreError> {
+        let mut transaction = self.begin_repeatable_read("graph definition load").await?;
+        let row = load_graph_definition_row(&mut transaction, tenant_id, reference)
+            .await?
+            .ok_or(StoreError::GraphDefinitionNotFound)?;
+        let stored = decode_graph_definition(row)?;
+        if stored.tenant_id() != tenant_id || stored.graph().reference() != *reference {
+            return Err(StoreError::GraphDefinitionNotFound);
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("graph definition load commit", source))?;
+        Ok(stored)
     }
 
     /// Idempotently admits a pending run using a database commit timestamp.
@@ -8092,6 +8321,17 @@ impl InvocationAttemptKind {
     }
 }
 
+struct GraphDefinitionRow {
+    tenant_id: String,
+    owner_issuer: String,
+    owner_subject: String,
+    graph_name: String,
+    graph_version: String,
+    definition_digest: Vec<u8>,
+    definition_bytes: Vec<u8>,
+    registered_at: DateTime<Utc>,
+}
+
 struct RunQuarantineTargetRow {
     tenant_id: String,
     run_id: Uuid,
@@ -8579,6 +8819,21 @@ struct OutboxAttemptCompletionRow {
     completion_digest: Vec<u8>,
     completion_bytes: Vec<u8>,
     created_at: DateTime<Utc>,
+}
+
+impl<'row> FromRow<'row, PgRow> for GraphDefinitionRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            owner_issuer: row.try_get("owner_issuer")?,
+            owner_subject: row.try_get("owner_subject")?,
+            graph_name: row.try_get("graph_name")?,
+            graph_version: row.try_get("graph_version")?,
+            definition_digest: row.try_get("definition_digest")?,
+            definition_bytes: row.try_get("definition_bytes")?,
+            registered_at: row.try_get("registered_at")?,
+        })
+    }
 }
 
 impl<'row> FromRow<'row, PgRow> for RunQuarantineTargetRow {
@@ -11345,6 +11600,64 @@ async fn verify_model_invocation_anchor(
         return Err(StoreError::corrupt("model invocation journal anchor"));
     }
     Ok(())
+}
+
+fn encode_graph_definition(graph: &CompiledGraph) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(graph)
+        .map_err(|_| StoreError::encoding("compiled graph definition"))?;
+    if bytes.is_empty() || bytes.len() > MAX_COMPILED_GRAPH_BYTES {
+        return Err(StoreError::encoding("compiled graph definition size"));
+    }
+    Ok(bytes)
+}
+
+fn decode_graph_definition(row: GraphDefinitionRow) -> Result<StoredGraphDefinition, StoreError> {
+    if row.definition_bytes.is_empty() || row.definition_bytes.len() > MAX_COMPILED_GRAPH_BYTES {
+        return Err(StoreError::corrupt("compiled graph byte length"));
+    }
+    let graph = serde_json::from_slice::<CompiledGraph>(&row.definition_bytes)
+        .map_err(|_| StoreError::corrupt("compiled graph definition"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&graph)
+        .map_err(|_| StoreError::corrupt("compiled graph canonicalization"))?;
+    if canonical != row.definition_bytes {
+        return Err(StoreError::corrupt("compiled graph canonical bytes"));
+    }
+    let tenant_id = TenantId::try_from(row.tenant_id)
+        .map_err(|_| StoreError::corrupt("compiled graph tenant"))?;
+    let identity = graph.identity();
+    let owner = identity.owner();
+    if owner.issuer().as_str() != row.owner_issuer
+        || owner.subject().as_str() != row.owner_subject
+        || identity.name().as_str() != row.graph_name
+        || identity.version().to_string() != row.graph_version
+        || graph.definition_digest()
+            != decode_digest(&row.definition_digest, "compiled graph definition digest")?
+    {
+        return Err(StoreError::corrupt("compiled graph projection"));
+    }
+    Ok(StoredGraphDefinition {
+        tenant_id,
+        graph,
+        registered_at: from_database_time(row.registered_at)?,
+    })
+}
+
+async fn load_graph_definition_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    reference: &GraphReference,
+) -> Result<Option<GraphDefinitionRow>, StoreError> {
+    let identity = reference.identity();
+    let owner = identity.owner();
+    query_as::<_, GraphDefinitionRow>(SELECT_GRAPH_DEFINITION)
+        .bind(tenant_id.as_str())
+        .bind(owner.issuer().as_str())
+        .bind(owner.subject().as_str())
+        .bind(identity.name().as_str())
+        .bind(identity.version().to_string())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("graph definition load", source))
 }
 
 fn encode_outbox_destination_config(config: &JournalPayload) -> Result<Vec<u8>, StoreError> {

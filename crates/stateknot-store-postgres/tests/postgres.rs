@@ -6,7 +6,7 @@
 use std::{
     borrow::Cow,
     collections::BTreeSet,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
@@ -21,9 +21,10 @@ use sqlx_postgres::{PgPool, PgPoolOptions};
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, BudgetUsage, CapabilityIdentity, CapabilityName,
     CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
-    CheckpointState, CheckpointWrite, DeliveryId, DestinationId, Digest, DurationMillis, EventId,
-    Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
-    GraphNamespace, GraphReference, InterruptId, InterruptRequestIntent, InterruptResolutionIntent,
+    CheckpointState, CheckpointWrite, CompiledGraph, DeliveryId, DestinationId, Digest,
+    DurationMillis, EventId, Failure, FailureCategory, FailureCode, FailureId, FailureMessage,
+    FailureOrigin, GraphExecutionLimits, GraphNamespace, GraphNode, GraphReducerReference,
+    GraphReference, GraphRoutes, InterruptId, InterruptRequestIntent, InterruptResolutionIntent,
     InterruptResolver, InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
     JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
     ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
@@ -33,24 +34,24 @@ use stateknot_core::{
     PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, QuarantineId,
     ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind, RetryAdvice, RunCancellationRequest,
     RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind, RunTransition, SchemaId,
-    SchemaReference, Scope, ScopeSet, SubjectId, TenantId, ThreadId, TimerFiringIntent, TimerId,
-    TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation,
-    ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
-    ToolResultProvenance, Version, WaitRegistrationIntent,
+    SchemaReference, Scope, ScopeSet, SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent,
+    TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput,
+    ToolInvocation, ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition,
+    ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
     CheckpointLineagePageSize, CorruptionQuarantineContext, DelayedRetryScheduleOutcome,
-    InterruptResolutionCommitOutcome, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome,
-    LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
-    NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize,
-    OutboxClaimOutcome, OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome,
-    OutboxEnqueueOutcome, PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore,
-    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, RunQuarantineCause,
-    RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize,
-    StoreError, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
-    ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
-    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    GraphDefinitionRegistrationOutcome, InterruptResolutionCommitOutcome, JournalPageSize,
+    LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize,
+    OutboxAttemptHistoryPageSize, OutboxClaimOutcome, OutboxCompletionOutcome,
+    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
+    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
+    RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
+    RunQuarantineRequest, RunnableRunPageSize, StoreError, TimerFiringCommitOutcome,
+    ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome,
+    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 use uuid::Uuid;
 
@@ -257,6 +258,7 @@ async fn remove_fenced_recovery_quarantines(pool: &PgPool) {
 }
 
 async fn remove_delayed_retry_wakeup(pool: &PgPool) {
+    remove_graph_registry(pool).await;
     query("DROP INDEX stateknot.runs_scheduler_ready")
         .execute(pool)
         .await
@@ -290,6 +292,19 @@ async fn remove_delayed_retry_wakeup(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v12 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_graph_registry(pool: &PgPool) {
+    query("DROP TABLE stateknot.graph_definitions")
+        .execute(pool)
+        .await
+        .expect("v13 graph registry table must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 13")
+        .execute(pool)
+        .await
+        .expect("v13 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -2838,32 +2853,76 @@ fn outbox_failure(index: u64, retry_advice: RetryAdvice) -> Failure {
     .unwrap()
 }
 
-fn checkpoint_graph() -> GraphReference {
+fn checkpoint_capability(name: &str) -> CapabilityIdentity {
     let owner = PrincipalIdentity::new(
         "https://issuer.example.com/stateknot"
             .parse::<IssuerId>()
             .unwrap(),
         "checkpoint-registry".parse::<SubjectId>().unwrap(),
     );
-    let identity = CapabilityIdentity::new(
+    CapabilityIdentity::new(
         owner,
-        CapabilityReference::new(
-            CapabilityName::new("integration-workflow").unwrap(),
-            Version::new(1, 0, 0),
-        ),
-    );
-    let schema = SchemaReference::new(
+        CapabilityReference::new(CapabilityName::new(name).unwrap(), Version::new(1, 0, 0)),
+    )
+}
+
+fn checkpoint_schema(name: &str) -> SchemaReference {
+    SchemaReference::new(
+        format!("https://stateknot.github.io/schema/{name}/1.0.0")
+            .parse::<SchemaId>()
+            .unwrap(),
+        Version::new(1, 0, 0),
+        Digest::sha256(format!("stateknot integration {name} schema v1")),
+    )
+}
+
+fn checkpoint_state_schema() -> SchemaReference {
+    SchemaReference::new(
         "https://stateknot.github.io/schema/integration-state/1.0.0"
             .parse::<SchemaId>()
             .unwrap(),
         Version::new(1, 0, 0),
         Digest::sha256(b"stateknot integration checkpoint state schema v1"),
-    );
-    GraphReference::new(
-        identity,
-        Digest::sha256(b"stateknot integration compiled workflow v1"),
-        schema,
     )
+}
+
+fn checkpoint_compiled_graph() -> CompiledGraph {
+    static GRAPH: LazyLock<CompiledGraph> = LazyLock::new(|| build_checkpoint_compiled_graph(64));
+    GRAPH.clone()
+}
+
+fn build_checkpoint_compiled_graph(maximum_supersteps: u64) -> CompiledGraph {
+    let nodes = (1..=64_u64).map(|index| {
+        let node_id = NodeId::new(format!("node-{index:04}")).unwrap();
+        let continue_to = (index < 64).then(|| ready_node(index + 1));
+        GraphNode::new(
+            node_id,
+            continue_to,
+            GraphRoutes::empty(),
+            None,
+            index == 64,
+        )
+        .unwrap()
+    });
+    CompiledGraph::compile(
+        checkpoint_capability("integration-workflow"),
+        checkpoint_schema("integration-input"),
+        checkpoint_state_schema(),
+        checkpoint_schema("integration-update"),
+        checkpoint_schema("integration-output"),
+        GraphReducerReference::new(
+            checkpoint_capability("integration-reducer"),
+            Digest::sha256(b"stateknot integration reducer v1"),
+        ),
+        ready_node(1),
+        nodes,
+        GraphExecutionLimits::new(Superstep::new(maximum_supersteps).unwrap(), 1).unwrap(),
+    )
+    .unwrap()
+}
+
+fn checkpoint_graph() -> GraphReference {
+    checkpoint_compiled_graph().reference()
 }
 
 fn checkpoint_state(graph: &GraphReference, index: u64) -> CheckpointState {
@@ -2919,6 +2978,15 @@ async fn start_run_with_checkpoint(
     run_id: RunId,
     event_index: u64,
 ) -> CheckpointCommitOutcome {
+    let registration = store
+        .register_graph_definition(tenant_id.clone(), checkpoint_compiled_graph())
+        .await
+        .unwrap();
+    assert!(matches!(
+        registration,
+        GraphDefinitionRegistrationOutcome::Registered(_)
+            | GraphDefinitionRegistrationOutcome::Idempotent(_)
+    ));
     let admitted = store
         .admit_run(provenance(tenant_id.clone(), run_id))
         .await
@@ -14077,6 +14145,341 @@ async fn migration_twelve_preserves_queue_age_and_installs_delayed_retry_guards(
     .unwrap();
     assert!(matches!(
         upgraded.load_run(&tenant_id, pending_run).await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn graph_registry_is_tenant_scoped_immutable_and_fully_verified() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("graph-registry");
+    let other_tenant_id = tenant("graph-registry-other");
+    let graph = checkpoint_compiled_graph();
+
+    let registered = store
+        .register_graph_definition(tenant_id.clone(), graph.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        registered,
+        GraphDefinitionRegistrationOutcome::Registered(_)
+    ));
+    assert_eq!(registered.definition().tenant_id(), &tenant_id);
+    assert_eq!(registered.definition().graph(), &graph);
+
+    let idempotent = store
+        .register_graph_definition(tenant_id.clone(), graph.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        idempotent,
+        GraphDefinitionRegistrationOutcome::Idempotent(_)
+    ));
+    assert_eq!(idempotent.definition(), registered.definition());
+    assert_eq!(
+        store
+            .load_graph_definition(&tenant_id, &graph.reference())
+            .await
+            .unwrap(),
+        registered.definition().clone()
+    );
+    assert!(matches!(
+        store
+            .load_graph_definition(&other_tenant_id, &graph.reference())
+            .await,
+        Err(StoreError::GraphDefinitionNotFound)
+    ));
+
+    let conflicting = build_checkpoint_compiled_graph(63);
+    assert_eq!(conflicting.identity(), graph.identity());
+    assert_ne!(conflicting.definition_digest(), graph.definition_digest());
+    assert!(matches!(
+        store
+            .register_graph_definition(tenant_id.clone(), conflicting)
+            .await,
+        Err(StoreError::GraphDefinitionConflict)
+    ));
+
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    query(
+        "UPDATE stateknot.graph_definitions \
+         SET definition_bytes = definition_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1",
+    )
+    .bind(tenant_id.as_str())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .load_graph_definition(&tenant_id, &graph.reference())
+            .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+async fn concurrent_graph_registrations_choose_one_immutable_version() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("graph-registry-race");
+    let first = checkpoint_compiled_graph();
+    let second = build_checkpoint_compiled_graph(63);
+    let mut tasks = Vec::new();
+    for index in 0..24 {
+        let store = store.clone();
+        let tenant_id = tenant_id.clone();
+        let graph = if index % 2 == 0 {
+            first.clone()
+        } else {
+            second.clone()
+        };
+        tasks.push(tokio::spawn(async move {
+            store.register_graph_definition(tenant_id, graph).await
+        }));
+    }
+
+    let mut registered = 0_usize;
+    let mut idempotent = 0_usize;
+    let mut conflicts = 0_usize;
+    for task in tasks {
+        match task.await.unwrap() {
+            Ok(GraphDefinitionRegistrationOutcome::Registered(_)) => registered += 1,
+            Ok(GraphDefinitionRegistrationOutcome::Idempotent(_)) => idempotent += 1,
+            Err(StoreError::GraphDefinitionConflict) => conflicts += 1,
+            result => panic!("unexpected graph registration race result: {result:?}"),
+        }
+    }
+    assert_eq!(registered, 1);
+    assert_eq!(idempotent, 11);
+    assert_eq!(conflicts, 12);
+
+    let first_loaded = store
+        .load_graph_definition(&tenant_id, &first.reference())
+        .await;
+    let second_loaded = store
+        .load_graph_definition(&tenant_id, &second.reference())
+        .await;
+    assert!(matches!(
+        (&first_loaded, &second_loaded),
+        (Ok(_), Err(StoreError::GraphDefinitionNotFound))
+            | (Err(StoreError::GraphDefinitionNotFound), Ok(_))
+    ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn claimed_recovery_revalidates_and_quarantines_a_missing_pinned_graph() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("pinned-graph-recovery");
+    let run_id = RunId::generate();
+    let initial = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_470)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(initial.event().head()),
+        Digest::sha256(b"pinned graph recovery evidence"),
+    )
+    .unwrap();
+    let recovery = store
+        .begin_claimed_run_recovery(lease.fence().clone(), context)
+        .await
+        .unwrap();
+
+    let definition = recovery.load_pinned_graph().await.unwrap();
+    assert_eq!(definition.tenant_id(), &tenant_id);
+    assert_eq!(definition.graph(), &checkpoint_compiled_graph());
+    recovery.plan_ready_nodes().await.unwrap();
+
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    query("DELETE FROM stateknot.graph_definitions WHERE tenant_id = $1")
+        .bind(tenant_id.as_str())
+        .execute(&administration)
+        .await
+        .unwrap();
+    assert!(matches!(
+        recovery.load_pinned_graph().await,
+        Err(StoreError::RunQuarantined)
+    ));
+    assert!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_thirteen_installs_an_exact_immutable_graph_registry() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v13_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let fixture_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .unwrap();
+    let tenant_id = tenant("v13-graph-registry");
+    let existing_run = RunId::generate();
+    fixture_store
+        .admit_run(provenance(tenant_id.clone(), existing_run))
+        .await
+        .unwrap();
+    fixture_store.close().await;
+
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_graph_registry(&fixture_pool).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture_pool)
+            .await
+            .unwrap(),
+        12
+    );
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 13 must upgrade the exact v12 fixture");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("the upgraded v13 schema must pass exact verification");
+    upgraded.verify_schema().await.unwrap();
+    upgraded.load_run(&tenant_id, existing_run).await.unwrap();
+    assert!(matches!(
+        upgraded
+            .register_graph_definition(tenant_id.clone(), checkpoint_compiled_graph())
+            .await
+            .unwrap(),
+        GraphDefinitionRegistrationOutcome::Registered(_)
+    ));
+
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    let digest_index = query_scalar::<_, String>(
+        "SELECT indexdef FROM pg_catalog.pg_indexes \
+         WHERE schemaname = 'stateknot' \
+           AND indexname = 'graph_definitions_digest_lookup'",
+    )
+    .fetch_one(&verification)
+    .await
+    .unwrap()
+    .to_ascii_lowercase();
+    assert!(digest_index.contains("tenant_id"));
+    assert!(digest_index.contains("definition_digest"));
+    assert!(
+        query(
+            "INSERT INTO stateknot.graph_definitions ( \
+                 tenant_id, owner_issuer, owner_subject, graph_name, graph_version, \
+                 definition_digest, definition_bytes \
+             ) VALUES ( \
+                 'invalid tenant', 'https://issuer.example.com', 'subject', \
+                 'graph', '1.0.0', decode(repeat('00', 32), 'hex'), '{}'::text::bytea \
+             )",
+        )
+        .execute(&verification)
+        .await
+        .is_err(),
+        "the validated tenant constraint must reject crossed key grammar"
+    );
+    query(
+        "ALTER TABLE stateknot.graph_definitions \
+         DROP CONSTRAINT graph_definitions_bytes_bounded",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
+    query(
+        "UPDATE stateknot.graph_definitions \
+         SET definition_bytes = definition_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1",
+    )
+    .bind(tenant_id.as_str())
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded
+            .load_graph_definition(&tenant_id, &checkpoint_graph())
+            .await,
         Err(StoreError::CorruptData { .. })
     ));
 
