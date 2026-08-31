@@ -55,8 +55,8 @@ trap cleanup_staging EXIT
 ssh "${ssh_options[@]}" "$destination" \
   "install -d -m 0700 '$staging_dir/site'"
 rsync -a --checksum -e "$rsync_shell" dist/ "$destination:$staging_dir/site/"
-scp "${ssh_options[@]}" deploy/stateknot.conf \
-  "$destination:$staging_dir/stateknot.conf"
+scp "${ssh_options[@]}" deploy/Caddyfile \
+  "$destination:$staging_dir/Caddyfile"
 
 ssh "${ssh_options[@]}" "$destination" bash -s -- \
   "$staging_dir" "$remote_root" "$release_dir" <<'REMOTE'
@@ -65,10 +65,15 @@ set -Eeuo pipefail
 readonly staging_dir="$1"
 readonly remote_root="$2"
 readonly release_dir="$3"
-readonly config_path="/etc/nginx/sites-available/stateknot.conf"
-readonly config_link="/etc/nginx/sites-enabled/stateknot.conf"
-readonly config_backup="$staging_dir/stateknot.conf.previous"
+readonly config_path="/etc/caddy/Caddyfile"
+readonly config_backup="$staging_dir/Caddyfile.previous"
 readonly next_link="$remote_root/.current-next"
+
+if ! command -v caddy >/dev/null 2>&1 ||
+  ! sudo -n systemctl is-active --quiet caddy; then
+  echo "Caddy is not active; run scripts/bootstrap-tls.sh first" >&2
+  exit 69
+fi
 
 case "$release_dir" in
   "$remote_root"/releases/*) ;;
@@ -101,24 +106,40 @@ fi
 
 restore_config() {
   if [[ "$had_config" -eq 1 ]]; then
-    sudo -n install -m 0644 "$config_backup" "$config_path"
-    sudo -n ln -sfn "$config_path" "$config_link"
+    sudo -n install -o root -g root -m 0644 "$config_backup" "$config_path"
   else
-    sudo -n rm -f -- "$config_link" "$config_path"
+    sudo -n rm -f -- "$config_path"
   fi
 }
 
-sudo -n install -m 0644 "$staging_dir/stateknot.conf" "$config_path"
-sudo -n ln -sfn "$config_path" "$config_link"
-if ! sudo -n nginx -t; then
+if ! sudo -n caddy validate \
+  --config "$staging_dir/Caddyfile" \
+  --adapter caddyfile; then
+  exit 78
+fi
+sudo -n install -o root -g root -m 0644 \
+  "$staging_dir/Caddyfile" "$config_path"
+if ! sudo -n caddy validate --config "$config_path" --adapter caddyfile; then
   restore_config
   exit 78
 fi
 
-previous_release="$(sudo -n readlink -f "$remote_root/current" 2>/dev/null || true)"
+previous_release=""
+if sudo -n test -L "$remote_root/current"; then
+  previous_candidate="$(
+    sudo -n readlink -f "$remote_root/current" 2>/dev/null || true
+  )"
+  case "$previous_candidate" in
+    "$remote_root"/releases/*)
+      if sudo -n test -d "$previous_candidate"; then
+        previous_release="$previous_candidate"
+      fi
+      ;;
+  esac
+fi
 
 rollback_release() {
-  if [[ -n "$previous_release" && -d "$previous_release" ]]; then
+  if [[ -n "$previous_release" ]] && sudo -n test -d "$previous_release"; then
     sudo -n ln -sfn "$previous_release" "$next_link"
     sudo -n mv -Tf "$next_link" "$remote_root/current"
   else
@@ -129,27 +150,29 @@ rollback_release() {
 sudo -n ln -sfn "$release_dir" "$next_link"
 sudo -n mv -Tf "$next_link" "$remote_root/current"
 
-if ! sudo -n systemctl reload nginx; then
+if ! sudo -n systemctl reload caddy; then
   rollback_release
   restore_config
-  sudo -n nginx -t
-  sudo -n systemctl reload nginx
+  sudo -n caddy validate --config "$config_path" --adapter caddyfile
+  sudo -n systemctl reload caddy
   exit 69
 fi
 
 if ! curl --fail --silent --show-error --max-time 5 \
-  --header 'Host: 49.232.33.76' \
-  http://127.0.0.1/healthz | grep -Fx 'stateknot-ok'; then
+  --retry 5 --retry-all-errors --retry-delay 1 \
+  --resolve 'stknot.com:443:127.0.0.1' \
+  https://stknot.com/healthz | grep -Fx 'stateknot-ok'; then
   rollback_release
   restore_config
-  sudo -n nginx -t
-  sudo -n systemctl reload nginx
+  sudo -n caddy validate --config "$config_path" --adapter caddyfile
+  sudo -n systemctl reload caddy
   exit 70
 fi
 REMOTE
 
 curl --fail --silent --show-error --max-time 10 \
-  "http://49.232.33.76/healthz" | grep -Fx 'stateknot-ok'
+  --retry 5 --retry-all-errors --retry-delay 1 \
+  "https://stknot.com/healthz" | grep -Fx 'stateknot-ok'
 
 trap - EXIT
-echo "deployed release ${release_id} to http://49.232.33.76/"
+echo "deployed release ${release_id} to https://stknot.com/"

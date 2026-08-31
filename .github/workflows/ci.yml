@@ -41,8 +41,21 @@ jobs:
       - name: Install Chromium
         run: npx --no-install playwright install --with-deps chromium
 
+      - name: Install Caddy configuration validator
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends caddy
+
       - name: Check formatting
         run: npm run format:check
+
+      - name: Check deployment script syntax
+        run: |
+          bash -n scripts/bootstrap-tls.sh
+          bash -n scripts/deploy.sh
+          caddy validate --config deploy/Caddyfile --adapter caddyfile
+          caddy fmt --overwrite deploy/Caddyfile
+          git diff --exit-code -- deploy/Caddyfile
 
       - name: Check Astro and TypeScript
         run: npm run check

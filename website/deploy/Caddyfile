@@ -1,0 +1,86 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+{
+	email acme@stknot.com
+	servers {
+		protocols h1 h2
+	}
+}
+
+(stateknot_tls) {
+	tls {
+		issuer acme {
+			disable_http_challenge
+		}
+	}
+}
+
+(stateknot_security_headers) {
+	header {
+		-Server
+		Content-Security-Policy "default-src 'self'; base-uri 'none'; connect-src 'self'; font-src 'self'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Permissions-Policy "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		X-XSS-Protection "0"
+	}
+}
+
+http://stknot.com, http://www.stknot.com, http://49.232.33.76 {
+	header -Server
+	redir https://stknot.com{uri} 308
+}
+
+https://www.stknot.com {
+	import stateknot_tls
+	import stateknot_security_headers
+
+	redir https://stknot.com{uri} 308
+}
+
+https://stknot.com {
+	import stateknot_tls
+	import stateknot_security_headers
+
+	root * /var/www/stateknot/current
+	encode zstd gzip
+
+	route {
+		@health path /healthz
+		handle @health {
+			rewrite * /healthz.txt
+			header Cache-Control "no-store"
+			file_server
+		}
+
+		respond /healthz.txt 404
+		respond /404.html 404
+
+		@immutable_assets path /_astro/*
+		handle @immutable_assets {
+			header Cache-Control "public, max-age=31536000, immutable"
+			file_server
+		}
+
+		handle {
+			header Cache-Control "no-cache"
+			file_server
+		}
+	}
+
+	handle_errors {
+		import stateknot_security_headers
+		header Cache-Control "no-cache"
+		rewrite * /404.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
