@@ -1,0 +1,209 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+register_standard_graph_driver_event_schema(&mut schemas)?;
+register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_application_schemas(&mut schemas)?;
+
+let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
+register_release_graphs_reducers_and_nodes(&mut executables)?;
+
+let scheduler = DurableTenantScheduler::new(
+    store,
+    executables.build()?,
+    Arc::new(application_lifecycle_evidence),
+    DurableGraphDriverOptions::default(),
+    DurableGraphLifecycleOptions::default(),
+    DurableTenantSchedulerOptions::default(),
+)?;`;
+
+const outcomes = [
+  {
+    term: "Executed",
+    body: "一个 Run 已被 Claim，并通过有界 Agent Loop 到达 Waiting、Succeeded、Failed、RecoveryReleased、Deferred、Yielded 或 Cancelled。",
+  },
+  {
+    term: "ExecutionFailed",
+    body: "发生 Run-local Driver 或 Lifecycle Error；系统已尝试清理精确 Fence，Worker 仍可执行后续 Tick。",
+  },
+  {
+    term: "Idle",
+    body: "完整固定 Cutoff Tenant Snapshot 中不存在可 Claim 的 Run。",
+  },
+  {
+    term: "ScanLimitReached",
+    body: "配置的 Page Ceiling 在 Stable Snapshot 结束前终止本次 Tick；应调度下一次有界 Tick，而不是静默扩大内存。",
+  },
+  {
+    term: "Cancelled",
+    body: "进程拥有的单调 Shutdown Signal 在 Claim 前生效。",
+  },
+];
+---
+
+<DocsLayout
+  title="执行一个耐久 Agent 调度 Quantum。"
+  description="绑定 Graph Driver、原子 Lifecycle Coordination、可信 Evidence 与 Tenant-scoped Scheduling，同时保持 Fencing 与 Lost-ACK Recovery。"
+  section="耐久 Agent Loop"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="agent-loop-boundary-title">
+    <h2 id="agent-loop-boundary-title">
+      Graph Loop 已可运行，API 仍为 Pre-alpha
+    </h2>
+    <p>
+      仓库现在已经实现从一次 Tenant Queue Scan，经过 Lease Claim 与 Graph
+      Execution，到原子 Wait/Success/Failure Lifecycle Commit
+      的耐久路径。它尚未发布，也不是稳定的第一方 Model/Tool Agent API。
+    </p>
+  </aside>
+
+  <section aria-labelledby="assembly-title">
+    <h2 id="assembly-title">组装一份不可变 Worker Deployment</h2>
+    <p>
+      Claim 工作前必须安装两份标准审计 Schema 与全部应用绑定。<code
+        >DurableTenantScheduler</code
+      > 会在内部构造 <code>DurableAgentLoop</code>，因此 Driver 与 Lifecycle
+      Coordination 一定共享同一个 Store 和冻结的 Executable Registry。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 启动绑定</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-agent-loop-startup-code"
+          data-copy-idle="复制"
+          data-copy-loading="复制中"
+          data-copy-success="已复制"
+          data-copy-error="复制失败"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-agent-loop-startup-code"
+        tabindex="0"><code>{startupCode}</code></pre>
+    </div>
+    <p>
+      Lifecycle 审计 Schema 发布在<a
+        href="/schemas/runtime/graph-lifecycle-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0</code
+        ></a
+      >。必须通过 Runtime Helper 注册，不能手工写死 Digest。
+    </p>
+  </section>
+
+  <section aria-labelledby="evidence-title">
+    <h2 id="evidence-title">恢复可信 Evidence，禁止虚构</h2>
+    <p>
+      成功 Terminal Barrier 不拥有已 Admission 的 Agent
+      Descriptor、Request、Resolved Budget、最终 Artifact 与累计 Usage。<code
+        >GraphLifecycleEvidenceProvider</code
+      > 必须通过有界、确定性、只读调用恢复这些已经持久化的事实；不能重复 Model/Tool
+      工作、推测 Request 或用零替代缺失 Usage。
+    </p>
+    <p>
+      Lifecycle Coordinator 会离线验证 Input/Output Schema，构造最终 Agent
+      Result，再检查 Provenance、Request、Descriptor、Budget、Artifact 与
+      Usage。Evidence Error 会释放精确 Fence，或让它进入可回收状态，而不会部分
+      Finalize Run。
+    </p>
+  </section>
+
+  <section aria-labelledby="atomic-title">
+    <h2 id="atomic-title">把每条生命周期边作为一个原子单元提交</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Wait</h3>
+        <p>
+          Node 返回完整且不含 Registration Timestamp 的
+          <code>NodeWaits</code>。同一 Transaction 提交 Journal Event、消费
+          Result、写 Successor Checkpoint、使用数据库时间注册
+          Interrupt/Timer、转为 Waiting 并释放 Lease。
+        </p>
+      </li>
+      <li>
+        <h3>成功 Terminal</h3>
+        <p>
+          可信 Evidence 与 Schema 校验先完成，再由一个 Transaction 保存 Terminal
+          Checkpoint 与 Agent Result、推进 Run 状态并清除所有权。
+        </p>
+      </li>
+      <li>
+        <h3>Blocked Failure</h3>
+        <p>
+          Same-fence In-flight 工作先释放所有权，交给 Higher-fence Crash
+          Recovery。只有不含 In-flight 工作的 Plan 才能进入 Terminal Failure
+          Supervision。
+        </p>
+      </li>
+    </ol>
+    <p>
+      Driver 为每个 Handoff 只分配一次稳定 Lifecycle Event Identity。Success 或
+      Failure 的 Lost-ACK Retry 只接受同一 Event、Revision 加一、预期 Terminal
+      Status 与已清除 Lease 的快照，并直接恢复已提交
+      Result/Failure，不再次读取外部 Evidence；其他 Terminal 变化一律按 Stale
+      Fail Closed。
+    </p>
+    <p>
+      Wait 使用 Event-first Replay：Provider 会验证原始
+      Event、Projection、Checkpoint、 Result Consumption 与不可变
+      Registration。因此即使 Resolver、Timer 或 Cancellation 已推进 Run，精确
+      Retry 仍可返回原 Idempotent Commit，且不会回滚后续状态。
+    </p>
+  </section>
+
+  <section aria-labelledby="scheduler-title">
+    <h2 id="scheduler-title">保持 Tenant Scheduling 有界</h2>
+    <p>
+      一次 Tick 按 Durable Queue Order 扫描固定 Cutoff Keyset Page，为每个
+      Candidate 分配 稳定 Claim Attempt ID，把普通竞争视为
+      Skip，并且最多执行一个 Run。Page、Decoded Candidate、Contention 与 Retry
+      均有上限和 Report。
+    </p>
+    <dl class="docs-definition-list">
+      {
+        outcomes.map((outcome) => (
+          <div>
+            <dt>
+              <code>{outcome.term}</code>
+            </dt>
+            <dd>{outcome.body}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  <section aria-labelledby="fairness-title">
+    <h2 id="fairness-title">Tenant Isolation 不等于 Global Fairness</h2>
+    <p>
+      当前 Worker 刻意保持 Tenant-scoped。跨租户 Selection、Weight、Admission
+      与可度量的 Starvation Bound 属于独立 Control-plane Policy，仍是 Release
+      Blocker。部署时使用有界 Per-tenant Concurrency，并保持数据库凭据
+      Tenant-scoped；不能通过扩大 Worker Queue Visibility 伪造 Fairness。
+    </p>
+  </section>
+
+  <section aria-labelledby="qualification-title">
+    <h2 id="qualification-title">验证证据</h2>
+    <p>
+      CI 在 PostgreSQL 16 与 17 上分别运行 12 个 Runtime Scenario 和 91 个
+      Provider Case。Runtime 覆盖 Lifecycle 原子性与精确 Lost-ACK
+      Replay、数据库时间 Wait Materialization、Agent Loop 成功与 Evidence
+      Failure、Tenant Scheduling、Noninitial Replay、Lease
+      Renewal、重复抑制、Quarantine 与 Higher-fence Takeover。部署该 Pre-alpha
+      Surface 前请阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.zh-CN.md"
+        >完整集成与运维契约</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

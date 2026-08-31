@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0",
+  "title": "StateKnot graph lifecycle event data",
+  "description": "Public-safe correlation metadata for atomic graph Wait, successful Terminal, and blocked-failure lifecycle commits. Payloads, outputs, and failure messages are deliberately excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation",
+    "graph_digest",
+    "checkpoint_id",
+    "superstep"
+  ],
+  "properties": {
+    "operation": {
+      "enum": [
+        "graph_barrier_waiting",
+        "graph_barrier_succeeded",
+        "graph_run_failed"
+      ]
+    },
+    "graph_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "checkpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "superstep": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,18})$"
+    },
+    "successor_checkpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "successor_superstep": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,18})$"
+    },
+    "disposition": {
+      "enum": ["wait", "succeeded", "failed"]
+    },
+    "wait_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "output_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "failure_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "in_flight": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64
+    },
+    "failed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64
+    },
+    "exhausted": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64
+    },
+    "unsupported": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "operation": { "const": "graph_barrier_waiting" },
+        "disposition": { "const": "wait" }
+      },
+      "required": [
+        "successor_checkpoint_id",
+        "successor_superstep",
+        "disposition",
+        "wait_count"
+      ],
+      "not": {
+        "anyOf": [
+          { "required": ["output_digest"] },
+          { "required": ["failure_id"] },
+          { "required": ["in_flight"] },
+          { "required": ["failed"] },
+          { "required": ["exhausted"] },
+          { "required": ["unsupported"] }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "operation": { "const": "graph_barrier_succeeded" },
+        "disposition": { "const": "succeeded" }
+      },
+      "required": [
+        "successor_checkpoint_id",
+        "successor_superstep",
+        "disposition",
+        "output_digest"
+      ],
+      "not": {
+        "anyOf": [
+          { "required": ["wait_count"] },
+          { "required": ["failure_id"] },
+          { "required": ["in_flight"] },
+          { "required": ["failed"] },
+          { "required": ["exhausted"] },
+          { "required": ["unsupported"] }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "operation": { "const": "graph_run_failed" },
+        "disposition": { "const": "failed" }
+      },
+      "required": [
+        "disposition",
+        "failure_id",
+        "in_flight",
+        "failed",
+        "exhausted",
+        "unsupported"
+      ],
+      "not": {
+        "anyOf": [
+          { "required": ["successor_checkpoint_id"] },
+          { "required": ["successor_superstep"] },
+          { "required": ["wait_count"] },
+          { "required": ["output_digest"] }
+        ]
+      }
+    }
+  ]
+}

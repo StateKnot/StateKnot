@@ -6,6 +6,7 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
 
 const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
+register_standard_graph_lifecycle_event_schema(&mut schemas)?;
 register_application_schemas(&mut schemas)?;
 
 let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
@@ -64,9 +65,10 @@ const outcomes = [
   <aside class="docs-callout" aria-labelledby="runtime-boundary-title">
     <h2 id="runtime-boundary-title">Driver 已实现，集成仍处于 Pre-alpha</h2>
     <p>
-      Root Graph Driver 已实现，并在 PostgreSQL 16 与 17 完成验证，但尚未发布。
-      完整 Wait/Terminal/Failure Lifecycle 处理、Model/Tool Agent Ergonomics、
-      Scheduler Fairness、Loop 与 Subgraph 仍是发布阻断项。
+      Root Graph Driver 及其 Wait/Terminal/Failure Lifecycle Coordinator
+      已实现，并在 PostgreSQL 16 与 17 完成验证，但尚未发布。第一方 Model/Tool
+      Agent Ergonomics、Cross-tenant Fairness、Parallel Sibling、Loop 与
+      Subgraph 仍是发布阻断项。
     </p>
   </aside>
 
@@ -105,6 +107,15 @@ const outcomes = [
         ><code>https://stknot.com/schemas/runtime/graph-driver-event/1.0.0</code
         ></a
       >。不要在应用代码中手工写死 Digest。
+    </p>
+    <p>
+      Agent Loop 部署还必须通过
+      <code>register_standard_graph_lifecycle_event_schema</code> 安装<a
+        href="/schemas/runtime/graph-lifecycle-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0</code
+        ></a
+      >。
     </p>
   </section>
 
@@ -170,6 +181,11 @@ const outcomes = [
         ))
       }
     </dl>
+    <p>
+      普通应用 Worker 应使用<a href="/zh/docs/agent-loop/"
+        ><code>DurableAgentLoop</code></a
+      > 把这些 Handoff 绑定到原子 Lifecycle Commit 与 Exact-fence Error Cleanup。
+    </p>
   </section>
 
   <section aria-labelledby="options-title">
@@ -232,10 +248,12 @@ const outcomes = [
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行六个 Driver 场景：Continue 后的非初始
-      Replay 与 Terminal Handoff、Same-fence 重复抑制、通过续租执行超过原始
-      Lease、Node 启动前刷新临近过期 Lease、执行前隔离非法初始状态，以及
-      Higher-fence Takeover。每个数据库版本还会运行 91 个 Provider
+      CI 在 PostgreSQL 16 与 17 上分别运行十二个 Runtime 场景。六个保留 Driver
+      恢复覆盖：Continue 后的非初始 Replay 与 Terminal Handoff、Same-fence
+      重复抑制、通过续租执行超过原始 Lease、Node 启动前刷新临近过期
+      Lease、执行前隔离非法初始状态，以及 Higher-fence Takeover；另外六个覆盖
+      Success/Wait/Failure Lifecycle 原子提交、精确 Lost-ACK Recovery、Agent
+      Loop Cleanup 与 Tenant Scheduling。每个数据库版本还会运行 91 个 Provider
       Case。部署这个 Pre-alpha Surface 前请阅读完整的<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.zh-CN.md"
         >集成与运维契约</a

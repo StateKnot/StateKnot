@@ -33,10 +33,10 @@ const currentCut = [
     href: "/zh/docs/runtime/",
   },
   {
-    surface: "可运行 Agent Loop",
-    state: "尚未发布",
-    evidence: "Lifecycle 与 Model/Tool 集成仍未闭合",
-    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md",
+    surface: "耐久 Agent Loop",
+    state: "已实现切片",
+    evidence: "原子 Lifecycle Commit 与 Tenant-scoped Scheduling",
+    href: "/zh/docs/agent-loop/",
   },
   {
     surface: "MCP 与 A2A Adapter",
@@ -49,15 +49,15 @@ const currentCut = [
 const roadmap = [
   {
     index: "01",
-    state: "现在",
-    title: "集成 Lifecycle Handoff",
-    body: "使用 Driver 精确且 Lease-bound 的 Handoff 原子提交完整 Wait、Terminal 与 Run Failure 元数据，不削弱 Fencing。",
+    state: "已实现",
+    title: "闭合耐久 Graph Loop",
+    body: "Lifecycle Handoff、Lost ACK、Exact-fence Cleanup 与一次 Tenant-scoped Scheduler Quantum 已具备实现和 PostgreSQL 证据。",
   },
   {
     index: "02",
-    state: "下一步",
-    title: "交付可运行 Agent Loop",
-    body: "把 Model 与 Tool 执行绑定到 Durable Attempt，不削弱 Core 合约，也不跨外部工作持有数据库事务。",
+    state: "现在",
+    title: "交付 Model/Tool Agent API",
+    body: "把第一方 Model/Tool Adapter、Policy、Streaming 与可编译最终用户示例绑定到 Durable Attempt，不跨外部工作持有数据库事务。",
   },
   {
     index: "03",
@@ -84,9 +84,9 @@ const roadmap = [
           <p class="hero-status">Pre-alpha · 尚无稳定公开 API</p>
           <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
           <p class="hero-lede">
-            StateKnot 现已使用精确可执行绑定，通过 PostgreSQL-backed Crash
-            Recovery 驱动类型化 Root Graph。公开 Agent Loop、Lifecycle Service
-            与协议 Adapter 仍在开发。
+            StateKnot 现已通过 PostgreSQL-backed Crash Recovery、原子 Lifecycle
+            Commit 与 Tenant-scoped Scheduling 运行类型化 Root Graph。稳定的
+            Model/Tool Agent API 与协议 Adapter 仍在开发。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"

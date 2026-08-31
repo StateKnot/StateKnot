@@ -20,9 +20,12 @@ use serde::{
 use thiserror::Error;
 
 use crate::{
-    BoundedJson, CanonicalJson, CanonicalJsonError, Digest, InvocationId, JournalHead, JsonLimits,
-    ModelInvocation, ModelInvocationHead, ModelInvocationStatus, NodeActivation, RunFence, RunId,
-    RunWaits, SchemaReference, TenantId, ToolInvocation, ToolInvocationHead, ToolInvocationStatus,
+    BoundedJson, CanonicalJson, CanonicalJsonError, Digest, EventId, InterruptId,
+    InterruptRequestIntent, InvocationId, JournalHead, JournalPayload, JsonLimits, ModelInvocation,
+    ModelInvocationHead, ModelInvocationStatus, NodeActivation, PrincipalIdentity, RunFence, RunId,
+    RunInterruptKind, RunTimerKind, SchemaReference, ScopeSet, TenantId, TimerId,
+    TimerRegistrationIntent, ToolInvocation, ToolInvocationHead, ToolInvocationStatus,
+    WaitRegistrationIntent,
 };
 
 const ROUTE_ID_PATTERN: &str = "^(?!\\.{1,2}$)[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$";
@@ -485,6 +488,427 @@ impl NodeStateChange {
     }
 }
 
+/// Complete, uncommitted lifecycle condition emitted by a graph node.
+///
+/// Unlike [`crate::RunWait`], this value deliberately has no registration
+/// timestamp or journal identity. Those are authoritative database facts that
+/// exist only when the lifecycle coordinator atomically commits the graph
+/// barrier and wait registrations. Every policy-bearing interrupt field is
+/// retained here so recovery can reproduce the exact registration without
+/// consulting mutable application configuration.
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum NodeWait {
+    /// Require one authenticated, authorized external resolution.
+    Interrupt {
+        /// Stable interrupt identity selected before node-result commit.
+        interrupt_id: InterruptId,
+        /// Protocol-neutral reason the run needs external input.
+        interrupt_kind: RunInterruptKind,
+        /// Complete schema-pinned public request payload.
+        request_payload: JournalPayload,
+        /// Immutable action or question protected by the resolution.
+        action_digest: Digest,
+        /// Exact required resolver, when policy selected one.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        required_principal: Option<PrincipalIdentity>,
+        /// Every scope the resolver must possess.
+        required_scopes: ScopeSet,
+        /// Exclusive resolution expiry, when finite.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        expires_at: Option<crate::Timestamp>,
+    },
+    /// Require one database-clock timer observation.
+    Timer {
+        /// Stable timer identity selected before node-result commit.
+        timer_id: TimerId,
+        /// Semantic purpose of the timer.
+        timer_kind: RunTimerKind,
+        /// Inclusive earliest database instant at which it may fire.
+        due_at: crate::Timestamp,
+    },
+}
+
+impl NodeWait {
+    /// Constructs a complete interrupt registration specification.
+    #[allow(clippy::too_many_arguments)]
+    #[must_use]
+    pub const fn interrupt(
+        interrupt_id: InterruptId,
+        interrupt_kind: RunInterruptKind,
+        request_payload: JournalPayload,
+        action_digest: Digest,
+        required_principal: Option<PrincipalIdentity>,
+        required_scopes: ScopeSet,
+        expires_at: Option<crate::Timestamp>,
+    ) -> Self {
+        Self::Interrupt {
+            interrupt_id,
+            interrupt_kind,
+            request_payload,
+            action_digest,
+            required_principal,
+            required_scopes,
+            expires_at,
+        }
+    }
+
+    /// Constructs a complete timer registration specification.
+    #[must_use]
+    pub const fn timer(
+        timer_id: TimerId,
+        timer_kind: RunTimerKind,
+        due_at: crate::Timestamp,
+    ) -> Self {
+        Self::Timer {
+            timer_id,
+            timer_kind,
+            due_at,
+        }
+    }
+
+    /// Converts this durable node result into an exact event-bound provider
+    /// registration intent.
+    ///
+    /// The provider still supplies and verifies the authoritative database
+    /// registration time while committing the wait barrier.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::DurableWaitError`] only if canonical intent integrity
+    /// material cannot be encoded.
+    pub fn registration_intent(
+        &self,
+        tenant_id: TenantId,
+        run_id: RunId,
+        event_id: EventId,
+    ) -> Result<WaitRegistrationIntent, crate::DurableWaitError> {
+        match self {
+            Self::Interrupt {
+                interrupt_id,
+                interrupt_kind,
+                request_payload,
+                action_digest,
+                required_principal,
+                required_scopes,
+                expires_at,
+            } => InterruptRequestIntent::new(
+                tenant_id,
+                run_id,
+                *interrupt_id,
+                event_id,
+                *interrupt_kind,
+                request_payload.clone(),
+                *action_digest,
+                required_principal.clone(),
+                required_scopes.clone(),
+                *expires_at,
+            )
+            .map(WaitRegistrationIntent::interrupt),
+            Self::Timer {
+                timer_id,
+                timer_kind,
+                due_at,
+            } => TimerRegistrationIntent::new(
+                tenant_id,
+                run_id,
+                *timer_id,
+                event_id,
+                *timer_kind,
+                *due_at,
+            )
+            .map(WaitRegistrationIntent::timer),
+        }
+    }
+
+    fn identity_uuid(&self) -> uuid::Uuid {
+        match self {
+            Self::Interrupt { interrupt_id, .. } => interrupt_id.into_uuid(),
+            Self::Timer { timer_id, .. } => timer_id.into_uuid(),
+        }
+    }
+}
+
+impl fmt::Debug for NodeWait {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Interrupt {
+                interrupt_id,
+                interrupt_kind,
+                request_payload,
+                action_digest,
+                required_principal,
+                required_scopes,
+                expires_at,
+            } => formatter
+                .debug_struct("NodeWait::Interrupt")
+                .field("interrupt_id", interrupt_id)
+                .field("interrupt_kind", interrupt_kind)
+                .field("request_schema", request_payload.schema())
+                .field("request_digest", &request_payload.digest())
+                .field("action_digest", action_digest)
+                .field("required_principal", required_principal)
+                .field("required_scope_count", &required_scopes.len())
+                .field("expires_at", expires_at)
+                .finish_non_exhaustive(),
+            Self::Timer {
+                timer_id,
+                timer_kind,
+                due_at,
+            } => formatter
+                .debug_struct("NodeWait::Timer")
+                .field("timer_id", timer_id)
+                .field("timer_kind", timer_kind)
+                .field("due_at", due_at)
+                .finish_non_exhaustive(),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for NodeWait {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+        enum Wire {
+            Interrupt {
+                interrupt_id: InterruptId,
+                interrupt_kind: RunInterruptKind,
+                request_payload: JournalPayload,
+                action_digest: Digest,
+                required_principal: Option<PrincipalIdentity>,
+                required_scopes: ScopeSet,
+                expires_at: Option<crate::Timestamp>,
+            },
+            Timer {
+                timer_id: TimerId,
+                timer_kind: RunTimerKind,
+                due_at: crate::Timestamp,
+            },
+        }
+
+        Ok(match Wire::deserialize(deserializer)? {
+            Wire::Interrupt {
+                interrupt_id,
+                interrupt_kind,
+                request_payload,
+                action_digest,
+                required_principal,
+                required_scopes,
+                expires_at,
+            } => Self::interrupt(
+                interrupt_id,
+                interrupt_kind,
+                request_payload,
+                action_digest,
+                required_principal,
+                required_scopes,
+                expires_at,
+            ),
+            Wire::Timer {
+                timer_id,
+                timer_kind,
+                due_at,
+            } => Self::timer(timer_id, timer_kind, due_at),
+        })
+    }
+}
+
+/// Non-empty, bounded, identity-unique uncommitted wait batch.
+#[derive(Clone, Eq, PartialEq)]
+pub struct NodeWaits {
+    values: Box<[NodeWait]>,
+}
+
+impl NodeWaits {
+    /// Hard maximum number of conditions one graph barrier may register.
+    pub const MAX_LEN: usize = 64;
+
+    /// Validates one complete wait specification batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NodeWaitsError`] for an empty, oversized, or identity-crossed
+    /// batch.
+    pub fn try_new<I>(values: I) -> Result<Self, NodeWaitsError>
+    where
+        I: IntoIterator<Item = NodeWait>,
+    {
+        let mut collected = Vec::new();
+        for value in values {
+            if collected.len() == Self::MAX_LEN {
+                return Err(NodeWaitsError::TooMany {
+                    maximum: Self::MAX_LEN,
+                    actual: Self::MAX_LEN + 1,
+                });
+            }
+            if collected
+                .iter()
+                .any(|existing: &NodeWait| existing.identity_uuid() == value.identity_uuid())
+            {
+                return Err(NodeWaitsError::DuplicateIdentity);
+            }
+            collected.push(value);
+        }
+        if collected.is_empty() {
+            return Err(NodeWaitsError::Empty);
+        }
+        Ok(Self {
+            values: collected.into_boxed_slice(),
+        })
+    }
+
+    /// Returns the number of conditions in semantic order.
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.values.len()
+    }
+
+    /// Returns whether no conditions exist.
+    ///
+    /// This is always `false` for a valid value.
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+
+    /// Iterates uncommitted conditions in deterministic semantic order.
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &NodeWait> {
+        self.values.iter()
+    }
+
+    /// Converts every condition to an exact registration intent for one
+    /// lifecycle journal event.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::DurableWaitError`] if an intent checksum cannot be
+    /// encoded.
+    pub fn registration_intents(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        event_id: EventId,
+    ) -> Result<Vec<WaitRegistrationIntent>, crate::DurableWaitError> {
+        self.values
+            .iter()
+            .map(|wait| wait.registration_intent(tenant_id.clone(), run_id, event_id))
+            .collect()
+    }
+}
+
+impl fmt::Debug for NodeWaits {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("NodeWaits")
+            .field("count", &self.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl Serialize for NodeWaits {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.values.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for NodeWaits {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(NodeWaitsVisitor)
+    }
+}
+
+struct NodeWaitsVisitor;
+
+impl<'de> de::Visitor<'de> for NodeWaitsVisitor {
+    type Value = NodeWaits;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "one to {} unique graph wait specifications",
+            NodeWaits::MAX_LEN
+        )
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut values = Vec::<NodeWait>::with_capacity(
+            sequence
+                .size_hint()
+                .unwrap_or_default()
+                .min(NodeWaits::MAX_LEN),
+        );
+        while let Some(value) = sequence.next_element::<NodeWait>()? {
+            if values.len() == NodeWaits::MAX_LEN {
+                return Err(de::Error::custom(NodeWaitsError::TooMany {
+                    maximum: NodeWaits::MAX_LEN,
+                    actual: NodeWaits::MAX_LEN + 1,
+                }));
+            }
+            if values
+                .iter()
+                .any(|existing| existing.identity_uuid() == value.identity_uuid())
+            {
+                return Err(de::Error::custom(NodeWaitsError::DuplicateIdentity));
+            }
+            values.push(value);
+        }
+        NodeWaits::try_new(values).map_err(de::Error::custom)
+    }
+}
+
+impl JsonSchema for NodeWaits {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "NodeWaits".into()
+    }
+
+    fn schema_id() -> std::borrow::Cow<'static, str> {
+        concat!(module_path!(), "::NodeWaits").into()
+    }
+
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "array",
+            "items": generator.subschema_for::<NodeWait>(),
+            "minItems": 1,
+            "maxItems": 64,
+            "uniqueItems": true,
+            "description": "Complete uncommitted graph wait specifications. UUID identity uniqueness is enforced at runtime."
+        })
+    }
+}
+
+/// Invalid graph wait specification batch.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum NodeWaitsError {
+    /// A suspending node supplied no condition.
+    #[error("a graph wait batch must contain at least one condition")]
+    Empty,
+    /// The hard simultaneous-condition ceiling was exceeded.
+    #[error("graph wait batch has {actual} conditions; hard maximum is {maximum}")]
+    TooMany {
+        /// Absolute simultaneous-condition ceiling.
+        maximum: usize,
+        /// First observed count beyond the ceiling.
+        actual: usize,
+    },
+    /// Two variants reused one UUID identity.
+    #[error("graph wait condition identities must be globally unique")]
+    DuplicateIdentity,
+}
+
 /// Closed control outcome emitted alongside a node's state contribution.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -499,7 +923,7 @@ pub enum NodeControl {
     /// Suspend the run on a non-empty atomic condition batch.
     Wait {
         /// Interrupts and timers to register at the barrier.
-        waits: RunWaits,
+        waits: NodeWaits,
     },
     /// Complete the graph with schema-validated output.
     Terminal {
@@ -1164,8 +1588,8 @@ impl PendingNodeResult {
     ///
     /// # Errors
     ///
-    /// Returns [`PendingNodeResultError`] for crossed scope, stale ordering,
-    /// invalid wait registration time, or integrity failure.
+    /// Returns [`PendingNodeResultError`] for crossed scope, stale ordering, or
+    /// integrity failure.
     pub fn commit(
         intent: PendingNodeResultIntent,
         fence: RunFence,
@@ -1400,12 +1824,6 @@ pub enum PendingNodeResultError {
     /// Result durable time preceded a bound external result.
     #[error("pending node result clock precedes an invocation binding")]
     BindingClockRegression,
-    /// A wait marker was registered before the activation checkpoint.
-    #[error("pending node wait registration precedes its activation checkpoint")]
-    WaitBeforeBase,
-    /// A wait marker claimed a registration time after result commit.
-    #[error("pending node wait registration is after result commit")]
-    WaitAfterCommit,
     /// Canonical integrity material could not be produced.
     #[error("pending node result integrity calculation failed: {source}")]
     Integrity {
@@ -1436,20 +1854,6 @@ fn validate_result_shape(
         }
         if journal_head.recorded_at() < binding.journal_head().recorded_at() {
             return Err(PendingNodeResultError::BindingClockRegression);
-        }
-    }
-    if let NodeControl::Wait { waits } = intent.control() {
-        let registered_at = waits.registered_at();
-        let base_time = intent
-            .activation()
-            .base_checkpoint()
-            .journal_head()
-            .recorded_at();
-        if registered_at < base_time {
-            return Err(PendingNodeResultError::WaitBeforeBase);
-        }
-        if registered_at > journal_head.recorded_at() {
-            return Err(PendingNodeResultError::WaitAfterCommit);
         }
     }
     Ok(())
@@ -1564,7 +1968,7 @@ mod tests {
     use super::*;
     use crate::{
         AttemptId, Checkpoint, EventId, FencingEpoch, JournalSequence, ModelInvocationRevision,
-        NodeId, RunTimer, RunTimerKind, RunWait, TimerId, Timestamp, ToolInvocationRevision,
+        NodeId, RunTimerKind, TimerId, Timestamp, ToolInvocationRevision,
     };
     use serde_json::{Value, from_value, json, to_value};
 
@@ -1780,6 +2184,116 @@ mod tests {
     }
 
     #[test]
+    fn node_wait_batches_are_bounded_identity_unique_and_closed() {
+        let due_at = "2099-01-01T00:00:00.000000Z".parse().unwrap();
+        assert_eq!(NodeWaits::try_new([]), Err(NodeWaitsError::Empty));
+
+        let timer_id = TimerId::generate();
+        let timer = NodeWait::timer(timer_id, RunTimerKind::Sleep, due_at);
+        assert_eq!(
+            NodeWaits::try_new([timer.clone(), timer]),
+            Err(NodeWaitsError::DuplicateIdentity)
+        );
+
+        let oversized = (0..=NodeWaits::MAX_LEN)
+            .map(|_| NodeWait::timer(TimerId::generate(), RunTimerKind::Sleep, due_at));
+        assert_eq!(
+            NodeWaits::try_new(oversized),
+            Err(NodeWaitsError::TooMany {
+                maximum: NodeWaits::MAX_LEN,
+                actual: NodeWaits::MAX_LEN + 1,
+            })
+        );
+
+        let waits = NodeWaits::try_new([NodeWait::timer(
+            timer_id,
+            RunTimerKind::RetryBackoff,
+            due_at,
+        )])
+        .unwrap();
+        let wire = to_value(&waits).unwrap();
+        assert_eq!(from_value::<NodeWaits>(wire.clone()).unwrap(), waits);
+        let mut crossed = wire;
+        crossed[0]["registered_at"] = json!("2098-01-01T00:00:00.000000Z");
+        assert!(from_value::<NodeWaits>(crossed).is_err());
+
+        let schema = to_value(schemars::schema_for!(NodeWaits)).unwrap();
+        assert_eq!(schema["minItems"], 1);
+        assert_eq!(schema["maxItems"], NodeWaits::MAX_LEN);
+        assert_eq!(schema["uniqueItems"], true);
+    }
+
+    #[test]
+    fn interrupt_node_wait_preserves_policy_and_uses_the_lifecycle_event_clock() {
+        let activation = node_activation("approval");
+        let secret = "approve-production-deployment";
+        let request_payload = JournalPayload::new(
+            SchemaReference::new(
+                "https://stknot.com/schemas/tests/node-wait-request/1.0.0"
+                    .parse()
+                    .unwrap(),
+                crate::Version::new(1, 0, 0),
+                Digest::sha256(b"node wait request schema"),
+            ),
+            crate::JournalEventKind::new("node-wait-request").unwrap(),
+            bounded(json!({"request": secret})),
+        )
+        .unwrap();
+        let event_id = EventId::generate();
+        let interrupt_id = crate::InterruptId::generate();
+        let action_digest = Digest::sha256(b"approve deployment action");
+        let registered_at = Timestamp::from_unix_micros(
+            activation
+                .base_checkpoint()
+                .journal_head()
+                .recorded_at()
+                .unix_micros()
+                + 5_000_000,
+        )
+        .unwrap();
+        let expires_at =
+            Timestamp::from_unix_micros(registered_at.unix_micros() + 60_000_000).unwrap();
+        let wait = NodeWait::interrupt(
+            interrupt_id,
+            crate::RunInterruptKind::Approval,
+            request_payload,
+            action_digest,
+            None,
+            ScopeSet::empty(),
+            Some(expires_at),
+        );
+        assert!(!format!("{wait:?}").contains(secret));
+
+        let mut registrations = NodeWaits::try_new([wait])
+            .unwrap()
+            .registration_intents(activation.tenant_id(), activation.run_id(), event_id)
+            .unwrap();
+        let registration = registrations.pop().unwrap();
+        let WaitRegistrationIntent::Interrupt { request } = &registration else {
+            panic!("expected interrupt registration")
+        };
+        assert_eq!(request.interrupt_id(), interrupt_id);
+        assert_eq!(request.request_event_id(), event_id);
+        assert_eq!(request.action_digest(), action_digest);
+        assert_eq!(request.expires_at(), Some(expires_at));
+
+        let journal = JournalHead::new(
+            activation.tenant_id().clone(),
+            activation.run_id(),
+            JournalSequence::new(10).unwrap(),
+            event_id,
+            registered_at,
+            Digest::sha256(b"node wait lifecycle event"),
+        );
+        let crate::DurableWait::Interrupt { request } = registration.commit(journal).unwrap()
+        else {
+            panic!("expected materialized interrupt")
+        };
+        assert_eq!(request.marker().requested_at(), registered_at);
+        assert_eq!(request.marker().expires_at(), Some(expires_at));
+    }
+
+    #[test]
     fn pending_result_separates_semantic_idempotency_from_physical_provenance() {
         let activation = node_activation("authorize");
         let intent = route_intent(&activation);
@@ -1824,7 +2338,7 @@ mod tests {
     }
 
     #[test]
-    fn result_anchor_must_follow_base_bindings_and_wait_registration() {
+    fn result_anchor_must_follow_bindings_and_waits_materialize_at_lifecycle_event() {
         let activation = node_activation("authorize");
         let intent = route_intent(&activation);
         assert_eq!(
@@ -1836,51 +2350,45 @@ mod tests {
             Err(PendingNodeResultError::JournalNotAfterBinding)
         );
 
-        let base_at = activation
-            .base_checkpoint()
-            .journal_head()
-            .recorded_at()
-            .unix_micros();
-        let wait_intent = |registered_at: Timestamp| {
-            let timer = RunTimer::new(
-                "01912345-6789-7abc-8def-0123456789e1"
-                    .parse::<TimerId>()
-                    .unwrap(),
-                RunTimerKind::Sleep,
-                registered_at,
-                Timestamp::from_unix_micros(registered_at.unix_micros() + 1_000_000).unwrap(),
+        let timer_id = "01912345-6789-7abc-8def-0123456789e1"
+            .parse::<TimerId>()
+            .unwrap();
+        let due_at = Timestamp::from_unix_micros(
+            activation
+                .base_checkpoint()
+                .journal_head()
+                .recorded_at()
+                .unix_micros()
+                + 5_000_000,
+        )
+        .unwrap();
+        let waits =
+            NodeWaits::try_new([NodeWait::timer(timer_id, RunTimerKind::Sleep, due_at)]).unwrap();
+        let lifecycle_event_id: EventId = "01912345-6789-7abc-8def-0123456789f1".parse().unwrap();
+        let registrations = waits
+            .registration_intents(
+                activation.tenant_id(),
+                activation.run_id(),
+                lifecycle_event_id,
             )
             .unwrap();
-            PendingNodeResultIntent::new(
-                activation.clone(),
-                NodeStateChange::Unchanged,
-                NodeControl::Wait {
-                    waits: RunWaits::try_new([RunWait::timer(timer)]).unwrap(),
-                },
-                NodeInvocationBindings::empty(),
-            )
-            .unwrap()
+        assert_eq!(registrations.len(), 1);
+        let WaitRegistrationIntent::Timer { timer } = &registrations[0] else {
+            panic!("expected timer registration");
         };
+        assert_eq!(timer.timer_id(), timer_id);
+        assert_eq!(timer.registration_event_id(), lifecycle_event_id);
+        assert_eq!(timer.due_at(), due_at);
 
-        let before_base = Timestamp::from_unix_micros(base_at - 1).unwrap();
-        assert_eq!(
-            PendingNodeResult::commit(
-                wait_intent(before_base),
-                fence(&activation, "b1", 1),
-                journal(&activation, 2),
-            ),
-            Err(PendingNodeResultError::WaitBeforeBase)
-        );
-
-        let after_commit = Timestamp::from_unix_micros(base_at + 2_000_000).unwrap();
-        assert_eq!(
-            PendingNodeResult::commit(
-                wait_intent(after_commit),
-                fence(&activation, "b1", 1),
-                journal(&activation, 2),
-            ),
-            Err(PendingNodeResultError::WaitAfterCommit)
-        );
+        let intent = PendingNodeResultIntent::new(
+            activation.clone(),
+            NodeStateChange::Unchanged,
+            NodeControl::Wait { waits },
+            NodeInvocationBindings::empty(),
+        )
+        .unwrap();
+        PendingNodeResult::commit(intent, fence(&activation, "b1", 1), journal(&activation, 2))
+            .unwrap();
     }
 
     #[test]

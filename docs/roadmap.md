@@ -154,9 +154,20 @@ from the repository.
   typed lease-bound Wait/Terminal/failure handoffs. Root-to-terminal replay,
   long execution beyond the original lease, and higher-fence crash takeover
   pass on PostgreSQL 16/17.
-- [ ] Complete cross-tenant scheduler fairness and lifecycle handling for typed
-  Wait/Terminal/failure handoffs, protocol-specific outbox adapters, role
-  isolation, retention, failover, restore, and stale-race gates.
+- [x] Commit typed Wait/success/failure lifecycle handoffs through a stable
+  event identity and exact retained fence; materialize complete Wait batches
+  from database time, validate trusted terminal admission/accounting evidence,
+  release same-fence in-flight work for higher-fence recovery, converge lost
+  acknowledgements, and clear terminal ownership in the same transaction on
+  PostgreSQL 16/17.
+- [x] Bind Driver and lifecycle coordination into a bounded durable Agent Loop,
+  release exact ownership after execution/evidence errors, and implement one
+  tenant-scoped stable-snapshot scheduler tick with bounded paging, stable
+  claim identities, normal contention skips, and closed run-local outcomes.
+- [ ] Complete first-party model/tool Agent execution, cross-tenant scheduler
+  fairness with an explicit starvation bound, parallel sibling policy,
+  loop/subgraph semantics, protocol-specific outbox adapters, role isolation,
+  retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

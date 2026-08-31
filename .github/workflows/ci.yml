@@ -61,9 +61,11 @@ jobs:
         run: npm run check
 
       - name: Verify published runtime schemas
-        run: >-
-          cmp ../crates/stateknot-runtime/schemas/graph-driver-event-1.0.0.json
-          public/schemas/runtime/graph-driver-event/1.0.0
+        run: |
+          cmp ../crates/stateknot-runtime/schemas/graph-driver-event-1.0.0.json \
+            public/schemas/runtime/graph-driver-event/1.0.0
+          cmp ../crates/stateknot-runtime/schemas/graph-lifecycle-event-1.0.0.json \
+            public/schemas/runtime/graph-lifecycle-event/1.0.0
 
       - name: Audit dependencies
         run: npm audit --audit-level=high

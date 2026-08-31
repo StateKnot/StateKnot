@@ -270,7 +270,7 @@ fresh and exact v12-to-v13 migration, schema/index/byte-bound verification,
 tenant isolation, idempotent identical registration, immutable version conflict,
 fail-closed canonical-byte corruption, missing-pinned-definition quarantine,
 and a 24-way conflicting registration race with one durable winner. The 91
-provider tests and six durable Graph Driver tests run independently against
+provider tests and twelve durable Runtime tests run independently against
 PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -396,8 +396,10 @@ refreshes a near-expiry lease before launch, renews it beneath a conservative
 database-time-derived monotonic expiry watchdog, commits node completion against
 the latest journal head, automatically commits Continue barriers, and returns
 typed lease-bound handoffs for Wait/Terminal or blocked failure supervision.
-Cross-tenant fairness and the lifecycle integration that consumes those
-handoffs remain outside the provider.
+The runtime lifecycle coordinator now consumes those handoffs, and the
+tenant-scoped Agent Loop binds discovery, claim, Driver, lifecycle commit, and
+cleanup. Cross-tenant fairness remains outside the provider; trusted terminal
+admission/accounting evidence remains an application-owned durable boundary.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record
@@ -584,10 +586,14 @@ upgrade, constraint/index removal, tenant isolation, corruption, conflict, and
 
 This slice is not a production release or the complete agent runtime. It does
 not yet implement protocol-specific outbox dispatch adapters, artifacts,
-cross-tenant scheduler fairness, the lifecycle service that atomically commits
-complete Wait/Terminal metadata from a Driver handoff, the model/tool agent
-loop, retention/archive/legal hold, backup/restore, failover qualification, or
-the 10,000-race stale-worker gate. The current Graph Driver is deliberately
+cross-tenant scheduler fairness, first-party model/tool Agent ergonomics,
+retention/archive/legal hold, backup/restore, failover qualification, or the
+10,000-race stale-worker gate. The implemented lifecycle coordinator now
+atomically commits complete Wait/success/failure handoffs, and the tenant worker
+binds runnable discovery, lease claim, Driver, and lifecycle coordination into
+one bounded Agent Loop quantum. It still requires the embedding service to
+supply trusted durable admission and cumulative-accounting evidence; it never
+guesses missing values. The current Graph Driver is deliberately
 sequential within one run so exact journal serialization and recovery authority
 remain unambiguous; parallel sibling scheduling requires its own bounded
 ordering and admission policy before it can be enabled.

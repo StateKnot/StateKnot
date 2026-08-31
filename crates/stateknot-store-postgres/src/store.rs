@@ -17076,6 +17076,26 @@ SET journal_sequence = $3,
         ELSE NULL
     END,
     scheduler_not_before = NULL,
+    lease_attempt_id = CASE
+        WHEN $9 IN ('pending', 'active', 'cancellation_requested')
+            THEN lease_attempt_id
+        ELSE NULL
+    END,
+    lease_acquired_at = CASE
+        WHEN $9 IN ('pending', 'active', 'cancellation_requested')
+            THEN lease_acquired_at
+        ELSE NULL
+    END,
+    lease_renewed_at = CASE
+        WHEN $9 IN ('pending', 'active', 'cancellation_requested')
+            THEN lease_renewed_at
+        ELSE NULL
+    END,
+    lease_expires_at = CASE
+        WHEN $9 IN ('pending', 'active', 'cancellation_requested')
+            THEN lease_expires_at
+        ELSE NULL
+    END,
     wait_set_digest = $11,
     unresolved_wait_count = $12,
     next_timer_due_at = $13,

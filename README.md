@@ -143,18 +143,28 @@ Wait/Terminal or blocked failure supervision. Root-to-terminal continuation,
 same-fence duplicate suppression, near-expiry launch protection, higher-fence
 crash takeover, and execution beyond the original lease pass on PostgreSQL 16
 and 17.
-Protocol-specific outbox dispatch adapters, cross-tenant fairness, lifecycle
-integration for complete Wait/Terminal metadata, the runnable agent loop,
-role isolation, retention, failover, restore, and the final stale-race gates
-have not shipped yet.
+The same runtime now includes a fenced lifecycle coordinator, a bounded durable
+Agent Loop, and a tenant-scoped scheduler worker. Wait barriers materialize
+their complete interrupt/timer batch with database time; successful Terminal
+and supervised failure transitions validate trusted admission/accounting
+evidence before one atomic PostgreSQL commit; stable lifecycle event identities
+make lost acknowledgements exactly retryable. The scheduler scans one tenant's
+fixed-cutoff runnable pages, reuses a stable claim attempt identity, claims at
+most one run per tick, and exposes bounded contention and retry counters.
+Twelve runtime scenarios and 91 provider cases are mandatory on both
+PostgreSQL 16 and 17.
+Protocol-specific outbox dispatch adapters, first-party model/tool Agent
+ergonomics, cross-tenant fairness, parallel siblings, loops/subgraphs, role
+isolation, retention, failover, restore, and the final stale-race gates have not
+shipped yet.
 
 The current milestone is to:
 
 1. validate the three frozen production scenarios and their load/failure models;
 2. accept the core domain, graph, durability, and protocol/security RFCs;
-3. integrate complete Wait/Terminal/failure lifecycle commits and the first
-   model/tool Agent loop with the proven durable Driver;
-4. qualify scheduler fairness, role isolation, failover/restore, and the final
+3. integrate first-party model/tool execution and a public Agent API with the
+   proven durable Driver, lifecycle coordinator, and tenant worker;
+4. qualify cross-tenant scheduler fairness, role isolation, failover/restore, and the final
    stale-race gates; and
 5. publish compatibility and performance evidence before claiming support.
 
@@ -169,7 +179,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
-crates/stateknot-runtime/  Offline executable registry, replay validation, and durable Graph Driver
+crates/stateknot-runtime/  Executable registry, replay, durable Driver, lifecycle, Agent Loop, and tenant scheduler
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 website/                 Bilingual Astro docs, browser tests, and Caddy deployment

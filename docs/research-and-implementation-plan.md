@@ -878,9 +878,16 @@ Replay，以及带 Fence 的耐久 Graph Driver。Driver 只在 Durable Start �
 最新 Journal Head，Continue Barrier 自动提交，Wait/Terminal/Failure 则返回带 Lease 的类型化
 Handoff 交给生命周期层补齐并原子提交完整元数据。根到终态、同 Fence 去重、超出原租期的
 长执行与高 Fence Crash Takeover 已在 PG16/17 验证。
-它仍不是完整 Agent Runtime。协议专用 Outbox Adapter、跨租户公平、Handoff 生命周期服务、
-Model/Tool Agent Loop、角色隔离、归档、Failover 与 Restore 仍按 RFC 门禁继续实现，
-RFC-0003 因此保持 Draft。
+Runtime 现已增加带稳定 Event Identity 的 Lifecycle Coordinator：完整 Wait Batch 使用数据库
+时间，在同一 Barrier Transaction 中注册并释放 Lease；成功 Terminal 会从显式 Evidence
+Provider 恢复已持久化的 Admission/Artifact/Accounting 事实并重新验证 AgentResult；Blocked
+Failure 只有在不存在 Same-fence In-flight Work 时才进入终态监督。Driver 与 Lifecycle 进一步
+绑定为有界 `DurableAgentLoop`，首个 Tenant-scoped Scheduler Tick 使用固定 Cutoff Keyset Page、
+稳定 Claim Attempt ID 与每 Tick 最多一个 Run 的策略。Lifecycle/Loop/Scheduler 与 Lost-ACK、
+Evidence Failure、Lease Release 场景现已在 PG16/17 验证。
+它仍不是完整 Agent Runtime。协议专用 Outbox Adapter、第一方 Model/Tool Agent Ergonomics、
+跨租户公平、Parallel Sibling、Loop/Subgraph、角色隔离、归档、Failover 与 Restore 仍按 RFC
+门禁继续实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
 
@@ -1084,8 +1091,10 @@ GET    /health/ready
 进度：Canonical Root-graph Compiler、Digest-pinned Graph Reference、确定性
 Route/Reducer/Successor/Wait/Terminal Barrier Planner、Completion-order
 Property/Fixture，以及离线 Exact Schema/Reducer/Node Executable Registry 已实现。
-Port Schema Compatibility、Loop/Subgraph、Nested Namespace、Parallel Sibling Policy 与
-完整 Scheduler/Lifecycle 集成仍未完成，阶段 2 尚未结束。
+Typed Wait/Terminal/Failure Lifecycle Coordinator、有界 Agent Loop 与首个 Tenant-scoped
+Stable-snapshot Scheduler Worker 也已实现。Port Schema Compatibility、Loop/Subgraph、
+Nested Namespace、Parallel Sibling Policy、跨租户 Fairness 与 Global Admission 仍未完成，
+阶段 2 尚未结束。
 
 ### 阶段 3：PostgreSQL 耐久运行时（5–6 周）
 
@@ -1102,9 +1111,11 @@ registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；c
 Graph Registry 注册/重载与 Claimed Recovery Pin Revalidation 已通过 Migration 13 完成；
 Executable Registry、独立 Noninitial Replay 与带 Lease Renewal/Cancellation 的耐久 Root
 Graph Driver 也已完成，Continue Barrier 可自动提交，Wait/Terminal/Failure 以精确 Lease-bound
-Handoff 交给生命周期层。上述存储与 Driver 路径均已在 PG16/17 验证。Cross-tenant Fairness、
-完整 Lifecycle Handoff Service、Parallel Sibling Policy、协议 Dispatch Adapter，以及阶段 3
-的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
+Handoff 交给生命周期层。Lifecycle 层已使用稳定 Event ID 原子提交 Wait、Success 与 Failure，
+并与 Driver 组成有界 Agent Loop；Tenant-scoped Scheduler 已能从固定 Snapshot 扫描、Claim 并
+执行一个 Run。上述存储、Driver、Lifecycle 与 Tenant Worker 路径均已在 PG16/17 验证。
+Cross-tenant Fairness、Parallel Sibling Policy、协议 Dispatch Adapter、第一方 Model/Tool Agent
+集成，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
 
@@ -1199,11 +1210,12 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 run/journal/checkpoint/tool/model-invocation/node-attempt、attempt-owned pending result、atomic
 barrier consumption、run-wide attempt claim、outbox、durable wait、quarantine、lease、pinned
 graph registry 与 migration/startup 语义落到 PostgreSQL 16/17；`stateknot-runtime` 则实现
-离线可执行闭包、完整 Checkpoint State/Noninitial Replay 验证与耐久 Root Graph Driver。
+离线可执行闭包、完整 Checkpoint State/Noninitial Replay 验证、耐久 Root Graph Driver、
+Lifecycle Coordinator、有界 Agent Loop 与 Tenant-scoped Scheduler Worker。
 只有 RFC 获得接受且可编译 Contract Example、生命周期集成和发布门禁通过后，才会把这些
 实验 crate 提升为受支持边界；`stateknot-integrations`、`stateknot-server` 与
 `stateknot-testkit` 也只在对应纵向能力被证明必要时创建。协议 Dispatch Adapter、完整
-Agent Loop 与运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议
+Model/Tool Agent API 与运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议
 支持发布。第一批代码必须继续落在最终持久化、安全和恢复边界上，而不是另写无法升级的
 内存 Demo。
 

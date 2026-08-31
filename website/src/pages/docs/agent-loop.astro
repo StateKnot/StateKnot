@@ -1,0 +1,205 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+register_standard_graph_driver_event_schema(&mut schemas)?;
+register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_application_schemas(&mut schemas)?;
+
+let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
+register_release_graphs_reducers_and_nodes(&mut executables)?;
+
+let scheduler = DurableTenantScheduler::new(
+    store,
+    executables.build()?,
+    Arc::new(application_lifecycle_evidence),
+    DurableGraphDriverOptions::default(),
+    DurableGraphLifecycleOptions::default(),
+    DurableTenantSchedulerOptions::default(),
+)?;`;
+
+const outcomes = [
+  {
+    term: "Executed",
+    body: "One run was claimed and reached Waiting, Succeeded, Failed, RecoveryReleased, Deferred, Yielded, or Cancelled through the bounded Agent Loop.",
+  },
+  {
+    term: "ExecutionFailed",
+    body: "A run-local Driver or lifecycle error occurred. Exact-fence cleanup was attempted and the worker remains available for later ticks.",
+  },
+  {
+    term: "Idle",
+    body: "The complete fixed-cutoff tenant snapshot contained no claimable run.",
+  },
+  {
+    term: "ScanLimitReached",
+    body: "The configured page ceiling stopped the tick before the stable snapshot ended. Schedule another bounded tick; do not silently widen memory.",
+  },
+  {
+    term: "Cancelled",
+    body: "The process-owned monotonic shutdown signal won before a claim.",
+  },
+];
+---
+
+<DocsLayout
+  title="Run one durable Agent scheduling quantum."
+  description="Bind the Graph Driver, atomic lifecycle coordination, trusted evidence, and tenant-scoped scheduling without weakening fencing or lost-ack recovery."
+  section="Durable Agent Loop"
+>
+  <aside class="docs-callout" aria-labelledby="agent-loop-boundary-title">
+    <h2 id="agent-loop-boundary-title">Runnable Graph loop, pre-alpha API</h2>
+    <p>
+      The repository now implements the durable path from one tenant queue scan
+      through lease claim, Graph execution, and atomic Wait/success/failure
+      lifecycle commit. It is still unpublished and is not yet the stable
+      first-party model/tool Agent API.
+    </p>
+  </aside>
+
+  <section aria-labelledby="assembly-title">
+    <h2 id="assembly-title">Assemble one immutable worker deployment</h2>
+    <p>
+      Install both standard audit schemas and all application bindings before
+      work can be claimed. <code>DurableTenantScheduler</code> constructs its
+      <code>DurableAgentLoop</code> internally, so Driver and lifecycle coordination
+      share one store and one frozen executable registry.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · startup binding</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="agent-loop-startup-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="agent-loop-startup-code"
+        tabindex="0"><code>{startupCode}</code></pre>
+    </div>
+    <p>
+      The lifecycle audit schema is published at <a
+        href="/schemas/runtime/graph-lifecycle-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0</code
+        ></a
+      >. Register it through the runtime helper; do not hard-code its digest.
+    </p>
+  </section>
+
+  <section aria-labelledby="evidence-title">
+    <h2 id="evidence-title">Recover trusted evidence; never invent it</h2>
+    <p>
+      A successful terminal barrier does not own the admitted Agent descriptor,
+      request, resolved budget, final artifacts, or cumulative usage.
+      <code>GraphLifecycleEvidenceProvider</code> must recover those existing durable
+      facts through bounded, deterministic, read-only calls. It must never repeat
+      model/tool work, infer a request, or replace missing usage with zero.
+    </p>
+    <p>
+      The lifecycle coordinator validates input and output schemas offline,
+      constructs the final Agent result, and rechecks provenance, request,
+      descriptor, budget, artifacts, and usage before the transaction. An
+      evidence error releases or makes the exact fence reclaimable instead of
+      partially finalizing the run.
+    </p>
+  </section>
+
+  <section aria-labelledby="atomic-title">
+    <h2 id="atomic-title">Commit each lifecycle edge as one unit</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Wait</h3>
+        <p>
+          Node code returns complete registration-time-free
+          <code>NodeWaits</code>. One transaction commits the journal event,
+          result consumption, successor checkpoint, database-time
+          interrupt/timer registrations, Waiting transition, and lease release.
+        </p>
+      </li>
+      <li>
+        <h3>Successful Terminal</h3>
+        <p>
+          Trusted evidence and schema validation precede one transaction that
+          stores the terminal checkpoint and Agent result, transitions the run,
+          and clears ownership.
+        </p>
+      </li>
+      <li>
+        <h3>Blocked failure</h3>
+        <p>
+          Same-fence in-flight work releases ownership for higher-fence crash
+          recovery. Only a plan without in-flight work can enter terminal
+          failure supervision.
+        </p>
+      </li>
+    </ol>
+    <p>
+      The Driver allocates one stable lifecycle event identity per handoff. A
+      lost-ack retry for success or failure accepts only the matching
+      revision-plus-one, terminal status, journal event, and cleared lease. It
+      recovers the committed result or failure without rereading external
+      evidence; every other changed terminal snapshot fails as stale.
+    </p>
+    <p>
+      Wait replay is event-first: the provider verifies the original event,
+      projection, checkpoint, result consumptions, and immutable registrations.
+      It can therefore return that exact idempotent commit after a resolver,
+      timer, or cancellation advances the run, without reverting later state.
+    </p>
+  </section>
+
+  <section aria-labelledby="scheduler-title">
+    <h2 id="scheduler-title">Keep tenant scheduling bounded</h2>
+    <p>
+      One tick scans fixed-cutoff keyset pages in durable queue order, allocates
+      one stable claim Attempt ID per candidate, treats ordinary contention as a
+      skip, and executes at most one run. Page count, decoded candidates,
+      contention, and retries are all bounded and reported.
+    </p>
+    <dl class="docs-definition-list">
+      {
+        outcomes.map((outcome) => (
+          <div>
+            <dt>
+              <code>{outcome.term}</code>
+            </dt>
+            <dd>{outcome.body}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  <section aria-labelledby="fairness-title">
+    <h2 id="fairness-title">Do not mistake isolation for global fairness</h2>
+    <p>
+      This worker is intentionally tenant-scoped. Cross-tenant selection,
+      weights, admission, and a measurable starvation bound remain a separate
+      control-plane policy and release blocker. Deploy bounded per-tenant
+      concurrency and keep storage credentials tenant-scoped; do not widen a
+      worker’s queue visibility to simulate fairness.
+    </p>
+  </section>
+
+  <section aria-labelledby="qualification-title">
+    <h2 id="qualification-title">Qualification evidence</h2>
+    <p>
+      CI runs 12 runtime scenarios and 91 provider cases on both PostgreSQL 16
+      and 17. The runtime cases cover lifecycle atomicity and exact lost-ack
+      replay, database-time Wait materialization, Agent Loop success and
+      evidence failure, tenant scheduling, noninitial replay, lease renewal,
+      duplicate suppression, quarantine, and higher-fence takeover. Read the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.md"
+        >complete integration and operations contract</a
+      > before deploying this pre-alpha surface.
+    </p>
+  </section>
+</DocsLayout>

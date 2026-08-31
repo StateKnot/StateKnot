@@ -6,6 +6,7 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 
 const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
+register_standard_graph_lifecycle_event_schema(&mut schemas)?;
 register_application_schemas(&mut schemas)?;
 
 let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
@@ -65,10 +66,10 @@ const outcomes = [
       Implemented Driver, pre-alpha integration
     </h2>
     <p>
-      The root Graph Driver is implemented and qualified on PostgreSQL 16 and
-      17. It is still unpublished. Complete Wait/Terminal/failure lifecycle
-      handling, model/tool Agent ergonomics, scheduler fairness, loops, and
-      subgraphs remain release blockers.
+      The root Graph Driver and its Wait/Terminal/failure lifecycle coordinator
+      are implemented and qualified on PostgreSQL 16 and 17. They remain
+      unpublished. First-party model/tool Agent ergonomics, cross-tenant
+      fairness, parallel siblings, loops, and subgraphs remain release blockers.
     </p>
   </aside>
 
@@ -103,6 +104,14 @@ const outcomes = [
         ><code>https://stknot.com/schemas/runtime/graph-driver-event/1.0.0</code
         ></a
       >. Do not hard-code its digest into application code.
+    </p>
+    <p>
+      Agent Loop deployments must also install the lifecycle schema at <a
+        href="/schemas/runtime/graph-lifecycle-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0</code
+        ></a
+      > through <code>register_standard_graph_lifecycle_event_schema</code>.
     </p>
   </section>
 
@@ -165,6 +174,11 @@ const outcomes = [
         ))
       }
     </dl>
+    <p>
+      Normal application workers should use <a href="/docs/agent-loop/"
+        ><code>DurableAgentLoop</code></a
+      > to bind these handoffs to atomic lifecycle commits and exact-fence error cleanup.
+    </p>
   </section>
 
   <section aria-labelledby="options-title">
@@ -231,12 +245,14 @@ const outcomes = [
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">Qualification evidence</h2>
     <p>
-      CI runs six Driver scenarios on PostgreSQL 16 and 17: Continue followed by
-      noninitial replay and Terminal handoff; same-fence duplicate suppression;
-      execution beyond the original lease through renewal; near-expiry refresh
-      before launch; invalid initial-state quarantine before execution; and
-      higher-fence takeover. Each database version also runs 91 provider cases.
-      See the complete <a
+      CI runs twelve Runtime scenarios on PostgreSQL 16 and 17. Six retain the
+      Driver recovery coverage: Continue followed by noninitial replay and
+      Terminal handoff; same-fence duplicate suppression; execution beyond the
+      original lease through renewal; near-expiry refresh before launch; invalid
+      initial-state quarantine before execution; and higher-fence takeover. Six
+      more cover atomic success/Wait/failure lifecycle commits, exact lost-ack
+      recovery, Agent Loop cleanup, and tenant scheduling. Each database version
+      also runs 91 provider cases. See the complete <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.md"
         >integration and operations contract</a
       > before deploying this pre-alpha surface.

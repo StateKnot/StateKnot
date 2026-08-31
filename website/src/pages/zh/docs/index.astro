@@ -30,6 +30,12 @@ const paths = [
     link: "集成 Driver",
   },
   {
+    title: "运行耐久 Agent Loop",
+    body: "把 Lifecycle Evidence、原子 Wait/Terminal/Failure Commit 与 Tenant-scoped Scheduler Tick 接入已经验证的 Driver。",
+    href: "/zh/docs/agent-loop/",
+    link: "集成 Agent Loop",
+  },
+  {
     title: "运维 PostgreSQL",
     body: "查看已实现 Provider 的安全默认值、迁移顺序、运维边界与强制集成测试路径。",
     href: "/zh/docs/postgresql/",
@@ -53,9 +59,10 @@ const paths = [
   <aside class="docs-callout" aria-labelledby="docs-boundary-title">
     <h2 id="docs-boundary-title">从真实边界开始</h2>
     <p>
-      StateKnot 还没有公开可运行的 Agent API。目前可以编译确定性 Graph、冻结
-      可执行部署、重放非初始 Checkpoint，并在 PostgreSQL 上驱动 Root Execution
-      Path。Model/Tool Agent Ergonomics 与 Lifecycle 集成仍是明确的发布阻断项。
+      StateKnot 还没有稳定的公开 Model/Tool Agent API。目前可以编译确定性
+      Graph、冻结可执行部署、重放非初始 Checkpoint，并在 PostgreSQL 上通过原子
+      Lifecycle Commit 运行 Tenant-scoped 耐久 Graph Loop。第一方 Model/Tool
+      Ergonomics 与跨租户调度仍是明确的发布阻断项。
     </p>
   </aside>
 
@@ -102,6 +109,14 @@ const paths = [
           离线可执行注册、独立有界 Replay、Durable-before-dispatch Node
           执行、Lease Renewal、自动 Continue Barrier 与类型化 Lifecycle
           Handoff。
+        </dd>
+      </div>
+      <div>
+        <dt>Lifecycle 与 Agent Loop</dt>
+        <dd>
+          可信 Terminal Evidence、数据库时间 Wait Registration、原子
+          Success/Failure Transition、精确 Lost-ACK 收敛、有界 Cleanup 与一次
+          Tenant-scoped Scheduler Quantum。
         </dd>
       </div>
       <div>

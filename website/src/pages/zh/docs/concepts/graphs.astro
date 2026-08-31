@@ -12,11 +12,11 @@ import DocsLayout from "../../../../layouts/DocsLayout.astro";
   locale="zh-CN"
 >
   <aside class="docs-callout" aria-labelledby="graph-boundary-title">
-    <h2 id="graph-boundary-title">Compiler 已实现，Agent Loop 尚未交付</h2>
+    <h2 id="graph-boundary-title">Compiler 与耐久 Graph Loop 已实现</h2>
     <p>
       <code>CompiledGraph</code>、确定性 Barrier Planning、PostgreSQL Pinned
-      Graph Registry 与耐久 Root Graph Driver 已经实现。公开 Model/Tool Agent
-      Loop 和完整 Lifecycle 集成仍在开发。
+      Graph Registry、耐久 Root Graph Driver、Lifecycle Coordinator 与 Tenant
+      Worker 已经实现。稳定公开 Model/Tool Agent API 仍在开发。
     </p>
   </aside>
 
@@ -143,7 +143,9 @@ let pinned = recovery.load_pinned_graph().await?;</code></pre>
       Successor Checkpoint Intent。Runtime 现已把该 Definition 绑定到离线 Schema/Reducer/Node
       可执行闭包，并驱动耐久 Root Path。接下来阅读<a href="/zh/docs/runtime/"
         >耐久 Graph Runtime 指南</a
-      >。Loop、Subgraph、Lifecycle 集成和完整 Agent Ergonomics 属于后续里程碑。
+      >，再阅读<a href="/zh/docs/agent-loop/">耐久 Agent Loop 指南</a>。Parallel
+      Sibling、Loop、Subgraph 与完整 Model/Tool Agent Ergonomics
+      属于后续里程碑。
     </p>
   </section>
 </DocsLayout>

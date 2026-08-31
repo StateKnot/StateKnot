@@ -12,13 +12,13 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
 >
   <aside class="docs-callout" aria-labelledby="graph-boundary-title">
     <h2 id="graph-boundary-title">
-      Implemented compiler, not a runnable Agent loop
+      Compiler and durable Graph loop implemented
     </h2>
     <p>
       <code>CompiledGraph</code>, deterministic barrier planning, the PostgreSQL
-      pinned graph registry, and the durable root Graph Driver are implemented.
-      The public model/tool Agent loop and complete lifecycle integration remain
-      active work.
+      pinned graph registry, durable root Graph Driver, lifecycle coordinator,
+      and tenant worker are implemented. The stable public model/tool Agent API
+      remains active work.
     </p>
   </aside>
 
@@ -145,8 +145,9 @@ let pinned = recovery.load_pinned_graph().await?;</code></pre>
       checkpoint intent. The Runtime now binds that definition to an offline schema/reducer/node
       executable closure and drives the durable root path. Continue with the <a
         href="/docs/runtime/">Durable Graph runtime guide</a
-      >. Loop, subgraph, lifecycle integration, and full Agent ergonomics remain
-      later milestones.
+      >, then the <a href="/docs/agent-loop/">Durable Agent Loop guide</a>.
+      Parallel siblings, loops, subgraphs, and full model/tool Agent ergonomics
+      remain later milestones.
     </p>
   </section>
 </DocsLayout>

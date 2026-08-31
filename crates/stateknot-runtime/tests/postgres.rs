@@ -13,26 +13,36 @@ use std::{
 
 use serde_json::{Value, json};
 use stateknot_core::{
-    AgentResultProvenance, AttemptId, BoundedJson, BoxFuture, BudgetUsage, CancellationSignal,
-    CapabilityIdentity, CapabilityName, CapabilityReference, CheckpointId, CheckpointState,
-    CheckpointWrite, CompiledGraph, Digest, EventId, GraphBarrierDisposition, GraphExecutionLimits,
+    AgentArtifacts, AgentDescriptor, AgentRequest, AgentResultProvenance, AttemptId, BoundedJson,
+    BoxFuture, BudgetLimits, BudgetUsage, ByteCount, CancellationSignal, CapabilityIdentity,
+    CapabilityName, CapabilityReference, CheckpointId, CheckpointState, CheckpointWrite,
+    CompiledGraph, Digest, EventId, ExecutionCount, Failure, FailureCategory, FailureCode,
+    FailureId, FailureMessage, FailureOrigin, GraphBarrierDisposition, GraphExecutionLimits,
     GraphNode, GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference,
     GraphReference, GraphRoutes, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
-    JournalEventKind, JournalExpectation, JournalPayload, NodeControl, NodeId,
-    NodeInvocationBindings, NodeStateChange, NodeTerminalOutput, PrincipalIdentity, QuarantineId,
-    ReadyNodes, RunFence, RunId, RunTransition, SchemaId, SchemaReference, SubjectId, Superstep,
-    TenantId, ThreadId, Version,
+    JournalEventKind, JournalExpectation, JournalPayload, KnownCosts, NodeControl, NodeId,
+    NodeInvocationBindings, NodeStateChange, NodeTerminalOutput, NodeWait, NodeWaits,
+    PrincipalIdentity, QuarantineId, ReadyNodes, ResolvedBudget, RetryAdvice,
+    RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind, RunTransition, SchemaId,
+    SchemaReference, SubjectId, Superstep, TenantId, ThreadId, TimerId, Timestamp, Version,
 };
 use stateknot_runtime::{
-    DurableGraphDriver, DurableGraphDriverOptions, ExecutableGraphRegistry,
-    ExecutableGraphRegistryBuilder, GraphDriveOutcome, GraphDriverError, GraphNodeContext,
-    GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor, JsonSchemaRegistryBuilder,
-    JsonSchemaRegistryLimits, register_standard_graph_driver_event_schema,
+    AgentLoopError, AgentLoopOutcome, DurableAgentLoop, DurableGraphDriver,
+    DurableGraphDriverOptions, DurableGraphLifecycle, DurableGraphLifecycleOptions,
+    DurableTenantScheduler, DurableTenantSchedulerOptions, ExecutableGraphRegistry,
+    ExecutableGraphRegistryBuilder, GraphBarrierLifecycleOutcome, GraphDriveOutcome,
+    GraphDriverError, GraphFailureEvidence, GraphFailureEvidenceContext,
+    GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider, GraphNodeContext,
+    GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor, GraphTerminalEvidence,
+    GraphTerminalEvidenceContext, JsonSchemaRegistryBuilder, JsonSchemaRegistryLimits,
+    TenantSchedulerOutcome, register_standard_graph_driver_event_schema,
+    register_standard_graph_lifecycle_event_schema,
 };
 use stateknot_store_postgres::{
-    CheckpointCommitOutcome, CorruptionQuarantineContext, GraphDefinitionRegistrationOutcome,
-    GraphReplayLimits, LeaseReleaseOutcome, NodeAttemptCommitOutcome, PostgresStore,
-    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, StoreError,
+    BarrierCommitOutcome, CheckpointCommitOutcome, CorruptionQuarantineContext,
+    GraphDefinitionRegistrationOutcome, GraphReplayLimits, LeaseReleaseOutcome,
+    NodeAttemptCommitOutcome, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
+    RunProjection, RunnableRunPageSize, StoreError, WaitCheckpointCommitOutcome,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -42,6 +52,8 @@ static DATABASE_TEST_MUTEX: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_n
 #[derive(Clone)]
 enum TestNodeBehavior {
     Continue,
+    Fail,
+    Wait(NodeWaits),
     Terminal(SchemaReference),
 }
 
@@ -71,8 +83,19 @@ impl GraphNodeExecutor for TestNodeExecutor {
             if !self.delay.is_zero() {
                 tokio::time::sleep(self.delay).await;
             }
+            if matches!(self.behavior, TestNodeBehavior::Fail) {
+                return Err(GraphNodeExecutionError::new(
+                    test_failure("graph.node_failed", "Graph node failed safely."),
+                    BudgetUsage::zero(),
+                )
+                .unwrap());
+            }
             let control = match &self.behavior {
                 TestNodeBehavior::Continue => NodeControl::Continue,
+                TestNodeBehavior::Fail => unreachable!("failure returned before control"),
+                TestNodeBehavior::Wait(waits) => NodeControl::Wait {
+                    waits: waits.clone(),
+                },
                 TestNodeBehavior::Terminal(schema) => NodeControl::Terminal {
                     output: NodeTerminalOutput::new(
                         schema.clone(),
@@ -114,6 +137,47 @@ struct DriverFixture {
     registry: ExecutableGraphRegistry,
     first_calls: Arc<AtomicUsize>,
     second_calls: Arc<AtomicUsize>,
+}
+
+struct StaticLifecycleEvidence {
+    terminal: GraphTerminalEvidence,
+    failure: Option<GraphFailureEvidence>,
+}
+
+impl GraphLifecycleEvidenceProvider for StaticLifecycleEvidence {
+    fn terminal_evidence(
+        &self,
+        _: GraphTerminalEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphTerminalEvidence, GraphLifecycleEvidenceError>> {
+        let evidence = self.terminal.clone();
+        Box::pin(async move { Ok(evidence) })
+    }
+
+    fn failure_evidence(
+        &self,
+        _: GraphFailureEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphFailureEvidence, GraphLifecycleEvidenceError>> {
+        let evidence = self.failure.clone();
+        Box::pin(async move { evidence.ok_or(GraphLifecycleEvidenceError::Unavailable) })
+    }
+}
+
+struct UnavailableLifecycleEvidence;
+
+impl GraphLifecycleEvidenceProvider for UnavailableLifecycleEvidence {
+    fn terminal_evidence(
+        &self,
+        _: GraphTerminalEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphTerminalEvidence, GraphLifecycleEvidenceError>> {
+        Box::pin(async { Err(GraphLifecycleEvidenceError::TemporarilyUnavailable) })
+    }
+
+    fn failure_evidence(
+        &self,
+        _: GraphFailureEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphFailureEvidence, GraphLifecycleEvidenceError>> {
+        Box::pin(async { Err(GraphLifecycleEvidenceError::TemporarilyUnavailable) })
+    }
 }
 
 fn driver_fixture() -> DriverFixture {
@@ -164,6 +228,7 @@ fn driver_fixture_with_first_delay(first_delay: Duration) -> DriverFixture {
         schemas.register(reference, document).unwrap();
     }
     register_standard_graph_driver_event_schema(&mut schemas).unwrap();
+    register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
     let schemas = schemas.build().unwrap();
 
     let first_calls = Arc::new(AtomicUsize::new(0));
@@ -201,6 +266,693 @@ fn driver_fixture_with_first_delay(first_delay: Duration) -> DriverFixture {
         first_calls,
         second_calls,
     }
+}
+
+fn wait_fixture() -> (DriverFixture, TimerId, Timestamp) {
+    let (input_schema, input_document) = schema("wait-input");
+    let (state_schema, state_document) = state_schema();
+    let (update_schema, update_document) = schema("wait-update");
+    let (output_schema, output_document) = schema("wait-output");
+    let reducer_reference = GraphReducerReference::new(
+        capability("wait-reducer"),
+        Digest::sha256(b"stateknot runtime wait integration reducer v1"),
+    );
+    let pause_id = NodeId::new("Pause").unwrap();
+    let resume_id = NodeId::new("Resume").unwrap();
+    let graph = CompiledGraph::compile(
+        capability("wait-graph"),
+        input_schema.clone(),
+        state_schema,
+        update_schema,
+        output_schema.clone(),
+        reducer_reference.clone(),
+        ReadyNodes::try_new([pause_id.clone()]).unwrap(),
+        [
+            GraphNode::new(
+                pause_id.clone(),
+                None,
+                GraphRoutes::empty(),
+                Some(ReadyNodes::try_new([resume_id.clone()]).unwrap()),
+                false,
+            )
+            .unwrap(),
+            GraphNode::new(resume_id.clone(), None, GraphRoutes::empty(), None, true).unwrap(),
+        ],
+        GraphExecutionLimits::new(Superstep::new(8).unwrap(), 1).unwrap(),
+    )
+    .unwrap();
+
+    let mut schemas = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
+    for (reference, document) in [
+        (input_schema, input_document),
+        (graph.state_schema().clone(), state_document),
+        (graph.update_schema().clone(), update_document),
+        (output_schema.clone(), output_document),
+    ] {
+        schemas.register(reference, document).unwrap();
+    }
+    register_standard_graph_driver_event_schema(&mut schemas).unwrap();
+    register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+    let schemas = schemas.build().unwrap();
+
+    let timer_id = TimerId::generate();
+    let due_at = "2099-01-01T00:00:00.000000Z".parse::<Timestamp>().unwrap();
+    let waits =
+        NodeWaits::try_new([NodeWait::timer(timer_id, RunTimerKind::Sleep, due_at)]).unwrap();
+    let first_calls = Arc::new(AtomicUsize::new(0));
+    let second_calls = Arc::new(AtomicUsize::new(0));
+    let graph_reference = graph.reference();
+    let mut registry = ExecutableGraphRegistryBuilder::new(schemas);
+    registry.register_graph(graph.clone()).unwrap();
+    registry
+        .register_reducer(Arc::new(TestReducer {
+            reference: reducer_reference,
+        }))
+        .unwrap();
+    registry
+        .register_node(Arc::new(TestNodeExecutor {
+            graph: graph_reference.clone(),
+            node_id: pause_id,
+            behavior: TestNodeBehavior::Wait(waits),
+            delay: Duration::ZERO,
+            calls: Arc::clone(&first_calls),
+        }))
+        .unwrap();
+    registry
+        .register_node(Arc::new(TestNodeExecutor {
+            graph: graph_reference,
+            node_id: resume_id,
+            behavior: TestNodeBehavior::Terminal(output_schema),
+            delay: Duration::ZERO,
+            calls: Arc::clone(&second_calls),
+        }))
+        .unwrap();
+
+    (
+        DriverFixture {
+            graph,
+            registry: registry.build().unwrap(),
+            first_calls,
+            second_calls,
+        },
+        timer_id,
+        due_at,
+    )
+}
+
+fn failure_fixture() -> DriverFixture {
+    let (input_schema, input_document) = schema("failure-input");
+    let (state_schema, state_document) = state_schema();
+    let (update_schema, update_document) = schema("failure-update");
+    let (output_schema, output_document) = schema("failure-output");
+    let reducer_reference = GraphReducerReference::new(
+        capability("failure-reducer"),
+        Digest::sha256(b"stateknot runtime failure integration reducer v1"),
+    );
+    let node_id = NodeId::new("Fail").unwrap();
+    let graph = CompiledGraph::compile(
+        capability("failure-graph"),
+        input_schema.clone(),
+        state_schema,
+        update_schema,
+        output_schema.clone(),
+        reducer_reference.clone(),
+        ReadyNodes::try_new([node_id.clone()]).unwrap(),
+        [GraphNode::new(node_id.clone(), None, GraphRoutes::empty(), None, true).unwrap()],
+        GraphExecutionLimits::new(Superstep::new(8).unwrap(), 1).unwrap(),
+    )
+    .unwrap();
+
+    let mut schemas = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
+    for (reference, document) in [
+        (input_schema, input_document),
+        (graph.state_schema().clone(), state_document),
+        (graph.update_schema().clone(), update_document),
+        (output_schema, output_document),
+    ] {
+        schemas.register(reference, document).unwrap();
+    }
+    register_standard_graph_driver_event_schema(&mut schemas).unwrap();
+    register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+    let schemas = schemas.build().unwrap();
+
+    let first_calls = Arc::new(AtomicUsize::new(0));
+    let second_calls = Arc::new(AtomicUsize::new(0));
+    let graph_reference = graph.reference();
+    let mut registry = ExecutableGraphRegistryBuilder::new(schemas);
+    registry.register_graph(graph.clone()).unwrap();
+    registry
+        .register_reducer(Arc::new(TestReducer {
+            reference: reducer_reference,
+        }))
+        .unwrap();
+    registry
+        .register_node(Arc::new(TestNodeExecutor {
+            graph: graph_reference,
+            node_id,
+            behavior: TestNodeBehavior::Fail,
+            delay: Duration::ZERO,
+            calls: Arc::clone(&first_calls),
+        }))
+        .unwrap();
+    DriverFixture {
+        graph,
+        registry: registry.build().unwrap(),
+        first_calls,
+        second_calls,
+    }
+}
+
+fn test_failure(code: &str, message: &str) -> Failure {
+    Failure::new(
+        FailureId::generate(),
+        FailureCategory::Internal,
+        FailureCode::new(code).unwrap(),
+        FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+        FailureMessage::new(message).unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap()
+}
+
+fn terminal_evidence(graph: &CompiledGraph) -> GraphTerminalEvidence {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-v1.json"
+    ))
+    .unwrap();
+    let template =
+        serde_json::from_value::<AgentDescriptor>(fixture["descriptors"]["valid"][0].clone())
+            .unwrap();
+    let descriptor = AgentDescriptor::new(
+        template.metadata().clone(),
+        graph.input_schema().clone(),
+        graph.output_schema().clone(),
+        template.model().clone(),
+        template.instructions().clone(),
+        template.tools().clone(),
+        template.execution().clone(),
+        template.budget_limits().clone(),
+    )
+    .unwrap();
+    let request = AgentRequest::new(
+        graph.input_schema().clone(),
+        BoundedJson::try_from_value(json!({"request": true})).unwrap(),
+        BudgetLimits::empty(),
+    );
+    let budget_fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-budget-v1.json"
+    ))
+    .unwrap();
+    let budget =
+        serde_json::from_value::<ResolvedBudget>(budget_fixture["resolved"]["valid"][0].clone())
+            .unwrap();
+    let usage = BudgetUsage::builder()
+        .model_attempts(ExecutionCount::new(1))
+        .model_turns(ExecutionCount::new(1))
+        .input_bytes(ByteCount::new(1_024))
+        .output_bytes(ByteCount::new(1_024))
+        .known_costs(KnownCosts::empty())
+        .build()
+        .unwrap();
+    GraphTerminalEvidence::new(descriptor, request, budget, AgentArtifacts::empty(), usage)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn terminal_handoff_lost_ack_retries_without_rereading_success_evidence() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let evidence = terminal_evidence(&fixture.graph);
+    let tenant_id = tenant("runtime-lifecycle-terminal");
+    let run_id = RunId::generate();
+    let admitted_provenance = AgentResultProvenance::for_agent(
+        tenant_id.clone(),
+        run_id,
+        ThreadId::generate(),
+        InvocationId::generate(),
+        evidence.descriptor(),
+    );
+    start_run_with_provenance(
+        &store,
+        &fixture.graph,
+        admitted_provenance,
+        json!({"step": "initial"}),
+    )
+    .await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let drive_result = driver
+        .drive(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let (outcome, _) = drive_result.into_parts();
+    let GraphDriveOutcome::LifecycleBarrierReady(handoff) = outcome else {
+        panic!("graph must reach a terminal lifecycle handoff")
+    };
+    let handoff = *handoff;
+    let terminal_event_id = handoff.event_id();
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry.clone(),
+        Arc::new(StaticLifecycleEvidence {
+            terminal: evidence,
+            failure: None,
+        }),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+
+    let committed = lifecycle.commit_barrier(handoff.clone()).await.unwrap();
+    assert!(matches!(
+        committed,
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    let retry_lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(UnavailableLifecycleEvidence),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let retry = retry_lifecycle.commit_barrier(handoff).await.unwrap();
+    assert!(matches!(
+        retry,
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Idempotent { .. })
+    ));
+
+    let stored = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(stored.lifecycle().status(), RunStatus::Succeeded);
+    assert!(stored.lease().is_none());
+    assert_eq!(stored.journal_head().unwrap().event_id(), terminal_event_id);
+    assert_eq!(
+        stored.lifecycle().result().unwrap().output().as_value(),
+        &json!({"ok": true})
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn wait_handoff_replays_exactly_after_a_later_cancellation_advances_the_run() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let (fixture, timer_id, due_at) = wait_fixture();
+    let evidence = terminal_evidence(&fixture.graph);
+    let tenant_id = tenant("runtime-lifecycle-wait");
+    let run_id = RunId::generate();
+    start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let drive_result = driver
+        .drive(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let (outcome, _) = drive_result.into_parts();
+    let GraphDriveOutcome::LifecycleBarrierReady(handoff) = outcome else {
+        panic!("graph must reach a wait lifecycle handoff")
+    };
+    assert!(matches!(
+        handoff.plan().disposition(),
+        GraphBarrierDisposition::Wait { .. }
+    ));
+    let handoff = *handoff;
+    let wait_event_id = handoff.event_id();
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(StaticLifecycleEvidence {
+            terminal: evidence,
+            failure: None,
+        }),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+
+    let committed = lifecycle.commit_barrier(handoff.clone()).await.unwrap();
+    let GraphBarrierLifecycleOutcome::Waiting(wait_commit) = committed else {
+        panic!("wait handoff must commit a wait barrier")
+    };
+    assert!(matches!(
+        &wait_commit,
+        WaitCheckpointCommitOutcome::Committed { .. }
+    ));
+    assert_eq!(wait_commit.event().head().event_id(), wait_event_id);
+    assert_eq!(wait_commit.waits().len(), 1);
+    let stateknot_core::DurableWait::Timer { timer } = &wait_commit.waits()[0] else {
+        panic!("registered wait must remain a timer")
+    };
+    assert_eq!(timer.marker().timer_id(), timer_id);
+    assert_eq!(timer.marker().due_at(), due_at);
+    assert_eq!(
+        timer.marker().scheduled_at(),
+        wait_commit.event().head().recorded_at()
+    );
+
+    let retry = lifecycle.commit_barrier(handoff.clone()).await.unwrap();
+    assert!(matches!(
+        retry,
+        GraphBarrierLifecycleOutcome::Waiting(WaitCheckpointCommitOutcome::Idempotent { .. })
+    ));
+    let stored = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(stored.lifecycle().status(), RunStatus::Waiting);
+    assert!(stored.lease().is_none());
+    assert_eq!(stored.unresolved_wait_count(), 1);
+    assert_eq!(stored.next_timer_due_at(), Some(due_at));
+    assert_eq!(stored.journal_head().unwrap().event_id(), wait_event_id);
+
+    let cancellation_event_id = EventId::generate();
+    let cancellation = RunCancellationRequest::new(
+        Failure::new(
+            FailureId::generate(),
+            FailureCategory::Cancelled,
+            FailureCode::new("runtime.test_cancelled").unwrap(),
+            FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+            FailureMessage::new("The integration run was cancelled after waiting.").unwrap(),
+            RetryAdvice::Never,
+        )
+        .unwrap(),
+        stored.lifecycle().changed_at(),
+    )
+    .unwrap();
+    let cancellation_append = JournalAppend::new(
+        JournalExpectation::exact(wait_commit.event().head()),
+        JournalEventIntent::control_plane(
+            tenant_id.clone(),
+            run_id,
+            cancellation_event_id,
+            test_payload(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let abandoned = store
+        .append_control_plane_abandon_waits(
+            cancellation_append,
+            stored.lifecycle().revision(),
+            RunTransition::RequestCancellation {
+                request: cancellation,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(abandoned.abandonments().len(), 1);
+
+    let late_retry = lifecycle.commit_barrier(handoff).await.unwrap();
+    let GraphBarrierLifecycleOutcome::Waiting(late_retry) = late_retry else {
+        panic!("the original wait handoff must remain replayable")
+    };
+    assert!(matches!(
+        late_retry,
+        WaitCheckpointCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(late_retry.event().head().event_id(), wait_event_id);
+    assert_eq!(late_retry.waits(), wait_commit.waits());
+
+    let advanced = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(
+        advanced.lifecycle().status(),
+        RunStatus::CancellationRequested
+    );
+    assert_eq!(advanced.unresolved_wait_count(), 0);
+    assert!(advanced.lease().is_none());
+    assert_eq!(
+        advanced.journal_head().unwrap().event_id(),
+        cancellation_event_id
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn failed_supervision_lost_ack_retries_without_rereading_failure_evidence() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = failure_fixture();
+    let terminal = terminal_evidence(&fixture.graph);
+    let aggregate_failure = test_failure(
+        "graph.run_failed",
+        "Graph execution exhausted its durable recovery policy.",
+    );
+    let aggregate_failure_id = aggregate_failure.id();
+    let tenant_id = tenant("runtime-lifecycle-failure");
+    let run_id = RunId::generate();
+    start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let drive_result = driver
+        .drive(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let (outcome, _) = drive_result.into_parts();
+    let GraphDriveOutcome::Blocked(blocked) = outcome else {
+        panic!("terminal node failure must produce a supervision handoff")
+    };
+    assert_eq!(blocked.blockers().failed(), 1);
+    assert_eq!(blocked.blockers().in_flight(), 0);
+    let blocked = *blocked;
+    let failure_event_id = blocked.event_id();
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry.clone(),
+        Arc::new(StaticLifecycleEvidence {
+            terminal,
+            failure: Some(GraphFailureEvidence::new(
+                aggregate_failure,
+                BudgetUsage::zero(),
+            )),
+        }),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+
+    let committed = lifecycle.resolve_blocked(blocked.clone()).await.unwrap();
+    assert!(matches!(
+        committed,
+        GraphBarrierLifecycleOutcome::Failed(stateknot_store_postgres::AppendOutcome::Committed(_))
+    ));
+    let retry_lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(UnavailableLifecycleEvidence),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let retry = retry_lifecycle.resolve_blocked(blocked).await.unwrap();
+    assert!(matches!(
+        retry,
+        GraphBarrierLifecycleOutcome::Failed(stateknot_store_postgres::AppendOutcome::Idempotent(
+            _
+        ))
+    ));
+    let stored = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(stored.lifecycle().status(), RunStatus::Failed);
+    assert_eq!(
+        stored.lifecycle().terminal_failure().unwrap().id(),
+        aggregate_failure_id
+    );
+    assert!(stored.lease().is_none());
+    assert_eq!(stored.journal_head().unwrap().event_id(), failure_event_id);
+    assert_eq!(fixture.first_calls.load(Ordering::SeqCst), 1);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn durable_agent_loop_drives_and_commits_one_claimed_run_to_success() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let evidence = terminal_evidence(&fixture.graph);
+    let tenant_id = tenant("runtime-agent-loop-success");
+    let run_id = RunId::generate();
+    let admitted_provenance = AgentResultProvenance::for_agent(
+        tenant_id.clone(),
+        run_id,
+        ThreadId::generate(),
+        InvocationId::generate(),
+        evidence.descriptor(),
+    );
+    start_run_with_provenance(
+        &store,
+        &fixture.graph,
+        admitted_provenance,
+        json!({"step": "initial"}),
+    )
+    .await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let agent_loop = DurableAgentLoop::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(StaticLifecycleEvidence {
+            terminal: evidence,
+            failure: None,
+        }),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+
+    let result = agent_loop
+        .run(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(matches!(
+        result.outcome(),
+        AgentLoopOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    assert_eq!(result.report().node_attempts_completed(), 2);
+    assert_eq!(result.report().barriers_committed(), 1);
+    let stored = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(stored.lifecycle().status(), RunStatus::Succeeded);
+    assert!(stored.lease().is_none());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn durable_agent_loop_releases_lease_when_terminal_evidence_is_unavailable() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-agent-loop-evidence-error");
+    let run_id = RunId::generate();
+    start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let agent_loop = DurableAgentLoop::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(UnavailableLifecycleEvidence),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+
+    let error = agent_loop
+        .run(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap_err();
+    assert!(matches!(error, AgentLoopError::Lifecycle { .. }));
+    let stored = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(stored.lifecycle().status(), RunStatus::Active);
+    assert!(stored.lease().is_none());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn tenant_scheduler_scans_claims_executes_and_then_observes_idle() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let evidence = terminal_evidence(&fixture.graph);
+    let tenant_id = tenant("runtime-tenant-scheduler");
+    let run_id = RunId::generate();
+    let admitted_provenance = AgentResultProvenance::for_agent(
+        tenant_id.clone(),
+        run_id,
+        ThreadId::generate(),
+        InvocationId::generate(),
+        evidence.descriptor(),
+    );
+    start_run_with_provenance(
+        &store,
+        &fixture.graph,
+        admitted_provenance,
+        json!({"step": "initial"}),
+    )
+    .await;
+    let scheduler = DurableTenantScheduler::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(StaticLifecycleEvidence {
+            terminal: evidence,
+            failure: None,
+        }),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+        DurableTenantSchedulerOptions::new(
+            RunnableRunPageSize::new(4).unwrap(),
+            2,
+            3,
+            Duration::from_millis(25),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+
+    let tick = scheduler
+        .tick(tenant_id.clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let TenantSchedulerOutcome::Executed {
+        run_id: selected,
+        result,
+    } = tick.outcome()
+    else {
+        panic!("scheduler must execute the only runnable run")
+    };
+    assert_eq!(*selected, run_id);
+    assert!(matches!(result.outcome(), AgentLoopOutcome::Succeeded(_)));
+    assert_eq!(tick.report().pages_scanned(), 1);
+    assert_eq!(tick.report().candidates_scanned(), 1);
+
+    let idle = scheduler
+        .tick(tenant_id.clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(matches!(idle.outcome(), TenantSchedulerOutcome::Idle));
+    assert_eq!(idle.report().pages_scanned(), 1);
+    let stored = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(stored.lifecycle().status(), RunStatus::Succeeded);
+    store.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -293,6 +1045,7 @@ async fn same_fence_inflight_start_is_never_executed_twice() {
         return;
     };
     let fixture = driver_fixture();
+    let evidence = terminal_evidence(&fixture.graph);
     let tenant_id = tenant("runtime-driver-inflight");
     let run_id = RunId::generate();
     start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
@@ -336,24 +1089,36 @@ async fn same_fence_inflight_start_is_never_executed_twice() {
 
     let driver = DurableGraphDriver::new(
         store.clone(),
-        fixture.registry,
+        fixture.registry.clone(),
         DurableGraphDriverOptions::default(),
     )
     .unwrap();
-    let outcome = driver
+    let drive_result = driver
         .drive(lease.fence().clone(), CancellationSignal::never())
         .await
         .unwrap();
-    let GraphDriveOutcome::Blocked(blocked) = outcome.outcome() else {
+    let (outcome, _) = drive_result.into_parts();
+    let GraphDriveOutcome::Blocked(blocked) = outcome else {
         panic!("same-fence unfinished start must block duplicate execution")
     };
     assert_eq!(blocked.blockers().in_flight(), 1);
     assert_eq!(fixture.first_calls.load(Ordering::SeqCst), 0);
     assert_eq!(fixture.second_calls.load(Ordering::SeqCst), 0);
-    assert_eq!(
-        store.release_lease(lease.fence()).await.unwrap(),
-        LeaseReleaseOutcome::Released
-    );
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(StaticLifecycleEvidence {
+            terminal: evidence,
+            failure: None,
+        }),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let released = lifecycle.resolve_blocked(*blocked).await.unwrap();
+    assert!(matches!(
+        released,
+        GraphBarrierLifecycleOutcome::Released(LeaseReleaseOutcome::Released)
+    ));
     store.close().await;
 }
 
@@ -621,6 +1386,17 @@ async fn start_run_with_state(
     run_id: RunId,
     state_value: Value,
 ) -> CheckpointCommitOutcome {
+    start_run_with_provenance(store, graph, provenance(tenant_id, run_id), state_value).await
+}
+
+async fn start_run_with_provenance(
+    store: &PostgresStore,
+    graph: &CompiledGraph,
+    provenance: AgentResultProvenance,
+    state_value: Value,
+) -> CheckpointCommitOutcome {
+    let tenant_id = provenance.tenant_id().clone();
+    let run_id = provenance.run_id();
     let registered = store
         .register_graph_definition(tenant_id.clone(), graph.clone())
         .await
@@ -630,10 +1406,7 @@ async fn start_run_with_state(
         GraphDefinitionRegistrationOutcome::Registered(_)
             | GraphDefinitionRegistrationOutcome::Idempotent(_)
     ));
-    let admitted = store
-        .admit_run(provenance(tenant_id.clone(), run_id))
-        .await
-        .unwrap();
+    let admitted = store.admit_run(provenance).await.unwrap();
     let state = CheckpointState::new(
         graph.state_schema().clone(),
         BoundedJson::try_from_value(state_value).unwrap(),

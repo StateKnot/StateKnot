@@ -182,9 +182,9 @@ pub use node_result::{
     NodeControl, NodeControlKind, NodeInvocationBinding, NodeInvocationBindingError,
     NodeInvocationBindingKind, NodeInvocationBindings, NodeInvocationBindingsError,
     NodeStateChange, NodeStateUpdate, NodeStateUpdateError, NodeTerminalOutput,
-    NodeTerminalOutputError, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
-    PendingNodeResultIntegrityError, PendingNodeResultIntent, PendingNodeResultIntentError,
-    RouteId, RouteIdError,
+    NodeTerminalOutputError, NodeWait, NodeWaits, NodeWaitsError, PendingNodeResult,
+    PendingNodeResultError, PendingNodeResultHead, PendingNodeResultIntegrityError,
+    PendingNodeResultIntent, PendingNodeResultIntentError, RouteId, RouteIdError,
 };
 pub use outbox::{
     DeliveryFence, MAX_OUTBOX_ATTEMPT_LEASE_MILLIS, MAX_OUTBOX_ATTEMPTS, OutboxAttempt,

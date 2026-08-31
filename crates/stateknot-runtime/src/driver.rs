@@ -312,6 +312,8 @@ impl DurableGraphDriver {
                     GraphDriveOutcome::Blocked(Box::new(GraphBlockedHandoff {
                         plan,
                         lease,
+                        event_id: EventId::generate(),
+                        expected_revision: live.lifecycle().revision(),
                         blockers,
                     })),
                     report,
@@ -353,6 +355,7 @@ impl DurableGraphDriver {
                                 GraphLifecycleBarrierHandoff {
                                     plan: barrier_plan,
                                     journal_head: plan.journal_head().clone(),
+                                    event_id: EventId::generate(),
                                     expected_revision: live.lifecycle().revision(),
                                     lease,
                                 },
@@ -1237,6 +1240,7 @@ pub enum GraphDriveOutcome {
 pub struct GraphLifecycleBarrierHandoff {
     plan: GraphBarrierPlan,
     journal_head: JournalHead,
+    event_id: EventId,
     expected_revision: RunRevision,
     lease: RunLease,
 }
@@ -1254,6 +1258,12 @@ impl GraphLifecycleBarrierHandoff {
         &self.journal_head
     }
 
+    /// Returns the stable lost-acknowledgement identity for the lifecycle event.
+    #[must_use]
+    pub const fn event_id(&self) -> EventId {
+        self.event_id
+    }
+
     /// Returns the lifecycle revision that must still match atomically.
     #[must_use]
     pub const fn expected_revision(&self) -> RunRevision {
@@ -1268,10 +1278,19 @@ impl GraphLifecycleBarrierHandoff {
 
     /// Consumes the handoff into storage-ready parts.
     #[must_use]
-    pub fn into_parts(self) -> (GraphBarrierPlan, JournalHead, RunRevision, RunLease) {
+    pub fn into_parts(
+        self,
+    ) -> (
+        GraphBarrierPlan,
+        JournalHead,
+        EventId,
+        RunRevision,
+        RunLease,
+    ) {
         (
             self.plan,
             self.journal_head,
+            self.event_id,
             self.expected_revision,
             self.lease,
         )
@@ -1348,6 +1367,8 @@ impl GraphDriveBlockers {
 pub struct GraphBlockedHandoff {
     plan: ReadyNodeRecoveryPlan,
     lease: RunLease,
+    event_id: EventId,
+    expected_revision: RunRevision,
     blockers: GraphDriveBlockers,
 }
 
@@ -1364,10 +1385,42 @@ impl GraphBlockedHandoff {
         &self.lease
     }
 
+    /// Returns the stable lost-acknowledgement identity for failure supervision.
+    #[must_use]
+    pub const fn event_id(&self) -> EventId {
+        self.event_id
+    }
+
+    /// Returns the lifecycle revision observed with the retained live lease.
+    #[must_use]
+    pub const fn expected_revision(&self) -> RunRevision {
+        self.expected_revision
+    }
+
     /// Returns aggregate blocking counts.
     #[must_use]
     pub const fn blockers(&self) -> GraphDriveBlockers {
         self.blockers
+    }
+
+    /// Consumes the handoff into supervision-ready parts.
+    #[must_use]
+    pub fn into_parts(
+        self,
+    ) -> (
+        ReadyNodeRecoveryPlan,
+        RunLease,
+        EventId,
+        RunRevision,
+        GraphDriveBlockers,
+    ) {
+        (
+            self.plan,
+            self.lease,
+            self.event_id,
+            self.expected_revision,
+            self.blockers,
+        )
     }
 }
 

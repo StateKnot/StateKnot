@@ -14,8 +14,8 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     <h2 id="tutorial-scope-title">Scope of this tutorial</h2>
     <p>
       This validates the implementation that exists today. It is not a hidden
-      “hello agent” demo: the runnable Agent loop and provider adapters have not
-      shipped yet.
+      “hello agent” demo: the stable model/tool Agent API and first-party
+      provider adapters have not shipped yet.
     </p>
   </aside>
 
@@ -75,8 +75,8 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --lock
     </ul>
     <p>
       It does not exercise a live PostgreSQL server, a model provider, MCP, A2A,
-      or a runnable Agent loop. CI runs the database suite separately against
-      PostgreSQL 16 and 17.
+      or a live durable Agent Loop. CI runs the database-backed Runtime and
+      provider suites separately against PostgreSQL 16 and 17.
     </p>
   </section>
 

@@ -941,10 +941,13 @@ root Graph Driver with durable-before-dispatch starts, pre-launch lease refresh,
 monotonic expiry enforcement, lease renewal, Continue barrier commits, and
 typed lifecycle handoffs. Root-to-terminal recovery, same-fence suppression,
 near-expiry launch protection, long-running renewal, and higher-fence takeover
-pass on both database versions. Role-separated database procedures, lifecycle handling
-for Wait/Terminal/failure handoffs, the 10,000 stale-race trial, failover,
-archive, backup/restore, and soak gates below remain incomplete; the RFC
-therefore remains Draft.
+pass on both database versions. The lifecycle coordinator now atomically
+consumes Wait/Terminal/failure handoffs, and the tenant-scoped Agent Loop closes
+one bounded discovery-to-lifecycle quantum with exact lost-ack recovery.
+Role-separated database procedures, cross-tenant fairness, first-party
+model/tool integration, the 10,000 stale-race trial, failover, archive,
+backup/restore, and soak gates below remain incomplete; the RFC therefore
+remains Draft.
 
 Before RFC acceptance:
 

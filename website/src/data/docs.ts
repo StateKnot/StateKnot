@@ -62,6 +62,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         search:
           "runtime graph driver executable registry replay lease fence crash recovery handoff",
       },
+      {
+        title: "Durable Agent Loop",
+        description:
+          "Commit lifecycle handoffs and execute one tenant-scoped durable scheduling quantum.",
+        href: "/docs/agent-loop/",
+        search:
+          "agent loop lifecycle wait terminal failure evidence tenant scheduler lost acknowledgement",
+      },
     ],
   },
   {
@@ -135,6 +143,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/runtime/",
         search:
           "runtime graph driver 可执行 注册表 重放 租约 fence 崩溃 恢复 handoff",
+      },
+      {
+        title: "耐久 Agent Loop",
+        description:
+          "提交 Lifecycle Handoff，并执行一个 Tenant-scoped 耐久调度 Quantum。",
+        href: "/docs/agent-loop/",
+        search:
+          "agent loop lifecycle wait terminal failure evidence 租户 scheduler lost ack 调度",
       },
     ],
   },

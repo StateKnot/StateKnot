@@ -25,8 +25,8 @@ use crate::{
     BoundedJson, CapabilityIdentity, Checkpoint, CheckpointBarrier, CheckpointBarrierError,
     CheckpointId, CheckpointState, CheckpointStateError, CheckpointWrite, CheckpointWriteError,
     Digest, GraphReference, NodeActivation, NodeControl, NodeControlKind, NodeId, NodeStateUpdate,
-    NodeTerminalOutput, PendingNodeResult, ReadyNodes, RouteId, RunWait, RunWaits, RunWaitsError,
-    SchemaReference, Superstep,
+    NodeTerminalOutput, NodeWait, NodeWaits, NodeWaitsError, PendingNodeResult, ReadyNodes,
+    RouteId, SchemaReference, Superstep,
 };
 
 const MEBIBYTE: usize = 1024 * 1024;
@@ -1139,7 +1139,7 @@ pub enum GraphBarrierDisposition {
     /// Commit the successor and atomically suspend on these conditions.
     Wait {
         /// Complete stable condition batch gathered from node results.
-        waits: RunWaits,
+        waits: NodeWaits,
     },
     /// Commit the terminal successor and complete with this validated output.
     Terminal {
@@ -1151,7 +1151,7 @@ pub enum GraphBarrierDisposition {
 impl GraphBarrierDisposition {
     /// Returns the wait batch for a suspending barrier.
     #[must_use]
-    pub const fn waits(&self) -> Option<&RunWaits> {
+    pub const fn waits(&self) -> Option<&NodeWaits> {
         match self {
             Self::Wait { waits } => Some(waits),
             Self::Continue | Self::Terminal { .. } => None,
@@ -1261,7 +1261,7 @@ where
     ) -> Result<ResolvedControls<'a>, GraphBarrierPlanError> {
         let mut reducer_inputs = Vec::with_capacity(ordered.len());
         let mut next_nodes = BTreeSet::new();
-        let mut waits = Vec::<RunWait>::new();
+        let mut waits = Vec::<NodeWait>::new();
         let mut terminal = None;
 
         for result in ordered {
@@ -1477,7 +1477,7 @@ struct ResolvedControls<'a> {
 fn resolve_disposition(
     result_count: usize,
     next_nodes: &BTreeSet<NodeId>,
-    waits: Vec<RunWait>,
+    waits: Vec<NodeWait>,
     terminal: Option<NodeTerminalOutput>,
 ) -> Result<GraphBarrierDisposition, GraphBarrierPlanError> {
     if let Some(output) = terminal {
@@ -1492,7 +1492,7 @@ fn resolve_disposition(
         }
         return Ok(GraphBarrierDisposition::Continue);
     }
-    RunWaits::try_new(waits)
+    NodeWaits::try_new(waits)
         .map(|waits| GraphBarrierDisposition::Wait { waits })
         .map_err(|source| GraphBarrierPlanError::InvalidWaitBatch { source })
 }
@@ -1685,7 +1685,7 @@ pub enum GraphBarrierPlanError {
     InvalidWaitBatch {
         /// Exact wait collection failure.
         #[source]
-        source: RunWaitsError,
+        source: NodeWaitsError,
     },
     /// The pure reducer returned a closed failure.
     #[error("graph reducer failed: {source}")]
@@ -1726,8 +1726,8 @@ mod tests {
     use crate::{
         AttemptId, CapabilityName, CapabilityReference, EventId, FencingEpoch, IssuerId,
         JournalHead, JournalSequence, JsonLimits, NodeInvocationBindings, NodeStateChange,
-        PendingNodeResultIntent, PrincipalIdentity, RunFence, RunId, RunTimer, RunTimerKind,
-        SchemaId, SubjectId, TenantId, TimerId, Timestamp, Version,
+        PendingNodeResultIntent, PrincipalIdentity, RunFence, RunId, RunTimerKind, SchemaId,
+        SubjectId, TenantId, TimerId, Timestamp, Version,
     };
     use proptest::prelude::*;
     use serde_json::{Value, from_value, json, to_value};
@@ -2177,17 +2177,13 @@ mod tests {
         .unwrap()
     }
 
-    fn timer_wait(suffix: &str) -> RunWaits {
-        RunWaits::try_new([RunWait::timer(
-            RunTimer::new(
-                format!("01912345-6789-7abc-8def-0123456786{suffix}")
-                    .parse::<TimerId>()
-                    .unwrap(),
-                RunTimerKind::Sleep,
-                timestamp(1),
-                timestamp(10),
-            )
-            .unwrap(),
+    fn timer_wait(suffix: &str) -> NodeWaits {
+        NodeWaits::try_new([NodeWait::timer(
+            format!("01912345-6789-7abc-8def-0123456786{suffix}")
+                .parse::<TimerId>()
+                .unwrap(),
+            RunTimerKind::Sleep,
+            timestamp(10),
         )])
         .unwrap()
     }

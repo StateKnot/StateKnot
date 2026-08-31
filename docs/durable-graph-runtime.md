@@ -62,6 +62,7 @@ use stateknot_runtime::{
     DurableGraphDriver, DurableGraphDriverOptions,
     ExecutableGraphRegistryBuilder, JsonSchemaRegistryBuilder,
     register_standard_graph_driver_event_schema,
+    register_standard_graph_lifecycle_event_schema,
 };
 use stateknot_store_postgres::{PostgresStore, PostgresStoreOptions};
 
@@ -71,6 +72,7 @@ let store = PostgresStore::connect(runtime_url, options).await?;
 
 let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
+register_standard_graph_lifecycle_event_schema(&mut schemas)?;
 for (reference, document) in application_schema_documents() {
     schemas.register(reference, document)?;
 }
@@ -102,6 +104,12 @@ The standard Driver audit schema has the immutable identifier
 `https://stknot.com/schemas/runtime/graph-driver-event/1.0.0`. Install it through
 `register_standard_graph_driver_event_schema`; do not copy its digest into
 application code.
+
+The lifecycle coordinator uses the separate immutable schema
+`https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0`. A deployment
+that constructs `DurableGraphLifecycle`, `DurableAgentLoop`, or
+`DurableTenantScheduler` must also install it through
+`register_standard_graph_lifecycle_event_schema` before freezing the registry.
 
 ## Claim and drive
 
@@ -141,6 +149,13 @@ Every `GraphDriveOutcome` has an explicit ownership rule:
 from its `RunLease`. It is short-lived commit input, not a queue message. If the
 lifecycle service cannot finish before lease expiry, release or allow expiry and
 replan beneath a new fence rather than committing stale metadata.
+
+Application workers should normally use `DurableAgentLoop` instead of handling
+these outcomes directly. It binds the Driver and `DurableGraphLifecycle` to one
+store and registry, commits lifecycle handoffs, and performs bounded exact-fence
+cleanup on errors. Direct Driver integration remains available for specialized
+orchestration services that implement the same ownership rules. See the
+[Agent Loop and tenant scheduler contract](durable-agent-loop.md).
 
 ## Resource and timing policy
 
@@ -185,7 +200,8 @@ retries from `GraphDriveReport`.
 
 ## Qualification evidence and remaining gates
 
-Six Driver scenarios run against both PostgreSQL 16 and 17:
+Twelve runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
+Driver-specific recovery coverage:
 
 1. Continue-barrier commit followed by noninitial replay and a Terminal handoff;
 2. same-fence in-flight recovery with no duplicate executor call;
@@ -194,12 +210,15 @@ Six Driver scenarios run against both PostgreSQL 16 and 17:
 5. invalid initial checkpoint state quarantined before any executor call; and
 6. one higher-fence takeover of an unfinished physical attempt.
 
-The provider contributes 91 additional PostgreSQL integration tests per
-database version. CI treats the external database suites as mandatory and fails
-if the service is unavailable.
+The remaining scenarios verify atomic successful Terminal, Wait, and supervised
+failure handoffs with exact lost-ack retries; database-time Wait registration;
+Agent Loop success and evidence-unavailable cleanup; and tenant scheduler
+selection, claim, execution, and idle convergence. The provider contributes 91
+additional PostgreSQL integration tests per database version. CI treats the
+external database suites as mandatory and fails if the service is unavailable.
 
-This phase does not yet ship cross-tenant scheduler fairness, lifecycle handling
-for complete Wait/Terminal/failure metadata, a model/tool agent loop,
+This phase does not yet ship cross-tenant scheduler fairness, first-party
+model/tool Agent ergonomics, parallel siblings, loops/subgraphs,
 protocol-specific outbox adapters, role-separated database procedures,
 retention/archive, failover/restore qualification, the 10,000 stale-race gate,
 or a stable public release. Those remain release blockers rather than hidden

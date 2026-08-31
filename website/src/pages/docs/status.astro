@@ -24,16 +24,22 @@ const capabilities = [
     body: "Offline executable schema/reducer/node closure, full checkpoint-state and bounded noninitial replay validation, durable-before-dispatch execution, monotonic lease enforcement, Continue barriers, and typed lifecycle handoffs.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Lifecycle and durable Agent Loop",
+    body: "Atomic Wait/success/failure handoff commits, trusted lifecycle evidence validation, exact lost-ack recovery, bounded exact-fence cleanup, and one tenant-scoped scheduler quantum.",
+  },
+  {
     state: "Active work",
     className: "status-active",
-    title: "Lifecycle and Agent integration",
-    body: "Complete Wait/Terminal/failure handoff commits, model/tool Agent execution, scheduler fairness, and loop/subgraph semantics.",
+    title: "Model/tool Agent integration",
+    body: "First-party model/tool adapters, public Agent ergonomics, streaming, policy, cross-tenant fairness, parallel siblings, and loop/subgraph semantics.",
   },
   {
     state: "Not shipped",
     className: "status-planned",
     title: "Runnable Agent API",
-    body: "No stable first-agent API, provider-backed loop, or end-user quickstart is claimed yet.",
+    body: "No stable first-agent API, first-party model/tool loop, or end-user quickstart is claimed yet.",
   },
   {
     state: "Not shipped",
@@ -52,7 +58,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: the durable root Graph Driver is implemented, while lifecycle integration, the public Agent loop, protocol adapters, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: the durable root Graph loop, lifecycle coordinator, and tenant worker are implemented, while the public model/tool Agent API, protocol adapters, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -88,10 +94,10 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      The next runtime milestone integrates complete Wait/Terminal/failure
-      lifecycle commits and model/tool execution with the proven Driver, then
-      publishes one executable Agent example whose tutorial runs in CI. Protocol
-      breadth follows that recovered path rather than preceding it.
+      The next runtime milestone integrates first-party model/tool execution,
+      policy, and streaming with the proven Driver and lifecycle coordinator,
+      then publishes one executable Agent example whose tutorial runs in CI.
+      Protocol breadth follows that recovered path rather than preceding it.
     </p>
   </section>
 
@@ -100,6 +106,11 @@ const capabilities = [
     <ul>
       <li>
         <a href="/docs/runtime/">Durable Graph runtime integration contract</a>
+      </li>
+      <li>
+        <a href="/docs/agent-loop/"
+          >Durable Agent Loop and tenant scheduler contract</a
+        >
       </li>
       <li>
         <a

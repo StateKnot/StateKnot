@@ -30,6 +30,12 @@ const paths = [
     link: "Integrate the Driver",
   },
   {
+    title: "Run the durable Agent Loop",
+    body: "Bind lifecycle evidence, atomic Wait/Terminal/failure commits, and one tenant-scoped scheduler tick to the proven Driver.",
+    href: "/docs/agent-loop/",
+    link: "Integrate the loop",
+  },
+  {
     title: "Operate PostgreSQL",
     body: "Review the implemented provider boundary, secure defaults, migration sequence, and mandatory integration test path.",
     href: "/docs/postgresql/",
@@ -52,11 +58,11 @@ const paths = [
   <aside class="docs-callout" aria-labelledby="docs-boundary-title">
     <h2 id="docs-boundary-title">The honest starting point</h2>
     <p>
-      StateKnot does not yet expose a runnable public Agent API. Today you can
-      compile a deterministic Graph, freeze its executable deployment, replay
-      noninitial checkpoints, and drive its root execution path against
-      PostgreSQL. Model/tool Agent ergonomics and lifecycle integration remain
-      explicit release blockers.
+      StateKnot does not yet expose a stable public model/tool Agent API. Today
+      you can compile a deterministic Graph, freeze its executable deployment,
+      replay noninitial checkpoints, and run a tenant-scoped durable Graph loop
+      through atomic lifecycle commits on PostgreSQL. First-party model/tool
+      ergonomics and cross-tenant scheduling remain explicit release blockers.
     </p>
   </aside>
 
@@ -103,6 +109,14 @@ const paths = [
           Offline executable registration, independent bounded replay,
           durable-before-dispatch node execution, lease renewal, automatic
           Continue barriers, and typed lifecycle handoffs.
+        </dd>
+      </div>
+      <div>
+        <dt>Lifecycle and Agent Loop</dt>
+        <dd>
+          Trusted terminal evidence, database-time Wait registration, atomic
+          success/failure transitions, exact lost-ack convergence, bounded
+          cleanup, and one tenant-scoped scheduler quantum.
         </dd>
       </div>
       <div>

@@ -46,6 +46,12 @@ const localizedRoutePairs = [
     zhHeading: "从耐久证据驱动 Graph。",
   },
   {
+    en: "/docs/agent-loop/",
+    zh: "/zh/docs/agent-loop/",
+    enHeading: "Run one durable Agent scheduling quantum.",
+    zhHeading: "执行一个耐久 Agent 调度 Quantum。",
+  },
+  {
     en: "/docs/postgresql/",
     zh: "/zh/docs/postgresql/",
     enHeading: "Operate the PostgreSQL durability provider.",
@@ -131,6 +137,9 @@ test("homepage exposes honest implementation status and semantic structure", asy
   await expect(
     page.getByText("Durable Graph Driver", { exact: true }).first(),
   ).toBeVisible();
+  await expect(
+    page.locator(".spec-list").getByText("Durable Agent Loop", { exact: true }),
+  ).toBeVisible();
   await expect(page.locator(".map-node--planned")).toHaveCount(4);
 
   const main = page.locator("main");
@@ -159,6 +168,27 @@ test("publishes the digest-pinned Graph Driver schema at its stable identity", a
   ]);
 });
 
+test("publishes the strict Graph lifecycle schema at its stable identity", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/schemas/runtime/graph-lifecycle-event/1.0.0",
+  );
+  expect(response.status()).toBe(200);
+  const schema = await response.json();
+  expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+  expect(schema.$id).toBe(
+    "https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0",
+  );
+  expect(schema.additionalProperties).toBe(false);
+  expect(schema.properties.operation.enum).toEqual([
+    "graph_barrier_waiting",
+    "graph_barrier_succeeded",
+    "graph_run_failed",
+  ]);
+  expect(schema.oneOf).toHaveLength(3);
+});
+
 for (const width of responsiveAuditWidths) {
   test(`has no horizontal page overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -171,9 +201,11 @@ for (const route of [
   "/docs/",
   "/docs/getting-started/",
   "/docs/runtime/",
+  "/docs/agent-loop/",
   "/zh/",
   "/zh/docs/getting-started/",
   "/zh/docs/runtime/",
+  "/zh/docs/agent-loop/",
 ] as const) {
   for (const width of [320, 375, 414, 768] as const) {
     test(`${route} is responsive at ${width}px`, async ({ page }) => {

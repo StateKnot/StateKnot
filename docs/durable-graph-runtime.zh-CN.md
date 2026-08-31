@@ -53,16 +53,22 @@ Supersede 后，由更高 Fence 恢复这次未完成执行。
 
 1. 创建 `JsonSchemaRegistryBuilder`；
 2. 调用 `register_standard_graph_driver_event_schema`；
-3. 注册应用全部 Digest-pinned Schema，并 `build` 冻结；
-4. 把每个 `CompiledGraph`、精确 `GraphReducer` 以及该 Graph 的全部
+3. 调用 `register_standard_graph_lifecycle_event_schema`；
+4. 注册应用全部 Digest-pinned Schema，并 `build` 冻结；
+5. 把每个 `CompiledGraph`、精确 `GraphReducer` 以及该 Graph 的全部
    `GraphNodeExecutor` 加入 `ExecutableGraphRegistryBuilder`；
-5. `build` 验证闭包；
-6. 用同一 `PostgresStore`、不可变注册表与显式 `DurableGraphDriverOptions` 构造 Driver；
-7. 只有上述步骤全部成功后才让 Scheduler 开始 Claim。
+6. `build` 验证闭包；
+7. 用同一 `PostgresStore`、不可变注册表与显式 Options 构造 Driver、Lifecycle 或 Agent Loop；
+8. 只有上述步骤全部成功后才让 Scheduler 开始 Claim。
 
 Driver 标准审计 Schema 的不可变标识为
 `https://stknot.com/schemas/runtime/graph-driver-event/1.0.0`。应用应调用注册函数取得
 Digest，不应把 Digest 手工复制到业务代码。
+
+Lifecycle Coordinator 使用独立的不可变 Schema
+`https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0`。构造
+`DurableGraphLifecycle`、`DurableAgentLoop` 或 `DurableTenantScheduler` 的部署必须在冻结注册表
+前通过 `register_standard_graph_lifecycle_event_schema` 安装它。
 
 Graph、Reducer、Node Executor 必须来自同一 Release Artifact。Run Admission 使用的完整
 Identity、Version 与 Digest 必须和执行器注册值一致；不能在相同 Version 下偷偷替换实现。
@@ -96,6 +102,11 @@ Model 与 Tool 外部副作用必须通过各自的 Durable Invocation Ledger。
 `GraphLifecycleBarrierHandoff` 刻意不能序列化，也不能脱离 `RunLease` 作为队列消息。它是
 短生命周期的原子提交输入。如果生命周期服务不能在 Lease 过期前完成，就应释放或等待过期，
 然后让新 Fence 重新规划，绝不能拿过期 Handoff 提交元数据。
+
+普通应用 Worker 应优先使用 `DurableAgentLoop`，而不是自行处理这些 Outcome。它会把 Driver 与
+`DurableGraphLifecycle` 绑定到同一个 Store 和 Registry，提交 Lifecycle Handoff，并在错误后
+有界清理精确 Fence。只有实现同等所有权规则的专用编排服务才应直接集成 Driver。详见
+[Agent Loop 与 Tenant Scheduler 契约](durable-agent-loop.zh-CN.md)。
 
 ## 资源与时间配置
 
@@ -134,7 +145,7 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 
 ## 已验证证据与剩余门禁
 
-以下六个 Driver 场景都在 PostgreSQL 16 与 17 独立运行：
+十二个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
 
 1. Continue Barrier 提交后执行 Noninitial Replay，并交出 Terminal Handoff；
 2. Same-fence In-flight 恢复不重复调用 Executor；
@@ -143,10 +154,13 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 5. 非法初始 Checkpoint State 会在任何 Executor 调用前被 Quarantine；
 6. 更高 Fence 对未完成 Physical Attempt 只接管一次。
 
-此外，每个数据库版本还运行 91 个 Provider Integration Test。CI 把外部数据库套件设为
-Mandatory；数据库服务缺失时必须失败，不能静默跳过。
+其余场景验证 Success Terminal、Wait 与受监督 Failure Handoff 的原子提交和精确 Lost-ACK
+Retry、数据库时间 Wait Registration、Agent Loop 成功与 Evidence-unavailable Cleanup，以及
+Tenant Scheduler 的选择、Claim、执行和 Idle 收敛。此外，每个数据库版本还运行 91 个
+Provider Integration Test。CI 把外部数据库套件设为 Mandatory；数据库服务缺失时必须失败，
+不能静默跳过。
 
-本阶段尚未提供跨租户 Scheduler Fairness、完整 Wait/Terminal/Failure Handoff 生命周期
-服务、Model/Tool Agent Loop、协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
+本阶段尚未提供跨租户 Scheduler Fairness、第一方 Model/Tool Agent Ergonomics、Parallel
+Sibling、Loop/Subgraph、协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
 Failover/Restore 验证、10,000 次 Stale-race 门禁或稳定公共发行。这些都是明确 Release
 Blocker，不会用隐藏的降级逻辑替代。

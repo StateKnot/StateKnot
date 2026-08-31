@@ -33,10 +33,10 @@ const currentCut = [
     href: "/docs/runtime/",
   },
   {
-    surface: "Runnable agent loop",
-    state: "Not shipped",
-    evidence: "Lifecycle and model/tool integration remain open",
-    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md",
+    surface: "Durable Agent Loop",
+    state: "Implemented slice",
+    evidence: "Atomic lifecycle commits and tenant-scoped scheduling",
+    href: "/docs/agent-loop/",
   },
   {
     surface: "MCP and A2A adapters",
@@ -49,15 +49,15 @@ const currentCut = [
 const roadmap = [
   {
     index: "01",
-    state: "Now",
-    title: "Integrate lifecycle handoffs",
-    body: "Commit complete Wait, Terminal, and run-failure metadata from the Driver’s exact lease-bound handoff without weakening fencing.",
+    state: "Implemented",
+    title: "Close the durable Graph loop",
+    body: "Lifecycle handoffs, lost acknowledgements, exact-fence cleanup, and one tenant-scoped scheduler quantum now have implementation and PostgreSQL evidence.",
   },
   {
     index: "02",
-    state: "Next",
-    title: "Ship a runnable agent loop",
-    body: "Bind model and tool execution to durable attempts without weakening the core contracts or holding database transactions across external work.",
+    state: "Now",
+    title: "Ship the model/tool Agent API",
+    body: "Bind first-party model and tool adapters, policy, streaming, and a compiled end-user example to durable attempts without holding database transactions across external work.",
   },
   {
     index: "03",
@@ -86,9 +86,9 @@ const roadmap = [
             Durable agent orchestration, written for Rust.
           </h1>
           <p class="hero-lede">
-            StateKnot now drives typed root Graphs through PostgreSQL-backed
-            crash recovery with exact executable bindings. The public Agent
-            loop, lifecycle service, and protocol adapters remain under
+            StateKnot now runs typed root Graphs through PostgreSQL-backed crash
+            recovery, atomic lifecycle commits, and tenant-scoped scheduling.
+            The stable model/tool Agent API and protocol adapters remain under
             development.
           </p>
           <div class="hero-actions">

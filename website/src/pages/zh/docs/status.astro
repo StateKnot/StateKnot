@@ -24,16 +24,22 @@ const capabilities = [
     body: "离线可执行 Schema/Reducer/Node 闭包、完整 Checkpoint State 与有界非初始 Replay 验证、Durable-before-dispatch 执行、单调 Lease 到期约束、Continue Barrier 与类型化 Lifecycle Handoff。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "Lifecycle 与耐久 Agent Loop",
+    body: "原子 Wait/Success/Failure Handoff Commit、可信 Lifecycle Evidence 校验、精确 Lost-ACK Recovery、有界 Exact-fence Cleanup 与一次 Tenant-scoped Scheduler Quantum。",
+  },
+  {
     state: "开发中",
     className: "status-active",
-    title: "Lifecycle 与 Agent 集成",
-    body: "完整 Wait/Terminal/Failure Handoff Commit、Model/Tool Agent 执行、Scheduler Fairness 与 Loop/Subgraph 语义。",
+    title: "Model/Tool Agent 集成",
+    body: "第一方 Model/Tool Adapter、公开 Agent Ergonomics、Streaming、Policy、Cross-tenant Fairness、Parallel Sibling 与 Loop/Subgraph 语义。",
   },
   {
     state: "尚未发布",
     className: "status-planned",
     title: "可运行 Agent API",
-    body: "目前不宣称存在稳定的 First-agent API、Provider-backed Loop 或最终用户 Quickstart。",
+    body: "目前不宣称存在稳定的 First-agent API、第一方 Model/Tool Loop 或最终用户 Quickstart。",
   },
   {
     state: "尚未发布",
@@ -52,7 +58,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：耐久 Root Graph Driver 已实现，但 Lifecycle 集成、公开 Agent Loop、协议 Adapter 与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：耐久 Root Graph Loop、Lifecycle Coordinator 与 Tenant Worker 已实现，但公开 Model/Tool Agent API、协议 Adapter 与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -91,9 +97,9 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
-      下一个 Runtime 里程碑会把完整 Wait/Terminal/Failure Lifecycle Commit 与
-      Model/Tool 执行接入已经验证的 Driver，再发布由 CI 自动运行教程的可执行
-      Agent 示例。协议广度会建立在这条可恢复路径之上。
+      下一个 Runtime 里程碑会把第一方 Model/Tool 执行、Policy 与 Streaming
+      接入已经验证的 Driver 和 Lifecycle Coordinator，再发布由 CI
+      自动运行教程的可执行 Agent 示例。协议广度会建立在这条可恢复路径之上。
     </p>
   </section>
 
@@ -102,6 +108,11 @@ const capabilities = [
     <ul>
       <li>
         <a href="/zh/docs/runtime/">耐久 Graph Runtime 集成契约</a>
+      </li>
+      <li>
+        <a href="/zh/docs/agent-loop/"
+          >耐久 Agent Loop 与 Tenant Scheduler 契约</a
+        >
       </li>
       <li>
         <a

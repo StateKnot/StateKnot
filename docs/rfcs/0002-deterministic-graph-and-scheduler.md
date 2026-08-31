@@ -406,8 +406,11 @@ watchdog, commits node completion and Continue barriers, and returns typed
 lease-bound handoffs when complete Wait/Terminal/failure metadata belongs to the
 lifecycle layer.
 Deferred-only plans commit an indexed database-time wakeup while atomically
-releasing the exact lease. Cross-tenant fairness, lifecycle handoff handling,
-and parallel sibling scheduling remain required before this RFC is accepted.
+releasing the exact lease. Typed lifecycle handoff handling and one
+tenant-scoped stable-snapshot scheduler worker are now implemented with bounded
+lost-ack recovery. Cross-tenant fairness with a starvation bound, global
+admission, and parallel sibling scheduling remain required before this RFC is
+accepted.
 
 ## Wait, resume, and cancellation
 
