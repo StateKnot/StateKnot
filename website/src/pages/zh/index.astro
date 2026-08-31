@@ -1,0 +1,249 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import ArchitectureMap from "../../components/ArchitectureMap.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const currentCut = [
+  {
+    surface: "Core 领域合约",
+    state: "已实现切片",
+    evidence: "Canonical、类型安全、受安全边界约束的值",
+    href: "https://github.com/StateKnot/StateKnot/tree/main/crates/stateknot-core",
+  },
+  {
+    surface: "PostgreSQL Store",
+    state: "已实现切片",
+    evidence: "强制 PostgreSQL 16 与 17 CI Matrix",
+    href: "https://github.com/StateKnot/StateKnot/tree/main/crates/stateknot-store-postgres",
+  },
+  {
+    surface: "恢复规划器",
+    state: "已实现切片",
+    evidence: "Fence-bound Planning 与 Durable-start Handoff",
+    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/postgresql-provider.md",
+  },
+  {
+    surface: "可运行 Agent Loop",
+    state: "尚未发布",
+    evidence: "完整 Recovery/Dispatch Path 尚未闭合",
+    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md",
+  },
+  {
+    surface: "MCP 与 A2A Adapter",
+    state: "尚未发布",
+    evidence: "属于 v1 范围，Wire Boundary 仍在规划",
+    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/v1-scope.md",
+  },
+];
+
+const roadmap = [
+  {
+    index: "01",
+    state: "现在",
+    title: "闭合耐久执行路径",
+    body: "在现有恢复证据之上完成 Route、Reducer、Successor、Retry Wakeup 与 Barrier Dispatch 语义。",
+  },
+  {
+    index: "02",
+    state: "下一步",
+    title: "交付可运行 Agent Loop",
+    body: "把 Model 与 Tool 执行绑定到 Durable Attempt，不削弱 Core 合约，也不跨外部工作持有数据库事务。",
+  },
+  {
+    index: "03",
+    state: "规划中",
+    title: "增加协议 Adapter",
+    body: "把 MCP 与 A2A Wire Model 显式映射到版本化内部类型，并在 Admission 阶段执行 Policy 与 Tenant 边界。",
+  },
+  {
+    index: "04",
+    state: "v1 前",
+    title: "发布验证证据",
+    body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
+  },
+];
+---
+
+<BaseLayout locale="zh-CN">
+  <SiteHeader locale="zh-CN" />
+
+  <main id="main-content" tabindex="-1">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="hero-status">Pre-alpha · 尚无稳定公开 API</p>
+          <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
+          <p class="hero-lede">
+            StateKnot 正围绕明确的耐久合约，构建类型化 Graph 执行与
+            PostgreSQL-backed Recovery。Runtime Loop 与协议 Adapter 仍在开发。
+          </p>
+          <div class="hero-actions">
+            <a class="button button--primary affordance" href="/zh/docs/"
+              >阅读文档</a
+            >
+            <a
+              class="text-link affordance"
+              href="https://github.com/StateKnot/StateKnot"
+            >
+              查看源码 <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
+
+        <figure class="hero-terminal" aria-labelledby="terminal-caption">
+          <figcaption id="terminal-caption">仓库验证</figcaption>
+          <pre
+            tabindex="0"
+            aria-label="仓库验证：Workspace 测试、PostgreSQL 16 与 17 Store 集成测试、Apache-2.0 许可证、pre-alpha 状态"><code><span class="code-muted">$</span> <span aria-hidden="true" data-type-line data-text="cargo test --workspace --all-targets --all-features --locked">cargo test --workspace --all-targets --all-features --locked</span>
+
+<span class="code-muted">$</span> cargo test -p stateknot-store-postgres \
+    --test postgres --locked
+
+<span class="code-key">CI matrix</span>  PostgreSQL 16 / 17
+<span class="code-key">License</span>    Apache-2.0
+<span class="code-key">Status</span>     <span class="code-accent">pre-alpha</span></code></pre>
+        </figure>
+      </div>
+    </section>
+
+    <section
+      class="section architecture-section"
+      id="architecture"
+      aria-labelledby="architecture-title"
+    >
+      <div class="section-head">
+        <h2 id="architecture-title">架构由一组证据边界组成。</h2>
+        <p>
+          Wire Protocol
+          留在稳定领域模型之外，外部工作留在数据库事务之外；恢复决策只来自有界且通过完整性校验的事实。
+        </p>
+      </div>
+      <ArchitectureMap locale="zh-CN" />
+    </section>
+
+    <section
+      class="section current-section"
+      id="current-cut"
+      aria-labelledby="current-title"
+    >
+      <div class="section-head section-head--narrow">
+        <h2 id="current-title">如实展示当前实现。</h2>
+        <p>
+          “已实现”只代表 pre-alpha 仓库中已经存在代码，不代表 API
+          稳定或框架已经可以投入生产。
+        </p>
+      </div>
+
+      <div class="spec-head" aria-hidden="true">
+        <span>能力边界</span><span>仓库状态</span><span>证据</span><span
+          >源码</span
+        >
+      </div>
+      <ul class="spec-list">
+        {
+          currentCut.map((item) => (
+            <li class="spec-row">
+              <strong>{item.surface}</strong>
+              <span>{item.state}</span>
+              <span>{item.evidence}</span>
+              <a
+                class="spec-link affordance"
+                href={item.href}
+                aria-label={`查看 ${item.surface} 源码`}
+              >
+                查看 <span aria-hidden="true">↗</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section
+      class="quickstart"
+      id="quickstart"
+      aria-labelledby="quickstart-title"
+    >
+      <div class="quickstart-inner">
+        <div class="quickstart-copy">
+          <h2 id="quickstart-title">相信项目声明前，先验证仓库。</h2>
+          <p>
+            Facade Crate 有意保持未发布状态。当前真实的 Quickstart
+            面向审查实现及其故障语义的贡献者。
+          </p>
+          <a class="dark-link affordance" href="/zh/docs/getting-started/">
+            打开贡献者教程 <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <div class="quickstart-code">
+          <div class="code-label-row">
+            <span>Shell · 贡献者 Checkout</span>
+            <button
+              class="copy-button affordance"
+              type="button"
+              data-copy-button
+              data-copy-target="zh-quickstart-code"
+              data-copy-idle="复制"
+              data-copy-loading="复制中"
+              data-copy-success="已复制"
+              data-copy-error="复制失败"
+            >
+              <span data-copy-label aria-live="polite">复制</span>
+            </button>
+          </div>
+          <pre
+            id="zh-quickstart-code"
+            tabindex="0"
+            aria-label="贡献者快速开始命令"><code>git clone https://github.com/StateKnot/StateKnot.git
+cd StateKnot
+cargo fmt --all --check
+cargo test --workspace --all-targets --all-features --locked</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="section roadmap-section"
+      id="roadmap"
+      aria-labelledby="roadmap-title"
+    >
+      <div class="section-head section-head--narrow">
+        <h2 id="roadmap-title">开发顺序由证据决定。</h2>
+        <p>
+          一条端到端耐久路径必须先在 Crash、Retry、Stale Worker 与 Lost ACK
+          中存活，然后才扩展协议广度。
+        </p>
+      </div>
+
+      <ol class="roadmap-list">
+        {
+          roadmap.map((item) => (
+            <li class="roadmap-item">
+              <span class="roadmap-index" aria-hidden="true">
+                {item.index}
+              </span>
+              <div>
+                <>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </>
+              </div>
+              <span class="roadmap-state">{item.state}</span>
+            </li>
+          ))
+        }
+      </ol>
+
+      <a class="text-link affordance" href="/zh/docs/status/">
+        查看完整实现状态 <span aria-hidden="true">→</span>
+      </a>
+    </section>
+  </main>
+
+  <SiteFooter locale="zh-CN" />
+</BaseLayout>

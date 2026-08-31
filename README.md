@@ -11,6 +11,9 @@ SPDX-License-Identifier: Apache-2.0
 
 **Durable agent orchestration for Rust.**
 
+[Website](https://stknot.com) · [English documentation](https://stknot.com/docs/) ·
+[中文文档](https://stknot.com/zh/docs/)
+
 StateKnot is an open-source Rust framework under development for building typed,
 durable, observable, and protocol-native agent systems. It is designed as a
 Rust-native runtime rather than a line-by-line port of a Python agent framework.
@@ -131,7 +134,7 @@ crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
-website/                 Public Astro site, browser tests, and Caddy deployment
+website/                 Bilingual Astro docs, browser tests, and Caddy deployment
 .github/                 Contribution templates and automated quality gates
 ```
 

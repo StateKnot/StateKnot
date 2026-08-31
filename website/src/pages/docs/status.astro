@@ -1,0 +1,120 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const capabilities = [
+  {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Core domain contracts",
+    body: "Bounded canonical types for agents, models, tools, graph checkpoints, invocations, waits, outbox delivery, attempts, and recovery.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "PostgreSQL durability slice",
+    body: "PostgreSQL 16/17 migrations, journal, checkpoints, leases, invocation ledgers, pending results, barriers, outbox, durable waits, quarantine, and ready-node recovery planning.",
+  },
+  {
+    state: "Active work",
+    className: "status-active",
+    title: "Durable graph execution path",
+    body: "Pinned graph revalidation, route and reducer evaluation, successor computation, delayed retry wakeup, and complete barrier driving.",
+  },
+  {
+    state: "Not shipped",
+    className: "status-planned",
+    title: "Runnable Agent API",
+    body: "No stable first-agent API, provider-backed loop, or end-user quickstart is claimed yet.",
+  },
+  {
+    state: "Not shipped",
+    className: "status-planned",
+    title: "MCP and A2A adapters",
+    body: "Both protocols are in v1 scope, but protocol-specific wire adapters and conformance evidence have not shipped.",
+  },
+  {
+    state: "Not shipped",
+    className: "status-planned",
+    title: "Production server and operations",
+    body: "HTTP/SSE roles, authentication, policy, observability, role isolation, retention, failover, restore, OCI delivery, and release qualification remain ahead.",
+  },
+];
+---
+
+<DocsLayout
+  title="Read implementation status before API shape."
+  description="StateKnot is pre-alpha: implemented durability evidence is substantial, while the public runtime, protocol adapters, and production release boundary remain unfinished."
+  section="Implementation status"
+>
+  <section aria-labelledby="status-matrix-title">
+    <h2 id="status-matrix-title">Capability matrix</h2>
+    <ul class="status-list">
+      {
+        capabilities.map((capability) => (
+          <li class="status-item">
+            <span class:list={["status-badge", capability.className]}>
+              {capability.state}
+            </span>
+            <div>
+              <h3>{capability.title}</h3>
+              <p>{capability.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section aria-labelledby="claim-title">
+    <h2 id="claim-title">What “implemented” means</h2>
+    <p>
+      Code and executable tests exist in the repository. It does not mean the
+      API is stable, the crate is published, operational release gates pass, or
+      compatibility support has started. A v1 capability is supported only when
+      implementation, tests, documentation, compatibility evidence, and release
+      gates ship together.
+    </p>
+  </section>
+
+  <section aria-labelledby="next-proof-title">
+    <h2 id="next-proof-title">The next proof boundary</h2>
+    <p>
+      The next runtime milestone is one end-to-end durable Agent slice: graph
+      admission, model and tool execution, PostgreSQL-backed recovery, barrier
+      advancement, and an executable example whose tutorial is tested in CI.
+      Protocol breadth follows that recovered path rather than preceding it.
+    </p>
+  </section>
+
+  <section aria-labelledby="source-status-title">
+    <h2 id="source-status-title">Normative project sources</h2>
+    <ul>
+      <li>
+        <a
+          href="https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md"
+          >Roadmap and milestone exit criteria</a
+        >
+      </li>
+      <li>
+        <a
+          href="https://github.com/StateKnot/StateKnot/blob/main/docs/v1-scope.md"
+          >v1 scope and explicit exclusions</a
+        >
+      </li>
+      <li>
+        <a
+          href="https://github.com/StateKnot/StateKnot/tree/main/docs/scenarios"
+          >Qualification scenarios</a
+        >
+      </li>
+      <li>
+        <a href="https://github.com/StateKnot/StateKnot/tree/main/docs/rfcs"
+          >Draft RFCs</a
+        >
+      </li>
+    </ul>
+  </section>
+</DocsLayout>

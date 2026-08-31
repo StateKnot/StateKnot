@@ -3,29 +3,49 @@
 // SPDX-License-Identifier: Apache-2.0
 
 const year = new Date().getUTCFullYear();
+import { localizePath, localeFromPath, type Locale } from "../data/i18n";
+
+interface Props {
+  locale?: Locale;
+  variant?: "statement" | "compact";
+}
+
+const locale = Astro.props.locale ?? localeFromPath(Astro.url.pathname);
+const variant = Astro.props.variant ?? "statement";
+const isChinese = locale === "zh-CN";
 ---
 
-<footer class="site-footer">
+<footer class:list={["site-footer", `site-footer--${variant}`]}>
   <div class="footer-inner">
-    <p class="footer-statement">
-      State should survive the process that owns it.
-    </p>
+    {
+      variant === "statement" && (
+        <p class="footer-statement">
+          {isChinese
+            ? "状态应该比承载它的进程活得更久。"
+            : "State should survive the process that owns it."}
+        </p>
+      )
+    }
     <div class="footer-close">
       <p>StateKnot · Apache-2.0 · {year}</p>
-      <nav aria-label="Footer navigation">
+      <nav aria-label={isChinese ? "页脚导航" : "Footer navigation"}>
+        <a class="footer-link affordance" href={localizePath("/docs/", locale)}
+          >{isChinese ? "文档" : "Docs"}</a
+        >
         <a
           class="footer-link affordance"
-          href="https://github.com/StateKnot/StateKnot">Source</a
+          href="https://github.com/StateKnot/StateKnot"
+          >{isChinese ? "源码" : "Source"}</a
         >
         <a
           class="footer-link affordance"
           href="https://github.com/StateKnot/StateKnot/blob/main/LICENSE"
-          >License</a
+          >{isChinese ? "许可证" : "License"}</a
         >
         <a
           class="footer-link affordance"
           href="https://github.com/StateKnot/StateKnot/security/policy"
-          >Security</a
+          >{isChinese ? "安全" : "Security"}</a
         >
       </nav>
     </div>

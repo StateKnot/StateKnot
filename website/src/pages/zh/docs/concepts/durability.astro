@@ -1,0 +1,106 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../../layouts/DocsLayout.astro";
+
+const evidenceSteps = [
+  {
+    term: "Journal",
+    body: "Append-only Canonical Fact 用于证明哪些事实已经权威生效，以及它们在 Run 内的精确顺序。",
+  },
+  {
+    term: "Checkpoint",
+    body: "不可变 Graph/State 快照绑定精确 Journal Head 与父 Checkpoint。",
+  },
+  {
+    term: "Lease 与 Fence",
+    body: "数据库时钟 Lease 授予临时所有权；每次 Worker 写入都重复校验单调递增的 Fencing Epoch。",
+  },
+  {
+    term: "Invocation Ledger",
+    body: "Model/Tool Intent、物理 Attempt、终态证据与未知外部效果不会随进程丢失。",
+  },
+  {
+    term: "Pending Result",
+    body: "一个逻辑 Node Result 在 Barrier 前提交；即使兄弟节点或 Worker 崩溃，它仍可被复用。",
+  },
+  {
+    term: "Barrier",
+    body: "完整且 Canonical 排序的 Result Set 会原子地生成后继 Checkpoint，并消费相应 Pending Result。",
+  },
+];
+---
+
+<DocsLayout
+  title="耐久执行依赖证据，而不是进程内存。"
+  description="StateKnot 将逻辑工作、物理所有权、外部效果与权威 Graph State 明确分离。"
+  section="耐久执行模型"
+  locale="zh-CN"
+>
+  <section aria-labelledby="why-title">
+    <h2 id="why-title">为什么需要这些边界</h2>
+    <p>
+      Agent 工作会跨越数据库、模型供应商、工具、人工处理和远端
+      Agent。进程崩溃无法证明一个外部请求是否执行，内存中的 Future
+      也不能授权替代 Worker。因此 StateKnot
+      会持久化下一步决策所需的证据，同时不虚构所有副作用都是 Exactly-once。
+    </p>
+  </section>
+
+  <section aria-labelledby="evidence-title">
+    <h2 id="evidence-title">证据链</h2>
+    <ol class="evidence-list">
+      {
+        evidenceSteps.map((step) => (
+          <li>
+            <>
+              <h3>{step.term}</h3>
+              <p>{step.body}</p>
+            </>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section aria-labelledby="identity-title">
+    <h2 id="identity-title">逻辑身份不等于 Worker 身份</h2>
+    <p>
+      一个 Node Activation 属于精确的 Tenant、Run、Graph Namespace、Superstep 与
+      Node。物理 <code>AttemptId</code> 及其 Worker <code>FencingEpoch</code> 记录谁尝试执行该逻辑工作。恢复过程可以替换物理
+      Attempt，但不会改变 Result 顺序或暗中创建新的逻辑 Invocation。
+    </p>
+  </section>
+
+  <section aria-labelledby="transaction-title">
+    <h2 id="transaction-title">数据库事务中绝不执行外部工作</h2>
+    <p>
+      StateKnot 先提交 Intent 或 Attempt Start，关闭事务，再调度
+      Model、Tool、A2A
+      或人工工作。返回的证据在后续事务中提交。这既避免长期持有数据库锁，也让每个崩溃边界明确可审计。
+    </p>
+    <blockquote>
+      数据库变更 Exactly-once 并不等于现实世界副作用 Exactly-once。Tool
+      在支持时使用 Idempotency Key；无法证明完成状态时保留明确的 Unknown
+      Outcome。
+    </blockquote>
+  </section>
+
+  <section aria-labelledby="recovery-title">
+    <h2 id="recovery-title">当前恢复逻辑能够做出的决策</h2>
+    <p>
+      已实现的 Ready-node Planner 会在同一个有效 Fence 下验证当前 Root
+      Checkpoint、Journal Observation、Pending Result 和完整 Attempt
+      History，并将每个 Ready Node 分类为
+      Completed、Dispatchable、Deferred、In-flight、Failed 或 Exhausted；Node
+      代码启动前必须先提交 Durable Attempt Start。
+    </p>
+    <p>
+      加载锁定的可执行 Graph、独立重算 Ready Set、执行 Reducer/Route
+      与驱动完整后继 Barrier Loop 仍在开发。构建依赖前请查看<a
+        href="/zh/docs/status/">实现状态</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

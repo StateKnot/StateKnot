@@ -5,9 +5,12 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot website
 
-The public website is an Astro static build. It deliberately describes the
-repository as pre-alpha and separates implemented slices from in-progress and
-planned work.
+The public website is a bilingual Astro static build. English is served from
+`/` and `/docs/`; Simplified Chinese is served from `/zh/` and `/zh/docs/`.
+Every published documentation route has an equivalent route in both languages,
+with an explicit language switch instead of an automatic locale redirect. The
+site deliberately describes the repository as pre-alpha and separates
+implemented slices from in-progress and planned work.
 
 ## Local development
 
@@ -25,8 +28,14 @@ npx playwright install chromium
 npm run verify
 ```
 
-`SITE_URL` is optional during local development. Set it to the final public
-origin during a production build so Astro emits canonical URLs.
+Canonical, Open Graph, and language-alternate URLs default to
+`https://stknot.com`. `SITE_URL` may override that origin for a preview or an
+alternate deployment.
+
+The browser suite checks English/Chinese route parity, canonical and `hreflang`
+metadata, internal-link resolution, localized command search and copy feedback,
+WCAG automated checks, contrast, responsive behavior at 320/375/414/768 pixels,
+and both language-specific error templates.
 
 ## Deployment
 

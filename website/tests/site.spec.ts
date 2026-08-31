@@ -2,11 +2,103 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const responsiveAuditWidths = [
   320, 360, 375, 414, 639, 640, 767, 768, 959, 960, 1279, 1280, 1440, 1920,
 ] as const;
+
+const localizedRoutePairs = [
+  {
+    en: "/",
+    zh: "/zh/",
+    enHeading: "Durable agent orchestration, written for Rust.",
+    zhHeading: "为 Rust 而生的耐久 Agent 编排。",
+  },
+  {
+    en: "/docs/",
+    zh: "/zh/docs/",
+    enHeading: "Documentation that follows the code.",
+    zhHeading: "文档必须跟得上代码。",
+  },
+  {
+    en: "/docs/getting-started/",
+    zh: "/zh/docs/getting-started/",
+    enHeading: "Validate StateKnot locally.",
+    zhHeading: "在本地验证 StateKnot。",
+  },
+  {
+    en: "/docs/concepts/durability/",
+    zh: "/zh/docs/concepts/durability/",
+    enHeading: "Durability is evidence, not process memory.",
+    zhHeading: "耐久执行依赖证据，而不是进程内存。",
+  },
+  {
+    en: "/docs/postgresql/",
+    zh: "/zh/docs/postgresql/",
+    enHeading: "Operate the PostgreSQL durability provider.",
+    zhHeading: "运维 PostgreSQL 耐久化 Provider。",
+  },
+  {
+    en: "/docs/status/",
+    zh: "/zh/docs/status/",
+    enHeading: "Read implementation status before API shape.",
+    zhHeading: "判断 API 形态前，先看实现状态。",
+  },
+] as const;
+
+const contentRoutes = localizedRoutePairs.flatMap(({ en, zh }) => [en, zh]);
+
+const auditHorizontalLayout = async (page: Page): Promise<void> => {
+  const dimensions = await page.evaluate(() => {
+    const viewport = document.documentElement.clientWidth;
+    const offenders = Array.from(document.querySelectorAll<HTMLElement>("*"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const overflowX = getComputedStyle(element).overflowX;
+        return {
+          selector: `${element.tagName.toLowerCase()}.${element.className}`,
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+          overflowX,
+        };
+      })
+      .filter(
+        ({ left, right, scrollWidth, clientWidth, overflowX }) =>
+          left < 0 ||
+          right > viewport ||
+          (scrollWidth > clientWidth && overflowX === "visible"),
+      )
+      .slice(0, 12);
+
+    return {
+      body: document.body.scrollWidth,
+      root: document.documentElement.scrollWidth,
+      viewport,
+      offenders,
+    };
+  });
+
+  const overflowDetails = JSON.stringify(dimensions.offenders, null, 2);
+  expect(dimensions.body, overflowDetails).toBeLessThanOrEqual(
+    dimensions.viewport,
+  );
+  expect(dimensions.root, overflowDetails).toBeLessThanOrEqual(
+    dimensions.viewport,
+  );
+
+  const wrappedAffordances = await page
+    .locator(".affordance")
+    .evaluateAll((nodes) =>
+      nodes
+        .filter((node) => !node.hasAttribute("hidden"))
+        .filter((node) => getComputedStyle(node).whiteSpace !== "nowrap")
+        .map((node) => node.textContent?.trim()),
+    );
+  expect(wrappedAffordances).toEqual([]);
+};
 
 test("homepage exposes honest implementation status and semantic structure", async ({
   page,
@@ -35,55 +127,61 @@ for (const width of responsiveAuditWidths) {
   test(`has no horizontal page overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
+    await auditHorizontalLayout(page);
+  });
+}
 
-    const dimensions = await page.evaluate(() => {
-      const viewport = document.documentElement.clientWidth;
-      const offenders = Array.from(document.querySelectorAll<HTMLElement>("*"))
-        .map((element) => {
-          const rect = element.getBoundingClientRect();
-          const overflowX = getComputedStyle(element).overflowX;
-          return {
-            selector: `${element.tagName.toLowerCase()}.${element.className}`,
-            left: Math.round(rect.left),
-            right: Math.round(rect.right),
-            scrollWidth: element.scrollWidth,
-            clientWidth: element.clientWidth,
-            overflowX,
-          };
-        })
-        .filter(
-          ({ left, right, scrollWidth, clientWidth, overflowX }) =>
-            left < 0 ||
-            right > viewport ||
-            (scrollWidth > clientWidth && overflowX === "visible"),
-        )
-        .slice(0, 12);
-
-      return {
-        body: document.body.scrollWidth,
-        root: document.documentElement.scrollWidth,
-        viewport,
-        offenders,
-      };
+for (const route of [
+  "/docs/",
+  "/docs/getting-started/",
+  "/zh/",
+  "/zh/docs/getting-started/",
+] as const) {
+  for (const width of [320, 375, 414, 768] as const) {
+    test(`${route} is responsive at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(route);
+      await auditHorizontalLayout(page);
     });
+  }
+}
 
-    const overflowDetails = JSON.stringify(dimensions.offenders, null, 2);
-    expect(dimensions.body, overflowDetails).toBeLessThanOrEqual(
-      dimensions.viewport,
+for (const route of localizedRoutePairs) {
+  test(`${route.en} and ${route.zh} are equivalent localized routes`, async ({
+    page,
+  }) => {
+    await page.goto(route.en);
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      route.enHeading,
     );
-    expect(dimensions.root, overflowDetails).toBeLessThanOrEqual(
-      dimensions.viewport,
+    await expect(page.locator(".language-link")).toHaveAttribute(
+      "href",
+      route.zh,
     );
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      new URL(route.en, "https://stknot.com").href,
+    );
+    await expect(
+      page.locator('link[rel="alternate"][hreflang="zh-CN"]'),
+    ).toHaveAttribute("href", new URL(route.zh, "https://stknot.com").href);
 
-    const wrappedAffordances = await page
-      .locator(".affordance")
-      .evaluateAll((nodes) =>
-        nodes
-          .filter((node) => !node.hasAttribute("hidden"))
-          .filter((node) => getComputedStyle(node).whiteSpace !== "nowrap")
-          .map((node) => node.textContent?.trim()),
-      );
-    expect(wrappedAffordances).toEqual([]);
+    await page.goto(route.zh);
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      route.zhHeading,
+    );
+    await expect(page.locator(".language-link")).toHaveAttribute(
+      "href",
+      route.en,
+    );
+    await expect(
+      page.locator('link[rel="alternate"][hreflang="en"]'),
+    ).toHaveAttribute("href", new URL(route.en, "https://stknot.com").href);
+    await expect(
+      page.locator('link[rel="alternate"][hreflang="x-default"]'),
+    ).toHaveAttribute("href", new URL(route.en, "https://stknot.com").href);
   });
 }
 
@@ -99,7 +197,7 @@ test("command palette supports keyboard navigation and restores focus", async ({
   await expect(dialog).toBeVisible();
   await expect(input).toBeFocused();
 
-  await input.fill("road");
+  await input.fill("qualified v1");
   await expect(page.locator("[data-command-count]")).toHaveText("1 result");
   await page.keyboard.press("Enter");
   await expect(dialog).not.toBeVisible();
@@ -112,6 +210,19 @@ test("command palette supports keyboard navigation and restores focus", async ({
   await expect(trigger).toBeFocused();
 });
 
+test("Chinese command palette searches localized content", async ({ page }) => {
+  await page.goto("/zh/");
+  const dialog = page.locator("[data-command-dialog]");
+  const input = page.locator("[data-command-input]");
+
+  await page.keyboard.press("Control+K");
+  await expect(dialog).toBeVisible();
+  await input.fill("快速开始");
+  await expect(page.locator("[data-command-count]")).toHaveText("1 项结果");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/zh\/docs\/getting-started\/$/);
+});
+
 test("command palette becomes a mobile sheet", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
@@ -122,19 +233,62 @@ test("command palette becomes a mobile sheet", async ({ page }) => {
     .toEqual({ x: 0, y: 0, width: 375, height: 812 });
 });
 
-test("homepage has no detectable accessibility violations", async ({
+for (const route of contentRoutes) {
+  test(`${route} has no detectable accessibility violations`, async ({
+    page,
+  }) => {
+    await page.goto(route);
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+}
+
+test("documentation navigation adapts without losing current-page state", async ({
   page,
 }) => {
-  await page.goto("/");
-  const results = await new AxeBuilder({ page }).analyze();
-  expect(results.violations).toEqual([]);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/docs/postgresql/");
+  await expect(page.locator(".docs-nav-disclosure")).toBeVisible();
+  await expect(page.locator(".docs-nav--desktop")).toBeHidden();
+  await page.locator(".docs-nav-disclosure summary").click();
+  await expect(
+    page.locator('.docs-nav--mobile [aria-current="page"]'),
+  ).toHaveText("PostgreSQL provider");
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.locator(".docs-nav-disclosure")).toBeHidden();
+  await expect(page.locator(".docs-nav--desktop")).toBeVisible();
+  await expect(
+    page.locator('.docs-nav--desktop [aria-current="page"]'),
+  ).toHaveText("PostgreSQL provider");
+});
+
+test("every localized internal link resolves", async ({ page, request }) => {
+  const checked = new Set<string>();
+
+  for (const route of contentRoutes) {
+    await page.goto(route);
+    const hrefs = await page
+      .locator('a[href^="/"]')
+      .evaluateAll((links) =>
+        links
+          .map((link) => link.getAttribute("href"))
+          .filter((href): href is string => Boolean(href)),
+      );
+
+    for (const href of hrefs) {
+      const path = new URL(href, "http://127.0.0.1:4399").pathname;
+      if (checked.has(path)) continue;
+      checked.add(path);
+      const response = await request.get(path);
+      expect(response.status(), `${route} links to ${path}`).toBeLessThan(400);
+    }
+  }
 });
 
 test("visible text and critical interaction colors meet WCAG contrast", async ({
   page,
 }) => {
-  await page.goto("/");
-
   const auditContrast = async () =>
     page.evaluate(() => {
       type Rgba = { red: number; green: number; blue: number; alpha: number };
@@ -284,9 +438,13 @@ test("visible text and critical interaction colors meet WCAG contrast", async ({
       return failures;
     });
 
-  expect(await auditContrast()).toEqual([]);
-  await page.locator("[data-command-open]").click();
-  expect(await auditContrast()).toEqual([]);
+  for (const route of ["/", "/docs/", "/zh/", "/zh/docs/status/"] as const) {
+    await page.goto(route);
+    expect(await auditContrast(), route).toEqual([]);
+    await page.locator("[data-command-open]").click();
+    expect(await auditContrast(), `${route} command palette`).toEqual([]);
+    await page.keyboard.press("Escape");
+  }
 });
 
 test("hero actions fit within a 13-inch laptop fold", async ({ page }) => {
@@ -306,6 +464,15 @@ test("copy action reports completion without a redundant toast", async ({
 
   await copyButton.click();
   await expect(copyButton).toHaveText("Copied");
+  await expect(page.locator("[role='status']")).toHaveCount(0);
+});
+
+test("copy action localizes its state feedback", async ({ page }) => {
+  await page.goto("/zh/docs/");
+  const copyButton = page.locator("[data-copy-button]").first();
+
+  await copyButton.click();
+  await expect(copyButton).toHaveText("已复制");
   await expect(page.locator("[role='status']")).toHaveCount(0);
 });
 
@@ -339,4 +506,19 @@ test("404 page gives a recovery action", async ({ page }) => {
     }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Return home" })).toBeVisible();
+});
+
+test("Chinese 404 template preserves language and recovery action", async ({
+  page,
+}) => {
+  const response = await page.goto("/zh/404/");
+  expect(response?.status()).toBe(200);
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "这条路径没有耐久后继。" }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "返回首页" })).toHaveAttribute(
+    "href",
+    "/zh/",
+  );
 });

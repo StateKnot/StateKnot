@@ -14,6 +14,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Bilingual English and Simplified Chinese public documentation with localized
+  route parity, explicit language switching, canonical and `hreflang` metadata,
+  localized search, and browser gates for links, accessibility, responsive
+  layout, contrast, copy feedback, and error templates.
 - Initial Rust workspace and repository governance.
 - Architecture research, implementation plan, completeness audit, and roadmap.
 - Frozen v1 scope and production qualification scenarios with measurable load,

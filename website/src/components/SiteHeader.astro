@@ -2,62 +2,32 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-const commands = [
-  {
-    group: "On this page",
-    label: "Architecture map",
-    detail: "What exists, what is active, and what is planned",
-    href: "/#architecture",
-    search: "architecture map contracts runtime durability",
-  },
-  {
-    group: "On this page",
-    label: "Current cut",
-    detail: "Implemented slices and explicit gaps",
-    href: "/#current-cut",
-    search: "current status implemented pre-alpha gaps",
-  },
-  {
-    group: "On this page",
-    label: "Repository quickstart",
-    detail: "Clone and run the validation suite",
-    href: "/#quickstart",
-    search: "quickstart clone cargo test repository",
-  },
-  {
-    group: "On this page",
-    label: "Road ahead",
-    detail: "The path from contracts to a qualified v1",
-    href: "/#roadmap",
-    search: "roadmap next agent loop mcp a2a qualification",
-  },
-  {
-    group: "Repository",
-    label: "Source code",
-    detail: "StateKnot/StateKnot on GitHub",
-    href: "https://github.com/StateKnot/StateKnot",
-    search: "github source repository code",
-  },
-  {
-    group: "Repository",
-    label: "Architecture contracts",
-    detail: "RFCs, scope, scenarios, and operations notes",
-    href: "https://github.com/StateKnot/StateKnot/tree/main/docs",
-    search: "docs rfc architecture contracts scenarios scope",
-  },
-  {
-    group: "Repository",
-    label: "Security policy",
-    detail: "Private vulnerability reporting and support policy",
-    href: "https://github.com/StateKnot/StateKnot/security/policy",
-    search: "security vulnerability reporting policy",
-  },
-];
+import { getCommandEntries } from "../data/docs";
+import {
+  alternateLanguageLabel,
+  alternateLocalePath,
+  localizePath,
+  localeFromPath,
+  type Locale,
+} from "../data/i18n";
+
+interface Props {
+  locale?: Locale;
+}
+
+const locale = Astro.props.locale ?? localeFromPath(Astro.url.pathname);
+const isChinese = locale === "zh-CN";
+const commands = getCommandEntries(locale);
+const alternatePath = alternateLocalePath(Astro.url.pathname);
 ---
 
 <header class="site-header" data-site-header>
   <div class="header-inner">
-    <a class="brand affordance" href="/" aria-label="StateKnot home">
+    <a
+      class="brand affordance"
+      href={localizePath("/", locale)}
+      aria-label={isChinese ? "StateKnot 首页" : "StateKnot home"}
+    >
       <svg
         class="brand-mark"
         viewBox="0 0 32 32"
@@ -73,7 +43,9 @@ const commands = [
     <button
       class="search-trigger affordance"
       type="button"
-      aria-label="Search StateKnot — Control or Command K"
+      aria-label={isChinese
+        ? "搜索 StateKnot — Control 或 Command K"
+        : "Search StateKnot — Control or Command K"}
       aria-haspopup="dialog"
       aria-controls="command-palette"
       data-command-open
@@ -82,16 +54,35 @@ const commands = [
         <circle cx="11" cy="11" r="6.5"></circle>
         <path d="m16 16 4 4"></path>
       </svg>
-      <span class="search-trigger__label">Search the project</span>
+      <span class="search-trigger__label">
+        {isChinese ? "搜索项目" : "Search the project"}
+      </span>
       <span class="search-trigger__keys" aria-hidden="true">
         <kbd>⌘</kbd><kbd>K</kbd>
       </span>
     </button>
 
     <nav class="header-links" aria-label="Primary navigation">
-      <a class="header-link affordance" href="/#roadmap">Roadmap</a>
       <a
-        class="button button--primary affordance"
+        class="header-link affordance"
+        href={localizePath("/docs/", locale)}
+        aria-current={Astro.url.pathname.includes("/docs") ? "page" : undefined}
+      >
+        {isChinese ? "文档" : "Docs"}
+      </a>
+      <a
+        class="language-link affordance"
+        href={alternatePath}
+        lang={isChinese ? "en" : "zh-CN"}
+        hreflang={isChinese ? "en" : "zh-CN"}
+        aria-label={isChinese
+          ? "Switch this page to English"
+          : "切换本页到中文"}
+      >
+        {alternateLanguageLabel(locale)}
+      </a>
+      <a
+        class="button button--primary header-github affordance"
         href="https://github.com/StateKnot/StateKnot"
       >
         GitHub
@@ -114,12 +105,14 @@ const commands = [
         <path d="m16 16 4 4"></path>
       </svg>
       <label class="sr-only" for="command-input" id="command-title">
-        Search StateKnot
+        {isChinese ? "搜索 StateKnot" : "Search StateKnot"}
       </label>
       <input
         id="command-input"
         type="search"
-        placeholder="Try “recovery” or “A2A”"
+        placeholder={isChinese
+          ? "试试“恢复”或“A2A”"
+          : "Try “recovery” or “A2A”"}
         autocomplete="off"
         spellcheck="false"
         role="combobox"
@@ -129,7 +122,7 @@ const commands = [
         data-command-input
       />
       <button class="command-close affordance" type="button" data-command-close>
-        Close
+        {isChinese ? "关闭" : "Close"}
         <kbd aria-hidden="true">Esc</kbd>
       </button>
     </div>
@@ -139,7 +132,7 @@ const commands = [
     class="command-results"
     id="command-results"
     role="listbox"
-    aria-label="Search results"
+    aria-label={isChinese ? "搜索结果" : "Search results"}
     data-command-results
   >
     {
@@ -152,12 +145,12 @@ const commands = [
           aria-selected="false"
           data-command-result
           data-command-group={command.group}
-          data-command-search={`${command.label} ${command.detail} ${command.search}`}
+          data-command-search={`${command.title} ${command.description} ${command.search}`}
         >
           <span>
             <span class="command-result__group">{command.group}</span>
-            <strong>{command.label}</strong>
-            <small>{command.detail}</small>
+            <strong>{command.title}</strong>
+            <small>{command.description}</small>
           </span>
           <span class="command-result__arrow" aria-hidden="true">
             ↗
@@ -168,10 +161,11 @@ const commands = [
   </div>
 
   <div class="command-foot">
-    <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
-    <span><kbd>↵</kbd> open</span>
+    <span><kbd>↑</kbd><kbd>↓</kbd> {isChinese ? "选择" : "navigate"}</span>
+    <span><kbd>↵</kbd> {isChinese ? "打开" : "open"}</span>
     <span class="command-count" aria-live="polite" data-command-count>
-      {commands.length} results
+      {commands.length}
+      {isChinese ? "项结果" : "results"}
     </span>
   </div>
 </dialog>

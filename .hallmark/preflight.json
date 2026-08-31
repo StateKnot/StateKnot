@@ -1,14 +1,14 @@
 {
-  "date": "2026-08-30",
-  "scope": "page",
-  "project": "StateKnot public website",
+  "date": "2026-08-31",
+  "scope": "bilingual documentation site",
+  "project": "StateKnot public website and documentation",
   "signals": {
-    "design_system": null,
-    "font_stack": null,
-    "palette": null,
-    "motion_library": null,
-    "spacing_scale": null,
-    "web_framework": null
+    "design_system": "Cobalt semantic tokens in website/tokens.css",
+    "font_stack": "Space Grotesk, Inter, JetBrains Mono, CJK system fallbacks",
+    "palette": "Cobalt-tinted paper, ink, and restrained electric-blue accent",
+    "motion_library": "CSS transitions with reduced-motion fallbacks",
+    "spacing_scale": "4px-based named token scale",
+    "web_framework": "Astro 7.2.9 static output"
   },
   "preserve": [
     "Apache-2.0 project identity",
@@ -16,10 +16,10 @@
     "existing Rust repository and CI conventions"
   ],
   "introduce": [
-    "Astro static-site workspace",
-    "Cobalt design tokens",
-    "accessible command palette",
-    "responsive and accessibility regression tests",
-    "atomic Nginx deployment"
+    "English and Simplified Chinese route parity",
+    "Long Document documentation macrostructure",
+    "locale-aware navigation and command palette",
+    "canonical and hreflang metadata",
+    "responsive, link, contrast, and accessibility regression tests"
   ]
 }

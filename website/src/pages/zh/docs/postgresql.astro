@@ -1,0 +1,120 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  title="运维 PostgreSQL 耐久化 Provider。"
+  description="已实现的 Provider 面向 PostgreSQL 16 与 17，提供 Checksum 锁定迁移、安全传输默认值、有界连接池和 Fail-closed 恢复。"
+  section="PostgreSQL Provider"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="provider-boundary-title">
+    <h2 id="provider-boundary-title">Pre-alpha 运维边界</h2>
+    <p>
+      Provider 已经真实实现并具有大量测试，但尚未发布，且仍假设使用可信的
+      Server-side Pool。角色隔离的 Server Procedure、Retention、Restore
+      Qualification 与完整 Runtime Dispatch 仍是发布阻断项。
+    </p>
+  </aside>
+
+  <section aria-labelledby="sequence-title">
+    <h2 id="sequence-title">显式迁移，然后连接</h2>
+    <p>
+      迁移凭据与运行时凭据必须分离。迁移是部署动作，不是每次应用启动时隐式发生的副作用。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 当前 pre-alpha API</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-postgres-connect-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-postgres-connect-code"
+        tabindex="0"><code>use stateknot_store_postgres::&#123;PostgresStore, PostgresStoreOptions&#125;;
+
+let options = PostgresStoreOptions::default();
+PostgresStore::migrate_database(&migration_url, options.clone()).await?;
+let store = PostgresStore::connect(&runtime_url, options).await?;
+store.health_check().await?;</code></pre>
+    </div>
+    <p>
+      Schema 缺失、版本过新或过旧、迁移不完整、Checksum
+      不一致都会导致启动拒绝。不能捕获该错误后继续运行部分兼容的数据库。
+    </p>
+  </section>
+
+  <section aria-labelledby="defaults-title">
+    <h2 id="defaults-title">安全且有界的默认值</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>传输</dt><dd>
+          默认验证 TLS 证书链与主机名，URL Query 无法静默削弱该策略。
+        </dd>
+      </div>
+      <div>
+        <dt>连接池</dt><dd>
+          1–16 个连接、5 秒获取超时、10 分钟 Idle Retirement 与 30
+          分钟最大连接寿命。
+        </dd>
+      </div>
+      <div>
+        <dt>事务</dt><dd>
+          5 秒 Lock Timeout 与 15 秒 Statement
+          Timeout；无效或无界的时序关系会在连接阶段 Fail Closed。
+        </dd>
+      </div>
+      <div>
+        <dt>所有权</dt><dd>
+          Run Lease 为 30 秒，最大续租 Horizon 为 5 分钟；Outbox Network Attempt
+          使用固定、不可续租的 1 分钟 Lease。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="tls-title">
+    <h2 id="tls-title">不要随意削弱 TLS</h2>
+    <p>
+      生产环境应使用 <code>VerifyFull</code>。<code>RequireEncryption</code> 只加密但不认证
+      Server，属于明确降级；<code>Disabled</code> 仅适用于可信本地 Socket 或隔离测试网络。
+    </p>
+  </section>
+
+  <section aria-labelledby="permissions-title">
+    <h2 id="permissions-title">分离数据库角色</h2>
+    <p>
+      Migration Role 需要创建所属 Schema 与迁移表的权限。Runtime Role
+      只需要文档声明的表与 Projection 操作权限；不应获得
+      DDL，也不应获得修改或删除不可变 Journal、Checkpoint、Invocation
+      Revision、Attempt、Result 或 Consumption History 的权限。
+    </p>
+    <p>
+      精确 Grant Surface 维护在仓库的<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/postgresql-provider.md"
+        >Provider 运维文档</a
+      >中。请按实际部署版本审核，不要复制旧文章中的 Grant。
+    </p>
+  </section>
+
+  <section aria-labelledby="qualification-title">
+    <h2 id="qualification-title">验证范围与当前限制</h2>
+    <p>
+      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试，覆盖迁移、Lost
+      ACK、Fencing、损坏拒绝、并发、Rollback Injection、Outbox Recovery、Durable
+      Wait、Quarantine 与 Ready-node Planning。
+    </p>
+    <p>
+      正式生产发布仍需要角色隔离、Retention/GC、Failover/PITR
+      恢复演练、Stale-race 验证以及完整 Runtime Dispatch Loop。
+    </p>
+  </section>
+</DocsLayout>

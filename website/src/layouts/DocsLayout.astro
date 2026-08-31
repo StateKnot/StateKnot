@@ -1,0 +1,61 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsSidebar from "../components/DocsSidebar.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import BaseLayout from "./BaseLayout.astro";
+import { localizePath, localeFromPath, type Locale } from "../data/i18n";
+
+interface Props {
+  title: string;
+  description: string;
+  section: string;
+  locale?: Locale;
+}
+
+const {
+  title,
+  description,
+  section,
+  locale = localeFromPath(Astro.url.pathname),
+} = Astro.props;
+const isChinese = locale === "zh-CN";
+---
+
+<BaseLayout
+  title={`${title} — ${isChinese ? "StateKnot 文档" : "StateKnot docs"}`}
+  description={description}
+  locale={locale}
+>
+  <SiteHeader locale={locale} />
+
+  <main id="main-content" class="docs-shell" tabindex="-1">
+    <DocsSidebar currentPath={Astro.url.pathname} locale={locale} />
+
+    <article class="docs-article">
+      <nav class="docs-breadcrumb" aria-label="Breadcrumb">
+        <a class="affordance" href={localizePath("/docs/", locale)}>
+          {isChinese ? "文档" : "Docs"}
+        </a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{section}</span>
+      </nav>
+
+      <header class="docs-title">
+        <p class="docs-kicker">
+          {isChinese ? "Pre-alpha 文档" : "Pre-alpha documentation"}
+        </p>
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </header>
+
+      <div class="docs-prose">
+        <slot />
+      </div>
+    </article>
+  </main>
+
+  <SiteFooter locale={locale} variant="compact" />
+</BaseLayout>

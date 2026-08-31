@@ -1,0 +1,101 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import {
+  getDocumentationSections,
+  normalizeDocumentationPath,
+} from "../data/docs";
+import { localeFromPath, type Locale } from "../data/i18n";
+
+interface Props {
+  currentPath: string;
+  locale?: Locale;
+}
+
+const currentPath = normalizeDocumentationPath(Astro.props.currentPath);
+const locale = Astro.props.locale ?? localeFromPath(currentPath);
+const documentationSections = getDocumentationSections(locale);
+const isChinese = locale === "zh-CN";
+const currentPage = documentationSections
+  .flatMap((section) => section.pages)
+  .find((page) => page.href === currentPath);
+---
+
+<aside class="docs-sidebar" aria-label="Documentation navigation">
+  <details class="docs-nav-disclosure">
+    <summary class="affordance">
+      <span>{isChinese ? "文档" : "Documentation"}</span>
+      <span class="docs-nav-current">
+        {currentPage?.title ?? (isChinese ? "浏览" : "Browse")}
+      </span>
+      <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <path d="m6 8 4 4 4-4"></path>
+      </svg>
+    </summary>
+
+    <nav
+      class="docs-nav docs-nav--mobile"
+      aria-label={isChinese ? "文档栏目" : "Documentation sections"}
+    >
+      {
+        documentationSections.map((section) => (
+          <section
+            class="docs-nav-section"
+            aria-labelledby={`docs-nav-${section.label}`}
+          >
+            <h2 id={`docs-nav-${section.label}`}>{section.label}</h2>
+            <ul>
+              {section.pages.map((page) => {
+                const isCurrent = page.href === currentPath;
+                return (
+                  <li>
+                    <a
+                      class="docs-nav-link affordance"
+                      href={page.href}
+                      aria-current={isCurrent ? "page" : undefined}
+                    >
+                      {page.title}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))
+      }
+    </nav>
+  </details>
+
+  <nav
+    class="docs-nav docs-nav--desktop"
+    aria-label={isChinese ? "文档栏目" : "Documentation sections"}
+  >
+    {
+      documentationSections.map((section) => (
+        <section
+          class="docs-nav-section"
+          aria-labelledby={`docs-nav-desktop-${section.label}`}
+        >
+          <h2 id={`docs-nav-desktop-${section.label}`}>{section.label}</h2>
+          <ul>
+            {section.pages.map((page) => {
+              const isCurrent = page.href === currentPath;
+              return (
+                <li>
+                  <a
+                    class="docs-nav-link affordance"
+                    href={page.href}
+                    aria-current={isCurrent ? "page" : undefined}
+                  >
+                    {page.title}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))
+    }
+  </nav>
+</aside>

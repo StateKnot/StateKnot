@@ -59,6 +59,7 @@ https://stknot.com {
 
 		respond /healthz.txt 404
 		respond /404.html 404
+		respond /zh/404/index.html 404
 
 		@immutable_assets path /_astro/*
 		handle @immutable_assets {
@@ -75,8 +76,17 @@ https://stknot.com {
 	handle_errors {
 		import stateknot_security_headers
 		header Cache-Control "no-cache"
-		rewrite * /404.html
-		file_server
+
+		@zh path /zh/*
+		handle @zh {
+			rewrite * /zh/404/index.html
+			file_server
+		}
+
+		handle {
+			rewrite * /404.html
+			file_server
+		}
 	}
 
 	log {

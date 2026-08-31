@@ -22,6 +22,9 @@ const commandResults = Array.from(
 
 let visibleResults = [...commandResults];
 let activeResult = 0;
+const isChinese = document.documentElement.lang
+  .toLocaleLowerCase()
+  .startsWith("zh");
 
 const setActiveResult = (index: number): void => {
   if (!commandInput || visibleResults.length === 0) {
@@ -57,9 +60,11 @@ const filterCommands = (): void => {
     return matches;
   });
 
-  commandCount.textContent = `${visibleResults.length} ${
-    visibleResults.length === 1 ? "result" : "results"
-  }`;
+  commandCount.textContent = isChinese
+    ? `${visibleResults.length} 项结果`
+    : `${visibleResults.length} ${
+        visibleResults.length === 1 ? "result" : "results"
+      }`;
   activeResult = 0;
   setActiveResult(0);
 };
@@ -123,8 +128,9 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-const copyButton =
-  document.querySelector<HTMLButtonElement>("[data-copy-button]");
+const copyButtons = Array.from(
+  document.querySelectorAll<HTMLButtonElement>("[data-copy-button]"),
+);
 
 const copyText = async (text: string): Promise<void> => {
   if (navigator.clipboard && window.isSecureContext) {
@@ -148,33 +154,44 @@ const copyText = async (text: string): Promise<void> => {
   if (!copied) throw new Error("Clipboard copy was rejected");
 };
 
-copyButton?.addEventListener("click", async () => {
-  const label = copyButton.querySelector<HTMLElement>("[data-copy-label]");
-  const targetId = copyButton.dataset.copyTarget;
-  const target = targetId ? document.getElementById(targetId) : null;
-  if (!label || !target) return;
+for (const copyButton of copyButtons) {
+  copyButton.addEventListener("click", async () => {
+    const label = copyButton.querySelector<HTMLElement>("[data-copy-label]");
+    const targetId = copyButton.dataset.copyTarget;
+    const target = targetId ? document.getElementById(targetId) : null;
+    if (!label || !target) return;
 
-  copyButton.disabled = true;
-  copyButton.dataset.state = "loading";
-  copyButton.setAttribute("aria-busy", "true");
-  label.textContent = "Copying";
+    const idleLabel =
+      copyButton.dataset.copyIdle ?? (isChinese ? "复制" : "Copy");
+    const loadingLabel =
+      copyButton.dataset.copyLoading ?? (isChinese ? "复制中" : "Copying");
+    const successLabel =
+      copyButton.dataset.copySuccess ?? (isChinese ? "已复制" : "Copied");
+    const errorLabel =
+      copyButton.dataset.copyError ?? (isChinese ? "复制失败" : "Copy failed");
 
-  try {
-    await copyText(target.textContent ?? "");
-    copyButton.dataset.state = "success";
-    label.textContent = "Copied";
-  } catch {
-    copyButton.dataset.state = "error";
-    label.textContent = "Copy failed";
-  } finally {
-    copyButton.disabled = false;
-    copyButton.removeAttribute("aria-busy");
-    window.setTimeout(() => {
-      delete copyButton.dataset.state;
-      label.textContent = "Copy";
-    }, 2_500);
-  }
-});
+    copyButton.disabled = true;
+    copyButton.dataset.state = "loading";
+    copyButton.setAttribute("aria-busy", "true");
+    label.textContent = loadingLabel;
+
+    try {
+      await copyText(target.textContent ?? "");
+      copyButton.dataset.state = "success";
+      label.textContent = successLabel;
+    } catch {
+      copyButton.dataset.state = "error";
+      label.textContent = errorLabel;
+    } finally {
+      copyButton.disabled = false;
+      copyButton.removeAttribute("aria-busy");
+      window.setTimeout(() => {
+        delete copyButton.dataset.state;
+        label.textContent = idleLabel;
+      }, 2_500);
+    }
+  });
+}
 
 const typeLine = document.querySelector<HTMLElement>("[data-type-line]");
 const reduceMotion = window.matchMedia(

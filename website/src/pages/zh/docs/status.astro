@@ -1,0 +1,123 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const capabilities = [
+  {
+    state: "已实现",
+    className: "status-implemented",
+    title: "Core 领域合约",
+    body: "Agent、Model、Tool、Graph Checkpoint、Invocation、Wait、Outbox Delivery、Attempt 与恢复证据的有界 Canonical 类型。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
+    title: "PostgreSQL 耐久化切片",
+    body: "PostgreSQL 16/17 迁移、Journal、Checkpoint、Lease、Invocation Ledger、Pending Result、Barrier、Outbox、Durable Wait、Quarantine 与 Ready-node Recovery Planning。",
+  },
+  {
+    state: "开发中",
+    className: "status-active",
+    title: "耐久 Graph 执行路径",
+    body: "Pinned Graph Revalidation、Route/Reducer Evaluation、Successor Computation、Delayed Retry Wakeup 与完整 Barrier Driving。",
+  },
+  {
+    state: "尚未发布",
+    className: "status-planned",
+    title: "可运行 Agent API",
+    body: "目前不宣称存在稳定的 First-agent API、Provider-backed Loop 或最终用户 Quickstart。",
+  },
+  {
+    state: "尚未发布",
+    className: "status-planned",
+    title: "MCP 与 A2A Adapter",
+    body: "两个协议均在 v1 范围内，但协议 Wire Adapter 与 Conformance Evidence 尚未交付。",
+  },
+  {
+    state: "尚未发布",
+    className: "status-planned",
+    title: "生产 Server 与运维",
+    body: "HTTP/SSE Role、认证、Policy、Observability、角色隔离、Retention、Failover、Restore、OCI 交付与 Release Qualification 尚未完成。",
+  },
+];
+---
+
+<DocsLayout
+  title="判断 API 形态前，先看实现状态。"
+  description="StateKnot 仍处于 pre-alpha：耐久化证据已经有大量实现，但公开 Runtime、协议 Adapter 与生产发布边界仍未完成。"
+  section="实现状态"
+  locale="zh-CN"
+>
+  <section aria-labelledby="status-matrix-title">
+    <h2 id="status-matrix-title">能力矩阵</h2>
+    <ul class="status-list">
+      {
+        capabilities.map((capability) => (
+          <li class="status-item">
+            <>
+              <span class:list={["status-badge", capability.className]}>
+                {capability.state}
+              </span>
+              <div>
+                <>
+                  <h3>{capability.title}</h3>
+                  <p>{capability.body}</p>
+                </>
+              </div>
+            </>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section aria-labelledby="claim-title">
+    <h2 id="claim-title">“已实现”的准确含义</h2>
+    <p>
+      仓库中存在代码与可执行测试。它不代表 API 稳定、Crate
+      已发布、运维发布门禁通过或兼容性支持已经开始。一个 v1
+      能力只有在实现、测试、文档、兼容性证据与发布门禁同时交付后才算正式支持。
+    </p>
+  </section>
+
+  <section aria-labelledby="next-proof-title">
+    <h2 id="next-proof-title">下一条验证边界</h2>
+    <p>
+      下一个 Runtime 里程碑是一条端到端 Durable Agent 切片：Graph
+      Admission、Model/Tool Execution、PostgreSQL-backed Recovery、Barrier
+      Advancement，以及由 CI
+      自动验证的可执行示例与教程。协议广度会建立在这条可恢复路径之上。
+    </p>
+  </section>
+
+  <section aria-labelledby="source-status-title">
+    <h2 id="source-status-title">项目权威来源</h2>
+    <ul>
+      <li>
+        <a
+          href="https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md"
+          >路线图与里程碑退出条件</a
+        >
+      </li>
+      <li>
+        <a
+          href="https://github.com/StateKnot/StateKnot/blob/main/docs/v1-scope.md"
+          >v1 范围与明确排除项</a
+        >
+      </li>
+      <li>
+        <a
+          href="https://github.com/StateKnot/StateKnot/tree/main/docs/scenarios"
+          >验收场景</a
+        >
+      </li>
+      <li>
+        <a href="https://github.com/StateKnot/StateKnot/tree/main/docs/rfcs"
+          >RFC 草案</a
+        >
+      </li>
+    </ul>
+  </section>
+</DocsLayout>

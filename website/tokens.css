@@ -1,5 +1,6 @@
-/* Hallmark · macrostructure: Map / Diagram · theme: Cobalt · tone: technical-austere · anchor hue: electric cobalt · nav: N13 · footer: Ft5 · slop: pass (42–45) */
-/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V5 */
+/* Hallmark · macrostructure: Long Document · theme: Cobalt · tone: technical-austere · anchor hue: electric cobalt · nav: docs rail + N13 · footer: Ft2 docs / Ft5 home */
+/* Hallmark · homepage retains: Map / Diagram · bilingual routes: en + zh-CN */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 /* Hallmark · contrast: pass (40–41) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · icons: pass (30) · mobile: pass (34, 49, 50–57) */
 /* Copyright 2026 StateKnot contributors · SPDX-License-Identifier: Apache-2.0 */
 
@@ -36,8 +37,11 @@
   --color-success-soft: oklch(95% 0.025 153);
   --color-disabled: oklch(56% 0.01 255);
 
-  --font-display: "Space Grotesk Variable", "Space Grotesk", sans-serif;
-  --font-body: "Inter Variable", "Inter", sans-serif;
+  --font-display:
+    "Space Grotesk Variable", "Space Grotesk", "PingFang SC", "Microsoft YaHei",
+    sans-serif;
+  --font-body:
+    "Inter Variable", "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", monospace;
 
   --text-xs: 0.75rem;
@@ -66,6 +70,8 @@
   --page-gutter: clamp(1rem, 4vw, 4rem);
   --content-max: 90rem;
   --reading-max: 68ch;
+  --docs-reading-max: 65ch;
+  --docs-rail-width: 14rem;
 
   --rule-hair: 1px;
   --radius-xs: 0.25rem;

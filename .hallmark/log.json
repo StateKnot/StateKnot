@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-08-31",
+    "macrostructure": "Long Document",
+    "theme": "Cobalt",
+    "enrichment": "none",
+    "brief": "Bilingual StateKnot documentation portal with honest pre-alpha boundaries",
+    "navigation": "docs rail plus N13 command palette",
+    "footer": "Ft2 compact docs footer; Ft5 statement homepage footer",
+    "critique": "P5 H5 E5 S5 R5 V5",
+    "slop_test": "58 / 58 ✓"
+  },
+  {
     "date": "2026-08-30",
     "macrostructure": "Map / Diagram",
     "theme": "Cobalt",

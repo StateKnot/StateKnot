@@ -1,0 +1,136 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  title="Operate the PostgreSQL durability provider."
+  description="The implemented provider targets PostgreSQL 16 and 17 with checksum-pinned migrations, secure transport defaults, bounded pools, and fail-closed recovery."
+  section="PostgreSQL provider"
+>
+  <aside class="docs-callout" aria-labelledby="provider-boundary-title">
+    <h2 id="provider-boundary-title">Pre-alpha operational boundary</h2>
+    <p>
+      The provider is real and heavily tested, but it is unpublished and still
+      assumes a trusted server-side pool. Role-separated server procedures,
+      retention, restore qualification, and complete runtime dispatch remain
+      release blockers.
+    </p>
+  </aside>
+
+  <section aria-labelledby="sequence-title">
+    <h2 id="sequence-title">Migrate explicitly, then connect</h2>
+    <p>
+      Use separate migration and runtime credentials. Migration is a deployment
+      action, not an implicit side effect of every application startup.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · current pre-alpha API</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="postgres-connect-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="postgres-connect-code"
+        tabindex="0"><code>use stateknot_store_postgres::&#123;PostgresStore, PostgresStoreOptions&#125;;
+
+let options = PostgresStoreOptions::default();
+PostgresStore::migrate_database(&migration_url, options.clone()).await?;
+let store = PostgresStore::connect(&runtime_url, options).await?;
+store.health_check().await?;</code></pre>
+    </div>
+    <p>
+      Startup refuses missing, newer, older, incomplete, or checksum-mismatched
+      schemas. Do not catch that refusal and continue with a partially
+      compatible database.
+    </p>
+  </section>
+
+  <section aria-labelledby="defaults-title">
+    <h2 id="defaults-title">Secure and bounded defaults</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Transport</dt>
+        <dd>
+          TLS certificate and hostname verification is the default. URL query
+          parameters cannot silently weaken it.
+        </dd>
+      </div>
+      <div>
+        <dt>Pool</dt>
+        <dd>
+          1–16 connections, five-second acquire timeout, ten-minute idle
+          retirement, and thirty-minute maximum connection lifetime.
+        </dd>
+      </div>
+      <div>
+        <dt>Transactions</dt>
+        <dd>
+          Five-second lock timeout and fifteen-second statement timeout; invalid
+          or unbounded timing relationships fail during connection setup.
+        </dd>
+      </div>
+      <div>
+        <dt>Ownership</dt>
+        <dd>
+          Thirty-second run leases with a five-minute renewal horizon. Outbox
+          network attempts use a fixed, non-renewable one-minute lease.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="tls-title">
+    <h2 id="tls-title">Do not weaken TLS casually</h2>
+    <p>
+      <code>VerifyFull</code> is appropriate for production. <code
+        >RequireEncryption</code
+      >
+      encrypts without authenticating the server and is therefore a deliberate downgrade.
+      <code>Disabled</code> is only for a trusted local socket or an isolated test
+      network.
+    </p>
+  </section>
+
+  <section aria-labelledby="permissions-title">
+    <h2 id="permissions-title">Separate database roles</h2>
+    <p>
+      The migration role needs the ability to create the owned schema and
+      migration table. The runtime role needs only the documented table and
+      projection operations; it should not receive DDL or update/delete access
+      to immutable journal, checkpoint, invocation revision, attempt, result, or
+      consumption history.
+    </p>
+    <p>
+      The exact current grant surface is maintained in the repository's
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/postgresql-provider.md"
+        >provider operations document</a
+      >. Review it against the release you deploy rather than copying grants
+      from an older article.
+    </p>
+  </section>
+
+  <section aria-labelledby="qualification-title">
+    <h2 id="qualification-title">Qualification and current limits</h2>
+    <p>
+      CI runs the mandatory integration suite independently against PostgreSQL
+      16 and 17. The suite covers migrations, lost acknowledgements, fencing,
+      corruption rejection, concurrency, rollback injection, outbox recovery,
+      durable waits, quarantine, and ready-node planning.
+    </p>
+    <p>
+      Production release still requires role isolation, retention and garbage
+      collection, failover and point-in-time restore exercises, stale-race
+      qualification, and the complete runtime dispatch loop.
+    </p>
+  </section>
+</DocsLayout>

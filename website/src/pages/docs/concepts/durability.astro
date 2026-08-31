@@ -1,0 +1,110 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const evidenceSteps = [
+  {
+    term: "Journal",
+    body: "Append-only canonical facts establish what became authoritative and in which run-local order.",
+  },
+  {
+    term: "Checkpoint",
+    body: "An immutable graph and state snapshot is anchored to an exact journal head and parent checkpoint.",
+  },
+  {
+    term: "Lease and fence",
+    body: "A database-clock lease grants temporary ownership; every worker write repeats its monotonically increasing fencing epoch.",
+  },
+  {
+    term: "Invocation ledger",
+    body: "Model and tool intent, physical attempts, terminal evidence, and unknown external effects survive process loss.",
+  },
+  {
+    term: "Pending result",
+    body: "One logical node result commits before the barrier and remains reusable if a sibling or worker crashes.",
+  },
+  {
+    term: "Barrier",
+    body: "A complete canonical result set becomes one successor checkpoint and consumes its pending inputs atomically.",
+  },
+];
+---
+
+<DocsLayout
+  title="Durability is evidence, not process memory."
+  description="The StateKnot durability model separates logical work, physical ownership, external effects, and authoritative graph state."
+  section="Durability model"
+>
+  <section aria-labelledby="why-title">
+    <h2 id="why-title">Why the boundaries exist</h2>
+    <p>
+      Agent work crosses databases, model providers, tools, humans, and remote
+      agents. A process crash cannot prove whether an external request ran, and
+      an in-memory future cannot authorize a replacement worker. StateKnot
+      therefore records the evidence needed to make the next decision without
+      pretending that every side effect is exactly once.
+    </p>
+  </section>
+
+  <section aria-labelledby="evidence-title">
+    <h2 id="evidence-title">The evidence chain</h2>
+    <ol class="evidence-list">
+      {
+        evidenceSteps.map((step) => (
+          <li>
+            <h3>{step.term}</h3>
+            <p>{step.body}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section aria-labelledby="identity-title">
+    <h2 id="identity-title">Logical identity is not worker identity</h2>
+    <p>
+      A node activation belongs to an exact tenant, run, graph namespace,
+      superstep, and node. A physical <code>AttemptId</code> and its worker
+      <code>FencingEpoch</code> describe who tried to execute that logical work. Recovery
+      may replace the physical attempt without changing result order or silently creating
+      another logical invocation.
+    </p>
+  </section>
+
+  <section aria-labelledby="transaction-title">
+    <h2 id="transaction-title">
+      External work never runs inside a database transaction
+    </h2>
+    <p>
+      StateKnot commits intent or an attempt start, closes the transaction, and
+      only then dispatches model, tool, A2A, or human work. The returned
+      evidence is committed in a later transaction. This prevents long-held
+      database locks while keeping crash boundaries explicit.
+    </p>
+    <blockquote>
+      Exactly-once database mutation does not imply exactly-once real-world side
+      effects. Tools use idempotency keys where supported and preserve an
+      explicit unknown outcome when completion cannot be proven.
+    </blockquote>
+  </section>
+
+  <section aria-labelledby="recovery-title">
+    <h2 id="recovery-title">What recovery can decide today</h2>
+    <p>
+      The implemented ready-node planner verifies the current root checkpoint,
+      journal observation, pending results, and complete attempt histories under
+      one live fence. It classifies each ready node as completed, dispatchable,
+      deferred, in flight, failed, or exhausted, then requires a durable attempt
+      start before node code can launch.
+    </p>
+    <p>
+      Loading a pinned executable graph, independently recomputing its ready
+      set, applying reducers and routes, and driving the full successor barrier
+      loop remain active runtime work. See <a href="/docs/status/"
+        >implementation status</a
+      > before building against the contracts.
+    </p>
+  </section>
+</DocsLayout>

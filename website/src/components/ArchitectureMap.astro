@@ -1,98 +1,171 @@
 ---
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
+
+import { localeFromPath, type Locale } from "../data/i18n";
+
+interface Props {
+  locale?: Locale;
+}
+
+const locale = Astro.props.locale ?? localeFromPath(Astro.url.pathname);
+const isChinese = locale === "zh-CN";
+const copy = isChinese
+  ? {
+      caption:
+        "StateKnot 架构从 Core 合约延伸到 Graph 执行、PostgreSQL 耐久化、协议 Adapter 与运维；每个节点都标明它在 pre-alpha 仓库中的实现状态。",
+      legend: "实现状态图例",
+      implemented: "已实现切片",
+      active: "开发中",
+      planned: "规划中",
+      contracts: "Core 合约",
+      typedDomain: "类型化领域模型",
+      typedDomainDetail: "Capability、Content、Identity、Scope、Budget",
+      durableFacts: "耐久事实",
+      durableFactsDetail: "Run、Journal、Checkpoint、Invocation",
+      execution: "Graph 执行",
+      barrier: "Barrier 合约",
+      barrierDetail: "不可变 Result 与后继 Checkpoint",
+      runtime: "Runtime Loop",
+      runtimeDetail: "Routing、Reducer、Dispatch、Retry Wakeup",
+      postgres: "PostgreSQL 耐久化",
+      persistence: "Fenced Persistence",
+      persistenceDetail: "Lease、Attempt、Outbox、Interrupt、Timer",
+      recovery: "恢复证据",
+      recoveryDetail: "Quarantine、有界规划、Durable Start",
+      protocols: "协议",
+      mcpDetail: "Client 与 Server 边界",
+      a2aDetail: "REST 与 JSON-RPC Client/Server",
+      operations: "运维",
+      controlPlane: "Control Plane",
+      controlPlaneDetail: "Policy、Tenancy、Budget、Graph Registry",
+      qualification: "验证体系",
+      qualificationDetail: "Telemetry、Evaluation、Compatibility、Fault",
+    }
+  : {
+      caption:
+        "StateKnot architecture from core contracts through graph execution, PostgreSQL durability, protocol adapters, and operations. Each node states whether its implementation exists in the pre-alpha repository.",
+      legend: "Implementation status legend",
+      implemented: "Implemented slice",
+      active: "In progress",
+      planned: "Planned",
+      contracts: "Core contracts",
+      typedDomain: "Typed domain",
+      typedDomainDetail: "Capabilities, content, identity, scope, budgets",
+      durableFacts: "Durable facts",
+      durableFactsDetail: "Runs, journal, checkpoints, invocations",
+      execution: "Graph execution",
+      barrier: "Barrier contracts",
+      barrierDetail: "Immutable results and successor checkpoints",
+      runtime: "Runtime loop",
+      runtimeDetail: "Routing, reducers, dispatch, retry wakeups",
+      postgres: "PostgreSQL durability",
+      persistence: "Fenced persistence",
+      persistenceDetail: "Leases, attempts, outbox, interrupts, timers",
+      recovery: "Recovery evidence",
+      recoveryDetail: "Quarantine, bounded planning, durable starts",
+      protocols: "Protocols",
+      mcpDetail: "Client and server boundaries",
+      a2aDetail: "REST and JSON-RPC client/server",
+      operations: "Operations",
+      controlPlane: "Control plane",
+      controlPlaneDetail: "Policy, tenancy, budgets, graph registry",
+      qualification: "Qualification",
+      qualificationDetail: "Telemetry, evaluation, compatibility, faults",
+    };
 ---
 
 <figure class="architecture-figure">
   <figcaption class="sr-only">
-    StateKnot architecture from core contracts through graph execution,
-    PostgreSQL durability, protocol adapters, and operations. Each node states
-    whether its implementation exists in the pre-alpha repository.
+    {copy.caption}
   </figcaption>
 
-  <div class="map-legend" aria-label="Implementation status legend">
+  <div class="map-legend" aria-label={copy.legend}>
     <span
-      ><i class="legend-mark legend-mark--implemented" aria-hidden="true"
-      ></i>Implemented slice</span
+      ><i class="legend-mark legend-mark--implemented" aria-hidden="true"></i>{
+        copy.implemented
+      }</span
     >
     <span
-      ><i class="legend-mark legend-mark--active" aria-hidden="true"></i>In
-      progress</span
+      ><i class="legend-mark legend-mark--active" aria-hidden="true"></i>{
+        copy.active
+      }</span
     >
     <span
-      ><i class="legend-mark legend-mark--planned" aria-hidden="true"
-      ></i>Planned</span
+      ><i class="legend-mark legend-mark--planned" aria-hidden="true"></i>{
+        copy.planned
+      }</span
     >
   </div>
 
   <div class="architecture-map">
     <section class="map-column" aria-labelledby="map-contracts">
-      <h3 id="map-contracts">Core contracts</h3>
+      <h3 id="map-contracts">{copy.contracts}</h3>
       <div class="map-node map-node--implemented">
-        <span class="map-node__status">Implemented slice</span>
-        <strong>Typed domain</strong>
-        <small>Capabilities, content, identity, scope, budgets</small>
+        <span class="map-node__status">{copy.implemented}</span>
+        <strong>{copy.typedDomain}</strong>
+        <small>{copy.typedDomainDetail}</small>
       </div>
       <div class="map-node map-node--implemented">
-        <span class="map-node__status">Implemented slice</span>
-        <strong>Durable facts</strong>
-        <small>Runs, journal, checkpoints, invocations</small>
+        <span class="map-node__status">{copy.implemented}</span>
+        <strong>{copy.durableFacts}</strong>
+        <small>{copy.durableFactsDetail}</small>
       </div>
     </section>
 
     <section class="map-column" aria-labelledby="map-execution">
-      <h3 id="map-execution">Graph execution</h3>
+      <h3 id="map-execution">{copy.execution}</h3>
       <div class="map-node map-node--implemented">
-        <span class="map-node__status">Implemented slice</span>
-        <strong>Barrier contracts</strong>
-        <small>Immutable results and successor checkpoints</small>
+        <span class="map-node__status">{copy.implemented}</span>
+        <strong>{copy.barrier}</strong>
+        <small>{copy.barrierDetail}</small>
       </div>
       <div class="map-node map-node--active">
-        <span class="map-node__status">In progress</span>
-        <strong>Runtime loop</strong>
-        <small>Routing, reducers, dispatch, retry wakeups</small>
+        <span class="map-node__status">{copy.active}</span>
+        <strong>{copy.runtime}</strong>
+        <small>{copy.runtimeDetail}</small>
       </div>
     </section>
 
     <section class="map-column map-column--anchor" aria-labelledby="map-store">
-      <h3 id="map-store">PostgreSQL durability</h3>
+      <h3 id="map-store">{copy.postgres}</h3>
       <div class="map-node map-node--implemented">
-        <span class="map-node__status">Implemented slice</span>
-        <strong>Fenced persistence</strong>
-        <small>Leases, attempts, outbox, interrupts, timers</small>
+        <span class="map-node__status">{copy.implemented}</span>
+        <strong>{copy.persistence}</strong>
+        <small>{copy.persistenceDetail}</small>
       </div>
       <div class="map-node map-node--implemented">
-        <span class="map-node__status">Implemented slice</span>
-        <strong>Recovery evidence</strong>
-        <small>Quarantine, bounded planning, durable starts</small>
+        <span class="map-node__status">{copy.implemented}</span>
+        <strong>{copy.recovery}</strong>
+        <small>{copy.recoveryDetail}</small>
       </div>
     </section>
 
     <section class="map-column" aria-labelledby="map-protocols">
-      <h3 id="map-protocols">Protocols</h3>
+      <h3 id="map-protocols">{copy.protocols}</h3>
       <div class="map-node map-node--planned">
-        <span class="map-node__status">Planned</span>
+        <span class="map-node__status">{copy.planned}</span>
         <strong>MCP adapters</strong>
-        <small>Client and server boundaries</small>
+        <small>{copy.mcpDetail}</small>
       </div>
       <div class="map-node map-node--planned">
-        <span class="map-node__status">Planned</span>
+        <span class="map-node__status">{copy.planned}</span>
         <strong>A2A adapters</strong>
-        <small>REST and JSON-RPC client/server</small>
+        <small>{copy.a2aDetail}</small>
       </div>
     </section>
 
     <section class="map-column" aria-labelledby="map-operations">
-      <h3 id="map-operations">Operations</h3>
+      <h3 id="map-operations">{copy.operations}</h3>
       <div class="map-node map-node--planned">
-        <span class="map-node__status">Planned</span>
-        <strong>Control plane</strong>
-        <small>Policy, tenancy, budgets, graph registry</small>
+        <span class="map-node__status">{copy.planned}</span>
+        <strong>{copy.controlPlane}</strong>
+        <small>{copy.controlPlaneDetail}</small>
       </div>
       <div class="map-node map-node--planned">
-        <span class="map-node__status">Planned</span>
-        <strong>Qualification</strong>
-        <small>Telemetry, evaluation, compatibility, faults</small>
+        <span class="map-node__status">{copy.planned}</span>
+        <strong>{copy.qualification}</strong>
+        <small>{copy.qualificationDetail}</small>
       </div>
     </section>
   </div>

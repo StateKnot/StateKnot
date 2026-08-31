@@ -1,0 +1,115 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const paths = [
+  {
+    title: "验证仓库",
+    body: "安装项目锁定的 Rust 工具链，执行与 CI 相同的格式、Lint、测试和文档门禁。",
+    href: "/zh/docs/getting-started/",
+    link: "开始本地验证",
+  },
+  {
+    title: "理解耐久执行",
+    body: "跟随一个 Run 经过 Journal、不可变 Checkpoint、Lease/Fence、Pending Result、Barrier 与恢复。",
+    href: "/zh/docs/concepts/durability/",
+    link: "阅读执行模型",
+  },
+  {
+    title: "运维 PostgreSQL",
+    body: "查看已实现 Provider 的安全默认值、迁移顺序、运维边界与强制集成测试路径。",
+    href: "/zh/docs/postgresql/",
+    link: "打开运维指南",
+  },
+  {
+    title: "核对项目声明",
+    body: "在依赖某个 API 或协议能力前，区分已实现代码、正在开发的能力与 v1 范围。",
+    href: "/zh/docs/status/",
+    link: "查看实现状态",
+  },
+];
+---
+
+<DocsLayout
+  title="文档必须跟得上代码。"
+  description="StateKnot 文档严格区分已实现证据、正在进行的设计工作，以及规划中的 v1 能力。"
+  section="文档概览"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="docs-boundary-title">
+    <h2 id="docs-boundary-title">从真实边界开始</h2>
+    <p>
+      StateKnot 还没有公开可运行的 Agent API。目前可以检查和验证 Core 合约与
+      PostgreSQL 耐久化切片；首篇面向最终用户的 Agent
+      教程会与它所执行的完整运行时路径同时发布。
+    </p>
+  </aside>
+
+  <section aria-labelledby="choose-path-title">
+    <h2 id="choose-path-title">选择阅读路径</h2>
+    <div class="docs-link-grid">
+      {
+        paths.map((path) => (
+          <article class="docs-link-card">
+            <h3>{path.title}</h3>
+            <p>{path.body}</p>
+            <a class="docs-inline-link affordance" href={path.href}>
+              {path.link} <span aria-hidden="true">→</span>
+            </a>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section aria-labelledby="docs-surface-title">
+    <h2 id="docs-surface-title">当前文档覆盖范围</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Core 合约</dt>
+        <dd>
+          Agent、Model、Tool、Run、Checkpoint、Invocation、Wait、Result
+          与恢复证据的类型安全、有界领域值。
+        </dd>
+      </div>
+      <div>
+        <dt>PostgreSQL 耐久化</dt>
+        <dd>
+          精确迁移、Journal 与 Checkpoint 完整性、Lease/Fencing、Invocation
+          Ledger、Pending Result、Barrier、耐久等待、Outbox、隔离与 Ready-node
+          恢复规划。
+        </dd>
+      </div>
+      <div>
+        <dt>架构决策</dt>
+        <dd>约束实现的 RFC 草案与验收场景；Draft 不是稳定的兼容性承诺。</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="api-reference-title">
+    <h2 id="api-reference-title">Pre-alpha 阶段的 API 文档</h2>
+    <p>
+      Crate 尚未发布，因此 docs.rs
+      还不是权威来源。请从正在审查的精确代码版本生成 API 文档：
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-docs-api-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-docs-api-command"
+        tabindex="0"><code>RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked --open</code></pre>
+    </div>
+  </section>
+</DocsLayout>

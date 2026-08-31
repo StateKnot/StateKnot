@@ -1,0 +1,114 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  title="Validate StateKnot locally."
+  description="A contributor tutorial for installing the pinned toolchain and reproducing the repository's executable quality gates."
+  section="Getting started"
+>
+  <aside class="docs-callout" aria-labelledby="tutorial-scope-title">
+    <h2 id="tutorial-scope-title">Scope of this tutorial</h2>
+    <p>
+      This validates the implementation that exists today. It is not a hidden
+      “hello agent” demo: the runnable Agent loop and provider adapters have not
+      shipped yet.
+    </p>
+  </aside>
+
+  <section aria-labelledby="prerequisites-title">
+    <h2 id="prerequisites-title">Prerequisites</h2>
+    <ul>
+      <li>Git.</li>
+      <li>
+        <a href="https://rustup.rs/">rustup</a>; the repository pins Rust 1.85.0
+        with the minimal profile, rustfmt, and Clippy.
+      </li>
+      <li>
+        PostgreSQL is optional for the fast workspace gate and required for the
+        provider integration suite.
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="checkout-title">
+    <h2 id="checkout-title">Clone and run the complete local gate</h2>
+    <p>
+      Run these commands from a clean checkout. rustup reads
+      <code>rust-toolchain.toml</code> automatically.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · repository validation</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="getting-started-commands"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="getting-started-commands"
+        tabindex="0"><code>git clone https://github.com/StateKnot/StateKnot.git
+cd StateKnot
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+cargo test --workspace --all-targets --all-features --locked
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="results-title">
+    <h2 id="results-title">Read the result correctly</h2>
+    <p>A green local gate proves that:</p>
+    <ul>
+      <li>the pinned compiler accepts every workspace target and feature;</li>
+      <li>
+        the core contract, canonical wire, property, and unit tests pass; and
+      </li>
+      <li>public Rust documentation contains no warnings.</li>
+    </ul>
+    <p>
+      It does not exercise a live PostgreSQL server, a model provider, MCP, A2A,
+      or a runnable Agent loop. CI runs the database suite separately against
+      PostgreSQL 16 and 17.
+    </p>
+  </section>
+
+  <section aria-labelledby="postgres-test-title">
+    <h2 id="postgres-test-title">Run the PostgreSQL integration suite</h2>
+    <p>
+      Point the suite at a disposable database. The test role must be able to
+      create and drop a temporary database because startup and migration
+      failures are part of the contract.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · disposable PostgreSQL only</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="postgres-test-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="postgres-test-command"
+        tabindex="0"><code>STATEKNOT_TEST_DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/DATABASE \
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-store-postgres --test postgres --locked</code></pre>
+    </div>
+    <p>
+      Never point this command at a production or shared database. Continue with
+      the <a href="/docs/postgresql/">PostgreSQL provider guide</a> for the production-shaped
+      connection and migration boundary.
+    </p>
+  </section>
+</DocsLayout>

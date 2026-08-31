@@ -1,0 +1,109 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  title="在本地验证 StateKnot。"
+  description="这是一篇贡献者教程：安装项目锁定的工具链，并复现仓库的全部可执行质量门禁。"
+  section="快速开始"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="tutorial-scope-title">
+    <h2 id="tutorial-scope-title">本教程的边界</h2>
+    <p>
+      这会验证当前真实存在的实现，并不是隐藏的“Hello Agent”演示：可运行的 Agent
+      Loop 与 Provider Adapter 尚未发布。
+    </p>
+  </aside>
+
+  <section aria-labelledby="prerequisites-title">
+    <h2 id="prerequisites-title">环境要求</h2>
+    <ul>
+      <li>Git。</li>
+      <li>
+        <a href="https://rustup.rs/">rustup</a>；仓库锁定 Rust 1.85.0、minimal
+        profile、rustfmt 与 Clippy。
+      </li>
+      <li>
+        快速 Workspace 门禁不要求 PostgreSQL；Provider 集成测试必须连接
+        PostgreSQL。
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="checkout-title">
+    <h2 id="checkout-title">克隆并执行完整本地门禁</h2>
+    <p>
+      在干净的 Checkout 中执行以下命令。rustup 会自动读取 <code
+        >rust-toolchain.toml</code
+      >。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 仓库验证</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-getting-started-commands"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-getting-started-commands"
+        tabindex="0"><code>git clone https://github.com/StateKnot/StateKnot.git
+cd StateKnot
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+cargo test --workspace --all-targets --all-features --locked
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="results-title">
+    <h2 id="results-title">正确理解测试结果</h2>
+    <p>本地门禁全部通过可以证明：</p>
+    <ul>
+      <li>锁定的编译器能够编译所有 Workspace Target 与 Feature；</li>
+      <li>Core 合约、Canonical Wire、Property Test 与单元测试通过；</li>
+      <li>公开 Rust 文档没有 Warning。</li>
+    </ul>
+    <p>
+      它不会验证真实 PostgreSQL Server、Model Provider、MCP、A2A 或可运行 Agent
+      Loop。CI 会分别在 PostgreSQL 16 与 17 上执行数据库测试。
+    </p>
+  </section>
+
+  <section aria-labelledby="postgres-test-title">
+    <h2 id="postgres-test-title">执行 PostgreSQL 集成测试</h2>
+    <p>
+      请使用一次性数据库。测试角色必须能够创建和删除临时数据库，因为启动失败与迁移失败本身就是合约的一部分。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 仅限一次性 PostgreSQL</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-postgres-test-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-postgres-test-command"
+        tabindex="0"><code>STATEKNOT_TEST_DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/DATABASE \
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-store-postgres --test postgres --locked</code></pre>
+    </div>
+    <p>
+      不要把该命令指向生产或共享数据库。生产形态的连接与迁移边界请继续阅读
+      <a href="/zh/docs/postgresql/">PostgreSQL Provider 指南</a>。
+    </p>
+  </section>
+</DocsLayout>

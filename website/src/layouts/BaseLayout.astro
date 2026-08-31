@@ -6,25 +6,46 @@ import "@fontsource-variable/inter/wght.css";
 import "@fontsource-variable/jetbrains-mono/wght.css";
 import "@fontsource-variable/space-grotesk/wght.css";
 import "../styles/global.css";
+import {
+  defaultLocale,
+  localizePath,
+  localeFromPath,
+  type Locale,
+} from "../data/i18n";
 
 interface Props {
   title?: string;
   description?: string;
   indexable?: boolean;
+  locale?: Locale;
 }
 
+const inferredLocale = localeFromPath(Astro.url.pathname);
 const {
-  title = "StateKnot — durable agent orchestration for Rust",
-  description = "StateKnot is an Apache-2.0 Rust framework under development for typed, durable, protocol-native agent systems.",
+  locale = inferredLocale,
+  title = inferredLocale === "zh-CN"
+    ? "StateKnot — 面向 Rust 的耐久 Agent 编排框架"
+    : "StateKnot — durable agent orchestration for Rust",
+  description = inferredLocale === "zh-CN"
+    ? "StateKnot 是一个采用 Apache-2.0 协议、正在开发中的 Rust 框架，用于构建类型安全、耐久执行、协议原生的 Agent 系统。"
+    : "StateKnot is an Apache-2.0 Rust framework under development for typed, durable, protocol-native agent systems.",
   indexable = true,
 } = Astro.props;
 
 const canonicalUrl =
   indexable && Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined;
+const englishPath = localizePath(Astro.url.pathname, defaultLocale);
+const chinesePath = localizePath(Astro.url.pathname, "zh-CN");
+const englishUrl =
+  indexable && Astro.site ? new URL(englishPath, Astro.site) : undefined;
+const chineseUrl =
+  indexable && Astro.site ? new URL(chinesePath, Astro.site) : undefined;
+const openGraphLocale = locale === "zh-CN" ? "zh_CN" : "en_US";
+const alternateOpenGraphLocale = locale === "zh-CN" ? "en_US" : "zh_CN";
 ---
 
 <!doctype html>
-<html lang="en" dir="ltr" data-theme="cobalt">
+<html lang={locale} dir="ltr" data-theme="cobalt">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -41,15 +62,26 @@ const canonicalUrl =
     <meta property="og:site_name" content="StateKnot" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:locale" content={openGraphLocale} />
+    <meta property="og:locale:alternate" content={alternateOpenGraphLocale} />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    {englishUrl && <link rel="alternate" hreflang="en" href={englishUrl} />}
+    {chineseUrl && <link rel="alternate" hreflang="zh-CN" href={chineseUrl} />}
+    {
+      englishUrl && (
+        <link rel="alternate" hreflang="x-default" href={englishUrl} />
+      )
+    }
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Skip to content</a>
+    <a class="skip-link" href="#main-content">
+      {locale === "zh-CN" ? "跳到正文" : "Skip to content"}
+    </a>
     <slot />
     <script>
       import "../scripts/site";

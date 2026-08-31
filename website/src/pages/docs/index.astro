@@ -1,0 +1,118 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const paths = [
+  {
+    title: "Validate the repository",
+    body: "Install the pinned Rust toolchain and run the same formatting, lint, test, and documentation gates used by CI.",
+    href: "/docs/getting-started/",
+    link: "Start locally",
+  },
+  {
+    title: "Understand durability",
+    body: "Follow one run through journal facts, immutable checkpoints, lease fencing, pending results, barriers, and recovery.",
+    href: "/docs/concepts/durability/",
+    link: "Read the model",
+  },
+  {
+    title: "Operate PostgreSQL",
+    body: "Review the implemented provider boundary, secure defaults, migration sequence, and mandatory integration test path.",
+    href: "/docs/postgresql/",
+    link: "Open the guide",
+  },
+  {
+    title: "Check the claims",
+    body: "Separate implemented code from active work and v1 scope before depending on an API or protocol surface.",
+    href: "/docs/status/",
+    link: "View status",
+  },
+];
+---
+
+<DocsLayout
+  title="Documentation that follows the code."
+  description="StateKnot documentation distinguishes implemented evidence from active design work and planned v1 capabilities."
+  section="Overview"
+>
+  <aside class="docs-callout" aria-labelledby="docs-boundary-title">
+    <h2 id="docs-boundary-title">The honest starting point</h2>
+    <p>
+      StateKnot does not yet expose a runnable public Agent API. Today you can
+      inspect and validate its core contracts and PostgreSQL durability slice;
+      the first end-user Agent tutorial will ship with the executable runtime
+      path it exercises.
+    </p>
+  </aside>
+
+  <section aria-labelledby="choose-path-title">
+    <h2 id="choose-path-title">Choose a path</h2>
+    <div class="docs-link-grid">
+      {
+        paths.map((path) => (
+          <article class="docs-link-card">
+            <h3>{path.title}</h3>
+            <p>{path.body}</p>
+            <a class="docs-inline-link affordance" href={path.href}>
+              {path.link} <span aria-hidden="true">→</span>
+            </a>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section aria-labelledby="docs-surface-title">
+    <h2 id="docs-surface-title">What these docs cover now</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Core contracts</dt>
+        <dd>
+          Typed, bounded domain values for agents, models, tools, runs,
+          checkpoints, invocations, waits, results, and recovery evidence.
+        </dd>
+      </div>
+      <div>
+        <dt>PostgreSQL durability</dt>
+        <dd>
+          Exact migrations, journal and checkpoint integrity, leases and
+          fencing, invocation ledgers, pending results, barriers, durable waits,
+          outbox delivery, quarantine, and ready-node recovery planning.
+        </dd>
+      </div>
+      <div>
+        <dt>Architecture decisions</dt>
+        <dd>
+          Draft RFCs and qualification scenarios that constrain implementation;
+          drafts are not stable compatibility promises.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="api-reference-title">
+    <h2 id="api-reference-title">API reference during pre-alpha</h2>
+    <p>
+      The crates are unpublished, so docs.rs is not yet authoritative. Generate
+      reference documentation from the exact checkout you are reviewing:
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="docs-api-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="docs-api-command"
+        tabindex="0"><code>RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked --open</code></pre>
+    </div>
+  </section>
+</DocsLayout>
