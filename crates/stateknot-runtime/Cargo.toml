@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [package]
-name = "stateknot"
-description = "Durable agent orchestration for Rust"
+name = "stateknot-runtime"
+description = "Executable registries and durable graph driving for StateKnot"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,16 +11,24 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-documentation.workspace = true
+documentation = "https://docs.rs/stateknot-runtime"
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 publish = false
 
 [dependencies]
+jsonschema.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_json_canonicalizer.workspace = true
 stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
-stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }
 stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
 
 [lints]
 workspace = true

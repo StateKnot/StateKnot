@@ -26,8 +26,8 @@ const copy = isChinese
       execution: "Graph 执行",
       barrier: "Barrier 合约",
       barrierDetail: "Canonical Graph、Reducer Planning、后继 Checkpoint",
-      runtime: "Runtime Loop",
-      runtimeDetail: "Executable Registry、Noninitial Replay、Durable Driving",
+      runtime: "耐久 Graph Driver",
+      runtimeDetail: "可执行注册表、非初始重放、续租与 Crash Takeover",
       postgres: "PostgreSQL 耐久化",
       persistence: "Fenced Persistence",
       persistenceDetail: "Lease、Attempt、Outbox、Interrupt、Timer",
@@ -58,9 +58,9 @@ const copy = isChinese
       barrier: "Barrier contracts",
       barrierDetail:
         "Canonical graphs, reducer planning, successor checkpoints",
-      runtime: "Runtime loop",
+      runtime: "Durable Graph Driver",
       runtimeDetail:
-        "Executable registries, noninitial replay, durable driving",
+        "Executable registries, noninitial replay, renewal, crash takeover",
       postgres: "PostgreSQL durability",
       persistence: "Fenced persistence",
       persistenceDetail: "Leases, attempts, outbox, interrupts, timers",
@@ -124,8 +124,8 @@ const copy = isChinese
         <strong>{copy.barrier}</strong>
         <small>{copy.barrierDetail}</small>
       </div>
-      <div class="map-node map-node--active">
-        <span class="map-node__status">{copy.active}</span>
+      <div class="map-node map-node--implemented">
+        <span class="map-node__status">{copy.implemented}</span>
         <strong>{copy.runtime}</strong>
         <small>{copy.runtimeDetail}</small>
       </div>

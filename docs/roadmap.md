@@ -141,9 +141,21 @@ from the repository.
   evidence under the exact live fence; migration, corruption, tenant-isolation,
   idempotency/conflict, and concurrent-registration behavior pass on PostgreSQL
   16/17.
-- [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
-  executable schema/reducer registry resolution, independent noninitial replay
-  validation, durable barrier driving, protocol-specific outbox adapters, role
+- [x] Freeze an offline digest-pinned JSON Schema 2020-12 registry and exact
+  graph/reducer/node executable closure; reject missing, mismatched, duplicate,
+  unresolved, and orphan deployment bindings before work is claimed.
+- [x] Independently replay every committed noninitial checkpoint through its
+  exact compiled graph, state schema, and reducer under bounded memory, and
+  quarantine divergent or incomplete durable history beneath the live fence.
+- [x] Drive the root graph recovery loop through durable-before-dispatch starts,
+  same-fence duplicate suppression, pre-launch lease refresh, monotonic lease
+  expiry enforcement, renewal, monotonic cancellation,
+  success/failure commits, delayed wakeups, automatic Continue barriers, and
+  typed lease-bound Wait/Terminal/failure handoffs. Root-to-terminal replay,
+  long execution beyond the original lease, and higher-fence crash takeover
+  pass on PostgreSQL 16/17.
+- [ ] Complete cross-tenant scheduler fairness and lifecycle handling for typed
+  Wait/Terminal/failure handoffs, protocol-specific outbox adapters, role
   isolation, retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.

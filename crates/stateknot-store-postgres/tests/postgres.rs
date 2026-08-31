@@ -23,35 +23,38 @@ use stateknot_core::{
     CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
     CheckpointState, CheckpointWrite, CompiledGraph, DeliveryId, DestinationId, Digest,
     DurationMillis, EventId, Failure, FailureCategory, FailureCode, FailureId, FailureMessage,
-    FailureOrigin, GraphExecutionLimits, GraphNamespace, GraphNode, GraphReducerReference,
-    GraphReference, GraphRoutes, InterruptId, InterruptRequestIntent, InterruptResolutionIntent,
-    InterruptResolver, InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
-    JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
-    ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
-    ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus,
-    NodeControl, NodeDispatchReason, NodeId, NodeInvocationBinding, NodeInvocationBindings,
-    NodeStateChange, NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef,
-    PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, QuarantineId,
-    ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind, RetryAdvice, RunCancellationRequest,
-    RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind, RunTransition, SchemaId,
-    SchemaReference, Scope, ScopeSet, SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent,
-    TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput,
-    ToolInvocation, ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition,
-    ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
+    FailureOrigin, GraphExecutionLimits, GraphNamespace, GraphNode, GraphReducer,
+    GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
+    GraphSchemaValidationError, GraphSchemaValidator, InterruptId, InterruptRequestIntent,
+    InterruptResolutionIntent, InterruptResolver, InvocationId, IssuerId, JournalAppend,
+    JournalEventIntent, JournalEventKind, JournalExpectation, JournalHead, JournalPayload,
+    JournalSequence, ModelDescriptor, ModelError, ModelErrorPhase, ModelErrorProvenance,
+    ModelInvocationIntent, ModelInvocationStatus, ModelInvocationTransition, ModelRequest,
+    ModelResponse, NodeActivation, NodeAttemptStatus, NodeControl, NodeDispatchReason, NodeId,
+    NodeInvocationBinding, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
+    OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead, PendingNodeResultIntent,
+    PrincipalIdentity, QuarantineId, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind,
+    RetryAdvice, RunCancellationRequest, RunFailure, RunId, RunInterruptKind, RunStatus,
+    RunTimerKind, RunTransition, SchemaId, SchemaReference, Scope, ScopeSet, SubjectId, Superstep,
+    TenantId, ThreadId, TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp,
+    ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation, ToolInvocationIntent,
+    ToolInvocationStatus, ToolInvocationTransition, ToolResult, ToolResultProvenance, Version,
+    WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
     CheckpointLineagePageSize, CorruptionQuarantineContext, DelayedRetryScheduleOutcome,
-    GraphDefinitionRegistrationOutcome, InterruptResolutionCommitOutcome, JournalPageSize,
-    LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
-    ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize,
-    OutboxAttemptHistoryPageSize, OutboxClaimOutcome, OutboxCompletionOutcome,
-    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
-    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
-    RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
-    RunQuarantineRequest, RunnableRunPageSize, StoreError, TimerFiringCommitOutcome,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome,
-    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    GraphDefinitionRegistrationOutcome, GraphReplayLimits, InterruptResolutionCommitOutcome,
+    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
+    NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize, OutboxClaimOutcome,
+    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
+    PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions,
+    PostgresTransportSecurity, RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome,
+    RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize, StoreError,
+    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
+    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
+    WaitDiscoveryPageSize,
 };
 use uuid::Uuid;
 
@@ -626,6 +629,9 @@ async fn expired_renewal_retry_confirms_only_the_already_committed_expiry() {
             .unwrap(),
         LeaseRenewalOutcome::Renewed(_)
     ));
+    let live = store.observe_live_lease(lease.fence()).await.unwrap();
+    assert_eq!(live.lease().fence(), lease.fence());
+    assert!(live.observed_at() < live.lease().expires_at());
 
     tokio::time::sleep(Duration::from_millis(4_200)).await;
     assert!(matches!(
@@ -634,6 +640,10 @@ async fn expired_renewal_retry_confirms_only_the_already_committed_expiry() {
             .await
             .unwrap(),
         LeaseRenewalOutcome::Idempotent(_)
+    ));
+    assert!(matches!(
+        store.observe_live_lease(lease.fence()).await,
+        Err(StoreError::LeaseExpired)
     ));
     let later_expiry =
         Timestamp::from_unix_micros(desired_expiry.unix_micros().checked_add(2_000_000).unwrap())
@@ -2923,6 +2933,44 @@ fn build_checkpoint_compiled_graph(maximum_supersteps: u64) -> CompiledGraph {
 
 fn checkpoint_graph() -> GraphReference {
     checkpoint_compiled_graph().reference()
+}
+
+struct AcceptGraphSchemas;
+
+impl GraphSchemaValidator for AcceptGraphSchemas {
+    fn validate(
+        &self,
+        _: &SchemaReference,
+        _: &BoundedJson,
+    ) -> Result<(), GraphSchemaValidationError> {
+        Ok(())
+    }
+}
+
+struct IntegrationGraphReducer {
+    reference: GraphReducerReference,
+}
+
+impl IntegrationGraphReducer {
+    fn new() -> Self {
+        Self {
+            reference: checkpoint_compiled_graph().reducer().clone(),
+        }
+    }
+}
+
+impl GraphReducer for IntegrationGraphReducer {
+    fn reference(&self) -> &GraphReducerReference {
+        &self.reference
+    }
+
+    fn reduce(
+        &self,
+        state: &BoundedJson,
+        _: &[GraphReducerInput<'_>],
+    ) -> Result<BoundedJson, GraphReducerError> {
+        Ok(state.clone())
+    }
 }
 
 fn checkpoint_state(graph: &GraphReference, index: u64) -> CheckpointState {
@@ -14346,6 +14394,163 @@ async fn claimed_recovery_revalidates_and_quarantines_a_missing_pinned_graph() {
     );
 
     administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn noninitial_replay_recomputes_committed_state_with_bounded_memory() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("noninitial-replay-valid");
+    let run_id = RunId::generate();
+    let initial = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_500)).await;
+    let fence = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let (result_heads, result_journal_head) =
+        commit_ready_results(&store, initial.checkpoint(), &fence, 1_501).await;
+    let successor = CheckpointWrite::successor(
+        CheckpointId::generate(),
+        initial.checkpoint(),
+        initial.checkpoint().state().clone(),
+        ready_node(2),
+    )
+    .unwrap();
+    let barrier = CheckpointBarrier::new(initial.checkpoint(), successor, result_heads).unwrap();
+    let committed = store
+        .append_worker_barrier(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(result_journal_head),
+                fence.clone(),
+                1_502,
+            ),
+            RunProjection::unchanged(),
+            barrier,
+        )
+        .await
+        .unwrap();
+    let context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(committed.event().head()),
+        Digest::sha256(b"noninitial replay valid evidence"),
+    )
+    .unwrap();
+    let recovery = store
+        .begin_claimed_run_recovery(fence, context)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        recovery
+            .validate_noninitial_replay(
+                &AcceptGraphSchemas,
+                &IntegrationGraphReducer::new(),
+                GraphReplayLimits::new(1).unwrap(),
+            )
+            .await,
+        Err(StoreError::GraphReplayResourceLimit)
+    ));
+    assert!(matches!(
+        store.load_run_quarantine(&tenant_id, run_id).await,
+        Err(StoreError::RunQuarantineNotFound)
+    ));
+
+    let report = recovery
+        .validate_noninitial_replay(
+            &AcceptGraphSchemas,
+            &IntegrationGraphReducer::new(),
+            GraphReplayLimits::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.checkpoints_validated(), 2);
+    assert_eq!(report.barriers_replayed(), 1);
+    assert_eq!(report.results_replayed(), 1);
+    assert!(report.maximum_barrier_result_bytes() > 1);
+    recovery.revalidate().await.unwrap();
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn noninitial_replay_quarantines_a_semantically_divergent_successor() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("noninitial-replay-divergence");
+    let run_id = RunId::generate();
+    let initial = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_510)).await;
+    let fence = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let (result_heads, result_journal_head) =
+        commit_ready_results(&store, initial.checkpoint(), &fence, 1_511).await;
+    let divergent_successor = CheckpointWrite::successor(
+        CheckpointId::generate(),
+        initial.checkpoint(),
+        checkpoint_state(initial.checkpoint().graph(), 1),
+        ready_node(2),
+    )
+    .unwrap();
+    let barrier =
+        CheckpointBarrier::new(initial.checkpoint(), divergent_successor, result_heads).unwrap();
+    let committed = store
+        .append_worker_barrier(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(result_journal_head),
+                fence.clone(),
+                1_512,
+            ),
+            RunProjection::unchanged(),
+            barrier,
+        )
+        .await
+        .unwrap();
+    let context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(committed.event().head()),
+        Digest::sha256(b"noninitial replay divergence evidence"),
+    )
+    .unwrap();
+    let recovery = store
+        .begin_claimed_run_recovery(fence, context)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        recovery
+            .validate_noninitial_replay(
+                &AcceptGraphSchemas,
+                &IntegrationGraphReducer::new(),
+                GraphReplayLimits::default(),
+            )
+            .await,
+        Err(StoreError::RunQuarantined)
+    ));
+    let quarantined = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert!(quarantined.is_quarantined());
+    assert!(quarantined.lease().is_none());
+    assert!(store.load_run_quarantine(&tenant_id, run_id).await.is_ok());
     store.close().await;
 }
 

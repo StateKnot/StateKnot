@@ -15,10 +15,10 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
       Implemented compiler, not a runnable Agent loop
     </h2>
     <p>
-      <code>CompiledGraph</code>, deterministic barrier planning, and the
-      PostgreSQL pinned graph registry are implemented. Model/tool dispatch and
-      the complete durable barrier driver are still active work, so this
-      tutorial stops at the boundary the repository can execute today.
+      <code>CompiledGraph</code>, deterministic barrier planning, the PostgreSQL
+      pinned graph registry, and the durable root Graph Driver are implemented.
+      The public model/tool Agent loop and complete lifecycle integration remain
+      active work.
     </p>
   </aside>
 
@@ -137,14 +137,16 @@ let pinned = recovery.load_pinned_graph().await?;</code></pre>
   </section>
 
   <section aria-labelledby="next-title">
-    <h2 id="next-title">What comes next</h2>
+    <h2 id="next-title">Move from definition to execution</h2>
     <p>
       The pure barrier planner already validates complete result coverage,
       applies updates to the exact pinned reducer in stable <code>NodeId</code>
       order, resolves continue/route/wait/terminal control, and creates a successor
-      checkpoint intent. The next runtime slice will resolve the executable schema/reducer
-      registries and drive that intent through the existing atomic PostgreSQL barrier
-      commit. Loop, subgraph, and full Agent ergonomics remain later milestones.
+      checkpoint intent. The Runtime now binds that definition to an offline schema/reducer/node
+      executable closure and drives the durable root path. Continue with the <a
+        href="/docs/runtime/">Durable Graph runtime guide</a
+      >. Loop, subgraph, lifecycle integration, and full Agent ergonomics remain
+      later milestones.
     </p>
   </section>
 </DocsLayout>

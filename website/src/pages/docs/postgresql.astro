@@ -15,8 +15,8 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     <p>
       The provider is real and heavily tested, but it is unpublished and still
       assumes a trusted server-side pool. Role-separated server procedures,
-      retention, restore qualification, and complete runtime dispatch remain
-      release blockers.
+      retention, restore qualification, and complete Agent/lifecycle integration
+      remain release blockers.
     </p>
   </aside>
 
@@ -160,7 +160,8 @@ store.health_check().await?;</code></pre>
     <h2 id="qualification-title">Qualification and current limits</h2>
     <p>
       CI runs the mandatory integration suite independently against PostgreSQL
-      16 and 17. The suite covers migrations, lost acknowledgements, fencing,
+      16 and 17: 91 provider cases plus six durable Graph Driver scenarios per
+      version. The suite covers migrations, lost acknowledgements, fencing,
       corruption rejection, concurrency, rollback injection, outbox recovery,
       durable waits, quarantine, immutable graph registration/recovery,
       ready-node planning, and delayed-retry scheduling.
@@ -168,7 +169,7 @@ store.health_check().await?;</code></pre>
     <p>
       Production release still requires role isolation, retention and garbage
       collection, failover and point-in-time restore exercises, stale-race
-      qualification, and the complete runtime dispatch loop.
+      qualification, lifecycle handoff commits, and the complete Agent loop.
     </p>
   </section>
 </DocsLayout>

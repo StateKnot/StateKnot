@@ -559,7 +559,7 @@ pub enum ReadyNodesError {
 }
 
 /// Exact graph definition and state schema required to resume a checkpoint.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GraphReference {
     identity: CapabilityIdentity,

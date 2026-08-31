@@ -18,10 +18,16 @@ const capabilities = [
     body: "PostgreSQL 16/17 迁移、Journal、Checkpoint、Lease、Ledger、Barrier、Wait、Outbox、Quarantine、延迟唤醒与 Tenant-scoped 不可变 Pinned Graph Registry。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "耐久 Graph Driver",
+    body: "离线可执行 Schema/Reducer/Node 闭包、完整 Checkpoint State 与有界非初始 Replay 验证、Durable-before-dispatch 执行、单调 Lease 到期约束、Continue Barrier 与类型化 Lifecycle Handoff。",
+  },
+  {
     state: "开发中",
     className: "status-active",
-    title: "耐久 Graph 执行路径",
-    body: "可执行 Schema/Reducer Resolution、非初始 Ready Set 的独立 Replay、完整 Durable Barrier Driving，以及 Loop/Subgraph 语义。",
+    title: "Lifecycle 与 Agent 集成",
+    body: "完整 Wait/Terminal/Failure Handoff Commit、Model/Tool Agent 执行、Scheduler Fairness 与 Loop/Subgraph 语义。",
   },
   {
     state: "尚未发布",
@@ -46,7 +52,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：耐久化证据已经有大量实现，但公开 Runtime、协议 Adapter 与生产发布边界仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：耐久 Root Graph Driver 已实现，但 Lifecycle 集成、公开 Agent Loop、协议 Adapter 与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -85,16 +91,18 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
-      下一个 Runtime 里程碑是一条端到端 Durable Agent 切片：Graph
-      Admission、Model/Tool Execution、PostgreSQL-backed Recovery、Barrier
-      Advancement，以及由 CI
-      自动验证的可执行示例与教程。协议广度会建立在这条可恢复路径之上。
+      下一个 Runtime 里程碑会把完整 Wait/Terminal/Failure Lifecycle Commit 与
+      Model/Tool 执行接入已经验证的 Driver，再发布由 CI 自动运行教程的可执行
+      Agent 示例。协议广度会建立在这条可恢复路径之上。
     </p>
   </section>
 
   <section aria-labelledby="source-status-title">
     <h2 id="source-status-title">项目权威来源</h2>
     <ul>
+      <li>
+        <a href="/zh/docs/runtime/">耐久 Graph Runtime 集成契约</a>
+      </li>
       <li>
         <a
           href="https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md"

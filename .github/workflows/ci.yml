@@ -60,6 +60,11 @@ jobs:
       - name: Check Astro and TypeScript
         run: npm run check
 
+      - name: Verify published runtime schemas
+        run: >-
+          cmp ../crates/stateknot-runtime/schemas/graph-driver-event-1.0.0.json
+          public/schemas/runtime/graph-driver-event/1.0.0
+
       - name: Audit dependencies
         run: npm audit --audit-level=high
 
@@ -152,3 +157,9 @@ jobs:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
         run: cargo test -p stateknot-store-postgres --test postgres --locked
+
+      - name: Run durable Graph Driver integration tests
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: cargo test -p stateknot-runtime --test postgres --locked

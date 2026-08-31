@@ -40,6 +40,12 @@ const localizedRoutePairs = [
     zhHeading: "编译一个确定性 Graph。",
   },
   {
+    en: "/docs/runtime/",
+    zh: "/zh/docs/runtime/",
+    enHeading: "Drive a Graph from durable evidence.",
+    zhHeading: "从耐久证据驱动 Graph。",
+  },
+  {
     en: "/docs/postgresql/",
     zh: "/zh/docs/postgresql/",
     enHeading: "Operate the PostgreSQL durability provider.",
@@ -122,11 +128,35 @@ test("homepage exposes honest implementation status and semantic structure", asy
   ).toBeVisible();
   await expect(page.getByText("MCP adapters")).toBeVisible();
   await expect(page.getByText("A2A adapters", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Durable Graph Driver", { exact: true }).first(),
+  ).toBeVisible();
   await expect(page.locator(".map-node--planned")).toHaveCount(4);
 
   const main = page.locator("main");
   await expect(main).toHaveAttribute("id", "main-content");
   await expect(page.locator("footer")).toBeVisible();
+});
+
+test("publishes the digest-pinned Graph Driver schema at its stable identity", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/schemas/runtime/graph-driver-event/1.0.0",
+  );
+  expect(response.status()).toBe(200);
+  const schema = await response.json();
+  expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+  expect(schema.$id).toBe(
+    "https://stknot.com/schemas/runtime/graph-driver-event/1.0.0",
+  );
+  expect(schema.additionalProperties).toBe(false);
+  expect(schema.properties.operation.enum).toEqual([
+    "node_attempt_started",
+    "node_attempt_succeeded",
+    "node_attempt_failed",
+    "graph_barrier_continued",
+  ]);
 });
 
 for (const width of responsiveAuditWidths) {
@@ -140,8 +170,10 @@ for (const width of responsiveAuditWidths) {
 for (const route of [
   "/docs/",
   "/docs/getting-started/",
+  "/docs/runtime/",
   "/zh/",
   "/zh/docs/getting-started/",
+  "/zh/docs/runtime/",
 ] as const) {
   for (const width of [320, 375, 414, 768] as const) {
     test(`${route} is responsive at ${width}px`, async ({ page }) => {

@@ -870,9 +870,16 @@ Reducer，并解析 Continue/Route/Wait/Terminal 生成现有 Atomic Barrier Int
 注册只对相同 Canonical Bytes 幂等，Recovery 会重新编译 Checkpoint-pinned Definition 并在 Live
 Fence 下隔离缺失或矛盾证据；v12 升级、Tenant Isolation、Corruption/Conflict 与 24 路注册竞态
 均在 PG16/17 验证。
-它仍不是完整 runtime。协议专用 outbox dispatch adapter、Executable Schema/Reducer Registry
-解析、独立 Noninitial Replay Validation、Durable Barrier 驱动、跨租户公平与完整
-Recovery/Dispatch Loop、角色隔离、归档、Failover 与 Restore 仍按 RFC 门禁继续实现，
+新的未发布 `stateknot-runtime` crate 已实现离线且 Digest-pinned 的 JSON Schema 2020-12
+注册表、精确 Graph/Reducer/Node 可执行闭包、对所有已提交非初始 Checkpoint 的独立有界
+Replay，以及带 Fence 的耐久 Graph Driver。Driver 只在 Durable Start 新提交后执行 Node，
+不会把 `Idempotent` Start 当成执行授权；Node 启动前会刷新临近过期 Lease，长任务在
+数据库时间换算的单调到期 Watchdog 下持续续租并接收单调取消信号，完成记录绑定
+最新 Journal Head，Continue Barrier 自动提交，Wait/Terminal/Failure 则返回带 Lease 的类型化
+Handoff 交给生命周期层补齐并原子提交完整元数据。根到终态、同 Fence 去重、超出原租期的
+长执行与高 Fence Crash Takeover 已在 PG16/17 验证。
+它仍不是完整 Agent Runtime。协议专用 Outbox Adapter、跨租户公平、Handoff 生命周期服务、
+Model/Tool Agent Loop、角色隔离、归档、Failover 与 Restore 仍按 RFC 门禁继续实现，
 RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
@@ -1075,9 +1082,10 @@ GET    /health/ready
 - property tests、并发压力测试与 model checker 覆盖关键状态机。
 
 进度：Canonical Root-graph Compiler、Digest-pinned Graph Reference、确定性
-Route/Reducer/Successor/Wait/Terminal Barrier Planner，以及 completion-order
-property/fixture 已实现。Port Schema Compatibility、Executable Registry、Loop/Subgraph、
-Nested Namespace 与完整 Scheduler/Runtime 集成仍未完成，阶段 2 尚未结束。
+Route/Reducer/Successor/Wait/Terminal Barrier Planner、Completion-order
+Property/Fixture，以及离线 Exact Schema/Reducer/Node Executable Registry 已实现。
+Port Schema Compatibility、Loop/Subgraph、Nested Namespace、Parallel Sibling Policy 与
+完整 Scheduler/Lifecycle 集成仍未完成，阶段 2 尚未结束。
 
 ### 阶段 3：PostgreSQL 耐久运行时（5–6 周）
 
@@ -1091,13 +1099,12 @@ registry、pending node-result、transactional outbox、durable interrupt/timer 
 commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending-result barrier
 以及 tenant-level indexed runnable/due-timer/expired-interrupt discovery、durable wait
 registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；cross-tenant
-Graph Registry 注册/重载与 Claimed Recovery Pin Revalidation 已通过 Migration 13 完成并在
-PG16/17 验证；Cross-tenant Fairness、Executable Schema/Reducer Registry 解析、独立
-Noninitial Replay Validation、Durable Barrier 驱动、完整 Recovery/Dispatch Loop、协议
-Dispatch Adapter，以及阶段 3 的其余运维与故障门禁未完成，不能据此提前宣称阶段完成。
-已完成的 Claimed Recovery Surface 已提供 Fence-bound、Corruption-quarantining 的恢复输入、
-确定性 Root Ready-node 计划、Pinned Graph 检查、Durable Start Handoff 与 Indexed
-Delayed-retry Handoff，但仍不等同于完整 Runtime。
+Graph Registry 注册/重载与 Claimed Recovery Pin Revalidation 已通过 Migration 13 完成；
+Executable Registry、独立 Noninitial Replay 与带 Lease Renewal/Cancellation 的耐久 Root
+Graph Driver 也已完成，Continue Barrier 可自动提交，Wait/Terminal/Failure 以精确 Lease-bound
+Handoff 交给生命周期层。上述存储与 Driver 路径均已在 PG16/17 验证。Cross-tenant Fairness、
+完整 Lifecycle Handoff Service、Parallel Sibling Policy、协议 Dispatch Adapter，以及阶段 3
+的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
 
@@ -1187,7 +1194,18 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 3. `RFC-0003 PostgreSQL Durability, Recovery and Migration`（Draft）；
 4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
 
-RFC 获得接受并由可编译 contract examples 验证后，再按第一条纵向链路实际需要把实验 crate 提升为受支持边界，并只创建已被证明必要的 `stateknot-runtime`、`stateknot-integrations`、`stateknot-server` 与 `stateknot-testkit`。当前未发布的 `stateknot-core` 用于验证 RFC-0001 的领域类型以及 RFC-0002/0003 的 journal、checkpoint、tool/model-invocation、pending node-result、node-attempt start/completion/history、transactional outbox、durable interrupt/timer record、lease/fencing 值契约；`stateknot-store-postgres` 已把 run/journal/checkpoint/tool/model-invocation/node-attempt、attempt-owned pending node-result commit/load/scan/atomic barrier consumption、run-wide node/tool/model/outbox attempt claim、outbox enqueue/recovery、durable wait registration/resolution/firing/abandonment、lease 与 migration/startup 语义落到 PostgreSQL 16/17，但协议 dispatch adapter、完整恢复调度和运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议支持发布。第一批代码必须落在最终持久化、安全和恢复边界上，而不是先写一个无法升级的内存 demo。
+当前按第一条纵向链路已创建三个未发布验证边界：`stateknot-core` 用于验证 RFC-0001
+领域类型以及 RFC-0002/0003 的值契约；`stateknot-store-postgres` 已把
+run/journal/checkpoint/tool/model-invocation/node-attempt、attempt-owned pending result、atomic
+barrier consumption、run-wide attempt claim、outbox、durable wait、quarantine、lease、pinned
+graph registry 与 migration/startup 语义落到 PostgreSQL 16/17；`stateknot-runtime` 则实现
+离线可执行闭包、完整 Checkpoint State/Noninitial Replay 验证与耐久 Root Graph Driver。
+只有 RFC 获得接受且可编译 Contract Example、生命周期集成和发布门禁通过后，才会把这些
+实验 crate 提升为受支持边界；`stateknot-integrations`、`stateknot-server` 与
+`stateknot-testkit` 也只在对应纵向能力被证明必要时创建。协议 Dispatch Adapter、完整
+Agent Loop 与运维门禁仍未覆盖。RFC 评审期间的实现不得作为稳定 API、数据库兼容或协议
+支持发布。第一批代码必须继续落在最终持久化、安全和恢复边界上，而不是另写无法升级的
+内存 Demo。
 
 ## 22. 主要一手资料
 

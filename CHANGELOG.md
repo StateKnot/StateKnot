@@ -14,6 +14,25 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- New unpublished `stateknot-runtime` crate with immutable, digest-pinned,
+  offline JSON Schema 2020-12 validation and a startup-frozen executable graph
+  registry that requires complete graph/reducer/node/schema closure and rejects
+  conflicting or orphan code bindings.
+- Full checkpoint-state validation and noninitial transition replay in the
+  PostgreSQL claimed-run recovery surface, including bounded historical-result
+  materialization, verified consumption rows, pure reducer/schema execution
+  outside database transactions, exact successor comparison, final
+  fence/journal revalidation, and fenced corruption quarantine for semantic
+  divergence.
+- Fenced durable Graph Driver with durable-before-dispatch node starts,
+  acknowledgement-safe mutation retries, exact takeover semantics, bounded
+  execution quanta, automatic Continue barriers, typed lifecycle/blocking
+  handoffs, delayed-retry scheduling, cooperative shutdown and deadlines, plus
+  a database-time-derived monotonic lease watchdog that prevents node launch
+  under a near-expiry or expired idempotent renewal.
+- Apache-2.0 bilingual durable-runtime integration and operations guides,
+  English/Chinese website route parity, and a digest-identical immutable public
+  Graph Driver journal-event schema served as `application/schema+json`.
 - Bilingual English and Simplified Chinese public documentation with localized
   route parity, explicit language switching, canonical and `hreflang` metadata,
   localized search, and browser gates for links, accessibility, responsive
@@ -257,3 +276,9 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 - Crate package metadata and file lists that retain the Apache-2.0 SPDX
   expression while embedding `LICENSE`, `NOTICE`, and `README.md` in every
   distributable source archive.
+
+### Fixed
+
+- Concurrent identical graph registrations now converge through every unique
+  index arbiter before verifying the immutable stored definition, instead of
+  leaking a PostgreSQL `23505` race from the redundant exact-reference index.

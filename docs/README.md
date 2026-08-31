@@ -25,6 +25,10 @@ conformance output, and the release gates in these documents.
    reviewed, accepted, and superseded.
 7. [PostgreSQL provider operations](postgresql-provider.md) — the implemented
    durability slice, deployment boundary, validation, and explicit blockers.
+8. [Durable Graph runtime](durable-graph-runtime.md) — production integration
+   contract for executable registration, noninitial replay, fenced driving,
+   lifecycle handoffs, and crash recovery. A [Simplified Chinese edition](durable-graph-runtime.zh-CN.md)
+   is maintained alongside it.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
 the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),

@@ -128,6 +128,12 @@ pub enum StoreError {
     /// Ready-node recovery was requested before an initial checkpoint exists.
     #[error("ready-node recovery requires a current graph checkpoint")]
     ReadyNodeRecoveryCheckpointMissing,
+    /// Replay could not run because the exact local schema or reducer was not available.
+    #[error("noninitial graph replay dependency is unavailable on this worker")]
+    GraphReplayDependencyUnavailable,
+    /// Replay result material exceeded the explicitly configured memory bound.
+    #[error("noninitial graph replay exceeds its configured barrier byte limit")]
+    GraphReplayResourceLimit,
     /// A recovery plan, journal append, fence, or node selection crossed scope.
     #[error("ready-node dispatch plan is invalid for the requested durable start")]
     InvalidReadyNodeDispatchPlan,
@@ -438,6 +444,9 @@ pub enum StoreError {
     /// A requested checkpoint-lineage page exceeded its memory-safety bound.
     #[error("checkpoint lineage page size is invalid")]
     InvalidCheckpointPageSize,
+    /// A graph replay memory limit was zero or exceeded its implementation bound.
+    #[error("noninitial graph replay limits are invalid")]
+    InvalidGraphReplayLimits,
     /// A requested invocation-history page exceeded its memory-safety bound.
     #[error("tool invocation history page size is invalid")]
     InvalidToolInvocationPageSize,

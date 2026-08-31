@@ -24,6 +24,12 @@ const paths = [
     link: "Read the model",
   },
   {
+    title: "Drive a durable Graph",
+    body: "Freeze executable schemas, reducers, and nodes; replay noninitial checkpoints; then handle each fenced Driver outcome correctly.",
+    href: "/docs/runtime/",
+    link: "Integrate the Driver",
+  },
+  {
     title: "Operate PostgreSQL",
     body: "Review the implemented provider boundary, secure defaults, migration sequence, and mandatory integration test path.",
     href: "/docs/postgresql/",
@@ -47,9 +53,10 @@ const paths = [
     <h2 id="docs-boundary-title">The honest starting point</h2>
     <p>
       StateKnot does not yet expose a runnable public Agent API. Today you can
-      compile a real deterministic Graph and validate its core and PostgreSQL
-      durability contracts. The first end-user Agent tutorial will ship with the
-      executable runtime path it exercises.
+      compile a deterministic Graph, freeze its executable deployment, replay
+      noninitial checkpoints, and drive its root execution path against
+      PostgreSQL. Model/tool Agent ergonomics and lifecycle integration remain
+      explicit release blockers.
     </p>
   </aside>
 
@@ -88,6 +95,14 @@ const paths = [
           fencing, invocation ledgers, pending results, barriers, durable waits,
           outbox delivery, quarantine, ready-node recovery planning, indexed
           delayed-retry wakeups, and the tenant-scoped immutable graph registry.
+        </dd>
+      </div>
+      <div>
+        <dt>Durable Graph runtime</dt>
+        <dd>
+          Offline executable registration, independent bounded replay,
+          durable-before-dispatch node execution, lease renewal, automatic
+          Continue barriers, and typed lifecycle handoffs.
         </dd>
       </div>
       <div>

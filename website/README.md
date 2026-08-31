@@ -12,6 +12,12 @@ with an explicit language switch instead of an automatic locale redirect. The
 site deliberately describes the repository as pre-alpha and separates
 implemented slices from in-progress and planned work.
 
+The immutable Graph Driver audit schema is published at
+`/schemas/runtime/graph-driver-event/1.0.0`. Its public copy must remain
+byte-for-byte identical to the schema embedded in `stateknot-runtime`; Caddy
+serves versioned schema paths as `application/schema+json` with immutable cache
+headers.
+
 ## Local development
 
 Use the Node version in `.nvmrc` and install from the committed lockfile:

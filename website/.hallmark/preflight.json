@@ -1,0 +1,13 @@
+{
+  "scanned_at": "2026-08-31",
+  "framework": "Astro 7 static site",
+  "font_stack": ["Space Grotesk", "Inter", "JetBrains Mono"],
+  "palette": "Cobalt OKLCH tokens in website/tokens.css",
+  "motion": "No external motion library; restrained native interactions",
+  "spacing": "Four-point custom-property scale",
+  "sources": [
+    "website/package.json",
+    "website/tokens.css",
+    "website/src/styles/global.css"
+  ]
+}

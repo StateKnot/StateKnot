@@ -67,6 +67,13 @@ https://stknot.com {
 			file_server
 		}
 
+		@immutable_schemas path /schemas/*
+		handle @immutable_schemas {
+			header Cache-Control "public, max-age=31536000, immutable"
+			header Content-Type "application/schema+json"
+			file_server
+		}
+
 		handle {
 			header Cache-Control "no-cache"
 			file_server

@@ -18,10 +18,16 @@ const capabilities = [
     body: "PostgreSQL 16/17 migrations, journal, checkpoints, leases, ledgers, barriers, waits, outbox, quarantine, delayed wakeups, and the tenant-scoped immutable pinned graph registry.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Durable Graph Driver",
+    body: "Offline executable schema/reducer/node closure, full checkpoint-state and bounded noninitial replay validation, durable-before-dispatch execution, monotonic lease enforcement, Continue barriers, and typed lifecycle handoffs.",
+  },
+  {
     state: "Active work",
     className: "status-active",
-    title: "Durable graph execution path",
-    body: "Executable schema/reducer resolution, independent non-initial ready-set replay, complete durable barrier driving, and loop/subgraph semantics.",
+    title: "Lifecycle and Agent integration",
+    body: "Complete Wait/Terminal/failure handoff commits, model/tool Agent execution, scheduler fairness, and loop/subgraph semantics.",
   },
   {
     state: "Not shipped",
@@ -46,7 +52,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: implemented durability evidence is substantial, while the public runtime, protocol adapters, and production release boundary remain unfinished."
+  description="StateKnot is pre-alpha: the durable root Graph Driver is implemented, while lifecycle integration, the public Agent loop, protocol adapters, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -82,16 +88,19 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      The next runtime milestone is one end-to-end durable Agent slice: graph
-      admission, model and tool execution, PostgreSQL-backed recovery, barrier
-      advancement, and an executable example whose tutorial is tested in CI.
-      Protocol breadth follows that recovered path rather than preceding it.
+      The next runtime milestone integrates complete Wait/Terminal/failure
+      lifecycle commits and model/tool execution with the proven Driver, then
+      publishes one executable Agent example whose tutorial runs in CI. Protocol
+      breadth follows that recovered path rather than preceding it.
     </p>
   </section>
 
   <section aria-labelledby="source-status-title">
     <h2 id="source-status-title">Normative project sources</h2>
     <ul>
+      <li>
+        <a href="/docs/runtime/">Durable Graph runtime integration contract</a>
+      </li>
       <li>
         <a
           href="https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md"

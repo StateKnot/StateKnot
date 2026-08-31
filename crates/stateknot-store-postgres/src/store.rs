@@ -2,7 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::{
-    borrow::Cow, collections::BTreeMap, fmt, future::Future, sync::LazyLock, time::Duration,
+    borrow::Cow,
+    collections::BTreeMap,
+    fmt,
+    future::Future,
+    io::Write,
+    panic::{AssertUnwindSafe, catch_unwind},
+    sync::LazyLock,
+    time::Duration,
 };
 
 use chrono::{DateTime, Utc};
@@ -21,8 +28,9 @@ use stateknot_core::{
     AgentResultProvenance, AttemptId, BarrierResultHeads, BoundedJson, BudgetUsage, CanonicalJson,
     Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointLineageVerifier,
     CheckpointWrite, CompiledGraph, DeliveryFence, DeliveryId, DestinationId, Digest, DurableTimer,
-    DurableTimerRecord, DurableWait, EventId, Failure, FencingEpoch, GraphNamespace,
-    GraphReference, InterruptId, InterruptRecord, InterruptRequest, InterruptResolution,
+    DurableTimerRecord, DurableWait, EventId, Failure, FencingEpoch, GraphBarrierPlanError,
+    GraphNamespace, GraphReducer, GraphReducerError, GraphReference, GraphSchemaValidationError,
+    GraphSchemaValidator, InterruptId, InterruptRecord, InterruptRequest, InterruptResolution,
     InterruptResolutionIntent, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
     JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalPayload,
     JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
@@ -49,20 +57,20 @@ use crate::{
     CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
     CorruptionQuarantineContext, DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor,
     ExpiredInterruptPage, ExpiredInterruptPageCursor, GraphDefinitionRegistrationOutcome,
-    InterruptResolutionCommitOutcome, JournalPage, JournalPageSize, LeaseClaimOutcome,
-    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
-    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
-    NodeAttemptHistoryPage, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage,
-    OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome,
-    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
-    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize,
-    PostgresStoreOptions, RunProjection, RunQuarantine, RunQuarantineCause,
-    RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest, RunnableRunCandidate,
-    RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize, StoreError, StoredGraphDefinition,
-    StoredOutboxDestination, StoredRun, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
-    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize, WaitAbandonment,
-    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
-    WaitDiscoveryPageSize,
+    GraphReplayLimits, GraphReplayReport, InterruptResolutionCommitOutcome, JournalPage,
+    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    LiveLeaseObservation, ModelInvocationCommitOutcome, ModelInvocationHistoryPage,
+    ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome, NodeAttemptHistoryPage,
+    NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize,
+    OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome,
+    OutboxEnqueueOutcome, PendingNodeResultCommitOutcome, PendingNodeResultPage,
+    PendingNodeResultPageCursor, PendingNodeResultPageSize, PostgresStoreOptions, RunProjection,
+    RunQuarantine, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
+    RunQuarantineRequest, RunnableRunCandidate, RunnableRunPage, RunnableRunPageCursor,
+    RunnableRunPageSize, StoreError, StoredGraphDefinition, StoredOutboxDestination, StoredRun,
+    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,
+    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -1979,6 +1987,177 @@ impl ClaimedRunRecovery<'_> {
         Ok(definition)
     }
 
+    /// Independently replays every committed noninitial checkpoint transition.
+    ///
+    /// Lineage pages are streamed newest-to-oldest while retaining only the
+    /// current child. For each parent, the provider reloads every exact pending
+    /// result and its consumption row in one repeatable-read transaction,
+    /// enforces the configured compact-byte ceiling, then closes that
+    /// transaction before invoking the schema registry or reducer. The graph
+    /// planner is given the already committed child's checkpoint ID and its
+    /// derived successor write must match every semantic child field.
+    ///
+    /// A schema/reducer that is unavailable, panics, or cannot satisfy its
+    /// local resource bound is an operational deployment failure and does not
+    /// quarantine durable data. Missing results, invalid consumption rows,
+    /// rejected durable values, nondeterministic state/routing, and any other
+    /// parent-to-child mismatch are payload-redacted corruption and trigger the
+    /// session's exact fence-protected quarantine before this method returns.
+    /// A final snapshot revalidates the original journal observation, current
+    /// checkpoint pointer, runnable lifecycle, and live fence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ReadyNodeRecoveryCheckpointMissing`] before an
+    /// initial checkpoint, [`StoreError::GraphReplayDependencyUnavailable`] for
+    /// missing or failed executable dependencies,
+    /// [`StoreError::GraphReplayResourceLimit`] when one barrier exceeds
+    /// `limits`, ordinary fencing/database/staleness errors, or
+    /// [`StoreError::RunQuarantined`] after a durable replay mismatch is
+    /// isolated.
+    pub async fn validate_noninitial_replay<V, R>(
+        &self,
+        schemas: &V,
+        reducer: &R,
+        limits: GraphReplayLimits,
+    ) -> Result<GraphReplayReport, StoreError>
+    where
+        V: GraphSchemaValidator + ?Sized,
+        R: GraphReducer + ?Sized,
+    {
+        Box::pin(self.read(self.validate_noninitial_replay_inner(schemas, reducer, limits))).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn validate_noninitial_replay_inner<V, R>(
+        &self,
+        schemas: &V,
+        reducer: &R,
+        limits: GraphReplayLimits,
+    ) -> Result<GraphReplayReport, StoreError>
+    where
+        V: GraphSchemaValidator + ?Sized,
+        R: GraphReducer + ?Sized,
+    {
+        let pointer = self
+            .initial_run
+            .checkpoint()
+            .ok_or(StoreError::ReadyNodeRecoveryCheckpointMissing)?;
+        let definition = self.load_pinned_graph_inner().await?;
+        let graph = definition.graph();
+        if reducer.reference() != graph.reducer() {
+            return Err(StoreError::GraphReplayDependencyUnavailable);
+        }
+
+        let page_size = CheckpointLineagePageSize::new(CheckpointLineagePageSize::MAX)?;
+        let mut cursor = None;
+        let mut child: Option<Checkpoint> = None;
+        let mut checkpoints_validated = 0_u64;
+        let mut barriers_replayed = 0_u64;
+        let mut results_replayed = 0_u64;
+        let mut maximum_barrier_result_bytes = 0_usize;
+
+        loop {
+            let page = self
+                .store
+                .load_checkpoint_lineage_page(
+                    self.fence.tenant_id(),
+                    self.fence.run_id(),
+                    cursor.as_ref(),
+                    page_size,
+                )
+                .await?;
+            if page.checkpoints().is_empty() {
+                return Err(StoreError::corrupt("noninitial graph replay lineage"));
+            }
+
+            for parent in page.checkpoints() {
+                if checkpoints_validated == 0
+                    && (parent.checkpoint_id() != pointer.checkpoint_id()
+                        || parent.superstep() != pointer.superstep()
+                        || parent.digest() != pointer.digest())
+                {
+                    return Err(StoreError::corrupt(
+                        "noninitial graph replay checkpoint projection",
+                    ));
+                }
+                if parent.graph() != &graph.reference() {
+                    return Err(StoreError::corrupt("noninitial graph replay graph binding"));
+                }
+                validate_graph_replay_checkpoint_state(graph, parent, schemas)?;
+                checkpoints_validated = checkpoints_validated
+                    .checked_add(1)
+                    .ok_or_else(|| StoreError::corrupt("noninitial graph replay count"))?;
+
+                if let Some(committed_child) = &child {
+                    let inputs = self
+                        .store
+                        .load_historical_graph_barrier_results(parent, committed_child, limits)
+                        .await?;
+                    let result_count = u64::try_from(inputs.results.len())
+                        .map_err(|_| StoreError::corrupt("noninitial graph replay count"))?;
+                    results_replayed = results_replayed
+                        .checked_add(result_count)
+                        .ok_or_else(|| StoreError::corrupt("noninitial graph replay count"))?;
+                    maximum_barrier_result_bytes =
+                        maximum_barrier_result_bytes.max(inputs.compact_bytes);
+
+                    let plan = graph
+                        .plan_barrier(
+                            parent,
+                            &inputs.results,
+                            committed_child.checkpoint_id(),
+                            schemas,
+                            reducer,
+                        )
+                        .map_err(|error| map_graph_replay_plan_error(&error))?;
+                    if !committed_child.matches_write(plan.barrier().successor()) {
+                        return Err(StoreError::corrupt(
+                            "noninitial graph replay successor mismatch",
+                        ));
+                    }
+                    barriers_replayed = barriers_replayed
+                        .checked_add(1)
+                        .ok_or_else(|| StoreError::corrupt("noninitial graph replay count"))?;
+                }
+                child = Some(parent.clone());
+            }
+
+            let Some(next_cursor) = page.next_cursor() else {
+                break;
+            };
+            cursor = Some(next_cursor);
+        }
+
+        let root = child.ok_or_else(|| StoreError::corrupt("noninitial graph replay lineage"))?;
+        if root.superstep() != Superstep::INITIAL
+            || root.parent().is_some()
+            || root.ready_nodes() != graph.entry_nodes()
+        {
+            return Err(StoreError::corrupt("noninitial graph replay root"));
+        }
+        if barriers_replayed != checkpoints_validated.saturating_sub(1) {
+            return Err(StoreError::corrupt("noninitial graph replay coverage"));
+        }
+
+        let after = self
+            .store
+            .load_claimed_run_recovery_snapshot(&self.fence, &self.context)
+            .await?;
+        if after.run.checkpoint() != Some(pointer) {
+            return Err(StoreError::corrupt(
+                "noninitial graph replay checkpoint projection",
+            ));
+        }
+
+        Ok(GraphReplayReport {
+            checkpoints_validated,
+            barriers_replayed,
+            results_replayed,
+            maximum_barrier_result_bytes,
+        })
+    }
+
     async fn load_graph_for_checkpoint(
         &self,
         checkpoint: &Checkpoint,
@@ -1996,6 +2175,7 @@ impl ClaimedRunRecovery<'_> {
         };
         let graph = definition.graph();
         if graph.reference() != *checkpoint.graph()
+            || checkpoint.state().schema() != graph.state_schema()
             || checkpoint.ready_nodes().len() > usize::from(graph.limits().maximum_parallelism())
             || checkpoint
                 .ready_nodes()
@@ -2317,7 +2497,78 @@ impl ClaimedRunRecovery<'_> {
     }
 }
 
+struct HistoricalGraphBarrierResults {
+    results: Vec<PendingNodeResult>,
+    compact_bytes: usize,
+}
+
+#[derive(Default)]
+struct CompactByteCounter {
+    bytes: usize,
+}
+
+impl Write for CompactByteCounter {
+    fn write(&mut self, buffer: &[u8]) -> std::io::Result<usize> {
+        self.bytes = self.bytes.saturating_add(buffer.len());
+        Ok(buffer.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn map_graph_replay_plan_error(error: &GraphBarrierPlanError) -> StoreError {
+    match error {
+        GraphBarrierPlanError::ReducerReferenceMismatch
+        | GraphBarrierPlanError::SchemaValidatorPanicked { .. }
+        | GraphBarrierPlanError::ReducerPanicked
+        | GraphBarrierPlanError::SchemaValidation {
+            source: GraphSchemaValidationError::Unavailable,
+            ..
+        }
+        | GraphBarrierPlanError::ReducerFailed {
+            source: GraphReducerError::Unavailable | GraphReducerError::ResourceLimit,
+        } => StoreError::GraphReplayDependencyUnavailable,
+        _ => StoreError::corrupt("noninitial graph replay plan"),
+    }
+}
+
+fn validate_graph_replay_checkpoint_state<V>(
+    graph: &CompiledGraph,
+    checkpoint: &Checkpoint,
+    schemas: &V,
+) -> Result<(), StoreError>
+where
+    V: GraphSchemaValidator + ?Sized,
+{
+    match catch_unwind(AssertUnwindSafe(|| {
+        schemas.validate(graph.state_schema(), checkpoint.state().data())
+    })) {
+        Err(_) | Ok(Err(GraphSchemaValidationError::Unavailable)) => {
+            Err(StoreError::GraphReplayDependencyUnavailable)
+        }
+        Ok(Err(_)) => Err(StoreError::corrupt(
+            "noninitial graph replay checkpoint state",
+        )),
+        Ok(Ok(())) => Ok(()),
+    }
+}
+
+fn map_graph_replay_consumption_error(error: StoreError) -> StoreError {
+    match error {
+        StoreError::Database { .. } | StoreError::CorruptData { .. } => error,
+        _ => StoreError::corrupt("noninitial graph replay consumption"),
+    }
+}
+
 impl PostgresStore {
+    /// Returns the validated immutable provider options used by this pool.
+    #[must_use]
+    pub const fn options(&self) -> &PostgresStoreOptions {
+        &self.options
+    }
+
     /// Connects to a qualified `PostgreSQL` 16 or 17 server and verifies its schema.
     ///
     /// Run [`Self::migrate_database`] with a deployment-authorized role before
@@ -2483,6 +2734,9 @@ impl PostgresStore {
         let reference = graph.reference();
         let mut transaction = self.begin_mutation("graph definition registration").await?;
         let registered_at = database_now(&mut transaction, "graph definition clock").await?;
+        // Both the immutable identity and its exact-reference projection are
+        // unique. Under speculative insertion either index can arbitrate first,
+        // so every unique conflict must converge on the verified read below.
         let inserted = query(
             r"
 INSERT INTO stateknot.graph_definitions (
@@ -2496,13 +2750,7 @@ INSERT INTO stateknot.graph_definitions (
     registered_at
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-ON CONFLICT (
-    tenant_id,
-    owner_issuer,
-    owner_subject,
-    graph_name,
-    graph_version
-) DO NOTHING
+ON CONFLICT DO NOTHING
 ",
         )
         .bind(tenant_id.as_str())
@@ -4296,6 +4544,52 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
         Ok(result)
     }
 
+    async fn load_historical_graph_barrier_results(
+        &self,
+        parent: &Checkpoint,
+        child: &Checkpoint,
+        limits: GraphReplayLimits,
+    ) -> Result<HistoricalGraphBarrierResults, StoreError> {
+        let mut transaction = self
+            .begin_repeatable_read("historical graph barrier replay")
+            .await?;
+        let heads = load_locked_barrier_result_heads(&mut transaction, &parent.head()).await?;
+        let barrier = CheckpointBarrier::new(parent, child.write_intent(), heads.clone())
+            .map_err(|_| StoreError::corrupt("noninitial graph replay result set"))?;
+
+        let mut results = Vec::with_capacity(heads.len());
+        let mut compact_bytes = 0_usize;
+        for head in &heads {
+            let row = load_pending_node_result_row(&mut transaction, head.activation())
+                .await?
+                .ok_or_else(|| StoreError::corrupt("noninitial graph replay result"))?;
+            let result = decode_pending_node_result(&row)?;
+            if result.head() != *head {
+                return Err(StoreError::corrupt("noninitial graph replay result head"));
+            }
+            verify_pending_node_result(&mut transaction, &result).await?;
+
+            let mut counter = CompactByteCounter::default();
+            serde_json::to_writer(&mut counter, &result)
+                .map_err(|_| StoreError::corrupt("noninitial graph replay result encoding"))?;
+            compact_bytes = compact_bytes.saturating_add(counter.bytes);
+            if compact_bytes > limits.maximum_barrier_result_bytes() {
+                return Err(StoreError::GraphReplayResourceLimit);
+            }
+            results.push(result);
+        }
+        verify_barrier_consumptions(&mut transaction, &barrier, child)
+            .await
+            .map_err(map_graph_replay_consumption_error)?;
+        transaction.commit().await.map_err(|source| {
+            StoreError::database("historical graph barrier replay commit", source)
+        })?;
+        Ok(HistoricalGraphBarrierResults {
+            results,
+            compact_bytes,
+        })
+    }
+
     /// Loads one stable-snapshot page of fully verified unconsumed node results.
     ///
     /// The first call passes no cursor. A continuation must use the exact
@@ -4949,6 +5243,48 @@ WHERE tenant_id = $1
             .await
             .map_err(|source| StoreError::database("lease renewal commit", source))?;
         Ok(LeaseRenewalOutcome::Renewed(renewed))
+    }
+
+    /// Observes one exact fence against the current database clock.
+    ///
+    /// Unlike an idempotent renewal result, this read cannot confirm an already
+    /// expired historical write. It verifies the complete run scope and current
+    /// wait projection, runnable lifecycle, quarantine state, exact attempt and
+    /// epoch, and exclusive lease expiry in one repeatable-read transaction.
+    /// Success proves liveness only at [`LiveLeaseObservation::observed_at`].
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit not-found, lifecycle, quarantine, stale-fence,
+    /// lease-expiry, corruption, clock, or database failures.
+    pub async fn observe_live_lease(
+        &self,
+        fence: &RunFence,
+    ) -> Result<LiveLeaseObservation, StoreError> {
+        let mut transaction = self.begin_repeatable_read("live lease observation").await?;
+        let row = query_as::<_, RunRow>(SELECT_RUN)
+            .bind(fence.tenant_id().as_str())
+            .bind(*fence.run_id().as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("live lease observation load", source))?
+            .ok_or(StoreError::RunNotFound)?;
+        let stored = decode_run(row)?;
+        if stored.lifecycle().provenance().tenant_id() != fence.tenant_id()
+            || stored.lifecycle().provenance().run_id() != fence.run_id()
+        {
+            return Err(StoreError::corrupt("live lease observation scope"));
+        }
+        verify_current_wait_set(&mut transaction, &stored).await?;
+        validate_runnable(&stored)?;
+        let observed_at = database_now(&mut transaction, "live lease observation clock").await?;
+        authorize_worker(&stored, fence, observed_at)?;
+        let lease = stored.lease().cloned().ok_or(StoreError::NoActiveLease)?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("live lease observation commit", source))?;
+        Ok(LiveLeaseObservation { lease, observed_at })
     }
 
     /// Releases an active lease under its exact fence, retaining the issued epoch.

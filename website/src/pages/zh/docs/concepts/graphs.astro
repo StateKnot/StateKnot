@@ -14,9 +14,9 @@ import DocsLayout from "../../../../layouts/DocsLayout.astro";
   <aside class="docs-callout" aria-labelledby="graph-boundary-title">
     <h2 id="graph-boundary-title">Compiler 已实现，Agent Loop 尚未交付</h2>
     <p>
-      <code>CompiledGraph</code>、确定性 Barrier Planning 与 PostgreSQL Pinned
-      Graph Registry 已经实现。Model/Tool Dispatch 和完整 Durable Barrier Driver
-      仍在开发，因此本教程会停在仓库今天真正可执行的边界。
+      <code>CompiledGraph</code>、确定性 Barrier Planning、PostgreSQL Pinned
+      Graph Registry 与耐久 Root Graph Driver 已经实现。公开 Model/Tool Agent
+      Loop 和完整 Lifecycle 集成仍在开发。
     </p>
   </aside>
 
@@ -135,14 +135,15 @@ let pinned = recovery.load_pinned_graph().await?;</code></pre>
   </section>
 
   <section aria-labelledby="next-title">
-    <h2 id="next-title">下一步是什么</h2>
+    <h2 id="next-title">从 Definition 进入执行</h2>
     <p>
       Pure Barrier Planner 已能验证完整 Result Coverage，以稳定 <code
         >NodeId</code
       > 顺序把 Update 交给精确固定的 Reducer，解析 Continue/Route/Wait/Terminal Control，并生成
-      Successor Checkpoint Intent。下一段 Runtime 会解析可执行 Schema/Reducer Registry，并通过现有
-      PostgreSQL Atomic Barrier Commit 驱动该 Intent。Loop、Subgraph 和完整 Agent
-      Ergonomics 属于后续里程碑。
+      Successor Checkpoint Intent。Runtime 现已把该 Definition 绑定到离线 Schema/Reducer/Node
+      可执行闭包，并驱动耐久 Root Path。接下来阅读<a href="/zh/docs/runtime/"
+        >耐久 Graph Runtime 指南</a
+      >。Loop、Subgraph、Lifecycle 集成和完整 Agent Ergonomics 属于后续里程碑。
     </p>
   </section>
 </DocsLayout>

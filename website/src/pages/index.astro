@@ -27,9 +27,15 @@ const currentCut = [
     href: "/docs/concepts/graphs/",
   },
   {
+    surface: "Durable Graph Driver",
+    state: "Implemented slice",
+    evidence: "Exact executables, noninitial replay, lease renewal, takeover",
+    href: "/docs/runtime/",
+  },
+  {
     surface: "Runnable agent loop",
     state: "Not shipped",
-    evidence: "Blocked on the complete recovery/dispatch path",
+    evidence: "Lifecycle and model/tool integration remain open",
     href: "https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md",
   },
   {
@@ -44,8 +50,8 @@ const roadmap = [
   {
     index: "01",
     state: "Now",
-    title: "Close the durable execution path",
-    body: "Resolve executable schemas and reducers, then drive compiled successor barriers through the existing atomic store path.",
+    title: "Integrate lifecycle handoffs",
+    body: "Commit complete Wait, Terminal, and run-failure metadata from the Driver’s exact lease-bound handoff without weakening fencing.",
   },
   {
     index: "02",
@@ -80,9 +86,10 @@ const roadmap = [
             Durable agent orchestration, written for Rust.
           </h1>
           <p class="hero-lede">
-            StateKnot is building typed graph execution and PostgreSQL-backed
-            recovery around explicit durability contracts. The runtime loop and
-            protocol adapters are still under development.
+            StateKnot now drives typed root Graphs through PostgreSQL-backed
+            crash recovery with exact executable bindings. The public Agent
+            loop, lifecycle service, and protocol adapters remain under
+            development.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -100,9 +107,9 @@ const roadmap = [
           <figcaption id="terminal-caption">Repository validation</figcaption>
           <pre
             tabindex="0"
-            aria-label="Repository validation: workspace tests, PostgreSQL store integration tests on versions 16 and 17, Apache-2.0 license, pre-alpha status"><code><span class="code-muted">$</span> <span aria-hidden="true" data-type-line data-text="cargo test --workspace --all-targets --all-features --locked">cargo test --workspace --all-targets --all-features --locked</span>
+            aria-label="Repository validation: workspace tests and durable Graph Driver integration tests on PostgreSQL versions 16 and 17, Apache-2.0 license, pre-alpha status"><code><span class="code-muted">$</span> <span aria-hidden="true" data-type-line data-text="cargo test --workspace --all-targets --all-features --locked">cargo test --workspace --all-targets --all-features --locked</span>
 
-<span class="code-muted">$</span> cargo test -p stateknot-store-postgres \
+<span class="code-muted">$</span> cargo test -p stateknot-runtime \
     --test postgres --locked
 
 <span class="code-key">CI matrix</span>  PostgreSQL 16 / 17

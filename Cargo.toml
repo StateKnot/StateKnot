@@ -5,6 +5,7 @@
 members = [
     "crates/stateknot",
     "crates/stateknot-core",
+    "crates/stateknot-runtime",
     "crates/stateknot-store-postgres",
 ]
 resolver = "3"
@@ -15,6 +16,7 @@ fluent-uri = { version = "0.4.1", default-features = false, features = ["alloc"]
 futures-core = "0.3.31"
 language-tags = "0.3.2"
 mime = "0.3.17"
+jsonschema = { version = "=0.52.1", default-features = false }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 schemars = "1.2.2"
 serde = { version = "1.0.229", features = ["derive"] }

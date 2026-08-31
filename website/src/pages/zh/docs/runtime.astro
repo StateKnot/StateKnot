@@ -1,0 +1,245 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+register_standard_graph_driver_event_schema(&mut schemas)?;
+register_application_schemas(&mut schemas)?;
+
+let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
+executables.register_graph(compiled_graph)?;
+executables.register_reducer(reducer)?;
+for executor in node_executors {
+    executables.register_node(executor)?;
+}
+
+let driver = DurableGraphDriver::new(
+    store,
+    executables.build()?,
+    DurableGraphDriverOptions::default(),
+)?;`;
+
+const driveCode = `let claim = store
+    .claim_lease(&tenant_id, run_id, attempt_id)
+    .await?;
+
+let result = driver
+    .drive(claim.lease().fence().clone(), shutdown_signal)
+    .await?;
+
+let (outcome, report) = result.into_parts();`;
+
+const outcomes = [
+  {
+    term: "LifecycleBarrierReady",
+    body: "立即补齐 Wait 或成功 Terminal 元数据，并使用 Handoff 原样携带的 Plan、Journal Head、Revision 与 Live Lease 完成一次原子 Provider Commit。禁止序列化或重建该 Handoff。",
+  },
+  {
+    term: "Blocked",
+    body: "同一 Fence 下的 In-flight 工作不能再次 Dispatch。Failed 或 Exhausted 必须把 Plan 的精确证据交给 Run-level Failure Policy，禁止自行推导 Retry 权限。",
+  },
+  {
+    term: "Deferred",
+    body: "数据库时间驱动的 Wakeup 与 Lease Release 已经持久化，不能再创建第二个进程内 Timer。",
+  },
+  {
+    term: "Yielded",
+    body: "有界 Durable-event Quantum 在两次 Mutation 之间结束，Lease 已释放；通过 Scheduler Discovery 与新 Claim 再次进入。",
+  },
+  {
+    term: "Cancelled",
+    body: "本地 Node Task 已收到信号并停止，精确 Fence 随后释放；下一次 Claim 执行耐久恢复。",
+  },
+];
+---
+
+<DocsLayout
+  title="从耐久证据驱动 Graph。"
+  description="冻结精确可执行绑定、验证非初始 Replay，并在不削弱 Crash Recovery 的前提下集成 StateKnot 带 Fence 的耐久 Graph Driver。"
+  section="耐久 Graph Runtime"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="runtime-boundary-title">
+    <h2 id="runtime-boundary-title">Driver 已实现，集成仍处于 Pre-alpha</h2>
+    <p>
+      Root Graph Driver 已实现，并在 PostgreSQL 16 与 17 完成验证，但尚未发布。
+      完整 Wait/Terminal/Failure Lifecycle 处理、Model/Tool Agent Ergonomics、
+      Scheduler Fairness、Loop 与 Subgraph 仍是发布阻断项。
+    </p>
+  </aside>
+
+  <section aria-labelledby="registry-title">
+    <h2 id="registry-title">冻结一份精确可执行部署</h2>
+    <p>
+      Scheduler 开始 Claim 前必须完成注册表构建。每份 JSON Schema
+      都必须离线可用、符合 JSON Schema 2020-12、使用 RFC 8785 Canonical
+      Bytes，并由 SHA-256 Digest 固定。 每个完整 Graph Digest 必须闭合到唯一
+      Reducer 与全部已声明 Node Executor。缺失、
+      重复、不匹配、无法解析或孤立的绑定都会拒绝启动。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 仅在启动阶段注册</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-runtime-startup-code"
+          data-copy-idle="复制"
+          data-copy-loading="复制中"
+          data-copy-success="已复制"
+          data-copy-error="复制失败"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-runtime-startup-code"
+        tabindex="0"><code>{startupCode}</code></pre>
+    </div>
+    <p>
+      标准审计 Schema 必须通过注册函数安装，其不可变 Identity 为<a
+        href="/schemas/runtime/graph-driver-event/1.0.0"
+        ><code>https://stknot.com/schemas/runtime/graph-driver-event/1.0.0</code
+        ></a
+      >。不要在应用代码中手工写死 Digest。
+    </p>
+  </section>
+
+  <section aria-labelledby="replay-title">
+    <h2 id="replay-title">先 Replay，再执行</h2>
+    <p>
+      已 Claim 的 Run 会先重新加载并编译 Checkpoint-pinned Graph。Runtime
+      随后使用 精确安装的 Schema 与 Reducer，在有界 Pending-result
+      内存中重放每个已提交非初始 Checkpoint，同时验证 Journal Anchor、Parent
+      Checkpoint 与不可变 Ready Set。任何 Durable Evidence 缺失或矛盾都会在 Node
+      代码运行前，由当前 Live Fence 把 Run Quarantine。
+    </p>
+  </section>
+
+  <section aria-labelledby="dispatch-title">
+    <h2 id="dispatch-title">Committed Start 才是执行授权</h2>
+    <p>
+      Driver 会先提交 Physical Node-attempt Start，再启动 Node 代码。只有新返回
+      <code>NodeAttemptCommitOutcome::Committed</code> 才会调用 Executor。<code
+        >Idempotent</code
+      > Start 可能表示 ACK 丢失或另一个执行器已经写入，因此一律按 In-flight 处理。
+    </p>
+    <p>
+      Node 运行期间不会持有数据库事务。Driver 会在启动前刷新临近过期的
+      Lease，并在 数据库时间换算的单调到期 Watchdog 下续租、传播单调
+      Cancellation Signal、执行硬 Deadline，并按最新 Journal Head 提交
+      Completion。外部 Model/Tool 副作用必须 进入各自 Invocation Ledger；Node
+      内裸写外部系统无法继承 Reconciliation 保证。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 精确 Claim 与有界 Drive</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-runtime-drive-code"
+          data-copy-idle="复制"
+          data-copy-loading="复制中"
+          data-copy-success="已复制"
+          data-copy-error="复制失败"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-runtime-drive-code"
+        tabindex="0"><code>{driveCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="outcome-title">
+    <h2 id="outcome-title">显式处理每种 Outcome</h2>
+    <dl class="docs-definition-list">
+      {
+        outcomes.map((outcome) => (
+          <div>
+            <dt>
+              <code>{outcome.term}</code>
+            </dt>
+            <dd>{outcome.body}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  <section aria-labelledby="options-title">
+    <h2 id="options-title">限制时间、内存与 Mutation Retry</h2>
+    <ul>
+      <li>
+        <code>GraphReplayLimits</code> 默认允许每个历史 Barrier 保留 64 MiB Compact
+        Result，硬上限为 512 MiB。
+      </li>
+      <li>
+        一次 <code>drive</code> 默认最多处理 1,024 个 Driver-owned Durable Event，并且只在
+        Durable Operation 之间 Yield。
+      </li>
+      <li>
+        Renewal Interval 必须至少能在 Provider Lease Duration 中容纳三次；默认
+        Node Deadline 为 15 分钟。
+      </li>
+      <li>
+        Storage Mutation Retry 有明确次数上限，复用相同 Durable Event/Attempt
+        Identity， 并采用封顶指数退避。
+      </li>
+    </ul>
+    <p>
+      生产监控应从 <code>GraphDriveReport</code> 采集 Replay 数量与保留字节、Attempt
+      Start/Completion、Continue Barrier、Lease Renewal 和 Mutation Retry。
+    </p>
+  </section>
+
+  <section aria-labelledby="recovery-title">
+    <h2 id="recovery-title">Crash Recovery 只有一条授权路径</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Same Fence</h3>
+        <p>未完成 Attempt 保持 In-flight，同一 Fence 不能重复启动。</p>
+      </li>
+      <li>
+        <h3>Higher Fence</h3>
+        <p>
+          Lease 到期或可信 Supersession 后，后继 Fence 只能接管未完成 Physical
+          Attempt 一次。
+        </p>
+      </li>
+      <li>
+        <h3>Continue Barrier</h3>
+        <p>
+          Driver 消费完整 Result Set，原子提交 Successor
+          Checkpoint，并在下一次非初始 Replay 中独立验证。
+        </p>
+      </li>
+      <li>
+        <h3>Wait 或 Terminal</h3>
+        <p>
+          Driver 保留精确 Lease，返回短生命周期 Commit
+          Handoff，不会虚构不属于自己的 Lifecycle Metadata。
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="evidence-title">
+    <h2 id="evidence-title">验证证据</h2>
+    <p>
+      CI 在 PostgreSQL 16 与 17 上分别运行六个 Driver 场景：Continue 后的非初始
+      Replay 与 Terminal Handoff、Same-fence 重复抑制、通过续租执行超过原始
+      Lease、Node 启动前刷新临近过期 Lease、执行前隔离非法初始状态，以及
+      Higher-fence Takeover。每个数据库版本还会运行 91 个 Provider
+      Case。部署这个 Pre-alpha Surface 前请阅读完整的<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.zh-CN.md"
+        >集成与运维契约</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

@@ -1,0 +1,245 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+register_standard_graph_driver_event_schema(&mut schemas)?;
+register_application_schemas(&mut schemas)?;
+
+let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
+executables.register_graph(compiled_graph)?;
+executables.register_reducer(reducer)?;
+for executor in node_executors {
+    executables.register_node(executor)?;
+}
+
+let driver = DurableGraphDriver::new(
+    store,
+    executables.build()?,
+    DurableGraphDriverOptions::default(),
+)?;`;
+
+const driveCode = `let claim = store
+    .claim_lease(&tenant_id, run_id, attempt_id)
+    .await?;
+
+let result = driver
+    .drive(claim.lease().fence().clone(), shutdown_signal)
+    .await?;
+
+let (outcome, report) = result.into_parts();`;
+
+const outcomes = [
+  {
+    term: "LifecycleBarrierReady",
+    body: "Immediately complete the Wait or successful Terminal metadata and use the handoff’s exact plan, journal head, revision, and live lease in one atomic provider commit. Never serialize or reconstruct this handoff.",
+  },
+  {
+    term: "Blocked",
+    body: "In-flight work must not be dispatched again beneath the same fence. Failed or exhausted work goes to the run-level failure policy with the plan’s exact evidence; retry authority is never inferred.",
+  },
+  {
+    term: "Deferred",
+    body: "The database-time wakeup and lease release are already durable. Do not create a second in-process timer.",
+  },
+  {
+    term: "Yielded",
+    body: "The bounded durable-event quantum ended between mutations and the lease was released. Re-enter through scheduler discovery and a new claim.",
+  },
+  {
+    term: "Cancelled",
+    body: "The local node task was signalled and stopped, then the exact fence was released. A later claim performs durable recovery.",
+  },
+];
+---
+
+<DocsLayout
+  title="Drive a Graph from durable evidence."
+  description="Freeze exact executable bindings, validate noninitial replay, and integrate StateKnot’s fenced durable Graph Driver without weakening crash recovery."
+  section="Durable Graph runtime"
+>
+  <aside class="docs-callout" aria-labelledby="runtime-boundary-title">
+    <h2 id="runtime-boundary-title">
+      Implemented Driver, pre-alpha integration
+    </h2>
+    <p>
+      The root Graph Driver is implemented and qualified on PostgreSQL 16 and
+      17. It is still unpublished. Complete Wait/Terminal/failure lifecycle
+      handling, model/tool Agent ergonomics, scheduler fairness, loops, and
+      subgraphs remain release blockers.
+    </p>
+  </aside>
+
+  <section aria-labelledby="registry-title">
+    <h2 id="registry-title">Freeze one exact executable deployment</h2>
+    <p>
+      Build the registry before the scheduler can claim work. Every JSON Schema
+      is offline, JSON Schema 2020-12, RFC 8785 canonical, and SHA-256 pinned.
+      Every graph digest must close over one exact reducer plus every declared
+      node executor. Missing, duplicate, mismatched, unresolved, and orphan
+      bindings stop startup.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · startup-only registration</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="runtime-startup-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="runtime-startup-code"
+        tabindex="0"><code>{startupCode}</code></pre>
+    </div>
+    <p>
+      Install the standard audit schema through its registration function. Its
+      immutable identity is <a href="/schemas/runtime/graph-driver-event/1.0.0"
+        ><code>https://stknot.com/schemas/runtime/graph-driver-event/1.0.0</code
+        ></a
+      >. Do not hard-code its digest into application code.
+    </p>
+  </section>
+
+  <section aria-labelledby="replay-title">
+    <h2 id="replay-title">Replay before executing</h2>
+    <p>
+      A claimed run first reloads and recompiles the checkpoint-pinned graph.
+      The runtime then replays every committed noninitial checkpoint with the
+      exact installed schemas and reducer, bounded pending-result memory,
+      journal anchors, parent checkpoints, and immutable ready sets. Missing or
+      contradictory durable evidence is quarantined beneath the current live
+      fence before any node code can run.
+    </p>
+  </section>
+
+  <section aria-labelledby="dispatch-title">
+    <h2 id="dispatch-title">A committed start is execution authority</h2>
+    <p>
+      The Driver commits one physical node-attempt start before spawning node
+      code. Only a fresh <code>NodeAttemptCommitOutcome::Committed</code> launches
+      the executor. An <code>Idempotent</code> start may represent a lost acknowledgement
+      or another executor, so it is always treated as in flight.
+    </p>
+    <p>
+      While node code runs, no database transaction remains open. The Driver
+      refreshes near-expiry ownership before launch, renews beneath a
+      database-time-derived monotonic expiry watchdog, propagates a monotonic
+      cancellation signal, enforces a hard deadline, and commits completion
+      against the latest journal head. External model and tool effects must use
+      their invocation ledgers; a raw external write inside a node cannot
+      inherit reconciliation guarantees.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · exact claim and bounded drive</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="runtime-drive-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="runtime-drive-code" tabindex="0"><code>{driveCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="outcome-title">
+    <h2 id="outcome-title">Handle every outcome explicitly</h2>
+    <dl class="docs-definition-list">
+      {
+        outcomes.map((outcome) => (
+          <div>
+            <dt>
+              <code>{outcome.term}</code>
+            </dt>
+            <dd>{outcome.body}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  <section aria-labelledby="options-title">
+    <h2 id="options-title">Bound time, memory, and mutation retries</h2>
+    <ul>
+      <li>
+        <code>GraphReplayLimits</code> defaults to 64 MiB of retained compact results
+        per historical barrier; the hard ceiling is 512 MiB.
+      </li>
+      <li>
+        One <code>drive</code> call defaults to 1,024 Driver-owned durable events
+        and yields only between durable operations.
+      </li>
+      <li>
+        The renewal interval must fit at least three times inside the provider
+        lease duration. The default node deadline is 15 minutes.
+      </li>
+      <li>
+        Storage mutation retries are bounded and reuse the same durable event
+        and attempt identities with capped exponential backoff.
+      </li>
+    </ul>
+    <p>
+      Monitor replay counts and retained bytes, attempt starts and completions,
+      Continue barriers, lease renewals, and mutation retries through
+      <code>GraphDriveReport</code>.
+    </p>
+  </section>
+
+  <section aria-labelledby="recovery-title">
+    <h2 id="recovery-title">Crash recovery has one authority path</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Same fence</h3>
+        <p>
+          An unfinished attempt remains in flight and cannot be launched twice.
+        </p>
+      </li>
+      <li>
+        <h3>Higher fence</h3>
+        <p>
+          After lease expiry or trusted supersession, the successor fence can
+          take over the unfinished physical attempt once.
+        </p>
+      </li>
+      <li>
+        <h3>Continue barrier</h3>
+        <p>
+          The Driver consumes the complete result set, atomically commits the
+          successor checkpoint, and independently validates it on the next
+          noninitial replay.
+        </p>
+      </li>
+      <li>
+        <h3>Wait or Terminal</h3>
+        <p>
+          The Driver retains the exact lease and returns a short-lived commit
+          handoff instead of fabricating lifecycle metadata it does not own.
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="evidence-title">
+    <h2 id="evidence-title">Qualification evidence</h2>
+    <p>
+      CI runs six Driver scenarios on PostgreSQL 16 and 17: Continue followed by
+      noninitial replay and Terminal handoff; same-fence duplicate suppression;
+      execution beyond the original lease through renewal; near-expiry refresh
+      before launch; invalid initial-state quarantine before execution; and
+      higher-fence takeover. Each database version also runs 91 provider cases.
+      See the complete <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.md"
+        >integration and operations contract</a
+      > before deploying this pre-alpha surface.
+    </p>
+  </section>
+</DocsLayout>

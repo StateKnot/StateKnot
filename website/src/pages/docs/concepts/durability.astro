@@ -103,11 +103,12 @@ const evidenceSteps = [
       an indexed database-time wakeup; direct claims cannot run it early.
     </p>
     <p>
-      Pure route, reducer, successor, and barrier planning is implemented. The
-      executable schema/reducer registry, independent replay of non-initial
-      ready sets, and the complete durable barrier-driving loop remain active
-      runtime work. See <a href="/docs/status/">implementation status</a> before building
-      against the contracts.
+      The durable Driver now freezes executable schemas, reducers, and nodes;
+      independently replays every committed noninitial checkpoint; renews the
+      lease while node code runs; commits Continue barriers; and returns typed
+      Wait/Terminal/failure handoffs. Read the <a href="/docs/runtime/"
+        >runtime integration contract</a
+      > before wiring a scheduler or lifecycle service.
     </p>
   </section>
 </DocsLayout>

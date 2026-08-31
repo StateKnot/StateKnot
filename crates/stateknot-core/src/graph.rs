@@ -32,7 +32,7 @@ use crate::{
 const MEBIBYTE: usize = 1024 * 1024;
 
 /// Exact executable reducer revision required by a compiled graph.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GraphReducerReference {
     identity: CapabilityIdentity,

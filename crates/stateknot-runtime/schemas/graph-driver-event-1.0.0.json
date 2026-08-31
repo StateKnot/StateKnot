@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/graph-driver-event/1.0.0",
+  "title": "StateKnot durable graph driver event data",
+  "description": "Public-safe correlation metadata for durable graph driver journal events. Node state, outputs, failure messages, and invocation payloads are deliberately excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation",
+    "graph_digest",
+    "checkpoint_id",
+    "superstep"
+  ],
+  "properties": {
+    "operation": {
+      "enum": [
+        "node_attempt_started",
+        "node_attempt_succeeded",
+        "node_attempt_failed",
+        "graph_barrier_continued"
+      ]
+    },
+    "graph_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "checkpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "superstep": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,18})$"
+    },
+    "node_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "attempt_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "result_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "failure_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "successor_checkpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "successor_superstep": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,18})$"
+    },
+    "disposition": {
+      "const": "continue"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "operation": {
+          "const": "node_attempt_started"
+        }
+      },
+      "required": [
+        "node_id",
+        "attempt_id"
+      ],
+      "not": {
+        "anyOf": [
+          { "required": ["result_digest"] },
+          { "required": ["failure_id"] },
+          { "required": ["successor_checkpoint_id"] },
+          { "required": ["successor_superstep"] },
+          { "required": ["disposition"] }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "operation": {
+          "const": "node_attempt_succeeded"
+        }
+      },
+      "required": [
+        "node_id",
+        "attempt_id",
+        "result_digest"
+      ],
+      "not": {
+        "anyOf": [
+          { "required": ["failure_id"] },
+          { "required": ["successor_checkpoint_id"] },
+          { "required": ["successor_superstep"] },
+          { "required": ["disposition"] }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "operation": {
+          "const": "node_attempt_failed"
+        }
+      },
+      "required": [
+        "node_id",
+        "attempt_id",
+        "failure_id"
+      ],
+      "not": {
+        "anyOf": [
+          { "required": ["result_digest"] },
+          { "required": ["successor_checkpoint_id"] },
+          { "required": ["successor_superstep"] },
+          { "required": ["disposition"] }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "operation": {
+          "const": "graph_barrier_continued"
+        }
+      },
+      "required": [
+        "successor_checkpoint_id",
+        "successor_superstep",
+        "disposition"
+      ],
+      "not": {
+        "anyOf": [
+          { "required": ["node_id"] },
+          { "required": ["attempt_id"] },
+          { "required": ["result_digest"] },
+          { "required": ["failure_id"] }
+        ]
+      }
+    }
+  ]
+}

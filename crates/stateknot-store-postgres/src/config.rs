@@ -59,6 +59,18 @@ impl PostgresStoreOptions {
         self.transport_security
     }
 
+    /// Returns the duration assigned to a newly acquired worker lease.
+    #[must_use]
+    pub const fn lease_duration(&self) -> Duration {
+        self.lease_duration
+    }
+
+    /// Returns the maximum expiry horizon accepted by lease renewal.
+    #[must_use]
+    pub const fn maximum_lease_horizon(&self) -> Duration {
+        self.maximum_lease_horizon
+    }
+
     /// Overrides the transport policy.
     #[must_use]
     pub const fn with_transport_security(

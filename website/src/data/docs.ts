@@ -54,6 +54,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/concepts/durability/",
         search: "concept durability journal checkpoint lease fence recovery",
       },
+      {
+        title: "Durable Graph runtime",
+        description:
+          "Register exact executable code, replay noninitial state, and drive one fenced run.",
+        href: "/docs/runtime/",
+        search:
+          "runtime graph driver executable registry replay lease fence crash recovery handoff",
+      },
     ],
   },
   {
@@ -119,6 +127,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
           "理解 Journal、Checkpoint、Lease、Fence 与恢复证据如何协同。",
         href: "/docs/concepts/durability/",
         search: "概念 耐久 journal checkpoint lease fence 恢复",
+      },
+      {
+        title: "耐久 Graph Runtime",
+        description:
+          "注册精确可执行代码、重放非初始状态，并驱动一个带 Fence 的 Run。",
+        href: "/docs/runtime/",
+        search:
+          "runtime graph driver 可执行 注册表 重放 租约 fence 崩溃 恢复 handoff",
       },
     ],
   },

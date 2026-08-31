@@ -884,7 +884,7 @@ code. The recovery read finishes before the separate quarantine transaction;
 an advanced journal head returns a stale-observation error rather than stopping
 newer state.
 
-Eighty-two integration tests run against PostgreSQL 16 and 17.
+Ninety-one provider integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -935,11 +935,16 @@ PostgreSQL 16/17. Migration 13 proves immutable tenant-scoped compiled-graph
 registration, identical-byte idempotency, version conflict, exact v12 upgrade,
 canonical-byte/projection corruption rejection, tenant isolation, checkpoint-pin
 revalidation with fenced quarantine, and a 24-way conflicting registration race
-on both database versions. Executable schema/reducer resolution, independent
-noninitial replay validation, durable barrier-loop integration, role-separated
-database procedures, the 10,000 stale-race trial, failover, archive,
-backup/restore, and soak gates below remain incomplete; the RFC therefore
-remains Draft.
+on both database versions. The unpublished runtime now adds an offline exact
+schema/reducer/node executable closure, bounded noninitial replay, and a fenced
+root Graph Driver with durable-before-dispatch starts, pre-launch lease refresh,
+monotonic expiry enforcement, lease renewal, Continue barrier commits, and
+typed lifecycle handoffs. Root-to-terminal recovery, same-fence suppression,
+near-expiry launch protection, long-running renewal, and higher-fence takeover
+pass on both database versions. Role-separated database procedures, lifecycle handling
+for Wait/Terminal/failure handoffs, the 10,000 stale-race trial, failover,
+archive, backup/restore, and soak gates below remain incomplete; the RFC
+therefore remains Draft.
 
 Before RFC acceptance:
 

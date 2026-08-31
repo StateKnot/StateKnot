@@ -48,7 +48,7 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 ## Current milestone
 
-The project is in the **architecture-contract and vertical-validation phase**.
+The project is in the **architecture-contract and durable-runtime vertical-validation phase**.
 The unpublished core crate validates model, tool, agent admission/result,
 durable run-lifecycle, canonical journal-envelope, graph-checkpoint,
 tool- and model-invocation state machines, immutable pending node results,
@@ -130,17 +130,33 @@ compiled-graph registry. Registration is idempotent only for identical bytes;
 claimed recovery reloads and recompiles the exact checkpoint-pinned definition,
 checks its redundant identity/digest projections, and quarantines missing or
 contradictory evidence under the live fence.
-Protocol-specific outbox dispatch adapters, cross-tenant fairness, executable
-schema/reducer registry resolution, independent noninitial replay validation,
-durable barrier driving, the complete recovery/dispatch loop, and a runnable
-agent loop have not shipped yet.
+The new unpublished `stateknot-runtime` crate now freezes an offline,
+digest-pinned JSON Schema 2020-12 registry, exact graph/reducer/node executable
+bindings, independent bounded replay of every committed noninitial checkpoint,
+and a fenced durable Graph Driver. The Driver durably starts a physical node
+attempt before spawning node code, never launches from an idempotently observed
+start, refreshes near-expiry ownership before launch, renews leases beneath a
+database-time-derived monotonic expiry watchdog, propagates cooperative cancellation,
+commits success/failure against the latest exact journal head, automatically
+advances Continue barriers, and returns typed lease-bound handoffs for
+Wait/Terminal or blocked failure supervision. Root-to-terminal continuation,
+same-fence duplicate suppression, near-expiry launch protection, higher-fence
+crash takeover, and execution beyond the original lease pass on PostgreSQL 16
+and 17.
+Protocol-specific outbox dispatch adapters, cross-tenant fairness, lifecycle
+integration for complete Wait/Terminal metadata, the runnable agent loop,
+role isolation, retention, failover, restore, and the final stale-race gates
+have not shipped yet.
 
 The current milestone is to:
 
 1. validate the three frozen production scenarios and their load/failure models;
 2. accept the core domain, graph, durability, and protocol/security RFCs;
-3. prove one end-to-end durable execution path with crash recovery;
-4. publish compatibility and performance evidence before claiming support.
+3. integrate complete Wait/Terminal/failure lifecycle commits and the first
+   model/tool Agent loop with the proven durable Driver;
+4. qualify scheduler fairness, role isolation, failover/restore, and the final
+   stale-race gates; and
+5. publish compatibility and performance evidence before claiming support.
 
 See the [qualification scenarios](docs/scenarios/README.md), the
 [roadmap](docs/roadmap.md), the full
@@ -153,6 +169,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
+crates/stateknot-runtime/  Offline executable registry, replay validation, and durable Graph Driver
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 website/                 Bilingual Astro docs, browser tests, and Caddy deployment
@@ -160,8 +177,8 @@ website/                 Bilingual Astro docs, browser tests, and Caddy deployme
 ```
 
 Additional crates will be created only after their dependency or semantic
-boundaries are proven. Empty provider, protocol, and runtime crates are
-deliberately avoided.
+boundaries are proven. Empty provider and protocol crates are deliberately
+avoided.
 
 ## Development
 

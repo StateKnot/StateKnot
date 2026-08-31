@@ -171,7 +171,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 89 integration tests against PostgreSQL 16 and
+The current database suite runs 91 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v8 without guessed projection or physical-attempt provenance, real v3
@@ -269,8 +269,9 @@ lost-ACK replay at the ceiling remains idempotent. Graph-registry coverage prove
 fresh and exact v12-to-v13 migration, schema/index/byte-bound verification,
 tenant isolation, idempotent identical registration, immutable version conflict,
 fail-closed canonical-byte corruption, missing-pinned-definition quarantine,
-and a 24-way conflicting registration race with one durable winner. All 89 tests
-run independently against PostgreSQL 16 and PostgreSQL 17.
+and a 24-way conflicting registration race with one durable winner. The 91
+provider tests and six durable Graph Driver tests run independently against
+PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -387,11 +388,16 @@ concurrent executor and must be treated as in flight. If that executor is gone,
 allow lease expiry/supersession and recover the unfinished start under a higher
 fence. Never invoke node code before a fresh `Committed` handoff.
 
-The complete runtime loop that resolves executable schema/reducer
-implementations, independently validates noninitial replay, applies
-cross-tenant fairness, and durably drives the planned barrier is not implemented
-yet. Canonical graph loading and pure route/reducer/successor barrier planning
-are implemented boundaries, not a runnable loop.
+The unpublished `stateknot-runtime` crate now resolves an exact startup-frozen
+schema/reducer/node executable closure, independently validates every committed
+noninitial checkpoint, and drives the root recovery loop. It commits a physical
+node start before calling node code, never launches after an `Idempotent` start,
+refreshes a near-expiry lease before launch, renews it beneath a conservative
+database-time-derived monotonic expiry watchdog, commits node completion against
+the latest journal head, automatically commits Continue barriers, and returns
+typed lease-bound handoffs for Wait/Terminal or blocked failure supervision.
+Cross-tenant fairness and the lifecycle integration that consumes those
+handoffs remain outside the provider.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record
@@ -576,15 +582,15 @@ upgrade, constraint/index removal, tenant isolation, corruption, conflict, and
 
 ## Not yet implemented
 
-This slice is not the complete durable runtime. It does not yet implement
-protocol-specific outbox dispatch adapters, artifacts, cross-tenant scheduler
-fairness, executable schema/reducer registry resolution, independent noninitial
-replay validation, durable barrier driving, or the complete recovery loop
-(pinned graph revalidation, deterministic root ready-node planning, pure
-route/reducer/successor planning, durable start handoff, and delayed-retry
-wakeup are implemented),
-retention/archive/legal hold, backup/restore, failover qualification, or the
-10,000-race stale-worker gate.
+This slice is not a production release or the complete agent runtime. It does
+not yet implement protocol-specific outbox dispatch adapters, artifacts,
+cross-tenant scheduler fairness, the lifecycle service that atomically commits
+complete Wait/Terminal metadata from a Driver handoff, the model/tool agent
+loop, retention/archive/legal hold, backup/restore, failover qualification, or
+the 10,000-race stale-worker gate. The current Graph Driver is deliberately
+sequential within one run so exact journal serialization and recovery authority
+remain unambiguous; parallel sibling scheduling requires its own bounded
+ordering and admission policy before it can be enabled.
 
 The current pool is a trusted server-side persistence boundary. Database
 credentials must not be distributed to untrusted workers: PostgreSQL

@@ -24,6 +24,12 @@ const paths = [
     link: "阅读执行模型",
   },
   {
+    title: "驱动耐久 Graph",
+    body: "冻结可执行 Schema、Reducer 与 Node，重放非初始 Checkpoint，并正确处理每种带 Fence 的 Driver Outcome。",
+    href: "/zh/docs/runtime/",
+    link: "集成 Driver",
+  },
+  {
     title: "运维 PostgreSQL",
     body: "查看已实现 Provider 的安全默认值、迁移顺序、运维边界与强制集成测试路径。",
     href: "/zh/docs/postgresql/",
@@ -47,9 +53,9 @@ const paths = [
   <aside class="docs-callout" aria-labelledby="docs-boundary-title">
     <h2 id="docs-boundary-title">从真实边界开始</h2>
     <p>
-      StateKnot 还没有公开可运行的 Agent API。目前可以编译真实确定性
-      Graph，并验证 Core 与 PostgreSQL 耐久化合约；首篇面向最终用户的 Agent
-      教程会与它所执行的完整运行时路径同时发布。
+      StateKnot 还没有公开可运行的 Agent API。目前可以编译确定性 Graph、冻结
+      可执行部署、重放非初始 Checkpoint，并在 PostgreSQL 上驱动 Root Execution
+      Path。Model/Tool Agent Ergonomics 与 Lifecycle 集成仍是明确的发布阻断项。
     </p>
   </aside>
 
@@ -88,6 +94,14 @@ const paths = [
           Ledger、Pending Result、Barrier、耐久等待、Outbox、隔离与 Ready-node
           恢复规划、索引化延迟重试唤醒，以及 Tenant-scoped 不可变 Graph
           Registry。
+        </dd>
+      </div>
+      <div>
+        <dt>耐久 Graph Runtime</dt>
+        <dd>
+          离线可执行注册、独立有界 Replay、Durable-before-dispatch Node
+          执行、Lease Renewal、自动 Continue Barrier 与类型化 Lifecycle
+          Handoff。
         </dd>
       </div>
       <div>

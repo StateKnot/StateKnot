@@ -27,9 +27,15 @@ const currentCut = [
     href: "/zh/docs/concepts/graphs/",
   },
   {
+    surface: "耐久 Graph Driver",
+    state: "已实现切片",
+    evidence: "精确可执行闭包、非初始 Replay、续租与 Crash Takeover",
+    href: "/zh/docs/runtime/",
+  },
+  {
     surface: "可运行 Agent Loop",
     state: "尚未发布",
-    evidence: "完整 Recovery/Dispatch Path 尚未闭合",
+    evidence: "Lifecycle 与 Model/Tool 集成仍未闭合",
     href: "https://github.com/StateKnot/StateKnot/blob/main/docs/roadmap.md",
   },
   {
@@ -44,8 +50,8 @@ const roadmap = [
   {
     index: "01",
     state: "现在",
-    title: "闭合耐久执行路径",
-    body: "解析可执行 Schema 与 Reducer，并通过现有 Atomic Store 路径驱动 Compiled Successor Barrier。",
+    title: "集成 Lifecycle Handoff",
+    body: "使用 Driver 精确且 Lease-bound 的 Handoff 原子提交完整 Wait、Terminal 与 Run Failure 元数据，不削弱 Fencing。",
   },
   {
     index: "02",
@@ -78,8 +84,9 @@ const roadmap = [
           <p class="hero-status">Pre-alpha · 尚无稳定公开 API</p>
           <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
           <p class="hero-lede">
-            StateKnot 正围绕明确的耐久合约，构建类型化 Graph 执行与
-            PostgreSQL-backed Recovery。Runtime Loop 与协议 Adapter 仍在开发。
+            StateKnot 现已使用精确可执行绑定，通过 PostgreSQL-backed Crash
+            Recovery 驱动类型化 Root Graph。公开 Agent Loop、Lifecycle Service
+            与协议 Adapter 仍在开发。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -98,9 +105,9 @@ const roadmap = [
           <figcaption id="terminal-caption">仓库验证</figcaption>
           <pre
             tabindex="0"
-            aria-label="仓库验证：Workspace 测试、PostgreSQL 16 与 17 Store 集成测试、Apache-2.0 许可证、pre-alpha 状态"><code><span class="code-muted">$</span> <span aria-hidden="true" data-type-line data-text="cargo test --workspace --all-targets --all-features --locked">cargo test --workspace --all-targets --all-features --locked</span>
+            aria-label="仓库验证：Workspace 测试、PostgreSQL 16 与 17 耐久 Graph Driver 集成测试、Apache-2.0 许可证、pre-alpha 状态"><code><span class="code-muted">$</span> <span aria-hidden="true" data-type-line data-text="cargo test --workspace --all-targets --all-features --locked">cargo test --workspace --all-targets --all-features --locked</span>
 
-<span class="code-muted">$</span> cargo test -p stateknot-store-postgres \
+<span class="code-muted">$</span> cargo test -p stateknot-runtime \
     --test postgres --locked
 
 <span class="code-key">CI matrix</span>  PostgreSQL 16 / 17

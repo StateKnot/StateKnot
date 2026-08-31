@@ -1335,6 +1335,13 @@ impl PendingNodeResultPage {
         &self.records
     }
 
+    /// Consumes the page and returns its fully verified records without cloning
+    /// their bounded JSON payloads.
+    #[must_use]
+    pub fn into_records(self) -> Vec<PendingNodeResult> {
+        self.records
+    }
+
     /// Returns whether a later result remains in the observed snapshot.
     #[must_use]
     pub const fn has_more(&self) -> bool {
@@ -1580,6 +1587,88 @@ impl CheckpointLineagePage {
     #[must_use]
     pub fn next_cursor(&self) -> Option<CheckpointHead> {
         self.next_cursor.clone()
+    }
+}
+
+/// Memory ceiling for independently replaying one historical graph barrier.
+///
+/// The provider measures the compact serialized size of every fully verified
+/// pending result before retaining it for the deterministic planner. A single
+/// bounded result may transiently sit beside the retained set while the limit
+/// check runs, but the configured aggregate is never exceeded after insertion.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct GraphReplayLimits {
+    maximum_barrier_result_bytes: usize,
+}
+
+impl GraphReplayLimits {
+    /// Absolute implementation maximum for retained results in one barrier.
+    pub const HARD_MAXIMUM_BARRIER_RESULT_BYTES: usize = 512 * 1024 * 1024;
+
+    /// Constructs a positive replay memory ceiling.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidGraphReplayLimits`] for zero or more than
+    /// 512 MiB.
+    pub const fn new(maximum_barrier_result_bytes: usize) -> Result<Self, StoreError> {
+        if maximum_barrier_result_bytes == 0
+            || maximum_barrier_result_bytes > Self::HARD_MAXIMUM_BARRIER_RESULT_BYTES
+        {
+            return Err(StoreError::InvalidGraphReplayLimits);
+        }
+        Ok(Self {
+            maximum_barrier_result_bytes,
+        })
+    }
+
+    /// Returns the retained compact-result byte ceiling per barrier.
+    #[must_use]
+    pub const fn maximum_barrier_result_bytes(self) -> usize {
+        self.maximum_barrier_result_bytes
+    }
+}
+
+impl Default for GraphReplayLimits {
+    fn default() -> Self {
+        Self {
+            maximum_barrier_result_bytes: 64 * 1024 * 1024,
+        }
+    }
+}
+
+/// Evidence summary returned after complete noninitial checkpoint replay.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GraphReplayReport {
+    pub(crate) checkpoints_validated: u64,
+    pub(crate) barriers_replayed: u64,
+    pub(crate) results_replayed: u64,
+    pub(crate) maximum_barrier_result_bytes: usize,
+}
+
+impl GraphReplayReport {
+    /// Returns every checkpoint whose lineage and graph binding was verified.
+    #[must_use]
+    pub const fn checkpoints_validated(self) -> u64 {
+        self.checkpoints_validated
+    }
+
+    /// Returns the number of parent-to-child transitions independently planned.
+    #[must_use]
+    pub const fn barriers_replayed(self) -> u64 {
+        self.barriers_replayed
+    }
+
+    /// Returns the total number of immutable node results re-evaluated.
+    #[must_use]
+    pub const fn results_replayed(self) -> u64 {
+        self.results_replayed
+    }
+
+    /// Returns the largest retained compact result set observed for one barrier.
+    #[must_use]
+    pub const fn maximum_barrier_result_bytes(self) -> usize {
+        self.maximum_barrier_result_bytes
     }
 }
 
@@ -1945,6 +2034,38 @@ pub enum LeaseRenewalOutcome {
     Renewed(RunLease),
     /// The same desired expiry had already committed.
     Idempotent(RunLease),
+}
+
+/// Exact lease proven live at one database-clock observation.
+///
+/// This is short-lived authority evidence, not a promise that the lease remains
+/// live after [`Self::observed_at`]. Callers performing external work must
+/// translate the remaining database duration into a conservative monotonic
+/// deadline and continue renewing beneath the same fence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LiveLeaseObservation {
+    pub(crate) lease: RunLease,
+    pub(crate) observed_at: Timestamp,
+}
+
+impl LiveLeaseObservation {
+    /// Returns the exact fence and exclusive durable expiry observed.
+    #[must_use]
+    pub const fn lease(&self) -> &RunLease {
+        &self.lease
+    }
+
+    /// Returns the database clock used to prove the lease unexpired.
+    #[must_use]
+    pub const fn observed_at(&self) -> Timestamp {
+        self.observed_at
+    }
+
+    /// Consumes the observation into its lease and database time.
+    #[must_use]
+    pub fn into_parts(self) -> (RunLease, Timestamp) {
+        (self.lease, self.observed_at)
+    }
 }
 
 /// Result of claiming or explicitly superseding execution ownership.
