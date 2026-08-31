@@ -12,6 +12,12 @@ const paths = [
     link: "Start locally",
   },
   {
+    title: "Compile a deterministic graph",
+    body: "Run the maintained Rust example, understand the compiler's fail-closed checks, and register one exact immutable definition.",
+    href: "/docs/concepts/graphs/",
+    link: "Build the graph",
+  },
+  {
     title: "Understand durability",
     body: "Follow one run through journal facts, immutable checkpoints, lease fencing, pending results, barriers, and recovery.",
     href: "/docs/concepts/durability/",
@@ -41,9 +47,9 @@ const paths = [
     <h2 id="docs-boundary-title">The honest starting point</h2>
     <p>
       StateKnot does not yet expose a runnable public Agent API. Today you can
-      inspect and validate its core contracts and PostgreSQL durability slice;
-      the first end-user Agent tutorial will ship with the executable runtime
-      path it exercises.
+      compile a real deterministic Graph and validate its core and PostgreSQL
+      durability contracts. The first end-user Agent tutorial will ship with the
+      executable runtime path it exercises.
     </p>
   </aside>
 
@@ -70,8 +76,9 @@ const paths = [
       <div>
         <dt>Core contracts</dt>
         <dd>
-          Typed, bounded domain values for agents, models, tools, runs,
-          checkpoints, invocations, waits, results, and recovery evidence.
+          Typed, bounded domain values for agents, models, tools, runs, compiled
+          graphs, deterministic barriers, checkpoints, invocations, waits,
+          results, and recovery evidence.
         </dd>
       </div>
       <div>
@@ -79,8 +86,8 @@ const paths = [
         <dd>
           Exact migrations, journal and checkpoint integrity, leases and
           fencing, invocation ledgers, pending results, barriers, durable waits,
-          outbox delivery, quarantine, ready-node recovery planning, and indexed
-          delayed-retry wakeups.
+          outbox delivery, quarantine, ready-node recovery planning, indexed
+          delayed-retry wakeups, and the tenant-scoped immutable graph registry.
         </dd>
       </div>
       <div>

@@ -24,6 +24,11 @@ The provider currently supplies:
 - immutable graph/state checkpoints with exact parent and journal anchors,
   graph/state-schema pins, canonical state bytes, sorted next-ready nodes, and a
   validated current-checkpoint pointer;
+- migration-13 immutable compiled-graph definitions scoped by tenant plus exact
+  owner/name/version identity. Registration accepts one canonical definition,
+  converges only for identical bytes, and rejects version reuse; every load
+  recompiles the closed descriptor and checks its digest and redundant lookup
+  columns before returning it;
 - atomic control-plane and worker initial-checkpoint APIs whose event,
   lifecycle projection, checkpoint row, journal head, and checkpoint pointer
   commit or roll back together; raw successor writes fail with
@@ -153,7 +158,7 @@ It also needs `SELECT`/`INSERT` on `stateknot.interrupt_resolutions`,
 `stateknot.timer_firings`, and `stateknot.wait_abandonments`, plus
 `SELECT`/`INSERT` and terminal-projection-only `UPDATE` on
 `stateknot.run_wait_registrations`; and `SELECT`/`INSERT` on
-`stateknot.run_quarantines`.
+`stateknot.run_quarantines` and `stateknot.graph_definitions`.
 Do not grant runtime DDL,
 checkpoint, node-attempt, invocation-revision, pending-result, or consumption
 update/delete permissions. Exact role/grant SQL will be
@@ -166,7 +171,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 82 integration tests against PostgreSQL 16 and
+The current database suite runs 89 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v8 without guessed projection or physical-attempt provenance, real v3
@@ -260,7 +265,11 @@ lost-ACK convergence, and 24 identical starts producing one new `Committed`
 launch grant plus 23
 non-dispatching `Idempotent` observations. A 64-attempt history remains fully
 recoverable as `Exhausted`, the 65th unique start leaves no residue, and exact
-lost-ACK replay at the ceiling remains idempotent. All 82 tests
+lost-ACK replay at the ceiling remains idempotent. Graph-registry coverage proves
+fresh and exact v12-to-v13 migration, schema/index/byte-bound verification,
+tenant isolation, idempotent identical registration, immutable version conflict,
+fail-closed canonical-byte corruption, missing-pinned-definition quarantine,
+and a 24-way conflicting registration race with one durable winner. All 89 tests
 run independently against PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -344,6 +353,15 @@ This composes a corruption-isolating
 checkpoint-and-suffix input without treating a read as dispatch authority;
 node/model/tool/outbox start transactions still perform the decisive fence.
 
+Before planning work, `load_pinned_graph` reloads the current checkpoint's exact
+tenant-scoped graph version, recompiles its canonical bytes, validates the graph
+and state-schema digest binding, rejects unknown ready nodes or an invalid
+initial entry set, and repeats the live-fence/journal observation after the
+registry read. `plan_ready_nodes` performs this pinned-graph check automatically.
+A missing, altered, cross-tenant, or checkpoint-mismatched definition is treated
+as corruption and enters the same fence-bound quarantine path; ordinary
+availability and stale-fence races remain explicit errors.
+
 For the current root ready set, prefer `plan_ready_nodes`. It loads the pinned
 checkpoint, streams all unconsumed results and every ready activation's complete
 history, and performs its own final live-fence/journal revalidation at database
@@ -369,9 +387,11 @@ concurrent executor and must be treated as in flight. If that executor is gone,
 allow lease expiry/supersession and recover the unfinished start under a higher
 fence. Never invoke node code before a fresh `Committed` handoff.
 
-The complete runtime loop that reloads the pinned graph registry, recomputes
-routes/reducers/successors, applies cross-tenant fairness, and drives the
-barrier is not implemented yet.
+The complete runtime loop that resolves executable schema/reducer
+implementations, independently validates noninitial replay, applies
+cross-tenant fairness, and durably drives the planned barrier is not implemented
+yet. Canonical graph loading and pure route/reducer/successor barrier planning
+are implemented boundaries, not a runnable loop.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record
@@ -543,13 +563,26 @@ commit returns `Idempotent`; if database time already reached the boundary,
 removal/corruption, direct early claims, indexed due visibility, lost-ACK, and
 the due-during-commit race are exercised on PostgreSQL 16 and 17.
 
+Migration 13 adds immutable `graph_definitions` keyed by tenant and exact
+owner-qualified semantic graph identity, plus a tenant/digest lookup index.
+Canonical compiled bytes remain the authority; bounded redundant key and digest
+columns support lookup and are revalidated on every load. `register_graph_definition`
+uses conflict-safe idempotency, while `load_graph_definition` recompiles the
+closed descriptor and rejects any projection or canonical-byte drift. Claimed
+recovery maps a missing or contradictory checkpoint-pinned definition through
+its existing live-fence quarantine transaction. Fresh install, exact v12
+upgrade, constraint/index removal, tenant isolation, corruption, conflict, and
+24-way registration races are exercised on PostgreSQL 16 and 17.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
 protocol-specific outbox dispatch adapters, artifacts, cross-tenant scheduler
-fairness, pinned graph-registry revalidation, route/reducer/successor and
-barrier driving, or the complete recovery loop (deterministic root ready-node
-planning, durable start handoff, and delayed-retry wakeup are implemented),
+fairness, executable schema/reducer registry resolution, independent noninitial
+replay validation, durable barrier driving, or the complete recovery loop
+(pinned graph revalidation, deterministic root ready-node planning, pure
+route/reducer/successor planning, durable start handoff, and delayed-retry
+wakeup are implemented),
 retention/archive/legal hold, backup/restore, failover qualification, or the
 10,000-race stale-worker gate.
 

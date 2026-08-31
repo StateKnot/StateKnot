@@ -9,19 +9,19 @@ const capabilities = [
     state: "Implemented",
     className: "status-implemented",
     title: "Core domain contracts",
-    body: "Bounded canonical types for agents, models, tools, graph checkpoints, invocations, waits, outbox delivery, attempts, and recovery.",
+    body: "Bounded canonical types plus compiled root-graph validation and deterministic route/reducer/successor barrier planning.",
   },
   {
     state: "Implemented",
     className: "status-implemented",
     title: "PostgreSQL durability slice",
-    body: "PostgreSQL 16/17 migrations, journal, checkpoints, leases, invocation ledgers, pending results, barriers, outbox, durable waits, quarantine, ready-node recovery, and indexed delayed-retry wakeups.",
+    body: "PostgreSQL 16/17 migrations, journal, checkpoints, leases, ledgers, barriers, waits, outbox, quarantine, delayed wakeups, and the tenant-scoped immutable pinned graph registry.",
   },
   {
     state: "Active work",
     className: "status-active",
     title: "Durable graph execution path",
-    body: "Pinned graph revalidation, route and reducer evaluation, successor computation, and complete barrier driving.",
+    body: "Executable schema/reducer resolution, independent non-initial ready-set replay, complete durable barrier driving, and loop/subgraph semantics.",
   },
   {
     state: "Not shipped",

@@ -172,6 +172,16 @@ The compiler emits canonical descriptor bytes and their SHA-256 digest. Runtime
 registries load executable node/reducer implementations only after matching the
 exact owner, name, version, kind, schemas, and definition digest.
 
+The unpublished core currently implements the bounded root-graph subset of this
+contract: owner-qualified schema/reducer pins, canonical node and route ordering,
+exact definition hashing, missing/duplicate/unreachable-node rejection,
+wait-or-terminal reachability, graph-specific parallelism and superstep limits,
+and hard node/route/two-MiB descriptor ceilings. Frozen wire fixtures and
+completion-order property tests cover that subset. Schema compatibility across
+ports, enforceable cycle analysis, nested subgraphs, reserved identities, and
+the executable implementation registry remain acceptance work; the partial
+compiler does not make this RFC accepted.
+
 ## Node execution contract
 
 Conceptually, typed nodes implement:
@@ -385,14 +395,18 @@ Committed external results are read from their ledgers. An external write with
 an unknown outcome remains blocked for reconciliation rather than becoming an
 ordinary retry.
 
-The current PostgreSQL vertical slice implements steps 1, 3/4 for its trusted
+The current PostgreSQL vertical slice implements step 1's exact tenant-scoped
+pinned graph-definition reload and recompilation, steps 3/4 for its trusted
 checkpoint/journal boundary, 6, 8, and the physical-attempt part of 9 for the
 root ready set. It returns the closed recovery plan above and a plan-bound
 durable-start handoff. Deferred-only plans can additionally commit an indexed
-database-time wakeup while atomically releasing the exact live lease. Loading
-the pinned graph implementation and schema registry by digest, independently
-recomputing the ready set, applying route/reducer/successor semantics, and
-driving the complete barrier loop remain required before this RFC is accepted.
+database-time wakeup while atomically releasing the exact live lease. The core
+pure planner validates complete result coverage, applies a caller-resolved exact
+reducer in stable node order, resolves continue/route/wait/terminal control, and
+constructs the existing atomic barrier intent. Resolving executable schema and
+reducer implementations from trusted registries, independently validating
+noninitial replay, and driving the complete durable barrier/recovery loop remain
+required before this RFC is accepted.
 
 ## Wait, resume, and cancellation
 

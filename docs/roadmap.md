@@ -133,10 +133,18 @@ from the repository.
   retries, retain ownership when the boundary becomes due during commit, and
   prove exact v11 migration, corruption, and runtime behavior on PostgreSQL
   16/17.
+- [x] Compile bounded declarative root graphs into canonical digest-pinned
+  definitions, derive completion-order-invariant reducer/route/wait/terminal
+  barrier intents, and persist immutable tenant-scoped graph versions through
+  migration 13. Claimed recovery recompiles the checkpoint-pinned bytes,
+  rejects projection or ready-set drift, and quarantines missing/corrupt graph
+  evidence under the exact live fence; migration, corruption, tenant-isolation,
+  idempotency/conflict, and concurrent-registration behavior pass on PostgreSQL
+  16/17.
 - [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
-  pinned graph-registry replay, route/reducer/successor and barrier driving,
-  protocol-specific outbox adapters, role isolation, retention, failover,
-  restore, and stale-race gates.
+  executable schema/reducer registry resolution, independent noninitial replay
+  validation, durable barrier driving, protocol-specific outbox adapters, role
+  isolation, retention, failover, restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

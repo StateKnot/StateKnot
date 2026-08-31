@@ -9,19 +9,19 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "Core 领域合约",
-    body: "Agent、Model、Tool、Graph Checkpoint、Invocation、Wait、Outbox Delivery、Attempt 与恢复证据的有界 Canonical 类型。",
+    body: "有界 Canonical 类型，以及 Root Graph 编译校验和确定性 Route/Reducer/Successor Barrier Planning。",
   },
   {
     state: "已实现",
     className: "status-implemented",
     title: "PostgreSQL 耐久化切片",
-    body: "PostgreSQL 16/17 迁移、Journal、Checkpoint、Lease、Invocation Ledger、Pending Result、Barrier、Outbox、Durable Wait、Quarantine、Ready-node Recovery 与索引化延迟重试唤醒。",
+    body: "PostgreSQL 16/17 迁移、Journal、Checkpoint、Lease、Ledger、Barrier、Wait、Outbox、Quarantine、延迟唤醒与 Tenant-scoped 不可变 Pinned Graph Registry。",
   },
   {
     state: "开发中",
     className: "status-active",
     title: "耐久 Graph 执行路径",
-    body: "Pinned Graph Revalidation、Route/Reducer Evaluation、Successor Computation 与完整 Barrier Driving。",
+    body: "可执行 Schema/Reducer Resolution、非初始 Ready Set 的独立 Replay、完整 Durable Barrier Driving，以及 Loop/Subgraph 语义。",
   },
   {
     state: "尚未发布",

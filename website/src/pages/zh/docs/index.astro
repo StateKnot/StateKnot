@@ -12,6 +12,12 @@ const paths = [
     link: "开始本地验证",
   },
   {
+    title: "编译确定性 Graph",
+    body: "运行持续维护的 Rust 示例，理解 Compiler 的 Fail-closed 校验，并注册一个精确不可变的 Definition。",
+    href: "/zh/docs/concepts/graphs/",
+    link: "构建 Graph",
+  },
+  {
     title: "理解耐久执行",
     body: "跟随一个 Run 经过 Journal、不可变 Checkpoint、Lease/Fence、Pending Result、Barrier 与恢复。",
     href: "/zh/docs/concepts/durability/",
@@ -41,8 +47,8 @@ const paths = [
   <aside class="docs-callout" aria-labelledby="docs-boundary-title">
     <h2 id="docs-boundary-title">从真实边界开始</h2>
     <p>
-      StateKnot 还没有公开可运行的 Agent API。目前可以检查和验证 Core 合约与
-      PostgreSQL 耐久化切片；首篇面向最终用户的 Agent
+      StateKnot 还没有公开可运行的 Agent API。目前可以编译真实确定性
+      Graph，并验证 Core 与 PostgreSQL 耐久化合约；首篇面向最终用户的 Agent
       教程会与它所执行的完整运行时路径同时发布。
     </p>
   </aside>
@@ -70,7 +76,8 @@ const paths = [
       <div>
         <dt>Core 合约</dt>
         <dd>
-          Agent、Model、Tool、Run、Checkpoint、Invocation、Wait、Result
+          Agent、Model、Tool、Run、Compiled Graph、确定性
+          Barrier、Checkpoint、Invocation、Wait、Result
           与恢复证据的类型安全、有界领域值。
         </dd>
       </div>
@@ -79,7 +86,8 @@ const paths = [
         <dd>
           精确迁移、Journal 与 Checkpoint 完整性、Lease/Fencing、Invocation
           Ledger、Pending Result、Barrier、耐久等待、Outbox、隔离与 Ready-node
-          恢复规划，以及索引化延迟重试唤醒。
+          恢复规划、索引化延迟重试唤醒，以及 Tenant-scoped 不可变 Graph
+          Registry。
         </dd>
       </div>
       <div>

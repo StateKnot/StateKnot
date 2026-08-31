@@ -40,6 +40,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
     label: "Understand",
     pages: [
       {
+        title: "Compile a graph",
+        description:
+          "Build a schema-pinned graph, validate its topology, and freeze its canonical digest.",
+        href: "/docs/concepts/graphs/",
+        search:
+          "graph compile compiler node route reducer schema canonical digest tutorial",
+      },
+      {
         title: "Durability model",
         description:
           "Learn how journal, checkpoint, lease, fence, and recovery evidence fit together.",
@@ -97,6 +105,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
   {
     label: "理解",
     pages: [
+      {
+        title: "编译确定性 Graph",
+        description:
+          "构建 Schema-pinned Graph，验证拓扑，并冻结 Canonical Digest。",
+        href: "/docs/concepts/graphs/",
+        search:
+          "graph 编译 compiler 节点 route reducer schema canonical 摘要 教程",
+      },
       {
         title: "耐久执行模型",
         description:

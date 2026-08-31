@@ -34,6 +34,12 @@ const localizedRoutePairs = [
     zhHeading: "耐久执行依赖证据，而不是进程内存。",
   },
   {
+    en: "/docs/concepts/graphs/",
+    zh: "/zh/docs/concepts/graphs/",
+    enHeading: "Compile a deterministic graph.",
+    zhHeading: "编译一个确定性 Graph。",
+  },
+  {
     en: "/docs/postgresql/",
     zh: "/zh/docs/postgresql/",
     enHeading: "Operate the PostgreSQL durability provider.",

@@ -88,6 +88,43 @@ store.health_check().await?;</code></pre>
     </dl>
   </section>
 
+  <section aria-labelledby="graph-registry-title">
+    <h2 id="graph-registry-title">
+      Treat graph versions as immutable releases
+    </h2>
+    <p>
+      Migration 13 adds a tenant-scoped compiled graph registry. The key is the
+      exact graph owner, name, and version; canonical bytes and the definition
+      digest may never change beneath that key. Register the graph before a run
+      can depend on its reference.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · idempotent graph registration</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="postgres-register-graph-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="postgres-register-graph-code"
+        tabindex="0"><code>let outcome = store
+    .register_graph_definition(tenant_id, compiled_graph)
+    .await?;</code></pre>
+    </div>
+    <p>
+      Identical retries converge on the original registration. Different bytes
+      under the same version return a conflict. Every load recompiles and checks
+      canonical bytes, redundant key columns, digest, and tenant binding;
+      claimed recovery quarantines missing or corrupt pinned evidence under its
+      exact live fence.
+    </p>
+  </section>
+
   <section aria-labelledby="tls-title">
     <h2 id="tls-title">Do not weaken TLS casually</h2>
     <p>
@@ -106,8 +143,8 @@ store.health_check().await?;</code></pre>
       The migration role needs the ability to create the owned schema and
       migration table. The runtime role needs only the documented table and
       projection operations; it should not receive DDL or update/delete access
-      to immutable journal, checkpoint, invocation revision, attempt, result, or
-      consumption history.
+      to immutable journal, checkpoint, invocation revision, attempt, result,
+      graph definition, or consumption history.
     </p>
     <p>
       The exact current grant surface is maintained in the repository's
@@ -125,8 +162,8 @@ store.health_check().await?;</code></pre>
       CI runs the mandatory integration suite independently against PostgreSQL
       16 and 17. The suite covers migrations, lost acknowledgements, fencing,
       corruption rejection, concurrency, rollback injection, outbox recovery,
-      durable waits, quarantine, ready-node planning, and delayed-retry
-      scheduling.
+      durable waits, quarantine, immutable graph registration/recovery,
+      ready-node planning, and delayed-retry scheduling.
     </p>
     <p>
       Production release still requires role isolation, retention and garbage

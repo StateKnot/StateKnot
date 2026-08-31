@@ -90,18 +90,19 @@ const evidenceSteps = [
   <section aria-labelledby="recovery-title">
     <h2 id="recovery-title">当前恢复逻辑能够做出的决策</h2>
     <p>
-      已实现的 Ready-node Planner 会在同一个有效 Fence 下验证当前 Root
-      Checkpoint、Journal Observation、Pending Result 和完整 Attempt
-      History，并将每个 Ready Node 分类为
-      Completed、Dispatchable、Deferred、In-flight、Failed 或 Exhausted；Node
-      代码启动前必须先提交 Durable Attempt Start。当所有未完成节点均为 Deferred
-      时，Store 会把 Lease 原子释放到数据库时间驱动的索引化唤醒中，直接 Claim
-      也不能提前执行。
+      Recovery 现在会从 Tenant-scoped 不可变 Registry 重新加载精确 Compiled
+      Graph，重新编译 Canonical Bytes，验证 Checkpoint Binding，再在同一个有效
+      Fence 下校验 Pending Result 和完整 Attempt History，并将每个 Ready Node
+      分类为 Completed、Dispatchable、Deferred、In-flight、Failed 或
+      Exhausted；Node 代码启动前必须先提交 Durable Attempt
+      Start。当所有未完成节点均为 Deferred 时，Store 会把 Lease
+      原子释放到数据库时间驱动的索引化唤醒中，直接 Claim 也不能提前执行。
     </p>
     <p>
-      加载锁定的可执行 Graph、独立重算 Ready Set、执行 Reducer/Route
-      与驱动完整后继 Barrier Loop 仍在开发。构建依赖前请查看<a
-        href="/zh/docs/status/">实现状态</a
+      Pure Route、Reducer、Successor 与 Barrier Planning 已实现。可执行
+      Schema/Reducer Registry、非初始 Ready Set 的独立 Replay，以及完整 Durable
+      Barrier Driving Loop 仍在开发。构建依赖前请查看<a href="/zh/docs/status/"
+        >实现状态</a
       >。
     </p>
   </section>

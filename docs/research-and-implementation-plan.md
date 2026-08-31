@@ -862,9 +862,18 @@ Migration 12 进一步把 deferred-only recovery plan 投影成独立的
 保留 `scheduler_ready_at` 队列年龄并原子释放 lease。普通 claim 不能提前绕过 gate；同一 partial
 index 会在 inclusive due instant 自动暴露 run，无需 per-run polling update。Lost-ACK、到期竞态保留
 原 lease、v11 精确升级、constraint corruption 与 indexed visibility 均已在 PG16/17 全量验证。
-它仍不是完整 runtime。协议专用 outbox dispatch adapter、pinned graph registry 重验、
-route/reducer/successor 与 barrier 驱动、跨租户公平与完整 recovery/dispatch loop、角色隔离、
-归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
+Core 现已实现 Canonical `CompiledGraph` 子集：Owner-qualified Schema/Reducer Pin、稳定
+Node/Route 排序、SHA-256 Definition Identity、拓扑/可达性/Boundary/Parallelism/Superstep
+与硬资源上限校验。Pure Barrier Planner 会验证完整 Result Set，以稳定 `NodeId` 顺序调用精确
+Reducer，并解析 Continue/Route/Wait/Terminal 生成现有 Atomic Barrier Intent；完成顺序属性测试
+与冻结 Wire Fixture 已覆盖该边界。Migration 13 则保存 Tenant-scoped Immutable Graph Version，
+注册只对相同 Canonical Bytes 幂等，Recovery 会重新编译 Checkpoint-pinned Definition 并在 Live
+Fence 下隔离缺失或矛盾证据；v12 升级、Tenant Isolation、Corruption/Conflict 与 24 路注册竞态
+均在 PG16/17 验证。
+它仍不是完整 runtime。协议专用 outbox dispatch adapter、Executable Schema/Reducer Registry
+解析、独立 Noninitial Replay Validation、Durable Barrier 驱动、跨租户公平与完整
+Recovery/Dispatch Loop、角色隔离、归档、Failover 与 Restore 仍按 RFC 门禁继续实现，
+RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
 
@@ -1065,6 +1074,11 @@ GET    /health/ready
 - 确定性 superstep、pending writes、cancel/deadline/retry/budget；
 - property tests、并发压力测试与 model checker 覆盖关键状态机。
 
+进度：Canonical Root-graph Compiler、Digest-pinned Graph Reference、确定性
+Route/Reducer/Successor/Wait/Terminal Barrier Planner，以及 completion-order
+property/fixture 已实现。Port Schema Compatibility、Executable Registry、Loop/Subgraph、
+Nested Namespace 与完整 Scheduler/Runtime 集成仍未完成，阶段 2 尚未结束。
+
 ### 阶段 3：PostgreSQL 耐久运行时（5–6 周）
 
 - journal/checkpoint/node attempts/tool ledger/interrupt/outbox；
@@ -1077,11 +1091,13 @@ registry、pending node-result、transactional outbox、durable interrupt/timer 
 commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending-result barrier
 以及 tenant-level indexed runnable/due-timer/expired-interrupt discovery、durable wait
 registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；cross-tenant
-fairness、pinned graph registry 重验、route/reducer/successor 与 barrier 驱动、完整
-recovery/dispatch loop、协议 dispatch adapter，以及阶段 3 的其余运维与故障门禁未完成，
-不能据此提前宣称阶段完成。已完成的 claimed recovery surface 已提供 fence-bound、
-corruption-quarantining 的恢复输入、确定性 root ready-node 计划、durable start handoff 与
-indexed delayed-retry handoff，但仍不等同于完整 runtime。
+Graph Registry 注册/重载与 Claimed Recovery Pin Revalidation 已通过 Migration 13 完成并在
+PG16/17 验证；Cross-tenant Fairness、Executable Schema/Reducer Registry 解析、独立
+Noninitial Replay Validation、Durable Barrier 驱动、完整 Recovery/Dispatch Loop、协议
+Dispatch Adapter，以及阶段 3 的其余运维与故障门禁未完成，不能据此提前宣称阶段完成。
+已完成的 Claimed Recovery Surface 已提供 Fence-bound、Corruption-quarantining 的恢复输入、
+确定性 Root Ready-node 计划、Pinned Graph 检查、Durable Start Handoff 与 Indexed
+Delayed-retry Handoff，但仍不等同于完整 Runtime。
 
 ### 阶段 4：协议正式支持（4–5 周）
 

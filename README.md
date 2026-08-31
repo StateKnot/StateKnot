@@ -119,10 +119,21 @@ result set while committing their event, successor checkpoint, lifecycle
 projection, and run heads; the specialized wait-barrier commits that same unit
 with a complete interrupt/timer batch. Raw successor checkpoint, generic wait
 projection, and pending-result writes that bypass their durable evidence are
-rejected. Protocol-specific outbox dispatch adapters, cross-tenant fairness,
-pinned graph-registry revalidation, route/reducer/successor evaluation, durable
-barrier driving, the complete recovery/dispatch loop, and a runnable agent loop
-have not shipped yet.
+rejected.
+The core now compiles a bounded declarative graph into canonical JSON and an
+exact SHA-256 identity, rejects invalid topology before admission, and derives
+one deterministic barrier intent from a complete result set. Planning validates
+the pinned checkpoint, schemas and reducer reference, applies updates in stable
+`NodeId` order, and resolves continue, route, wait, or terminal control without
+opening a storage transaction. Migration 13 adds an immutable tenant-scoped
+compiled-graph registry. Registration is idempotent only for identical bytes;
+claimed recovery reloads and recompiles the exact checkpoint-pinned definition,
+checks its redundant identity/digest projections, and quarantines missing or
+contradictory evidence under the live fence.
+Protocol-specific outbox dispatch adapters, cross-tenant fairness, executable
+schema/reducer registry resolution, independent noninitial replay validation,
+durable barrier driving, the complete recovery/dispatch loop, and a runnable
+agent loop have not shipped yet.
 
 The current milestone is to:
 

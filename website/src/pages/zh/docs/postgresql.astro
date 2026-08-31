@@ -81,6 +81,39 @@ store.health_check().await?;</code></pre>
     </dl>
   </section>
 
+  <section aria-labelledby="graph-registry-title">
+    <h2 id="graph-registry-title">把 Graph Version 当作不可变 Release</h2>
+    <p>
+      Migration 13 增加 Tenant-scoped Compiled Graph Registry。Key 由精确 Graph
+      Owner、Name 与 Version 组成；Canonical Bytes 和 Definition Digest 不能在该
+      Key 下变化。Run 依赖其 Reference 前必须先注册 Graph。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 幂等 Graph Registration</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-postgres-register-graph-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-postgres-register-graph-code"
+        tabindex="0"><code>let outcome = store
+    .register_graph_definition(tenant_id, compiled_graph)
+    .await?;</code></pre>
+    </div>
+    <p>
+      相同重试会收敛到原注册；同一版本下的不同 Bytes 会返回冲突。每次 Load
+      都会重新编译并验证 Canonical Bytes、冗余 Key Column、Digest 与 Tenant
+      Binding；Claimed Recovery 会在精确 Live Fence 下隔离缺失或损坏的 Pinned
+      Evidence。
+    </p>
+  </section>
+
   <section aria-labelledby="tls-title">
     <h2 id="tls-title">不要随意削弱 TLS</h2>
     <p>
@@ -95,7 +128,8 @@ store.health_check().await?;</code></pre>
       Migration Role 需要创建所属 Schema 与迁移表的权限。Runtime Role
       只需要文档声明的表与 Projection 操作权限；不应获得
       DDL，也不应获得修改或删除不可变 Journal、Checkpoint、Invocation
-      Revision、Attempt、Result 或 Consumption History 的权限。
+      Revision、Attempt、Result、Graph Definition 或 Consumption History
+      的权限。
     </p>
     <p>
       精确 Grant Surface 维护在仓库的<a
@@ -110,7 +144,8 @@ store.health_check().await?;</code></pre>
     <p>
       CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试，覆盖迁移、Lost
       ACK、Fencing、损坏拒绝、并发、Rollback Injection、Outbox Recovery、Durable
-      Wait、Quarantine、Ready-node Planning 与延迟重试调度。
+      Wait、Quarantine、不可变 Graph Registration/Recovery、Ready-node Planning
+      与延迟重试调度。
     </p>
     <p>
       正式生产发布仍需要角色隔离、Retention/GC、Failover/PITR

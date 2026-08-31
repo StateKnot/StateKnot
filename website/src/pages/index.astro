@@ -21,10 +21,10 @@ const currentCut = [
     href: "https://github.com/StateKnot/StateKnot/tree/main/crates/stateknot-store-postgres",
   },
   {
-    surface: "Recovery planner",
+    surface: "Graph compiler and recovery",
     state: "Implemented slice",
-    evidence: "Fence-bound planning, durable starts, and delayed wakeups",
-    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/postgresql-provider.md",
+    evidence: "Canonical graphs, deterministic barriers, pinned replay",
+    href: "/docs/concepts/graphs/",
   },
   {
     surface: "Runnable agent loop",
@@ -45,7 +45,7 @@ const roadmap = [
     index: "01",
     state: "Now",
     title: "Close the durable execution path",
-    body: "Finish route, reducer, successor, and barrier dispatch semantics around the existing recovery evidence.",
+    body: "Resolve executable schemas and reducers, then drive compiled successor barriers through the existing atomic store path.",
   },
   {
     index: "02",

@@ -93,20 +93,21 @@ const evidenceSteps = [
   <section aria-labelledby="recovery-title">
     <h2 id="recovery-title">What recovery can decide today</h2>
     <p>
-      The implemented ready-node planner verifies the current root checkpoint,
-      journal observation, pending results, and complete attempt histories under
-      one live fence. It classifies each ready node as completed, dispatchable,
-      deferred, in flight, failed, or exhausted, then requires a durable attempt
-      start before node code can launch. When every unsettled node is deferred,
-      the store atomically releases the lease into an indexed database-time
-      wakeup; direct claims cannot run it early.
+      Recovery now reloads the exact compiled graph from a tenant-scoped
+      immutable registry, recompiles its canonical bytes, validates the
+      checkpoint binding, and then verifies pending results and complete attempt
+      histories under one live fence. It classifies each ready node as
+      completed, dispatchable, deferred, in flight, failed, or exhausted, then
+      requires a durable attempt start before node code can launch. When every
+      unsettled node is deferred, the store atomically releases the lease into
+      an indexed database-time wakeup; direct claims cannot run it early.
     </p>
     <p>
-      Loading a pinned executable graph, independently recomputing its ready
-      set, applying reducers and routes, and driving the full successor barrier
-      loop remain active runtime work. See <a href="/docs/status/"
-        >implementation status</a
-      > before building against the contracts.
+      Pure route, reducer, successor, and barrier planning is implemented. The
+      executable schema/reducer registry, independent replay of non-initial
+      ready sets, and the complete durable barrier-driving loop remain active
+      runtime work. See <a href="/docs/status/">implementation status</a> before building
+      against the contracts.
     </p>
   </section>
 </DocsLayout>

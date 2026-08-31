@@ -931,10 +931,15 @@ residue, and preserves exact lost-ACK idempotency at the boundary. This is
 evidence for those boundaries only. Migration 12 additionally proves
 plan-bound delayed wakeup, direct-claim gating, no-polling indexed visibility,
 lost-ACK convergence, due-race lease retention, and exact v11 upgrade on
-PostgreSQL 16/17. Complete graph-registry/reducer/route/barrier loop integration,
-role-separated database procedures, the 10,000 stale-race trial, failover,
-archive, backup/restore, and soak gates below remain incomplete; the RFC
-therefore remains Draft.
+PostgreSQL 16/17. Migration 13 proves immutable tenant-scoped compiled-graph
+registration, identical-byte idempotency, version conflict, exact v12 upgrade,
+canonical-byte/projection corruption rejection, tenant isolation, checkpoint-pin
+revalidation with fenced quarantine, and a 24-way conflicting registration race
+on both database versions. Executable schema/reducer resolution, independent
+noninitial replay validation, durable barrier-loop integration, role-separated
+database procedures, the 10,000 stale-race trial, failover, archive,
+backup/restore, and soak gates below remain incomplete; the RFC therefore
+remains Draft.
 
 Before RFC acceptance:
 
