@@ -8055,8 +8055,8 @@ RETURNING observation.observed_at
         for wait in &waits {
             insert_wait_registration(&mut transaction, wait).await?;
         }
-        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
         update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
         transaction
             .commit()
             .await
@@ -8186,8 +8186,8 @@ RETURNING observation.observed_at
 
         insert_event(&mut transaction, &event, projection_digest).await?;
         insert_checkpoint(&mut transaction, &checkpoint, event.source()).await?;
-        update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
         update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+        update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
 
         transaction
             .commit()
@@ -8412,8 +8412,8 @@ RETURNING observation.observed_at
         }
         insert_barrier_consumptions(&mut transaction, &barrier, &checkpoint, event.source())
             .await?;
-        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
         update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
         transaction
             .commit()
             .await
@@ -8574,8 +8574,8 @@ RETURNING observation.observed_at
         insert_checkpoint(&mut transaction, &checkpoint, event.source()).await?;
         insert_barrier_consumptions(&mut transaction, &barrier, &checkpoint, event.source())
             .await?;
-        update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
         update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+        update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
 
         transaction
             .commit()

@@ -6164,6 +6164,7 @@ async fn worker_wait_barrier_atomically_consumes_results_checkpoints_and_waits()
     );
     let waiting = store.load_run(&tenant_id, run_id).await.unwrap();
     assert_eq!(waiting.lifecycle().status(), RunStatus::Waiting);
+    assert!(waiting.lease().is_none());
     assert_eq!(waiting.unresolved_wait_count(), 2);
     assert_eq!(
         store
@@ -11476,6 +11477,100 @@ async fn initial_wait_checkpoint_is_atomic_exact_and_fail_closed() {
     .await
     .unwrap();
     assert_eq!(row_count, 2);
+
+    let worker_tenant = tenant("initial-worker-wait");
+    let worker_run = RunId::generate();
+    let worker_admitted = store
+        .admit_run(provenance(worker_tenant.clone(), worker_run))
+        .await
+        .unwrap();
+    let worker_started = store
+        .append_control_plane(
+            control_append(
+                worker_tenant.clone(),
+                worker_run,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                904,
+            ),
+            RunProjection::transition(
+                worker_admitted.lifecycle().revision(),
+                RunTransition::Start {
+                    started_at: worker_admitted.lifecycle().admitted_at(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    let worker_active = store.load_run(&worker_tenant, worker_run).await.unwrap();
+    let worker_lease = store
+        .claim_lease(&worker_tenant, worker_run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let worker_wait_event_id = EventId::generate();
+    let worker_timer_id = TimerId::generate();
+    let worker_registrations = vec![WaitRegistrationIntent::timer(
+        TimerRegistrationIntent::new(
+            worker_tenant.clone(),
+            worker_run,
+            worker_timer_id,
+            worker_wait_event_id,
+            RunTimerKind::Sleep,
+            timestamp_after(Duration::from_secs(1_800)),
+        )
+        .unwrap(),
+    )];
+    let worker_checkpoint_write =
+        initial_checkpoint_write(worker_tenant.clone(), worker_run, CheckpointId::generate());
+    let worker_wait_append = worker_append(
+        worker_tenant.clone(),
+        worker_run,
+        worker_wait_event_id,
+        JournalExpectation::exact(worker_started.event().head()),
+        worker_lease.fence().clone(),
+        905,
+    );
+    let worker_committed = store
+        .append_worker_initial_wait_checkpoint(
+            worker_wait_append.clone(),
+            worker_active.lifecycle().revision(),
+            worker_checkpoint_write.clone(),
+            worker_registrations.clone(),
+        )
+        .await
+        .expect("a worker initial wait must update its checkpoint before releasing ownership");
+    assert!(matches!(
+        worker_committed,
+        WaitCheckpointCommitOutcome::Committed { .. }
+    ));
+    let worker_waiting = store.load_run(&worker_tenant, worker_run).await.unwrap();
+    assert_eq!(worker_waiting.lifecycle().status(), RunStatus::Waiting);
+    assert!(worker_waiting.lease().is_none());
+    assert_eq!(worker_waiting.unresolved_wait_count(), 1);
+    assert_eq!(
+        store
+            .load_current_checkpoint(&worker_tenant, worker_run)
+            .await
+            .unwrap(),
+        Some(worker_committed.checkpoint().clone())
+    );
+    let worker_retry = store
+        .append_worker_initial_wait_checkpoint(
+            worker_wait_append,
+            worker_active.lifecycle().revision(),
+            worker_checkpoint_write,
+            worker_registrations,
+        )
+        .await
+        .expect("a lost acknowledgement must survive the committed lease release");
+    assert!(matches!(
+        worker_retry,
+        WaitCheckpointCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(worker_retry.event(), worker_committed.event());
+    assert_eq!(worker_retry.checkpoint(), worker_committed.checkpoint());
 
     let updated = query(
         "UPDATE stateknot.runs SET wait_set_digest = $3 \

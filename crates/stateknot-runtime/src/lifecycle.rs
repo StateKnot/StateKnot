@@ -590,14 +590,7 @@ impl DurableGraphLifecycle {
             )
             .await?;
         let checkpoint = plan.checkpoint().head();
-        if checkpoint.tenant_id() != fence.tenant_id()
-            || checkpoint.run_id() != fence.run_id()
-            || checkpoint.journal_head() != &journal_head
-        {
-            return Err(GraphLifecycleError::InvalidHandoff {
-                operation: "bind blocked checkpoint to its journal and fence",
-            });
-        }
+        validate_blocked_checkpoint_scope(&fence, &journal_head, &checkpoint)?;
         let failure = match snapshot {
             GraphLifecycleHandoffSnapshot::Fresh(run) => {
                 let context = GraphFailureEvidenceContext {
@@ -1057,6 +1050,30 @@ fn validate_barrier_scope(
     {
         return Err(GraphLifecycleError::InvalidHandoff {
             operation: "bind graph barrier scope to its journal and fence",
+        });
+    }
+    Ok(())
+}
+
+fn validate_blocked_checkpoint_scope(
+    fence: &RunFence,
+    journal_head: &JournalHead,
+    checkpoint: &CheckpointHead,
+) -> Result<(), GraphLifecycleError> {
+    let checkpoint_journal = checkpoint.journal_head();
+    let journal_position_is_valid = checkpoint_journal == journal_head
+        || (checkpoint_journal.sequence() < journal_head.sequence()
+            && checkpoint_journal.recorded_at() <= journal_head.recorded_at());
+    if journal_head.tenant_id() != fence.tenant_id()
+        || journal_head.run_id() != fence.run_id()
+        || checkpoint.tenant_id() != fence.tenant_id()
+        || checkpoint.run_id() != fence.run_id()
+        || checkpoint_journal.tenant_id() != fence.tenant_id()
+        || checkpoint_journal.run_id() != fence.run_id()
+        || !journal_position_is_valid
+    {
+        return Err(GraphLifecycleError::InvalidHandoff {
+            operation: "bind blocked checkpoint to its journal and fence",
         });
     }
     Ok(())
