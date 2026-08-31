@@ -23,7 +23,10 @@
 //! quarantine, preventing superseded workers from isolating a successor. Their
 //! bounded ready-node planner deterministically reuses completed results,
 //! classifies fresh/crash/retry/in-flight/terminal work at database time, and
-//! feeds a plan-bound durable node-start handoff before any node code runs. The
+//! feeds a plan-bound durable node-start handoff before any node code runs.
+//! Deferred-only plans atomically release ownership into an indexed durable
+//! not-before gate while preserving queue age; direct claims cannot bypass the
+//! gate, and due work becomes visible without a per-run polling write. The
 //! provider never holds a database transaction across node, model, tool,
 //! remote-agent, or human work.
 //!
@@ -43,19 +46,19 @@ pub use error::{ConfigurationError, StoreError};
 pub use model::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
     CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
-    CorruptionQuarantineContext, DueTimerPage, DueTimerPageCursor, ExpiredInterruptPage,
-    ExpiredInterruptPageCursor, InterruptResolutionCommitOutcome, JournalPage, JournalPageSize,
-    LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
-    ModelInvocationHistoryPage, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
-    NodeAttemptHistoryPage, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage,
-    OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome,
-    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
-    PendingNodeResultPage, PendingNodeResultPageCursor, PendingNodeResultPageSize, RunProjection,
-    RunQuarantine, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
-    RunQuarantineRequest, RunnableRunCandidate, RunnableRunPage, RunnableRunPageCursor,
-    RunnableRunPageSize, StoredOutboxDestination, StoredRun, TimerFiringCommitOutcome,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
-    WaitAbandonment, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
-    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    CorruptionQuarantineContext, DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor,
+    ExpiredInterruptPage, ExpiredInterruptPageCursor, InterruptResolutionCommitOutcome,
+    JournalPage, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
+    NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
+    OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome,
+    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
+    PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
+    PendingNodeResultPageSize, RunProjection, RunQuarantine, RunQuarantineCause,
+    RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest, RunnableRunCandidate,
+    RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize, StoredOutboxDestination,
+    StoredRun, TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,
+    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 pub use store::{ClaimedRunRecovery, PostgresStore};

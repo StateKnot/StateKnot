@@ -7,7 +7,7 @@ use std::{
     borrow::Cow,
     collections::BTreeSet,
     sync::Arc,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use serde_json::json;
@@ -40,17 +40,17 @@ use stateknot_core::{
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePageSize, CorruptionQuarantineContext, InterruptResolutionCommitOutcome,
-    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
-    ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
-    NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize, OutboxClaimOutcome,
-    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
-    PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions,
-    PostgresTransportSecurity, RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome,
-    RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize, StoreError,
-    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
-    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
-    WaitDiscoveryPageSize,
+    CheckpointLineagePageSize, CorruptionQuarantineContext, DelayedRetryScheduleOutcome,
+    InterruptResolutionCommitOutcome, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome,
+    LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
+    NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize,
+    OutboxClaimOutcome, OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome,
+    OutboxEnqueueOutcome, PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore,
+    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, RunQuarantineCause,
+    RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize,
+    StoreError, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
+    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 use uuid::Uuid;
 
@@ -238,6 +238,7 @@ async fn remove_run_quarantines(pool: &PgPool) {
 }
 
 async fn remove_fenced_recovery_quarantines(pool: &PgPool) {
+    remove_delayed_retry_wakeup(pool).await;
     query(
         "ALTER TABLE stateknot.run_quarantines \
          DROP CONSTRAINT run_quarantines_fence_shape, \
@@ -251,6 +252,44 @@ async fn remove_fenced_recovery_quarantines(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v11 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_delayed_retry_wakeup(pool: &PgPool) {
+    query("DROP INDEX stateknot.runs_scheduler_ready")
+        .execute(pool)
+        .await
+        .expect("v12 scheduler index must be removed from the fixture");
+    query(
+        "ALTER TABLE stateknot.runs \
+         DROP CONSTRAINT runs_scheduler_not_before_shape, \
+         DROP COLUMN scheduler_not_before",
+    )
+    .execute(pool)
+    .await
+    .expect("v12 delayed retry projection must be removed from the fixture");
+    query(
+        "CREATE INDEX runs_scheduler_ready \
+         ON stateknot.runs ( \
+             tenant_id, \
+             (GREATEST( \
+                 scheduler_ready_at, \
+                 COALESCE(lease_expires_at, scheduler_ready_at) \
+             )), \
+             run_id \
+         ) \
+         WHERE quarantined_at IS NULL \
+           AND scheduler_ready_at IS NOT NULL \
+           AND lifecycle_status IN ('pending', 'active', 'cancellation_requested')",
+    )
+    .execute(pool)
+    .await
+    .expect("the exact v7 scheduler index must be restored");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 12")
+        .execute(pool)
+        .await
+        .expect("v12 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -13084,6 +13123,318 @@ async fn claimed_recovery_plans_superseded_attempt_for_crash_takeover() {
     store.close().await;
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn delayed_retry_wakeup_is_plan_bound_idempotent_and_scheduler_visible_when_due() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("delayed-retry-wakeup");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 972)).await;
+    let claim = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap();
+    let fence = claim.lease().fence().clone();
+    let initial_context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(checkpoint.event().head()),
+        Digest::sha256(b"initial delayed-retry plan evidence"),
+    )
+    .unwrap();
+    let initial_recovery = store
+        .begin_claimed_run_recovery(fence.clone(), initial_context)
+        .await
+        .unwrap();
+    let initial_plan = initial_recovery.plan_ready_nodes().await.unwrap();
+    assert_eq!(
+        initial_plan.nodes()[0].kind(),
+        RecoveryNodeKind::Dispatchable
+    );
+    assert!(matches!(
+        store.schedule_delayed_retry_wakeup(&initial_plan).await,
+        Err(StoreError::InvalidDelayedRetryPlan)
+    ));
+
+    let node_id = NodeId::new("node-0001").unwrap();
+    let started = store
+        .start_recovered_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(initial_plan.journal_head().clone()),
+                fence.clone(),
+                973,
+            ),
+            &initial_plan,
+            &node_id,
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let failure_event_id = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::DependencyUnavailable,
+        FailureCode::new("node.delayed_retry_wakeup").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("The node must remain hidden until its durable retry time.").unwrap(),
+        RetryAdvice::SafeAfter {
+            delay: DurationMillis::new(3_000).unwrap(),
+        },
+    )
+    .unwrap()
+    .with_caused_by_event(failure_event_id);
+    let failed = store
+        .fail_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                failure_event_id,
+                JournalExpectation::exact(started.event().head()),
+                fence.clone(),
+                974,
+            ),
+            &started.attempt().start().head(),
+            failure,
+            BudgetUsage::zero(),
+        )
+        .await
+        .unwrap();
+    let deferred_context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(failed.event().head()),
+        Digest::sha256(b"deferred delayed-retry plan evidence"),
+    )
+    .unwrap();
+    let deferred_recovery = store
+        .begin_claimed_run_recovery(fence.clone(), deferred_context)
+        .await
+        .unwrap();
+    let deferred_plan = deferred_recovery.plan_ready_nodes().await.unwrap();
+    assert_eq!(deferred_plan.nodes()[0].kind(), RecoveryNodeKind::Deferred);
+    let not_before = deferred_plan.earliest_deferred_at().unwrap();
+    assert!(not_before > deferred_plan.observed_at());
+    let queue_age = store
+        .load_run(&tenant_id, run_id)
+        .await
+        .unwrap()
+        .scheduler_ready_at()
+        .unwrap();
+
+    let scheduled = store
+        .schedule_delayed_retry_wakeup(&deferred_plan)
+        .await
+        .expect("the exact deferred plan must atomically release and schedule");
+    assert_eq!(
+        scheduled,
+        DelayedRetryScheduleOutcome::Scheduled { not_before }
+    );
+    let sleeping = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert!(sleeping.lease().is_none());
+    assert_eq!(sleeping.scheduler_ready_at(), Some(queue_age));
+    assert_eq!(sleeping.scheduler_not_before(), Some(not_before));
+
+    assert!(matches!(
+        store
+            .claim_lease(&tenant_id, run_id, AttemptId::generate())
+            .await,
+        Err(StoreError::RunNotYetAvailable)
+    ));
+    let hidden = store
+        .load_runnable_run_page(
+            &tenant_id,
+            None,
+            RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        hidden
+            .records()
+            .iter()
+            .all(|candidate| candidate.run().lifecycle().provenance().run_id() != run_id)
+    );
+    assert_eq!(
+        store
+            .schedule_delayed_retry_wakeup(&deferred_plan)
+            .await
+            .expect("a lost scheduling acknowledgement must converge"),
+        DelayedRetryScheduleOutcome::Idempotent { not_before }
+    );
+
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let due_candidate = loop {
+        let page = store
+            .load_runnable_run_page(
+                &tenant_id,
+                None,
+                RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
+            )
+            .await
+            .unwrap();
+        if let Some(candidate) = page
+            .records()
+            .iter()
+            .find(|candidate| candidate.run().lifecycle().provenance().run_id() == run_id)
+        {
+            break candidate.clone();
+        }
+        assert!(
+            Instant::now() < deadline,
+            "the indexed delayed retry never became scheduler-visible"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    };
+    assert_eq!(due_candidate.ready_at(), queue_age);
+    assert_eq!(due_candidate.available_at(), not_before);
+    assert_eq!(due_candidate.run().scheduler_not_before(), Some(not_before));
+
+    let successor = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .expect("an inclusive due retry must be directly claimable");
+    assert!(matches!(successor, LeaseClaimOutcome::Claimed(_)));
+    assert_eq!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .scheduler_not_before(),
+        None
+    );
+    assert!(matches!(
+        store.schedule_delayed_retry_wakeup(&deferred_plan).await,
+        Err(StoreError::StaleFence)
+    ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn delayed_retry_that_becomes_due_keeps_ownership_for_replanning() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("delayed-retry-due-race");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 978)).await;
+    let claim = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap();
+    let fence = claim.lease().fence().clone();
+    let activation = pending_activation(checkpoint.checkpoint(), b"due retry race");
+    let started = store
+        .start_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                fence.clone(),
+                979,
+            ),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let failure_event_id = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::DependencyUnavailable,
+        FailureCode::new("node.retry_due_during_schedule").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("The retry becomes due before scheduler projection commits.").unwrap(),
+        RetryAdvice::SafeAfter {
+            delay: DurationMillis::new(250).unwrap(),
+        },
+    )
+    .unwrap()
+    .with_caused_by_event(failure_event_id);
+    let failed = store
+        .fail_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                failure_event_id,
+                JournalExpectation::exact(started.event().head()),
+                fence.clone(),
+                980,
+            ),
+            &started.attempt().start().head(),
+            failure,
+            BudgetUsage::zero(),
+        )
+        .await
+        .unwrap();
+    let recovery_context = || {
+        CorruptionQuarantineContext::new(
+            tenant_id.clone(),
+            run_id,
+            QuarantineId::generate(),
+            JournalExpectation::exact(failed.event().head()),
+            Digest::sha256(b"due-race delayed retry evidence"),
+        )
+        .unwrap()
+    };
+    let recovery = store
+        .begin_claimed_run_recovery(fence.clone(), recovery_context())
+        .await
+        .unwrap();
+    let deferred_plan = recovery.plan_ready_nodes().await.unwrap();
+    assert_eq!(deferred_plan.nodes()[0].kind(), RecoveryNodeKind::Deferred);
+    let not_before = deferred_plan.earliest_deferred_at().unwrap();
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    assert_eq!(
+        store
+            .schedule_delayed_retry_wakeup(&deferred_plan)
+            .await
+            .unwrap(),
+        DelayedRetryScheduleOutcome::Due { not_before }
+    );
+    let still_owned = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(still_owned.lease().unwrap().fence(), &fence);
+    assert_eq!(still_owned.scheduler_not_before(), None);
+
+    let due_recovery = store
+        .begin_claimed_run_recovery(fence.clone(), recovery_context())
+        .await
+        .unwrap();
+    let due_plan = due_recovery.plan_ready_nodes().await.unwrap();
+    assert_eq!(
+        due_plan.nodes()[0].dispatch_reason(),
+        Some(NodeDispatchReason::SafeRetry)
+    );
+    let restarted = store
+        .start_recovered_node_attempt(
+            worker_append(
+                tenant_id,
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(due_plan.journal_head().clone()),
+                fence,
+                981,
+            ),
+            &due_plan,
+            activation.node_id(),
+            AttemptId::generate(),
+        )
+        .await
+        .expect("replanning under the retained lease must admit the due retry");
+    assert_eq!(restarted.attempt().status(), NodeAttemptStatus::Executing);
+    store.close().await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 #[allow(clippy::too_many_lines)]
 async fn recovered_node_start_is_durable_idempotent_and_plan_scoped() {
@@ -13533,6 +13884,201 @@ async fn claimed_recovery_migration_eleven_preserves_unfenced_v1_quarantine_evid
     .await
     .unwrap();
     assert!(fence_constraint);
+
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_twelve_preserves_queue_age_and_installs_delayed_retry_guards() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v12_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let fixture_store =
+        PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+            .await
+            .unwrap();
+    let tenant_id = tenant("v12-delayed-retry");
+    let pending_run = RunId::generate();
+    fixture_store
+        .admit_run(provenance(tenant_id.clone(), pending_run))
+        .await
+        .unwrap();
+    let leased_run = RunId::generate();
+    Box::pin(start_run_with_checkpoint(
+        &fixture_store,
+        &tenant_id,
+        leased_run,
+        1_460,
+    ))
+    .await;
+    fixture_store
+        .claim_lease(&tenant_id, leased_run, AttemptId::generate())
+        .await
+        .unwrap();
+    let original_pending_ready_at = fixture_store
+        .load_run(&tenant_id, pending_run)
+        .await
+        .unwrap()
+        .scheduler_ready_at()
+        .unwrap();
+    let original_leased_ready_at = fixture_store
+        .load_run(&tenant_id, leased_run)
+        .await
+        .unwrap()
+        .scheduler_ready_at()
+        .unwrap();
+    fixture_store.close().await;
+
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_delayed_retry_wakeup(&fixture_pool).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture_pool)
+            .await
+            .unwrap(),
+        11
+    );
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 12 must upgrade the exact v11 fixture");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("the upgraded v12 schema must pass exact verification");
+    upgraded.verify_schema().await.unwrap();
+    let pending = upgraded.load_run(&tenant_id, pending_run).await.unwrap();
+    let leased = upgraded.load_run(&tenant_id, leased_run).await.unwrap();
+    assert_eq!(
+        pending.scheduler_ready_at(),
+        Some(original_pending_ready_at)
+    );
+    assert_eq!(leased.scheduler_ready_at(), Some(original_leased_ready_at));
+    assert_eq!(pending.scheduler_not_before(), None);
+    assert_eq!(leased.scheduler_not_before(), None);
+
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    assert_eq!(
+        query_scalar::<_, i64>(
+            "SELECT count(*) FROM stateknot.runs WHERE scheduler_not_before IS NOT NULL",
+        )
+        .fetch_one(&verification)
+        .await
+        .unwrap(),
+        0
+    );
+    let index_definition = query_scalar::<_, String>(
+        "SELECT indexdef FROM pg_catalog.pg_indexes \
+         WHERE schemaname = 'stateknot' AND indexname = 'runs_scheduler_ready'",
+    )
+    .fetch_one(&verification)
+    .await
+    .unwrap()
+    .to_ascii_lowercase();
+    assert!(index_definition.contains("scheduler_not_before"));
+    assert!(index_definition.contains("lease_expires_at"));
+    let delayed_retry_constraint = query_scalar::<_, bool>(
+        "SELECT EXISTS ( \
+             SELECT 1 FROM pg_catalog.pg_constraint \
+             WHERE conrelid = to_regclass('stateknot.runs') \
+               AND conname = 'runs_scheduler_not_before_shape' \
+               AND convalidated \
+         )",
+    )
+    .fetch_one(&verification)
+    .await
+    .unwrap();
+    assert!(delayed_retry_constraint);
+    assert!(
+        query(
+            "UPDATE stateknot.runs \
+             SET scheduler_not_before = scheduler_ready_at - interval '1 microsecond' \
+             WHERE tenant_id = $1 AND run_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*pending_run.as_uuid())
+        .execute(&verification)
+        .await
+        .is_err(),
+        "the validated v12 shape must reject a gate before queue admission"
+    );
+    assert!(
+        query(
+            "UPDATE stateknot.runs \
+             SET scheduler_not_before = scheduler_ready_at \
+             WHERE tenant_id = $1 AND run_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*leased_run.as_uuid())
+        .execute(&verification)
+        .await
+        .is_err(),
+        "the validated v12 shape must reject a delayed gate beside a lease"
+    );
+    query("ALTER TABLE stateknot.runs DROP CONSTRAINT runs_scheduler_not_before_shape")
+        .execute(&verification)
+        .await
+        .unwrap();
+    assert!(matches!(
+        upgraded.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
+    query(
+        "UPDATE stateknot.runs \
+         SET scheduler_not_before = scheduler_ready_at - interval '1 microsecond' \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*pending_run.as_uuid())
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.load_run(&tenant_id, pending_run).await,
+        Err(StoreError::CorruptData { .. })
+    ));
 
     verification.close().await;
     upgraded.close().await;

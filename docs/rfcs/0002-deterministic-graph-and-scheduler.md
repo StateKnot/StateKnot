@@ -388,9 +388,10 @@ ordinary retry.
 The current PostgreSQL vertical slice implements steps 1, 3/4 for its trusted
 checkpoint/journal boundary, 6, 8, and the physical-attempt part of 9 for the
 root ready set. It returns the closed recovery plan above and a plan-bound
-durable-start handoff. Loading the pinned graph implementation and schema
-registry by digest, independently recomputing the ready set, applying
-route/reducer/successor semantics, scheduling a durable deferred wakeup, and
+durable-start handoff. Deferred-only plans can additionally commit an indexed
+database-time wakeup while atomically releasing the exact live lease. Loading
+the pinned graph implementation and schema registry by digest, independently
+recomputing the ready set, applying route/reducer/successor semantics, and
 driving the complete barrier loop remain required before this RFC is accepted.
 
 ## Wait, resume, and cancellation

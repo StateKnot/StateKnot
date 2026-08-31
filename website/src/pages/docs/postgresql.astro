@@ -125,7 +125,8 @@ store.health_check().await?;</code></pre>
       CI runs the mandatory integration suite independently against PostgreSQL
       16 and 17. The suite covers migrations, lost acknowledgements, fencing,
       corruption rejection, concurrency, rollback injection, outbox recovery,
-      durable waits, quarantine, and ready-node planning.
+      durable waits, quarantine, ready-node planning, and delayed-retry
+      scheduling.
     </p>
     <p>
       Production release still requires role isolation, retention and garbage

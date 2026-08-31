@@ -126,10 +126,17 @@ from the repository.
   plan-selected physical start before node code. Property-order invariance,
   crash takeover, result reuse, lost-ACK, scope/limit rejection, and a
   24-request single-start race pass on PostgreSQL 16/17.
+- [x] Project deferred-only recovery plans into an independent durable
+  `scheduler_not_before` gate while preserving queue age and atomically
+  releasing the exact live lease; reject direct early claims, expose due work
+  through the tenant scheduler index without polling writes, converge lost-ACK
+  retries, retain ownership when the boundary becomes due during commit, and
+  prove exact v11 migration, corruption, and runtime behavior on PostgreSQL
+  16/17.
 - [ ] Complete cross-tenant scheduler fairness and recovery/dispatch policy,
   pinned graph-registry replay, route/reducer/successor and barrier driving,
-  durable delayed-retry wakeup, protocol-specific outbox adapters, role
-  isolation, retention, failover, restore, and stale-race gates.
+  protocol-specific outbox adapters, role isolation, retention, failover,
+  restore, and stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

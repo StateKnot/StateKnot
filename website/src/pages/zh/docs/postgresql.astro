@@ -110,7 +110,7 @@ store.health_check().await?;</code></pre>
     <p>
       CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试，覆盖迁移、Lost
       ACK、Fencing、损坏拒绝、并发、Rollback Injection、Outbox Recovery、Durable
-      Wait、Quarantine 与 Ready-node Planning。
+      Wait、Quarantine、Ready-node Planning 与延迟重试调度。
     </p>
     <p>
       正式生产发布仍需要角色隔离、Retention/GC、Failover/PITR

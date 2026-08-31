@@ -1691,6 +1691,7 @@ pub struct StoredRun {
     pub(crate) last_fencing_epoch: Option<FencingEpoch>,
     pub(crate) checkpoint: Option<CheckpointPointer>,
     pub(crate) scheduler_ready_at: Option<stateknot_core::Timestamp>,
+    pub(crate) scheduler_not_before: Option<stateknot_core::Timestamp>,
     pub(crate) wait_set_digest: Option<Digest>,
     pub(crate) unresolved_wait_count: u8,
     pub(crate) next_timer_due_at: Option<Timestamp>,
@@ -1737,6 +1738,16 @@ impl StoredRun {
     #[must_use]
     pub const fn scheduler_ready_at(&self) -> Option<stateknot_core::Timestamp> {
         self.scheduler_ready_at
+    }
+
+    /// Returns the durable execution gate for a verified delayed node retry.
+    ///
+    /// Queue age remains available through [`Self::scheduler_ready_at`]. A
+    /// scheduler must not claim this run before the inclusive instant returned
+    /// here. Claiming at or after the boundary clears the gate atomically.
+    #[must_use]
+    pub const fn scheduler_not_before(&self) -> Option<stateknot_core::Timestamp> {
+        self.scheduler_not_before
     }
 
     /// Returns the integrity checksum of the current ordered outstanding wait set.
@@ -1822,7 +1833,7 @@ impl RunnableRunCandidate {
         self.ready_at
     }
 
-    /// Returns the effective claim time after applying any lease expiry.
+    /// Returns the effective claim time after applying retry and lease gates.
     #[must_use]
     pub const fn available_at(&self) -> stateknot_core::Timestamp {
         self.available_at
@@ -1926,6 +1937,42 @@ pub enum LeaseReleaseOutcome {
     Released,
     /// The exact epoch was already released and no successor was issued.
     Idempotent,
+}
+
+/// Result of projecting a recovery plan's delayed retry into scheduler state.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum DelayedRetryScheduleOutcome {
+    /// The exact live lease was released and the durable wakeup was committed.
+    Scheduled {
+        /// Inclusive earliest database instant for another scheduler claim.
+        not_before: Timestamp,
+    },
+    /// The same fence and wakeup had already committed before acknowledgement.
+    Idempotent {
+        /// Inclusive earliest database instant already stored for the run.
+        not_before: Timestamp,
+    },
+    /// Database time reached the retry boundary before the deferral committed.
+    ///
+    /// The caller retains its lease and should rebuild the recovery plan rather
+    /// than release and immediately reclaim the same run.
+    Due {
+        /// Inclusive retry boundary from the supplied verified plan.
+        not_before: Timestamp,
+    },
+}
+
+impl DelayedRetryScheduleOutcome {
+    /// Returns the inclusive retry boundary shared by every outcome.
+    #[must_use]
+    pub const fn not_before(self) -> Timestamp {
+        match self {
+            Self::Scheduled { not_before }
+            | Self::Idempotent { not_before }
+            | Self::Due { not_before } => not_before,
+        }
+    }
 }
 
 /// Hard-bounded number of events returned by one journal read.

@@ -857,9 +857,13 @@ session 会自动分页构建该计划、对矛盾证据执行 fenced
 quarantine；plan-bound start handoff 在任何 node code 前再次验证 checkpoint/latest
 predecessor/retry time/journal/fence 并提交 durable start。顺序不变属性、crash takeover、result reuse、lost-ACK 与
 24 路相同启动单物理提交已在 PG16/17 验证。
+Migration 12 进一步把 deferred-only recovery plan 投影成独立的
+`scheduler_not_before`：事务锁内重验 checkpoint、journal、live fence、lifecycle 与数据库时钟，
+保留 `scheduler_ready_at` 队列年龄并原子释放 lease。普通 claim 不能提前绕过 gate；同一 partial
+index 会在 inclusive due instant 自动暴露 run，无需 per-run polling update。Lost-ACK、到期竞态保留
+原 lease、v11 精确升级、constraint corruption 与 indexed visibility 均已在 PG16/17 全量验证。
 它仍不是完整 runtime。协议专用 outbox dispatch adapter、pinned graph registry 重验、
-route/reducer/successor 与 barrier 驱动、durable deferred wakeup、跨租户公平与完整
-recovery/dispatch loop、角色隔离、
+route/reducer/successor 与 barrier 驱动、跨租户公平与完整 recovery/dispatch loop、角色隔离、
 归档、failover 与 restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
@@ -1073,11 +1077,11 @@ registry、pending node-result、transactional outbox、durable interrupt/timer 
 commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending-result barrier
 以及 tenant-level indexed runnable/due-timer/expired-interrupt discovery、durable wait
 registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；cross-tenant
-fairness、pinned graph registry 重验、route/reducer/successor 与 barrier 驱动、durable
-deferred wakeup、完整 recovery/dispatch loop、协议 dispatch adapter，以及阶段 3 的其余运维
-与故障门禁未完成，不能据此提前宣称阶段完成。已完成的 claimed recovery surface 已提供
-fence-bound、corruption-quarantining 的恢复输入、确定性 root ready-node 计划与 durable start
-handoff，但仍不等同于完整 runtime。
+fairness、pinned graph registry 重验、route/reducer/successor 与 barrier 驱动、完整
+recovery/dispatch loop、协议 dispatch adapter，以及阶段 3 的其余运维与故障门禁未完成，
+不能据此提前宣称阶段完成。已完成的 claimed recovery surface 已提供 fence-bound、
+corruption-quarantining 的恢复输入、确定性 root ready-node 计划、durable start handoff 与
+indexed delayed-retry handoff，但仍不等同于完整 runtime。
 
 ### 阶段 4：协议正式支持（4–5 周）
 

@@ -94,7 +94,9 @@ const evidenceSteps = [
       Checkpoint、Journal Observation、Pending Result 和完整 Attempt
       History，并将每个 Ready Node 分类为
       Completed、Dispatchable、Deferred、In-flight、Failed 或 Exhausted；Node
-      代码启动前必须先提交 Durable Attempt Start。
+      代码启动前必须先提交 Durable Attempt Start。当所有未完成节点均为 Deferred
+      时，Store 会把 Lease 原子释放到数据库时间驱动的索引化唤醒中，直接 Claim
+      也不能提前执行。
     </p>
     <p>
       加载锁定的可执行 Graph、独立重算 Ready Set、执行 Reducer/Route

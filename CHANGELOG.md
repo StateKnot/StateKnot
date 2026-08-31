@@ -223,6 +223,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   grants launch authority only for a fresh durable commit; PostgreSQL 16/17
   coverage includes crash takeover, result reuse, drift rejection, lost-ACK,
   24-way single-commit convergence, and the no-residue hard-limit boundary.
+- PostgreSQL migration 12 and a plan-bound delayed-retry scheduler handoff that
+  separates preserved queue age from an inclusive durable not-before gate,
+  atomically releases the exact live fence, blocks direct early claims, becomes
+  index-visible without a polling write, converges lost acknowledgements, and
+  retains ownership when the retry becomes due during commit. Exact v11
+  upgrade, constraint corruption, due-race, and scheduler visibility pass on
+  PostgreSQL 16/17.
 - PostgreSQL migration 5 and atomic pending node-result commit/load APIs with
   immutable canonical records, exact base-checkpoint and worker-event anchors,
   separate tool/model composite foreign keys for activation-bound committed

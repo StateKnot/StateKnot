@@ -104,6 +104,16 @@ node code. Only a newly `Committed` start grants that caller launch authority;
 an `Idempotent` result is treated as already in flight and can be orphan-recovered
 only under a higher fence. Lost acknowledgements and 24-way identical-start
 races converge on one physical row on PostgreSQL 16/17.
+`schedule_delayed_retry_wakeup` now projects a deferred-only recovery plan into
+migration 12's independent `scheduler_not_before` gate. The same atomic
+transaction revalidates checkpoint, journal, live fence, lifecycle, and
+database time, preserves the run's queue age, and releases ownership. Ordinary
+claims cannot bypass the gate; the tenant scheduler index exposes the run at
+the inclusive due instant without a per-run timer update. Lost scheduling
+acknowledgements converge exactly, while a delay that becomes due during the
+transaction keeps its lease for immediate replanning. Upgrade, corruption,
+direct-claim, due-race, and indexed-visibility behavior pass on PostgreSQL
+16/17.
 Complete ready-set barriers now atomically bind and consume the exact immutable
 result set while committing their event, successor checkpoint, lifecycle
 projection, and run heads; the specialized wait-barrier commits that same unit
@@ -111,8 +121,8 @@ with a complete interrupt/timer batch. Raw successor checkpoint, generic wait
 projection, and pending-result writes that bypass their durable evidence are
 rejected. Protocol-specific outbox dispatch adapters, cross-tenant fairness,
 pinned graph-registry revalidation, route/reducer/successor evaluation, durable
-delayed-retry wakeup, the complete recovery/barrier dispatch loop, and a
-runnable agent loop have not shipped yet.
+barrier driving, the complete recovery/dispatch loop, and a runnable agent loop
+have not shipped yet.
 
 The current milestone is to:
 

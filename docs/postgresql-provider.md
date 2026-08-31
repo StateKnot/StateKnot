@@ -79,6 +79,12 @@ The provider currently supplies:
   16 fully decoded runs plus one look-ahead row. Live leases delay availability
   until their exclusive expiry without a timer update, while waiting, terminal,
   and quarantined runs stay outside the hot index;
+- migration-12 delayed retry wakeups that keep queue age separate from an
+  inclusive `scheduler_not_before` gate. A deferred-only ready-node plan
+  revalidates its exact checkpoint, journal, live fence, lifecycle, and database
+  clock before releasing ownership atomically; ordinary claims cannot bypass
+  the gate, due runs reappear through the same partial index without a polling
+  update, and lost acknowledgements converge on the stored boundary;
 - migration-8 transactional outbox storage with immutable tenant-owned
   destination snapshots, schema-pinned canonical payloads, and non-empty
   event-scoped batches of at most 64 deliveries. Control-plane and worker
@@ -347,7 +353,7 @@ time. Decisions are returned in canonical `NodeId` order:
 |---|---|
 | `Completed` | Reuse the immutable result; never run the node again |
 | `Dispatchable` | Call `start_recovered_node_attempt`; only a newly `Committed` start grants this caller permission to launch node code |
-| `Deferred` | Do not execute before `not_before`; durable scheduler wakeup is still a release blocker |
+| `Deferred` | Call `schedule_delayed_retry_wakeup` only when every sibling is `Completed` or `Deferred`; `Scheduled`/`Idempotent` relinquish ownership until `not_before`, while `Due` retains the lease for replanning |
 | `InFlight` | Do not create another same-fence physical attempt |
 | `Failed` | Surface the terminal public-safe failure; do not infer retryability |
 | `Exhausted` | Surface hard attempt-limit exhaustion; no new physical start is legal |
@@ -364,8 +370,8 @@ allow lease expiry/supersession and recover the unfinished start under a higher
 fence. Never invoke node code before a fresh `Committed` handoff.
 
 The complete runtime loop that reloads the pinned graph registry, recomputes
-routes/reducers/successors, persists deferred wakeups, applies cross-tenant
-fairness, and drives the barrier is not implemented yet.
+routes/reducers/successors, applies cross-tenant fairness, and drives the
+barrier is not implemented yet.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record
@@ -524,14 +530,26 @@ repeats the predicate in the projection update that revokes ownership. Lost-ACK
 retries still resolve by the same immutable quarantine ID after the lease has
 been cleared.
 
+Migration 12 adds nullable `scheduler_not_before` while preserving migration
+7's `scheduler_ready_at` queue age. Its validated shape constraint permits a
+gate only on an unleased runnable projection and never before queue admission.
+The stable `runs_scheduler_ready` index now orders by the greatest of queue admission,
+retry gate, and lease expiry. `schedule_delayed_retry_wakeup` accepts only an
+exact deferred-only recovery plan (completed siblings are allowed), locks and
+revalidates all plan anchors, then stores the earliest deferred boundary and
+clears the lease in one transaction. An identical retry after an ambiguous
+commit returns `Idempotent`; if database time already reached the boundary,
+`Due` leaves the lease untouched for replanning. Exact v11 upgrade, constraint
+removal/corruption, direct early claims, indexed due visibility, lost-ACK, and
+the due-during-commit race are exercised on PostgreSQL 16 and 17.
+
 ## Not yet implemented
 
 This slice is not the complete durable runtime. It does not yet implement
 protocol-specific outbox dispatch adapters, artifacts, cross-tenant scheduler
 fairness, pinned graph-registry revalidation, route/reducer/successor and
-barrier driving, durable deferred-retry wakeup, or the complete recovery loop
-(deterministic root ready-node planning and durable start handoff are
-implemented),
+barrier driving, or the complete recovery loop (deterministic root ready-node
+planning, durable start handoff, and delayed-retry wakeup are implemented),
 retention/archive/legal hold, backup/restore, failover qualification, or the
 10,000-race stale-worker gate.
 

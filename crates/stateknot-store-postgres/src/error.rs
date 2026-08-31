@@ -128,12 +128,19 @@ pub enum StoreError {
     /// The selected recovery-plan node does not authorize a new physical start.
     #[error("ready-node recovery decision is not dispatchable")]
     ReadyNodeNotDispatchable,
+    /// A recovery plan contains immediate, in-flight, or terminal work and
+    /// therefore cannot be projected as one delayed retry wakeup.
+    #[error("ready-node recovery plan cannot schedule a delayed retry wakeup")]
+    InvalidDelayedRetryPlan,
     /// Immutable quarantine evidence and the mutable run projection disagree.
     #[error("run quarantine evidence conflicts with its durable projection")]
     RunQuarantineCommitConflict,
     /// The run lifecycle is not currently runnable.
     #[error("run lifecycle is not runnable")]
     RunNotRunnable,
+    /// A durable scheduler gate has not reached its inclusive database time.
+    #[error("run is not yet available for a scheduler claim")]
+    RunNotYetAvailable,
     /// A caller reached the wrong trusted append entry point.
     #[error("journal append source is not authorized by this entry point")]
     WrongAppendAuthority,

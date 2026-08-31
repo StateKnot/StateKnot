@@ -928,10 +928,13 @@ ordinary pre-checkpoint handling, plan scoping, lost-ACK convergence, and 24 ide
 starts producing one physical commit on PostgreSQL 16/17. The 64-attempt hard
 ceiling is also recovery-readable, rejects a 65th new start without journal
 residue, and preserves exact lost-ACK idempotency at the boundary. This is
-evidence for those boundaries only. Complete graph-registry/reducer/route/barrier
-loop integration, durable deferred wakeup, role-separated database procedures, the 10,000
-stale-race trial, failover, archive, backup/restore, and soak gates below remain
-incomplete; the RFC therefore remains Draft.
+evidence for those boundaries only. Migration 12 additionally proves
+plan-bound delayed wakeup, direct-claim gating, no-polling indexed visibility,
+lost-ACK convergence, due-race lease retention, and exact v11 upgrade on
+PostgreSQL 16/17. Complete graph-registry/reducer/route/barrier loop integration,
+role-separated database procedures, the 10,000 stale-race trial, failover,
+archive, backup/restore, and soak gates below remain incomplete; the RFC
+therefore remains Draft.
 
 Before RFC acceptance:
 
