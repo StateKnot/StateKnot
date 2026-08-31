@@ -1,0 +1,7 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-graph/1.0.0",
+  "expected": {
+    "definition": "sha256:35d925d7996ed088b4f1a2a7bb025704262ec2155117539d0af0a54e6ecb2512",
+    "canonical_wire": "sha256:17447f3910806bb3b28ea8d278b8fd70a201e409a61954e882f8a6a2bba46323"
+  }
+}

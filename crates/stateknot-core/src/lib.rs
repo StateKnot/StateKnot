@@ -24,6 +24,7 @@ mod decimal;
 mod digest;
 mod extension;
 mod failure;
+mod graph;
 mod identity;
 mod ids;
 mod journal;
@@ -105,6 +106,13 @@ pub use extension::{
 pub use failure::{
     Failure, FailureBuildError, FailureCategory, FailureCode, FailureDetails, FailureDetailsError,
     FailureIdentifierError, FailureMessage, FailureMessageError, FailureOrigin, RetryAdvice,
+};
+pub use graph::{
+    CompiledGraph, GraphBarrierDisposition, GraphBarrierPlan, GraphBarrierPlanError,
+    GraphCompileError, GraphExecutionLimits, GraphExecutionLimitsError, GraphNode, GraphNodeError,
+    GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference, GraphRoute,
+    GraphRouteError, GraphRoutes, GraphRoutesError, GraphSchemaValidationError,
+    GraphSchemaValidator, GraphValueKind,
 };
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
