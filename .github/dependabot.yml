@@ -20,3 +20,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Astro's type checker must explicitly support the selected TypeScript
+      # major before the website toolchain is upgraded.
+      - dependency-name: typescript
+        update-types:
+          - "version-update:semver-major"
+      # Keep ambient Node APIs aligned with the Node 24 production runtime.
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
