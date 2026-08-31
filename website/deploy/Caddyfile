@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 {
 	email acme@stknot.com
+	servers {
+		protocols h1 h2
+	}
 }
 
 (stateknot_tls) {
@@ -28,6 +31,7 @@
 }
 
 http://stknot.com, http://www.stknot.com, http://49.232.33.76 {
+	header -Server
 	redir https://stknot.com{uri} 308
 }
 
@@ -69,6 +73,8 @@ https://stknot.com {
 	}
 
 	handle_errors {
+		import stateknot_security_headers
+		header Cache-Control "no-cache"
 		rewrite * /404.html
 		file_server
 	}
