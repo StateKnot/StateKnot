@@ -220,8 +220,9 @@ selection. The provider contributes 95 additional PostgreSQL integration tests
 per database version. CI treats the external database suites as mandatory and
 fails if the service is unavailable.
 
-This phase does not yet ship concrete first-party model adapters, public
-high-level Agent ergonomics, parallel siblings, loops/subgraphs,
+The later typed-Agent milestone now ships the first OpenAI Responses and
+Anthropic Messages adapters, but the durable public admit/run/result facade,
+provider-native multi-turn tool transcript, parallel siblings, loops/subgraphs,
 protocol-specific outbox adapters, role-separated database procedures,
 retention/archive, failover/restore qualification, the 10,000 stale-race gate,
 or a stable public release. Those remain release blockers rather than hidden

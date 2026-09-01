@@ -166,4 +166,7 @@ https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0
 - 七个语义 Model Stream Event 按序到达耐久 Sink，累积为已提交 Response，Duplicate Recovery 不再产生 Event 或 Provider Call；
 - Timed-out Idempotent-write Tool 记录 Ambiguous/Reconcile-first Outcome，重试时不会再次调用 Tool。
 
-该边界仍是 pre-alpha。具体 OpenAI-compatible/Anthropic Adapter、持久化 Model Stream Sink、应用级 Accounting/Admission Provider、公开高层 Agent Ergonomics、完整 Crash Reconciliation Supervision、Telemetry 与 Live-provider Qualification 尚未完成，因此还不能声称生产支持。
+该边界仍是 pre-alpha。第一方 OpenAI Responses/Anthropic Messages Adapter 与强类型 Agent
+Contract 现已实现；应用持久化 Model Stream Sink、生产 Accounting/Admission Provider、完整公开
+Admit/Run/Result Facade、Provider-native 多轮 Tool Replay、完整 Crash Reconciliation
+Supervision、Telemetry 与 Live-provider Qualification 尚未完成，因此还不能声称生产支持。

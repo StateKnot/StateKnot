@@ -42,16 +42,22 @@ const capabilities = [
     body: "Replica-global Smooth Weighted Reservation、精确 Cycle Share、显式 Reservation-count Starvation Bound、Concurrency-safe Lost-ACK Recovery 与有界 Retention。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "强类型 Agent 与第一方 Model Adapter",
+    body: "自动生成并 Canonical Digest-pinned 的 Input/Output Schema、离线 Provider-profile Binding、有界类型化 Codec，以及带显式 Transport Control 的 OpenAI Responses 与 Anthropic Messages Unary/SSE Adapter。",
+  },
+  {
     state: "开发中",
     className: "status-active",
     title: "公开 Agent 集成",
-    body: "具体 Model Adapter、高层 Agent/Tool Ergonomics、Policy Middleware、可编译示例、Parallel Sibling 与 Loop/Subgraph 语义。",
+    body: "完整耐久 Admit/Run/Result Facade、预置 Provider-native 多轮 Model/Tool Graph、Policy Middleware、Parallel Sibling 与 Loop/Subgraph 语义。",
   },
   {
     state: "尚未发布",
     className: "status-planned",
-    title: "可运行 Agent API",
-    body: "目前不宣称存在稳定的 First-agent API、第一方 Model/Tool Loop 或最终用户 Quickstart。",
+    title: "稳定端到端 Agent API",
+    body: "目前不存在稳定的一键式 Facade、Provider-native 多轮 Tool Transcript、已发布 Crate 或生产支持声明。",
   },
   {
     state: "尚未发布",
@@ -70,7 +76,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：耐久 Graph Loop、Model/Tool Attempt Executor 与跨租户 Fair Scheduler 已实现，但公开 Agent API、协议 Adapter 与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：耐久 Graph Loop、Invocation Executor、强类型 Agent 合约、首批 Model Adapter 与 Fair Scheduler 已实现；端到端 Facade、MCP/A2A Adapter 与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -109,16 +115,22 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
-      下一个 Runtime 里程碑会把具体 Model Adapter 与公开 Agent Ergonomics
-      接入已经验证的 Invocation Executor、Driver、Lifecycle Coordinator 与 Fair
-      Scheduler，再发布由 CI 自动运行教程的可执行 Agent
-      示例。协议广度会建立在这条可恢复路径之上。
+      下一个 Runtime 里程碑会把耐久 Admission 与 Result Retrieval
+      接入强类型合约、 Provider Adapter、Invocation Executor、Driver、Lifecycle
+      Coordinator 与 Fair Scheduler。退出证据是一条可以 Crash、恢复并且不重复
+      Dispatch 就返回类型化结果的 Provider-native 多轮 Tool
+      Path。协议广度会建立在这条可恢复路径之上。
     </p>
   </section>
 
   <section aria-labelledby="source-status-title">
     <h2 id="source-status-title">项目权威来源</h2>
     <ul>
+      <li>
+        <a href="/zh/docs/typed-agent/"
+          >强类型 Agent 与第一方 Model Adapter 合约</a
+        >
+      </li>
       <li>
         <a href="/zh/docs/runtime/">耐久 Graph Runtime 集成契约</a>
       </li>

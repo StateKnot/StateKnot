@@ -5,6 +5,7 @@
 members = [
     "crates/stateknot",
     "crates/stateknot-core",
+    "crates/stateknot-integrations",
     "crates/stateknot-runtime",
     "crates/stateknot-store-postgres",
 ]
@@ -14,10 +15,16 @@ resolver = "3"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 fluent-uri = { version = "0.4.1", default-features = false, features = ["alloc"] }
 futures-core = "0.3.31"
+futures-util = "0.3.31"
 language-tags = "0.3.2"
 mime = "0.3.17"
 jsonschema = { version = "=0.52.1", default-features = false }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
+reqwest = { version = "=0.12.28", default-features = false, features = [
+    "json",
+    "rustls-tls-native-roots",
+    "stream",
+] }
 schemars = "1.2.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
@@ -43,6 +50,7 @@ tokio = { version = "1.53.1", default-features = false, features = [
     "time",
 ] }
 uuid = { version = "1.26.0", features = ["v7"] }
+zeroize = "1.8.2"
 
 [workspace.package]
 version = "0.0.0"

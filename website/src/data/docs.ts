@@ -34,6 +34,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/getting-started/",
         search: "getting started install rust cargo clone tutorial validate",
       },
+      {
+        title: "Typed Agent",
+        description:
+          "Generate and pin typed schemas, then bind the first-party OpenAI and Anthropic adapters.",
+        href: "/docs/typed-agent/",
+        search:
+          "typed agent builder schema openai responses anthropic messages adapter tutorial",
+      },
     ],
   },
   {
@@ -131,6 +139,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         description: "安装锁定的工具链，并在本地验证仓库。",
         href: "/docs/getting-started/",
         search: "快速开始 安装 rust cargo 克隆 教程 验证",
+      },
+      {
+        title: "强类型 Agent",
+        description:
+          "生成并固定类型化 Schema，再绑定第一方 OpenAI 与 Anthropic Adapter。",
+        href: "/docs/typed-agent/",
+        search:
+          "强类型 agent builder schema openai responses anthropic messages adapter 教程",
       },
     ],
   },

@@ -160,18 +160,22 @@ weighted policy, globally ordered lost-ACK-safe reservations, exact cycle
 shares, explicit reservation-count starvation bounds, and bounded
 database-time retention. Sixteen runtime scenarios and 95 provider cases are
 mandatory on both PostgreSQL 16 and 17.
-Concrete OpenAI-compatible/Anthropic adapters, the public high-level Agent API,
-protocol-specific outbox dispatch adapters, parallel siblings,
-loops/subgraphs, role isolation, general retention, failover, restore, and the
-final stale-race gates have not shipped yet.
+The repository now also includes a schema-pinned typed Agent contract plus
+first-party OpenAI Responses and Anthropic Messages unary/SSE adapters with
+bounded transport controls. The complete durable admit/run/result facade,
+provider-native multi-turn tool transcript, protocol-specific outbox dispatch
+adapters, parallel siblings, loops/subgraphs, role isolation, general
+retention, failover, restore, and the final stale-race gates have not shipped
+yet.
 
 The current milestone is to:
 
 1. validate the three frozen production scenarios and their load/failure models;
 2. accept the core domain, graph, durability, and protocol/security RFCs;
-3. integrate concrete first-party model adapters and a public Agent API with
-   the proven durable invocation executor, Driver, lifecycle coordinator, and
-   fair tenant worker;
+3. integrate durable admission, a provider-native multi-turn model/tool graph,
+   policy, and typed result retrieval into a public Agent facade over the proven
+   adapters, invocation executor, Driver, lifecycle coordinator, and fair
+   tenant worker;
 4. qualify role isolation, failover/restore, and the final stale-race gates; and
 5. publish compatibility and performance evidence before claiming support.
 
@@ -179,6 +183,7 @@ See the [qualification scenarios](docs/scenarios/README.md), the
 [roadmap](docs/roadmap.md), the full
 [research and implementation plan](docs/research-and-implementation-plan.md),
 the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
+[typed Agent and first-party adapters](docs/typed-agent.md),
 [durable invocation](docs/durable-invocation-executor.md),
 [fair scheduling](docs/cross-tenant-fair-scheduler.md), and
 [completeness audit](docs/plan-completeness-audit.md) guides.
@@ -188,6 +193,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
+crates/stateknot-integrations/  First-party OpenAI Responses and Anthropic Messages model adapters
 crates/stateknot-runtime/  Executable/provider registries, durable Driver, invocation executor, Agent Loop, and fair scheduler
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap

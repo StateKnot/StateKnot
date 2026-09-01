@@ -8,7 +8,8 @@ use std::{collections::HashMap, sync::Arc};
 use jsonschema::{Draft, Registry, Validator};
 use serde_json::Value;
 use stateknot_core::{
-    BoundedJson, Digest, GraphSchemaValidationError, GraphSchemaValidator, SchemaReference,
+    BoundedJson, Digest, GraphSchemaValidationError, GraphSchemaValidator, ModelSchemaRegistry,
+    SchemaReference,
 };
 use thiserror::Error;
 
@@ -439,6 +440,12 @@ impl GraphSchemaValidator for JsonSchemaRegistry {
         value: &BoundedJson,
     ) -> Result<(), GraphSchemaValidationError> {
         self.validate_bounded(schema, value)
+    }
+}
+
+impl ModelSchemaRegistry for JsonSchemaRegistry {
+    fn canonical_schema_bytes(&self, schema: &SchemaReference) -> Option<&[u8]> {
+        self.canonical_bytes(schema)
     }
 }
 

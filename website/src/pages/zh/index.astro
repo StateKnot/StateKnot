@@ -51,6 +51,12 @@ const currentCut = [
     href: "/zh/docs/fair-scheduling/",
   },
   {
+    surface: "强类型 Agent 与 Model Adapter",
+    state: "已实现切片",
+    evidence: "Pinned Schema 与 OpenAI/Anthropic Unary/SSE Transport",
+    href: "/zh/docs/typed-agent/",
+  },
+  {
     surface: "MCP 与 A2A Adapter",
     state: "尚未发布",
     evidence: "属于 v1 范围，Wire Boundary 仍在规划",
@@ -67,18 +73,24 @@ const roadmap = [
   },
   {
     index: "02",
-    state: "现在",
-    title: "交付公开 Agent API",
-    body: "把具体 Model Adapter、高层 Tool Ergonomics、Policy Middleware 与可编译最终用户示例绑定到已验证的耐久调用和公平调度边界。",
+    state: "已实现",
+    title: "冻结类型化 Provider 边界",
+    body: "类型化 Input/Output Schema、离线 Profile Binding、可编译示例，以及 OpenAI Responses 与 Anthropic Messages Unary/SSE Adapter 已具备可执行证据。",
   },
   {
     index: "03",
+    state: "现在",
+    title: "闭合公开耐久 Agent 路径",
+    body: "把 Admission、预置 Provider-native Model/Tool Graph、Policy、执行、恢复与类型化 Result Retrieval 绑定为一个明确公开 Facade。",
+  },
+  {
+    index: "04",
     state: "规划中",
     title: "增加协议 Adapter",
     body: "把 MCP 与 A2A Wire Model 显式映射到版本化内部类型，并在 Admission 阶段执行 Policy 与 Tenant 边界。",
   },
   {
-    index: "04",
+    index: "05",
     state: "v1 前",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
@@ -97,9 +109,9 @@ const roadmap = [
           <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
           <p class="hero-lede">
             StateKnot 现已通过 PostgreSQL-backed Crash Recovery、耐久 Model/Tool
-            Attempt、原子 Lifecycle Commit 与加权 Cross-tenant Scheduling
-            运行类型化 Root Graph。稳定的高层 Agent API 与协议 Adapter
-            仍在开发。
+            Attempt、原子 Lifecycle Commit、加权 Cross-tenant Scheduling、强类型
+            Agent 合约与首批 OpenAI/Anthropic Adapter 运行类型化 Root
+            Graph。稳定的端到端 Agent Facade 与 MCP/A2A 协议 Adapter 仍在开发。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -193,7 +205,8 @@ const roadmap = [
           <h2 id="quickstart-title">相信项目声明前，先验证仓库。</h2>
           <p>
             Facade Crate 有意保持未发布状态。当前真实的 Quickstart
-            面向审查实现及其故障语义的贡献者。
+            会先验证仓库，再运行 一个不会冒充已 Admission Run
+            的真实类型化合约示例。
           </p>
           <a class="dark-link affordance" href="/zh/docs/getting-started/">
             打开贡献者教程 <span aria-hidden="true">→</span>
@@ -235,8 +248,8 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">开发顺序由证据决定。</h2>
         <p>
-          一条端到端耐久路径必须先在 Crash、Retry、Stale Worker 与 Lost ACK
-          中存活，然后才扩展协议广度。
+          公开 Facade 必须先让一条 Provider-native 端到端路径在
+          Crash、Retry、Stale Worker 与 Lost ACK 中存活，然后才扩展协议广度。
         </p>
       </div>
 

@@ -51,6 +51,12 @@ const currentCut = [
     href: "/docs/fair-scheduling/",
   },
   {
+    surface: "Typed Agent and model adapters",
+    state: "Implemented slice",
+    evidence: "Pinned schemas plus OpenAI/Anthropic unary and SSE transport",
+    href: "/docs/typed-agent/",
+  },
+  {
     surface: "MCP and A2A adapters",
     state: "Not shipped",
     evidence: "In v1 scope; wire boundaries remain planned",
@@ -67,18 +73,24 @@ const roadmap = [
   },
   {
     index: "02",
-    state: "Now",
-    title: "Ship the public Agent API",
-    body: "Bind concrete model adapters, high-level tool ergonomics, policy middleware, and a compiled end-user example to the proven durable invocation and fair scheduling boundaries.",
+    state: "Implemented",
+    title: "Freeze typed provider boundaries",
+    body: "Typed input/output schemas, offline profile binding, compiled examples, and OpenAI Responses plus Anthropic Messages unary/SSE adapters now have executable evidence.",
   },
   {
     index: "03",
+    state: "Now",
+    title: "Close the public durable Agent path",
+    body: "Bind admission, the prebuilt provider-native model/tool graph, policy, execution, recovery, and typed result retrieval into one explicit public facade.",
+  },
+  {
+    index: "04",
     state: "Planned",
     title: "Add protocol adapters",
     body: "Map MCP and A2A wire models into versioned internal types, with policy and tenant boundaries enforced at admission.",
   },
   {
-    index: "04",
+    index: "05",
     state: "Before v1",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -99,9 +111,10 @@ const roadmap = [
           </h1>
           <p class="hero-lede">
             StateKnot now runs typed root Graphs through PostgreSQL-backed crash
-            recovery, durable model/tool attempts, atomic lifecycle commits, and
-            weighted cross-tenant scheduling. The stable high-level Agent API
-            and protocol adapters remain under development.
+            recovery, durable model/tool attempts, atomic lifecycle commits,
+            weighted cross-tenant scheduling, typed Agent contracts, and the
+            first OpenAI/Anthropic adapters. The stable end-to-end Agent facade
+            and MCP/A2A protocol adapters remain under development.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -200,8 +213,8 @@ const roadmap = [
           </h2>
           <p>
             The facade crate is intentionally unpublished. Today’s honest
-            quickstart is for contributors reviewing the implementation and its
-            failure semantics.
+            quickstart validates the repository first, then runs a real typed
+            contract example without pretending to execute an admitted run.
           </p>
           <a class="dark-link affordance" href="/docs/getting-started/"
             >Open the contributor tutorial <span aria-hidden="true">→</span></a
@@ -239,8 +252,9 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">The road ahead is ordered by proof.</h2>
         <p>
-          Protocol breadth comes after one end-to-end durable path survives
-          crashes, retries, stale workers, and lost acknowledgements.
+          The public facade comes after one end-to-end provider-native path
+          survives crashes, retries, stale workers, and lost acknowledgements;
+          protocol breadth follows it.
         </p>
       </div>
 

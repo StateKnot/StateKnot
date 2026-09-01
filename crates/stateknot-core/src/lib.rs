@@ -172,7 +172,7 @@ pub use model_response::{
 pub use model_runtime::{
     BoxFuture, BoxStream, CancellationObserver, CancellationSignal, Model, ModelContext,
     ModelContextError, ModelError, ModelErrorPhase, ModelErrorProvenance,
-    ModelErrorValidationError, ModelStopReason,
+    ModelErrorValidationError, ModelSchemaRegistry, ModelStopReason,
 };
 pub use node_attempt::{
     NodeAttempt, NodeAttemptCompletion, NodeAttemptError, NodeAttemptHistoryError,

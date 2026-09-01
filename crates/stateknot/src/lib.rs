@@ -17,6 +17,8 @@
 
 /// Protocol-neutral domain, graph, journal, invocation, and lifecycle contracts.
 pub use stateknot_core as core;
+/// First-party model-provider and protocol adapters.
+pub use stateknot_integrations as integrations;
 /// Executable schema/reducer/node registries and the durable graph driver.
 pub use stateknot_runtime as runtime;
 /// `PostgreSQL` 16/17 durable storage and recovery provider.

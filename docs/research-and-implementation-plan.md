@@ -887,9 +887,11 @@ Failure 只有在不存在 Same-fence In-flight Work 时才进入终态监督。
 Evidence Failure、Lease Release 场景现已在 PG16/17 验证。
 Provider-neutral Model/Tool Attempt Executor、精确不可变 Provider Registry、耐久 Stream Sink
 Boundary 与 Cross-tenant Weighted Fair Scheduler 现已补齐；Migration 14 提供 Lost-ACK-safe
-Global Reservation 与有界 Retention。它仍不是完整 Agent Runtime。协议专用 Outbox Adapter、
-具体 Model Adapter、公开 Agent Ergonomics、Parallel Sibling、Loop/Subgraph、角色隔离、通用归档、
-Failover 与 Restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
+Global Reservation 与有界 Retention。第一批 OpenAI Responses/Anthropic Messages Unary/SSE
+Adapter 以及 Schema-pinned Typed Agent Contract 也已实现。它仍不是完整 Agent Runtime：耐久
+Admit/Run/Result Facade、Provider-native 多轮 Tool Transcript、协议专用 Outbox Adapter、
+Parallel Sibling、Loop/Subgraph、角色隔离、通用归档、Failover 与 Restore 仍按 RFC 门禁继续
+实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
 
@@ -1118,9 +1120,10 @@ Handoff 交给生命周期层。Lifecycle 层已使用稳定 Event ID 原子提�
 并与 Driver 组成有界 Agent Loop；Tenant-scoped Scheduler 已能从固定 Snapshot 扫描、Claim 并
 执行一个 Run。Provider-neutral Model/Tool Attempt Executor、不可变 Exact-version Provider
 Registry、耐久 Streaming Sink Boundary，以及 Migration 14 的 Cross-tenant Weighted Fairness、
-Lost-ACK Reservation 与有界 Retention 也已在 PG16/17 验证。具体第一方 Model Adapter、Parallel
-Sibling Policy、协议 Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此
-提前宣称阶段完成。
+Lost-ACK Reservation 与有界 Retention 也已在 PG16/17 验证。第一批 OpenAI Responses 与
+Anthropic Messages Adapter、强类型 Agent Schema/Codec 和可编译无 I/O 示例现已完成；耐久
+Admit/Run/Result Facade、Provider-native 多轮 Tool Transcript、Parallel Sibling Policy、协议
+Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
 

@@ -12,6 +12,12 @@ const paths = [
     link: "开始本地验证",
   },
   {
+    title: "构建强类型 Agent 合约",
+    body: "生成并固定 Input/Output Schema，离线绑定 Provider Profile，并构造第一方 OpenAI Responses 与 Anthropic Messages Adapter。",
+    href: "/zh/docs/typed-agent/",
+    link: "构建类型合约",
+  },
+  {
     title: "编译确定性 Graph",
     body: "运行持续维护的 Rust 示例，理解 Compiler 的 Fail-closed 校验，并注册一个精确不可变的 Definition。",
     href: "/zh/docs/concepts/graphs/",
@@ -38,13 +44,13 @@ const paths = [
   {
     title: "执行耐久调用",
     body: "冻结精确 Model/Tool Provider，在外部 I/O 前提交物理 Start，校验 Stream，并在不 Redispatch 的前提下重试 Terminal Persistence。",
-    href: "/docs/invocations/",
+    href: "/zh/docs/invocations/",
     link: "集成耐久调用",
   },
   {
     title: "公平调度租户",
     body: "编译不可变 Weight、预约一条 Replica-global 顺序、检查精确 Starvation Bound，并保留 Lost-ACK Evidence。",
-    href: "/docs/fair-scheduling/",
+    href: "/zh/docs/fair-scheduling/",
     link: "配置公平调度",
   },
   {
@@ -74,8 +80,9 @@ const paths = [
       StateKnot 还没有稳定的公开 Model/Tool Agent API。目前可以编译确定性
       Graph、冻结可执行部署、重放非初始 Checkpoint，并在 PostgreSQL 上通过原子
       Lifecycle Commit 运行 Tenant-scoped 耐久 Graph Loop。Provider-neutral 耐久
-      Model/Tool Attempt 与加权 Cross-tenant Selection 也已实现；具体 Adapter
-      和稳定高层 Agent API 仍是明确的发布阻断项。
+      Model/Tool Attempt、加权 Cross-tenant Selection、强类型 Agent
+      合约，以及首批 OpenAI Responses 与 Anthropic Messages Adapter
+      也已实现。完整耐久 Admit/Run/Result Facade 仍是明确的发布阻断项。
     </p>
   </aside>
 
@@ -130,6 +137,14 @@ const paths = [
           可信 Terminal Evidence、数据库时间 Wait Registration、原子
           Success/Failure Transition、精确 Lost-ACK 收敛、有界 Cleanup 与一次
           Tenant-scoped Scheduler Quantum。
+        </dd>
+      </div>
+      <div>
+        <dt>强类型 Agent 与 Provider Adapter</dt>
+        <dd>
+          自动生成并 Canonical Digest-pinned 的 Input/Output Schema、离线
+          Provider Profile Binding、有界类型化 Request/Result 校验，以及第一方
+          OpenAI Responses 与 Anthropic Messages Unary/SSE Transport。
         </dd>
       </div>
       <div>

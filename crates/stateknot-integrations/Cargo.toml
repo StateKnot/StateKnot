@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [package]
-name = "stateknot"
-description = "Durable agent orchestration for Rust"
+name = "stateknot-integrations"
+description = "Bounded protocol and model-provider adapters for StateKnot"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,17 +11,27 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-documentation.workspace = true
+documentation = "https://docs.rs/stateknot-integrations"
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 publish = false
 
 [dependencies]
+futures-core.workspace = true
+futures-util.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
-stateknot-integrations = { version = "=0.0.0", path = "../stateknot-integrations" }
+thiserror.workspace = true
+tokio.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+serde_json_canonicalizer.workspace = true
 stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }
-stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
+tokio = { workspace = true, features = ["io-util", "net"] }
 
 [lints]
 workspace = true

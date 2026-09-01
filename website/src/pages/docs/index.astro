@@ -12,6 +12,12 @@ const paths = [
     link: "Start locally",
   },
   {
+    title: "Build a typed Agent contract",
+    body: "Generate and pin typed schemas, bind provider profiles offline, and construct the first-party OpenAI Responses and Anthropic Messages adapters.",
+    href: "/docs/typed-agent/",
+    link: "Build the contract",
+  },
+  {
     title: "Compile a deterministic graph",
     body: "Run the maintained Rust example, understand the compiler's fail-closed checks, and register one exact immutable definition.",
     href: "/docs/concepts/graphs/",
@@ -74,9 +80,10 @@ const paths = [
       you can compile a deterministic Graph, freeze its executable deployment,
       replay noninitial checkpoints, and run a tenant-scoped durable Graph loop
       through atomic lifecycle commits on PostgreSQL. Provider-neutral durable
-      model/tool attempts and weighted cross-tenant selection are also
-      implemented; concrete adapters and the stable high-level Agent API remain
-      explicit release blockers.
+      model/tool attempts, weighted cross-tenant selection, a typed Agent
+      contract, and the first OpenAI Responses and Anthropic Messages adapters
+      are also implemented. The complete durable admit/run/result facade remains
+      an explicit release blocker.
     </p>
   </aside>
 
@@ -131,6 +138,15 @@ const paths = [
           Trusted terminal evidence, database-time Wait registration, atomic
           success/failure transitions, exact lost-ack convergence, bounded
           cleanup, and one tenant-scoped scheduler quantum.
+        </dd>
+      </div>
+      <div>
+        <dt>Typed Agent and provider adapters</dt>
+        <dd>
+          Generated, canonical digest-pinned input/output schemas; offline
+          provider-profile binding; bounded typed request/result validation; and
+          first-party OpenAI Responses and Anthropic Messages unary and SSE
+          transports.
         </dd>
       </div>
       <div>

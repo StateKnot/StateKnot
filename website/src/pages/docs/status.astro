@@ -42,16 +42,22 @@ const capabilities = [
     body: "Replica-global smooth weighted reservations, exact cycle shares, explicit reservation-count starvation bounds, concurrency-safe lost-ACK recovery, and bounded retention.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Typed Agent and first-party model adapters",
+    body: "Generated canonical digest-pinned input/output schemas, offline provider-profile binding, bounded typed codecs, and OpenAI Responses plus Anthropic Messages unary/SSE adapters with explicit transport controls.",
+  },
+  {
     state: "Active work",
     className: "status-active",
     title: "Public Agent integration",
-    body: "Concrete model adapters, high-level Agent/tool ergonomics, policy middleware, compiled examples, parallel siblings, and loop/subgraph semantics.",
+    body: "The complete durable admit/run/result facade, a prebuilt provider-native multi-turn model/tool graph, policy middleware, parallel siblings, and loop/subgraph semantics.",
   },
   {
     state: "Not shipped",
     className: "status-planned",
-    title: "Runnable Agent API",
-    body: "No stable first-agent API, first-party model/tool loop, or end-user quickstart is claimed yet.",
+    title: "Stable end-to-end Agent API",
+    body: "No stable one-call facade, provider-native multi-turn tool transcript, published crate, or production support claim exists yet.",
   },
   {
     state: "Not shipped",
@@ -70,7 +76,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: the durable Graph loop, model/tool attempt executor, and cross-tenant fair scheduler are implemented, while the public Agent API, protocol adapters, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: the durable Graph loop, invocation executor, typed Agent contract, first model adapters, and fair scheduler are implemented; the end-to-end facade, MCP/A2A adapters, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -106,10 +112,11 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      The next runtime milestone binds concrete model adapters and public Agent
-      ergonomics to the proven invocation executor, Driver, lifecycle
-      coordinator, and fair scheduler, then publishes one executable Agent
-      example whose tutorial runs in CI. Protocol breadth follows that recovered
+      The next runtime milestone binds durable admission and result retrieval to
+      the typed contract, provider adapters, invocation executor, Driver,
+      lifecycle coordinator, and fair scheduler. Its exit proof is one
+      provider-native multi-turn tool path that can crash, recover, and return a
+      typed result without redispatch. Protocol breadth follows that recovered
       path rather than preceding it.
     </p>
   </section>
@@ -117,6 +124,11 @@ const capabilities = [
   <section aria-labelledby="source-status-title">
     <h2 id="source-status-title">Normative project sources</h2>
     <ul>
+      <li>
+        <a href="/docs/typed-agent/"
+          >Typed Agent and first-party model adapter contract</a
+        >
+      </li>
       <li>
         <a href="/docs/runtime/">Durable Graph runtime integration contract</a>
       </li>

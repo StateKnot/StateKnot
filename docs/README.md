@@ -39,7 +39,12 @@ conformance output, and the release gates in these documents.
     durable-before-dispatch calls, streaming, ambiguity, and terminal recovery.
     A [Simplified Chinese edition](durable-invocation-executor.zh-CN.md) is
     maintained alongside it.
-11. [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md) —
+11. [Typed Agent and first-party model adapters](typed-agent.md) — generated
+    digest-pinned schemas, bounded typed codecs, OpenAI Responses and Anthropic
+    Messages unary/SSE bindings, compiled examples, and the explicit durable
+    execution boundary. A [Simplified Chinese edition](typed-agent.zh-CN.md) is
+    maintained alongside it.
+12. [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md) —
     immutable weighted policy, replica-safe global reservations, explicit
     starvation bounds, retention, rollout, and operations. A
     [Simplified Chinese edition](cross-tenant-fair-scheduler.zh-CN.md) is

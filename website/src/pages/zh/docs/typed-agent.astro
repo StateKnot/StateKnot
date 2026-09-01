@@ -1,0 +1,221 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const agentCode = `let definition = AgentBuilder::<IncidentRequest, IncidentReport>::new(
+    agent_metadata,
+    input_schema_id,
+    output_schema_id,
+    model_descriptor,
+    trusted_instructions,
+    execution_limits,
+)
+.build()?;
+
+let mut schemas = JsonSchemaRegistryBuilder::default();
+schemas.register(provider_profile, provider_profile_document)?;
+let schemas = definition.register_schemas(schemas)?.build()?;
+let agent = definition.bind(Arc::new(schemas))?;
+
+let request = agent.prepare_request(&input, request_budget_limits)?;`;
+---
+
+<DocsLayout
+  title="构建一个强类型 Agent 合约。"
+  description="生成、固定、注册并绑定强类型 Agent Schema；构造第一方 OpenAI Responses 与 Anthropic Messages Adapter；再明确跨越耐久执行边界。"
+  section="强类型 Agent"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="typed-agent-scope-title">
+    <h2 id="typed-agent-scope-title">已经实现的 pre-alpha 边界</h2>
+    <p>
+      <code>AgentBuilder&lt;I, O&gt;</code>、类型化 Request/Result
+      Codec，以及第一方 OpenAI Responses 与 Anthropic Messages Adapter
+      已经实现。它们尚未发布，也不会用 进程内 <code>run()</code> 绕过耐久 Admission、Attempt
+      Ledger、Graph Driver、 Lifecycle Evidence 或 Tenant Scheduling。
+    </p>
+  </aside>
+
+  <section aria-labelledby="typed-agent-examples-title">
+    <h2 id="typed-agent-examples-title">先运行可编译示例</h2>
+    <p>
+      两个示例都会构造真实 Descriptor 与 Schema Registry，但不执行网络
+      I/O，也不要求 API Key，因此 Workspace 门禁可以确定性地编译并运行它们。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 不需要 Credential</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-typed-agent-example-commands"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-typed-agent-example-commands"
+        tabindex="0"><code>cargo run -p stateknot-runtime --example typed_agent
+cargo run -p stateknot-integrations --example provider_adapters</code></pre>
+    </div>
+    <p>
+      改写前请先阅读完整的 <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-runtime/examples/typed_agent.rs"
+        >强类型 Agent 源码</a
+      > 与 <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-integrations/examples/provider_adapters.rs"
+        >Provider Adapter 源码</a
+      >。
+    </p>
+  </section>
+
+  <section aria-labelledby="typed-agent-freeze-title">
+    <h2 id="typed-agent-freeze-title">在 Admission 前冻结合约</h2>
+    <p>
+      Builder 根据 Input 的序列化合约与 Output 的反序列化合约生成 JSON Schema
+      2020-12；再对两个文档执行 RFC 8785 Canonicalization、固定 SHA-256
+      Digest，并且 成对注册，调用方不会看到只安装一半的 Registry。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 类型化边界</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-typed-agent-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="zh-typed-agent-code" tabindex="0"><code>{agentCode}</code></pre>
+    </div>
+    <p>
+      Binding 在离线启动期 Fail Closed。Agent、Tool 与 Provider Profile
+      引用的每个 Schema 都必须已经存在于不可变 Registry；所选 Provider Profile
+      还必须接受所有 Model-visible Schema，请求才能进入耐久 Admission。
+    </p>
+  </section>
+
+  <section aria-labelledby="typed-agent-provider-title">
+    <h2 id="typed-agent-provider-title">明确第一批 Adapter 的边界</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>OpenAI Responses</dt>
+        <dd>
+          完整响应与真正增量 SSE、文本、JSON Schema Output、Generic JSON
+          Mode、Function Proposal、本地 Schema 校验、Usage Normalization 与
+          Request ID 保留。
+        </dd>
+      </div>
+      <div>
+        <dt>Anthropic Messages</dt>
+        <dd>
+          完整响应与真正增量 SSE、文本、JSON Schema-constrained Output、Tool
+          Proposal、 本地 Schema 校验、累计 Usage Normalization 与 Request ID
+          保留。
+        </dd>
+      </div>
+      <div>
+        <dt>共享 Transport Control</dt>
+        <dd>
+          Attempt-scoped Credential、除 Literal-loopback 测试外强制 HTTPS、无
+          Redirect 与隐藏 Retry、有界 Request/Response/SSE、有界
+          Backpressure、协作式 Cancellation、单调 Deadline 与 Public-safe
+          Diagnostic。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="typed-agent-restrictions-title">
+    <h2 id="typed-agent-restrictions-title">当前 Fail-closed 限制</h2>
+    <ul>
+      <li>
+        既往 <code>role=tool</code> Message 会在 I/O 前被拒绝，因为 Core Message 合约还未
+        保存无损重放所需的完整 Provider Call ID 与 Assistant Tool-call Transcript。
+      </li>
+      <li>
+        当前版本是 Text-only Adapter；Artifact、多模态和携带 Extension 的
+        Request 都会在 I/O 前被拒绝。
+      </li>
+      <li>
+        Anthropic Generic JSON Mode 会被拒绝；该 Binding 要求稳定的
+        Schema-constrained Output 合约。
+      </li>
+      <li>
+        Streaming 是真实增量处理。有界 SSE Event 必须通过
+        <code>ModelEventAccumulator</code>；截断、重复、重排或被替换的 Terminal
+        Data 都 不能成为 <code>Completed</code>。
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="typed-agent-durable-title">
+    <h2 id="typed-agent-durable-title">显式跨越耐久边界</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>认证并冻结</h3>
+        <p>选择不可变 Agent、Model、Tool 与 Schema Snapshot。</p>
+      </li>
+      <li>
+        <h3>Admission</h3>
+        <p>
+          校验类型化 Request、解析有限可信 Budget、分配
+          Tenant/Run/Thread/Invocation Identity，并提交 Admission Evidence。
+        </p>
+      </li>
+      <li>
+        <h3>执行与恢复</h3>
+        <p>
+          用 Lease/Fence Claim，通过 <code>DurableInvocationExecutor</code> 执行外部
+          Attempt，再用 <code>DurableAgentLoop</code> 驱动 Checkpoint。
+        </p>
+      </li>
+      <li>
+        <h3>解码</h3>
+        <p>
+          重新校验可信 Provenance、Request Binding、Accounting Evidence 与
+          Output Schema，然后反序列化 Terminal Result。
+        </p>
+      </li>
+    </ol>
+    <p>
+      完整公开 Admit/Run/Result Facade 与预置 Provider-native 多轮 Model/Tool
+      Graph 仍是发布门禁。继续阅读 <a href="/zh/docs/invocations/">耐久调用</a> 与
+      <a href="/zh/docs/agent-loop/">耐久 Agent Loop</a
+      >，了解已经实现的执行合约。
+    </p>
+  </section>
+
+  <section aria-labelledby="typed-agent-evidence-title">
+    <h2 id="typed-agent-evidence-title">执行聚焦验证</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 类型与 Transport 合约</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-typed-agent-test-commands"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-typed-agent-test-commands"
+        tabindex="0"><code>cargo test -p stateknot-runtime --test typed_agent --locked
+cargo test -p stateknot-integrations --all-targets --locked</code></pre>
+    </div>
+    <p>
+      Adapter Suite 使用真实本地 TCP HTTP Server，覆盖 Request Shape、碎片化
+      SSE、 Terminal Cross-check、429 Retry Evidence、5xx 无隐藏
+      Retry、资源上限、 Deadline/Cancellation 优先级与 Secret/Debug
+      Redaction。Live-provider Qualification 与 Provider-drift Cassette
+      尚未交付。
+    </p>
+  </section>
+</DocsLayout>

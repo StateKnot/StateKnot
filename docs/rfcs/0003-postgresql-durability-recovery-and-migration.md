@@ -949,8 +949,8 @@ provider registries, durable starts, streaming validation, ambiguity-safe tool
 failures, and no-dispatch terminal recovery. Migration 14 and the runtime fair
 scheduler add immutable weighted policies, globally ordered lost-ACK-safe
 reservations, explicit starvation bounds, and bounded retention. Role-separated
-database procedures, concrete model adapters and public Agent integration, the
-10,000 stale-race trial, failover, general archive, backup/restore, and soak
+database procedures, durable public Agent integration and provider-native
+multi-turn tool replay, the 10,000 stale-race trial, failover, general archive, backup/restore, and soak
 gates below remain incomplete; the RFC therefore remains Draft.
 
 Before RFC acceptance:

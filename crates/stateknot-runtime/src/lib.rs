@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 mod agent_loop;
+mod agent_typed;
 mod driver;
 mod driver_schema;
 mod fair_scheduler;
@@ -25,6 +26,10 @@ mod tenant_scheduler;
 
 pub use agent_loop::{
     AgentLoopError, AgentLoopOutcome, AgentLoopResult, DurableAgentLoop, DurableAgentLoopBuildError,
+};
+pub use agent_typed::{
+    AgentBuilder, AgentBuilderError, AgentSchemaRegistrationError, AgentSchemaRole, TypedAgent,
+    TypedAgentBindError, TypedAgentDefinition, TypedAgentInputError, TypedAgentOutputError,
 };
 pub use driver_schema::{
     STANDARD_GRAPH_DRIVER_EVENT_SCHEMA_ID, StandardGraphDriverSchemaError,

@@ -614,10 +614,11 @@ retention bounds, and cursor neutrality are exercised on PostgreSQL 16 and 17.
 
 ## Not yet implemented
 
-This slice is not a production release or the complete agent runtime. It does
-not yet implement protocol-specific outbox dispatch adapters, artifacts,
-concrete model-provider adapters, public high-level Agent ergonomics, general
-retention/archive/legal hold, backup/restore, failover qualification, or the
+This slice is not a production release or the complete agent runtime. The first
+model-provider adapters live above this store boundary; it does not yet
+implement protocol-specific outbox dispatch adapters, artifacts, the durable
+public admit/run/result facade, general retention/archive/legal hold,
+backup/restore, failover qualification, or the
 10,000-race stale-worker gate. The implemented lifecycle coordinator now
 atomically commits complete Wait/success/failure handoffs, and the tenant worker
 binds runnable discovery, lease claim, Driver, and lifecycle coordination into

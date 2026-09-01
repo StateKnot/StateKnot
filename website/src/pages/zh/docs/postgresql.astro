@@ -16,7 +16,8 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
     <p>
       Provider 已经真实实现并具有大量测试，但尚未发布，且仍假设使用可信的
       Server-side Pool。角色隔离的 Server Procedure、通用 Retention、Restore
-      Qualification、具体 Model Adapter 与公开 Agent 集成仍是发布阻断项。
+      Qualification 与耐久公开 Agent 集成仍是发布阻断项。第一批 Model Adapter
+      位于该 Store Boundary 之上。
     </p>
   </aside>
 
@@ -151,7 +152,7 @@ store.health_check().await?;</code></pre>
     </p>
     <p>
       正式生产发布仍需要角色隔离、通用 Retention/GC、Failover/PITR
-      恢复演练、Stale-race 验证、具体 Model Adapter 与稳定公开 Agent API。
+      恢复演练、Stale-race 验证与稳定公开 Agent Facade。
     </p>
   </section>
 </DocsLayout>

@@ -38,10 +38,11 @@ The implementation is split deliberately:
 | `GraphLifecycleEvidenceProvider` | Recovers already-durable admission, artifact, and cumulative-accounting facts owned by the embedding application. It is not a fallback inference hook. |
 
 This is a runnable **durable graph loop**. Provider-neutral durable model/tool
-attempt execution and cross-tenant weighted selection now exist, but this is
-not yet the stable end-user Agent API: concrete model adapters, high-level tool
-ergonomics, policy middleware, and a compiled first-agent tutorial remain
-release work.
+attempt execution, cross-tenant weighted selection, a typed Agent contract, and
+the first OpenAI Responses/Anthropic Messages adapters now exist, but this is
+not yet the stable end-user Agent API: durable admission/result retrieval, a
+provider-native multi-turn tool transcript, policy middleware, and the complete
+public facade remain release work.
 
 ## Startup binding
 
@@ -229,8 +230,8 @@ database version also runs 95 provider integration cases. CI makes both suites
 mandatory.
 
 The remaining release blockers include a production admission/accounting
-provider implementation, concrete first-party model adapters, a public Agent
-API and compiled example, parallel sibling policy, loop/subgraph semantics,
+provider implementation, the durable public Agent facade and provider-native
+multi-turn tool transcript, parallel sibling policy, loop/subgraph semantics,
 protocol-specific outbox dispatch, role-separated database procedures, general
 retention, backup/restore, failover, stale-race qualification, observability,
 and release hardening.

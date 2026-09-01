@@ -20,8 +20,8 @@ use thiserror::Error;
 use crate::{
     AttemptId, BudgetRemaining, CapabilityIdentity, Failure, ModelCapabilities, ModelDescriptor,
     ModelEvent, ModelProviderModelId, ModelProviderRequestId, ModelProviderResponseId,
-    ModelRequest, ModelResponse, ModelResponseMode, ModelUsage, RunId, TenantId, ThreadId,
-    Timestamp, TokenCount,
+    ModelRequest, ModelResponse, ModelResponseMode, ModelUsage, RunId, SchemaReference, TenantId,
+    ThreadId, Timestamp, TokenCount,
 };
 
 /// A heap-allocated, `Send` future whose implementation is independent of an async executor.
@@ -673,6 +673,18 @@ pub trait Model: Send + Sync + 'static {
         context: ModelContext,
         request: ModelRequest,
     ) -> BoxStream<'_, Result<ModelEvent, ModelError>>;
+}
+
+/// Offline schema resources required by a concrete model adapter.
+///
+/// Implementations expose only canonical, digest-pinned documents installed at
+/// process startup. Adapters use the bytes to construct provider tool and
+/// structured-output declarations, then use [`crate::GraphSchemaValidator`] to
+/// validate provider output locally. Implementations must never retrieve a
+/// schema from its URI while an attempt is executing.
+pub trait ModelSchemaRegistry: crate::GraphSchemaValidator + Send + Sync + 'static {
+    /// Returns exact RFC 8785 canonical JSON Schema bytes for a pinned resource.
+    fn canonical_schema_bytes(&self, schema: &SchemaReference) -> Option<&[u8]>;
 }
 
 #[cfg(test)]

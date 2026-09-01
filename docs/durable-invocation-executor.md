@@ -219,8 +219,10 @@ Real PostgreSQL integration coverage proves:
 - a timed-out idempotent-write tool records an ambiguous reconcile-first
   outcome and is not called again on retry.
 
-The boundary remains pre-alpha. Concrete OpenAI-compatible and Anthropic
-adapters, a persisted model stream sink, application accounting/admission
-providers, public high-level Agent ergonomics, full crash reconciliation
-supervision, telemetry, and live-provider qualification are still required
-before production support can be claimed.
+The boundary remains pre-alpha. First-party OpenAI Responses and Anthropic
+Messages adapters plus the typed Agent contract are now implemented. An
+application-persisted model stream sink, production accounting/admission
+providers, the complete public admit/run/result facade, provider-native
+multi-turn tool replay, full crash reconciliation supervision, telemetry, and
+live-provider qualification are still required before production support can
+be claimed.

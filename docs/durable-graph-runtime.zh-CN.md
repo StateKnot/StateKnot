@@ -161,7 +161,8 @@ Recovery、有序耐久 Model Streaming、Write Tool Timeout 的 Ambiguous Outco
 3:1 Cross-tenant Weighted Selection。此外，每个数据库版本还运行 95 个 Provider Integration
 Test。CI 把外部数据库套件设为 Mandatory；数据库服务缺失时必须失败，不能静默跳过。
 
-本阶段尚未提供具体第一方 Model Adapter、公开高层 Agent Ergonomics、Parallel Sibling、
+后续 Typed Agent 里程碑已经提供第一批 OpenAI Responses 与 Anthropic Messages Adapter，
+但耐久公开 Admit/Run/Result Facade、Provider-native 多轮 Tool Transcript、Parallel Sibling、
 Loop/Subgraph、协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
 Failover/Restore 验证、10,000 次 Stale-race 门禁或稳定公共发行。这些都是明确 Release
 Blocker，不会用隐藏的降级逻辑替代。

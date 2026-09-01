@@ -15,8 +15,9 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     <p>
       The provider is real and heavily tested, but it is unpublished and still
       assumes a trusted server-side pool. Role-separated server procedures,
-      general retention, restore qualification, concrete model adapters, and
-      public Agent integration remain release blockers.
+      general retention, restore qualification, and durable public Agent
+      integration remain release blockers. The first model adapters live above
+      this store boundary.
     </p>
   </aside>
 
@@ -171,8 +172,7 @@ store.health_check().await?;</code></pre>
     <p>
       Production release still requires role isolation, general retention and
       garbage collection, failover and point-in-time restore exercises,
-      stale-race qualification, concrete model adapters, and the stable public
-      Agent API.
+      stale-race qualification, and the stable public Agent facade.
     </p>
   </section>
 </DocsLayout>

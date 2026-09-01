@@ -14,8 +14,9 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
   <aside class="docs-callout" aria-labelledby="tutorial-scope-title">
     <h2 id="tutorial-scope-title">本教程的边界</h2>
     <p>
-      这会验证当前真实存在的实现，并不是隐藏的“Hello Agent”演示：稳定 Model/Tool
-      Agent API 与第一方 Provider Adapter 尚未发布。
+      这会验证当前真实存在的实现。强类型 Agent 合约以及第一方 OpenAI Responses
+      与 Anthropic Messages Adapter 已经实现，但稳定的端到端 Admit/Run/Result
+      Facade 尚未发布。
     </p>
   </aside>
 
@@ -32,6 +33,17 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
         PostgreSQL。
       </li>
     </ul>
+  </section>
+
+  <section aria-labelledby="typed-agent-next-title">
+    <h2 id="typed-agent-next-title">运行类型化合约示例</h2>
+    <p>
+      下一篇教程会构造真实 Schema-pinned Agent 合约与两个 Provider
+      Adapter，不执行外部 I/O，也不需要 Credential。Workspace
+      门禁通过后，继续阅读 <a href="/zh/docs/typed-agent/"
+        >构建强类型 Agent 合约</a
+      >。
+    </p>
   </section>
 
   <section aria-labelledby="checkout-title">
@@ -73,9 +85,10 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --lock
       <li>公开 Rust 文档没有 Warning。</li>
     </ul>
     <p>
-      它不会验证真实 PostgreSQL Server、Model Provider、MCP、A2A 或 Live Durable
-      Agent Loop。CI 会分别在 PostgreSQL 16 与 17 上执行数据库支持的 Runtime 与
-      Provider 测试。
+      它不会验证真实 PostgreSQL Server、真实 Model Provider 账号、MCP、A2A 或
+      Live Durable Agent Loop。CI 会分别在 PostgreSQL 16 与 17
+      上执行数据库支持的 Runtime 与 Store Provider 测试；Model Adapter Transport
+      Test 使用真实本地 TCP Server。
     </p>
   </section>
 

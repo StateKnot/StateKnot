@@ -28,6 +28,12 @@ const localizedRoutePairs = [
     zhHeading: "在本地验证 StateKnot。",
   },
   {
+    en: "/docs/typed-agent/",
+    zh: "/zh/docs/typed-agent/",
+    enHeading: "Build a typed Agent contract.",
+    zhHeading: "构建一个强类型 Agent 合约。",
+  },
+  {
     en: "/docs/concepts/durability/",
     zh: "/zh/docs/concepts/durability/",
     enHeading: "Durability is evidence, not process memory.",
@@ -162,6 +168,11 @@ test("homepage exposes honest implementation status and semantic structure", asy
       .locator(".spec-list")
       .getByText("Cross-tenant fair scheduler", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page
+      .locator(".spec-list")
+      .getByText("Typed Agent and model adapters", { exact: true }),
+  ).toBeVisible();
   await expect(page.locator(".map-node--planned")).toHaveCount(4);
 
   const main = page.locator("main");
@@ -246,12 +257,14 @@ for (const width of responsiveAuditWidths) {
 for (const route of [
   "/docs/",
   "/docs/getting-started/",
+  "/docs/typed-agent/",
   "/docs/runtime/",
   "/docs/agent-loop/",
   "/docs/invocations/",
   "/docs/fair-scheduling/",
   "/zh/",
   "/zh/docs/getting-started/",
+  "/zh/docs/typed-agent/",
   "/zh/docs/runtime/",
   "/zh/docs/agent-loop/",
   "/zh/docs/invocations/",
@@ -265,6 +278,23 @@ for (const route of [
     });
   }
 }
+
+test("typed Agent tutorial keeps the durable execution boundary explicit", async ({
+  page,
+}) => {
+  await page.goto("/docs/typed-agent/");
+  await expect(page.getByText("Implemented pre-alpha surface")).toBeVisible();
+  await expect(
+    page.getByText("Current fail-closed restrictions"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Cross the durable boundary explicitly"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("complete public admit/run/result facade", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(3);
+});
 
 for (const route of localizedRoutePairs) {
   test(`${route.en} and ${route.zh} are equivalent localized routes`, async ({

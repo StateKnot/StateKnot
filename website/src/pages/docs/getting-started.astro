@@ -13,9 +13,10 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
   <aside class="docs-callout" aria-labelledby="tutorial-scope-title">
     <h2 id="tutorial-scope-title">Scope of this tutorial</h2>
     <p>
-      This validates the implementation that exists today. It is not a hidden
-      “hello agent” demo: the stable model/tool Agent API and first-party
-      provider adapters have not shipped yet.
+      This validates the implementation that exists today. The typed Agent
+      contract and first-party OpenAI Responses and Anthropic Messages adapters
+      are implemented, but the stable end-to-end admit/run/result facade has not
+      shipped.
     </p>
   </aside>
 
@@ -32,6 +33,16 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
         provider integration suite.
       </li>
     </ul>
+  </section>
+
+  <section aria-labelledby="typed-agent-next-title">
+    <h2 id="typed-agent-next-title">Run the typed contract examples</h2>
+    <p>
+      The next tutorial constructs the real schema-pinned Agent contract and
+      both provider adapters without external I/O or credentials. Continue to
+      <a href="/docs/typed-agent/">Build a typed Agent contract</a> after the workspace
+      gate passes.
+    </p>
   </section>
 
   <section aria-labelledby="checkout-title">
@@ -74,9 +85,11 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --lock
       <li>public Rust documentation contains no warnings.</li>
     </ul>
     <p>
-      It does not exercise a live PostgreSQL server, a model provider, MCP, A2A,
-      or a live durable Agent Loop. CI runs the database-backed Runtime and
-      provider suites separately against PostgreSQL 16 and 17.
+      It does not exercise a live PostgreSQL server, a live model-provider
+      account, MCP, A2A, or a live durable Agent Loop. CI runs the
+      database-backed Runtime and storage-provider suites separately against
+      PostgreSQL 16 and 17; model-adapter transport tests use a real local TCP
+      server.
     </p>
   </section>
 

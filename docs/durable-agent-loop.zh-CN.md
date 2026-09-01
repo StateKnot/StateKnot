@@ -36,9 +36,11 @@ Tenant Scheduler Tick
 | `DurableGraphLifecycle` | 使用精确 Lease-bound Handoff 原子提交 Wait、成功 Terminal 或受监督的 Run Failure。 |
 | `GraphLifecycleEvidenceProvider` | 恢复由嵌入应用持久保存的 Admission、Artifact 与累计 Accounting 事实；它不是用于推测缺失数据的 Fallback Hook。 |
 
-这是一条可运行的**耐久 Graph Loop**。Provider-neutral 耐久 Model/Tool Attempt 执行和
-跨租户加权 Selection 已经存在，但它还不是稳定的最终用户 Agent API。具体 Model Adapter、
-高层 Tool Ergonomics、Policy Middleware 与可编译 First-agent 教程仍属于发行前工作。
+这是一条可运行的**耐久 Graph Loop**。Provider-neutral 耐久 Model/Tool Attempt 执行、
+跨租户加权 Selection、强类型 Agent Contract，以及第一批 OpenAI Responses/Anthropic
+Messages Adapter 已经存在，但它还不是稳定的最终用户 Agent API。耐久 Admission/Result
+Retrieval、Provider-native 多轮 Tool Transcript、Policy Middleware 与完整公开 Facade
+仍属于发行前工作。
 
 ## 启动绑定
 
@@ -193,7 +195,7 @@ Loop 成功与 Evidence Failure、Tenant 与加权 Cross-tenant Scheduling、耐
 初始状态 Quarantine 与 Higher-fence Takeover。每个数据库版本还会运行 95 个 Provider
 Integration Case；CI 把两套测试都设为 Mandatory。
 
-剩余 Release Blocker 包括生产 Admission/Accounting Provider、具体第一方 Model Adapter、
-公开 Agent API 与可编译示例、Parallel Sibling Policy、Loop/Subgraph 语义、协议专用 Outbox
+剩余 Release Blocker 包括生产 Admission/Accounting Provider、耐久公开 Agent Facade 与
+Provider-native 多轮 Tool Transcript、Parallel Sibling Policy、Loop/Subgraph 语义、协议专用 Outbox
 Dispatch、数据库角色隔离存储过程、通用 Retention、Backup/Restore、Failover、Stale-race
 Qualification、完整 Observability 与 Release Hardening。

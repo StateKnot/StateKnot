@@ -40,13 +40,15 @@ const recoveryCode = `match executor.execute_model(handoff).await {
 >
   <aside class="docs-callout" aria-labelledby="invocation-boundary-title">
     <h2 id="invocation-boundary-title">
-      Implemented boundary, not vendor adapters
+      Executor and first adapters implemented
     </h2>
     <p>
       The provider-neutral executor and its PostgreSQL recovery path are
-      implemented and tested. Concrete OpenAI-compatible, Anthropic, and MCP
-      adapters, a high-level Agent API, and live-provider qualification have not
-      shipped.
+      implemented and tested. First-party OpenAI Responses and Anthropic
+      Messages adapters now bind to it; see the <a href="/docs/typed-agent/"
+        >typed Agent tutorial</a
+      >. MCP, the complete high-level admit/run/result facade, and live-provider
+      qualification have not shipped.
     </p>
   </aside>
 

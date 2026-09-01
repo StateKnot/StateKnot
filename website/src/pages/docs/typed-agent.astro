@@ -1,0 +1,233 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const agentCode = `let definition = AgentBuilder::<IncidentRequest, IncidentReport>::new(
+    agent_metadata,
+    input_schema_id,
+    output_schema_id,
+    model_descriptor,
+    trusted_instructions,
+    execution_limits,
+)
+.build()?;
+
+let mut schemas = JsonSchemaRegistryBuilder::default();
+schemas.register(provider_profile, provider_profile_document)?;
+let schemas = definition.register_schemas(schemas)?.build()?;
+let agent = definition.bind(Arc::new(schemas))?;
+
+let request = agent.prepare_request(&input, request_budget_limits)?;`;
+---
+
+<DocsLayout
+  title="Build a typed Agent contract."
+  description="Generate, pin, register, and bind typed Agent schemas; construct the first-party OpenAI Responses and Anthropic Messages adapters; then cross the durable execution boundary deliberately."
+  section="Typed Agent"
+>
+  <aside class="docs-callout" aria-labelledby="typed-agent-scope-title">
+    <h2 id="typed-agent-scope-title">Implemented pre-alpha surface</h2>
+    <p>
+      <code>AgentBuilder&lt;I, O&gt;</code>, the typed request/result codec, and
+      the first-party OpenAI Responses and Anthropic Messages adapters are
+      implemented. They are unpublished and intentionally do not provide a
+      process-local <code>run()</code> shortcut around durable admission, attempt
+      ledgers, the Graph Driver, lifecycle evidence, or tenant scheduling.
+    </p>
+  </aside>
+
+  <section aria-labelledby="typed-agent-examples-title">
+    <h2 id="typed-agent-examples-title">Start with the compiled examples</h2>
+    <p>
+      Both examples construct real descriptors and schema registries. They do no
+      network I/O and require no API key, so the workspace gate can compile and
+      run them deterministically.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · no credentials required</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="typed-agent-example-commands"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="typed-agent-example-commands"
+        tabindex="0"><code>cargo run -p stateknot-runtime --example typed_agent
+cargo run -p stateknot-integrations --example provider_adapters</code></pre>
+    </div>
+    <p>
+      Inspect the exact <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-runtime/examples/typed_agent.rs"
+        >typed Agent source</a
+      > and <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-integrations/examples/provider_adapters.rs"
+        >provider adapter source</a
+      > before adapting them.
+    </p>
+  </section>
+
+  <section aria-labelledby="typed-agent-freeze-title">
+    <h2 id="typed-agent-freeze-title">Freeze the contract before admission</h2>
+    <p>
+      The builder derives JSON Schema 2020-12 from the serialization contract of
+      the input and the deserialization contract of the output. It canonicalizes
+      both documents with RFC 8785, pins their SHA-256 digests, and registers
+      the pair without exposing a half-installed registry.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · typed boundary</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="typed-agent-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="typed-agent-code" tabindex="0"><code>{agentCode}</code></pre>
+    </div>
+    <p>
+      Binding is offline and fail-closed. Every Agent, Tool, and provider
+      profile schema must already exist in the immutable registry. The selected
+      provider profile must accept every model-visible schema before a request
+      can reach durable admission.
+    </p>
+  </section>
+
+  <section aria-labelledby="typed-agent-provider-title">
+    <h2 id="typed-agent-provider-title">Know the first adapter boundary</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>OpenAI Responses</dt>
+        <dd>
+          Complete responses and true incremental SSE, text, JSON Schema output,
+          generic JSON mode, function proposals, local schema validation, usage
+          normalization, and request-ID preservation.
+        </dd>
+      </div>
+      <div>
+        <dt>Anthropic Messages</dt>
+        <dd>
+          Complete responses and true incremental SSE, text, JSON
+          Schema-constrained output, tool proposals, local schema validation,
+          cumulative usage normalization, and request-ID preservation.
+        </dd>
+      </div>
+      <div>
+        <dt>Shared transport controls</dt>
+        <dd>
+          Attempt-scoped credentials, HTTPS outside literal-loopback tests, no
+          redirects or hidden retries, bounded requests/responses/SSE, bounded
+          backpressure, cooperative cancellation, monotonic deadlines, and
+          public-safe diagnostics.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="typed-agent-restrictions-title">
+    <h2 id="typed-agent-restrictions-title">
+      Current fail-closed restrictions
+    </h2>
+    <ul>
+      <li>
+        Prior <code>role=tool</code> messages are rejected before I/O because the
+        core message contract does not yet retain the full provider call ID and assistant
+        tool-call transcript required for lossless replay.
+      </li>
+      <li>
+        Artifact, multimodal, and extension-bearing requests are rejected before
+        I/O by these text-only adapter versions.
+      </li>
+      <li>
+        Anthropic generic JSON mode is rejected; the binding requires a stable
+        schema-constrained output contract.
+      </li>
+      <li>
+        Streaming is genuinely incremental. Bounded SSE events pass through
+        <code>ModelEventAccumulator</code>, and truncated, duplicated,
+        reordered, or substituted terminal data cannot become <code
+          >Completed</code
+        >.
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="typed-agent-durable-title">
+    <h2 id="typed-agent-durable-title">
+      Cross the durable boundary explicitly
+    </h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Authenticate and freeze</h3>
+        <p>Select immutable Agent, Model, Tool, and schema snapshots.</p>
+      </li>
+      <li>
+        <h3>Admit</h3>
+        <p>
+          Validate the typed request, resolve finite trusted budgets, assign
+          tenant/run/thread/invocation identity, and commit admission evidence.
+        </p>
+      </li>
+      <li>
+        <h3>Execute and recover</h3>
+        <p>
+          Claim with a lease/fence, run external attempts through
+          <code>DurableInvocationExecutor</code>, and drive checkpoints through
+          <code>DurableAgentLoop</code>.
+        </p>
+      </li>
+      <li>
+        <h3>Decode</h3>
+        <p>
+          Revalidate trusted provenance, request binding, accounting evidence,
+          and the output schema before deserializing the terminal result.
+        </p>
+      </li>
+    </ol>
+    <p>
+      The complete public admit/run/result facade and a prebuilt provider-native
+      multi-turn model/tool graph remain release gates. Continue with <a
+        href="/docs/invocations/">durable invocations</a
+      > and the <a href="/docs/agent-loop/">durable Agent Loop</a> for the implemented
+      execution contracts.
+    </p>
+  </section>
+
+  <section aria-labelledby="typed-agent-evidence-title">
+    <h2 id="typed-agent-evidence-title">Run the focused evidence</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · typed and transport contracts</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="typed-agent-test-commands"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="typed-agent-test-commands"
+        tabindex="0"><code>cargo test -p stateknot-runtime --test typed_agent --locked
+cargo test -p stateknot-integrations --all-targets --locked</code></pre>
+    </div>
+    <p>
+      The adapter suite uses a real local TCP HTTP server. It exercises request
+      shape, fragmented SSE, terminal cross-checks, 429 retry evidence, 5xx
+      no-hidden-retry behavior, resource ceilings, deadline/cancellation
+      precedence, and secret/debug redaction. Live-provider qualification and
+      provider-drift cassettes have not shipped.
+    </p>
+  </section>
+</DocsLayout>

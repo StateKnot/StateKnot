@@ -174,10 +174,14 @@ from the repository.
   reservations, exact per-cycle shares, explicit reservation-count starvation
   bounds, bounded database-time retention, property tests, and PostgreSQL 16/17
   concurrency and runtime evidence.
-- [ ] Complete concrete first-party model adapters and public Agent ergonomics,
-  parallel sibling policy, loop/subgraph semantics, protocol-specific outbox
-  adapters, role isolation, general retention, failover, restore, and final
-  stale-race gates.
+- [x] Implement the first production-shaped OpenAI Responses and Anthropic
+  Messages unary/SSE adapters plus generated, canonical digest-pinned typed
+  Agent input/output contracts, offline provider-profile binding, bounded
+  codecs, real local HTTP fault tests, and compiled no-I/O examples.
+- [ ] Complete the durable public admit/run/result facade, provider-native
+  multi-turn model/tool transcript, policy middleware, parallel sibling policy,
+  loop/subgraph semantics, protocol-specific outbox adapters, role isolation,
+  general retention, failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 
