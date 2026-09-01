@@ -1,0 +1,198 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const submitCode = `let runs = DurableAgentRuns::new(store.clone(), executable_registry)?;
+let key = AgentSubmissionKey::generate();
+
+let request = DurableAgentAdmissionRequest::new(
+    tenant_id.clone(),
+    AgentRunIds::generate(),
+    agent_descriptor,
+    agent_request,
+    evaluated_budget_layers,
+    graph_reference,
+    admission_authority,
+    initial_state,
+)?;
+
+let admitted = runs.submit(&key, request).await?;
+let run_id = admitted.snapshot().provenance().run_id();`;
+
+const retryCode = `// Rebuild the same logical content. Candidate IDs may be fresh.
+let retry = DurableAgentAdmissionRequest::new(
+    tenant_id.clone(),
+    AgentRunIds::generate(),
+    retained_agent_descriptor,
+    retained_agent_request,
+    retained_budget_layers,
+    retained_graph_reference,
+    retained_authority,
+    retained_initial_state,
+)?;
+
+let resolved = runs.submit(&key, retry).await?;
+assert_eq!(resolved.snapshot().provenance().run_id(), original_run_id);
+
+let current = runs.load_by_key(&tenant_id, &key).await?;`;
+---
+
+<DocsLayout
+  title="Submit once. Recover the same durable Agent run."
+  description="Use tenant-scoped durable idempotency, then read a fully revalidated public run/result snapshot by run ID or submission key."
+  section="Durable Agent runs"
+>
+  <aside class="docs-callout" aria-labelledby="run-boundary-title">
+    <h2 id="run-boundary-title">Implemented boundary, pre-alpha API</h2>
+    <p>
+      <code>DurableAgentRuns</code>, <code>AgentSubmissionKey</code>, and
+      PostgreSQL migration 16 are implemented. They close ingress lost-ACK
+      recovery and public terminal reads. Crates remain unpublished, and the
+      prebuilt provider-native multi-turn graph, cancellation transport, and
+      production server are still release work.
+    </p>
+  </aside>
+
+  <section aria-labelledby="submit-title">
+    <h2 id="submit-title">Commit the key with the run</h2>
+    <p>
+      Authenticate the tenant, freeze policy and deployment inputs, then call
+      <code>submit</code>. The key mapping and a new atomic admission commit in
+      one transaction, so no successful mapping can point at a half-created run.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · trusted ingress</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="durable-run-submit-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="durable-run-submit-code"
+        tabindex="0"><code>{submitCode}</code></pre>
+    </div>
+    <p>
+      A generated key contains 148 random bits. External keys must use 16–128
+      bytes from <code>[A-Za-z0-9._~-]</code> and should provide at least 128 bits
+      of unpredictability. PostgreSQL stores only a tenant-scoped digest; raw keys
+      are absent from durable rows and redacted from <code>Debug</code>.
+    </p>
+  </section>
+
+  <section aria-labelledby="retry-title">
+    <h2 id="retry-title">Retry logical content, not candidate identities</h2>
+    <p>
+      After an ambiguous response, reuse the key and every immutable logical
+      input: Agent, request, budgets, graph, authorization evidence, and initial
+      state. The new attempt may allocate fresh
+      run/thread/invocation/event/checkpoint IDs; the original selected run
+      still wins.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · lost acknowledgement</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="durable-run-retry-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="durable-run-retry-code"
+        tabindex="0"><code>{retryCode}</code></pre>
+    </div>
+    <p>
+      Changed logical content returns a conflict. A second key for the same run
+      also conflicts. After local deployment revalidation, durable key evidence
+      precedes new database-time and initial-checkpoint admission checks. A
+      valid lost-ACK retry can therefore resolve after its original deadline;
+      missing executable code still fails closed.
+    </p>
+  </section>
+
+  <section aria-labelledby="snapshot-title">
+    <h2 id="snapshot-title">Poll a closed public snapshot</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Observation identity</dt>
+        <dd>
+          Use <code>(run_id, revision)</code>. Revision is monotonic; equal
+          revisions represent the same lifecycle observation.
+        </dd>
+      </div>
+      <div>
+        <dt>Nonterminal state</dt>
+        <dd>
+          <code>active</code>, <code>waiting</code>, and <code
+            >cancellation_requested</code
+          >
+          require an explicit <code>outcome: null</code>.
+        </dd>
+      </div>
+      <div>
+        <dt>Terminal state</dt>
+        <dd>
+          <code>succeeded</code> returns a schema- and budget-verified
+          <code>AgentResult</code>; <code>failed</code> and <code
+            >cancelled</code
+          > return a public-safe failure, completion time, and cumulative usage.
+        </dd>
+      </div>
+      <div>
+        <dt>Quarantine</dt>
+        <dd>
+          A quarantined run remains observable but is never silently represented
+          as runnable work.
+        </dd>
+      </div>
+    </dl>
+    <p>
+      The response excludes request input, authorization evidence, graph state,
+      leases, scheduler internals, and private diagnostics. Every load rechecks
+      the immutable deployment, schemas, admission anchors, lifecycle,
+      provenance, output, and accounting before returning it.
+    </p>
+  </section>
+
+  <section aria-labelledby="authorization-title">
+    <h2 id="authorization-title">Authorize before every lookup</h2>
+    <p>
+      Tenant IDs, run IDs, and submission keys are correlation identities—not
+      access credentials. Authenticate and authorize the caller before
+      <code>load</code> or <code>load_by_key</code>, keep PostgreSQL credentials
+      inside the trusted service, and translate not-found/conflict responses
+      without leaking cross-tenant existence.
+    </p>
+  </section>
+
+  <section aria-labelledby="rollout-title">
+    <h2 id="rollout-title">Roll out migration 16 without weakening retries</h2>
+    <p>
+      Apply migrations with a separate role, require exact checksum and object
+      verification at startup, then deploy the frozen executable registry before
+      enabling traffic. Never delete a key mapping while a client may retry it;
+      deletion would permit a second run. Future retention must remove run,
+      admission, and key evidence together after the retry guarantee expires.
+    </p>
+    <p>
+      PostgreSQL 16/17 qualification covers a populated v15→v16 upgrade, 24-way
+      convergence, changed-content and second-key conflicts, raw-key
+      non-persistence, tamper rejection, late transactional rollback, and
+      verified succeeded, failed, and confirmed-cancelled results through the
+      public facade. Read the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-runs.md"
+        >complete integration contract</a
+      > before adopting this unpublished API.
+    </p>
+  </section>
+</DocsLayout>

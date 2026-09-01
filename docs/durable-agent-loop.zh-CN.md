@@ -188,15 +188,15 @@ Deadline 必须能放进保留的 Handoff Lease；超时后应释放所有权，
 
 ## 验证证据与剩余门禁
 
-十七个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
+十九个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
 Success/Wait/Failure 原子性与精确 Lost-ACK Replay、数据库时间 Wait Materialization、Agent
 Loop 成功与 Evidence Failure、Tenant 与加权 Cross-tenant Scheduling、耐久 Model/Tool Attempt
 与 Streaming、Noninitial Replay、Same-fence Suppression、Lease Renewal、Near-expiry Refresh、
-初始状态 Quarantine 与 Higher-fence Takeover。每个数据库版本还会运行 98 个 Provider
+初始状态 Quarantine、Higher-fence Takeover 与公开 Run/Result Facade。每个数据库版本还会运行 100 个 Provider
 Integration Case；CI 把两套测试都设为 Mandatory。
 
-原子 Admission Provider 与 Runtime Facade 现已实现。剩余 Release Blocker 包括耐久
-Accounting/Result Retrieval、完整公开 Agent Facade、在其预置 Graph 内组装 Transcript、
-Ingress Idempotency-key Mapping、Parallel Sibling Policy、Loop/Subgraph 语义、协议专用 Outbox
+原子 Admission Provider、公开 Run/Result Facade 与 Ingress Idempotency 现已实现。剩余
+Release Blocker 包括预置 Provider-native Graph 与 Transcript Assembly、Policy 与
+Cancellation Service Boundary、Artifact Retrieval、Parallel Sibling Policy、Loop/Subgraph 语义、协议专用 Outbox
 Dispatch、数据库角色隔离存储过程、通用 Retention、Backup/Restore、Failover、Stale-race
 Qualification、完整 Observability 与 Release Hardening。

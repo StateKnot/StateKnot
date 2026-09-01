@@ -27,6 +27,12 @@ const currentCut = [
     href: "/zh/docs/admission/",
   },
   {
+    surface: "耐久 Agent Run 与 Result",
+    state: "已实现切片",
+    evidence: "耐久 Ingress Key、Lost-ACK 收敛与经过验证的 Terminal Read",
+    href: "/zh/docs/runs/",
+  },
+  {
     surface: "Graph Compiler 与恢复",
     state: "已实现切片",
     evidence: "Canonical Graph、确定性 Barrier 与 Pinned Replay",
@@ -85,18 +91,24 @@ const roadmap = [
   },
   {
     index: "03",
-    state: "现在",
-    title: "完成公开耐久 Agent 路径",
-    body: "原子 Admission 已实现；继续把 Ingress Idempotency、预置 Provider-native Model/Tool Graph、Policy、执行、恢复与类型化 Result Retrieval 绑定为一个明确公开 Facade。",
+    state: "已实现",
+    title: "开放耐久 Agent Ingress 与读取",
+    body: "Tenant-scoped Idempotency、Fresh-ID Lost-ACK 收敛与完整重校验的公开 Run/Result Snapshot 已具备 PostgreSQL 证据。",
   },
   {
     index: "04",
+    state: "现在",
+    title: "组装 Provider-native Agent Graph",
+    body: "把已实现 Transcript Builder、Invocation Executor、Driver、Lifecycle、Policy、Cancellation 与 Result Boundary 组合成一条可恢复多轮 Tool Path。",
+  },
+  {
+    index: "05",
     state: "规划中",
     title: "增加协议 Adapter",
     body: "把 MCP 与 A2A Wire Model 显式映射到版本化内部类型，并在 Admission 阶段执行 Policy 与 Tenant 边界。",
   },
   {
-    index: "05",
+    index: "06",
     state: "v1 前",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
@@ -116,9 +128,10 @@ const roadmap = [
           <p class="hero-lede">
             StateKnot 现已通过 PostgreSQL-backed Crash Recovery、原子 Agent
             Admission、耐久 Model/Tool Attempt、Lifecycle Commit、加权
-            Cross-tenant Scheduling、强类型 Agent 合约与首批 OpenAI/Anthropic
-            Adapter 运行类型化 Root Graph。稳定的端到端 Agent Facade 与 MCP/A2A
-            协议 Adapter 仍在开发。
+            Cross-tenant Scheduling、耐久 Ingress Key、经过验证的 Run/Result
+            Read、 强类型 Agent 合约与首批 OpenAI/Anthropic Adapter 运行类型化
+            Root Graph。 Provider-native 端到端 Agent Graph 与 MCP/A2A 协议
+            Adapter 仍在开发。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"

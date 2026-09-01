@@ -24,6 +24,12 @@ const paths = [
     link: "集成耐久 Admission",
   },
   {
+    title: "提交并读取耐久 Run",
+    body: "持久化一次 Tenant-scoped Idempotency Decision，在响应丢失后恢复原 Run，并读取经过验证的 Terminal Result。",
+    href: "/zh/docs/runs/",
+    link: "集成 Run 与 Result",
+  },
+  {
     title: "编译确定性 Graph",
     body: "运行持续维护的 Rust 示例，理解 Compiler 的 Fail-closed 校验，并注册一个精确不可变的 Definition。",
     href: "/zh/docs/concepts/graphs/",
@@ -88,8 +94,10 @@ const paths = [
       Lifecycle Commit 运行 Tenant-scoped 耐久 Graph Loop。Provider-neutral 耐久
       Model/Tool Attempt、加权 Cross-tenant Selection、强类型 Agent
       合约，以及首批 OpenAI Responses 与 Anthropic Messages Adapter
-      也已实现。原子耐久 Agent Admission 现已把这些合约绑定到 Scheduler-visible
-      Work；完整耐久 Run/Result Facade 仍是明确的发布阻断项。
+      也已实现。原子耐久 Agent Admission 把这些合约绑定到 Scheduler-visible
+      Work；耐久 Ingress Key 与公开 Run/Result Facade 会恢复 Lost ACK 并校验
+      Terminal Read。预置 Provider-native Agent Graph 与稳定 Service API
+      仍是明确的发布阻断项。
     </p>
   </aside>
 
@@ -152,6 +160,13 @@ const paths = [
           已认证不可变 Intent、确定性有限 Budget、数据库时钟
           Commit、Sequence-one Audit Event、Superstep-zero Checkpoint、精确
           Lost-ACK Retry 与完整校验的耐久 Load。
+        </dd>
+      </div>
+      <div>
+        <dt>耐久 Agent Run 与 Result</dt>
+        <dd>
+          Tenant-scoped Ingress Idempotency、Fresh-ID Retry 收敛、经过验证的公开
+          Lifecycle Snapshot、Terminal Result，以及 Fail-closed Run/Key Lookup。
         </dd>
       </div>
       <div>

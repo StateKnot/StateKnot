@@ -1,0 +1,197 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const submitCode = `let runs = DurableAgentRuns::new(store.clone(), executable_registry)?;
+let key = AgentSubmissionKey::generate();
+
+let request = DurableAgentAdmissionRequest::new(
+    tenant_id.clone(),
+    AgentRunIds::generate(),
+    agent_descriptor,
+    agent_request,
+    evaluated_budget_layers,
+    graph_reference,
+    admission_authority,
+    initial_state,
+)?;
+
+let admitted = runs.submit(&key, request).await?;
+let run_id = admitted.snapshot().provenance().run_id();`;
+
+const retryCode = `// 重建相同 Logical Content；Candidate ID 可以全新生成。
+let retry = DurableAgentAdmissionRequest::new(
+    tenant_id.clone(),
+    AgentRunIds::generate(),
+    retained_agent_descriptor,
+    retained_agent_request,
+    retained_budget_layers,
+    retained_graph_reference,
+    retained_authority,
+    retained_initial_state,
+)?;
+
+let resolved = runs.submit(&key, retry).await?;
+assert_eq!(resolved.snapshot().provenance().run_id(), original_run_id);
+
+let current = runs.load_by_key(&tenant_id, &key).await?;`;
+---
+
+<DocsLayout
+  title="只提交一次，始终恢复同一个耐久 Agent Run。"
+  description="使用 Tenant-scoped 耐久 Idempotency，再按 Run ID 或 Submission Key 读取完整重校验的公开 Run/Result Snapshot。"
+  section="耐久 Agent Run"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="run-boundary-title">
+    <h2 id="run-boundary-title">边界已实现，API 仍为 Pre-alpha</h2>
+    <p>
+      <code>DurableAgentRuns</code>、<code>AgentSubmissionKey</code> 与 PostgreSQL
+      Migration 16 已实现，闭合了 Ingress Lost-ACK Recovery 和公开 Terminal Read。
+      Crate 仍未发布；预置 Provider-native 多轮 Graph、Cancellation Transport 与生产
+      Server 仍是发行前工作。
+    </p>
+  </aside>
+
+  <section aria-labelledby="submit-title">
+    <h2 id="submit-title">让 Key 与 Run 在同一事务提交</h2>
+    <p>
+      先认证 Tenant、冻结 Policy 与 Deployment Input，再调用 <code>submit</code
+      >。Key Mapping 与新原子 Admission 在同一 Transaction Commit，因此成功
+      Mapping 不可能指向只创建了一半的 Run。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 可信 Ingress</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-durable-run-submit-code"
+          data-copy-idle="复制"
+          data-copy-loading="复制中"
+          data-copy-success="已复制"
+          data-copy-error="复制失败"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-durable-run-submit-code"
+        tabindex="0"><code>{submitCode}</code></pre>
+    </div>
+    <p>
+      默认 Key 包含 148 位随机量。外部 Key 必须由 <code>[A-Za-z0-9._~-]</code> 中的
+      16–128 个字节组成，并提供至少 128 位不可预测性。PostgreSQL 只保存 Tenant-scoped
+      Digest；Raw Key 不进入耐久 Row，也不会出现在 <code>Debug</code> 中。
+    </p>
+  </section>
+
+  <section aria-labelledby="retry-title">
+    <h2 id="retry-title">重试 Logical Content，而不是 Candidate Identity</h2>
+    <p>
+      结果不明时，复用同一 Key 与所有不可变 Logical
+      Input：Agent、Request、Budget、Graph、 Authorization Evidence 和 Initial
+      State。新尝试可以重新生成 Run/<wbr />Thread/<wbr />Invocation/<wbr
+      />Event/<wbr />Checkpoint ID，第一次选中的 Run 仍然胜出。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · Lost Acknowledgement</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-durable-run-retry-code"
+          data-copy-idle="复制"
+          data-copy-loading="复制中"
+          data-copy-success="已复制"
+          data-copy-error="复制失败"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-durable-run-retry-code"
+        tabindex="0"><code>{retryCode}</code></pre>
+    </div>
+    <p>
+      Logical Content 变化会返回 Conflict；同一 Run 换第二个 Key 也会
+      Conflict。完成本地 Deployment 重校验后，耐久 Key Evidence
+      会先于新的数据库时钟与 Initial-checkpoint Admission Check；有效 Lost-ACK
+      Retry 跨过原 Deadline 后仍只解析到 原 Run，缺少精确 Executable Code 时则
+      Fail Closed。
+    </p>
+  </section>
+
+  <section aria-labelledby="snapshot-title">
+    <h2 id="snapshot-title">轮询封闭的公开 Snapshot</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Observation Identity</dt>
+        <dd>
+          使用 <code>(run_id, revision)</code>；Revision 单调，相同 Revision
+          表示同一个 Lifecycle Observation。
+        </dd>
+      </div>
+      <div>
+        <dt>Nonterminal State</dt>
+        <dd>
+          <code>active</code>、<code>waiting</code> 与 <code
+            >cancellation_requested</code
+          >
+          必须显式返回 <code>outcome: null</code>。
+        </dd>
+      </div>
+      <div>
+        <dt>Terminal State</dt>
+        <dd>
+          <code>succeeded</code> 返回经过 Schema 与 Budget 校验的
+          <code>AgentResult</code>；<code>failed</code> 与 <code>cancelled</code
+          > 返回 Public-safe Failure、Completion Time 与累计 Usage。
+        </dd>
+      </div>
+      <div>
+        <dt>Quarantine</dt>
+        <dd>Quarantined Run 仍可观察，但不会被静默表示为可执行工作。</dd>
+      </div>
+    </dl>
+    <p>
+      Response 不含 Request Input、Authorization Evidence、Graph
+      State、Lease、Scheduler Internal 或 Private Diagnostic。每次 Load
+      都会重查不可变 Deployment、Schema、 Admission
+      Anchor、Lifecycle、Provenance、Output 与 Accounting 后再返回。
+    </p>
+  </section>
+
+  <section aria-labelledby="authorization-title">
+    <h2 id="authorization-title">每次 Lookup 前都先授权</h2>
+    <p>
+      Tenant ID、Run ID 与 Submission Key 是关联 Identity，不是访问凭据。调用
+      <code>load</code> 或 <code>load_by_key</code> 前先认证并授权 Caller，把 PostgreSQL
+      Credential 留在可信 Service 内，并转换 Not-found/Conflict Response，避免泄漏
+      Cross-tenant 资源是否存在。
+    </p>
+  </section>
+
+  <section aria-labelledby="rollout-title">
+    <h2 id="rollout-title">发布 Migration 16，但不能削弱 Retry</h2>
+    <p>
+      使用独立 Role 执行 Migration，启动时强制校验精确 Checksum 与 Schema
+      Object，再部署冻结 Executable Registry 后开启流量。Client 仍可能 Retry
+      时绝不能删除 Key Mapping，否则会允许第二个 Run。未来 Retention 必须在
+      Retry Guarantee 到期后同时移除 Run、Admission 与 Key Evidence。
+    </p>
+    <p>
+      PostgreSQL 16/17 验证覆盖带数据的 v15→v16 Upgrade、24
+      路收敛、Changed-content 与 Second-key Conflict、Raw Key 不落库、Tamper
+      拒绝、晚期 Transaction Rollback，以及通过公开 Facade 验证
+      Succeeded、Failed 与已确认 Cancelled Result。采用该未发布 API 前，请阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-runs.zh-CN.md"
+        >完整集成契约</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

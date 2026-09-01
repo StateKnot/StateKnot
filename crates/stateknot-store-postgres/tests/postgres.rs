@@ -20,44 +20,45 @@ use sqlx_core::{
 use sqlx_postgres::{PgPool, PgPoolOptions};
 use stateknot_core::{
     AgentAdmission, AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentAdmissionIntent,
-    AgentDescriptor, AgentRequest, AgentResultProvenance, AttemptId, BoundedJson, BudgetLimits,
-    BudgetUsage, CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint,
-    CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointState, CheckpointWrite,
-    CompiledGraph, DeliveryId, DestinationId, Digest, DurationMillis, EventId, Failure,
-    FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin, GraphExecutionLimits,
-    GraphNamespace, GraphNode, GraphReducer, GraphReducerError, GraphReducerInput,
-    GraphReducerReference, GraphReference, GraphRoutes, GraphSchemaValidationError,
-    GraphSchemaValidator, InterruptId, InterruptRequestIntent, InterruptResolutionIntent,
-    InterruptResolver, InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
-    JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
-    ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
-    ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus,
-    NodeControl, NodeDispatchReason, NodeId, NodeInvocationBinding, NodeInvocationBindings,
-    NodeStateChange, NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef,
-    PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, QuarantineId,
-    ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind, RetryAdvice, RunCancellationRequest,
-    RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind, RunTransition,
-    SchedulerReservationId, SchedulerShardId, SchemaId, SchemaReference, Scope, ScopeSet,
-    SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent, TimerId, TimerRegistrationIntent,
-    Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation, ToolInvocationIntent,
-    ToolInvocationStatus, ToolInvocationTransition, ToolResult, ToolResultProvenance, Version,
-    WaitRegistrationIntent,
+    AgentDescriptor, AgentRequest, AgentResultProvenance, AgentSubmissionKey, AttemptId,
+    BoundedJson, BudgetLimits, BudgetUsage, CapabilityIdentity, CapabilityName,
+    CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
+    CheckpointState, CheckpointWrite, CompiledGraph, DeliveryId, DestinationId, Digest,
+    DurationMillis, EventId, Failure, FailureCategory, FailureCode, FailureId, FailureMessage,
+    FailureOrigin, GraphExecutionLimits, GraphNamespace, GraphNode, GraphReducer,
+    GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
+    GraphSchemaValidationError, GraphSchemaValidator, InterruptId, InterruptRequestIntent,
+    InterruptResolutionIntent, InterruptResolver, InvocationId, IssuerId, JournalAppend,
+    JournalEventIntent, JournalEventKind, JournalExpectation, JournalHead, JournalPayload,
+    JournalSequence, ModelDescriptor, ModelError, ModelErrorPhase, ModelErrorProvenance,
+    ModelInvocationIntent, ModelInvocationStatus, ModelInvocationTransition, ModelRequest,
+    ModelResponse, NodeActivation, NodeAttemptStatus, NodeControl, NodeDispatchReason, NodeId,
+    NodeInvocationBinding, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
+    OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead, PendingNodeResultIntent,
+    PrincipalIdentity, QuarantineId, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind,
+    RetryAdvice, RunCancellationRequest, RunFailure, RunId, RunInterruptKind, RunStatus,
+    RunTimerKind, RunTransition, SchedulerReservationId, SchedulerShardId, SchemaId,
+    SchemaReference, Scope, ScopeSet, SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent,
+    TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput,
+    ToolInvocation, ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition,
+    ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
-    AdmissionOutcome, AgentAdmissionCommitOutcome, AppendOutcome, BarrierCommitOutcome,
-    CheckpointCommitOutcome, CheckpointLineagePageSize, CorruptionQuarantineContext,
-    DelayedRetryScheduleOutcome, GraphDefinitionRegistrationOutcome, GraphReplayLimits,
-    InterruptResolutionCommitOutcome, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome,
-    LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
-    NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize,
-    OutboxClaimOutcome, OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome,
-    OutboxEnqueueOutcome, PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore,
-    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, RunQuarantineCause,
-    RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize,
-    SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
-    SchedulerFairnessRetentionPolicy, StoreError, StoredAgentAdmission, TimerFiringCommitOutcome,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome,
-    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
+    BarrierCommitOutcome, CheckpointCommitOutcome, CheckpointLineagePageSize,
+    CorruptionQuarantineContext, DelayedRetryScheduleOutcome, GraphDefinitionRegistrationOutcome,
+    GraphReplayLimits, InterruptResolutionCommitOutcome, JournalPageSize, LeaseClaimOutcome,
+    LeaseReleaseOutcome, LeaseRenewalOutcome, ModelInvocationCommitOutcome,
+    ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize,
+    OutboxAttemptHistoryPageSize, OutboxClaimOutcome, OutboxCompletionOutcome,
+    OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
+    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
+    RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
+    RunQuarantineRequest, RunnableRunPageSize, SchedulerFairnessPolicyRegistration,
+    SchedulerFairnessPolicyRegistrationOutcome, SchedulerFairnessRetentionPolicy, StoreError,
+    StoredAgentAdmission, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
+    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 use uuid::Uuid;
 
@@ -334,7 +335,28 @@ async fn remove_scheduler_fairness(pool: &PgPool) {
     assert_eq!(deleted, 1);
 }
 
+async fn remove_agent_submission_keys(pool: &PgPool) {
+    query("DROP TABLE stateknot.agent_submission_keys")
+        .execute(pool)
+        .await
+        .expect("v16 Agent submission-key table must be removed from the fixture");
+    query(
+        "ALTER TABLE stateknot.agent_admissions \
+         DROP CONSTRAINT agent_admissions_run_digest_unique",
+    )
+    .execute(pool)
+    .await
+    .expect("v16 Agent admission reference key must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 16")
+        .execute(pool)
+        .await
+        .expect("v16 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
 async fn remove_agent_admissions(pool: &PgPool) {
+    remove_agent_submission_keys(pool).await;
     query("DROP TABLE stateknot.agent_admissions")
         .execute(pool)
         .await
@@ -3090,6 +3112,55 @@ fn agent_admission_fixture(
         graph.clone(),
         checkpoint_state(&graph, 0),
         checkpoint_compiled_graph().entry_nodes().clone(),
+    )
+    .unwrap();
+    (intent, append, checkpoint)
+}
+
+fn agent_submission_retry_fixture(
+    tenant_id: TenantId,
+    run_id: RunId,
+    template_intent: &AgentAdmissionIntent,
+    template_checkpoint: &CheckpointWrite,
+    request: AgentRequest,
+) -> (AgentAdmissionIntent, JournalAppend, CheckpointWrite) {
+    let descriptor = template_intent.descriptor().clone();
+    let provenance = AgentResultProvenance::for_agent(
+        tenant_id.clone(),
+        run_id,
+        ThreadId::generate(),
+        InvocationId::generate(),
+        &descriptor,
+    );
+    let intent = AgentAdmissionIntent::new(
+        provenance,
+        descriptor,
+        request,
+        template_intent.budget_layers().iter().cloned(),
+        template_intent.graph().clone(),
+        template_intent.authority().clone(),
+    )
+    .unwrap();
+    let payload = JournalPayload::new(
+        checkpoint_schema("agent-admission-event"),
+        JournalEventKind::new(AgentAdmission::JOURNAL_EVENT_KIND).unwrap(),
+        BoundedJson::try_from_value(json!({
+            "intent_digest": intent.intent_digest().to_string()
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let event =
+        JournalEventIntent::control_plane(tenant_id.clone(), run_id, EventId::generate(), payload)
+            .unwrap();
+    let append = JournalAppend::new(JournalExpectation::empty(), event).unwrap();
+    let checkpoint = CheckpointWrite::initial(
+        tenant_id,
+        run_id,
+        CheckpointId::generate(),
+        template_intent.graph().clone(),
+        template_checkpoint.state().clone(),
+        template_checkpoint.ready_nodes().clone(),
     )
     .unwrap();
     (intent, append, checkpoint)
@@ -15489,8 +15560,283 @@ async fn concurrent_agent_admissions_converge_and_late_failure_rolls_back_all_ro
     store.close().await;
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[allow(clippy::too_many_lines)]
+async fn durable_agent_submission_keys_converge_conflict_and_roll_back_atomically() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("durable-agent-submission-key");
+    store
+        .register_graph_definition(tenant_id.clone(), checkpoint_compiled_graph())
+        .await
+        .unwrap();
+
+    let key = AgentSubmissionKey::new("request_provider_agent_submission_key_01").unwrap();
+    let original_run = RunId::generate();
+    let (intent, append, checkpoint) = agent_admission_fixture(tenant_id.clone(), original_run);
+    let committed = Box::pin(store.submit_agent_run(
+        &key,
+        intent.clone(),
+        append.clone(),
+        checkpoint.clone(),
+        &AcceptGraphSchemas,
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        committed,
+        AgentSubmissionCommitOutcome::Committed(_)
+    ));
+    assert_eq!(
+        committed
+            .stored()
+            .admission()
+            .admission()
+            .intent()
+            .provenance()
+            .run_id(),
+        original_run
+    );
+    assert_eq!(committed.stored().key_digest(), key.digest_for(&tenant_id));
+    assert_eq!(
+        committed.stored().created_at(),
+        committed.stored().admission().admission().admitted_at()
+    );
+
+    let (retry_intent, retry_append, retry_checkpoint) = agent_submission_retry_fixture(
+        tenant_id.clone(),
+        RunId::generate(),
+        &intent,
+        &checkpoint,
+        intent.request().clone(),
+    );
+    let retry = Box::pin(store.submit_agent_run(
+        &key,
+        retry_intent,
+        retry_append,
+        retry_checkpoint,
+        &AcceptGraphSchemas,
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(retry, AgentSubmissionCommitOutcome::Idempotent(_)));
+    assert_eq!(
+        retry
+            .stored()
+            .admission()
+            .admission()
+            .intent()
+            .provenance()
+            .run_id(),
+        original_run
+    );
+    assert_eq!(
+        store
+            .load_agent_submission(&tenant_id, &key)
+            .await
+            .unwrap()
+            .admission()
+            .admission()
+            .intent()
+            .provenance()
+            .run_id(),
+        original_run
+    );
+
+    let changed_request = AgentRequest::new(
+        intent.request().input_schema().clone(),
+        BoundedJson::try_from_value(json!({"changed": true})).unwrap(),
+        intent.request().budget_limits().clone(),
+    );
+    let (changed_intent, changed_append, changed_checkpoint) = agent_submission_retry_fixture(
+        tenant_id.clone(),
+        RunId::generate(),
+        &intent,
+        &checkpoint,
+        changed_request,
+    );
+    assert!(matches!(
+        Box::pin(store.submit_agent_run(
+            &key,
+            changed_intent,
+            changed_append,
+            changed_checkpoint,
+            &AcceptGraphSchemas,
+        ))
+        .await,
+        Err(StoreError::AgentSubmissionConflict)
+    ));
+
+    let second_key = AgentSubmissionKey::new("request_provider_second_key_same_run_01").unwrap();
+    assert!(matches!(
+        Box::pin(store.submit_agent_run(
+            &second_key,
+            intent.clone(),
+            append.clone(),
+            checkpoint.clone(),
+            &AcceptGraphSchemas,
+        ))
+        .await,
+        Err(StoreError::AgentSubmissionConflict)
+    ));
+    assert!(matches!(
+        store.load_agent_submission(&tenant_id, &second_key).await,
+        Err(StoreError::AgentSubmissionNotFound)
+    ));
+
+    let concurrent_key =
+        AgentSubmissionKey::new("request_provider_concurrent_submission_key_01").unwrap();
+    let (template_intent, _, template_checkpoint) =
+        agent_admission_fixture(tenant_id.clone(), RunId::generate());
+    let mut tasks = tokio::task::JoinSet::new();
+    for _ in 0..24 {
+        let store = store.clone();
+        let key = concurrent_key.clone();
+        let candidate = agent_submission_retry_fixture(
+            tenant_id.clone(),
+            RunId::generate(),
+            &template_intent,
+            &template_checkpoint,
+            template_intent.request().clone(),
+        );
+        tasks.spawn(async move {
+            Box::pin(store.submit_agent_run(
+                &key,
+                candidate.0,
+                candidate.1,
+                candidate.2,
+                &AcceptGraphSchemas,
+            ))
+            .await
+        });
+    }
+    let mut physical_commits = 0;
+    let mut idempotent_retries = 0;
+    let mut selected_run = None;
+    while let Some(result) = tasks.join_next().await {
+        let outcome = result.unwrap().unwrap();
+        match &outcome {
+            AgentSubmissionCommitOutcome::Committed(_) => physical_commits += 1,
+            AgentSubmissionCommitOutcome::Idempotent(_) => idempotent_retries += 1,
+            _ => panic!("unsupported Agent submission outcome"),
+        }
+        let run_id = outcome
+            .stored()
+            .admission()
+            .admission()
+            .intent()
+            .provenance()
+            .run_id();
+        assert!(selected_run.is_none_or(|selected| selected == run_id));
+        selected_run = Some(run_id);
+    }
+    assert_eq!((physical_commits, idempotent_retries), (1, 23));
+
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+        .await
+        .unwrap();
+    let stored_key_digest = query_scalar::<_, Vec<u8>>(
+        "SELECT key_digest FROM stateknot.agent_submission_keys \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*original_run.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert_eq!(stored_key_digest, key.digest_for(&tenant_id).as_bytes());
+    assert_ne!(stored_key_digest, key.as_str().as_bytes());
+
+    query(
+        "DROP TRIGGER IF EXISTS reject_agent_submission_key_test \
+         ON stateknot.agent_submission_keys",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+    query(
+        "CREATE OR REPLACE FUNCTION stateknot.reject_agent_submission_key_test() RETURNS trigger \
+         LANGUAGE plpgsql AS 'BEGIN RAISE EXCEPTION ''injected Agent submission-key failure''; END'",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+    query(
+        "CREATE TRIGGER reject_agent_submission_key_test \
+         BEFORE INSERT ON stateknot.agent_submission_keys \
+         FOR EACH ROW EXECUTE FUNCTION stateknot.reject_agent_submission_key_test()",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+
+    let rollback_key =
+        AgentSubmissionKey::new("request_provider_rollback_submission_key_01").unwrap();
+    let rollback_run = RunId::generate();
+    let (rollback_intent, rollback_append, rollback_checkpoint) =
+        agent_admission_fixture(tenant_id.clone(), rollback_run);
+    assert!(matches!(
+        Box::pin(store.submit_agent_run(
+            &rollback_key,
+            rollback_intent,
+            rollback_append,
+            rollback_checkpoint,
+            &AcceptGraphSchemas,
+        ))
+        .await,
+        Err(StoreError::Database { .. })
+    ));
+    for table in [
+        "runs",
+        "run_events",
+        "run_checkpoints",
+        "agent_admissions",
+        "agent_submission_keys",
+    ] {
+        let count = query_scalar::<_, i64>(&format!(
+            "SELECT count(*) FROM stateknot.{table} WHERE tenant_id = $1 AND run_id = $2"
+        ))
+        .bind(tenant_id.as_str())
+        .bind(*rollback_run.as_uuid())
+        .fetch_one(&administration)
+        .await
+        .unwrap();
+        assert_eq!(count, 0, "{table} must roll back with the failed mapping");
+    }
+    query("DROP TRIGGER reject_agent_submission_key_test ON stateknot.agent_submission_keys")
+        .execute(&administration)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.reject_agent_submission_key_test()")
+        .execute(&administration)
+        .await
+        .unwrap();
+
+    query(
+        "UPDATE stateknot.agent_submission_keys \
+         SET submission_digest = decode(repeat('00', 32), 'hex') \
+         WHERE tenant_id = $1 AND key_digest = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(key.digest_for(&tenant_id).as_bytes())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store.load_agent_submission(&tenant_id, &key).await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    administration.close().await;
+    store.close().await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn migration_fifteen_installs_verified_atomic_agent_admissions() {
+async fn migration_fifteen_installs_atomic_agent_admissions_during_full_upgrade() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let database_url = match std::env::var(DATABASE_URL_ENV) {
         Ok(value) => value,
@@ -15537,10 +15883,10 @@ async fn migration_fifteen_installs_verified_atomic_agent_admissions() {
 
     PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
         .await
-        .expect("migration 15 must upgrade the exact v14 fixture");
+        .expect("the current migrator must upgrade the exact v14 fixture through migration 16");
     let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
         .await
-        .expect("the upgraded v15 schema must pass exact verification");
+        .expect("the fully upgraded schema must pass exact verification");
     upgraded.verify_schema().await.unwrap();
     let tenant_id = tenant("v15-agent-admission");
     let run_id = RunId::generate();
@@ -15565,6 +15911,132 @@ async fn migration_fifteen_installs_verified_atomic_agent_admissions() {
     query(
         "ALTER TABLE stateknot.agent_admissions \
          DROP CONSTRAINT agent_admissions_bytes_bounded",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_sixteen_upgrades_existing_admissions_and_verifies_submission_keys() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v16_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+
+    let legacy_store = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let tenant_id = tenant("v16-existing-agent-admission");
+    let run_id = RunId::generate();
+    legacy_store
+        .register_graph_definition(tenant_id.clone(), checkpoint_compiled_graph())
+        .await
+        .unwrap();
+    let (intent, append, checkpoint) = agent_admission_fixture(tenant_id.clone(), run_id);
+    Box::pin(legacy_store.admit_agent_run(
+        intent.clone(),
+        append.clone(),
+        checkpoint.clone(),
+        &AcceptGraphSchemas,
+    ))
+    .await
+    .unwrap();
+    legacy_store.close().await;
+
+    let fixture = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_agent_submission_keys(&fixture).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        15
+    );
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT count(*) FROM stateknot.agent_admissions")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        1
+    );
+    fixture.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 16 must upgrade a populated exact v15 fixture");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("the upgraded v16 schema must pass exact verification");
+    upgraded.verify_schema().await.unwrap();
+    let key = AgentSubmissionKey::new("request_v16_existing_agent_admission_01").unwrap();
+    let mapped =
+        Box::pin(upgraded.submit_agent_run(&key, intent, append, checkpoint, &AcceptGraphSchemas))
+            .await
+            .expect("migration 16 must map an exact retained v15 admission");
+    assert!(matches!(mapped, AgentSubmissionCommitOutcome::Committed(_)));
+    assert_eq!(
+        upgraded
+            .load_agent_submission(&tenant_id, &key)
+            .await
+            .unwrap()
+            .admission()
+            .admission()
+            .intent()
+            .provenance()
+            .run_id(),
+        run_id
+    );
+
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    query(
+        "ALTER TABLE stateknot.agent_submission_keys \
+         DROP CONSTRAINT agent_submission_keys_digest_lengths",
     )
     .execute(&verification)
     .await

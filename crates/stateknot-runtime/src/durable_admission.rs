@@ -10,14 +10,16 @@ use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::json;
 use stateknot_core::{
     AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentAdmissionIntent,
-    AgentAdmissionIntentError, AgentDescriptor, AgentRequest, AgentResultProvenance, BoundedJson,
-    BoundedJsonError, CanonicalJson, CanonicalJsonError, CheckpointId, CheckpointState,
-    CheckpointWrite, CheckpointWriteError, Digest, EventId, GraphReference,
-    GraphSchemaValidationError, InvocationId, JournalAppend, JournalAppendError,
+    AgentAdmissionIntentError, AgentDescriptor, AgentRequest, AgentResultProvenance,
+    AgentSubmissionKey, BoundedJson, BoundedJsonError, CanonicalJson, CanonicalJsonError,
+    CheckpointId, CheckpointState, CheckpointWrite, CheckpointWriteError, Digest, EventId,
+    GraphReference, GraphSchemaValidationError, InvocationId, JournalAppend, JournalAppendError,
     JournalEventIntent, JournalEventKind, JournalEventKindError, JournalExpectation,
     JournalIntentError, JournalPayload, JournalPayloadError, RunId, TenantId, ThreadId,
 };
-use stateknot_store_postgres::{AgentAdmissionCommitOutcome, PostgresStore, StoreError};
+use stateknot_store_postgres::{
+    AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, PostgresStore, StoreError,
+};
 use thiserror::Error;
 
 use crate::{
@@ -281,6 +283,10 @@ impl DurableAgentAdmission {
         })
     }
 
+    pub(crate) const fn event_schema(&self) -> &stateknot_core::SchemaReference {
+        &self.event_schema
+    }
+
     /// Validates and atomically commits one new executable Agent run.
     ///
     /// Exact retries recover durable admission evidence before time-sensitive
@@ -298,6 +304,49 @@ impl DurableAgentAdmission {
         &self,
         request: DurableAgentAdmissionRequest,
     ) -> Result<AgentAdmissionCommitOutcome, DurableAgentAdmissionError> {
+        let prepared = self.prepare(request)?;
+        Box::pin(self.store.admit_agent_run(
+            prepared.intent,
+            prepared.append,
+            prepared.checkpoint,
+            self.registry.schemas(),
+        ))
+        .await
+        .map_err(DurableAgentAdmissionError::Store)
+    }
+
+    /// Resolves an ingress idempotency key to one atomic executable Agent run.
+    ///
+    /// Candidate IDs inside `request` are deliberately excluded from the
+    /// submission fingerprint. A retry may therefore create a fresh candidate
+    /// bundle: the same key and content return the original run, while changed
+    /// content fails closed. The raw key is never stored.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DurableAgentAdmissionError`] for deployment/schema failures,
+    /// conflicting key reuse, durable corruption, or database failure.
+    pub async fn submit(
+        &self,
+        key: &AgentSubmissionKey,
+        request: DurableAgentAdmissionRequest,
+    ) -> Result<AgentSubmissionCommitOutcome, DurableAgentAdmissionError> {
+        let prepared = self.prepare(request)?;
+        Box::pin(self.store.submit_agent_run(
+            key,
+            prepared.intent,
+            prepared.append,
+            prepared.checkpoint,
+            self.registry.schemas(),
+        ))
+        .await
+        .map_err(DurableAgentAdmissionError::Store)
+    }
+
+    fn prepare(
+        &self,
+        request: DurableAgentAdmissionRequest,
+    ) -> Result<PreparedDurableAgentAdmission, DurableAgentAdmissionError> {
         let executable = self
             .registry
             .resolve(request.intent.graph())
@@ -371,15 +420,18 @@ impl DurableAgentAdmission {
         )
         .map_err(DurableAgentAdmissionError::Checkpoint)?;
 
-        Box::pin(self.store.admit_agent_run(
-            request.intent,
+        Ok(PreparedDurableAgentAdmission {
+            intent: request.intent,
             append,
             checkpoint,
-            self.registry.schemas(),
-        ))
-        .await
-        .map_err(DurableAgentAdmissionError::Store)
+        })
     }
+}
+
+struct PreparedDurableAgentAdmission {
+    intent: AgentAdmissionIntent,
+    append: JournalAppend,
+    checkpoint: CheckpointWrite,
 }
 
 fn digest_hex(digest: Digest) -> String {

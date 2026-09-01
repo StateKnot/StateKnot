@@ -126,10 +126,10 @@ pub use graph::{
 };
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
-    ArtifactId, AttemptId, CheckpointId, DeliveryId, DestinationId, EventId, FailureId,
-    GeneratedIdError, InterruptId, InvocationId, MessageId, QuarantineId, RunId,
-    SchedulerReservationId, SchedulerShardId, SchedulerShardIdError, TenantId, TenantIdError,
-    ThreadId, TimerId,
+    AgentSubmissionKey, AgentSubmissionKeyError, ArtifactId, AttemptId, CheckpointId, DeliveryId,
+    DestinationId, EventId, FailureId, GeneratedIdError, InterruptId, InvocationId, MessageId,
+    QuarantineId, RunId, SchedulerReservationId, SchedulerShardId, SchedulerShardIdError, TenantId,
+    TenantIdError, ThreadId, TimerId,
 };
 pub use journal::{
     JournalAppend, JournalAppendError, JournalAuthorityError, JournalChainError,

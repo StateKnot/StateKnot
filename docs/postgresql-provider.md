@@ -288,7 +288,9 @@ admission coverage proves exact v14-to-v15 migration, scheduler invisibility of
 uninitialized low-level runs, schema/state rejection with zero residue,
 database-clock expiry, immutable event/checkpoint anchoring, exact retry after
 time-sensitive boundaries, tamper rejection, late rollback, and 24-way
-single-commit convergence. The 98 provider tests and seventeen durable Runtime tests run independently against
+single-commit convergence. Migration-16 coverage adds populated upgrades,
+durable ingress-key convergence/conflicts, raw-key non-persistence, tamper
+rejection, and atomic rollback. The 100 provider tests and nineteen durable Runtime tests run independently against
 PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -631,12 +633,22 @@ and wait-set integrity in one repeatable-read snapshot. Fresh install, exact
 v14 upgrade, constraint/index checks, expiry, conflicts, corruption, rollback,
 and concurrent exact retries are exercised on PostgreSQL 16 and 17.
 
+Migration 16 adds `agent_submission_keys`. It stores only a tenant-scoped key
+digest and binds one logical Agent submission to exactly one admission through
+a composite foreign key. `submit_agent_run` serializes the key with a
+transaction advisory lock, permits fresh framework-generated candidate IDs on
+an exact logical retry, rejects changed content and second keys for the same
+run, and inserts a new mapping in the same transaction as admission. Loads
+rederive the logical submission digest and revalidate the selected admission.
+A populated v15 upgrade, 24-way convergence, raw-key non-persistence, injected
+late rollback, and mapping tamper detection run on PostgreSQL 16 and 17.
+
 ## Not yet implemented
 
 This slice is not a production release or the complete agent runtime. The first
 model-provider adapters live above this store boundary; it does not yet
 implement protocol-specific outbox dispatch adapters, artifacts, the complete
-durable public run/result facade and ingress idempotency-key mapping, general
+provider-native Agent graph, public cancellation transport, general
 retention/archive/legal hold,
 backup/restore, failover qualification, or the
 10,000-race stale-worker gate. The implemented lifecycle coordinator now

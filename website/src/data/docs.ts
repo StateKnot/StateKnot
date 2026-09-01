@@ -50,6 +50,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         search:
           "agent admission atomic idempotency retry database checkpoint policy authentication",
       },
+      {
+        title: "Durable runs and results",
+        description:
+          "Submit with a durable ingress key, recover the original run, and read a verified public result.",
+        href: "/docs/runs/",
+        search:
+          "agent run result durable idempotency key submit poll terminal snapshot retry",
+      },
     ],
   },
   {
@@ -163,6 +171,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/admission/",
         search:
           "agent admission 原子 幂等 重试 数据库 checkpoint policy 认证 接纳",
+      },
+      {
+        title: "耐久 Run 与 Result",
+        description:
+          "使用耐久 Ingress Key 提交、恢复原 Run，并读取经过验证的公开 Result。",
+        href: "/docs/runs/",
+        search:
+          "agent run result 耐久 幂等 key submit 轮询 terminal snapshot 重试",
       },
     ],
   },

@@ -656,7 +656,9 @@ kbd {
 .docs-prose p,
 .docs-prose li,
 .docs-prose dd {
+  min-width: 0;
   color: var(--color-ink-2);
+  overflow-wrap: anywhere;
 }
 
 .docs-prose p {

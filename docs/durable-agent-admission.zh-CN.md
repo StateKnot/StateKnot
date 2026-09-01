@@ -5,14 +5,15 @@ SPDX-License-Identifier: Apache-2.0
 
 # 耐久 Agent Admission
 
-状态：已实现的 pre-alpha 集成契约。Crate 尚未发布，完整公开
-Admit/Run/Result API 也尚未交付。
+状态：已实现的 pre-alpha 集成契约。Crate 尚未发布；公开耐久 Run/Result Facade
+已经实现，但还没有兼容性承诺。
 
 本文定义把一个已经认证且通过 Schema 校验的 Agent Request 转换为
 Scheduler-visible 耐久工作的可信边界，覆盖 Core Admission Snapshot、
 `DurableAgentAdmission` Runtime Facade、PostgreSQL Migration 15、精确重试与运维要求。
-它不声称认证、Policy Evaluation、公开 Idempotency-key Routing、预置 Model/Tool Graph
-或 Terminal Result Retrieval 已经完成。
+耐久 Ingress-key Routing 与 Terminal Result Read 由单独的
+[公开 Run/Result 契约](durable-agent-runs.zh-CN.md)定义。认证、Policy Evaluation 与
+预置 Provider-native Model/Tool Graph 仍不属于本 Admission 切片。
 
 英文版见 [Durable Agent admission](durable-agent-admission.md)。
 
@@ -47,8 +48,8 @@ Admission 有意从外部认证与 Policy Evaluation 之后开始。构造
   Evidence；
 - 从 System、Tenant、Policy、Agent 与 Request Layer 推导 Budget，禁止调用方注入
   已解析的总量；
-- 在首次数据库调用前，把外部 Idempotency Key 映射并持久化到唯一
-  `AgentRunIds`。
+- 在完整 Ingress Retry Window 内保留不可变 Policy、Budget、Agent、Graph、
+  Authorization 与 Initial State 输入。
 
 `AgentAdmissionAuthority` 是审计快照，不是签名验证器。`Digest` 只能证明字节身份，
 不能认证 Principal，也不会让其中的数据自动保密。
@@ -81,7 +82,12 @@ Release 拥有的 Public-safe Event Schema 发布在
 `https://stknot.com/schemas/runtime/agent-admission-event/1.0.0`。必须通过 Runtime
 Helper 注册，不能手工写死 Digest。
 
-## 构造并保留精确 Request
+## 构造并保留精确低层 Request
+
+本节描述 `DurableAgentAdmission::admit` 这一 Exact-ID 低层边界。面向用户的 Ingress
+通常应使用 `DurableAgentRuns::submit`：它在同一 Transaction 内持久化
+Tenant-scoped Key Mapping，并允许 Retry 使用新的 Candidate ID。详见
+[Run/Result 指南](durable-agent-runs.zh-CN.md)。
 
 完整 ID Bundle 只能分配一次。调用 `admit` 前，先把它与已认证的外部 Idempotency
 Key 关联并持久化；发生 Timeout 后绝不能生成替代 ID。
@@ -194,13 +200,13 @@ Canonical Digest 重算、Wire Tamper、Size Bound 与脱敏诊断。PostgreSQL 
 - Migration 15 Upgrade、Index、Constraint 与 Tamper 检查；
 - Runtime Facade 在任何数据库写入前拒绝 Agent/Graph 与 Authorization Schema Drift。
 
-仓库目前会在每个支持的数据库版本上运行 98 个 PostgreSQL Provider Case 与 17 个耐久
+仓库目前会在每个支持的数据库版本上运行 100 个 PostgreSQL Provider Case 与 19 个耐久
 Runtime Scenario。
 
-## 尚未闭合的公开 Agent 边界
+## 下一条公开 Agent 边界
 
-本切片让 Admission 具备原子性和可恢复性，但还没有提供把 Ingress Idempotency、
-Admission、Cross-tenant Scheduling、Provider-native Transcript Assembly、Policy
-Middleware、Terminal Observation、Artifact Access、类型化 Result Decode 与 Cancellation
-组合起来的稳定终端用户操作。这些能力必须作为一个公开 `DurableAgent` Facade 完成并
-通过验证，StateKnot 才会声明生产级 Agent API 已就绪。
+Admission 与 `DurableAgentRuns` 现已提供原子 Ingress Idempotency 和完整重校验的公开
+Run/Result Read。下一切片必须继续组合 Provider-native 多轮 Model/Tool Graph、Policy
+Middleware、Cancellation Mutation、Artifact Access、类型化 Decode Ergonomics 与
+Service Transport。完成 Release Qualification 前，StateKnot 仍不会声明稳定或受生产
+支持的 Agent API。

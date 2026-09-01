@@ -19,11 +19,11 @@ use futures_core::Stream;
 use serde_json::{Value, json};
 use stateknot_core::{
     AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentArtifacts, AgentDescriptor,
-    AgentRequest, AgentResultProvenance, AttemptId, BoundedJson, BoxFuture, BoxStream,
-    BudgetLimits, BudgetRemaining, BudgetUsage, ByteCount, CancellationSignal, CapabilityIdentity,
-    CapabilityName, CapabilityReference, Checkpoint, CheckpointId, CheckpointState,
-    CheckpointWrite, CompiledGraph, Digest, ErasedTool, EventId, ExecutionCount, Failure,
-    FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
+    AgentRequest, AgentResultProvenance, AgentSubmissionKey, AttemptId, BoundedJson, BoxFuture,
+    BoxStream, BudgetLimits, BudgetRemaining, BudgetUsage, ByteCount, CancellationSignal,
+    CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint, CheckpointId,
+    CheckpointState, CheckpointWrite, CompiledGraph, Digest, ErasedTool, EventId, ExecutionCount,
+    Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
     GraphBarrierDisposition, GraphExecutionLimits, GraphNode, GraphReducer, GraphReducerError,
     GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes, InvocationId, IssuerId,
     JournalAppend, JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload,
@@ -38,8 +38,9 @@ use stateknot_core::{
     Version,
 };
 use stateknot_runtime::{
-    AgentLoopError, AgentLoopOutcome, AgentRunIds, DurableAgentAdmission,
-    DurableAgentAdmissionError, DurableAgentAdmissionRequest, DurableAgentLoop,
+    AgentLoopError, AgentLoopOutcome, AgentRunAdmissionOutcome, AgentRunIds,
+    AgentRunTerminalOutcome, DurableAgentAdmission, DurableAgentAdmissionError,
+    DurableAgentAdmissionRequest, DurableAgentLoop, DurableAgentRuns, DurableAgentRunsError,
     DurableFairScheduler, DurableFairSchedulerOptions, DurableGraphDriver,
     DurableGraphDriverOptions, DurableGraphLifecycle, DurableGraphLifecycleOptions,
     DurableInvocationExecutor, DurableInvocationExecutorOptions, DurableTenantScheduler,
@@ -603,6 +604,7 @@ fn failure_fixture() -> DriverFixture {
     }
     register_standard_graph_driver_event_schema(&mut schemas).unwrap();
     register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+    register_standard_agent_admission_event_schema(&mut schemas).unwrap();
     let schemas = schemas.build().unwrap();
 
     let first_calls = Arc::new(AtomicUsize::new(0));
@@ -953,6 +955,273 @@ async fn durable_agent_admission_facade_validates_and_converges_exact_retries() 
         store.load_run(&tenant_id, rejected_ids.run_id()).await,
         Err(StoreError::RunNotFound)
     ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn public_agent_run_facade_revalidates_active_and_successful_snapshots() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-public-agent-run");
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.graph.clone())
+        .await
+        .unwrap();
+    let ids = AgentRunIds::generate();
+    let request = durable_admission_request(
+        &fixture,
+        tenant_id.clone(),
+        ids,
+        fixture.graph.output_schema().clone(),
+        fixture.graph.input_schema().clone(),
+    );
+    let intent = request.intent();
+    let usage = BudgetUsage::builder()
+        .model_attempts(ExecutionCount::new(1))
+        .model_turns(ExecutionCount::new(1))
+        .input_bytes(ByteCount::new(1_024))
+        .output_bytes(ByteCount::new(1_024))
+        .known_costs(KnownCosts::empty())
+        .build()
+        .unwrap();
+    let terminal = GraphTerminalEvidence::new(
+        intent.descriptor().clone(),
+        intent.request().clone(),
+        intent.budget().clone(),
+        AgentArtifacts::empty(),
+        usage,
+    );
+    let facade = DurableAgentRuns::new(store.clone(), fixture.registry.clone()).unwrap();
+    let key = AgentSubmissionKey::new("request_runtime_public_agent_run_01").unwrap();
+
+    let admitted = facade.submit(&key, request.clone()).await.unwrap();
+    assert!(matches!(admitted, AgentRunAdmissionOutcome::Committed(_)));
+    let active = admitted.snapshot();
+    assert_eq!(active.provenance().run_id(), ids.run_id());
+    assert_eq!(active.status(), RunStatus::Active);
+    assert_eq!(active.revision().get(), 1);
+    assert!(active.outcome().is_none());
+    assert!(!active.is_quarantined());
+    let retry_request = durable_admission_request(
+        &fixture,
+        tenant_id.clone(),
+        AgentRunIds::generate(),
+        fixture.graph.output_schema().clone(),
+        fixture.graph.input_schema().clone(),
+    );
+    let retry = facade.submit(&key, retry_request.clone()).await.unwrap();
+    assert!(matches!(retry, AgentRunAdmissionOutcome::Idempotent(_)));
+    assert_eq!(retry.snapshot().provenance().run_id(), ids.run_id());
+    assert_eq!(
+        facade
+            .load_by_key(&tenant_id, &key)
+            .await
+            .unwrap()
+            .provenance()
+            .run_id(),
+        ids.run_id()
+    );
+
+    let conflicting_request = DurableAgentAdmissionRequest::new(
+        tenant_id.clone(),
+        AgentRunIds::generate(),
+        retry_request.intent().descriptor().clone(),
+        AgentRequest::new(
+            fixture.graph.input_schema().clone(),
+            BoundedJson::try_from_value(json!({"request": false})).unwrap(),
+            BudgetLimits::empty(),
+        ),
+        retry_request.intent().budget_layers().iter().cloned(),
+        retry_request.intent().graph().clone(),
+        retry_request.intent().authority().clone(),
+        retry_request.initial_state().clone(),
+    )
+    .unwrap();
+    assert!(matches!(
+        facade.submit(&key, conflicting_request).await,
+        Err(DurableAgentRunsError::Admission(
+            DurableAgentAdmissionError::Store(StoreError::AgentSubmissionConflict)
+        ))
+    ));
+
+    let lease = store
+        .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let agent_loop = DurableAgentLoop::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(StaticLifecycleEvidence {
+            terminal,
+            failure: None,
+        }),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let driven = agent_loop
+        .run(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(matches!(
+        driven.outcome(),
+        AgentLoopOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+
+    let succeeded = facade.load(&tenant_id, ids.run_id()).await.unwrap();
+    assert_eq!(succeeded.status(), RunStatus::Succeeded);
+    let result = match succeeded.outcome().unwrap() {
+        AgentRunTerminalOutcome::Succeeded { result } => result,
+        outcome => panic!("expected a successful public result, got {outcome:?}"),
+    };
+    assert_eq!(result.output().as_value(), &json!({"ok": true}));
+    assert_eq!(result.provenance(), succeeded.provenance());
+    let succeeded_by_key = facade.load_by_key(&tenant_id, &key).await.unwrap();
+    assert_eq!(succeeded_by_key.status(), RunStatus::Succeeded);
+    assert_eq!(succeeded_by_key.revision(), succeeded.revision());
+    assert!(matches!(
+        succeeded_by_key.outcome(),
+        Some(AgentRunTerminalOutcome::Succeeded { .. })
+    ));
+
+    let wire = serde_json::to_value(&succeeded).unwrap();
+    let restored = serde_json::from_value::<stateknot_runtime::AgentRunSnapshot>(wire).unwrap();
+    assert_eq!(restored.status(), RunStatus::Succeeded);
+    assert!(matches!(
+        restored.outcome(),
+        Some(AgentRunTerminalOutcome::Succeeded { .. })
+    ));
+    let mut impossible = serde_json::to_value(&restored).unwrap();
+    impossible["status"] = serde_json::to_value(RunStatus::Active).unwrap();
+    assert!(serde_json::from_value::<stateknot_runtime::AgentRunSnapshot>(impossible).is_err());
+    let mut incomplete = serde_json::to_value(&restored).unwrap();
+    incomplete.as_object_mut().unwrap().remove("outcome");
+    assert!(serde_json::from_value::<stateknot_runtime::AgentRunSnapshot>(incomplete).is_err());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn public_agent_run_facade_exposes_only_confirmed_cancellation_as_terminal() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-public-agent-cancelled");
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.graph.clone())
+        .await
+        .unwrap();
+    let facade = DurableAgentRuns::new(store.clone(), fixture.registry.clone()).unwrap();
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    let key = AgentSubmissionKey::new("request_runtime_public_cancelled_01").unwrap();
+    facade
+        .submit(
+            &key,
+            durable_admission_request(
+                &fixture,
+                tenant_id.clone(),
+                ids,
+                fixture.graph.output_schema().clone(),
+                fixture.graph.input_schema().clone(),
+            ),
+        )
+        .await
+        .unwrap();
+
+    let admitted = store
+        .load_agent_admission(&tenant_id, run_id)
+        .await
+        .unwrap();
+    let cancellation_failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Cancelled,
+        FailureCode::new("runtime.public_cancelled").unwrap(),
+        FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+        FailureMessage::new("The public Agent run was cancelled safely.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap();
+    let cancellation_failure_id = cancellation_failure.id();
+    let cancellation = RunCancellationRequest::new(
+        cancellation_failure,
+        admitted.run().lifecycle().changed_at(),
+    )
+    .unwrap();
+    let requested = store
+        .append_control_plane(
+            JournalAppend::new(
+                JournalExpectation::exact(admitted.event().head()),
+                JournalEventIntent::control_plane(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    test_payload(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+            RunProjection::transition(
+                admitted.run().lifecycle().revision(),
+                RunTransition::RequestCancellation {
+                    request: cancellation,
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    let cancelling = facade.load_by_key(&tenant_id, &key).await.unwrap();
+    assert_eq!(cancelling.status(), RunStatus::CancellationRequested);
+    assert!(cancelling.outcome().is_none());
+
+    let requested_run = store.load_run(&tenant_id, run_id).await.unwrap();
+    store
+        .append_control_plane(
+            JournalAppend::new(
+                JournalExpectation::exact(requested.event().head()),
+                JournalEventIntent::control_plane(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    test_payload(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+            RunProjection::transition(
+                requested_run.lifecycle().revision(),
+                RunTransition::ConfirmCancellation {
+                    completed_at: requested.event().recorded_at(),
+                    usage: BudgetUsage::zero(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+
+    let cancelled = facade.load(&tenant_id, run_id).await.unwrap();
+    assert_eq!(cancelled.status(), RunStatus::Cancelled);
+    let AgentRunTerminalOutcome::Cancelled {
+        failure,
+        completed_at,
+        usage,
+    } = cancelled.outcome().unwrap()
+    else {
+        panic!("expected a cancelled public outcome")
+    };
+    assert_eq!(failure.id(), cancellation_failure_id);
+    assert_eq!(failure.category(), FailureCategory::Cancelled);
+    assert_eq!(failure.retry_advice(), RetryAdvice::Never);
+    assert_eq!(*completed_at, cancelled.changed_at());
+    assert_eq!(usage, &BudgetUsage::zero());
     store.close().await;
 }
 
@@ -1562,6 +1831,7 @@ async fn wait_handoff_replays_exactly_after_a_later_cancellation_advances_the_ru
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
 async fn failed_supervision_lost_ack_retries_without_rereading_failure_evidence() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
@@ -1575,8 +1845,27 @@ async fn failed_supervision_lost_ack_retries_without_rereading_failure_evidence(
     );
     let aggregate_failure_id = aggregate_failure.id();
     let tenant_id = tenant("runtime-lifecycle-failure");
-    let run_id = RunId::generate();
-    start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.graph.clone())
+        .await
+        .unwrap();
+    let facade = DurableAgentRuns::new(store.clone(), fixture.registry.clone()).unwrap();
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    let key = AgentSubmissionKey::new("request_runtime_public_failed_01").unwrap();
+    facade
+        .submit(
+            &key,
+            durable_admission_request(
+                &fixture,
+                tenant_id.clone(),
+                ids,
+                fixture.graph.output_schema().clone(),
+                fixture.graph.input_schema().clone(),
+            ),
+        )
+        .await
+        .unwrap();
     let lease = store
         .claim_lease(&tenant_id, run_id, AttemptId::generate())
         .await
@@ -1643,6 +1932,19 @@ async fn failed_supervision_lost_ack_retries_without_rereading_failure_evidence(
     assert!(stored.lease().is_none());
     assert_eq!(stored.journal_head().unwrap().event_id(), failure_event_id);
     assert_eq!(fixture.first_calls.load(Ordering::SeqCst), 1);
+    let public = facade.load_by_key(&tenant_id, &key).await.unwrap();
+    assert_eq!(public.status(), RunStatus::Failed);
+    let AgentRunTerminalOutcome::Failed {
+        failure,
+        completed_at,
+        usage,
+    } = public.outcome().unwrap()
+    else {
+        panic!("expected a failed public outcome")
+    };
+    assert_eq!(failure.id(), aggregate_failure_id);
+    assert_eq!(*completed_at, public.changed_at());
+    assert_eq!(usage, &BudgetUsage::zero());
     store.close().await;
 }
 

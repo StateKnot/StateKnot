@@ -24,6 +24,12 @@ const paths = [
     link: "Integrate admission",
   },
   {
+    title: "Submit and read a durable run",
+    body: "Persist one tenant-scoped idempotency decision, recover the original run after a lost response, and read a verified terminal result.",
+    href: "/docs/runs/",
+    link: "Integrate runs and results",
+  },
+  {
     title: "Compile a deterministic graph",
     body: "Run the maintained Rust example, understand the compiler's fail-closed checks, and register one exact immutable definition.",
     href: "/docs/concepts/graphs/",
@@ -88,9 +94,11 @@ const paths = [
       through atomic lifecycle commits on PostgreSQL. Provider-neutral durable
       model/tool attempts, weighted cross-tenant selection, a typed Agent
       contract, and the first OpenAI Responses and Anthropic Messages adapters
-      are also implemented. Atomic durable Agent admission now binds those
-      contracts to scheduler-visible work. The complete durable run/result
-      facade remains an explicit release blocker.
+      are also implemented. Atomic durable Agent admission binds those contracts
+      to scheduler-visible work, while durable ingress keys and the public
+      run/result facade recover lost acknowledgements and verify terminal reads.
+      The prebuilt provider-native Agent graph and stable service API remain
+      explicit release blockers.
     </p>
   </aside>
 
@@ -153,6 +161,14 @@ const paths = [
           Authenticated immutable intent, deterministic finite budgets,
           database-clock commit, sequence-one audit event, superstep-zero
           checkpoint, exact lost-ack retry, and fully verified durable loads.
+        </dd>
+      </div>
+      <div>
+        <dt>Durable Agent runs and results</dt>
+        <dd>
+          Tenant-scoped ingress idempotency, fresh-ID retry convergence,
+          verified public lifecycle snapshots, terminal results, and fail-closed
+          run/key lookups.
         </dd>
       </div>
       <div>
