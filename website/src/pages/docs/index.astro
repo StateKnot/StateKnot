@@ -18,6 +18,12 @@ const paths = [
     link: "Build the contract",
   },
   {
+    title: "Admit an Agent atomically",
+    body: "Bind authenticated intent, finite budgets, database time, the first event, and the initial graph checkpoint as one retryable durable fact.",
+    href: "/docs/admission/",
+    link: "Integrate admission",
+  },
+  {
     title: "Compile a deterministic graph",
     body: "Run the maintained Rust example, understand the compiler's fail-closed checks, and register one exact immutable definition.",
     href: "/docs/concepts/graphs/",
@@ -82,8 +88,9 @@ const paths = [
       through atomic lifecycle commits on PostgreSQL. Provider-neutral durable
       model/tool attempts, weighted cross-tenant selection, a typed Agent
       contract, and the first OpenAI Responses and Anthropic Messages adapters
-      are also implemented. The complete durable admit/run/result facade remains
-      an explicit release blocker.
+      are also implemented. Atomic durable Agent admission now binds those
+      contracts to scheduler-visible work. The complete durable run/result
+      facade remains an explicit release blocker.
     </p>
   </aside>
 
@@ -138,6 +145,14 @@ const paths = [
           Trusted terminal evidence, database-time Wait registration, atomic
           success/failure transitions, exact lost-ack convergence, bounded
           cleanup, and one tenant-scoped scheduler quantum.
+        </dd>
+      </div>
+      <div>
+        <dt>Atomic Agent admission</dt>
+        <dd>
+          Authenticated immutable intent, deterministic finite budgets,
+          database-clock commit, sequence-one audit event, superstep-zero
+          checkpoint, exact lost-ack retry, and fully verified durable loads.
         </dd>
       </div>
       <div>

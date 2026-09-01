@@ -21,6 +21,12 @@ const currentCut = [
     href: "https://github.com/StateKnot/StateKnot/tree/main/crates/stateknot-store-postgres",
   },
   {
+    surface: "原子 Agent Admission",
+    state: "已实现切片",
+    evidence: "已认证 Intent、数据库时钟、Event、Checkpoint 与精确 Retry",
+    href: "/zh/docs/admission/",
+  },
+  {
     surface: "Graph Compiler 与恢复",
     state: "已实现切片",
     evidence: "Canonical Graph、确定性 Barrier 与 Pinned Replay",
@@ -80,8 +86,8 @@ const roadmap = [
   {
     index: "03",
     state: "现在",
-    title: "闭合公开耐久 Agent 路径",
-    body: "把 Admission、预置 Provider-native Model/Tool Graph、Policy、执行、恢复与类型化 Result Retrieval 绑定为一个明确公开 Facade。",
+    title: "完成公开耐久 Agent 路径",
+    body: "原子 Admission 已实现；继续把 Ingress Idempotency、预置 Provider-native Model/Tool Graph、Policy、执行、恢复与类型化 Result Retrieval 绑定为一个明确公开 Facade。",
   },
   {
     index: "04",
@@ -108,10 +114,11 @@ const roadmap = [
           <p class="hero-status">Pre-alpha · 尚无稳定公开 API</p>
           <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
           <p class="hero-lede">
-            StateKnot 现已通过 PostgreSQL-backed Crash Recovery、耐久 Model/Tool
-            Attempt、原子 Lifecycle Commit、加权 Cross-tenant Scheduling、强类型
-            Agent 合约与首批 OpenAI/Anthropic Adapter 运行类型化 Root
-            Graph。稳定的端到端 Agent Facade 与 MCP/A2A 协议 Adapter 仍在开发。
+            StateKnot 现已通过 PostgreSQL-backed Crash Recovery、原子 Agent
+            Admission、耐久 Model/Tool Attempt、Lifecycle Commit、加权
+            Cross-tenant Scheduling、强类型 Agent 合约与首批 OpenAI/Anthropic
+            Adapter 运行类型化 Root Graph。稳定的端到端 Agent Facade 与 MCP/A2A
+            协议 Adapter 仍在开发。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -205,7 +212,7 @@ const roadmap = [
           <h2 id="quickstart-title">相信项目声明前，先验证仓库。</h2>
           <p>
             Facade Crate 有意保持未发布状态。当前真实的 Quickstart
-            会先验证仓库，再运行 一个不会冒充已 Admission Run
+            会先验证仓库，再运行一个不会冒充完整公开 Agent Path
             的真实类型化合约示例。
           </p>
           <a class="dark-link affordance" href="/zh/docs/getting-started/">

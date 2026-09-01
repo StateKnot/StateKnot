@@ -117,16 +117,19 @@ Streaming Adapter 不会先缓存完整响应，再伪装成 Chunk 重放。它�
 1. 认证并选择不可变 Agent/Model/Tool Descriptor Snapshot；
 2. 离线校验类型化 Request 与全部 Digest-pinned Schema；
 3. 把 System、Tenant、Policy、Agent、Request Limit 解析为一个有限
-   `ResolvedBudget`，并提交 Admission Evidence；
+   `ResolvedBudget`，再通过 `DurableAgentAdmission` 原子提交不可变 Intent、Initial
+   Event 与 Superstep-zero Checkpoint；
 4. 用 Lease/Fence Claim Graph；
 5. 通过 `DurableInvocationExecutor` 执行 Model/Tool Attempt，在外部 Dispatch 前先提交
    Attempt Start；
 6. 通过 `DurableAgentLoop` 驱动 Checkpoint 与 Lifecycle Handoff；
 7. 使用 `TypedAgent` 校验并解码 Terminal `AgentResult`。
 
-当前不存在把“新建 Run、生成预置 Model/Tool Graph、执行、读取 Terminal Result”压缩成
-一次调用的公开 Helper。该集成必须携带耐久 Admission 与 Result Retrieval Evidence，
-因此不会用临时 In-memory `run()` 冒充。
+原子耐久 Admission 已经实现，详见
+[`durable-agent-admission.zh-CN.md`](durable-agent-admission.zh-CN.md)。当前不存在把
+“映射外部 Idempotency Key、生成预置 Model/Tool Graph、执行、读取 Terminal Result”压缩成
+一次调用的公开 Helper。剩余集成必须携带 Result Retrieval Evidence，因此不会用临时
+In-memory `run()` 冒充。
 
 ## 验证证据
 
@@ -144,5 +147,5 @@ cargo test -p stateknot-runtime --test typed_agent
 ```
 
 Live-provider Qualification、Provider Drift Cassette、在预置 Agent Graph 内耐久组装
-Transcript、Policy Middleware 与完整公开 Admit/Run/Result Facade 仍是发布门禁。Adapter 与
+Transcript、Policy Middleware 与完整公开 Run/Result Facade 仍是发布门禁。Adapter 与
 类型化 API 已经实现，但仍处于未发布的 pre-alpha。

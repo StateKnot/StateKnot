@@ -21,6 +21,12 @@ const currentCut = [
     href: "https://github.com/StateKnot/StateKnot/tree/main/crates/stateknot-store-postgres",
   },
   {
+    surface: "Atomic Agent admission",
+    state: "Implemented slice",
+    evidence: "Authenticated intent, DB clock, event, checkpoint, exact retry",
+    href: "/docs/admission/",
+  },
+  {
     surface: "Graph compiler and recovery",
     state: "Implemented slice",
     evidence: "Canonical graphs, deterministic barriers, pinned replay",
@@ -80,8 +86,8 @@ const roadmap = [
   {
     index: "03",
     state: "Now",
-    title: "Close the public durable Agent path",
-    body: "Bind admission, the prebuilt provider-native model/tool graph, policy, execution, recovery, and typed result retrieval into one explicit public facade.",
+    title: "Complete the public durable Agent path",
+    body: "Atomic admission is implemented. Bind ingress idempotency, the prebuilt provider-native model/tool graph, policy, execution, recovery, and typed result retrieval into one explicit public facade.",
   },
   {
     index: "04",
@@ -111,10 +117,11 @@ const roadmap = [
           </h1>
           <p class="hero-lede">
             StateKnot now runs typed root Graphs through PostgreSQL-backed crash
-            recovery, durable model/tool attempts, atomic lifecycle commits,
-            weighted cross-tenant scheduling, typed Agent contracts, and the
-            first OpenAI/Anthropic adapters. The stable end-to-end Agent facade
-            and MCP/A2A protocol adapters remain under development.
+            recovery, atomic Agent admission, durable model/tool attempts,
+            lifecycle commits, weighted cross-tenant scheduling, typed Agent
+            contracts, and the first OpenAI/Anthropic adapters. The stable
+            end-to-end Agent facade and MCP/A2A protocol adapters remain under
+            development.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -214,7 +221,8 @@ const roadmap = [
           <p>
             The facade crate is intentionally unpublished. Today’s honest
             quickstart validates the repository first, then runs a real typed
-            contract example without pretending to execute an admitted run.
+            contract example without pretending to complete the public Agent
+            path.
           </p>
           <a class="dark-link affordance" href="/docs/getting-started/"
             >Open the contributor tutorial <span aria-hidden="true">→</span></a

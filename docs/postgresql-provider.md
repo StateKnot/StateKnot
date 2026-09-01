@@ -181,10 +181,10 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 95 integration tests against PostgreSQL 16 and
+The current database suite runs 98 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
-v8 without guessed projection or physical-attempt provenance, real v3
+v15 without guessed projection or physical-attempt provenance, real v3
 tool-attempt history backfilled into the run-wide registry, admission, direct
 lifecycle transition enforcement, future-clock rejection, event and projection-intent
 conflicts, lost-ack idempotency, bounded journal and
@@ -283,8 +283,12 @@ and a 24-way conflicting registration race with one durable winner. Fairness
 coverage proves exact v13-to-v14 migration shape and constraints, immutable
 policy registration, same-ID lost-ACK convergence, concurrent same-ID and
 unique-ID reservation linearization, contiguous global sequence/slot order,
-bounded database-time retention, and retention cursor neutrality. The 95
-provider tests and sixteen durable Runtime tests run independently against
+bounded database-time retention, and retention cursor neutrality. Atomic Agent
+admission coverage proves exact v14-to-v15 migration, scheduler invisibility of
+uninitialized low-level runs, schema/state rejection with zero residue,
+database-clock expiry, immutable event/checkpoint anchoring, exact retry after
+time-sensitive boundaries, tamper rejection, late rollback, and 24-way
+single-commit convergence. The 98 provider tests and seventeen durable Runtime tests run independently against
 PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -416,8 +420,9 @@ The runtime lifecycle coordinator now consumes those handoffs, and the
 tenant-scoped Agent Loop binds discovery, claim, Driver, lifecycle commit, and
 cleanup. The provider owns the immutable fairness policy/cursor/reservation
 facts while `stateknot-runtime` owns policy compilation and tenant mapping.
-Trusted terminal admission/accounting evidence remains an application-owned
-durable boundary.
+`load_agent_admission` now supplies fully revalidated trusted admission
+evidence. Terminal artifact and cumulative-accounting evidence remains an
+application-owned durable boundary.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record
@@ -612,19 +617,35 @@ never changes shard policies or cursors. Fresh install, exact v13 upgrade,
 constraint/index removal, immutable conflicts, same-ID and unique-ID races,
 retention bounds, and cursor neutrality are exercised on PostgreSQL 16 and 17.
 
+Migration 15 adds immutable `agent_admissions` keyed by tenant and run. One row
+binds the canonical authenticated Agent/request/policy/budget snapshot and
+database clock to the exact registered graph, sequence-one journal event,
+superstep-zero checkpoint, and active lifecycle projection through foreign keys
+and a composite projection digest. The scheduler-ready partial index now also
+requires a checkpoint, so a low-level uninitialized run is never executable.
+`admit_agent_run` serializes same-run attempts with a transaction advisory lock,
+validates the exact registered graph/state/entry set, and commits every anchor
+as one unit. `load_agent_admission` revalidates canonical bytes, redundant
+columns, graph registration, event/checkpoint anchors, current run projection,
+and wait-set integrity in one repeatable-read snapshot. Fresh install, exact
+v14 upgrade, constraint/index checks, expiry, conflicts, corruption, rollback,
+and concurrent exact retries are exercised on PostgreSQL 16 and 17.
+
 ## Not yet implemented
 
 This slice is not a production release or the complete agent runtime. The first
 model-provider adapters live above this store boundary; it does not yet
-implement protocol-specific outbox dispatch adapters, artifacts, the durable
-public admit/run/result facade, general retention/archive/legal hold,
+implement protocol-specific outbox dispatch adapters, artifacts, the complete
+durable public run/result facade and ingress idempotency-key mapping, general
+retention/archive/legal hold,
 backup/restore, failover qualification, or the
 10,000-race stale-worker gate. The implemented lifecycle coordinator now
 atomically commits complete Wait/success/failure handoffs, and the tenant worker
 binds runnable discovery, lease claim, Driver, and lifecycle coordination into
 one bounded Agent Loop quantum. It still requires the embedding service to
-supply trusted durable admission and cumulative-accounting evidence; it never
-guesses missing values. The current Graph Driver is deliberately
+supply trusted durable cumulative-accounting and terminal artifact evidence;
+admission itself can now be loaded from the provider, and no layer guesses
+missing values. The current Graph Driver is deliberately
 sequential within one run so exact journal serialization and recovery authority
 remain unambiguous; parallel sibling scheduling requires its own bounded
 ordering and admission policy before it can be enabled.

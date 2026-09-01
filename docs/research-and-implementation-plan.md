@@ -888,8 +888,10 @@ Evidence Failure、Lease Release 场景现已在 PG16/17 验证。
 Provider-neutral Model/Tool Attempt Executor、精确不可变 Provider Registry、耐久 Stream Sink
 Boundary 与 Cross-tenant Weighted Fair Scheduler 现已补齐；Migration 14 提供 Lost-ACK-safe
 Global Reservation 与有界 Retention。第一批 OpenAI Responses/Anthropic Messages Unary/SSE
-Adapter 以及 Schema-pinned Typed Agent Contract 也已实现。它仍不是完整 Agent Runtime：耐久
-Admit/Run/Result Facade、在预置 Graph 内组装已经实现的 Provider-native Transcript、协议专用 Outbox Adapter、
+Adapter 以及 Schema-pinned Typed Agent Contract 也已实现。Agent Admission Core、Migration
+15 的不可变 Admission Snapshot/原子初始化，以及 Runtime
+Validation Facade 也已完成并通过 PG16/17 验证。它仍不是完整 Agent Runtime：耐久
+Run/Result Facade、Ingress Idempotency-key Mapping、在预置 Graph 内组装已经实现的 Provider-native Transcript、协议专用 Outbox Adapter、
 Parallel Sibling、Loop/Subgraph、角色隔离、通用归档、Failover 与 Restore 仍按 RFC 门禁继续
 实现，RFC-0003 因此保持 Draft。
 
@@ -1122,7 +1124,9 @@ Handoff 交给生命周期层。Lifecycle 层已使用稳定 Event ID 原子提�
 Registry、耐久 Streaming Sink Boundary，以及 Migration 14 的 Cross-tenant Weighted Fairness、
 Lost-ACK Reservation 与有界 Retention 也已在 PG16/17 验证。第一批 OpenAI Responses 与
 Anthropic Messages Adapter、强类型 Agent Schema/Codec 和可编译无 I/O 示例现已完成；耐久
-Admit/Run/Result Facade、在预置 Graph 内组装已经实现的 Provider-native Transcript、
+Agent Admission Intent、Migration 15 的 Atomic Run/Event/Checkpoint Initialization 与
+Runtime Admission Facade 也已完成；耐久 Run/Result Facade、Ingress Idempotency-key
+Mapping、在预置 Graph 内组装已经实现的 Provider-native Transcript、
 Parallel Sibling Policy、协议
 Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
 
@@ -1220,7 +1224,9 @@ run/journal/checkpoint/tool/model-invocation/node-attempt、attempt-owned pendin
 barrier consumption、run-wide attempt claim、outbox、durable wait、quarantine、lease、pinned
 graph registry 与 migration/startup 语义落到 PostgreSQL 16/17；`stateknot-runtime` 则实现
 离线可执行闭包、完整 Checkpoint State/Noninitial Replay 验证、耐久 Root Graph Driver、
-Lifecycle Coordinator、有界 Agent Loop 与 Tenant-scoped Scheduler Worker。
+Lifecycle Coordinator、有界 Agent Loop、Tenant-scoped Scheduler Worker 与原子 Agent
+Admission Validation Facade；Migration 15 把认证 Intent、数据库时钟、Active Lifecycle、
+首 Event 与初始 Checkpoint 绑定为一个可精确重试的事务。
 只有 RFC 获得接受且可编译 Contract Example、生命周期集成和发布门禁通过后，才会把这些
 实验 crate 提升为受支持边界；`stateknot-integrations`、`stateknot-server` 与
 `stateknot-testkit` 也只在对应纵向能力被证明必要时创建。协议 Dispatch Adapter、完整

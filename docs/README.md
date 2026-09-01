@@ -44,7 +44,12 @@ conformance output, and the release gates in these documents.
     Messages unary/SSE bindings, compiled examples, and the explicit durable
     execution boundary. A [Simplified Chinese edition](typed-agent.zh-CN.md) is
     maintained alongside it.
-12. [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md) —
+12. [Durable Agent admission](durable-agent-admission.md) — immutable
+    authenticated intent, database-clock commit, atomic run/event/checkpoint
+    initialization, exact retry, migration, and sensitive-data operations. A
+    [Simplified Chinese edition](durable-agent-admission.zh-CN.md) is maintained
+    alongside it.
+13. [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md) —
     immutable weighted policy, replica-safe global reservations, explicit
     starvation bounds, retention, rollout, and operations. A
     [Simplified Chinese edition](cross-tenant-fair-scheduler.zh-CN.md) is

@@ -7,13 +7,18 @@
 //! those immutable descriptors to locally installed JSON Schemas, reducers,
 //! and node executors, then drives them against a durable provider without
 //! loading code or schemas from the network while a run is active.
+//! [`DurableAgentAdmission`] validates one authenticated immutable Agent intent
+//! against that same deployment snapshot before atomically initializing its
+//! executable `PostgreSQL` run.
 
 #![forbid(unsafe_code)]
 
+mod admission_schema;
 mod agent_loop;
 mod agent_typed;
 mod driver;
 mod driver_schema;
+mod durable_admission;
 mod fair_scheduler;
 mod invocation_executor;
 mod invocation_schema;
@@ -24,6 +29,11 @@ mod registry;
 mod schema;
 mod tenant_scheduler;
 
+pub use admission_schema::{
+    STANDARD_AGENT_ADMISSION_EVENT_SCHEMA_ID, StandardAgentAdmissionSchemaError,
+    StandardAgentAdmissionSchemaRegistrationError, register_standard_agent_admission_event_schema,
+    standard_agent_admission_event_schema,
+};
 pub use agent_loop::{
     AgentLoopError, AgentLoopOutcome, AgentLoopResult, DurableAgentLoop, DurableAgentLoopBuildError,
 };
@@ -35,6 +45,10 @@ pub use driver_schema::{
     STANDARD_GRAPH_DRIVER_EVENT_SCHEMA_ID, StandardGraphDriverSchemaError,
     StandardGraphDriverSchemaRegistrationError, register_standard_graph_driver_event_schema,
     standard_graph_driver_event_schema,
+};
+pub use durable_admission::{
+    AgentRunIds, DurableAgentAdmission, DurableAgentAdmissionBuildError,
+    DurableAgentAdmissionError, DurableAgentAdmissionRequest, DurableAgentAdmissionRequestError,
 };
 pub use invocation_executor::{
     DurableInvocationExecutor, DurableInvocationExecutorBuildError,

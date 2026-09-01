@@ -18,48 +18,53 @@ use std::{
 use futures_core::Stream;
 use serde_json::{Value, json};
 use stateknot_core::{
-    AgentArtifacts, AgentDescriptor, AgentRequest, AgentResultProvenance, AttemptId, BoundedJson,
-    BoxFuture, BoxStream, BudgetLimits, BudgetRemaining, BudgetUsage, ByteCount,
-    CancellationSignal, CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint,
-    CheckpointId, CheckpointState, CheckpointWrite, CompiledGraph, Digest, ErasedTool, EventId,
-    ExecutionCount, Failure, FailureCategory, FailureCode, FailureId, FailureMessage,
-    FailureOrigin, GraphBarrierDisposition, GraphExecutionLimits, GraphNode, GraphReducer,
-    GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
-    InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
-    JournalExpectation, JournalPayload, KnownCosts, Model, ModelContext, ModelDescriptor,
-    ModelError, ModelEvent, ModelInvocationIntent, ModelInvocationStatus, ModelRequest,
-    ModelResponse, ModelResponseMode, NodeActivation, NodeControl, NodeId, NodeInvocationBindings,
-    NodeStateChange, NodeTerminalOutput, NodeWait, NodeWaits, PrincipalIdentity, QuarantineId,
-    ReadyNodes, ResolvedBudget, RetryAdvice, RunCancellationRequest, RunFence, RunId, RunStatus,
-    RunTimerKind, RunTransition, SchedulerShardId, SchemaId, SchemaReference, SubjectId, Superstep,
-    TenantId, ThreadId, TimerId, Timestamp, ToolContext, ToolDescriptor, ToolError,
-    ToolExternalEffect, ToolInput, ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus,
-    ToolResult, Version,
+    AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentArtifacts, AgentDescriptor,
+    AgentRequest, AgentResultProvenance, AttemptId, BoundedJson, BoxFuture, BoxStream,
+    BudgetLimits, BudgetRemaining, BudgetUsage, ByteCount, CancellationSignal, CapabilityIdentity,
+    CapabilityName, CapabilityReference, Checkpoint, CheckpointId, CheckpointState,
+    CheckpointWrite, CompiledGraph, Digest, ErasedTool, EventId, ExecutionCount, Failure,
+    FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
+    GraphBarrierDisposition, GraphExecutionLimits, GraphNode, GraphReducer, GraphReducerError,
+    GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes, InvocationId, IssuerId,
+    JournalAppend, JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload,
+    KnownCosts, Model, ModelContext, ModelDescriptor, ModelError, ModelEvent,
+    ModelInvocationIntent, ModelInvocationStatus, ModelRequest, ModelResponse, ModelResponseMode,
+    NodeActivation, NodeControl, NodeId, NodeInvocationBindings, NodeStateChange,
+    NodeTerminalOutput, NodeWait, NodeWaits, PrincipalIdentity, QuarantineId, ReadyNodes,
+    ResolvedBudget, RetryAdvice, RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind,
+    RunTransition, SchedulerShardId, SchemaId, SchemaReference, SubjectId, Superstep, TenantId,
+    ThreadId, TimerId, Timestamp, ToolContext, ToolDescriptor, ToolError, ToolExternalEffect,
+    ToolInput, ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus, ToolResult,
+    Version,
 };
 use stateknot_runtime::{
-    AgentLoopError, AgentLoopOutcome, DurableAgentLoop, DurableFairScheduler,
-    DurableFairSchedulerOptions, DurableGraphDriver, DurableGraphDriverOptions,
-    DurableGraphLifecycle, DurableGraphLifecycleOptions, DurableInvocationExecutor,
-    DurableInvocationExecutorOptions, DurableTenantScheduler, DurableTenantSchedulerOptions,
-    ExecutableGraphRegistry, ExecutableGraphRegistryBuilder, GraphBarrierLifecycleOutcome,
-    GraphDriveOutcome, GraphDriverError, GraphFailureEvidence, GraphFailureEvidenceContext,
-    GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider, GraphNodeContext,
-    GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor, GraphTerminalEvidence,
-    GraphTerminalEvidenceContext, InvocationAttemptEventIds, InvocationBudgetContext,
-    InvocationBudgetProvider, InvocationBudgetProviderError, InvocationClock, InvocationClockError,
-    InvocationClockObservation, JsonSchemaRegistry, JsonSchemaRegistryBuilder,
-    JsonSchemaRegistryLimits, ModelAttemptExecutionError, ModelAttemptHandoff, ModelAttemptOutcome,
-    ModelAttemptTerminalKind, ModelEventSink, ModelEventSinkError, ModelProviderRegistryBuilder,
-    TenantFairnessWeight, TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome,
-    ToolAttemptTerminalKind, ToolProviderRegistryBuilder, WeightedFairnessPolicy,
-    register_standard_graph_driver_event_schema, register_standard_graph_lifecycle_event_schema,
+    AgentLoopError, AgentLoopOutcome, AgentRunIds, DurableAgentAdmission,
+    DurableAgentAdmissionError, DurableAgentAdmissionRequest, DurableAgentLoop,
+    DurableFairScheduler, DurableFairSchedulerOptions, DurableGraphDriver,
+    DurableGraphDriverOptions, DurableGraphLifecycle, DurableGraphLifecycleOptions,
+    DurableInvocationExecutor, DurableInvocationExecutorOptions, DurableTenantScheduler,
+    DurableTenantSchedulerOptions, ExecutableGraphRegistry, ExecutableGraphRegistryBuilder,
+    GraphBarrierLifecycleOutcome, GraphDriveOutcome, GraphDriverError, GraphFailureEvidence,
+    GraphFailureEvidenceContext, GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider,
+    GraphNodeContext, GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor,
+    GraphTerminalEvidence, GraphTerminalEvidenceContext, InvocationAttemptEventIds,
+    InvocationBudgetContext, InvocationBudgetProvider, InvocationBudgetProviderError,
+    InvocationClock, InvocationClockError, InvocationClockObservation, JsonSchemaRegistry,
+    JsonSchemaRegistryBuilder, JsonSchemaRegistryLimits, ModelAttemptExecutionError,
+    ModelAttemptHandoff, ModelAttemptOutcome, ModelAttemptTerminalKind, ModelEventSink,
+    ModelEventSinkError, ModelProviderRegistryBuilder, TenantFairnessWeight,
+    TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind,
+    ToolProviderRegistryBuilder, WeightedFairnessPolicy,
+    register_standard_agent_admission_event_schema, register_standard_graph_driver_event_schema,
+    register_standard_graph_lifecycle_event_schema,
     register_standard_invocation_execution_event_schema,
 };
 use stateknot_store_postgres::{
-    BarrierCommitOutcome, CheckpointCommitOutcome, CorruptionQuarantineContext,
-    GraphDefinitionRegistrationOutcome, GraphReplayLimits, LeaseReleaseOutcome,
-    NodeAttemptCommitOutcome, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
-    RunProjection, RunnableRunPageSize, StoreError, WaitCheckpointCommitOutcome,
+    AgentAdmissionCommitOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
+    CorruptionQuarantineContext, GraphDefinitionRegistrationOutcome, GraphReplayLimits,
+    LeaseReleaseOutcome, NodeAttemptCommitOutcome, PostgresStore, PostgresStoreOptions,
+    PostgresTransportSecurity, RunProjection, RunnableRunPageSize, StoreError,
+    WaitCheckpointCommitOutcome,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -432,6 +437,7 @@ fn driver_fixture_with_first_delay(first_delay: Duration) -> DriverFixture {
     }
     register_standard_graph_driver_event_schema(&mut schemas).unwrap();
     register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+    register_standard_agent_admission_event_schema(&mut schemas).unwrap();
     let schemas = schemas.build().unwrap();
 
     let first_calls = Arc::new(AtomicUsize::new(0));
@@ -796,6 +802,158 @@ fn tool_input(descriptor: &ToolDescriptor) -> ToolInput {
         .unwrap(),
     )
     .unwrap()
+}
+
+fn durable_admission_request(
+    fixture: &DriverFixture,
+    tenant_id: TenantId,
+    ids: AgentRunIds,
+    output_schema: SchemaReference,
+    authority_schema: SchemaReference,
+) -> DurableAgentAdmissionRequest {
+    let template = terminal_evidence(&fixture.graph);
+    let descriptor = AgentDescriptor::new(
+        template.descriptor().metadata().clone(),
+        fixture.graph.input_schema().clone(),
+        output_schema,
+        template.descriptor().model().clone(),
+        template.descriptor().instructions().clone(),
+        template.descriptor().tools().clone(),
+        template.descriptor().execution().clone(),
+        template.descriptor().budget_limits().clone(),
+    )
+    .unwrap();
+    let request = AgentRequest::new(
+        fixture.graph.input_schema().clone(),
+        BoundedJson::try_from_value(json!({"request": true})).unwrap(),
+        BudgetLimits::empty(),
+    );
+    let policy = capability("runtime-agent-admission-policy");
+    let evidence = JournalPayload::new(
+        authority_schema,
+        JournalEventKind::new(AgentAdmissionAuthority::EVIDENCE_KIND).unwrap(),
+        BoundedJson::try_from_value(json!({"decision": "allow"})).unwrap(),
+    )
+    .unwrap();
+    let authority = AgentAdmissionAuthority::new(
+        policy.owner().clone(),
+        descriptor.metadata().required_scopes().clone(),
+        policy,
+        Digest::sha256(b"runtime Agent admission policy v1"),
+        evidence,
+    )
+    .unwrap();
+    let mut budget_fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    ))
+    .unwrap();
+    budget_fixture["base_budget_layers"][0]["deadline"] = json!("2099-01-01T00:00:00.000000Z");
+    let limits =
+        serde_json::from_value::<BudgetLimits>(budget_fixture["base_budget_layers"][0].clone())
+            .unwrap();
+    let layer = AgentAdmissionBudgetLayer::new(
+        capability("runtime-agent-admission-budget"),
+        authority.evidence().digest(),
+        limits,
+    )
+    .unwrap();
+    let initial_state = CheckpointState::new(
+        fixture.graph.state_schema().clone(),
+        BoundedJson::try_from_value(json!({"step": "initial"})).unwrap(),
+    )
+    .unwrap();
+    DurableAgentAdmissionRequest::new(
+        tenant_id,
+        ids,
+        descriptor,
+        request,
+        [layer],
+        fixture.graph.reference(),
+        authority,
+        initial_state,
+    )
+    .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn durable_agent_admission_facade_validates_and_converges_exact_retries() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-agent-admission");
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.graph.clone())
+        .await
+        .unwrap();
+    let facade = DurableAgentAdmission::new(store.clone(), fixture.registry.clone()).unwrap();
+    let ids = AgentRunIds::generate();
+    let request = durable_admission_request(
+        &fixture,
+        tenant_id.clone(),
+        ids,
+        fixture.graph.output_schema().clone(),
+        fixture.graph.input_schema().clone(),
+    );
+    let restored = serde_json::from_value::<DurableAgentAdmissionRequest>(
+        serde_json::to_value(&request).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(restored, request);
+
+    let committed = facade.admit(request.clone()).await.unwrap();
+    assert!(matches!(
+        committed,
+        AgentAdmissionCommitOutcome::Committed(_)
+    ));
+    let retry = facade.admit(restored).await.unwrap();
+    assert!(matches!(retry, AgentAdmissionCommitOutcome::Idempotent(_)));
+    let stored = retry.stored();
+    assert_eq!(stored.run().lifecycle().status(), RunStatus::Active);
+    assert_eq!(stored.event().sequence().get(), 1);
+    assert_eq!(stored.checkpoint().superstep(), Superstep::INITIAL);
+    assert_eq!(
+        stored.event().payload().schema().id().as_str(),
+        "https://stknot.com/schemas/runtime/agent-admission-event/1.0.0"
+    );
+
+    let mismatch_ids = AgentRunIds::generate();
+    let mismatch = durable_admission_request(
+        &fixture,
+        tenant_id.clone(),
+        mismatch_ids,
+        fixture.graph.input_schema().clone(),
+        fixture.graph.input_schema().clone(),
+    );
+    assert!(matches!(
+        facade.admit(mismatch).await,
+        Err(DurableAgentAdmissionError::GraphOutputSchemaMismatch)
+    ));
+    assert!(matches!(
+        store.load_run(&tenant_id, mismatch_ids.run_id()).await,
+        Err(StoreError::RunNotFound)
+    ));
+
+    let rejected_ids = AgentRunIds::generate();
+    let rejected = durable_admission_request(
+        &fixture,
+        tenant_id.clone(),
+        rejected_ids,
+        fixture.graph.output_schema().clone(),
+        fixture.graph.state_schema().clone(),
+    );
+    assert!(matches!(
+        facade.admit(rejected).await,
+        Err(DurableAgentAdmissionError::AuthoritySchema {
+            source: stateknot_core::GraphSchemaValidationError::Rejected
+        })
+    ));
+    assert!(matches!(
+        store.load_run(&tenant_id, rejected_ids.run_id()).await,
+        Err(StoreError::RunNotFound)
+    ));
+    store.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

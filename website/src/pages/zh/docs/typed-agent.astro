@@ -169,7 +169,9 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         <h3>Admission</h3>
         <p>
           校验类型化 Request、解析有限可信 Budget、分配
-          Tenant/Run/Thread/Invocation Identity，并提交 Admission Evidence。
+          Tenant/Run/Thread/Invocation Identity，再通过 <code
+            >DurableAgentAdmission</code
+          > 原子提交 Admission、首 Event 与 Initial Checkpoint。
         </p>
       </li>
       <li>
@@ -188,9 +190,12 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
       </li>
     </ol>
     <p>
-      完整公开 Admit/Run/Result Facade，以及在预置 Graph 内耐久组装已经实现的
-      Provider-native Transcript，仍是发布门禁。继续阅读 <a
-        href="/zh/docs/invocations/">耐久调用</a
+      原子 Admission 已实现；下一步请阅读<a href="/zh/docs/admission/"
+        >耐久 Admission 契约</a
+      >。完整公开 Run/Result Facade、Ingress Idempotency-key Mapping，以及在预置
+      Graph 内耐久组装已经实现的 Provider-native
+      Transcript，仍是发布门禁。继续阅读 <a href="/zh/docs/invocations/"
+        >耐久调用</a
       > 与
       <a href="/zh/docs/agent-loop/">耐久 Agent Loop</a
       >，了解已经实现的执行合约。

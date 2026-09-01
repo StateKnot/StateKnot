@@ -1,0 +1,171 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const admissionCode = `let ids = AgentRunIds::generate();
+// 首次调用前先持久化 external_idempotency_key -> ids。
+
+let request = DurableAgentAdmissionRequest::new(
+    tenant_id,
+    ids,
+    agent_descriptor,
+    agent_request,
+    evaluated_budget_layers,
+    graph_reference,
+    admission_authority,
+    initial_state,
+)?;
+
+let retry_bytes = serde_json::to_vec(&request)?;
+let outcome = admission.admit(request).await?;`;
+---
+
+<DocsLayout
+  title="将一个 Agent 原子接纳为耐久事实。"
+  description="校验一个已经认证的 Agent Intent，并原子提交数据库时钟 Admission、首 Event、初始 Checkpoint、Active Lifecycle 与 Scheduler Visibility。"
+  section="耐久 Agent Admission"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="admission-boundary-title">
+    <h2 id="admission-boundary-title">Admission 已实现，API 仍为 Pre-alpha</h2>
+    <p>
+      <code>DurableAgentAdmission</code>、Migration 15 与不可变 Core Admission
+      Contract 已经实现，并关闭了部分初始化缺口；完整公开 Run/Result
+      Facade、Ingress Idempotency-key Store 与预置 Provider-native Tool Graph
+      尚未交付。
+    </p>
+  </aside>
+
+  <section aria-labelledby="transaction-title">
+    <h2 id="transaction-title">一次提交完整可执行边界</h2>
+    <p>
+      一个 PostgreSQL Transaction 会保存已认证 Agent、Request、Policy、授权
+      Scope、有限 Budget、Graph 与数据库时间，同时提交 Sequence-one <code
+        >agent-admitted</code
+      > Event、Superstep-zero Checkpoint、Active Lifecycle 与全部 Scheduler Projection。Worker
+      无法在这些写入之间 Claim Run。
+    </p>
+    <p>
+      新版 Scheduler Index 要求 Initial Checkpoint。旧的低层 <code
+        >admit_run</code
+      > 只能创建可按 ID 查询但对 Scheduler 不可见的 Row；新的 Agent Ingress 必须使用原子
+      Facade。
+    </p>
+  </section>
+
+  <section aria-labelledby="deployment-title">
+    <h2 id="deployment-title">接流量前冻结全部依赖</h2>
+    <p>
+      冻结 Executable Registry 前，注册标准 Admission、Graph Driver、Lifecycle
+      Schema 与全部应用 Schema；本地安装精确 Graph/Reducer/Node 闭包，并把相同
+      Compiled Graph 按 Tenant 注册到 PostgreSQL。Retry Window 内必须保留该
+      Digest-pinned Deployment。
+    </p>
+    <p>
+      Public-safe Admission Event Schema 发布在<a
+        href="/schemas/runtime/agent-admission-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/agent-admission-event/1.0.0</code
+        ></a
+      >。应通过 <code>register_standard_agent_admission_event_schema</code> 注册，不能固定复制来的
+      Digest。
+    </p>
+  </section>
+
+  <section aria-labelledby="request-title">
+    <h2 id="request-title">保留精确重试授权</h2>
+    <p>
+      Principal 认证与不可变 Policy Evaluation 在 Facade
+      外完成。随后只分配一次完整
+      <code>AgentRunIds</code>，并在首次调用前把它与调用方 Idempotency Key
+      耐久关联。发生 Timeout 后必须重用保留的 Request Bytes 与全部五个 ID。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 可信 Ingress</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-agent-admission-code"
+          data-copy-idle="复制"
+          data-copy-loading="复制中"
+          data-copy-success="已复制"
+          data-copy-error="复制失败"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-agent-admission-code"
+        tabindex="0"><code>{admissionCode}</code></pre>
+    </div>
+    <p>
+      结果不明的 Retry 会在读取当前数据库时间前探测并验证已提交
+      Evidence，因此精确 Request 可以在原 Deadline
+      之后收敛。Input、Policy、Budget、Graph、Initial State、Ready
+      Set、Event、Checkpoint 或 Identity 任一变化都会产生
+      Conflict，而不会创建第二个 Run。
+    </p>
+  </section>
+
+  <section aria-labelledby="validation-title">
+    <h2 id="validation-title">在 Mutation 前拒绝 Drift</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>解析代码</h3>
+        <p>
+          要求精确 Executable Graph，并校验 Agent 与 Graph 的 Input/Output
+          Schema 一一对应。
+        </p>
+      </li>
+      <li>
+        <h3>离线校验数据</h3>
+        <p>
+          使用同一个冻结 JSON Schema 2020-12 Registry 校验类型化
+          Input、Authorization Evidence、Initial State 与封闭 Audit Event。
+        </p>
+      </li>
+      <li>
+        <h3>重查耐久事实</h3>
+        <p>
+          PostgreSQL 独立校验 Graph Registration、Entry Node、Checkpoint
+          Shape、数据库时间 Budget 可接纳性与全部不可变 Event/Checkpoint
+          Projection。
+        </p>
+      </li>
+    </ol>
+    <p>
+      Schema 拒绝、Deadline 到期、Graph Drift 或注入的 Transaction
+      晚期失败都不会留下 Run、Event、Checkpoint、Admission 或 Scheduler
+      Residue。
+    </p>
+  </section>
+
+  <section aria-labelledby="security-title">
+    <h2 id="security-title">保护 Admission Snapshot</h2>
+    <p>
+      Admission Bytes 可能包含用户 Input、Trusted Instruction、Principal
+      Attribute、 Authorization Evidence 与 Policy Limit。必须使用最小权限
+      Role、验证完整的 TLS、加密备份、Tenant Isolation、访问审计与明确 Retention
+      Policy。Digest 只能证明身份，不能认证 Principal，也不会让数据保密。首个
+      Journal Event 刻意只包含 Public-safe 关联 Metadata。
+    </p>
+  </section>
+
+  <section aria-labelledby="evidence-title">
+    <h2 id="evidence-title">验证证据</h2>
+    <p>
+      PostgreSQL 16/17 Matrix 目前在每个版本运行 98 个 Provider Case 与 17
+      个耐久 Runtime Scenario。Admission 覆盖 Migration 15、跨越时间边界后的精确
+      Retry、 Changed-intent 与 Tamper 拒绝、无效 State 零残留 Rollback、24
+      路收敛，以及 Runtime 在任何写入前拒绝 Agent/Graph 或 Authorization Schema
+      Drift。采用该未发布 Surface 前，请阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-admission.zh-CN.md"
+        >完整集成与 Rollout 契约</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

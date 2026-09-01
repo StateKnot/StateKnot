@@ -1,0 +1,168 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const admissionCode = `let ids = AgentRunIds::generate();
+// Persist external_idempotency_key -> ids before the first attempt.
+
+let request = DurableAgentAdmissionRequest::new(
+    tenant_id,
+    ids,
+    agent_descriptor,
+    agent_request,
+    evaluated_budget_layers,
+    graph_reference,
+    admission_authority,
+    initial_state,
+)?;
+
+let retry_bytes = serde_json::to_vec(&request)?;
+let outcome = admission.admit(request).await?;`;
+---
+
+<DocsLayout
+  title="Admit one Agent as an atomic durable fact."
+  description="Validate one authenticated Agent intent and atomically commit its database-clock admission, first event, initial checkpoint, Active lifecycle, and scheduler visibility."
+  section="Durable Agent admission"
+>
+  <aside class="docs-callout" aria-labelledby="admission-boundary-title">
+    <h2 id="admission-boundary-title">Implemented admission, pre-alpha API</h2>
+    <p>
+      <code>DurableAgentAdmission</code>, migration 15, and the immutable Core
+      admission contract are implemented. They close the partial-initialization
+      gap, but do not yet provide the complete public run/result facade, ingress
+      idempotency-key store, or prebuilt provider-native tool graph.
+    </p>
+  </aside>
+
+  <section aria-labelledby="transaction-title">
+    <h2 id="transaction-title">Commit the executable boundary once</h2>
+    <p>
+      One PostgreSQL transaction stores the authenticated Agent, request,
+      policy, granted scopes, finite budget, graph, and database time together
+      with the sequence-one <code>agent-admitted</code> event, superstep-zero checkpoint,
+      Active lifecycle, and every scheduler projection. No worker can claim the run
+      between those writes.
+    </p>
+    <p>
+      The revised scheduler index requires an initial checkpoint. The legacy
+      low-level <code>admit_run</code> API therefore creates an addressable but scheduler-invisible
+      row; new Agent ingress must use the atomic facade.
+    </p>
+  </section>
+
+  <section aria-labelledby="deployment-title">
+    <h2 id="deployment-title">Freeze every dependency before traffic</h2>
+    <p>
+      Register the standard admission, Graph Driver, and lifecycle schemas plus
+      every application schema before freezing one executable registry. Install
+      the exact graph/reducer/node closure locally and register the same
+      compiled graph for the tenant in PostgreSQL. A retry requires that
+      digest-pinned deployment to remain available.
+    </p>
+    <p>
+      The public-safe admission event schema is published at <a
+        href="/schemas/runtime/agent-admission-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/agent-admission-event/1.0.0</code
+        ></a
+      >. Register it through <code
+        >register_standard_agent_admission_event_schema</code
+      > instead of pinning a copied digest.
+    </p>
+  </section>
+
+  <section aria-labelledby="request-title">
+    <h2 id="request-title">Retain exact retry authority</h2>
+    <p>
+      Authenticate the principal and evaluate the immutable policy outside this
+      facade. Then allocate one complete <code>AgentRunIds</code> bundle and durably
+      map it to the caller's idempotency key before the first attempt. A timeout must
+      reuse the retained request bytes and all five IDs.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · trusted ingress</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="agent-admission-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="agent-admission-code"
+        tabindex="0"><code>{admissionCode}</code></pre>
+    </div>
+    <p>
+      An ambiguous retry probes and verifies committed evidence before applying
+      the current database clock, so an exact request can converge after its
+      original deadline. Changed input, policy, budget, graph, initial state,
+      ready set, event, checkpoint, or identity is a conflict—not a second run.
+    </p>
+  </section>
+
+  <section aria-labelledby="validation-title">
+    <h2 id="validation-title">Reject drift before mutation</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Resolve code</h3>
+        <p>
+          Require the exact executable graph and exact Agent-to-Graph
+          input/output schema binding.
+        </p>
+      </li>
+      <li>
+        <h3>Validate data offline</h3>
+        <p>
+          Validate typed input, authorization evidence, initial state, and the
+          closed audit event against one frozen JSON Schema 2020-12 registry.
+        </p>
+      </li>
+      <li>
+        <h3>Recheck durable truth</h3>
+        <p>
+          PostgreSQL independently verifies graph registration, entry nodes,
+          checkpoint shape, database-time budget admissibility, and every
+          immutable event/checkpoint projection.
+        </p>
+      </li>
+    </ol>
+    <p>
+      Schema rejection, deadline expiry, graph drift, and an injected late
+      transaction failure leave no run, event, checkpoint, admission, or
+      scheduler residue.
+    </p>
+  </section>
+
+  <section aria-labelledby="security-title">
+    <h2 id="security-title">Protect the admission snapshot</h2>
+    <p>
+      Admission bytes may contain user input, trusted instructions, principal
+      attributes, authorization evidence, and policy limits. Use least-privilege
+      roles, verified TLS, encrypted backups, tenant isolation, access auditing,
+      and an explicit retention policy. Digests prove identity; they do not
+      authenticate a principal or make data secret. The first journal event is
+      deliberately public-safe correlation metadata only.
+    </p>
+  </section>
+
+  <section aria-labelledby="evidence-title">
+    <h2 id="evidence-title">Qualification evidence</h2>
+    <p>
+      The PostgreSQL 16/17 matrix now runs 98 provider cases and 17 durable
+      runtime scenarios per version. Admission coverage includes migration 15,
+      exact retry after time-sensitive boundaries, changed-intent and tamper
+      rejection, invalid-state rollback with zero residue, 24-way convergence,
+      and runtime rejection of Agent/Graph or authorization-schema drift before
+      any write. Read the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-admission.md"
+        >complete integration and rollout contract</a
+      > before adopting this unpublished surface.
+    </p>
+  </section>
+</DocsLayout>

@@ -116,6 +116,24 @@ pub enum StoreError {
     /// Run admission reused an identity with different provenance.
     #[error("run identity already exists with different admission provenance")]
     RunConflict,
+    /// No immutable Agent admission snapshot exists for this tenant-scoped run.
+    #[error("agent admission was not found in the tenant-scoped run")]
+    AgentAdmissionNotFound,
+    /// The supplied event, checkpoint, graph, or scope cannot form an atomic admission.
+    #[error("agent admission commit input is invalid")]
+    InvalidAgentAdmissionCommit,
+    /// Database-time budget evaluation rejected a new Agent admission.
+    #[error("agent admission was rejected at its durable commit observation")]
+    AgentAdmissionRejected,
+    /// The exact pinned state-schema validator was unavailable or panicked.
+    #[error("agent admission state-schema dependency is unavailable")]
+    AgentAdmissionSchemaUnavailable,
+    /// Initial graph state did not satisfy the exact pinned state schema.
+    #[error("agent admission initial state was rejected by its pinned schema")]
+    AgentAdmissionStateRejected,
+    /// The run identity or one stable anchor belongs to another admission intent.
+    #[error("agent admission identity conflicts with durable evidence")]
+    AgentAdmissionConflict,
     /// The run is quarantined and cannot execute or mutate normally.
     #[error("run is quarantined")]
     RunQuarantined,

@@ -158,13 +158,18 @@ results, reconciliation-safe tool failures, and no-dispatch terminal recovery.
 Migration 14 and `DurableFairScheduler` add an immutable shard-scoped smooth
 weighted policy, globally ordered lost-ACK-safe reservations, exact cycle
 shares, explicit reservation-count starvation bounds, and bounded
-database-time retention. Sixteen runtime scenarios and 95 provider cases are
+database-time retention. Seventeen runtime scenarios and 98 provider cases are
 mandatory on both PostgreSQL 16 and 17.
 The repository now also includes a schema-pinned typed Agent contract plus
 first-party OpenAI Responses and Anthropic Messages unary/SSE adapters with
 bounded transport controls and lossless provider-native unary tool continuation.
-The complete durable admit/run/result facade and its prebuilt transcript-assembling
-graph, protocol-specific outbox dispatch
+Migration 15 and `DurableAgentAdmission` now validate and atomically commit an
+immutable authenticated Agent intent, database-clock admission, Active
+lifecycle, sequence-one audit event, superstep-zero checkpoint, and scheduler
+projections. Exact retries recover the original verified commit; conflicting
+input, policy, graph, state, or identities fail closed.
+The complete durable run/result facade and its prebuilt transcript-assembling
+graph, ingress idempotency-key mapping, protocol-specific outbox dispatch
 adapters, parallel siblings, loops/subgraphs, role isolation, general
 retention, failover, restore, and the final stale-race gates have not shipped
 yet.
@@ -173,8 +178,9 @@ The current milestone is to:
 
 1. validate the three frozen production scenarios and their load/failure models;
 2. accept the core domain, graph, durability, and protocol/security RFCs;
-3. integrate durable admission, provider-native transcript assembly, policy,
-   and typed result retrieval into a public Agent facade over the proven
+3. integrate the implemented durable admission with provider-native transcript
+   assembly, policy, ingress idempotency, and typed result retrieval in a public
+   Agent facade over the proven
    adapters, invocation executor, Driver, lifecycle coordinator, and fair
    tenant worker;
 4. qualify role isolation, failover/restore, and the final stale-race gates; and
@@ -185,6 +191,7 @@ See the [qualification scenarios](docs/scenarios/README.md), the
 [research and implementation plan](docs/research-and-implementation-plan.md),
 the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [typed Agent and first-party adapters](docs/typed-agent.md),
+[durable Agent admission](docs/durable-agent-admission.md),
 [durable invocation](docs/durable-invocation-executor.md),
 [fair scheduling](docs/cross-tenant-fair-scheduler.md), and
 [completeness audit](docs/plan-completeness-audit.md) guides.

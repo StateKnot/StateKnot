@@ -131,17 +131,20 @@ supported path remains:
 1. authenticate and select immutable agent/model/tool descriptor snapshots;
 2. validate the typed request and all digest-pinned schemas offline;
 3. resolve system, tenant, policy, agent, and request limits into one finite
-   `ResolvedBudget` and commit admission evidence;
+   `ResolvedBudget`, then commit the immutable intent, initial event, and
+   superstep-zero checkpoint through `DurableAgentAdmission`;
 4. claim the graph with a lease/fence;
 5. execute model and tool attempts through `DurableInvocationExecutor`, which
    commits attempt start before external dispatch;
 6. drive checkpoints and lifecycle handoffs through `DurableAgentLoop`; and
 7. validate and decode the terminal `AgentResult` through `TypedAgent`.
 
-There is no public helper today that admits a new run, synthesizes the prebuilt
+Atomic durable admission is implemented; see
+[`durable-agent-admission.md`](durable-agent-admission.md). There is no public
+helper today that maps an external idempotency key, synthesizes the prebuilt
 model/tool graph, executes it, and loads the terminal result in one call. That
-integration requires durable admission and result-retrieval evidence and is not
-represented by a temporary in-memory `run()` method.
+remaining integration requires result-retrieval evidence and is not represented
+by a temporary in-memory `run()` method.
 
 ## Verification evidence
 
@@ -161,5 +164,5 @@ cargo test -p stateknot-runtime --test typed_agent
 
 Live-provider qualification, provider drift cassettes, durable transcript
 assembly inside the prebuilt Agent graph, policy middleware, and the complete
-public admit/run/result facade remain release gates. These adapters and typed
+public run/result facade remain release gates. These adapters and typed
 APIs are implemented but still pre-alpha and unpublished.

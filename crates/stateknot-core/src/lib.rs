@@ -7,11 +7,15 @@
 //! databases, HTTP servers, and async executors. Implemented contracts are
 //! introduced only with strict validation, schemas, and versioned wire
 //! fixtures from RFC-0001.
+//! Agent admission values freeze authenticated authority, deterministic finite
+//! budgets, executable graph identity, and a database-clock commit without
+//! depending on any storage implementation.
 
 #![forbid(unsafe_code)]
 
 mod accounting;
 mod agent;
+mod agent_admission;
 mod agent_runtime;
 mod artifact;
 mod barrier;
@@ -60,6 +64,11 @@ pub use agent::{
     AgentDescriptor, AgentDescriptorError, AgentExecutionConfig, AgentExecutionConfigError,
     AgentInstructions, AgentInstructionsError, AgentStructuredOutputStrategy, AgentToolConcurrency,
     AgentTools, AgentToolsError,
+};
+pub use agent_admission::{
+    AgentAdmission, AgentAdmissionAuthority, AgentAdmissionAuthorityError,
+    AgentAdmissionBudgetLayer, AgentAdmissionBudgetLayerError, AgentAdmissionError,
+    AgentAdmissionIntent, AgentAdmissionIntentError,
 };
 pub use agent_runtime::{
     AgentArtifacts, AgentArtifactsError, AgentRequest, AgentRequestValidationError, AgentResult,

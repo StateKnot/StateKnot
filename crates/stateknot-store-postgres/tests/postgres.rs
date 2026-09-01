@@ -19,41 +19,43 @@ use sqlx_core::{
 };
 use sqlx_postgres::{PgPool, PgPoolOptions};
 use stateknot_core::{
-    AgentResultProvenance, AttemptId, BoundedJson, BudgetUsage, CapabilityIdentity, CapabilityName,
-    CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
-    CheckpointState, CheckpointWrite, CompiledGraph, DeliveryId, DestinationId, Digest,
-    DurationMillis, EventId, Failure, FailureCategory, FailureCode, FailureId, FailureMessage,
-    FailureOrigin, GraphExecutionLimits, GraphNamespace, GraphNode, GraphReducer,
-    GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
-    GraphSchemaValidationError, GraphSchemaValidator, InterruptId, InterruptRequestIntent,
-    InterruptResolutionIntent, InterruptResolver, InvocationId, IssuerId, JournalAppend,
-    JournalEventIntent, JournalEventKind, JournalExpectation, JournalHead, JournalPayload,
-    JournalSequence, ModelDescriptor, ModelError, ModelErrorPhase, ModelErrorProvenance,
-    ModelInvocationIntent, ModelInvocationStatus, ModelInvocationTransition, ModelRequest,
-    ModelResponse, NodeActivation, NodeAttemptStatus, NodeControl, NodeDispatchReason, NodeId,
-    NodeInvocationBinding, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
-    OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead, PendingNodeResultIntent,
-    PrincipalIdentity, QuarantineId, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind,
-    RetryAdvice, RunCancellationRequest, RunFailure, RunId, RunInterruptKind, RunStatus,
-    RunTimerKind, RunTransition, SchedulerReservationId, SchedulerShardId, SchemaId,
-    SchemaReference, Scope, ScopeSet, SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent,
-    TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput,
-    ToolInvocation, ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition,
-    ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
+    AgentAdmission, AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentAdmissionIntent,
+    AgentDescriptor, AgentRequest, AgentResultProvenance, AttemptId, BoundedJson, BudgetLimits,
+    BudgetUsage, CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint,
+    CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointState, CheckpointWrite,
+    CompiledGraph, DeliveryId, DestinationId, Digest, DurationMillis, EventId, Failure,
+    FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin, GraphExecutionLimits,
+    GraphNamespace, GraphNode, GraphReducer, GraphReducerError, GraphReducerInput,
+    GraphReducerReference, GraphReference, GraphRoutes, GraphSchemaValidationError,
+    GraphSchemaValidator, InterruptId, InterruptRequestIntent, InterruptResolutionIntent,
+    InterruptResolver, InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
+    JournalExpectation, JournalHead, JournalPayload, JournalSequence, ModelDescriptor, ModelError,
+    ModelErrorPhase, ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus,
+    ModelInvocationTransition, ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus,
+    NodeControl, NodeDispatchReason, NodeId, NodeInvocationBinding, NodeInvocationBindings,
+    NodeStateChange, NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef,
+    PendingNodeResultHead, PendingNodeResultIntent, PrincipalIdentity, QuarantineId,
+    ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind, RetryAdvice, RunCancellationRequest,
+    RunFailure, RunId, RunInterruptKind, RunStatus, RunTimerKind, RunTransition,
+    SchedulerReservationId, SchedulerShardId, SchemaId, SchemaReference, Scope, ScopeSet,
+    SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent, TimerId, TimerRegistrationIntent,
+    Timestamp, ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation, ToolInvocationIntent,
+    ToolInvocationStatus, ToolInvocationTransition, ToolResult, ToolResultProvenance, Version,
+    WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
-    AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePageSize, CorruptionQuarantineContext, DelayedRetryScheduleOutcome,
-    GraphDefinitionRegistrationOutcome, GraphReplayLimits, InterruptResolutionCommitOutcome,
-    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
-    ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome,
-    NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize, OutboxClaimOutcome,
-    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
-    PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions,
-    PostgresTransportSecurity, RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome,
-    RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize,
+    AdmissionOutcome, AgentAdmissionCommitOutcome, AppendOutcome, BarrierCommitOutcome,
+    CheckpointCommitOutcome, CheckpointLineagePageSize, CorruptionQuarantineContext,
+    DelayedRetryScheduleOutcome, GraphDefinitionRegistrationOutcome, GraphReplayLimits,
+    InterruptResolutionCommitOutcome, JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome,
+    LeaseRenewalOutcome, ModelInvocationCommitOutcome, ModelInvocationHistoryPageSize,
+    NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize, OutboxAttemptHistoryPageSize,
+    OutboxClaimOutcome, OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome,
+    OutboxEnqueueOutcome, PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore,
+    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, RunQuarantineCause,
+    RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize,
     SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
-    SchedulerFairnessRetentionPolicy, StoreError, TimerFiringCommitOutcome,
+    SchedulerFairnessRetentionPolicy, StoreError, StoredAgentAdmission, TimerFiringCommitOutcome,
     ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome,
     WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
@@ -315,6 +317,7 @@ async fn remove_graph_registry(pool: &PgPool) {
 }
 
 async fn remove_scheduler_fairness(pool: &PgPool) {
+    remove_agent_admissions(pool).await;
     query("DROP TABLE stateknot.scheduler_fairness_reservations")
         .execute(pool)
         .await
@@ -327,6 +330,41 @@ async fn remove_scheduler_fairness(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v14 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_agent_admissions(pool: &PgPool) {
+    query("DROP TABLE stateknot.agent_admissions")
+        .execute(pool)
+        .await
+        .expect("v15 Agent admission table must be removed from the fixture");
+    query("DROP INDEX stateknot.runs_scheduler_ready")
+        .execute(pool)
+        .await
+        .expect("v15 scheduler index must be removed from the fixture");
+    query(
+        "CREATE INDEX runs_scheduler_ready \
+         ON stateknot.runs ( \
+             tenant_id, \
+             (GREATEST( \
+                 scheduler_ready_at, \
+                 COALESCE(scheduler_not_before, scheduler_ready_at), \
+                 COALESCE(lease_expires_at, scheduler_ready_at) \
+             )), \
+             run_id \
+         ) \
+         WHERE quarantined_at IS NULL \
+           AND scheduler_ready_at IS NOT NULL \
+           AND lifecycle_status IN ('pending', 'active', 'cancellation_requested')",
+    )
+    .execute(pool)
+    .await
+    .expect("the exact v12 scheduler index must be restored");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 15")
+        .execute(pool)
+        .await
+        .expect("v15 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -687,15 +725,14 @@ async fn runnable_run_pages_are_tenant_scoped_snapshot_stable_and_lease_aware() 
     let second_initial = RunId::generate();
     let foreign_run = RunId::generate();
     for run_id in [first_initial, second_initial] {
-        store
-            .admit_run(provenance(tenant_id.clone(), run_id))
-            .await
-            .expect("initial runnable run must be admitted");
+        Box::pin(admit_atomic_agent_fixture(&store, &tenant_id, run_id)).await;
     }
-    store
-        .admit_run(provenance(foreign_tenant.clone(), foreign_run))
-        .await
-        .expect("foreign runnable run must be admitted");
+    Box::pin(admit_atomic_agent_fixture(
+        &store,
+        &foreign_tenant,
+        foreign_run,
+    ))
+    .await;
 
     let first_page = store
         .load_runnable_run_page(&tenant_id, None, RunnableRunPageSize::new(1).unwrap())
@@ -737,10 +774,7 @@ async fn runnable_run_pages_are_tenant_scoped_snapshot_stable_and_lease_aware() 
     assert!(released.scheduler_ready_at().unwrap() > first_page.snapshot_at());
 
     let late_run = RunId::generate();
-    store
-        .admit_run(provenance(tenant_id.clone(), late_run))
-        .await
-        .expect("a post-snapshot run must be admitted");
+    let late_admission = Box::pin(admit_atomic_agent_fixture(&store, &tenant_id, late_run)).await;
     let continuation = store
         .load_runnable_run_page(
             &tenant_id,
@@ -819,7 +853,7 @@ async fn runnable_run_pages_are_tenant_scoped_snapshot_stable_and_lease_aware() 
                 tenant_id.clone(),
                 late_run,
                 EventId::generate(),
-                JournalExpectation::empty(),
+                JournalExpectation::exact(late_admission.event().head()),
                 732,
             ),
             RunProjection::transition(
@@ -904,10 +938,7 @@ async fn concurrent_schedulers_claim_exactly_one_discovered_run() {
     };
     let tenant_id = tenant("scheduler-claim-race");
     let run_id = RunId::generate();
-    store
-        .admit_run(provenance(tenant_id.clone(), run_id))
-        .await
-        .unwrap();
+    Box::pin(admit_atomic_agent_fixture(&store, &tenant_id, run_id)).await;
     let page = store
         .load_runnable_run_page(&tenant_id, None, RunnableRunPageSize::new(1).unwrap())
         .await
@@ -1053,7 +1084,7 @@ async fn runtime_connection_refuses_an_unmigrated_database() {
         .expect("runtime connection must accept the exact migrated schema");
     store.close().await;
 
-    query(&format!("DROP DATABASE {database_name}"))
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
         .execute(&administration)
         .await
         .expect("isolated test database must be dropped");
@@ -1910,13 +1941,16 @@ async fn migration_seven_backfills_an_indexed_fail_closed_scheduler_projection()
             RunnableRunPageSize::new(RunnableRunPageSize::MAX).unwrap(),
         )
         .await
-        .expect("the upgraded pending run must be schedulable");
+        .expect("legacy uninitialized rows must be evaluated safely");
     let page_ids = page
         .records()
         .iter()
         .map(|candidate| candidate.run().lifecycle().provenance().run_id())
         .collect::<Vec<_>>();
-    assert_eq!(page_ids, vec![pending_run]);
+    assert!(
+        page_ids.is_empty(),
+        "legacy rows without an initial checkpoint must fail closed from discovery"
+    );
 
     assert!(
         query(
@@ -2967,6 +3001,117 @@ impl GraphSchemaValidator for AcceptGraphSchemas {
         _: &BoundedJson,
     ) -> Result<(), GraphSchemaValidationError> {
         Ok(())
+    }
+}
+
+fn agent_fixture_definition() -> AgentDescriptor {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-v1.json"
+    ))
+    .unwrap();
+    serde_json::from_value(fixture["descriptors"]["valid"][0].clone()).unwrap()
+}
+
+fn agent_fixture_request_and_budget() -> (AgentRequest, BudgetLimits) {
+    let mut fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    ))
+    .unwrap();
+    let deadline = timestamp_after(Duration::from_secs(3_600)).to_string();
+    fixture["requests"]["valid"][0]["budget_limits"]["deadline"] = json!(deadline);
+    fixture["base_budget_layers"][0]["deadline"] = json!(deadline);
+    (
+        serde_json::from_value(fixture["requests"]["valid"][0].clone()).unwrap(),
+        serde_json::from_value(fixture["base_budget_layers"][0].clone()).unwrap(),
+    )
+}
+
+fn agent_admission_fixture(
+    tenant_id: TenantId,
+    run_id: RunId,
+) -> (AgentAdmissionIntent, JournalAppend, CheckpointWrite) {
+    let descriptor = agent_fixture_definition();
+    let provenance = AgentResultProvenance::for_agent(
+        tenant_id.clone(),
+        run_id,
+        ThreadId::generate(),
+        InvocationId::generate(),
+        &descriptor,
+    );
+    let (request, limits) = agent_fixture_request_and_budget();
+    let graph = checkpoint_graph();
+    let policy = checkpoint_capability("agent-admission-policy");
+    let evidence = JournalPayload::new(
+        checkpoint_schema("agent-admission-evidence"),
+        JournalEventKind::new(AgentAdmissionAuthority::EVIDENCE_KIND).unwrap(),
+        BoundedJson::try_from_value(json!({"decision": "allow"})).unwrap(),
+    )
+    .unwrap();
+    let authority = AgentAdmissionAuthority::new(
+        policy.owner().clone(),
+        ScopeSet::empty(),
+        policy,
+        Digest::sha256(b"integration Agent admission policy v1"),
+        evidence,
+    )
+    .unwrap();
+    let budget_layer = AgentAdmissionBudgetLayer::new(
+        checkpoint_capability("agent-admission-budget"),
+        authority.evidence().digest(),
+        limits,
+    )
+    .unwrap();
+    let intent = AgentAdmissionIntent::new(
+        provenance,
+        descriptor,
+        request,
+        [budget_layer],
+        graph.clone(),
+        authority,
+    )
+    .unwrap();
+    let payload = JournalPayload::new(
+        checkpoint_schema("agent-admission-event"),
+        JournalEventKind::new(AgentAdmission::JOURNAL_EVENT_KIND).unwrap(),
+        BoundedJson::try_from_value(json!({
+            "intent_digest": intent.intent_digest().to_string()
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let event =
+        JournalEventIntent::control_plane(tenant_id.clone(), run_id, EventId::generate(), payload)
+            .unwrap();
+    let append = JournalAppend::new(JournalExpectation::empty(), event).unwrap();
+    let checkpoint = CheckpointWrite::initial(
+        tenant_id,
+        run_id,
+        CheckpointId::generate(),
+        graph.clone(),
+        checkpoint_state(&graph, 0),
+        checkpoint_compiled_graph().entry_nodes().clone(),
+    )
+    .unwrap();
+    (intent, append, checkpoint)
+}
+
+async fn admit_atomic_agent_fixture(
+    store: &PostgresStore,
+    tenant_id: &TenantId,
+    run_id: RunId,
+) -> StoredAgentAdmission {
+    store
+        .register_graph_definition(tenant_id.clone(), checkpoint_compiled_graph())
+        .await
+        .unwrap();
+    let (intent, append, checkpoint) = agent_admission_fixture(tenant_id.clone(), run_id);
+    match Box::pin(store.admit_agent_run(intent, append, checkpoint, &AcceptGraphSchemas))
+        .await
+        .unwrap()
+    {
+        AgentAdmissionCommitOutcome::Committed(stored)
+        | AgentAdmissionCommitOutcome::Idempotent(stored) => stored,
+        _ => panic!("unsupported Agent admission outcome"),
     }
 }
 
@@ -15144,6 +15289,290 @@ async fn migration_fourteen_installs_verified_distributed_fairness_state() {
         Err(StoreError::CorruptData { .. })
     ));
 
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn atomic_agent_admission_is_scheduler_ready_retry_exact_and_tamper_evident() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("atomic-agent-admission");
+    let run_id = RunId::generate();
+    store
+        .register_graph_definition(tenant_id.clone(), checkpoint_compiled_graph())
+        .await
+        .unwrap();
+    let (intent, append, checkpoint) = agent_admission_fixture(tenant_id.clone(), run_id);
+
+    let committed = Box::pin(store.admit_agent_run(
+        intent.clone(),
+        append.clone(),
+        checkpoint.clone(),
+        &AcceptGraphSchemas,
+    ))
+    .await
+    .expect("the complete Agent admission must commit atomically");
+    let AgentAdmissionCommitOutcome::Committed(stored) = committed else {
+        panic!("first Agent admission must be a physical commit")
+    };
+    assert_eq!(stored.admission().intent(), &intent);
+    assert_eq!(stored.run().lifecycle().status(), RunStatus::Active);
+    assert_eq!(stored.event().sequence(), JournalSequence::FIRST);
+    assert_eq!(stored.checkpoint().superstep(), Superstep::INITIAL);
+    assert_eq!(stored.checkpoint().journal_head(), &stored.event().head());
+    assert_eq!(
+        store
+            .load_agent_admission(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .admission(),
+        stored.admission()
+    );
+    let page = store
+        .load_runnable_run_page(&tenant_id, None, RunnableRunPageSize::new(8).unwrap())
+        .await
+        .unwrap();
+    assert!(page.records().iter().any(|candidate| {
+        candidate.run().lifecycle().provenance().run_id() == run_id
+            && candidate.run().checkpoint().is_some()
+    }));
+
+    let retry = Box::pin(store.admit_agent_run(
+        intent.clone(),
+        append.clone(),
+        checkpoint.clone(),
+        &AcceptGraphSchemas,
+    ))
+    .await
+    .expect("an exact lost-ack retry must recover durable evidence");
+    assert!(matches!(retry, AgentAdmissionCommitOutcome::Idempotent(_)));
+
+    let conflicting_event = JournalEventIntent::control_plane(
+        tenant_id.clone(),
+        run_id,
+        EventId::generate(),
+        append.intent().payload().clone(),
+    )
+    .unwrap();
+    let conflicting_append =
+        JournalAppend::new(JournalExpectation::empty(), conflicting_event).unwrap();
+    assert!(matches!(
+        Box::pin(store.admit_agent_run(
+            intent,
+            conflicting_append,
+            checkpoint,
+            &AcceptGraphSchemas,
+        ))
+        .await,
+        Err(StoreError::AgentAdmissionConflict)
+    ));
+
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+        .await
+        .unwrap();
+    query(
+        "UPDATE stateknot.agent_admissions \
+         SET admission_bytes = admission_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store.load_agent_admission(&tenant_id, run_id).await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_agent_admissions_converge_and_late_failure_rolls_back_all_rows() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("concurrent-agent-admission");
+    store
+        .register_graph_definition(tenant_id.clone(), checkpoint_compiled_graph())
+        .await
+        .unwrap();
+    let run_id = RunId::generate();
+    let (intent, append, checkpoint) = agent_admission_fixture(tenant_id.clone(), run_id);
+    let mut tasks = tokio::task::JoinSet::new();
+    for _ in 0..2 {
+        let store = store.clone();
+        let intent = intent.clone();
+        let append = append.clone();
+        let checkpoint = checkpoint.clone();
+        tasks.spawn(async move {
+            Box::pin(store.admit_agent_run(intent, append, checkpoint, &AcceptGraphSchemas)).await
+        });
+    }
+    let mut committed = 0;
+    let mut idempotent = 0;
+    while let Some(result) = tasks.join_next().await {
+        match result.unwrap().unwrap() {
+            AgentAdmissionCommitOutcome::Committed(_) => committed += 1,
+            AgentAdmissionCommitOutcome::Idempotent(_) => idempotent += 1,
+            _ => panic!("unsupported Agent admission outcome"),
+        }
+    }
+    assert_eq!((committed, idempotent), (1, 1));
+
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+        .await
+        .unwrap();
+    query(
+        "CREATE FUNCTION stateknot.reject_agent_admission_test() RETURNS trigger \
+         LANGUAGE plpgsql AS 'BEGIN RAISE EXCEPTION ''injected Agent admission failure''; END'",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+    query(
+        "CREATE TRIGGER reject_agent_admission_test \
+         BEFORE INSERT ON stateknot.agent_admissions \
+         FOR EACH ROW EXECUTE FUNCTION stateknot.reject_agent_admission_test()",
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+
+    let rollback_run = RunId::generate();
+    let (rollback_intent, rollback_append, rollback_checkpoint) =
+        agent_admission_fixture(tenant_id.clone(), rollback_run);
+    assert!(matches!(
+        Box::pin(store.admit_agent_run(
+            rollback_intent,
+            rollback_append,
+            rollback_checkpoint,
+            &AcceptGraphSchemas,
+        ))
+        .await,
+        Err(StoreError::Database { .. })
+    ));
+    for table in ["runs", "run_events", "run_checkpoints", "agent_admissions"] {
+        let count = query_scalar::<_, i64>(&format!(
+            "SELECT count(*) FROM stateknot.{table} WHERE tenant_id = $1 AND run_id = $2"
+        ))
+        .bind(tenant_id.as_str())
+        .bind(*rollback_run.as_uuid())
+        .fetch_one(&administration)
+        .await
+        .unwrap();
+        assert_eq!(count, 0, "{table} must roll back with the failed admission");
+    }
+    query("DROP TRIGGER reject_agent_admission_test ON stateknot.agent_admissions")
+        .execute(&administration)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.reject_agent_admission_test()")
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn migration_fifteen_installs_verified_atomic_agent_admissions() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v15_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let fixture = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_agent_admissions(&fixture).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        14
+    );
+    fixture.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 15 must upgrade the exact v14 fixture");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("the upgraded v15 schema must pass exact verification");
+    upgraded.verify_schema().await.unwrap();
+    let tenant_id = tenant("v15-agent-admission");
+    let run_id = RunId::generate();
+    upgraded
+        .register_graph_definition(tenant_id.clone(), checkpoint_compiled_graph())
+        .await
+        .unwrap();
+    let (intent, append, checkpoint) = agent_admission_fixture(tenant_id.clone(), run_id);
+    Box::pin(upgraded.admit_agent_run(intent, append, checkpoint, &AcceptGraphSchemas))
+        .await
+        .unwrap();
+    upgraded
+        .load_agent_admission(&tenant_id, run_id)
+        .await
+        .unwrap();
+
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    query(
+        "ALTER TABLE stateknot.agent_admissions \
+         DROP CONSTRAINT agent_admissions_bytes_bounded",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
     verification.close().await;
     upgraded.close().await;
     query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))

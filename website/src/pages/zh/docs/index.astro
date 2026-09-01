@@ -18,6 +18,12 @@ const paths = [
     link: "构建类型合约",
   },
   {
+    title: "原子接纳 Agent",
+    body: "把已认证 Intent、有限 Budget、数据库时间、首 Event 与初始 Graph Checkpoint 绑定为一个可重试的耐久事实。",
+    href: "/zh/docs/admission/",
+    link: "集成耐久 Admission",
+  },
+  {
     title: "编译确定性 Graph",
     body: "运行持续维护的 Rust 示例，理解 Compiler 的 Fail-closed 校验，并注册一个精确不可变的 Definition。",
     href: "/zh/docs/concepts/graphs/",
@@ -82,7 +88,8 @@ const paths = [
       Lifecycle Commit 运行 Tenant-scoped 耐久 Graph Loop。Provider-neutral 耐久
       Model/Tool Attempt、加权 Cross-tenant Selection、强类型 Agent
       合约，以及首批 OpenAI Responses 与 Anthropic Messages Adapter
-      也已实现。完整耐久 Admit/Run/Result Facade 仍是明确的发布阻断项。
+      也已实现。原子耐久 Agent Admission 现已把这些合约绑定到 Scheduler-visible
+      Work；完整耐久 Run/Result Facade 仍是明确的发布阻断项。
     </p>
   </aside>
 
@@ -137,6 +144,14 @@ const paths = [
           可信 Terminal Evidence、数据库时间 Wait Registration、原子
           Success/Failure Transition、精确 Lost-ACK 收敛、有界 Cleanup 与一次
           Tenant-scoped Scheduler Quantum。
+        </dd>
+      </div>
+      <div>
+        <dt>原子 Agent Admission</dt>
+        <dd>
+          已认证不可变 Intent、确定性有限 Budget、数据库时钟
+          Commit、Sequence-one Audit Event、Superstep-zero Checkpoint、精确
+          Lost-ACK Retry 与完整校验的耐久 Load。
         </dd>
       </div>
       <div>

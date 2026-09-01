@@ -182,8 +182,16 @@ from the repository.
   OpenAI Responses and Anthropic Messages replay order, encrypted reasoning
   continuation, durable outcome pairing, identity/digest binding, semantic
   replay validation before I/O, and corruption/cross-provider tests.
-- [ ] Complete the durable public admit/run/result facade, transcript assembly
-  in its prebuilt graph, policy middleware, parallel sibling policy,
+- [x] Implement immutable authenticated Agent admission intents, deterministic
+  finite-budget resolution, a standard public-safe audit schema, and migration
+  15's all-or-nothing PostgreSQL commit of database time, Active lifecycle,
+  sequence-one event, superstep-zero checkpoint, graph/ready-set anchors, and
+  scheduler projections. Exact retries, late rollback, tamper detection,
+  24-request convergence, and the runtime validation facade pass on PostgreSQL
+  16/17.
+- [ ] Complete the durable public run/result facade, provider-native transcript
+  assembly in its prebuilt graph, ingress idempotency-key mapping, policy
+  middleware, parallel sibling policy,
   loop/subgraph semantics, protocol-specific outbox adapters, role isolation,
   general retention, failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.

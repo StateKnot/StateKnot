@@ -42,6 +42,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         search:
           "typed agent builder schema openai responses anthropic messages adapter tutorial",
       },
+      {
+        title: "Durable admission",
+        description:
+          "Atomically commit authenticated intent, database time, the first event, and the initial checkpoint.",
+        href: "/docs/admission/",
+        search:
+          "agent admission atomic idempotency retry database checkpoint policy authentication",
+      },
     ],
   },
   {
@@ -147,6 +155,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/typed-agent/",
         search:
           "强类型 agent builder schema openai responses anthropic messages adapter 教程",
+      },
+      {
+        title: "耐久 Admission",
+        description:
+          "原子提交已认证 Intent、数据库时间、首 Event 与初始 Checkpoint。",
+        href: "/docs/admission/",
+        search:
+          "agent admission 原子 幂等 重试 数据库 checkpoint policy 认证 接纳",
       },
     ],
   },

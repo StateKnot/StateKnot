@@ -20,6 +20,12 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "Atomic Agent admission",
+    body: "Immutable authenticated intent, deterministic finite budgets, database-clock admission, first event, initial checkpoint, scheduler visibility, exact retries, and fully verified loads.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "Durable Graph Driver",
     body: "Offline executable schema/reducer/node closure, full checkpoint-state and bounded noninitial replay validation, durable-before-dispatch execution, monotonic lease enforcement, Continue barriers, and typed lifecycle handoffs.",
   },
@@ -51,13 +57,13 @@ const capabilities = [
     state: "Active work",
     className: "status-active",
     title: "Public Agent integration",
-    body: "The complete durable admit/run/result facade, a prebuilt provider-native multi-turn model/tool graph, policy middleware, parallel siblings, and loop/subgraph semantics.",
+    body: "The complete durable run/result facade, ingress idempotency-key mapping, a prebuilt provider-native multi-turn model/tool graph, policy middleware, parallel siblings, and loop/subgraph semantics.",
   },
   {
     state: "Not shipped",
     className: "status-planned",
     title: "Stable end-to-end Agent API",
-    body: "No stable one-call facade, provider-native multi-turn tool transcript, published crate, or production support claim exists yet.",
+    body: "No stable one-call run/result facade, prebuilt multi-turn tool path, published crate, or production support claim exists yet.",
   },
   {
     state: "Not shipped",
@@ -76,7 +82,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: the durable Graph loop, invocation executor, typed Agent contract, first model adapters, and fair scheduler are implemented; the end-to-end facade, MCP/A2A adapters, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: atomic Agent admission, the durable Graph loop, invocation executor, typed Agent contract, first model adapters, and fair scheduler are implemented; the complete run/result facade, MCP/A2A adapters, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -112,9 +118,10 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      The next runtime milestone binds durable admission and result retrieval to
-      the typed contract, provider adapters, invocation executor, Driver,
-      lifecycle coordinator, and fair scheduler. Its exit proof is one
+      Atomic admission now binds trusted typed input to scheduler-visible work.
+      The next runtime milestone adds ingress idempotency routing, the prebuilt
+      provider-native graph, and result retrieval over the invocation executor,
+      Driver, lifecycle coordinator, and fair scheduler. Its exit proof is one
       provider-native multi-turn tool path that can crash, recover, and return a
       typed result without redispatch. Protocol breadth follows that recovered
       path rather than preceding it.
@@ -124,6 +131,9 @@ const capabilities = [
   <section aria-labelledby="source-status-title">
     <h2 id="source-status-title">Normative project sources</h2>
     <ul>
+      <li>
+        <a href="/docs/admission/">Durable Agent admission contract</a>
+      </li>
       <li>
         <a href="/docs/typed-agent/"
           >Typed Agent and first-party model adapter contract</a

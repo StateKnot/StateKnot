@@ -34,6 +34,12 @@ const localizedRoutePairs = [
     zhHeading: "构建一个强类型 Agent 合约。",
   },
   {
+    en: "/docs/admission/",
+    zh: "/zh/docs/admission/",
+    enHeading: "Admit one Agent as an atomic durable fact.",
+    zhHeading: "将一个 Agent 原子接纳为耐久事实。",
+  },
+  {
     en: "/docs/concepts/durability/",
     zh: "/zh/docs/concepts/durability/",
     enHeading: "Durability is evidence, not process memory.",
@@ -173,6 +179,11 @@ test("homepage exposes honest implementation status and semantic structure", asy
       .locator(".spec-list")
       .getByText("Typed Agent and model adapters", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page.locator(".spec-list").getByText("Atomic Agent admission", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(page.locator(".map-node--planned")).toHaveCount(4);
 
   const main = page.locator("main");
@@ -246,6 +257,29 @@ test("publishes the strict invocation execution schema at its stable identity", 
   expect(schema.oneOf).toHaveLength(2);
 });
 
+test("publishes the strict Agent admission schema at its stable identity", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/schemas/runtime/agent-admission-event/1.0.0",
+  );
+  expect(response.status()).toBe(200);
+  const schema = await response.json();
+  expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+  expect(schema.$id).toBe(
+    "https://stknot.com/schemas/runtime/agent-admission-event/1.0.0",
+  );
+  expect(schema.additionalProperties).toBe(false);
+  expect(schema.required).toEqual([
+    "operation",
+    "intent_digest",
+    "graph_digest",
+    "policy_digest",
+    "input_digest",
+  ]);
+  expect(schema.properties.operation.const).toBe("agent_admitted");
+});
+
 for (const width of responsiveAuditWidths) {
   test(`has no horizontal page overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -258,6 +292,7 @@ for (const route of [
   "/docs/",
   "/docs/getting-started/",
   "/docs/typed-agent/",
+  "/docs/admission/",
   "/docs/runtime/",
   "/docs/agent-loop/",
   "/docs/invocations/",
@@ -265,6 +300,7 @@ for (const route of [
   "/zh/",
   "/zh/docs/getting-started/",
   "/zh/docs/typed-agent/",
+  "/zh/docs/admission/",
   "/zh/docs/runtime/",
   "/zh/docs/agent-loop/",
   "/zh/docs/invocations/",
@@ -291,7 +327,7 @@ test("typed Agent tutorial keeps the durable execution boundary explicit", async
     page.getByText("Cross the durable boundary explicitly"),
   ).toBeVisible();
   await expect(
-    page.getByText("complete public admit/run/result facade", { exact: false }),
+    page.getByText("complete public run/result facade", { exact: false }),
   ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(3);
 });

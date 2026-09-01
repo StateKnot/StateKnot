@@ -179,7 +179,10 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         <h3>Admit</h3>
         <p>
           Validate the typed request, resolve finite trusted budgets, assign
-          tenant/run/thread/invocation identity, and commit admission evidence.
+          tenant/run/thread/invocation identity, and atomically commit
+          admission, the first event, and the initial checkpoint through <code
+            >DurableAgentAdmission</code
+          >.
         </p>
       </li>
       <li>
@@ -199,10 +202,12 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
       </li>
     </ol>
     <p>
-      The complete public admit/run/result facade and a prebuilt graph that
-      durably assembles the implemented provider-native transcript remain
-      release gates. Continue with <a href="/docs/invocations/"
-        >durable invocations</a
+      Atomic admission is implemented; read the <a href="/docs/admission/"
+        >durable admission contract</a
+      > next. The complete public run/result facade, ingress idempotency-key mapping,
+      and a prebuilt graph that durably assembles the implemented provider-native
+      transcript remain release gates. Continue with <a
+        href="/docs/invocations/">durable invocations</a
       > and the <a href="/docs/agent-loop/">durable Agent Loop</a> for the implemented
       execution contracts.
     </p>

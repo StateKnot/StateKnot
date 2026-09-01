@@ -192,7 +192,7 @@ const outcomes = [
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">Qualification evidence</h2>
     <p>
-      CI runs 16 runtime scenarios and 95 provider cases on both PostgreSQL 16
+      CI runs 17 runtime scenarios and 98 provider cases on both PostgreSQL 16
       and 17. The runtime cases cover lifecycle atomicity and exact lost-ack
       replay, database-time Wait materialization, Agent Loop success and
       evidence failure, tenant and weighted cross-tenant scheduling, durable
@@ -201,6 +201,11 @@ const outcomes = [
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.md"
         >complete integration and operations contract</a
       > before deploying this pre-alpha surface.
+    </p>
+    <p>
+      Atomic admission now provides the trusted immutable admission snapshot.
+      The embedding application still owns terminal artifact and cumulative
+      accounting evidence until the complete public run/result facade ships.
     </p>
   </section>
 </DocsLayout>

@@ -884,7 +884,7 @@ code. The recovery read finishes before the separate quarantine transaction;
 an advanced journal head returns a stale-observation error rather than stopping
 newer state.
 
-Ninety-one provider integration tests run against PostgreSQL 16 and 17.
+Ninety-eight provider integration tests run against PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, existing v1-history upgrade, v3
 tool-attempt backfill into the exact shared registry, admission,
 event/projection/checkpoint conflicts and lost acknowledgements,
@@ -948,9 +948,13 @@ Provider-neutral model/tool attempts now execute through exact immutable
 provider registries, durable starts, streaming validation, ambiguity-safe tool
 failures, and no-dispatch terminal recovery. Migration 14 and the runtime fair
 scheduler add immutable weighted policies, globally ordered lost-ACK-safe
-reservations, explicit starvation bounds, and bounded retention. Role-separated
-database procedures, durable public Agent integration and transcript assembly
-inside the prebuilt public Agent graph, the 10,000 stale-race trial, failover,
+reservations, explicit starvation bounds, and bounded retention. Migration 15
+and the runtime admission facade atomically bind authenticated intent,
+database-clock admission, Active lifecycle, sequence-one event, superstep-zero
+checkpoint, and scheduler visibility, with exact retries and complete integrity
+reloads. Role-separated database procedures, the complete durable public
+run/result integration and transcript assembly inside the prebuilt public Agent
+graph, ingress idempotency-key mapping, the 10,000 stale-race trial, failover,
 general archive, backup/restore, and soak gates below remain incomplete; the RFC
 therefore remains Draft.
 

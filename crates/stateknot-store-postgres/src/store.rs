@@ -25,37 +25,37 @@ use sqlx_core::{
 };
 use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
-    AgentResultProvenance, AttemptId, BarrierResultHeads, BoundedJson, BudgetUsage, CanonicalJson,
-    Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointLineageVerifier,
-    CheckpointWrite, CompiledGraph, DeliveryFence, DeliveryId, DestinationId, Digest, DurableTimer,
-    DurableTimerRecord, DurableWait, EventId, Failure, FencingEpoch, GraphBarrierPlanError,
-    GraphNamespace, GraphReducer, GraphReducerError, GraphReference, GraphSchemaValidationError,
-    GraphSchemaValidator, InterruptId, InterruptRecord, InterruptRequest, InterruptResolution,
-    InterruptResolutionIntent, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
-    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalPayload,
-    JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
-    ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
-    ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
-    ModelInvocationTransitionKind, NodeActivation, NodeAttempt, NodeAttemptCompletion,
-    NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart, NodeAttemptStartHead,
-    NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding, NodeInvocationBindingKind,
-    OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptHistoryVerifier, OutboxAttemptOutcome,
-    OutboxAttemptStart, OutboxDelivery, OutboxDeliveryIntent, OutboxDeliveryStatus,
-    OutboxDestinationRef, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
-    PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner,
-    RecoveryNodeKind, RetryAdvice, RunFence, RunId, RunInterruptKind, RunLease,
-    RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTimerKind, RunTransition,
-    RunTransitionKind, RunWaits, SchedulerReservationId, SchedulerShardId, Superstep, TenantId,
-    TimerFiring, TimerFiringIntent, TimerId, Timestamp, ToolInvocation, ToolInvocationHead,
-    ToolInvocationHistoryVerifier, ToolInvocationIntent, ToolInvocationRevision,
-    ToolInvocationStatus, ToolInvocationTransition, ToolInvocationTransitionKind,
-    WaitRegistrationIntent,
+    AgentAdmission, AgentAdmissionIntent, AgentResultProvenance, AttemptId, BarrierResultHeads,
+    BoundedJson, BudgetUsage, CanonicalJson, Checkpoint, CheckpointBarrier, CheckpointHead,
+    CheckpointId, CheckpointLineageVerifier, CheckpointWrite, CompiledGraph, DeliveryFence,
+    DeliveryId, DestinationId, Digest, DurableTimer, DurableTimerRecord, DurableWait, EventId,
+    Failure, FencingEpoch, GraphBarrierPlanError, GraphNamespace, GraphReducer, GraphReducerError,
+    GraphReference, GraphSchemaValidationError, GraphSchemaValidator, InterruptId, InterruptRecord,
+    InterruptRequest, InterruptResolution, InterruptResolutionIntent, InvocationId, JournalAppend,
+    JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent, JournalEventSource,
+    JournalHead, JournalPayload, JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation,
+    ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
+    ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
+    ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeAttempt,
+    NodeAttemptCompletion, NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart,
+    NodeAttemptStartHead, NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding,
+    NodeInvocationBindingKind, OutboxAttempt, OutboxAttemptCompletion,
+    OutboxAttemptHistoryVerifier, OutboxAttemptOutcome, OutboxAttemptStart, OutboxDelivery,
+    OutboxDeliveryIntent, OutboxDeliveryStatus, OutboxDestinationRef, PendingNodeResult,
+    PendingNodeResultError, PendingNodeResultHead, PendingNodeResultIntent, QuarantineId,
+    ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner, RecoveryNodeKind, RetryAdvice, RunFence,
+    RunId, RunInterruptKind, RunLease, RunLeaseValidationError, RunLifecycle, RunRevision,
+    RunStatus, RunTimerKind, RunTransition, RunTransitionKind, RunWaits, SchedulerReservationId,
+    SchedulerShardId, Superstep, TenantId, TimerFiring, TimerFiringIntent, TimerId, Timestamp,
+    ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
+    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    ToolInvocationTransitionKind, WaitRegistrationIntent,
 };
 use uuid::Uuid;
 
 use crate::{
-    AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
+    AdmissionOutcome, AgentAdmissionCommitOutcome, AppendOutcome, BarrierCommitOutcome,
+    CheckpointCommitOutcome, CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
     CorruptionQuarantineContext, DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor,
     ExpiredInterruptPage, ExpiredInterruptPageCursor, GraphDefinitionRegistrationOutcome,
     GraphReplayLimits, GraphReplayReport, InterruptResolutionCommitOutcome, JournalPage,
@@ -71,10 +71,11 @@ use crate::{
     RunnableRunPageSize, SchedulerFairnessPolicyRegistration,
     SchedulerFairnessPolicyRegistrationOutcome, SchedulerFairnessReservation,
     SchedulerFairnessRetentionPolicy, SchedulerFairnessRetentionReport, StoreError,
-    StoredGraphDefinition, StoredOutboxDestination, StoredRun, StoredSchedulerFairnessPolicy,
-    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
-    ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,
-    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    StoredAgentAdmission, StoredGraphDefinition, StoredOutboxDestination, StoredRun,
+    StoredSchedulerFairnessPolicy, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize, WaitAbandonment,
+    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
+    WaitDiscoveryPageSize,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -179,6 +180,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0014_scheduler_fairness.sql")),
             false,
         ),
+        Migration::new(
+            15,
+            Cow::Borrowed("atomic agent admissions"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0015_agent_admissions.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -189,6 +197,7 @@ const MIN_POSTGRES_VERSION_NUMBER: i32 = 160_000;
 const MAX_POSTGRES_VERSION_NUMBER: i32 = 179_999;
 const MAX_CHECKPOINT_BYTES: usize = 2_621_440;
 const MAX_COMPILED_GRAPH_BYTES: usize = CompiledGraph::MAX_DEFINITION_BYTES + 128;
+const MAX_AGENT_ADMISSION_BYTES: usize = 16_777_216;
 const MAX_TOOL_INVOCATION_INTENT_BYTES: usize = 4_194_304;
 const MAX_TOOL_INVOCATION_RECORD_BYTES: usize = 16_777_216;
 const MAX_MODEL_INVOCATION_INTENT_BYTES: usize = 134_217_728;
@@ -213,6 +222,8 @@ const PENDING_INVOCATION_ANCHOR_BATCH_SIZE: usize = 8;
 const MODEL_INVOCATION_RECORD_SCHEMA: &str =
     "https://stateknot.github.io/schema/storage/model-invocation-revision/1.0.0";
 const PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-run-projection-v1\0";
+const AGENT_ADMISSION_PROJECTION_DIGEST_DOMAIN: &[u8] =
+    b"stateknot-postgres-agent-admission-projection-v1\0";
 const BARRIER_PROJECTION_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-barrier-projection-v1\0";
 const WAIT_SET_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-wait-set-v1\0";
 const WAIT_REGISTRATION_PROJECTION_DIGEST_DOMAIN: &[u8] =
@@ -243,6 +254,40 @@ WHERE tenant_id = $1
   AND owner_subject = $3
   AND graph_name = $4
   AND graph_version = $5
+";
+
+const SELECT_AGENT_ADMISSION: &str = r"
+SELECT
+    tenant_id,
+    run_id,
+    agent_owner_issuer,
+    agent_owner_subject,
+    agent_name,
+    agent_version,
+    graph_owner_issuer,
+    graph_owner_subject,
+    graph_name,
+    graph_version,
+    graph_definition_digest,
+    policy_owner_issuer,
+    policy_owner_subject,
+    policy_name,
+    policy_version,
+    policy_digest,
+    intent_digest,
+    admission_digest,
+    admitted_at,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    checkpoint_id,
+    checkpoint_superstep,
+    checkpoint_digest,
+    admission_bytes,
+    created_at
+FROM stateknot.agent_admissions
+WHERE tenant_id = $1 AND run_id = $2
 ";
 
 const SELECT_SCHEDULER_FAIRNESS_SHARD: &str = r"
@@ -294,6 +339,11 @@ const VERIFY_SCHEMA_OBJECTS: &str = r"
 SELECT to_regclass('stateknot.runs') IS NOT NULL
    AND to_regclass('stateknot.graph_definitions') IS NOT NULL
    AND to_regclass('stateknot.graph_definitions_digest_lookup') IS NOT NULL
+   AND to_regclass('stateknot.agent_admissions') IS NOT NULL
+   AND to_regclass('stateknot.agent_admissions_agent_version') IS NOT NULL
+   AND to_regclass('stateknot.agent_admissions_graph_version') IS NOT NULL
+   AND to_regclass('stateknot.agent_admissions_policy_version') IS NOT NULL
+   AND to_regclass('stateknot.agent_admissions_digest_lookup') IS NOT NULL
    AND to_regclass('stateknot.run_events') IS NOT NULL
    AND to_regclass('stateknot.run_checkpoints') IS NOT NULL
    AND to_regclass('stateknot.tool_invocations') IS NOT NULL
@@ -327,10 +377,36 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
    AND to_regclass('stateknot.scheduler_fairness_reservations') IS NOT NULL
    AND to_regclass('stateknot.scheduler_fairness_reservations_sequence') IS NOT NULL
    AND to_regclass('stateknot.scheduler_fairness_reservations_retention') IS NOT NULL
+   AND lower(pg_get_indexdef(to_regclass('stateknot.runs_scheduler_ready')))
+       LIKE '%checkpoint_id is not null%'
    AND EXISTS (
        SELECT 1 FROM pg_catalog.pg_constraint
        WHERE conrelid = to_regclass('stateknot.graph_definitions')
          AND conname = 'graph_definitions_exact_reference_unique'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.agent_admissions')
+         AND conname = 'agent_admissions_graph_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.agent_admissions')
+         AND conname = 'agent_admissions_event_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.agent_admissions')
+         AND conname = 'agent_admissions_checkpoint_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.agent_admissions')
+         AND conname = 'agent_admissions_bytes_bounded'
          AND convalidated
    )
    AND EXISTS (
@@ -481,6 +557,7 @@ FROM stateknot.runs
 WHERE tenant_id = $1
   AND quarantined_at IS NULL
   AND scheduler_ready_at IS NOT NULL
+  AND checkpoint_id IS NOT NULL
   AND lifecycle_status IN ('pending', 'active', 'cancellation_requested')
   AND GREATEST(
           scheduler_ready_at,
@@ -2752,10 +2829,16 @@ impl PostgresStore {
             .map_err(|source| StoreError::database("connect", source))?;
 
         let version =
-            query_scalar::<_, i32>("SELECT current_setting('server_version_num')::integer")
+            match query_scalar::<_, i32>("SELECT current_setting('server_version_num')::integer")
                 .fetch_one(&pool)
                 .await
-                .map_err(|source| StoreError::database("server version check", source))?;
+            {
+                Ok(version) => version,
+                Err(source) => {
+                    pool.close().await;
+                    return Err(StoreError::database("server version check", source));
+                }
+            };
         if !(MIN_POSTGRES_VERSION_NUMBER..=MAX_POSTGRES_VERSION_NUMBER).contains(&version) {
             pool.close().await;
             return Err(StoreError::UnsupportedServerVersion);
@@ -3131,11 +3214,16 @@ WHERE reservation.reservation_id = candidates.reservation_id
         })
     }
 
-    /// Idempotently admits a pending run using a database commit timestamp.
+    /// Idempotently creates a low-level, uninitialized pending run using a
+    /// database commit timestamp.
     ///
     /// A retry with the same tenant/run identity succeeds only when the durable
     /// admission provenance is identical. If the run has progressed, its current
-    /// validated lifecycle is returned.
+    /// validated lifecycle is returned. Uninitialized rows are deliberately
+    /// absent from scheduler discovery; only an explicit trusted low-level ID
+    /// path can address them. New Agent APIs should use
+    /// [`Self::admit_agent_run`] so admission and initialization cannot be
+    /// observed separately.
     ///
     /// # Errors
     ///
@@ -3206,6 +3294,173 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .await
             .map_err(|source| StoreError::database("idempotent run admission commit", source))?;
         Ok(AdmissionOutcome::Idempotent(existing.lifecycle))
+    }
+
+    /// Atomically admits and initializes one executable Agent run.
+    ///
+    /// The immutable admission snapshot, pending-to-active lifecycle edge,
+    /// sequence-one control-plane event, superstep-zero checkpoint, registered
+    /// graph reference, and scheduler-visible run heads commit in one database
+    /// transaction. The schema validator is invoked only outside the mutation
+    /// transaction and must resolve a pre-registered digest-pinned local schema.
+    ///
+    /// An exact retry first recovers durable evidence and therefore succeeds
+    /// even when its original deadline has passed after an ambiguous commit.
+    /// The stable tenant/run key is serialized across scheduler replicas with a
+    /// transaction-scoped advisory lock; hash collisions can delay unrelated
+    /// admissions but cannot weaken correctness.
+    ///
+    /// Request and authorization-evidence schemas are trusted control-plane
+    /// preconditions captured by [`AgentAdmissionIntent`]. This provider
+    /// independently validates the registered graph, exact entry ready-set and
+    /// initial state schema before committing.
+    ///
+    /// # Errors
+    ///
+    /// Rejects crossed scope, non-empty journals, worker authority, unregistered
+    /// graphs, invalid initial state/ready sets, database-time budget expiry,
+    /// identity conflicts, corruption, or database failures.
+    pub async fn admit_agent_run<V>(
+        &self,
+        intent: AgentAdmissionIntent,
+        append: JournalAppend,
+        checkpoint_write: CheckpointWrite,
+        schemas: &V,
+    ) -> Result<AgentAdmissionCommitOutcome, StoreError>
+    where
+        V: GraphSchemaValidator + ?Sized,
+    {
+        validate_agent_admission_commit_input(&intent, &append, &checkpoint_write)?;
+        let tenant_id = intent.provenance().tenant_id().clone();
+        let run_id = intent.provenance().run_id();
+
+        // Durable evidence wins over all time-sensitive revalidation. This is
+        // the lost-acknowledgement path and intentionally runs before schemas or
+        // the current database clock are consulted.
+        let mut probe = self
+            .begin_mutation("agent admission idempotency probe")
+            .await?;
+        if let Some(stored) = load_locked_agent_admission(&mut probe, &tenant_id, run_id).await? {
+            validate_agent_admission_retry(&stored, &intent, &append, &checkpoint_write)?;
+            probe.commit().await.map_err(|source| {
+                StoreError::database("agent admission idempotency probe commit", source)
+            })?;
+            return Ok(AgentAdmissionCommitOutcome::Idempotent(stored));
+        }
+        probe.commit().await.map_err(|source| {
+            StoreError::database("agent admission idempotency probe commit", source)
+        })?;
+
+        let graph = self
+            .load_graph_definition(&tenant_id, intent.graph())
+            .await?;
+        validate_agent_initial_checkpoint(graph.graph(), &checkpoint_write, schemas)?;
+
+        let mut transaction = self.begin_mutation("atomic agent admission").await?;
+        if let Some(stored) =
+            load_locked_agent_admission(&mut transaction, &tenant_id, run_id).await?
+        {
+            validate_agent_admission_retry(&stored, &intent, &append, &checkpoint_write)?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent atomic agent admission commit", source)
+            })?;
+            return Ok(AgentAdmissionCommitOutcome::Idempotent(stored));
+        }
+
+        let admitted_at = database_now(&mut transaction, "agent admission clock").await?;
+        let admission = AgentAdmission::commit(intent, admitted_at)
+            .map_err(|_| StoreError::AgentAdmissionRejected)?;
+        let pending = RunLifecycle::admitted(admission.intent().provenance().clone(), admitted_at);
+        let active = pending
+            .clone()
+            .apply(RunTransition::Start {
+                started_at: admitted_at,
+            })
+            .map_err(|_| StoreError::InvalidAgentAdmissionCommit)?;
+
+        if !insert_agent_pending_run(&mut transaction, &pending).await? {
+            let stored = load_locked_agent_admission(&mut transaction, &tenant_id, run_id)
+                .await?
+                .ok_or(StoreError::AgentAdmissionConflict)?;
+            validate_agent_admission_retry(
+                &stored,
+                admission.intent(),
+                &append,
+                &checkpoint_write,
+            )?;
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("raced atomic agent admission commit", source)
+            })?;
+            return Ok(AgentAdmissionCommitOutcome::Idempotent(stored));
+        }
+
+        let event = JournalEvent::commit(append, admitted_at)
+            .map_err(|error| map_event_commit_error(&error))?;
+        let checkpoint = Checkpoint::commit(checkpoint_write, event.head())
+            .map_err(|_| StoreError::InvalidAgentAdmissionCommit)?;
+        let projection_digest = agent_admission_projection_digest(
+            &admission,
+            event.intent_digest(),
+            &checkpoint.write_intent(),
+            &active,
+        )?;
+        let prepared = prepared_projection(&active)?;
+
+        insert_event(&mut transaction, &event, projection_digest).await?;
+        insert_checkpoint(&mut transaction, &checkpoint, event.source()).await?;
+        update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
+        update_run_head(&mut transaction, &event, Some(&prepared)).await?;
+        insert_agent_admission(&mut transaction, &admission, &event, &checkpoint).await?;
+
+        let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
+        let run = decode_run(run_row)?;
+        verify_current_wait_set(&mut transaction, &run).await?;
+        let admission_row = load_agent_admission_row(&mut transaction, &tenant_id, run_id)
+            .await?
+            .ok_or_else(|| StoreError::corrupt("agent admission committed row"))?;
+        let stored = verify_stored_agent_admission(&mut transaction, run, admission_row).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("atomic agent admission commit", source))?;
+        Ok(AgentAdmissionCommitOutcome::Committed(stored))
+    }
+
+    /// Loads and fully revalidates one immutable Agent admission snapshot.
+    ///
+    /// The returned value includes the current run plus its immutable initial
+    /// event/checkpoint anchors. Canonical bytes, redundant columns, graph
+    /// registry bytes, projection digest, foreign-key identities, and current
+    /// wait-set projection are all checked inside one repeatable-read snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::AgentAdmissionNotFound`], an integrity failure, or
+    /// a database error.
+    pub async fn load_agent_admission(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+    ) -> Result<StoredAgentAdmission, StoreError> {
+        let mut transaction = self.begin_repeatable_read("agent admission load").await?;
+        let run_row = query_as::<_, RunRow>(SELECT_RUN)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("agent admission run load", source))?
+            .ok_or(StoreError::AgentAdmissionNotFound)?;
+        let run = decode_run(run_row)?;
+        verify_current_wait_set(&mut transaction, &run).await?;
+        let admission_row = load_agent_admission_row(&mut transaction, tenant_id, run_id)
+            .await?
+            .ok_or(StoreError::AgentAdmissionNotFound)?;
+        let stored = verify_stored_agent_admission(&mut transaction, run, admission_row).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("agent admission load commit", source))?;
+        Ok(stored)
     }
 
     /// Loads and validates one tenant-scoped run snapshot.
@@ -8986,6 +9241,37 @@ struct GraphDefinitionRow {
     registered_at: DateTime<Utc>,
 }
 
+struct AgentAdmissionRow {
+    tenant_id: String,
+    run_id: Uuid,
+    agent_owner_issuer: String,
+    agent_owner_subject: String,
+    agent_name: String,
+    agent_version: String,
+    graph_owner_issuer: String,
+    graph_owner_subject: String,
+    graph_name: String,
+    graph_version: String,
+    graph_definition_digest: Vec<u8>,
+    policy_owner_issuer: String,
+    policy_owner_subject: String,
+    policy_name: String,
+    policy_version: String,
+    policy_digest: Vec<u8>,
+    intent_digest: Vec<u8>,
+    admission_digest: Vec<u8>,
+    admitted_at: DateTime<Utc>,
+    journal_sequence: i64,
+    journal_event_id: Uuid,
+    journal_recorded_at: DateTime<Utc>,
+    journal_digest: Vec<u8>,
+    checkpoint_id: Uuid,
+    checkpoint_superstep: i64,
+    checkpoint_digest: Vec<u8>,
+    admission_bytes: Vec<u8>,
+    created_at: DateTime<Utc>,
+}
+
 #[derive(Clone)]
 struct SchedulerFairnessShardRow {
     shard_id: String,
@@ -9510,6 +9796,41 @@ impl<'row> FromRow<'row, PgRow> for GraphDefinitionRow {
             definition_digest: row.try_get("definition_digest")?,
             definition_bytes: row.try_get("definition_bytes")?,
             registered_at: row.try_get("registered_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for AgentAdmissionRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            run_id: row.try_get("run_id")?,
+            agent_owner_issuer: row.try_get("agent_owner_issuer")?,
+            agent_owner_subject: row.try_get("agent_owner_subject")?,
+            agent_name: row.try_get("agent_name")?,
+            agent_version: row.try_get("agent_version")?,
+            graph_owner_issuer: row.try_get("graph_owner_issuer")?,
+            graph_owner_subject: row.try_get("graph_owner_subject")?,
+            graph_name: row.try_get("graph_name")?,
+            graph_version: row.try_get("graph_version")?,
+            graph_definition_digest: row.try_get("graph_definition_digest")?,
+            policy_owner_issuer: row.try_get("policy_owner_issuer")?,
+            policy_owner_subject: row.try_get("policy_owner_subject")?,
+            policy_name: row.try_get("policy_name")?,
+            policy_version: row.try_get("policy_version")?,
+            policy_digest: row.try_get("policy_digest")?,
+            intent_digest: row.try_get("intent_digest")?,
+            admission_digest: row.try_get("admission_digest")?,
+            admitted_at: row.try_get("admitted_at")?,
+            journal_sequence: row.try_get("journal_sequence")?,
+            journal_event_id: row.try_get("journal_event_id")?,
+            journal_recorded_at: row.try_get("journal_recorded_at")?,
+            journal_digest: row.try_get("journal_digest")?,
+            checkpoint_id: row.try_get("checkpoint_id")?,
+            checkpoint_superstep: row.try_get("checkpoint_superstep")?,
+            checkpoint_digest: row.try_get("checkpoint_digest")?,
+            admission_bytes: row.try_get("admission_bytes")?,
+            created_at: row.try_get("created_at")?,
         })
     }
 }
@@ -10151,6 +10472,14 @@ enum ProjectionDigestWire<'a> {
         expected_revision: &'a RunRevision,
         transition: &'a RunTransition,
     },
+}
+
+#[derive(Serialize)]
+struct AgentAdmissionProjectionDigestWire {
+    admission: Digest,
+    event_intent: Digest,
+    checkpoint_intent: Digest,
+    lifecycle: Digest,
 }
 
 #[derive(Serialize)]
@@ -12368,6 +12697,451 @@ async fn load_graph_definition_row(
         .map_err(|source| StoreError::database("graph definition load", source))
 }
 
+fn encode_agent_admission(admission: &AgentAdmission) -> Result<Vec<u8>, StoreError> {
+    let bytes = admission
+        .canonical_bytes()
+        .map_err(|_| StoreError::encoding("agent admission"))?;
+    if bytes.is_empty() || bytes.len() > MAX_AGENT_ADMISSION_BYTES {
+        return Err(StoreError::encoding("agent admission size"));
+    }
+    Ok(bytes)
+}
+
+#[allow(clippy::too_many_lines)]
+fn decode_agent_admission(row: &AgentAdmissionRow) -> Result<AgentAdmission, StoreError> {
+    if row.admission_bytes.is_empty() || row.admission_bytes.len() > MAX_AGENT_ADMISSION_BYTES {
+        return Err(StoreError::corrupt("agent admission byte length"));
+    }
+    let admission = serde_json::from_slice::<AgentAdmission>(&row.admission_bytes)
+        .map_err(|_| StoreError::corrupt("agent admission bytes"))?;
+    let canonical = admission
+        .canonical_bytes()
+        .map_err(|_| StoreError::corrupt("agent admission canonicalization"))?;
+    if canonical != row.admission_bytes {
+        return Err(StoreError::corrupt("agent admission canonical bytes"));
+    }
+
+    let intent = admission.intent();
+    let provenance = intent.provenance();
+    let agent = intent.descriptor().metadata().identity();
+    let agent_owner = agent.owner();
+    let graph = intent.graph();
+    let graph_identity = graph.identity();
+    let graph_owner = graph_identity.owner();
+    let policy = intent.authority().policy();
+    let policy_owner = policy.owner();
+    let admitted_at = from_database_time(row.admitted_at)?;
+
+    if row.tenant_id != provenance.tenant_id().as_str()
+        || row.run_id != *provenance.run_id().as_uuid()
+        || row.agent_owner_issuer != agent_owner.issuer().as_str()
+        || row.agent_owner_subject != agent_owner.subject().as_str()
+        || row.agent_name != agent.name().as_str()
+        || row.agent_version != agent.version().to_string()
+        || row.graph_owner_issuer != graph_owner.issuer().as_str()
+        || row.graph_owner_subject != graph_owner.subject().as_str()
+        || row.graph_name != graph_identity.name().as_str()
+        || row.graph_version != graph_identity.version().to_string()
+        || decode_digest(
+            &row.graph_definition_digest,
+            "agent admission graph definition digest",
+        )? != graph.definition_digest()
+        || row.policy_owner_issuer != policy_owner.issuer().as_str()
+        || row.policy_owner_subject != policy_owner.subject().as_str()
+        || row.policy_name != policy.name().as_str()
+        || row.policy_version != policy.version().to_string()
+        || decode_digest(&row.policy_digest, "agent admission policy digest")?
+            != intent.authority().policy_digest()
+        || decode_digest(&row.intent_digest, "agent admission intent digest")?
+            != intent.intent_digest()
+        || decode_digest(&row.admission_digest, "agent admission digest")? != admission.digest()
+        || admitted_at != admission.admitted_at()
+        || row.journal_sequence != 1
+        || row.checkpoint_superstep != 0
+        || from_database_time(row.journal_recorded_at)? != admission.admitted_at()
+        || from_database_time(row.created_at)? != admission.admitted_at()
+    {
+        return Err(StoreError::corrupt("agent admission projection"));
+    }
+    decode_digest(&row.journal_digest, "agent admission journal digest")?;
+    decode_digest(&row.checkpoint_digest, "agent admission checkpoint digest")?;
+    Ok(admission)
+}
+
+async fn load_agent_admission_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+) -> Result<Option<AgentAdmissionRow>, StoreError> {
+    query_as::<_, AgentAdmissionRow>(SELECT_AGENT_ADMISSION)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("agent admission load", source))
+}
+
+fn initial_active_agent_lifecycle(admission: &AgentAdmission) -> Result<RunLifecycle, StoreError> {
+    RunLifecycle::admitted(
+        admission.intent().provenance().clone(),
+        admission.admitted_at(),
+    )
+    .apply(RunTransition::Start {
+        started_at: admission.admitted_at(),
+    })
+    .map_err(|_| StoreError::corrupt("agent admission initial lifecycle"))
+}
+
+#[allow(clippy::too_many_lines)]
+async fn verify_stored_agent_admission(
+    transaction: &mut Transaction<'_, Postgres>,
+    run: StoredRun,
+    row: AgentAdmissionRow,
+) -> Result<StoredAgentAdmission, StoreError> {
+    let admission = decode_agent_admission(&row)?;
+    let intent = admission.intent();
+    let provenance = intent.provenance();
+    if run.lifecycle().provenance() != provenance
+        || run.lifecycle().admitted_at() != admission.admitted_at()
+        || run.lifecycle().revision() <= RunRevision::ZERO
+    {
+        return Err(StoreError::corrupt("agent admission run projection"));
+    }
+
+    let graph_row = load_graph_definition_row(transaction, provenance.tenant_id(), intent.graph())
+        .await?
+        .ok_or_else(|| StoreError::corrupt("agent admission graph reference"))?;
+    let graph = decode_graph_definition(graph_row)?;
+    if graph.tenant_id() != provenance.tenant_id() || graph.graph().reference() != *intent.graph() {
+        return Err(StoreError::corrupt("agent admission graph reference"));
+    }
+
+    let event_row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+        .bind(provenance.tenant_id().as_str())
+        .bind(*provenance.run_id().as_uuid())
+        .bind(row.journal_sequence)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("agent admission event load", source))?
+        .ok_or_else(|| StoreError::corrupt("agent admission event anchor"))?;
+    let committed_projection = event_row
+        .projection_digest
+        .as_deref()
+        .map(|bytes| decode_digest(bytes, "agent admission event projection digest"))
+        .transpose()?;
+    let event = decode_event(event_row)?;
+
+    let checkpoint_row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
+        .bind(provenance.tenant_id().as_str())
+        .bind(*provenance.run_id().as_uuid())
+        .bind(row.checkpoint_id)
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("agent admission checkpoint load", source))?
+        .ok_or_else(|| StoreError::corrupt("agent admission checkpoint anchor"))?;
+    let checkpoint = decode_checkpoint(checkpoint_row)?;
+    let initial_lifecycle = initial_active_agent_lifecycle(&admission)?;
+    let expected_projection = agent_admission_projection_digest(
+        &admission,
+        event.intent_digest(),
+        &checkpoint.write_intent(),
+        &initial_lifecycle,
+    )?;
+
+    if event.tenant_id() != provenance.tenant_id()
+        || event.run_id() != provenance.run_id()
+        || event.sequence() != JournalSequence::FIRST
+        || event.event_id().as_uuid() != &row.journal_event_id
+        || event.recorded_at() != admission.admitted_at()
+        || event.digest() != decode_digest(&row.journal_digest, "agent admission journal digest")?
+        || event.previous_digest().is_some()
+        || event.source().worker_fence().is_some()
+        || event.payload().kind().as_str() != AgentAdmission::JOURNAL_EVENT_KIND
+        || committed_projection != Some(expected_projection)
+        || checkpoint.tenant_id() != provenance.tenant_id()
+        || checkpoint.run_id() != provenance.run_id()
+        || checkpoint.checkpoint_id().as_uuid() != &row.checkpoint_id
+        || checkpoint.superstep() != Superstep::INITIAL
+        || checkpoint.parent().is_some()
+        || checkpoint.graph() != intent.graph()
+        || checkpoint.journal_head() != &event.head()
+        || checkpoint.digest()
+            != decode_digest(&row.checkpoint_digest, "agent admission checkpoint digest")?
+    {
+        return Err(StoreError::corrupt("agent admission atomic anchors"));
+    }
+
+    let current_journal = run
+        .journal_head()
+        .ok_or_else(|| StoreError::corrupt("agent admission current journal"))?;
+    let current_checkpoint = run
+        .checkpoint()
+        .ok_or_else(|| StoreError::corrupt("agent admission current checkpoint"))?;
+    if current_journal.sequence() < event.sequence()
+        || current_journal.recorded_at() < event.recorded_at()
+        || current_checkpoint.superstep() < checkpoint.superstep()
+    {
+        return Err(StoreError::corrupt("agent admission current heads"));
+    }
+
+    Ok(StoredAgentAdmission {
+        admission,
+        run,
+        event,
+        checkpoint,
+    })
+}
+
+fn validate_agent_admission_commit_input(
+    intent: &AgentAdmissionIntent,
+    append: &JournalAppend,
+    checkpoint: &CheckpointWrite,
+) -> Result<(), StoreError> {
+    let provenance = intent.provenance();
+    if append.worker_fence().is_some()
+        || append.expectation().head().is_some()
+        || append.intent().tenant_id() != provenance.tenant_id()
+        || append.intent().run_id() != provenance.run_id()
+        || append.intent().payload().kind().as_str() != AgentAdmission::JOURNAL_EVENT_KIND
+        || checkpoint.tenant_id() != provenance.tenant_id()
+        || checkpoint.run_id() != provenance.run_id()
+        || checkpoint.superstep() != Superstep::INITIAL
+        || checkpoint.parent().is_some()
+        || checkpoint.graph() != intent.graph()
+    {
+        return Err(StoreError::InvalidAgentAdmissionCommit);
+    }
+    Ok(())
+}
+
+fn validate_agent_initial_checkpoint<V>(
+    graph: &CompiledGraph,
+    checkpoint: &CheckpointWrite,
+    schemas: &V,
+) -> Result<(), StoreError>
+where
+    V: GraphSchemaValidator + ?Sized,
+{
+    if checkpoint.graph() != &graph.reference()
+        || checkpoint.superstep() != Superstep::INITIAL
+        || checkpoint.parent().is_some()
+        || checkpoint.ready_nodes() != graph.entry_nodes()
+    {
+        return Err(StoreError::InvalidAgentAdmissionCommit);
+    }
+    match catch_unwind(AssertUnwindSafe(|| {
+        schemas.validate(graph.state_schema(), checkpoint.state().data())
+    })) {
+        Err(_) | Ok(Err(GraphSchemaValidationError::Unavailable)) => {
+            Err(StoreError::AgentAdmissionSchemaUnavailable)
+        }
+        Ok(Err(GraphSchemaValidationError::Rejected)) => {
+            Err(StoreError::AgentAdmissionStateRejected)
+        }
+        Ok(Err(_)) => Err(StoreError::AgentAdmissionStateRejected),
+        Ok(Ok(())) => Ok(()),
+    }
+}
+
+async fn lock_agent_admission_key(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+) -> Result<(), StoreError> {
+    query(
+        r"
+SELECT pg_advisory_xact_lock(
+    hashtextextended('stateknot:agent-admission:' || $1 || ':' || $2::text, 0)
+)
+",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("agent admission serialization lock", source))?;
+    Ok(())
+}
+
+async fn load_locked_agent_admission(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+) -> Result<Option<StoredAgentAdmission>, StoreError> {
+    lock_agent_admission_key(transaction, tenant_id, run_id).await?;
+    let run_row = query_as::<_, RunRow>(SELECT_RUN_FOR_UPDATE)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("agent admission run lookup", source))?;
+    let Some(run_row) = run_row else {
+        return Ok(None);
+    };
+    let run = decode_run(run_row)?;
+    verify_current_wait_set(transaction, &run).await?;
+    let admission_row = load_agent_admission_row(transaction, tenant_id, run_id)
+        .await?
+        .ok_or(StoreError::AgentAdmissionConflict)?;
+    verify_stored_agent_admission(transaction, run, admission_row)
+        .await
+        .map(Some)
+}
+
+fn validate_agent_admission_retry(
+    stored: &StoredAgentAdmission,
+    intent: &AgentAdmissionIntent,
+    append: &JournalAppend,
+    checkpoint: &CheckpointWrite,
+) -> Result<(), StoreError> {
+    if stored.admission().intent() != intent
+        || !stored.event().matches_intent(append.intent())
+        || !stored.checkpoint().matches_write(checkpoint)
+    {
+        return Err(StoreError::AgentAdmissionConflict);
+    }
+    Ok(())
+}
+
+async fn insert_agent_pending_run(
+    transaction: &mut Transaction<'_, Postgres>,
+    lifecycle: &RunLifecycle,
+) -> Result<bool, StoreError> {
+    let provenance = lifecycle.provenance();
+    let lifecycle_bytes = encode_lifecycle(lifecycle)?;
+    let observed_at = to_database_time(lifecycle.admitted_at())?;
+    let inserted = query(
+        r"
+INSERT INTO stateknot.runs (
+    tenant_id,
+    run_id,
+    thread_id,
+    invocation_id,
+    lifecycle_bytes,
+    lifecycle_revision,
+    lifecycle_status,
+    admitted_at,
+    changed_at,
+    scheduler_ready_at
+)
+VALUES ($1, $2, $3, $4, $5, $6::numeric, $7, $8, $8, $8)
+ON CONFLICT (tenant_id, run_id) DO NOTHING
+",
+    )
+    .bind(provenance.tenant_id().as_str())
+    .bind(*provenance.run_id().as_uuid())
+    .bind(*provenance.thread_id().as_uuid())
+    .bind(*provenance.invocation_id().as_uuid())
+    .bind(lifecycle_bytes)
+    .bind(lifecycle.revision().to_string())
+    .bind(run_status_text(lifecycle.status()))
+    .bind(observed_at)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("agent admission run insert", source))?
+    .rows_affected();
+    Ok(inserted == 1)
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_agent_admission(
+    transaction: &mut Transaction<'_, Postgres>,
+    admission: &AgentAdmission,
+    event: &JournalEvent,
+    checkpoint: &Checkpoint,
+) -> Result<(), StoreError> {
+    let intent = admission.intent();
+    let provenance = intent.provenance();
+    let agent = intent.descriptor().metadata().identity();
+    let agent_owner = agent.owner();
+    let graph = intent.graph();
+    let graph_identity = graph.identity();
+    let graph_owner = graph_identity.owner();
+    let policy = intent.authority().policy();
+    let policy_owner = policy.owner();
+    let admission_bytes = encode_agent_admission(admission)?;
+    let journal_sequence =
+        i64::try_from(event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?;
+    let checkpoint_superstep = i64::try_from(checkpoint.superstep().get())
+        .map_err(|_| StoreError::encoding("agent admission checkpoint superstep"))?;
+    let admitted_at = to_database_time(admission.admitted_at())?;
+
+    let inserted = query(
+        r"
+INSERT INTO stateknot.agent_admissions (
+    tenant_id,
+    run_id,
+    agent_owner_issuer,
+    agent_owner_subject,
+    agent_name,
+    agent_version,
+    graph_owner_issuer,
+    graph_owner_subject,
+    graph_name,
+    graph_version,
+    graph_definition_digest,
+    policy_owner_issuer,
+    policy_owner_subject,
+    policy_name,
+    policy_version,
+    policy_digest,
+    intent_digest,
+    admission_digest,
+    admitted_at,
+    journal_sequence,
+    journal_event_id,
+    journal_recorded_at,
+    journal_digest,
+    checkpoint_id,
+    checkpoint_superstep,
+    checkpoint_digest,
+    admission_bytes,
+    created_at
+)
+VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+    $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28
+)
+",
+    )
+    .bind(provenance.tenant_id().as_str())
+    .bind(*provenance.run_id().as_uuid())
+    .bind(agent_owner.issuer().as_str())
+    .bind(agent_owner.subject().as_str())
+    .bind(agent.name().as_str())
+    .bind(agent.version().to_string())
+    .bind(graph_owner.issuer().as_str())
+    .bind(graph_owner.subject().as_str())
+    .bind(graph_identity.name().as_str())
+    .bind(graph_identity.version().to_string())
+    .bind(graph.definition_digest().as_bytes())
+    .bind(policy_owner.issuer().as_str())
+    .bind(policy_owner.subject().as_str())
+    .bind(policy.name().as_str())
+    .bind(policy.version().to_string())
+    .bind(intent.authority().policy_digest().as_bytes())
+    .bind(intent.intent_digest().as_bytes())
+    .bind(admission.digest().as_bytes())
+    .bind(admitted_at)
+    .bind(journal_sequence)
+    .bind(*event.event_id().as_uuid())
+    .bind(to_database_time(event.recorded_at())?)
+    .bind(event.digest().as_bytes())
+    .bind(*checkpoint.checkpoint_id().as_uuid())
+    .bind(checkpoint_superstep)
+    .bind(checkpoint.digest().as_bytes())
+    .bind(admission_bytes)
+    .bind(admitted_at)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("agent admission insert", source))?
+    .rows_affected();
+    if inserted != 1 {
+        return Err(StoreError::corrupt("agent admission insert row count"));
+    }
+    Ok(())
+}
+
 fn decode_scheduler_fairness_policy(
     row: SchedulerFairnessShardRow,
 ) -> Result<StoredSchedulerFairnessPolicy, StoreError> {
@@ -14493,6 +15267,27 @@ fn projection_digest(projection: &RunProjection) -> Result<Digest, StoreError> {
         .map_err(|_| StoreError::encoding("run projection intent"))?;
     let mut preimage = Vec::with_capacity(PROJECTION_DIGEST_DOMAIN.len() + canonical.len());
     preimage.extend_from_slice(PROJECTION_DIGEST_DOMAIN);
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
+}
+
+fn agent_admission_projection_digest(
+    admission: &AgentAdmission,
+    event_intent_digest: Digest,
+    checkpoint: &CheckpointWrite,
+    lifecycle: &RunLifecycle,
+) -> Result<Digest, StoreError> {
+    let lifecycle_digest = Digest::sha256(encode_lifecycle(lifecycle)?);
+    let canonical = serde_json_canonicalizer::to_vec(&AgentAdmissionProjectionDigestWire {
+        admission: admission.digest(),
+        event_intent: event_intent_digest,
+        checkpoint_intent: checkpoint.intent_digest(),
+        lifecycle: lifecycle_digest,
+    })
+    .map_err(|_| StoreError::encoding("agent admission projection intent"))?;
+    let mut preimage =
+        Vec::with_capacity(AGENT_ADMISSION_PROJECTION_DIGEST_DOMAIN.len() + canonical.len());
+    preimage.extend_from_slice(AGENT_ADMISSION_PROJECTION_DIGEST_DOMAIN);
     preimage.extend_from_slice(&canonical);
     Ok(Digest::sha256(preimage))
 }

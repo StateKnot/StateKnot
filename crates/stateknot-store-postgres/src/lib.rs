@@ -27,6 +27,10 @@
 //! Deferred-only plans atomically release ownership into an indexed durable
 //! not-before gate while preserving queue age; direct claims cannot bypass the
 //! gate, and due work becomes visible without a per-run polling write. The
+//! atomic Agent-admission boundary binds an authenticated immutable intent and
+//! database clock to an active run, sequence-one event, superstep-zero
+//! checkpoint, registered graph, and scheduler projections in one transaction;
+//! exact retries fully reload and verify the original commit. The
 //! provider never holds a database transaction across node, model, tool,
 //! remote-agent, or human work.
 //!
@@ -44,8 +48,8 @@ mod store;
 pub use config::{PostgresStoreOptions, PostgresTransportSecurity};
 pub use error::{ConfigurationError, StoreError};
 pub use model::{
-    AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
-    CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
+    AdmissionOutcome, AgentAdmissionCommitOutcome, AppendOutcome, BarrierCommitOutcome,
+    CheckpointCommitOutcome, CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
     CorruptionQuarantineContext, DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor,
     ExpiredInterruptPage, ExpiredInterruptPageCursor, GraphDefinitionRegistrationOutcome,
     GraphReplayLimits, GraphReplayReport, InterruptResolutionCommitOutcome, JournalPage,
@@ -60,10 +64,10 @@ pub use model::{
     RunnableRunCandidate, RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize,
     SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
     SchedulerFairnessReservation, SchedulerFairnessRetentionPolicy,
-    SchedulerFairnessRetentionReport, StoredGraphDefinition, StoredOutboxDestination, StoredRun,
-    StoredSchedulerFairnessPolicy, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
-    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize, WaitAbandonment,
-    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
-    WaitDiscoveryPageSize,
+    SchedulerFairnessRetentionReport, StoredAgentAdmission, StoredGraphDefinition,
+    StoredOutboxDestination, StoredRun, StoredSchedulerFairnessPolicy, TimerFiringCommitOutcome,
+    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
+    WaitAbandonment, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
+    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 pub use store::{ClaimedRunRecovery, PostgresStore};

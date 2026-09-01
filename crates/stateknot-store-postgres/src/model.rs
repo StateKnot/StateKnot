@@ -5,13 +5,13 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use stateknot_core::{
-    Checkpoint, CheckpointHead, CheckpointId, CompiledGraph, DeliveryFence, Digest, DurableTimer,
-    DurableTimerRecord, DurableWait, FencingEpoch, InterruptRecord, InterruptRequest, JournalEvent,
-    JournalExpectation, JournalHead, JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt,
-    OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef,
-    PendingNodeResult, PendingNodeResultHead, QuarantineId, RunFence, RunId, RunLease,
-    RunLifecycle, RunRevision, RunTransition, SchedulerReservationId, SchedulerShardId, Superstep,
-    TenantId, Timestamp, ToolInvocation,
+    AgentAdmission, Checkpoint, CheckpointHead, CheckpointId, CompiledGraph, DeliveryFence, Digest,
+    DurableTimer, DurableTimerRecord, DurableWait, FencingEpoch, InterruptRecord, InterruptRequest,
+    JournalEvent, JournalExpectation, JournalHead, JournalPayload, ModelInvocation, NodeAttempt,
+    OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery,
+    OutboxDestinationRef, PendingNodeResult, PendingNodeResultHead, QuarantineId, RunFence, RunId,
+    RunLease, RunLifecycle, RunRevision, RunTransition, SchedulerReservationId, SchedulerShardId,
+    Superstep, TenantId, Timestamp, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -740,6 +740,65 @@ impl AdmissionOutcome {
     pub const fn lifecycle(&self) -> &RunLifecycle {
         match self {
             Self::Committed(lifecycle) | Self::Idempotent(lifecycle) => lifecycle,
+        }
+    }
+}
+
+/// Fully verified durable Agent admission and its current run projection.
+///
+/// `event` and `checkpoint` are always the immutable sequence-one and
+/// superstep-zero anchors. `run` is the current snapshot and may therefore have
+/// advanced beyond both anchors when this value is returned by a retry or load.
+#[derive(Clone, Debug)]
+pub struct StoredAgentAdmission {
+    pub(crate) admission: AgentAdmission,
+    pub(crate) run: StoredRun,
+    pub(crate) event: JournalEvent,
+    pub(crate) checkpoint: Checkpoint,
+}
+
+impl StoredAgentAdmission {
+    /// Returns the immutable database-clock admission snapshot.
+    #[must_use]
+    pub const fn admission(&self) -> &AgentAdmission {
+        &self.admission
+    }
+
+    /// Returns the current validated run row.
+    #[must_use]
+    pub const fn run(&self) -> &StoredRun {
+        &self.run
+    }
+
+    /// Returns the immutable first journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        &self.event
+    }
+
+    /// Returns the immutable superstep-zero checkpoint.
+    #[must_use]
+    pub const fn checkpoint(&self) -> &Checkpoint {
+        &self.checkpoint
+    }
+}
+
+/// Result of atomically admitting and initializing one executable Agent run.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum AgentAdmissionCommitOutcome {
+    /// The admission, run, event, lifecycle start, and checkpoint committed.
+    Committed(StoredAgentAdmission),
+    /// The exact immutable request had already committed.
+    Idempotent(StoredAgentAdmission),
+}
+
+impl AgentAdmissionCommitOutcome {
+    /// Returns the fully verified durable admission in either outcome.
+    #[must_use]
+    pub const fn stored(&self) -> &StoredAgentAdmission {
+        match self {
+            Self::Committed(stored) | Self::Idempotent(stored) => stored,
         }
     }
 }

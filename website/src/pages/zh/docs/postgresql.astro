@@ -16,8 +16,8 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
     <p>
       Provider 已经真实实现并具有大量测试，但尚未发布，且仍假设使用可信的
       Server-side Pool。角色隔离的 Server Procedure、通用 Retention、Restore
-      Qualification 与耐久公开 Agent 集成仍是发布阻断项。第一批 Model Adapter
-      位于该 Store Boundary 之上。
+      Qualification 与完整公开 Run/Result 集成仍是发布阻断项。第一批 Model
+      Adapter 位于该 Store Boundary 之上。
     </p>
   </aside>
 
@@ -115,6 +115,23 @@ store.health_check().await?;</code></pre>
     </p>
   </section>
 
+  <section aria-labelledby="admission-title">
+    <h2 id="admission-title">禁止暴露只初始化一半的 Agent Run</h2>
+    <p>
+      Migration 15 增加不可变 <code>agent_admissions</code>。<code
+        >DurableAgentAdmission</code
+      > 在一个 Transaction 内提交已认证 Intent、数据库时间、Active Lifecycle、 Sequence-one
+      Event、Superstep-zero Checkpoint、Graph Anchor 与 Scheduler Projection。精确
+      Retry 会恢复并重校验原 Commit；Changed Intent 会产生 Conflict。
+    </p>
+    <p>
+      Scheduler-ready Index 现在要求 Checkpoint，因此低层未初始化 Row 无法被
+      Claim。可信 Ingress、Idempotency、Rollout 与敏感数据要求见<a
+        href="/zh/docs/admission/">耐久 Admission 指南</a
+      >。
+    </p>
+  </section>
+
   <section aria-labelledby="tls-title">
     <h2 id="tls-title">不要随意削弱 TLS</h2>
     <p>
@@ -143,12 +160,13 @@ store.health_check().await?;</code></pre>
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证范围与当前限制</h2>
     <p>
-      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 95 个
-      Provider Case 与 16 个耐久 Runtime 场景，覆盖迁移、Lost
+      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 98 个
+      Provider Case 与 17 个耐久 Runtime 场景，覆盖迁移、Lost
       ACK、Fencing、损坏拒绝、并发、Rollback Injection、Outbox Recovery、Durable
       Wait、Quarantine、不可变 Graph Registration/Recovery、Ready-node Planning
       与延迟重试调度、Lifecycle Commit、耐久 Model/Tool 执行、Fairness
-      Reservation / Retention 和加权 Cross-tenant Agent Loop 执行。
+      Reservation / Retention、原子 Agent Admission 和加权 Cross-tenant Agent
+      Loop 执行。
     </p>
     <p>
       正式生产发布仍需要角色隔离、通用 Retention/GC、Failover/PITR

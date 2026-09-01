@@ -200,7 +200,7 @@ retries from `GraphDriveReport`.
 
 ## Qualification evidence and remaining gates
 
-Sixteen runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
+Seventeen runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
 Driver-specific recovery coverage:
 
 1. Continue-barrier commit followed by noninitial replay and a Terminal handoff;
@@ -216,12 +216,13 @@ Agent Loop success and evidence-unavailable cleanup; and tenant scheduler
 selection, claim, execution, and idle convergence. Four additional scenarios
 verify model terminal-fence recovery, ordered durable model streaming,
 ambiguous write-tool timeout suppression, and 3:1 cross-tenant weighted
-selection. The provider contributes 95 additional PostgreSQL integration tests
+selection, and one verifies atomic Agent admission. The provider contributes 98 additional PostgreSQL integration tests
 per database version. CI treats the external database suites as mandatory and
 fails if the service is unavailable.
 
 The later typed-Agent milestone now ships the first OpenAI Responses and
-Anthropic Messages adapters. The durable public admit/run/result facade,
+Anthropic Messages adapters, and the atomic admission milestone now ships its
+runtime validation facade. The complete durable public run/result facade,
 assembly of the implemented provider-native transcript inside its prebuilt
 graph, parallel siblings, loops/subgraphs, protocol-specific outbox adapters,
 role-separated database procedures, retention/archive, failover/restore

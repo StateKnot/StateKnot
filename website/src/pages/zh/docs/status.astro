@@ -20,6 +20,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "原子 Agent Admission",
+    body: "不可变已认证 Intent、确定性有限 Budget、数据库时钟 Admission、首 Event、初始 Checkpoint、Scheduler Visibility、精确 Retry 与完整校验 Load。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "耐久 Graph Driver",
     body: "离线可执行 Schema/Reducer/Node 闭包、完整 Checkpoint State 与有界非初始 Replay 验证、Durable-before-dispatch 执行、单调 Lease 到期约束、Continue Barrier 与类型化 Lifecycle Handoff。",
   },
@@ -51,13 +57,13 @@ const capabilities = [
     state: "开发中",
     className: "status-active",
     title: "公开 Agent 集成",
-    body: "完整耐久 Admit/Run/Result Facade、预置 Provider-native 多轮 Model/Tool Graph、Policy Middleware、Parallel Sibling 与 Loop/Subgraph 语义。",
+    body: "完整耐久 Run/Result Facade、Ingress Idempotency-key Mapping、预置 Provider-native 多轮 Model/Tool Graph、Policy Middleware、Parallel Sibling 与 Loop/Subgraph 语义。",
   },
   {
     state: "尚未发布",
     className: "status-planned",
     title: "稳定端到端 Agent API",
-    body: "目前不存在稳定的一键式 Facade、Provider-native 多轮 Tool Transcript、已发布 Crate 或生产支持声明。",
+    body: "目前不存在稳定的一键式 Run/Result Facade、预置多轮 Tool Path、已发布 Crate 或生产支持声明。",
   },
   {
     state: "尚未发布",
@@ -76,7 +82,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：耐久 Graph Loop、Invocation Executor、强类型 Agent 合约、首批 Model Adapter 与 Fair Scheduler 已实现；端到端 Facade、MCP/A2A Adapter 与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：原子 Agent Admission、耐久 Graph Loop、Invocation Executor、强类型 Agent 合约、首批 Model Adapter 与 Fair Scheduler 已实现；完整 Run/Result Facade、MCP/A2A Adapter 与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -115,17 +121,21 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
-      下一个 Runtime 里程碑会把耐久 Admission 与 Result Retrieval
-      接入强类型合约、 Provider Adapter、Invocation Executor、Driver、Lifecycle
-      Coordinator 与 Fair Scheduler。退出证据是一条可以 Crash、恢复并且不重复
-      Dispatch 就返回类型化结果的 Provider-native 多轮 Tool
-      Path。协议广度会建立在这条可恢复路径之上。
+      原子 Admission 现已把可信类型化 Input 绑定为 Scheduler-visible
+      Work。下一个 Runtime 里程碑会在 Invocation Executor、Driver、Lifecycle
+      Coordinator 与 Fair Scheduler 之上加入 Ingress Idempotency Routing、预置
+      Provider-native Graph 与 Result Retrieval。退出证据是一条可以
+      Crash、恢复并且不重复 Dispatch 就返回类型化结果的 Provider-native 多轮
+      Tool Path。协议广度会建立在这条可恢复路径之上。
     </p>
   </section>
 
   <section aria-labelledby="source-status-title">
     <h2 id="source-status-title">项目权威来源</h2>
     <ul>
+      <li>
+        <a href="/zh/docs/admission/">耐久 Agent Admission 契约</a>
+      </li>
       <li>
         <a href="/zh/docs/typed-agent/"
           >强类型 Agent 与第一方 Model Adapter 合约</a
