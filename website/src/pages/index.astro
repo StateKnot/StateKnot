@@ -39,6 +39,18 @@ const currentCut = [
     href: "/docs/agent-loop/",
   },
   {
+    surface: "Durable model/tool attempts",
+    state: "Implemented slice",
+    evidence: "Exact providers, durable starts, streaming, terminal recovery",
+    href: "/docs/invocations/",
+  },
+  {
+    surface: "Cross-tenant fair scheduler",
+    state: "Implemented slice",
+    evidence: "Global weighted order and explicit starvation bounds",
+    href: "/docs/fair-scheduling/",
+  },
+  {
     surface: "MCP and A2A adapters",
     state: "Not shipped",
     evidence: "In v1 scope; wire boundaries remain planned",
@@ -56,8 +68,8 @@ const roadmap = [
   {
     index: "02",
     state: "Now",
-    title: "Ship the model/tool Agent API",
-    body: "Bind first-party model and tool adapters, policy, streaming, and a compiled end-user example to durable attempts without holding database transactions across external work.",
+    title: "Ship the public Agent API",
+    body: "Bind concrete model adapters, high-level tool ergonomics, policy middleware, and a compiled end-user example to the proven durable invocation and fair scheduling boundaries.",
   },
   {
     index: "03",
@@ -87,9 +99,9 @@ const roadmap = [
           </h1>
           <p class="hero-lede">
             StateKnot now runs typed root Graphs through PostgreSQL-backed crash
-            recovery, atomic lifecycle commits, and tenant-scoped scheduling.
-            The stable model/tool Agent API and protocol adapters remain under
-            development.
+            recovery, durable model/tool attempts, atomic lifecycle commits, and
+            weighted cross-tenant scheduling. The stable high-level Agent API
+            and protocol adapters remain under development.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"

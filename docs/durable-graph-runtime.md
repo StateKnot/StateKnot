@@ -200,7 +200,7 @@ retries from `GraphDriveReport`.
 
 ## Qualification evidence and remaining gates
 
-Twelve runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
+Sixteen runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
 Driver-specific recovery coverage:
 
 1. Continue-barrier commit followed by noninitial replay and a Terminal handoff;
@@ -210,15 +210,18 @@ Driver-specific recovery coverage:
 5. invalid initial checkpoint state quarantined before any executor call; and
 6. one higher-fence takeover of an unfinished physical attempt.
 
-The remaining scenarios verify atomic successful Terminal, Wait, and supervised
+Six existing lifecycle/scheduler scenarios verify atomic successful Terminal, Wait, and supervised
 failure handoffs with exact lost-ack retries; database-time Wait registration;
 Agent Loop success and evidence-unavailable cleanup; and tenant scheduler
-selection, claim, execution, and idle convergence. The provider contributes 91
-additional PostgreSQL integration tests per database version. CI treats the
-external database suites as mandatory and fails if the service is unavailable.
+selection, claim, execution, and idle convergence. Four additional scenarios
+verify model terminal-fence recovery, ordered durable model streaming,
+ambiguous write-tool timeout suppression, and 3:1 cross-tenant weighted
+selection. The provider contributes 95 additional PostgreSQL integration tests
+per database version. CI treats the external database suites as mandatory and
+fails if the service is unavailable.
 
-This phase does not yet ship cross-tenant scheduler fairness, first-party
-model/tool Agent ergonomics, parallel siblings, loops/subgraphs,
+This phase does not yet ship concrete first-party model adapters, public
+high-level Agent ergonomics, parallel siblings, loops/subgraphs,
 protocol-specific outbox adapters, role-separated database procedures,
 retention/archive, failover/restore qualification, the 10,000 stale-race gate,
 or a stable public release. Those remain release blockers rather than hidden

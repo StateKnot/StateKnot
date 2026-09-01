@@ -90,6 +90,10 @@ The provider currently supplies:
   clock before releasing ownership atomically; ordinary claims cannot bypass
   the gate, due runs reappear through the same partial index without a polling
   update, and lost acknowledgements converge on the stored boundary;
+- migration-14 immutable scheduler-fairness shards with canonical policy bytes,
+  a short locked global cursor, UUIDv7 lost-ACK-safe reservations, contiguous
+  per-shard sequences, exact weighted-cycle slots, and a bounded indexed
+  database-time retention operation that never changes policy or cursor state;
 - migration-8 transactional outbox storage with immutable tenant-owned
   destination snapshots, schema-pinned canonical payloads, and non-empty
   event-scoped batches of at most 64 deliveries. Control-plane and worker
@@ -158,7 +162,13 @@ It also needs `SELECT`/`INSERT` on `stateknot.interrupt_resolutions`,
 `stateknot.timer_firings`, and `stateknot.wait_abandonments`, plus
 `SELECT`/`INSERT` and terminal-projection-only `UPDATE` on
 `stateknot.run_wait_registrations`; and `SELECT`/`INSERT` on
-`stateknot.run_quarantines` and `stateknot.graph_definitions`.
+`stateknot.run_quarantines` and `stateknot.graph_definitions`. Fair scheduler
+workers need `SELECT`/`INSERT` on `stateknot.scheduler_fairness_shards`,
+column-scoped `UPDATE` only for `next_slot`, `next_sequence`, and `updated_at`,
+plus `SELECT`/`INSERT` on
+`stateknot.scheduler_fairness_reservations`. Grant bounded `DELETE` on the
+reservation table only to the separate maintenance role that invokes the
+retention API.
 Do not grant runtime DDL,
 checkpoint, node-attempt, invocation-revision, pending-result, or consumption
 update/delete permissions. Exact role/grant SQL will be
@@ -171,7 +181,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 91 integration tests against PostgreSQL 16 and
+The current database suite runs 95 integration tests against PostgreSQL 16 and
 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v8 without guessed projection or physical-attempt provenance, real v3
@@ -269,8 +279,12 @@ lost-ACK replay at the ceiling remains idempotent. Graph-registry coverage prove
 fresh and exact v12-to-v13 migration, schema/index/byte-bound verification,
 tenant isolation, idempotent identical registration, immutable version conflict,
 fail-closed canonical-byte corruption, missing-pinned-definition quarantine,
-and a 24-way conflicting registration race with one durable winner. The 91
-provider tests and twelve durable Runtime tests run independently against
+and a 24-way conflicting registration race with one durable winner. Fairness
+coverage proves exact v13-to-v14 migration shape and constraints, immutable
+policy registration, same-ID lost-ACK convergence, concurrent same-ID and
+unique-ID reservation linearization, contiguous global sequence/slot order,
+bounded database-time retention, and retention cursor neutrality. The 95
+provider tests and sixteen durable Runtime tests run independently against
 PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -286,7 +300,7 @@ the unmigrated-startup path can be tested. Without the URL, local workspace test
 skip external-database cases; CI sets `STATEKNOT_REQUIRE_POSTGRES_TESTS=1` so a
 missing service cannot appear green.
 
-Scheduler discovery first calls `load_runnable_run_page` for a tenant. The
+Tenant scheduler discovery first calls `load_runnable_run_page` for a tenant. The
 first call fixes `snapshot_at` to the PostgreSQL transaction timestamp and
 returns at most 16 complete `StoredRun` values ordered by
 `(available_at, run_id)`; `available_at` is the later of durable queue entry and
@@ -294,9 +308,11 @@ lease expiry. Following the opaque `next_cursor` retains that cutoff, so newly
 admitted or requeued work cannot move behind the cursor and an expired lease
 cannot make a bounded scan chase time. Discovery is read-only and never grants
 ownership. The scheduler selects an exact run, allocates a fresh `AttemptId`,
-calls `claim_lease`, and treats `LeaseHeld` as ordinary contention. Cross-tenant
-weighting and fairness remain scheduler policy rather than database queue
-semantics; neither an empty page nor a lost claim means global work is absent.
+calls `claim_lease`, and treats `LeaseHeld` as ordinary contention.
+`DurableFairScheduler` first reserves one shard-global weighted slot through
+the migration-14 cursor, then invokes this tenant-scoped path for only the
+selected tenant. Neither an empty page nor a lost claim means global work is
+absent, and the consumed global reservation is never reassigned.
 
 ## Transactional outbox dispatch
 
@@ -398,8 +414,10 @@ the latest journal head, automatically commits Continue barriers, and returns
 typed lease-bound handoffs for Wait/Terminal or blocked failure supervision.
 The runtime lifecycle coordinator now consumes those handoffs, and the
 tenant-scoped Agent Loop binds discovery, claim, Driver, lifecycle commit, and
-cleanup. Cross-tenant fairness remains outside the provider; trusted terminal
-admission/accounting evidence remains an application-owned durable boundary.
+cleanup. The provider owns the immutable fairness policy/cursor/reservation
+facts while `stateknot-runtime` owns policy compilation and tenant mapping.
+Trusted terminal admission/accounting evidence remains an application-owned
+durable boundary.
 
 Tool recovery loads the current record with `load_tool_invocation` or follows
 `load_tool_invocation_history_page` from revision zero using its exact full-record
@@ -582,11 +600,23 @@ its existing live-fence quarantine transaction. Fresh install, exact v12
 upgrade, constraint/index removal, tenant isolation, corruption, conflict, and
 24-way registration races are exercised on PostgreSQL 16 and 17.
 
+Migration 14 adds immutable `scheduler_fairness_shards` and
+`scheduler_fairness_reservations`. A shard identity permanently binds canonical
+algorithm/tenant/weight bytes, digest, and cycle length. One short row lock
+allocates the next sequence and wraps the slot cursor; the immutable UUIDv7
+reservation is inserted in the same transaction so an ambiguous commit can be
+recovered without advancing twice. `prune_scheduler_fairness_reservations`
+uses the database clock, an indexed exclusive cutoff, a hard one-hour to
+366-day window, batches of at most 10,000, and `FOR UPDATE SKIP LOCKED`; it
+never changes shard policies or cursors. Fresh install, exact v13 upgrade,
+constraint/index removal, immutable conflicts, same-ID and unique-ID races,
+retention bounds, and cursor neutrality are exercised on PostgreSQL 16 and 17.
+
 ## Not yet implemented
 
 This slice is not a production release or the complete agent runtime. It does
 not yet implement protocol-specific outbox dispatch adapters, artifacts,
-cross-tenant scheduler fairness, first-party model/tool Agent ergonomics,
+concrete model-provider adapters, public high-level Agent ergonomics, general
 retention/archive/legal hold, backup/restore, failover qualification, or the
 10,000-race stale-worker gate. The implemented lifecycle coordinator now
 atomically commits complete Wait/success/failure handoffs, and the tenant worker

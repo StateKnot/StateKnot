@@ -36,6 +36,18 @@ const paths = [
     link: "Integrate the loop",
   },
   {
+    title: "Execute durable invocations",
+    body: "Freeze exact model/tool providers, commit physical starts before external I/O, validate streams, and retry terminal persistence without redispatch.",
+    href: "/docs/invocations/",
+    link: "Integrate invocations",
+  },
+  {
+    title: "Schedule tenants fairly",
+    body: "Compile immutable weights, reserve one replica-global order, inspect exact starvation bounds, and retain lost-ack evidence.",
+    href: "/docs/fair-scheduling/",
+    link: "Configure fairness",
+  },
+  {
     title: "Operate PostgreSQL",
     body: "Review the implemented provider boundary, secure defaults, migration sequence, and mandatory integration test path.",
     href: "/docs/postgresql/",
@@ -61,8 +73,10 @@ const paths = [
       StateKnot does not yet expose a stable public model/tool Agent API. Today
       you can compile a deterministic Graph, freeze its executable deployment,
       replay noninitial checkpoints, and run a tenant-scoped durable Graph loop
-      through atomic lifecycle commits on PostgreSQL. First-party model/tool
-      ergonomics and cross-tenant scheduling remain explicit release blockers.
+      through atomic lifecycle commits on PostgreSQL. Provider-neutral durable
+      model/tool attempts and weighted cross-tenant selection are also
+      implemented; concrete adapters and the stable high-level Agent API remain
+      explicit release blockers.
     </p>
   </aside>
 

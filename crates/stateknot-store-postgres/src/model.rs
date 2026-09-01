@@ -1,6 +1,8 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 use stateknot_core::{
     Checkpoint, CheckpointHead, CheckpointId, CompiledGraph, DeliveryFence, Digest, DurableTimer,
@@ -8,10 +10,258 @@ use stateknot_core::{
     JournalExpectation, JournalHead, JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt,
     OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef,
     PendingNodeResult, PendingNodeResultHead, QuarantineId, RunFence, RunId, RunLease,
-    RunLifecycle, RunRevision, RunTransition, Superstep, TenantId, Timestamp, ToolInvocation,
+    RunLifecycle, RunRevision, RunTransition, SchedulerReservationId, SchedulerShardId, Superstep,
+    TenantId, Timestamp, ToolInvocation,
 };
 
 use crate::StoreError;
+
+const SCHEDULER_FAIRNESS_POLICY_DIGEST_DOMAIN: &[u8] = b"stateknot.scheduler-fairness-policy.v1\0";
+
+/// Immutable canonical policy bytes registered for one scheduler shard.
+///
+/// The store deliberately treats the policy body as opaque canonical bytes;
+/// `stateknot-runtime` owns the weighted-schedule schema and verifies it before
+/// registration and after loading. The domain-separated digest prevents policy
+/// bytes from being substituted with another digest-bearing record type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SchedulerFairnessPolicyRegistration {
+    shard_id: SchedulerShardId,
+    policy_digest: Digest,
+    policy_bytes: Box<[u8]>,
+    cycle_length: u16,
+}
+
+impl SchedulerFairnessPolicyRegistration {
+    /// Maximum canonical policy byte length accepted by the provider.
+    pub const MAX_POLICY_BYTES: usize = 262_144;
+    /// Maximum number of deterministic slots in one weighted cycle.
+    pub const MAX_CYCLE_LENGTH: u16 = 4096;
+
+    /// Constructs and checksums one immutable shard policy registration.
+    ///
+    /// # Errors
+    ///
+    /// Rejects empty/oversized policy bytes or a zero/excessive cycle length.
+    pub fn new(
+        shard_id: SchedulerShardId,
+        policy_bytes: impl Into<Vec<u8>>,
+        cycle_length: u16,
+    ) -> Result<Self, StoreError> {
+        let policy_bytes = policy_bytes.into();
+        if policy_bytes.is_empty()
+            || policy_bytes.len() > Self::MAX_POLICY_BYTES
+            || cycle_length == 0
+            || cycle_length > Self::MAX_CYCLE_LENGTH
+        {
+            return Err(StoreError::InvalidSchedulerFairnessPolicy);
+        }
+        let mut preimage =
+            Vec::with_capacity(SCHEDULER_FAIRNESS_POLICY_DIGEST_DOMAIN.len() + policy_bytes.len());
+        preimage.extend_from_slice(SCHEDULER_FAIRNESS_POLICY_DIGEST_DOMAIN);
+        preimage.extend_from_slice(&policy_bytes);
+        Ok(Self {
+            shard_id,
+            policy_digest: Digest::sha256(preimage),
+            policy_bytes: policy_bytes.into_boxed_slice(),
+            cycle_length,
+        })
+    }
+
+    /// Returns the immutable distributed-scheduler shard identity.
+    #[must_use]
+    pub const fn shard_id(&self) -> &SchedulerShardId {
+        &self.shard_id
+    }
+
+    /// Returns the domain-separated canonical policy checksum.
+    #[must_use]
+    pub const fn policy_digest(&self) -> Digest {
+        self.policy_digest
+    }
+
+    /// Returns the canonical runtime policy bytes.
+    #[must_use]
+    pub const fn policy_bytes(&self) -> &[u8] {
+        &self.policy_bytes
+    }
+
+    /// Returns the exact number of slots in one weighted cycle.
+    #[must_use]
+    pub const fn cycle_length(&self) -> u16 {
+        self.cycle_length
+    }
+}
+
+/// Fully verified durable scheduler fairness policy snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StoredSchedulerFairnessPolicy {
+    pub(crate) registration: SchedulerFairnessPolicyRegistration,
+    pub(crate) registered_at: Timestamp,
+}
+
+impl StoredSchedulerFairnessPolicy {
+    /// Returns the immutable registration payload.
+    #[must_use]
+    pub const fn registration(&self) -> &SchedulerFairnessPolicyRegistration {
+        &self.registration
+    }
+
+    /// Returns the database clock at first registration.
+    #[must_use]
+    pub const fn registered_at(&self) -> Timestamp {
+        self.registered_at
+    }
+}
+
+/// Result of registering one immutable scheduler fairness shard.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum SchedulerFairnessPolicyRegistrationOutcome {
+    /// A new policy and global cursor committed.
+    Registered(StoredSchedulerFairnessPolicy),
+    /// The exact policy was already registered.
+    Idempotent(StoredSchedulerFairnessPolicy),
+}
+
+impl SchedulerFairnessPolicyRegistrationOutcome {
+    /// Returns the verified durable policy in either outcome.
+    #[must_use]
+    pub const fn policy(&self) -> &StoredSchedulerFairnessPolicy {
+        match self {
+            Self::Registered(policy) | Self::Idempotent(policy) => policy,
+        }
+    }
+}
+
+/// One globally ordered, lost-acknowledgement-safe fairness slot reservation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SchedulerFairnessReservation {
+    pub(crate) shard_id: SchedulerShardId,
+    pub(crate) reservation_id: SchedulerReservationId,
+    pub(crate) policy_digest: Digest,
+    pub(crate) sequence: u64,
+    pub(crate) slot: u16,
+    pub(crate) reserved_at: Timestamp,
+}
+
+impl SchedulerFairnessReservation {
+    /// Returns the immutable scheduler shard.
+    #[must_use]
+    pub const fn shard_id(&self) -> &SchedulerShardId {
+        &self.shard_id
+    }
+
+    /// Returns the stable idempotency identity supplied by the worker.
+    #[must_use]
+    pub const fn reservation_id(&self) -> SchedulerReservationId {
+        self.reservation_id
+    }
+
+    /// Returns the immutable policy snapshot used for selection.
+    #[must_use]
+    pub const fn policy_digest(&self) -> Digest {
+        self.policy_digest
+    }
+
+    /// Returns the zero-based global reservation sequence.
+    #[must_use]
+    pub const fn sequence(&self) -> u64 {
+        self.sequence
+    }
+
+    /// Returns the zero-based slot within the weighted policy cycle.
+    #[must_use]
+    pub const fn slot(&self) -> u16 {
+        self.slot
+    }
+
+    /// Returns the database time at first reservation.
+    #[must_use]
+    pub const fn reserved_at(&self) -> Timestamp {
+        self.reserved_at
+    }
+}
+
+/// Bounded maintenance policy for durable fairness reservation evidence.
+///
+/// A deployment must stop retrying a reservation identity before `retain_for`
+/// elapses. Deleting an identity and retrying it later would legitimately
+/// allocate a new slot, so the hard minimum provides an operational safety
+/// margin above the runtime's bounded immediate retry loop.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SchedulerFairnessRetentionPolicy {
+    retain_for: Duration,
+    batch_size: u16,
+}
+
+impl SchedulerFairnessRetentionPolicy {
+    /// Smallest supported evidence retention window.
+    pub const MIN_RETAIN_FOR: Duration = Duration::from_secs(60 * 60);
+    /// Largest supported evidence retention window.
+    pub const MAX_RETAIN_FOR: Duration = Duration::from_secs(366 * 24 * 60 * 60);
+    /// Largest row count deleted by one short transaction.
+    pub const MAX_BATCH_SIZE: u16 = 10_000;
+
+    /// Constructs one bounded retention policy.
+    ///
+    /// # Errors
+    ///
+    /// Rejects retention outside the hard window or a zero/excessive batch.
+    pub const fn new(retain_for: Duration, batch_size: u16) -> Result<Self, StoreError> {
+        if retain_for.as_nanos() < Self::MIN_RETAIN_FOR.as_nanos()
+            || retain_for.as_nanos() > Self::MAX_RETAIN_FOR.as_nanos()
+            || batch_size == 0
+            || batch_size > Self::MAX_BATCH_SIZE
+        {
+            return Err(StoreError::InvalidSchedulerFairnessRetention);
+        }
+        Ok(Self {
+            retain_for,
+            batch_size,
+        })
+    }
+
+    /// Returns the minimum age of evidence eligible for deletion.
+    #[must_use]
+    pub const fn retain_for(self) -> Duration {
+        self.retain_for
+    }
+
+    /// Returns the maximum rows deleted by one transaction.
+    #[must_use]
+    pub const fn batch_size(self) -> u16 {
+        self.batch_size
+    }
+}
+
+/// Auditable result of one bounded fairness-reservation retention pass.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SchedulerFairnessRetentionReport {
+    pub(crate) observed_at: Timestamp,
+    pub(crate) cutoff: Timestamp,
+    pub(crate) deleted: u16,
+}
+
+impl SchedulerFairnessRetentionReport {
+    /// Returns the authoritative database clock for this maintenance pass.
+    #[must_use]
+    pub const fn observed_at(self) -> Timestamp {
+        self.observed_at
+    }
+
+    /// Returns the exclusive oldest-retained cutoff.
+    #[must_use]
+    pub const fn cutoff(self) -> Timestamp {
+        self.cutoff
+    }
+
+    /// Returns the exact number of deleted reservations.
+    #[must_use]
+    pub const fn deleted(self) -> u16 {
+        self.deleted
+    }
+}
 
 /// Fully validated immutable graph definition in one tenant registry.
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -408,9 +408,10 @@ lifecycle layer.
 Deferred-only plans commit an indexed database-time wakeup while atomically
 releasing the exact lease. Typed lifecycle handoff handling and one
 tenant-scoped stable-snapshot scheduler worker are now implemented with bounded
-lost-ack recovery. Cross-tenant fairness with a starvation bound, global
-admission, and parallel sibling scheduling remain required before this RFC is
-accepted.
+lost-ack recovery. Cross-tenant smooth weighted scheduling now uses an
+immutable PostgreSQL policy/cursor, globally ordered reservations, and an exact
+reservation-count starvation bound. Global admission and parallel sibling
+scheduling remain required before this RFC is accepted.
 
 ## Wait, resume, and cancellation
 

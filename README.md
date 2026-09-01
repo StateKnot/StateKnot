@@ -151,35 +151,44 @@ evidence before one atomic PostgreSQL commit; stable lifecycle event identities
 make lost acknowledgements exactly retryable. The scheduler scans one tenant's
 fixed-cutoff runnable pages, reuses a stable claim attempt identity, claims at
 most one run per tick, and exposes bounded contention and retry counters.
-Twelve runtime scenarios and 91 provider cases are mandatory on both
-PostgreSQL 16 and 17.
-Protocol-specific outbox dispatch adapters, first-party model/tool Agent
-ergonomics, cross-tenant fairness, parallel siblings, loops/subgraphs, role
-isolation, retention, failover, restore, and the final stale-race gates have not
-shipped yet.
+The runtime now also freezes exact model and tool provider registries and
+executes their durable attempts through trusted budget/deadline admission,
+durable-before-dispatch starts, validated unary or durably-sunk streaming model
+results, reconciliation-safe tool failures, and no-dispatch terminal recovery.
+Migration 14 and `DurableFairScheduler` add an immutable shard-scoped smooth
+weighted policy, globally ordered lost-ACK-safe reservations, exact cycle
+shares, explicit reservation-count starvation bounds, and bounded
+database-time retention. Sixteen runtime scenarios and 95 provider cases are
+mandatory on both PostgreSQL 16 and 17.
+Concrete OpenAI-compatible/Anthropic adapters, the public high-level Agent API,
+protocol-specific outbox dispatch adapters, parallel siblings,
+loops/subgraphs, role isolation, general retention, failover, restore, and the
+final stale-race gates have not shipped yet.
 
 The current milestone is to:
 
 1. validate the three frozen production scenarios and their load/failure models;
 2. accept the core domain, graph, durability, and protocol/security RFCs;
-3. integrate first-party model/tool execution and a public Agent API with the
-   proven durable Driver, lifecycle coordinator, and tenant worker;
-4. qualify cross-tenant scheduler fairness, role isolation, failover/restore, and the final
-   stale-race gates; and
+3. integrate concrete first-party model adapters and a public Agent API with
+   the proven durable invocation executor, Driver, lifecycle coordinator, and
+   fair tenant worker;
+4. qualify role isolation, failover/restore, and the final stale-race gates; and
 5. publish compatibility and performance evidence before claiming support.
 
 See the [qualification scenarios](docs/scenarios/README.md), the
 [roadmap](docs/roadmap.md), the full
 [research and implementation plan](docs/research-and-implementation-plan.md),
 the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
-[completeness audit](docs/plan-completeness-audit.md).
+[durable invocation](docs/durable-invocation-executor.md),
+[fair scheduling](docs/cross-tenant-fair-scheduler.md), and
+[completeness audit](docs/plan-completeness-audit.md) guides.
 
 ## Repository layout
 
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
-crates/stateknot-runtime/  Executable registry, replay, durable Driver, lifecycle, Agent Loop, and tenant scheduler
+crates/stateknot-runtime/  Executable/provider registries, durable Driver, invocation executor, Agent Loop, and fair scheduler
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 website/                 Bilingual Astro docs, browser tests, and Caddy deployment

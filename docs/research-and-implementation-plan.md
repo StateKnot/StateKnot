@@ -885,9 +885,11 @@ Failure 只有在不存在 Same-fence In-flight Work 时才进入终态监督。
 绑定为有界 `DurableAgentLoop`，首个 Tenant-scoped Scheduler Tick 使用固定 Cutoff Keyset Page、
 稳定 Claim Attempt ID 与每 Tick 最多一个 Run 的策略。Lifecycle/Loop/Scheduler 与 Lost-ACK、
 Evidence Failure、Lease Release 场景现已在 PG16/17 验证。
-它仍不是完整 Agent Runtime。协议专用 Outbox Adapter、第一方 Model/Tool Agent Ergonomics、
-跨租户公平、Parallel Sibling、Loop/Subgraph、角色隔离、归档、Failover 与 Restore 仍按 RFC
-门禁继续实现，RFC-0003 因此保持 Draft。
+Provider-neutral Model/Tool Attempt Executor、精确不可变 Provider Registry、耐久 Stream Sink
+Boundary 与 Cross-tenant Weighted Fair Scheduler 现已补齐；Migration 14 提供 Lost-ACK-safe
+Global Reservation 与有界 Retention。它仍不是完整 Agent Runtime。协议专用 Outbox Adapter、
+具体 Model Adapter、公开 Agent Ergonomics、Parallel Sibling、Loop/Subgraph、角色隔离、通用归档、
+Failover 与 Restore 仍按 RFC 门禁继续实现，RFC-0003 因此保持 Draft。
 
 ### 10.3 可以承诺的执行保证
 
@@ -1092,9 +1094,10 @@ GET    /health/ready
 Route/Reducer/Successor/Wait/Terminal Barrier Planner、Completion-order
 Property/Fixture，以及离线 Exact Schema/Reducer/Node Executable Registry 已实现。
 Typed Wait/Terminal/Failure Lifecycle Coordinator、有界 Agent Loop 与首个 Tenant-scoped
-Stable-snapshot Scheduler Worker 也已实现。Port Schema Compatibility、Loop/Subgraph、
-Nested Namespace、Parallel Sibling Policy、跨租户 Fairness 与 Global Admission 仍未完成，
-阶段 2 尚未结束。
+Stable-snapshot Scheduler Worker 也已实现。Replica-safe Smooth Weighted Cross-tenant
+Fairness、精确 Reservation-count Starvation Bound 与耐久 Reservation Retention 已实现并通过
+PG16/17 验证。Port Schema Compatibility、Loop/Subgraph、Nested Namespace、Parallel
+Sibling Policy 与 Global Admission 仍未完成，阶段 2 尚未结束。
 
 ### 阶段 3：PostgreSQL 耐久运行时（5–6 周）
 
@@ -1107,15 +1110,17 @@ Nested Namespace、Parallel Sibling Policy、跨租户 Fairness 与 Global Admis
 registry、pending node-result、transactional outbox、durable interrupt/timer record 与 exact-ready-set barrier 核心契约、PostgreSQL immutable
 commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending-result barrier
 以及 tenant-level indexed runnable/due-timer/expired-interrupt discovery、durable wait
-registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；cross-tenant
-Graph Registry 注册/重载与 Claimed Recovery Pin Revalidation 已通过 Migration 13 完成；
+registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；Tenant-scoped Graph
+Registry 注册/重载与 Claimed Recovery Pin Revalidation 已通过 Migration 13 完成；
 Executable Registry、独立 Noninitial Replay 与带 Lease Renewal/Cancellation 的耐久 Root
 Graph Driver 也已完成，Continue Barrier 可自动提交，Wait/Terminal/Failure 以精确 Lease-bound
 Handoff 交给生命周期层。Lifecycle 层已使用稳定 Event ID 原子提交 Wait、Success 与 Failure，
 并与 Driver 组成有界 Agent Loop；Tenant-scoped Scheduler 已能从固定 Snapshot 扫描、Claim 并
-执行一个 Run。上述存储、Driver、Lifecycle 与 Tenant Worker 路径均已在 PG16/17 验证。
-Cross-tenant Fairness、Parallel Sibling Policy、协议 Dispatch Adapter、第一方 Model/Tool Agent
-集成，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
+执行一个 Run。Provider-neutral Model/Tool Attempt Executor、不可变 Exact-version Provider
+Registry、耐久 Streaming Sink Boundary，以及 Migration 14 的 Cross-tenant Weighted Fairness、
+Lost-ACK Reservation 与有界 Retention 也已在 PG16/17 验证。具体第一方 Model Adapter、Parallel
+Sibling Policy、协议 Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此
+提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
 

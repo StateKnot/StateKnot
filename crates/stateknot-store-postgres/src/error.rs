@@ -92,6 +92,24 @@ pub enum StoreError {
     /// A graph version was already registered with different immutable bytes.
     #[error("compiled graph identity already exists with a different definition")]
     GraphDefinitionConflict,
+    /// A fairness policy was empty, oversized, or had an invalid cycle length.
+    #[error("scheduler fairness policy registration is invalid")]
+    InvalidSchedulerFairnessPolicy,
+    /// Reservation retention duration or batch bounds are unsafe.
+    #[error("scheduler fairness reservation retention policy is invalid")]
+    InvalidSchedulerFairnessRetention,
+    /// A scheduler shard identity already owns another immutable policy.
+    #[error("scheduler fairness shard already exists with a different policy")]
+    SchedulerFairnessPolicyConflict,
+    /// No immutable fairness policy exists for the supplied scheduler shard.
+    #[error("scheduler fairness policy was not found")]
+    SchedulerFairnessPolicyNotFound,
+    /// A reservation retry named another shard or policy snapshot.
+    #[error("scheduler fairness reservation identity conflicts with durable evidence")]
+    SchedulerFairnessReservationConflict,
+    /// The durable fairness reservation sequence reached its supported ceiling.
+    #[error("scheduler fairness reservation sequence is exhausted")]
+    SchedulerFairnessSequenceExhausted,
     /// No run exists inside the supplied tenant boundary.
     #[error("run was not found in the tenant boundary")]
     RunNotFound,

@@ -1,0 +1,206 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const startupCode = `let mut models = ModelProviderRegistryBuilder::new();
+models.register(model_adapter)?;
+
+let mut tools = ToolProviderRegistryBuilder::new();
+tools.register(tool_adapter)?;
+
+let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+register_standard_invocation_execution_event_schema(&mut schemas)?;
+register_application_schemas(&mut schemas)?;
+
+let executor = DurableInvocationExecutor::new(
+    store,
+    schemas.build()?,
+    models.build(),
+    tools.build(),
+    budget_provider,
+    DurableInvocationExecutorOptions::default(),
+)?;`;
+
+const recoveryCode = `match executor.execute_model(handoff).await {
+    Ok(outcome) => consume(outcome),
+    Err(ModelAttemptExecutionError::Terminal(error)) => {
+        let recovery = error.into_recovery();
+        retry_without_provider_io(recovery).await?;
+    }
+    Err(error) => handle_pre_dispatch_failure(error),
+}`;
+---
+
+<DocsLayout
+  title="每个 Model 与 Tool Attempt 最多 Dispatch 一次。"
+  description="冻结精确 Provider、可信 Budget Admission、外部 I/O 前提交 Start、验证 Stream、保留 Tool 歧义，并在不重新 Dispatch 的前提下恢复 Terminal Write。"
+  section="耐久调用"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="zh-invocation-boundary-title">
+    <h2 id="zh-invocation-boundary-title">
+      已实现执行边界，不冒充 Vendor Adapter
+    </h2>
+    <p>
+      Provider-neutral Executor 及其 PostgreSQL Recovery Path
+      已实现并通过测试。具体 OpenAI-compatible、Anthropic 与 MCP Adapter、高层
+      Agent API 和 Live-provider Qualification 尚未交付。
+    </p>
+  </aside>
+
+  <section aria-labelledby="zh-provider-registry-title">
+    <h2 id="zh-provider-registry-title">Claim Work 前冻结精确 Provider</h2>
+    <p>
+      Registry 是以精确 Owner/Name/Version Capability Identity 为键的不可变
+      Startup Snapshot。Resolution 会比较 Durable Descriptor、Startup Snapshot
+      与 Live Provider 的完整内容。Alias、Family Name、Endpoint Fallback 与可变
+      Routing 不参与恢复授权。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 启动注册</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-invocation-startup-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-invocation-startup-code"
+        tabindex="0"><code>{startupCode}</code></pre>
+    </div>
+    <p>
+      Budget Provider 重新加载不可变 Run Provenance 与累计耐久 Usage。Executor
+      从不接受不可信调用者填写的 Remaining Capacity。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-attempt-authority-title">
+    <h2 id="zh-attempt-authority-title">
+      只有全新耐久 Start 才是 Dispatch Authority
+    </h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>校验</h3>
+        <p>
+          检查 Fence Scope、Ledger State、精确 Provider、Budget、Deadline 与
+          Input Contract。
+        </p>
+      </li>
+      <li>
+        <h3>提交</h3>
+        <p>
+          在同一个 Fenced Transaction 中追加稳定 Start Event，并把精确
+          Invocation 推进到 Executing。
+        </p>
+      </li>
+      <li>
+        <h3>Dispatch</h3>
+        <p>
+          只有全新的 <code>Committed</code> 结果才调用外部代码；Idempotent Start 只返回
+          <code>Recovered</code>。
+        </p>
+      </li>
+      <li>
+        <h3>校验并完成</h3>
+        <p>
+          校验完整 Provider Evidence，再对精确 Invocation Head 提交稳定 Terminal
+          Event。
+        </p>
+      </li>
+    </ol>
+    <p>
+      Model 或 Tool 执行期间不保持数据库事务。Lost ACK 后复用相同 Handoff
+      不会重复 Dispatch 同一个物理 Attempt。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-streaming-title">
+    <h2 id="zh-streaming-title">Streaming 必须有耐久 Sink</h2>
+    <p>
+      Streaming Model Handoff 必须包含 <code>ModelEventSink</code>。Runtime
+      校验并累积每一个语义 Event，等待 Sink 按序接受，并要求有效 Terminal Stream
+      Event。Sink 必须先按 <code>(attempt_id, sequence)</code> 耐久去重，再对外暴露数据。
+    </p>
+    <p>
+      累积 Response 只有在独立 Terminal Ledger Commit 后才成为权威结果。Sequence
+      违规、不完整 EOF、Sink Failure、Cancellation 或 Deadline 会成为
+      Public-safe Error Evidence。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-tool-ambiguity-title">
+    <h2 id="zh-tool-ambiguity-title">停止的 Write 是未知结果</h2>
+    <p>
+      Read-only Cancellation/Timeout 有已知 No-write Boundary。Write 的本地
+      Future 停止时，外部系统可能已经改变，因此 Executor 记录
+      <code>AmbiguousExternalOutcome</code>、<code
+        >ToolExternalEffect::Unknown</code
+      >
+      与 <code>RetryAdvice::ReconcileFirst</code>，绝不把不确定性转换成盲目 Tool
+      Retry。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-terminal-recovery-title">
+    <h2 id="zh-terminal-recovery-title">
+      保留 Terminal Evidence，而不是再调用一次
+    </h2>
+    <p>
+      若外部 I/O 已完成但 Terminal Persistence 无法确认，Error 会持有
+      Payload-redacted Recovery Handoff。只能通过 <code
+        >commit_model_terminal</code
+      > 或
+      <code>commit_tool_terminal</code> 重试；两者都不执行 Provider I/O。若所有权已变化，
+      把同一 Run 的 Handoff Rebind 到当前 Live Fence，再由 PostgreSQL 做权威校验。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 不重新 Dispatch 的 Terminal Recovery</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-invocation-recovery-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-invocation-recovery-code"
+        tabindex="0"><code>{recoveryCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="zh-invocation-schema-title">
+    <h2 id="zh-invocation-schema-title">只公开关联证据</h2>
+    <p>
+      通过标准注册函数安装 Schema，其稳定 Identity 为 <a
+        href="/schemas/runtime/invocation-execution-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0</code
+        ></a
+      >。六种关闭 Operation 只暴露 Binding Kind、Invocation ID、Attempt ID 与
+      Intent Digest，不暴露 Prompt、Argument、Output、Error、Endpoint 或
+      Credential。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-invocation-evidence-title">
+    <h2 id="zh-invocation-evidence-title">验证证据</h2>
+    <p>
+      PostgreSQL 16/17 Test 覆盖 Lease Takeover 后只提交一次 Terminal、无
+      Redispatch 与 Budget Re-evaluation；七个 Event 的有序耐久 Model Stream 与
+      Duplicate Suppression；以及 Timed-out Idempotent-write Tool 保持
+      Reconcile-first。使用该 pre-alpha Surface 前请阅读完整<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-invocation-executor.zh-CN.md"
+        >集成与运维合约</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

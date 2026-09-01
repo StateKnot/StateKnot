@@ -183,24 +183,25 @@ const outcomes = [
   </section>
 
   <section aria-labelledby="fairness-title">
-    <h2 id="fairness-title">Tenant Isolation 不等于 Global Fairness</h2>
+    <h2 id="fairness-title">在 Global Fairness 下保持 Tenant Isolation</h2>
     <p>
-      当前 Worker 刻意保持 Tenant-scoped。跨租户 Selection、Weight、Admission
-      与可度量的 Starvation Bound 属于独立 Control-plane Policy，仍是 Release
-      Blocker。部署时使用有界 Per-tenant Concurrency，并保持数据库凭据
-      Tenant-scoped；不能通过扩大 Worker Queue Visibility 伪造 Fairness。
+      当前 Worker 仍刻意保持 Tenant-scoped。通过<a
+        href="/zh/docs/fair-scheduling/"><code>DurableFairScheduler</code></a
+      > 包装后获得 Replica-global Smooth Weighted Selection 与精确 Reservation-count
+      Starvation Bound。数据库凭据必须保持 Tenant-scoped；不能通过扩大 Worker Queue
+      Visibility 伪造 Fairness。
     </p>
   </section>
 
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行 12 个 Runtime Scenario 和 91 个
+      CI 在 PostgreSQL 16 与 17 上分别运行 16 个 Runtime Scenario 和 95 个
       Provider Case。Runtime 覆盖 Lifecycle 原子性与精确 Lost-ACK
       Replay、数据库时间 Wait Materialization、Agent Loop 成功与 Evidence
-      Failure、Tenant Scheduling、Noninitial Replay、Lease
-      Renewal、重复抑制、Quarantine 与 Higher-fence Takeover。部署该 Pre-alpha
-      Surface 前请阅读<a
+      Failure、Tenant 与加权 Cross-tenant Scheduling、耐久 Model/Tool Attempt 与
+      Streaming、 Noninitial Replay、Lease Renewal、重复抑制、Quarantine 与
+      Higher-fence Takeover。部署该 Pre-alpha Surface 前请阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.zh-CN.md"
         >完整集成与运维契约</a
       >。

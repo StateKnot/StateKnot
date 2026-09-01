@@ -36,6 +36,18 @@ const paths = [
     link: "集成 Agent Loop",
   },
   {
+    title: "执行耐久调用",
+    body: "冻结精确 Model/Tool Provider，在外部 I/O 前提交物理 Start，校验 Stream，并在不 Redispatch 的前提下重试 Terminal Persistence。",
+    href: "/docs/invocations/",
+    link: "集成耐久调用",
+  },
+  {
+    title: "公平调度租户",
+    body: "编译不可变 Weight、预约一条 Replica-global 顺序、检查精确 Starvation Bound，并保留 Lost-ACK Evidence。",
+    href: "/docs/fair-scheduling/",
+    link: "配置公平调度",
+  },
+  {
     title: "运维 PostgreSQL",
     body: "查看已实现 Provider 的安全默认值、迁移顺序、运维边界与强制集成测试路径。",
     href: "/zh/docs/postgresql/",
@@ -61,8 +73,9 @@ const paths = [
     <p>
       StateKnot 还没有稳定的公开 Model/Tool Agent API。目前可以编译确定性
       Graph、冻结可执行部署、重放非初始 Checkpoint，并在 PostgreSQL 上通过原子
-      Lifecycle Commit 运行 Tenant-scoped 耐久 Graph Loop。第一方 Model/Tool
-      Ergonomics 与跨租户调度仍是明确的发布阻断项。
+      Lifecycle Commit 运行 Tenant-scoped 耐久 Graph Loop。Provider-neutral 耐久
+      Model/Tool Attempt 与加权 Cross-tenant Selection 也已实现；具体 Adapter
+      和稳定高层 Agent API 仍是明确的发布阻断项。
     </p>
   </aside>
 

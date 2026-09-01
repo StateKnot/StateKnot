@@ -35,11 +35,11 @@ use stateknot_core::{
     OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead, PendingNodeResultIntent,
     PrincipalIdentity, QuarantineId, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind,
     RetryAdvice, RunCancellationRequest, RunFailure, RunId, RunInterruptKind, RunStatus,
-    RunTimerKind, RunTransition, SchemaId, SchemaReference, Scope, ScopeSet, SubjectId, Superstep,
-    TenantId, ThreadId, TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp,
-    ToolArtifacts, ToolDescriptor, ToolInput, ToolInvocation, ToolInvocationIntent,
-    ToolInvocationStatus, ToolInvocationTransition, ToolResult, ToolResultProvenance, Version,
-    WaitRegistrationIntent,
+    RunTimerKind, RunTransition, SchedulerReservationId, SchedulerShardId, SchemaId,
+    SchemaReference, Scope, ScopeSet, SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent,
+    TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput,
+    ToolInvocation, ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition,
+    ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AppendOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
@@ -51,10 +51,11 @@ use stateknot_store_postgres::{
     OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
     PendingNodeResultCommitOutcome, PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions,
     PostgresTransportSecurity, RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome,
-    RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize, StoreError,
-    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
-    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
-    WaitDiscoveryPageSize,
+    RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize,
+    SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
+    SchedulerFairnessRetentionPolicy, StoreError, TimerFiringCommitOutcome,
+    ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome,
+    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 use uuid::Uuid;
 
@@ -300,6 +301,7 @@ async fn remove_delayed_retry_wakeup(pool: &PgPool) {
 }
 
 async fn remove_graph_registry(pool: &PgPool) {
+    remove_scheduler_fairness(pool).await;
     query("DROP TABLE stateknot.graph_definitions")
         .execute(pool)
         .await
@@ -308,6 +310,23 @@ async fn remove_graph_registry(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v13 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_scheduler_fairness(pool: &PgPool) {
+    query("DROP TABLE stateknot.scheduler_fairness_reservations")
+        .execute(pool)
+        .await
+        .expect("v14 scheduler reservation table must be removed from the fixture");
+    query("DROP TABLE stateknot.scheduler_fairness_shards")
+        .execute(pool)
+        .await
+        .expect("v14 scheduler shard table must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 14")
+        .execute(pool)
+        .await
+        .expect("v14 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -2562,6 +2581,10 @@ fn provenance(tenant_id: TenantId, run_id: RunId) -> AgentResultProvenance {
 
 fn tenant(prefix: &str) -> TenantId {
     TenantId::new(format!("{prefix}-{}", RunId::generate())).unwrap()
+}
+
+fn scheduler_shard(prefix: &str) -> SchedulerShardId {
+    SchedulerShardId::new(format!("{prefix}-{}", RunId::generate())).unwrap()
 }
 
 fn quarantine_request(
@@ -14780,6 +14803,344 @@ async fn migration_thirteen_installs_an_exact_immutable_graph_registry() {
         upgraded
             .load_graph_definition(&tenant_id, &checkpoint_graph())
             .await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn scheduler_fairness_policy_is_immutable_and_reservations_are_lost_ack_safe() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let shard_id = scheduler_shard("fairness-idempotency");
+    let registration = SchedulerFairnessPolicyRegistration::new(
+        shard_id.clone(),
+        br#"{"algorithm":"test_v1","weights":[2,1]}"#,
+        3,
+    )
+    .unwrap();
+    let registered = store
+        .register_scheduler_fairness_policy(registration.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        registered,
+        SchedulerFairnessPolicyRegistrationOutcome::Registered(_)
+    ));
+    assert_eq!(
+        store
+            .register_scheduler_fairness_policy(registration.clone())
+            .await
+            .unwrap()
+            .policy(),
+        registered.policy()
+    );
+    assert!(matches!(
+        store
+            .register_scheduler_fairness_policy(
+                SchedulerFairnessPolicyRegistration::new(
+                    shard_id.clone(),
+                    br#"{"algorithm":"test_v2","weights":[1,2]}"#,
+                    3,
+                )
+                .unwrap(),
+            )
+            .await,
+        Err(StoreError::SchedulerFairnessPolicyConflict)
+    ));
+
+    let reservation_id = SchedulerReservationId::generate();
+    let first = store
+        .reserve_scheduler_fairness_slot(&shard_id, registration.policy_digest(), reservation_id)
+        .await
+        .unwrap();
+    let recovered = store
+        .reserve_scheduler_fairness_slot(&shard_id, registration.policy_digest(), reservation_id)
+        .await
+        .unwrap();
+    assert_eq!(first, recovered);
+    assert_eq!(first.sequence(), 0);
+    assert_eq!(first.slot(), 0);
+    assert!(matches!(
+        store
+            .reserve_scheduler_fairness_slot(
+                &shard_id,
+                Digest::sha256(b"wrong fairness policy"),
+                reservation_id,
+            )
+            .await,
+        Err(StoreError::SchedulerFairnessReservationConflict)
+    ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 12)]
+async fn concurrent_scheduler_replicas_share_one_linear_fairness_cursor() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let shard_id = scheduler_shard("fairness-concurrency");
+    let registration = SchedulerFairnessPolicyRegistration::new(
+        shard_id.clone(),
+        br#"{"algorithm":"test_v1","weights":[3,1,1]}"#,
+        5,
+    )
+    .unwrap();
+    store
+        .register_scheduler_fairness_policy(registration.clone())
+        .await
+        .unwrap();
+    let policy_digest = registration.policy_digest();
+
+    let stable_reservation_id = SchedulerReservationId::generate();
+    let mut duplicate_tasks = Vec::new();
+    for _ in 0..24 {
+        let store = store.clone();
+        let shard_id = shard_id.clone();
+        duplicate_tasks.push(tokio::spawn(async move {
+            store
+                .reserve_scheduler_fairness_slot(&shard_id, policy_digest, stable_reservation_id)
+                .await
+        }));
+    }
+    let mut duplicate_results = Vec::new();
+    for task in duplicate_tasks {
+        duplicate_results.push(task.await.unwrap().unwrap());
+    }
+    assert!(duplicate_results.windows(2).all(|pair| pair[0] == pair[1]));
+    assert_eq!(duplicate_results[0].sequence(), 0);
+
+    let mut unique_tasks = Vec::new();
+    for _ in 0..40 {
+        let store = store.clone();
+        let shard_id = shard_id.clone();
+        unique_tasks.push(tokio::spawn(async move {
+            store
+                .reserve_scheduler_fairness_slot(
+                    &shard_id,
+                    policy_digest,
+                    SchedulerReservationId::generate(),
+                )
+                .await
+        }));
+    }
+    let mut reservations = Vec::new();
+    for task in unique_tasks {
+        reservations.push(task.await.unwrap().unwrap());
+    }
+    reservations.sort_by_key(stateknot_store_postgres::SchedulerFairnessReservation::sequence);
+    for (offset, reservation) in reservations.iter().enumerate() {
+        let sequence = u64::try_from(offset + 1).unwrap();
+        assert_eq!(reservation.sequence(), sequence);
+        assert_eq!(u64::from(reservation.slot()), sequence % 5);
+    }
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn scheduler_reservation_retention_is_database_timed_bounded_and_cursor_neutral() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    assert!(matches!(
+        SchedulerFairnessRetentionPolicy::new(Duration::from_secs(60), 1),
+        Err(StoreError::InvalidSchedulerFairnessRetention)
+    ));
+    assert!(matches!(
+        SchedulerFairnessRetentionPolicy::new(Duration::from_secs(60 * 60), 0),
+        Err(StoreError::InvalidSchedulerFairnessRetention)
+    ));
+    let shard_id = scheduler_shard("fairness-retention");
+    let registration = SchedulerFairnessPolicyRegistration::new(
+        shard_id.clone(),
+        br#"{"algorithm":"test_v1","weights":[1,1]}"#,
+        2,
+    )
+    .unwrap();
+    store
+        .register_scheduler_fairness_policy(registration.clone())
+        .await
+        .unwrap();
+    let mut reservations = Vec::new();
+    for _ in 0..3 {
+        reservations.push(
+            store
+                .reserve_scheduler_fairness_slot(
+                    &shard_id,
+                    registration.policy_digest(),
+                    SchedulerReservationId::generate(),
+                )
+                .await
+                .unwrap(),
+        );
+    }
+
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+        .await
+        .unwrap();
+    query(
+        "UPDATE stateknot.scheduler_fairness_reservations \
+         SET reserved_at = clock_timestamp() - interval '2 hours' \
+         WHERE reservation_id = ANY($1)",
+    )
+    .bind(
+        reservations[..2]
+            .iter()
+            .map(|reservation| *reservation.reservation_id().as_uuid())
+            .collect::<Vec<_>>(),
+    )
+    .execute(&administration)
+    .await
+    .unwrap();
+    let policy = SchedulerFairnessRetentionPolicy::new(Duration::from_secs(60 * 60), 1).unwrap();
+    let first = store
+        .prune_scheduler_fairness_reservations(policy)
+        .await
+        .unwrap();
+    let second = store
+        .prune_scheduler_fairness_reservations(policy)
+        .await
+        .unwrap();
+    let empty = store
+        .prune_scheduler_fairness_reservations(policy)
+        .await
+        .unwrap();
+    assert_eq!(
+        (first.deleted(), second.deleted(), empty.deleted()),
+        (1, 1, 0)
+    );
+    assert!(first.cutoff() < first.observed_at());
+    assert_eq!(
+        query_scalar::<_, i64>(
+            "SELECT count(*) FROM stateknot.scheduler_fairness_reservations WHERE shard_id = $1",
+        )
+        .bind(shard_id.as_str())
+        .fetch_one(&administration)
+        .await
+        .unwrap(),
+        1
+    );
+    let next = store
+        .reserve_scheduler_fairness_slot(
+            &shard_id,
+            registration.policy_digest(),
+            SchedulerReservationId::generate(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(next.sequence(), 3);
+    assert_eq!(next.slot(), 1);
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_fourteen_installs_verified_distributed_fairness_state() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v14_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let fixture_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_scheduler_fairness(&fixture_pool).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture_pool)
+            .await
+            .unwrap(),
+        13
+    );
+    fixture_pool.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 14 must upgrade the exact v13 fixture");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("the upgraded v14 schema must pass exact verification");
+    upgraded.verify_schema().await.unwrap();
+    let shard_id = scheduler_shard("v14-fairness");
+    let registration = SchedulerFairnessPolicyRegistration::new(
+        shard_id.clone(),
+        br#"{"algorithm":"test_v1","weights":[1]}"#,
+        1,
+    )
+    .unwrap();
+    upgraded
+        .register_scheduler_fairness_policy(registration)
+        .await
+        .unwrap();
+
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    query(
+        "ALTER TABLE stateknot.scheduler_fairness_shards \
+         DROP CONSTRAINT scheduler_fairness_shards_policy_bounded",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
+    query(
+        "UPDATE stateknot.scheduler_fairness_shards \
+         SET policy_bytes = policy_bytes || convert_to(' ', 'UTF8') \
+         WHERE shard_id = $1",
+    )
+    .bind(shard_id.as_str())
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.load_scheduler_fairness_policy(&shard_id).await,
         Err(StoreError::CorruptData { .. })
     ));
 

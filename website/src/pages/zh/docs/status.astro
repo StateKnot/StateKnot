@@ -15,7 +15,7 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "PostgreSQL 耐久化切片",
-    body: "PostgreSQL 16/17 迁移、Journal、Checkpoint、Lease、Ledger、Barrier、Wait、Outbox、Quarantine、延迟唤醒与 Tenant-scoped 不可变 Pinned Graph Registry。",
+    body: "PostgreSQL 16/17 迁移、Journal、Checkpoint、Lease、Ledger、Barrier、Wait、Outbox、Quarantine、延迟唤醒、Pinned Graph 与耐久 Fairness Reservation。",
   },
   {
     state: "已实现",
@@ -30,10 +30,22 @@ const capabilities = [
     body: "原子 Wait/Success/Failure Handoff Commit、可信 Lifecycle Evidence 校验、精确 Lost-ACK Recovery、有界 Exact-fence Cleanup 与一次 Tenant-scoped Scheduler Quantum。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "耐久 Model/Tool 执行",
+    body: "精确不可变 Provider Registry、可信 Budget Admission、Durable-before-dispatch Attempt、Unary 与 Durably-sunk Streaming Model、Tool Ambiguity 和 No-dispatch Terminal Recovery。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
+    title: "跨租户公平调度",
+    body: "Replica-global Smooth Weighted Reservation、精确 Cycle Share、显式 Reservation-count Starvation Bound、Concurrency-safe Lost-ACK Recovery 与有界 Retention。",
+  },
+  {
     state: "开发中",
     className: "status-active",
-    title: "Model/Tool Agent 集成",
-    body: "第一方 Model/Tool Adapter、公开 Agent Ergonomics、Streaming、Policy、Cross-tenant Fairness、Parallel Sibling 与 Loop/Subgraph 语义。",
+    title: "公开 Agent 集成",
+    body: "具体 Model Adapter、高层 Agent/Tool Ergonomics、Policy Middleware、可编译示例、Parallel Sibling 与 Loop/Subgraph 语义。",
   },
   {
     state: "尚未发布",
@@ -51,14 +63,14 @@ const capabilities = [
     state: "尚未发布",
     className: "status-planned",
     title: "生产 Server 与运维",
-    body: "HTTP/SSE Role、认证、Policy、Observability、角色隔离、Retention、Failover、Restore、OCI 交付与 Release Qualification 尚未完成。",
+    body: "HTTP/SSE Role、认证、Policy、Observability、角色隔离、通用 Retention、Failover、Restore、OCI 交付与 Release Qualification 尚未完成。",
   },
 ];
 ---
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：耐久 Root Graph Loop、Lifecycle Coordinator 与 Tenant Worker 已实现，但公开 Model/Tool Agent API、协议 Adapter 与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：耐久 Graph Loop、Model/Tool Attempt Executor 与跨租户 Fair Scheduler 已实现，但公开 Agent API、协议 Adapter 与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -97,9 +109,10 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
-      下一个 Runtime 里程碑会把第一方 Model/Tool 执行、Policy 与 Streaming
-      接入已经验证的 Driver 和 Lifecycle Coordinator，再发布由 CI
-      自动运行教程的可执行 Agent 示例。协议广度会建立在这条可恢复路径之上。
+      下一个 Runtime 里程碑会把具体 Model Adapter 与公开 Agent Ergonomics
+      接入已经验证的 Invocation Executor、Driver、Lifecycle Coordinator 与 Fair
+      Scheduler，再发布由 CI 自动运行教程的可执行 Agent
+      示例。协议广度会建立在这条可恢复路径之上。
     </p>
   </section>
 
@@ -113,6 +126,12 @@ const capabilities = [
         <a href="/zh/docs/agent-loop/"
           >耐久 Agent Loop 与 Tenant Scheduler 契约</a
         >
+      </li>
+      <li>
+        <a href="/zh/docs/invocations/">耐久 Model/Tool 调用合约</a>
+      </li>
+      <li>
+        <a href="/zh/docs/fair-scheduling/">跨租户公平调度合约</a>
       </li>
       <li>
         <a

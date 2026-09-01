@@ -15,7 +15,7 @@ const capabilities = [
     state: "Implemented",
     className: "status-implemented",
     title: "PostgreSQL durability slice",
-    body: "PostgreSQL 16/17 migrations, journal, checkpoints, leases, ledgers, barriers, waits, outbox, quarantine, delayed wakeups, and the tenant-scoped immutable pinned graph registry.",
+    body: "PostgreSQL 16/17 migrations, journal, checkpoints, leases, ledgers, barriers, waits, outbox, quarantine, delayed wakeups, pinned graphs, and durable fairness reservations.",
   },
   {
     state: "Implemented",
@@ -30,10 +30,22 @@ const capabilities = [
     body: "Atomic Wait/success/failure handoff commits, trusted lifecycle evidence validation, exact lost-ack recovery, bounded exact-fence cleanup, and one tenant-scoped scheduler quantum.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Durable model/tool execution",
+    body: "Exact immutable provider registries, trusted budget admission, durable-before-dispatch attempts, unary and durably-sunk streaming models, tool ambiguity, and no-dispatch terminal recovery.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Cross-tenant fair scheduling",
+    body: "Replica-global smooth weighted reservations, exact cycle shares, explicit reservation-count starvation bounds, concurrency-safe lost-ACK recovery, and bounded retention.",
+  },
+  {
     state: "Active work",
     className: "status-active",
-    title: "Model/tool Agent integration",
-    body: "First-party model/tool adapters, public Agent ergonomics, streaming, policy, cross-tenant fairness, parallel siblings, and loop/subgraph semantics.",
+    title: "Public Agent integration",
+    body: "Concrete model adapters, high-level Agent/tool ergonomics, policy middleware, compiled examples, parallel siblings, and loop/subgraph semantics.",
   },
   {
     state: "Not shipped",
@@ -51,14 +63,14 @@ const capabilities = [
     state: "Not shipped",
     className: "status-planned",
     title: "Production server and operations",
-    body: "HTTP/SSE roles, authentication, policy, observability, role isolation, retention, failover, restore, OCI delivery, and release qualification remain ahead.",
+    body: "HTTP/SSE roles, authentication, policy, observability, role isolation, general retention, failover, restore, OCI delivery, and release qualification remain ahead.",
   },
 ];
 ---
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: the durable root Graph loop, lifecycle coordinator, and tenant worker are implemented, while the public model/tool Agent API, protocol adapters, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: the durable Graph loop, model/tool attempt executor, and cross-tenant fair scheduler are implemented, while the public Agent API, protocol adapters, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -94,10 +106,11 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      The next runtime milestone integrates first-party model/tool execution,
-      policy, and streaming with the proven Driver and lifecycle coordinator,
-      then publishes one executable Agent example whose tutorial runs in CI.
-      Protocol breadth follows that recovered path rather than preceding it.
+      The next runtime milestone binds concrete model adapters and public Agent
+      ergonomics to the proven invocation executor, Driver, lifecycle
+      coordinator, and fair scheduler, then publishes one executable Agent
+      example whose tutorial runs in CI. Protocol breadth follows that recovered
+      path rather than preceding it.
     </p>
   </section>
 
@@ -110,6 +123,14 @@ const capabilities = [
       <li>
         <a href="/docs/agent-loop/"
           >Durable Agent Loop and tenant scheduler contract</a
+        >
+      </li>
+      <li>
+        <a href="/docs/invocations/">Durable model/tool invocation contract</a>
+      </li>
+      <li>
+        <a href="/docs/fair-scheduling/"
+          >Cross-tenant fair scheduling contract</a
         >
       </li>
       <li>

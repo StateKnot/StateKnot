@@ -70,11 +70,27 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         search:
           "agent loop lifecycle wait terminal failure evidence tenant scheduler lost acknowledgement",
       },
+      {
+        title: "Durable invocations",
+        description:
+          "Execute exact model and tool attempts with durable starts, streaming validation, and no-dispatch terminal recovery.",
+        href: "/docs/invocations/",
+        search:
+          "model tool provider registry invocation executor streaming budget terminal recovery lost acknowledgement",
+      },
     ],
   },
   {
     label: "Operate",
     pages: [
+      {
+        title: "Fair scheduling",
+        description:
+          "Configure replica-safe weighted tenant selection, exact starvation bounds, rollout, and retention.",
+        href: "/docs/fair-scheduling/",
+        search:
+          "fair scheduler weighted tenant starvation bound reservation retention rollout",
+      },
       {
         title: "PostgreSQL provider",
         description:
@@ -152,11 +168,27 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         search:
           "agent loop lifecycle wait terminal failure evidence 租户 scheduler lost ack 调度",
       },
+      {
+        title: "耐久调用执行",
+        description:
+          "通过耐久 Start、Streaming 校验与 No-dispatch Terminal Recovery 执行精确 Model/Tool Attempt。",
+        href: "/docs/invocations/",
+        search:
+          "model tool provider registry invocation executor streaming budget terminal recovery lost ack 调用 执行",
+      },
     ],
   },
   {
     label: "运维",
     pages: [
+      {
+        title: "公平调度",
+        description:
+          "配置 Replica-safe 加权 Tenant Selection、精确 Starvation Bound、Rollout 与 Retention。",
+        href: "/docs/fair-scheduling/",
+        search:
+          "公平 调度 fair scheduler weighted tenant starvation bound reservation retention rollout",
+      },
       {
         title: "PostgreSQL Provider",
         description: "配置、迁移、校验并测试已实现的耐久化 Provider。",

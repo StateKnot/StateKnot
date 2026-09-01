@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0",
+  "title": "StateKnot invocation execution event data",
+  "description": "Public-safe correlation metadata for durable model and tool attempt start/terminal commits. Requests, arguments, outputs, errors, and provider identifiers are deliberately excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation",
+    "binding_kind",
+    "invocation_id",
+    "attempt_id",
+    "intent_digest"
+  ],
+  "properties": {
+    "operation": {
+      "enum": [
+        "model_attempt_started",
+        "model_response_committed",
+        "model_error_committed",
+        "tool_attempt_started",
+        "tool_result_committed",
+        "tool_error_committed"
+      ]
+    },
+    "binding_kind": {
+      "enum": ["model", "tool"]
+    },
+    "invocation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "attempt_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "intent_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "operation": {
+          "enum": [
+            "model_attempt_started",
+            "model_response_committed",
+            "model_error_committed"
+          ]
+        },
+        "binding_kind": { "const": "model" }
+      }
+    },
+    {
+      "properties": {
+        "operation": {
+          "enum": [
+            "tool_attempt_started",
+            "tool_result_committed",
+            "tool_error_committed"
+          ]
+        },
+        "binding_kind": { "const": "tool" }
+      }
+    }
+  ]
+}

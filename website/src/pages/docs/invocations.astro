@@ -1,0 +1,212 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const startupCode = `let mut models = ModelProviderRegistryBuilder::new();
+models.register(model_adapter)?;
+
+let mut tools = ToolProviderRegistryBuilder::new();
+tools.register(tool_adapter)?;
+
+let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+register_standard_invocation_execution_event_schema(&mut schemas)?;
+register_application_schemas(&mut schemas)?;
+
+let executor = DurableInvocationExecutor::new(
+    store,
+    schemas.build()?,
+    models.build(),
+    tools.build(),
+    budget_provider,
+    DurableInvocationExecutorOptions::default(),
+)?;`;
+
+const recoveryCode = `match executor.execute_model(handoff).await {
+    Ok(outcome) => consume(outcome),
+    Err(ModelAttemptExecutionError::Terminal(error)) => {
+        let recovery = error.into_recovery();
+        retry_without_provider_io(recovery).await?;
+    }
+    Err(error) => handle_pre_dispatch_failure(error),
+}`;
+---
+
+<DocsLayout
+  title="Dispatch each model and tool attempt at most once."
+  description="Freeze exact providers, admit trusted budgets, commit starts before external I/O, validate streams, preserve tool ambiguity, and recover terminal writes without redispatch."
+  section="Durable invocations"
+>
+  <aside class="docs-callout" aria-labelledby="invocation-boundary-title">
+    <h2 id="invocation-boundary-title">
+      Implemented boundary, not vendor adapters
+    </h2>
+    <p>
+      The provider-neutral executor and its PostgreSQL recovery path are
+      implemented and tested. Concrete OpenAI-compatible, Anthropic, and MCP
+      adapters, a high-level Agent API, and live-provider qualification have not
+      shipped.
+    </p>
+  </aside>
+
+  <section aria-labelledby="provider-registry-title">
+    <h2 id="provider-registry-title">
+      Freeze exact providers before work is claimed
+    </h2>
+    <p>
+      Registries are immutable startup snapshots keyed by exact
+      owner/name/version capability identity. Resolution compares the full
+      durable descriptor with both the startup snapshot and the live provider.
+      Aliases, family names, endpoint fallback, and mutable routing never enter
+      recovery authority.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · startup registration</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="invocation-startup-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="invocation-startup-code"
+        tabindex="0"><code>{startupCode}</code></pre>
+    </div>
+    <p>
+      The budget provider reloads immutable run provenance and cumulative
+      durable usage. The executor never accepts remaining capacity authored by
+      an untrusted caller.
+    </p>
+  </section>
+
+  <section aria-labelledby="attempt-authority-title">
+    <h2 id="attempt-authority-title">
+      A fresh durable start is dispatch authority
+    </h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Validate</h3>
+        <p>
+          Check fence scope, ledger state, exact provider, budget, deadline, and
+          input contract.
+        </p>
+      </li>
+      <li>
+        <h3>Commit</h3>
+        <p>
+          Append the stable start event and move the exact invocation to
+          executing in one fenced transaction.
+        </p>
+      </li>
+      <li>
+        <h3>Dispatch</h3>
+        <p>
+          Call external code only after a fresh <code>Committed</code> result. An
+          idempotent start returns <code>Recovered</code> without I/O.
+        </p>
+      </li>
+      <li>
+        <h3>Validate and finish</h3>
+        <p>
+          Validate complete provider evidence, then commit the stable terminal
+          event against the exact invocation head.
+        </p>
+      </li>
+    </ol>
+    <p>
+      No database transaction remains open during model or tool execution.
+      Reusing the handoff after a lost acknowledgement cannot dispatch the same
+      physical attempt twice.
+    </p>
+  </section>
+
+  <section aria-labelledby="streaming-title">
+    <h2 id="streaming-title">Streaming requires a durable sink</h2>
+    <p>
+      A streaming model handoff must contain a <code>ModelEventSink</code>. The
+      runtime validates and accumulates every semantic event, waits for ordered
+      sink acceptance, and requires a valid terminal stream event. The sink must
+      durably deduplicate by <code>(attempt_id, sequence)</code> before exposing data
+      externally.
+    </p>
+    <p>
+      The accumulated response is authoritative only after its separate terminal
+      ledger commit. Invalid sequence, incomplete EOF, sink failure,
+      cancellation, or deadline becomes public-safe error evidence.
+    </p>
+  </section>
+
+  <section aria-labelledby="tool-ambiguity-title">
+    <h2 id="tool-ambiguity-title">A stopped write is an unknown outcome</h2>
+    <p>
+      Read-only cancellation and timeout have a known no-write boundary. A write
+      may already have changed an external system when its local future stops,
+      so the executor records <code>AmbiguousExternalOutcome</code>,
+      <code>ToolExternalEffect::Unknown</code>, and
+      <code>RetryAdvice::ReconcileFirst</code>. It never converts uncertainty
+      into a blind tool retry.
+    </p>
+  </section>
+
+  <section aria-labelledby="terminal-recovery-title">
+    <h2 id="terminal-recovery-title">
+      Retain terminal evidence, not another call
+    </h2>
+    <p>
+      If external I/O completes but terminal persistence cannot be confirmed,
+      the error owns a payload-redacted recovery handoff. Retry it only through
+      <code>commit_model_terminal</code> or <code>commit_tool_terminal</code>;
+      those methods perform no provider I/O. If ownership changed, rebind the
+      same-run handoff to the current live fence and let PostgreSQL perform the
+      authoritative check.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · no-dispatch terminal recovery</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="invocation-recovery-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="invocation-recovery-code"
+        tabindex="0"><code>{recoveryCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="invocation-schema-title">
+    <h2 id="invocation-schema-title">Publish only correlation evidence</h2>
+    <p>
+      Install the standard schema through its registration function. Its stable
+      identity is <a href="/schemas/runtime/invocation-execution-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0</code
+        ></a
+      >. The six closed operations expose only binding kind, invocation ID,
+      attempt ID, and intent digest—never prompts, arguments, outputs, errors,
+      endpoints, or credentials.
+    </p>
+  </section>
+
+  <section aria-labelledby="invocation-evidence-title">
+    <h2 id="invocation-evidence-title">Qualification evidence</h2>
+    <p>
+      PostgreSQL 16/17 tests cover terminal commit after lease takeover without
+      redispatch or budget re-evaluation, an ordered seven-event durable model
+      stream with duplicate suppression, and a timed-out idempotent write tool
+      that remains reconcile-first. Read the complete <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-invocation-executor.md"
+        >integration and operations contract</a
+      > before adopting this pre-alpha surface.
+    </p>
+  </section>
+</DocsLayout>

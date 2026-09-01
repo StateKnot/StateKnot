@@ -4,39 +4,56 @@
 //! Real `PostgreSQL` durable graph-driver tests.
 
 use std::{
+    collections::VecDeque,
+    future,
+    pin::Pin,
     sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
     },
-    time::Duration,
+    task::{Context, Poll},
+    time::{Duration, Instant},
 };
 
+use futures_core::Stream;
 use serde_json::{Value, json};
 use stateknot_core::{
     AgentArtifacts, AgentDescriptor, AgentRequest, AgentResultProvenance, AttemptId, BoundedJson,
-    BoxFuture, BudgetLimits, BudgetUsage, ByteCount, CancellationSignal, CapabilityIdentity,
-    CapabilityName, CapabilityReference, CheckpointId, CheckpointState, CheckpointWrite,
-    CompiledGraph, Digest, EventId, ExecutionCount, Failure, FailureCategory, FailureCode,
-    FailureId, FailureMessage, FailureOrigin, GraphBarrierDisposition, GraphExecutionLimits,
-    GraphNode, GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference,
-    GraphReference, GraphRoutes, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
-    JournalEventKind, JournalExpectation, JournalPayload, KnownCosts, NodeControl, NodeId,
-    NodeInvocationBindings, NodeStateChange, NodeTerminalOutput, NodeWait, NodeWaits,
-    PrincipalIdentity, QuarantineId, ReadyNodes, ResolvedBudget, RetryAdvice,
-    RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind, RunTransition, SchemaId,
-    SchemaReference, SubjectId, Superstep, TenantId, ThreadId, TimerId, Timestamp, Version,
+    BoxFuture, BoxStream, BudgetLimits, BudgetRemaining, BudgetUsage, ByteCount,
+    CancellationSignal, CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint,
+    CheckpointId, CheckpointState, CheckpointWrite, CompiledGraph, Digest, ErasedTool, EventId,
+    ExecutionCount, Failure, FailureCategory, FailureCode, FailureId, FailureMessage,
+    FailureOrigin, GraphBarrierDisposition, GraphExecutionLimits, GraphNode, GraphReducer,
+    GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
+    InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
+    JournalExpectation, JournalPayload, KnownCosts, Model, ModelContext, ModelDescriptor,
+    ModelError, ModelEvent, ModelInvocationIntent, ModelInvocationStatus, ModelRequest,
+    ModelResponse, ModelResponseMode, NodeActivation, NodeControl, NodeId, NodeInvocationBindings,
+    NodeStateChange, NodeTerminalOutput, NodeWait, NodeWaits, PrincipalIdentity, QuarantineId,
+    ReadyNodes, ResolvedBudget, RetryAdvice, RunCancellationRequest, RunFence, RunId, RunStatus,
+    RunTimerKind, RunTransition, SchedulerShardId, SchemaId, SchemaReference, SubjectId, Superstep,
+    TenantId, ThreadId, TimerId, Timestamp, ToolContext, ToolDescriptor, ToolError,
+    ToolExternalEffect, ToolInput, ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus,
+    ToolResult, Version,
 };
 use stateknot_runtime::{
-    AgentLoopError, AgentLoopOutcome, DurableAgentLoop, DurableGraphDriver,
-    DurableGraphDriverOptions, DurableGraphLifecycle, DurableGraphLifecycleOptions,
-    DurableTenantScheduler, DurableTenantSchedulerOptions, ExecutableGraphRegistry,
-    ExecutableGraphRegistryBuilder, GraphBarrierLifecycleOutcome, GraphDriveOutcome,
-    GraphDriverError, GraphFailureEvidence, GraphFailureEvidenceContext,
+    AgentLoopError, AgentLoopOutcome, DurableAgentLoop, DurableFairScheduler,
+    DurableFairSchedulerOptions, DurableGraphDriver, DurableGraphDriverOptions,
+    DurableGraphLifecycle, DurableGraphLifecycleOptions, DurableInvocationExecutor,
+    DurableInvocationExecutorOptions, DurableTenantScheduler, DurableTenantSchedulerOptions,
+    ExecutableGraphRegistry, ExecutableGraphRegistryBuilder, GraphBarrierLifecycleOutcome,
+    GraphDriveOutcome, GraphDriverError, GraphFailureEvidence, GraphFailureEvidenceContext,
     GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider, GraphNodeContext,
     GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor, GraphTerminalEvidence,
-    GraphTerminalEvidenceContext, JsonSchemaRegistryBuilder, JsonSchemaRegistryLimits,
-    TenantSchedulerOutcome, register_standard_graph_driver_event_schema,
-    register_standard_graph_lifecycle_event_schema,
+    GraphTerminalEvidenceContext, InvocationAttemptEventIds, InvocationBudgetContext,
+    InvocationBudgetProvider, InvocationBudgetProviderError, InvocationClock, InvocationClockError,
+    InvocationClockObservation, JsonSchemaRegistry, JsonSchemaRegistryBuilder,
+    JsonSchemaRegistryLimits, ModelAttemptExecutionError, ModelAttemptHandoff, ModelAttemptOutcome,
+    ModelAttemptTerminalKind, ModelEventSink, ModelEventSinkError, ModelProviderRegistryBuilder,
+    TenantFairnessWeight, TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome,
+    ToolAttemptTerminalKind, ToolProviderRegistryBuilder, WeightedFairnessPolicy,
+    register_standard_graph_driver_event_schema, register_standard_graph_lifecycle_event_schema,
+    register_standard_invocation_execution_event_schema,
 };
 use stateknot_store_postgres::{
     BarrierCommitOutcome, CheckpointCommitOutcome, CorruptionQuarantineContext,
@@ -129,6 +146,192 @@ impl GraphReducer for TestReducer {
         _: &[GraphReducerInput<'_>],
     ) -> Result<BoundedJson, GraphReducerError> {
         Ok(state.clone())
+    }
+}
+
+struct EmptyModelStream;
+
+impl Stream for EmptyModelStream {
+    type Item = Result<ModelEvent, ModelError>;
+
+    fn poll_next(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Poll::Ready(None)
+    }
+}
+
+struct FiniteModelStream {
+    events: VecDeque<Result<ModelEvent, ModelError>>,
+}
+
+impl Stream for FiniteModelStream {
+    type Item = Result<ModelEvent, ModelError>;
+
+    fn poll_next(mut self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Poll::Ready(self.events.pop_front())
+    }
+}
+
+struct StreamingModel {
+    descriptor: ModelDescriptor,
+    calls: Arc<AtomicUsize>,
+}
+
+impl Model for StreamingModel {
+    fn descriptor(&self) -> &ModelDescriptor {
+        &self.descriptor
+    }
+
+    fn invoke(
+        &self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxFuture<'_, Result<ModelResponse, ModelError>> {
+        let response = model_response_for(&self.descriptor, &request, context.attempt_id());
+        Box::pin(async move { Ok(response) })
+    }
+
+    fn stream(
+        &self,
+        context: ModelContext,
+        _: ModelRequest,
+    ) -> BoxStream<'_, Result<ModelEvent, ModelError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Box::pin(FiniteModelStream {
+            events: model_events_for(&self.descriptor, context.attempt_id())
+                .into_iter()
+                .map(Ok)
+                .collect(),
+        })
+    }
+}
+
+#[derive(Default)]
+struct RecordingModelEventSink {
+    events: tokio::sync::Mutex<Vec<ModelEvent>>,
+}
+
+impl ModelEventSink for RecordingModelEventSink {
+    fn emit(&self, event: ModelEvent) -> BoxFuture<'_, Result<(), ModelEventSinkError>> {
+        Box::pin(async move {
+            self.events.lock().await.push(event);
+            Ok(())
+        })
+    }
+}
+
+struct LeaseRotatingModel {
+    descriptor: ModelDescriptor,
+    store: PostgresStore,
+    calls: Arc<AtomicUsize>,
+    replacement_fence: Arc<tokio::sync::Mutex<Option<RunFence>>>,
+}
+
+impl Model for LeaseRotatingModel {
+    fn descriptor(&self) -> &ModelDescriptor {
+        &self.descriptor
+    }
+
+    fn invoke(
+        &self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxFuture<'_, Result<ModelResponse, ModelError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let response = model_response_for(&self.descriptor, &request, context.attempt_id());
+        let store = self.store.clone();
+        let tenant_id = context.tenant_id().clone();
+        let run_id = context.run_id();
+        let replacement_fence = Arc::clone(&self.replacement_fence);
+        Box::pin(async move {
+            let replacement = store
+                .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+                .await
+                .expect("test provider must rotate the live lease")
+                .lease()
+                .fence()
+                .clone();
+            *replacement_fence.lock().await = Some(replacement);
+            Ok(response)
+        })
+    }
+
+    fn stream(
+        &self,
+        _: ModelContext,
+        _: ModelRequest,
+    ) -> BoxStream<'_, Result<ModelEvent, ModelError>> {
+        Box::pin(EmptyModelStream)
+    }
+}
+
+struct PendingWriteTool {
+    descriptor: ToolDescriptor,
+    calls: Arc<AtomicUsize>,
+}
+
+impl ErasedTool for PendingWriteTool {
+    fn descriptor(&self) -> &ToolDescriptor {
+        &self.descriptor
+    }
+
+    fn call(&self, _: ToolContext, _: ToolInput) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Box::pin(future::pending())
+    }
+}
+
+struct StaticInvocationBudget {
+    resolved: ResolvedBudget,
+}
+
+impl InvocationBudgetProvider for StaticInvocationBudget {
+    fn remaining(
+        &self,
+        context: InvocationBudgetContext,
+    ) -> BoxFuture<'_, Result<BudgetRemaining, InvocationBudgetProviderError>> {
+        let remaining = self
+            .resolved
+            .remaining(&BudgetUsage::zero(), context.observed_at())
+            .map_err(InvocationBudgetProviderError::new);
+        Box::pin(async move { remaining })
+    }
+}
+
+struct OneShotInvocationBudget {
+    resolved: ResolvedBudget,
+    calls: Arc<AtomicUsize>,
+}
+
+impl InvocationBudgetProvider for OneShotInvocationBudget {
+    fn remaining(
+        &self,
+        context: InvocationBudgetContext,
+    ) -> BoxFuture<'_, Result<BudgetRemaining, InvocationBudgetProviderError>> {
+        let call = self.calls.fetch_add(1, Ordering::SeqCst);
+        let remaining = if call == 0 {
+            self.resolved
+                .remaining(&BudgetUsage::zero(), context.observed_at())
+                .map_err(InvocationBudgetProviderError::new)
+        } else {
+            Err(InvocationBudgetProviderError::new(std::io::Error::other(
+                "budget must not be reevaluated during recovery",
+            )))
+        };
+        Box::pin(async move { remaining })
+    }
+}
+
+#[derive(Clone, Copy)]
+struct FixedInvocationClock {
+    observed_at: Timestamp,
+}
+
+impl InvocationClock for FixedInvocationClock {
+    fn observe(&self) -> Result<InvocationClockObservation, InvocationClockError> {
+        Ok(InvocationClockObservation::new(
+            self.observed_at,
+            Instant::now(),
+        ))
     }
 }
 
@@ -475,6 +678,500 @@ fn terminal_evidence(graph: &CompiledGraph) -> GraphTerminalEvidence {
         .build()
         .unwrap();
     GraphTerminalEvidence::new(descriptor, request, budget, AgentArtifacts::empty(), usage)
+}
+
+fn invocation_budget() -> ResolvedBudget {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-budget-v1.json"
+    ))
+    .unwrap();
+    serde_json::from_value(fixture["resolved"]["valid"][0].clone()).unwrap()
+}
+
+fn invocation_schema_registry() -> JsonSchemaRegistry {
+    let mut builder = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
+    register_standard_invocation_execution_event_schema(&mut builder).unwrap();
+    builder.build().unwrap()
+}
+
+fn invocation_activation(checkpoint: &Checkpoint) -> NodeActivation {
+    let node_id = checkpoint.ready_nodes().iter().next().unwrap().clone();
+    NodeActivation::for_ready_root(checkpoint, node_id).unwrap()
+}
+
+fn model_descriptor() -> ModelDescriptor {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-v1.json"
+    ))
+    .unwrap();
+    serde_json::from_value(fixture["descriptors"]["valid"][0]["model"].clone()).unwrap()
+}
+
+fn model_request() -> ModelRequest {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-model-request-v1.json"
+    ))
+    .unwrap();
+    serde_json::from_value(fixture["requests"]["valid"][0].clone()).unwrap()
+}
+
+fn streaming_model_request() -> ModelRequest {
+    let complete = model_request();
+    let mut builder = ModelRequest::builder(complete.limits().clone())
+        .tool_selection(complete.tool_selection().clone())
+        .max_tool_calls_per_response(complete.max_tool_calls_per_response())
+        .strict_tool_arguments(complete.requires_strict_tool_arguments())
+        .output_modalities(complete.output_modalities().clone())
+        .text_output_format(complete.text_output_format().cloned())
+        .response_mode(ModelResponseMode::Streaming)
+        .reasoning_summaries(complete.requires_reasoning_summaries())
+        .extensions(complete.extensions().clone());
+    for instruction in complete.instructions() {
+        builder = builder.instruction(instruction.clone());
+    }
+    for message in complete.messages() {
+        builder = builder.message(message.clone());
+    }
+    for tool in complete.tools() {
+        builder = builder.tool(tool.clone());
+    }
+    builder.build().unwrap()
+}
+
+fn model_response_for(
+    descriptor: &ModelDescriptor,
+    request: &ModelRequest,
+    attempt_id: AttemptId,
+) -> ModelResponse {
+    let mut fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-model-response-v1.json"
+    ))
+    .unwrap();
+    let mut value = fixture["responses"]["valid"][0].take();
+    value["provenance"]["attempt_id"] = serde_json::to_value(attempt_id).unwrap();
+    value["provenance"]["model"] = serde_json::to_value(descriptor.metadata().identity()).unwrap();
+    let response = serde_json::from_value::<ModelResponse>(value).unwrap();
+    response.validate_for(descriptor, request).unwrap();
+    response
+}
+
+fn model_events_for(descriptor: &ModelDescriptor, attempt_id: AttemptId) -> Vec<ModelEvent> {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-model-event-v1.json"
+    ))
+    .unwrap();
+    fixture["events"]["valid"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .cloned()
+        .map(|mut value| {
+            value["attempt_id"] = serde_json::to_value(attempt_id).unwrap();
+            if value["event"]["type"] == "started" {
+                value["event"]["content"]["provenance"]["attempt_id"] =
+                    serde_json::to_value(attempt_id).unwrap();
+                value["event"]["content"]["provenance"]["model"] =
+                    serde_json::to_value(descriptor.metadata().identity()).unwrap();
+            }
+            serde_json::from_value(value).unwrap()
+        })
+        .collect()
+}
+
+fn tool_descriptor() -> ToolDescriptor {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-tool-v1.json"
+    ))
+    .unwrap();
+    serde_json::from_value(fixture["descriptors"]["valid"][0].clone()).unwrap()
+}
+
+fn tool_input(descriptor: &ToolDescriptor) -> ToolInput {
+    ToolInput::new(
+        descriptor.input_schema().clone(),
+        BoundedJson::try_from_value(json!({
+            "amount": 42,
+            "currency": "CNY"
+        }))
+        .unwrap(),
+    )
+    .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn model_executor_rebinds_terminal_evidence_after_lease_takeover_without_redispatch() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-model-executor");
+    let run_id = RunId::generate();
+    let checkpoint = start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let descriptor = model_descriptor();
+    let request = model_request();
+    let invocation_id = InvocationId::generate();
+    let intent = ModelInvocationIntent::new(
+        invocation_activation(checkpoint.checkpoint()),
+        invocation_id,
+        descriptor.clone(),
+        request,
+    )
+    .unwrap();
+    let prepared = store
+        .prepare_model_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                checkpoint.event().head(),
+                lease.fence().clone(),
+            ),
+            intent,
+        )
+        .await
+        .unwrap();
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let budget_calls = Arc::new(AtomicUsize::new(0));
+    let replacement_fence = Arc::new(tokio::sync::Mutex::new(None));
+    let mut models = ModelProviderRegistryBuilder::new();
+    models
+        .register(Arc::new(LeaseRotatingModel {
+            descriptor,
+            store: store.clone(),
+            calls: Arc::clone(&calls),
+            replacement_fence: Arc::clone(&replacement_fence),
+        }))
+        .unwrap();
+    let executor = DurableInvocationExecutor::new(
+        store.clone(),
+        invocation_schema_registry(),
+        models.build(),
+        ToolProviderRegistryBuilder::new().build(),
+        Arc::new(OneShotInvocationBudget {
+            resolved: invocation_budget(),
+            calls: Arc::clone(&budget_calls),
+        }),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let handoff = ModelAttemptHandoff::new(
+        lease.fence().clone(),
+        prepared.invocation().clone(),
+        AttemptId::generate(),
+        InvocationAttemptEventIds::generate(),
+        CancellationSignal::never(),
+        None,
+    )
+    .unwrap();
+
+    let terminal_error = match executor.execute_model(handoff.clone()).await {
+        Err(ModelAttemptExecutionError::Terminal(error)) => error,
+        outcome => panic!("lease takeover must retain terminal model evidence: {outcome:?}"),
+    };
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    let new_fence = replacement_fence
+        .lock()
+        .await
+        .take()
+        .expect("provider must publish the replacement fence");
+    assert_ne!(new_fence.epoch(), lease.fence().epoch());
+    let recovery = terminal_error
+        .into_recovery()
+        .rebind_fence(new_fence)
+        .unwrap();
+    assert_eq!(recovery.kind(), ModelAttemptTerminalKind::Response);
+    let committed = executor.commit_model_terminal(recovery).await.unwrap();
+    assert!(matches!(
+        committed,
+        ModelAttemptOutcome::Dispatched {
+            terminal: ModelAttemptTerminalKind::Response,
+            ..
+        }
+    ));
+    assert_eq!(
+        store
+            .load_model_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ModelInvocationStatus::Committed
+    );
+
+    assert!(matches!(
+        executor.execute_model(handoff).await.unwrap(),
+        ModelAttemptOutcome::Recovered { .. }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(budget_calls.load(Ordering::SeqCst), 1);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn streaming_model_executor_validates_emits_accumulates_and_deduplicates() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-streaming-model");
+    let run_id = RunId::generate();
+    let checkpoint = start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let descriptor = model_descriptor();
+    let invocation_id = InvocationId::generate();
+    let intent = ModelInvocationIntent::new(
+        invocation_activation(checkpoint.checkpoint()),
+        invocation_id,
+        descriptor.clone(),
+        streaming_model_request(),
+    )
+    .unwrap();
+    let prepared = store
+        .prepare_model_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                checkpoint.event().head(),
+                lease.fence().clone(),
+            ),
+            intent,
+        )
+        .await
+        .unwrap();
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let sink = Arc::new(RecordingModelEventSink::default());
+    let mut models = ModelProviderRegistryBuilder::new();
+    models
+        .register(Arc::new(StreamingModel {
+            descriptor,
+            calls: Arc::clone(&calls),
+        }))
+        .unwrap();
+    let executor = DurableInvocationExecutor::new(
+        store.clone(),
+        invocation_schema_registry(),
+        models.build(),
+        ToolProviderRegistryBuilder::new().build(),
+        Arc::new(StaticInvocationBudget {
+            resolved: invocation_budget(),
+        }),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let handoff = ModelAttemptHandoff::new(
+        lease.fence().clone(),
+        prepared.invocation().clone(),
+        AttemptId::generate(),
+        InvocationAttemptEventIds::generate(),
+        CancellationSignal::never(),
+        Some(sink.clone()),
+    )
+    .unwrap();
+    assert!(matches!(
+        executor.execute_model(handoff.clone()).await.unwrap(),
+        ModelAttemptOutcome::Dispatched {
+            terminal: ModelAttemptTerminalKind::Response,
+            ..
+        }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    let events = sink.events.lock().await;
+    assert_eq!(events.len(), 7);
+    for (sequence, event) in events.iter().enumerate() {
+        assert_eq!(event.sequence().get(), u64::try_from(sequence).unwrap());
+    }
+    drop(events);
+    assert_eq!(
+        store
+            .load_model_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ModelInvocationStatus::Committed
+    );
+
+    assert!(matches!(
+        executor.execute_model(handoff).await.unwrap(),
+        ModelAttemptOutcome::Recovered { .. }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(sink.events.lock().await.len(), 7);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn timed_out_tool_write_commits_unknown_and_duplicate_start_never_redispatches() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-tool-executor");
+    let run_id = RunId::generate();
+    let checkpoint = start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let descriptor = tool_descriptor();
+    let invocation_id = InvocationId::generate();
+    let intent = ToolInvocationIntent::new(
+        invocation_activation(checkpoint.checkpoint()),
+        invocation_id,
+        descriptor.clone(),
+        tool_input(&descriptor),
+        descriptor.limits().clone(),
+    )
+    .unwrap();
+    let prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                checkpoint.event().head(),
+                lease.fence().clone(),
+            ),
+            intent,
+        )
+        .await
+        .unwrap();
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut tools = ToolProviderRegistryBuilder::new();
+    tools
+        .register(Arc::new(PendingWriteTool {
+            descriptor,
+            calls: Arc::clone(&calls),
+        }))
+        .unwrap();
+    let executor = DurableInvocationExecutor::with_clock(
+        store.clone(),
+        invocation_schema_registry(),
+        ModelProviderRegistryBuilder::new().build(),
+        tools.build(),
+        Arc::new(StaticInvocationBudget {
+            resolved: invocation_budget(),
+        }),
+        Arc::new(FixedInvocationClock {
+            observed_at: "2029-12-31T23:59:59.000000Z".parse().unwrap(),
+        }),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let handoff = ToolAttemptHandoff::new(
+        lease.fence().clone(),
+        prepared.invocation().clone(),
+        AttemptId::generate(),
+        InvocationAttemptEventIds::generate(),
+        CancellationSignal::never(),
+        None,
+    )
+    .unwrap();
+    assert!(matches!(
+        executor.execute_tool(handoff.clone()).await.unwrap(),
+        ToolAttemptOutcome::Dispatched {
+            terminal: ToolAttemptTerminalKind::Error,
+            ..
+        }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    let stored = store
+        .load_tool_invocation(&tenant_id, run_id, invocation_id)
+        .await
+        .unwrap();
+    assert_eq!(stored.status(), ToolInvocationStatus::Unknown);
+    let ToolInvocationState::Unknown { error } = stored.state() else {
+        panic!("timed-out write must retain ambiguous outcome evidence")
+    };
+    assert_eq!(error.external_effect(), ToolExternalEffect::Unknown);
+    assert_eq!(
+        error.failure().category(),
+        FailureCategory::AmbiguousExternalOutcome
+    );
+    assert_eq!(error.failure().retry_advice(), RetryAdvice::ReconcileFirst);
+
+    assert!(matches!(
+        executor.execute_tool(handoff).await.unwrap(),
+        ToolAttemptOutcome::Recovered { .. }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn durable_fair_scheduler_preserves_exact_cross_tenant_share_across_ticks() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let primary = tenant("fair-runtime-primary");
+    let secondary = tenant("fair-runtime-secondary");
+    let policy = WeightedFairnessPolicy::new(
+        SchedulerShardId::new(format!("runtime-fairness-{}", RunId::generate())).unwrap(),
+        [
+            TenantFairnessWeight::new(primary.clone(), 3).unwrap(),
+            TenantFairnessWeight::new(secondary.clone(), 1).unwrap(),
+        ],
+    )
+    .unwrap();
+    let scheduler = DurableFairScheduler::register(
+        store.clone(),
+        fixture.registry,
+        Arc::new(UnavailableLifecycleEvidence),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+        DurableTenantSchedulerOptions::default(),
+        policy,
+        DurableFairSchedulerOptions::default(),
+    )
+    .await
+    .unwrap();
+
+    let mut selected = Vec::new();
+    for expected_sequence in 0..4_u64 {
+        let tick = scheduler.tick(CancellationSignal::never()).await.unwrap();
+        assert_eq!(tick.reservation().sequence(), expected_sequence);
+        assert_eq!(u64::from(tick.reservation().slot()), expected_sequence);
+        assert!(matches!(
+            tick.tenant_tick().outcome(),
+            TenantSchedulerOutcome::Idle
+        ));
+        selected.push(tick.tenant_id().clone());
+    }
+    assert_eq!(
+        selected.iter().filter(|tenant| **tenant == primary).count(),
+        3
+    );
+    assert_eq!(
+        selected
+            .iter()
+            .filter(|tenant| **tenant == secondary)
+            .count(),
+        1
+    );
+    store.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

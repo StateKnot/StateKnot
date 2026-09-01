@@ -58,9 +58,12 @@ pub use model::{
     PendingNodeResultPageCursor, PendingNodeResultPageSize, RunProjection, RunQuarantine,
     RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest,
     RunnableRunCandidate, RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize,
-    StoredGraphDefinition, StoredOutboxDestination, StoredRun, TimerFiringCommitOutcome,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
-    WaitAbandonment, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
-    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
+    SchedulerFairnessReservation, SchedulerFairnessRetentionPolicy,
+    SchedulerFairnessRetentionReport, StoredGraphDefinition, StoredOutboxDestination, StoredRun,
+    StoredSchedulerFairnessPolicy, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize, WaitAbandonment,
+    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
+    WaitDiscoveryPageSize,
 };
 pub use store::{ClaimedRunRecovery, PostgresStore};

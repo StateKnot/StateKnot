@@ -29,15 +29,16 @@ Tenant Scheduler Tick
 
 | 组件 | 职责 |
 |---|---|
+| `DurableFairScheduler` | 预约一个 Replica-global 加权 Slot，给出精确 Starvation Bound，再只委托给被选中的 Tenant Worker。 |
 | `DurableTenantScheduler` | 按 `(available_at, run_id)` 顺序扫描一个租户的固定 Cutoff 队列，每次最多 Claim 一个 Run，并执行一个有界 Loop Quantum。 |
 | `DurableAgentLoop` | 把同一个 Store、不可变 Executable Registry、Driver 与 Lifecycle Coordinator 绑定在一起，避免不同部署快照被误配。 |
 | `DurableGraphDriver` | Replay 并验证耐久 Graph 证据，先提交 Node Start 再 Dispatch，执行 Node、续租并推进 Continue Barrier。 |
 | `DurableGraphLifecycle` | 使用精确 Lease-bound Handoff 原子提交 Wait、成功 Terminal 或受监督的 Run Failure。 |
 | `GraphLifecycleEvidenceProvider` | 恢复由嵌入应用持久保存的 Admission、Artifact 与累计 Accounting 事实；它不是用于推测缺失数据的 Fallback Hook。 |
 
-这是一条可运行的**耐久 Graph Loop**，但还不是稳定的最终用户 Model/Tool Agent API。
-第一方 Model Adapter、Tool Ergonomics、Streaming、Policy Middleware 与公开 First-agent
-教程仍属于发行前工作。
+这是一条可运行的**耐久 Graph Loop**。Provider-neutral 耐久 Model/Tool Attempt 执行和
+跨租户加权 Selection 已经存在，但它还不是稳定的最终用户 Agent API。具体 Model Adapter、
+高层 Tool Ergonomics、Policy Middleware 与可编译 First-agent 教程仍属于发行前工作。
 
 ## 启动绑定
 
@@ -160,10 +161,11 @@ Primary Error 与 Cleanup Error，便于运维区分执行失败和所有权清�
 的 Agent Loop Error 不会杀死 Tenant Worker；基础设施级 Scan/Claim Error 才会返回 Scheduler
 Error。
 
-部署通过运行明确配置数量的 Tenant Worker 获得有界并发，数据库 Fencing 负责解决竞争。本实现
-**不宣称跨租户公平**：Tenant Selection、Weight、Starvation Bound 与 Global Admission 属于
-独立 Control-plane Policy，其精确算法仍是 RFC 与 Release Blocker。不能通过给 Tenant Worker
-跨租户数据库凭据或 Queue Scope 来伪造 Fairness。
+部署通过运行明确配置数量的 Worker 获得有界并发，数据库 Fencing 负责解决竞争。
+`DurableTenantScheduler` 刻意保持 Single-tenant；需要 Replica-safe Smooth Weighted Selection
+与精确 Reservation-count Starvation Bound 时，通过 `DurableFairScheduler` 包装。详见
+[公平调度合约](cross-tenant-fair-scheduler.zh-CN.md)。不能通过给 Tenant Worker 跨租户数据库凭据或
+Queue Scope 来伪造 Fairness。
 
 ## 运维与可观测性
 
@@ -184,13 +186,14 @@ Deadline 必须能放进保留的 Handoff Lease；超时后应释放所有权，
 
 ## 验证证据与剩余门禁
 
-十二个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
+十六个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
 Success/Wait/Failure 原子性与精确 Lost-ACK Replay、数据库时间 Wait Materialization、Agent
-Loop 成功与 Evidence Failure、Tenant Scheduling、Noninitial Replay、Same-fence Suppression、
-Lease Renewal、Near-expiry Refresh、初始状态 Quarantine 与 Higher-fence Takeover。每个数据库
-版本还会运行 91 个 Provider Integration Case；CI 把两套测试都设为 Mandatory。
+Loop 成功与 Evidence Failure、Tenant 与加权 Cross-tenant Scheduling、耐久 Model/Tool Attempt
+与 Streaming、Noninitial Replay、Same-fence Suppression、Lease Renewal、Near-expiry Refresh、
+初始状态 Quarantine 与 Higher-fence Takeover。每个数据库版本还会运行 95 个 Provider
+Integration Case；CI 把两套测试都设为 Mandatory。
 
-剩余 Release Blocker 包括生产 Admission/Accounting Provider、第一方 Model/Tool Adapter、
-公开 Agent API 与可编译示例、Parallel Sibling Policy、Loop/Subgraph 语义、带 Starvation Bound
-的跨租户 Fairness、协议专用 Outbox Dispatch、数据库角色隔离存储过程、Retention、
-Backup/Restore、Failover、Stale-race Qualification、完整 Observability 与 Release Hardening。
+剩余 Release Blocker 包括生产 Admission/Accounting Provider、具体第一方 Model Adapter、
+公开 Agent API 与可编译示例、Parallel Sibling Policy、Loop/Subgraph 语义、协议专用 Outbox
+Dispatch、数据库角色隔离存储过程、通用 Retention、Backup/Restore、Failover、Stale-race
+Qualification、完整 Observability 与 Release Hardening。

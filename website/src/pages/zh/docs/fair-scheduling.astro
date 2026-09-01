@@ -1,0 +1,183 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const policyCode = `let tenant_a = TenantId::try_from("tenant-a")?;
+let tenant_b = TenantId::try_from("tenant-b")?;
+
+let policy = WeightedFairnessPolicy::new(
+    SchedulerShardId::try_from("primary-v1")?,
+    [
+        TenantFairnessWeight::new(tenant_a, 3)?,
+        TenantFairnessWeight::new(tenant_b.clone(), 1)?,
+    ],
+)?;
+
+let bound = policy
+    .starvation_bound(&tenant_b)
+    .expect("tenant-b was registered in this policy");
+assert!(bound.maximum_reservations_until_selection() <= 4);`;
+
+const retentionCode = `let policy = SchedulerFairnessRetentionPolicy::new(
+    Duration::from_secs(24 * 60 * 60),
+    1_000,
+)?;
+
+let report = store
+    .prune_scheduler_fairness_reservations(policy)
+    .await?;`;
+---
+
+<DocsLayout
+  title="从一条耐久顺序调度租户。"
+  description="编译不可变 Weight、预约 Replica-global Slot、公开精确 Starvation Bound，并安全保留 Lost-ACK Evidence。"
+  section="公平调度"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="zh-fairness-boundary-title">
+    <h2 id="zh-fairness-boundary-title">
+      这是 Selection Bound，不是 Latency Promise
+    </h2>
+    <p>
+      Scheduler 保证每个完整 Reservation Cycle 的精确 Share，并给出每个持续
+      Eligible Tenant 的最大 Reservation Gap。只有 Worker Capacity、Tick
+      Cadence、Queue Scan、Claim 与 Execution Quantum 同样有界时，它才能转换成
+      Wall-clock Service Bound。
+    </p>
+  </aside>
+
+  <section aria-labelledby="zh-fair-policy-title">
+    <h2 id="zh-fair-policy-title">编译一个不可变加权 Policy</h2>
+    <p>
+      StateKnot 按精确 Tenant ID 排序，编译确定性 Smooth Weighted Round Robin
+      Cycle，校验所有配置 Count，并计算每个 Tenant 最大的环形 Selection
+      Gap。硬上界为每个 Shard 1,024 个 Tenant、Weight 1–1,024，以及 4,096 个总
+      Slot。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 3:1 Tenant Policy</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-fair-policy-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="zh-fair-policy-code" tabindex="0"><code>{policyCode}</code></pre>
+    </div>
+    <p>
+      该比例适用于 Scheduling Opportunity，不适用于 Token Spend、CPU Time、Money
+      或 Completed Run。Tenant、Weight、Ordering 或 Algorithm 变化时，必须使用新
+      Shard Identity 并执行显式 Rollout。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-global-order-title">
+    <h2 id="zh-global-order-title">先全局预约，再本地扫描</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>注册</h3>
+        <p>
+          <code>DurableFairScheduler::register</code> 在任何 Run Claim 前，把完全相同的
+          Policy Byte 绑定到一个 Shard。
+        </p>
+      </li>
+      <li>
+        <h3>预约</h3>
+        <p>
+          每个 Replica 分配一个稳定 UUIDv7 Reservation，并且只推进一次短
+          PostgreSQL Cursor Transaction。
+        </p>
+      </li>
+      <li>
+        <h3>选择</h3>
+        <p>
+          Durable Slot 通过不可变本地 Cycle 映射到且只映射到一个 Tenant Queue。
+        </p>
+      </li>
+      <li>
+        <h3>执行 Tick</h3>
+        <p>
+          现有 Tenant-isolated Scheduler 只为该 Tenant
+          扫描、Claim，并最多执行一个 Run。
+        </p>
+      </li>
+    </ol>
+    <p>
+      Queue 为空或输掉 Contention 时 Reservation 仍会被消费，不会转给 Busy
+      Tenant。这保持 Global Order，并防止 Work-conserving Shortcut 偷走其他
+      Tenant 的 Share。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-starvation-title">
+    <h2 id="zh-starvation-title">测量真实环形 Bound</h2>
+    <p>
+      <code>TenantStarvationBound</code> 是两次 Selection 之间最大的 Global Reservation
+      数，包含命中 Tenant 的 Slot。它来自编译后的 Cycle，而不是 Ratio 估算。必须同时监控
+      Selection Gap 与 Successful-claim/Service Lag， 因为 Queue Contention 在公平
+      Selection 后仍可能阻止工作。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-fair-retention-title">
+    <h2 id="zh-fair-retention-title">
+      Reservation Evidence 必须长于所有 Retry
+    </h2>
+    <p>
+      Migration 14 保存不可变 Reservation Row，使 Database ACK 丢失后仍返回原
+      Sequence 与 Slot。Retention 使用 Database Clock、Indexed Oldest-first
+      Candidate 和
+      <code>FOR UPDATE SKIP LOCKED</code>，绝不修改 Policy 或 Cursor State。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 有界 Maintenance Pass</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-fair-retention-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-fair-retention-code"
+        tabindex="0"><code>{retentionCode}</code></pre>
+    </div>
+    <p>
+      支持一小时到 366 天，每个事务最多删除 10,000 行。不得在 Retention Window
+      后重试 Reservation Identity；Window 必须长于所有 Retry、Incident Replay 与
+      Audit Requirement。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-fair-rollout-title">
+    <h2 id="zh-fair-rollout-title">Policy 变化必须发布新 Shard</h2>
+    <p>
+      Shard ID 永久绑定一份 Canonical Policy。激活 <code>primary-v2</code> 等新 Shard
+      前先 Drain 旧 Deployment。让两个 Shard Identity 同时处理同一逻辑 Worker Pool，会按设计形成
+      两套独立 Schedule，使组合后的 Bound 无效。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-fair-evidence-title">
+    <h2 id="zh-fair-evidence-title">验证证据</h2>
+    <p>
+      Property Test 验证任意有界 Tenant Order/Weight、精确 Cycle Count、Order
+      Independence 与所有 Circular Bound。PostgreSQL 16/17 Test 覆盖 Immutable
+      Registration、Same-ID / Unique-ID Concurrency、连续 Reservation、Lost
+      ACK、有界 Retention、Migration Integrity，以及四次分布式 Tick 中的 3:1
+      Share。使用该 pre-alpha Surface 前请阅读完整<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/cross-tenant-fair-scheduler.zh-CN.md"
+        >部署与运维合约</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

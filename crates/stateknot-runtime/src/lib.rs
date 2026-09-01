@@ -13,8 +13,12 @@
 mod agent_loop;
 mod driver;
 mod driver_schema;
+mod fair_scheduler;
+mod invocation_executor;
+mod invocation_schema;
 mod lifecycle;
 mod lifecycle_schema;
+mod provider_registry;
 mod registry;
 mod schema;
 mod tenant_scheduler;
@@ -27,6 +31,24 @@ pub use driver_schema::{
     StandardGraphDriverSchemaRegistrationError, register_standard_graph_driver_event_schema,
     standard_graph_driver_event_schema,
 };
+pub use invocation_executor::{
+    DurableInvocationExecutor, DurableInvocationExecutorBuildError,
+    DurableInvocationExecutorOptions, DurableInvocationExecutorOptionsError,
+    InvocationAttemptEventIds, InvocationAttemptEventIdsError, InvocationAttemptHandoffError,
+    InvocationBoundaryKind, InvocationBudgetContext, InvocationBudgetProvider,
+    InvocationBudgetProviderError, InvocationClock, InvocationClockError,
+    InvocationClockObservation, InvocationEventPayloadError, InvocationTerminalCommitFailure,
+    ModelAttemptExecutionError, ModelAttemptHandoff, ModelAttemptOutcome, ModelAttemptTerminalKind,
+    ModelEventSink, ModelEventSinkError, ModelTerminalCommitError, ModelTerminalCommitHandoff,
+    SystemInvocationClock, ToolAttemptExecutionError, ToolAttemptHandoff, ToolAttemptOutcome,
+    ToolAttemptTerminalKind, ToolTerminalCommitError, ToolTerminalCommitHandoff,
+};
+pub use invocation_schema::{
+    STANDARD_INVOCATION_EXECUTION_EVENT_SCHEMA_ID, StandardInvocationExecutionSchemaError,
+    StandardInvocationExecutionSchemaRegistrationError,
+    register_standard_invocation_execution_event_schema,
+    standard_invocation_execution_event_schema,
+};
 pub use lifecycle_schema::{
     STANDARD_GRAPH_LIFECYCLE_EVENT_SCHEMA_ID, StandardGraphLifecycleSchemaError,
     StandardGraphLifecycleSchemaRegistrationError, register_standard_graph_lifecycle_event_schema,
@@ -38,11 +60,21 @@ pub use driver::{
     DurableGraphDriverOptionsError, GraphBlockedHandoff, GraphDriveBlockers, GraphDriveOutcome,
     GraphDriveReport, GraphDriveResult, GraphDriverError, GraphLifecycleBarrierHandoff,
 };
+pub use fair_scheduler::{
+    DurableFairScheduler, DurableFairSchedulerBuildError, DurableFairSchedulerOptions,
+    DurableFairSchedulerOptionsError, FairSchedulerError, FairSchedulerTick, TenantFairnessWeight,
+    TenantFairnessWeightError, TenantStarvationBound, WeightedFairnessPolicy,
+    WeightedFairnessPolicyError,
+};
 pub use lifecycle::{
     DurableGraphLifecycle, DurableGraphLifecycleBuildError, DurableGraphLifecycleOptions,
     DurableGraphLifecycleOptionsError, GraphBarrierLifecycleOutcome, GraphFailureEvidence,
     GraphFailureEvidenceContext, GraphLifecycleError, GraphLifecycleEvidenceError,
     GraphLifecycleEvidenceProvider, GraphTerminalEvidence, GraphTerminalEvidenceContext,
+};
+pub use provider_registry::{
+    ModelProviderRegistry, ModelProviderRegistryBuilder, ModelProviderRegistryError,
+    ToolProviderRegistry, ToolProviderRegistryBuilder, ToolProviderRegistryError,
 };
 pub use registry::{
     ExecutableGraph, ExecutableGraphRegistry, ExecutableGraphRegistryBuilder,

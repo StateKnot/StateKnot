@@ -52,6 +52,18 @@ const localizedRoutePairs = [
     zhHeading: "执行一个耐久 Agent 调度 Quantum。",
   },
   {
+    en: "/docs/invocations/",
+    zh: "/zh/docs/invocations/",
+    enHeading: "Dispatch each model and tool attempt at most once.",
+    zhHeading: "每个 Model 与 Tool Attempt 最多 Dispatch 一次。",
+  },
+  {
+    en: "/docs/fair-scheduling/",
+    zh: "/zh/docs/fair-scheduling/",
+    enHeading: "Schedule tenants from one durable order.",
+    zhHeading: "从一条耐久顺序调度租户。",
+  },
+  {
     en: "/docs/postgresql/",
     zh: "/zh/docs/postgresql/",
     enHeading: "Operate the PostgreSQL durability provider.",
@@ -140,6 +152,16 @@ test("homepage exposes honest implementation status and semantic structure", asy
   await expect(
     page.locator(".spec-list").getByText("Durable Agent Loop", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page
+      .locator(".spec-list")
+      .getByText("Durable model/tool attempts", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".spec-list")
+      .getByText("Cross-tenant fair scheduler", { exact: true }),
+  ).toBeVisible();
   await expect(page.locator(".map-node--planned")).toHaveCount(4);
 
   const main = page.locator("main");
@@ -189,6 +211,30 @@ test("publishes the strict Graph lifecycle schema at its stable identity", async
   expect(schema.oneOf).toHaveLength(3);
 });
 
+test("publishes the strict invocation execution schema at its stable identity", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/schemas/runtime/invocation-execution-event/1.0.0",
+  );
+  expect(response.status()).toBe(200);
+  const schema = await response.json();
+  expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+  expect(schema.$id).toBe(
+    "https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0",
+  );
+  expect(schema.additionalProperties).toBe(false);
+  expect(schema.properties.operation.enum).toEqual([
+    "model_attempt_started",
+    "model_response_committed",
+    "model_error_committed",
+    "tool_attempt_started",
+    "tool_result_committed",
+    "tool_error_committed",
+  ]);
+  expect(schema.oneOf).toHaveLength(2);
+});
+
 for (const width of responsiveAuditWidths) {
   test(`has no horizontal page overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -202,10 +248,14 @@ for (const route of [
   "/docs/getting-started/",
   "/docs/runtime/",
   "/docs/agent-loop/",
+  "/docs/invocations/",
+  "/docs/fair-scheduling/",
   "/zh/",
   "/zh/docs/getting-started/",
   "/zh/docs/runtime/",
   "/zh/docs/agent-loop/",
+  "/zh/docs/invocations/",
+  "/zh/docs/fair-scheduling/",
 ] as const) {
   for (const width of [320, 375, 414, 768] as const) {
     test(`${route} is responsive at ${width}px`, async ({ page }) => {

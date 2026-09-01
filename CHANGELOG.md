@@ -14,6 +14,19 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Provider-neutral durable model/tool attempt execution with immutable
+  exact-version provider registries, trusted budget and paired-clock admission,
+  durable-before-dispatch starts, unary and durably-sunk streaming models,
+  reconciliation-safe tool cancellation/deadline handling, bounded lost-ACK
+  retries, and retained no-dispatch terminal recovery handoffs.
+- Replica-safe cross-tenant smooth weighted scheduling with immutable
+  shard-scoped policies, globally ordered PostgreSQL reservations, exact
+  per-cycle shares, explicit reservation-count starvation bounds, bounded
+  database-time retention, property tests, and PostgreSQL 16/17 concurrency and
+  runtime qualification.
+- A strict public-safe invocation execution event schema plus bilingual
+  production integration guides for durable invocation execution and
+  cross-tenant fair scheduling.
 - New unpublished `stateknot-runtime` crate with immutable, digest-pinned,
   offline JSON Schema 2020-12 validation and a startup-frozen executable graph
   registry that requires complete graph/reducer/node/schema closure and rejects

@@ -1,0 +1,188 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const policyCode = `let tenant_a = TenantId::try_from("tenant-a")?;
+let tenant_b = TenantId::try_from("tenant-b")?;
+
+let policy = WeightedFairnessPolicy::new(
+    SchedulerShardId::try_from("primary-v1")?,
+    [
+        TenantFairnessWeight::new(tenant_a, 3)?,
+        TenantFairnessWeight::new(tenant_b.clone(), 1)?,
+    ],
+)?;
+
+let bound = policy
+    .starvation_bound(&tenant_b)
+    .expect("tenant-b was registered in this policy");
+assert!(bound.maximum_reservations_until_selection() <= 4);`;
+
+const retentionCode = `let policy = SchedulerFairnessRetentionPolicy::new(
+    Duration::from_secs(24 * 60 * 60),
+    1_000,
+)?;
+
+let report = store
+    .prune_scheduler_fairness_reservations(policy)
+    .await?;`;
+---
+
+<DocsLayout
+  title="Schedule tenants from one durable order."
+  description="Compile immutable weights, reserve replica-global slots, expose an exact starvation bound, and retain lost-ack evidence safely."
+  section="Fair scheduling"
+>
+  <aside class="docs-callout" aria-labelledby="fairness-boundary-title">
+    <h2 id="fairness-boundary-title">
+      A selection bound, not a latency promise
+    </h2>
+    <p>
+      The scheduler guarantees exact shares over a complete reservation cycle
+      and a maximum reservation gap for every continuously eligible tenant. It
+      cannot guarantee wall-clock service unless worker capacity, tick cadence,
+      queue scans, claims, and execution quanta are bounded too.
+    </p>
+  </aside>
+
+  <section aria-labelledby="fair-policy-title">
+    <h2 id="fair-policy-title">Compile one immutable weighted policy</h2>
+    <p>
+      StateKnot sorts exact tenant IDs, compiles a deterministic smooth
+      weighted-round-robin cycle, verifies every configured count, and derives
+      each tenant’s largest circular selection gap. The hard limits are 1,024
+      tenants, weight 1–1,024, and 4,096 total slots per shard.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 3:1 tenant policy</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="fair-policy-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="fair-policy-code" tabindex="0"><code>{policyCode}</code></pre>
+    </div>
+    <p>
+      The ratio applies to scheduling opportunities—not token spend, CPU time,
+      money, or completed runs. Changing tenants, weights, ordering, or the
+      algorithm requires a new shard identity and an explicit rollout.
+    </p>
+  </section>
+
+  <section aria-labelledby="global-order-title">
+    <h2 id="global-order-title">Reserve globally before scanning locally</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Register</h3>
+        <p>
+          <code>DurableFairScheduler::register</code> binds byte-identical policy
+          content to one shard before any run is claimed.
+        </p>
+      </li>
+      <li>
+        <h3>Reserve</h3>
+        <p>
+          Every replica allocates one stable UUIDv7 reservation and advances the
+          short PostgreSQL cursor transaction once.
+        </p>
+      </li>
+      <li>
+        <h3>Select</h3>
+        <p>
+          The durable slot maps through the immutable local cycle to exactly one
+          tenant queue.
+        </p>
+      </li>
+      <li>
+        <h3>Tick</h3>
+        <p>
+          The existing tenant-isolated scheduler scans, claims, and executes at
+          most one run for that tenant.
+        </p>
+      </li>
+    </ol>
+    <p>
+      The reservation is consumed when the queue is idle or loses contention; it
+      is never reassigned to a busy tenant. That preserves global order and
+      prevents work-conserving shortcuts from stealing another tenant’s share.
+    </p>
+  </section>
+
+  <section aria-labelledby="starvation-title">
+    <h2 id="starvation-title">Measure the actual circular bound</h2>
+    <p>
+      <code>TenantStarvationBound</code> is the maximum number of global reservations
+      between selections, including the selected slot. It is derived from the compiled
+      cycle rather than estimated from a ratio. Monitor both this selection gap and
+      successful-claim/service lag because queue contention can still prevent work
+      after a fair selection.
+    </p>
+  </section>
+
+  <section aria-labelledby="fair-retention-title">
+    <h2 id="fair-retention-title">
+      Retain reservation evidence beyond every retry
+    </h2>
+    <p>
+      Migration 14 stores immutable reservation rows so a lost database
+      acknowledgement returns the original sequence and slot. Retention uses the
+      database clock, indexed oldest-first candidates, and
+      <code>FOR UPDATE SKIP LOCKED</code>. It never modifies policy or cursor
+      state.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · bounded maintenance pass</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="fair-retention-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="fair-retention-code"
+        tabindex="0"><code>{retentionCode}</code></pre>
+    </div>
+    <p>
+      The supported window is one hour through 366 days, and a transaction
+      deletes at most 10,000 rows. Never retry a reservation identity after its
+      retention window; choose a window longer than every retry, incident
+      replay, and audit requirement.
+    </p>
+  </section>
+
+  <section aria-labelledby="fair-rollout-title">
+    <h2 id="fair-rollout-title">Roll policy changes as new shards</h2>
+    <p>
+      A shard ID permanently binds one canonical policy. Drain the old
+      deployment before activating a new shard such as <code>primary-v2</code>.
+      Running two shard identities against the same logical worker pool creates
+      two independent schedules by design and invalidates any combined bound.
+    </p>
+  </section>
+
+  <section aria-labelledby="fair-evidence-title">
+    <h2 id="fair-evidence-title">Qualification evidence</h2>
+    <p>
+      Property tests verify arbitrary bounded tenant order/weights, exact cycle
+      counts, order independence, and every circular bound. PostgreSQL 16/17
+      tests cover immutable registration, same-ID and unique-ID concurrency,
+      contiguous reservations, lost acknowledgements, bounded retention,
+      migration integrity, and a 3:1 share across four distributed ticks. Read
+      the complete <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/cross-tenant-fair-scheduler.md"
+        >deployment and operations contract</a
+      > before adopting this pre-alpha surface.
+    </p>
+  </section>
+</DocsLayout>

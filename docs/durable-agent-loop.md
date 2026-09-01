@@ -30,15 +30,18 @@ The implementation is split deliberately:
 
 | Component | Responsibility |
 |---|---|
+| `DurableFairScheduler` | Reserves one replica-global weighted slot with an exact starvation bound, then delegates only to the selected tenant worker. |
 | `DurableTenantScheduler` | Scans one tenant's fixed-cutoff queue in `(available_at, run_id)` order, claims at most one run, and invokes one bounded loop quantum. |
 | `DurableAgentLoop` | Binds one store, one immutable executable registry, one Driver, and one lifecycle coordinator so they cannot accidentally use different deployment snapshots. |
 | `DurableGraphDriver` | Replays and validates durable graph evidence, commits node starts before dispatch, executes nodes, renews the lease, and advances Continue barriers. |
 | `DurableGraphLifecycle` | Atomically commits Wait, successful Terminal, or supervised run failure using the exact lease-bound handoff. |
 | `GraphLifecycleEvidenceProvider` | Recovers already-durable admission, artifact, and cumulative-accounting facts owned by the embedding application. It is not a fallback inference hook. |
 
-This is a runnable **durable graph loop**. It is not yet the stable end-user
-model/tool Agent API: first-party model adapters, tool ergonomics, streaming,
-policy middleware, and the public first-agent tutorial remain release work.
+This is a runnable **durable graph loop**. Provider-neutral durable model/tool
+attempt execution and cross-tenant weighted selection now exist, but this is
+not yet the stable end-user Agent API: concrete model adapters, high-level tool
+ergonomics, policy middleware, and a compiled first-agent tutorial remain
+release work.
 
 ## Startup binding
 
@@ -188,12 +191,12 @@ distinct outcomes. A run-local Agent Loop error does not crash the tenant
 worker; an infrastructure scan or claim error does.
 
 Deployments obtain bounded concurrency by running an explicitly configured
-number of tenant workers. Database fencing resolves races. This implementation
-does **not** claim cross-tenant fairness: tenant selection, weighting,
-starvation bounds, and global admission belong to a separate control-plane
-policy whose exact algorithm remains an RFC and release blocker. Do not give a
-tenant worker credentials or queue scope for another tenant as a fairness
-shortcut.
+number of workers. Database fencing resolves races. `DurableTenantScheduler`
+deliberately remains single-tenant; wrap it through `DurableFairScheduler` for
+replica-safe smooth weighted selection and an exact reservation-count
+starvation bound. See the [fair scheduling contract](cross-tenant-fair-scheduler.md).
+Do not give a tenant worker credentials or queue scope for another tenant as a
+fairness shortcut.
 
 ## Operations and observability
 
@@ -216,17 +219,18 @@ commit.
 
 ## Qualification evidence and remaining gates
 
-Twelve runtime integration scenarios run against both PostgreSQL 16 and 17.
+Sixteen runtime integration scenarios run against both PostgreSQL 16 and 17.
 They cover lifecycle success/Wait/failure atomicity and exact lost-ack replay,
 database-time Wait materialization, Agent Loop success and evidence failure,
-tenant scheduling, noninitial replay, same-fence suppression, lease renewal,
+tenant and weighted cross-tenant scheduling, durable model/tool attempts and
+streaming, noninitial replay, same-fence suppression, lease renewal,
 near-expiry refresh, initial-state quarantine, and higher-fence takeover. Each
-database version also runs 91 provider integration cases. CI makes both suites
+database version also runs 95 provider integration cases. CI makes both suites
 mandatory.
 
 The remaining release blockers include a production admission/accounting
-provider implementation, first-party model and tool adapters, a public Agent
+provider implementation, concrete first-party model adapters, a public Agent
 API and compiled example, parallel sibling policy, loop/subgraph semantics,
-cross-tenant fairness with a starvation bound, protocol-specific outbox
-dispatch, role-separated database procedures, retention, backup/restore,
-failover, stale-race qualification, observability, and release hardening.
+protocol-specific outbox dispatch, role-separated database procedures, general
+retention, backup/restore, failover, stale-race qualification, observability,
+and release hardening.

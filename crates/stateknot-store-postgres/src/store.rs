@@ -45,10 +45,11 @@ use stateknot_core::{
     PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner,
     RecoveryNodeKind, RetryAdvice, RunFence, RunId, RunInterruptKind, RunLease,
     RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTimerKind, RunTransition,
-    RunTransitionKind, RunWaits, Superstep, TenantId, TimerFiring, TimerFiringIntent, TimerId,
-    Timestamp, ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier,
-    ToolInvocationIntent, ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
-    ToolInvocationTransitionKind, WaitRegistrationIntent,
+    RunTransitionKind, RunWaits, SchedulerReservationId, SchedulerShardId, Superstep, TenantId,
+    TimerFiring, TimerFiringIntent, TimerId, Timestamp, ToolInvocation, ToolInvocationHead,
+    ToolInvocationHistoryVerifier, ToolInvocationIntent, ToolInvocationRevision,
+    ToolInvocationStatus, ToolInvocationTransition, ToolInvocationTransitionKind,
+    WaitRegistrationIntent,
 };
 use uuid::Uuid;
 
@@ -67,7 +68,10 @@ use crate::{
     PendingNodeResultPageCursor, PendingNodeResultPageSize, PostgresStoreOptions, RunProjection,
     RunQuarantine, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
     RunQuarantineRequest, RunnableRunCandidate, RunnableRunPage, RunnableRunPageCursor,
-    RunnableRunPageSize, StoreError, StoredGraphDefinition, StoredOutboxDestination, StoredRun,
+    RunnableRunPageSize, SchedulerFairnessPolicyRegistration,
+    SchedulerFairnessPolicyRegistrationOutcome, SchedulerFairnessReservation,
+    SchedulerFairnessRetentionPolicy, SchedulerFairnessRetentionReport, StoreError,
+    StoredGraphDefinition, StoredOutboxDestination, StoredRun, StoredSchedulerFairnessPolicy,
     TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
     ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,
     WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
@@ -168,6 +172,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0013_graph_registry.sql")),
             false,
         ),
+        Migration::new(
+            14,
+            Cow::Borrowed("distributed scheduler fairness"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0014_scheduler_fairness.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -234,6 +245,51 @@ WHERE tenant_id = $1
   AND graph_version = $5
 ";
 
+const SELECT_SCHEDULER_FAIRNESS_SHARD: &str = r"
+SELECT
+    shard_id,
+    policy_digest,
+    policy_bytes,
+    cycle_length,
+    next_slot,
+    next_sequence,
+    registered_at,
+    updated_at
+FROM stateknot.scheduler_fairness_shards
+WHERE shard_id = $1
+";
+
+const SELECT_SCHEDULER_FAIRNESS_SHARD_FOR_UPDATE: &str = r"
+SELECT
+    shard_id,
+    policy_digest,
+    policy_bytes,
+    cycle_length,
+    next_slot,
+    next_sequence,
+    registered_at,
+    updated_at
+FROM stateknot.scheduler_fairness_shards
+WHERE shard_id = $1
+FOR UPDATE
+";
+
+const SELECT_SCHEDULER_FAIRNESS_RESERVATION: &str = r"
+SELECT
+    reservation.shard_id,
+    reservation.reservation_id,
+    reservation.policy_digest,
+    reservation.sequence,
+    reservation.slot,
+    reservation.reserved_at,
+    shard.policy_digest AS shard_policy_digest,
+    shard.cycle_length
+FROM stateknot.scheduler_fairness_reservations AS reservation
+JOIN stateknot.scheduler_fairness_shards AS shard
+  ON shard.shard_id = reservation.shard_id
+WHERE reservation.reservation_id = $1
+";
+
 const VERIFY_SCHEMA_OBJECTS: &str = r"
 SELECT to_regclass('stateknot.runs') IS NOT NULL
    AND to_regclass('stateknot.graph_definitions') IS NOT NULL
@@ -267,6 +323,10 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
    AND to_regclass('stateknot.run_wait_registrations_expiry') IS NOT NULL
    AND to_regclass('stateknot.run_quarantines') IS NOT NULL
    AND to_regclass('stateknot.run_quarantines_observed') IS NOT NULL
+   AND to_regclass('stateknot.scheduler_fairness_shards') IS NOT NULL
+   AND to_regclass('stateknot.scheduler_fairness_reservations') IS NOT NULL
+   AND to_regclass('stateknot.scheduler_fairness_reservations_sequence') IS NOT NULL
+   AND to_regclass('stateknot.scheduler_fairness_reservations_retention') IS NOT NULL
    AND EXISTS (
        SELECT 1 FROM pg_catalog.pg_constraint
        WHERE conrelid = to_regclass('stateknot.graph_definitions')
@@ -277,6 +337,18 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
        SELECT 1 FROM pg_catalog.pg_constraint
        WHERE conrelid = to_regclass('stateknot.graph_definitions')
          AND conname = 'graph_definitions_bytes_bounded'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.scheduler_fairness_shards')
+         AND conname = 'scheduler_fairness_shards_policy_bounded'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.scheduler_fairness_reservations')
+         AND conname = 'scheduler_fairness_reservations_id_unique'
          AND convalidated
    )
    AND EXISTS (
@@ -2811,6 +2883,252 @@ ON CONFLICT DO NOTHING
             .await
             .map_err(|source| StoreError::database("graph definition load commit", source))?;
         Ok(stored)
+    }
+
+    /// Idempotently registers one immutable distributed fairness schedule.
+    ///
+    /// A shard identity permanently binds canonical policy bytes, checksum, and
+    /// cycle length. Deployments publish another shard identity to change
+    /// weights, preventing replicas with mixed configuration from sharing a
+    /// cursor accidentally.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::SchedulerFairnessPolicyConflict`] when the shard
+    /// already owns different bytes, or a corruption/database failure.
+    pub async fn register_scheduler_fairness_policy(
+        &self,
+        registration: SchedulerFairnessPolicyRegistration,
+    ) -> Result<SchedulerFairnessPolicyRegistrationOutcome, StoreError> {
+        let mut transaction = self
+            .begin_mutation("scheduler fairness policy registration")
+            .await?;
+        let registered_at =
+            database_now(&mut transaction, "scheduler fairness policy clock").await?;
+        let inserted = query(
+            r"
+INSERT INTO stateknot.scheduler_fairness_shards (
+    shard_id,
+    policy_digest,
+    policy_bytes,
+    cycle_length,
+    registered_at,
+    updated_at
+)
+VALUES ($1, $2, $3, $4, $5, $5)
+ON CONFLICT (shard_id) DO NOTHING
+",
+        )
+        .bind(registration.shard_id().as_str())
+        .bind(registration.policy_digest().as_bytes())
+        .bind(registration.policy_bytes())
+        .bind(i32::from(registration.cycle_length()))
+        .bind(to_database_time(registered_at)?)
+        .execute(&mut *transaction)
+        .await
+        .map_err(|source| StoreError::database("scheduler fairness policy insert", source))?
+        .rows_affected();
+
+        let row = query_as::<_, SchedulerFairnessShardRow>(SELECT_SCHEDULER_FAIRNESS_SHARD)
+            .bind(registration.shard_id().as_str())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("scheduler fairness policy lookup", source))?
+            .ok_or(StoreError::SchedulerFairnessPolicyConflict)?;
+        let stored = decode_scheduler_fairness_policy(row)?;
+        if stored.registration() != &registration {
+            return Err(StoreError::SchedulerFairnessPolicyConflict);
+        }
+        transaction.commit().await.map_err(|source| {
+            StoreError::database("scheduler fairness policy registration commit", source)
+        })?;
+        Ok(if inserted == 1 {
+            SchedulerFairnessPolicyRegistrationOutcome::Registered(stored)
+        } else {
+            SchedulerFairnessPolicyRegistrationOutcome::Idempotent(stored)
+        })
+    }
+
+    /// Loads and verifies one immutable distributed fairness policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::SchedulerFairnessPolicyNotFound`], a corruption
+    /// failure, or a database error.
+    pub async fn load_scheduler_fairness_policy(
+        &self,
+        shard_id: &SchedulerShardId,
+    ) -> Result<StoredSchedulerFairnessPolicy, StoreError> {
+        let mut transaction = self
+            .begin_repeatable_read("scheduler fairness policy load")
+            .await?;
+        let row = query_as::<_, SchedulerFairnessShardRow>(SELECT_SCHEDULER_FAIRNESS_SHARD)
+            .bind(shard_id.as_str())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("scheduler fairness policy load", source))?
+            .ok_or(StoreError::SchedulerFairnessPolicyNotFound)?;
+        let stored = decode_scheduler_fairness_policy(row)?;
+        if stored.registration().shard_id() != shard_id {
+            return Err(StoreError::corrupt("scheduler fairness policy scope"));
+        }
+        transaction.commit().await.map_err(|source| {
+            StoreError::database("scheduler fairness policy load commit", source)
+        })?;
+        Ok(stored)
+    }
+
+    /// Atomically reserves the next shard-global weighted schedule slot.
+    ///
+    /// `reservation_id` must be allocated once before the database call and
+    /// retained across every retry. An ambiguous successful commit is recovered
+    /// from the immutable reservation row without advancing the cursor again.
+    /// The transaction never spans queue scanning, lease claiming, or run work.
+    ///
+    /// # Errors
+    ///
+    /// Returns explicit policy-not-found, policy/reservation conflict, sequence
+    /// exhaustion, corruption, or database failures.
+    pub async fn reserve_scheduler_fairness_slot(
+        &self,
+        shard_id: &SchedulerShardId,
+        policy_digest: Digest,
+        reservation_id: SchedulerReservationId,
+    ) -> Result<SchedulerFairnessReservation, StoreError> {
+        let mut transaction = self
+            .begin_mutation("scheduler fairness slot reservation")
+            .await?;
+
+        if let Some(reservation) = load_valid_scheduler_fairness_reservation(
+            &mut transaction,
+            shard_id,
+            policy_digest,
+            reservation_id,
+        )
+        .await?
+        {
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("idempotent scheduler fairness reservation commit", source)
+            })?;
+            return Ok(reservation);
+        }
+
+        let shard_row =
+            query_as::<_, SchedulerFairnessShardRow>(SELECT_SCHEDULER_FAIRNESS_SHARD_FOR_UPDATE)
+                .bind(shard_id.as_str())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("scheduler fairness cursor lock", source))?
+                .ok_or(StoreError::SchedulerFairnessPolicyNotFound)?;
+
+        // A same-shard contender may have committed while this transaction was
+        // waiting for the cursor lock. Recheck the stable id before advancing.
+        if let Some(reservation) = load_valid_scheduler_fairness_reservation(
+            &mut transaction,
+            shard_id,
+            policy_digest,
+            reservation_id,
+        )
+        .await?
+        {
+            transaction.commit().await.map_err(|source| {
+                StoreError::database("raced scheduler fairness reservation commit", source)
+            })?;
+            return Ok(reservation);
+        }
+
+        let reservation = insert_scheduler_fairness_reservation(
+            &mut transaction,
+            shard_id,
+            policy_digest,
+            reservation_id,
+            shard_row,
+        )
+        .await?;
+        transaction.commit().await.map_err(|source| {
+            StoreError::database("scheduler fairness reservation commit", source)
+        })?;
+        Ok(reservation)
+    }
+
+    /// Deletes one bounded batch of expired fairness reservation evidence.
+    ///
+    /// The cutoff is derived from the authoritative database clock. Candidates
+    /// are ordered by the retention index and locked with `SKIP LOCKED`, so
+    /// multiple maintenance workers can cooperate without blocking scheduler
+    /// reservations or each other. Shard policies and cursor positions are
+    /// never modified.
+    ///
+    /// A reservation handoff older than the configured retention window must
+    /// be treated as expired by its owner and must not be retried after this
+    /// method can delete it.
+    ///
+    /// # Errors
+    ///
+    /// Returns a database or integrity failure. Policy construction already
+    /// enforces the one-hour safety floor and bounded transaction size.
+    pub async fn prune_scheduler_fairness_reservations(
+        &self,
+        policy: SchedulerFairnessRetentionPolicy,
+    ) -> Result<SchedulerFairnessRetentionReport, StoreError> {
+        let retention_micros = i64::try_from(policy.retain_for().as_micros())
+            .map_err(|_| StoreError::InvalidSchedulerFairnessRetention)?;
+        let mut transaction = self
+            .begin_mutation("scheduler fairness reservation retention")
+            .await?;
+        let (observed_at, cutoff) = query_as::<_, (DateTime<Utc>, DateTime<Utc>)>(
+            r"
+WITH observed AS MATERIALIZED (
+    SELECT clock_timestamp() AS observed_at
+)
+SELECT
+    observed_at,
+    observed_at - ($1::bigint * interval '1 microsecond') AS cutoff
+FROM observed
+",
+        )
+        .bind(retention_micros)
+        .fetch_one(&mut *transaction)
+        .await
+        .map_err(|source| StoreError::database("scheduler fairness retention clock", source))?;
+        let deleted = query(
+            r"
+WITH candidates AS MATERIALIZED (
+    SELECT reservation_id
+    FROM stateknot.scheduler_fairness_reservations
+    WHERE reserved_at < $1
+    ORDER BY reserved_at, shard_id, sequence
+    LIMIT $2
+    FOR UPDATE SKIP LOCKED
+)
+DELETE FROM stateknot.scheduler_fairness_reservations AS reservation
+USING candidates
+WHERE reservation.reservation_id = candidates.reservation_id
+",
+        )
+        .bind(cutoff)
+        .bind(i64::from(policy.batch_size()))
+        .execute(&mut *transaction)
+        .await
+        .map_err(|source| StoreError::database("scheduler fairness retention delete", source))?
+        .rows_affected();
+        let deleted = u16::try_from(deleted)
+            .map_err(|_| StoreError::corrupt("scheduler fairness retention count"))?;
+        let observed_at = from_database_time(observed_at)?;
+        let cutoff = from_database_time(cutoff)?;
+        if cutoff >= observed_at || deleted > policy.batch_size() {
+            return Err(StoreError::corrupt(
+                "scheduler fairness retention projection",
+            ));
+        }
+        transaction.commit().await.map_err(|source| {
+            StoreError::database("scheduler fairness retention commit", source)
+        })?;
+        Ok(SchedulerFairnessRetentionReport {
+            observed_at,
+            cutoff,
+            deleted,
+        })
     }
 
     /// Idempotently admits a pending run using a database commit timestamp.
@@ -8668,6 +8986,30 @@ struct GraphDefinitionRow {
     registered_at: DateTime<Utc>,
 }
 
+#[derive(Clone)]
+struct SchedulerFairnessShardRow {
+    shard_id: String,
+    policy_digest: Vec<u8>,
+    policy_bytes: Vec<u8>,
+    cycle_length: i32,
+    next_slot: i32,
+    next_sequence: i64,
+    registered_at: DateTime<Utc>,
+    #[allow(dead_code)]
+    updated_at: DateTime<Utc>,
+}
+
+struct SchedulerFairnessReservationRow {
+    shard_id: String,
+    reservation_id: Uuid,
+    policy_digest: Vec<u8>,
+    sequence: i64,
+    slot: i32,
+    reserved_at: DateTime<Utc>,
+    shard_policy_digest: Vec<u8>,
+    cycle_length: i32,
+}
+
 struct RunQuarantineTargetRow {
     tenant_id: String,
     run_id: Uuid,
@@ -9168,6 +9510,36 @@ impl<'row> FromRow<'row, PgRow> for GraphDefinitionRow {
             definition_digest: row.try_get("definition_digest")?,
             definition_bytes: row.try_get("definition_bytes")?,
             registered_at: row.try_get("registered_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for SchedulerFairnessShardRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            shard_id: row.try_get("shard_id")?,
+            policy_digest: row.try_get("policy_digest")?,
+            policy_bytes: row.try_get("policy_bytes")?,
+            cycle_length: row.try_get("cycle_length")?,
+            next_slot: row.try_get("next_slot")?,
+            next_sequence: row.try_get("next_sequence")?,
+            registered_at: row.try_get("registered_at")?,
+            updated_at: row.try_get("updated_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for SchedulerFairnessReservationRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            shard_id: row.try_get("shard_id")?,
+            reservation_id: row.try_get("reservation_id")?,
+            policy_digest: row.try_get("policy_digest")?,
+            sequence: row.try_get("sequence")?,
+            slot: row.try_get("slot")?,
+            reserved_at: row.try_get("reserved_at")?,
+            shard_policy_digest: row.try_get("shard_policy_digest")?,
+            cycle_length: row.try_get("cycle_length")?,
         })
     }
 }
@@ -11994,6 +12366,213 @@ async fn load_graph_definition_row(
         .fetch_optional(&mut **transaction)
         .await
         .map_err(|source| StoreError::database("graph definition load", source))
+}
+
+fn decode_scheduler_fairness_policy(
+    row: SchedulerFairnessShardRow,
+) -> Result<StoredSchedulerFairnessPolicy, StoreError> {
+    let shard_id = SchedulerShardId::try_from(row.shard_id)
+        .map_err(|_| StoreError::corrupt("scheduler fairness shard identity"))?;
+    let cycle_length = u16::try_from(row.cycle_length)
+        .map_err(|_| StoreError::corrupt("scheduler fairness cycle length"))?;
+    let registration =
+        SchedulerFairnessPolicyRegistration::new(shard_id, row.policy_bytes, cycle_length)
+            .map_err(|_| StoreError::corrupt("scheduler fairness policy shape"))?;
+    let digest = decode_digest(&row.policy_digest, "scheduler fairness policy digest")?;
+    if registration.policy_digest() != digest {
+        return Err(StoreError::corrupt("scheduler fairness policy checksum"));
+    }
+    let next_slot = u16::try_from(row.next_slot)
+        .map_err(|_| StoreError::corrupt("scheduler fairness cursor"))?;
+    if next_slot >= cycle_length || row.next_sequence < 0 {
+        return Err(StoreError::corrupt("scheduler fairness cursor projection"));
+    }
+    let registered_at = from_database_time(row.registered_at)?;
+    let updated_at = from_database_time(row.updated_at)?;
+    if updated_at < registered_at {
+        return Err(StoreError::corrupt("scheduler fairness clock projection"));
+    }
+    Ok(StoredSchedulerFairnessPolicy {
+        registration,
+        registered_at,
+    })
+}
+
+async fn load_scheduler_fairness_reservation_row(
+    transaction: &mut Transaction<'_, Postgres>,
+    reservation_id: SchedulerReservationId,
+) -> Result<Option<SchedulerFairnessReservationRow>, StoreError> {
+    query_as::<_, SchedulerFairnessReservationRow>(SELECT_SCHEDULER_FAIRNESS_RESERVATION)
+        .bind(*reservation_id.as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("scheduler fairness reservation lookup", source))
+}
+
+async fn load_valid_scheduler_fairness_reservation(
+    transaction: &mut Transaction<'_, Postgres>,
+    shard_id: &SchedulerShardId,
+    policy_digest: Digest,
+    reservation_id: SchedulerReservationId,
+) -> Result<Option<SchedulerFairnessReservation>, StoreError> {
+    let Some(row) = load_scheduler_fairness_reservation_row(transaction, reservation_id).await?
+    else {
+        return Ok(None);
+    };
+    let reservation = decode_scheduler_fairness_reservation(row)?;
+    validate_scheduler_fairness_reservation(&reservation, shard_id, policy_digest, reservation_id)?;
+    Ok(Some(reservation))
+}
+
+async fn insert_scheduler_fairness_reservation(
+    transaction: &mut Transaction<'_, Postgres>,
+    shard_id: &SchedulerShardId,
+    policy_digest: Digest,
+    reservation_id: SchedulerReservationId,
+    shard_row: SchedulerFairnessShardRow,
+) -> Result<SchedulerFairnessReservation, StoreError> {
+    let stored = decode_scheduler_fairness_policy(shard_row.clone())?;
+    if stored.registration().policy_digest() != policy_digest {
+        return Err(StoreError::SchedulerFairnessPolicyConflict);
+    }
+    let sequence = u64::try_from(shard_row.next_sequence)
+        .map_err(|_| StoreError::corrupt("scheduler fairness sequence"))?;
+    if shard_row.next_sequence == i64::MAX {
+        return Err(StoreError::SchedulerFairnessSequenceExhausted);
+    }
+    let slot = u16::try_from(shard_row.next_slot)
+        .map_err(|_| StoreError::corrupt("scheduler fairness cursor"))?;
+    let cycle_length = stored.registration().cycle_length();
+    if slot >= cycle_length {
+        return Err(StoreError::corrupt("scheduler fairness cursor"));
+    }
+    let reserved_at = database_now(transaction, "scheduler fairness reservation clock").await?;
+    let reservation = SchedulerFairnessReservation {
+        shard_id: shard_id.clone(),
+        reservation_id,
+        policy_digest,
+        sequence,
+        slot,
+        reserved_at,
+    };
+
+    let insert = query(
+        r"
+INSERT INTO stateknot.scheduler_fairness_reservations (
+    shard_id,
+    reservation_id,
+    policy_digest,
+    sequence,
+    slot,
+    reserved_at
+)
+VALUES ($1, $2, $3, $4, $5, $6)
+",
+    )
+    .bind(shard_id.as_str())
+    .bind(*reservation_id.as_uuid())
+    .bind(policy_digest.as_bytes())
+    .bind(shard_row.next_sequence)
+    .bind(shard_row.next_slot)
+    .bind(to_database_time(reserved_at)?)
+    .execute(&mut **transaction)
+    .await;
+    if let Err(source) = insert {
+        if has_database_error_code(&source, "23505") {
+            return Err(StoreError::SchedulerFairnessReservationConflict);
+        }
+        return Err(StoreError::database(
+            "scheduler fairness reservation insert",
+            source,
+        ));
+    }
+
+    let next_slot = if slot + 1 == cycle_length {
+        0
+    } else {
+        slot + 1
+    };
+    let updated = query(
+        r"
+UPDATE stateknot.scheduler_fairness_shards
+SET next_slot = $1,
+    next_sequence = next_sequence + 1,
+    updated_at = $2
+WHERE shard_id = $3
+  AND policy_digest = $4
+  AND next_slot = $5
+  AND next_sequence = $6
+",
+    )
+    .bind(i32::from(next_slot))
+    .bind(to_database_time(reserved_at)?)
+    .bind(shard_id.as_str())
+    .bind(policy_digest.as_bytes())
+    .bind(shard_row.next_slot)
+    .bind(shard_row.next_sequence)
+    .execute(&mut **transaction)
+    .await
+    .map_err(|source| StoreError::database("scheduler fairness cursor advance", source))?
+    .rows_affected();
+    if updated != 1 {
+        return Err(StoreError::SchedulerFairnessPolicyConflict);
+    }
+    Ok(reservation)
+}
+
+fn decode_scheduler_fairness_reservation(
+    row: SchedulerFairnessReservationRow,
+) -> Result<SchedulerFairnessReservation, StoreError> {
+    let shard_id = SchedulerShardId::try_from(row.shard_id)
+        .map_err(|_| StoreError::corrupt("scheduler fairness reservation shard"))?;
+    let reservation_id = SchedulerReservationId::from_uuid(row.reservation_id)
+        .map_err(|_| StoreError::corrupt("scheduler fairness reservation identity"))?;
+    let policy_digest = decode_digest(
+        &row.policy_digest,
+        "scheduler fairness reservation policy digest",
+    )?;
+    let shard_policy_digest = decode_digest(
+        &row.shard_policy_digest,
+        "scheduler fairness shard policy digest",
+    )?;
+    let sequence = u64::try_from(row.sequence)
+        .map_err(|_| StoreError::corrupt("scheduler fairness reservation sequence"))?;
+    let slot = u16::try_from(row.slot)
+        .map_err(|_| StoreError::corrupt("scheduler fairness reservation slot"))?;
+    let cycle_length = u16::try_from(row.cycle_length)
+        .map_err(|_| StoreError::corrupt("scheduler fairness reservation cycle"))?;
+    if cycle_length == 0
+        || cycle_length > SchedulerFairnessPolicyRegistration::MAX_CYCLE_LENGTH
+        || slot >= cycle_length
+        || policy_digest != shard_policy_digest
+    {
+        return Err(StoreError::corrupt(
+            "scheduler fairness reservation policy projection",
+        ));
+    }
+    Ok(SchedulerFairnessReservation {
+        shard_id,
+        reservation_id,
+        policy_digest,
+        sequence,
+        slot,
+        reserved_at: from_database_time(row.reserved_at)?,
+    })
+}
+
+fn validate_scheduler_fairness_reservation(
+    reservation: &SchedulerFairnessReservation,
+    shard_id: &SchedulerShardId,
+    policy_digest: Digest,
+    reservation_id: SchedulerReservationId,
+) -> Result<(), StoreError> {
+    if reservation.shard_id() != shard_id
+        || reservation.policy_digest() != policy_digest
+        || reservation.reservation_id() != reservation_id
+    {
+        return Err(StoreError::SchedulerFairnessReservationConflict);
+    }
+    Ok(())
 }
 
 fn encode_outbox_destination_config(config: &JournalPayload) -> Result<Vec<u8>, StoreError> {

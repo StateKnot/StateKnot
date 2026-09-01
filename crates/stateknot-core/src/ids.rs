@@ -1,7 +1,7 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//! Validated tenant identifiers and canonical `StateKnot`-generated `UUIDv7` IDs.
+//! Validated scheduler/tenant identifiers and canonical generated `UUIDv7` IDs.
 
 use std::{borrow::Borrow, fmt, str::FromStr};
 
@@ -215,6 +215,207 @@ fn validate_tenant_id(value: &str) -> Result<(), TenantIdError> {
         return Err(TenantIdError::InvalidByte { index });
     }
 
+    Ok(())
+}
+
+/// A stable distributed-scheduler shard identifier.
+///
+/// Shard IDs use the same bounded ASCII grammar as tenant IDs but represent a
+/// control-plane ownership boundary, never a tenant authorization boundary.
+/// A policy change should normally publish a new shard identifier so rolling
+/// deployments cannot silently run different weighted schedules.
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct SchedulerShardId(Box<str>);
+
+impl SchedulerShardId {
+    /// Maximum encoded shard identifier length in bytes.
+    pub const MAX_LEN: usize = 128;
+
+    /// Validates and constructs a scheduler shard identifier.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SchedulerShardIdError`] for an empty, oversized, path-like,
+    /// or non-canonical ASCII value.
+    pub fn new(value: impl Into<String>) -> Result<Self, SchedulerShardIdError> {
+        let value = value.into();
+        validate_scheduler_shard_id(&value)?;
+        Ok(Self(value.into_boxed_str()))
+    }
+
+    /// Returns the exact durable shard identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for SchedulerShardId {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl Borrow<str> for SchedulerShardId {
+    fn borrow(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl fmt::Debug for SchedulerShardId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_tuple("SchedulerShardId")
+            .field(&self.as_str())
+            .finish()
+    }
+}
+
+impl fmt::Display for SchedulerShardId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl FromStr for SchedulerShardId {
+    type Err = SchedulerShardIdError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<String> for SchedulerShardId {
+    type Error = SchedulerShardIdError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<&str> for SchedulerShardId {
+    type Error = SchedulerShardIdError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl From<SchedulerShardId> for String {
+    fn from(value: SchedulerShardId) -> Self {
+        value.0.into()
+    }
+}
+
+impl Serialize for SchedulerShardId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for SchedulerShardId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(SchedulerShardIdVisitor)
+    }
+}
+
+impl JsonSchema for SchedulerShardId {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "SchedulerShardId".into()
+    }
+
+    fn schema_id() -> std::borrow::Cow<'static, str> {
+        concat!(module_path!(), "::SchedulerShardId").into()
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^(?!\\.{1,2}$)[A-Za-z0-9._:-]+$"
+        })
+    }
+
+    fn inline_schema() -> bool {
+        true
+    }
+}
+
+/// Validation failure for a [`SchedulerShardId`].
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum SchedulerShardIdError {
+    /// The identifier contained no bytes.
+    #[error("scheduler shard identifier must not be empty")]
+    Empty,
+    /// The identifier exceeded [`SchedulerShardId::MAX_LEN`].
+    #[error("scheduler shard identifier is {actual} bytes; maximum is {max}")]
+    TooLong {
+        /// Maximum accepted byte length.
+        max: usize,
+        /// Observed byte length.
+        actual: usize,
+    },
+    /// The identifier was `.` or `..`.
+    #[error("scheduler shard identifier must not be path-like")]
+    PathLike,
+    /// A byte did not belong to the allowed ASCII grammar.
+    #[error("scheduler shard identifier contains an invalid byte at offset {index}")]
+    InvalidByte {
+        /// Zero-based byte offset of the first invalid byte.
+        index: usize,
+    },
+}
+
+struct SchedulerShardIdVisitor;
+
+impl de::Visitor<'_> for SchedulerShardIdVisitor {
+    type Value = SchedulerShardId;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a canonical StateKnot scheduler shard identifier")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        SchedulerShardId::try_from(value).map_err(E::custom)
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        SchedulerShardId::try_from(value).map_err(E::custom)
+    }
+}
+
+fn validate_scheduler_shard_id(value: &str) -> Result<(), SchedulerShardIdError> {
+    if value.is_empty() {
+        return Err(SchedulerShardIdError::Empty);
+    }
+    if value.len() > SchedulerShardId::MAX_LEN {
+        return Err(SchedulerShardIdError::TooLong {
+            max: SchedulerShardId::MAX_LEN,
+            actual: value.len(),
+        });
+    }
+    if matches!(value, "." | "..") {
+        return Err(SchedulerShardIdError::PathLike);
+    }
+    if let Some((index, _)) = value.bytes().enumerate().find(|(_, byte)| {
+        !byte.is_ascii_alphanumeric() && !matches!(byte, b'.' | b'_' | b':' | b'-')
+    }) {
+        return Err(SchedulerShardIdError::InvalidByte { index });
+    }
     Ok(())
 }
 
@@ -437,6 +638,10 @@ define_generated_id!(
     AttemptId,
     "A tenant-scoped node or dependency attempt identifier."
 );
+define_generated_id!(
+    SchedulerReservationId,
+    "A durable distributed-scheduler slot-reservation identifier."
+);
 
 #[cfg(test)]
 mod tests {
@@ -474,6 +679,21 @@ mod tests {
                 Err(TenantIdError::InvalidByte { .. })
             ));
         }
+    }
+
+    #[test]
+    fn scheduler_shard_id_has_an_independent_bounded_control_plane_type() {
+        let shard = SchedulerShardId::try_from("prod:fairness-01").unwrap();
+        assert_eq!(shard.as_str(), "prod:fairness-01");
+        assert_eq!(shard.to_string(), "prod:fairness-01");
+        assert_eq!(
+            SchedulerShardId::try_from("."),
+            Err(SchedulerShardIdError::PathLike)
+        );
+        assert!(matches!(
+            SchedulerShardId::try_from("bad/shard"),
+            Err(SchedulerShardIdError::InvalidByte { index: 3 })
+        ));
     }
 
     #[test]

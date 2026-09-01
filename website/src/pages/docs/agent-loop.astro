@@ -179,23 +179,24 @@ const outcomes = [
   </section>
 
   <section aria-labelledby="fairness-title">
-    <h2 id="fairness-title">Do not mistake isolation for global fairness</h2>
+    <h2 id="fairness-title">Keep isolation beneath global fairness</h2>
     <p>
-      This worker is intentionally tenant-scoped. Cross-tenant selection,
-      weights, admission, and a measurable starvation bound remain a separate
-      control-plane policy and release blocker. Deploy bounded per-tenant
-      concurrency and keep storage credentials tenant-scoped; do not widen a
-      worker’s queue visibility to simulate fairness.
+      This worker remains intentionally tenant-scoped. Wrap it through <a
+        href="/docs/fair-scheduling/"><code>DurableFairScheduler</code></a
+      > for replica-global smooth weighted selection and an exact reservation-count
+      starvation bound. Keep storage credentials tenant-scoped; do not widen a worker’s
+      queue visibility to simulate fairness.
     </p>
   </section>
 
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">Qualification evidence</h2>
     <p>
-      CI runs 12 runtime scenarios and 91 provider cases on both PostgreSQL 16
+      CI runs 16 runtime scenarios and 95 provider cases on both PostgreSQL 16
       and 17. The runtime cases cover lifecycle atomicity and exact lost-ack
       replay, database-time Wait materialization, Agent Loop success and
-      evidence failure, tenant scheduling, noninitial replay, lease renewal,
+      evidence failure, tenant and weighted cross-tenant scheduling, durable
+      model/tool attempts and streaming, noninitial replay, lease renewal,
       duplicate suppression, quarantine, and higher-fence takeover. Read the <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.md"
         >complete integration and operations contract</a

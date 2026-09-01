@@ -164,10 +164,20 @@ from the repository.
   release exact ownership after execution/evidence errors, and implement one
   tenant-scoped stable-snapshot scheduler tick with bounded paging, stable
   claim identities, normal contention skips, and closed run-local outcomes.
-- [ ] Complete first-party model/tool Agent execution, cross-tenant scheduler
-  fairness with an explicit starvation bound, parallel sibling policy,
-  loop/subgraph semantics, protocol-specific outbox adapters, role isolation,
-  retention, failover, restore, and stale-race gates.
+- [x] Implement provider-neutral first-party model/tool attempt execution with
+  exact immutable provider registries, trusted budget admission, unary and
+  durably-sunk streaming models, tool ambiguity preservation,
+  durable-before-dispatch starts, lost-ACK duplicate suppression, and
+  no-dispatch terminal recovery on PostgreSQL 16/17.
+- [x] Implement replica-safe cross-tenant smooth weighted scheduling with an
+  immutable PostgreSQL policy/cursor, globally ordered lost-ACK-safe
+  reservations, exact per-cycle shares, explicit reservation-count starvation
+  bounds, bounded database-time retention, property tests, and PostgreSQL 16/17
+  concurrency and runtime evidence.
+- [ ] Complete concrete first-party model adapters and public Agent ergonomics,
+  parallel sibling policy, loop/subgraph semantics, protocol-specific outbox
+  adapters, role isolation, general retention, failover, restore, and final
+  stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

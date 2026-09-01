@@ -145,7 +145,7 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 
 ## 已验证证据与剩余门禁
 
-十二个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
+十六个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
 
 1. Continue Barrier 提交后执行 Noninitial Replay，并交出 Terminal Handoff；
 2. Same-fence In-flight 恢复不重复调用 Executor；
@@ -154,13 +154,14 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 5. 非法初始 Checkpoint State 会在任何 Executor 调用前被 Quarantine；
 6. 更高 Fence 对未完成 Physical Attempt 只接管一次。
 
-其余场景验证 Success Terminal、Wait 与受监督 Failure Handoff 的原子提交和精确 Lost-ACK
+现有六个 Lifecycle/Scheduler 场景验证 Success Terminal、Wait 与受监督 Failure Handoff 的原子提交和精确 Lost-ACK
 Retry、数据库时间 Wait Registration、Agent Loop 成功与 Evidence-unavailable Cleanup，以及
-Tenant Scheduler 的选择、Claim、执行和 Idle 收敛。此外，每个数据库版本还运行 91 个
-Provider Integration Test。CI 把外部数据库套件设为 Mandatory；数据库服务缺失时必须失败，
-不能静默跳过。
+Tenant Scheduler 的选择、Claim、执行和 Idle 收敛。新增四个场景验证 Model Terminal-fence
+Recovery、有序耐久 Model Streaming、Write Tool Timeout 的 Ambiguous Outcome Suppression，以及
+3:1 Cross-tenant Weighted Selection。此外，每个数据库版本还运行 95 个 Provider Integration
+Test。CI 把外部数据库套件设为 Mandatory；数据库服务缺失时必须失败，不能静默跳过。
 
-本阶段尚未提供跨租户 Scheduler Fairness、第一方 Model/Tool Agent Ergonomics、Parallel
-Sibling、Loop/Subgraph、协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
+本阶段尚未提供具体第一方 Model Adapter、公开高层 Agent Ergonomics、Parallel Sibling、
+Loop/Subgraph、协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
 Failover/Restore 验证、10,000 次 Stale-race 门禁或稳定公共发行。这些都是明确 Release
 Blocker，不会用隐藏的降级逻辑替代。

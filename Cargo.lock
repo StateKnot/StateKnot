@@ -1591,6 +1591,7 @@ dependencies = [
 name = "stateknot-runtime"
 version = "0.0.0"
 dependencies = [
+ "futures-core",
  "jsonschema",
  "proptest",
  "serde",

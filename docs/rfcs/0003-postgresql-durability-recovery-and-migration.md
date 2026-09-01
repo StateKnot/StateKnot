@@ -944,10 +944,14 @@ near-expiry launch protection, long-running renewal, and higher-fence takeover
 pass on both database versions. The lifecycle coordinator now atomically
 consumes Wait/Terminal/failure handoffs, and the tenant-scoped Agent Loop closes
 one bounded discovery-to-lifecycle quantum with exact lost-ack recovery.
-Role-separated database procedures, cross-tenant fairness, first-party
-model/tool integration, the 10,000 stale-race trial, failover, archive,
-backup/restore, and soak gates below remain incomplete; the RFC therefore
-remains Draft.
+Provider-neutral model/tool attempts now execute through exact immutable
+provider registries, durable starts, streaming validation, ambiguity-safe tool
+failures, and no-dispatch terminal recovery. Migration 14 and the runtime fair
+scheduler add immutable weighted policies, globally ordered lost-ACK-safe
+reservations, explicit starvation bounds, and bounded retention. Role-separated
+database procedures, concrete model adapters and public Agent integration, the
+10,000 stale-race trial, failover, general archive, backup/restore, and soak
+gates below remain incomplete; the RFC therefore remains Draft.
 
 Before RFC acceptance:
 

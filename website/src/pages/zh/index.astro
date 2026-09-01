@@ -39,6 +39,18 @@ const currentCut = [
     href: "/zh/docs/agent-loop/",
   },
   {
+    surface: "耐久 Model/Tool Attempt",
+    state: "已实现切片",
+    evidence: "精确 Provider、Durable Start、Streaming 与 Terminal Recovery",
+    href: "/zh/docs/invocations/",
+  },
+  {
+    surface: "跨租户公平 Scheduler",
+    state: "已实现切片",
+    evidence: "Global Weighted Order 与显式 Starvation Bound",
+    href: "/zh/docs/fair-scheduling/",
+  },
+  {
     surface: "MCP 与 A2A Adapter",
     state: "尚未发布",
     evidence: "属于 v1 范围，Wire Boundary 仍在规划",
@@ -56,8 +68,8 @@ const roadmap = [
   {
     index: "02",
     state: "现在",
-    title: "交付 Model/Tool Agent API",
-    body: "把第一方 Model/Tool Adapter、Policy、Streaming 与可编译最终用户示例绑定到 Durable Attempt，不跨外部工作持有数据库事务。",
+    title: "交付公开 Agent API",
+    body: "把具体 Model Adapter、高层 Tool Ergonomics、Policy Middleware 与可编译最终用户示例绑定到已验证的耐久调用和公平调度边界。",
   },
   {
     index: "03",
@@ -84,9 +96,10 @@ const roadmap = [
           <p class="hero-status">Pre-alpha · 尚无稳定公开 API</p>
           <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
           <p class="hero-lede">
-            StateKnot 现已通过 PostgreSQL-backed Crash Recovery、原子 Lifecycle
-            Commit 与 Tenant-scoped Scheduling 运行类型化 Root Graph。稳定的
-            Model/Tool Agent API 与协议 Adapter 仍在开发。
+            StateKnot 现已通过 PostgreSQL-backed Crash Recovery、耐久 Model/Tool
+            Attempt、原子 Lifecycle Commit 与加权 Cross-tenant Scheduling
+            运行类型化 Root Graph。稳定的高层 Agent API 与协议 Adapter
+            仍在开发。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"

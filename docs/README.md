@@ -34,6 +34,16 @@ conformance output, and the release gates in these documents.
    failure commits, lost-ack recovery, and tenant-scoped scheduling. A
    [Simplified Chinese edition](durable-agent-loop.zh-CN.md) is maintained
    alongside it.
+10. [Durable model and tool invocation execution](durable-invocation-executor.md)
+    — exact provider registration, trusted budget admission,
+    durable-before-dispatch calls, streaming, ambiguity, and terminal recovery.
+    A [Simplified Chinese edition](durable-invocation-executor.zh-CN.md) is
+    maintained alongside it.
+11. [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md) —
+    immutable weighted policy, replica-safe global reservations, explicit
+    starvation bounds, retention, rollout, and operations. A
+    [Simplified Chinese edition](cross-tenant-fair-scheduler.zh-CN.md) is
+    maintained alongside it.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
 the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),
