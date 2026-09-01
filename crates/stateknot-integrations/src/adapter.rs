@@ -11,7 +11,7 @@ use std::{
 use futures_util::StreamExt;
 use reqwest::{Response, StatusCode, header::HeaderMap};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 use stateknot_core::{
     BoundedJson, BoxStream, ContentPart, DurationMillis, ExecutionCount, Extensions, Failure,
     FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
@@ -19,7 +19,7 @@ use stateknot_core::{
     ModelError, ModelErrorPhase, ModelErrorProvenance, ModelEvent, ModelEventAccumulator,
     ModelEventKind, ModelModality, ModelProviderModelId, ModelProviderRequestId,
     ModelProviderResponseId, ModelRequest, ModelResponseMode, ModelSchemaRegistry, ModelStopReason,
-    ModelUsage, RetryAdvice, SchemaReference, SecurityLabel,
+    ModelToolOutcome, ModelUsage, RetryAdvice, SchemaReference, SecurityLabel,
 };
 use thiserror::Error;
 
@@ -190,6 +190,7 @@ impl AdapterCore {
         {
             return Err(self.unsupported_request(context, "request.tool_result_history"));
         }
+        self.validate_transcript(context, request)?;
 
         if let Some(schema) = request
             .text_output_format()
@@ -212,6 +213,48 @@ impl AdapterCore {
             for tool in request.tools() {
                 self.validate_schema_document(context, profile, tool.input_schema())?;
             }
+        }
+        Ok(())
+    }
+
+    fn validate_transcript(
+        &self,
+        context: &ModelContext,
+        request: &ModelRequest,
+    ) -> Result<(), ModelError> {
+        if request
+            .transcript()
+            .model()
+            .is_some_and(|model| model != self.descriptor.metadata().identity())
+        {
+            return Err(self.error(
+                context,
+                ModelErrorPhase::Preparation,
+                FailureCategory::InvalidInput,
+                "request.transcript_model",
+                "The model transcript belongs to another model binding.",
+                RetryAdvice::Never,
+                None,
+                None,
+                None,
+            ));
+        }
+        if request
+            .transcript()
+            .into_iter()
+            .any(|turn| turn.response().provenance().provider_model_id() != Some(&self.model_id))
+        {
+            return Err(self.error(
+                context,
+                ModelErrorPhase::Preparation,
+                FailureCategory::InvalidInput,
+                "request.transcript_provider_model",
+                "The model transcript belongs to another provider model binding.",
+                RetryAdvice::Never,
+                None,
+                None,
+                None,
+            ));
         }
         Ok(())
     }
@@ -267,13 +310,31 @@ impl AdapterCore {
         )
     }
 
-    fn unsupported_request(&self, context: &ModelContext, code: &'static str) -> ModelError {
+    pub(crate) fn unsupported_request(
+        &self,
+        context: &ModelContext,
+        code: &'static str,
+    ) -> ModelError {
         self.error(
             context,
             ModelErrorPhase::Preparation,
             FailureCategory::Unsupported,
             code,
             "The provider adapter cannot represent this request without losing semantics.",
+            RetryAdvice::Never,
+            None,
+            None,
+            None,
+        )
+    }
+
+    pub(crate) fn corrupt_transcript_replay(&self, context: &ModelContext) -> ModelError {
+        self.error(
+            context,
+            ModelErrorPhase::Preparation,
+            FailureCategory::DataCorruption,
+            "request.transcript_replay_corrupt",
+            "The provider replay evidence does not match the normalized model response.",
             RetryAdvice::Never,
             None,
             None,
@@ -666,6 +727,25 @@ fn parse_retry_after(headers: &HeaderMap) -> Option<DurationMillis> {
 
 pub(crate) fn empty_extensions() -> Extensions {
     Extensions::default()
+}
+
+pub(crate) fn model_tool_outcome_payload(outcome: &ModelToolOutcome) -> Value {
+    if let Some(result) = outcome.result() {
+        return result.output().as_value().clone();
+    }
+    let error = outcome
+        .error()
+        .expect("closed model tool outcome is either a result or an error");
+    json!({
+        "error": {
+            "id": error.failure_id(),
+            "category": error.category(),
+            "code": error.code(),
+            "message": error.message(),
+            "retry_advice": error.retry_advice(),
+            "external_effect": error.external_effect(),
+        }
+    })
 }
 
 pub(crate) struct EventEmitter<'a> {

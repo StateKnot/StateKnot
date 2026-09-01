@@ -10,21 +10,24 @@ use stateknot_core::{
     BoundedJson, BoxFuture, BoxStream, CapabilityIdentity, ContentMetadata, ContentPart,
     ContentSource, ExecutionCount, Extensions, InstructionContent, JsonContent, MessageRole, Model,
     ModelContext, ModelDescriptor, ModelError, ModelErrorPhase, ModelEventKind, ModelFinishReason,
-    ModelOutputDelta, ModelOutputItem, ModelOutputStart, ModelProviderModelId,
-    ModelProviderRequestId, ModelProviderResponseId, ModelRequest, ModelResponse,
-    ModelResponseMode, ModelResponseProvenance, ModelSchemaRegistry, ModelStreamChunk,
-    ModelTextOutputFormat, ModelToolCallProposal, ModelToolSelection, ModelUsage, RetryAdvice,
-    SchemaReference, SecurityLabel, TextContent, TokenCount,
+    ModelOutputDelta, ModelOutputItem, ModelOutputStart, ModelProviderModelId, ModelProviderReplay,
+    ModelProviderReplayFormat, ModelProviderRequestId, ModelProviderResponseId, ModelRequest,
+    ModelResponse, ModelResponseMode, ModelResponseProvenance, ModelSchemaRegistry,
+    ModelStreamChunk, ModelTextOutputFormat, ModelToolCallProposal, ModelToolSelection, ModelUsage,
+    RetryAdvice, SchemaReference, SecurityLabel, TextContent, TokenCount,
 };
 
 use crate::{
     ApiKeyProvider, ModelAdapterBuildError, ProviderEndpoint, ProviderHttpOptions,
     adapter::{
         AdapterCore, EmitError, EventEmitter, ProviderKind, bounded_body, empty_extensions,
-        parse_provider_request_id, receiver_stream, serialize_request, wait_for,
+        model_tool_outcome_payload, parse_provider_request_id, receiver_stream, serialize_request,
+        wait_for,
     },
     sse::{SseDecoder, SseEvent},
 };
+
+const OPENAI_REPLAY_FORMAT: &str = "openai.responses.output.v1";
 
 /// `OpenAI` Responses API model binding with provider retries and redirects disabled.
 #[derive(Clone)]
@@ -1028,7 +1031,7 @@ fn build_request(
         );
     }
 
-    let input = request
+    let mut input = request
         .messages()
         .iter()
         .map(|message| {
@@ -1070,6 +1073,40 @@ fn build_request(
             Ok(json!({"role": role, "content": content}))
         })
         .collect::<Result<Vec<_>, ModelError>>()?;
+    if request
+        .transcript()
+        .format()
+        .is_some_and(|format| format.as_str() != OPENAI_REPLAY_FORMAT)
+    {
+        return Err(core.unsupported_request(context, "request.transcript_format"));
+    }
+    for turn in request.transcript() {
+        let replay = turn
+            .response()
+            .provider_replay()
+            .expect("validated transcript turns contain replay evidence");
+        if !replay_matches_response(core, request, turn.response()) {
+            return Err(core.corrupt_transcript_replay(context));
+        }
+        input.extend(
+            replay
+                .payload()
+                .as_value()
+                .as_array()
+                .expect("provider replay payloads have an array root")
+                .iter()
+                .cloned(),
+        );
+        for outcome in turn.outcomes() {
+            let output = serde_json::to_string(&model_tool_outcome_payload(outcome))
+                .expect("bounded tool outcome JSON always serializes");
+            input.push(json!({
+                "type": "function_call_output",
+                "call_id": outcome.provider_call_id().as_str(),
+                "output": output,
+            }));
+        }
+    }
     if !input.is_empty() {
         root.insert("input".to_owned(), Value::Array(input));
     }
@@ -1089,6 +1126,7 @@ fn build_request(
         .collect::<Result<Vec<_>, ModelError>>()?;
     if !tools.is_empty() {
         root.insert("tools".to_owned(), Value::Array(tools));
+        root.insert("include".to_owned(), json!(["reasoning.encrypted_content"]));
         root.insert(
             "parallel_tool_calls".to_owned(),
             Value::Bool(
@@ -1173,112 +1211,9 @@ pub(crate) fn parse_response(
             return None;
         }
         let usage = parse_usage(root.get("usage")?)?;
+        let replay_payload = BoundedJson::try_from(root.get("output")?.clone()).ok()?;
         let status = root.get("status")?.as_str()?;
-        let mut output = Vec::new();
-        let mut tool_calls = 0usize;
-        let mut refusal = false;
-        for item in root.get("output")?.as_array()? {
-            let item = item.as_object()?;
-            match item.get("type")?.as_str()? {
-                "message" => {
-                    if item.get("role")?.as_str()? != "assistant" {
-                        return None;
-                    }
-                    for content in item.get("content")?.as_array()? {
-                        let content = content.as_object()?;
-                        match content.get("type")?.as_str()? {
-                            "output_text" => {
-                                if content
-                                    .get("annotations")
-                                    .and_then(Value::as_array)
-                                    .is_some_and(|values| !values.is_empty())
-                                    || content
-                                        .get("logprobs")
-                                        .and_then(Value::as_array)
-                                        .is_some_and(|values| !values.is_empty())
-                                {
-                                    return None;
-                                }
-                                output.push(parse_text_output(
-                                    core,
-                                    request,
-                                    content.get("text")?.as_str()?,
-                                )?);
-                            }
-                            "refusal" => {
-                                refusal = true;
-                                output.push(
-                                    ModelOutputItem::content(ContentPart::Text(
-                                        TextContent::new(
-                                            content.get("refusal")?.as_str()?,
-                                            None,
-                                            ContentMetadata::untrusted(
-                                                ContentSource::Model,
-                                                core.output_label.clone(),
-                                            ),
-                                        )
-                                        .ok()?,
-                                    ))
-                                    .ok()?,
-                                );
-                            }
-                            _ => return None,
-                        }
-                    }
-                }
-                "function_call" => {
-                    tool_calls = tool_calls.checked_add(1)?;
-                    let name = item.get("name")?.as_str()?;
-                    let tool = request
-                        .tools()
-                        .find(|tool| tool.metadata().identity().name().as_str() == name)?;
-                    let arguments =
-                        BoundedJson::from_slice(item.get("arguments")?.as_str()?.as_bytes())
-                            .ok()?;
-                    core.schemas
-                        .validate(tool.input_schema(), &arguments)
-                        .ok()?;
-                    let provider_call_id = item
-                        .get("call_id")
-                        .and_then(Value::as_str)
-                        .map(stateknot_core::ModelProviderToolCallId::new)
-                        .transpose()
-                        .ok()?;
-                    output.push(ModelOutputItem::tool_call(
-                        ModelToolCallProposal::new(
-                            tool.metadata().identity().clone(),
-                            provider_call_id,
-                            arguments,
-                            Extensions::default(),
-                        )
-                        .ok()?,
-                    ));
-                }
-                "reasoning" => {
-                    for summary in item.get("summary")?.as_array()? {
-                        let summary = summary.as_object()?;
-                        if summary.get("type")?.as_str()? != "summary_text" {
-                            return None;
-                        }
-                        output.push(
-                            ModelOutputItem::reasoning_summary(
-                                TextContent::new(
-                                    summary.get("text")?.as_str()?,
-                                    None,
-                                    ContentMetadata::untrusted(
-                                        ContentSource::Model,
-                                        core.output_label.clone(),
-                                    ),
-                                )
-                                .ok()?,
-                            )
-                            .ok()?,
-                        );
-                    }
-                }
-                _ => return None,
-            }
-        }
+        let (output, tool_calls, refusal) = parse_output_items(core, request, root.get("output")?)?;
         let finish = match status {
             "completed" if tool_calls > 0 => ModelFinishReason::ToolCalls,
             "completed" if refusal => ModelFinishReason::Refused,
@@ -1305,7 +1240,7 @@ pub(crate) fn parse_response(
         if let Some(request_id) = provider_request_id.clone() {
             provenance = provenance.with_provider_request_id(request_id);
         }
-        let response = ModelResponse::new(
+        let mut response = ModelResponse::new(
             provenance,
             &core.descriptor,
             request,
@@ -1315,6 +1250,14 @@ pub(crate) fn parse_response(
             empty_extensions(),
         )
         .ok()?;
+        if finish == ModelFinishReason::ToolCalls {
+            let replay = ModelProviderReplay::new(
+                ModelProviderReplayFormat::new(OPENAI_REPLAY_FORMAT).ok()?,
+                replay_payload,
+            )
+            .ok()?;
+            response = response.with_provider_replay(replay).ok()?;
+        }
         Some((response, Some(usage)))
     };
     match parse() {
@@ -1334,6 +1277,204 @@ pub(crate) fn parse_response(
                 .and_then(parse_usage),
         )),
     }
+}
+
+fn replay_matches_response(
+    core: &AdapterCore,
+    request: &ModelRequest,
+    response: &ModelResponse,
+) -> bool {
+    let Some(replay) = response.provider_replay() else {
+        return false;
+    };
+    parse_output_items(core, request, replay.payload().as_value()).is_some_and(
+        |(output, tool_calls, refusal)| {
+            tool_calls > 0 && !refusal && output.as_slice() == response.output()
+        },
+    )
+}
+
+fn parse_output_items(
+    core: &AdapterCore,
+    request: &ModelRequest,
+    value: &Value,
+) -> Option<(Vec<ModelOutputItem>, usize, bool)> {
+    let mut output = Vec::new();
+    let mut tool_calls = 0usize;
+    let mut refusal = false;
+    for raw_item in value.as_array()? {
+        let item = raw_item.as_object()?;
+        match item.get("type")?.as_str()? {
+            "message" => parse_message_item(core, request, item, &mut output, &mut refusal)?,
+            "function_call" => {
+                tool_calls = tool_calls.checked_add(1)?;
+                output.push(parse_function_call_item(core, request, item)?);
+            }
+            "reasoning" => parse_reasoning_item(core, item, &mut output)?,
+            _ => return None,
+        }
+    }
+    Some((output, tool_calls, refusal))
+}
+
+fn parse_message_item(
+    core: &AdapterCore,
+    request: &ModelRequest,
+    item: &Map<String, Value>,
+    output: &mut Vec<ModelOutputItem>,
+    refusal: &mut bool,
+) -> Option<()> {
+    if !has_only_keys(item, &["id", "type", "role", "status", "content"])
+        || item.get("id")?.as_str()?.is_empty()
+        || item.get("role")?.as_str()? != "assistant"
+        || item.get("status").and_then(Value::as_str) != Some("completed")
+    {
+        return None;
+    }
+    for raw_content in item.get("content")?.as_array()? {
+        let content = raw_content.as_object()?;
+        match content.get("type")?.as_str()? {
+            "output_text" => {
+                if !has_only_keys(content, &["type", "text", "annotations", "logprobs"])
+                    || content.get("annotations").is_some_and(|value| {
+                        value.as_array().is_none_or(|values| !values.is_empty())
+                    })
+                    || content.get("logprobs").is_some_and(|value| {
+                        !value.is_null() && value.as_array().is_none_or(|values| !values.is_empty())
+                    })
+                {
+                    return None;
+                }
+                output.push(parse_text_output(
+                    core,
+                    request,
+                    content.get("text")?.as_str()?,
+                )?);
+            }
+            "refusal" => {
+                if !has_only_keys(content, &["type", "refusal"]) {
+                    return None;
+                }
+                *refusal = true;
+                output.push(
+                    ModelOutputItem::content(ContentPart::Text(
+                        TextContent::new(
+                            content.get("refusal")?.as_str()?,
+                            None,
+                            ContentMetadata::untrusted(
+                                ContentSource::Model,
+                                core.output_label.clone(),
+                            ),
+                        )
+                        .ok()?,
+                    ))
+                    .ok()?,
+                );
+            }
+            _ => return None,
+        }
+    }
+    Some(())
+}
+
+fn parse_function_call_item(
+    core: &AdapterCore,
+    request: &ModelRequest,
+    item: &Map<String, Value>,
+) -> Option<ModelOutputItem> {
+    if !has_only_keys(
+        item,
+        &["id", "type", "call_id", "name", "arguments", "status"],
+    ) || item.get("id")?.as_str()?.is_empty()
+        || item
+            .get("status")
+            .is_some_and(|status| status.as_str() != Some("completed"))
+    {
+        return None;
+    }
+    let name = item.get("name")?.as_str()?;
+    let tool = request
+        .tools()
+        .find(|tool| tool.metadata().identity().name().as_str() == name)?;
+    let arguments = BoundedJson::from_slice(item.get("arguments")?.as_str()?.as_bytes()).ok()?;
+    core.schemas
+        .validate(tool.input_schema(), &arguments)
+        .ok()?;
+    let provider_call_id =
+        stateknot_core::ModelProviderToolCallId::new(item.get("call_id")?.as_str()?).ok()?;
+    Some(ModelOutputItem::tool_call(
+        ModelToolCallProposal::new(
+            tool.metadata().identity().clone(),
+            Some(provider_call_id),
+            arguments,
+            Extensions::default(),
+        )
+        .ok()?,
+    ))
+}
+
+fn parse_reasoning_item(
+    core: &AdapterCore,
+    item: &Map<String, Value>,
+    output: &mut Vec<ModelOutputItem>,
+) -> Option<()> {
+    if !has_only_keys(
+        item,
+        &[
+            "id",
+            "type",
+            "summary",
+            "content",
+            "encrypted_content",
+            "status",
+        ],
+    ) || item.get("id")?.as_str()?.is_empty()
+        || item
+            .get("status")
+            .is_some_and(|status| status.as_str() != Some("completed"))
+        || item
+            .get("encrypted_content")
+            .is_some_and(|content| !content.is_null() && content.as_str().is_none())
+    {
+        return None;
+    }
+    if let Some(content) = item.get("content").filter(|value| !value.is_null()) {
+        for part in content.as_array()? {
+            let part = part.as_object()?;
+            if !has_only_keys(part, &["type", "text"])
+                || part.get("type")?.as_str()? != "reasoning_text"
+            {
+                return None;
+            }
+            part.get("text")?.as_str()?;
+        }
+    }
+    for raw_summary in item.get("summary")?.as_array()? {
+        let summary = raw_summary.as_object()?;
+        if !has_only_keys(summary, &["type", "text"])
+            || summary.get("type")?.as_str()? != "summary_text"
+        {
+            return None;
+        }
+        output.push(
+            ModelOutputItem::reasoning_summary(
+                TextContent::new(
+                    summary.get("text")?.as_str()?,
+                    None,
+                    ContentMetadata::untrusted(ContentSource::Model, core.output_label.clone()),
+                )
+                .ok()?,
+            )
+            .ok()?,
+        );
+    }
+    Some(())
+}
+
+fn has_only_keys(object: &Map<String, Value>, allowed: &[&str]) -> bool {
+    object
+        .keys()
+        .all(|key| allowed.iter().any(|allowed| key == allowed))
 }
 
 fn parse_text_output(

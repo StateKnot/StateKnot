@@ -14,10 +14,13 @@ use std::{
 use futures_util::StreamExt;
 use serde_json::{Value, json};
 use stateknot_core::{
-    BoxFuture, BudgetUsage, CancellationObserver, CancellationSignal, ContentPart, Digest,
-    FailureCategory, Model, ModelDescriptor, ModelEventAccumulator, ModelEventKind,
-    ModelProviderModelId, ModelRequest, ModelResponseMode, ResolvedBudget, SchemaId,
-    SchemaReference, SecurityLabel, TenantId, Timestamp, Version,
+    AttemptId, BoundedJson, BoxFuture, BudgetUsage, CancellationObserver, CancellationSignal,
+    ContentPart, Digest, FailureCategory, InvocationId, Model, ModelDescriptor,
+    ModelEventAccumulator, ModelEventKind, ModelProviderModelId, ModelProviderReplay,
+    ModelProviderReplayFormat, ModelProviderToolCallId, ModelRequest, ModelResponseMode,
+    ModelToolOutcome, ModelTranscript, ModelTranscriptTurn, ModelTranscriptTurnError,
+    ResolvedBudget, SchemaId, SchemaReference, SecurityLabel, TenantId, Timestamp, ToolArtifacts,
+    ToolDescriptor, ToolResult, ToolResultProvenance, Version,
 };
 use stateknot_integrations::{
     AnthropicMessagesModel, ApiKey, ApiKeyProvider, ApiKeyResolutionError, OpenAiResponsesModel,
@@ -130,6 +133,7 @@ fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 }
 
 fn schema_registry() -> Arc<JsonSchemaRegistry> {
+    let reference = placeholder_schema();
     let id = "https://schemas.stateknot.test/placeholder/1.0.0";
     let document = json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -137,14 +141,24 @@ fn schema_registry() -> Arc<JsonSchemaRegistry> {
         "type": "object"
     });
     let canonical = serde_json_canonicalizer::to_vec(&document).unwrap();
-    let reference = SchemaReference::new(
-        id.parse::<SchemaId>().unwrap(),
-        Version::new(1, 0, 0),
-        Digest::sha256(canonical),
-    );
+    assert_eq!(reference.digest(), Digest::sha256(canonical));
     let mut builder = JsonSchemaRegistryBuilder::with_default_limits();
     builder.register(reference, document).unwrap();
     Arc::new(builder.build().unwrap())
+}
+
+fn placeholder_schema() -> SchemaReference {
+    let id = "https://schemas.stateknot.test/placeholder/1.0.0";
+    let document = json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": id,
+        "type": "object"
+    });
+    SchemaReference::new(
+        id.parse::<SchemaId>().unwrap(),
+        Version::new(1, 0, 0),
+        Digest::sha256(serde_json_canonicalizer::to_vec(&document).unwrap()),
+    )
 }
 
 fn descriptor(streaming: bool) -> ModelDescriptor {
@@ -158,6 +172,30 @@ fn descriptor(streaming: bool) -> ModelDescriptor {
         "max_context_tokens": "128000",
         "max_input_tokens": "120000",
         "max_output_tokens": "16384"
+    });
+    serde_json::from_value(value).unwrap()
+}
+
+fn tool_descriptor() -> ToolDescriptor {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-tool-v1.json"
+    ))
+    .unwrap();
+    let mut value = fixture["descriptors"]["valid"][0].clone();
+    let schema = serde_json::to_value(placeholder_schema()).unwrap();
+    value["input_schema"] = schema.clone();
+    value["output_schema"] = schema;
+    serde_json::from_value(value).unwrap()
+}
+
+fn descriptor_with_tools(streaming: bool) -> ModelDescriptor {
+    let mut value = serde_json::to_value(descriptor(streaming)).unwrap();
+    value["capabilities"]["tools"] = json!({
+        "schema_profile": placeholder_schema(),
+        "max_definitions": "4",
+        "max_calls_per_response": "4",
+        "choices": ["auto"],
+        "strict_arguments": true
     });
     serde_json::from_value(value).unwrap()
 }
@@ -202,6 +240,45 @@ fn request(mode: ModelResponseMode, include_message: bool) -> ModelRequest {
         }]);
     }
     serde_json::from_value(value).unwrap()
+}
+
+fn request_with_tool(mode: ModelResponseMode, transcript: ModelTranscript) -> ModelRequest {
+    let mut value = serde_json::to_value(request(mode, true)).unwrap();
+    value["tools"] = json!([tool_descriptor()]);
+    value["tool_selection"] = json!({"mode": "auto"});
+    value["max_tool_calls_per_response"] = Value::from("4");
+    value["strict_tool_arguments"] = Value::Bool(true);
+    value["requirements"]["tools"] = json!({
+        "min_definitions": "1",
+        "min_calls_per_response": "4",
+        "choices": ["auto"],
+        "strict_arguments": true
+    });
+    if !transcript.is_empty() {
+        value["transcript"] = serde_json::to_value(transcript).unwrap();
+    }
+    serde_json::from_value(value).unwrap()
+}
+
+fn successful_tool_outcome(call_id: &str) -> ModelToolOutcome {
+    let tool = tool_descriptor();
+    ModelToolOutcome::succeeded(
+        ModelProviderToolCallId::new(call_id).unwrap(),
+        ToolResult::new(
+            ToolResultProvenance::new(
+                "01912345-6789-7abc-8def-0123456789b2"
+                    .parse::<InvocationId>()
+                    .unwrap(),
+                "01912345-6789-7abc-8def-0123456789b3"
+                    .parse::<AttemptId>()
+                    .unwrap(),
+                tool.metadata().identity().clone(),
+            ),
+            tool.output_schema().clone(),
+            BoundedJson::try_from(json!({"temperature_celsius": 23})).unwrap(),
+            ToolArtifacts::empty(),
+        ),
+    )
 }
 
 fn context_with(
@@ -310,6 +387,85 @@ fn anthropic_response() -> Value {
     })
 }
 
+fn openai_tool_response() -> Value {
+    json!({
+        "id": "resp_tool_01",
+        "model": MODEL_ID,
+        "status": "completed",
+        "output": [
+            {
+                "id": "reasoning_01",
+                "type": "reasoning",
+                "encrypted_content": "opaque-reasoning-token",
+                "summary": []
+            },
+            {
+                "id": "call_item_01",
+                "type": "function_call",
+                "call_id": "call_weather_01",
+                "name": "payments.capture",
+                "arguments": "{\"city\":\"Shanghai\"}"
+            }
+        ],
+        "usage": {
+            "input_tokens": 20,
+            "input_tokens_details": {"cached_tokens": 0},
+            "output_tokens": 8,
+            "output_tokens_details": {"reasoning_tokens": 2},
+            "total_tokens": 28
+        }
+    })
+}
+
+fn anthropic_tool_response() -> Value {
+    json!({
+        "id": "msg_tool_01",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+            {"type": "text", "text": "I will check the tool."},
+            {
+                "type": "tool_use",
+                "id": "toolu_weather_01",
+                "name": "payments.capture",
+                "input": {"city": "Shanghai"}
+            }
+        ],
+        "model": MODEL_ID,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {"input_tokens": 20, "output_tokens": 8}
+    })
+}
+
+async fn invoke_openai_tool_response() -> stateknot_core::ModelResponse {
+    let server = TestServer::one(
+        vec![serde_json::to_vec(&openai_tool_response()).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let model = OpenAiResponsesModel::new(
+        descriptor_with_tools(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    let response = model
+        .invoke(
+            context(),
+            request_with_tool(ModelResponseMode::Complete, ModelTranscript::empty()),
+        )
+        .await
+        .unwrap();
+    let _ = server.request.await.unwrap();
+    response
+}
+
 #[tokio::test]
 async fn openai_unary_maps_request_response_and_redacts_secrets() {
     let body = serde_json::to_vec(&openai_response()).unwrap();
@@ -372,6 +528,244 @@ async fn anthropic_unary_normalizes_cache_usage_and_headers() {
     let captured = String::from_utf8(server.request.await.unwrap()).unwrap();
     assert!(captured.contains("x-api-key: super-secret-key"));
     assert!(captured.contains("anthropic-version: 2023-06-01"));
+}
+
+#[tokio::test]
+async fn openai_tool_transcript_replays_complete_output_before_call_results() {
+    let first_server = TestServer::one(
+        vec![serde_json::to_vec(&openai_tool_response()).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let first_model = OpenAiResponsesModel::new(
+        descriptor_with_tools(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        first_server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    let response = first_model
+        .invoke(
+            context(),
+            request_with_tool(ModelResponseMode::Complete, ModelTranscript::empty()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        response.provider_replay().unwrap().format().as_str(),
+        "openai.responses.output.v1"
+    );
+    let _ = first_server.request.await.unwrap();
+
+    let turn =
+        ModelTranscriptTurn::new(response, [successful_tool_outcome("call_weather_01")]).unwrap();
+    let transcript = ModelTranscript::try_new([turn]).unwrap();
+
+    let second_server = TestServer::one(
+        vec![serde_json::to_vec(&openai_response()).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let second_model = OpenAiResponsesModel::new(
+        descriptor_with_tools(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        second_server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    second_model
+        .invoke(
+            context(),
+            request_with_tool(ModelResponseMode::Complete, transcript),
+        )
+        .await
+        .unwrap();
+    let captured = String::from_utf8(second_server.request.await.unwrap()).unwrap();
+    let body: Value = serde_json::from_str(captured.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    let input = body["input"].as_array().unwrap();
+    assert_eq!(input.len(), 4);
+    assert_eq!(input[1]["type"], "reasoning");
+    assert_eq!(input[1]["encrypted_content"], "opaque-reasoning-token");
+    assert_eq!(input[2]["type"], "function_call");
+    assert_eq!(input[3]["type"], "function_call_output");
+    assert_eq!(input[3]["call_id"], "call_weather_01");
+    assert_eq!(body["include"], json!(["reasoning.encrypted_content"]));
+}
+
+#[tokio::test]
+async fn anthropic_tool_transcript_preserves_assistant_then_grouped_results() {
+    let first_server = TestServer::one(
+        vec![serde_json::to_vec(&anthropic_tool_response()).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let first_model = AnthropicMessagesModel::new(
+        descriptor_with_tools(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        first_server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    let response = first_model
+        .invoke(
+            context(),
+            request_with_tool(ModelResponseMode::Complete, ModelTranscript::empty()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        response.provider_replay().unwrap().format().as_str(),
+        "anthropic.messages.content.v1"
+    );
+    let _ = first_server.request.await.unwrap();
+
+    let turn =
+        ModelTranscriptTurn::new(response, [successful_tool_outcome("toolu_weather_01")]).unwrap();
+    let transcript = ModelTranscript::try_new([turn]).unwrap();
+    let second_server = TestServer::one(
+        vec![serde_json::to_vec(&anthropic_response()).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let second_model = AnthropicMessagesModel::new(
+        descriptor_with_tools(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        second_server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    second_model
+        .invoke(
+            context(),
+            request_with_tool(ModelResponseMode::Complete, transcript),
+        )
+        .await
+        .unwrap();
+    let captured = String::from_utf8(second_server.request.await.unwrap()).unwrap();
+    let body: Value = serde_json::from_str(captured.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    let messages = body["messages"].as_array().unwrap();
+    assert_eq!(messages.len(), 3);
+    assert_eq!(messages[1]["role"], "assistant");
+    assert_eq!(messages[1]["content"][1]["type"], "tool_use");
+    assert_eq!(messages[2]["role"], "user");
+    assert_eq!(messages[2]["content"][0]["type"], "tool_result");
+    assert_eq!(messages[2]["content"][0]["tool_use_id"], "toolu_weather_01");
+    assert_eq!(messages[2]["content"][0]["is_error"], false);
+}
+
+#[tokio::test]
+async fn transcript_rejects_a_substituted_provider_call_id() {
+    let response = invoke_openai_tool_response().await;
+    let error = ModelTranscriptTurn::new(response, [successful_tool_outcome("call_substituted")])
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        ModelTranscriptTurnError::ProviderCallIdMismatch { index: 0 }
+    ));
+}
+
+#[tokio::test]
+async fn openai_revalidates_resealed_replay_semantics_before_io() {
+    let response = invoke_openai_tool_response().await;
+    let turn =
+        ModelTranscriptTurn::new(response, [successful_tool_outcome("call_weather_01")]).unwrap();
+    let transcript = ModelTranscript::try_new([turn]).unwrap();
+    let mut wire = serde_json::to_value(transcript).unwrap();
+    wire[0]["response"]["provider_replay"]["payload"][1]["arguments"] =
+        json!("{\"city\":\"Beijing\"}");
+    let format = serde_json::from_value::<ModelProviderReplayFormat>(
+        wire[0]["response"]["provider_replay"]["format"].clone(),
+    )
+    .unwrap();
+    let payload =
+        BoundedJson::try_from(wire[0]["response"]["provider_replay"]["payload"].clone()).unwrap();
+    let resealed = ModelProviderReplay::new(format, payload).unwrap();
+    wire[0]["response"]["provider_replay"]["digest"] =
+        serde_json::to_value(resealed.digest()).unwrap();
+    let transcript = serde_json::from_value::<ModelTranscript>(wire).unwrap();
+
+    let server = TestServer::one(
+        vec![serde_json::to_vec(&openai_response()).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let requests = Arc::clone(&server.requests);
+    let model = OpenAiResponsesModel::new(
+        descriptor_with_tools(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    let error = model
+        .invoke(
+            context(),
+            request_with_tool(ModelResponseMode::Complete, transcript),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(error.failure().category(), FailureCategory::DataCorruption);
+    assert_eq!(
+        error.failure().code().as_str(),
+        "request.transcript_replay_corrupt"
+    );
+    assert_eq!(requests.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn provider_replay_format_mismatch_fails_before_io() {
+    let response = invoke_openai_tool_response().await;
+    let turn =
+        ModelTranscriptTurn::new(response, [successful_tool_outcome("call_weather_01")]).unwrap();
+    let transcript = ModelTranscript::try_new([turn]).unwrap();
+
+    let server = TestServer::one(
+        vec![serde_json::to_vec(&anthropic_response()).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let requests = Arc::clone(&server.requests);
+    let model = AnthropicMessagesModel::new(
+        descriptor_with_tools(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    let error = model
+        .invoke(
+            context(),
+            request_with_tool(ModelResponseMode::Complete, transcript),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(error.failure().category(), FailureCategory::Unsupported);
+    assert_eq!(error.failure().code().as_str(), "request.transcript_format");
+    assert_eq!(requests.load(Ordering::SeqCst), 0);
 }
 
 #[tokio::test]

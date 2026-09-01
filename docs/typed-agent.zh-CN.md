@@ -83,15 +83,26 @@ let request = agent.prepare_request(&input, request_budget_limits)?;
 | JSON Schema 输出 | 已实现 | 已实现 |
 | Function/Tool Proposal | 已实现 | 已实现 |
 | 本地参数/输出校验 | 已实现 | 已实现 |
+| Provider-native Unary Tool 续接 | 已实现 | 已实现 |
 | Generic JSON Mode | 已实现 | 拒绝：稳定合约要求 Schema-constrained Output |
 | 可读 Reasoning Summary | Binding 显式声明时可用 | 当前 Adapter 不声明 |
-| 既往 `role=tool` Transcript | I/O 前拒绝 | I/O 前拒绝 |
+| 旧式 `role=tool` Message | I/O 前拒绝 | I/O 前拒绝 |
 | Artifact/多模态输入 | I/O 前拒绝 | I/O 前拒绝 |
 | Request Extension | I/O 前拒绝 | I/O 前拒绝 |
 
-既往 Tool Result Transcript 会被拒绝，因为当前 Core Message 合约尚未保存无损重放所需的
-完整 Provider Call Identity 与 Assistant Tool-call Transcript。猜测映射会破坏恢复，因此
-Adapter 必须 Fail Closed。
+`ModelTranscript` 是无损续接合约。每个 Turn 会把一个规范化 `ModelResponse`、精确且有界的
+Provider Replay Fragment，以及按 Provider 顺序与每个 Proposal 一一对应的已提交
+`ModelToolOutcome` 绑定在一起。构造与反序列化会拒绝缺失或重复的
+Attempt/Call/Invocation Identity、Tool Version 漂移、外部副作用不确定、Payload 被替换及资源
+超限。发起网络 I/O 前，所选 Adapter 还会校验 Model/Provider Binding 与 Replay Format，
+重新解析不透明 Fragment，并要求它与规范化 Response 完全一致。
+
+OpenAI 会先完整回放既往 `response.output`，再附加对应的 `function_call_output`；启用 Tool
+时还会请求加密 Reasoning 续接块。Anthropic 会完整回放 Assistant Content，随后紧接一个
+User Message，其中包含全部按序 `tool_result` Block。普通 `role=tool` Message 仍会被拒绝，
+因为它无法证明任一 Provider-native 顺序合约。产生 Tool 的 Streaming Attempt 暂时不会输出
+Replay Evidence；在 Streaming Event 合约能够携带精确续接快照前，耐久 Agent Tool Loop
+必须使用 Complete Response。
 
 Streaming Adapter 不会先缓存完整响应，再伪装成 Chunk 重放。它们会增量解析有界 SSE；
 每个发出的 Event 都先经过 Core `ModelEventAccumulator`；Channel Backpressure 有界；
@@ -132,6 +143,6 @@ cargo test -p stateknot-integrations --all-targets
 cargo test -p stateknot-runtime --test typed_agent
 ```
 
-Live-provider Qualification、Provider Drift Cassette、Provider-native 多轮 Tool Transcript、
-Policy Middleware 与完整公开 Admit/Run/Result Facade 仍是发布门禁。Adapter 与类型化 API
-已经实现，但仍处于未发布的 pre-alpha。
+Live-provider Qualification、Provider Drift Cassette、在预置 Agent Graph 内耐久组装
+Transcript、Policy Middleware 与完整公开 Admit/Run/Result Facade 仍是发布门禁。Adapter 与
+类型化 API 已经实现，但仍处于未发布的 pre-alpha。

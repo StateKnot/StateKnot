@@ -111,7 +111,8 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         <dd>
           Complete responses and true incremental SSE, text, JSON Schema output,
           generic JSON mode, function proposals, local schema validation, usage
-          normalization, and request-ID preservation.
+          normalization, request-ID preservation, and lossless unary tool
+          continuation with complete <code>response.output</code> replay.
         </dd>
       </div>
       <div>
@@ -119,7 +120,8 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         <dd>
           Complete responses and true incremental SSE, text, JSON
           Schema-constrained output, tool proposals, local schema validation,
-          cumulative usage normalization, and request-ID preservation.
+          cumulative usage normalization, request-ID preservation, and lossless
+          unary assistant-content/tool-result continuation.
         </dd>
       </div>
       <div>
@@ -140,9 +142,10 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
     </h2>
     <ul>
       <li>
-        Prior <code>role=tool</code> messages are rejected before I/O because the
-        core message contract does not yet retain the full provider call ID and assistant
-        tool-call transcript required for lossless replay.
+        Use <code>ModelTranscript</code> for tool continuation. It binds complete
+        provider replay evidence to ordered, committed tool outcomes and is revalidated
+        before I/O. Legacy <code>role=tool</code> messages remain rejected because
+        they cannot prove either provider-native ordering contract.
       </li>
       <li>
         Artifact, multimodal, and extension-bearing requests are rejected before
@@ -157,7 +160,8 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         <code>ModelEventAccumulator</code>, and truncated, duplicated,
         reordered, or substituted terminal data cannot become <code
           >Completed</code
-        >.
+        >. Tool-producing streams do not yet emit replay evidence, so the
+        durable tool loop uses complete responses.
       </li>
     </ul>
   </section>
@@ -195,9 +199,10 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
       </li>
     </ol>
     <p>
-      The complete public admit/run/result facade and a prebuilt provider-native
-      multi-turn model/tool graph remain release gates. Continue with <a
-        href="/docs/invocations/">durable invocations</a
+      The complete public admit/run/result facade and a prebuilt graph that
+      durably assembles the implemented provider-native transcript remain
+      release gates. Continue with <a href="/docs/invocations/"
+        >durable invocations</a
       > and the <a href="/docs/agent-loop/">durable Agent Loop</a> for the implemented
       execution contracts.
     </p>
@@ -225,7 +230,8 @@ cargo test -p stateknot-integrations --all-targets --locked</code></pre>
     <p>
       The adapter suite uses a real local TCP HTTP server. It exercises request
       shape, fragmented SSE, terminal cross-checks, 429 retry evidence, 5xx
-      no-hidden-retry behavior, resource ceilings, deadline/cancellation
+      no-hidden-retry behavior, transcript replay order, tamper and
+      cross-provider rejection, resource ceilings, deadline/cancellation
       precedence, and secret/debug redaction. Live-provider qualification and
       provider-drift cassettes have not shipped.
     </p>

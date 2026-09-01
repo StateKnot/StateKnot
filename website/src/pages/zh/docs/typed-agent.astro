@@ -108,7 +108,8 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         <dd>
           完整响应与真正增量 SSE、文本、JSON Schema Output、Generic JSON
           Mode、Function Proposal、本地 Schema 校验、Usage Normalization 与
-          Request ID 保留。
+          Request ID 保留，以及通过完整 <code>response.output</code> Replay 实现的无损
+          Unary Tool 续接。
         </dd>
       </div>
       <div>
@@ -116,7 +117,7 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         <dd>
           完整响应与真正增量 SSE、文本、JSON Schema-constrained Output、Tool
           Proposal、 本地 Schema 校验、累计 Usage Normalization 与 Request ID
-          保留。
+          保留，以及无损 Unary Assistant-content/Tool-result 续接。
         </dd>
       </div>
       <div>
@@ -135,8 +136,10 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
     <h2 id="typed-agent-restrictions-title">当前 Fail-closed 限制</h2>
     <ul>
       <li>
-        既往 <code>role=tool</code> Message 会在 I/O 前被拒绝，因为 Core Message 合约还未
-        保存无损重放所需的完整 Provider Call ID 与 Assistant Tool-call Transcript。
+        Tool 续接必须使用 <code>ModelTranscript</code>。它把完整 Provider Replay
+        Evidence 与按序提交的 Tool Outcome 绑定，并在 I/O 前重新校验。旧式
+        <code>role=tool</code> Message 仍会被拒绝，因为它无法证明任一 Provider-native
+        顺序合约。
       </li>
       <li>
         当前版本是 Text-only Adapter；Artifact、多模态和携带 Extension 的
@@ -149,7 +152,8 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
       <li>
         Streaming 是真实增量处理。有界 SSE Event 必须通过
         <code>ModelEventAccumulator</code>；截断、重复、重排或被替换的 Terminal
-        Data 都 不能成为 <code>Completed</code>。
+        Data 都不能成为 <code>Completed</code>。产生 Tool 的 Stream 尚不输出
+        Replay Evidence，因此耐久 Tool Loop 使用 Complete Response。
       </li>
     </ul>
   </section>
@@ -184,8 +188,10 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
       </li>
     </ol>
     <p>
-      完整公开 Admit/Run/Result Facade 与预置 Provider-native 多轮 Model/Tool
-      Graph 仍是发布门禁。继续阅读 <a href="/zh/docs/invocations/">耐久调用</a> 与
+      完整公开 Admit/Run/Result Facade，以及在预置 Graph 内耐久组装已经实现的
+      Provider-native Transcript，仍是发布门禁。继续阅读 <a
+        href="/zh/docs/invocations/">耐久调用</a
+      > 与
       <a href="/zh/docs/agent-loop/">耐久 Agent Loop</a
       >，了解已经实现的执行合约。
     </p>
@@ -213,9 +219,9 @@ cargo test -p stateknot-integrations --all-targets --locked</code></pre>
     <p>
       Adapter Suite 使用真实本地 TCP HTTP Server，覆盖 Request Shape、碎片化
       SSE、 Terminal Cross-check、429 Retry Evidence、5xx 无隐藏
-      Retry、资源上限、 Deadline/Cancellation 优先级与 Secret/Debug
-      Redaction。Live-provider Qualification 与 Provider-drift Cassette
-      尚未交付。
+      Retry、Transcript Replay 顺序、篡改与跨 Provider 拒绝、资源上限、
+      Deadline/Cancellation 优先级与 Secret/Debug Redaction。Live-provider
+      Qualification 与 Provider-drift Cassette 尚未交付。
     </p>
   </section>
 </DocsLayout>

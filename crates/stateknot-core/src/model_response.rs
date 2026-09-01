@@ -15,8 +15,8 @@ use thiserror::Error;
 use crate::{
     ArtifactModality, AttemptId, BoundedJson, ByteCount, CapabilityIdentity, CapabilityName,
     ContentPart, ContentSource, ContentTrust, ExecutionCount, Extensions, JsonContent,
-    ModelDescriptor, ModelModality, ModelRequest, ModelTextOutputFormat, ModelToolSelection,
-    SchemaReference, TextContent, TokenCount,
+    ModelDescriptor, ModelModality, ModelProviderReplay, ModelRequest, ModelTextOutputFormat,
+    ModelToolSelection, SchemaReference, TextContent, TokenCount,
 };
 
 const MEBIBYTE: u64 = 1024 * 1024;
@@ -1104,6 +1104,8 @@ pub struct ModelResponse {
     finish_reason: ModelFinishReason,
     usage: ModelUsage,
     extensions: Extensions,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider_replay: Option<ModelProviderReplay>,
 }
 
 impl ModelResponse {
@@ -1113,7 +1115,7 @@ impl ModelResponse {
     pub const MAX_TOOL_CALLS: usize = ModelOutputItems::MAX_TOOL_CALLS;
     /// Maximum total ordered output items in one response.
     pub const MAX_OUTPUT_ITEMS: usize = ModelOutputItems::MAX_ITEMS;
-    /// Maximum aggregate inline content, summary, tool-argument, and proposal-extension bytes.
+    /// Maximum aggregate normalized output plus opaque provider replay bytes.
     pub const MAX_INLINE_PAYLOAD_BYTES: ByteCount = ModelOutputItems::MAX_INLINE_PAYLOAD_BYTES;
 
     /// Constructs and binds one response to an immutable descriptor and request.
@@ -1173,7 +1175,36 @@ impl ModelResponse {
             finish_reason,
             usage,
             extensions,
+            provider_replay: None,
         })
+    }
+
+    /// Attaches exact provider continuation evidence to a tool-calling response.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ModelResponseError::ProviderReplayWithoutToolCalls`] when the
+    /// response does not require a tool-result continuation.
+    pub fn with_provider_replay(
+        mut self,
+        provider_replay: ModelProviderReplay,
+    ) -> Result<Self, ModelResponseError> {
+        if self.finish_reason != ModelFinishReason::ToolCalls {
+            return Err(ModelResponseError::ProviderReplayWithoutToolCalls);
+        }
+        let observed = self
+            .output
+            .inline_payload_bytes
+            .checked_add(provider_replay.payload_bytes())
+            .ok_or(ModelResponseError::InlinePayloadBytesOverflow)?;
+        if observed > Self::MAX_INLINE_PAYLOAD_BYTES {
+            return Err(ModelResponseError::InlinePayloadTooLarge {
+                maximum: Self::MAX_INLINE_PAYLOAD_BYTES,
+                observed,
+            });
+        }
+        self.provider_replay = Some(provider_replay);
+        Ok(self)
     }
 
     /// Revalidates request- and registry-dependent response invariants.
@@ -1309,10 +1340,23 @@ impl ModelResponse {
         &self.extensions
     }
 
-    /// Returns aggregate inline payload bytes retained in the response value.
+    /// Returns exact provider continuation evidence for a tool-calling turn.
     #[must_use]
-    pub const fn inline_payload_bytes(&self) -> ByteCount {
-        self.output.inline_payload_bytes
+    pub const fn provider_replay(&self) -> Option<&ModelProviderReplay> {
+        self.provider_replay.as_ref()
+    }
+
+    /// Returns aggregate normalized output and provider replay bytes retained.
+    #[must_use]
+    pub fn inline_payload_bytes(&self) -> ByteCount {
+        self.provider_replay
+            .as_ref()
+            .map_or(self.output.inline_payload_bytes, |replay| {
+                self.output
+                    .inline_payload_bytes
+                    .checked_add(replay.payload_bytes())
+                    .expect("provider replay attachment validated byte accounting")
+            })
     }
 }
 
@@ -1325,6 +1369,7 @@ impl fmt::Debug for ModelResponse {
             .field("finish_reason", &self.finish_reason)
             .field("usage", &self.usage)
             .field("extensions", &self.extensions)
+            .field("provider_replay", &self.provider_replay)
             .finish_non_exhaustive()
     }
 }
@@ -1337,6 +1382,8 @@ struct ModelResponseWire {
     finish_reason: ModelFinishReason,
     usage: ModelUsage,
     extensions: Extensions,
+    #[serde(default)]
+    provider_replay: Option<ModelProviderReplay>,
 }
 
 impl<'de> Deserialize<'de> for ModelResponse {
@@ -1345,14 +1392,20 @@ impl<'de> Deserialize<'de> for ModelResponse {
         D: Deserializer<'de>,
     {
         let wire = ModelResponseWire::deserialize(deserializer)?;
-        Self::from_parts(
+        let mut response = Self::from_parts(
             wire.provenance,
             wire.output,
             wire.finish_reason,
             wire.usage,
             wire.extensions,
         )
-        .map_err(de::Error::custom)
+        .map_err(de::Error::custom)?;
+        if let Some(provider_replay) = wire.provider_replay {
+            response = response
+                .with_provider_replay(provider_replay)
+                .map_err(de::Error::custom)?;
+        }
+        Ok(response)
     }
 }
 
@@ -1527,6 +1580,9 @@ pub enum ModelResponseError {
     /// A tool-call terminal state had no complete proposal.
     #[error("model response tool_calls finish requires at least one complete proposal")]
     ToolCallsFinishRequiresProposal,
+    /// Replay evidence was attached to a response that needs no tool continuation.
+    #[error("model provider replay is only valid on a tool-calling response")]
+    ProviderReplayWithoutToolCalls,
     /// A non-tool terminal state carried executable proposals.
     #[error("model response finish {finish_reason:?} forbids {tool_calls} tool calls")]
     FinishForbidsToolCalls {

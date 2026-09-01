@@ -91,16 +91,30 @@ half-installed input/output pair.
 | JSON Schema output | Implemented | Implemented |
 | Function/tool proposals | Implemented | Implemented |
 | Local argument/output validation | Implemented | Implemented |
+| Provider-native unary tool continuation | Implemented | Implemented |
 | Generic JSON mode | Implemented | Rejected: stable schema-constrained output is required |
 | Readable reasoning summaries | Implemented when declared by the binding | Not advertised by this adapter version |
-| Prior `role=tool` transcript | Rejected before I/O | Rejected before I/O |
+| Legacy `role=tool` messages | Rejected before I/O | Rejected before I/O |
 | Artifact/multimodal input | Rejected before I/O | Rejected before I/O |
 | Request extensions | Rejected before I/O | Rejected before I/O |
 
-The prior tool-result transcript is rejected because the current core message
-contract does not yet retain the complete provider call identity and assistant
-tool-call transcript needed for lossless replay. Silently guessing that mapping
-would corrupt recovery, so the adapters fail closed.
+`ModelTranscript` is the lossless continuation contract. Each turn binds one
+normalized `ModelResponse`, its exact bounded provider replay fragment, and one
+committed `ModelToolOutcome` per proposal in provider order. Construction and
+deserialization reject missing or reused attempt/call/invocation identities,
+tool-version drift, ambiguous external effects, payload substitution, and
+resource-limit violations. Before network I/O, the selected adapter verifies
+the model/provider binding and replay format, reparses the opaque fragment, and
+requires it to match the normalized response exactly.
+
+OpenAI replays the complete prior `response.output` before corresponding
+`function_call_output` items and requests encrypted reasoning continuation when
+tools are enabled. Anthropic replays the complete assistant content, followed
+immediately by one user message containing all ordered `tool_result` blocks.
+Plain `role=tool` messages remain rejected because they cannot prove either
+provider-native ordering contract. Tool-producing streaming attempts do not yet
+emit replay evidence; the durable Agent tool loop must use complete responses
+until the streaming event contract carries an exact continuation snapshot.
 
 Streaming adapters do not buffer a complete response and replay fake chunks.
 They incrementally parse bounded SSE, validate every emitted event with the core
@@ -145,7 +159,7 @@ cargo test -p stateknot-integrations --all-targets
 cargo test -p stateknot-runtime --test typed_agent
 ```
 
-Live-provider qualification, provider drift cassettes, a provider-native
-multi-turn tool transcript, policy middleware, and the complete public
-admit/run/result facade remain release gates. These adapters and typed APIs are
-implemented but still pre-alpha and unpublished.
+Live-provider qualification, provider drift cassettes, durable transcript
+assembly inside the prebuilt Agent graph, policy middleware, and the complete
+public admit/run/result facade remain release gates. These adapters and typed
+APIs are implemented but still pre-alpha and unpublished.

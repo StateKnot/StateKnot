@@ -221,9 +221,9 @@ per database version. CI treats the external database suites as mandatory and
 fails if the service is unavailable.
 
 The later typed-Agent milestone now ships the first OpenAI Responses and
-Anthropic Messages adapters, but the durable public admit/run/result facade,
-provider-native multi-turn tool transcript, parallel siblings, loops/subgraphs,
-protocol-specific outbox adapters, role-separated database procedures,
-retention/archive, failover/restore qualification, the 10,000 stale-race gate,
-or a stable public release. Those remain release blockers rather than hidden
-fallback behavior.
+Anthropic Messages adapters. The durable public admit/run/result facade,
+assembly of the implemented provider-native transcript inside its prebuilt
+graph, parallel siblings, loops/subgraphs, protocol-specific outbox adapters,
+role-separated database procedures, retention/archive, failover/restore
+qualification, the 10,000 stale-race gate, and a stable public release have not
+shipped. Those remain release blockers rather than hidden fallback behavior.

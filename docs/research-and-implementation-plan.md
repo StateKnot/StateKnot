@@ -889,7 +889,7 @@ Provider-neutral Model/Tool Attempt Executor、精确不可变 Provider Registry
 Boundary 与 Cross-tenant Weighted Fair Scheduler 现已补齐；Migration 14 提供 Lost-ACK-safe
 Global Reservation 与有界 Retention。第一批 OpenAI Responses/Anthropic Messages Unary/SSE
 Adapter 以及 Schema-pinned Typed Agent Contract 也已实现。它仍不是完整 Agent Runtime：耐久
-Admit/Run/Result Facade、Provider-native 多轮 Tool Transcript、协议专用 Outbox Adapter、
+Admit/Run/Result Facade、在预置 Graph 内组装已经实现的 Provider-native Transcript、协议专用 Outbox Adapter、
 Parallel Sibling、Loop/Subgraph、角色隔离、通用归档、Failover 与 Restore 仍按 RFC 门禁继续
 实现，RFC-0003 因此保持 Draft。
 
@@ -1122,7 +1122,8 @@ Handoff 交给生命周期层。Lifecycle 层已使用稳定 Event ID 原子提�
 Registry、耐久 Streaming Sink Boundary，以及 Migration 14 的 Cross-tenant Weighted Fairness、
 Lost-ACK Reservation 与有界 Retention 也已在 PG16/17 验证。第一批 OpenAI Responses 与
 Anthropic Messages Adapter、强类型 Agent Schema/Codec 和可编译无 I/O 示例现已完成；耐久
-Admit/Run/Result Facade、Provider-native 多轮 Tool Transcript、Parallel Sibling Policy、协议
+Admit/Run/Result Facade、在预置 Graph 内组装已经实现的 Provider-native Transcript、
+Parallel Sibling Policy、协议
 Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）

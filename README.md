@@ -162,8 +162,9 @@ database-time retention. Sixteen runtime scenarios and 95 provider cases are
 mandatory on both PostgreSQL 16 and 17.
 The repository now also includes a schema-pinned typed Agent contract plus
 first-party OpenAI Responses and Anthropic Messages unary/SSE adapters with
-bounded transport controls. The complete durable admit/run/result facade,
-provider-native multi-turn tool transcript, protocol-specific outbox dispatch
+bounded transport controls and lossless provider-native unary tool continuation.
+The complete durable admit/run/result facade and its prebuilt transcript-assembling
+graph, protocol-specific outbox dispatch
 adapters, parallel siblings, loops/subgraphs, role isolation, general
 retention, failover, restore, and the final stale-race gates have not shipped
 yet.
@@ -172,8 +173,8 @@ The current milestone is to:
 
 1. validate the three frozen production scenarios and their load/failure models;
 2. accept the core domain, graph, durability, and protocol/security RFCs;
-3. integrate durable admission, a provider-native multi-turn model/tool graph,
-   policy, and typed result retrieval into a public Agent facade over the proven
+3. integrate durable admission, provider-native transcript assembly, policy,
+   and typed result retrieval into a public Agent facade over the proven
    adapters, invocation executor, Driver, lifecycle coordinator, and fair
    tenant worker;
 4. qualify role isolation, failover/restore, and the final stale-race gates; and

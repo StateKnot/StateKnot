@@ -10,23 +10,25 @@ use stateknot_core::{
     BoundedJson, BoxFuture, BoxStream, CapabilityIdentity, ContentMetadata, ContentPart,
     ContentSource, ExecutionCount, Extensions, InstructionContent, JsonContent, MessageRole, Model,
     ModelContext, ModelDescriptor, ModelError, ModelErrorPhase, ModelEventKind, ModelFinishReason,
-    ModelOutputDelta, ModelOutputItem, ModelOutputStart, ModelProviderModelId,
-    ModelProviderRequestId, ModelProviderResponseId, ModelRequest, ModelResponse,
-    ModelResponseMode, ModelResponseProvenance, ModelSchemaRegistry, ModelStreamChunk,
-    ModelTextOutputFormat, ModelToolCallProposal, ModelToolSelection, ModelUsage, RetryAdvice,
-    SchemaReference, SecurityLabel, TextContent, TokenCount,
+    ModelOutputDelta, ModelOutputItem, ModelOutputStart, ModelProviderModelId, ModelProviderReplay,
+    ModelProviderReplayFormat, ModelProviderRequestId, ModelProviderResponseId, ModelRequest,
+    ModelResponse, ModelResponseMode, ModelResponseProvenance, ModelSchemaRegistry,
+    ModelStreamChunk, ModelTextOutputFormat, ModelToolCallProposal, ModelToolSelection, ModelUsage,
+    RetryAdvice, SchemaReference, SecurityLabel, TextContent, TokenCount,
 };
 
 use crate::{
     ApiKeyProvider, ModelAdapterBuildError, ProviderEndpoint, ProviderHttpOptions,
     adapter::{
         AdapterCore, EmitError, EventEmitter, ProviderKind, bounded_body, empty_extensions,
-        parse_provider_request_id, receiver_stream, serialize_request, wait_for,
+        model_tool_outcome_payload, parse_provider_request_id, receiver_stream, serialize_request,
+        wait_for,
     },
     sse::{SseDecoder, SseEvent},
 };
 
 const ANTHROPIC_VERSION: &str = "2023-06-01";
+const ANTHROPIC_REPLAY_FORMAT: &str = "anthropic.messages.content.v1";
 
 /// Anthropic Messages API model binding with explicit usage normalization.
 #[derive(Clone)]
@@ -914,7 +916,7 @@ fn build_request(
         root.insert("system".to_owned(), Value::Array(system));
     }
 
-    let messages = request
+    let mut messages = request
         .messages()
         .iter()
         .map(|message| {
@@ -953,6 +955,40 @@ fn build_request(
             Ok(json!({"role": role, "content": content}))
         })
         .collect::<Result<Vec<_>, ModelError>>()?;
+    if request
+        .transcript()
+        .format()
+        .is_some_and(|format| format.as_str() != ANTHROPIC_REPLAY_FORMAT)
+    {
+        return Err(core.unsupported_request(context, "request.transcript_format"));
+    }
+    for turn in request.transcript() {
+        let replay = turn
+            .response()
+            .provider_replay()
+            .expect("validated transcript turns contain replay evidence");
+        if !replay_matches_response(core, request, turn.response()) {
+            return Err(core.corrupt_transcript_replay(context));
+        }
+        messages.push(json!({
+            "role": "assistant",
+            "content": replay.payload().as_value(),
+        }));
+        let results = turn
+            .outcomes()
+            .iter()
+            .map(|outcome| {
+                json!({
+                    "type": "tool_result",
+                    "tool_use_id": outcome.provider_call_id().as_str(),
+                    "content": serde_json::to_string(&model_tool_outcome_payload(outcome))
+                        .expect("bounded tool outcome JSON always serializes"),
+                    "is_error": outcome.is_error(),
+                })
+            })
+            .collect::<Vec<_>>();
+        messages.push(json!({"role": "user", "content": results}));
+    }
     root.insert("messages".to_owned(), Value::Array(messages));
 
     let tools = request
@@ -1031,6 +1067,7 @@ pub(crate) fn parse_response(
             return None;
         }
         let usage = parse_usage(root.get("usage")?)?;
+        let replay_payload = BoundedJson::try_from(root.get("content")?.clone()).ok()?;
         let stop_reason = root.get("stop_reason")?.as_str()?;
         let finish = match stop_reason {
             "end_turn" | "stop_sequence" => ModelFinishReason::Completed,
@@ -1046,72 +1083,7 @@ pub(crate) fn parse_response(
                 request.text_output_format(),
                 Some(ModelTextOutputFormat::JsonSchema { .. })
             );
-        let mut output = Vec::new();
-        for content in root.get("content")?.as_array()? {
-            let content = content.as_object()?;
-            match content.get("type")?.as_str()? {
-                "text" if structured => {
-                    let text = content.get("text")?.as_str()?;
-                    let ModelTextOutputFormat::JsonSchema { schema } =
-                        request.text_output_format()?
-                    else {
-                        return None;
-                    };
-                    let value = BoundedJson::from_slice(text.as_bytes()).ok()?;
-                    core.schemas.validate(schema, &value).ok()?;
-                    output.push(
-                        ModelOutputItem::content(ContentPart::Json(JsonContent::new(
-                            value,
-                            Some(schema.clone()),
-                            ContentMetadata::untrusted(
-                                ContentSource::Model,
-                                core.output_label.clone(),
-                            ),
-                        )))
-                        .ok()?,
-                    );
-                }
-                "text" => {
-                    output.push(
-                        ModelOutputItem::content(ContentPart::Text(
-                            TextContent::new(
-                                content.get("text")?.as_str()?,
-                                None,
-                                ContentMetadata::untrusted(
-                                    ContentSource::Model,
-                                    core.output_label.clone(),
-                                ),
-                            )
-                            .ok()?,
-                        ))
-                        .ok()?,
-                    );
-                }
-                "tool_use" => {
-                    let name = content.get("name")?.as_str()?;
-                    let tool = request
-                        .tools()
-                        .find(|tool| tool.metadata().identity().name().as_str() == name)?;
-                    let arguments = BoundedJson::try_from(content.get("input")?.clone()).ok()?;
-                    core.schemas
-                        .validate(tool.input_schema(), &arguments)
-                        .ok()?;
-                    let call_id =
-                        stateknot_core::ModelProviderToolCallId::new(content.get("id")?.as_str()?)
-                            .ok()?;
-                    output.push(ModelOutputItem::tool_call(
-                        ModelToolCallProposal::new(
-                            tool.metadata().identity().clone(),
-                            Some(call_id),
-                            arguments,
-                            Extensions::default(),
-                        )
-                        .ok()?,
-                    ));
-                }
-                _ => return None,
-            }
-        }
+        let output = parse_content_items(core, request, root.get("content")?, structured)?;
         let mut provenance = ModelResponseProvenance::new(
             context.attempt_id(),
             core.descriptor.metadata().identity().clone(),
@@ -1121,7 +1093,7 @@ pub(crate) fn parse_response(
         if let Some(request_id) = provider_request_id.clone() {
             provenance = provenance.with_provider_request_id(request_id);
         }
-        ModelResponse::new(
+        let mut response = ModelResponse::new(
             provenance,
             &core.descriptor,
             request,
@@ -1130,7 +1102,16 @@ pub(crate) fn parse_response(
             usage,
             empty_extensions(),
         )
-        .ok()
+        .ok()?;
+        if finish == ModelFinishReason::ToolCalls {
+            let replay = ModelProviderReplay::new(
+                ModelProviderReplayFormat::new(ANTHROPIC_REPLAY_FORMAT).ok()?,
+                replay_payload,
+            )
+            .ok()?;
+            response = response.with_provider_replay(replay).ok()?;
+        }
+        Some(response)
     };
     parse().ok_or_else(|| {
         core.malformed_error(
@@ -1148,6 +1129,119 @@ pub(crate) fn parse_response(
                 .and_then(parse_usage),
         )
     })
+}
+
+fn replay_matches_response(
+    core: &AdapterCore,
+    request: &ModelRequest,
+    response: &ModelResponse,
+) -> bool {
+    let Some(replay) = response.provider_replay() else {
+        return false;
+    };
+    parse_content_items(core, request, replay.payload().as_value(), false)
+        .is_some_and(|output| output.as_slice() == response.output())
+}
+
+fn parse_content_items(
+    core: &AdapterCore,
+    request: &ModelRequest,
+    value: &Value,
+    structured: bool,
+) -> Option<Vec<ModelOutputItem>> {
+    let mut output = Vec::new();
+    for raw_content in value.as_array()? {
+        let content = raw_content.as_object()?;
+        match content.get("type")?.as_str()? {
+            "text" if structured => {
+                if !has_only_keys(content, &["type", "text", "citations"])
+                    || unsupported_citations(content.get("citations"))
+                {
+                    return None;
+                }
+                let text = content.get("text")?.as_str()?;
+                let ModelTextOutputFormat::JsonSchema { schema } = request.text_output_format()?
+                else {
+                    return None;
+                };
+                let value = BoundedJson::from_slice(text.as_bytes()).ok()?;
+                core.schemas.validate(schema, &value).ok()?;
+                output.push(
+                    ModelOutputItem::content(ContentPart::Json(JsonContent::new(
+                        value,
+                        Some(schema.clone()),
+                        ContentMetadata::untrusted(ContentSource::Model, core.output_label.clone()),
+                    )))
+                    .ok()?,
+                );
+            }
+            "text" => {
+                if !has_only_keys(content, &["type", "text", "citations"])
+                    || unsupported_citations(content.get("citations"))
+                {
+                    return None;
+                }
+                output.push(
+                    ModelOutputItem::content(ContentPart::Text(
+                        TextContent::new(
+                            content.get("text")?.as_str()?,
+                            None,
+                            ContentMetadata::untrusted(
+                                ContentSource::Model,
+                                core.output_label.clone(),
+                            ),
+                        )
+                        .ok()?,
+                    ))
+                    .ok()?,
+                );
+            }
+            "tool_use" => {
+                if !has_only_keys(content, &["type", "id", "name", "input"])
+                    || content.get("id")?.as_str()?.is_empty()
+                {
+                    return None;
+                }
+                let name = content.get("name")?.as_str()?;
+                let tool = request
+                    .tools()
+                    .find(|tool| tool.metadata().identity().name().as_str() == name)?;
+                let arguments = BoundedJson::try_from(content.get("input")?.clone()).ok()?;
+                core.schemas
+                    .validate(tool.input_schema(), &arguments)
+                    .ok()?;
+                let call_id =
+                    stateknot_core::ModelProviderToolCallId::new(content.get("id")?.as_str()?)
+                        .ok()?;
+                output.push(ModelOutputItem::tool_call(
+                    ModelToolCallProposal::new(
+                        tool.metadata().identity().clone(),
+                        Some(call_id),
+                        arguments,
+                        Extensions::default(),
+                    )
+                    .ok()?,
+                ));
+            }
+            _ => return None,
+        }
+    }
+    Some(output)
+}
+
+fn unsupported_citations(value: Option<&Value>) -> bool {
+    value.is_some_and(|value| {
+        !value.is_null()
+            && value
+                .as_array()
+                .is_none_or(|citations| !citations.is_empty())
+    })
+}
+
+fn has_only_keys(object: &Map<String, Value>, allowed: &[&str]) -> bool {
+    object
+        .keys()
+        .all(|key| allowed.iter().any(|allowed| key == allowed))
 }
 
 pub(crate) fn parse_usage(value: &Value) -> Option<ModelUsage> {

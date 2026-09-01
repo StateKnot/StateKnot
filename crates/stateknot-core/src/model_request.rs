@@ -16,11 +16,11 @@ use serde::{
 use thiserror::Error;
 
 use crate::{
-    ArtifactModality, ByteCount, CapabilityLifecycleState, CapabilityName, ContentPart,
-    ExecutionCount, Extensions, Instruction, InstructionContent, InstructionIdentity, Message,
-    MessageId, ModelModalities, ModelModality, ModelRequirements, ModelRequirementsError,
+    ArtifactModality, ByteCount, CapabilityIdentity, CapabilityLifecycleState, CapabilityName,
+    ContentPart, ExecutionCount, Extensions, Instruction, InstructionContent, InstructionIdentity,
+    Message, MessageId, ModelModalities, ModelModality, ModelRequirements, ModelRequirementsError,
     ModelStructuredOutputLevel, ModelToolChoice, ModelToolChoices, ModelToolRequirements,
-    SchemaReference, TokenCount, ToolDescriptor,
+    ModelTranscript, SchemaReference, TokenCount, ToolDescriptor,
 };
 
 const MEBIBYTE: u64 = 1024 * 1024;
@@ -771,6 +771,8 @@ fn checked_content_add(
 pub struct ModelRequest {
     instructions: RequestInstructions,
     messages: RequestMessages,
+    #[serde(default, skip_serializing_if = "ModelTranscript::is_empty")]
+    transcript: ModelTranscript,
     tools: RequestTools,
     tool_selection: ModelToolSelection,
     max_tool_calls_per_response: ExecutionCount,
@@ -802,6 +804,7 @@ impl ModelRequest {
     fn from_parts(
         instructions: RequestInstructions,
         messages: RequestMessages,
+        transcript: ModelTranscript,
         tools: RequestTools,
         tool_selection: ModelToolSelection,
         max_tool_calls_per_response: ExecutionCount,
@@ -814,7 +817,7 @@ impl ModelRequest {
         extensions: Extensions,
         wire_requirements: Option<&ModelRequirements>,
     ) -> Result<Self, ModelRequestError> {
-        if instructions.is_empty() && messages.is_empty() {
+        if instructions.is_empty() && messages.is_empty() && transcript.is_empty() {
             return Err(ModelRequestError::EmptyInput);
         }
         if output_modalities.is_empty() {
@@ -833,11 +836,13 @@ impl ModelRequest {
             max_tool_calls_per_response,
             strict_tool_arguments,
         )?;
+        validate_transcript_tools(&transcript, &tools)?;
 
         let content_bytes = instructions
             .content_bytes
             .checked_add(messages.content_bytes)
-            .expect("validated instruction and message content bounds cannot overflow");
+            .and_then(|bytes| bytes.checked_add(transcript.payload_bytes()))
+            .ok_or(ModelRequestError::TranscriptContentBytesOverflow)?;
         if content_bytes > limits.max_content_bytes() {
             return Err(ModelRequestError::RequestContentTooLarge {
                 maximum: limits.max_content_bytes(),
@@ -850,6 +855,9 @@ impl ModelRequest {
             input_modalities.insert(ModelModality::Text);
         }
         input_modalities.extend(messages.modalities.iter().copied());
+        if !transcript.is_empty() {
+            input_modalities.insert(ModelModality::Text);
+        }
         let input_modalities = ModelModalities::try_new(input_modalities)
             .expect("a BTreeSet of closed modalities is valid");
 
@@ -890,6 +898,7 @@ impl ModelRequest {
         Ok(Self {
             instructions,
             messages,
+            transcript,
             tools,
             tool_selection,
             max_tool_calls_per_response,
@@ -914,6 +923,12 @@ impl ModelRequest {
     #[must_use]
     pub fn messages(&self) -> &[Message] {
         self.messages.as_slice()
+    }
+
+    /// Returns ordered durable prior model/tool turns.
+    #[must_use]
+    pub const fn transcript(&self) -> &ModelTranscript {
+        &self.transcript
     }
 
     /// Iterates available tool descriptors in canonical name order.
@@ -993,6 +1008,7 @@ impl ModelRequest {
         self.instructions
             .content_bytes
             .checked_add(self.messages.content_bytes)
+            .and_then(|bytes| bytes.checked_add(self.transcript.payload_bytes()))
             .expect("validated model request content bytes cannot overflow")
     }
 }
@@ -1038,12 +1054,40 @@ fn validate_tool_controls(
     Ok(())
 }
 
+fn validate_transcript_tools(
+    transcript: &ModelTranscript,
+    tools: &RequestTools,
+) -> Result<(), ModelRequestError> {
+    for (turn_index, turn) in transcript.iter().enumerate() {
+        for (call_index, proposal) in turn.response().tool_calls().enumerate() {
+            let Some(descriptor) = tools.get(proposal.tool().name()) else {
+                return Err(ModelRequestError::TranscriptToolNotAvailable {
+                    turn_index,
+                    call_index,
+                    tool: Box::new(proposal.tool().clone()),
+                });
+            };
+            let expected = descriptor.metadata().identity();
+            if proposal.tool() != expected {
+                return Err(ModelRequestError::TranscriptToolIdentityMismatch {
+                    turn_index,
+                    call_index,
+                    expected: Box::new(expected.clone()),
+                    actual: Box::new(proposal.tool().clone()),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
 impl fmt::Debug for ModelRequest {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("ModelRequest")
             .field("instructions", &self.instructions)
             .field("messages", &self.messages)
+            .field("transcript", &self.transcript)
             .field("tools", &self.tools)
             .field("tool_selection", &self.tool_selection)
             .field(
@@ -1067,6 +1111,8 @@ impl fmt::Debug for ModelRequest {
 struct ModelRequestWire {
     instructions: RequestInstructions,
     messages: RequestMessages,
+    #[serde(default)]
+    transcript: ModelTranscript,
     tools: RequestTools,
     tool_selection: ModelToolSelection,
     max_tool_calls_per_response: ExecutionCount,
@@ -1090,6 +1136,7 @@ impl<'de> Deserialize<'de> for ModelRequest {
         Self::from_parts(
             wire.instructions,
             wire.messages,
+            wire.transcript,
             wire.tools,
             wire.tool_selection,
             wire.max_tool_calls_per_response,
@@ -1117,6 +1164,7 @@ pub struct ModelRequestBuilder {
     messages: Vec<Message>,
     message_content_bytes: ByteCount,
     message_modalities: BTreeSet<ModelModality>,
+    transcript: ModelTranscript,
     tools: BTreeMap<CapabilityName, ToolDescriptor>,
     tool_selection: ModelToolSelection,
     max_tool_calls_per_response: ExecutionCount,
@@ -1138,6 +1186,7 @@ impl ModelRequestBuilder {
             messages: Vec::new(),
             message_content_bytes: ByteCount::ZERO,
             message_modalities: BTreeSet::new(),
+            transcript: ModelTranscript::empty(),
             tools: BTreeMap::new(),
             tool_selection: ModelToolSelection::none(),
             max_tool_calls_per_response: ExecutionCount::ZERO,
@@ -1181,6 +1230,13 @@ impl ModelRequestBuilder {
                 self.error = Some(error);
             }
         }
+        self
+    }
+
+    /// Replaces the complete ordered prior model/tool transcript.
+    #[must_use]
+    pub fn transcript(mut self, transcript: ModelTranscript) -> Self {
+        self.transcript = transcript;
         self
     }
 
@@ -1272,6 +1328,7 @@ impl ModelRequestBuilder {
                 modalities: ModelModalities::try_new(self.message_modalities)
                     .expect("a BTreeSet of closed modalities is valid"),
             },
+            self.transcript,
             RequestTools(self.tools),
             self.tool_selection,
             self.max_tool_calls_per_response,
@@ -1295,6 +1352,7 @@ impl fmt::Debug for ModelRequestBuilder {
             .field("instruction_content_bytes", &self.instruction_content_bytes)
             .field("message_count", &self.messages.len())
             .field("message_content_bytes", &self.message_content_bytes)
+            .field("transcript", &self.transcript)
             .field("tool_count", &self.tools.len())
             .field("tool_selection", &self.tool_selection)
             .field(
@@ -1317,8 +1375,8 @@ impl fmt::Debug for ModelRequestBuilder {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum ModelRequestError {
-    /// No trusted instruction or durable message was supplied.
-    #[error("model request requires at least one instruction or message")]
+    /// No trusted instruction, durable message, or prior transcript was supplied.
+    #[error("model request requires at least one instruction, message, or transcript turn")]
     EmptyInput,
     /// Trusted instruction count exceeded its hard ceiling.
     #[error("model request contains at least {observed} instructions; maximum is {max}")]
@@ -1390,6 +1448,9 @@ pub enum ModelRequestError {
     /// Message content byte accounting could not be represented.
     #[error("model request message content-byte accounting overflowed")]
     MessageContentBytesOverflow,
+    /// Combined transcript content byte accounting could not be represented.
+    #[error("model request transcript content-byte accounting overflowed")]
+    TranscriptContentBytesOverflow,
     /// Combined instruction and message bytes exceeded the caller ceiling.
     #[error("model request content is {observed} bytes; configured maximum is {maximum}")]
     RequestContentTooLarge {
@@ -1417,6 +1478,32 @@ pub enum ModelRequestError {
     RetiredTool {
         /// Retired tool name.
         name: CapabilityName,
+    },
+    /// A prior turn proposed a tool absent from the current immutable request.
+    #[error(
+        "model transcript turn {turn_index} call {call_index} references unavailable tool {tool:?}"
+    )]
+    TranscriptToolNotAvailable {
+        /// Zero-based transcript turn position.
+        turn_index: usize,
+        /// Zero-based tool proposal position within the turn.
+        call_index: usize,
+        /// Unavailable owner-qualified tool identity.
+        tool: Box<CapabilityIdentity>,
+    },
+    /// A prior turn's registry-local tool name resolved to another version.
+    #[error(
+        "model transcript turn {turn_index} call {call_index} tool identity does not match the request snapshot"
+    )]
+    TranscriptToolIdentityMismatch {
+        /// Zero-based transcript turn position.
+        turn_index: usize,
+        /// Zero-based tool proposal position within the turn.
+        call_index: usize,
+        /// Exact current descriptor identity.
+        expected: Box<CapabilityIdentity>,
+        /// Rejected historical claim.
+        actual: Box<CapabilityIdentity>,
     },
     /// Tool selection was active without any definitions.
     #[error("model request tool selection {selection:?} requires at least one tool")]

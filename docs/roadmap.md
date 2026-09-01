@@ -178,8 +178,12 @@ from the repository.
   Messages unary/SSE adapters plus generated, canonical digest-pinned typed
   Agent input/output contracts, offline provider-profile binding, bounded
   codecs, real local HTTP fault tests, and compiled no-I/O examples.
-- [ ] Complete the durable public admit/run/result facade, provider-native
-  multi-turn model/tool transcript, policy middleware, parallel sibling policy,
+- [x] Implement bounded provider-native unary model/tool transcripts with exact
+  OpenAI Responses and Anthropic Messages replay order, encrypted reasoning
+  continuation, durable outcome pairing, identity/digest binding, semantic
+  replay validation before I/O, and corruption/cross-provider tests.
+- [ ] Complete the durable public admit/run/result facade, transcript assembly
+  in its prebuilt graph, policy middleware, parallel sibling policy,
   loop/subgraph semantics, protocol-specific outbox adapters, role isolation,
   general retention, failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.

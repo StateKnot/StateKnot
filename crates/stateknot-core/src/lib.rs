@@ -37,6 +37,7 @@ mod model_invocation;
 mod model_request;
 mod model_response;
 mod model_runtime;
+mod model_transcript;
 mod node_attempt;
 mod node_result;
 mod outbox;
@@ -173,6 +174,11 @@ pub use model_runtime::{
     BoxFuture, BoxStream, CancellationObserver, CancellationSignal, Model, ModelContext,
     ModelContextError, ModelError, ModelErrorPhase, ModelErrorProvenance,
     ModelErrorValidationError, ModelSchemaRegistry, ModelStopReason,
+};
+pub use model_transcript::{
+    ModelProviderReplay, ModelProviderReplayError, ModelProviderReplayFormat,
+    ModelProviderReplayFormatError, ModelToolFailure, ModelToolFailureError, ModelToolOutcome,
+    ModelTranscript, ModelTranscriptError, ModelTranscriptTurn, ModelTranscriptTurnError,
 };
 pub use node_attempt::{
     NodeAttempt, NodeAttemptCompletion, NodeAttemptError, NodeAttemptHistoryError,

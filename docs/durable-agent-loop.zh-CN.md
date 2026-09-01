@@ -39,8 +39,8 @@ Tenant Scheduler Tick
 这是一条可运行的**耐久 Graph Loop**。Provider-neutral 耐久 Model/Tool Attempt 执行、
 跨租户加权 Selection、强类型 Agent Contract，以及第一批 OpenAI Responses/Anthropic
 Messages Adapter 已经存在，但它还不是稳定的最终用户 Agent API。耐久 Admission/Result
-Retrieval、Provider-native 多轮 Tool Transcript、Policy Middleware 与完整公开 Facade
-仍属于发行前工作。
+Retrieval、在预置 Graph 内组装已经实现的 Provider-native Transcript、Policy Middleware 与
+完整公开 Facade 仍属于发行前工作。
 
 ## 启动绑定
 
@@ -195,7 +195,7 @@ Loop 成功与 Evidence Failure、Tenant 与加权 Cross-tenant Scheduling、耐
 初始状态 Quarantine 与 Higher-fence Takeover。每个数据库版本还会运行 95 个 Provider
 Integration Case；CI 把两套测试都设为 Mandatory。
 
-剩余 Release Blocker 包括生产 Admission/Accounting Provider、耐久公开 Agent Facade 与
-Provider-native 多轮 Tool Transcript、Parallel Sibling Policy、Loop/Subgraph 语义、协议专用 Outbox
+剩余 Release Blocker 包括生产 Admission/Accounting Provider、耐久公开 Agent Facade、在其
+预置 Graph 内组装 Transcript、Parallel Sibling Policy、Loop/Subgraph 语义、协议专用 Outbox
 Dispatch、数据库角色隔离存储过程、通用 Retention、Backup/Restore、Failover、Stale-race
 Qualification、完整 Observability 与 Release Hardening。

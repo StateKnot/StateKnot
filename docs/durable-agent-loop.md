@@ -41,8 +41,8 @@ This is a runnable **durable graph loop**. Provider-neutral durable model/tool
 attempt execution, cross-tenant weighted selection, a typed Agent contract, and
 the first OpenAI Responses/Anthropic Messages adapters now exist, but this is
 not yet the stable end-user Agent API: durable admission/result retrieval, a
-provider-native multi-turn tool transcript, policy middleware, and the complete
-public facade remain release work.
+prebuilt graph that assembles the implemented provider-native transcript,
+policy middleware, and the complete public facade remain release work.
 
 ## Startup binding
 
@@ -230,8 +230,8 @@ database version also runs 95 provider integration cases. CI makes both suites
 mandatory.
 
 The remaining release blockers include a production admission/accounting
-provider implementation, the durable public Agent facade and provider-native
-multi-turn tool transcript, parallel sibling policy, loop/subgraph semantics,
+provider implementation, the durable public Agent facade and transcript
+assembly inside its prebuilt graph, parallel sibling policy, loop/subgraph semantics,
 protocol-specific outbox dispatch, role-separated database procedures, general
 retention, backup/restore, failover, stale-race qualification, observability,
 and release hardening.
