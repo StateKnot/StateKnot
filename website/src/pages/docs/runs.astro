@@ -50,8 +50,10 @@ let current = runs.load_by_key(&tenant_id, &key).await?;`;
       <code>DurableAgentRuns</code>, <code>AgentSubmissionKey</code>, and
       PostgreSQL migration 16 are implemented. They close ingress lost-ACK
       recovery and public terminal reads. Crates remain unpublished, and the
-      prebuilt provider-native multi-turn graph, cancellation transport, and
-      production server are still release work.
+      <a href="/docs/provider-native-agent/"
+        >prebuilt provider-native multi-turn graph</a
+      > now consumes this facade. Public cancellation transport and the production
+      server are still release work.
     </p>
   </aside>
 

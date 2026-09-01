@@ -47,7 +47,7 @@ const currentCut = [
   {
     surface: "耐久 Agent Loop",
     state: "已实现切片",
-    evidence: "原子 Lifecycle Commit 与 Tenant-scoped Scheduling",
+    evidence: "原子 Success、Failure、Wait、Cancellation Commit",
     href: "/zh/docs/agent-loop/",
   },
   {
@@ -67,6 +67,12 @@ const currentCut = [
     state: "已实现切片",
     evidence: "Pinned Schema 与 OpenAI/Anthropic Unary/SSE Transport",
     href: "/zh/docs/typed-agent/",
+  },
+  {
+    surface: "Provider-native Agent Graph",
+    state: "已实现切片",
+    evidence: "可恢复多轮 Tool、Pinned Policy 与精确 Cancellation",
+    href: "/zh/docs/provider-native-agent/",
   },
   {
     surface: "MCP 与 A2A Adapter",
@@ -97,15 +103,15 @@ const roadmap = [
   },
   {
     index: "04",
-    state: "现在",
+    state: "已实现",
     title: "组装 Provider-native Agent Graph",
-    body: "把已实现 Transcript Builder、Invocation Executor、Driver、Lifecycle、Policy、Cancellation 与 Result Boundary 组合成一条可恢复多轮 Tool Path。",
+    body: "一条可恢复多轮 Tool Path 现在已经组合 Transcript Reconstruction、耐久 Invocation、Pinned Policy 与 Accounting、Driver、Lifecycle 和精确 Cancellation。",
   },
   {
     index: "05",
-    state: "规划中",
-    title: "增加协议 Adapter",
-    body: "把 MCP 与 A2A Wire Model 显式映射到版本化内部类型，并在 Admission 阶段执行 Policy 与 Tenant 边界。",
+    state: "现在",
+    title: "证明首个协议 Adapter",
+    body: "把耐久 Identity、Policy、Accounting、Cancellation 与 Recovery 契约带入已认证 MCP Tool Boundary；A2A 在该证据之后继续。",
   },
   {
     index: "06",
@@ -129,9 +135,9 @@ const roadmap = [
             StateKnot 现已通过 PostgreSQL-backed Crash Recovery、原子 Agent
             Admission、耐久 Model/Tool Attempt、Lifecycle Commit、加权
             Cross-tenant Scheduling、耐久 Ingress Key、经过验证的 Run/Result
-            Read、 强类型 Agent 合约与首批 OpenAI/Anthropic Adapter 运行类型化
-            Root Graph。 Provider-native 端到端 Agent Graph 与 MCP/A2A 协议
-            Adapter 仍在开发。
+            Read、强类型 Agent 合约、首批 OpenAI/Anthropic Adapter，以及可恢复
+            Provider-native 多轮 Agent Graph 运行类型化 Root Graph。稳定 Service
+            API 与 MCP/A2A 协议 Adapter 仍在开发。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -268,8 +274,9 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">开发顺序由证据决定。</h2>
         <p>
-          公开 Facade 必须先让一条 Provider-native 端到端路径在
-          Crash、Retry、Stale Worker 与 Lost ACK 中存活，然后才扩展协议广度。
+          Provider-native 可恢复路径现在已经在 Crash、Retry、Stale
+          Worker、Cancellation 与 Lost ACK 中存活。首个 MCP Boundary
+          必须保留这些证明；A2A 在其后继续。
         </p>
       </div>
 

@@ -196,6 +196,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0016_agent_submission_keys.sql")),
             false,
         ),
+        Migration::new(
+            17,
+            Cow::Borrowed("terminal tool result bindings"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0017_terminal_tool_result_bindings.sql"
+            )),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -481,6 +490,41 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
        WHERE conrelid = to_regclass('stateknot.agent_submission_keys')
          AND conname = 'agent_submission_keys_digest_lengths'
          AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.pending_node_result_tool_bindings')
+         AND conname = 'pending_node_result_tool_bindings_status_valid'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.pending_node_result_tool_bindings')
+         AND conname = 'pending_node_result_tool_bindings_revision_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.pending_node_result_model_bindings')
+         AND conname = 'pending_node_result_model_bindings_status_valid'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.pending_node_result_model_bindings')
+         AND conname = 'pending_node_result_model_bindings_revision_fk'
+         AND convalidated
+   )
+   AND 2 = (
+       SELECT count(*)
+       FROM pg_catalog.pg_attribute
+       WHERE attrelid IN (
+           to_regclass('stateknot.pending_node_result_tool_bindings'),
+           to_regclass('stateknot.pending_node_result_model_bindings')
+       )
+         AND attname = 'invocation_status'
+         AND NOT attisdropped
+         AND attgenerated = ''
    )
    AND EXISTS (
        SELECT 1 FROM pg_catalog.pg_constraint
@@ -1348,7 +1392,7 @@ SELECT EXISTS (
       AND base_checkpoint_id = $3
       AND base_superstep = $4
       AND base_checkpoint_digest = $5
-      AND current_status <> 'committed'
+      AND current_status NOT IN ('committed', 'failed')
 )
 ";
 
@@ -1775,6 +1819,7 @@ SELECT
     invocation_id,
     invocation_revision,
     invocation_record_digest,
+    invocation_status,
     invocation_journal_sequence,
     invocation_journal_recorded_at,
     invocation_journal_digest
@@ -1804,6 +1849,7 @@ SELECT
     invocation_id,
     invocation_revision,
     invocation_record_digest,
+    invocation_status,
     invocation_journal_sequence,
     invocation_journal_recorded_at,
     invocation_journal_digest
@@ -9905,6 +9951,7 @@ struct PendingNodeResultBindingRow {
     invocation_id: Uuid,
     invocation_revision: i64,
     invocation_record_digest: Vec<u8>,
+    invocation_status: String,
     invocation_journal_sequence: i64,
     invocation_journal_recorded_at: DateTime<Utc>,
     invocation_journal_digest: Vec<u8>,
@@ -10561,6 +10608,7 @@ impl<'row> FromRow<'row, PgRow> for PendingNodeResultBindingRow {
             invocation_id: row.try_get("invocation_id")?,
             invocation_revision: row.try_get("invocation_revision")?,
             invocation_record_digest: row.try_get("invocation_record_digest")?,
+            invocation_status: row.try_get("invocation_status")?,
             invocation_journal_sequence: row.try_get("invocation_journal_sequence")?,
             invocation_journal_recorded_at: row.try_get("invocation_journal_recorded_at")?,
             invocation_journal_digest: row.try_get("invocation_journal_digest")?,
@@ -15361,16 +15409,18 @@ fn pending_node_result_binding_row_matches(
         .map_err(|_| StoreError::corrupt("pending node result binding result sequence"))?;
     let invocation_journal_sequence = i64::try_from(invocation_journal.sequence().get())
         .map_err(|_| StoreError::corrupt("pending node result binding invocation sequence"))?;
-    let (revision, record_digest) = match binding {
+    let (revision, record_digest, status) = match binding {
         NodeInvocationBinding::Tool { head, .. } => (
             i64::try_from(head.revision().get())
                 .map_err(|_| StoreError::corrupt("pending tool binding revision"))?,
             head.digest(),
+            tool_invocation_status_text(head.status()),
         ),
         NodeInvocationBinding::Model { head, .. } => (
             i64::try_from(head.revision().get())
                 .map_err(|_| StoreError::corrupt("pending model binding revision"))?,
             head.digest(),
+            model_invocation_status_text(head.status()),
         ),
     };
     Ok(row.tenant_id == activation.tenant_id().as_str()
@@ -15403,6 +15453,7 @@ fn pending_node_result_binding_row_matches(
             &row.invocation_record_digest,
             "pending node result binding invocation digest",
         )? == record_digest
+        && row.invocation_status == status
         && row.invocation_journal_sequence == invocation_journal_sequence
         && from_database_time(row.invocation_journal_recorded_at)?
             == invocation_journal.recorded_at()
@@ -18352,6 +18403,7 @@ struct PendingBindingValues {
     invocation_ids: Vec<Uuid>,
     revisions: Vec<i64>,
     record_digests: Vec<Vec<u8>>,
+    statuses: Vec<String>,
     journal_sequences: Vec<i64>,
     journal_recorded_at: Vec<DateTime<Utc>>,
     journal_digests: Vec<Vec<u8>>,
@@ -18365,6 +18417,7 @@ fn pending_binding_values(
         invocation_ids: Vec::new(),
         revisions: Vec::new(),
         record_digests: Vec::new(),
+        statuses: Vec::new(),
         journal_sequences: Vec::new(),
         journal_recorded_at: Vec::new(),
         journal_digests: Vec::new(),
@@ -18375,9 +18428,17 @@ fn pending_binding_values(
         .iter()
         .filter(|binding| binding.kind() == kind)
     {
-        let (revision, digest) = match binding {
-            NodeInvocationBinding::Model { head, .. } => (head.revision().get(), head.digest()),
-            NodeInvocationBinding::Tool { head, .. } => (head.revision().get(), head.digest()),
+        let (revision, digest, status) = match binding {
+            NodeInvocationBinding::Model { head, .. } => (
+                head.revision().get(),
+                head.digest(),
+                model_invocation_status_text(head.status()),
+            ),
+            NodeInvocationBinding::Tool { head, .. } => (
+                head.revision().get(),
+                head.digest(),
+                tool_invocation_status_text(head.status()),
+            ),
         };
         values
             .invocation_ids
@@ -18387,6 +18448,7 @@ fn pending_binding_values(
                 .map_err(|_| StoreError::encoding("pending node result binding revision"))?,
         );
         values.record_digests.push(digest.as_bytes().to_vec());
+        values.statuses.push(status.to_owned());
         values.journal_sequences.push(
             i64::try_from(binding.journal_head().sequence().get())
                 .map_err(|_| StoreError::JournalSequenceExhausted)?,
@@ -18440,6 +18502,7 @@ INSERT INTO {table} (
     invocation_id,
     invocation_revision,
     invocation_record_digest,
+    invocation_status,
     invocation_journal_sequence,
     invocation_journal_recorded_at,
     invocation_journal_digest
@@ -18449,6 +18512,7 @@ SELECT
     binding.invocation_id,
     binding.invocation_revision,
     binding.invocation_record_digest,
+    binding.invocation_status,
     binding.invocation_journal_sequence,
     binding.invocation_journal_recorded_at,
     binding.invocation_journal_digest
@@ -18456,13 +18520,15 @@ FROM UNNEST(
     $13::uuid[],
     $14::bigint[],
     $15::bytea[],
-    $16::bigint[],
-    $17::timestamptz[],
-    $18::bytea[]
+    $16::text[],
+    $17::bigint[],
+    $18::timestamptz[],
+    $19::bytea[]
 ) AS binding (
     invocation_id,
     invocation_revision,
     invocation_record_digest,
+    invocation_status,
     invocation_journal_sequence,
     invocation_journal_recorded_at,
     invocation_journal_digest
@@ -18473,8 +18539,8 @@ WHERE current_run.tenant_id = $1
   AND current_run.checkpoint_id = $3
   AND current_run.checkpoint_superstep = $4
   AND current_run.checkpoint_digest = $5
-  AND current_run.lease_attempt_id = $19
-  AND current_run.fencing_epoch = $20
+  AND current_run.lease_attempt_id = $20
+  AND current_run.fencing_epoch = $21
   AND current_run.lease_expires_at > clock_timestamp()
 "
     );
@@ -18501,6 +18567,7 @@ WHERE current_run.tenant_id = $1
         .bind(&values.invocation_ids)
         .bind(&values.revisions)
         .bind(&values.record_digests)
+        .bind(&values.statuses)
         .bind(&values.journal_sequences)
         .bind(&values.journal_recorded_at)
         .bind(&values.journal_digests)
@@ -19247,11 +19314,13 @@ fn is_invalid_pending_binding_constraint(error: &sqlx_core::Error) -> bool {
                 constraint,
                 "pending_node_result_tool_bindings_activation_fk"
                     | "pending_node_result_tool_bindings_revision_fk"
+                    | "pending_node_result_tool_bindings_status_valid"
                     | "pending_node_result_tool_bindings_causal"
                     | "pending_node_result_tool_bindings_once"
                     | "pending_node_result_tool_bindings_pkey"
                     | "pending_node_result_model_bindings_activation_fk"
                     | "pending_node_result_model_bindings_revision_fk"
+                    | "pending_node_result_model_bindings_status_valid"
                     | "pending_node_result_model_bindings_causal"
                     | "pending_node_result_model_bindings_once"
                     | "pending_node_result_model_bindings_pkey"

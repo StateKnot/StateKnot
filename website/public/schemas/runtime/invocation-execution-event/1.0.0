@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0",
   "title": "StateKnot invocation execution event data",
-  "description": "Public-safe correlation metadata for durable model and tool attempt start/terminal commits. Requests, arguments, outputs, errors, and provider identifiers are deliberately excluded.",
+  "description": "Public-safe correlation metadata for durable model and tool preparation, attempt start, and terminal commits. Requests, arguments, outputs, errors, and provider identifiers are deliberately excluded.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,9 +15,11 @@
   "properties": {
     "operation": {
       "enum": [
+        "model_invocation_prepared",
         "model_attempt_started",
         "model_response_committed",
         "model_error_committed",
+        "tool_invocation_prepared",
         "tool_attempt_started",
         "tool_result_committed",
         "tool_error_committed"
@@ -44,6 +46,7 @@
       "properties": {
         "operation": {
           "enum": [
+            "model_invocation_prepared",
             "model_attempt_started",
             "model_response_committed",
             "model_error_committed"
@@ -56,6 +59,7 @@
       "properties": {
         "operation": {
           "enum": [
+            "tool_invocation_prepared",
             "tool_attempt_started",
             "tool_result_committed",
             "tool_error_committed"

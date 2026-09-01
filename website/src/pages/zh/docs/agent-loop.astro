@@ -7,6 +7,7 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
 const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
 register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;
 register_application_schemas(&mut schemas)?;
 
 let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
@@ -57,18 +58,20 @@ const outcomes = [
     </h2>
     <p>
       仓库现在已经实现从一次 Tenant Queue Scan，经过 Lease Claim 与 Graph
-      Execution，到原子 Wait/Success/Failure Lifecycle Commit
-      的耐久路径。它尚未发布，也不是稳定的第一方 Model/Tool Agent API。
+      Execution，到原子 Wait/Success/Failure/Cancellation Lifecycle Commit
+      的耐久路径。Provider-native Agent Graph
+      已使用该路径，但它尚未发布，也不是稳定的 One-call Service API。
     </p>
   </aside>
 
   <section aria-labelledby="assembly-title">
     <h2 id="assembly-title">组装一份不可变 Worker Deployment</h2>
     <p>
-      Claim 工作前必须安装两份标准审计 Schema 与全部应用绑定。<code
-        >DurableTenantScheduler</code
-      > 会在内部构造 <code>DurableAgentLoop</code>，因此 Driver 与 Lifecycle
-      Coordination 一定共享同一个 Store 和冻结的 Executable Registry。
+      Claim 工作前必须安装 Driver、Lifecycle、Cancellation 三份标准审计 Schema
+      与全部应用绑定。<code>DurableTenantScheduler</code> 会在内部构造 <code
+        >DurableAgentLoop</code
+      >，因此 Driver 与 Lifecycle Coordination 一定共享同一个 Store 和冻结的
+      Executable Registry。
     </p>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
@@ -97,6 +100,14 @@ const outcomes = [
           >https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0</code
         ></a
       >。必须通过 Runtime Helper 注册，不能手工写死 Digest。
+    </p>
+    <p>
+      Cancellation Confirmation 还需要位于<a
+        href="/schemas/runtime/agent-cancellation-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0</code
+        ></a
+      > 的 Public-safe Schema；缺失时 Lifecycle Startup 会 Fail Closed。
     </p>
   </section>
 
@@ -144,13 +155,21 @@ const outcomes = [
           Supervision。
         </p>
       </li>
+      <li>
+        <h3>已确认 Cancellation</h3>
+        <p>
+          Driver 停止新 Dispatch 并返回精确 Cancellation Handoff。Lifecycle
+          重建累计 Usage，再用数据库时间原子确认 Cancellation；Evidence
+          不可用时，Run 保持 Cancellation-requested。
+        </p>
+      </li>
     </ol>
     <p>
-      Driver 为每个 Handoff 只分配一次稳定 Lifecycle Event Identity。Success 或
-      Failure 的 Lost-ACK Retry 只接受同一 Event、Revision 加一、预期 Terminal
-      Status 与已清除 Lease 的快照，并直接恢复已提交
-      Result/Failure，不再次读取外部 Evidence；其他 Terminal 变化一律按 Stale
-      Fail Closed。
+      Driver 为每个 Handoff 只分配一次稳定 Lifecycle Event
+      Identity。Success、Failure 或 Cancellation 的 Lost-ACK Retry 只接受同一
+      Event、Revision 加一、预期 Terminal Status 与已清除 Lease
+      的快照，并直接恢复已提交 Result/Failure/Cancellation Usage，不再次读取外部
+      Evidence；其他 Terminal 变化一律按 Stale Fail Closed。
     </p>
     <p>
       Wait 使用 Event-first Replay：Provider 会验证原始
@@ -196,21 +215,21 @@ const outcomes = [
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行 19 个 Runtime Scenario 和 100 个
+      CI 在 PostgreSQL 16 与 17 上分别运行 26 个 Runtime Scenario 和 102 个
       Provider Case。Runtime 覆盖 Lifecycle 原子性与精确 Lost-ACK
       Replay、数据库时间 Wait Materialization、Agent Loop 成功与 Evidence
       Failure、Tenant 与加权 Cross-tenant Scheduling、耐久 Model/Tool Attempt 与
-      Streaming、 Noninitial Replay、Lease Renewal、重复抑制、Quarantine、
-      Higher-fence Takeover 与耐久 Run/Result Read。部署该 Pre-alpha Surface
-      前请阅读<a
+      Streaming、Provider-native 多轮 Recovery、Noninitial Replay、Lease
+      Renewal、 重复抑制、Quarantine、Higher-fence Takeover、精确 Cancellation
+      与耐久 Run/Result Read。部署该 Pre-alpha Surface 前请阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.zh-CN.md"
         >完整集成与运维契约</a
       >。
     </p>
     <p>
-      原子 Admission 与公开 Run/Result Read 已实现。Lifecycle 执行消费的可信
-      Artifact 与 累计 Accounting Evidence 仍由嵌入应用拥有；Read Facade
-      只重校验已提交事实，不会 推测缺失 Evidence。
+      原子 Admission、公开 Run/Result Read 与 Provider-native Lifecycle Evidence
+      已实现。 真实 Price Table 与可信 Artifact Evidence
+      仍由嵌入应用拥有；Runtime 只重校验已提交 事实，不会推测缺失 Evidence。
     </p>
   </section>
 </DocsLayout>

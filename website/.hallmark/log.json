@@ -1,6 +1,18 @@
 [
   {
     "date": "2026-09-01",
+    "macrostructure": "Evidence Workbench",
+    "theme": "Cobalt",
+    "enrichment": "none",
+    "brief": "Bilingual provider-native model/tool graph tutorial and release boundary",
+    "navigation": "existing docs rail plus N13 command palette",
+    "footer": "Ft2 compact docs footer",
+    "variation": "executable contract, durable turn sequence, cancellation ledger, PostgreSQL proof",
+    "critique": "P5 H5 E5 S5 R5 V4",
+    "slop_test": "58 / 58 ✓"
+  },
+  {
+    "date": "2026-09-01",
     "macrostructure": "Contract Ledger",
     "theme": "Cobalt",
     "enrichment": "none",

@@ -7,6 +7,7 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
 const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
 register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;
 register_application_schemas(&mut schemas)?;
 
 let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
@@ -50,8 +51,12 @@ const outcomes = [
     body: "有界 Durable-event Quantum 在两次 Mutation 之间结束，Lease 已释放；通过 Scheduler Discovery 与新 Claim 再次进入。",
   },
   {
+    term: "CancellationRequested",
+    body: "已经观察到耐久 Run Cancellation。必须使用精确 Lease-bound Handoff 完成 Lifecycle Confirmation；DurableAgentLoop 会自动执行且不会虚构 Usage。",
+  },
+  {
     term: "Cancelled",
-    body: "本地 Node Task 已收到信号并停止，精确 Fence 随后释放；下一次 Claim 执行耐久恢复。",
+    body: "进程拥有的 Shutdown Signal 停止本地工作并释放精确 Fence；下一次 Claim 执行耐久恢复。",
   },
 ];
 ---
@@ -65,11 +70,13 @@ const outcomes = [
   <aside class="docs-callout" aria-labelledby="runtime-boundary-title">
     <h2 id="runtime-boundary-title">Driver 已实现，集成仍处于 Pre-alpha</h2>
     <p>
-      Root Graph Driver 及其 Wait/Terminal/Failure Lifecycle Coordinator
-      已实现，并在 PostgreSQL 16 与 17 完成验证，但尚未发布。耐久 Model/Tool
-      Attempt 与加权 Cross-tenant Selection 已建立在这条路径上。第一批
-      OpenAI/Anthropic Adapter 与强类型 Agent Contract 也已实现；完整耐久公开
-      Facade、 Parallel Sibling、Loop 与 Subgraph 仍是发布阻断项。
+      Root Graph Driver 及其 Wait/Terminal/Failure/Cancellation Lifecycle
+      Coordinator 已实现，并在 PostgreSQL 16 与 17 完成验证，但尚未发布。耐久
+      Model/Tool Attempt 与加权 Cross-tenant Selection
+      已建立在这条路径上。第一批 OpenAI/Anthropic Adapter、强类型 Agent
+      Contract、公开 Run/Result Facade 与 Provider-native 多轮 Agent Graph
+      也已实现；Parallel Sibling、Loop、Subgraph 与稳定 Service API
+      仍是发布阻断项。
     </p>
   </aside>
 
@@ -118,6 +125,15 @@ const outcomes = [
         ></a
       >。
     </p>
+    <p>
+      Lifecycle 部署还必须通过 <code
+        >register_standard_agent_cancellation_event_schema</code
+      > 安装<a href="/schemas/runtime/agent-cancellation-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0</code
+        ></a
+      >。
+    </p>
   </section>
 
   <section aria-labelledby="replay-title">
@@ -145,6 +161,12 @@ const outcomes = [
       Cancellation Signal、执行硬 Deadline，并按最新 Journal Head 提交
       Completion。外部 Model/Tool 副作用必须 进入各自 Invocation Ledger；Node
       内裸写外部系统无法继承 Reconciliation 保证。
+    </p>
+    <p>
+      Process Shutdown Signal 与耐久 Run Cancellation 是不同边界。Node Active
+      期间，Driver 会轮询 Run Projection；观察到 Cancellation Request 后停止新
+      Dispatch、向 Node 发出 Signal、执行有界 Cooperative Grace
+      Period，再返回精确 Lifecycle Handoff。
     </p>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
@@ -205,6 +227,10 @@ const outcomes = [
         Node Deadline 为 15 分钟。
       </li>
       <li>
+        Cancellation Polling 与 Cooperative Grace 默认分别为 250 ms 与 5
+        s，硬上限分别为 60 s 与 5 分钟。
+      </li>
+      <li>
         Storage Mutation Retry 有明确次数上限，复用相同 Durable Event/Attempt
         Identity， 并采用封顶指数退避。
       </li>
@@ -243,20 +269,28 @@ const outcomes = [
           Handoff，不会虚构不属于自己的 Lifecycle Metadata。
         </p>
       </li>
+      <li>
+        <h3>Cancellation</h3>
+        <p>
+          Driver 把精确耐久 Intent 交给 Lifecycle。精确 Ledger Usage
+          与数据库时间会成为一条 Terminal Confirmation；Evidence
+          不可用时保留可恢复 Request。
+        </p>
+      </li>
     </ol>
   </section>
 
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行十九个 Runtime 场景。六个保留 Driver
+      CI 在 PostgreSQL 16 与 17 上分别运行 26 个 Runtime 场景。六个保留 Driver
       恢复覆盖：Continue 后的非初始 Replay 与 Terminal Handoff、Same-fence
       重复抑制、通过续租执行超过原始 Lease、Node 启动前刷新临近过期
-      Lease、执行前隔离非法初始状态，以及 Higher-fence Takeover；另外六个覆盖
-      Success/Wait/Failure Lifecycle 原子提交、精确 Lost-ACK Recovery、Agent
-      Loop Cleanup 与 Tenant Scheduling。新增四个场景覆盖耐久 Model/Tool
-      执行、Streaming 与加权 Cross-tenant Scheduling；一个验证原子 Agent
-      Admission；另一个验证耐久 Run/Result Read。每个数据库版本还会运行 100 个
+      Lease、执行前隔离非法初始状态，以及 Higher-fence Takeover；其余场景覆盖
+      Success/Wait/Failure/Cancellation Lifecycle 原子提交、精确 Lost-ACK
+      Recovery、Agent Loop Cleanup、Tenant 与加权 Scheduling、耐久 Model/Tool
+      执行、Streaming、 Provider-native 多轮 Recovery、精确 Cancellation、原子
+      Agent Admission 与耐久 Run/Result Read。每个数据库版本还会运行 102 个
       Provider Case。部署这个 Pre-alpha Surface 前请阅读完整的<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.zh-CN.md"
         >集成与运维契约</a

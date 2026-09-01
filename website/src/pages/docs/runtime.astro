@@ -7,6 +7,7 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
 register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;
 register_application_schemas(&mut schemas)?;
 
 let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
@@ -50,8 +51,12 @@ const outcomes = [
     body: "The bounded durable-event quantum ended between mutations and the lease was released. Re-enter through scheduler discovery and a new claim.",
   },
   {
+    term: "CancellationRequested",
+    body: "Durable run cancellation was observed. Use the exact lease-bound handoff for lifecycle confirmation; DurableAgentLoop performs this automatically and never invents usage.",
+  },
+  {
     term: "Cancelled",
-    body: "The local node task was signalled and stopped, then the exact fence was released. A later claim performs durable recovery.",
+    body: "The process-owned shutdown signal stopped local work and released the exact fence. A later claim performs durable recovery.",
   },
 ];
 ---
@@ -66,12 +71,13 @@ const outcomes = [
       Implemented Driver, pre-alpha integration
     </h2>
     <p>
-      The root Graph Driver and its Wait/Terminal/failure lifecycle coordinator
-      are implemented and qualified on PostgreSQL 16 and 17. They remain
-      unpublished. Durable model/tool attempts and weighted cross-tenant
-      selection now build on this path. The first OpenAI/Anthropic adapters and
-      typed Agent contract are also implemented; the complete durable public
-      facade, parallel siblings, loops, and subgraphs remain release blockers.
+      The root Graph Driver and its Wait/Terminal/failure/cancellation lifecycle
+      coordinator are implemented and qualified on PostgreSQL 16 and 17. They
+      remain unpublished. Durable model/tool attempts and weighted cross-tenant
+      selection now build on this path. The first OpenAI/Anthropic adapters,
+      typed Agent contract, public run/result facade, and provider-native
+      multi-turn Agent graph are also implemented; parallel siblings, loops,
+      subgraphs, and stable service APIs remain release blockers.
     </p>
   </aside>
 
@@ -115,6 +121,14 @@ const outcomes = [
         ></a
       > through <code>register_standard_graph_lifecycle_event_schema</code>.
     </p>
+    <p>
+      Lifecycle deployments must also install the cancellation schema at <a
+        href="/schemas/runtime/agent-cancellation-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0</code
+        ></a
+      > through <code>register_standard_agent_cancellation_event_schema</code>.
+    </p>
   </section>
 
   <section aria-labelledby="replay-title">
@@ -145,6 +159,13 @@ const outcomes = [
       against the latest journal head. External model and tool effects must use
       their invocation ledgers; a raw external write inside a node cannot
       inherit reconciliation guarantees.
+    </p>
+    <p>
+      The process shutdown signal is separate from durable run cancellation.
+      While a node is active, the Driver polls the run projection; once a
+      cancellation request is observed it stops new dispatch, signals the node,
+      applies a bounded cooperative grace period, and returns an exact lifecycle
+      handoff.
     </p>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
@@ -199,6 +220,10 @@ const outcomes = [
         lease duration. The default node deadline is 15 minutes.
       </li>
       <li>
+        Cancellation polling and cooperative grace default to 250 ms and 5 s;
+        hard maxima are 60 s and 5 minutes.
+      </li>
+      <li>
         Storage mutation retries are bounded and reuse the same durable event
         and attempt identities with capped exponential backoff.
       </li>
@@ -241,23 +266,31 @@ const outcomes = [
           handoff instead of fabricating lifecycle metadata it does not own.
         </p>
       </li>
+      <li>
+        <h3>Cancellation</h3>
+        <p>
+          The Driver hands exact durable intent to lifecycle. Exact ledger usage
+          and database time become one terminal confirmation; unavailable
+          evidence leaves the request recoverable.
+        </p>
+      </li>
     </ol>
   </section>
 
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">Qualification evidence</h2>
     <p>
-      CI runs nineteen Runtime scenarios on PostgreSQL 16 and 17. Six retain the
+      CI runs 26 Runtime scenarios on PostgreSQL 16 and 17. Six retain the
       Driver recovery coverage: Continue followed by noninitial replay and
       Terminal handoff; same-fence duplicate suppression; execution beyond the
       original lease through renewal; near-expiry refresh before launch; invalid
       initial-state quarantine before execution; and higher-fence takeover. Six
-      more cover atomic success/Wait/failure lifecycle commits, exact lost-ack
-      recovery, Agent Loop cleanup, and tenant scheduling. Four additional
-      scenarios cover durable model/tool execution, streaming, and weighted
-      cross-tenant scheduling; one verifies atomic Agent admission; and one
-      verifies durable run/result reads. Each database version also runs 100
-      provider cases. See the complete <a
+      remaining cases cover atomic success/Wait/failure/cancellation lifecycle
+      commits, exact lost-ack recovery, Agent Loop cleanup, tenant and weighted
+      scheduling, durable model/tool execution and streaming, provider-native
+      multi-turn recovery, exact cancellation, atomic Agent admission, and
+      durable run/result reads. Each database version also runs 102 provider
+      cases. See the complete <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.md"
         >integration and operations contract</a
       > before deploying this pre-alpha surface.

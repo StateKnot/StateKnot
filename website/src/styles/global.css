@@ -1,7 +1,7 @@
-/* Hallmark · macrostructure: Long Document · theme: Cobalt · tone: technical-austere · anchor hue: electric cobalt · nav: docs rail + N13 · footer: Ft2 docs / Ft5 home */
+/* Hallmark · macrostructure: Evidence Workbench · theme: Cobalt · tone: technical-austere · anchor hue: electric cobalt · nav: docs rail + N13 · footer: Ft2 docs / Ft5 home */
 /* Hallmark · homepage retains: Map / Diagram · bilingual routes: en + zh-CN */
-/* Hallmark · extension knobs: start–commit–dispatch evidence · global reservation sequence · bounded maintenance */
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V3 */
+/* Hallmark · extension knobs: executable contract · durable turn sequence · cancellation ledger · PostgreSQL proof */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
 /* Hallmark · contrast: pass (40–41) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · icons: pass (30) · mobile: pass (34, 49, 50–57) */
 /* Copyright 2026 StateKnot contributors · SPDX-License-Identifier: Apache-2.0 */
 @import "../../tokens.css";
@@ -700,6 +700,16 @@ kbd {
 
 .docs-callout h2 {
   font-size: var(--text-lg);
+}
+
+.docs-callout--boundary {
+  border-block: var(--rule-hair) solid var(--color-rule-2);
+  border-inline-start: 0;
+  background-color: var(--color-paper-2);
+}
+
+.docs-callout--boundary h2 {
+  color: var(--color-accent-strong);
 }
 
 .docs-link-grid {

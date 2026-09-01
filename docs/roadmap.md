@@ -196,11 +196,15 @@ from the repository.
   the whole admission back; and active, cancellation-requested, succeeded,
   failed, and confirmed-cancelled public snapshots are fully revalidated on
   PostgreSQL 16/17.
-- [ ] Complete provider-native transcript assembly in its prebuilt graph,
-  policy middleware, cancellation mutation, artifact retrieval, parallel
-  sibling policy, loop/subgraph semantics, protocol-specific outbox adapters,
-  role isolation, general retention, failover, restore, and final stale-race
-  gates.
+- [x] Complete the prebuilt provider-native multi-turn graph with sequential
+  Tool execution, provider-native transcript reconstruction, digest-pinned local
+  policy, deterministic exact accounting, no-redispatch terminal recovery,
+  known failed-Tool continuation, durable cancellation observation, exact-usage
+  confirmation, lost-ACK replay, and PostgreSQL 16/17 evidence.
+- [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
+  repair, loop/subgraph semantics, a stable public cancellation ingress,
+  protocol-specific outbox adapters, role isolation, general retention,
+  failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

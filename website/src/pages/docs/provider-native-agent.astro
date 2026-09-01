@@ -1,0 +1,249 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const compileCode = `let definition = ProviderNativeAgentGraph::compile(
+    typed_definition.descriptor().clone(),
+    graph_identity,
+    reducer_identity,
+    state_schema_id,
+    input_security_label,
+    policy,
+    accounting,
+)?;
+
+definition.register_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
+---
+
+<DocsLayout
+  title="Run the provider-native model/tool graph."
+  description="Compile one digest-pinned Agent composition, execute sequential model/tool turns from durable evidence, and confirm cancellation without inventing usage."
+  section="Provider-native Agent"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="provider-native-scope-title"
+  >
+    <h2 id="provider-native-scope-title">Implemented pre-alpha boundary</h2>
+    <p>
+      The prebuilt graph, local policy boundary, exact invocation accounting,
+      multi-turn transcript assembly, durable cancellation observation, and
+      lifecycle confirmation are implemented. The crate remains unpublished;
+      parallel tools, output repair, MCP/A2A wire adapters, and production
+      qualification have not shipped.
+    </p>
+  </aside>
+
+  <section aria-labelledby="provider-native-example-title">
+    <h2 id="provider-native-example-title">Compile the deployment contract</h2>
+    <p>
+      Start with the checked-in example. It builds a real tool-capable Agent,
+      strict read-only policy, explicit unpriced accounting, generated state
+      schema, standard runtime schemas, and initial checkpoint state. It needs
+      no API key or database and performs no external I/O.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · deterministic and offline</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="provider-native-example-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="provider-native-example-command"
+        tabindex="0"><code>cargo run -p stateknot-runtime --example provider_native_agent --locked</code></pre>
+    </div>
+    <p>
+      Read the exact <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-runtime/examples/provider_native_agent.rs"
+        >compiled example source</a
+      > before adapting it. The example stops at the deployment boundary; the PostgreSQL
+      suite proves dispatch and recovery separately.
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-freeze-title">
+    <h2 id="provider-native-freeze-title">
+      Pin code, policy, and accounting together
+    </h2>
+    <p>
+      The composition digest binds the Agent, Model, Tool, instructions,
+      execution limits, input security label, policy implementation, and
+      accounting tables. Changing any one of them requires a new graph version.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · startup composition</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="provider-native-compile-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="provider-native-compile-code"
+        tabindex="0"><code>{compileCode}</code></pre>
+    </div>
+    <p>
+      Register every typed input/output schema, Tool schema, provider profile,
+      and standard runtime event schema before freezing the registry. Startup
+      fails on a missing or conflicting digest. Existing runs always reload the
+      graph version pinned by their checkpoint.
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-turn-title">
+    <h2 id="provider-native-turn-title">Follow one durable turn</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Reconstruct</h3>
+        <p>
+          The model node rebuilds provider-native transcript order and
+          cumulative usage from immutable invocation ledgers.
+        </p>
+      </li>
+      <li>
+        <h3>Commit before dispatch</h3>
+        <p>
+          The logical invocation and physical attempt start become durable
+          before provider or Tool I/O. An idempotently observed start never
+          grants dispatch authority.
+        </p>
+      </li>
+      <li>
+        <h3>Authorize each action</h3>
+        <p>
+          Canonical Tool arguments, proposal order, admission, and model
+          invocation are bound into an action digest. Policy evidence is pinned
+          before Tool preparation.
+        </p>
+      </li>
+      <li>
+        <h3>Advance from ledgers</h3>
+        <p>
+          Exact terminal revisions become the node result. A crash reloads
+          committed evidence instead of redispatching the external call.
+        </p>
+      </li>
+    </ol>
+    <p>
+      Known Tool failures remain ordered transcript outcomes. An ambiguous write
+      stays <code>Unknown</code> until a status query, idempotency proof, compensation,
+      or human decision reconciles it.
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-cancel-title">
+    <h2 id="provider-native-cancel-title">
+      Treat cancellation as two durable facts
+    </h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Request</dt>
+        <dd>
+          An authenticated control plane appends immutable cancellation intent.
+          The Driver polls durable state, stops new dispatch, signals
+          cooperative cancellation, and applies a bounded grace period.
+        </dd>
+      </div>
+      <div>
+        <dt>Confirm</dt>
+        <dd>
+          The Agent Loop carries the exact checkpoint, journal head, revision,
+          failure ID, and lease to lifecycle. Lifecycle reconstructs usage and
+          atomically confirms cancellation with database time.
+        </dd>
+      </div>
+      <div>
+        <dt>Fail closed</dt>
+        <dd>
+          Executing models, Unknown writes, or missing model usage keep the run
+          <code>cancellation_requested</code>. StateKnot never substitutes zero
+          usage for unavailable evidence.
+        </dd>
+      </div>
+    </dl>
+    <p>
+      The public-safe confirmation schema is available at <a
+        href="/schemas/runtime/agent-cancellation-event/1.0.0"
+        >its stable runtime identity</a
+      >. A public cancellation HTTP endpoint remains an embedding-service
+      responsibility in this pre-alpha cut.
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-proof-title">
+    <h2 id="provider-native-proof-title">Run the PostgreSQL proof</h2>
+    <p>
+      After configuring the test database as described in the <a
+        href="/docs/postgresql/">PostgreSQL guide</a
+      >, require the integration suite instead of allowing an infrastructure
+      skip.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · PostgreSQL 16 or 17</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="provider-native-test-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="provider-native-test-command"
+        tabindex="0"><code>STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-runtime --test postgres provider_native --locked</code></pre>
+    </div>
+    <p>
+      The focused cases cover multi-turn recovery without model redispatch,
+      stale-fence policy races, known failed Tools, exact-usage cancellation,
+      pre-dispatch cancellation, and evidence-unavailable fail-closed behavior
+      on both supported PostgreSQL majors.
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-boundary-title">
+    <h2 id="provider-native-boundary-title">
+      Keep the release boundary visible
+    </h2>
+    <ul>
+      <li>
+        Sequential Tool execution is implemented; parallel Tool and Graph
+        sibling ordering is not.
+      </li>
+      <li>
+        Model-native structured output is implemented; output repair and
+        Tool-call-emulated final output are rejected.
+      </li>
+      <li>
+        Exact cancellation confirmation is implemented; a stable public
+        cancellation service and transport are not.
+      </li>
+      <li>
+        The provider-native execution core is implemented; MCP/A2A adapters,
+        artifact retrieval, live-provider drift qualification, failover, and a
+        production release remain ahead.
+      </li>
+    </ul>
+    <p>
+      The complete integration and operations contract lives in the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/provider-native-agent.md"
+        >repository guide</a
+      >.
+    </p>
+  </section>
+</DocsLayout>

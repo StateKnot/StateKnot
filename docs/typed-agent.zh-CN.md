@@ -128,8 +128,10 @@ Streaming Adapter 不会先缓存完整响应，再伪装成 Chunk 重放。它�
 原子耐久 Admission 已经实现，详见
 [`durable-agent-admission.zh-CN.md`](durable-agent-admission.zh-CN.md)。
 `DurableAgentRuns` 也已经实现耐久 Ingress-key Mapping 与完整重校验的 Run/Result Read，
-详见 [`durable-agent-runs.zh-CN.md`](durable-agent-runs.zh-CN.md)。当前仍不存在自动生成并执行
-预置 Provider-native Model/Tool Graph 的一键 Helper，也不会用临时 In-memory `run()` 冒充。
+详见 [`durable-agent-runs.zh-CN.md`](durable-agent-runs.zh-CN.md)。当前仍不存在稳定的一键式
+Agent Service，也不会用临时 In-memory `run()` 绕过耐久边界。已经实现的
+[`ProviderNativeAgentGraph`](provider-native-agent.zh-CN.md) 会为未来 Service Boundary
+提供预置耐久 Model/Tool 组合。
 
 ## 验证证据
 
@@ -146,6 +148,7 @@ cargo test -p stateknot-integrations --all-targets
 cargo test -p stateknot-runtime --test typed_agent
 ```
 
-Live-provider Qualification、Provider Drift Cassette、在预置 Agent Graph 内耐久组装
-Transcript、Policy Middleware 与 Cancellation Service 集成仍是发布门禁。Adapter 与
-类型化 API 已经实现，但仍处于未发布的 pre-alpha。
+Provider-native Runtime Suite 会另外在真实 PostgreSQL 16/17 上验证耐久 Transcript
+Assembly、Policy Evidence、No-redispatch Recovery 与精确 Cancellation。Live-provider
+Qualification、Provider Drift Cassette 与稳定 Public Cancellation Service 仍是发布门禁。
+Adapter 与类型化 API 已经实现，但仍处于未发布的 pre-alpha。

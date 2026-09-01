@@ -20,7 +20,7 @@ Tenant Scheduler Tick
   -> 固定 Runnable Page Snapshot
   -> 精确 Lease Claim
   -> 耐久 Graph Driver
-  -> Wait / Success / Failure Lifecycle Coordinator
+  -> Wait / Success / Failure / Cancellation Lifecycle Coordinator
   -> 一次带 Fence 的 PostgreSQL Transaction
   -> 释放 Lease 或抵达下一条耐久调度边界
 ```
@@ -32,19 +32,19 @@ Tenant Scheduler Tick
 | `DurableFairScheduler` | 预约一个 Replica-global 加权 Slot，给出精确 Starvation Bound，再只委托给被选中的 Tenant Worker。 |
 | `DurableTenantScheduler` | 按 `(available_at, run_id)` 顺序扫描一个租户的固定 Cutoff 队列，每次最多 Claim 一个 Run，并执行一个有界 Loop Quantum。 |
 | `DurableAgentLoop` | 把同一个 Store、不可变 Executable Registry、Driver 与 Lifecycle Coordinator 绑定在一起，避免不同部署快照被误配。 |
-| `DurableGraphDriver` | Replay 并验证耐久 Graph 证据，先提交 Node Start 再 Dispatch，执行 Node、续租并推进 Continue Barrier。 |
-| `DurableGraphLifecycle` | 使用精确 Lease-bound Handoff 原子提交 Wait、成功 Terminal 或受监督的 Run Failure。 |
-| `GraphLifecycleEvidenceProvider` | 恢复由嵌入应用持久保存的 Admission、Artifact 与累计 Accounting 事实；它不是用于推测缺失数据的 Fallback Hook。 |
+| `DurableGraphDriver` | Replay 并验证耐久 Graph 证据，先提交 Node Start 再 Dispatch，执行 Node、续租、轮询耐久 Cancellation 并推进 Continue Barrier。 |
+| `DurableGraphLifecycle` | 使用精确 Lease-bound Handoff 原子提交 Wait、成功 Terminal、受监督 Run Failure 或已确认 Cancellation。 |
+| `GraphLifecycleEvidenceProvider` | 恢复由嵌入应用持久保存的 Admission、Artifact、Failure 与累计 Accounting 事实；它不是用于推测缺失数据的 Fallback Hook。 |
 
 这是一条可运行的**耐久 Graph Loop**。Provider-neutral 耐久 Model/Tool Attempt 执行、
-跨租户加权 Selection、强类型 Agent Contract，以及第一批 OpenAI Responses/Anthropic
-Messages Adapter 已经存在，但它还不是稳定的最终用户 Agent API。耐久 Admission/Result
-Retrieval、在预置 Graph 内组装已经实现的 Provider-native Transcript、Policy Middleware 与
-完整公开 Facade 仍属于发行前工作。
+跨租户加权 Selection、强类型 Agent Contract、第一批 OpenAI Responses/Anthropic Messages
+Adapter、耐久 Admission/Result Retrieval 与预置 Provider-native Graph 已经存在，但它还不是
+稳定的最终用户 Agent API。One-call Service、Public Cancellation Ingress、高级 Graph 语义、
+协议 Adapter 与生产验证仍属于发行前工作。
 
 ## 启动绑定
 
-冻结 Executable Registry 前必须安装两份标准审计 Schema。数据库迁移完成后，再从同一个
+冻结 Executable Registry 前必须安装 Driver、Lifecycle 与 Cancellation 三份标准审计 Schema。数据库迁移完成后，再从同一个
 不可变 Release Artifact 注册全部应用 Schema、Graph、Reducer 与 Node Executor；只有这些
 步骤全部成功后才能构造 Scheduler。
 
@@ -54,6 +54,7 @@ use stateknot_runtime::{
     DurableGraphDriverOptions, DurableGraphLifecycleOptions,
     DurableTenantScheduler, DurableTenantSchedulerOptions,
     ExecutableGraphRegistryBuilder, JsonSchemaRegistryBuilder,
+    register_standard_agent_cancellation_event_schema,
     register_standard_graph_driver_event_schema,
     register_standard_graph_lifecycle_event_schema,
 };
@@ -61,6 +62,7 @@ use stateknot_runtime::{
 let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
 register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;
 register_application_schemas(&mut schemas)?;
 
 let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
@@ -80,11 +82,18 @@ Lifecycle 标准审计 Schema 的不可变 Identity 为
 `https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0`。必须通过
 `register_standard_graph_lifecycle_event_schema` 安装，不能把 Digest 复制到应用代码。
 
+Cancellation Confirmation 使用
+`https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0`。必须通过
+`register_standard_agent_cancellation_event_schema` 安装；缺失时 Lifecycle Coordinator
+构造会 Fail Closed。
+
 ## 可信 Lifecycle Evidence
 
 构造成功 `AgentResult` 需要 Graph Barrier 不拥有的事实：已 Admission 的
 `AgentDescriptor`、`AgentRequest`、解析后的有限 Budget、最终 Artifact Reference 与完整累计
 Usage。Terminal Failure 同样需要 Public-safe `Failure` 与累计 Usage。
+Cancellation Confirmation 需要在精确 Requested Checkpoint 上恢复的累计 Usage；当外部结果仍
+处于 Executing 或 Ambiguous 时，Evidence 必须保持 Unavailable。
 
 嵌入服务通过 `GraphLifecycleEvidenceProvider` 提供这些事实。生产实现必须：
 
@@ -126,16 +135,30 @@ Same-fence In-flight 工作既不会被宣告失败，也不会被重复 Dispatc
 包含一个 Failed、Exhausted 或 Unsupported Node 的 Blocked Plan 才进入耐久监督；随后把可信
 Failure Evidence、Failed Transition 与 Lease Release 放入同一 Transaction。
 
+### 已确认 Cancellation
+
+已认证 Control Plane 首先提交 `RequestCancellation`。Driver 观察这条耐久状态、停止新
+Dispatch、执行带有界 Grace Period 的 Cooperative Cancellation，并返回精确
+`GraphCancellationHandoff`；Agent Loop 会自动用该 Handoff 调用
+`confirm_cancellation`。
+
+Lifecycle 会校验 Request Failure ID、Revision、Checkpoint、Journal Head、Graph 与 Live
+Fence，从可信 Ledger 恢复精确累计 Usage，使用数据库时钟取得 Completion Time，再用一个清除
+Lease 的 Transaction 同时提交 Public-safe Confirmation Event 与 `ConfirmCancellation`。
+如果精确 Evidence 不可用，Run 会保持 `cancellation_requested`，不会写入零 Usage 或虚构
+Terminal State。
+
 ## Lost ACK 与 Stale Handoff
 
 Lifecycle Handoff 是短生命周期、不可序列化的 Commit Input。Driver 在交出控制权之前只生成
 一次稳定 `EventId`；每次重试都复用完全相同的 Event、Revision、Journal Head、Checkpoint
 Plan 与 Fence。
 
-对成功 Terminal 与受监督 Failure，如果第一次 Transaction 已提交但 ACK 丢失，Coordinator
+对成功 Terminal、受监督 Failure 与已确认 Cancellation，如果第一次 Transaction 已提交但 ACK 丢失，Coordinator
 只接受唯一正确的提交后快照：Revision 恰好加一、Lifecycle Status 符合预期、Journal Head
 指向同一个 Event，并且 Lease 已经清除。Coordinator 会从 Lifecycle 恢复精确的已提交
-`AgentResult` 或 `RunFailure`，不要求外部 Evidence Provider 再次可用。任何其他 Revision、
+`AgentResult`、`RunFailure` 或 Cancellation Timestamp 与 Usage，不要求外部 Evidence Provider
+再次可用。任何其他 Revision、
 Event、Status、Head 或 Owner 变化都会按 Stale Terminal Handoff Fail Closed。
 
 Wait Replay 刻意使用不同规则，因为授权 Resolver、Timer 或 Cancellation 可能在原调用方 Retry
@@ -177,7 +200,7 @@ Queue Scope 来伪造 Fairness。
   Per-tenant Queue Age；
 - Driver Replay/Result Bytes、Durable Start/Completion、Continue Barrier、Renewal、Timeout、
   Cancellation 与 Mutation Retry；
-- Lifecycle Wait/Success/Failure Commit、Idempotent Recovery、Stale Handoff、Evidence Error
+- Lifecycle Wait/Success/Failure/Cancellation Commit、Idempotent Recovery、Stale Handoff、Evidence Error
   Class、Exact-fence Release 与 Cleanup Failure；
 - Run Status、Lease Age、Delayed-retry Age 与 Waiting 时长，同时禁止记录 Request、Output、
   Failure 或 Secret Payload。
@@ -188,15 +211,17 @@ Deadline 必须能放进保留的 Handoff Lease；超时后应释放所有权，
 
 ## 验证证据与剩余门禁
 
-十九个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
-Success/Wait/Failure 原子性与精确 Lost-ACK Replay、数据库时间 Wait Materialization、Agent
-Loop 成功与 Evidence Failure、Tenant 与加权 Cross-tenant Scheduling、耐久 Model/Tool Attempt
-与 Streaming、Noninitial Replay、Same-fence Suppression、Lease Renewal、Near-expiry Refresh、
-初始状态 Quarantine、Higher-fence Takeover 与公开 Run/Result Facade。每个数据库版本还会运行 100 个 Provider
-Integration Case；CI 把两套测试都设为 Mandatory。
+二十六个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
+Success/Wait/Failure/Cancellation 原子性与精确 Lost-ACK Replay、数据库时间 Wait
+Materialization、Agent Loop 成功与 Evidence Failure、Tenant 与加权 Cross-tenant Scheduling、
+耐久 Model/Tool Attempt 与 Streaming、Provider-native 多轮 Recovery、Noninitial Replay、
+Same-fence Suppression、Lease Renewal、Near-expiry Refresh、初始状态 Quarantine、Higher-fence
+Takeover 与公开 Run/Result Facade。PostgreSQL Provider Suite 也会在每个数据库版本上独立运行；
+CI 把两套测试都设为 Mandatory。
 
-原子 Admission Provider、公开 Run/Result Facade 与 Ingress Idempotency 现已实现。剩余
-Release Blocker 包括预置 Provider-native Graph 与 Transcript Assembly、Policy 与
-Cancellation Service Boundary、Artifact Retrieval、Parallel Sibling Policy、Loop/Subgraph 语义、协议专用 Outbox
+原子 Admission、公开 Run/Result Facade，以及带 Transcript Recovery、Policy Evidence、精确
+Accounting 与 Cancellation Confirmation 的 Provider-native Graph 已实现。剩余 Release
+Blocker 包括稳定 Public Cancellation Service Boundary、Artifact Retrieval、Parallel Sibling
+Policy、Loop/Subgraph 语义、协议专用 Outbox
 Dispatch、数据库角色隔离存储过程、通用 Retention、Backup/Restore、Failover、Stale-race
 Qualification、完整 Observability 与 Release Hardening。

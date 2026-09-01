@@ -1,0 +1,242 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const compileCode = `let definition = ProviderNativeAgentGraph::compile(
+    typed_definition.descriptor().clone(),
+    graph_identity,
+    reducer_identity,
+    state_schema_id,
+    input_security_label,
+    policy,
+    accounting,
+)?;
+
+definition.register_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
+---
+
+<DocsLayout
+  title="运行 Provider-native Model/Tool Graph。"
+  description="编译一套 Digest-pinned Agent 组合，从耐久证据执行串行 Model/Tool Turn，并在不伪造 Usage 的前提下确认 Cancellation。"
+  section="Provider-native Agent"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="provider-native-scope-title"
+  >
+    <h2 id="provider-native-scope-title">已实现的 pre-alpha 边界</h2>
+    <p>
+      预置 Graph、本地 Policy 边界、精确 Invocation Accounting、多轮 Transcript
+      Assembly、耐久 Cancellation Observation 与 Lifecycle Confirmation
+      已实现。Crate 尚未发布；Parallel Tool、Output Repair、MCP/A2A Wire Adapter
+      与生产验证尚未交付。
+    </p>
+  </aside>
+
+  <section aria-labelledby="provider-native-example-title">
+    <h2 id="provider-native-example-title">编译 Deployment Contract</h2>
+    <p>
+      从仓库内示例开始。它会构造真实的 Tool-capable Agent、严格 Read-only
+      Policy、 显式 Unpriced Accounting、生成 State Schema、标准 Runtime Schema
+      与初始 Checkpoint State；不需要 API Key 或数据库，也不会执行任何外部 I/O。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 确定性、离线</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="provider-native-example-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="provider-native-example-command"
+        tabindex="0"><code>cargo run -p stateknot-runtime --example provider_native_agent --locked</code></pre>
+    </div>
+    <p>
+      改造前请先阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-runtime/examples/provider_native_agent.rs"
+        >完整示例源代码</a
+      >。示例停在 Deployment Boundary；PostgreSQL Suite 会单独证明 Dispatch 与
+      Recovery。
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-freeze-title">
+    <h2 id="provider-native-freeze-title">
+      同时固定代码、Policy 与 Accounting
+    </h2>
+    <p>
+      Composition Digest 会绑定 Agent、Model、Tool、Instruction、Execution
+      Limit、Input Security Label、Policy Implementation 与 Accounting
+      Table。任何一项变化都必须发布 新 Graph Version。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · Startup Composition</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="provider-native-compile-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="provider-native-compile-code"
+        tabindex="0"><code>{compileCode}</code></pre>
+    </div>
+    <p>
+      Registry 冻结前必须注册全部 Typed Input/Output Schema、Tool
+      Schema、Provider Profile 与标准 Runtime Event Schema。任何 Digest
+      缺失或冲突都会导致启动失败。存量 Run 始终加载其 Checkpoint 已固定的 Graph
+      Version。
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-turn-title">
+    <h2 id="provider-native-turn-title">跟随一次耐久 Turn</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>重建</h3>
+        <p>
+          Model Node 从不可变 Invocation Ledger 重建 Provider-native Transcript
+          Order 与 Cumulative Usage。
+        </p>
+      </li>
+      <li>
+        <h3>先提交，再 Dispatch</h3>
+        <p>
+          Logical Invocation 与 Physical Attempt Start 在 Provider/Tool I/O
+          前耐久化。 幂等观察到的 Start 不授予 Dispatch 权限。
+        </p>
+      </li>
+      <li>
+        <h3>授权每个 Action</h3>
+        <p>
+          Canonical Tool Arguments、Proposal Order、Admission 与 Model
+          Invocation 共同绑定 Action Digest；Tool Prepare 前必须固定 Policy
+          Evidence。
+        </p>
+      </li>
+      <li>
+        <h3>依据 Ledger 推进</h3>
+        <p>
+          精确 Terminal Revision 成为 Node Result。Crash
+          后读取已提交证据，而不是重新 Dispatch 外部调用。
+        </p>
+      </li>
+    </ol>
+    <p>
+      已知 Tool Failure 会保留为有序 Transcript Outcome。Write 的模糊结果保持
+      <code>Unknown</code>，直到 Status Query、Idempotency Proof、Compensation
+      或人工决策 完成 Reconciliation。
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-cancel-title">
+    <h2 id="provider-native-cancel-title">把 Cancellation 视为两条耐久事实</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Request</dt>
+        <dd>
+          已认证 Control Plane Append 不可变 Cancellation Intent。Driver
+          轮询耐久状态、 停止新 Dispatch、发出 Cooperative
+          Cancellation，并执行有界 Grace Period。
+        </dd>
+      </div>
+      <div>
+        <dt>Confirm</dt>
+        <dd>
+          Agent Loop 把精确 Checkpoint、Journal Head、Revision、Failure ID 与
+          Lease 交给 Lifecycle；后者重建 Usage，并使用数据库时间原子确认
+          Cancellation。
+        </dd>
+      </div>
+      <div>
+        <dt>Fail closed</dt>
+        <dd>
+          Executing Model、Unknown Write 或缺失 Model Usage 会让 Run 保持
+          <code>cancellation_requested</code>。StateKnot 不会用零 Usage
+          替代不可用 Evidence。
+        </dd>
+      </div>
+    </dl>
+    <p>
+      可公开的 Confirmation Schema 位于<a
+        href="/schemas/runtime/agent-cancellation-event/1.0.0"
+        >稳定 Runtime Identity</a
+      >。在当前 pre-alpha 中，Public Cancellation HTTP Endpoint
+      仍由嵌入服务负责。
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-proof-title">
+    <h2 id="provider-native-proof-title">运行 PostgreSQL 证据</h2>
+    <p>
+      按照 <a href="/zh/docs/postgresql/">PostgreSQL 指南</a
+      >配置测试数据库后，强制运行 Integration
+      Suite，不允许因基础设施缺失而跳过。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · PostgreSQL 16 或 17</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="provider-native-test-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="provider-native-test-command"
+        tabindex="0"><code>STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-runtime --test postgres provider_native --locked</code></pre>
+    </div>
+    <p>
+      Focused Case 在两个受支持 PostgreSQL Major 上覆盖：多轮 Recovery 不重复
+      Model Dispatch、Stale-fence Policy Race、已知失败 Tool、精确 Usage
+      Cancellation、 Pre-dispatch Cancellation，以及 Evidence-unavailable 的
+      Fail-closed 行为。
+    </p>
+  </section>
+
+  <section aria-labelledby="provider-native-boundary-title">
+    <h2 id="provider-native-boundary-title">保持 Release Boundary 可见</h2>
+    <ul>
+      <li>
+        已实现串行 Tool Execution；尚未实现 Parallel Tool 与 Graph Sibling
+        Ordering。
+      </li>
+      <li>
+        已实现 Model-native Structured Output；Output Repair 与
+        Tool-call-emulated Final Output 会被拒绝。
+      </li>
+      <li>
+        已实现精确 Cancellation Confirmation；尚未实现稳定 Public Cancellation
+        Service 与 Transport。
+      </li>
+      <li>
+        已实现 Provider-native Execution Core；MCP/A2A Adapter、Artifact
+        Retrieval、 Live-provider Drift Qualification、Failover 与生产 Release
+        仍未交付。
+      </li>
+    </ul>
+    <p>
+      完整 Integration 与 Operations Contract 见<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/provider-native-agent.zh-CN.md"
+        >仓库指南</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

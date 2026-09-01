@@ -66,6 +66,10 @@ jobs:
             public/schemas/runtime/graph-driver-event/1.0.0
           cmp ../crates/stateknot-runtime/schemas/graph-lifecycle-event-1.0.0.json \
             public/schemas/runtime/graph-lifecycle-event/1.0.0
+          cmp ../crates/stateknot-runtime/schemas/agent-admission-event-1.0.0.json \
+            public/schemas/runtime/agent-admission-event/1.0.0
+          cmp ../crates/stateknot-runtime/schemas/agent-cancellation-event-1.0.0.json \
+            public/schemas/runtime/agent-cancellation-event/1.0.0
           cmp ../crates/stateknot-runtime/schemas/invocation-execution-event-1.0.0.json \
             public/schemas/runtime/invocation-execution-event/1.0.0
 

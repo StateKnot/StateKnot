@@ -15,10 +15,10 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     <p>
       The provider is real and heavily tested, but it is unpublished and still
       assumes a trusted server-side pool. Role-separated server procedures,
-      general retention, restore qualification, and stable provider-native Agent
-      composition remain release blockers. Public run/result integration is
-      implemented above this store. The first model adapters live above this
-      store boundary.
+      general retention, restore qualification, and failover remain release
+      blockers. Public run/result integration and the provider-native Agent
+      graph are implemented above this store. The first model adapters also live
+      above this store boundary.
     </p>
   </aside>
 
@@ -186,7 +186,7 @@ store.health_check().await?;</code></pre>
     <h2 id="qualification-title">Qualification and current limits</h2>
     <p>
       CI runs the mandatory integration suite independently against PostgreSQL
-      16 and 17: 100 provider cases plus nineteen durable Runtime scenarios per
+      16 and 17: 102 provider cases plus 26 durable Runtime scenarios per
       version. The suite covers migrations, lost acknowledgements, fencing,
       corruption rejection, concurrency, rollback injection, outbox recovery,
       durable waits, quarantine, immutable graph registration/recovery,

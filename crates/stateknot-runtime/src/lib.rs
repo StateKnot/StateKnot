@@ -18,6 +18,7 @@
 mod admission_schema;
 mod agent_loop;
 mod agent_typed;
+mod cancellation_schema;
 mod driver;
 mod driver_schema;
 mod durable_admission;
@@ -27,6 +28,7 @@ mod invocation_executor;
 mod invocation_schema;
 mod lifecycle;
 mod lifecycle_schema;
+mod provider_native_agent;
 mod provider_registry;
 mod registry;
 mod schema;
@@ -43,6 +45,11 @@ pub use agent_loop::{
 pub use agent_typed::{
     AgentBuilder, AgentBuilderError, AgentSchemaRegistrationError, AgentSchemaRole, TypedAgent,
     TypedAgentBindError, TypedAgentDefinition, TypedAgentInputError, TypedAgentOutputError,
+};
+pub use cancellation_schema::{
+    STANDARD_AGENT_CANCELLATION_EVENT_SCHEMA_ID, StandardAgentCancellationSchemaError,
+    StandardAgentCancellationSchemaRegistrationError,
+    register_standard_agent_cancellation_event_schema, standard_agent_cancellation_event_schema,
 };
 pub use driver_schema::{
     STANDARD_GRAPH_DRIVER_EVENT_SCHEMA_ID, StandardGraphDriverSchemaError,
@@ -83,8 +90,9 @@ pub use lifecycle_schema::{
 
 pub use driver::{
     DurableGraphDriver, DurableGraphDriverBuildError, DurableGraphDriverOptions,
-    DurableGraphDriverOptionsError, GraphBlockedHandoff, GraphDriveBlockers, GraphDriveOutcome,
-    GraphDriveReport, GraphDriveResult, GraphDriverError, GraphLifecycleBarrierHandoff,
+    DurableGraphDriverOptionsError, GraphBlockedHandoff, GraphCancellationHandoff,
+    GraphDriveBlockers, GraphDriveOutcome, GraphDriveReport, GraphDriveResult, GraphDriverError,
+    GraphLifecycleBarrierHandoff,
 };
 pub use fair_scheduler::{
     DurableFairScheduler, DurableFairSchedulerBuildError, DurableFairSchedulerOptions,
@@ -94,9 +102,19 @@ pub use fair_scheduler::{
 };
 pub use lifecycle::{
     DurableGraphLifecycle, DurableGraphLifecycleBuildError, DurableGraphLifecycleOptions,
-    DurableGraphLifecycleOptionsError, GraphBarrierLifecycleOutcome, GraphFailureEvidence,
-    GraphFailureEvidenceContext, GraphLifecycleError, GraphLifecycleEvidenceError,
-    GraphLifecycleEvidenceProvider, GraphTerminalEvidence, GraphTerminalEvidenceContext,
+    DurableGraphLifecycleOptionsError, GraphBarrierLifecycleOutcome, GraphCancellationEvidence,
+    GraphCancellationEvidenceContext, GraphFailureEvidence, GraphFailureEvidenceContext,
+    GraphLifecycleError, GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider,
+    GraphTerminalEvidence, GraphTerminalEvidenceContext,
+};
+pub use provider_native_agent::{
+    AgentInvocationAccounting, AgentInvocationAccountingReference, AgentInvocationCharge,
+    AgentToolPolicy, AgentToolPolicyContext, AgentToolPolicyDecision, AgentToolPolicyError,
+    AgentToolPolicyReference, PROVIDER_NATIVE_MODEL_NODE_ID, PROVIDER_NATIVE_TOOLS_NODE_ID,
+    PROVIDER_NATIVE_TOOLS_ROUTE_ID, ProviderNativeAgentGraph, ProviderNativeAgentGraphBuildError,
+    ProviderNativeAgentLifecycleEvidence, ProviderNativeAgentPhase,
+    ProviderNativeAgentRegistrationError, ProviderNativeAgentState, ProviderNativeAgentStateError,
+    ProviderNativeCompletedTurn, ProviderNativeModelPlan, ProviderNativeToolPlan,
 };
 pub use provider_registry::{
     ModelProviderRegistry, ModelProviderRegistryBuilder, ModelProviderRegistryError,
