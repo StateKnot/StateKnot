@@ -145,7 +145,7 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 
 ## 已验证证据与剩余门禁
 
-十七个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
+十九个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
 
 1. Continue Barrier 提交后执行 Noninitial Replay，并交出 Terminal Handoff；
 2. Same-fence In-flight 恢复不重复调用 Executor；
@@ -158,13 +158,14 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 Retry、数据库时间 Wait Registration、Agent Loop 成功与 Evidence-unavailable Cleanup，以及
 Tenant Scheduler 的选择、Claim、执行和 Idle 收敛。新增四个场景验证 Model Terminal-fence
 Recovery、有序耐久 Model Streaming、Write Tool Timeout 的 Ambiguous Outcome Suppression，以及
-3:1 Cross-tenant Weighted Selection，另一个验证原子 Agent Admission。此外，每个数据库版本还运行 98 个 Provider Integration
+3:1 Cross-tenant Weighted Selection，一个验证原子 Agent Admission，另一个验证公开耐久
+Run/Result Facade。此外，每个数据库版本还运行 100 个 Provider Integration
 Test。CI 把外部数据库套件设为 Mandatory；数据库服务缺失时必须失败，不能静默跳过。
 
-后续 Typed Agent 里程碑已经提供第一批 OpenAI Responses 与 Anthropic Messages Adapter，
-原子 Admission 里程碑也已经提供 Runtime 校验 Facade；但完整耐久公开 Run/Result
-Facade、在预置 Graph 内组装已经实现的 Provider-native
-Transcript、Parallel Sibling、
+后续 Typed Agent 里程碑已经提供第一批 OpenAI Responses 与 Anthropic Messages Adapter；
+原子 Admission、公开耐久 Run/Result Facade 与 Ingress Idempotency 也已经实现。仍未完成的
+包括在预置 Graph 内组装已经实现的 Provider-native Transcript、Policy Middleware、
+Cancellation Transport、Parallel Sibling、
 Loop/Subgraph、协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
 Failover/Restore 验证、10,000 次 Stale-race 门禁或稳定公共发行。这些都是明确 Release
 Blocker，不会用隐藏的降级逻辑替代。

@@ -15,9 +15,10 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     <p>
       The provider is real and heavily tested, but it is unpublished and still
       assumes a trusted server-side pool. Role-separated server procedures,
-      general retention, restore qualification, and the complete public
-      run/result integration remain release blockers. The first model adapters
-      live above this store boundary.
+      general retention, restore qualification, and stable provider-native Agent
+      composition remain release blockers. Public run/result integration is
+      implemented above this store. The first model adapters live above this
+      store boundary.
     </p>
   </aside>
 
@@ -142,6 +143,12 @@ store.health_check().await?;</code></pre>
         >durable admission guide</a
       > for trusted ingress, idempotency, rollout, and sensitive-data requirements.
     </p>
+    <p>
+      Migration 16 adds tenant-scoped durable submission keys. A key mapping
+      commits with admission, stores no raw key, accepts fresh candidate IDs for
+      the same logical retry, and rejects changed content or a second key for
+      one run. See the <a href="/docs/runs/">run/result guide</a>.
+    </p>
   </section>
 
   <section aria-labelledby="tls-title">
@@ -179,18 +186,19 @@ store.health_check().await?;</code></pre>
     <h2 id="qualification-title">Qualification and current limits</h2>
     <p>
       CI runs the mandatory integration suite independently against PostgreSQL
-      16 and 17: 98 provider cases plus seventeen durable Runtime scenarios per
+      16 and 17: 100 provider cases plus nineteen durable Runtime scenarios per
       version. The suite covers migrations, lost acknowledgements, fencing,
       corruption rejection, concurrency, rollback injection, outbox recovery,
       durable waits, quarantine, immutable graph registration/recovery,
       ready-node planning, delayed-retry scheduling, lifecycle commits, durable
       model/tool execution, fairness reservations and retention, atomic Agent
-      admission, and weighted cross-tenant Agent Loop execution.
+      admission, durable ingress-key/run-result verification, and weighted
+      cross-tenant Agent Loop execution.
     </p>
     <p>
       Production release still requires role isolation, general retention and
       garbage collection, failover and point-in-time restore exercises,
-      stale-race qualification, and the stable public Agent facade.
+      stale-race qualification, and stable provider-native Agent composition.
     </p>
   </section>
 </DocsLayout>

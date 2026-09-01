@@ -30,9 +30,11 @@
 //! atomic Agent-admission boundary binds an authenticated immutable intent and
 //! database clock to an active run, sequence-one event, superstep-zero
 //! checkpoint, registered graph, and scheduler projections in one transaction;
-//! exact retries fully reload and verify the original commit. The
-//! provider never holds a database transaction across node, model, tool,
-//! remote-agent, or human work.
+//! exact retries fully reload and verify the original commit. Tenant-scoped
+//! Agent submission keys store only one-way digests and commit their mapping in
+//! that same transaction, so ambiguous client retries converge on one run even
+//! when candidate IDs change. The provider never holds a database transaction
+//! across node, model, tool, remote-agent, or human work.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
 //! its database credentials to untrusted workers; role-separated procedures and
@@ -48,26 +50,27 @@ mod store;
 pub use config::{PostgresStoreOptions, PostgresTransportSecurity};
 pub use error::{ConfigurationError, StoreError};
 pub use model::{
-    AdmissionOutcome, AgentAdmissionCommitOutcome, AppendOutcome, BarrierCommitOutcome,
-    CheckpointCommitOutcome, CheckpointLineagePage, CheckpointLineagePageSize, CheckpointPointer,
-    CorruptionQuarantineContext, DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor,
-    ExpiredInterruptPage, ExpiredInterruptPageCursor, GraphDefinitionRegistrationOutcome,
-    GraphReplayLimits, GraphReplayReport, InterruptResolutionCommitOutcome, JournalPage,
-    JournalPageSize, LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome,
-    LiveLeaseObservation, ModelInvocationCommitOutcome, ModelInvocationHistoryPage,
-    ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome, NodeAttemptHistoryPage,
-    NodeAttemptHistoryPageSize, OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize,
-    OutboxClaim, OutboxClaimOutcome, OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome,
-    OutboxEnqueueOutcome, PendingNodeResultCommitOutcome, PendingNodeResultPage,
-    PendingNodeResultPageCursor, PendingNodeResultPageSize, RunProjection, RunQuarantine,
-    RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest,
-    RunnableRunCandidate, RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize,
+    AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
+    BarrierCommitOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
+    CheckpointLineagePageSize, CheckpointPointer, CorruptionQuarantineContext,
+    DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor, ExpiredInterruptPage,
+    ExpiredInterruptPageCursor, GraphDefinitionRegistrationOutcome, GraphReplayLimits,
+    GraphReplayReport, InterruptResolutionCommitOutcome, JournalPage, JournalPageSize,
+    LeaseClaimOutcome, LeaseReleaseOutcome, LeaseRenewalOutcome, LiveLeaseObservation,
+    ModelInvocationCommitOutcome, ModelInvocationHistoryPage, ModelInvocationHistoryPageSize,
+    NodeAttemptCommitOutcome, NodeAttemptHistoryPage, NodeAttemptHistoryPageSize,
+    OutboxAttemptHistoryPage, OutboxAttemptHistoryPageSize, OutboxClaim, OutboxClaimOutcome,
+    OutboxCompletionOutcome, OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome,
+    PendingNodeResultCommitOutcome, PendingNodeResultPage, PendingNodeResultPageCursor,
+    PendingNodeResultPageSize, RunProjection, RunQuarantine, RunQuarantineCause,
+    RunQuarantineCommitOutcome, RunQuarantineComponent, RunQuarantineRequest, RunnableRunCandidate,
+    RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize,
     SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
     SchedulerFairnessReservation, SchedulerFairnessRetentionPolicy,
-    SchedulerFairnessRetentionReport, StoredAgentAdmission, StoredGraphDefinition,
-    StoredOutboxDestination, StoredRun, StoredSchedulerFairnessPolicy, TimerFiringCommitOutcome,
-    ToolInvocationCommitOutcome, ToolInvocationHistoryPage, ToolInvocationHistoryPageSize,
-    WaitAbandonment, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
-    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    SchedulerFairnessRetentionReport, StoredAgentAdmission, StoredAgentSubmission,
+    StoredGraphDefinition, StoredOutboxDestination, StoredRun, StoredSchedulerFairnessPolicy,
+    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
+    ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,
+    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 pub use store::{ClaimedRunRecovery, PostgresStore};

@@ -27,6 +27,13 @@ const currentCut = [
     href: "/docs/admission/",
   },
   {
+    surface: "Durable Agent runs and results",
+    state: "Implemented slice",
+    evidence:
+      "Durable ingress keys, lost-ACK convergence, verified terminal reads",
+    href: "/docs/runs/",
+  },
+  {
     surface: "Graph compiler and recovery",
     state: "Implemented slice",
     evidence: "Canonical graphs, deterministic barriers, pinned replay",
@@ -85,18 +92,24 @@ const roadmap = [
   },
   {
     index: "03",
-    state: "Now",
-    title: "Complete the public durable Agent path",
-    body: "Atomic admission is implemented. Bind ingress idempotency, the prebuilt provider-native model/tool graph, policy, execution, recovery, and typed result retrieval into one explicit public facade.",
+    state: "Implemented",
+    title: "Open durable Agent ingress and reads",
+    body: "Tenant-scoped idempotency, fresh-ID lost-ACK convergence, and fully revalidated public run/result snapshots now have PostgreSQL evidence.",
   },
   {
     index: "04",
+    state: "Now",
+    title: "Assemble the provider-native Agent graph",
+    body: "Compose the implemented transcript builders, invocation executor, Driver, lifecycle, policy, cancellation, and result boundary into one recovered multi-turn tool path.",
+  },
+  {
+    index: "05",
     state: "Planned",
     title: "Add protocol adapters",
     body: "Map MCP and A2A wire models into versioned internal types, with policy and tenant boundaries enforced at admission.",
   },
   {
-    index: "05",
+    index: "06",
     state: "Before v1",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -118,10 +131,10 @@ const roadmap = [
           <p class="hero-lede">
             StateKnot now runs typed root Graphs through PostgreSQL-backed crash
             recovery, atomic Agent admission, durable model/tool attempts,
-            lifecycle commits, weighted cross-tenant scheduling, typed Agent
-            contracts, and the first OpenAI/Anthropic adapters. The stable
-            end-to-end Agent facade and MCP/A2A protocol adapters remain under
-            development.
+            lifecycle commits, weighted cross-tenant scheduling, durable ingress
+            keys, verified run/result reads, typed Agent contracts, and the
+            first OpenAI/Anthropic adapters. The provider-native end-to-end
+            Agent graph and MCP/A2A protocol adapters remain under development.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"

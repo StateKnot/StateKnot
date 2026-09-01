@@ -803,6 +803,61 @@ impl AgentAdmissionCommitOutcome {
     }
 }
 
+/// Fully verified tenant-scoped ingress idempotency mapping and Agent admission.
+#[derive(Clone, Debug)]
+pub struct StoredAgentSubmission {
+    pub(crate) key_digest: Digest,
+    pub(crate) submission_digest: Digest,
+    pub(crate) admission: StoredAgentAdmission,
+    pub(crate) created_at: Timestamp,
+}
+
+impl StoredAgentSubmission {
+    /// Returns the tenant-scoped digest of the raw caller key.
+    #[must_use]
+    pub const fn key_digest(&self) -> Digest {
+        self.key_digest
+    }
+
+    /// Returns the digest of caller-controlled submission content.
+    #[must_use]
+    pub const fn submission_digest(&self) -> Digest {
+        self.submission_digest
+    }
+
+    /// Returns the exact durable Agent admission selected by this key.
+    #[must_use]
+    pub const fn admission(&self) -> &StoredAgentAdmission {
+        &self.admission
+    }
+
+    /// Returns the database observation shared with the atomic admission.
+    #[must_use]
+    pub const fn created_at(&self) -> Timestamp {
+        self.created_at
+    }
+}
+
+/// Result of an ingress-keyed atomic Agent submission.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum AgentSubmissionCommitOutcome {
+    /// A new key mapping committed with a new or exact retained Agent admission.
+    Committed(StoredAgentSubmission),
+    /// The same key and caller content already selected one durable run.
+    Idempotent(StoredAgentSubmission),
+}
+
+impl AgentSubmissionCommitOutcome {
+    /// Returns the fully verified mapping and admission in either outcome.
+    #[must_use]
+    pub const fn stored(&self) -> &StoredAgentSubmission {
+        match self {
+            Self::Committed(stored) | Self::Idempotent(stored) => stored,
+        }
+    }
+}
+
 /// Result of an idempotent journal append.
 #[derive(Clone, Debug)]
 #[non_exhaustive]

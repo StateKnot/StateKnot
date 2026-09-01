@@ -32,9 +32,9 @@ let outcome = admission.admit(request).await?;`;
     <h2 id="admission-boundary-title">Admission 已实现，API 仍为 Pre-alpha</h2>
     <p>
       <code>DurableAgentAdmission</code>、Migration 15 与不可变 Core Admission
-      Contract 已经实现，并关闭了部分初始化缺口；完整公开 Run/Result
-      Facade、Ingress Idempotency-key Store 与预置 Provider-native Tool Graph
-      尚未交付。
+      Contract 已经实现，并关闭了部分初始化缺口。公开 Run/Result Facade 与
+      Ingress Idempotency Store 也已由独立边界实现；本页继续明确 Exact-ID
+      低层接口。预置 Provider-native Tool Graph 仍是发行前工作。
     </p>
   </aside>
 
@@ -77,10 +77,11 @@ let outcome = admission.admit(request).await?;`;
   <section aria-labelledby="request-title">
     <h2 id="request-title">保留精确重试授权</h2>
     <p>
-      Principal 认证与不可变 Policy Evaluation 在 Facade
-      外完成。随后只分配一次完整
-      <code>AgentRunIds</code>，并在首次调用前把它与调用方 Idempotency Key
-      耐久关联。发生 Timeout 后必须重用保留的 Request Bytes 与全部五个 ID。
+      Principal 认证与不可变 Policy Evaluation 在 Facade 外完成。调用低层
+      <code>admit</code> 的内部服务只分配一次完整 <code>AgentRunIds</code> 并保留
+      Request Bytes；发生 Timeout 后必须重用全部五个 ID。面向用户的 Ingress 应改用<a
+        href="/zh/docs/runs/"><code>DurableAgentRuns::submit</code></a
+      >，由它持久化 Key Mapping，并允许 Retry 使用新的 Candidate ID。
     </p>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
@@ -158,7 +159,7 @@ let outcome = admission.admit(request).await?;`;
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">验证证据</h2>
     <p>
-      PostgreSQL 16/17 Matrix 目前在每个版本运行 98 个 Provider Case 与 17
+      PostgreSQL 16/17 Matrix 目前在每个版本运行 100 个 Provider Case 与 19
       个耐久 Runtime Scenario。Admission 覆盖 Migration 15、跨越时间边界后的精确
       Retry、 Changed-intent 与 Tamper 拒绝、无效 State 零残留 Rollback、24
       路收敛，以及 Runtime 在任何写入前拒绝 Agent/Graph 或 Authorization Schema

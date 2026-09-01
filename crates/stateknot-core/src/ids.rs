@@ -10,6 +10,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use thiserror::Error;
 use uuid::{Uuid, Variant, Version};
 
+use crate::Digest;
+
 const UUID_V7_PATTERN: &str =
     "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$";
 
@@ -215,6 +217,216 @@ fn validate_tenant_id(value: &str) -> Result<(), TenantIdError> {
         return Err(TenantIdError::InvalidByte { index });
     }
 
+    Ok(())
+}
+
+/// Opaque caller key for durable Agent-submission idempotency.
+///
+/// Keys contain 16 to 128 header-safe ASCII bytes. Clients should generate at
+/// least 128 bits of unpredictability and reuse the same key only for the same
+/// logical submission. The raw value is never included in `Debug`; durability
+/// providers store only its tenant-scoped digest.
+#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct AgentSubmissionKey(Box<str>);
+
+impl AgentSubmissionKey {
+    /// Smallest accepted encoded key length.
+    pub const MIN_LEN: usize = 16;
+    /// Largest accepted encoded key length.
+    pub const MAX_LEN: usize = 128;
+
+    /// Validates one externally supplied idempotency key.
+    ///
+    /// # Errors
+    ///
+    /// Rejects short, oversized, non-ASCII, whitespace, disallowed punctuation,
+    /// or control input instead of normalizing two caller keys into one durable
+    /// identity.
+    pub fn new(value: impl Into<String>) -> Result<Self, AgentSubmissionKeyError> {
+        let value = value.into();
+        validate_agent_submission_key(&value)?;
+        Ok(Self(value.into_boxed_str()))
+    }
+
+    /// Generates two canonical `UUIDv7` values carrying 148 random bits in total.
+    ///
+    /// A single `UUIDv7` carries 74 random bits; joining two independently
+    /// generated values keeps timestamp sortability while meeting the public
+    /// recommendation of at least 128 bits of unpredictability.
+    #[must_use]
+    pub fn generate() -> Self {
+        Self(format!("{}.{}", Uuid::now_v7(), Uuid::now_v7()).into_boxed_str())
+    }
+
+    /// Returns the exact caller key for an outbound idempotency header.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Derives the one-way tenant-scoped storage key.
+    ///
+    /// Scoping prevents equal raw keys in different tenants from sharing a
+    /// database lookup value. The domain and delimiter make the encoding
+    /// unambiguous and versioned.
+    #[must_use]
+    pub fn digest_for(&self, tenant_id: &TenantId) -> Digest {
+        const DOMAIN: &[u8] = b"stateknot.agent-submission-key.v1\0";
+
+        let mut preimage =
+            Vec::with_capacity(DOMAIN.len() + tenant_id.as_str().len() + 1 + self.as_str().len());
+        preimage.extend_from_slice(DOMAIN);
+        preimage.extend_from_slice(tenant_id.as_str().as_bytes());
+        preimage.push(0);
+        preimage.extend_from_slice(self.as_str().as_bytes());
+        Digest::sha256(preimage)
+    }
+}
+
+impl fmt::Debug for AgentSubmissionKey {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AgentSubmissionKey")
+            .field("byte_length", &self.as_str().len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl FromStr for AgentSubmissionKey {
+    type Err = AgentSubmissionKeyError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<String> for AgentSubmissionKey {
+    type Error = AgentSubmissionKeyError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<&str> for AgentSubmissionKey {
+    type Error = AgentSubmissionKeyError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl Serialize for AgentSubmissionKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for AgentSubmissionKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(AgentSubmissionKeyVisitor)
+    }
+}
+
+impl JsonSchema for AgentSubmissionKey {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "AgentSubmissionKey".into()
+    }
+
+    fn schema_id() -> std::borrow::Cow<'static, str> {
+        concat!(module_path!(), "::AgentSubmissionKey").into()
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._~-]{16,128}$"
+        })
+    }
+
+    fn inline_schema() -> bool {
+        true
+    }
+}
+
+/// Invalid external Agent-submission idempotency key.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum AgentSubmissionKeyError {
+    /// The key did not meet the minimum length required for safe caller IDs.
+    #[error("Agent submission key is {actual} bytes; minimum is {minimum}")]
+    TooShort {
+        /// Required minimum byte length.
+        minimum: usize,
+        /// Observed byte length.
+        actual: usize,
+    },
+    /// The key exceeded the hard request/header bound.
+    #[error("Agent submission key is {actual} bytes; maximum is {maximum}")]
+    TooLong {
+        /// Accepted maximum byte length.
+        maximum: usize,
+        /// Observed byte length.
+        actual: usize,
+    },
+    /// A byte did not belong to the exact opaque-key grammar.
+    #[error("Agent submission key contains an invalid byte at offset {index}")]
+    InvalidByte {
+        /// Zero-based byte offset of the first rejected byte.
+        index: usize,
+    },
+}
+
+struct AgentSubmissionKeyVisitor;
+
+impl de::Visitor<'_> for AgentSubmissionKeyVisitor {
+    type Value = AgentSubmissionKey;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a bounded opaque StateKnot Agent submission key")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        AgentSubmissionKey::try_from(value).map_err(E::custom)
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        AgentSubmissionKey::try_from(value).map_err(E::custom)
+    }
+}
+
+fn validate_agent_submission_key(value: &str) -> Result<(), AgentSubmissionKeyError> {
+    if value.len() < AgentSubmissionKey::MIN_LEN {
+        return Err(AgentSubmissionKeyError::TooShort {
+            minimum: AgentSubmissionKey::MIN_LEN,
+            actual: value.len(),
+        });
+    }
+    if value.len() > AgentSubmissionKey::MAX_LEN {
+        return Err(AgentSubmissionKeyError::TooLong {
+            maximum: AgentSubmissionKey::MAX_LEN,
+            actual: value.len(),
+        });
+    }
+    if let Some((index, _)) = value.bytes().enumerate().find(|(_, byte)| {
+        !byte.is_ascii_alphanumeric() && !matches!(byte, b'.' | b'_' | b'~' | b'-')
+    }) {
+        return Err(AgentSubmissionKeyError::InvalidByte { index });
+    }
     Ok(())
 }
 
@@ -713,6 +925,46 @@ mod tests {
         assert_eq!(schema["minLength"], 1);
         assert_eq!(schema["maxLength"], TenantId::MAX_LEN);
         assert_eq!(schema["pattern"], "^(?!\\.{1,2}$)[A-Za-z0-9._:-]+$");
+    }
+
+    #[test]
+    fn agent_submission_keys_are_bounded_redacted_and_tenant_scoped() {
+        let key = AgentSubmissionKey::new("request_01K4Z8Q6QH7W5X3M2N1P").unwrap();
+        assert_eq!(
+            from_str::<AgentSubmissionKey>(&to_string(&key).unwrap()).unwrap(),
+            key
+        );
+        let debug = format!("{key:?}");
+        assert!(!debug.contains(key.as_str()));
+        assert!(debug.contains("byte_length"));
+
+        let first = TenantId::new("tenant-a").unwrap();
+        let second = TenantId::new("tenant-b").unwrap();
+        assert_eq!(key.digest_for(&first), key.digest_for(&first));
+        assert_ne!(key.digest_for(&first), key.digest_for(&second));
+
+        let generated = AgentSubmissionKey::generate();
+        assert_eq!(generated.as_str().len(), 73);
+        let generated_parts = generated.as_str().split('.').collect::<Vec<_>>();
+        assert_eq!(generated_parts.len(), 2);
+        for part in generated_parts {
+            assert_eq!(
+                part.parse::<Uuid>().unwrap().get_version(),
+                Some(Version::SortRand)
+            );
+        }
+        assert!(AgentSubmissionKey::new("too-short").is_err());
+        assert!(AgentSubmissionKey::new("x".repeat(AgentSubmissionKey::MAX_LEN + 1)).is_err());
+        assert!(AgentSubmissionKey::new("request key with spaces").is_err());
+    }
+
+    #[test]
+    fn agent_submission_key_schema_matches_runtime_grammar() {
+        let schema = serde_json::to_value(schemars::schema_for!(AgentSubmissionKey)).unwrap();
+        assert_eq!(schema["type"], "string");
+        assert_eq!(schema["minLength"], AgentSubmissionKey::MIN_LEN);
+        assert_eq!(schema["maxLength"], AgentSubmissionKey::MAX_LEN);
+        assert_eq!(schema["pattern"], "^[A-Za-z0-9._~-]{16,128}$");
     }
 
     #[test]

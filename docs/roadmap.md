@@ -189,11 +189,18 @@ from the repository.
   scheduler projections. Exact retries, late rollback, tamper detection,
   24-request convergence, and the runtime validation facade pass on PostgreSQL
   16/17.
-- [ ] Complete the durable public run/result facade, provider-native transcript
-  assembly in its prebuilt graph, ingress idempotency-key mapping, policy
-  middleware, parallel sibling policy,
-  loop/subgraph semantics, protocol-specific outbox adapters, role isolation,
-  general retention, failover, restore, and final stale-race gates.
+- [x] Implement the durable public run/result facade and migration 16's
+  tenant-scoped ingress idempotency mapping. Same logical content with fresh
+  candidate IDs resolves the original run; changed content or a second key for
+  one run conflicts; 24 concurrent candidates converge; mapping failure rolls
+  the whole admission back; and active, cancellation-requested, succeeded,
+  failed, and confirmed-cancelled public snapshots are fully revalidated on
+  PostgreSQL 16/17.
+- [ ] Complete provider-native transcript assembly in its prebuilt graph,
+  policy middleware, cancellation mutation, artifact retrieval, parallel
+  sibling policy, loop/subgraph semantics, protocol-specific outbox adapters,
+  role isolation, general retention, failover, restore, and final stale-race
+  gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

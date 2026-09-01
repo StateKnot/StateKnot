@@ -40,6 +40,12 @@ const localizedRoutePairs = [
     zhHeading: "将一个 Agent 原子接纳为耐久事实。",
   },
   {
+    en: "/docs/runs/",
+    zh: "/zh/docs/runs/",
+    enHeading: "Submit once. Recover the same durable Agent run.",
+    zhHeading: "只提交一次，始终恢复同一个耐久 Agent Run。",
+  },
+  {
     en: "/docs/concepts/durability/",
     zh: "/zh/docs/concepts/durability/",
     enHeading: "Durability is evidence, not process memory.",
@@ -100,6 +106,7 @@ const auditHorizontalLayout = async (page: Page): Promise<void> => {
         const overflowX = getComputedStyle(element).overflowX;
         return {
           selector: `${element.tagName.toLowerCase()}.${element.className}`,
+          text: element.textContent?.trim().replace(/\s+/g, " ").slice(0, 120),
           left: Math.round(rect.left),
           right: Math.round(rect.right),
           scrollWidth: element.scrollWidth,
@@ -181,6 +188,11 @@ test("homepage exposes honest implementation status and semantic structure", asy
   ).toBeVisible();
   await expect(
     page.locator(".spec-list").getByText("Atomic Agent admission", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".spec-list").getByText("Durable Agent runs and results", {
       exact: true,
     }),
   ).toBeVisible();
@@ -293,6 +305,7 @@ for (const route of [
   "/docs/getting-started/",
   "/docs/typed-agent/",
   "/docs/admission/",
+  "/docs/runs/",
   "/docs/runtime/",
   "/docs/agent-loop/",
   "/docs/invocations/",
@@ -301,6 +314,7 @@ for (const route of [
   "/zh/docs/getting-started/",
   "/zh/docs/typed-agent/",
   "/zh/docs/admission/",
+  "/zh/docs/runs/",
   "/zh/docs/runtime/",
   "/zh/docs/agent-loop/",
   "/zh/docs/invocations/",
@@ -327,9 +341,29 @@ test("typed Agent tutorial keeps the durable execution boundary explicit", async
     page.getByText("Cross the durable boundary explicitly"),
   ).toBeVisible();
   await expect(
-    page.getByText("complete public run/result facade", { exact: false }),
+    page.getByText("durable run/result boundary", { exact: false }),
   ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(3);
+});
+
+test("durable run tutorial documents retry, conflict, and public snapshot semantics", async ({
+  page,
+}) => {
+  await page.goto("/docs/runs/");
+  await expect(
+    page.getByText("Implemented boundary, pre-alpha API"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Retry logical content, not candidate identities",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("A second key for the same run", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByText("outcome: null", { exact: false })).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(2);
 });
 
 for (const route of localizedRoutePairs) {

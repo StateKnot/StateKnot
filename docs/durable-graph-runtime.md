@@ -200,7 +200,7 @@ retries from `GraphDriveReport`.
 
 ## Qualification evidence and remaining gates
 
-Seventeen runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
+Nineteen runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
 Driver-specific recovery coverage:
 
 1. Continue-barrier commit followed by noninitial replay and a Terminal handoff;
@@ -216,15 +216,18 @@ Agent Loop success and evidence-unavailable cleanup; and tenant scheduler
 selection, claim, execution, and idle convergence. Four additional scenarios
 verify model terminal-fence recovery, ordered durable model streaming,
 ambiguous write-tool timeout suppression, and 3:1 cross-tenant weighted
-selection, and one verifies atomic Agent admission. The provider contributes 98 additional PostgreSQL integration tests
+selection, one verifies atomic Agent admission, and one verifies the public
+durable run/result facade. The provider contributes 100 additional PostgreSQL
+integration tests
 per database version. CI treats the external database suites as mandatory and
 fails if the service is unavailable.
 
 The later typed-Agent milestone now ships the first OpenAI Responses and
-Anthropic Messages adapters, and the atomic admission milestone now ships its
-runtime validation facade. The complete durable public run/result facade,
-assembly of the implemented provider-native transcript inside its prebuilt
-graph, parallel siblings, loops/subgraphs, protocol-specific outbox adapters,
+Anthropic Messages adapters; atomic admission and the public durable
+run/result facade with ingress idempotency are also implemented. Assembly of
+the implemented provider-native transcript inside its prebuilt graph, policy
+middleware, cancellation transport, parallel siblings, loops/subgraphs,
+protocol-specific outbox adapters,
 role-separated database procedures, retention/archive, failover/restore
 qualification, the 10,000 stale-race gate, and a stable public release have not
 shipped. Those remain release blockers rather than hidden fallback behavior.

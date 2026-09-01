@@ -126,10 +126,10 @@ Streaming Adapter 不会先缓存完整响应，再伪装成 Chunk 重放。它�
 7. 使用 `TypedAgent` 校验并解码 Terminal `AgentResult`。
 
 原子耐久 Admission 已经实现，详见
-[`durable-agent-admission.zh-CN.md`](durable-agent-admission.zh-CN.md)。当前不存在把
-“映射外部 Idempotency Key、生成预置 Model/Tool Graph、执行、读取 Terminal Result”压缩成
-一次调用的公开 Helper。剩余集成必须携带 Result Retrieval Evidence，因此不会用临时
-In-memory `run()` 冒充。
+[`durable-agent-admission.zh-CN.md`](durable-agent-admission.zh-CN.md)。
+`DurableAgentRuns` 也已经实现耐久 Ingress-key Mapping 与完整重校验的 Run/Result Read，
+详见 [`durable-agent-runs.zh-CN.md`](durable-agent-runs.zh-CN.md)。当前仍不存在自动生成并执行
+预置 Provider-native Model/Tool Graph 的一键 Helper，也不会用临时 In-memory `run()` 冒充。
 
 ## 验证证据
 
@@ -147,5 +147,5 @@ cargo test -p stateknot-runtime --test typed_agent
 ```
 
 Live-provider Qualification、Provider Drift Cassette、在预置 Agent Graph 内耐久组装
-Transcript、Policy Middleware 与完整公开 Run/Result Facade 仍是发布门禁。Adapter 与
+Transcript、Policy Middleware 与 Cancellation Service 集成仍是发布门禁。Adapter 与
 类型化 API 已经实现，但仍处于未发布的 pre-alpha。

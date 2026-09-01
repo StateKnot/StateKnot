@@ -9,7 +9,9 @@
 //! loading code or schemas from the network while a run is active.
 //! [`DurableAgentAdmission`] validates one authenticated immutable Agent intent
 //! against that same deployment snapshot before atomically initializing its
-//! executable `PostgreSQL` run.
+//! executable `PostgreSQL` run. [`DurableAgentRuns`] adds tenant-scoped durable
+//! submission keys and integrity-verifying public run/result snapshots for
+//! lost-ack recovery and polling.
 
 #![forbid(unsafe_code)]
 
@@ -19,6 +21,7 @@ mod agent_typed;
 mod driver;
 mod driver_schema;
 mod durable_admission;
+mod durable_runs;
 mod fair_scheduler;
 mod invocation_executor;
 mod invocation_schema;
@@ -49,6 +52,10 @@ pub use driver_schema::{
 pub use durable_admission::{
     AgentRunIds, DurableAgentAdmission, DurableAgentAdmissionBuildError,
     DurableAgentAdmissionError, DurableAgentAdmissionRequest, DurableAgentAdmissionRequestError,
+};
+pub use durable_runs::{
+    AgentRunAdmissionOutcome, AgentRunSnapshot, AgentRunSnapshotError, AgentRunTerminalOutcome,
+    DurableAgentRuns, DurableAgentRunsBuildError, DurableAgentRunsError,
 };
 pub use invocation_executor::{
     DurableInvocationExecutor, DurableInvocationExecutorBuildError,

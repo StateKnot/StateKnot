@@ -196,20 +196,21 @@ const outcomes = [
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行 17 个 Runtime Scenario 和 98 个
+      CI 在 PostgreSQL 16 与 17 上分别运行 19 个 Runtime Scenario 和 100 个
       Provider Case。Runtime 覆盖 Lifecycle 原子性与精确 Lost-ACK
       Replay、数据库时间 Wait Materialization、Agent Loop 成功与 Evidence
       Failure、Tenant 与加权 Cross-tenant Scheduling、耐久 Model/Tool Attempt 与
-      Streaming、 Noninitial Replay、Lease Renewal、重复抑制、Quarantine 与
-      Higher-fence Takeover。部署该 Pre-alpha Surface 前请阅读<a
+      Streaming、 Noninitial Replay、Lease Renewal、重复抑制、Quarantine、
+      Higher-fence Takeover 与耐久 Run/Result Read。部署该 Pre-alpha Surface
+      前请阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.zh-CN.md"
         >完整集成与运维契约</a
       >。
     </p>
     <p>
-      原子 Admission 现在提供可信不可变 Admission Snapshot。完整公开 Run/Result
-      Facade 交付前，Terminal Artifact 与累计 Accounting Evidence
-      仍由嵌入应用拥有。
+      原子 Admission 与公开 Run/Result Read 已实现。Lifecycle 执行消费的可信
+      Artifact 与 累计 Accounting Evidence 仍由嵌入应用拥有；Read Facade
+      只重校验已提交事实，不会 推测缺失 Evidence。
     </p>
   </section>
 </DocsLayout>

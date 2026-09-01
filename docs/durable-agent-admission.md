@@ -6,14 +6,17 @@ SPDX-License-Identifier: Apache-2.0
 # Durable Agent admission
 
 Status: implemented pre-alpha integration contract. The crates remain
-unpublished and the complete public run/result API has not shipped.
+unpublished; the public durable run/result facade is implemented but has no
+compatibility promise yet.
 
 This document defines the trusted boundary that turns one authenticated,
 schema-valid Agent request into scheduler-visible durable work. It covers the
 core admission snapshot, the `DurableAgentAdmission` runtime facade, PostgreSQL
-migration 15, exact retry behavior, and operational requirements. It does not
-claim that authentication, policy evaluation, public idempotency-key routing,
-the prebuilt model/tool graph, or terminal result retrieval is complete.
+migration 15, exact retry behavior, and operational requirements. Durable
+ingress-key routing and terminal result reads are defined separately by the
+[public run/result contract](durable-agent-runs.md). Authentication, policy
+evaluation, and the prebuilt provider-native model/tool graph remain outside
+this admission slice.
 
 A [Simplified Chinese edition](durable-agent-admission.zh-CN.md) is maintained
 alongside this document.
@@ -55,8 +58,8 @@ control plane must:
   schema-pinned evidence of the granted decision;
 - derive every system, tenant, policy, Agent, and request budget layer without
   accepting caller-supplied resolved totals; and
-- map the caller's idempotency key to one retained `AgentRunIds` value before
-  the first database attempt.
+- retain the immutable policy, budget, Agent, graph, authorization, and initial
+  state inputs for the complete ingress retry window.
 
 `AgentAdmissionAuthority` is an audit snapshot, not a signature verifier.
 `Digest` values prove byte identity; they do not authenticate a principal or
@@ -91,7 +94,13 @@ The release-owned public-safe event schema is published at
 `https://stknot.com/schemas/runtime/agent-admission-event/1.0.0`. Register it
 through the runtime helper instead of hard-coding its digest.
 
-## Build and retain an exact request
+## Build and retain an exact low-level request
+
+This section describes `DurableAgentAdmission::admit`, the lower-level exact-ID
+boundary. User-facing ingress should normally use
+`DurableAgentRuns::submit`, which persists the tenant-scoped key mapping in the
+same transaction and permits fresh candidate IDs on a retry. See the
+[run/result guide](durable-agent-runs.md).
 
 Allocate the complete identity bundle once. Persist its association with the
 authenticated external idempotency key before calling `admit`; a timeout must
@@ -219,14 +228,14 @@ adds:
 - runtime-facade rejection of Agent/Graph and authorization-schema drift before
   any database write.
 
-The repository currently runs 98 PostgreSQL provider cases and 17 durable
+The repository currently runs 100 PostgreSQL provider cases and 19 durable
 runtime scenarios on each supported database version.
 
-## Remaining public Agent boundary
+## Next public Agent boundary
 
-This slice makes admission atomic and recoverable. It does not yet expose the
-stable end-user operation that combines ingress idempotency, admission,
-cross-tenant scheduling, provider-native transcript assembly, policy
-middleware, terminal observation, artifact access, typed result decoding, and
-cancellation. Those pieces must be composed and qualified as one public
-`DurableAgent` facade before StateKnot claims a production-ready Agent API.
+Admission plus `DurableAgentRuns` now provide atomic ingress idempotency and a
+fully revalidated public run/result read. The next slice must compose the
+provider-native multi-turn model/tool graph, policy middleware, cancellation
+mutation, artifact access, typed decoding ergonomics, and service transport.
+Those pieces still require release qualification before StateKnot claims a
+stable or production-supported Agent API.

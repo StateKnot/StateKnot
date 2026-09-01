@@ -134,6 +134,12 @@ pub enum StoreError {
     /// The run identity or one stable anchor belongs to another admission intent.
     #[error("agent admission identity conflicts with durable evidence")]
     AgentAdmissionConflict,
+    /// No durable ingress idempotency mapping exists for this tenant/key.
+    #[error("agent submission key was not found in the tenant boundary")]
+    AgentSubmissionNotFound,
+    /// One ingress key was reused for a different immutable submission.
+    #[error("agent submission key conflicts with durable submission evidence")]
+    AgentSubmissionConflict,
     /// The run is quarantined and cannot execute or mutate normally.
     #[error("run is quarantined")]
     RunQuarantined,

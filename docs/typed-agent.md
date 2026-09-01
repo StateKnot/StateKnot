@@ -140,11 +140,12 @@ supported path remains:
 7. validate and decode the terminal `AgentResult` through `TypedAgent`.
 
 Atomic durable admission is implemented; see
-[`durable-agent-admission.md`](durable-agent-admission.md). There is no public
-helper today that maps an external idempotency key, synthesizes the prebuilt
-model/tool graph, executes it, and loads the terminal result in one call. That
-remaining integration requires result-retrieval evidence and is not represented
-by a temporary in-memory `run()` method.
+[`durable-agent-admission.md`](durable-agent-admission.md). Durable ingress-key
+mapping and fully revalidated run/result reads are implemented by
+`DurableAgentRuns`; see [`durable-agent-runs.md`](durable-agent-runs.md). There
+is still no helper that synthesizes and executes the prebuilt provider-native
+model/tool graph in one call, and no temporary in-memory `run()` method stands
+in for that missing orchestration.
 
 ## Verification evidence
 
@@ -163,6 +164,6 @@ cargo test -p stateknot-runtime --test typed_agent
 ```
 
 Live-provider qualification, provider drift cassettes, durable transcript
-assembly inside the prebuilt Agent graph, policy middleware, and the complete
-public run/result facade remain release gates. These adapters and typed
+assembly inside the prebuilt Agent graph, policy middleware, and cancellation
+service integration remain release gates. These adapters and typed
 APIs are implemented but still pre-alpha and unpublished.

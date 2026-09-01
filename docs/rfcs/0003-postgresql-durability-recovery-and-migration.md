@@ -952,9 +952,10 @@ reservations, explicit starvation bounds, and bounded retention. Migration 15
 and the runtime admission facade atomically bind authenticated intent,
 database-clock admission, Active lifecycle, sequence-one event, superstep-zero
 checkpoint, and scheduler visibility, with exact retries and complete integrity
-reloads. Role-separated database procedures, the complete durable public
-run/result integration and transcript assembly inside the prebuilt public Agent
-graph, ingress idempotency-key mapping, the 10,000 stale-race trial, failover,
+reloads. Migration 16 and the public runtime facade now add tenant-scoped
+ingress idempotency and verified run/result reads. Role-separated database
+procedures, transcript assembly inside the prebuilt public Agent graph,
+policy/cancellation services, the 10,000 stale-race trial, failover,
 general archive, backup/restore, and soak gates below remain incomplete; the RFC
 therefore remains Draft.
 

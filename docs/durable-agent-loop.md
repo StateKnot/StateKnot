@@ -220,19 +220,19 @@ commit.
 
 ## Qualification evidence and remaining gates
 
-Seventeen runtime integration scenarios run against both PostgreSQL 16 and 17.
+Nineteen runtime integration scenarios run against both PostgreSQL 16 and 17.
 They cover lifecycle success/Wait/failure atomicity and exact lost-ack replay,
 database-time Wait materialization, Agent Loop success and evidence failure,
 tenant and weighted cross-tenant scheduling, durable model/tool attempts and
 streaming, noninitial replay, same-fence suppression, lease renewal,
-near-expiry refresh, initial-state quarantine, and higher-fence takeover. Each
-database version also runs 98 provider integration cases. CI makes both suites
+near-expiry refresh, initial-state quarantine, higher-fence takeover, and the
+public durable run/result facade. Each database version also runs 100 provider integration cases. CI makes both suites
 mandatory.
 
-The atomic admission provider and runtime facade are now implemented. The
-remaining release blockers include durable accounting/result retrieval, the
-complete public Agent facade and transcript assembly inside its prebuilt graph,
-ingress idempotency-key mapping, parallel sibling policy, loop/subgraph semantics,
+The atomic admission provider and public run/result facade with ingress
+idempotency are now implemented. The remaining release blockers include the
+prebuilt provider-native graph and transcript assembly, policy and cancellation
+service boundaries, artifact retrieval, parallel sibling policy, loop/subgraph semantics,
 protocol-specific outbox dispatch, role-separated database procedures, general
 retention, backup/restore, failover, stale-race qualification, observability,
 and release hardening.
