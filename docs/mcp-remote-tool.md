@@ -151,7 +151,8 @@ service must authorize evidence submission before constructing the handoff.
 - image, audio, embedded-resource, and resource-link result blocks;
 - descriptors that require a StateKnot idempotency key, because generic MCP has
   no safe standard field into which that durable key can be injected;
-- exposing StateKnot as an MCP server;
+- exposing StateKnot as an MCP server through this client-side binding; use the
+  separate [MCP Server profile](mcp-server.md);
 - roots, prompts, resources, sampling, elicitation, logging, or MCP Apps.
 
 These exclusions fail at binding or result validation. They are not silently

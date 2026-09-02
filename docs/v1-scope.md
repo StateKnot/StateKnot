@@ -19,16 +19,21 @@ Current implementation note: the pre-alpha repository now contains
 `AgentServiceV1`, an authorization-first embedding facade, and
 `McpRemoteTool`, one strict MCP `2026-07-28` stateless client-side Tool profile,
 plus a separate general stateless `McpClient` Tool surface and its interactive
-`McpOAuthAuthorization` provider. The frozen official requirement gate passes
-all 32 scored client scenarios, including all 25 OAuth scenarios, with 373
-scored assertions and zero failures. These are implementation slices toward
-the surface below, not claims that the stable network Agent API, MCP Server,
-broader client extensions, SDK-tier conformance, or A2A support has shipped.
+`McpOAuthAuthorization` provider, and a StateKnot-owned stateless MCP Server
+application for Tools, Resources, Resource Templates, Prompts, optional
+Completion, and MRTR. The frozen official requirement gates pass all 32 scored
+Client scenarios, including all 25 OAuth scenarios, with 373 assertions and
+zero failures, plus all 37 scored Server scenarios with 114 successes, five
+skips, one informational check, and zero failures or warnings. These are
+implementation slices toward the surface below, not claims that the stable
+network Agent API, MCP Tasks or other extensions, stable SDK-tier API, or A2A
+support has shipped.
 Their exact boundaries are documented in
 [AgentService v1](agent-service.md), the
 [strict MCP Remote Tool profile](mcp-remote-tool.md), the
 [general MCP Tool client](mcp-client.md), the
-[MCP OAuth client](mcp-oauth.md), and the
+[MCP OAuth client](mcp-oauth.md), the
+[MCP Server profile](mcp-server.md), and the
 [MCP conformance report](mcp-conformance.md).
 
 ## Product statement

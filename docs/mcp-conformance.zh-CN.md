@@ -5,11 +5,12 @@ SPDX-License-Identifier: Apache-2.0
 
 # MCP Conformance 状态
 
-本文只声明当前可执行证据能够支持的范围，不是完整 Client Badge。
+本文只声明当前可执行证据能够支持的范围，不是完整 Framework、Stable API 或
+Extension Badge。
 
 ## 当前声明
 
-StateKnot 已实现两个相互独立的 MCP `2026-07-28` Client-side Tool Surface：
+StateKnot 已实现三个相互独立的 MCP `2026-07-28` Boundary：
 
 - [`McpRemoteTool`](mcp-remote-tool.zh-CN.md)：带已审核 Server/Schema Pin 与
   Reconciliation-first Ambiguous Write 的严格耐久 Binding；
@@ -18,11 +19,15 @@ StateKnot 已实现两个相互独立的 MCP `2026-07-28` Client-side Tool Surfa
 - [`McpOAuthAuthorization`](mcp-oauth.zh-CN.md)：支持 Discovery、PKCE、Issuer
   Migration、Scope Upgrade、Refresh 与调用方 Durable Store 的 Challenge-driven
   交互式 OAuth Provider。
+- [MCP Server Profile](mcp-server.zh-CN.md)：在严格 Stateless HTTP Transport 后提供
+  Immutable Tools、Resources、Resource Templates、Prompts、Optional Completion 与
+  MRTR 的 StateKnot-owned Application。
 
 通用 Client 与 OAuth Provider 通过冻结官方 `2026-07-28` Requirement Set 中全部
-**32 个计分 Client 场景**，其中包括全部 25 个 OAuth 场景。这是已实现 pre-alpha
-Client Profile 的证据声明，不是 MCP Server、Authorization Server、Extension、
-Stable API 或 SDK-tier Conformance 声明。
+**32 个计分 Client 场景**，其中包括全部 25 个 OAuth 场景。严格 Server Transport
+通过全部 **37 个计分 Server 场景**。这些是已实现 pre-alpha Client/Server Profile
+的证据声明，不是 Authorization Server、Tasks/其他 Extension、Stable API、SDK-tier
+或完整 Framework Conformance 声明。
 
 ## 冻结的评估输入
 
@@ -49,7 +54,7 @@ npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2
 清单包含 69 个计分场景：37 个 Server 与 32 个 Client 场景。Client Set 包含 7
 个非 OAuth 场景和 25 个 OAuth 场景。
 
-## 结果
+## Client 结果
 
 | 官方 Client 清单 | 场景 | Success | Skipped | Failure |
 | --- | ---: | ---: | ---: | ---: |
@@ -74,6 +79,28 @@ CIMD 与 Pre-registration、Scope Source/Omission/Step-up、三种 Token Endpoin
 Authentication Mode、Resource Mismatch、Offline Access、Authorization-server
 Migration 与完整 RFC 9207 Issuer Matrix。
 
+## Server 结果
+
+| 官方 Server 清单 | 场景 | Success | Skipped | Info | Failure | Warning |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **必需合计** | **37** | **114** | **5** | **1** | **0** | **0** |
+| Pending 且明确不计分 Gate | 3 | 32 | 0 | 0 | 0 | 0 |
+| 已报告 Tasks Extension | 10 | 12 | 1 | 0 | 30 | 0 |
+
+5 个 Skip 是 Stateless Fixture 触发的 Optional Client-capability Branch，不计作
+Pass。1 个 Info 记录 Runner 对 Multiple SSE Stream 的观察，不是 Warning。3 个
+Pending Gate 覆盖 JSON Schema 2020-12 及 Standard/Custom HTTP Header Validation。
+冻结 Runner 会报告它们，但不会计入 37 个计分场景；StateKnot 将其保存为额外精确
+Regression Gate，不据此放大 Conformance 声明。
+
+最后一行是 MCP Tasks Extension。Failure 明确证明 Tasks 既未声明也未实现；它们不会
+被转换为 Expected Failure，也不会产生任何 Task Capability 声明。
+
+计分 Server Check 覆盖 Stateless Discovery/Transport Metadata、JSON 与
+Request-scoped SSE、Tool List/Call 与 Mixed Content、Progress、Resources/Templates、
+Prompts/Completion、DNS Rebinding Protection、Cache Metadata、Resource-not-found，
+以及完整 Core MRTR Request-state Matrix。
+
 ## 复现门禁
 
 ```console
@@ -81,13 +108,14 @@ cd conformance/mcp-client
 npm ci --ignore-scripts
 cd ../..
 bash conformance/mcp-client/run-2026-07-28.sh
+bash conformance/mcp-server/run-2026-07-28.sh
 ```
 
-脚本构建真实 Rust Driver，并要求固定 Runner 执行完整冻结 Client Requirement Set：
-32 个必需场景与 7 个官方明确不计分场景。官方原始 Output 保存到 Git 忽略的
-`results/` 目录；独立 Verifier 强制校验精确必需清单、373 Success、11 Skip、0
-Failure、0 Warning，以及精确不计分清单。必需证据缺失、重复、意外增加或 Drift
-都会使命令失败，不使用 Expected-failures File。
+脚本构建真实 Rust Driver，并要求固定 Runner 执行完整冻结 Client 与 Server
+Requirement Set。官方原始 Output 保存到 Git 忽略的 `results/` 目录；独立 Verifier
+强制校验上述精确 Inventory 与 Status Count，包括额外 Server Gate 和只报告、不声明
+的 Extension Row。证据缺失、重复、意外增加或 Drift 都会使命令失败，不使用
+Expected-failures File。
 
 CI 使用固定 Rust 与 Node Toolchain 执行同一脚本，不使用 Expected-failures
 Baseline。独立 HTTP/SSE Contract 还会验证分片 Request-scoped SSE、Notification
@@ -95,7 +123,15 @@ Baseline。独立 HTTP/SSE Contract 还会验证分片 Request-scoped SSE、Noti
 
 ```console
 cargo test -p stateknot-integrations --test mcp_client_contract --locked
+cargo test -p stateknot-integrations mcp_server_ --locked
 ```
+
+官方 Server Fixture 为匹配 Runner 的 Application Name 与 Payload 而设计，并使用生产
+`McpServerHttpService` Transport。它没有绕过 Host/Origin/Body/Version/
+Authentication/Admission/Concurrency Boundary。StateKnot 自有 Registry、
+Authorization、Schema、Resource、Prompt、Completion 与 Result-limit Layer 另通过真实
+HTTP Service Test 覆盖。这个区分可防止把 Fixture Result 误写成 Stable Application
+API Certification。
 
 ## 为什么严格耐久 Profile 仍然独立
 
@@ -110,11 +146,11 @@ Primitive，但保留不同的 Trust 与 Recovery Guarantee。
 
 ## 剩余门禁
 
-下一组独立门禁是 MCP Server Profile、更广 Resources/Prompts 与 Task Extension、
-当前 7 个不计分 Client Extension、稳定 SDK/API Review，以及 Release Artifact
-发布。每项都需要自己的实现与适用官方证据。未来发布声明还必须把生成的 Check 与
-Platform Identity 作为 Release Artifact 发布，同时继续把严格 Remote Tool
-PostgreSQL Recovery Test 保留为独立门禁。
+剩余独立门禁是 Tasks Extension、当前 7 个不计分 Client Extension、Stable SDK/API
+Review、Release Artifact Publication 与完整 Production Qualification。每项都需要
+自己的实现与适用官方证据。未来发布声明还必须把生成的 Check 与 Platform Identity
+作为 Release Artifact 发布，同时继续把 StateKnot Application-layer HTTP Test 与
+严格 Remote Tool PostgreSQL Recovery Test 保留为独立门禁。
 
 Runner 的权威来源是[官方 MCP Conformance 仓库](https://github.com/modelcontextprotocol/conformance)。协议行为由
 [MCP 2026-07-28 Base Protocol](https://modelcontextprotocol.io/specification/2026-07-28/basic/index)、

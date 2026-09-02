@@ -44,9 +44,10 @@ must preserve admission, ambiguity, and reconciliation evidence.
 
 The separate [`McpOAuthAuthorization`](mcp-oauth.md) provider now implements the
 interactive OAuth authorization-code profile. This surface still does not
-implement MCP Server, Resources, Prompts, Tasks, Roots, Sampling, client
-credentials, DPoP, or a stable SDK tier. Static bearer credentials remain
-transport credentials, not an OAuth flow.
+implement Resource/Prompt clients, Tasks, Roots, Sampling, client credentials,
+DPoP, or a stable SDK tier. The separate [MCP Server profile](mcp-server.md)
+does not broaden this Client claim. Static bearer credentials remain transport
+credentials, not an OAuth flow.
 
 ## Connect, discover, and call
 

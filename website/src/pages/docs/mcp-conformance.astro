@@ -7,19 +7,26 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 const reproduceCommand = `cd conformance/mcp-client
 npm ci --ignore-scripts
 cd ../..
-bash conformance/mcp-client/run-2026-07-28.sh`;
+bash conformance/mcp-client/run-2026-07-28.sh
+bash conformance/mcp-server/run-2026-07-28.sh`;
 
-const results = [
+const clientResults = [
   ["Required non-OAuth", 7, 45, 11, 0],
   ["Required OAuth", 25, 328, 0, 0],
   ["Required total", 32, 373, 11, 0],
   ["Explicitly not scored", 7, 33, 6, 17],
 ] as const;
+
+const serverResults = [
+  ["Required total", 37, 114, 5, 1, 0, 0],
+  ["Pending, unscored gates", 3, 32, 0, 0, 0, 0],
+  ["Reported Tasks extension", 10, 12, 1, 0, 30, 0],
+] as const;
 ---
 
 <DocsLayout
   title="MCP conformance claims stop at the evidence."
-  description="Inspect the pinned official runner, all 32 scored client scenario results, reproducible CI gate, and the extension/server boundary StateKnot does not claim."
+  description="Inspect the pinned runner, all 32 scored Client and 37 scored Server scenarios, reproducible CI gates, and the exact Tasks/stable-API boundary."
   section="MCP conformance status"
 >
   <aside
@@ -30,9 +37,10 @@ const results = [
     <p>
       The general stateless Tool client and its OAuth provider pass all 32
       scored client scenarios in the frozen MCP 2026-07-28 requirement set,
-      including all 25 OAuth scenarios. This is a pre-alpha client-profile
-      evidence claim, not a server, authorization-server, extension, stable-API,
-      or SDK-tier claim.
+      including all 25 OAuth scenarios. The strict Server transport passes all
+      37 scored Server scenarios. These are pre-alpha Client/Server-profile
+      evidence claims, not an authorization-server, Tasks/extension, stable-API,
+      SDK-tier, or complete-framework claim.
     </p>
   </aside>
 
@@ -90,15 +98,17 @@ const results = [
         </thead>
         <tbody>
           {
-            results.map(([name, scenarios, success, skipped, failure]) => (
-              <tr>
-                <td>{name}</td>
-                <td>{scenarios}</td>
-                <td>{success}</td>
-                <td>{skipped}</td>
-                <td>{failure}</td>
-              </tr>
-            ))
+            clientResults.map(
+              ([name, scenarios, success, skipped, failure]) => (
+                <tr>
+                  <td>{name}</td>
+                  <td>{scenarios}</td>
+                  <td>{success}</td>
+                  <td>{skipped}</td>
+                  <td>{failure}</td>
+                </tr>
+              ),
+            )
           }
         </tbody>
       </table>
@@ -111,6 +121,45 @@ const results = [
       final-row scenarios are official extensions or post-release additions that
       the frozen set explicitly runs but never scores; their failures remain
       reported and outside StateKnot's claim.
+    </p>
+
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="Official MCP Server scenario results"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Official Server inventory</th><th>Scenarios</th><th>Success</th
+            ><th>Skipped</th><th>Info</th><th>Failure</th><th>Warning</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            serverResults.map(
+              ([name, scenarios, success, skipped, info, failure, warning]) => (
+                <tr>
+                  <td>{name}</td>
+                  <td>{scenarios}</td>
+                  <td>{success}</td>
+                  <td>{skipped}</td>
+                  <td>{info}</td>
+                  <td>{failure}</td>
+                  <td>{warning}</td>
+                </tr>
+              ),
+            )
+          }
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Five required skips remain optional capability branches, and the one Info
+      is a non-warning SSE observation. The three pending schema/header
+      scenarios add exact regression evidence but do not inflate the 37-scenario
+      score. Tasks remain unadvertised and unimplemented; their reported
+      failures are evidence of that boundary, not expected failures.
     </p>
   </section>
 
@@ -133,11 +182,12 @@ const results = [
         tabindex="0"><code>{reproduceCommand}</code></pre>
     </div>
     <p>
-      The script builds the real Rust driver and runs all 32 required plus seven
-      explicitly not-scored scenarios. An independent verifier requires the
-      exact inventory and a 373-success, 11-skip, zero-failure, zero-warning
-      scored result. CI pins Rust 1.88.0 and Node.js 24.19.0 and uses no
-      expected-failures file.
+      The scripts build the real Rust drivers and run the complete frozen Client
+      and Server inventories. Independent verifiers require every exact count
+      above, including reported-but-unclaimed rows. CI pins Rust 1.88.0 and
+      Node.js 24.19.0 and uses no expected-failures file. The Server fixture
+      uses the production HTTP transport; StateKnot registries and policies have
+      separate real-HTTP tests.
     </p>
   </section>
 
@@ -159,9 +209,9 @@ const results = [
   <section aria-labelledby="mcp-conformance-next-title">
     <h2 id="mcp-conformance-next-title">Remaining release gates</h2>
     <p>
-      Remaining independent gates include MCP Server, broader Resources/Prompts
-      and Task extensions, the seven currently not-scored client extensions,
-      stable SDK/API review, and release evidence. Read the <a
+      Remaining independent gates include Tasks, the seven currently unscored
+      Client extensions, stable SDK/API review, release artifacts, and full
+      production qualification. Read the <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-conformance.md"
         >complete evidence report</a
       > and the <a href="https://github.com/modelcontextprotocol/conformance"

@@ -19,9 +19,14 @@ publish = false
 
 [dependencies]
 base64.workspace = true
+bytes.workspace = true
 futures-core.workspace = true
 futures-util.workspace = true
 http.workspace = true
+http-body.workspace = true
+http-body-util.workspace = true
+jsonschema.workspace = true
+mime.workspace = true
 reqwest.workspace = true
 rmcp.workspace = true
 serde.workspace = true
@@ -31,9 +36,12 @@ sse-stream.workspace = true
 stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
 thiserror.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
+tower-service.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]
+axum = { version = "0.8.4", default-features = false, features = ["http1", "tokio"] }
 stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }
 stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
 tokio = { workspace = true, features = ["io-util", "net"] }

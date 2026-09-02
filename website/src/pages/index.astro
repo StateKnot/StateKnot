@@ -100,6 +100,12 @@ const currentCut = [
     href: "/docs/mcp-remote-tool/",
   },
   {
+    surface: "MCP Server profile",
+    state: "Implemented slice",
+    evidence: "All 37 scored Server scenarios; 114 success, zero failure",
+    href: "/docs/mcp-server/",
+  },
+  {
     surface: "A2A adapters",
     state: "Not shipped",
     evidence: "A2A 1.0 REST/JSON-RPC client/server remains planned",
@@ -158,12 +164,18 @@ const roadmap = [
   },
   {
     index: "09",
-    state: "Now",
+    state: "Implemented",
     title: "Build the MCP Server profile",
-    body: "Expose reviewed local Tools through a bounded stateless server, then qualify discovery, authorization, schema, concurrency, cancellation, and every applicable official server requirement without weakening runtime policy.",
+    body: "Bounded stateless Tools, Resources, Prompts, Completion, MRTR, authorization-first policy, and all 37 scored official Server scenarios now have executable evidence.",
   },
   {
     index: "10",
+    state: "Now",
+    title: "Build the A2A 1.0 profile",
+    body: "Map Agent Cards, messages, tasks, artifacts, streaming, cancellation, subscriptions, and reliable push into the durable StateKnot domain, then qualify REST and JSON-RPC with the official TCK.",
+  },
+  {
+    index: "11",
     state: "Before v1",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -188,10 +200,10 @@ const roadmap = [
             commits, fair scheduling, durable ingress, and verified results.
             Implemented surfaces include OpenAI/Anthropic adapters, a recovered
             provider-native Agent graph, AgentService v1, a general stateless
-            MCP Tool client with interactive OAuth, and one strict MCP Remote
-            Tool with lost-write reconciliation. MCP Server profiles, stable
-            network APIs, A2A, advanced graph semantics, and production
-            qualification remain open.
+            MCP Tool client with interactive OAuth, one strict MCP Remote Tool
+            with lost-write reconciliation, and a bounded MCP Server profile.
+            Stable network Agent APIs, A2A, MCP Tasks, advanced graph semantics,
+            and production qualification remain open.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -332,9 +344,9 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
         <p>
           The strict MCP binding retains PostgreSQL-backed recovery evidence,
           while the separate general Tool client plus OAuth provider now pass
-          all 32 scored client scenarios. The next proof boundary is the MCP
-          Server profile; broader client extensions and A2A remain independent
-          gates.
+          all 32 scored Client scenarios and the Server profile passes all 37
+          scored Server scenarios. The next protocol proof boundary is A2A 1.0;
+          MCP Tasks and broader extensions remain independent gates.
         </p>
       </div>
 

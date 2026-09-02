@@ -105,7 +105,8 @@ let outcome = executor.commit_tool_reconciliation(handoff).await?;
 - MRTR、Tasks、Incomplete Result、Progress Forwarding 与 Artifact/Resource Materialization；
 - Image、Audio、Embedded-resource 与 Resource-link Result Block；
 - 要求 StateKnot Idempotency Key 的 Descriptor，因为 Generic MCP 没有可安全注入该耐久 Key 的标准字段；
-- 将 StateKnot 暴露为 MCP Server；
+- 通过这个 Client-side Binding 将 StateKnot 暴露为 MCP Server；应使用独立
+  [MCP Server Profile](mcp-server.zh-CN.md)；
 - Roots、Prompts、Resources、Sampling、Elicitation、Logging 或 MCP Apps。
 
 这些排除项会在 Binding 或 Result Validation 阶段 Fail Closed，不会静默降级。

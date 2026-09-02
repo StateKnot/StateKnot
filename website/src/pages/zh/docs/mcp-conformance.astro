@@ -7,19 +7,26 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
 const reproduceCommand = `cd conformance/mcp-client
 npm ci --ignore-scripts
 cd ../..
-bash conformance/mcp-client/run-2026-07-28.sh`;
+bash conformance/mcp-client/run-2026-07-28.sh
+bash conformance/mcp-server/run-2026-07-28.sh`;
 
-const results = [
+const clientResults = [
   ["必需非 OAuth", 7, 45, 11, 0],
   ["必需 OAuth", 25, 328, 0, 0],
   ["必需合计", 32, 373, 11, 0],
   ["官方明确不计分", 7, 33, 6, 17],
 ] as const;
+
+const serverResults = [
+  ["必需合计", 37, 114, 5, 1, 0, 0],
+  ["Pending 且不计分 Gate", 3, 32, 0, 0, 0, 0],
+  ["已报告 Tasks Extension", 10, 12, 1, 0, 30, 0],
+] as const;
 ---
 
 <DocsLayout
   title="MCP Conformance 声明以证据为界。"
-  description="查看固定官方 Runner、全部 32 个计分 Client 场景、可复现 CI 门禁，以及 StateKnot 不声明的 Extension/Server 边界。"
+  description="查看固定 Runner、全部 32 个计分 Client 与 37 个计分 Server 场景、可复现 CI 门禁，以及精确 Tasks/Stable API 边界。"
   section="MCP Conformance 状态"
   locale="zh-CN"
 >
@@ -31,8 +38,9 @@ const results = [
     <p>
       通用 Stateless Tool Client 与 OAuth Provider 通过冻结 MCP 2026-07-28
       Requirement Set 中全部 32 个计分 Client 场景，其中包括全部 25 个 OAuth
-      场景。 这是 pre-alpha Client Profile 证据声明，不是 Server、Authorization
-      Server、 Extension、Stable API 或 SDK-tier 声明。
+      场景。严格 Server Transport 通过全部 37 个计分 Server 场景。这是 pre-alpha
+      Client/Server Profile 证据声明，不是 Authorization
+      Server、Tasks/Extension、 Stable API、SDK-tier 或完整 Framework 声明。
     </p>
   </aside>
 
@@ -89,15 +97,17 @@ const results = [
         </thead>
         <tbody>
           {
-            results.map(([name, scenarios, success, skipped, failure]) => (
-              <tr>
-                <td>{name}</td>
-                <td>{scenarios}</td>
-                <td>{success}</td>
-                <td>{skipped}</td>
-                <td>{failure}</td>
-              </tr>
-            ))
+            clientResults.map(
+              ([name, scenarios, success, skipped, failure]) => (
+                <tr>
+                  <td>{name}</td>
+                  <td>{scenarios}</td>
+                  <td>{success}</td>
+                  <td>{skipped}</td>
+                  <td>{failure}</td>
+                </tr>
+              ),
+            )
           }
         </tbody>
       </table>
@@ -108,6 +118,45 @@ const results = [
       Resource 与 Prompt Method。Skip 不计作 Pass，也不会授予能力声明。最后一行
       是冻结 Set 明确运行但永不计分的官方 Extension 或发布后新增场景；其 Failure
       保持报告，并且不进入 StateKnot 声明。
+    </p>
+
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="官方 MCP Server 场景结果"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>官方 Server 清单</th><th>场景</th><th>Success</th><th
+              >Skipped</th
+            ><th>Info</th><th>Failure</th><th>Warning</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            serverResults.map(
+              ([name, scenarios, success, skipped, info, failure, warning]) => (
+                <tr>
+                  <td>{name}</td>
+                  <td>{scenarios}</td>
+                  <td>{success}</td>
+                  <td>{skipped}</td>
+                  <td>{info}</td>
+                  <td>{failure}</td>
+                  <td>{warning}</td>
+                </tr>
+              ),
+            )
+          }
+        </tbody>
+      </table>
+    </div>
+    <p>
+      5 个 Required Skip 仍是 Optional Capability Branch，1 个 Info 是非 Warning
+      的 SSE Observation。3 个 Pending Schema/Header Scenario 提供精确
+      Regression Evidence，但不会放大 37 场景声明。Tasks 未声明、未实现；报告的
+      Failure 是该 Boundary 的证据，不是 Expected Failure。
     </p>
   </section>
 
@@ -130,10 +179,11 @@ const results = [
         tabindex="0"><code>{reproduceCommand}</code></pre>
     </div>
     <p>
-      脚本构建真实 Rust Driver，并运行全部 32 个必需场景与 7 个明确不计分场景。
-      独立 Verifier 强制精确清单，以及 373 Success、11 Skip、0 Failure、0
-      Warning 的计分结果。CI 固定 Rust 1.88.0 与 Node.js 24.19.0，不使用
-      Expected-failures File。
+      脚本构建真实 Rust Driver，并运行完整冻结 Client/Server Inventory。独立
+      Verifier 强制要求上述全部精确 Count，包括只报告、不声明的 Row。CI 固定
+      Rust 1.88.0 与 Node.js 24.19.0，且不使用 Expected-failures File。Server
+      Fixture 使用生产 HTTP Transport；StateKnot Registry 与 Policy 另有
+      Real-HTTP Test。
     </p>
   </section>
 
@@ -152,9 +202,8 @@ const results = [
   <section aria-labelledby="mcp-conformance-next-title">
     <h2 id="mcp-conformance-next-title">剩余发布门禁</h2>
     <p>
-      剩余独立门禁包括 MCP Server、更广 Resources/Prompts 与 Task
-      Extension、当前 7 个不计分 Client Extension、稳定 SDK/API Review 与
-      Release Evidence。阅读<a
+      剩余独立门禁包括 Tasks、当前 7 个不计分 Client Extension、Stable SDK/API
+      Review、Release Artifact 与完整 Production Qualification。阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-conformance.zh-CN.md"
         >完整证据报告</a
       >与<a href="https://github.com/modelcontextprotocol/conformance"

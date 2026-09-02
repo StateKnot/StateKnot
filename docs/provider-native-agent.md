@@ -222,10 +222,11 @@ silently skipping the suite.
 This milestone does not ship parallel sibling/tool execution, output repair,
 loop/subgraph semantics, artifact retrieval, stable network Agent/cancellation
 transport, protocol-specific outbox dispatch, MCP server/broader client or A2A
-profiles, live-provider drift cassettes, role-separated database procedures,
+composition inside this graph, live-provider drift cassettes, role-separated database procedures,
 general retention, failover/restore qualification, or a production release.
 [`AgentServiceV1`](agent-service.md) now supplies the embedding service boundary,
-and [`McpRemoteTool`](mcp-remote-tool.md) supplies one strict client-side Tool
-profile; neither widens the remaining claims.
+[`McpRemoteTool`](mcp-remote-tool.md) supplies one strict client-side Tool
+profile, and the independent [MCP Server profile](mcp-server.md) exposes its own
+application boundary; none widens the provider-native graph claim.
 Those capabilities require their own versioned contracts and executable
 evidence; none is implied by the provider-native graph.

@@ -6,11 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 # MCP conformance status
 
 This page states exactly what the current executable evidence supports. It is
-not a complete-client badge.
+not a complete-framework, stable-API, or extension badge.
 
 ## Current claim
 
-StateKnot implements two distinct MCP `2026-07-28` client-side Tool surfaces:
+StateKnot implements three distinct MCP `2026-07-28` boundaries:
 
 - [`McpRemoteTool`](mcp-remote-tool.md), a strict durable binding with reviewed
   server/schema pins and reconciliation-first ambiguous writes;
@@ -19,12 +19,16 @@ StateKnot implements two distinct MCP `2026-07-28` client-side Tool surfaces:
 - [`McpOAuthAuthorization`](mcp-oauth.md), a challenge-driven interactive OAuth
   provider with discovery, PKCE, issuer migration, scope upgrade, refresh, and
   caller-owned durable stores.
+- the [MCP Server profile](mcp-server.md), a StateKnot-owned application for
+  immutable Tools, Resources, Resource Templates, Prompts, optional Completion,
+  and MRTR behind a strict stateless HTTP transport.
 
 The general client and OAuth provider pass all **32 scored client scenarios**
 in the frozen official `2026-07-28` requirement set, including all 25 OAuth
-scenarios. This is an evidence claim for the implemented pre-alpha client
-profile, not an MCP Server, authorization-server, extension, stable-API, or
-SDK-tier conformance claim.
+scenarios. The strict Server transport passes all **37 scored server
+scenarios**. These are evidence claims for the implemented pre-alpha Client and
+Server profiles, not an authorization-server, Tasks or other extension,
+stable-API, SDK-tier, or complete-framework conformance claim.
 
 ## Frozen evaluation input
 
@@ -52,7 +56,7 @@ npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2
 It contains 69 scored scenarios: 37 server and 32 client scenarios. The client
 set contains seven non-OAuth scenarios and 25 OAuth scenarios.
 
-## Result
+## Client result
 
 | Official client inventory | Scenarios | Success | Skipped | Failure |
 | --- | ---: | ---: | ---: | ---: |
@@ -80,6 +84,32 @@ discovery variants, CIMD and pre-registration, scope source/omission/step-up,
 three token endpoint authentication modes, resource mismatch, offline access,
 authorization-server migration, and the complete RFC 9207 issuer matrix.
 
+## Server result
+
+| Official server inventory | Scenarios | Success | Skipped | Info | Failure | Warning |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **Required total** | **37** | **114** | **5** | **1** | **0** | **0** |
+| Pending, explicitly unscored gates | 3 | 32 | 0 | 0 | 0 | 0 |
+| Reported Tasks extension | 10 | 12 | 1 | 0 | 30 | 0 |
+
+The five skips are optional client-capability branches exercised by the
+stateless fixture; they are not counted as passes. The single informational
+check records the runner's multiple-SSE-stream observation and is not a
+warning. The three pending gates cover JSON Schema 2020-12 and standard/custom
+HTTP header validation. The frozen runner reports them but does not include
+them in the 37-scenario score, so StateKnot preserves them as additional exact
+regression gates without inflating the conformance claim.
+
+The final row is the MCP Tasks extension. Its failures are intentional evidence
+that Tasks are neither advertised nor implemented; they are not converted into
+expected failures and no Task capability is claimed.
+
+The scored Server checks cover stateless discovery and transport metadata,
+JSON and request-scoped SSE, Tool listing/calls and mixed content, progress,
+Resources and templates, Prompts and Completion, DNS-rebinding protection,
+cache metadata, Resource-not-found behavior, and the complete core MRTR
+request-state matrix.
+
 ## Reproduce the gate
 
 ```console
@@ -87,15 +117,15 @@ cd conformance/mcp-client
 npm ci --ignore-scripts
 cd ../..
 bash conformance/mcp-client/run-2026-07-28.sh
+bash conformance/mcp-server/run-2026-07-28.sh
 ```
 
-The script builds the real Rust driver and asks the pinned runner to execute the
-entire frozen client requirement set: 32 required and seven explicitly
-not-scored scenarios. It stores raw output below the ignored `results/`
-directory, then independently requires the exact required inventory,
-373-success/11-skip/zero-failure/zero-warning result, and the exact not-scored
-inventory. Missing, duplicate, unexpected, or drifted required evidence fails
-the command. No expected-failures file is used.
+The scripts build the real Rust drivers and ask the pinned runner to execute the
+complete frozen Client and Server requirement sets. Raw output is stored below
+ignored `results/` directories. Independent verifiers require the exact
+inventories and status counts above, including the extra Server gates and the
+reported-but-unclaimed extension rows. Missing, duplicate, unexpected, or
+drifted evidence fails the command. No expected-failures file is used.
 
 CI runs the same script with pinned Rust and Node toolchains. It does not use an
 expected-failures baseline. The standalone HTTP/SSE contract additionally
@@ -104,7 +134,16 @@ headers, credentials, and per-request metadata:
 
 ```console
 cargo test -p stateknot-integrations --test mcp_client_contract --locked
+cargo test -p stateknot-integrations mcp_server_ --locked
 ```
+
+The official Server fixture deliberately mirrors the runner's application
+names and payloads and uses the production `McpServerHttpService` transport. It
+does not bypass the Host/Origin/body/version/authentication/admission/concurrency
+boundary. The StateKnot-owned registry, authorization, schema, Resource,
+Prompt, Completion, and result-limit layers are covered separately through
+real HTTP service tests. This distinction prevents a fixture result from being
+misrepresented as stable application-API certification.
 
 ## Why the strict durable profile remains separate
 
@@ -121,13 +160,13 @@ recovery guarantees.
 
 ## Remaining gates
 
-The next independent gates are the MCP Server profile; broader Resources,
-Prompts, and Task-extension surfaces; the seven currently not-scored client
-extensions; stable SDK/API review; and release artifact publication. Each needs
-its own implementation and applicable official evidence. A release claim must
-publish generated checks and platform identity as release artifacts while
-preserving the strict Remote Tool PostgreSQL recovery tests as independent
-gates.
+The remaining independent gates are the Tasks extension, the seven currently
+unscored Client extensions, stable SDK/API review, release artifact publication,
+and full production qualification. Each needs its own implementation and
+applicable official evidence. A release claim must publish generated checks and
+platform identity as release artifacts while preserving both the StateKnot
+application-layer HTTP tests and strict Remote Tool PostgreSQL recovery tests as
+independent gates.
 
 The source of truth for the runner is the
 [official MCP Conformance repository](https://github.com/modelcontextprotocol/conformance).

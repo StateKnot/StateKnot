@@ -950,9 +950,20 @@ Authentication、Refresh、Offline Access、Scope Step-up、Issuer Migration、�
 Replay 与调用方 Durable Store Boundary。固定官方 Runner 的全部 32 个计分 Client
 场景在 CI 中强制执行，其中包括全部 25 个 OAuth 场景：373 项计分 Assertion 成功、
 0 失败，11 项 Surface 外检查明确 Skip；7 个官方明确不计分 Extension 单独报告且不做
-声明。Server、Resources、Prompts、更广 Client Extension 与完整 SDK-tier 声明尚未
-实现；见[通用 MCP Tool Client](mcp-client.zh-CN.md)、[MCP OAuth Client](mcp-oauth.zh-CN.md)
-与 [MCP Conformance 状态](mcp-conformance.zh-CN.md)。
+声明。
+
+第三个切片已经实现 StateKnot-owned MCP Server Application：严格 Stateless HTTP
+Transport、Bearer Authentication、跨副本 Admission Boundary、不可变 Tool/Resource/
+Resource Template/Prompt Catalog、可选 Completion、Progress/Cancellation、Scope-aware
+Discovery、Authorization-before-disclosure、Offline JSON Schema 2020-12 Input/Output
+Validation，以及完整 MRTR Request-state Binding。固定官方 Runner 的全部 37 个计分
+Server 场景在 CI 中强制执行：114 项 Assertion 成功、5 项 Capability Check Skip、
+1 项 SSE Info、0 Failure、0 Warning；3 个 Pending 且不计分的 Schema/Header Gate
+另有 32 项 Success。官方 Fixture 验证生产 Transport，StateKnot Registry/Policy Layer
+由独立 Real-HTTP Test 覆盖。Tasks Extension、更广 Client Extension 与完整 Stable
+SDK-tier 声明仍未实现；见[通用 MCP Tool Client](mcp-client.zh-CN.md)、
+[MCP OAuth Client](mcp-oauth.zh-CN.md)、[MCP Server Profile](mcp-server.zh-CN.md)与
+[MCP Conformance 状态](mcp-conformance.zh-CN.md)。
 
 - 同时支持 client 与 server；本地工具和 graph/workflow 可暴露为 MCP tools；
 - 以 2026-07-28 stateless core 为主线，每个请求携带自描述路由信息；

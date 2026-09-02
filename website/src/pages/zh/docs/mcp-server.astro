@@ -1,0 +1,194 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const buildCode = `let options = McpServerApplicationOptions::new(
+    "inventory-mcp",
+    "1.0.0",
+    100,
+    Duration::from_secs(60),
+    McpServerCacheScope::Private,
+)?;
+
+let app = McpServerApplicationBuilder::new(options)
+    .with_tools(tool_registry, tool_authorization)?
+    .with_resources(resource_catalog, resource_reader, resource_authorization)?
+    .with_prompts(prompt_catalog, prompt_renderer, prompt_authorization)?
+    .with_completion_provider(completion_provider)?
+    .build()?;
+
+let service = McpServerHttpService::with_admission_control(
+    app,
+    http_options,
+    McpServerAuthentication::bearer(authenticator, bearer_challenge),
+    admission_control,
+)?;`;
+
+const verifyCode = `cargo test -p stateknot-integrations mcp_server_ --locked
+bash conformance/mcp-server/run-2026-07-28.sh`;
+---
+
+<DocsLayout
+  title="在不削弱 Policy 的前提下暴露有界 MCP Server。"
+  description="在严格 Stateless HTTP、Decoded Authorization 与精确证据后组合 StateKnot-owned Tools、Resources、Prompts、Completion 与 MRTR。"
+  section="MCP Server Profile"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-server-boundary-title"
+  >
+    <h2 id="mcp-server-boundary-title">已实现 Server Profile，Pre-alpha API</h2>
+    <p>
+      StateKnot Application Layer 与生产 Transport 已实现 MCP
+      <code>2026-07-28</code> Core Server Profile，覆盖 Tools、Resources、Resource
+      Templates、Prompts、Completion 与 MRTR。Tasks、内置 Authorization Server、 Extension
+      与 Stable Rust API 不在当前声明内。
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-server-flow-title">
+    <h2 id="mcp-server-flow-title">让 Policy 留在 Request Path 中</h2>
+    <ol>
+      <li>校验 Host、Origin、Version Metadata 与 Streaming Body Limit。</li>
+      <li>把 Bearer Credential 认证为有界 Principal。</li>
+      <li>应用调用方实现的 Cross-replica Admission 与 Quota Policy。</li>
+      <li>解码 JSON-RPC Operation；Transport Header 仍只是 Hint。</li>
+      <li>先授权，再披露存在性或 Schema Diagnostic。</li>
+      <li>校验 Input、带 Cancellation 执行，再校验 Result。</li>
+    </ol>
+    <p>
+      只要配置中存在非字面 Loopback Host，Anonymous Service
+      构建就会失败。公网部署 必须在边界启用 TLS、Bearer Authentication、显式
+      Host/Origin Allowlist 与共享 Admission 实现。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-server-surface-title">
+    <h2 id="mcp-server-surface-title">只声明已经配置的 Surface</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="MCP Server Application Surface Guarantee"
+    >
+      <table>
+        <thead>
+          <tr><th>Surface</th><th>StateKnot Boundary</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tools</td>
+            <td>
+              Immutable Executable Registry、Offline JSON Schema 2020-12 Input/
+              Output Validation、Progress、Cancellation 与 Bounded Content。
+            </td>
+          </tr>
+          <tr>
+            <td>Resources</td>
+            <td>
+              Absolute URI/Template Validation、Authorization-first Read、
+              MIME/Base64 Limit 与显式 Result Cache Policy。
+            </td>
+          </tr>
+          <tr>
+            <td>Prompts</td>
+            <td>
+              唯一且有界的 Argument、Diagnostic 前授权，以及 Bounded
+              Multi-content Message。
+            </td>
+          </tr>
+          <tr>
+            <td>Completion</td>
+            <td>
+              Optional Capability；Authenticated Reference，最多 100 个唯一且
+              Pagination-consistent 的 Value。
+            </td>
+          </tr>
+          <tr>
+            <td>MRTR</td>
+            <td>
+              有界 Elicitation/Sampling/Roots Request，以及
+              Integrity-protected、 Expiring、Operation-bound Request State。
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      未配置 Surface 返回 Method-not-found。Builder 不会发布空 Placeholder
+      Capability； 官方 Rust SDK 仍是 Private Wire Adapter，而不是 StateKnot
+      Domain Model。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-server-catalog-title">
+    <h2 id="mcp-server-catalog-title">接收流量前冻结 Catalog</h2>
+    <p>
+      Tool Schema 在启动时 Offline 编译；未解析或网络 <code>$ref</code> 会使构建失败。
+      Tool、Resource、Template 与 Prompt Catalog 强制 Count/Byte Ceiling、拒绝重复、
+      确定性排序并暴露 Stable Digest。Scope-filtered Discovery 使用 Principal-bound
+      Cursor。只要存在 Scope-restricted Entry，Public Cache 就会被拒绝。
+    </p>
+    <p>
+      Description、Annotation、Schema、Server Instruction、Client Capability 与
+      Completion Value 都是不可信 Data，永远不会授予 Authority。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-server-build-title">
+    <h2 id="mcp-server-build-title">组合一个 Application</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 构建轮廓</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-mcp-server-build-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-mcp-server-build-code"
+        tabindex="0"><code>{buildCode}</code></pre>
+    </div>
+    <p>
+      把 Tower Service 挂载到一个精确的 Axum/Hyper Endpoint。Registry
+      只在启动时构建 一次，不能按 Request 重建。Application Authorization
+      必须使用解码后的 Operation， 不能使用 <code>Mcp-Method</code> 或 <code
+        >Mcp-Name</code
+      > Transport Hint。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-server-proof-title">
+    <h2 id="mcp-server-proof-title">复现证据</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · Application 与官方门禁</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-mcp-server-verify-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-mcp-server-verify-code"
+        tabindex="0"><code>{verifyCode}</code></pre>
+    </div>
+    <p>
+      固定 Runner 通过全部 37 个计分 Server Scenario：114 项 Assertion
+      Success、5 项 Capability Check Skip、1 项 SSE Info、0 Failure、0
+      Warning。3 个 Pending 且 Unscored 的 Schema/Header Gate 另有 32 项
+      Success。官方 Fixture 验证生产 Transport；StateKnot Registry 与 Policy
+      另有 Real-HTTP Test。发布兼容性声明前， 请阅读<a
+        href="/zh/docs/mcp-conformance/">精确 Claim Boundary</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

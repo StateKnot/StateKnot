@@ -197,8 +197,20 @@ durable stores. The pinned official runner gate covers all 32 scored client
 scenarios, including all 25 OAuth scenarios: 373 scored assertions succeed,
 zero fail, and 11 capability/method checks outside the advertised Tool surface
 are explicitly skipped. Seven explicitly not-scored extensions remain reported
-and unclaimed. MCP Server, Resources, Prompts, client extensions, and stable
-SDK-tier claims remain unimplemented.
+and unclaimed.
+The new StateKnot-owned MCP Server application layer composes immutable,
+bounded Tools, Resources, Resource Templates, Prompts, and optional Completion
+behind the production stateless HTTP boundary. It enforces authentication,
+admission, authorization-before-disclosure, exact scopes, offline JSON Schema
+2020-12 validation, principal-bound pagination, output validation, progress,
+cancellation, and integrity-bound multi-round request state without exposing
+the official SDK's domain types. The pinned official Server gate covers all 37
+scored scenarios: 114 assertions succeed, five capability checks skip, one SSE
+check is informational, and zero fail or warn. Three unscored schema/header
+gates add 32 successes. The conformance fixture validates the production
+transport; StateKnot's registry and policy layer has separate real-HTTP tests.
+MCP Tasks, broader client extensions, stable API/SDK-tier claims, and complete
+framework production qualification remain unimplemented.
 The adapter is now composed with the durable invocation executor in a real
 PostgreSQL + loopback MCP test: durable start is observed before request I/O,
 lost write responses remain unknown, duplicate execution never redispatches,
@@ -214,9 +226,9 @@ The current milestone is to:
 
 1. preserve the completed PostgreSQL-backed strict MCP recovery proof as a
    mandatory PostgreSQL 16/17 gate;
-2. preserve the separate general MCP Tool/OAuth client and its exact pinned
-   32-scenario official gate while implementing the MCP Server profile as an
-   independent trust and conformance boundary;
+2. preserve the separate MCP Client and Server profiles and their exact pinned
+   32-client/37-server official gates while completing stable API review and
+   keeping Tasks and other extensions behind independent claims;
 3. validate the three frozen production scenarios and accept the core domain,
    graph, durability, and protocol/security RFCs;
 4. qualify role isolation, failover/restore, and the final stale-race gates; and
@@ -234,6 +246,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [strict MCP Remote Tool profile](docs/mcp-remote-tool.md),
 [general stateless MCP Tool client](docs/mcp-client.md),
 [MCP OAuth client authorization](docs/mcp-oauth.md),
+[MCP Server profile](docs/mcp-server.md),
 [MCP conformance status](docs/mcp-conformance.md),
 [durable invocation](docs/durable-invocation-executor.md),
 [fair scheduling](docs/cross-tenant-fair-scheduler.md), and
@@ -244,7 +257,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
-crates/stateknot-integrations/  OpenAI/Anthropic adapters plus strict and general MCP Tool clients
+crates/stateknot-integrations/  OpenAI/Anthropic adapters plus bounded MCP client and server profiles
 crates/stateknot-runtime/  AgentService v1, executable/provider registries, durable Driver, invocation executor, Agent Loop, and fair scheduler
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
