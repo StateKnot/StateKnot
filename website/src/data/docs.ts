@@ -148,6 +148,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "mcp remote tool 2026 07 28 stateless discovery schema authorization ambiguous write postgres reconciliation",
       },
       {
+        title: "MCP Server profile",
+        description:
+          "Expose bounded Tools, Resources, Prompts, Completion, and MRTR behind the strict stateless production boundary.",
+        href: "/docs/mcp-server/",
+        search:
+          "mcp server tool resource template prompt completion mrtr authentication authorization conformance",
+      },
+      {
         title: "MCP conformance status",
         description:
           "See the frozen official runner inventory, implemented evidence, and exact boundary of current MCP claims.",
@@ -321,6 +329,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/mcp-remote-tool/",
         search:
           "mcp remote tool 2026 07 28 stateless discovery schema authorization 不确定 写入 postgres 对账",
+      },
+      {
+        title: "MCP Server Profile",
+        description:
+          "在严格 Stateless 生产边界后暴露有界 Tools、Resources、Prompts、Completion 与 MRTR。",
+        href: "/docs/mcp-server/",
+        search:
+          "mcp server tool resource template prompt completion mrtr authentication authorization conformance 服务端",
       },
       {
         title: "MCP Conformance 状态",

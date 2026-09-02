@@ -31,9 +31,10 @@ Run，并且必须保存 Admission、Ambiguity 与 Reconciliation 证据时，�
 - JSON Schema 只作为不可信有界值保留，绝不通过网络解析 `$ref`。
 
 独立的 [`McpOAuthAuthorization`](mcp-oauth.zh-CN.md) Provider 现已实现交互式
-OAuth Authorization Code Profile。当前 Surface 仍不实现 MCP Server、Resources、
-Prompts、Tasks、Roots、Sampling、Client Credentials、DPoP 或稳定 SDK Tier。Static
-Bearer Credential 仍只是 Transport Credential，不代表 OAuth Flow。
+OAuth Authorization Code Profile。当前 Surface 仍不实现 Resource/Prompt Client、
+Tasks、Roots、Sampling、Client Credentials、DPoP 或稳定 SDK Tier。独立的
+[MCP Server Profile](mcp-server.zh-CN.md) 不会扩大该 Client 声明。Static Bearer
+Credential 仍只是 Transport Credential，不代表 OAuth Flow。
 
 ## 连接、发现与调用
 

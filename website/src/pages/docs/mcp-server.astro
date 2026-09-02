@@ -1,0 +1,207 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const buildCode = `let options = McpServerApplicationOptions::new(
+    "inventory-mcp",
+    "1.0.0",
+    100,
+    Duration::from_secs(60),
+    McpServerCacheScope::Private,
+)?;
+
+let app = McpServerApplicationBuilder::new(options)
+    .with_tools(tool_registry, tool_authorization)?
+    .with_resources(resource_catalog, resource_reader, resource_authorization)?
+    .with_prompts(prompt_catalog, prompt_renderer, prompt_authorization)?
+    .with_completion_provider(completion_provider)?
+    .build()?;
+
+let service = McpServerHttpService::with_admission_control(
+    app,
+    http_options,
+    McpServerAuthentication::bearer(authenticator, bearer_challenge),
+    admission_control,
+)?;`;
+
+const verifyCode = `cargo test -p stateknot-integrations mcp_server_ --locked
+bash conformance/mcp-server/run-2026-07-28.sh`;
+---
+
+<DocsLayout
+  title="Expose a bounded MCP Server without weakening policy."
+  description="Compose StateKnot-owned Tools, Resources, Prompts, Completion, and MRTR behind strict stateless HTTP, decoded authorization, and exact evidence."
+  section="MCP Server profile"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-server-boundary-title"
+  >
+    <h2 id="mcp-server-boundary-title">
+      Implemented Server profile, pre-alpha API
+    </h2>
+    <p>
+      The StateKnot application layer and production transport implement the MCP
+      <code>2026-07-28</code> core Server profile for Tools, Resources, Resource Templates,
+      Prompts, Completion, and MRTR. Tasks, a bundled authorization server, extensions,
+      and a stable Rust API are not claimed.
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-server-flow-title">
+    <h2 id="mcp-server-flow-title">Keep policy in the request path</h2>
+    <ol>
+      <li>
+        Validate Host, Origin, version metadata, and the streaming body limit.
+      </li>
+      <li>Authenticate the Bearer credential into a bounded principal.</li>
+      <li>Apply caller-owned cross-replica admission and quota policy.</li>
+      <li>Decode the JSON-RPC operation; transport headers remain hints.</li>
+      <li>Authorize before existence or schema diagnostics are disclosed.</li>
+      <li>
+        Validate input, execute with cancellation, then validate the result.
+      </li>
+    </ol>
+    <p>
+      Anonymous service construction fails unless every configured Host is
+      literal loopback. Public deployments require TLS at the edge, Bearer
+      authentication, explicit Host/Origin allowlists, and a shared admission
+      implementation.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-server-surface-title">
+    <h2 id="mcp-server-surface-title">Advertise only configured surfaces</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="MCP Server application surface guarantees"
+    >
+      <table>
+        <thead>
+          <tr><th>Surface</th><th>StateKnot boundary</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tools</td>
+            <td>
+              Immutable executable registry, offline JSON Schema 2020-12 input
+              and output validation, progress, cancellation, and bounded
+              content.
+            </td>
+          </tr>
+          <tr>
+            <td>Resources</td>
+            <td>
+              Absolute URI and template validation, authorization-first reads,
+              MIME/Base64 limits, and explicit result cache policy.
+            </td>
+          </tr>
+          <tr>
+            <td>Prompts</td>
+            <td>
+              Unique bounded arguments, authorization before diagnostics, and
+              bounded multi-content messages.
+            </td>
+          </tr>
+          <tr>
+            <td>Completion</td>
+            <td>
+              Optional capability; authenticated references and at most 100
+              unique, pagination-consistent values.
+            </td>
+          </tr>
+          <tr>
+            <td>MRTR</td>
+            <td>
+              Bounded Elicitation/Sampling/Roots requests and
+              integrity-protected, expiring, operation-bound request state.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      An unconfigured surface returns method-not-found. The builder does not
+      publish empty placeholder capabilities, and the official Rust SDK remains
+      a private wire adapter rather than StateKnot's domain model.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-server-catalog-title">
+    <h2 id="mcp-server-catalog-title">Freeze catalogs before traffic</h2>
+    <p>
+      Tool schemas compile offline at startup; unresolved or network <code
+        >$ref</code
+      >
+      values fail the build. Tool, Resource, Template, and Prompt catalogs enforce
+      count and byte ceilings, reject duplicates, sort deterministically, and expose
+      stable digests. Scope-filtered discovery uses principal-bound cursors. Public
+      caching is rejected when any entry is scope-restricted.
+    </p>
+    <p>
+      Descriptions, annotations, schemas, server instructions, client
+      capabilities, and completion values remain untrusted data. They never
+      grant authority.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-server-build-title">
+    <h2 id="mcp-server-build-title">Compose one application</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · construction outline</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-server-build-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-server-build-code"
+        tabindex="0"><code>{buildCode}</code></pre>
+    </div>
+    <p>
+      Mount the resulting Tower service at one exact Axum or Hyper endpoint.
+      Build registries once at startup; never rebuild them per request.
+      Application authorization must use decoded operations, not <code
+        >Mcp-Method</code
+      > or
+      <code>Mcp-Name</code> transport hints.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-server-proof-title">
+    <h2 id="mcp-server-proof-title">Reproduce the evidence</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · application and official gates</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-server-verify-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-server-verify-code"
+        tabindex="0"><code>{verifyCode}</code></pre>
+    </div>
+    <p>
+      The pinned runner passes all 37 scored Server scenarios: 114 assertions
+      succeed, five capability checks skip, one SSE check is informational, and
+      zero fail or warn. Three pending unscored schema/header gates add 32
+      successes. The production transport is exercised by the official fixture;
+      StateKnot registries and policies have separate real-HTTP tests. Read the <a
+        href="/docs/mcp-conformance/">exact claim boundary</a
+      > before publishing compatibility claims.
+    </p>
+  </section>
+</DocsLayout>

@@ -16,6 +16,11 @@ mod http;
 mod mcp;
 mod mcp_client;
 mod mcp_oauth;
+mod mcp_server;
+mod mcp_server_app;
+mod mcp_server_prompt;
+mod mcp_server_resource;
+mod mcp_server_tool;
 mod openai;
 mod sse;
 
@@ -45,5 +50,54 @@ pub use mcp_oauth::{
     McpOAuthRegistration, McpOAuthResource, McpOAuthResourceError, McpOAuthStateStore,
     McpOAuthStoredAuthorizationState, McpOAuthStoredCredentials, McpOAuthUserAgent,
     McpOAuthUserAgentError, McpOAuthUserAuthorizationRequest,
+};
+pub use mcp_server::{
+    AllowMcpServerAdmission, McpServerAdmissionControl, McpServerAdmissionError,
+    McpServerAdmissionRequest, McpServerAuthentication, McpServerAuthenticationError,
+    McpServerAuthenticationRequest, McpServerAuthenticator, McpServerBearerChallenge,
+    McpServerBearerChallengeError, McpServerBearerCredential, McpServerBearerCredentialError,
+    McpServerHttpOptions, McpServerHttpOptionsError, McpServerHttpService,
+    McpServerHttpServiceBuildError, McpServerPrincipal, McpServerPrincipalError,
+    mcp_server_principal,
+};
+pub use mcp_server_app::{
+    McpServerApplication, McpServerApplicationBuildError, McpServerApplicationBuilder,
+};
+pub use mcp_server_prompt::{
+    AllowMcpServerPromptAuthorization, McpServerCompletionError, McpServerCompletionProvider,
+    McpServerCompletionReference, McpServerCompletionRequest, McpServerCompletionResult,
+    McpServerCompletionResultError, McpServerPromptArgument, McpServerPromptAuthorization,
+    McpServerPromptAuthorizationError, McpServerPromptAuthorizationRequest, McpServerPromptCatalog,
+    McpServerPromptCatalogBuilder, McpServerPromptCatalogError, McpServerPromptCatalogLimits,
+    McpServerPromptCatalogLimitsError, McpServerPromptContext, McpServerPromptDefinition,
+    McpServerPromptDefinitionError, McpServerPromptMessage, McpServerPromptOutcome,
+    McpServerPromptRender, McpServerPromptRenderer, McpServerPromptRendererError,
+    McpServerPromptResult, McpServerPromptResultError, McpServerPromptRole, McpServerPromptService,
+    McpServerPromptServiceBuildError,
+};
+pub use mcp_server_resource::{
+    AllowMcpServerResourceAuthorization, McpServerResourceAuthorization,
+    McpServerResourceAuthorizationError, McpServerResourceAuthorizationRequest,
+    McpServerResourceCatalog, McpServerResourceCatalogBuilder, McpServerResourceCatalogError,
+    McpServerResourceCatalogLimits, McpServerResourceCatalogLimitsError, McpServerResourceContent,
+    McpServerResourceContentError, McpServerResourceContext, McpServerResourceDefinition,
+    McpServerResourceDefinitionError, McpServerResourceOutcome, McpServerResourceRead,
+    McpServerResourceReader, McpServerResourceReaderError, McpServerResourceResult,
+    McpServerResourceResultError, McpServerResourceService, McpServerResourceServiceBuildError,
+    McpServerResourceTemplateDefinition,
+};
+pub use mcp_server_tool::{
+    AllowMcpServerToolAuthorization, McpServerApplicationOptions, McpServerApplicationOptionsError,
+    McpServerCacheScope, McpServerContent, McpServerContentError, McpServerInputRequest,
+    McpServerInputRequired, McpServerInputRequiredError, McpServerRequestStateCodec,
+    McpServerRequestStateCodecBuildError, McpServerRequestStateError,
+    McpServerRequiredClientCapability, McpServerToolAnnotations, McpServerToolAuthorization,
+    McpServerToolAuthorizationError, McpServerToolAuthorizationRequest, McpServerToolCall,
+    McpServerToolContext, McpServerToolDefinition, McpServerToolDefinitionError,
+    McpServerToolHandler, McpServerToolHandlerError, McpServerToolOutcome,
+    McpServerToolProgressError, McpServerToolRegistry, McpServerToolRegistryBuilder,
+    McpServerToolRegistryError, McpServerToolRegistryLimits, McpServerToolRegistryLimitsError,
+    McpServerToolResult, McpServerToolResultError, McpServerToolService,
+    McpServerToolServiceBuildError,
 };
 pub use openai::OpenAiResponsesModel;

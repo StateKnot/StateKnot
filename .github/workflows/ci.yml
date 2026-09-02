@@ -139,6 +139,9 @@ jobs:
       - name: Run frozen MCP client requirement set
         run: bash conformance/mcp-client/run-2026-07-28.sh
 
+      - name: Run frozen MCP server requirement set
+        run: bash conformance/mcp-server/run-2026-07-28.sh
+
   cross-platform:
     name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

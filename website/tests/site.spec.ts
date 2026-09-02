@@ -106,6 +106,12 @@ const localizedRoutePairs = [
     zhHeading: "绑定一个 MCP Tool，不削弱耐久语义。",
   },
   {
+    en: "/docs/mcp-server/",
+    zh: "/zh/docs/mcp-server/",
+    enHeading: "Expose a bounded MCP Server without weakening policy.",
+    zhHeading: "在不削弱 Policy 的前提下暴露有界 MCP Server。",
+  },
+  {
     en: "/docs/mcp-conformance/",
     zh: "/zh/docs/mcp-conformance/",
     enHeading: "MCP conformance claims stop at the evidence.",
@@ -209,6 +215,9 @@ test("homepage exposes honest implementation status and semantic structure", asy
   ).toBeVisible();
   await expect(
     page.locator(".spec-list").getByText("MCP Remote Tool", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".spec-list").getByText("MCP Server profile", { exact: true }),
   ).toBeVisible();
   await expect(
     page.locator(".spec-list").getByText("AgentService v1", { exact: true }),

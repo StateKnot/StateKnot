@@ -193,9 +193,10 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked
 
 本里程碑尚未交付 Parallel Sibling/Tool Execution、Output Repair、Loop/Subgraph 语义、
 Artifact Retrieval、稳定 Network Agent/Cancellation Transport、Protocol-specific Outbox
-Dispatch、MCP Server/更广 Client 或 A2A Profile、Live-provider Drift Cassette、数据库 Role
+Dispatch、本 Graph 内的 MCP Server/更广 Client 或 A2A Composition、Live-provider Drift Cassette、数据库 Role
 Separation、通用 Retention、Failover/Restore Qualification 或生产 Release。
 [`AgentServiceV1`](agent-service.zh-CN.md) 现在提供嵌入式 Service Boundary，
-[`McpRemoteTool`](mcp-remote-tool.zh-CN.md) 提供一个严格 Client-side Tool Profile；两者都不
-扩大其余支持声明。这些能力仍需要独立版本化契约与可执行证据，不能从
+[`McpRemoteTool`](mcp-remote-tool.zh-CN.md) 提供一个严格 Client-side Tool Profile，独立
+[MCP Server Profile](mcp-server.zh-CN.md) 暴露自身 Application Boundary；三者都不
+扩大 Provider-native Graph 声明。这些能力仍需要独立版本化契约与可执行证据，不能从
 Provider-native Graph 推断得出。

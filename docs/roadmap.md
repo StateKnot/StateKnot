@@ -232,10 +232,19 @@ from the repository.
   client requirement set in CI: all 32 scored scenarios, including all 25
   OAuth scenarios, pass with 373 scored assertions and zero failures. Report
   but do not claim the seven explicitly not-scored extensions.
+- [x] Implement the MCP 2026-07-28 Server transport and StateKnot-owned
+  application profile for immutable Tools, Resources, Resource Templates,
+  Prompts, optional Completion, progress, cancellation, and MRTR. Enforce
+  Bearer authentication, replica-wide admission boundaries,
+  authorization-before-disclosure, scope-bound discovery/cursors, offline
+  JSON Schema 2020-12 validation, bounded results, and private caching for
+  scoped catalogs. Require all 37 scored official Server scenarios in CI:
+  114 assertions pass, five capability checks skip, one SSE check is
+  informational, and zero fail or warn. Keep Tasks explicitly unclaimed.
 - [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
-  protocol-specific outbox adapters, the MCP server profile and broader client
-  extensions, role isolation, general retention,
+  protocol-specific outbox adapters, broader MCP client extensions, the Tasks
+  extension, role isolation, general retention,
   failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.

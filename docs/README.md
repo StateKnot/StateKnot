@@ -70,9 +70,14 @@ conformance output, and the release gates in these documents.
     durable store requirements, operations, and all 25 scored OAuth scenarios.
     A [Simplified Chinese edition](mcp-oauth.zh-CN.md) is maintained alongside
     it.
-17. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
-    all 32 scored client scenarios, CI reproduction, explicitly not-scored
-    extensions, and the boundary that excludes server and SDK-tier claims. A
+17. [MCP Server profile](mcp-server.md) — strict stateless HTTP, immutable
+    Tools/Resources/Prompts catalogs, authorization-first dispatch, bounded
+    Completion and MRTR, operations, and exact Server evidence. A
+    [Simplified Chinese edition](mcp-server.zh-CN.md) is maintained alongside
+    it.
+18. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
+    all 32 scored Client and 37 scored Server scenarios, CI reproduction,
+    explicitly unscored extensions, and the stable-API/Tasks claim boundary. A
     [Simplified Chinese edition](mcp-conformance.zh-CN.md) is maintained
     alongside it.
 

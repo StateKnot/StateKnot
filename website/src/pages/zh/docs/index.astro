@@ -84,6 +84,12 @@ const paths = [
     link: "集成 MCP",
   },
   {
+    title: "暴露 MCP Server",
+    body: "冻结有界 Tool、Resource 与 Prompt Catalog，授权解码后的 Operation，介入 MRTR，并挂载一个严格 Stateless HTTP Service。",
+    href: "/zh/docs/mcp-server/",
+    link: "构建 Server Profile",
+  },
+  {
     title: "运行 Provider-native Agent",
     body: "编译一套 Pinned 多轮 Model/Tool Graph，在不重复 Dispatch 的前提下恢复 Transcript，并依据精确 Usage Evidence 确认 Cancellation。",
     href: "/zh/docs/provider-native-agent/",
@@ -135,7 +141,10 @@ const paths = [
       现在还提供有界动态 Discovery、JSON/Request-scoped SSE、Custom Header、MRTR 与<a
         href="/zh/docs/mcp-oauth/">交互式 OAuth Authorization</a
       >；<a href="/zh/docs/mcp-remote-tool/">严格 MCP Remote Tool Profile</a>
-      保留更强耐久 Binding。MCP Server、稳定 Network Transport、A2A 与生产验证仍是发布阻断项。
+      保留更强耐久 Binding。<a href="/zh/docs/mcp-server/">MCP Server Profile</a
+      >
+      现已通过严格生产 Transport 暴露有界 Tools、Resources、Prompts、Completion 与
+      MRTR。稳定 Network Agent Transport、A2A、MCP Tasks 与生产验证仍是发布阻断项。
     </p>
   </aside>
 

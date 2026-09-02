@@ -84,6 +84,12 @@ const paths = [
     link: "Integrate MCP",
   },
   {
+    title: "Expose an MCP Server",
+    body: "Freeze bounded Tool, Resource, and Prompt catalogs, authorize decoded operations, mediate MRTR, and mount one strict stateless HTTP service.",
+    href: "/docs/mcp-server/",
+    link: "Build the Server profile",
+  },
+  {
     title: "Run the provider-native Agent",
     body: "Compile one pinned multi-turn model/tool graph, recover transcripts without redispatch, and confirm cancellation from exact usage evidence.",
     href: "/docs/provider-native-agent/",
@@ -136,8 +142,11 @@ const paths = [
       > now adds bounded dynamic discovery, JSON/request-scoped SSE, custom headers,
       MRTR, and <a href="/docs/mcp-oauth/">interactive OAuth authorization</a>;
       the <a href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a> preserves
-      the stronger durable binding. MCP Server, stable network transport, A2A, and
-      production qualification remain release blockers.
+      the stronger durable binding. The <a href="/docs/mcp-server/"
+        >MCP Server profile</a
+      > now exposes bounded Tools, Resources, Prompts, Completion, and MRTR behind
+      the strict production transport. Stable network Agent transport, A2A, MCP Tasks,
+      and production qualification remain release blockers.
     </p>
   </aside>
 

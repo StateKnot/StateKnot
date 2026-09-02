@@ -99,6 +99,12 @@ const currentCut = [
     href: "/zh/docs/mcp-remote-tool/",
   },
   {
+    surface: "MCP Server Profile",
+    state: "已实现切片",
+    evidence: "全部 37 个计分 Server 场景；114 Success、0 Failure",
+    href: "/zh/docs/mcp-server/",
+  },
+  {
     surface: "A2A Adapter",
     state: "尚未发布",
     evidence: "A2A 1.0 REST/JSON-RPC Client/Server 仍在规划",
@@ -157,12 +163,18 @@ const roadmap = [
   },
   {
     index: "09",
-    state: "现在",
+    state: "已实现",
     title: "构建 MCP Server Profile",
-    body: "通过有界 Stateless Server 暴露已审核 Local Tool，并验证 Discovery、Authorization、Schema、Concurrency、Cancellation 与全部适用官方 Server Requirement，且不削弱 Runtime Policy。",
+    body: "有界 Stateless Tools、Resources、Prompts、Completion、MRTR、Authorization-first Policy 与全部 37 个计分官方 Server 场景现已具备可执行证据。",
   },
   {
     index: "10",
+    state: "现在",
+    title: "构建 A2A 1.0 Profile",
+    body: "把 Agent Card、Message、Task、Artifact、Streaming、Cancellation、Subscription 与可靠 Push 映射到 StateKnot 耐久领域，再通过官方 TCK 验证 REST 与 JSON-RPC。",
+  },
+  {
+    index: "11",
     state: "v1 前",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
@@ -185,9 +197,9 @@ const roadmap = [
             与经过验证的 Result 运行类型化 Root Graph。已实现 Surface 包括
             OpenAI/Anthropic Adapter、可恢复 Provider-native Agent
             Graph、AgentService v1、带交互式 OAuth 的通用 Stateless MCP Tool
-            Client，以及具备 Lost-write Reconciliation 的严格 MCP Remote
-            Tool。MCP Server Profile、稳定 Network API、A2A、高级 Graph
-            语义与生产验证仍未完成。
+            Client、具备 Lost-write Reconciliation 的严格 MCP Remote Tool，以及
+            有界 MCP Server Profile。稳定 Network Agent API、A2A、MCP
+            Tasks、高级 Graph 语义与生产验证仍未完成。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -325,9 +337,9 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
         <h2 id="roadmap-title">开发顺序由证据决定。</h2>
         <p>
           严格 MCP Binding 保留 PostgreSQL-backed Recovery 证据；独立通用 Tool
-          Client 与 OAuth Provider 现在已通过全部 32 个计分 Client 场景。下一条
-          验证边界是 MCP Server Profile；更广 Client Extension 与 A2A
-          仍作为独立门禁。
+          Client 与 OAuth Provider 现已通过全部 32 个计分 Client 场景，Server
+          Profile 通过全部 37 个计分 Server 场景。下一条协议验证边界是 A2A 1.0；
+          MCP Tasks 与更广 Extension 仍作为独立门禁。
         </p>
       </div>
 

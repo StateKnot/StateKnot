@@ -90,6 +90,12 @@ const capabilities = [
     body: "Challenge-driven protected-resource and authorization-server discovery, pre-registration/CIMD/DCR, PKCE, exact issuer and callback validation, bounded scope/replay, durable store interfaces, and all 25 scored OAuth scenarios.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "MCP Server profile",
+    body: "Strict stateless HTTP plus StateKnot-owned immutable Tools, Resources, Resource Templates, Prompts, optional Completion, and MRTR with authorization-first policy; all 37 scored Server scenarios pass with zero failures or warnings.",
+  },
+  {
     state: "Active work",
     className: "status-active",
     title: "Advanced execution and service boundary",
@@ -104,8 +110,8 @@ const capabilities = [
   {
     state: "Not shipped",
     className: "status-planned",
-    title: "Broader MCP and A2A profiles",
-    body: "MCP Server, Resources/Prompts and broader client extensions, complete server/SDK-tier evidence, and all A2A client/server bindings remain unshipped.",
+    title: "MCP extensions and A2A profiles",
+    body: "MCP Tasks and broader client extensions, stable SDK-tier evidence, and all A2A client/server bindings remain unshipped.",
   },
   {
     state: "Not shipped",
@@ -118,7 +124,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: strict and general MCP Tool clients plus interactive OAuth now join the durable provider-native path; server profiles, stable network APIs, A2A, advanced graph semantics, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: bounded MCP Client and Server profiles now join the durable provider-native path; stable network Agent APIs, A2A, MCP Tasks, advanced graph semantics, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -157,9 +163,10 @@ const capabilities = [
       The strict MCP binding retains end-to-end PostgreSQL recovery evidence.
       The separate general Tool client and OAuth provider now pass all 32 frozen
       scored client scenarios, including all 25 OAuth scenarios: 373 scored
-      assertions succeed and none fail. The next protocol boundary is the MCP
-      Server profile and its independent official evidence; broader client
-      extensions and A2A remain separate gates.
+      assertions succeed and none fail. The Server profile passes all 37 scored
+      Server scenarios with 114 successes, five skips, one Info, and zero
+      failures or warnings. The next protocol boundary is A2A 1.0; MCP Tasks and
+      broader extensions remain separate gates.
     </p>
   </section>
 
@@ -204,6 +211,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/docs/mcp-remote-tool/">Strict MCP Remote Tool profile</a>
+      </li>
+      <li>
+        <a href="/docs/mcp-server/">MCP Server profile</a>
       </li>
       <li>
         <a href="/docs/mcp-conformance/">MCP conformance evidence and limits</a>

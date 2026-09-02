@@ -90,6 +90,12 @@ const capabilities = [
     body: "Challenge-driven Protected-resource/Authorization-server Discovery、Pre-registration/CIMD/DCR、PKCE、精确 Issuer/Callback 校验、有界 Scope/Replay、Durable Store Interface，以及全部 25 个计分 OAuth 场景。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "MCP Server Profile",
+    body: "严格 Stateless HTTP，加 StateKnot-owned Immutable Tools、Resources、Resource Templates、Prompts、Optional Completion 与 MRTR，并执行 Authorization-first Policy；全部 37 个计分 Server 场景以 0 Failure、0 Warning 通过。",
+  },
+  {
     state: "开发中",
     className: "status-active",
     title: "高级执行与 Service Boundary",
@@ -104,8 +110,8 @@ const capabilities = [
   {
     state: "尚未发布",
     className: "status-planned",
-    title: "更广 MCP 与 A2A Profile",
-    body: "MCP Server、Resources/Prompts 与更广 Client Extension、完整 Server/SDK-tier 证据，以及全部 A2A Client/Server Binding 尚未交付。",
+    title: "MCP Extension 与 A2A Profile",
+    body: "MCP Tasks 与更广 Client Extension、Stable SDK-tier 证据，以及全部 A2A Client/Server Binding 尚未交付。",
   },
   {
     state: "尚未发布",
@@ -118,7 +124,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：严格与通用 MCP Tool Client 加交互式 OAuth 已加入耐久 Provider-native Path；Server Profile、稳定 Network API、A2A、高级 Graph 语义与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：有界 MCP Client 与 Server Profile 已加入耐久 Provider-native Path；稳定 Network Agent API、A2A、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -159,8 +165,9 @@ const capabilities = [
     <p>
       严格 MCP Binding 保留端到端 PostgreSQL Recovery 证据。独立通用 Tool Client
       与 OAuth Provider 现已通过全部 32 个冻结计分 Client 场景，其中包括全部 25
-      个 OAuth 场景：373 项计分 Assertion Success、0 Failure。下一条协议边界是
-      MCP Server Profile 与其独立官方证据；更广 Client Extension 与 A2A
+      个 OAuth 场景：373 项计分 Assertion Success、0 Failure。Server Profile
+      通过 全部 37 个计分 Server 场景：114 Success、5 Skip、1 Info、0 Failure、0
+      Warning。下一条协议边界是 A2A 1.0；MCP Tasks 与更广 Extension
       仍是独立门禁。
     </p>
   </section>
@@ -206,6 +213,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/zh/docs/mcp-remote-tool/">严格 MCP Remote Tool Profile</a>
+      </li>
+      <li>
+        <a href="/zh/docs/mcp-server/">MCP Server Profile</a>
       </li>
       <li>
         <a href="/zh/docs/mcp-conformance/">MCP Conformance 证据与边界</a>
