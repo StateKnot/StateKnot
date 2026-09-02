@@ -332,6 +332,15 @@ impl McpAuthorizationProvider for AnonymousMcpAuthorization {
     }
 }
 
+impl crate::mcp_client::McpClientAuthorizationProvider for AnonymousMcpAuthorization {
+    fn resolve(
+        &self,
+        _request: &crate::mcp_client::McpClientAuthorizationRequest,
+    ) -> BoxFuture<'_, Result<McpAuthorization, McpAuthorizationError>> {
+        Box::pin(async { Ok(McpAuthorization::Anonymous) })
+    }
+}
+
 /// Immutable bearer authorization for controlled single-tenant bindings.
 #[derive(Clone)]
 pub struct StaticMcpBearerAuthorization {
@@ -364,6 +373,16 @@ impl McpAuthorizationProvider for StaticMcpBearerAuthorization {
     fn resolve_attempt(
         &self,
         _context: &ToolContext,
+    ) -> BoxFuture<'_, Result<McpAuthorization, McpAuthorizationError>> {
+        let key = self.key.as_ref().clone();
+        Box::pin(async move { Ok(McpAuthorization::Bearer(key)) })
+    }
+}
+
+impl crate::mcp_client::McpClientAuthorizationProvider for StaticMcpBearerAuthorization {
+    fn resolve(
+        &self,
+        _request: &crate::mcp_client::McpClientAuthorizationRequest,
     ) -> BoxFuture<'_, Result<McpAuthorization, McpAuthorizationError>> {
         let key = self.key.as_ref().clone();
         Box::pin(async move { Ok(McpAuthorization::Bearer(key)) })

@@ -20,3 +20,6 @@ coverage/
 /website/.astro/
 /website/playwright-report/
 /website/test-results/
+
+/conformance/mcp-client/node_modules/
+/conformance/mcp-client/results/

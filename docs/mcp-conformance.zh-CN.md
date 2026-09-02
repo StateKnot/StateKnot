@@ -5,66 +5,109 @@ SPDX-License-Identifier: Apache-2.0
 
 # MCP Conformance 状态
 
-本文记录 StateKnot 对官方 MCP Conformance 能声明什么、不能声明什么。它是一份证据报告，不是兼容性徽章。
+本文只声明当前可执行证据能够支持的范围，不是完整 Client Badge。
+
+## 当前声明
+
+StateKnot 已实现两个相互独立的 MCP `2026-07-28` Client-side Tool Surface：
+
+- [`McpRemoteTool`](mcp-remote-tool.zh-CN.md)：带已审核 Server/Schema Pin 与
+  Reconciliation-first Ambiguous Write 的严格耐久 Binding；
+- [`McpClient`](mcp-client.zh-CN.md)：支持动态 Discovery、JSON/Request-scoped
+  SSE、`x-mcp-header` 与 MRTR 的有界通用 Stateless Tool Client。
+
+通用 Client 通过了冻结官方 `2026-07-28` Requirement Set 中全部计分的**非 OAuth
+Client 场景**。剩余 25 个计分 OAuth Client 场景尚未实现，因此 StateKnot 不声明
+完整 MCP Client、Server、Authorization Server 或 SDK-tier Conformance。
 
 ## 冻结的评估输入
 
-2026-09-02 使用以下命令刷新场景清单：
+证据于 2026-09-02 使用以下输入生成：
+
+- npm Package：`@modelcontextprotocol/conformance@0.2.0-alpha.11`；
+- npm Integrity：
+  `sha512-imPK9tx5gQsL6ZKQq4MrsyDYfSaIwpRmX6+ogjbeAXs9LGvxkBxWcY7KcS7TvwaBk/ZiVWl6b/naF4q83UwDRA==`；
+- Source `gitHead`：`c321dd32035556e6769d3724a8ee97d87c3faaac`；
+- Protocol 与冻结 Requirement Revision：`2026-07-28`；
+- Rust `1.88.0`、Node.js `24.19.0`；
+- 不使用 Expected-failures File。
+
+Package 与完整 Transitive Dependency Graph 精确固定在
+`conformance/mcp-client/package-lock.json`。Observed Platform Manifest 位于
+`conformance/mcp-client/evidence/2026-09-02-macos-arm64.json`。
+
+权威清单命令为：
 
 ```console
 npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2026-07-28
 ```
 
-本次评估固定为：
+清单包含 69 个计分场景：37 个 Server 与 32 个 Client 场景。Client Set 包含 7
+个非 OAuth 场景和 25 个 OAuth 场景。
 
-- npm 包：`@modelcontextprotocol/conformance@0.2.0-alpha.11`；
-- npm Integrity：
-  `sha512-imPK9tx5gQsL6ZKQq4MrsyDYfSaIwpRmX6+ogjbeAXs9LGvxkBxWcY7KcS7TvwaBk/ZiVWl6b/naF4q83UwDRA==`；
-- Source `gitHead`：`c321dd32035556e6769d3724a8ee97d87c3faaac`；
-- 冻结 Requirement Revision：`2026-07-28`。
+## 结果
 
-官方 Requirement Set 包含 69 个计分场景：37 个 Server 场景和 32 个 Client 场景。StateKnot 当前没有实现 MCP Server、OAuth Client、Roots、Prompts、Resources、MRTR、Tasks 或通用 MCP Client，因此**不声明完整 MCP Client、Server 或 SDK Tier Conformance**。
+| 官方 Client 场景 | Success | Skipped | Failure |
+| --- | ---: | ---: | ---: |
+| `tools_call` | 2 | 0 | 0 |
+| `request-metadata` | 5 | 3 | 0 |
+| `http-standard-headers` | 3 | 8 | 0 |
+| `http-custom-headers` | 18 | 0 | 0 |
+| `http-invalid-tool-headers` | 11 | 0 | 0 |
+| `json-schema-ref-no-deref` | 1 | 0 | 0 |
+| `sep-2322-client-request-state` | 5 | 0 | 0 |
+| **合计** | **45** | **11** | **0** |
 
-权威 Runner 与 Requirement Set 规则见[官方 MCP Conformance 仓库](https://github.com/modelcontextprotocol/conformance)，Tool 协议要求见 [MCP 2026-07-28 Tool Specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx)。
+3 个 Metadata Skip 是 StateKnot 没有声明的 Optional Roots、Sampling 与
+Elicitation Capability。8 个 Standard Header Skip 属于本 Tool Client Surface
+之外的 Lifecycle、Resource 与 Prompt Method。Skip 不计作 Pass，也不会据此声明不支持的能力。
 
-## 为什么严格 Tool Profile 不能记为官方通过
+成功 Check 覆盖 Tool 调用与 Wire Schema；必需 Request Metadata 与 Version Retry；
+Tool Standard Header；Primitive、Nested、Null-omitting、Base64 Custom Header；逐个
+排除无效 Annotation Tool；禁止网络 `$ref` Dereference；以及使用全新 JSON-RPC ID、
+精确隔离 Request State 的 MRTR。
 
-`McpRemoteTool` 是更窄的部署 Binding，不是官方 Requirement Set 评分的通用 MCP Client Role。注册或提交结果前，它有意强制要求：
-
-- 精确且经过审核的本地 Input/Output Schema；
-- 远端发现的 Input/Output Schema 与本地 Canonical Bytes 完全相同；
-- 精确的预期 Server Implementation Name/Version；
-- Complete `structuredContent`，并通过固定 Output Schema 校验；
-- 每个已 Admission Attempt 只执行一次 `tools/call`，禁用 Transport Retry；
-- 写入结果不确定时必须显式 Reconciliation。
-
-官方必需的 `tools_call` Client Fixture 会故意发布一个没有 `outputSchema` 的 Tool，并返回没有 `structuredContent` 的 Text Content。通用 MCP Client 可以调用它，但 StateKnot 的严格 Binding 必须拒绝。把这种拒绝记为通过，或只为 Runner 放宽生产约束，都会错误描述双方合约。
-
-StateKnot 也不会用 Expected-failure 文件把该差异“刷绿”。官方 Runner 明确规定：Baseline Failure 在冻结 Requirement Set 下仍然是 Failure；Baseline 用于回归控制，不会授予 Conformance。
-
-## 已存在的可执行证据
-
-以下测试是强制门禁，覆盖当前已实现 Profile：
+## 复现门禁
 
 ```console
-cargo test -p stateknot-integrations --test mcp_contract --locked
-cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1
+cd conformance/mcp-client
+npm ci --ignore-scripts
+cd ../..
+bash conformance/mcp-client/run-2026-07-28.sh
 ```
 
-第一套测试证明 Stateless Discovery、Protocol 与标准 Request Header、Server/Schema Pin、Attempt-scoped Authorization、有界 One-call 行为、Schema Drift 拒绝，以及 Lost Write Response 的 Reconcile-first 映射。
+脚本会构建真实 Rust Driver，逐个运行 7 个精确场景，把官方原始 Output 保存到被
+Git 忽略的 `results/` 目录，然后强制校验 45 Success、11 Skip、0 Failure。场景
+缺失、重复、意外增加或 Result Drift 都会使命令失败。
 
-第二套测试同时使用真实 PostgreSQL Store 与真实 Loopback MCP Exchange。测试会在 Server 收到 `tools/call` 后暂停，并证明 Invocation 已经耐久进入 `Executing`；随后模拟 Write Response 丢失，证明状态进入 `Unknown`、重复执行不会再次 Dispatch、权威 Reconciliation 可以提交，且同一对账事件精确幂等，网络调用始终只有一次。CI 会在 PostgreSQL 16 与 17 上运行该测试。
+CI 使用固定 Rust 与 Node Toolchain 执行同一脚本，不使用 Expected-failures
+Baseline。独立 HTTP/SSE Contract 还会验证分片 Request-scoped SSE、Notification
+顺序、Nested Promoted Header、Credential 与 Per-request Metadata：
 
-这些是 StateKnot Profile Evidence，不是官方 MCP Requirement Set 的替代品。
+```console
+cargo test -p stateknot-integrations --test mcp_client_contract --locked
+```
 
-## 将来声明 Conformance 的门槛
+## 为什么严格耐久 Profile 仍然独立
 
-未来的通用 MCP Client 必须与 `McpRemoteTool` 分成不同 Surface，不能让更广互操作性削弱严格耐久 Binding。声明任何 Client Conformance 前，StateKnot 必须：
+官方 `tools_call` Fixture 会故意发布一个没有 Output Schema 的 Tool，并返回没有
+`structuredContent` 的 Text；这对通用 Client 是合法的。`McpRemoteTool` 必须拒绝
+它，因为耐久 Binding 强制要求精确已审核 Input/Output Schema、固定 Server
+Implementation、本地校验 Structured Output、Durable-before-dispatch State，以及
+Ambiguous Write 后的显式 Reconciliation。
 
-1. 定义并完成通用 Client Surface 的安全评审，明确它与已审核 `ToolDescriptor` Snapshot 的关系；
-2. 实现所选冻结 Requirement Revision 中所有计分 Client 能力，包括 OAuth 与 Request-state 行为；否则不得声明 SDK Tier；
-3. 在强制 CI 中运行精确冻结的官方 Requirement Set，不允许 Unexpected Failure，也不能使用误导性的整套 Expected-failure；
-4. 将生成的 Checks、Runner Identity、Command、Platform 与 Date 作为 Release Artifact 提交；
-5. 继续把严格 Remote Tool Profile Test 与 PostgreSQL Recovery Proof 作为独立发布门禁。
+通用 Client 通过 Fixture 不会放宽该合约。两个 Surface 共享有界 Transport
+Primitive，但保留不同的 Trust 与 Recovery Guarantee。
 
-在这些条件满足前，准确状态是：**已经实现严格 MCP 2026-07-28 Remote Tool Profile；不声明官方完整 Client/Server Conformance**。
+## 剩余门禁
+
+完整 MCP Client Conformance 仍需要单独安全评审的 OAuth 实现，并通过全部 25 个
+冻结 OAuth 场景。MCP Server、Resources、Prompts、Tasks 与 SDK-tier 声明都需要
+各自实现和官方证据。未来发布声明还必须把生成的 Check 与 Platform Identity 作为
+Release Artifact 发布，同时继续把严格 Remote Tool PostgreSQL Recovery Test 保留为独立门禁。
+
+Runner 的权威来源是[官方 MCP Conformance 仓库](https://github.com/modelcontextprotocol/conformance)。协议行为由
+[MCP 2026-07-28 Base Protocol](https://modelcontextprotocol.io/specification/2026-07-28/basic/index)、
+[Streamable HTTP Transport](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)、
+[Tool Surface](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) 与
+[MRTR Pattern](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr)定义。

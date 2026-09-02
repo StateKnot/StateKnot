@@ -124,6 +124,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "agent service api submit read cancel cancellation authorization idempotency ingress",
       },
       {
+        title: "General MCP Tool client",
+        description:
+          "Discover and call bounded stateless MCP 2026-07-28 Tools with JSON/SSE, custom headers, and mediated MRTR.",
+        href: "/docs/mcp-client/",
+        search:
+          "mcp general client tool stateless discover catalog sse custom header mrtr request state conformance",
+      },
+      {
         title: "MCP Remote Tool",
         description:
           "Bind one strict stateless MCP 2026-07-28 Tool with pinned identity, schemas, durable dispatch, and reconciliation.",
@@ -281,6 +289,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/agent-service/",
         search:
           "agent service api 提交 读取 取消 authorization idempotency ingress",
+      },
+      {
+        title: "通用 MCP Tool Client",
+        description:
+          "通过 JSON/SSE、Custom Header 与受控 MRTR 发现和调用有界 Stateless MCP 2026-07-28 Tool。",
+        href: "/docs/mcp-client/",
+        search:
+          "mcp 通用 client tool stateless 发现 catalog sse custom header mrtr request state conformance",
       },
       {
         title: "MCP Remote Tool",

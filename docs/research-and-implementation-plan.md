@@ -940,6 +940,15 @@ SSE、Reconnect、MRTR/Tasks、Progress、Artifact Content、Required-key Inject
 MCP Server 与其他 Capability 仍明确拒绝；见
 [MCP Remote Tool 合约](mcp-remote-tool.zh-CN.md)。
 
+第二个独立切片 `McpClient` 已实现通用 Stateless Tool Client：有界
+`server/discover` 与 `tools/list` Pagination、JSON/Request-scoped SSE、标准与嵌套
+Custom Header、逐请求 Authorization、无效 Tool 隔离、禁止网络 `$ref`
+Dereference，以及精确 MRTR Request State。固定官方 Runner 的 7 个计分非 OAuth
+Client 场景在 CI 中强制执行，45 项 Assertion 成功、0 失败，11 项 Surface 外检查
+明确 Skip。剩余 25 个计分 OAuth 场景、Server、Resources、Prompts 与完整 SDK-tier
+声明尚未实现；见[通用 MCP Tool Client](mcp-client.zh-CN.md)与
+[MCP Conformance 状态](mcp-conformance.zh-CN.md)。
+
 - 同时支持 client 与 server；本地工具和 graph/workflow 可暴露为 MCP tools；
 - 以 2026-07-28 stateless core 为主线，每个请求携带自描述路由信息；
 - tools 输入输出完整支持 JSON Schema 2020-12；

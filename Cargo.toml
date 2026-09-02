@@ -12,6 +12,7 @@ members = [
 resolver = "3"
 
 [workspace.dependencies]
+base64 = "0.22.1"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 fluent-uri = { version = "0.4.1", default-features = false, features = ["alloc"] }
 futures-core = "0.3.31"

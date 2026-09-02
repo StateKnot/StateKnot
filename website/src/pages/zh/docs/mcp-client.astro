@@ -1,0 +1,197 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const clientCode = `use std::sync::Arc;
+
+use serde_json::json;
+use stateknot_integrations::{
+    ApiKey, McpClient, McpClientIdentity, McpClientOptions,
+    McpToolCall, ProviderEndpoint, StaticMcpBearerAuthorization,
+};
+
+let client = McpClient::connect(
+    ProviderEndpoint::https("https://mcp.example.com/mcp/")?,
+    McpClientIdentity::new("inventory-agent", "1.0.0")?,
+    Arc::new(StaticMcpBearerAuthorization::new(
+        ApiKey::new(std::env::var("MCP_TOKEN")?)?,
+    )),
+    McpClientOptions::default(),
+)
+.await?;
+
+let catalog = client.list_tools().await?;
+let tool = catalog.find("inventory_lookup").ok_or("Tool unavailable")?;
+let response = client.call_tool(tool, json!({ "sku": "STK-001" })).await?;
+
+match response.into_outcome() {
+    McpToolCall::Complete(result) => println!("{}", result.content().len()),
+    McpToolCall::InputRequired(pending) => {
+        // 把每个请求路由到可信 Host 子系统，绝不自动批准。
+        println!("{} inputs required", pending.input_requests().len());
+    }
+    _ => return Err("unsupported future outcome".into()),
+}`;
+
+const verifyCode = `cargo test -p stateknot-integrations --test mcp_client_contract --locked
+bash conformance/mcp-client/run-2026-07-28.sh`;
+---
+
+<DocsLayout
+  title="安全调用一个 Stateless MCP Tool。"
+  description="连接有界 StateKnot MCP 2026-07-28 Tool Client，理解 Trust Boundary，处理 MRTR，并复现固定官方证据。"
+  section="通用 MCP Tool Client"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-client-boundary-title"
+  >
+    <h2 id="mcp-client-boundary-title">已实现 Tool Client，Pre-alpha API</h2>
+    <p>
+      <code>McpClient</code> 已实现 Stateless MCP 2026-07-28 Tool Surface。 OAuth、MCP
+      Server、Resources、Prompts、Tasks 与稳定 SDK-tier 支持尚未实现； Crate 也尚未发布。
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-client-choose-title">
+    <h2 id="mcp-client-choose-title">选择正确的 MCP 边界</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt><code>McpClient</code></dt>
+        <dd>
+          动态互操作：发现有界 Tool Catalog、保留不可信 Wire Schema、调用 Tool、
+          接收 Request-scoped SSE，并由 Host 介入 Multi-round Input。
+        </dd>
+      </div>
+      <div>
+        <dt><code>McpRemoteTool</code></dt>
+        <dd>
+          耐久外部副作用：固定已审核 Server/Input/Output Identity，先提交
+          Dispatch Evidence，保留不确定 Write，并在不 Redispatch 的前提下
+          Reconcile。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="mcp-client-call-title">
+    <h2 id="mcp-client-call-title">发现并调用一个 Tool</h2>
+    <p>
+      生产 Endpoint 强制 HTTPS。每个 Stateless POST 都独立解析 Authorization，
+      因此生产 Provider 可以轮换 Credential。不要把 Secret 放入 Endpoint URL、
+      Request Metadata 或 Log。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 通用 Tool Client</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-mcp-client-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="zh-mcp-client-code" tabindex="0"><code>{clientCode}</code></pre>
+    </div>
+    <p>
+      依赖 Catalog 形态前先检查 <code>rejected_tools()</code>。无效
+      <code>x-mcp-header</code> Descriptor 会被单独排除，永远不可调用，也不会隐藏
+      有效 Sibling。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-client-safety-title">
+    <h2 id="mcp-client-safety-title">始终把 Discovery 与 Output 视为不可信</h2>
+    <ul>
+      <li>
+        Tool Description、Annotation、Schema、Content、Structured Content、
+        Notification 与 Server Instruction 都不会自动授予权限。
+      </li>
+      <li>
+        Network <code>$ref</code> 会被保留但绝不 Dereference；执行本地 Validation
+        前必须应用 Offline Allowlist Schema Policy。
+      </li>
+      <li>
+        String、Integer、Boolean <code>x-mcp-header</code> 只从静态可达 Property 派生。不安全
+        Byte 使用 MCP Base64 Sentinel，Null 与缺失值被省略。
+      </li>
+      <li>
+        Tool-level <code>isError</code> 仍是可供 Agent 恢复的 Result；Transport 与
+        Protocol Failure 是类型化 Client Error。
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="mcp-client-mrtr-title">
+    <h2 id="mcp-client-mrtr-title">每一轮 MRTR 都必须由 Host 介入</h2>
+    <p>
+      <code>input_required</code> Result 拥有原始 Tool、Arguments、Client 与 Opaque
+      <code>requestState</code>。Host 必须把每个声明 Request
+      路由到可信子系统，并 精确返回所需 Key。<code>resume</code> 会消费 Pending Value、使用全新
+      JSON-RPC ID、在 State 存在时精确回传，而且绝不跨调用泄漏。StateKnot 不会自动批准
+      Elicitation 或虚构 Roots/Sampling 数据。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-client-limits-title">
+    <h2 id="mcp-client-limits-title">给每次 Exchange 设置边界</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="MCP Client 默认资源上限"
+    >
+      <table>
+        <thead>
+          <tr><th>资源</th><th>默认值</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Logical Request / 并发请求</td><td>30 s / 16</td></tr>
+          <tr><td>Catalog Page / Entry</td><td>16 / 1,024</td></tr>
+          <tr><td>Request / JSON Response</td><td>16 MiB / 2 MiB</td></tr>
+          <tr
+            ><td>SSE Line / Event / Total</td><td>512 KiB / 2 MiB / 64 MiB</td
+            ></tr
+          >
+          <tr><td>每个 Response 的 Notification</td><td>1,024</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Logical Request Deadline 的硬上限为 24 小时。 Redirect 与 Generic Retry
+      被禁用。Timeout 或 Tool Response 丢失后绝不自动 Replay。只有协议定义的 <code
+        >-32022</code
+      > Version Negotiation 会在 Server 明确声明支持本版本后 Retry 一次。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-client-proof-title">
+    <h2 id="mcp-client-proof-title">复现证据</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 本地与官方门禁</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-mcp-client-verify-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-mcp-client-verify-code"
+        tabindex="0"><code>{verifyCode}</code></pre>
+    </div>
+    <p>
+      固定官方 Runner 通过全部 7 个计分非 OAuth Client 场景：45 项 Assertion
+      Success、0 Failure，11 项 Surface 外检查明确 Skip。提出兼容性声明前请阅读<a
+        href="/zh/docs/mcp-conformance/">精确 Conformance 边界</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

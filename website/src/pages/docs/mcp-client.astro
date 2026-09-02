@@ -1,0 +1,208 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const clientCode = `use std::sync::Arc;
+
+use serde_json::json;
+use stateknot_integrations::{
+    ApiKey, McpClient, McpClientIdentity, McpClientOptions,
+    McpToolCall, ProviderEndpoint, StaticMcpBearerAuthorization,
+};
+
+let client = McpClient::connect(
+    ProviderEndpoint::https("https://mcp.example.com/mcp/")?,
+    McpClientIdentity::new("inventory-agent", "1.0.0")?,
+    Arc::new(StaticMcpBearerAuthorization::new(
+        ApiKey::new(std::env::var("MCP_TOKEN")?)?,
+    )),
+    McpClientOptions::default(),
+)
+.await?;
+
+let catalog = client.list_tools().await?;
+let tool = catalog.find("inventory_lookup").ok_or("Tool unavailable")?;
+let response = client.call_tool(tool, json!({ "sku": "STK-001" })).await?;
+
+match response.into_outcome() {
+    McpToolCall::Complete(result) => println!("{}", result.content().len()),
+    McpToolCall::InputRequired(pending) => {
+        // Route each request to a trusted host subsystem; never auto-approve it.
+        println!("{} inputs required", pending.input_requests().len());
+    }
+    _ => return Err("unsupported future outcome".into()),
+}`;
+
+const verifyCode = `cargo test -p stateknot-integrations --test mcp_client_contract --locked
+bash conformance/mcp-client/run-2026-07-28.sh`;
+---
+
+<DocsLayout
+  title="Call a stateless MCP Tool safely."
+  description="Connect the bounded StateKnot MCP 2026-07-28 Tool client, inspect its trust boundary, handle MRTR, and reproduce the pinned official evidence."
+  section="General MCP Tool client"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-client-boundary-title"
+  >
+    <h2 id="mcp-client-boundary-title">
+      Implemented Tool client, pre-alpha API
+    </h2>
+    <p>
+      <code>McpClient</code> implements the stateless MCP 2026-07-28 Tool surface.
+      OAuth, MCP Server, Resources, Prompts, Tasks, and stable SDK-tier support are
+      not implemented. The crate remains unpublished.
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-client-choose-title">
+    <h2 id="mcp-client-choose-title">Choose the correct MCP boundary</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt><code>McpClient</code></dt>
+        <dd>
+          Dynamic interoperability: discover a bounded Tool catalog, preserve
+          untrusted wire schemas, call Tools, receive request-scoped SSE, and
+          mediate multi-round input.
+        </dd>
+      </div>
+      <div>
+        <dt><code>McpRemoteTool</code></dt>
+        <dd>
+          Durable external effects: pin reviewed server/input/output identity,
+          commit dispatch evidence first, retain ambiguous writes, and reconcile
+          without redispatch.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="mcp-client-call-title">
+    <h2 id="mcp-client-call-title">Discover and call one Tool</h2>
+    <p>
+      Production endpoints require HTTPS. Authorization resolves independently
+      for every stateless POST, so a production provider can rotate credentials.
+      Never put secrets in endpoint URLs, request metadata, or logs.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · general Tool client</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-client-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="mcp-client-code" tabindex="0"><code>{clientCode}</code></pre>
+    </div>
+    <p>
+      Inspect <code>rejected_tools()</code> before relying on catalog shape. An invalid
+      <code>x-mcp-header</code> descriptor is excluded individually; it never becomes
+      callable and does not hide valid siblings.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-client-safety-title">
+    <h2 id="mcp-client-safety-title">Keep discovery and output untrusted</h2>
+    <ul>
+      <li>
+        Tool descriptions, annotations, schemas, content, structured content,
+        notifications, and server instructions do not grant authority.
+      </li>
+      <li>
+        Network <code>$ref</code> values are retained but never dereferenced. Apply
+        an offline allowlisted schema policy before local validation.
+      </li>
+      <li>
+        String, integer, and boolean <code>x-mcp-header</code> values are derived
+        only through statically reachable properties. Unsafe bytes use the MCP Base64
+        sentinel; null and absent values are omitted.
+      </li>
+      <li>
+        Tool-level <code>isError</code> remains a result for Agent recovery; transport
+        and protocol failures remain typed client errors.
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="mcp-client-mrtr-title">
+    <h2 id="mcp-client-mrtr-title">Mediate every MRTR round</h2>
+    <p>
+      An <code>input_required</code> result owns the original Tool, arguments, client,
+      and opaque <code>requestState</code>. The host must route each declared
+      request to a trusted subsystem and return exactly the requested keys. <code
+        >resume</code
+      > consumes the pending value, uses a fresh JSON-RPC ID, echoes the exact state
+      when present, and never leaks it across calls. StateKnot does not auto-approve
+      elicitation or invent Roots/Sampling data.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-client-limits-title">
+    <h2 id="mcp-client-limits-title">Bound every exchange</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="Default MCP client resource limits"
+    >
+      <table>
+        <thead>
+          <tr><th>Resource</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr
+            ><td>Logical request / concurrent requests</td><td>30 s / 16</td
+            ></tr
+          >
+          <tr><td>Catalog pages / entries</td><td>16 / 1,024</td></tr>
+          <tr><td>Request / JSON response</td><td>16 MiB / 2 MiB</td></tr>
+          <tr
+            ><td>SSE line / event / total</td><td>512 KiB / 2 MiB / 64 MiB</td
+            ></tr
+          >
+          <tr><td>Notifications per response</td><td>1,024</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      The logical request deadline has a 24-hour hard ceiling. Redirects and
+      generic retries are disabled. A timeout or lost Tool response is never
+      automatically replayed. Only the protocol-defined
+      <code>-32022</code> version negotiation path receives one retry after the server
+      explicitly advertises this version.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-client-proof-title">
+    <h2 id="mcp-client-proof-title">Reproduce the evidence</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · local and official gates</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-client-verify-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-client-verify-code"
+        tabindex="0"><code>{verifyCode}</code></pre>
+    </div>
+    <p>
+      The pinned official runner passes all seven scored non-OAuth client
+      scenarios: 45 assertions succeed, zero fail, and 11 out-of-surface checks
+      are explicitly skipped. Read the <a href="/docs/mcp-conformance/"
+        >exact conformance boundary</a
+      > before making a compatibility claim.
+    </p>
+  </section>
+</DocsLayout>

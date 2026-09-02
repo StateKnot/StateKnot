@@ -14,6 +14,17 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Separate general stateless MCP 2026-07-28 Tool client with bounded discovery
+  and pagination, JSON/request-scoped SSE, standard and nested custom headers,
+  invalid-Tool isolation, request-scoped authorization, exact MRTR request
+  state, hard transport ceilings, and no network schema dereference.
+- Pinned official MCP client runner and mandatory CI gate for all seven scored
+  non-OAuth scenarios in the frozen 2026-07-28 requirement set: 45 successful
+  assertions, zero failures, 11 explicit out-of-surface skips, and no
+  expected-failures baseline.
+- Bilingual general MCP client tutorial and updated conformance evidence,
+  implementation-status, roadmap, navigation, responsive tables, and browser
+  route/accessibility contracts.
 - Public `AgentServiceV1` embedding boundary with authorization-before-lookup,
   immutable deployment registration, durable submission-key recovery, exact
   cancellation identities, database-authoritative timestamps, and a stable

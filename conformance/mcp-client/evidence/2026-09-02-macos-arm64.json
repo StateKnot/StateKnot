@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "scope": "StateKnot stateless Tool client; selected non-OAuth client scenarios required by the MCP 2026-07-28 requirement revision",
+  "observedAt": "2026-09-02",
+  "protocolVersion": "2026-07-28",
+  "runner": {
+    "package": "@modelcontextprotocol/conformance",
+    "version": "0.2.0-alpha.11",
+    "integrity": "sha512-imPK9tx5gQsL6ZKQq4MrsyDYfSaIwpRmX6+ogjbeAXs9LGvxkBxWcY7KcS7TvwaBk/ZiVWl6b/naF4q83UwDRA==",
+    "sourceGitHead": "c321dd32035556e6769d3724a8ee97d87c3faaac"
+  },
+  "implementation": {
+    "source": "crates/stateknot-integrations/examples/mcp_conformance_client.rs",
+    "rustc": "1.88.0 (6b00bc388 2025-06-23)",
+    "node": "24.19.0",
+    "platform": "aarch64-apple-darwin"
+  },
+  "command": "bash conformance/mcp-client/run-2026-07-28.sh",
+  "expectedFailuresFile": null,
+  "scenarios": {
+    "tools_call": { "success": 2, "skipped": 0 },
+    "request-metadata": { "success": 5, "skipped": 3 },
+    "http-standard-headers": { "success": 3, "skipped": 8 },
+    "http-custom-headers": { "success": 18, "skipped": 0 },
+    "http-invalid-tool-headers": { "success": 11, "skipped": 0 },
+    "json-schema-ref-no-deref": { "success": 1, "skipped": 0 },
+    "sep-2322-client-request-state": { "success": 5, "skipped": 0 }
+  },
+  "totals": {
+    "scenarios": 7,
+    "success": 45,
+    "skipped": 11,
+    "failure": 0
+  },
+  "claimBoundary": "This evidence is not a complete MCP client, server, OAuth, or SDK-tier conformance claim."
+}

@@ -14,6 +14,7 @@ mod anthropic;
 mod credential;
 mod http;
 mod mcp;
+mod mcp_client;
 mod openai;
 mod sse;
 
@@ -27,5 +28,12 @@ pub use mcp::{
     AnonymousMcpAuthorization, McpAuthorization, McpAuthorizationError, McpAuthorizationProvider,
     McpHttpOptions, McpHttpOptionsError, McpRemoteTool, McpRemoteToolBuildError, McpSchemaRegistry,
     McpServerIdentity, McpServerIdentityError, StaticMcpBearerAuthorization,
+};
+pub use mcp_client::{
+    MCP_PROTOCOL_VERSION_2026_07_28, McpCachePolicy, McpClient, McpClientAuthorizationProvider,
+    McpClientAuthorizationRequest, McpClientIdentity, McpClientIdentityError, McpClientOptions,
+    McpClientOptionsError, McpClientServer, McpCompleteToolResult, McpInputRequired,
+    McpNotification, McpRejectedTool, McpRemoteError, McpTool, McpToolCall, McpToolCallResponse,
+    McpToolCatalog, McpToolPage, McpToolRejectionReason, StatelessMcpClientError,
 };
 pub use openai::OpenAiResponsesModel;
