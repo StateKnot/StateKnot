@@ -32,6 +32,20 @@ SPDX-License-Identifier: Apache-2.0
 - 安全、可观测性、评测、成本预算、人工审批、租户隔离和崩溃恢复都属于核心能力，不是后续插件。
 - 项目源代码、文档、示例与正式发布物统一采用 **Apache License 2.0（SPDX：`Apache-2.0`）**；第三方内容按其原许可证保留归属与 NOTICE，不以该许可证暗示项目隶属于 Apache Software Foundation。
 
+截至 2026-09-02，仓库已经落地两个新的生产形态切片：
+
+- `AgentServiceV1`：精确版本 Deployment Registry、Authorization-first
+  Submission/Read/Cancel、Tenant-scoped Submission Recovery、Verified Snapshot
+  与调用方保留 Identity 的两阶段 Cancellation；它是嵌入式 Library Boundary，
+  尚不是稳定 HTTP/gRPC/SSE Server。
+- `McpRemoteTool`：严格 MCP 2026-07-28 Client-side Remote Tool Profile，支持
+  Modern Stateless Discovery、Complete JSON、精确本地 Schema/Server Pin、
+  Attempt-scoped Authorization、有界 Transport 与 Reconciliation-first
+  Ambiguous Write；它不代表完整 MCP Client/Server Conformance。
+
+具体集成边界见 [AgentService v1](agent-service.zh-CN.md) 与
+[MCP Remote Tool](mcp-remote-tool.zh-CN.md)。
+
 ## 2. 产品边界
 
 ### 2.1 v1 必须覆盖
@@ -199,7 +213,7 @@ flowchart TB
 
 只有在编译时间、依赖隔离、独立发布或 semver 边界已被真实需求证明时，才继续拆分 store、graph、protocol 或 observability crate。`stateknot-macros` 只在手写 API 稳定后加入。
 
-建议初始基线：Rust edition 2024，MSRV 1.85（与官方 A2A Rust SDK 基线兼容），workspace 统一 lockfile，默认禁止自有 crate 中的 `unsafe`。
+当前基线：Rust edition 2024，MSRV 1.88（满足官方 MCP Rust SDK 3.x，并与官方 A2A Rust SDK 兼容），workspace 统一 lockfile，默认禁止自有 crate 中的 `unsafe`。
 
 ## 8. 核心领域模型
 
@@ -917,6 +931,14 @@ Parallel Sibling、Loop/Subgraph、角色隔离、通用归档、Failover 与 Re
 ## 11. 协议实现细节
 
 ### 11.1 MCP
+
+当前已经实现的首个切片是严格 Client-side Remote Tool Binding：固定
+`2026-07-28`、使用 `server/discover`、只接受 Stateless Streamable HTTP Complete
+JSON、按 RFC 8785 精确比较远端与本地 Input/Output Schema，并把 Dispatch 后的
+不确定 Write 映射为 `Unknown + AmbiguousExternalOutcome + ReconcileFirst`。Session、
+SSE、Reconnect、MRTR/Tasks、Progress、Artifact Content、Required-key Injection、
+MCP Server 与其他 Capability 仍明确拒绝；见
+[MCP Remote Tool 合约](mcp-remote-tool.zh-CN.md)。
 
 - 同时支持 client 与 server；本地工具和 graph/workflow 可暴露为 MCP tools；
 - 以 2026-07-28 stateless core 为主线，每个请求携带自描述路由信息；

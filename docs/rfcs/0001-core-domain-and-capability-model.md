@@ -1675,7 +1675,8 @@ default and, when enabled, applies field-level redaction and retention policy.
 
 ## Compatibility
 
-- the initial MSRV is Rust 1.85.0;
+- the initial MSRV was Rust 1.85.0; the current workspace baseline is Rust
+  1.88.0 because the strict MCP adapter pins the official MCP Rust SDK 3.x;
 - public Rust APIs follow the release-stage semantic-versioning policy;
 - serialized schema compatibility is versioned independently from crate semver;
 - adapter updates may add provider or protocol capabilities without changing

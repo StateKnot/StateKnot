@@ -1851,6 +1851,7 @@ impl AppendOutcome {
 }
 
 /// Lifecycle projection to commit atomically with one journal append.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum RunProjection {

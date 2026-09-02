@@ -52,7 +52,9 @@ let current = runs.load_by_key(&tenant_id, &key).await?;`;
       Migration 16 已实现，闭合了 Ingress Lost-ACK Recovery 和公开 Terminal Read。
       Crate 仍未发布；已经实现的<a href="/zh/docs/provider-native-agent/"
         >预置 Provider-native 多轮 Graph</a
-      > 会消费该 Facade。Public Cancellation Transport 与生产 Server 仍是发行前工作。
+      > 会消费该 Facade；<a href="/zh/docs/agent-service/">AgentService v1</a>
+      已提供嵌入式 Cancellation Ingress。稳定 Public Network Transport 与生产 Server
+      仍是发行前工作。
     </p>
   </aside>
 

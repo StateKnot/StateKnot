@@ -1,0 +1,187 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const bindingCode = `let adapter = McpRemoteTool::connect(
+    local_descriptor,
+    "lookup_issue",
+    ProviderEndpoint::https("https://mcp.example.com/v1/")?,
+    McpServerIdentity::new("issue-service", "2026.09.0")?,
+    Arc::new(schema_registry),
+    Arc::new(authorization_provider),
+    McpHttpOptions::default(),
+)
+.await?;`;
+---
+
+<DocsLayout
+  title="绑定一个 MCP Tool，不削弱耐久语义。"
+  description="只发现一次 Stateless MCP 2026-07-28 Tool，在本地固定 Identity 与 Schema，并保留不确定 Write Outcome。"
+  section="MCP Remote Tool"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-boundary-title"
+  >
+    <h2 id="mcp-boundary-title">已实现的严格 Client Profile</h2>
+    <p>
+      <code>McpRemoteTool</code> 实现一个 Client-side Remote Tool Binding：协议
+      <code>2026-07-28</code>、Modern Discovery、Stateless Streamable HTTP 与
+      Complete JSON Response。它不是 MCP Server，也不代表完整 MCP Conformance。
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-profile-title">
+    <h2 id="mcp-profile-title">只接受明确收窄的 Profile</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Transport</dt>
+        <dd>
+          生产环境使用经过验证的 HTTPS；Literal-loopback HTTP 仅用于受控 Sidecar
+          与测试。Redirect、HTTP Retry、Session 与 SSE 全部 Fail Closed。
+        </dd>
+      </div>
+      <div>
+        <dt>Discovery</dt>
+        <dd>
+          启动时只执行一次 Modern Discovery，限制 Tool Catalog
+          分页，要求精确协议 Version 与 Tools Capability，并固定 Server 自报
+          Name/Version。
+        </dd>
+      </div>
+      <div>
+        <dt>Schema</dt>
+        <dd>
+          Remote Input/Output JSON Schema 必须与权威本地 Registry 的 RFC 8785
+          Canonical Bytes 完全一致。Remote Annotation 永远不能定义本地 Risk 或
+          Policy。
+        </dd>
+      </div>
+      <div>
+        <dt>Result</dt>
+        <dd>
+          只接受 Complete Structured Content，并在本地有界校验。当前 Profile
+          拒绝 Artifact、Image、Audio、Embedded-resource 与 Resource-link
+          Materialization。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="mcp-binding-title">
+    <h2 id="mcp-binding-title">在 Readiness 阶段冻结 Binding</h2>
+    <p>
+      本地 <code>ToolDescriptor</code> 必须来自审核过的配置。Server Upgrade 或 Schema
+      变化需要新 Binding；Runtime Call 不会静默重新发现。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 启动发现</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-binding-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="mcp-binding-code" tabindex="0"><code>{bindingCode}</code></pre>
+    </div>
+    <p>
+      TLS 验证配置 Endpoint。Discovery 中的 Implementation Name/Version 是
+      Server 自报 Metadata；Pinning 可以检测 Drift，但不能替代 mTLS 或已认证
+      Gateway。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-secrets-title">
+    <h2 id="mcp-secrets-title">为每个已 Admission Attempt 解析 Secret</h2>
+    <p>
+      多租户部署应基于 Vault-backed Handle 实现 <code
+        >McpAuthorizationProvider</code
+      >。Adapter 取得 Call Gate 后才解析 Attempt Credential，从 <code
+        >Debug</code
+      >
+      中 Redact Authorization，Exchange 后清空 Slot，也不会把 Credential 写入 MCP
+      Metadata。Static Bearer 只适用于受控单租户 Binding。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-failure-title">
+    <h2 id="mcp-failure-title">保持 Lost Write 的不确定性</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>本地校验</h3>
+        <p>Network Dispatch 前拒绝不符合 Pinned Schema 的 Input。</p>
+      </li>
+      <li>
+        <h3>只调用一次</h3>
+        <p>
+          每个已 Admission 的耐久 Attempt 只发送一次 <code>tools/call</code>。
+        </p>
+      </li>
+      <li>
+        <h3>不虚构 Success</h3>
+        <p>
+          本地声明的 Write 丢失 Response 时，返回 <code>Unknown</code> External Effect、<code
+            >AmbiguousExternalOutcome</code
+          > 与 <code>ReconcileFirst</code>。
+        </p>
+      </li>
+      <li>
+        <h3>校验 Result</h3>
+        <p>
+          只接受通过本地 Pinned Output Schema 的 Complete Structured Output。
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="mcp-exclusions-title">
+    <h2 id="mcp-exclusions-title">明确当前拒绝项</h2>
+    <ul>
+      <li>Stateful Session、SSE、Legacy Initialization 与 Reconnect。</li>
+      <li>MRTR、Tasks、Incomplete Result、Progress 与 Artifact Content。</li>
+      <li>
+        要求 StateKnot Idempotency-key Injection 的 Tool；Generic MCP 没有承载该
+        Durable Key 的安全标准字段。
+      </li>
+      <li>
+        MCP Server、Resources、Prompts、Roots、Sampling、Elicitation、Logging 与
+        MCP Apps。
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="mcp-proof-title">
+    <h2 id="mcp-proof-title">运行 Literal-loopback Contract</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 不需要外部 MCP Service</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-proof-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-proof-command"
+        tabindex="0"><code>cargo test -p stateknot-integrations --test mcp_contract --locked</code></pre>
+    </div>
+    <p>
+      Suite 证明 Discovery Order、Identity/Schema Pinning、Credential Header、
+      Annotation Distrust、Pre-registration Drift Rejection 与 Ambiguous Lost
+      Write。查看完整<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-remote-tool.zh-CN.md"
+        >Profile 与运维合约</a
+      >。更广 MCP 声明仍以官方 Conformance Evidence 为 Release Gate。
+    </p>
+  </section>
+</DocsLayout>

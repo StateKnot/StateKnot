@@ -290,7 +290,7 @@ database-clock expiry, immutable event/checkpoint anchoring, exact retry after
 time-sensitive boundaries, tamper rejection, late rollback, and 24-way
 single-commit convergence. Migration-16 coverage adds populated upgrades,
 durable ingress-key convergence/conflicts, raw-key non-persistence, tamper
-rejection, and atomic rollback. The 102 provider tests and 26 durable Runtime tests run independently against
+rejection, and atomic rollback. The 102 provider tests and 27 durable Runtime tests run independently against
 PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -298,13 +298,15 @@ To run the database suite manually, point it at a disposable PostgreSQL instance
 ```console
 STATEKNOT_TEST_DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/DATABASE \
 STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
-cargo test -p stateknot-store-postgres --test postgres --locked
+cargo test -p stateknot-store-postgres --test postgres --locked -- --test-threads=1
 ```
 
 The opt-in test role must be allowed to create and drop a temporary database so
 the unmigrated-startup path can be tested. Without the URL, local workspace tests
 skip external-database cases; CI sets `STATEKNOT_REQUIRE_POSTGRES_TESTS=1` so a
-missing service cannot appear green.
+missing service cannot appear green. The suite shares one migrated schema, so its
+top-level tests run serially; concurrency cases still use multi-threaded Tokio
+runtimes and up to 100 competing database tasks inside each test.
 
 Tenant scheduler discovery first calls `load_runnable_run_page` for a tenant. The
 first call fixes `snapshot_at` to the PostgreSQL transaction timestamp and

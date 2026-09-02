@@ -209,7 +209,7 @@ runs by both run and key, revalidates output and provenance, and rejects
 impossible or incomplete public wire snapshots and invalid terminal failure
 kinds.
 
-The current repository contains 102 PostgreSQL provider scenarios and 26
+The current repository contains 102 PostgreSQL provider scenarios and 27
 durable runtime PostgreSQL scenarios per supported database version. These are
 implementation facts, not a production-support claim; release qualification,
 HTTP/SSE service roles, published crates, general retention, and compatibility

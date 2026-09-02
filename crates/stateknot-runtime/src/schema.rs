@@ -18,6 +18,7 @@ const DRAFT_2020_12: &str = "https://json-schema.org/draft/2020-12/schema";
 
 /// Resource ceilings applied while an executable schema registry is built.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[allow(clippy::struct_field_names)]
 pub struct JsonSchemaRegistryLimits {
     maximum_schemas: usize,
     maximum_schema_bytes: usize,

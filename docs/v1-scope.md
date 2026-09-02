@@ -15,6 +15,15 @@ v1. It does not make the pre-alpha repository production-ready. A capability is
 supported only after its implementation, tests, documentation, compatibility
 evidence, and release gates have all shipped.
 
+Current implementation note: the pre-alpha repository now contains
+`AgentServiceV1`, an authorization-first embedding facade, and
+`McpRemoteTool`, one strict MCP `2026-07-28` stateless client-side Tool profile.
+They are implementation slices toward the surface below, not claims that the
+stable network Agent API, complete MCP client/server profile, official
+conformance report, or A2A support has shipped. Their exact boundaries are
+documented in [AgentService v1](agent-service.md) and the
+[strict MCP Remote Tool profile](mcp-remote-tool.md).
+
 ## Product statement
 
 StateKnot v1 is a Rust-native library and deployable runtime for typed,
@@ -121,7 +130,7 @@ by executable evidence:
 
 ## Supported deployment baseline
 
-- Rust MSRV: `1.85.0` until changed under the published MSRV policy;
+- Rust MSRV: `1.88.0`, required by the official MCP Rust SDK 3.x adapter;
 - production OS: Linux containers on x86-64 and arm64;
 - development and library CI: Linux, macOS, and Windows;
 - PostgreSQL: versions `16` and `17` for the first release qualification

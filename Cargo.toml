@@ -16,6 +16,7 @@ chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 fluent-uri = { version = "0.4.1", default-features = false, features = ["alloc"] }
 futures-core = "0.3.31"
 futures-util = "0.3.31"
+http = "1.3.1"
 language-tags = "0.3.2"
 mime = "0.3.17"
 jsonschema = { version = "=0.52.1", default-features = false }
@@ -24,6 +25,10 @@ reqwest = { version = "=0.12.28", default-features = false, features = [
     "json",
     "rustls-tls-native-roots",
     "stream",
+] }
+rmcp = { version = "=3.2.0", default-features = false, features = [
+    "client",
+    "transport-streamable-http-client",
 ] }
 schemars = "1.2.2"
 serde = { version = "1.0.229", features = ["derive"] }
@@ -42,6 +47,7 @@ sqlx-postgres = { version = "=0.8.6", default-features = false, features = [
     "migrate",
     "uuid",
 ] }
+sse-stream = "0.2.4"
 thiserror = "2.0.20"
 tokio = { version = "1.53.1", default-features = false, features = [
     "macros",
@@ -55,7 +61,7 @@ zeroize = "1.8.2"
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 authors = ["StateKnot contributors"]
 license = "Apache-2.0"
 repository = "https://github.com/StateKnot/StateKnot"

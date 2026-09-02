@@ -14,6 +14,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Public `AgentServiceV1` embedding boundary with authorization-before-lookup,
+  immutable deployment registration, durable submission-key recovery, exact
+  cancellation identities, database-authoritative timestamps, and a stable
+  versioned control-event schema published identically by the runtime and site.
+- Strict MCP 2026-07-28 Remote Tool integration pinned to the official Rust SDK,
+  with exact server/tool/schema identities, bounded stateless JSON transport,
+  fail-closed capability discovery, trusted local policy metadata, and explicit
+  reconciliation-first handling for ambiguous external writes.
+- English and Simplified Chinese AgentService and MCP integration guides, site
+  navigation, implementation-status disclosures, and browser contract tests.
 - Provider-neutral durable model/tool attempt execution with immutable
   exact-version provider registries, trusted budget and paired-clock admission,
   durable-before-dispatch starts, unary and durably-sunk streaming models,
@@ -290,8 +300,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   expression while embedding `LICENSE`, `NOTICE`, and `README.md` in every
   distributable source archive.
 
+### Changed
+
+- The minimum supported Rust version is now 1.88.0, matching the supported
+  compiler floor of the pinned MCP Rust SDK dependency.
+
 ### Fixed
 
+- PostgreSQL CI now serializes top-level tests that intentionally share one
+  migrated schema, while preserving each scenario's internal multi-threaded
+  concurrency pressure and eliminating unrelated Tokio-runtime starvation.
 - Concurrent identical graph registrations now converge through every unique
   index arbiter before verifying the immutable stored definition, instead of
   leaking a PostgreSQL `23505` race from the redundant exact-reference index.

@@ -32,8 +32,12 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
       The prebuilt graph, local policy boundary, exact invocation accounting,
       multi-turn transcript assembly, durable cancellation observation, and
       lifecycle confirmation are implemented. The crate remains unpublished;
-      parallel tools, output repair, MCP/A2A wire adapters, and production
-      qualification have not shipped.
+      parallel tools and output repair have not shipped. <a
+        href="/docs/agent-service/">AgentService v1</a
+      > now exposes this definition through an embedding boundary, and the <a
+        href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a
+      > supplies one client-side Tool adapter. Stable network transport, broader MCP/A2A
+      support, and production qualification remain ahead.
     </p>
   </aside>
 
@@ -178,8 +182,9 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
       The public-safe confirmation schema is available at <a
         href="/schemas/runtime/agent-cancellation-event/1.0.0"
         >its stable runtime identity</a
-      >. A public cancellation HTTP endpoint remains an embedding-service
-      responsibility in this pre-alpha cut.
+      >. <a href="/docs/agent-service/">AgentService v1</a> now supplies the authorization-first
+      cancellation ingress; an HTTP/gRPC transport remains an embedding-service responsibility
+      in this pre-alpha cut.
     </p>
   </section>
 
@@ -230,11 +235,12 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
         Tool-call-emulated final output are rejected.
       </li>
       <li>
-        Exact cancellation confirmation is implemented; a stable public
-        cancellation service and transport are not.
+        Exact cancellation confirmation and the AgentService v1 embedding
+        ingress are implemented; stable HTTP/gRPC transport is not.
       </li>
       <li>
-        The provider-native execution core is implemented; MCP/A2A adapters,
+        The provider-native execution core and one strict MCP client-side Remote
+        Tool binding are implemented; MCP server/broader client support, A2A,
         artifact retrieval, live-provider drift qualification, failover, and a
         production release remain ahead.
       </li>

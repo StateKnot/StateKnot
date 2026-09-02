@@ -13,6 +13,7 @@ mod adapter;
 mod anthropic;
 mod credential;
 mod http;
+mod mcp;
 mod openai;
 mod sse;
 
@@ -21,5 +22,10 @@ pub use anthropic::AnthropicMessagesModel;
 pub use credential::{ApiKey, ApiKeyError, ApiKeyProvider, ApiKeyResolutionError, StaticApiKey};
 pub use http::{
     ProviderEndpoint, ProviderEndpointError, ProviderHttpOptions, ProviderHttpOptionsError,
+};
+pub use mcp::{
+    AnonymousMcpAuthorization, McpAuthorization, McpAuthorizationError, McpAuthorizationProvider,
+    McpHttpOptions, McpHttpOptionsError, McpRemoteTool, McpRemoteToolBuildError, McpSchemaRegistry,
+    McpServerIdentity, McpServerIdentityError, StaticMcpBearerAuthorization,
 };
 pub use openai::OpenAiResponsesModel;

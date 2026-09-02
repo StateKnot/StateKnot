@@ -36,9 +36,11 @@ const copy = isChinese
       recovery: "恢复证据",
       recoveryDetail: "Pinned Graph、Quarantine、有界规划、Durable Start",
       protocols: "协议",
-      mcpDetail: "Client 与 Server 边界",
+      mcpDetail: "2026-07-28 Stateless Client-side Remote Tool",
       a2aDetail: "REST 与 JSON-RPC Client/Server",
       operations: "运维",
+      agentService: "AgentService v1",
+      agentServiceDetail: "Authorization-first Submit、Read 与 Cancel",
       controlPlane: "Control Plane",
       controlPlaneDetail: "Policy、Tenant Admin、Budget、Release Routing",
       qualification: "验证体系",
@@ -71,9 +73,11 @@ const copy = isChinese
       recoveryDetail:
         "Pinned graphs, quarantine, bounded planning, durable starts",
       protocols: "Protocols",
-      mcpDetail: "Client and server boundaries",
+      mcpDetail: "2026-07-28 stateless client-side Remote Tool",
       a2aDetail: "REST and JSON-RPC client/server",
       operations: "Operations",
+      agentService: "AgentService v1",
+      agentServiceDetail: "Authorization-first submit, read, and cancel",
       controlPlane: "Control plane",
       controlPlaneDetail:
         "Policy, tenant administration, budgets, release routing",
@@ -150,9 +154,9 @@ const copy = isChinese
 
     <section class="map-column" aria-labelledby="map-protocols">
       <h3 id="map-protocols">{copy.protocols}</h3>
-      <div class="map-node map-node--planned">
-        <span class="map-node__status">{copy.planned}</span>
-        <strong>MCP adapters</strong>
+      <div class="map-node map-node--implemented">
+        <span class="map-node__status">{copy.implemented}</span>
+        <strong>MCP Remote Tool</strong>
         <small>{copy.mcpDetail}</small>
       </div>
       <div class="map-node map-node--planned">
@@ -164,6 +168,11 @@ const copy = isChinese
 
     <section class="map-column" aria-labelledby="map-operations">
       <h3 id="map-operations">{copy.operations}</h3>
+      <div class="map-node map-node--implemented">
+        <span class="map-node__status">{copy.implemented}</span>
+        <strong>{copy.agentService}</strong>
+        <small>{copy.agentServiceDetail}</small>
+      </div>
       <div class="map-node map-node--planned">
         <span class="map-node__status">{copy.planned}</span>
         <strong>{copy.controlPlane}</strong>

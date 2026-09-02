@@ -427,6 +427,7 @@ pub enum ModelToolChoicesError {
 /// provider ceilings and need not be simultaneously attainable. Unknown values
 /// are represented by absence and fail any positive capacity requirement; they
 /// are never treated as unlimited.
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModelTokenLimits {

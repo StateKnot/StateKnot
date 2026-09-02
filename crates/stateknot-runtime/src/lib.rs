@@ -17,6 +17,7 @@
 
 mod admission_schema;
 mod agent_loop;
+mod agent_service;
 mod agent_typed;
 mod cancellation_schema;
 mod driver;
@@ -32,6 +33,7 @@ mod provider_native_agent;
 mod provider_registry;
 mod registry;
 mod schema;
+mod service_schema;
 mod tenant_scheduler;
 
 pub use admission_schema::{
@@ -41,6 +43,15 @@ pub use admission_schema::{
 };
 pub use agent_loop::{
     AgentLoopError, AgentLoopOutcome, AgentLoopResult, DurableAgentLoop, DurableAgentLoopBuildError,
+};
+pub use agent_service::{
+    AGENT_SERVICE_API_VERSION, AgentCancellationIds, AgentCancellationOutcome,
+    AgentServiceAuthorizationError, AgentServiceAuthorizer, AgentServiceBuildError,
+    AgentServiceCaller, AgentServiceDeployment, AgentServiceDeploymentError, AgentServiceError,
+    AgentServiceRegistry, AgentServiceRegistryBuilder, AgentServiceRegistryError,
+    AgentServiceRunAuthorization, AgentServiceRunGrant, AgentServiceRunOperation,
+    AgentServiceRunTarget, AgentServiceSubmissionAuthorization, AgentServiceSubmissionGrant,
+    AgentServiceV1,
 };
 pub use agent_typed::{
     AgentBuilder, AgentBuilderError, AgentSchemaRegistrationError, AgentSchemaRole, TypedAgent,
@@ -128,6 +139,12 @@ pub use registry::{
 pub use schema::{
     JsonSchemaRegistry, JsonSchemaRegistryBuilder, JsonSchemaRegistryError,
     JsonSchemaRegistryLimits, JsonSchemaRegistryLimitsError,
+};
+pub use service_schema::{
+    STANDARD_AGENT_SERVICE_CONTROL_EVENT_SCHEMA_ID, StandardAgentServiceControlSchemaError,
+    StandardAgentServiceControlSchemaRegistrationError,
+    register_standard_agent_service_control_event_schema,
+    standard_agent_service_control_event_schema,
 };
 pub use tenant_scheduler::{
     DurableTenantScheduler, DurableTenantSchedulerBuildError, DurableTenantSchedulerOptions,

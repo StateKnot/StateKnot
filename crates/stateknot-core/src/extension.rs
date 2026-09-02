@@ -1047,6 +1047,8 @@ impl ExtensionsError {
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::Write as _;
+
     use super::*;
     use proptest::{collection, prelude::*};
     use serde_json::{Value, from_value, json, to_value};
@@ -1494,12 +1496,14 @@ mod tests {
             if index != 0 {
                 overflow.push(',');
             }
-            overflow.push_str(&format!(
+            write!(
+                overflow,
                 r#""com.example.key{index}":{{"kind":"opaque","value":null}}"#
-            ));
+            )
+            .unwrap();
         }
         let oversized_extra_key = "x".repeat(10_000);
-        overflow.push_str(&format!(r#","{oversized_extra_key}":{deep_value}}}"#));
+        write!(overflow, r#","{oversized_extra_key}":{deep_value}}}"#).unwrap();
         let error = serde_json::from_str::<Extensions>(&overflow).unwrap_err();
         assert!(error.to_string().contains("at least 65 entries"));
 

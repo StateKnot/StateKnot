@@ -156,6 +156,7 @@ impl TenantSchedulerReport {
 /// Closed result of one tenant scheduler tick.
 #[derive(Debug)]
 #[non_exhaustive]
+#[allow(clippy::large_enum_variant)]
 pub enum TenantSchedulerOutcome {
     /// One claimed run reached its next agent-loop boundary.
     Executed {

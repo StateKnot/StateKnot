@@ -40,6 +40,7 @@ pub enum NodeAttemptStatus {
 }
 
 /// Immutable terminal outcome of one physical node attempt.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, JsonSchema, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 #[non_exhaustive]
@@ -109,6 +110,7 @@ impl<'de> Deserialize<'de> for NodeAttemptOutcome {
     where
         D: Deserializer<'de>,
     {
+        #[allow(clippy::large_enum_variant)]
         #[derive(Deserialize)]
         #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
         enum Wire {

@@ -201,10 +201,20 @@ from the repository.
   policy, deterministic exact accounting, no-redispatch terminal recovery,
   known failed-Tool continuation, durable cancellation observation, exact-usage
   confirmation, lost-ACK replay, and PostgreSQL 16/17 evidence.
+- [x] Implement `AgentServiceV1` as an exact-version, authorization-first
+  embedding boundary for tenant-scoped submission recovery, verified run/key
+  reads, and caller-retained two-phase cancellation. Missing deployment/run/key
+  existence remains hidden behind authorization, and the service itself never
+  dispatches model or Tool code.
+- [x] Implement the first strict MCP 2026-07-28 client-side Remote Tool profile
+  with modern stateless discovery, complete JSON transport, exact local
+  schema/server pins, attempt-scoped authorization, bounded catalog/body/time
+  policy, annotation distrust, and reconciliation-first ambiguous writes.
 - [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
-  repair, loop/subgraph semantics, a stable public cancellation ingress,
-  protocol-specific outbox adapters, role isolation, general retention,
-  failover, restore, and final stale-race gates.
+  repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
+  protocol-specific outbox adapters, the combined PostgreSQL-backed MCP
+  recovery proof and official conformance report, role isolation, general
+  retention, failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

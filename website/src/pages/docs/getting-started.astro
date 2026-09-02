@@ -26,7 +26,7 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     <ul>
       <li>Git.</li>
       <li>
-        <a href="https://rustup.rs/">rustup</a>; the repository pins Rust 1.85.0
+        <a href="https://rustup.rs/">rustup</a>; the repository pins Rust 1.88.0
         with the minimal profile, rustfmt, and Clippy.
       </li>
       <li>
@@ -117,7 +117,7 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --lock
         id="postgres-test-command"
         tabindex="0"><code>STATEKNOT_TEST_DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/DATABASE \
 STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
-cargo test -p stateknot-store-postgres --test postgres --locked</code></pre>
+cargo test -p stateknot-store-postgres --test postgres --locked -- --test-threads=1</code></pre>
     </div>
     <p>
       Never point this command at a production or shared database. Continue with

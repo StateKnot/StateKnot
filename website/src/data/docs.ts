@@ -113,6 +113,27 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
     ],
   },
   {
+    label: "Integrate",
+    pages: [
+      {
+        title: "AgentService v1",
+        description:
+          "Authorize and expose exact durable Agent revisions through the versioned embedding boundary.",
+        href: "/docs/agent-service/",
+        search:
+          "agent service api submit read cancel cancellation authorization idempotency ingress",
+      },
+      {
+        title: "MCP Remote Tool",
+        description:
+          "Bind one strict stateless MCP 2026-07-28 Tool with pinned identity, schemas, and write ambiguity.",
+        href: "/docs/mcp-remote-tool/",
+        search:
+          "mcp remote tool 2026 07 28 stateless discovery schema authorization ambiguous write",
+      },
+    ],
+  },
+  {
     label: "Operate",
     pages: [
       {
@@ -142,7 +163,7 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "See what is implemented, in progress, and deliberately not claimed.",
         href: "/docs/status/",
         search:
-          "status capability matrix roadmap implemented planned mcp a2a agent loop",
+          "status capability matrix roadmap implemented planned mcp a2a agent service agent loop",
       },
     ],
   },
@@ -243,6 +264,27 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
     ],
   },
   {
+    label: "集成",
+    pages: [
+      {
+        title: "AgentService v1",
+        description:
+          "通过带版本的嵌入式边界授权并暴露精确耐久 Agent Revision。",
+        href: "/docs/agent-service/",
+        search:
+          "agent service api 提交 读取 取消 authorization idempotency ingress",
+      },
+      {
+        title: "MCP Remote Tool",
+        description:
+          "固定 Identity、Schema 与 Write Ambiguity，绑定严格 Stateless MCP 2026-07-28 Tool。",
+        href: "/docs/mcp-remote-tool/",
+        search:
+          "mcp remote tool 2026 07 28 stateless discovery schema authorization 不确定 写入",
+      },
+    ],
+  },
+  {
     label: "运维",
     pages: [
       {
@@ -268,7 +310,8 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         title: "实现状态",
         description: "区分已经实现、正在开发和明确尚未支持的能力。",
         href: "/docs/status/",
-        search: "状态 能力矩阵 路线图 已实现 计划 mcp a2a agent loop",
+        search:
+          "状态 能力矩阵 路线图 已实现 计划 mcp a2a agent service agent loop",
       },
     ],
   },

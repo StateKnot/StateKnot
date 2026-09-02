@@ -32,8 +32,12 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
     <p>
       预置 Graph、本地 Policy 边界、精确 Invocation Accounting、多轮 Transcript
       Assembly、耐久 Cancellation Observation 与 Lifecycle Confirmation
-      已实现。Crate 尚未发布；Parallel Tool、Output Repair、MCP/A2A Wire Adapter
-      与生产验证尚未交付。
+      已实现。Crate 尚未发布；Parallel Tool 与 Output Repair 尚未交付。<a
+        href="/zh/docs/agent-service/">AgentService v1</a
+      > 已通过嵌入式边界暴露该 Definition，<a href="/zh/docs/mcp-remote-tool/"
+        >严格 MCP Remote Tool Profile</a
+      > 已提供一个 Client-side Tool Adapter。稳定 Network Transport、更广 MCP/A2A
+      支持与生产验证仍未交付。
     </p>
   </aside>
 
@@ -174,8 +178,8 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
       可公开的 Confirmation Schema 位于<a
         href="/schemas/runtime/agent-cancellation-event/1.0.0"
         >稳定 Runtime Identity</a
-      >。在当前 pre-alpha 中，Public Cancellation HTTP Endpoint
-      仍由嵌入服务负责。
+      >。<a href="/zh/docs/agent-service/">AgentService v1</a> 现在提供 Authorization-first
+      Cancellation Ingress；当前 pre-alpha 的 HTTP/gRPC Transport 仍由嵌入服务负责。
     </p>
   </section>
 
@@ -223,13 +227,13 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
         Tool-call-emulated Final Output 会被拒绝。
       </li>
       <li>
-        已实现精确 Cancellation Confirmation；尚未实现稳定 Public Cancellation
-        Service 与 Transport。
+        已实现精确 Cancellation Confirmation 与 AgentService v1 嵌入式 Ingress；
+        尚未实现稳定 HTTP/gRPC Transport。
       </li>
       <li>
-        已实现 Provider-native Execution Core；MCP/A2A Adapter、Artifact
-        Retrieval、 Live-provider Drift Qualification、Failover 与生产 Release
-        仍未交付。
+        已实现 Provider-native Execution Core 与一个严格 MCP Client-side Remote
+        Tool Binding；MCP Server/更广 Client、A2A、Artifact Retrieval、
+        Live-provider Drift Qualification、Failover 与生产 Release 仍未交付。
       </li>
     </ul>
     <p>

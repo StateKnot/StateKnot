@@ -678,6 +678,7 @@ pub enum ToolAttemptOutcome {
 }
 
 #[derive(Clone)]
+#[allow(clippy::large_enum_variant)]
 enum ModelTerminalEvidence {
     Response(ModelResponse),
     Error(ModelError),

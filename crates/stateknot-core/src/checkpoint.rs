@@ -1215,6 +1215,7 @@ impl CheckpointWriteError {
 /// The full checksum binds the validated write intent to the exact committed
 /// journal head. Restoring this value verifies state, intent, predecessor, and
 /// checkpoint integrity before any graph code may observe it.
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Checkpoint {

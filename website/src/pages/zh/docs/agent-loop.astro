@@ -59,8 +59,9 @@ const outcomes = [
     <p>
       仓库现在已经实现从一次 Tenant Queue Scan，经过 Lease Claim 与 Graph
       Execution，到原子 Wait/Success/Failure/Cancellation Lifecycle Commit
-      的耐久路径。Provider-native Agent Graph
-      已使用该路径，但它尚未发布，也不是稳定的 One-call Service API。
+      的耐久路径。Provider-native Agent Graph 与<a
+        href="/zh/docs/agent-service/">AgentService v1</a
+      > 已使用该路径，但 Crate 尚未发布，也不声明稳定 Network API。
     </p>
   </aside>
 
@@ -215,7 +216,7 @@ const outcomes = [
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行 26 个 Runtime Scenario 和 102 个
+      CI 在 PostgreSQL 16 与 17 上分别运行 27 个 Runtime Scenario 和 102 个
       Provider Case。Runtime 覆盖 Lifecycle 原子性与精确 Lost-ACK
       Replay、数据库时间 Wait Materialization、Agent Loop 成功与 Evidence
       Failure、Tenant 与加权 Cross-tenant Scheduling、耐久 Model/Tool Attempt 与

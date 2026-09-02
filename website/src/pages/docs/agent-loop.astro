@@ -57,8 +57,8 @@ const outcomes = [
       The repository now implements the durable path from one tenant queue scan
       through lease claim, Graph execution, and atomic
       Wait/success/failure/cancellation lifecycle commit. The provider-native
-      Agent graph now uses this path, but it is still unpublished and not a
-      stable one-call service API.
+      Agent graph and <a href="/docs/agent-service/">AgentService v1</a> now use this
+      path, but the crates remain unpublished and no stable network API is claimed.
     </p>
   </aside>
 
@@ -214,7 +214,7 @@ const outcomes = [
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">Qualification evidence</h2>
     <p>
-      CI runs 26 runtime scenarios and 102 provider cases on both PostgreSQL 16
+      CI runs 27 runtime scenarios and 102 provider cases on both PostgreSQL 16
       and 17. The runtime cases cover lifecycle atomicity and exact lost-ack
       replay, database-time Wait materialization, Agent Loop success and
       evidence failure, tenant and weighted cross-tenant scheduling, durable

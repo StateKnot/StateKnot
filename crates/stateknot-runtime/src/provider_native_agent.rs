@@ -139,6 +139,7 @@ impl AgentToolPolicyContext {
 /// Closed result of a tool policy evaluation.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
+#[allow(clippy::large_enum_variant)]
 pub enum AgentToolPolicyDecision {
     /// The exact action may proceed and is bound to decision evidence.
     Allow {
@@ -242,6 +243,7 @@ pub trait AgentInvocationAccounting: Send + Sync + 'static {
 /// Stable identities retained before one model invocation can start.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+#[allow(clippy::struct_field_names)]
 pub struct ProviderNativeModelPlan {
     invocation_id: InvocationId,
     attempt_id: AttemptId,
@@ -1159,7 +1161,7 @@ impl ProviderNativeModelNode {
                     self.shared.definition.accounting.as_ref(),
                 )?;
                 return Err(ProviderNativeAgentExecutionError::observed(
-                    ProviderNativeAgentNodeError::ModelFailed(error.failure().clone()),
+                    ProviderNativeAgentNodeError::ModelFailed(Box::new(error.failure().clone())),
                     usage,
                 ));
             }
@@ -1402,7 +1404,9 @@ impl ProviderNativeModelNode {
                     ));
                 }
                 AgentToolPolicyDecision::Deny { failure } => {
-                    return Err(ProviderNativeAgentNodeError::PolicyDenied(failure));
+                    return Err(ProviderNativeAgentNodeError::PolicyDenied(Box::new(
+                        failure,
+                    )));
                 }
             }
         }
@@ -2432,7 +2436,8 @@ fn node_execution_error(
     match &error {
         ProviderNativeAgentNodeError::ModelFailed(failure)
         | ProviderNativeAgentNodeError::PolicyDenied(failure) => {
-            if let Ok(error) = GraphNodeExecutionError::new(failure.clone(), usage.clone()) {
+            if let Ok(error) = GraphNodeExecutionError::new(failure.as_ref().clone(), usage.clone())
+            {
                 return error;
             }
         }
@@ -2738,9 +2743,9 @@ enum ProviderNativeAgentNodeError {
     #[error("provider-native agent invocation executor failed")]
     InvocationExecutor,
     #[error("provider-native agent model attempt failed")]
-    ModelFailed(Failure),
+    ModelFailed(Box<Failure>),
     #[error("provider-native agent tool policy denied the action")]
-    PolicyDenied(Failure),
+    PolicyDenied(Box<Failure>),
     #[error("provider-native agent model output is invalid")]
     InvalidModelOutput,
     #[error("provider-native agent model output is incomplete")]

@@ -6,7 +6,9 @@ SPDX-License-Identifier: Apache-2.0
 # 耐久 Model/Tool 调用执行
 
 `stateknot-runtime` 现在包含耐久 Model/Tool Ledger 与外部 Adapter
-之间的 Provider-neutral 执行边界。它仍是未发布的 pre-alpha。本文件记录代码已经执行的集成与恢复合约；它不代表 OpenAI、Anthropic 或 MCP Adapter 已经交付。
+之间的 Provider-neutral 执行边界。它仍是未发布的 pre-alpha。本文件记录代码已经执行的集成与恢复合约。OpenAI Responses、Anthropic Messages 与一个严格 MCP
+2026-07-28 Client-side Remote Tool Profile 已接入该合约；这不代表更广 MCP
+Conformance 或 Live-provider Qualification 已完成。
 
 英文版见 [Durable model and tool invocation execution](durable-invocation-executor.md)。
 

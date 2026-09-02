@@ -143,10 +143,12 @@ Atomic durable admission is implemented; see
 [`durable-agent-admission.md`](durable-agent-admission.md). Durable ingress-key
 mapping and fully revalidated run/result reads are implemented by
 `DurableAgentRuns`; see [`durable-agent-runs.md`](durable-agent-runs.md). There
-is still no stable one-call Agent service or temporary in-memory `run()`
-shortcut. The implemented
-[`ProviderNativeAgentGraph`](provider-native-agent.md) now supplies the prebuilt
-durable model/tool composition beneath that future service boundary.
+is still no temporary in-memory `run()` shortcut. The implemented
+[`ProviderNativeAgentGraph`](provider-native-agent.md) supplies the prebuilt
+durable model/tool composition, while [`AgentServiceV1`](agent-service.md) now
+exposes exact-version submission, verified reads, and cancellation through an
+authorization-first embedding boundary. Stable network transport and API
+compatibility remain unshipped.
 
 ## Verification evidence
 
@@ -163,6 +165,9 @@ Run it with:
 cargo test -p stateknot-integrations --all-targets
 cargo test -p stateknot-runtime --test typed_agent
 ```
+
+The integrations suite now also contains the strict MCP Remote Tool contract;
+see [`mcp-remote-tool.md`](mcp-remote-tool.md) for its narrower support claim.
 
 The provider-native runtime suite separately verifies durable transcript
 assembly, policy evidence, no-redispatch recovery, and exact cancellation on

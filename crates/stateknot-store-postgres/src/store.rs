@@ -2979,6 +2979,25 @@ impl PostgresStore {
         Ok(())
     }
 
+    /// Returns one point observation from the authoritative database clock.
+    ///
+    /// The observation is suitable for control-plane intent timestamps that
+    /// will subsequently be validated against a transactional commit time. It
+    /// is not a lease, lock, or proof that any durable state remained unchanged
+    /// after the query completed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] when the database is unavailable or its timestamp
+    /// cannot be represented by the protocol-neutral clock type.
+    pub async fn observe_database_clock(&self) -> Result<Timestamp, StoreError> {
+        let observed_at = query_scalar::<_, DateTime<Utc>>("SELECT clock_timestamp()")
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|source| StoreError::database("database clock observation", source))?;
+        from_database_time(observed_at)
+    }
+
     /// Gracefully closes the shared connection pool.
     pub async fn close(&self) {
         self.pool.close().await;

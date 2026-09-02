@@ -1738,6 +1738,7 @@ impl<'de> Deserialize<'de> for DurableTimerRecord {
 /// One protocol-neutral condition to register in an atomic waiting batch.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[allow(clippy::large_enum_variant)]
 pub enum WaitRegistrationIntent {
     /// An authenticated external resolution is required.
     Interrupt {

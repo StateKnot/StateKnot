@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/agent-service-control-event/1.0.0",
+  "title": "StateKnot Agent service control event data",
+  "description": "Public-safe correlation metadata for an authorized Agent service control-plane mutation. Caller input, principal text, policy payloads, and failure messages are deliberately excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation",
+    "admission_digest",
+    "policy_digest",
+    "decision_digest",
+    "failure_id"
+  ],
+  "properties": {
+    "operation": {
+      "const": "agent_cancellation_requested"
+    },
+    "admission_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "policy_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "decision_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "failure_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}

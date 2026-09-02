@@ -34,6 +34,7 @@ use crate::{
 /// conflicting submission, not an idempotent retry.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+#[allow(clippy::struct_field_names)]
 pub struct AgentRunIds {
     run_id: RunId,
     thread_id: ThreadId,

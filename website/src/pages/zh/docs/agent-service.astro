@@ -1,0 +1,202 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const startupCode = `register_standard_agent_service_control_event_schema(&mut schema_builder)?;
+
+let executable = executable_builder.build()?;
+let mut deployments = AgentServiceRegistryBuilder::new();
+deployments.register(Arc::new(provider_native_definition.clone()))?;
+
+let service = AgentServiceV1::new(
+    store.clone(),
+    executable,
+    deployments.build(),
+    Arc::new(authorizer),
+)?;`;
+
+const callCode = `let admitted = service
+    .submit(caller.clone(), &submission_key, &agent_identity, request)
+    .await?;
+let run_id = admitted.snapshot().provenance().run_id();
+
+let snapshot = service.load(caller.clone(), run_id).await?;
+
+// 只持久生成一次；Timeout 后复用完全相同的一对 Identity。
+let ids = AgentCancellationIds::generate();
+let cancellation = service
+    .request_cancellation(caller, run_id, ids)
+    .await?;`;
+---
+
+<DocsLayout
+  title="通过一个服务边界暴露耐久 Agent。"
+  description="绑定精确 Agent Revision，在披露资源是否存在前授权，恢复幂等提交，读取已校验 Run，并请求两阶段取消。"
+  section="AgentService v1"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="agent-service-boundary-title"
+  >
+    <h2 id="agent-service-boundary-title">已实现的嵌入式边界</h2>
+    <p>
+      <code>AgentServiceV1</code> 已在 PostgreSQL 与不可变 Executable Registry 之上实现。它不是
+      HTTP、gRPC 或 SSE Server，也不负责认证 Credential。StateKnot 仍处于 pre-alpha：这里已有可执行证据，但没有稳定性或生产支持承诺。
+    </p>
+  </aside>
+
+  <section aria-labelledby="agent-service-contract-title">
+    <h2 id="agent-service-contract-title">冻结 Public Contract</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>精确 Deployment</dt>
+        <dd>
+          Startup Registry 为每个精确 Agent Identity 固定一个 Descriptor 与
+          Compiled Graph。重复版本、Schema 不一致与 Runtime Deployment Drift
+          都会 Fail Closed。
+        </dd>
+      </div>
+      <div>
+        <dt>授权优先</dt>
+        <dd>
+          强制 Authorizer 在 Submission、Read 与 Cancel 时先做决策，再披露
+          Deployment 或耐久目标是否存在。Caller 必须来自已验证 Token 或 mTLS
+          Identity。
+        </dd>
+      </div>
+      <div>
+        <dt>耐久 Ingress</dt>
+        <dd>
+          Tenant-scoped Submission Key 会把 Lost ACK 收敛到原
+          Run。逻辑内容变化是 Conflict，不会创建第二个 Run。
+        </dd>
+      </div>
+      <div>
+        <dt>两阶段取消</dt>
+        <dd>
+          Service 使用调用方保留的稳定 IDs 提交 Intent；Worker 停止新 Dispatch；
+          Lifecycle 只有在 Usage 与 External-effect Evidence 充分时才确认
+          Terminal State。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="agent-service-startup-title">
+    <h2 id="agent-service-startup-title">构建一份不可变 Startup Snapshot</h2>
+    <p>
+      构造 Facade 前，注册所有 Graph、Reducer、Node、类型化 Schema、Admission
+      Schema 与 Service-control Schema。Submission 不会内联运行 Model 或 Tool。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 启动绑定</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="agent-service-startup-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="agent-service-startup-code"
+        tabindex="0"><code>{startupCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="agent-service-calls-title">
+    <h2 id="agent-service-calls-title">按耐久 Identity 提交、读取与取消</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · Version 1 操作</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="agent-service-call-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="agent-service-call-code"
+        tabindex="0"><code>{callCode}</code></pre>
+    </div>
+    <p>
+      Timeout 后，使用相同 Tenant、Agent Identity、Key 与逻辑 Request 重试
+      Submission。取消必须复用相同 <code>run_id</code> 和完全相同的 <code
+        >AgentCancellationIds</code
+      >。新的 Cancellation IDs 代表竞争请求，不能伪装为幂等成功。
+    </p>
+  </section>
+
+  <section aria-labelledby="agent-service-control-event-title">
+    <h2 id="agent-service-control-event-title">
+      持久保存 Public-safe Control Evidence
+    </h2>
+    <p>
+      Cancellation Journal 绑定调用方持久保留的精确 Event/Failure ID 与
+      PostgreSQL 权威时间戳；Event Data 保存 Admission、Policy、Decision Digest
+      与稳定 Failure ID。Caller Input、Principal 文本、Policy
+      Payload、Credential 与 Failure Message 被明确排除。查看<a
+        href="/schemas/runtime/agent-service-control-event/1.0.0">公开 Schema</a
+      >。
+    </p>
+  </section>
+
+  <section aria-labelledby="agent-service-production-title">
+    <h2 id="agent-service-production-title">把 Transport 责任留在边界之外</h2>
+    <ul>
+      <li>构造 Caller 前验证 TLS、Token 或 mTLS。</li>
+      <li>
+        从已验证 Credential 派生 Tenant 与 Principal，绝不信任 Request-body
+        Identity Claim。
+      </li>
+      <li>调用 Facade 前持久保存 Submission 与 Cancellation IDs。</li>
+      <li>
+        补齐有界 Public Error、Rate Limit、Overload Control、Tracing、
+        Scheduler/Worker Role、Graceful Drain 与 Backup/Restore。
+      </li>
+      <li>
+        不得把远程 Policy Request 放进数据库事务；应消费已保留的 Policy
+        Evidence。
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="agent-service-proof-title">
+    <h2 id="agent-service-proof-title">运行 PostgreSQL 证据</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 强制 PostgreSQL 16 或 17</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="agent-service-proof-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="agent-service-proof-command"
+        tabindex="0"><code>STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-runtime --test postgres \
+  agent_service_authorizes_submits_recovers_and_cancels_without_redispatch \
+  --locked</code></pre>
+    </div>
+    <p>
+      Focused Test 证明 Authorization-first Missing-resource、精确 Submission
+      Recovery、Key-based Read、Cancellation Commit/Retry/Conflict，以及零
+      Model/Tool Dispatch。暴露 Network API 前，请阅读完整<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-service.zh-CN.md"
+        >集成合约</a
+      >。
+    </p>
+  </section>
+</DocsLayout>
