@@ -822,6 +822,9 @@ pub enum InvocationTerminalCommitFailure {
     /// Runtime-owned worker journal metadata violated its invariant.
     #[error("terminal invocation journal append is invalid")]
     InvalidJournalAppend,
+    /// The run lost its durable journal anchor before terminal evidence could commit.
+    #[error("terminal invocation run journal is unavailable")]
+    RunJournalUnavailable,
     /// Retained terminal evidence did not reference an executing attempt.
     #[error("terminal invocation does not reference an executing attempt")]
     InvalidInvocationState,
@@ -1265,12 +1268,30 @@ impl DurableInvocationExecutor {
                 recovery: Box::new(handoff),
             });
         };
-        let Ok(append) = worker_append(
-            &handoff.fence,
-            handoff.invocation.journal_head().clone(),
-            handoff.event_id,
-            payload,
-        ) else {
+        let run = match self
+            .store
+            .load_run(
+                handoff.invocation.intent().tenant_id(),
+                handoff.invocation.intent().run_id(),
+            )
+            .await
+        {
+            Ok(run) => run,
+            Err(source) => {
+                return Err(ModelTerminalCommitError {
+                    source: InvocationTerminalCommitFailure::Store(source),
+                    recovery: Box::new(handoff),
+                });
+            }
+        };
+        let Some(journal_head) = run.journal_head().cloned() else {
+            return Err(ModelTerminalCommitError {
+                source: InvocationTerminalCommitFailure::RunJournalUnavailable,
+                recovery: Box::new(handoff),
+            });
+        };
+        let Ok(append) = worker_append(&handoff.fence, journal_head, handoff.event_id, payload)
+        else {
             return Err(ModelTerminalCommitError {
                 source: InvocationTerminalCommitFailure::InvalidJournalAppend,
                 recovery: Box::new(handoff),
@@ -1432,12 +1453,30 @@ impl DurableInvocationExecutor {
                 recovery: Box::new(handoff),
             });
         };
-        let Ok(append) = worker_append(
-            &handoff.fence,
-            handoff.invocation.journal_head().clone(),
-            handoff.event_id,
-            payload,
-        ) else {
+        let run = match self
+            .store
+            .load_run(
+                handoff.invocation.intent().tenant_id(),
+                handoff.invocation.intent().run_id(),
+            )
+            .await
+        {
+            Ok(run) => run,
+            Err(source) => {
+                return Err(ToolTerminalCommitError {
+                    source: InvocationTerminalCommitFailure::Store(source),
+                    recovery: Box::new(handoff),
+                });
+            }
+        };
+        let Some(journal_head) = run.journal_head().cloned() else {
+            return Err(ToolTerminalCommitError {
+                source: InvocationTerminalCommitFailure::RunJournalUnavailable,
+                recovery: Box::new(handoff),
+            });
+        };
+        let Ok(append) = worker_append(&handoff.fence, journal_head, handoff.event_id, payload)
+        else {
             return Err(ToolTerminalCommitError {
                 source: InvocationTerminalCommitFailure::InvalidJournalAppend,
                 recovery: Box::new(handoff),

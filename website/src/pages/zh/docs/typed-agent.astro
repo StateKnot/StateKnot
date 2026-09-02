@@ -193,12 +193,12 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
       原子 Admission 已实现；下一步请阅读<a href="/zh/docs/admission/"
         >耐久 Admission 契约</a
       >，随后使用已经实现的<a href="/zh/docs/runs/">耐久 Run/Result Boundary</a
-      >。 在预置 Graph 内耐久组装已经实现的 Provider-native Transcript、Policy
-      与 Cancellation 仍是发布门禁。继续阅读 <a href="/zh/docs/invocations/"
-        >耐久调用</a
-      > 与
-      <a href="/zh/docs/agent-loop/">耐久 Agent Loop</a
-      >，了解已经实现的执行合约。
+      >。已经实现的<a href="/zh/docs/provider-native-agent/"
+        >Provider-native Agent Graph</a
+      > 现在会在<a href="/zh/docs/invocations/">耐久调用</a>与<a
+        href="/zh/docs/agent-loop/">耐久 Agent Loop</a
+      >之上组装 Transcript、Policy Evidence、Accounting 与 Cancellation
+      Lifecycle。
     </p>
   </section>
 
@@ -225,8 +225,10 @@ cargo test -p stateknot-integrations --all-targets --locked</code></pre>
       Adapter Suite 使用真实本地 TCP HTTP Server，覆盖 Request Shape、碎片化
       SSE、 Terminal Cross-check、429 Retry Evidence、5xx 无隐藏
       Retry、Transcript Replay 顺序、篡改与跨 Provider 拒绝、资源上限、
-      Deadline/Cancellation 优先级与 Secret/Debug Redaction。Live-provider
-      Qualification 与 Provider-drift Cassette 尚未交付。
+      Deadline/Cancellation 优先级与 Secret/Debug Redaction。Provider-native
+      Runtime Suite 会另外在真实 PostgreSQL 16/17 上验证多轮 Recovery 与精确
+      Cancellation。Live-provider Qualification 与 Provider-drift Cassette
+      尚未交付。
     </p>
   </section>
 </DocsLayout>

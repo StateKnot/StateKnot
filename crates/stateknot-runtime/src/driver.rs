@@ -20,7 +20,7 @@ use stateknot_core::{
     GraphBarrierPlanError, GraphReference, JournalAppend, JournalEventIntent, JournalEventKind,
     JournalExpectation, JournalHead, JournalPayload, NodeAttemptStartHead, PendingNodeResult,
     PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, RecoveryNodeKind, RetryAdvice,
-    RunFence, RunLease, RunRevision, Timestamp,
+    RunFence, RunLease, RunRevision, RunStatus, Timestamp,
 };
 use stateknot_store_postgres::{
     BarrierCommitOutcome, ClaimedRunRecovery, CorruptionQuarantineContext,
@@ -52,6 +52,8 @@ pub struct DurableGraphDriverOptions {
     maximum_durable_events: u32,
     lease_renewal_interval: Duration,
     node_execution_timeout: Duration,
+    cancellation_poll_interval: Duration,
+    cancellation_grace_period: Duration,
     maximum_mutation_attempts: u8,
     mutation_retry_initial_delay: Duration,
 }
@@ -61,6 +63,12 @@ impl DurableGraphDriverOptions {
     pub const HARD_MAXIMUM_DURABLE_EVENTS: u32 = 65_536;
     /// Absolute number of identical durable mutation attempts.
     pub const HARD_MAXIMUM_MUTATION_ATTEMPTS: u8 = 10;
+    /// Fastest accepted database polling cadence for durable cancellation intent.
+    pub const HARD_MINIMUM_CANCELLATION_POLL_INTERVAL: Duration = Duration::from_millis(10);
+    /// Slowest accepted observation cadence for durable cancellation intent.
+    pub const HARD_MAXIMUM_CANCELLATION_POLL_INTERVAL: Duration = Duration::from_secs(60);
+    /// Longest cooperative cleanup window after durable cancellation wins.
+    pub const HARD_MAXIMUM_CANCELLATION_GRACE_PERIOD: Duration = Duration::from_secs(5 * 60);
 
     /// Constructs a fully explicit driver policy.
     ///
@@ -102,9 +110,41 @@ impl DurableGraphDriverOptions {
             maximum_durable_events,
             lease_renewal_interval,
             node_execution_timeout,
+            cancellation_poll_interval: Duration::from_millis(250),
+            cancellation_grace_period: Duration::from_secs(5),
             maximum_mutation_attempts,
             mutation_retry_initial_delay,
         })
+    }
+
+    /// Overrides the database cancellation-observation cadence and cooperative
+    /// node cleanup window.
+    ///
+    /// # Errors
+    ///
+    /// Rejects non-microsecond-aligned or production-unbounded values. The poll
+    /// interval is also bounded below so one bad configuration cannot turn each
+    /// active node into an unbounded database query loop.
+    pub fn with_cancellation_timing(
+        mut self,
+        poll_interval: Duration,
+        grace_period: Duration,
+    ) -> Result<Self, DurableGraphDriverOptionsError> {
+        if poll_interval < Self::HARD_MINIMUM_CANCELLATION_POLL_INTERVAL
+            || poll_interval.subsec_nanos() % 1_000 != 0
+            || poll_interval > Self::HARD_MAXIMUM_CANCELLATION_POLL_INTERVAL
+        {
+            return Err(DurableGraphDriverOptionsError::InvalidCancellationPollInterval);
+        }
+        if grace_period.is_zero()
+            || grace_period.subsec_nanos() % 1_000 != 0
+            || grace_period > Self::HARD_MAXIMUM_CANCELLATION_GRACE_PERIOD
+        {
+            return Err(DurableGraphDriverOptionsError::InvalidCancellationGracePeriod);
+        }
+        self.cancellation_poll_interval = poll_interval;
+        self.cancellation_grace_period = grace_period;
+        Ok(self)
     }
 
     /// Returns the memory ceiling shared by historical replay and current
@@ -132,6 +172,18 @@ impl DurableGraphDriverOptions {
         self.node_execution_timeout
     }
 
+    /// Returns the bounded database polling cadence for cancellation intent.
+    #[must_use]
+    pub const fn cancellation_poll_interval(self) -> Duration {
+        self.cancellation_poll_interval
+    }
+
+    /// Returns the cooperative cleanup window after cancellation is observed.
+    #[must_use]
+    pub const fn cancellation_grace_period(self) -> Duration {
+        self.cancellation_grace_period
+    }
+
     /// Returns the maximum identical attempts for one idempotent mutation.
     #[must_use]
     pub const fn maximum_mutation_attempts(self) -> u8 {
@@ -152,6 +204,8 @@ impl Default for DurableGraphDriverOptions {
             maximum_durable_events: 1_024,
             lease_renewal_interval: Duration::from_secs(10),
             node_execution_timeout: Duration::from_secs(15 * 60),
+            cancellation_poll_interval: Duration::from_millis(250),
+            cancellation_grace_period: Duration::from_secs(5),
             maximum_mutation_attempts: 3,
             mutation_retry_initial_delay: Duration::from_millis(25),
         }
@@ -171,6 +225,12 @@ pub enum DurableGraphDriverOptionsError {
     /// Node execution had no deadline or exceeded seven days.
     #[error("graph driver node execution timeout is invalid")]
     InvalidNodeExecutionTimeout,
+    /// Cancellation polling was imprecise, faster than 10 ms, or slower than one minute.
+    #[error("graph driver cancellation poll interval is invalid")]
+    InvalidCancellationPollInterval,
+    /// Cooperative cancellation cleanup was zero, imprecise, or above five minutes.
+    #[error("graph driver cancellation grace period is invalid")]
+    InvalidCancellationGracePeriod,
     /// Mutation attempts were zero or above the hard ceiling.
     #[error("graph driver mutation attempt count is invalid")]
     InvalidMutationAttempts,
@@ -266,6 +326,11 @@ impl DurableGraphDriver {
         fence: RunFence,
         shutdown: CancellationSignal,
     ) -> Result<GraphDriveResult, GraphDriverError> {
+        // Recovery, graph loading, and replay are bounded but may still consume
+        // a meaningful fraction of a short lease. Refresh below half-life
+        // before those reads so a valid near-expiry claim is not lost merely
+        // because integrity verification ran before the first durable start.
+        let (startup_renewals, startup_retries) = self.refresh_near_expiry_lease(&fence).await?;
         let initial_recovery = self.begin_recovery(&fence).await?;
         let stored_graph = initial_recovery.load_pinned_graph().await?;
         let graph_reference = stored_graph.graph().reference();
@@ -286,6 +351,8 @@ impl DurableGraphDriver {
         drop(initial_recovery);
 
         let mut report = GraphDriveReport::new(replay);
+        report.lease_renewals = startup_renewals;
+        report.mutation_retries = startup_retries;
         loop {
             if shutdown.is_cancelled() {
                 let release = self.release_with_retry(&fence, &mut report).await?;
@@ -304,9 +371,41 @@ impl DurableGraphDriver {
 
             let recovery = self.begin_recovery(&fence).await?;
             let plan = recovery.plan_ready_nodes().await?;
+            let live = recovery.revalidate().await?;
+            if live.lifecycle().status() == RunStatus::CancellationRequested {
+                let lease = exact_live_lease(&live, &fence)?.clone();
+                let request = live.lifecycle().cancellation_request().ok_or(
+                    GraphDriverError::RuntimeInvariant {
+                        operation: "recover durable cancellation intent",
+                    },
+                )?;
+                let checkpoint = plan.checkpoint().head();
+                let pointer = live
+                    .checkpoint()
+                    .ok_or(GraphDriverError::RuntimeInvariant {
+                        operation: "bind cancellation to the current checkpoint",
+                    })?;
+                if pointer.checkpoint_id() != checkpoint.checkpoint_id()
+                    || pointer.superstep() != checkpoint.superstep()
+                    || pointer.digest() != checkpoint.digest()
+                    || live.journal_head() != Some(plan.journal_head())
+                {
+                    return Err(GraphDriverError::StaleBarrierSnapshot);
+                }
+                return Ok(GraphDriveResult::new(
+                    GraphDriveOutcome::CancellationRequested(Box::new(GraphCancellationHandoff {
+                        checkpoint,
+                        journal_head: plan.journal_head().clone(),
+                        event_id: EventId::generate(),
+                        expected_revision: live.lifecycle().revision(),
+                        lease,
+                        failure_id: request.failure().id(),
+                    })),
+                    report,
+                ));
+            }
             let blockers = GraphDriveBlockers::from_plan(&plan);
             if !blockers.is_empty() {
-                let live = recovery.revalidate().await?;
                 let lease = exact_live_lease(&live, &fence)?.clone();
                 return Ok(GraphDriveResult::new(
                     GraphDriveOutcome::Blocked(Box::new(GraphBlockedHandoff {
@@ -340,7 +439,6 @@ impl DurableGraphDriver {
                         executable.reducer(),
                     )
                     .map_err(GraphDriverError::graph_plan)?;
-                let live = recovery.revalidate().await?;
                 let lease = exact_live_lease(&live, &fence)?.clone();
                 match barrier_plan.disposition() {
                     GraphBarrierDisposition::Continue => {
@@ -476,15 +574,21 @@ impl DurableGraphDriver {
                         report,
                     ));
                 }
+                StartedNodeExecution::RunCancellationObserved => continue,
                 StartedNodeExecution::Finished(result) => {
-                    self.commit_node_execution(
-                        &fence,
-                        &executable,
-                        &start_head,
-                        result,
-                        &mut report,
-                    )
-                    .await?;
+                    match self
+                        .commit_node_execution(
+                            &fence,
+                            &executable,
+                            &start_head,
+                            result,
+                            &mut report,
+                        )
+                        .await?
+                    {
+                        NodeExecutionCommit::Committed => {}
+                        NodeExecutionCommit::RunCancellationObserved => continue,
+                    }
                 }
             }
         }
@@ -515,6 +619,49 @@ impl DurableGraphDriver {
             .begin_claimed_run_recovery(fence.clone(), context)
             .await
             .map_err(GraphDriverError::from)
+    }
+
+    async fn refresh_near_expiry_lease(
+        &self,
+        fence: &RunFence,
+    ) -> Result<(u32, u32), GraphDriverError> {
+        let observation = self.store.observe_live_lease(fence).await?;
+        let remaining_micros = observation
+            .lease()
+            .expires_at()
+            .unix_micros()
+            .checked_sub(observation.observed_at().unix_micros())
+            .and_then(|value| u64::try_from(value).ok())
+            .ok_or(StoreError::LeaseExpired)?;
+        let remaining = Duration::from_micros(remaining_micros);
+        if remaining > self.store.options().lease_duration() / 2 {
+            return Ok((0, 0));
+        }
+
+        let desired = extend_timestamp(
+            observation.observed_at(),
+            self.store.options().lease_duration(),
+        )?;
+        let mut attempt = 1_u8;
+        let mut retries = 0_u32;
+        loop {
+            match self.store.renew_lease(fence, desired).await {
+                Ok(LeaseRenewalOutcome::Renewed(_) | LeaseRenewalOutcome::Idempotent(_)) => {
+                    return Ok((1, retries));
+                }
+                Ok(_) => {
+                    return Err(GraphDriverError::RuntimeInvariant {
+                        operation: "refresh a near-expiry drive lease",
+                    });
+                }
+                Err(error) if self.can_retry_mutation(&error, attempt) => {
+                    retries = retries.saturating_add(1);
+                    self.mutation_backoff(attempt).await;
+                    attempt = attempt.saturating_add(1);
+                }
+                Err(error) => return Err(error.into()),
+            }
+        }
     }
 
     async fn load_barrier_results(
@@ -646,8 +793,12 @@ impl DurableGraphDriver {
         let context = GraphNodeContext::new(start, checkpoint, cancellation.signal())?;
         let mut task = tokio::spawn(async move { executor.execute(context).await });
         let mut timeout = Box::pin(tokio::time::sleep(self.options.node_execution_timeout));
+        let fence = lease.lease.fence().clone();
+        let lease_deadline = lease.deadline;
         let maintenance = self.maintain_execution_lease(lease, report);
         tokio::pin!(maintenance);
+        let durable_cancellation = self.observe_run_cancellation(&fence);
+        tokio::pin!(durable_cancellation);
 
         tokio::select! {
             result = &mut task => {
@@ -673,6 +824,28 @@ impl DurableGraphDriver {
                 abort_node_task(&mut task).await;
                 Ok(StartedNodeExecution::Cancelled)
             }
+            result = &mut durable_cancellation => {
+                cancellation.cancel();
+                if let Err(error) = result {
+                    abort_node_task(&mut task).await;
+                    return Err(error);
+                }
+                let grace_deadline = Instant::now()
+                    .checked_add(self.options.cancellation_grace_period)
+                    .unwrap_or(lease_deadline)
+                    .min(lease_deadline);
+                if grace_deadline <= Instant::now() {
+                    abort_node_task(&mut task).await;
+                } else {
+                    tokio::select! {
+                        _ = &mut task => {}
+                        () = tokio::time::sleep_until(grace_deadline) => {
+                            abort_node_task(&mut task).await;
+                        }
+                    }
+                }
+                Ok(StartedNodeExecution::RunCancellationObserved)
+            }
             () = &mut timeout => {
                 cancellation.cancel();
                 abort_node_task(&mut task).await;
@@ -680,6 +853,22 @@ impl DurableGraphDriver {
                     Self::node_timeout_failure()?,
                 )))
             }
+        }
+    }
+
+    async fn observe_run_cancellation(&self, fence: &RunFence) -> Result<(), GraphDriverError> {
+        loop {
+            let run = self
+                .store
+                .load_run(fence.tenant_id(), fence.run_id())
+                .await?;
+            exact_live_lease(&run, fence)?;
+            match run.lifecycle().status() {
+                RunStatus::CancellationRequested => return Ok(()),
+                RunStatus::Pending | RunStatus::Active => {}
+                _ => return Err(StoreError::RunNotRunnable.into()),
+            }
+            tokio::time::sleep(self.options.cancellation_poll_interval).await;
         }
     }
 
@@ -747,12 +936,15 @@ impl DurableGraphDriver {
         start: &NodeAttemptStartHead,
         execution: Result<GraphNodeExecution, GraphNodeExecutionError>,
         report: &mut GraphDriveReport,
-    ) -> Result<(), GraphDriverError> {
+    ) -> Result<NodeExecutionCommit, GraphDriverError> {
         let run = self
             .store
             .load_run(fence.tenant_id(), fence.run_id())
             .await?;
         exact_live_lease(&run, fence)?;
+        if run.lifecycle().status() == RunStatus::CancellationRequested {
+            return Ok(NodeExecutionCommit::RunCancellationObserved);
+        }
         let head = run
             .journal_head()
             .cloned()
@@ -773,8 +965,17 @@ impl DurableGraphDriver {
                     intent.intent_digest(),
                 )?;
                 let append = worker_append(fence, head, EventId::generate(), payload)?;
-                self.succeed_node_with_retry(append, start, intent, usage, report)
-                    .await?;
+                if let Err(error) = self
+                    .succeed_node_with_retry(append, start, intent, usage, report)
+                    .await
+                {
+                    if graph_error_is_run_not_runnable(&error)
+                        && self.run_cancellation_requested(fence).await?
+                    {
+                        return Ok(NodeExecutionCommit::RunCancellationObserved);
+                    }
+                    return Err(error);
+                }
             }
             Err(execution) => {
                 let (failure, usage) = execution.into_parts();
@@ -783,13 +984,31 @@ impl DurableGraphDriver {
                     self.node_failed_payload(&executable.graph().reference(), start, failure.id())?;
                 let append = worker_append(fence, head, event_id, payload)?;
                 let failure = failure.with_caused_by_event(event_id);
-                self.fail_node_with_retry(append, start, failure, usage, report)
-                    .await?;
+                if let Err(error) = self
+                    .fail_node_with_retry(append, start, failure, usage, report)
+                    .await
+                {
+                    if graph_error_is_run_not_runnable(&error)
+                        && self.run_cancellation_requested(fence).await?
+                    {
+                        return Ok(NodeExecutionCommit::RunCancellationObserved);
+                    }
+                    return Err(error);
+                }
             }
         }
         report.durable_events = report.durable_events.saturating_add(1);
         report.node_attempts_completed = report.node_attempts_completed.saturating_add(1);
-        Ok(())
+        Ok(NodeExecutionCommit::Committed)
+    }
+
+    async fn run_cancellation_requested(&self, fence: &RunFence) -> Result<bool, GraphDriverError> {
+        let run = self
+            .store
+            .load_run(fence.tenant_id(), fence.run_id())
+            .await?;
+        exact_live_lease(&run, fence)?;
+        Ok(run.lifecycle().status() == RunStatus::CancellationRequested)
     }
 
     async fn start_node_with_retry(
@@ -1212,6 +1431,8 @@ impl GraphDriveResult {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum GraphDriveOutcome {
+    /// Durable cancellation intent requires exact evidence and terminal acknowledgement.
+    CancellationRequested(Box<GraphCancellationHandoff>),
     /// A Wait or successful Terminal barrier requires lifecycle metadata.
     LifecycleBarrierReady(Box<GraphLifecycleBarrierHandoff>),
     /// In-flight, terminally failed, or exhausted nodes require supervision.
@@ -1233,6 +1454,77 @@ pub enum GraphDriveOutcome {
         /// Exact-fence lease release convergence.
         release: LeaseReleaseOutcome,
     },
+}
+
+/// Exact lease-bound input for terminal cancellation acknowledgement.
+#[derive(Clone, Debug)]
+pub struct GraphCancellationHandoff {
+    checkpoint: stateknot_core::CheckpointHead,
+    journal_head: JournalHead,
+    event_id: EventId,
+    expected_revision: RunRevision,
+    lease: RunLease,
+    failure_id: FailureId,
+}
+
+impl GraphCancellationHandoff {
+    /// Returns the exact checkpoint at which cancellation stopped graph progress.
+    #[must_use]
+    pub const fn checkpoint(&self) -> &stateknot_core::CheckpointHead {
+        &self.checkpoint
+    }
+
+    /// Returns the cancellation-request event as the exact journal predecessor.
+    #[must_use]
+    pub const fn journal_head(&self) -> &JournalHead {
+        &self.journal_head
+    }
+
+    /// Returns the stable lost-acknowledgement identity for confirmation.
+    #[must_use]
+    pub const fn event_id(&self) -> EventId {
+        self.event_id
+    }
+
+    /// Returns the cancellation-request lifecycle revision to consume.
+    #[must_use]
+    pub const fn expected_revision(&self) -> RunRevision {
+        self.expected_revision
+    }
+
+    /// Returns the exact live lease retained for confirmation.
+    #[must_use]
+    pub const fn lease(&self) -> &RunLease {
+        &self.lease
+    }
+
+    /// Returns the immutable cancellation occurrence selected by the request.
+    #[must_use]
+    pub const fn failure_id(&self) -> FailureId {
+        self.failure_id
+    }
+
+    /// Consumes the handoff into storage-ready parts.
+    #[must_use]
+    pub fn into_parts(
+        self,
+    ) -> (
+        stateknot_core::CheckpointHead,
+        JournalHead,
+        EventId,
+        RunRevision,
+        RunLease,
+        FailureId,
+    ) {
+        (
+            self.checkpoint,
+            self.journal_head,
+            self.event_id,
+            self.expected_revision,
+            self.lease,
+            self.failure_id,
+        )
+    }
 }
 
 /// Exact lease-bound Wait/Terminal commit input for a lifecycle integrator.
@@ -1512,6 +1804,12 @@ impl From<StoreError> for GraphDriverError {
 enum StartedNodeExecution {
     Finished(Result<GraphNodeExecution, GraphNodeExecutionError>),
     Cancelled,
+    RunCancellationObserved,
+}
+
+enum NodeExecutionCommit {
+    Committed,
+    RunCancellationObserved,
 }
 
 struct GuardedRunLease {
@@ -1552,6 +1850,13 @@ fn exact_live_lease<'run>(
         return Err(StoreError::StaleFence.into());
     }
     Ok(lease)
+}
+
+fn graph_error_is_run_not_runnable(error: &GraphDriverError) -> bool {
+    matches!(
+        error,
+        GraphDriverError::Store { source } if matches!(source.as_ref(), StoreError::RunNotRunnable)
+    )
 }
 
 fn recovery_evidence_digest(run: &StoredRun, fence: &RunFence) -> Result<Digest, GraphDriverError> {
@@ -1751,6 +2056,22 @@ mod tests {
             )
             .is_err()
         );
+        let options = DurableGraphDriverOptions::default();
+        assert!(matches!(
+            options.with_cancellation_timing(Duration::ZERO, Duration::from_secs(1)),
+            Err(DurableGraphDriverOptionsError::InvalidCancellationPollInterval)
+        ));
+        assert!(matches!(
+            options.with_cancellation_timing(Duration::from_millis(9), Duration::from_secs(1),),
+            Err(DurableGraphDriverOptionsError::InvalidCancellationPollInterval)
+        ));
+        assert!(matches!(
+            options.with_cancellation_timing(
+                DurableGraphDriverOptions::HARD_MINIMUM_CANCELLATION_POLL_INTERVAL,
+                Duration::from_secs(5 * 60 + 1),
+            ),
+            Err(DurableGraphDriverOptionsError::InvalidCancellationGracePeriod)
+        ));
     }
 
     #[tokio::test]

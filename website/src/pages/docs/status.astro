@@ -33,13 +33,13 @@ const capabilities = [
     state: "Implemented",
     className: "status-implemented",
     title: "Durable Graph Driver",
-    body: "Offline executable schema/reducer/node closure, full checkpoint-state and bounded noninitial replay validation, durable-before-dispatch execution, monotonic lease enforcement, Continue barriers, and typed lifecycle handoffs.",
+    body: "Offline executable schema/reducer/node closure, full checkpoint-state and bounded noninitial replay validation, durable-before-dispatch execution, near-expiry lease refresh, monotonic renewal, durable cancellation polling, Continue barriers, and typed lifecycle handoffs.",
   },
   {
     state: "Implemented",
     className: "status-implemented",
     title: "Lifecycle and durable Agent Loop",
-    body: "Atomic Wait/success/failure handoff commits, trusted lifecycle evidence validation, exact lost-ack recovery, bounded exact-fence cleanup, and one tenant-scoped scheduler quantum.",
+    body: "Atomic Wait/success/failure/cancellation handoff commits, trusted lifecycle evidence validation, exact lost-ack recovery, bounded exact-fence cleanup, and one tenant-scoped scheduler quantum.",
   },
   {
     state: "Implemented",
@@ -60,16 +60,22 @@ const capabilities = [
     body: "Generated canonical digest-pinned input/output schemas, offline provider-profile binding, bounded typed codecs, and OpenAI Responses plus Anthropic Messages unary/SSE adapters with explicit transport controls.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Provider-native Agent graph",
+    body: "A digest-pinned prebuilt multi-turn model/tool graph with sequential tools, provider-native transcript recovery, local policy evidence, exact accounting, no-redispatch terminal recovery, and two-phase cancellation confirmation.",
+  },
+  {
     state: "Active work",
     className: "status-active",
-    title: "Provider-native Agent composition",
-    body: "A prebuilt provider-native multi-turn model/tool graph, policy middleware, cancellation transport, artifact retrieval, parallel siblings, and loop/subgraph semantics.",
+    title: "Advanced execution and service boundary",
+    body: "Artifact retrieval, parallel sibling/tool ordering, output repair, loop/subgraph semantics, a stable public cancellation ingress, and the one-call Agent service remain active work.",
   },
   {
     state: "Not shipped",
     className: "status-planned",
     title: "Stable end-to-end Agent API",
-    body: "No stable one-call execution service, prebuilt multi-turn tool path, published crate, or production support claim exists yet.",
+    body: "The prebuilt durable path exists, but no stable one-call execution service, published crate, compatibility guarantee, or production support claim exists yet.",
   },
   {
     state: "Not shipped",
@@ -88,7 +94,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: atomic Agent admission, durable run/result reads, the Graph loop, invocation executor, typed Agent contract, first model adapters, and fair scheduler are implemented; provider-native Agent composition, MCP/A2A adapters, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: the provider-native multi-turn Agent graph now runs over durable admission, invocations, recovery, lifecycle, and fair scheduling; stable service APIs, MCP/A2A adapters, advanced graph semantics, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -124,14 +130,13 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      Atomic admission and the public run/result facade now bind a durable
-      ingress decision to a fully verified terminal read. The next runtime
-      milestone adds the prebuilt provider-native graph and policy/cancellation
-      composition over the invocation executor, Driver, lifecycle coordinator,
-      and fair scheduler. Its exit proof is one provider-native multi-turn tool
-      path that can crash, recover, and return a typed result without
-      redispatch. Protocol breadth follows that recovered path rather than
-      preceding it.
+      The provider-native graph now proves one multi-turn Tool path can crash,
+      recover, confirm cancellation with exact usage, and return a typed result
+      without redispatching committed work. The next proof boundary carries
+      those same durable identities and failure semantics through the first MCP
+      Tool adapter, including authenticated capability negotiation, bounded wire
+      data, cancellation, and crash recovery. A2A follows only after that
+      protocol boundary is executable rather than aspirational.
     </p>
   </section>
 
@@ -159,6 +164,11 @@ const capabilities = [
       </li>
       <li>
         <a href="/docs/invocations/">Durable model/tool invocation contract</a>
+      </li>
+      <li>
+        <a href="/docs/provider-native-agent/"
+          >Provider-native Agent graph contract</a
+        >
       </li>
       <li>
         <a href="/docs/fair-scheduling/"

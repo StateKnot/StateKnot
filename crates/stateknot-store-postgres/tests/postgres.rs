@@ -39,9 +39,10 @@ use stateknot_core::{
     RetryAdvice, RunCancellationRequest, RunFailure, RunId, RunInterruptKind, RunStatus,
     RunTimerKind, RunTransition, SchedulerReservationId, SchedulerShardId, SchemaId,
     SchemaReference, Scope, ScopeSet, SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent,
-    TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolInput,
-    ToolInvocation, ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition,
-    ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
+    TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolError,
+    ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput, ToolInvocation,
+    ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
+    ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
@@ -336,6 +337,7 @@ async fn remove_scheduler_fairness(pool: &PgPool) {
 }
 
 async fn remove_agent_submission_keys(pool: &PgPool) {
+    remove_terminal_tool_result_bindings(pool).await;
     query("DROP TABLE stateknot.agent_submission_keys")
         .execute(pool)
         .await
@@ -351,6 +353,53 @@ async fn remove_agent_submission_keys(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v16 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_terminal_tool_result_bindings(pool: &PgPool) {
+    for (table, revision_table) in [
+        (
+            "pending_node_result_tool_bindings",
+            "tool_invocation_revisions",
+        ),
+        (
+            "pending_node_result_model_bindings",
+            "model_invocation_revisions",
+        ),
+    ] {
+        query(&format!(
+            "ALTER TABLE stateknot.{table} \
+             DROP CONSTRAINT {table}_revision_fk, \
+             DROP CONSTRAINT {table}_status_valid, \
+             DROP COLUMN invocation_status"
+        ))
+        .execute(pool)
+        .await
+        .expect("v17 terminal binding status must be removable from the fixture");
+        query(&format!(
+            "ALTER TABLE stateknot.{table} \
+             ADD COLUMN invocation_status text \
+             GENERATED ALWAYS AS ('committed'::text) STORED, \
+             ADD CONSTRAINT {table}_revision_fk \
+             FOREIGN KEY ( \
+                 tenant_id, run_id, invocation_id, invocation_revision, \
+                 invocation_record_digest, invocation_status, \
+                 invocation_journal_sequence, invocation_journal_recorded_at, \
+                 invocation_journal_digest \
+             ) REFERENCES stateknot.{revision_table} ( \
+                 tenant_id, run_id, invocation_id, revision, record_digest, status, \
+                 journal_sequence, journal_recorded_at, journal_digest \
+             ) ON DELETE RESTRICT"
+        ))
+        .execute(pool)
+        .await
+        .expect("the exact v16 generated binding status must be restored");
+    }
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 17")
+        .execute(pool)
+        .await
+        .expect("v17 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -3399,6 +3448,28 @@ fn tool_result(intent: &ToolInvocationIntent, attempt_id: AttemptId) -> ToolResu
         .unwrap(),
         ToolArtifacts::empty(),
     )
+}
+
+fn tool_error(intent: &ToolInvocationIntent, attempt_id: AttemptId) -> ToolError {
+    ToolError::new(
+        Failure::new(
+            FailureId::generate(),
+            FailureCategory::DependencyUnavailable,
+            FailureCode::new("store.test.tool_dependency_unavailable").unwrap(),
+            FailureOrigin::new("stateknot.store_postgres.integration").unwrap(),
+            FailureMessage::new("The integration dependency is unavailable.").unwrap(),
+            RetryAdvice::Never,
+        )
+        .unwrap(),
+        ToolErrorPhase::Execution,
+        ToolExternalEffect::NotApplied,
+        ToolErrorProvenance::new(
+            intent.invocation_id(),
+            attempt_id,
+            intent.descriptor().metadata().identity().clone(),
+        ),
+    )
+    .unwrap()
 }
 
 fn model_descriptor() -> ModelDescriptor {
@@ -9553,6 +9624,127 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
         .unwrap();
     assert_eq!(journal.events().len(), 7);
     assert_eq!(journal.events().last().unwrap(), barrier.event());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn known_failed_tool_binding_releases_checkpoint_barrier_with_exact_terminal_status() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("tool-known-failure-barrier");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 809)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let intent = tool_invocation_intent(checkpoint.checkpoint(), InvocationId::generate());
+    let prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                810,
+            ),
+            intent.clone(),
+        )
+        .await
+        .unwrap();
+    let attempt_id = AttemptId::generate();
+    let executing = store
+        .advance_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(prepared.event().head()),
+                lease.fence().clone(),
+                811,
+            ),
+            &prepared.invocation().head(),
+            ToolInvocationTransition::StartAttempt { attempt_id },
+        )
+        .await
+        .unwrap();
+    let failed = store
+        .advance_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(executing.event().head()),
+                lease.fence().clone(),
+                812,
+            ),
+            &executing.invocation().head(),
+            ToolInvocationTransition::RecordError {
+                error: tool_error(&intent, attempt_id),
+            },
+        )
+        .await
+        .expect("authoritative non-application evidence must become a known failure");
+    assert_eq!(failed.invocation().status(), ToolInvocationStatus::Failed);
+
+    let activation = intent.activation().clone();
+    let bindings = NodeInvocationBindings::try_new(
+        &activation,
+        [NodeInvocationBinding::from_tool(failed.invocation()).unwrap()],
+    )
+    .unwrap();
+    let pending = store
+        .commit_test_pending_node_result(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(failed.event().head()),
+                lease.fence().clone(),
+                813,
+            ),
+            pending_result_intent(activation, bindings),
+        )
+        .await
+        .expect("a known failed tool revision must be durably bindable");
+    let successor_id = CheckpointId::generate();
+    let barrier = CheckpointBarrier::new(
+        checkpoint.checkpoint(),
+        successor_checkpoint_write(successor_id, checkpoint.checkpoint(), 1),
+        [pending.result().head()],
+    )
+    .unwrap();
+    let committed = store
+        .append_worker_barrier(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(pending.event().head()),
+                lease.fence().clone(),
+                814,
+            ),
+            RunProjection::unchanged(),
+            barrier,
+        )
+        .await
+        .expect("a known failed tool outcome must release the checkpoint barrier");
+    assert_eq!(committed.checkpoint().checkpoint_id(), successor_id);
+    assert_eq!(committed.checkpoint().superstep().get(), 1);
+    assert_eq!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, intent.invocation_id())
+            .await
+            .unwrap()
+            .status(),
+        ToolInvocationStatus::Failed
+    );
     store.close().await;
 }
 
@@ -16037,6 +16229,253 @@ async fn migration_sixteen_upgrades_existing_admissions_and_verifies_submission_
     query(
         "ALTER TABLE stateknot.agent_submission_keys \
          DROP CONSTRAINT agent_submission_keys_digest_lengths",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_seventeen_preserves_committed_bindings_and_installs_terminal_status_guards() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v17_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+
+    let legacy = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let tenant_id = tenant("v17-existing-tool-binding");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(
+        &legacy, &tenant_id, run_id, 1_700,
+    ))
+    .await;
+    let lease = legacy
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let intent = tool_invocation_intent(checkpoint.checkpoint(), InvocationId::generate());
+    let prepared = legacy
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                1_701,
+            ),
+            intent.clone(),
+        )
+        .await
+        .unwrap();
+    let attempt_id = AttemptId::generate();
+    let executing = legacy
+        .advance_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(prepared.event().head()),
+                lease.fence().clone(),
+                1_702,
+            ),
+            &prepared.invocation().head(),
+            ToolInvocationTransition::StartAttempt { attempt_id },
+        )
+        .await
+        .unwrap();
+    let committed = legacy
+        .advance_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(executing.event().head()),
+                lease.fence().clone(),
+                1_703,
+            ),
+            &executing.invocation().head(),
+            ToolInvocationTransition::RecordResult {
+                result: tool_result(&intent, attempt_id),
+            },
+        )
+        .await
+        .unwrap();
+    let bindings = NodeInvocationBindings::try_new(
+        intent.activation(),
+        [NodeInvocationBinding::from_tool(committed.invocation()).unwrap()],
+    )
+    .unwrap();
+    legacy
+        .commit_test_pending_node_result(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(committed.event().head()),
+                lease.fence().clone(),
+                1_704,
+            ),
+            pending_result_intent(intent.activation().clone(), bindings),
+        )
+        .await
+        .unwrap();
+    legacy.close().await;
+
+    let fixture = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_terminal_tool_result_bindings(&fixture).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        16
+    );
+    assert_eq!(
+        query_as::<_, (String, String)>(
+            "SELECT binding.invocation_status, attribute.attgenerated::text \
+             FROM stateknot.pending_node_result_tool_bindings AS binding \
+             JOIN pg_catalog.pg_attribute AS attribute \
+               ON attribute.attrelid = 'stateknot.pending_node_result_tool_bindings'::regclass \
+              AND attribute.attname = 'invocation_status' \
+             WHERE binding.tenant_id = $1 AND binding.run_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .fetch_one(&fixture)
+        .await
+        .unwrap(),
+        ("committed".to_owned(), "s".to_owned())
+    );
+    fixture.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 17 must upgrade a populated exact v16 fixture");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("the upgraded v17 schema must pass exact verification");
+    upgraded.verify_schema().await.unwrap();
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    assert_eq!(
+        query_as::<_, (String, String)>(
+            "SELECT binding.invocation_status, attribute.attgenerated::text \
+             FROM stateknot.pending_node_result_tool_bindings AS binding \
+             JOIN pg_catalog.pg_attribute AS attribute \
+               ON attribute.attrelid = 'stateknot.pending_node_result_tool_bindings'::regclass \
+              AND attribute.attname = 'invocation_status' \
+             WHERE binding.tenant_id = $1 AND binding.run_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .fetch_one(&verification)
+        .await
+        .unwrap(),
+        ("committed".to_owned(), String::new())
+    );
+    query(
+        "ALTER TABLE stateknot.pending_node_result_tool_bindings \
+         DROP CONSTRAINT pending_node_result_tool_bindings_revision_fk",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    query(
+        "UPDATE stateknot.pending_node_result_tool_bindings \
+         SET invocation_status = 'failed' \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.load_pending_node_result(intent.activation()).await,
+        Err(StoreError::CorruptData { .. })
+    ));
+    query(
+        "UPDATE stateknot.pending_node_result_tool_bindings \
+         SET invocation_status = 'committed' \
+         WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*run_id.as_uuid())
+    .execute(&verification)
+    .await
+    .unwrap();
+    query(
+        "ALTER TABLE stateknot.pending_node_result_tool_bindings \
+         ADD CONSTRAINT pending_node_result_tool_bindings_revision_fk \
+         FOREIGN KEY ( \
+             tenant_id, run_id, invocation_id, invocation_revision, \
+             invocation_record_digest, invocation_status, \
+             invocation_journal_sequence, invocation_journal_recorded_at, \
+             invocation_journal_digest \
+         ) REFERENCES stateknot.tool_invocation_revisions ( \
+             tenant_id, run_id, invocation_id, revision, record_digest, status, \
+             journal_sequence, journal_recorded_at, journal_digest \
+         ) ON DELETE RESTRICT",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    upgraded
+        .load_pending_node_result(intent.activation())
+        .await
+        .expect("restoring the exact terminal status must restore the binding projection");
+    query(
+        "ALTER TABLE stateknot.pending_node_result_tool_bindings \
+         DROP CONSTRAINT pending_node_result_tool_bindings_status_valid",
     )
     .execute(&verification)
     .await

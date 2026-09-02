@@ -21,7 +21,7 @@ tenant scheduler tick
   -> stable runnable-page snapshot
   -> exact lease claim
   -> durable Graph Driver
-  -> Wait / success / failure lifecycle coordinator
+  -> Wait / success / failure / cancellation lifecycle coordinator
   -> one fenced PostgreSQL transaction
   -> lease released or next durable scheduling boundary
 ```
@@ -33,20 +33,22 @@ The implementation is split deliberately:
 | `DurableFairScheduler` | Reserves one replica-global weighted slot with an exact starvation bound, then delegates only to the selected tenant worker. |
 | `DurableTenantScheduler` | Scans one tenant's fixed-cutoff queue in `(available_at, run_id)` order, claims at most one run, and invokes one bounded loop quantum. |
 | `DurableAgentLoop` | Binds one store, one immutable executable registry, one Driver, and one lifecycle coordinator so they cannot accidentally use different deployment snapshots. |
-| `DurableGraphDriver` | Replays and validates durable graph evidence, commits node starts before dispatch, executes nodes, renews the lease, and advances Continue barriers. |
-| `DurableGraphLifecycle` | Atomically commits Wait, successful Terminal, or supervised run failure using the exact lease-bound handoff. |
-| `GraphLifecycleEvidenceProvider` | Recovers already-durable admission, artifact, and cumulative-accounting facts owned by the embedding application. It is not a fallback inference hook. |
+| `DurableGraphDriver` | Replays and validates durable graph evidence, commits node starts before dispatch, executes nodes, renews the lease, polls durable cancellation, and advances Continue barriers. |
+| `DurableGraphLifecycle` | Atomically commits Wait, successful Terminal, supervised run failure, or confirmed cancellation using the exact lease-bound handoff. |
+| `GraphLifecycleEvidenceProvider` | Recovers already-durable admission, artifact, failure, and cumulative-accounting facts owned by the embedding application. It is not a fallback inference hook. |
 
 This is a runnable **durable graph loop**. Provider-neutral durable model/tool
-attempt execution, cross-tenant weighted selection, a typed Agent contract, and
-the first OpenAI Responses/Anthropic Messages adapters now exist, but this is
-not yet the stable end-user Agent API: durable admission/result retrieval, a
-prebuilt graph that assembles the implemented provider-native transcript,
-policy middleware, and the complete public facade remain release work.
+attempt execution, cross-tenant weighted selection, a typed Agent contract, the
+first OpenAI Responses/Anthropic Messages adapters, durable admission/result
+retrieval, and the prebuilt provider-native graph now exist. This is still not
+the stable end-user Agent API: the one-call service, public cancellation
+ingress, advanced graph semantics, protocol adapters, and production
+qualification remain release work.
 
 ## Startup binding
 
-Install both standard audit schemas before freezing the executable registry.
+Install all three standard Driver, lifecycle, and cancellation audit schemas
+before freezing the executable registry.
 Construct the scheduler only after migrations and all application schemas,
 graphs, reducers, and node executors are installed from one immutable release
 artifact.
@@ -57,6 +59,7 @@ use stateknot_runtime::{
     DurableGraphDriverOptions, DurableGraphLifecycleOptions,
     DurableTenantScheduler, DurableTenantSchedulerOptions,
     ExecutableGraphRegistryBuilder, JsonSchemaRegistryBuilder,
+    register_standard_agent_cancellation_event_schema,
     register_standard_graph_driver_event_schema,
     register_standard_graph_lifecycle_event_schema,
 };
@@ -64,6 +67,7 @@ use stateknot_runtime::{
 let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
 register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;
 register_application_schemas(&mut schemas)?;
 
 let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
@@ -84,12 +88,20 @@ The standard lifecycle audit schema has the immutable identifier
 through `register_standard_graph_lifecycle_event_schema`; do not copy a digest
 into application code.
 
+Cancellation confirmation uses
+`https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0`. Register it
+through `register_standard_agent_cancellation_event_schema`; constructing the
+lifecycle coordinator without it fails closed.
+
 ## Trusted lifecycle evidence
 
 Successful `AgentResult` construction requires facts the graph barrier does not
 own: the admitted `AgentDescriptor`, admitted `AgentRequest`, resolved finite
 budget, final artifact references, and complete cumulative usage. Terminal
 failure likewise requires a public-safe `Failure` and cumulative usage.
+Cancellation confirmation requires cumulative usage recovered at the exact
+requested checkpoint and must remain unavailable while an external result is
+still executing or ambiguous.
 
 The embedding service supplies these facts through
 `GraphLifecycleEvidenceProvider`. A production implementation must:
@@ -142,6 +154,21 @@ least one failed, exhausted, or unsupported node enters durable supervision;
 trusted failure evidence is then appended with the Failed transition and lease
 release in one transaction.
 
+### Confirmed cancellation
+
+An authenticated control plane first commits `RequestCancellation`. The Driver
+observes that durable state, stops new dispatch, applies cooperative
+cancellation with a bounded grace period, and returns an exact
+`GraphCancellationHandoff`. The Agent Loop automatically calls
+`confirm_cancellation` with that handoff.
+
+Lifecycle validates the request failure ID, revision, checkpoint, journal head,
+graph, and live fence. It recovers exact cumulative usage, obtains completion
+time from the database clock, and appends the public-safe confirmation event
+with `ConfirmCancellation` in one transaction that clears the lease. If exact
+evidence is unavailable, the run remains `cancellation_requested`; no zero
+usage or fictitious terminal state is written.
+
 ## Lost acknowledgements and stale handoffs
 
 Lifecycle handoffs are short-lived, non-serializable commit inputs. The Driver
@@ -149,12 +176,13 @@ allocates their stable `EventId` once, before handing control to the lifecycle
 coordinator. Every retry reuses the exact event, revision, journal head,
 checkpoint plan, and fence.
 
-For successful Terminal and supervised failure, if the first transaction
+For successful Terminal, supervised failure, and confirmed cancellation, if the first transaction
 committed but its acknowledgement was lost, the coordinator accepts only the
 exact post-commit snapshot: revision advanced by one, expected terminal status,
 journal head naming the same event, and no lease. It reconstructs the exact
-committed `AgentResult` or `RunFailure` from the lifecycle and does not require
-the external evidence provider to be available again. Any other changed
+committed `AgentResult`, `RunFailure`, or cancellation timestamp and usage from
+the lifecycle and does not require the external evidence provider to be
+available again. Any other changed
 revision, event, status, head, or owner is a stale terminal handoff and fails
 closed.
 
@@ -207,7 +235,7 @@ At minimum, export:
   scan-limit outcomes, and per-tenant queue age;
 - Driver replay/result bytes, durable starts/completions, Continue barriers,
   renewals, timeouts, cancellations, and mutation retries;
-- lifecycle Wait/success/failure commits, idempotent recoveries, stale
+- lifecycle Wait/success/failure/cancellation commits, idempotent recoveries, stale
   handoffs, evidence error class, exact-fence release, and cleanup failure;
 - run status, lease age, delayed-retry age, and time spent Waiting without
   logging request, output, failure, or secret payloads.
@@ -220,19 +248,21 @@ commit.
 
 ## Qualification evidence and remaining gates
 
-Nineteen runtime integration scenarios run against both PostgreSQL 16 and 17.
-They cover lifecycle success/Wait/failure atomicity and exact lost-ack replay,
-database-time Wait materialization, Agent Loop success and evidence failure,
-tenant and weighted cross-tenant scheduling, durable model/tool attempts and
-streaming, noninitial replay, same-fence suppression, lease renewal,
-near-expiry refresh, initial-state quarantine, higher-fence takeover, and the
-public durable run/result facade. Each database version also runs 100 provider integration cases. CI makes both suites
-mandatory.
+Twenty-six runtime integration scenarios run against both PostgreSQL 16 and
+17. They cover lifecycle success/Wait/failure/cancellation atomicity and exact
+lost-ack replay, database-time Wait materialization, Agent Loop success and
+evidence failure, tenant and weighted cross-tenant scheduling, durable
+model/tool attempts and streaming, provider-native multi-turn recovery,
+noninitial replay, same-fence suppression, lease renewal, near-expiry refresh,
+initial-state quarantine, higher-fence takeover, and the public durable
+run/result facade. The PostgreSQL provider suite also runs independently for
+each database version. CI makes both suites mandatory.
 
-The atomic admission provider and public run/result facade with ingress
-idempotency are now implemented. The remaining release blockers include the
-prebuilt provider-native graph and transcript assembly, policy and cancellation
-service boundaries, artifact retrieval, parallel sibling policy, loop/subgraph semantics,
+Atomic admission, the public run/result facade, and the provider-native graph
+with transcript recovery, policy evidence, exact accounting, and cancellation
+confirmation are implemented. The remaining release blockers include a stable
+public cancellation service boundary, artifact retrieval, parallel sibling
+policy, loop/subgraph semantics,
 protocol-specific outbox dispatch, role-separated database procedures, general
 retention, backup/restore, failover, stale-race qualification, observability,
 and release hardening.

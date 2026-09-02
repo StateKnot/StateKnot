@@ -290,7 +290,7 @@ database-clock expiry, immutable event/checkpoint anchoring, exact retry after
 time-sensitive boundaries, tamper rejection, late rollback, and 24-way
 single-commit convergence. Migration-16 coverage adds populated upgrades,
 durable ingress-key convergence/conflicts, raw-key non-persistence, tamper
-rejection, and atomic rollback. The 100 provider tests and nineteen durable Runtime tests run independently against
+rejection, and atomic rollback. The 102 provider tests and 26 durable Runtime tests run independently against
 PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -643,16 +643,26 @@ rederive the logical submission digest and revalidate the selected admission.
 A populated v15 upgrade, 24-way convergence, raw-key non-persistence, injected
 late rollback, and mapping tamper detection run on PostgreSQL 16 and 17.
 
+Migration 17 makes terminal invocation status explicit in pending node-result
+bindings. Model bindings remain committed-only; Tool bindings accept the exact
+terminal `committed` or `failed` revision. Composite foreign keys include the
+status, record digest, journal sequence/time/digest, invocation identity, and
+revision, so a known deterministic Tool failure can enter the next
+provider-native transcript without being mislabeled as success or detached from
+its immutable ledger evidence. Fresh install, v16 upgrade, status constraint,
+foreign-key tamper, and provider-native failed-Tool recovery pass on PostgreSQL
+16 and 17.
+
 ## Not yet implemented
 
 This slice is not a production release or the complete agent runtime. The first
 model-provider adapters live above this store boundary; it does not yet
-implement protocol-specific outbox dispatch adapters, artifacts, the complete
-provider-native Agent graph, public cancellation transport, general
+implement protocol-specific outbox dispatch adapters, artifacts, public
+cancellation transport, general
 retention/archive/legal hold,
 backup/restore, failover qualification, or the
 10,000-race stale-worker gate. The implemented lifecycle coordinator now
-atomically commits complete Wait/success/failure handoffs, and the tenant worker
+atomically commits complete Wait/success/failure/cancellation handoffs, and the tenant worker
 binds runnable discovery, lease claim, Driver, and lifecycle coordination into
 one bounded Agent Loop quantum. It still requires the embedding service to
 supply trusted durable cumulative-accounting and terminal artifact evidence;

@@ -48,7 +48,7 @@ const currentCut = [
   {
     surface: "Durable Agent Loop",
     state: "Implemented slice",
-    evidence: "Atomic lifecycle commits and tenant-scoped scheduling",
+    evidence: "Atomic success, failure, Wait, and cancellation commits",
     href: "/docs/agent-loop/",
   },
   {
@@ -68,6 +68,12 @@ const currentCut = [
     state: "Implemented slice",
     evidence: "Pinned schemas plus OpenAI/Anthropic unary and SSE transport",
     href: "/docs/typed-agent/",
+  },
+  {
+    surface: "Provider-native Agent graph",
+    state: "Implemented slice",
+    evidence: "Recovered multi-turn tools, pinned policy, exact cancellation",
+    href: "/docs/provider-native-agent/",
   },
   {
     surface: "MCP and A2A adapters",
@@ -98,15 +104,15 @@ const roadmap = [
   },
   {
     index: "04",
-    state: "Now",
+    state: "Implemented",
     title: "Assemble the provider-native Agent graph",
-    body: "Compose the implemented transcript builders, invocation executor, Driver, lifecycle, policy, cancellation, and result boundary into one recovered multi-turn tool path.",
+    body: "One recovered multi-turn tool path now composes transcript reconstruction, durable invocations, pinned policy and accounting, Driver, lifecycle, and exact cancellation.",
   },
   {
     index: "05",
-    state: "Planned",
-    title: "Add protocol adapters",
-    body: "Map MCP and A2A wire models into versioned internal types, with policy and tenant boundaries enforced at admission.",
+    state: "Now",
+    title: "Prove the first protocol adapter",
+    body: "Carry the durable identity, policy, accounting, cancellation, and recovery contract through an authenticated MCP Tool boundary; A2A follows that proof.",
   },
   {
     index: "06",
@@ -132,9 +138,10 @@ const roadmap = [
             StateKnot now runs typed root Graphs through PostgreSQL-backed crash
             recovery, atomic Agent admission, durable model/tool attempts,
             lifecycle commits, weighted cross-tenant scheduling, durable ingress
-            keys, verified run/result reads, typed Agent contracts, and the
-            first OpenAI/Anthropic adapters. The provider-native end-to-end
-            Agent graph and MCP/A2A protocol adapters remain under development.
+            keys, verified run/result reads, typed Agent contracts, the first
+            OpenAI/Anthropic adapters, and a recovered provider-native
+            multi-turn Agent graph. Stable service APIs and MCP/A2A protocol
+            adapters remain under development.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -273,9 +280,9 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">The road ahead is ordered by proof.</h2>
         <p>
-          The public facade comes after one end-to-end provider-native path
-          survives crashes, retries, stale workers, and lost acknowledgements;
-          protocol breadth follows it.
+          The recovered provider-native path now survives crashes, retries,
+          stale workers, cancellation, and lost acknowledgements. The first MCP
+          boundary must preserve those proofs; A2A follows it.
         </p>
       </div>
 

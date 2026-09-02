@@ -1,7 +1,7 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//! Versioned public-safe journal schema for model/tool attempt execution.
+//! Versioned public-safe journal schema for model/tool invocation execution.
 
 use serde_json::Value;
 use stateknot_core::{Digest, SchemaId, SchemaIdError, SchemaReference, Version};
@@ -109,6 +109,16 @@ mod tests {
         }))
         .unwrap();
         registry.validate_bounded(&reference, &model).unwrap();
+
+        let preparation = BoundedJson::try_from_value(json!({
+            "operation": "tool_invocation_prepared",
+            "binding_kind": "tool",
+            "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+            "attempt_id": "01912345-6789-7abc-8def-0123456789ae",
+            "intent_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }))
+        .unwrap();
+        registry.validate_bounded(&reference, &preparation).unwrap();
 
         let crossed = BoundedJson::try_from_value(json!({
             "operation": "tool_result_committed",

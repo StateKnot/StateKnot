@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0",
+  "title": "StateKnot agent cancellation event data",
+  "description": "Public-safe correlation metadata for durable agent cancellation acknowledgement. Provider payloads, failure messages, and accounting values are deliberately excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operation",
+    "graph_digest",
+    "checkpoint_id",
+    "superstep",
+    "failure_id"
+  ],
+  "properties": {
+    "operation": {
+      "const": "agent_cancellation_confirmed"
+    },
+    "graph_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "checkpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "superstep": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,18})$"
+    },
+    "failure_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}

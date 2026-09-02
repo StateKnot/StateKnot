@@ -143,9 +143,10 @@ Atomic durable admission is implemented; see
 [`durable-agent-admission.md`](durable-agent-admission.md). Durable ingress-key
 mapping and fully revalidated run/result reads are implemented by
 `DurableAgentRuns`; see [`durable-agent-runs.md`](durable-agent-runs.md). There
-is still no helper that synthesizes and executes the prebuilt provider-native
-model/tool graph in one call, and no temporary in-memory `run()` method stands
-in for that missing orchestration.
+is still no stable one-call Agent service or temporary in-memory `run()`
+shortcut. The implemented
+[`ProviderNativeAgentGraph`](provider-native-agent.md) now supplies the prebuilt
+durable model/tool composition beneath that future service boundary.
 
 ## Verification evidence
 
@@ -163,7 +164,8 @@ cargo test -p stateknot-integrations --all-targets
 cargo test -p stateknot-runtime --test typed_agent
 ```
 
-Live-provider qualification, provider drift cassettes, durable transcript
-assembly inside the prebuilt Agent graph, policy middleware, and cancellation
-service integration remain release gates. These adapters and typed
-APIs are implemented but still pre-alpha and unpublished.
+The provider-native runtime suite separately verifies durable transcript
+assembly, policy evidence, no-redispatch recovery, and exact cancellation on
+real PostgreSQL 16/17. Live-provider qualification, provider drift cassettes,
+and a stable public cancellation service remain release gates. These adapters
+and typed APIs are implemented but still pre-alpha and unpublished.

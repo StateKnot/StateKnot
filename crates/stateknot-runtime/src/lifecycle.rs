@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use stateknot_core::{
     AgentArtifacts, AgentDescriptor, AgentRequest, AgentResult, AgentResultError,
     AgentResultProvenance, AgentResultValidationError, BoundedJson, BoxFuture, BudgetUsage,
-    CheckpointHead, CheckpointId, Digest, DurableWaitError, EventId, Failure,
+    CheckpointHead, CheckpointId, Digest, DurableWaitError, EventId, Failure, FailureId,
     GraphBarrierDisposition, GraphReference, GraphSchemaValidationError, JournalAppend,
     JournalEventIntent, JournalEventKind, JournalExpectation, JournalHead, JournalPayload,
     ResolvedBudget, RunFailure, RunFailureError, RunFence, RunLease, RunRevision, RunStatus,
@@ -22,8 +22,10 @@ use stateknot_store_postgres::{
 use thiserror::Error;
 
 use crate::{
-    ExecutableGraphRegistry, GraphBlockedHandoff, GraphDriveBlockers, GraphLifecycleBarrierHandoff,
-    StandardGraphLifecycleSchemaError, standard_graph_lifecycle_event_schema,
+    ExecutableGraphRegistry, GraphBlockedHandoff, GraphCancellationHandoff, GraphDriveBlockers,
+    GraphLifecycleBarrierHandoff, StandardAgentCancellationSchemaError,
+    StandardGraphLifecycleSchemaError, standard_agent_cancellation_event_schema,
+    standard_graph_lifecycle_event_schema,
 };
 
 const MAX_MUTATION_RETRY_DELAY: Duration = Duration::from_secs(1);
@@ -309,6 +311,72 @@ pub struct GraphFailureEvidence {
     usage: BudgetUsage,
 }
 
+/// Payload-free trusted context for terminal cancellation accounting recovery.
+#[derive(Clone, Debug)]
+pub struct GraphCancellationEvidenceContext {
+    provenance: AgentResultProvenance,
+    graph: GraphReference,
+    checkpoint: CheckpointHead,
+    expected_revision: RunRevision,
+    cancellation_failure_id: FailureId,
+}
+
+impl GraphCancellationEvidenceContext {
+    /// Returns trusted run provenance from the current lifecycle snapshot.
+    #[must_use]
+    pub const fn provenance(&self) -> &AgentResultProvenance {
+        &self.provenance
+    }
+
+    /// Returns the exact pinned graph.
+    #[must_use]
+    pub const fn graph(&self) -> &GraphReference {
+        &self.graph
+    }
+
+    /// Returns the checkpoint at which cancellation stopped graph progress.
+    #[must_use]
+    pub const fn checkpoint(&self) -> &CheckpointHead {
+        &self.checkpoint
+    }
+
+    /// Returns the cancellation-request lifecycle revision to consume.
+    #[must_use]
+    pub const fn expected_revision(&self) -> RunRevision {
+        self.expected_revision
+    }
+
+    /// Returns the immutable cancellation occurrence selected by the request.
+    #[must_use]
+    pub const fn cancellation_failure_id(&self) -> FailureId {
+        self.cancellation_failure_id
+    }
+}
+
+/// Complete cumulative accounting recovered before cancellation acknowledgement.
+#[derive(Clone, Debug)]
+pub struct GraphCancellationEvidence {
+    usage: BudgetUsage,
+}
+
+impl GraphCancellationEvidence {
+    /// Wraps exact cumulative usage reconstructed from trusted durable ledgers.
+    #[must_use]
+    pub const fn new(usage: BudgetUsage) -> Self {
+        Self { usage }
+    }
+
+    /// Returns complete cumulative usage at cancellation acknowledgement.
+    #[must_use]
+    pub const fn usage(&self) -> &BudgetUsage {
+        &self.usage
+    }
+
+    fn into_usage(self) -> BudgetUsage {
+        self.usage
+    }
+}
+
 impl GraphFailureEvidence {
     /// Bundles a public-safe occurrence and complete cumulative run usage.
     #[must_use]
@@ -367,12 +435,20 @@ pub trait GraphLifecycleEvidenceProvider: Send + Sync + 'static {
         &self,
         context: GraphFailureEvidenceContext,
     ) -> BoxFuture<'_, Result<GraphFailureEvidence, GraphLifecycleEvidenceError>>;
+
+    /// Recovers complete cumulative usage for an exact cancellation request.
+    fn cancellation_evidence(
+        &self,
+        context: GraphCancellationEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphCancellationEvidence, GraphLifecycleEvidenceError>>;
 }
 
 /// Converged result of one lifecycle handoff.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum GraphBarrierLifecycleOutcome {
+    /// Cancellation acknowledgement, usage, event, and lease release committed atomically.
+    Cancelled(AppendOutcome),
     /// Barrier, successor checkpoint, wait transition, registrations, and lease
     /// release committed atomically.
     Waiting(WaitCheckpointCommitOutcome),
@@ -393,6 +469,7 @@ pub struct DurableGraphLifecycle {
     registry: ExecutableGraphRegistry,
     evidence: Arc<dyn GraphLifecycleEvidenceProvider>,
     journal_schema: SchemaReference,
+    cancellation_schema: SchemaReference,
     options: DurableGraphLifecycleOptions,
 }
 
@@ -419,11 +496,16 @@ impl DurableGraphLifecycle {
         if !registry.schemas().contains(&journal_schema) {
             return Err(DurableGraphLifecycleBuildError::JournalSchemaUnavailable);
         }
+        let (cancellation_schema, _) = standard_agent_cancellation_event_schema()?;
+        if !registry.schemas().contains(&cancellation_schema) {
+            return Err(DurableGraphLifecycleBuildError::CancellationSchemaUnavailable);
+        }
         Ok(Self {
             store,
             registry,
             evidence,
             journal_schema,
+            cancellation_schema,
             options,
         })
     }
@@ -432,6 +514,97 @@ impl DurableGraphLifecycle {
     #[must_use]
     pub const fn options(&self) -> DurableGraphLifecycleOptions {
         self.options
+    }
+
+    /// Acknowledges one exact durable cancellation request after cumulative
+    /// usage has been recovered from trusted ledgers.
+    ///
+    /// A fresh commit uses a database clock observed with the exact live fence.
+    /// An identical retry reconstructs that timestamp and usage from the
+    /// terminal lifecycle, producing the same projection digest even after the
+    /// original lease was atomically released.
+    pub fn confirm_cancellation(
+        &self,
+        handoff: GraphCancellationHandoff,
+    ) -> BoxFuture<'_, Result<GraphBarrierLifecycleOutcome, GraphLifecycleError>> {
+        Box::pin(self.confirm_cancellation_inner(handoff))
+    }
+
+    async fn confirm_cancellation_inner(
+        &self,
+        handoff: GraphCancellationHandoff,
+    ) -> Result<GraphBarrierLifecycleOutcome, GraphLifecycleError> {
+        let (checkpoint, journal_head, event_id, expected_revision, lease, failure_id) =
+            handoff.into_parts();
+        let fence = lease.fence().clone();
+        validate_cancellation_scope(&fence, &journal_head, &checkpoint)?;
+        let run = self
+            .store
+            .load_run(fence.tenant_id(), fence.run_id())
+            .await?;
+        validate_cancellation_checkpoint(&run, &checkpoint)?;
+
+        let fresh = run.lifecycle().revision() == expected_revision
+            && run.lifecycle().status() == RunStatus::CancellationRequested
+            && run.journal_head() == Some(&journal_head)
+            && run.lease().map(RunLease::fence) == Some(&fence)
+            && run
+                .lifecycle()
+                .cancellation_request()
+                .is_some_and(|request| request.failure().id() == failure_id);
+        let (completed_at, usage) = if fresh {
+            let observation = self.store.observe_live_lease(&fence).await?;
+            if observation.lease().fence() != &fence {
+                return Err(GraphLifecycleError::StaleHandoff);
+            }
+            let context = GraphCancellationEvidenceContext {
+                provenance: run.lifecycle().provenance().clone(),
+                graph: checkpoint.graph().clone(),
+                checkpoint: checkpoint.clone(),
+                expected_revision,
+                cancellation_failure_id: failure_id,
+            };
+            let evidence = self
+                .evidence
+                .cancellation_evidence(context)
+                .await
+                .map_err(GraphLifecycleError::Evidence)?;
+            (observation.observed_at(), evidence.into_usage())
+        } else {
+            let committed_revision = expected_revision.get().checked_add(1);
+            let committed = committed_revision
+                .is_some_and(|revision| run.lifecycle().revision() == RunRevision::new(revision))
+                && run.lifecycle().status() == RunStatus::Cancelled
+                && run
+                    .journal_head()
+                    .is_some_and(|head| head.event_id() == event_id)
+                && run.lease().is_none()
+                && run
+                    .lifecycle()
+                    .cancellation_request()
+                    .is_some_and(|request| request.failure().id() == failure_id);
+            if !committed {
+                return Err(GraphLifecycleError::StaleHandoff);
+            }
+            let usage = run.lifecycle().terminal_usage().cloned().ok_or(
+                GraphLifecycleError::InvalidHandoff {
+                    operation: "recover committed cancellation accounting",
+                },
+            )?;
+            (run.lifecycle().changed_at(), usage)
+        };
+
+        let payload = self.cancelled_payload(&checkpoint, failure_id)?;
+        let append = worker_append(&fence, journal_head, event_id, payload)?;
+        let projection = RunProjection::transition(
+            expected_revision,
+            RunTransition::ConfirmCancellation {
+                completed_at,
+                usage,
+            },
+        );
+        let outcome = self.commit_failure_with_retry(append, projection).await?;
+        Ok(GraphBarrierLifecycleOutcome::Cancelled(outcome))
     }
 
     /// Commits an exact Wait or successful-Terminal graph barrier.
@@ -882,8 +1055,35 @@ impl DurableGraphLifecycle {
         )
     }
 
+    fn cancelled_payload(
+        &self,
+        checkpoint: &CheckpointHead,
+        failure_id: FailureId,
+    ) -> Result<JournalPayload, GraphLifecycleError> {
+        self.event_payload_with_schema(
+            &self.cancellation_schema,
+            "agent-cancellation-confirmed",
+            json!({
+                "operation": "agent_cancellation_confirmed",
+                "graph_digest": digest_hex(checkpoint.graph().definition_digest()),
+                "checkpoint_id": checkpoint.checkpoint_id().to_string(),
+                "superstep": checkpoint.superstep().get().to_string(),
+                "failure_id": failure_id.to_string()
+            }),
+        )
+    }
+
     fn event_payload(
         &self,
+        kind: &'static str,
+        data: Value,
+    ) -> Result<JournalPayload, GraphLifecycleError> {
+        self.event_payload_with_schema(&self.journal_schema, kind, data)
+    }
+
+    fn event_payload_with_schema(
+        &self,
+        schema: &SchemaReference,
         kind: &'static str,
         data: Value,
     ) -> Result<JournalPayload, GraphLifecycleError> {
@@ -891,11 +1091,11 @@ impl DurableGraphLifecycle {
             .map_err(|_| GraphLifecycleError::EventPayloadInvalid)?;
         self.registry
             .schemas()
-            .validate_bounded(&self.journal_schema, &data)
+            .validate_bounded(schema, &data)
             .map_err(|_| GraphLifecycleError::EventPayloadInvalid)?;
         let kind =
             JournalEventKind::new(kind).map_err(|_| GraphLifecycleError::EventPayloadInvalid)?;
-        JournalPayload::new(self.journal_schema.clone(), kind, data)
+        JournalPayload::new(schema.clone(), kind, data)
             .map_err(|_| GraphLifecycleError::EventPayloadInvalid)
     }
 }
@@ -906,6 +1106,7 @@ impl fmt::Debug for DurableGraphLifecycle {
             .debug_struct("DurableGraphLifecycle")
             .field("registry", &self.registry)
             .field("journal_schema", &self.journal_schema)
+            .field("cancellation_schema", &self.cancellation_schema)
             .field("options", &self.options)
             .finish_non_exhaustive()
     }
@@ -918,9 +1119,15 @@ pub enum DurableGraphLifecycleBuildError {
     /// The embedded lifecycle schema release artifact was malformed.
     #[error(transparent)]
     StandardSchema(#[from] StandardGraphLifecycleSchemaError),
+    /// The embedded cancellation schema release artifact was malformed.
+    #[error(transparent)]
+    CancellationSchema(#[from] StandardAgentCancellationSchemaError),
     /// The executable registry omitted the required standard lifecycle schema.
     #[error("standard graph lifecycle event schema is unavailable")]
     JournalSchemaUnavailable,
+    /// The executable registry omitted the required cancellation schema.
+    #[error("standard agent cancellation event schema is unavailable")]
+    CancellationSchemaUnavailable,
 }
 
 /// Payload-redacted graph lifecycle failure.
@@ -1051,6 +1258,41 @@ fn validate_barrier_scope(
         return Err(GraphLifecycleError::InvalidHandoff {
             operation: "bind graph barrier scope to its journal and fence",
         });
+    }
+    Ok(())
+}
+
+fn validate_cancellation_scope(
+    fence: &RunFence,
+    journal_head: &JournalHead,
+    checkpoint: &CheckpointHead,
+) -> Result<(), GraphLifecycleError> {
+    if journal_head.tenant_id() != fence.tenant_id()
+        || journal_head.run_id() != fence.run_id()
+        || checkpoint.tenant_id() != fence.tenant_id()
+        || checkpoint.run_id() != fence.run_id()
+    {
+        return Err(GraphLifecycleError::InvalidHandoff {
+            operation: "bind cancellation confirmation to one run scope",
+        });
+    }
+    Ok(())
+}
+
+fn validate_cancellation_checkpoint(
+    run: &StoredRun,
+    checkpoint: &CheckpointHead,
+) -> Result<(), GraphLifecycleError> {
+    let pointer = run
+        .checkpoint()
+        .ok_or(GraphLifecycleError::InvalidHandoff {
+            operation: "bind cancellation confirmation to a checkpoint",
+        })?;
+    if pointer.checkpoint_id() != checkpoint.checkpoint_id()
+        || pointer.superstep() != checkpoint.superstep()
+        || pointer.digest() != checkpoint.digest()
+    {
+        return Err(GraphLifecycleError::StaleHandoff);
     }
     Ok(())
 }

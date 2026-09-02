@@ -975,7 +975,7 @@ pub enum NodeInvocationBindingKind {
     Tool,
 }
 
-/// Exact committed external invocation consumed by one node result.
+/// Exact terminal external invocation consumed by one node result.
 ///
 /// The embedded activation makes cross-node substitution locally detectable.
 /// A durable adapter must additionally reload the exact full invocation
@@ -991,7 +991,11 @@ pub enum NodeInvocationBinding {
         /// Compact committed model revision identity.
         head: ModelInvocationHead,
     },
-    /// Exact committed tool invocation.
+    /// Exact terminal tool invocation.
+    ///
+    /// Both successful and known-failed tool outcomes are consumable: a model
+    /// transcript must be able to observe a deterministic tool error. Ambiguous
+    /// or unfinished tool outcomes remain ineligible.
     Tool {
         /// Activation recorded by the full invocation intent.
         activation: NodeActivation,
@@ -1011,12 +1015,13 @@ impl NodeInvocationBinding {
         Self::restore_model(invocation.intent().activation().clone(), invocation.head())
     }
 
-    /// Constructs a binding from a fully validated committed tool invocation.
+    /// Constructs a binding from a fully validated terminal tool invocation.
     ///
     /// # Errors
     ///
     /// Returns [`NodeInvocationBindingError`] unless the invocation is
-    /// committed and its journal anchor strictly follows its base checkpoint.
+    /// committed or known-failed and its journal anchor strictly follows its
+    /// base checkpoint.
     pub fn from_tool(invocation: &ToolInvocation) -> Result<Self, NodeInvocationBindingError> {
         Self::restore_tool(invocation.intent().activation().clone(), invocation.head())
     }
@@ -1096,8 +1101,11 @@ impl NodeInvocationBinding {
         activation: NodeActivation,
         head: ToolInvocationHead,
     ) -> Result<Self, NodeInvocationBindingError> {
-        if head.status() != ToolInvocationStatus::Committed {
-            return Err(NodeInvocationBindingError::ToolNotCommitted {
+        if !matches!(
+            head.status(),
+            ToolInvocationStatus::Committed | ToolInvocationStatus::Failed
+        ) {
+            return Err(NodeInvocationBindingError::ToolNotConsumable {
                 actual: head.status(),
             });
         }
@@ -1147,9 +1155,11 @@ pub enum NodeInvocationBindingError {
         /// Rejected lifecycle status.
         actual: ModelInvocationStatus,
     },
-    /// Tool revision was not committed.
-    #[error("tool invocation binding must reference committed state, got {actual:?}")]
-    ToolNotCommitted {
+    /// Tool revision was neither successful nor a known failure.
+    #[error(
+        "tool invocation binding must reference committed or known-failed state, got {actual:?}"
+    )]
+    ToolNotConsumable {
         /// Rejected lifecycle status.
         actual: ToolInvocationStatus,
     },
@@ -1268,7 +1278,7 @@ impl<'de> de::Visitor<'de> for NodeInvocationBindingsVisitor {
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             formatter,
-            "at most {} unique committed node invocation bindings",
+            "at most {} unique terminal node invocation bindings",
             NodeInvocationBindings::MAX_LEN
         )
     }
@@ -2128,7 +2138,7 @@ mod tests {
     }
 
     #[test]
-    fn invocation_bindings_are_committed_activation_bound_unique_and_canonical() {
+    fn invocation_bindings_are_terminal_activation_bound_unique_and_canonical() {
         let activation = node_activation("authorize");
         let tool = tool_binding(&activation);
         let model = model_binding(&activation);
@@ -2181,6 +2191,55 @@ mod tests {
                 actual: ModelInvocationStatus::Executing,
             })
         );
+    }
+
+    #[test]
+    fn invocation_bindings_accept_known_tool_failures_but_reject_uncertain_outcomes() {
+        let activation = node_activation("execute-tool");
+        let failed = ToolInvocationHead::new(
+            activation.tenant_id().clone(),
+            activation.run_id(),
+            invocation_id("d4"),
+            ToolInvocationRevision::new(2).unwrap(),
+            ToolInvocationStatus::Failed,
+            Some(attempt_id("a4")),
+            journal(&activation, 2),
+            Digest::sha256(b"known-tool-failure"),
+        )
+        .unwrap();
+        assert!(NodeInvocationBinding::restore_tool(activation.clone(), failed).is_ok());
+
+        for status in [
+            ToolInvocationStatus::Prepared,
+            ToolInvocationStatus::Executing,
+            ToolInvocationStatus::Unknown,
+        ] {
+            let attempt_id = if status == ToolInvocationStatus::Prepared {
+                None
+            } else {
+                Some(AttemptId::generate())
+            };
+            let revision = if status == ToolInvocationStatus::Prepared {
+                ToolInvocationRevision::INITIAL
+            } else {
+                ToolInvocationRevision::new(2).unwrap()
+            };
+            let head = ToolInvocationHead::new(
+                activation.tenant_id().clone(),
+                activation.run_id(),
+                InvocationId::generate(),
+                revision,
+                status,
+                attempt_id,
+                journal(&activation, 3),
+                Digest::sha256(format!("{status:?}").as_bytes()),
+            )
+            .unwrap();
+            assert_eq!(
+                NodeInvocationBinding::restore_tool(activation.clone(), head),
+                Err(NodeInvocationBindingError::ToolNotConsumable { actual: status })
+            );
+        }
     }
 
     #[test]

@@ -206,11 +206,12 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         >durable admission contract</a
       > next, then use the implemented <a href="/docs/runs/"
         >durable run/result boundary</a
-      >. A prebuilt graph that durably assembles the implemented provider-native
-      transcript, policy, and cancellation still remains a release gate.
-      Continue with <a href="/docs/invocations/">durable invocations</a> and the <a
+      >. The implemented <a href="/docs/provider-native-agent/"
+        >provider-native Agent graph</a
+      > now assembles transcript, policy evidence, accounting, and cancellation lifecycle
+      over <a href="/docs/invocations/">durable invocations</a> and the <a
         href="/docs/agent-loop/">durable Agent Loop</a
-      > for the implemented execution contracts.
+      >.
     </p>
   </section>
 
@@ -238,8 +239,10 @@ cargo test -p stateknot-integrations --all-targets --locked</code></pre>
       shape, fragmented SSE, terminal cross-checks, 429 retry evidence, 5xx
       no-hidden-retry behavior, transcript replay order, tamper and
       cross-provider rejection, resource ceilings, deadline/cancellation
-      precedence, and secret/debug redaction. Live-provider qualification and
-      provider-drift cassettes have not shipped.
+      precedence, and secret/debug redaction. The provider-native runtime suite
+      separately verifies multi-turn recovery and exact cancellation on real
+      PostgreSQL 16/17. Live-provider qualification and provider-drift cassettes
+      have not shipped.
     </p>
   </section>
 </DocsLayout>

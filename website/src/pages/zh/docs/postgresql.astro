@@ -16,9 +16,9 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
     <p>
       Provider 已经真实实现并具有大量测试，但尚未发布，且仍假设使用可信的
       Server-side Pool。角色隔离的 Server Procedure、通用 Retention、Restore
-      Qualification 与稳定 Provider-native Agent 组合仍是发布阻断项；公开
-      Run/Result 集成已经在该 Store 之上实现。第一批 Model Adapter 位于该 Store
-      Boundary 之上。
+      Qualification 与 Failover 仍是发布阻断项；公开 Run/Result 集成与
+      Provider-native Agent Graph 已经在该 Store 之上实现。第一批 Model Adapter
+      也位于该 Store Boundary 之上。
     </p>
   </aside>
 
@@ -168,8 +168,8 @@ store.health_check().await?;</code></pre>
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证范围与当前限制</h2>
     <p>
-      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 100 个
-      Provider Case 与 19 个耐久 Runtime 场景，覆盖迁移、Lost
+      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 102 个
+      Provider Case 与 26 个耐久 Runtime 场景，覆盖迁移、Lost
       ACK、Fencing、损坏拒绝、并发、Rollback Injection、Outbox Recovery、Durable
       Wait、Quarantine、不可变 Graph Registration/Recovery、Ready-node Planning
       与延迟重试调度、Lifecycle Commit、耐久 Model/Tool 执行、Fairness

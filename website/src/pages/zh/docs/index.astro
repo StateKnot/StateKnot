@@ -49,7 +49,7 @@ const paths = [
   },
   {
     title: "运行耐久 Agent Loop",
-    body: "把 Lifecycle Evidence、原子 Wait/Terminal/Failure Commit 与 Tenant-scoped Scheduler Tick 接入已经验证的 Driver。",
+    body: "把 Lifecycle Evidence、原子 Wait/Terminal/Failure/Cancellation Commit 与 Tenant-scoped Scheduler Tick 接入已经验证的 Driver。",
     href: "/zh/docs/agent-loop/",
     link: "集成 Agent Loop",
   },
@@ -58,6 +58,12 @@ const paths = [
     body: "冻结精确 Model/Tool Provider，在外部 I/O 前提交物理 Start，校验 Stream，并在不 Redispatch 的前提下重试 Terminal Persistence。",
     href: "/zh/docs/invocations/",
     link: "集成耐久调用",
+  },
+  {
+    title: "运行 Provider-native Agent",
+    body: "编译一套 Pinned 多轮 Model/Tool Graph，在不重复 Dispatch 的前提下恢复 Transcript，并依据精确 Usage Evidence 确认 Cancellation。",
+    href: "/zh/docs/provider-native-agent/",
+    link: "集成 Agent Graph",
   },
   {
     title: "公平调度租户",
@@ -96,8 +102,10 @@ const paths = [
       合约，以及首批 OpenAI Responses 与 Anthropic Messages Adapter
       也已实现。原子耐久 Agent Admission 把这些合约绑定到 Scheduler-visible
       Work；耐久 Ingress Key 与公开 Run/Result Facade 会恢复 Lost ACK 并校验
-      Terminal Read。预置 Provider-native Agent Graph 与稳定 Service API
-      仍是明确的发布阻断项。
+      Terminal Read。已经实现的<a href="/zh/docs/provider-native-agent/"
+        >预置 Provider-native Agent Graph</a
+      > 现在还提供可恢复多轮 Tool、Policy、Accounting 与精确 Cancellation。稳定 Service
+      API 与 MCP/A2A Adapter 仍是明确的发布阻断项。
     </p>
   </aside>
 

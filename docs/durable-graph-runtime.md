@@ -61,6 +61,7 @@ use std::sync::Arc;
 use stateknot_runtime::{
     DurableGraphDriver, DurableGraphDriverOptions,
     ExecutableGraphRegistryBuilder, JsonSchemaRegistryBuilder,
+    register_standard_agent_cancellation_event_schema,
     register_standard_graph_driver_event_schema,
     register_standard_graph_lifecycle_event_schema,
 };
@@ -73,6 +74,7 @@ let store = PostgresStore::connect(runtime_url, options).await?;
 let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
 register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;
 for (reference, document) in application_schema_documents() {
     schemas.register(reference, document)?;
 }
@@ -111,6 +113,12 @@ that constructs `DurableGraphLifecycle`, `DurableAgentLoop`, or
 `DurableTenantScheduler` must also install it through
 `register_standard_graph_lifecycle_event_schema` before freezing the registry.
 
+Cancellation confirmation uses a third immutable schema,
+`https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0`. The same
+deployment must install it through
+`register_standard_agent_cancellation_event_schema`; lifecycle construction
+fails closed when it is absent.
+
 ## Claim and drive
 
 The scheduler discovers runnable work, selects one run, allocates a stable
@@ -132,6 +140,12 @@ attempt for higher-fence recovery. Node code must put external model and tool
 effects through their durable invocation ledgers; a raw external write inside a
 node cannot inherit StateKnot's reconciliation guarantees.
 
+The process shutdown signal is distinct from durable run cancellation. While a
+node is active, the Driver polls the run projection. Once
+`cancellation_requested` is observed it stops new dispatch, signals the node,
+allows only the configured cooperative grace period, and returns an exact
+lease-bound cancellation handoff for lifecycle confirmation.
+
 ## Outcome handling
 
 Every `GraphDriveOutcome` has an explicit ownership rule:
@@ -143,7 +157,8 @@ Every `GraphDriveOutcome` has an explicit ownership rule:
 | `Blocked` with `failed` or `exhausted` | Apply the run-level failure policy using the plan's exact evidence and cumulative usage. Do not infer retry authority. | Retained |
 | `Deferred` | Schedule no timer in process; the indexed database-time gate is already committed. | Released by the Driver |
 | `Yielded` | Re-enter through scheduler discovery and a new claim if work remains. | Released by the Driver |
-| `Cancelled` | Stop local work; a later scheduler claim performs recovery. | Released by the Driver |
+| `CancellationRequested` | Immediately call lifecycle cancellation confirmation with the exact handoff, or use `DurableAgentLoop`, which does so automatically. Never synthesize usage. | Retained and must still be live at a fresh confirmation commit |
+| `Cancelled` | Process shutdown stopped local work; a later scheduler claim performs recovery. | Released by the Driver |
 
 `GraphLifecycleBarrierHandoff` is deliberately not serializable or detached
 from its `RunLease`. It is short-lived commit input, not a queue message. If the
@@ -169,6 +184,10 @@ Tune `DurableGraphDriverOptions` from measured workload bounds:
   lease duration and must not exceed its maximum renewal horizon.
 - `node_execution_timeout` is a hard wall-clock deadline; the default is 15
   minutes and the implementation maximum is seven days.
+- `cancellation_poll_interval` and `cancellation_grace_period` default to 250 ms
+  and 5 s. Polling is constrained to 10 ms–60 s, and grace has a hard maximum
+  of 5 minutes. Size both from measured provider/tool cancellation behavior and
+  the lease safety margin.
 - mutation retries reuse the same durable event and attempt identities. They
   are bounded by `maximum_mutation_attempts` with capped exponential backoff.
 
@@ -200,7 +219,7 @@ retries from `GraphDriveReport`.
 
 ## Qualification evidence and remaining gates
 
-Nineteen runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
+Twenty-six runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
 Driver-specific recovery coverage:
 
 1. Continue-barrier commit followed by noninitial replay and a Terminal handoff;
@@ -210,23 +229,22 @@ Driver-specific recovery coverage:
 5. invalid initial checkpoint state quarantined before any executor call; and
 6. one higher-fence takeover of an unfinished physical attempt.
 
-Six existing lifecycle/scheduler scenarios verify atomic successful Terminal, Wait, and supervised
-failure handoffs with exact lost-ack retries; database-time Wait registration;
-Agent Loop success and evidence-unavailable cleanup; and tenant scheduler
-selection, claim, execution, and idle convergence. Four additional scenarios
-verify model terminal-fence recovery, ordered durable model streaming,
-ambiguous write-tool timeout suppression, and 3:1 cross-tenant weighted
-selection, one verifies atomic Agent admission, and one verifies the public
-durable run/result facade. The provider contributes 100 additional PostgreSQL
-integration tests
-per database version. CI treats the external database suites as mandatory and
-fails if the service is unavailable.
+The lifecycle/scheduler coverage verifies atomic successful Terminal, Wait,
+supervised failure, and cancellation handoffs with exact lost-ack retries;
+database-time Wait registration; Agent Loop success and evidence-unavailable
+cleanup; and tenant scheduler selection, claim, execution, and idle
+convergence. Provider-native cases additionally verify multi-turn no-redispatch
+recovery, a stale policy race, known failed Tool continuation, exact-usage
+cancellation, pre-dispatch cancellation, and fail-closed unavailable evidence.
+The PostgreSQL provider suite runs separately for each database version. CI
+treats both external database suites as mandatory and fails when the service is
+unavailable.
 
 The later typed-Agent milestone now ships the first OpenAI Responses and
-Anthropic Messages adapters; atomic admission and the public durable
-run/result facade with ingress idempotency are also implemented. Assembly of
-the implemented provider-native transcript inside its prebuilt graph, policy
-middleware, cancellation transport, parallel siblings, loops/subgraphs,
+Anthropic Messages adapters; atomic admission, the public durable run/result
+facade, and the prebuilt provider-native graph with policy, exact accounting,
+transcript recovery, and cancellation confirmation are also implemented.
+Public cancellation transport, parallel siblings, loops/subgraphs,
 protocol-specific outbox adapters,
 role-separated database procedures, retention/archive, failover/restore
 qualification, the 10,000 stale-race gate, and a stable public release have not

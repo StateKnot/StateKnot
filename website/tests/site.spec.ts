@@ -76,6 +76,12 @@ const localizedRoutePairs = [
     zhHeading: "每个 Model 与 Tool Attempt 最多 Dispatch 一次。",
   },
   {
+    en: "/docs/provider-native-agent/",
+    zh: "/zh/docs/provider-native-agent/",
+    enHeading: "Run the provider-native model/tool graph.",
+    zhHeading: "运行 Provider-native Model/Tool Graph。",
+  },
+  {
     en: "/docs/fair-scheduling/",
     zh: "/zh/docs/fair-scheduling/",
     enHeading: "Schedule tenants from one durable order.",
@@ -187,6 +193,11 @@ test("homepage exposes honest implementation status and semantic structure", asy
       .getByText("Typed Agent and model adapters", { exact: true }),
   ).toBeVisible();
   await expect(
+    page
+      .locator(".spec-list")
+      .getByText("Provider-native Agent graph", { exact: true }),
+  ).toBeVisible();
+  await expect(
     page.locator(".spec-list").getByText("Atomic Agent admission", {
       exact: true,
     }),
@@ -259,9 +270,11 @@ test("publishes the strict invocation execution schema at its stable identity", 
   );
   expect(schema.additionalProperties).toBe(false);
   expect(schema.properties.operation.enum).toEqual([
+    "model_invocation_prepared",
     "model_attempt_started",
     "model_response_committed",
     "model_error_committed",
+    "tool_invocation_prepared",
     "tool_attempt_started",
     "tool_result_committed",
     "tool_error_committed",
@@ -292,6 +305,31 @@ test("publishes the strict Agent admission schema at its stable identity", async
   expect(schema.properties.operation.const).toBe("agent_admitted");
 });
 
+test("publishes the strict Agent cancellation schema at its stable identity", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/schemas/runtime/agent-cancellation-event/1.0.0",
+  );
+  expect(response.status()).toBe(200);
+  const schema = await response.json();
+  expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+  expect(schema.$id).toBe(
+    "https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0",
+  );
+  expect(schema.additionalProperties).toBe(false);
+  expect(schema.required).toEqual([
+    "operation",
+    "graph_digest",
+    "checkpoint_id",
+    "superstep",
+    "failure_id",
+  ]);
+  expect(schema.properties.operation.const).toBe(
+    "agent_cancellation_confirmed",
+  );
+});
+
 for (const width of responsiveAuditWidths) {
   test(`has no horizontal page overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -309,6 +347,7 @@ for (const route of [
   "/docs/runtime/",
   "/docs/agent-loop/",
   "/docs/invocations/",
+  "/docs/provider-native-agent/",
   "/docs/fair-scheduling/",
   "/zh/",
   "/zh/docs/getting-started/",
@@ -318,6 +357,7 @@ for (const route of [
   "/zh/docs/runtime/",
   "/zh/docs/agent-loop/",
   "/zh/docs/invocations/",
+  "/zh/docs/provider-native-agent/",
   "/zh/docs/fair-scheduling/",
 ] as const) {
   for (const width of [320, 375, 414, 768] as const) {
@@ -342,6 +382,26 @@ test("typed Agent tutorial keeps the durable execution boundary explicit", async
   ).toBeVisible();
   await expect(
     page.getByText("durable run/result boundary", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(3);
+});
+
+test("provider-native tutorial exposes recovery and cancellation boundaries", async ({
+  page,
+}) => {
+  await page.goto("/docs/provider-native-agent/");
+  await expect(page.getByText("Implemented pre-alpha boundary")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Follow one durable turn" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Treat cancellation as two durable facts",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("StateKnot never substitutes zero usage", { exact: false }),
   ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(3);
 });

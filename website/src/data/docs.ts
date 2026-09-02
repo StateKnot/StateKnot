@@ -102,6 +102,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         search:
           "model tool provider registry invocation executor streaming budget terminal recovery lost acknowledgement",
       },
+      {
+        title: "Provider-native Agent",
+        description:
+          "Compile and operate the durable multi-turn model/tool graph with pinned policy, accounting, and cancellation evidence.",
+        href: "/docs/provider-native-agent/",
+        search:
+          "provider native agent graph multi turn tool policy accounting cancellation recovery transcript",
+      },
     ],
   },
   {
@@ -224,6 +232,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         search:
           "model tool provider registry invocation executor streaming budget terminal recovery lost ack 调用 执行",
       },
+      {
+        title: "Provider-native Agent",
+        description:
+          "编译并运维耐久多轮 Model/Tool Graph，固定 Policy、Accounting 与 Cancellation Evidence。",
+        href: "/docs/provider-native-agent/",
+        search:
+          "provider native agent graph 多轮 tool policy accounting cancellation recovery transcript 恢复",
+      },
     ],
   },
   {
@@ -324,7 +340,7 @@ export const getCommandEntries = (locale: Locale): readonly CommandEntry[] => {
       href: localizePath("/#roadmap", locale),
       search: isChinese
         ? "路线图 agent loop mcp a2a 验证"
-        : "roadmap next agent loop mcp a2a qualification",
+        : "roadmap next provider native mcp a2a qualification",
     },
     {
       group: isChinese ? "仓库" : "Repository",

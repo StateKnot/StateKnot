@@ -7,6 +7,7 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 const startupCode = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 register_standard_graph_driver_event_schema(&mut schemas)?;
 register_standard_graph_lifecycle_event_schema(&mut schemas)?;
+register_standard_agent_cancellation_event_schema(&mut schemas)?;
 register_application_schemas(&mut schemas)?;
 
 let mut executables = ExecutableGraphRegistryBuilder::new(schemas.build()?);
@@ -54,17 +55,20 @@ const outcomes = [
     <h2 id="agent-loop-boundary-title">Runnable Graph loop, pre-alpha API</h2>
     <p>
       The repository now implements the durable path from one tenant queue scan
-      through lease claim, Graph execution, and atomic Wait/success/failure
-      lifecycle commit. It is still unpublished and is not yet the stable
-      first-party model/tool Agent API.
+      through lease claim, Graph execution, and atomic
+      Wait/success/failure/cancellation lifecycle commit. The provider-native
+      Agent graph now uses this path, but it is still unpublished and not a
+      stable one-call service API.
     </p>
   </aside>
 
   <section aria-labelledby="assembly-title">
     <h2 id="assembly-title">Assemble one immutable worker deployment</h2>
     <p>
-      Install both standard audit schemas and all application bindings before
-      work can be claimed. <code>DurableTenantScheduler</code> constructs its
+      Install all three standard Driver, lifecycle, and cancellation audit
+      schemas plus every application binding before work can be claimed. <code
+        >DurableTenantScheduler</code
+      > constructs its
       <code>DurableAgentLoop</code> internally, so Driver and lifecycle coordination
       share one store and one frozen executable registry.
     </p>
@@ -91,6 +95,14 @@ const outcomes = [
           >https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0</code
         ></a
       >. Register it through the runtime helper; do not hard-code its digest.
+    </p>
+    <p>
+      Cancellation confirmation also requires the public-safe schema at <a
+        href="/schemas/runtime/agent-cancellation-event/1.0.0"
+        ><code
+          >https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0</code
+        ></a
+      >. Missing it makes lifecycle startup fail closed.
     </p>
   </section>
 
@@ -140,13 +152,23 @@ const outcomes = [
           failure supervision.
         </p>
       </li>
+      <li>
+        <h3>Confirmed cancellation</h3>
+        <p>
+          The Driver stops new dispatch and returns an exact cancellation
+          handoff. Lifecycle reconstructs cumulative usage and atomically
+          confirms cancellation with database time; unavailable evidence keeps
+          the run cancellation-requested.
+        </p>
+      </li>
     </ol>
     <p>
       The Driver allocates one stable lifecycle event identity per handoff. A
-      lost-ack retry for success or failure accepts only the matching
-      revision-plus-one, terminal status, journal event, and cleared lease. It
-      recovers the committed result or failure without rereading external
-      evidence; every other changed terminal snapshot fails as stale.
+      lost-ack retry for success, failure, or cancellation accepts only the
+      matching revision-plus-one, terminal status, journal event, and cleared
+      lease. It recovers the committed result, failure, or cancellation usage
+      without rereading external evidence; every other changed terminal snapshot
+      fails as stale.
     </p>
     <p>
       Wait replay is event-first: the provider verifies the original event,
@@ -192,22 +214,23 @@ const outcomes = [
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">Qualification evidence</h2>
     <p>
-      CI runs 19 runtime scenarios and 100 provider cases on both PostgreSQL 16
+      CI runs 26 runtime scenarios and 102 provider cases on both PostgreSQL 16
       and 17. The runtime cases cover lifecycle atomicity and exact lost-ack
       replay, database-time Wait materialization, Agent Loop success and
       evidence failure, tenant and weighted cross-tenant scheduling, durable
       model/tool attempts and streaming, noninitial replay, lease renewal,
-      duplicate suppression, quarantine, higher-fence takeover, and durable
-      run/result reads. Read the <a
+      duplicate suppression, quarantine, higher-fence takeover, provider-native
+      multi-turn recovery, exact cancellation, and durable run/result reads.
+      Read the <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.md"
         >complete integration and operations contract</a
       > before deploying this pre-alpha surface.
     </p>
     <p>
-      Atomic admission and public run/result reads are implemented. The
-      embedding application still owns the trusted artifact and cumulative
-      accounting evidence consumed by lifecycle execution; the read facade
-      revalidates committed facts but does not invent missing evidence.
+      Atomic admission, public run/result reads, and provider-native lifecycle
+      evidence are implemented. The embedding application still owns real price
+      tables and trusted artifact evidence; the runtime revalidates committed
+      facts but does not invent missing evidence.
     </p>
   </section>
 </DocsLayout>

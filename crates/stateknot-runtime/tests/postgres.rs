@@ -19,44 +19,52 @@ use futures_core::Stream;
 use serde_json::{Value, json};
 use stateknot_core::{
     AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentArtifacts, AgentDescriptor,
-    AgentRequest, AgentResultProvenance, AgentSubmissionKey, AttemptId, BoundedJson, BoxFuture,
+    AgentExecutionConfig, AgentRequest, AgentResultProvenance, AgentStructuredOutputStrategy,
+    AgentSubmissionKey, AgentToolConcurrency, AgentTools, AttemptId, BoundedJson, BoxFuture,
     BoxStream, BudgetLimits, BudgetRemaining, BudgetUsage, ByteCount, CancellationSignal,
     CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint, CheckpointId,
-    CheckpointState, CheckpointWrite, CompiledGraph, Digest, ErasedTool, EventId, ExecutionCount,
-    Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
-    GraphBarrierDisposition, GraphExecutionLimits, GraphNode, GraphReducer, GraphReducerError,
-    GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes, InvocationId, IssuerId,
-    JournalAppend, JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload,
-    KnownCosts, Model, ModelContext, ModelDescriptor, ModelError, ModelEvent,
-    ModelInvocationIntent, ModelInvocationStatus, ModelRequest, ModelResponse, ModelResponseMode,
-    NodeActivation, NodeControl, NodeId, NodeInvocationBindings, NodeStateChange,
-    NodeTerminalOutput, NodeWait, NodeWaits, PrincipalIdentity, QuarantineId, ReadyNodes,
-    ResolvedBudget, RetryAdvice, RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind,
-    RunTransition, SchedulerShardId, SchemaId, SchemaReference, SubjectId, Superstep, TenantId,
-    ThreadId, TimerId, Timestamp, ToolContext, ToolDescriptor, ToolError, ToolExternalEffect,
-    ToolInput, ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus, ToolResult,
-    Version,
+    CheckpointState, CheckpointWrite, CompiledGraph, ContentMetadata, ContentPart, ContentSource,
+    Digest, ErasedTool, EventId, ExecutionCount, Extensions, Failure, FailureCategory, FailureCode,
+    FailureId, FailureMessage, FailureOrigin, GraphBarrierDisposition, GraphExecutionLimits,
+    GraphNode, GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference,
+    GraphReference, GraphRoutes, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
+    JournalEventKind, JournalExpectation, JournalPayload, JsonContent, KnownCosts, Model,
+    ModelContext, ModelDescriptor, ModelError, ModelEvent, ModelFinishReason,
+    ModelInvocationIntent, ModelInvocationStatus, ModelOutputItem, ModelProviderReplay,
+    ModelProviderReplayFormat, ModelProviderToolCallId, ModelRequest, ModelResponse,
+    ModelResponseMode, ModelResponseProvenance, ModelToolCallProposal, ModelUsage, NodeActivation,
+    NodeControl, NodeId, NodeInvocationBindings, NodeStateChange, NodeTerminalOutput, NodeWait,
+    NodeWaits, PrincipalIdentity, QuarantineId, ReadyNodes, ResolvedBudget, RetryAdvice,
+    RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind, RunTransition,
+    SchedulerShardId, SchemaId, SchemaReference, SecurityLabel, SubjectId, Superstep, TenantId,
+    ThreadId, TimerId, Timestamp, TokenCount, ToolArtifacts, ToolContext, ToolDescriptor,
+    ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput,
+    ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus, ToolResult, Version,
 };
 use stateknot_runtime::{
+    AgentInvocationAccounting, AgentInvocationAccountingReference, AgentInvocationCharge,
     AgentLoopError, AgentLoopOutcome, AgentRunAdmissionOutcome, AgentRunIds,
-    AgentRunTerminalOutcome, DurableAgentAdmission, DurableAgentAdmissionError,
-    DurableAgentAdmissionRequest, DurableAgentLoop, DurableAgentRuns, DurableAgentRunsError,
-    DurableFairScheduler, DurableFairSchedulerOptions, DurableGraphDriver,
+    AgentRunTerminalOutcome, AgentToolPolicy, AgentToolPolicyContext, AgentToolPolicyDecision,
+    AgentToolPolicyError, AgentToolPolicyReference, DurableAgentAdmission,
+    DurableAgentAdmissionError, DurableAgentAdmissionRequest, DurableAgentLoop, DurableAgentRuns,
+    DurableAgentRunsError, DurableFairScheduler, DurableFairSchedulerOptions, DurableGraphDriver,
     DurableGraphDriverOptions, DurableGraphLifecycle, DurableGraphLifecycleOptions,
     DurableInvocationExecutor, DurableInvocationExecutorOptions, DurableTenantScheduler,
     DurableTenantSchedulerOptions, ExecutableGraphRegistry, ExecutableGraphRegistryBuilder,
-    GraphBarrierLifecycleOutcome, GraphDriveOutcome, GraphDriverError, GraphFailureEvidence,
-    GraphFailureEvidenceContext, GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider,
-    GraphNodeContext, GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor,
-    GraphTerminalEvidence, GraphTerminalEvidenceContext, InvocationAttemptEventIds,
-    InvocationBudgetContext, InvocationBudgetProvider, InvocationBudgetProviderError,
-    InvocationClock, InvocationClockError, InvocationClockObservation, JsonSchemaRegistry,
-    JsonSchemaRegistryBuilder, JsonSchemaRegistryLimits, ModelAttemptExecutionError,
-    ModelAttemptHandoff, ModelAttemptOutcome, ModelAttemptTerminalKind, ModelEventSink,
-    ModelEventSinkError, ModelProviderRegistryBuilder, TenantFairnessWeight,
+    GraphBarrierLifecycleOutcome, GraphCancellationEvidence, GraphCancellationEvidenceContext,
+    GraphDriveOutcome, GraphDriverError, GraphFailureEvidence, GraphFailureEvidenceContext,
+    GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider, GraphNodeContext,
+    GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor, GraphTerminalEvidence,
+    GraphTerminalEvidenceContext, InvocationAttemptEventIds, InvocationBudgetContext,
+    InvocationBudgetProvider, InvocationBudgetProviderError, InvocationClock, InvocationClockError,
+    InvocationClockObservation, JsonSchemaRegistry, JsonSchemaRegistryBuilder,
+    JsonSchemaRegistryLimits, ModelAttemptExecutionError, ModelAttemptHandoff, ModelAttemptOutcome,
+    ModelAttemptTerminalKind, ModelEventSink, ModelEventSinkError, ModelProviderRegistryBuilder,
+    ProviderNativeAgentGraph, ProviderNativeAgentLifecycleEvidence, TenantFairnessWeight,
     TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind,
     ToolProviderRegistryBuilder, WeightedFairnessPolicy,
-    register_standard_agent_admission_event_schema, register_standard_graph_driver_event_schema,
+    register_standard_agent_admission_event_schema,
+    register_standard_agent_cancellation_event_schema, register_standard_graph_driver_event_schema,
     register_standard_graph_lifecycle_event_schema,
     register_standard_invocation_execution_event_schema,
 };
@@ -270,6 +278,77 @@ impl Model for LeaseRotatingModel {
     }
 }
 
+struct CancellingModel {
+    descriptor: ModelDescriptor,
+    store: PostgresStore,
+    calls: Arc<AtomicUsize>,
+}
+
+impl Model for CancellingModel {
+    fn descriptor(&self) -> &ModelDescriptor {
+        &self.descriptor
+    }
+
+    fn invoke(
+        &self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxFuture<'_, Result<ModelResponse, ModelError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let response = model_response_for(&self.descriptor, &request, context.attempt_id());
+        let store = self.store.clone();
+        let tenant_id = context.tenant_id().clone();
+        let run_id = context.run_id();
+        Box::pin(async move {
+            let run = store.load_run(&tenant_id, run_id).await.unwrap();
+            let cancellation = RunCancellationRequest::new(
+                Failure::new(
+                    FailureId::generate(),
+                    FailureCategory::Cancelled,
+                    FailureCode::new("runtime.test.provider_cancel_race").unwrap(),
+                    FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+                    FailureMessage::new("Cancellation raced with a model response.").unwrap(),
+                    RetryAdvice::Never,
+                )
+                .unwrap(),
+                run.lifecycle().changed_at(),
+            )
+            .unwrap();
+            store
+                .append_control_plane(
+                    JournalAppend::new(
+                        JournalExpectation::exact(run.journal_head().unwrap().clone()),
+                        JournalEventIntent::control_plane(
+                            tenant_id,
+                            run_id,
+                            EventId::generate(),
+                            test_payload(),
+                        )
+                        .unwrap(),
+                    )
+                    .unwrap(),
+                    RunProjection::transition(
+                        run.lifecycle().revision(),
+                        RunTransition::RequestCancellation {
+                            request: cancellation,
+                        },
+                    ),
+                )
+                .await
+                .unwrap();
+            Ok(response)
+        })
+    }
+
+    fn stream(
+        &self,
+        _: ModelContext,
+        _: ModelRequest,
+    ) -> BoxStream<'_, Result<ModelEvent, ModelError>> {
+        Box::pin(EmptyModelStream)
+    }
+}
+
 struct PendingWriteTool {
     descriptor: ToolDescriptor,
     calls: Arc<AtomicUsize>,
@@ -283,6 +362,227 @@ impl ErasedTool for PendingWriteTool {
     fn call(&self, _: ToolContext, _: ToolInput) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         Box::pin(future::pending())
+    }
+}
+
+struct ProviderNativeScriptedModel {
+    descriptor: ModelDescriptor,
+    tool: ToolDescriptor,
+    output_schema: SchemaReference,
+    calls: Arc<AtomicUsize>,
+    transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
+    failed_outcomes: Arc<AtomicUsize>,
+}
+
+impl Model for ProviderNativeScriptedModel {
+    fn descriptor(&self) -> &ModelDescriptor {
+        &self.descriptor
+    }
+
+    fn invoke(
+        &self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxFuture<'_, Result<ModelResponse, ModelError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let transcript_len = request.transcript().len();
+        let descriptor = self.descriptor.clone();
+        let tool = self.tool.clone();
+        let output_schema = self.output_schema.clone();
+        let transcript_lengths = Arc::clone(&self.transcript_lengths);
+        let failed_outcomes = Arc::clone(&self.failed_outcomes);
+        Box::pin(async move {
+            transcript_lengths.lock().await.push(transcript_len);
+            let provenance = ModelResponseProvenance::new(
+                context.attempt_id(),
+                descriptor.metadata().identity().clone(),
+                None,
+                None,
+            );
+            let usage = ModelUsage::new(
+                TokenCount::new(12),
+                Some(TokenCount::new(2)),
+                TokenCount::new(4),
+                Some(TokenCount::new(1)),
+            )
+            .unwrap();
+            if transcript_len == 0 {
+                let proposal = ModelToolCallProposal::new(
+                    tool.metadata().identity().clone(),
+                    Some(ModelProviderToolCallId::new("call_stateknot_lookup_01").unwrap()),
+                    BoundedJson::try_from_value(json!({"query": "durable agents"})).unwrap(),
+                    Extensions::default(),
+                )
+                .unwrap();
+                let response = ModelResponse::new(
+                    provenance,
+                    &descriptor,
+                    &request,
+                    [ModelOutputItem::tool_call(proposal)],
+                    ModelFinishReason::ToolCalls,
+                    usage,
+                    Extensions::default(),
+                )
+                .unwrap();
+                let replay = ModelProviderReplay::new(
+                    ModelProviderReplayFormat::new("stateknot.test.v1").unwrap(),
+                    BoundedJson::try_from_value(json!([{
+                        "type": "function_call",
+                        "call_id": "call_stateknot_lookup_01"
+                    }]))
+                    .unwrap(),
+                )
+                .unwrap();
+                Ok(response.with_provider_replay(replay).unwrap())
+            } else {
+                assert_eq!(transcript_len, 1, "only one prior tool turn is expected");
+                assert_eq!(request.transcript().as_slice()[0].outcomes().len(), 1);
+                if request.transcript().as_slice()[0].outcomes()[0]
+                    .error()
+                    .is_some()
+                {
+                    failed_outcomes.fetch_add(1, Ordering::SeqCst);
+                }
+                let json_content = ContentPart::Json(JsonContent::new(
+                    BoundedJson::try_from_value(json!({
+                        "answer": "StateKnot resumed from its durable invocation ledger."
+                    }))
+                    .unwrap(),
+                    Some(output_schema),
+                    ContentMetadata::untrusted(
+                        ContentSource::Model,
+                        "internal/provider-native-test"
+                            .parse::<SecurityLabel>()
+                            .unwrap(),
+                    ),
+                ));
+                let output = ModelOutputItem::content(json_content).unwrap();
+                Ok(ModelResponse::new(
+                    provenance,
+                    &descriptor,
+                    &request,
+                    [output],
+                    ModelFinishReason::Completed,
+                    usage,
+                    Extensions::default(),
+                )
+                .unwrap())
+            }
+        })
+    }
+
+    fn stream(
+        &self,
+        _: ModelContext,
+        _: ModelRequest,
+    ) -> BoxStream<'_, Result<ModelEvent, ModelError>> {
+        Box::pin(EmptyModelStream)
+    }
+}
+
+struct ProviderNativeLookupTool {
+    descriptor: ToolDescriptor,
+    calls: Arc<AtomicUsize>,
+    fail: bool,
+}
+
+impl ErasedTool for ProviderNativeLookupTool {
+    fn descriptor(&self) -> &ToolDescriptor {
+        &self.descriptor
+    }
+
+    fn call(
+        &self,
+        context: ToolContext,
+        _: ToolInput,
+    ) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        if self.fail {
+            let failure = Failure::new(
+                FailureId::generate(),
+                FailureCategory::DependencyUnavailable,
+                FailureCode::new("runtime.test.lookup_unavailable").unwrap(),
+                FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+                FailureMessage::new("The test lookup dependency is unavailable.").unwrap(),
+                RetryAdvice::Never,
+            )
+            .unwrap();
+            let error = ToolError::new(
+                failure,
+                ToolErrorPhase::Execution,
+                ToolExternalEffect::NotApplicable,
+                ToolErrorProvenance::for_invocation(&context, &self.descriptor),
+            )
+            .unwrap();
+            return Box::pin(async move { Err(error) });
+        }
+        let result = ToolResult::for_invocation(
+            &context,
+            &self.descriptor,
+            BoundedJson::try_from_value(json!({"matches": 1})).unwrap(),
+            ToolArtifacts::empty(),
+        );
+        Box::pin(async move { Ok(result) })
+    }
+}
+
+struct FailOnceAgentToolPolicy {
+    reference: AgentToolPolicyReference,
+    calls: Arc<AtomicUsize>,
+    fail_once: bool,
+    pause_first: Option<Arc<PolicyPause>>,
+}
+
+struct PolicyPause {
+    entered: tokio::sync::Notify,
+    release: tokio::sync::Notify,
+}
+
+impl AgentToolPolicy for FailOnceAgentToolPolicy {
+    fn reference(&self) -> &AgentToolPolicyReference {
+        &self.reference
+    }
+
+    fn evaluate(
+        &self,
+        context: AgentToolPolicyContext,
+    ) -> BoxFuture<'_, Result<AgentToolPolicyDecision, AgentToolPolicyError>> {
+        let call = self.calls.fetch_add(1, Ordering::SeqCst);
+        let fail_once = self.fail_once;
+        let pause_first = self.pause_first.clone();
+        Box::pin(async move {
+            if call == 0 {
+                if let Some(pause) = pause_first {
+                    pause.entered.notify_one();
+                    pause.release.notified().await;
+                }
+            }
+            if fail_once && call == 0 {
+                Err(AgentToolPolicyError::TemporarilyUnavailable)
+            } else {
+                Ok(AgentToolPolicyDecision::Allow {
+                    evidence_digest: context.action_digest(),
+                })
+            }
+        })
+    }
+}
+
+struct KnownFreeInvocationAccounting {
+    reference: AgentInvocationAccountingReference,
+}
+
+impl AgentInvocationAccounting for KnownFreeInvocationAccounting {
+    fn reference(&self) -> &AgentInvocationAccountingReference {
+        &self.reference
+    }
+
+    fn model_charge(&self, _: &stateknot_core::ModelInvocation) -> AgentInvocationCharge {
+        AgentInvocationCharge::Known(KnownCosts::empty())
+    }
+
+    fn tool_charge(&self, _: &stateknot_core::ToolInvocation) -> AgentInvocationCharge {
+        AgentInvocationCharge::Known(KnownCosts::empty())
     }
 }
 
@@ -348,6 +648,187 @@ struct DriverFixture {
     second_calls: Arc<AtomicUsize>,
 }
 
+struct ProviderNativeFixture {
+    definition: ProviderNativeAgentGraph,
+    registry: ExecutableGraphRegistry,
+    model_calls: Arc<AtomicUsize>,
+    tool_calls: Arc<AtomicUsize>,
+    policy_calls: Arc<AtomicUsize>,
+    transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
+    failed_outcomes: Arc<AtomicUsize>,
+    input_schema: SchemaReference,
+    policy_pause: Option<Arc<PolicyPause>>,
+}
+
+fn provider_native_fixture(store: PostgresStore) -> ProviderNativeFixture {
+    provider_native_fixture_with(store, true, false, None)
+}
+
+fn provider_native_failed_tool_fixture(store: PostgresStore) -> ProviderNativeFixture {
+    provider_native_fixture_with(store, false, true, None)
+}
+
+fn provider_native_stale_race_fixture(store: PostgresStore) -> ProviderNativeFixture {
+    provider_native_fixture_with(
+        store,
+        false,
+        false,
+        Some(Arc::new(PolicyPause {
+            entered: tokio::sync::Notify::new(),
+            release: tokio::sync::Notify::new(),
+        })),
+    )
+}
+
+#[allow(clippy::too_many_lines)]
+fn provider_native_fixture_with(
+    store: PostgresStore,
+    fail_policy_once: bool,
+    fail_tool: bool,
+    policy_pause: Option<Arc<PolicyPause>>,
+) -> ProviderNativeFixture {
+    let (input_schema, input_document) = schema("provider-native-input");
+    let (output_schema, output_document) = schema("provider-native-output");
+    let (tool_input_schema, tool_input_document) = schema("provider-native-tool-input");
+    let (tool_output_schema, tool_output_document) = schema("provider-native-tool-output");
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-v1.json"
+    ))
+    .unwrap();
+    let template =
+        serde_json::from_value::<AgentDescriptor>(fixture["descriptors"]["valid"][0].clone())
+            .unwrap();
+    let tool_template = template.tools().iter().next().unwrap().clone();
+    let tool = ToolDescriptor::new(
+        tool_template.metadata().clone(),
+        tool_input_schema.clone(),
+        tool_output_schema.clone(),
+        tool_template.semantics().clone(),
+        tool_template.resources().clone(),
+        tool_template.invocation().clone(),
+        tool_template.limits().clone(),
+    )
+    .unwrap();
+    let execution = AgentExecutionConfig::new(
+        AgentStructuredOutputStrategy::ModelNative,
+        ExecutionCount::new(3),
+        ExecutionCount::ZERO,
+        ExecutionCount::new(1),
+        AgentToolConcurrency::sequential(),
+    )
+    .unwrap();
+    let descriptor = AgentDescriptor::new(
+        template.metadata().clone(),
+        input_schema.clone(),
+        output_schema.clone(),
+        template.model().clone(),
+        template.instructions().clone(),
+        AgentTools::try_new([tool.clone()]).unwrap(),
+        execution,
+        template.budget_limits().clone(),
+    )
+    .unwrap();
+    let model_calls = Arc::new(AtomicUsize::new(0));
+    let tool_calls = Arc::new(AtomicUsize::new(0));
+    let policy_calls = Arc::new(AtomicUsize::new(0));
+    let transcript_lengths = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    let failed_outcomes = Arc::new(AtomicUsize::new(0));
+    let policy = Arc::new(FailOnceAgentToolPolicy {
+        reference: AgentToolPolicyReference::new(
+            capability("provider-native-tool-policy"),
+            Digest::sha256(b"provider-native integration policy v1"),
+        ),
+        calls: Arc::clone(&policy_calls),
+        fail_once: fail_policy_once,
+        pause_first: policy_pause.clone(),
+    });
+    let definition = ProviderNativeAgentGraph::compile(
+        descriptor,
+        capability("provider-native-agent-graph"),
+        capability("provider-native-agent-reducer"),
+        "https://stknot.com/schemas/tests/provider-native-state/1.0.0"
+            .parse::<SchemaId>()
+            .unwrap(),
+        "internal/provider-native-input"
+            .parse::<SecurityLabel>()
+            .unwrap(),
+        policy,
+        Arc::new(KnownFreeInvocationAccounting {
+            reference: AgentInvocationAccountingReference::new(
+                capability("provider-native-invocation-accounting"),
+                Digest::sha256(b"provider-native known-free accounting v1"),
+            ),
+        }),
+    )
+    .unwrap();
+
+    let mut schema_builder = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
+    for (reference, document) in [
+        (input_schema.clone(), input_document),
+        (output_schema.clone(), output_document),
+        (tool_input_schema, tool_input_document),
+        (tool_output_schema, tool_output_document),
+    ] {
+        schema_builder.register(reference, document).unwrap();
+    }
+    definition.register_schema(&mut schema_builder).unwrap();
+    register_standard_graph_driver_event_schema(&mut schema_builder).unwrap();
+    register_standard_graph_lifecycle_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_admission_event_schema(&mut schema_builder).unwrap();
+    register_standard_invocation_execution_event_schema(&mut schema_builder).unwrap();
+    let schemas = schema_builder.build().unwrap();
+
+    let mut models = ModelProviderRegistryBuilder::new();
+    models
+        .register(Arc::new(ProviderNativeScriptedModel {
+            descriptor: definition.descriptor().model().clone(),
+            tool: tool.clone(),
+            output_schema,
+            calls: Arc::clone(&model_calls),
+            transcript_lengths: Arc::clone(&transcript_lengths),
+            failed_outcomes: Arc::clone(&failed_outcomes),
+        }))
+        .unwrap();
+    let mut tools = ToolProviderRegistryBuilder::new();
+    tools
+        .register(Arc::new(ProviderNativeLookupTool {
+            descriptor: tool,
+            calls: Arc::clone(&tool_calls),
+            fail: fail_tool,
+        }))
+        .unwrap();
+    let invocation_executor = DurableInvocationExecutor::with_clock(
+        store.clone(),
+        schemas.clone(),
+        models.build(),
+        tools.build(),
+        Arc::new(StaticInvocationBudget {
+            resolved: invocation_budget(),
+        }),
+        Arc::new(FixedInvocationClock {
+            observed_at: "2029-01-01T00:00:00.000000Z".parse().unwrap(),
+        }),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let mut registry_builder = ExecutableGraphRegistryBuilder::new(schemas.clone());
+    definition
+        .register_executable(&mut registry_builder, store, invocation_executor, schemas)
+        .unwrap();
+    ProviderNativeFixture {
+        definition,
+        registry: registry_builder.build().unwrap(),
+        model_calls,
+        tool_calls,
+        policy_calls,
+        transcript_lengths,
+        failed_outcomes,
+        input_schema,
+        policy_pause,
+    }
+}
+
 struct StaticLifecycleEvidence {
     terminal: GraphTerminalEvidence,
     failure: Option<GraphFailureEvidence>,
@@ -369,6 +850,14 @@ impl GraphLifecycleEvidenceProvider for StaticLifecycleEvidence {
         let evidence = self.failure.clone();
         Box::pin(async move { evidence.ok_or(GraphLifecycleEvidenceError::Unavailable) })
     }
+
+    fn cancellation_evidence(
+        &self,
+        _: GraphCancellationEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphCancellationEvidence, GraphLifecycleEvidenceError>> {
+        let evidence = GraphCancellationEvidence::new(self.terminal.usage().clone());
+        Box::pin(async move { Ok(evidence) })
+    }
 }
 
 struct UnavailableLifecycleEvidence;
@@ -385,6 +874,13 @@ impl GraphLifecycleEvidenceProvider for UnavailableLifecycleEvidence {
         &self,
         _: GraphFailureEvidenceContext,
     ) -> BoxFuture<'_, Result<GraphFailureEvidence, GraphLifecycleEvidenceError>> {
+        Box::pin(async { Err(GraphLifecycleEvidenceError::TemporarilyUnavailable) })
+    }
+
+    fn cancellation_evidence(
+        &self,
+        _: GraphCancellationEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphCancellationEvidence, GraphLifecycleEvidenceError>> {
         Box::pin(async { Err(GraphLifecycleEvidenceError::TemporarilyUnavailable) })
     }
 }
@@ -438,6 +934,7 @@ fn driver_fixture_with_first_delay(first_delay: Duration) -> DriverFixture {
     }
     register_standard_graph_driver_event_schema(&mut schemas).unwrap();
     register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
     register_standard_agent_admission_event_schema(&mut schemas).unwrap();
     let schemas = schemas.build().unwrap();
 
@@ -523,6 +1020,7 @@ fn wait_fixture() -> (DriverFixture, TimerId, Timestamp) {
     }
     register_standard_graph_driver_event_schema(&mut schemas).unwrap();
     register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
     let schemas = schemas.build().unwrap();
 
     let timer_id = TimerId::generate();
@@ -604,6 +1102,7 @@ fn failure_fixture() -> DriverFixture {
     }
     register_standard_graph_driver_event_schema(&mut schemas).unwrap();
     register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
     register_standard_agent_admission_event_schema(&mut schemas).unwrap();
     let schemas = schemas.build().unwrap();
 
@@ -877,6 +1376,62 @@ fn durable_admission_request(
     .unwrap()
 }
 
+fn provider_native_admission_request(
+    fixture: &ProviderNativeFixture,
+    tenant_id: TenantId,
+    ids: AgentRunIds,
+) -> DurableAgentAdmissionRequest {
+    let descriptor = fixture.definition.descriptor().clone();
+    let request = AgentRequest::new(
+        fixture.input_schema.clone(),
+        BoundedJson::try_from_value(json!({
+            "question": "Can this run continue without repeating provider I/O?"
+        }))
+        .unwrap(),
+        BudgetLimits::empty(),
+    );
+    let policy = capability("provider-native-admission-policy");
+    let evidence = JournalPayload::new(
+        fixture.input_schema.clone(),
+        JournalEventKind::new(AgentAdmissionAuthority::EVIDENCE_KIND).unwrap(),
+        BoundedJson::try_from_value(json!({"decision": "allow"})).unwrap(),
+    )
+    .unwrap();
+    let authority = AgentAdmissionAuthority::new(
+        policy.owner().clone(),
+        descriptor.metadata().required_scopes().clone(),
+        policy,
+        Digest::sha256(b"provider-native admission policy v1"),
+        evidence,
+    )
+    .unwrap();
+    let mut budget_fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    ))
+    .unwrap();
+    budget_fixture["base_budget_layers"][0]["deadline"] = json!("2099-01-01T00:00:00.000000Z");
+    let limits =
+        serde_json::from_value::<BudgetLimits>(budget_fixture["base_budget_layers"][0].clone())
+            .unwrap();
+    let layer = AgentAdmissionBudgetLayer::new(
+        capability("provider-native-admission-budget"),
+        authority.evidence().digest(),
+        limits,
+    )
+    .unwrap();
+    DurableAgentAdmissionRequest::new(
+        tenant_id,
+        ids,
+        descriptor,
+        request,
+        [layer],
+        fixture.definition.graph().reference(),
+        authority,
+        fixture.definition.initial_state().unwrap(),
+    )
+    .unwrap()
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn durable_agent_admission_facade_validates_and_converges_exact_retries() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
@@ -955,6 +1510,621 @@ async fn durable_agent_admission_facade_validates_and_converges_exact_retries() 
         store.load_run(&tenant_id, rejected_ids.run_id()).await,
         Err(StoreError::RunNotFound)
     ));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_graph_recovers_committed_model_without_redispatch_and_completes_lifecycle()
+{
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_fixture(store.clone());
+    let tenant_id = tenant("runtime-provider-native-agent");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    assert!(matches!(
+        store
+            .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+            .await
+            .unwrap(),
+        GraphDefinitionRegistrationOutcome::Registered(_)
+            | GraphDefinitionRegistrationOutcome::Idempotent(_)
+    ));
+    let admission = DurableAgentAdmission::new(store.clone(), fixture.registry.clone()).unwrap();
+    admission
+        .admit(provider_native_admission_request(
+            &fixture,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let first = driver
+        .drive(first_lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(
+        matches!(first.outcome(), GraphDriveOutcome::Deferred { .. }),
+        "unexpected first drive outcome: {:?}",
+        first.outcome()
+    );
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
+
+    // The first policy evaluation failed only after the model response was
+    // durably committed. A later physical node attempt must consume that exact
+    // ledger response and must not call the model again for the same turn.
+    tokio::time::sleep(Duration::from_millis(250)).await;
+    let second_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let second = driver
+        .drive(second_lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let (outcome, report) = second.into_parts();
+    let handoff = match outcome {
+        GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
+        other => {
+            panic!("provider-native graph must reach its terminal lifecycle barrier: {other:?}")
+        }
+    };
+    assert!(report.node_attempts_completed() >= 3);
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(*fixture.transcript_lengths.lock().await, vec![0, 1]);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let committed = lifecycle.commit_barrier(*handoff).await.unwrap();
+    assert!(matches!(
+        committed,
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(run.lifecycle().status(), RunStatus::Succeeded);
+    assert!(run.lease().is_none());
+    let result = run.lifecycle().result().unwrap();
+    assert_eq!(
+        result.output().as_value(),
+        &json!({"answer": "StateKnot resumed from its durable invocation ledger."})
+    );
+    assert_eq!(result.usage().model_attempts(), ExecutionCount::new(2));
+    assert_eq!(result.usage().model_turns(), ExecutionCount::new(2));
+    assert_eq!(result.usage().tool_calls(), ExecutionCount::new(1));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_higher_fence_wins_stale_policy_race_without_external_redispatch() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_stale_race_fixture(store.clone());
+    let pause = fixture.policy_pause.clone().unwrap();
+    let tenant_id = tenant("runtime-provider-native-stale-race");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request(
+            &fixture,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let first_driver = driver.clone();
+    let first_fence = first_lease.fence().clone();
+    let first = tokio::spawn(async move {
+        first_driver
+            .drive(first_fence, CancellationSignal::never())
+            .await
+    });
+    tokio::time::timeout(Duration::from_secs(10), pause.entered.notified())
+        .await
+        .expect("the old worker must pause after committing its first model response");
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+
+    let successor = store
+        .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let recovered = driver
+        .drive(successor.fence().clone(), CancellationSignal::never())
+        .await
+        .expect("the higher fence must recover the committed model response");
+    let handoff = match recovered.into_parts().0 {
+        GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
+        other => panic!("the higher fence must finish the provider-native graph: {other:?}"),
+    };
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(*fixture.transcript_lengths.lock().await, vec![0, 1]);
+
+    pause.release.notify_one();
+    let stale = tokio::time::timeout(Duration::from_secs(10), first)
+        .await
+        .expect("the stale worker must stop after its policy call is released")
+        .expect("the stale worker task must not panic");
+    assert!(
+        stale.is_err(),
+        "the old fence must not commit a competing node result"
+    );
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 2);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.commit_barrier(*handoff).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    assert_eq!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .lifecycle()
+            .status(),
+        RunStatus::Succeeded
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_cancellation_recovers_exact_usage_and_replays_confirmation() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_stale_race_fixture(store.clone());
+    let pause = fixture.policy_pause.clone().unwrap();
+    let tenant_id = tenant("runtime-provider-native-cancellation");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request(
+            &fixture,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let facade = DurableAgentRuns::new(store.clone(), fixture.registry.clone()).unwrap();
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver_options = DurableGraphDriverOptions::default()
+        .with_cancellation_timing(Duration::from_millis(25), Duration::from_millis(100))
+        .unwrap();
+    let driver =
+        DurableGraphDriver::new(store.clone(), fixture.registry.clone(), driver_options).unwrap();
+    let driver_task = tokio::spawn({
+        let driver = driver.clone();
+        let fence = lease.fence().clone();
+        async move { driver.drive(fence, CancellationSignal::never()).await }
+    });
+
+    tokio::time::timeout(Duration::from_secs(10), pause.entered.notified())
+        .await
+        .expect("policy must pause after the first model response is durable");
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+    let live = store.load_run(&tenant_id, run_id).await.unwrap();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Cancelled,
+        FailureCode::new("runtime.provider_native.cancelled").unwrap(),
+        FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+        FailureMessage::new("Provider-native execution was cancelled safely.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap();
+    let failure_id = failure.id();
+    let request = RunCancellationRequest::new(failure, live.lifecycle().changed_at()).unwrap();
+    store
+        .append_control_plane(
+            JournalAppend::new(
+                JournalExpectation::exact(live.journal_head().unwrap().clone()),
+                JournalEventIntent::control_plane(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    test_payload(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+            RunProjection::transition(
+                live.lifecycle().revision(),
+                RunTransition::RequestCancellation { request },
+            ),
+        )
+        .await
+        .unwrap();
+
+    let drive_result = tokio::time::timeout(Duration::from_secs(10), driver_task)
+        .await
+        .expect("driver must observe durable cancellation within its bounded cadence")
+        .expect("driver task must not panic")
+        .unwrap();
+    let handoff = match drive_result.into_parts().0 {
+        GraphDriveOutcome::CancellationRequested(handoff) => handoff,
+        other => panic!("durable cancellation must reach lifecycle handoff: {other:?}"),
+    };
+    assert_eq!(handoff.failure_id(), failure_id);
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let committed = lifecycle
+        .confirm_cancellation((*handoff).clone())
+        .await
+        .unwrap();
+    let committed_event_id = match committed {
+        GraphBarrierLifecycleOutcome::Cancelled(
+            stateknot_store_postgres::AppendOutcome::Committed(event),
+        ) => {
+            assert_eq!(
+                event.payload().schema().id().as_str(),
+                "https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0"
+            );
+            event.event_id()
+        }
+        other => panic!("first cancellation confirmation must commit: {other:?}"),
+    };
+    assert!(matches!(
+        lifecycle.confirm_cancellation(*handoff).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Cancelled(
+            stateknot_store_postgres::AppendOutcome::Idempotent(_)
+        )
+    ));
+
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(run.lifecycle().status(), RunStatus::Cancelled);
+    assert!(run.lease().is_none());
+    assert_eq!(run.journal_head().unwrap().event_id(), committed_event_id);
+    let usage = run.lifecycle().terminal_usage().unwrap();
+    assert_eq!(usage.model_attempts(), ExecutionCount::new(1));
+    assert_eq!(usage.model_turns(), ExecutionCount::new(1));
+    assert_eq!(usage.tool_calls(), ExecutionCount::ZERO);
+    let public = facade.load(&tenant_id, run_id).await.unwrap();
+    assert!(matches!(
+        public.outcome(),
+        Some(AgentRunTerminalOutcome::Cancelled { failure, usage, .. })
+            if failure.id() == failure_id
+                && usage.model_attempts() == ExecutionCount::new(1)
+                && usage.tool_calls() == ExecutionCount::ZERO
+    ));
+    pause.release.notify_one();
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn agent_loop_confirms_preexecution_cancellation_without_provider_dispatch() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_fixture(store.clone());
+    let tenant_id = tenant("runtime-agent-loop-preexecution-cancellation");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    let admitted = DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request(
+            &fixture,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Cancelled,
+        FailureCode::new("runtime.provider_native.preexecution_cancelled").unwrap(),
+        FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+        FailureMessage::new("Provider-native execution was cancelled before dispatch.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap();
+    let request =
+        RunCancellationRequest::new(failure, admitted.stored().run().lifecycle().changed_at())
+            .unwrap();
+    store
+        .append_control_plane(
+            JournalAppend::new(
+                JournalExpectation::exact(admitted.stored().event().head()),
+                JournalEventIntent::control_plane(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    test_payload(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+            RunProjection::transition(
+                admitted.stored().run().lifecycle().revision(),
+                RunTransition::RequestCancellation { request },
+            ),
+        )
+        .await
+        .unwrap();
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let agent_loop = DurableAgentLoop::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let result = agent_loop
+        .run(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(matches!(
+        result.outcome(),
+        AgentLoopOutcome::CancellationConfirmed(
+            stateknot_store_postgres::AppendOutcome::Committed(_)
+        )
+    ));
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(run.lifecycle().status(), RunStatus::Cancelled);
+    assert_eq!(run.lifecycle().terminal_usage(), Some(&BudgetUsage::zero()));
+    assert!(run.lease().is_none());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn cancellation_evidence_unavailability_fails_closed_without_zero_usage() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_fixture(store.clone());
+    let tenant_id = tenant("runtime-cancellation-evidence-unavailable");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    let admitted = DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request(
+            &fixture,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Cancelled,
+        FailureCode::new("runtime.cancellation.evidence_unavailable").unwrap(),
+        FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+        FailureMessage::new("Cancellation evidence is temporarily unavailable.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap();
+    let request =
+        RunCancellationRequest::new(failure, admitted.stored().run().lifecycle().changed_at())
+            .unwrap();
+    store
+        .append_control_plane(
+            JournalAppend::new(
+                JournalExpectation::exact(admitted.stored().event().head()),
+                JournalEventIntent::control_plane(
+                    tenant_id.clone(),
+                    run_id,
+                    EventId::generate(),
+                    test_payload(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+            RunProjection::transition(
+                admitted.stored().run().lifecycle().revision(),
+                RunTransition::RequestCancellation { request },
+            ),
+        )
+        .await
+        .unwrap();
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let agent_loop = DurableAgentLoop::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(UnavailableLifecycleEvidence),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        agent_loop
+            .run(lease.fence().clone(), CancellationSignal::never())
+            .await,
+        Err(AgentLoopError::Lifecycle { .. })
+    ));
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(run.lifecycle().status(), RunStatus::CancellationRequested);
+    assert!(run.lifecycle().terminal_usage().is_none());
+    assert!(run.lease().is_none());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_graph_continues_after_known_failed_tool_and_binds_terminal_revision() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_failed_tool_fixture(store.clone());
+    let tenant_id = tenant("runtime-provider-native-failed-tool");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request(
+            &fixture,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let drive_result = driver
+        .drive(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let handoff = match drive_result.into_parts().0 {
+        GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
+        other => panic!("failed tool must remain a consumable transcript outcome: {other:?}"),
+    };
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.failed_outcomes.load(Ordering::SeqCst), 1);
+    assert_eq!(*fixture.transcript_lengths.lock().await, vec![0, 1]);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.commit_barrier(*handoff).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    let result = run.lifecycle().result().unwrap();
+    assert_eq!(run.lifecycle().status(), RunStatus::Succeeded);
+    assert_eq!(result.usage().model_attempts(), ExecutionCount::new(2));
+    assert_eq!(result.usage().tool_calls(), ExecutionCount::new(1));
     store.close().await;
 }
 
@@ -1339,6 +2509,100 @@ async fn model_executor_rebinds_terminal_evidence_after_lease_takeover_without_r
     ));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(budget_calls.load(Ordering::SeqCst), 1);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn model_executor_commits_real_terminal_evidence_after_cancellation_advances_journal() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-model-cancellation-race");
+    let run_id = RunId::generate();
+    let checkpoint = start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let descriptor = model_descriptor();
+    let invocation_id = InvocationId::generate();
+    let prepared = store
+        .prepare_model_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                checkpoint.event().head(),
+                lease.fence().clone(),
+            ),
+            ModelInvocationIntent::new(
+                invocation_activation(checkpoint.checkpoint()),
+                invocation_id,
+                descriptor.clone(),
+                model_request(),
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut models = ModelProviderRegistryBuilder::new();
+    models
+        .register(Arc::new(CancellingModel {
+            descriptor,
+            store: store.clone(),
+            calls: Arc::clone(&calls),
+        }))
+        .unwrap();
+    let executor = DurableInvocationExecutor::new(
+        store.clone(),
+        invocation_schema_registry(),
+        models.build(),
+        ToolProviderRegistryBuilder::new().build(),
+        Arc::new(StaticInvocationBudget {
+            resolved: invocation_budget(),
+        }),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let handoff = ModelAttemptHandoff::new(
+        lease.fence().clone(),
+        prepared.invocation().clone(),
+        AttemptId::generate(),
+        InvocationAttemptEventIds::generate(),
+        CancellationSignal::never(),
+        None,
+    )
+    .unwrap();
+    assert!(matches!(
+        executor.execute_model(handoff.clone()).await.unwrap(),
+        ModelAttemptOutcome::Dispatched {
+            terminal: ModelAttemptTerminalKind::Response,
+            ..
+        }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        store
+            .load_model_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ModelInvocationStatus::Committed
+    );
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(run.lifecycle().status(), RunStatus::CancellationRequested);
+    assert_eq!(run.journal_head().unwrap().sequence().get(), 5);
+    assert!(matches!(
+        executor.execute_model(handoff).await.unwrap(),
+        ModelAttemptOutcome::Recovered { .. }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
     store.close().await;
 }
 
@@ -2337,7 +3601,9 @@ async fn near_expiry_lease_is_refreshed_before_node_code_is_launched() {
         .unwrap()
         .lease()
         .clone();
-    tokio::time::sleep(Duration::from_millis(750)).await;
+    // Enter the driver's below-half-life refresh path while retaining enough
+    // scheduling margin for a loaded CI host to reach the first database read.
+    tokio::time::sleep(Duration::from_millis(600)).await;
 
     let options = DurableGraphDriverOptions::new(
         GraphReplayLimits::default(),
@@ -2515,6 +3781,7 @@ async fn test_store_with_lease_duration(lease_duration: Duration) -> Option<Post
     let options = PostgresStoreOptions::default()
         .with_transport_security(PostgresTransportSecurity::Disabled)
         .with_pool_size(1, 8)
+        .with_acquire_timeout(Duration::from_secs(30))
         .with_transaction_timeouts(Duration::from_secs(5), Duration::from_secs(20))
         .with_lease_timing(lease_duration, Duration::from_secs(5 * 60));
     PostgresStore::migrate_database(&database_url, options.clone())

@@ -54,12 +54,13 @@ Supersede 后，由更高 Fence 恢复这次未完成执行。
 1. 创建 `JsonSchemaRegistryBuilder`；
 2. 调用 `register_standard_graph_driver_event_schema`；
 3. 调用 `register_standard_graph_lifecycle_event_schema`；
-4. 注册应用全部 Digest-pinned Schema，并 `build` 冻结；
-5. 把每个 `CompiledGraph`、精确 `GraphReducer` 以及该 Graph 的全部
+4. 调用 `register_standard_agent_cancellation_event_schema`；
+5. 注册应用全部 Digest-pinned Schema，并 `build` 冻结；
+6. 把每个 `CompiledGraph`、精确 `GraphReducer` 以及该 Graph 的全部
    `GraphNodeExecutor` 加入 `ExecutableGraphRegistryBuilder`；
-6. `build` 验证闭包；
-7. 用同一 `PostgresStore`、不可变注册表与显式 Options 构造 Driver、Lifecycle 或 Agent Loop；
-8. 只有上述步骤全部成功后才让 Scheduler 开始 Claim。
+7. `build` 验证闭包；
+8. 用同一 `PostgresStore`、不可变注册表与显式 Options 构造 Driver、Lifecycle 或 Agent Loop；
+9. 只有上述步骤全部成功后才让 Scheduler 开始 Claim。
 
 Driver 标准审计 Schema 的不可变标识为
 `https://stknot.com/schemas/runtime/graph-driver-event/1.0.0`。应用应调用注册函数取得
@@ -69,6 +70,11 @@ Lifecycle Coordinator 使用独立的不可变 Schema
 `https://stknot.com/schemas/runtime/graph-lifecycle-event/1.0.0`。构造
 `DurableGraphLifecycle`、`DurableAgentLoop` 或 `DurableTenantScheduler` 的部署必须在冻结注册表
 前通过 `register_standard_graph_lifecycle_event_schema` 安装它。
+
+Cancellation Confirmation 使用第三份不可变 Schema：
+`https://stknot.com/schemas/runtime/agent-cancellation-event/1.0.0`。同一部署必须通过
+`register_standard_agent_cancellation_event_schema` 安装它；缺失时 Lifecycle 构造会
+Fail Closed。
 
 Graph、Reducer、Node Executor 必须来自同一 Release Artifact。Run Admission 使用的完整
 Identity、Version 与 Digest 必须和执行器注册值一致；不能在相同 Version 下偷偷替换实现。
@@ -82,6 +88,11 @@ Scheduler 先读取 Runnable Projection，选择 Run，分配稳定的 UUIDv7 `A
 传入的 Shutdown Signal 必须由进程拥有并保持单调。Node 执行期间若 Shutdown 生效，Driver
 会先发出协作取消，Node 不返回时再 Abort Task，随后释放精确 Fence，并保留已经持久化但未
 完成的 Attempt，交给更高 Fence 恢复。
+
+进程 Shutdown Signal 与耐久 Run Cancellation 是两条不同边界。Node Active 期间，Driver
+会轮询 Run Projection；观察到 `cancellation_requested` 后停止新 Dispatch、向 Node 发出
+Cancellation、只等待配置的 Cooperative Grace Period，再返回精确 Lease-bound
+Cancellation Handoff 供 Lifecycle 确认。
 
 Model 与 Tool 外部副作用必须通过各自的 Durable Invocation Ledger。Node 中直接执行的裸
 外部写入无法继承 StateKnot 的幂等与 Reconcile-first 保证。
@@ -97,7 +108,8 @@ Model 与 Tool 外部副作用必须通过各自的 Durable Invocation Ledger。
 | `Blocked` 且包含 `failed` / `exhausted` | 使用 Recovery Plan 的精确证据与累计 Usage 执行 Run-level Failure Policy，禁止自行推导 Retry 权限。 | 保留 |
 | `Deferred` | 不要在进程内再注册 Timer；数据库时间的索引 Gate 已提交。 | Driver 已释放 |
 | `Yielded` | 若仍有任务，通过 Scheduler Discovery 和新 Claim 再次进入。 | Driver 已释放 |
-| `Cancelled` | 停止本地工作；后续 Scheduler Claim 负责恢复。 | Driver 已释放 |
+| `CancellationRequested` | 立即使用原样 Handoff 调用 Lifecycle Cancellation Confirmation；普通应用应使用会自动完成该步骤的 `DurableAgentLoop`。禁止合成 Usage。 | Fresh Confirmation Commit 前由 Driver 保留且必须仍有效 |
+| `Cancelled` | 进程 Shutdown 已停止本地工作；后续 Scheduler Claim 负责恢复。 | Driver 已释放 |
 
 `GraphLifecycleBarrierHandoff` 刻意不能序列化，也不能脱离 `RunLease` 作为队列消息。它是
 短生命周期的原子提交输入。如果生命周期服务不能在 Lease 过期前完成，就应释放或等待过期，
@@ -119,6 +131,9 @@ Model 与 Tool 外部副作用必须通过各自的 Durable Invocation Ledger。
 - `lease_renewal_interval` 至少要在 Provider Lease Duration 内容纳三次，并且不能超过
   Maximum Renewal Horizon。
 - `node_execution_timeout` 是 Node 的硬 Wall-clock Deadline；默认 15 分钟，硬上限 7 天。
+- `cancellation_poll_interval` 与 `cancellation_grace_period` 默认分别为 250 ms 与 5 s，
+  Polling 被限制在 10 ms–60 s，Grace 的硬上限为 5 分钟；必须依据 Provider/Tool 实测取消
+  行为和 Lease Safety Margin 设置。
 - Mutation Retry 必须复用同一 Event/Attempt Identity，以有界次数和封顶指数退避执行。
 
 Durable Start 提交后，Driver 会先取得新的数据库时间 Lease Observation，确认安全余量后才
@@ -145,7 +160,7 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 
 ## 已验证证据与剩余门禁
 
-十九个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
+二十六个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
 
 1. Continue Barrier 提交后执行 Noninitial Replay，并交出 Terminal Handoff；
 2. Same-fence In-flight 恢复不重复调用 Executor；
@@ -154,18 +169,18 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 5. 非法初始 Checkpoint State 会在任何 Executor 调用前被 Quarantine；
 6. 更高 Fence 对未完成 Physical Attempt 只接管一次。
 
-现有六个 Lifecycle/Scheduler 场景验证 Success Terminal、Wait 与受监督 Failure Handoff 的原子提交和精确 Lost-ACK
-Retry、数据库时间 Wait Registration、Agent Loop 成功与 Evidence-unavailable Cleanup，以及
-Tenant Scheduler 的选择、Claim、执行和 Idle 收敛。新增四个场景验证 Model Terminal-fence
-Recovery、有序耐久 Model Streaming、Write Tool Timeout 的 Ambiguous Outcome Suppression，以及
-3:1 Cross-tenant Weighted Selection，一个验证原子 Agent Admission，另一个验证公开耐久
-Run/Result Facade。此外，每个数据库版本还运行 100 个 Provider Integration
-Test。CI 把外部数据库套件设为 Mandatory；数据库服务缺失时必须失败，不能静默跳过。
+Lifecycle/Scheduler 覆盖会验证 Success Terminal、Wait、受监督 Failure 与 Cancellation
+Handoff 的原子提交和精确 Lost-ACK Retry、数据库时间 Wait Registration、Agent Loop 成功与
+Evidence-unavailable Cleanup，以及 Tenant Scheduler 的选择、Claim、执行和 Idle 收敛。
+Provider-native 场景还验证多轮 No-redispatch Recovery、Stale Policy Race、已知失败 Tool
+Continuation、Exact-usage Cancellation、Pre-dispatch Cancellation 与 Evidence Unavailable
+时的 Fail-closed 行为。PostgreSQL Provider Suite 会在每个数据库版本上独立运行。CI 把两套
+外部数据库测试都设为 Mandatory；数据库服务缺失时必须失败，不能静默跳过。
 
 后续 Typed Agent 里程碑已经提供第一批 OpenAI Responses 与 Anthropic Messages Adapter；
-原子 Admission、公开耐久 Run/Result Facade 与 Ingress Idempotency 也已经实现。仍未完成的
-包括在预置 Graph 内组装已经实现的 Provider-native Transcript、Policy Middleware、
-Cancellation Transport、Parallel Sibling、
+原子 Admission、公开耐久 Run/Result Facade，以及带 Policy、精确 Accounting、Transcript
+Recovery 与 Cancellation Confirmation 的预置 Provider-native Graph 也已经实现。仍未完成的
+包括 Public Cancellation Transport、Parallel Sibling、
 Loop/Subgraph、协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
 Failover/Restore 验证、10,000 次 Stale-race 门禁或稳定公共发行。这些都是明确 Release
 Blocker，不会用隐藏的降级逻辑替代。

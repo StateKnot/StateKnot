@@ -167,6 +167,7 @@ https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0
 - Timed-out Idempotent-write Tool 记录 Ambiguous/Reconcile-first Outcome，重试时不会再次调用 Tool。
 
 该边界仍是 pre-alpha。第一方 OpenAI Responses/Anthropic Messages Adapter 与强类型 Agent
-Contract 与原子 Admission 现已实现；应用持久化 Model Stream Sink、生产
-Accounting/Result Evidence、在预置 Graph 内耐久组装 Transcript、完整 Crash Reconciliation
-Supervision、Telemetry 与 Live-provider Qualification 尚未完成，因此还不能声称生产支持。
+Contract、原子 Admission，以及在预置 Provider-native Graph 内耐久组装 Transcript 已实现；
+应用持久化 Model Stream Sink、部署专用 Price Table 与 Artifact Evidence、完整
+Reconciliation Supervision、Telemetry 与 Live-provider Qualification 尚未完成，因此还不能
+声称生产支持。

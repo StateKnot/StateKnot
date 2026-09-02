@@ -34,7 +34,9 @@ let outcome = admission.admit(request).await?;`;
       <code>DurableAgentAdmission</code>、Migration 15 与不可变 Core Admission
       Contract 已经实现，并关闭了部分初始化缺口。公开 Run/Result Facade 与
       Ingress Idempotency Store 也已由独立边界实现；本页继续明确 Exact-ID
-      低层接口。预置 Provider-native Tool Graph 仍是发行前工作。
+      低层接口。已经实现的<a href="/zh/docs/provider-native-agent/"
+        >Provider-native Agent Graph</a
+      > 会在该低层边界之上消费不可变 Admission。
     </p>
   </aside>
 
@@ -159,7 +161,7 @@ let outcome = admission.admit(request).await?;`;
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">验证证据</h2>
     <p>
-      PostgreSQL 16/17 Matrix 目前在每个版本运行 100 个 Provider Case 与 19
+      PostgreSQL 16/17 Matrix 目前在每个版本运行 102 个 Provider Case 与 26
       个耐久 Runtime Scenario。Admission 覆盖 Migration 15、跨越时间边界后的精确
       Retry、 Changed-intent 与 Tamper 拒绝、无效 State 零残留 Rollback、24
       路收敛，以及 Runtime 在任何写入前拒绝 Agent/Graph 或 Authorization Schema

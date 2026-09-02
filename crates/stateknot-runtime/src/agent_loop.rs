@@ -25,6 +25,8 @@ const MAX_MUTATION_RETRY_DELAY: Duration = Duration::from_secs(1);
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum AgentLoopOutcome {
+    /// Durable cancellation intent and exact cumulative usage were acknowledged.
+    CancellationConfirmed(AppendOutcome),
     /// The graph suspended with a complete durable wait batch.
     Waiting(WaitCheckpointCommitOutcome),
     /// The graph and admitted agent invocation succeeded.
@@ -146,6 +148,15 @@ impl DurableAgentLoop {
         };
         let (outcome, report) = driven.into_parts();
         let outcome = match outcome {
+            GraphDriveOutcome::CancellationRequested(handoff) => {
+                let lifecycle = match self.lifecycle.confirm_cancellation(*handoff).await {
+                    Ok(outcome) => outcome,
+                    Err(source) => {
+                        return Err(self.cleanup_lifecycle_error(&fence, source).await);
+                    }
+                };
+                lifecycle_outcome(lifecycle)
+            }
             GraphDriveOutcome::LifecycleBarrierReady(handoff) => {
                 let lifecycle = match self.lifecycle.commit_barrier(*handoff).await {
                     Ok(outcome) => outcome,
@@ -251,6 +262,9 @@ impl DurableAgentLoop {
 
 fn lifecycle_outcome(outcome: GraphBarrierLifecycleOutcome) -> AgentLoopOutcome {
     match outcome {
+        GraphBarrierLifecycleOutcome::Cancelled(outcome) => {
+            AgentLoopOutcome::CancellationConfirmed(outcome)
+        }
         GraphBarrierLifecycleOutcome::Waiting(outcome) => AgentLoopOutcome::Waiting(outcome),
         GraphBarrierLifecycleOutcome::Succeeded(outcome) => AgentLoopOutcome::Succeeded(outcome),
         GraphBarrierLifecycleOutcome::Failed(outcome) => AgentLoopOutcome::Failed(outcome),

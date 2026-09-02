@@ -220,8 +220,8 @@ Real PostgreSQL integration coverage proves:
   outcome and is not called again on retry.
 
 The boundary remains pre-alpha. First-party OpenAI Responses and Anthropic
-Messages adapters plus the typed Agent contract are now implemented. An
-application-persisted model stream sink, production accounting/result
-evidence, durable transcript assembly inside the prebuilt graph, full crash reconciliation supervision,
-telemetry, and live-provider qualification are still required before production
-support can be claimed.
+Messages adapters, the typed Agent contract, and durable transcript assembly in
+the prebuilt provider-native graph are implemented. An application-persisted
+model stream sink, deployment-specific price tables and artifact evidence,
+complete reconciliation supervision, telemetry, and live-provider
+qualification are still required before production support can be claimed.
