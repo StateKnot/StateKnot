@@ -603,6 +603,7 @@ pub enum OutboxAttemptStatus {
 }
 
 /// Terminal outcome of one physical delivery attempt.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, JsonSchema, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 #[non_exhaustive]
@@ -673,6 +674,7 @@ impl<'de> Deserialize<'de> for OutboxAttemptOutcome {
     where
         D: Deserializer<'de>,
     {
+        #[allow(clippy::large_enum_variant)]
         #[derive(Deserialize)]
         #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
         enum Wire {

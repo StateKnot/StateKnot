@@ -66,22 +66,34 @@ const capabilities = [
     body: "Digest-pinned 预置多轮 Model/Tool Graph，支持串行 Tool、Provider-native Transcript Recovery、本地 Policy Evidence、精确 Accounting、No-redispatch Terminal Recovery 与两阶段 Cancellation Confirmation。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "AgentService v1 嵌入式边界",
+    body: "精确版本 Deployment Binding、授权先于 Deployment/Run/Key 存在性披露、Tenant-scoped Submission Recovery、Verified Read 与由调用方保留 Identity 的两阶段取消。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
+    title: "严格 MCP Remote Tool Profile",
+    body: "一个 MCP 2026-07-28 Client-side Tool Binding，支持 Modern Stateless Discovery、Complete JSON Transport、精确 Local Schema/Server Pin、Attempt-scoped Authorization 与 Reconciliation-first Ambiguous Write。",
+  },
+  {
     state: "开发中",
     className: "status-active",
     title: "高级执行与 Service Boundary",
-    body: "Artifact Retrieval、Parallel Sibling/Tool Ordering、Output Repair、Loop/Subgraph 语义、稳定 Public Cancellation Ingress 与 One-call Agent Service 仍在开发中。",
+    body: "Artifact Retrieval、Parallel Sibling/Tool Ordering、Output Repair、Loop/Subgraph 语义、稳定 Network Transport、Protocol-specific Outbox Dispatch 与组合式耐久 MCP 验证仍在开发中。",
   },
   {
     state: "尚未发布",
     className: "status-planned",
-    title: "稳定端到端 Agent API",
-    body: "预置耐久路径已经存在，但稳定的一键式执行 Service、已发布 Crate、兼容性承诺与生产支持声明仍不存在。",
+    title: "稳定 Network Agent API",
+    body: "带版本的嵌入式 Facade 已经存在，但稳定 HTTP/gRPC/SSE API、已发布 Crate、兼容性承诺与生产支持声明仍不存在。",
   },
   {
     state: "尚未发布",
     className: "status-planned",
-    title: "MCP 与 A2A Adapter",
-    body: "两个协议均在 v1 范围内，但协议 Wire Adapter 与 Conformance Evidence 尚未交付。",
+    title: "更广 MCP 与 A2A Profile",
+    body: "MCP Server、Resources/Prompts 与更广 Client Feature、官方 MCP Conformance Evidence，以及全部 A2A Client/Server Binding 尚未交付。",
   },
   {
     state: "尚未发布",
@@ -94,7 +106,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：Provider-native 多轮 Agent Graph 已经运行在耐久 Admission、Invocation、Recovery、Lifecycle 与公平调度之上；稳定 Service API、MCP/A2A Adapter、高级 Graph 语义与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：AgentService v1 与一个严格 MCP Remote Tool Profile 已加入耐久 Provider-native Path；稳定 Network API、更广 MCP/A2A、高级 Graph 语义与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -133,12 +145,12 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
-      Provider-native Graph 现在已经证明：一条多轮 Tool Path 可以
-      Crash、恢复、以精确 Usage 确认 Cancellation，并在不重复 Dispatch
-      已提交工作的前提下返回类型化结果。 下一条验证边界会把相同的耐久 Identity
-      与 Failure Semantics 带入首个 MCP Tool Adapter，包括已认证 Capability
-      Negotiation、有界 Wire Data、Cancellation 与 Crash
-      Recovery。只有这条协议边界成为可执行事实后，才继续进入 A2A。
+      AgentService v1 现在证明 Authorization-first Submission/Read/Cancel
+      Semantics；严格 MCP Binding 证明 Modern Discovery、精确 Identity/Schema
+      Pin、Attempt Credential 与 Ambiguous Lost-write
+      Mapping。下一条验证边界会把该 Adapter 与 PostgreSQL Invocation
+      Ledger、Crash Recovery 组合，并发布锁定版本的 官方 MCP Conformance
+      Report。只有这个较窄 Profile 具备端到端耐久证据后，才继续 A2A。
     </p>
   </section>
 
@@ -171,6 +183,12 @@ const capabilities = [
         <a href="/zh/docs/provider-native-agent/"
           >Provider-native Agent Graph 合约</a
         >
+      </li>
+      <li>
+        <a href="/zh/docs/agent-service/">AgentService v1 合约</a>
+      </li>
+      <li>
+        <a href="/zh/docs/mcp-remote-tool/">严格 MCP Remote Tool Profile</a>
       </li>
       <li>
         <a href="/zh/docs/fair-scheduling/">跨租户公平调度合约</a>

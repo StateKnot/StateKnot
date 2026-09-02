@@ -53,6 +53,7 @@ impl fmt::Display for JsonLimit {
 /// compact representation of the resulting value. Limits cannot exceed
 /// [`JsonLimits::MAXIMUM`], so callers cannot accidentally disable the process
 /// safety boundary through configuration.
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct JsonLimits {
     max_bytes: usize,

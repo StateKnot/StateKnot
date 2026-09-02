@@ -372,6 +372,7 @@ pub enum ModelInvocationStatus {
 /// Integrity-bound state payload of one model invocation revision.
 #[derive(Clone, Debug, JsonSchema, Serialize)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
+#[allow(clippy::large_enum_variant)]
 pub enum ModelInvocationState {
     /// Prepared request awaiting an attempt claim.
     Prepared,
@@ -423,6 +424,7 @@ impl<'de> Deserialize<'de> for ModelInvocationState {
     {
         #[derive(Deserialize)]
         #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
+        #[allow(clippy::large_enum_variant)]
         enum Wire {
             Prepared,
             Executing { attempt_id: AttemptId },
@@ -456,6 +458,7 @@ pub enum ModelInvocationTransitionKind {
 /// Explicit transition appended to the run journal and model history.
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[allow(clippy::large_enum_variant)]
 pub enum ModelInvocationTransition {
     /// Claim a unique physical attempt after preparation or a safe retry.
     StartAttempt {

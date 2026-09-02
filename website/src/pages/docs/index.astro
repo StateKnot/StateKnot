@@ -30,6 +30,12 @@ const paths = [
     link: "Integrate runs and results",
   },
   {
+    title: "Expose AgentService v1",
+    body: "Authorize exact Agent revisions before existence disclosure, recover durable submissions, read verified Runs, and request two-phase cancellation.",
+    href: "/docs/agent-service/",
+    link: "Integrate the service",
+  },
+  {
     title: "Compile a deterministic graph",
     body: "Run the maintained Rust example, understand the compiler's fail-closed checks, and register one exact immutable definition.",
     href: "/docs/concepts/graphs/",
@@ -58,6 +64,12 @@ const paths = [
     body: "Freeze exact model/tool providers, commit physical starts before external I/O, validate streams, and retry terminal persistence without redispatch.",
     href: "/docs/invocations/",
     link: "Integrate invocations",
+  },
+  {
+    title: "Bind one MCP Remote Tool",
+    body: "Discover a strict stateless MCP 2026-07-28 Tool once, pin its identity and schemas, and preserve ambiguous write outcomes.",
+    href: "/docs/mcp-remote-tool/",
+    link: "Integrate MCP",
   },
   {
     title: "Run the provider-native Agent",
@@ -106,7 +118,13 @@ const paths = [
       The <a href="/docs/provider-native-agent/"
         >prebuilt provider-native Agent graph</a
       > now adds recovered multi-turn Tools, policy, accounting, and exact cancellation.
-      The stable service API and MCP/A2A adapters remain explicit release blockers.
+      <a href="/docs/agent-service/">AgentService v1</a> now exposes submission, verified
+      reads, and cancellation as an authorization-first embedding boundary; the <a
+        href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a
+      >
+      adds one stateless client-side Tool binding. Stable network transport, broader
+      MCP client/server conformance, A2A, and production qualification remain release
+      blockers.
     </p>
   </aside>
 
@@ -180,12 +198,28 @@ const paths = [
         </dd>
       </div>
       <div>
+        <dt>AgentService v1</dt>
+        <dd>
+          Exact-version deployment binding, authorization before existence
+          disclosure, durable submission recovery, verified reads, and
+          caller-retained two-phase cancellation identities.
+        </dd>
+      </div>
+      <div>
         <dt>Typed Agent and provider adapters</dt>
         <dd>
           Generated, canonical digest-pinned input/output schemas; offline
           provider-profile binding; bounded typed request/result validation; and
           first-party OpenAI Responses and Anthropic Messages unary and SSE
           transports.
+        </dd>
+      </div>
+      <div>
+        <dt>Strict MCP Remote Tool</dt>
+        <dd>
+          MCP 2026-07-28 modern discovery, stateless complete-JSON transport,
+          exact local schema and server-identity pins, attempt-scoped
+          authorization, and reconciliation-first lost-write behavior.
         </dd>
       </div>
       <div>

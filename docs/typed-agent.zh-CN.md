@@ -128,10 +128,12 @@ Streaming Adapter 不会先缓存完整响应，再伪装成 Chunk 重放。它�
 原子耐久 Admission 已经实现，详见
 [`durable-agent-admission.zh-CN.md`](durable-agent-admission.zh-CN.md)。
 `DurableAgentRuns` 也已经实现耐久 Ingress-key Mapping 与完整重校验的 Run/Result Read，
-详见 [`durable-agent-runs.zh-CN.md`](durable-agent-runs.zh-CN.md)。当前仍不存在稳定的一键式
-Agent Service，也不会用临时 In-memory `run()` 绕过耐久边界。已经实现的
-[`ProviderNativeAgentGraph`](provider-native-agent.zh-CN.md) 会为未来 Service Boundary
-提供预置耐久 Model/Tool 组合。
+详见 [`durable-agent-runs.zh-CN.md`](durable-agent-runs.zh-CN.md)。当前仍不会用临时
+In-memory `run()` 绕过耐久边界。已经实现的
+[`ProviderNativeAgentGraph`](provider-native-agent.zh-CN.md) 提供预置耐久 Model/Tool
+组合；[`AgentServiceV1`](agent-service.zh-CN.md) 现在通过 Authorization-first
+嵌入式边界暴露精确版本 Submission、Verified Read 与 Cancellation。稳定 Network
+Transport 与 API Compatibility 仍未交付。
 
 ## 验证证据
 
@@ -147,6 +149,9 @@ Redaction。
 cargo test -p stateknot-integrations --all-targets
 cargo test -p stateknot-runtime --test typed_agent
 ```
+
+Integrations Suite 现在也包含严格 MCP Remote Tool Contract；其较窄支持声明见
+[`mcp-remote-tool.zh-CN.md`](mcp-remote-tool.zh-CN.md)。
 
 Provider-native Runtime Suite 会另外在真实 PostgreSQL 16/17 上验证耐久 Transcript
 Assembly、Policy Evidence、No-redispatch Recovery 与精确 Cancellation。Live-provider

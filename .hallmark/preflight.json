@@ -1,12 +1,12 @@
 {
-  "date": "2026-08-31",
+  "date": "2026-09-02",
   "scope": "bilingual documentation site",
   "project": "StateKnot public website and documentation",
   "signals": {
     "design_system": "Cobalt semantic tokens in website/tokens.css",
     "font_stack": "Space Grotesk, Inter, JetBrains Mono, CJK system fallbacks",
     "palette": "Cobalt-tinted paper, ink, and restrained electric-blue accent",
-    "motion_library": "CSS transitions with reduced-motion fallbacks",
+    "motion_library": "No third-party motion dependency; CSS transitions with reduced-motion fallbacks",
     "spacing_scale": "4px-based named token scale",
     "web_framework": "Astro 7.2.9 static output"
   },
@@ -16,10 +16,9 @@
     "existing Rust repository and CI conventions"
   ],
   "introduce": [
-    "English and Simplified Chinese route parity",
-    "Long Document documentation macrostructure",
-    "locale-aware navigation and command palette",
-    "canonical and hreflang metadata",
-    "responsive, link, contrast, and accessibility regression tests"
+    "AgentService v1 English and Simplified Chinese route parity",
+    "strict MCP Remote Tool English and Simplified Chinese route parity",
+    "public service-control schema regression coverage",
+    "responsive, link, contrast, and accessibility regression coverage for the new routes"
   ]
 }

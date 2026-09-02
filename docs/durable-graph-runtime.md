@@ -219,7 +219,7 @@ retries from `GraphDriveReport`.
 
 ## Qualification evidence and remaining gates
 
-Twenty-six runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
+Twenty-seven runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
 Driver-specific recovery coverage:
 
 1. Continue-barrier commit followed by noninitial replay and a Terminal handoff;

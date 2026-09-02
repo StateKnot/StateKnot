@@ -53,6 +53,7 @@ pub enum RecoveryNodeKind {
 }
 
 /// Deterministic recovery decision for one logical ready-node activation.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum RecoveryNode {

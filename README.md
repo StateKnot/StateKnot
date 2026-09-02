@@ -177,18 +177,28 @@ local policy, exact deterministic accounting, no-redispatch recovery, known
 failed-Tool continuation, and two-phase cancellation confirmation over those
 durable layers. Migration 17 binds pending Tool results to their exact
 `committed` or `failed` terminal revision instead of fabricating success.
-Public cancellation transport, protocol-specific outbox dispatch adapters,
+`AgentServiceV1` now adds an exact-version, authorization-first embedding
+boundary for tenant-scoped submission recovery, verified run/key reads, and
+caller-retained two-phase cancellation identities. Its control event records
+only public-safe admission/policy/decision digests and a stable failure ID.
+`McpRemoteTool` now implements the first strict protocol adapter: MCP
+2026-07-28 modern stateless discovery, complete JSON responses, exact local
+schema and server-identity pins, attempt-scoped authorization, bounded
+transport, and reconciliation-first ambiguous writes. It is a client-side
+Remote Tool profile, not a complete MCP client/server conformance claim.
+Stable network Agent/cancellation transport, protocol-specific outbox dispatch adapters,
 artifacts, parallel siblings/Tools, output repair, loops/subgraphs, role
 isolation, general retention, failover, restore, and the final stale-race gates
 have not shipped yet.
 
 The current milestone is to:
 
-1. validate the three frozen production scenarios and their load/failure models;
-2. accept the core domain, graph, durability, and protocol/security RFCs;
-3. carry the recovered provider-native execution contract through a stable
-   service boundary and the first MCP Tool adapter without weakening identity,
-   policy, accounting, cancellation, or no-redispatch guarantees;
+1. compose the strict MCP Remote Tool with PostgreSQL-backed invocation
+   recovery and prove no-redispatch/ambiguous-write behavior end to end;
+2. run the pinned official MCP conformance suite for every claimed client
+   feature and publish the report;
+3. validate the three frozen production scenarios and accept the core domain,
+   graph, durability, and protocol/security RFCs;
 4. qualify role isolation, failover/restore, and the final stale-race gates; and
 5. publish compatibility and performance evidence before claiming support.
 
@@ -200,6 +210,8 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [durable Agent admission](docs/durable-agent-admission.md),
 [durable Agent runs and results](docs/durable-agent-runs.md),
 [provider-native Agent graph](docs/provider-native-agent.md),
+[AgentService v1](docs/agent-service.md),
+[strict MCP Remote Tool profile](docs/mcp-remote-tool.md),
 [durable invocation](docs/durable-invocation-executor.md),
 [fair scheduling](docs/cross-tenant-fair-scheduler.md), and
 [completeness audit](docs/plan-completeness-audit.md) guides.
@@ -209,8 +221,8 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
-crates/stateknot-integrations/  First-party OpenAI Responses and Anthropic Messages model adapters
-crates/stateknot-runtime/  Executable/provider registries, durable Driver, invocation executor, Agent Loop, and fair scheduler
+crates/stateknot-integrations/  OpenAI/Anthropic model adapters and strict MCP Remote Tool binding
+crates/stateknot-runtime/  AgentService v1, executable/provider registries, durable Driver, invocation executor, Agent Loop, and fair scheduler
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap
 website/                 Bilingual Astro docs, browser tests, and Caddy deployment
@@ -223,7 +235,8 @@ avoided.
 
 ## Development
 
-The repository pins Rust 1.85.0, the initial minimum supported Rust version.
+The repository pins Rust 1.88.0, the minimum supported Rust version required by
+the official MCP Rust SDK 3.x protocol adapter.
 With `rustup` installed, the toolchain is selected automatically.
 
 ```console

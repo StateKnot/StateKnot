@@ -76,9 +76,21 @@ const currentCut = [
     href: "/docs/provider-native-agent/",
   },
   {
-    surface: "MCP and A2A adapters",
+    surface: "AgentService v1",
+    state: "Implemented slice",
+    evidence: "Authorization-first submit/read/cancel with exact recovery IDs",
+    href: "/docs/agent-service/",
+  },
+  {
+    surface: "MCP Remote Tool",
+    state: "Implemented slice",
+    evidence: "Strict stateless discovery, schema pins, ambiguous lost writes",
+    href: "/docs/mcp-remote-tool/",
+  },
+  {
+    surface: "A2A adapters",
     state: "Not shipped",
-    evidence: "In v1 scope; wire boundaries remain planned",
+    evidence: "A2A 1.0 REST/JSON-RPC client/server remains planned",
     href: "https://github.com/StateKnot/StateKnot/blob/main/docs/v1-scope.md",
   },
 ];
@@ -110,12 +122,18 @@ const roadmap = [
   },
   {
     index: "05",
-    state: "Now",
-    title: "Prove the first protocol adapter",
-    body: "Carry the durable identity, policy, accounting, cancellation, and recovery contract through an authenticated MCP Tool boundary; A2A follows that proof.",
+    state: "Implemented",
+    title: "Freeze the first strict MCP Tool binding",
+    body: "Modern stateless discovery, exact local schema/server pins, attempt credentials, and reconciliation-first lost writes now have executable contract evidence.",
   },
   {
     index: "06",
+    state: "Now",
+    title: "Compose and qualify the protocol boundary",
+    body: "Run the MCP adapter through PostgreSQL-backed invocation recovery and publish the pinned official conformance report before broadening the supported profile.",
+  },
+  {
+    index: "07",
     state: "Before v1",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -139,9 +157,10 @@ const roadmap = [
             recovery, atomic Agent admission, durable model/tool attempts,
             lifecycle commits, weighted cross-tenant scheduling, durable ingress
             keys, verified run/result reads, typed Agent contracts, the first
-            OpenAI/Anthropic adapters, and a recovered provider-native
-            multi-turn Agent graph. Stable service APIs and MCP/A2A protocol
-            adapters remain under development.
+            OpenAI/Anthropic adapters, a recovered provider-native multi-turn
+            Agent graph, AgentService v1, and one strict MCP Remote Tool
+            binding. Stable network APIs, broader MCP/A2A profiles, advanced
+            graph semantics, and production qualification remain unfinished.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -280,9 +299,10 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">The road ahead is ordered by proof.</h2>
         <p>
-          The recovered provider-native path now survives crashes, retries,
-          stale workers, cancellation, and lost acknowledgements. The first MCP
-          boundary must preserve those proofs; A2A follows it.
+          The strict MCP binding now freezes discovery, identity, schemas,
+          credentials, and lost-write semantics. It must next prove PostgreSQL-
+          backed crash recovery and official conformance before the profile
+          broadens and A2A begins.
         </p>
       </div>
 

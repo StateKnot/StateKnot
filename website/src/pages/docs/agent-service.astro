@@ -1,0 +1,217 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const startupCode = `register_standard_agent_service_control_event_schema(&mut schema_builder)?;
+
+let executable = executable_builder.build()?;
+let mut deployments = AgentServiceRegistryBuilder::new();
+deployments.register(Arc::new(provider_native_definition.clone()))?;
+
+let service = AgentServiceV1::new(
+    store.clone(),
+    executable,
+    deployments.build(),
+    Arc::new(authorizer),
+)?;`;
+
+const callCode = `let admitted = service
+    .submit(caller.clone(), &submission_key, &agent_identity, request)
+    .await?;
+let run_id = admitted.snapshot().provenance().run_id();
+
+let snapshot = service.load(caller.clone(), run_id).await?;
+
+// Persist once, then reuse this exact pair after timeout.
+let ids = AgentCancellationIds::generate();
+let cancellation = service
+    .request_cancellation(caller, run_id, ids)
+    .await?;`;
+---
+
+<DocsLayout
+  title="Expose durable Agents through one service boundary."
+  description="Bind exact Agent revisions, authorize before existence disclosure, recover idempotent submissions, read verified Runs, and request two-phase cancellation."
+  section="AgentService v1"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="agent-service-boundary-title"
+  >
+    <h2 id="agent-service-boundary-title">Implemented embedding boundary</h2>
+    <p>
+      <code>AgentServiceV1</code> is implemented over PostgreSQL and immutable executable
+      registries. It is not an HTTP, gRPC, or SSE server, and it does not authenticate
+      credentials. StateKnot remains pre-alpha: this API has executable evidence,
+      not a stability or production-support promise.
+    </p>
+  </aside>
+
+  <section aria-labelledby="agent-service-contract-title">
+    <h2 id="agent-service-contract-title">Freeze the public contract</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Exact deployments</dt>
+        <dd>
+          The startup registry pins one descriptor and compiled Graph per exact
+          Agent identity. Duplicate versions, schema disagreement, and runtime
+          deployment drift fail closed.
+        </dd>
+      </div>
+      <div>
+        <dt>Authorization first</dt>
+        <dd>
+          A mandatory authorizer evaluates submission, read, and cancel before
+          deployment or durable target existence is disclosed. The caller must
+          come from an already verified token or mTLS identity.
+        </dd>
+      </div>
+      <div>
+        <dt>Durable ingress</dt>
+        <dd>
+          A tenant-scoped submission key converges lost acknowledgements on the
+          original Run. Changed logical content is a conflict, not a second Run.
+        </dd>
+      </div>
+      <div>
+        <dt>Two-phase cancellation</dt>
+        <dd>
+          The service commits intent with stable caller-retained IDs. Workers
+          stop new dispatch; lifecycle confirms the terminal state only from
+          sufficient usage and external-effect evidence.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="agent-service-startup-title">
+    <h2 id="agent-service-startup-title">
+      Build one immutable startup snapshot
+    </h2>
+    <p>
+      Register every Graph, reducer, node, typed schema, admission schema, and
+      service-control schema before constructing the facade. Submission never
+      runs model or Tool code inline.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · startup binding</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="agent-service-startup-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="agent-service-startup-code"
+        tabindex="0"><code>{startupCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="agent-service-calls-title">
+    <h2 id="agent-service-calls-title">
+      Submit, inspect, and cancel by durable identity
+    </h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · version 1 operations</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="agent-service-call-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="agent-service-call-code"
+        tabindex="0"><code>{callCode}</code></pre>
+    </div>
+    <p>
+      After a timeout, retry submission with the same tenant, Agent identity,
+      key, and logical request. Retry cancellation with the same <code
+        >run_id</code
+      >
+      and exact <code>AgentCancellationIds</code>. New cancellation IDs
+      represent a competing request and must not be hidden as idempotent
+      success.
+    </p>
+  </section>
+
+  <section aria-labelledby="agent-service-control-event-title">
+    <h2 id="agent-service-control-event-title">
+      Persist public-safe control evidence
+    </h2>
+    <p>
+      The cancellation journal binds the exact caller-retained event/failure IDs
+      and an authoritative PostgreSQL timestamp. Its event data stores
+      admission, policy, and decision digests plus the stable failure ID. Caller
+      input, principal text, policy payloads, credentials, and failure messages
+      are deliberately absent. Inspect the <a
+        href="/schemas/runtime/agent-service-control-event/1.0.0"
+        >published schema</a
+      >.
+    </p>
+  </section>
+
+  <section aria-labelledby="agent-service-production-title">
+    <h2 id="agent-service-production-title">
+      Keep transport responsibilities outside
+    </h2>
+    <ul>
+      <li>Verify TLS, tokens, or mTLS before constructing the caller.</li>
+      <li>
+        Derive tenant and principal from verified credentials, never
+        request-body identity claims.
+      </li>
+      <li>
+        Persist submission and cancellation IDs before calling the facade.
+      </li>
+      <li>
+        Add bounded public errors, rate limits, overload control, tracing,
+        scheduler/worker roles, graceful drain, and backup/restore procedures.
+      </li>
+      <li>
+        Do not place a remote policy request inside a database transaction;
+        consume retained policy evidence instead.
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="agent-service-proof-title">
+    <h2 id="agent-service-proof-title">Run the PostgreSQL proof</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · PostgreSQL 16 or 17 required</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="agent-service-proof-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="agent-service-proof-command"
+        tabindex="0"><code>STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-runtime --test postgres \
+  agent_service_authorizes_submits_recovers_and_cancels_without_redispatch \
+  --locked</code></pre>
+    </div>
+    <p>
+      The focused test proves authorization-first missing-resource handling,
+      exact submission recovery, key-based reads, cancellation
+      commit/retry/conflict, and zero model or Tool dispatch. Read the complete <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-service.md"
+        >integration contract</a
+      > before exposing a network API.
+    </p>
+  </section>
+</DocsLayout>

@@ -82,6 +82,18 @@ const localizedRoutePairs = [
     zhHeading: "运行 Provider-native Model/Tool Graph。",
   },
   {
+    en: "/docs/agent-service/",
+    zh: "/zh/docs/agent-service/",
+    enHeading: "Expose durable Agents through one service boundary.",
+    zhHeading: "通过一个服务边界暴露耐久 Agent。",
+  },
+  {
+    en: "/docs/mcp-remote-tool/",
+    zh: "/zh/docs/mcp-remote-tool/",
+    enHeading: "Bind one MCP Tool without weakening durability.",
+    zhHeading: "绑定一个 MCP Tool，不削弱耐久语义。",
+  },
+  {
     en: "/docs/fair-scheduling/",
     zh: "/zh/docs/fair-scheduling/",
     enHeading: "Schedule tenants from one durable order.",
@@ -169,10 +181,19 @@ test("homepage exposes honest implementation status and semantic structure", asy
   await expect(
     page.getByText("Pre-alpha · no stable public API"),
   ).toBeVisible();
-  await expect(page.getByText("MCP adapters")).toBeVisible();
-  await expect(page.getByText("A2A adapters", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("Durable Graph Driver", { exact: true }).first(),
+    page.locator(".spec-list").getByText("MCP Remote Tool", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".spec-list").getByText("AgentService v1", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".spec-list").getByText("A2A adapters", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".spec-list")
+      .getByText("Durable Graph Driver", { exact: true }),
   ).toBeVisible();
   await expect(
     page.locator(".spec-list").getByText("Durable Agent Loop", { exact: true }),
@@ -207,7 +228,7 @@ test("homepage exposes honest implementation status and semantic structure", asy
       exact: true,
     }),
   ).toBeVisible();
-  await expect(page.locator(".map-node--planned")).toHaveCount(4);
+  await expect(page.locator(".map-node--planned")).toHaveCount(3);
 
   const main = page.locator("main");
   await expect(main).toHaveAttribute("id", "main-content");
@@ -330,6 +351,31 @@ test("publishes the strict Agent cancellation schema at its stable identity", as
   );
 });
 
+test("publishes the strict Agent service control schema at its stable identity", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/schemas/runtime/agent-service-control-event/1.0.0",
+  );
+  expect(response.status()).toBe(200);
+  const schema = await response.json();
+  expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+  expect(schema.$id).toBe(
+    "https://stknot.com/schemas/runtime/agent-service-control-event/1.0.0",
+  );
+  expect(schema.additionalProperties).toBe(false);
+  expect(schema.required).toEqual([
+    "operation",
+    "admission_digest",
+    "policy_digest",
+    "decision_digest",
+    "failure_id",
+  ]);
+  expect(schema.properties.operation.const).toBe(
+    "agent_cancellation_requested",
+  );
+});
+
 for (const width of responsiveAuditWidths) {
   test(`has no horizontal page overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -348,6 +394,8 @@ for (const route of [
   "/docs/agent-loop/",
   "/docs/invocations/",
   "/docs/provider-native-agent/",
+  "/docs/agent-service/",
+  "/docs/mcp-remote-tool/",
   "/docs/fair-scheduling/",
   "/zh/",
   "/zh/docs/getting-started/",
@@ -358,6 +406,8 @@ for (const route of [
   "/zh/docs/agent-loop/",
   "/zh/docs/invocations/",
   "/zh/docs/provider-native-agent/",
+  "/zh/docs/agent-service/",
+  "/zh/docs/mcp-remote-tool/",
   "/zh/docs/fair-scheduling/",
 ] as const) {
   for (const width of [320, 375, 414, 768] as const) {
@@ -423,6 +473,45 @@ test("durable run tutorial documents retry, conflict, and public snapshot semant
     page.getByText("A second key for the same run", { exact: false }),
   ).toBeVisible();
   await expect(page.getByText("outcome: null", { exact: false })).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(2);
+});
+
+test("AgentService tutorial keeps authorization, retry, and transport boundaries explicit", async ({
+  page,
+}) => {
+  await page.goto("/docs/agent-service/");
+  await expect(page.getByText("Implemented embedding boundary")).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Submit, inspect, and cancel by durable identity",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Authorization first", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(3);
+});
+
+test("MCP tutorial states the strict profile and ambiguous write contract", async ({
+  page,
+}) => {
+  await page.goto("/docs/mcp-remote-tool/");
+  await expect(
+    page.getByText("Implemented strict client profile"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Keep a lost write ambiguous",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("ReconcileFirst", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("not a claim of complete MCP conformance", {
+      exact: false,
+    }),
+  ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(2);
 });
 

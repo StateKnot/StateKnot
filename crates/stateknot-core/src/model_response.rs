@@ -365,6 +365,7 @@ impl fmt::Debug for ModelResponseProvenance {
 /// optional breakdowns mean the provider did not report them and must never be
 /// converted to zero. Adapters normalize Anthropic cache categories into input
 /// and Gemini thought tokens into output before construction.
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModelUsage {
@@ -2394,9 +2395,10 @@ mod tests {
     fn collection_and_inline_resource_ceilings_stop_at_first_excess() {
         let content = text_item("x");
         assert_eq!(
-            ModelOutputItems::try_new(
-                std::iter::repeat(content).take(ModelOutputItems::MAX_CONTENT_ITEMS + 1)
-            ),
+            ModelOutputItems::try_new(std::iter::repeat_n(
+                content,
+                ModelOutputItems::MAX_CONTENT_ITEMS + 1
+            )),
             Err(ModelResponseError::TooManyContentItems {
                 max: ModelOutputItems::MAX_CONTENT_ITEMS,
                 observed: ModelOutputItems::MAX_CONTENT_ITEMS + 1,
@@ -2406,9 +2408,10 @@ mod tests {
         let selected = tool("incidents.lookup");
         let proposal = ModelOutputItem::tool_call(proposal(&selected, None));
         assert_eq!(
-            ModelOutputItems::try_new(
-                std::iter::repeat(proposal).take(ModelOutputItems::MAX_TOOL_CALLS + 1)
-            ),
+            ModelOutputItems::try_new(std::iter::repeat_n(
+                proposal,
+                ModelOutputItems::MAX_TOOL_CALLS + 1
+            )),
             Err(ModelResponseError::TooManyToolCalls {
                 max: ModelOutputItems::MAX_TOOL_CALLS,
                 observed: ModelOutputItems::MAX_TOOL_CALLS + 1,

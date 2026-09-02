@@ -66,22 +66,34 @@ const capabilities = [
     body: "A digest-pinned prebuilt multi-turn model/tool graph with sequential tools, provider-native transcript recovery, local policy evidence, exact accounting, no-redispatch terminal recovery, and two-phase cancellation confirmation.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "AgentService v1 embedding boundary",
+    body: "Exact-version deployment binding, authorization before deployment/run/key existence disclosure, tenant-scoped submission recovery, verified reads, and caller-retained two-phase cancellation identities.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Strict MCP Remote Tool profile",
+    body: "One MCP 2026-07-28 client-side Tool binding with modern stateless discovery, complete JSON transport, exact local schema/server pins, attempt-scoped authorization, and reconciliation-first ambiguous writes.",
+  },
+  {
     state: "Active work",
     className: "status-active",
     title: "Advanced execution and service boundary",
-    body: "Artifact retrieval, parallel sibling/tool ordering, output repair, loop/subgraph semantics, a stable public cancellation ingress, and the one-call Agent service remain active work.",
+    body: "Artifact retrieval, parallel sibling/tool ordering, output repair, loop/subgraph semantics, stable network transport, protocol-specific outbox dispatch, and combined durable MCP qualification remain active work.",
   },
   {
     state: "Not shipped",
     className: "status-planned",
-    title: "Stable end-to-end Agent API",
-    body: "The prebuilt durable path exists, but no stable one-call execution service, published crate, compatibility guarantee, or production support claim exists yet.",
+    title: "Stable network Agent API",
+    body: "The versioned embedding facade exists, but no stable HTTP/gRPC/SSE API, published crate, compatibility guarantee, or production support claim exists yet.",
   },
   {
     state: "Not shipped",
     className: "status-planned",
-    title: "MCP and A2A adapters",
-    body: "Both protocols are in v1 scope, but protocol-specific wire adapters and conformance evidence have not shipped.",
+    title: "Broader MCP and A2A profiles",
+    body: "MCP server, resources/prompts and broader client features, official MCP conformance evidence, and all A2A client/server bindings remain unshipped.",
   },
   {
     state: "Not shipped",
@@ -94,7 +106,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: the provider-native multi-turn Agent graph now runs over durable admission, invocations, recovery, lifecycle, and fair scheduling; stable service APIs, MCP/A2A adapters, advanced graph semantics, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: AgentService v1 and one strict MCP Remote Tool profile now join the durable provider-native path; stable network APIs, broader MCP/A2A, advanced graph semantics, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -130,13 +142,13 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      The provider-native graph now proves one multi-turn Tool path can crash,
-      recover, confirm cancellation with exact usage, and return a typed result
-      without redispatching committed work. The next proof boundary carries
-      those same durable identities and failure semantics through the first MCP
-      Tool adapter, including authenticated capability negotiation, bounded wire
-      data, cancellation, and crash recovery. A2A follows only after that
-      protocol boundary is executable rather than aspirational.
+      AgentService v1 now proves authorization-first submission/read/cancel
+      semantics, and the strict MCP binding proves modern discovery, exact
+      identity/schema pins, attempt credentials, and ambiguous lost-write
+      mapping. The next proof boundary composes that adapter with the PostgreSQL
+      invocation ledger and crash recovery, then publishes the pinned official
+      MCP conformance report. A2A follows only after this narrower protocol
+      profile has end-to-end durable evidence.
     </p>
   </section>
 
@@ -169,6 +181,12 @@ const capabilities = [
         <a href="/docs/provider-native-agent/"
           >Provider-native Agent graph contract</a
         >
+      </li>
+      <li>
+        <a href="/docs/agent-service/">AgentService v1 contract</a>
+      </li>
+      <li>
+        <a href="/docs/mcp-remote-tool/">Strict MCP Remote Tool profile</a>
       </li>
       <li>
         <a href="/docs/fair-scheduling/"

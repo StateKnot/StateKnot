@@ -160,7 +160,7 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 
 ## 已验证证据与剩余门禁
 
-二十六个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
+二十七个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
 
 1. Continue Barrier 提交后执行 Noninitial Replay，并交出 Terminal Handoff；
 2. Same-fence In-flight 恢复不重复调用 Executor；

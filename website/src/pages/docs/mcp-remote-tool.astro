@@ -1,0 +1,193 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const bindingCode = `let adapter = McpRemoteTool::connect(
+    local_descriptor,
+    "lookup_issue",
+    ProviderEndpoint::https("https://mcp.example.com/v1/")?,
+    McpServerIdentity::new("issue-service", "2026.09.0")?,
+    Arc::new(schema_registry),
+    Arc::new(authorization_provider),
+    McpHttpOptions::default(),
+)
+.await?;`;
+---
+
+<DocsLayout
+  title="Bind one MCP Tool without weakening durability."
+  description="Discover a stateless MCP 2026-07-28 Tool once, pin its identity and schemas locally, and preserve ambiguous write outcomes."
+  section="MCP Remote Tool"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-boundary-title"
+  >
+    <h2 id="mcp-boundary-title">Implemented strict client profile</h2>
+    <p>
+      <code>McpRemoteTool</code> implements one client-side remote Tool binding: protocol
+      <code>2026-07-28</code>, modern discovery, stateless Streamable HTTP, and
+      complete JSON responses. It is not an MCP server and it is not a claim of
+      complete MCP conformance.
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-profile-title">
+    <h2 id="mcp-profile-title">Accept one deliberately narrow profile</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Transport</dt>
+        <dd>
+          Verified HTTPS in production; literal-loopback HTTP only for managed
+          sidecars and tests. Redirects, HTTP retries, sessions, and SSE fail
+          closed.
+        </dd>
+      </div>
+      <div>
+        <dt>Discovery</dt>
+        <dd>
+          One modern discovery at startup, bounded Tool catalog paging, exact
+          protocol version, required Tools capability, and pinned self-reported
+          server name/version.
+        </dd>
+      </div>
+      <div>
+        <dt>Schemas</dt>
+        <dd>
+          Remote input/output JSON Schemas must exactly match RFC 8785 canonical
+          bytes in the authoritative local registry. Remote annotations never
+          define local risk or policy.
+        </dd>
+      </div>
+      <div>
+        <dt>Results</dt>
+        <dd>
+          Complete structured content only, bounded and validated locally. The
+          current profile rejects artifact, image, audio, embedded-resource, and
+          resource-link materialization.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="mcp-binding-title">
+    <h2 id="mcp-binding-title">Freeze the binding at readiness</h2>
+    <p>
+      Build the local <code>ToolDescriptor</code> from reviewed configuration. A server
+      upgrade or schema change requires a new binding; runtime calls never rediscover
+      silently.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · startup discovery</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-binding-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="mcp-binding-code" tabindex="0"><code>{bindingCode}</code></pre>
+    </div>
+    <p>
+      TLS authenticates the configured endpoint. The discovered implementation
+      name/version is self-reported metadata: pinning detects drift, but does
+      not replace mTLS or an authenticated gateway when stronger server identity
+      is required.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-secrets-title">
+    <h2 id="mcp-secrets-title">Resolve secrets per admitted attempt</h2>
+    <p>
+      Multi-tenant deployments should implement <code
+        >McpAuthorizationProvider</code
+      >
+      over vault-backed handles. The adapter waits for its call gate before resolving
+      attempt credentials, redacts authorization from <code>Debug</code>, clears
+      the slot after exchange, and never copies credentials into MCP metadata.
+      Static bearer authorization is intended only for controlled single-tenant
+      bindings.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-failure-title">
+    <h2 id="mcp-failure-title">Keep a lost write ambiguous</h2>
+    <ol class="evidence-list">
+      <li>
+        <h3>Validate locally</h3>
+        <p>Reject input outside the pinned schema before network dispatch.</p>
+      </li>
+      <li>
+        <h3>Call once</h3>
+        <p>Each admitted durable attempt sends one <code>tools/call</code>.</p>
+      </li>
+      <li>
+        <h3>Do not invent success</h3>
+        <p>
+          If a locally declared write loses its response, return <code
+            >Unknown</code
+          > external effect, <code>AmbiguousExternalOutcome</code>, and <code
+            >ReconcileFirst</code
+          >.
+        </p>
+      </li>
+      <li>
+        <h3>Validate the result</h3>
+        <p>
+          Accept only complete structured output that passes the pinned local
+          output schema.
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="mcp-exclusions-title">
+    <h2 id="mcp-exclusions-title">Know what this profile rejects</h2>
+    <ul>
+      <li>Stateful sessions, SSE, legacy initialization, and reconnect.</li>
+      <li>MRTR, Tasks, incomplete results, progress, and artifact content.</li>
+      <li>
+        Tools requiring StateKnot idempotency-key injection; generic MCP has no
+        safe standard carrier for that durable key.
+      </li>
+      <li>
+        MCP server, resources, prompts, roots, sampling, elicitation, logging,
+        and MCP Apps support.
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="mcp-proof-title">
+    <h2 id="mcp-proof-title">Run the literal-loopback contract</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · no external MCP service required</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-proof-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-proof-command"
+        tabindex="0"><code>cargo test -p stateknot-integrations --test mcp_contract --locked</code></pre>
+    </div>
+    <p>
+      The suite proves discovery order, identity/schema pinning, credential
+      headers, annotation distrust, pre-registration drift rejection, and
+      ambiguous lost writes. Read the full <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-remote-tool.md"
+        >profile and operations contract</a
+      >. Official conformance evidence remains a release gate for broader MCP
+      claims.
+    </p>
+  </section>
+</DocsLayout>

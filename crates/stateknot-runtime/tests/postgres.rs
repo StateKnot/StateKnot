@@ -42,10 +42,13 @@ use stateknot_core::{
     ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus, ToolResult, Version,
 };
 use stateknot_runtime::{
-    AgentInvocationAccounting, AgentInvocationAccountingReference, AgentInvocationCharge,
-    AgentLoopError, AgentLoopOutcome, AgentRunAdmissionOutcome, AgentRunIds,
-    AgentRunTerminalOutcome, AgentToolPolicy, AgentToolPolicyContext, AgentToolPolicyDecision,
-    AgentToolPolicyError, AgentToolPolicyReference, DurableAgentAdmission,
+    AgentCancellationIds, AgentCancellationOutcome, AgentInvocationAccounting,
+    AgentInvocationAccountingReference, AgentInvocationCharge, AgentLoopError, AgentLoopOutcome,
+    AgentRunAdmissionOutcome, AgentRunIds, AgentRunTerminalOutcome, AgentServiceAuthorizationError,
+    AgentServiceAuthorizer, AgentServiceCaller, AgentServiceError, AgentServiceRegistryBuilder,
+    AgentServiceRunAuthorization, AgentServiceRunGrant, AgentServiceSubmissionAuthorization,
+    AgentServiceSubmissionGrant, AgentServiceV1, AgentToolPolicy, AgentToolPolicyContext,
+    AgentToolPolicyDecision, AgentToolPolicyError, AgentToolPolicyReference, DurableAgentAdmission,
     DurableAgentAdmissionError, DurableAgentAdmissionRequest, DurableAgentLoop, DurableAgentRuns,
     DurableAgentRunsError, DurableFairScheduler, DurableFairSchedulerOptions, DurableGraphDriver,
     DurableGraphDriverOptions, DurableGraphLifecycle, DurableGraphLifecycleOptions,
@@ -64,8 +67,9 @@ use stateknot_runtime::{
     TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind,
     ToolProviderRegistryBuilder, WeightedFairnessPolicy,
     register_standard_agent_admission_event_schema,
-    register_standard_agent_cancellation_event_schema, register_standard_graph_driver_event_schema,
-    register_standard_graph_lifecycle_event_schema,
+    register_standard_agent_cancellation_event_schema,
+    register_standard_agent_service_control_event_schema,
+    register_standard_graph_driver_event_schema, register_standard_graph_lifecycle_event_schema,
     register_standard_invocation_execution_event_schema,
 };
 use stateknot_store_postgres::{
@@ -660,6 +664,49 @@ struct ProviderNativeFixture {
     policy_pause: Option<Arc<PolicyPause>>,
 }
 
+struct StaticAgentServiceAuthorizer {
+    submission: AgentServiceSubmissionGrant,
+    run: AgentServiceRunGrant,
+    deny_submission: bool,
+    deny_run_access: bool,
+    submission_calls: Arc<AtomicUsize>,
+    run_calls: Arc<AtomicUsize>,
+}
+
+impl AgentServiceAuthorizer for StaticAgentServiceAuthorizer {
+    fn authorize_submission(
+        &self,
+        _: AgentServiceSubmissionAuthorization,
+    ) -> BoxFuture<'_, Result<AgentServiceSubmissionGrant, AgentServiceAuthorizationError>> {
+        self.submission_calls.fetch_add(1, Ordering::SeqCst);
+        let denied = self.deny_submission;
+        let grant = self.submission.clone();
+        Box::pin(async move {
+            if denied {
+                Err(AgentServiceAuthorizationError::Denied)
+            } else {
+                Ok(grant)
+            }
+        })
+    }
+
+    fn authorize_run(
+        &self,
+        _: AgentServiceRunAuthorization,
+    ) -> BoxFuture<'_, Result<AgentServiceRunGrant, AgentServiceAuthorizationError>> {
+        self.run_calls.fetch_add(1, Ordering::SeqCst);
+        let denied = self.deny_run_access;
+        let grant = self.run.clone();
+        Box::pin(async move {
+            if denied {
+                Err(AgentServiceAuthorizationError::Denied)
+            } else {
+                Ok(grant)
+            }
+        })
+    }
+}
+
 fn provider_native_fixture(store: PostgresStore) -> ProviderNativeFixture {
     provider_native_fixture_with(store, true, false, None)
 }
@@ -775,6 +822,7 @@ fn provider_native_fixture_with(
     register_standard_graph_driver_event_schema(&mut schema_builder).unwrap();
     register_standard_graph_lifecycle_event_schema(&mut schema_builder).unwrap();
     register_standard_agent_cancellation_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_service_control_event_schema(&mut schema_builder).unwrap();
     register_standard_agent_admission_event_schema(&mut schema_builder).unwrap();
     register_standard_invocation_execution_event_schema(&mut schema_builder).unwrap();
     let schemas = schema_builder.build().unwrap();
@@ -1430,6 +1478,199 @@ fn provider_native_admission_request(
         fixture.definition.initial_state().unwrap(),
     )
     .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn agent_service_authorizes_submits_recovers_and_cancels_without_redispatch() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_fixture(store.clone());
+    let tenant_id = tenant("runtime-agent-service-v1");
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+
+    let descriptor = fixture.definition.descriptor().clone();
+    let admission_policy = capability("agent-service-admission-policy");
+    let principal = admission_policy.owner().clone();
+    let evidence = JournalPayload::new(
+        fixture.input_schema.clone(),
+        JournalEventKind::new(AgentAdmissionAuthority::EVIDENCE_KIND).unwrap(),
+        BoundedJson::try_from_value(json!({"decision": "allow"})).unwrap(),
+    )
+    .unwrap();
+    let authority = AgentAdmissionAuthority::new(
+        principal.clone(),
+        descriptor.metadata().required_scopes().clone(),
+        admission_policy,
+        Digest::sha256(b"agent service admission policy v1"),
+        evidence,
+    )
+    .unwrap();
+    let mut budget_fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    ))
+    .unwrap();
+    budget_fixture["base_budget_layers"][0]["deadline"] = json!("2099-01-01T00:00:00.000000Z");
+    let limits =
+        serde_json::from_value::<BudgetLimits>(budget_fixture["base_budget_layers"][0].clone())
+            .unwrap();
+    let budget_layer = AgentAdmissionBudgetLayer::new(
+        capability("agent-service-admission-budget"),
+        authority.evidence().digest(),
+        limits,
+    )
+    .unwrap();
+    let run_policy = capability("agent-service-run-policy");
+    let run_grant = AgentServiceRunGrant::new(
+        principal.clone(),
+        run_policy,
+        Digest::sha256(b"agent service run policy v1"),
+        Digest::sha256(b"agent service run decision allow"),
+    );
+    let submission_grant = AgentServiceSubmissionGrant::new(authority, vec![budget_layer]);
+    let submission_calls = Arc::new(AtomicUsize::new(0));
+    let run_calls = Arc::new(AtomicUsize::new(0));
+    let authorizer = Arc::new(StaticAgentServiceAuthorizer {
+        submission: submission_grant.clone(),
+        run: run_grant.clone(),
+        deny_submission: false,
+        deny_run_access: false,
+        submission_calls: Arc::clone(&submission_calls),
+        run_calls: Arc::clone(&run_calls),
+    });
+    let mut deployments = AgentServiceRegistryBuilder::new();
+    deployments
+        .register(Arc::new(fixture.definition.clone()))
+        .unwrap();
+    let deployments = deployments.build();
+    let service = AgentServiceV1::new(
+        store.clone(),
+        fixture.registry.clone(),
+        deployments.clone(),
+        authorizer,
+    )
+    .unwrap();
+    let caller = AgentServiceCaller::new(tenant_id.clone(), principal.clone());
+    let key = AgentSubmissionKey::new("request_runtime_agent_service_v1_01").unwrap();
+    let request = AgentRequest::new(
+        fixture.input_schema.clone(),
+        BoundedJson::try_from_value(json!({"question": "Is this durable?"})).unwrap(),
+        BudgetLimits::empty(),
+    );
+    let agent = descriptor.metadata().identity().clone();
+
+    let admitted = service
+        .submit(caller.clone(), &key, &agent, request.clone())
+        .await
+        .unwrap();
+    assert!(matches!(admitted, AgentRunAdmissionOutcome::Committed(_)));
+    let run_id = admitted.snapshot().provenance().run_id();
+
+    // A retry regenerates provider-native initial IDs, but the service first
+    // compares the durable logical request and resolves the original run.
+    let retry = service
+        .submit(caller.clone(), &key, &agent, request.clone())
+        .await
+        .unwrap();
+    assert!(matches!(retry, AgentRunAdmissionOutcome::Idempotent(_)));
+    assert_eq!(retry.snapshot().provenance().run_id(), run_id);
+    assert_eq!(
+        service
+            .load_by_key(caller.clone(), &key)
+            .await
+            .unwrap()
+            .provenance()
+            .run_id(),
+        run_id
+    );
+
+    let ids = AgentCancellationIds::generate();
+    let cancelled = service
+        .request_cancellation(caller.clone(), run_id, ids)
+        .await
+        .unwrap();
+    assert!(matches!(cancelled, AgentCancellationOutcome::Committed(_)));
+    assert_eq!(
+        cancelled.snapshot().status(),
+        RunStatus::CancellationRequested
+    );
+    let retry = service
+        .request_cancellation(caller.clone(), run_id, ids)
+        .await
+        .unwrap();
+    assert!(matches!(retry, AgentCancellationOutcome::Idempotent(_)));
+    assert_eq!(retry.snapshot().status(), RunStatus::CancellationRequested);
+    let stored = store
+        .load_agent_admission(&tenant_id, run_id)
+        .await
+        .unwrap();
+    let cancellation = stored.run().lifecycle().cancellation_request().unwrap();
+    assert_eq!(cancellation.failure().id(), ids.failure_id());
+    assert_eq!(
+        cancellation.failure().caused_by_event_id(),
+        Some(ids.event_id())
+    );
+    assert!(cancellation.requested_at() >= admitted.snapshot().changed_at());
+    assert!(cancellation.requested_at() <= stored.run().journal_head().unwrap().recorded_at());
+    assert!(matches!(
+        service
+            .request_cancellation(
+                caller.clone(),
+                run_id,
+                AgentCancellationIds::new(EventId::generate(), ids.failure_id()),
+            )
+            .await,
+        Err(AgentServiceError::ConflictingCancellation)
+    ));
+    assert!(matches!(
+        service
+            .request_cancellation(caller.clone(), run_id, AgentCancellationIds::generate())
+            .await,
+        Err(AgentServiceError::ConflictingCancellation)
+    ));
+
+    let denied = AgentServiceV1::new(
+        store.clone(),
+        fixture.registry,
+        deployments,
+        Arc::new(StaticAgentServiceAuthorizer {
+            // The denial proof still carries a structurally valid grant, but
+            // policy rejects before either run or deployment lookup.
+            submission: submission_grant,
+            run: run_grant,
+            deny_submission: true,
+            deny_run_access: true,
+            submission_calls: Arc::clone(&submission_calls),
+            run_calls: Arc::clone(&run_calls),
+        }),
+    )
+    .unwrap();
+    let missing_agent = capability("agent-service-missing-deployment");
+    let missing_key = AgentSubmissionKey::new("request_runtime_agent_service_v1_denied").unwrap();
+    assert!(matches!(
+        denied
+            .submit(caller.clone(), &missing_key, &missing_agent, request,)
+            .await,
+        Err(AgentServiceError::Authorization(
+            AgentServiceAuthorizationError::Denied
+        ))
+    ));
+    assert!(matches!(
+        denied.load(caller, RunId::generate()).await,
+        Err(AgentServiceError::Authorization(
+            AgentServiceAuthorizationError::Denied
+        ))
+    ));
+    assert!(submission_calls.load(Ordering::SeqCst) >= 3);
+    assert!(run_calls.load(Ordering::SeqCst) >= 5);
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+    store.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

@@ -41,9 +41,10 @@ This is a runnable **durable graph loop**. Provider-neutral durable model/tool
 attempt execution, cross-tenant weighted selection, a typed Agent contract, the
 first OpenAI Responses/Anthropic Messages adapters, durable admission/result
 retrieval, and the prebuilt provider-native graph now exist. This is still not
-the stable end-user Agent API: the one-call service, public cancellation
-ingress, advanced graph semantics, protocol adapters, and production
-qualification remain release work.
+the stable end-user network API. `AgentServiceV1` now supplies an
+authorization-first embedding facade and one strict MCP Remote Tool profile is
+implemented; stable HTTP/gRPC/SSE transport, advanced graph semantics, broader
+protocol profiles, and production qualification remain release work.
 
 ## Startup binding
 
@@ -248,7 +249,7 @@ commit.
 
 ## Qualification evidence and remaining gates
 
-Twenty-six runtime integration scenarios run against both PostgreSQL 16 and
+Twenty-seven runtime integration scenarios run against both PostgreSQL 16 and
 17. They cover lifecycle success/Wait/failure/cancellation atomicity and exact
 lost-ack replay, database-time Wait materialization, Agent Loop success and
 evidence failure, tenant and weighted cross-tenant scheduling, durable
@@ -260,9 +261,11 @@ each database version. CI makes both suites mandatory.
 
 Atomic admission, the public run/result facade, and the provider-native graph
 with transcript recovery, policy evidence, exact accounting, and cancellation
-confirmation are implemented. The remaining release blockers include a stable
-public cancellation service boundary, artifact retrieval, parallel sibling
-policy, loop/subgraph semantics,
+confirmation are implemented. AgentService v1 now supplies the embedding
+cancellation ingress, and one strict MCP client-side Remote Tool binding exists.
+The remaining release blockers include stable network transport, artifact
+retrieval, parallel sibling policy, loop/subgraph semantics, the combined
+PostgreSQL-backed MCP recovery proof and official conformance report,
 protocol-specific outbox dispatch, role-separated database procedures, general
 retention, backup/restore, failover, stale-race qualification, observability,
 and release hardening.

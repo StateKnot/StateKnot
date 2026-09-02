@@ -574,21 +574,16 @@ impl DurableGraphDriver {
                         report,
                     ));
                 }
-                StartedNodeExecution::RunCancellationObserved => continue,
+                StartedNodeExecution::RunCancellationObserved => {}
                 StartedNodeExecution::Finished(result) => {
-                    match self
-                        .commit_node_execution(
-                            &fence,
-                            &executable,
-                            &start_head,
-                            result,
-                            &mut report,
-                        )
-                        .await?
-                    {
-                        NodeExecutionCommit::Committed => {}
-                        NodeExecutionCommit::RunCancellationObserved => continue,
-                    }
+                    self.commit_node_execution(
+                        &fence,
+                        &executable,
+                        &start_head,
+                        result,
+                        &mut report,
+                    )
+                    .await?;
                 }
             }
         }
@@ -1801,6 +1796,7 @@ impl From<StoreError> for GraphDriverError {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum StartedNodeExecution {
     Finished(Result<GraphNodeExecution, GraphNodeExecutionError>),
     Cancelled,

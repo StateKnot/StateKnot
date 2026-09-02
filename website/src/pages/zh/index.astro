@@ -75,9 +75,21 @@ const currentCut = [
     href: "/zh/docs/provider-native-agent/",
   },
   {
-    surface: "MCP 与 A2A Adapter",
+    surface: "AgentService v1",
+    state: "已实现切片",
+    evidence: "Authorization-first Submit/Read/Cancel 与精确 Recovery ID",
+    href: "/zh/docs/agent-service/",
+  },
+  {
+    surface: "MCP Remote Tool",
+    state: "已实现切片",
+    evidence: "严格 Stateless Discovery、Schema Pin 与 Ambiguous Lost Write",
+    href: "/zh/docs/mcp-remote-tool/",
+  },
+  {
+    surface: "A2A Adapter",
     state: "尚未发布",
-    evidence: "属于 v1 范围，Wire Boundary 仍在规划",
+    evidence: "A2A 1.0 REST/JSON-RPC Client/Server 仍在规划",
     href: "https://github.com/StateKnot/StateKnot/blob/main/docs/v1-scope.md",
   },
 ];
@@ -109,12 +121,18 @@ const roadmap = [
   },
   {
     index: "05",
-    state: "现在",
-    title: "证明首个协议 Adapter",
-    body: "把耐久 Identity、Policy、Accounting、Cancellation 与 Recovery 契约带入已认证 MCP Tool Boundary；A2A 在该证据之后继续。",
+    state: "已实现",
+    title: "冻结首个严格 MCP Tool Binding",
+    body: "Modern Stateless Discovery、精确 Local Schema/Server Pin、Attempt Credential 与 Reconciliation-first Lost Write 已有可执行 Contract Evidence。",
   },
   {
     index: "06",
+    state: "现在",
+    title: "组合并验证协议边界",
+    body: "让 MCP Adapter 进入 PostgreSQL-backed Invocation Recovery，并在扩大 Supported Profile 前发布锁定版本的官方 Conformance Report。",
+  },
+  {
+    index: "07",
     state: "v1 前",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
@@ -135,9 +153,10 @@ const roadmap = [
             StateKnot 现已通过 PostgreSQL-backed Crash Recovery、原子 Agent
             Admission、耐久 Model/Tool Attempt、Lifecycle Commit、加权
             Cross-tenant Scheduling、耐久 Ingress Key、经过验证的 Run/Result
-            Read、强类型 Agent 合约、首批 OpenAI/Anthropic Adapter，以及可恢复
-            Provider-native 多轮 Agent Graph 运行类型化 Root Graph。稳定 Service
-            API 与 MCP/A2A 协议 Adapter 仍在开发。
+            Read、强类型 Agent 合约、首批 OpenAI/Anthropic Adapter、可恢复
+            Provider-native 多轮 Agent Graph、AgentService v1，以及一个严格 MCP
+            Remote Tool Binding 运行类型化 Root Graph。稳定 Network API、更广
+            MCP/A2A Profile、高级 Graph 语义与生产验证仍未完成。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -274,9 +293,9 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">开发顺序由证据决定。</h2>
         <p>
-          Provider-native 可恢复路径现在已经在 Crash、Retry、Stale
-          Worker、Cancellation 与 Lost ACK 中存活。首个 MCP Boundary
-          必须保留这些证明；A2A 在其后继续。
+          严格 MCP Binding 现在已冻结 Discovery、Identity、Schema、Credential 与
+          Lost-write Semantics。下一步必须证明 PostgreSQL-backed Crash Recovery
+          与官方 Conformance，之后才扩大 Profile 并进入 A2A。
         </p>
       </div>
 

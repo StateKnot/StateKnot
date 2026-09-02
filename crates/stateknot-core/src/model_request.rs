@@ -160,6 +160,7 @@ impl ModelTextOutputFormat {
 /// minimum total context capacity used during model negotiation. Content bytes
 /// cover inline text/JSON plus every referenced instruction/message artifact;
 /// tool-schema bytes are governed by the trusted schema registry profile.
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModelRequestLimits {

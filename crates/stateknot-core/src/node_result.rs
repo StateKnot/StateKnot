@@ -498,6 +498,7 @@ impl NodeStateChange {
 /// consulting mutable application configuration.
 #[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[allow(clippy::large_enum_variant)]
 pub enum NodeWait {
     /// Require one authenticated, authorized external resolution.
     Interrupt {
@@ -672,6 +673,7 @@ impl<'de> Deserialize<'de> for NodeWait {
     {
         #[derive(Deserialize)]
         #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+        #[allow(clippy::large_enum_variant)]
         enum Wire {
             Interrupt {
                 interrupt_id: InterruptId,

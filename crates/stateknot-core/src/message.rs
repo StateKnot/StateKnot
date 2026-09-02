@@ -846,6 +846,7 @@ pub enum MessagePartsError {
 /// A message is not a provider request or protocol object. Adapters map its
 /// role, content, and producer to provider-specific messages, tool-result
 /// items, or A2A directionality only after capability and policy checks.
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Message {

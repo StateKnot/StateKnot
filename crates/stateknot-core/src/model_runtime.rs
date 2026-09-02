@@ -434,9 +434,9 @@ impl fmt::Debug for ModelErrorProvenance {
 #[derive(Clone, Deserialize, JsonSchema, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModelError {
-    failure: Failure,
+    failure: Box<Failure>,
     phase: ModelErrorPhase,
-    provenance: ModelErrorProvenance,
+    provenance: Box<ModelErrorProvenance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     usage: Option<ModelUsage>,
 }
@@ -444,16 +444,16 @@ pub struct ModelError {
 impl ModelError {
     /// Constructs a model failure from validated public-safe components.
     #[must_use]
-    pub const fn new(
+    pub fn new(
         failure: Failure,
         phase: ModelErrorPhase,
         provenance: ModelErrorProvenance,
         usage: Option<ModelUsage>,
     ) -> Self {
         Self {
-            failure,
+            failure: Box::new(failure),
             phase,
-            provenance,
+            provenance: Box::new(provenance),
             usage,
         }
     }
@@ -544,7 +544,7 @@ impl ModelError {
     /// Consumes this value and returns the common failure occurrence.
     #[must_use]
     pub fn into_failure(self) -> Failure {
-        self.failure
+        *self.failure
     }
 
     /// Returns the stage at which the attempt failed.
