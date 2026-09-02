@@ -186,6 +186,15 @@ only public-safe admission/policy/decision digests and a stable failure ID.
 schema and server-identity pins, attempt-scoped authorization, bounded
 transport, and reconciliation-first ambiguous writes. It is a client-side
 Remote Tool profile, not a complete MCP client/server conformance claim.
+The separate `McpClient` now implements the general stateless MCP 2026-07-28
+Tool surface: bounded discovery and pagination, JSON/request-scoped SSE,
+standard and nested custom headers, per-request authorization, invalid-Tool
+isolation, no network schema dereference, and exact multi-round request-state
+handling. A pinned official runner gate covers all seven scored non-OAuth
+client scenarios with 45 successful assertions, zero failures, and 11
+explicit skips for capabilities or methods outside this Tool surface. The 25
+scored OAuth scenarios, MCP server, Resources, Prompts, and complete SDK-tier
+claims remain unimplemented.
 The adapter is now composed with the durable invocation executor in a real
 PostgreSQL + loopback MCP test: durable start is observed before request I/O,
 lost write responses remain unknown, duplicate execution never redispatches,
@@ -201,9 +210,10 @@ The current milestone is to:
 
 1. preserve the completed PostgreSQL-backed strict MCP recovery proof as a
    mandatory PostgreSQL 16/17 gate;
-2. design a separate general MCP client surface before attempting the complete
-   official client requirement set; the current strict profile is intentionally
-   narrower and its published conformance report makes no false pass claim;
+2. preserve the separate general MCP Tool client and its exact pinned
+   non-OAuth official gate while designing the OAuth security boundary needed
+   for the remaining 25 scored client scenarios; no complete-client claim is
+   permitted before that boundary passes;
 3. validate the three frozen production scenarios and accept the core domain,
    graph, durability, and protocol/security RFCs;
 4. qualify role isolation, failover/restore, and the final stale-race gates; and
@@ -219,6 +229,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [provider-native Agent graph](docs/provider-native-agent.md),
 [AgentService v1](docs/agent-service.md),
 [strict MCP Remote Tool profile](docs/mcp-remote-tool.md),
+[general stateless MCP Tool client](docs/mcp-client.md),
 [MCP conformance status](docs/mcp-conformance.md),
 [durable invocation](docs/durable-invocation-executor.md),
 [fair scheduling](docs/cross-tenant-fair-scheduler.md), and
@@ -229,7 +240,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
-crates/stateknot-integrations/  OpenAI/Anthropic model adapters and strict MCP Remote Tool binding
+crates/stateknot-integrations/  OpenAI/Anthropic adapters plus strict and general MCP Tool clients
 crates/stateknot-runtime/  AgentService v1, executable/provider registries, durable Driver, invocation executor, Agent Loop, and fair scheduler
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap

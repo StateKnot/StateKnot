@@ -82,6 +82,12 @@ const currentCut = [
     href: "/docs/agent-service/",
   },
   {
+    surface: "General MCP Tool client",
+    state: "Implemented slice",
+    evidence: "45 official assertions across all 7 scored non-OAuth scenarios",
+    href: "/docs/mcp-client/",
+  },
+  {
     surface: "MCP Remote Tool",
     state: "Implemented slice",
     evidence: "Durable dispatch, one lost write call, exact reconciliation",
@@ -134,12 +140,18 @@ const roadmap = [
   },
   {
     index: "07",
-    state: "Now",
-    title: "Separate the general MCP client",
-    body: "Design and security-review a broader interoperability surface without weakening the strict durable Tool binding, then run its complete applicable frozen official requirement set.",
+    state: "Implemented",
+    title: "Separate the general MCP Tool client",
+    body: "Bounded discovery, JSON/request-scoped SSE, custom headers, MRTR, and every frozen scored non-OAuth client scenario now pass without weakening the strict durable binding.",
   },
   {
     index: "08",
+    state: "Now",
+    title: "Close the MCP OAuth boundary",
+    body: "Design and security-review OAuth metadata, registration, issuer, scope, token-endpoint authentication, migration, and retry behavior; then pass all 25 remaining frozen client scenarios.",
+  },
+  {
+    index: "09",
     state: "Before v1",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -163,9 +175,9 @@ const roadmap = [
             recovery, atomic admission, durable model/tool attempts, lifecycle
             commits, fair scheduling, durable ingress, and verified results.
             Implemented surfaces include OpenAI/Anthropic adapters, a recovered
-            provider-native Agent graph, AgentService v1, and one strict MCP
-            Remote Tool with lost-write reconciliation. Stable network APIs,
-            complete official MCP conformance, broader MCP/A2A profiles,
+            provider-native Agent graph, AgentService v1, a general stateless
+            MCP Tool client, and one strict MCP Remote Tool with lost-write
+            reconciliation. MCP OAuth/server profiles, stable network APIs, A2A,
             advanced graph semantics, and production qualification remain open.
           </p>
           <div class="hero-actions">
@@ -305,10 +317,11 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">The road ahead is ordered by proof.</h2>
         <p>
-          The strict MCP binding now has PostgreSQL-backed crash-recovery and
-          reconciliation evidence. The next step is a separate general MCP
-          client boundary and its complete applicable official requirement set;
-          broader MCP and A2A work follows without weakening the strict binding.
+          The strict MCP binding retains PostgreSQL-backed recovery evidence,
+          while the separate general Tool client now passes all seven scored
+          non-OAuth official scenarios. The next proof boundary is MCP OAuth and
+          its 25 remaining frozen client scenarios; MCP Server and A2A follow as
+          independent profiles.
         </p>
       </div>
 

@@ -88,6 +88,12 @@ const localizedRoutePairs = [
     zhHeading: "通过一个服务边界暴露耐久 Agent。",
   },
   {
+    en: "/docs/mcp-client/",
+    zh: "/zh/docs/mcp-client/",
+    enHeading: "Call a stateless MCP Tool safely.",
+    zhHeading: "安全调用一个 Stateless MCP Tool。",
+  },
+  {
     en: "/docs/mcp-remote-tool/",
     zh: "/zh/docs/mcp-remote-tool/",
     enHeading: "Bind one MCP Tool without weakening durability.",
@@ -186,6 +192,11 @@ test("homepage exposes honest implementation status and semantic structure", asy
   ).toBeVisible();
   await expect(
     page.getByText("Pre-alpha · no stable public API"),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".spec-list")
+      .getByText("General MCP Tool client", { exact: true }),
   ).toBeVisible();
   await expect(
     page.locator(".spec-list").getByText("MCP Remote Tool", { exact: true }),
@@ -529,13 +540,32 @@ test("MCP tutorial states the strict profile and ambiguous write contract", asyn
   await expect(page.locator("[data-copy-button]")).toHaveCount(3);
 });
 
+test("general MCP Tool client documents MRTR, limits, and official evidence", async ({
+  page,
+}) => {
+  await page.goto("/docs/mcp-client/");
+  await expect(
+    page.getByText("Implemented Tool client, pre-alpha API"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Mediate every MRTR round",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("45 assertions succeed", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(2);
+});
+
 test("MCP conformance page freezes evidence without overclaiming", async ({
   page,
 }) => {
   await page.goto("/docs/mcp-conformance/");
   await expect(page.getByText("Current claim", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("does not claim complete official MCP client", {
+    page.getByText("remaining 25 scored OAuth scenarios", {
       exact: false,
     }),
   ).toBeVisible();

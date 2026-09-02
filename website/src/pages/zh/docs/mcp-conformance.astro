@@ -4,13 +4,25 @@
 
 import DocsLayout from "../../../layouts/DocsLayout.astro";
 
-const inventoryCommand =
-  "npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2026-07-28";
+const reproduceCommand = `cd conformance/mcp-client
+npm ci --ignore-scripts
+cd ../..
+bash conformance/mcp-client/run-2026-07-28.sh`;
+
+const scenarios = [
+  ["tools_call", 2, 0],
+  ["request-metadata", 5, 3],
+  ["http-standard-headers", 3, 8],
+  ["http-custom-headers", 18, 0],
+  ["http-invalid-tool-headers", 11, 0],
+  ["json-schema-ref-no-deref", 1, 0],
+  ["sep-2322-client-request-state", 5, 0],
+] as const;
 ---
 
 <DocsLayout
   title="MCP Conformance 声明以证据为界。"
-  description="查看冻结的官方 Runner 清单、严格 Tool Profile 证据，以及 StateKnot 明确不作出的声明。"
+  description="查看固定官方 Runner、全部 7 个非 OAuth Client 场景、可复现 CI 门禁，以及 StateKnot 不声明的 OAuth/Server 边界。"
   section="MCP Conformance 状态"
   locale="zh-CN"
 >
@@ -20,34 +32,27 @@ const inventoryCommand =
   >
     <h2 id="mcp-conformance-boundary-title">当前声明</h2>
     <p>
-      StateKnot 已实现严格、耐久的 MCP 2026-07-28 Remote Tool
-      Profile，但不声明完整的 官方 MCP Client、Server 或 SDK-tier Conformance。
+      通用 Stateless Tool Client 通过冻结 MCP 2026-07-28 Requirement Set 中全部
+      7 个计分非 OAuth Client 场景。剩余 25 个计分 OAuth 场景尚未实现，因此
+      StateKnot 不声明完整 Client、Server、Authorization Server 或 SDK-tier
+      Conformance。
     </p>
   </aside>
 
   <section aria-labelledby="mcp-conformance-input-title">
     <h2 id="mcp-conformance-input-title">冻结的评估输入</h2>
-    <p>场景清单于 2026-09-02 使用以下命令刷新：</p>
-    <div class="docs-code" data-code-block>
-      <div class="docs-code-head">
-        <span>Shell · 官方 Requirement 清单</span>
-        <button
-          class="copy-button affordance"
-          type="button"
-          data-copy-button
-          data-copy-target="mcp-conformance-inventory-code"
-        >
-          <span data-copy-label aria-live="polite">复制</span>
-        </button>
-      </div>
-      <pre
-        id="mcp-conformance-inventory-code"
-        tabindex="0"><code>{inventoryCommand}</code></pre>
-    </div>
     <dl class="docs-definition-list">
       <div>
         <dt>Runner</dt>
         <dd><code>@modelcontextprotocol/conformance@0.2.0-alpha.11</code></dd>
+      </div>
+      <div>
+        <dt>Integrity</dt>
+        <dd>
+          <code
+            >sha512-imPK9tx5gQsL6ZKQq4MrsyDYfSaIwpRmX6+ogjbeAXs9LGvxkBxWcY7KcS7TvwaBk/ZiVWl6b/naF4q83UwDRA==</code
+          >
+        </dd>
       </div>
       <div>
         <dt>Source Identity</dt>
@@ -59,83 +64,105 @@ const inventoryCommand =
       </div>
       <div>
         <dt>场景清单</dt>
-        <dd>69 个计分场景：37 个 Server 场景与 32 个 Client 场景。</dd>
+        <dd>
+          69 个计分场景：37 个 Server、7 个非 OAuth Client、25 个 OAuth Client。
+        </dd>
+      </div>
+      <div>
+        <dt>Expected Failure</dt>
+        <dd>无。</dd>
       </div>
     </dl>
+  </section>
+
+  <section aria-labelledby="mcp-conformance-result-title">
+    <h2 id="mcp-conformance-result-title">Observed Result</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="官方 MCP Client 场景结果"
+    >
+      <table>
+        <thead>
+          <tr
+            ><th>官方 Client 场景</th><th>Success</th><th>Skipped</th><th
+              >Failure</th
+            ></tr
+          >
+        </thead>
+        <tbody>
+          {
+            scenarios.map(([name, success, skipped]) => (
+              <tr>
+                <td>
+                  <code>{name}</code>
+                </td>
+                <td>{success}</td>
+                <td>{skipped}</td>
+                <td>0</td>
+              </tr>
+            ))
+          }
+          <tr><th>合计</th><th>45</th><th>11</th><th>0</th></tr>
+        </tbody>
+      </table>
+    </div>
     <p>
-      权威 Runner 与协议要求见<a
-        href="https://github.com/modelcontextprotocol/conformance"
-        >官方 Conformance 仓库</a
-      >和 <a
-        href="https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx"
-        >MCP 2026-07-28 Tool Specification</a
-      >。
+      3 个 Metadata Skip 是 StateKnot 没有声明的 Optional Roots、Sampling 与
+      Elicitation。8 个 Standard Header Skip 属于本 Tool Client 外的 Lifecycle、
+      Resource 与 Prompt Method。Skip 不计作 Pass，也不会授予能力声明。
     </p>
   </section>
 
-  <section aria-labelledby="mcp-conformance-difference-title">
-    <h2 id="mcp-conformance-difference-title">
-      严格 Profile 不是通用 Client Role
-    </h2>
+  <section aria-labelledby="mcp-conformance-proof-title">
+    <h2 id="mcp-conformance-proof-title">复现强制门禁</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 固定官方 Runner</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-mcp-conformance-run-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-mcp-conformance-run-code"
+        tabindex="0"><code>{reproduceCommand}</code></pre>
+    </div>
     <p>
-      <code>McpRemoteTool</code> 要求经过审核的本地 Input/Output Schema、Byte-identical
-      Remote Schema、固定的 Server Implementation，以及通过本地校验的完整
-      <code>structuredContent</code>。官方必需的 <code>tools_call</code> Client Fixture
-      不发布 Output Schema，并返回没有 Structured Content 的 Text。通用 Client 可以调用它，但
-      StateKnot 的严格 Binding 必须拒绝。
-    </p>
-    <p>
-      StateKnot 不会只为 Runner 放松生产合约，也不会把 Expected Failure 包装成
-      Conformance Badge。要诚实扩大互操作声明，必须先实现独立的通用 MCP Client
-      Surface。
+      脚本构建真实 Rust Driver、逐个运行场景、保存官方原始
+      Output，并在场景缺失、 重复、意外增加、失败或 Count Drift 时失败。CI 固定
+      Rust 1.88.0 与 Node.js 24.19.0，不使用 Expected-failures File
+      执行同一命令。
     </p>
   </section>
 
-  <section aria-labelledby="mcp-conformance-evidence-title">
-    <h2 id="mcp-conformance-evidence-title">已经具备的可执行证据</h2>
-    <ul>
-      <li>
-        严格 Loopback Contract 证明 Protocol Header、Discovery Order、精确
-        Server/Schema Pin、Attempt Authorization、有界调用、Drift Rejection 与
-        Reconcile-first Lost Write。
-      </li>
-      <li>
-        PostgreSQL 16/17 耐久 Contract 证明 MCP I/O 完成前 Invocation 已进入
-        <code>Executing</code>；Lost Response 进入 <code>Unknown</code
-        >；Duplicate Dispatch 被抑制；权威 Reconciliation 精确幂等提交；Physical
-        Network Call 始终只有一次。
-      </li>
-    </ul>
+  <section aria-labelledby="mcp-conformance-surfaces-title">
+    <h2 id="mcp-conformance-surfaces-title">两个 Tool Surface，两种保证</h2>
     <p>
-      这些是 StateKnot Profile Test，不是官方 MCP Requirement Set
-      的替代品。继续阅读<a href="/zh/docs/mcp-remote-tool/"
-        >严格 Remote Tool 合约</a
-      >或<a
+      <a href="/zh/docs/mcp-client/"><code>McpClient</code></a> 接受官方 Fixture 使用的广泛合法
+      Tool 形态。<a href="/zh/docs/mcp-remote-tool/"
+        ><code>McpRemoteTool</code></a
+      > 继续强制更严格合约：已审核 Input/Output Schema、固定 Server Identity、 已校验
+      Structured Output、Durable-before-dispatch State，以及 Ambiguous Write 后的显式
+      Reconciliation。通用 Fixture 通过不会削弱该耐久合约。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-conformance-next-title">
+    <h2 id="mcp-conformance-next-title">剩余发布门禁</h2>
+    <p>
+      完整 Client Conformance 需要经过独立安全评审的 OAuth 实现，并通过全部 25
+      个冻结 OAuth 场景。MCP Server、Resources、Prompts、Tasks 与 SDK-tier 声明
+      分别需要自己的实现和官方证据。阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-conformance.zh-CN.md"
         >完整证据报告</a
+      >与<a href="https://github.com/modelcontextprotocol/conformance"
+        >官方 Runner 源码</a
       >。
     </p>
-  </section>
-
-  <section aria-labelledby="mcp-conformance-gate-title">
-    <h2 id="mcp-conformance-gate-title">未来声明的发布门槛</h2>
-    <ol>
-      <li>定义并安全评审独立的通用 MCP Client Surface。</li>
-      <li>
-        实现一个冻结 Requirement Revision 中全部适用的计分 Client
-        Capability，包括其 Authorization 与 Request-state 行为。
-      </li>
-      <li>
-        在强制 CI 中执行这套精确的官方 Requirement Set，不使用误导性的整套
-        Expected-failure。
-      </li>
-      <li>
-        将 Runner Identity、生成的 Check、Platform、Date 与 Result 作为 Release
-        Artifact 发布。
-      </li>
-      <li>
-        继续把严格 Profile Test 与 PostgreSQL Recovery Proof 作为独立发布门禁。
-      </li>
-    </ol>
   </section>
 </DocsLayout>

@@ -17,12 +17,17 @@ evidence, and release gates have all shipped.
 
 Current implementation note: the pre-alpha repository now contains
 `AgentServiceV1`, an authorization-first embedding facade, and
-`McpRemoteTool`, one strict MCP `2026-07-28` stateless client-side Tool profile.
-They are implementation slices toward the surface below, not claims that the
-stable network Agent API, complete MCP client/server profile, official
-conformance report, or A2A support has shipped. Their exact boundaries are
-documented in [AgentService v1](agent-service.md) and the
-[strict MCP Remote Tool profile](mcp-remote-tool.md).
+`McpRemoteTool`, one strict MCP `2026-07-28` stateless client-side Tool profile,
+plus a separate general stateless `McpClient` Tool surface. The general client
+passes all seven scored non-OAuth scenarios in the frozen official requirement
+set, but the 25 scored OAuth scenarios remain unimplemented. These are
+implementation slices toward the surface below, not claims that the stable
+network Agent API, complete MCP client/server profile, SDK-tier conformance, or
+A2A support has shipped. Their exact boundaries are documented in
+[AgentService v1](agent-service.md), the
+[strict MCP Remote Tool profile](mcp-remote-tool.md), the
+[general MCP Tool client](mcp-client.md), and the
+[MCP conformance report](mcp-conformance.md).
 
 ## Product statement
 

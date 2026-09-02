@@ -78,6 +78,12 @@ const capabilities = [
     body: "一个 MCP 2026-07-28 Client-side Tool Binding，支持 Modern Stateless Discovery、Complete JSON Transport、精确 Local Schema/Server Pin、Attempt-scoped Authorization、Durable-before-dispatch PostgreSQL State、No-redispatch Ambiguity 与权威 Reconciliation。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "通用 Stateless MCP Tool Client",
+    body: "有界 Discovery/Pagination、JSON 与 Request-scoped SSE、标准与嵌套 Custom Header、无效 Tool 隔离、逐请求 Authorization、禁止网络 Schema Dereference、精确 MRTR，以及强制固定官方 45-success 门禁。",
+  },
+  {
     state: "开发中",
     className: "status-active",
     title: "高级执行与 Service Boundary",
@@ -93,7 +99,7 @@ const capabilities = [
     state: "尚未发布",
     className: "status-planned",
     title: "更广 MCP 与 A2A Profile",
-    body: "独立通用 MCP Client、MCP Server、Resources/Prompts 与更广 Client Feature、完整官方 MCP Client/Server Conformance，以及全部 A2A Client/Server Binding 尚未交付。",
+    body: "MCP OAuth、MCP Server、Resources/Prompts 与更广 Client Feature、完整官方 MCP Client/Server Conformance，以及全部 A2A Client/Server Binding 尚未交付。",
   },
   {
     state: "尚未发布",
@@ -106,7 +112,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：AgentService v1 与一个严格 MCP Remote Tool Profile 已加入耐久 Provider-native Path；稳定 Network API、更广 MCP/A2A、高级 Graph 语义与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：严格与通用 MCP Tool Client 已加入耐久 Provider-native Path；OAuth、Server Profile、稳定 Network API、A2A、高级 Graph 语义与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -145,12 +151,11 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
-      严格 MCP Binding 现在已经具备 Durable-before-dispatch State、Lost-response
-      Ambiguity、Duplicate Suppression 与权威 Reconciliation 的端到端 PostgreSQL
-      证据。冻结的官方 Runner 清单也记录了这个有意收窄的 Binding
-      为什么不能声明完整 Client 或 Server
-      Conformance。下一条协议边界是经过独立安全评审的通用 MCP Client
-      及其完整适用官方 Requirement Set；该边界明确后再进入 A2A。
+      严格 MCP Binding 保留端到端 PostgreSQL Recovery 证据。独立通用 Tool Client
+      现在已通过全部 7 个冻结计分非 OAuth Client 场景：45 项 Assertion Success、
+      0 Failure。下一条协议边界是经过独立安全评审的 OAuth 实现与剩余 25 个计分
+      Client 场景；通过前不声明完整 Client Conformance。MCP Server 与 A2A
+      将作为独立 Profile 后续实现。
     </p>
   </section>
 
@@ -186,6 +191,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/zh/docs/agent-service/">AgentService v1 合约</a>
+      </li>
+      <li>
+        <a href="/zh/docs/mcp-client/">通用 Stateless MCP Tool Client</a>
       </li>
       <li>
         <a href="/zh/docs/mcp-remote-tool/">严格 MCP Remote Tool Profile</a>

@@ -5,102 +5,123 @@ SPDX-License-Identifier: Apache-2.0
 
 # MCP conformance status
 
-This page records what StateKnot can and cannot claim about official MCP
-conformance. It is an evidence report, not a compatibility badge.
+This page states exactly what the current executable evidence supports. It is
+not a complete-client badge.
+
+## Current claim
+
+StateKnot implements two distinct MCP `2026-07-28` client-side Tool surfaces:
+
+- [`McpRemoteTool`](mcp-remote-tool.md), a strict durable binding with reviewed
+  server/schema pins and reconciliation-first ambiguous writes;
+- [`McpClient`](mcp-client.md), a bounded general stateless Tool client with
+  dynamic discovery, JSON/request-scoped SSE, `x-mcp-header`, and MRTR.
+
+The general client passes every scored **non-OAuth client scenario** in the
+frozen official `2026-07-28` requirement set. StateKnot does not implement the
+remaining 25 scored OAuth client scenarios and makes no complete MCP client,
+server, authorization-server, or SDK-tier conformance claim.
 
 ## Frozen evaluation input
 
-The inventory was refreshed on 2026-09-02 with:
+The evidence was produced on 2026-09-02 with:
+
+- npm package `@modelcontextprotocol/conformance@0.2.0-alpha.11`;
+- npm integrity
+  `sha512-imPK9tx5gQsL6ZKQq4MrsyDYfSaIwpRmX6+ogjbeAXs9LGvxkBxWcY7KcS7TvwaBk/ZiVWl6b/naF4q83UwDRA==`;
+- source `gitHead` `c321dd32035556e6769d3724a8ee97d87c3faaac`;
+- protocol and frozen requirement revision `2026-07-28`;
+- Rust `1.88.0` and Node.js `24.19.0`;
+- no expected-failures file.
+
+The package and full transitive dependency graph are exact in
+`conformance/mcp-client/package-lock.json`. The observed platform manifest is
+committed at
+`conformance/mcp-client/evidence/2026-09-02-macos-arm64.json`.
+
+The authoritative inventory is:
 
 ```console
 npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2026-07-28
 ```
 
-The evaluated runner is:
+It contains 69 scored scenarios: 37 server and 32 client scenarios. The client
+set contains seven non-OAuth scenarios and 25 OAuth scenarios.
 
-- npm package: `@modelcontextprotocol/conformance@0.2.0-alpha.11`;
-- npm integrity:
-  `sha512-imPK9tx5gQsL6ZKQq4MrsyDYfSaIwpRmX6+ogjbeAXs9LGvxkBxWcY7KcS7TvwaBk/ZiVWl6b/naF4q83UwDRA==`;
-- source `gitHead`: `c321dd32035556e6769d3724a8ee97d87c3faaac`;
-- frozen requirement revision: `2026-07-28`.
+## Result
 
-The official requirement set contains 69 scored scenarios: 37 server scenarios
-and 32 client scenarios. StateKnot does not currently implement an MCP server,
-OAuth client, Roots, Prompts, Resources, MRTR, Tasks, or a general-purpose MCP
-client. It therefore makes **no complete MCP client, server, or SDK tier
-conformance claim**.
+| Official client scenario | Success | Skipped | Failure |
+| --- | ---: | ---: | ---: |
+| `tools_call` | 2 | 0 | 0 |
+| `request-metadata` | 5 | 3 | 0 |
+| `http-standard-headers` | 3 | 8 | 0 |
+| `http-custom-headers` | 18 | 0 | 0 |
+| `http-invalid-tool-headers` | 11 | 0 | 0 |
+| `json-schema-ref-no-deref` | 1 | 0 | 0 |
+| `sep-2322-client-request-state` | 5 | 0 | 0 |
+| **Total** | **45** | **11** | **0** |
 
-The authoritative runner and requirement-set behavior are documented by the
-[official MCP Conformance repository](https://github.com/modelcontextprotocol/conformance),
-and the protocol Tool requirements are defined by the
-[MCP 2026-07-28 Tool specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx).
+The three metadata skips are optional Roots, Sampling, and Elicitation
+capability declarations that StateKnot does not advertise. The eight standard
+header skips cover lifecycle, Resource, and Prompt methods outside this Tool
+client surface. A skip is not counted as a pass and no unsupported capability
+is claimed.
 
-## Why the strict Tool profile is not scored as a pass
+The successful checks cover Tool invocation and wire-schema validity; required
+request metadata and version retry; Tool-specific standard headers; primitive,
+nested, null-omitting, and Base64 custom headers; individual rejection of
+invalid annotated Tools; no network `$ref` dereference; and exact isolated MRTR
+request-state behavior with fresh JSON-RPC IDs.
 
-`McpRemoteTool` is a narrower deployment binding, not the general MCP client
-role scored by the official requirement set. It deliberately requires all of
-the following before registration or result commit:
-
-- an exact reviewed local input and output schema;
-- byte-identical input and output schemas discovered from the remote server;
-- an exact expected server implementation name/version;
-- complete `structuredContent` validated against the pinned output schema;
-- one admitted `tools/call`, with transport retries disabled;
-- explicit reconciliation after an ambiguous write.
-
-The official required `tools_call` client fixture intentionally advertises a
-tool without `outputSchema` and returns text content without
-`structuredContent`. A conforming general-purpose client can call it, while the
-StateKnot strict binding must reject it. Treating that rejection as a pass, or
-loosening the production binding only for the runner, would misrepresent both
-contracts.
-
-StateKnot also does not carry an expected-failure file that turns this mismatch
-green. The official runner explicitly treats a baselined failure as a failure
-against a frozen requirement set; a baseline is regression control, not a
-conformance grant.
-
-## Executable evidence that does exist
-
-The following tests are mandatory and exercise the implemented profile:
+## Reproduce the gate
 
 ```console
-cargo test -p stateknot-integrations --test mcp_contract --locked
-cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1
+cd conformance/mcp-client
+npm ci --ignore-scripts
+cd ../..
+bash conformance/mcp-client/run-2026-07-28.sh
 ```
 
-The first suite proves exact stateless discovery, protocol and standard request
-headers, server/schema pins, attempt-scoped authorization, bounded one-call
-behavior, schema-drift rejection, and reconcile-first lost write responses.
+The script builds the real Rust driver, runs the seven exact scenarios one at a
+time, stores raw official output below the ignored `results/` directory, and
+then requires the exact 45-success/11-skip/zero-failure result. Missing,
+duplicate, unexpected, or drifted scenario evidence fails the command.
 
-The second suite uses a real PostgreSQL store and a real loopback MCP exchange.
-It pauses the server after receiving `tools/call` and proves that the invocation
-is already durably `Executing`; then it loses the write response, proves
-`Unknown`, suppresses duplicate dispatch, commits authoritative reconciliation,
-and proves exact idempotent replay with one network call. CI runs this test on
-PostgreSQL 16 and 17.
+CI runs the same script with pinned Rust and Node toolchains. It does not use an
+expected-failures baseline. The standalone HTTP/SSE contract additionally
+tests fragmented request-scoped SSE, notification ordering, nested promoted
+headers, credentials, and per-request metadata:
 
-These are StateKnot profile tests, not substitutes for the official MCP
-requirement set.
+```console
+cargo test -p stateknot-integrations --test mcp_client_contract --locked
+```
 
-## Gate for a future conformance claim
+## Why the strict durable profile remains separate
 
-A future general MCP client must be a separate surface from `McpRemoteTool`, so
-broader interoperability cannot weaken the strict durable binding. Before any
-client conformance claim, StateKnot must:
+The official `tools_call` fixture intentionally advertises a Tool without an
+output schema and returns text without `structuredContent`. That is valid for a
+general client. `McpRemoteTool` must reject it because the durable binding
+requires exact reviewed input/output schemas, a pinned server implementation,
+locally validated structured output, durable-before-dispatch state, and
+explicit reconciliation after an ambiguous write.
 
-1. define and security-review the general client surface and its relationship
-   to reviewed `ToolDescriptor` snapshots;
-2. implement every scored client capability in the chosen frozen requirement
-   revision, including OAuth and request-state behavior, or clearly avoid an
-   SDK-tier claim;
-3. run the exact frozen official requirement set in mandatory CI without
-   unexpected failures or a misleading expected-failure blanket;
-4. commit the generated checks, runner identity, command, platform, and date as
-   a release artifact;
-5. keep the strict remote Tool profile tests and PostgreSQL recovery proof as
-   independent release gates.
+Passing the general-client fixture does not loosen that contract. The two
+surfaces share bounded transport primitives but preserve different trust and
+recovery guarantees.
 
-Until those conditions hold, the accurate status is: **implemented strict MCP
-2026-07-28 Remote Tool profile; official complete client/server conformance not
-claimed**.
+## Remaining gates
+
+Complete MCP client conformance remains blocked on a separately reviewed OAuth
+implementation and all 25 frozen OAuth scenarios. MCP Server, Resources,
+Prompts, Tasks, and SDK-tier claims require their own implementation and
+official evidence. A future claim must also publish generated checks and
+platform identity as release artifacts, while preserving the strict Remote
+Tool PostgreSQL recovery tests as independent gates.
+
+The source of truth for the runner is the
+[official MCP Conformance repository](https://github.com/modelcontextprotocol/conformance).
+Protocol behavior is defined by the
+[MCP 2026-07-28 base protocol](https://modelcontextprotocol.io/specification/2026-07-28/basic/index),
+[Streamable HTTP transport](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http),
+[Tool surface](https://modelcontextprotocol.io/specification/2026-07-28/server/tools),
+and [MRTR pattern](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr).

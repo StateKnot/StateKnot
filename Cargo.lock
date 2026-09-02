@@ -1962,6 +1962,7 @@ dependencies = [
 name = "stateknot-integrations"
 version = "0.0.0"
 dependencies = [
+ "base64 0.22.1",
  "futures-core",
  "futures-util",
  "http",

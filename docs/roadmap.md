@@ -216,11 +216,18 @@ from the repository.
   reconciliation, and exact event replay on PostgreSQL 16/17. Publish the
   pinned official requirement inventory and an explicit no-false-claim
   [conformance status](mcp-conformance.md).
+- [x] Implement a separate general stateless MCP 2026-07-28 Tool client with
+  bounded catalog pagination, JSON/request-scoped SSE, standard and nested
+  custom headers, invalid-Tool isolation, per-request authorization, no network
+  schema dereference, and exact MRTR request-state handling. Pin the official
+  runner and require all seven scored non-OAuth client scenarios in CI: 45
+  assertions pass, zero fail, and 11 out-of-surface checks are explicitly
+  skipped without an expected-failures file.
 - [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
-  protocol-specific outbox adapters, a separate general MCP client and its
-  applicable complete official conformance report, role isolation, general
-  retention, failover, restore, and final stale-race gates.
+  protocol-specific outbox adapters, MCP OAuth and its 25 frozen official
+  client scenarios, the MCP server profile, role isolation, general retention,
+  failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
 

@@ -66,6 +66,12 @@ const paths = [
     link: "集成耐久调用",
   },
   {
+    title: "调用通用 MCP Tool",
+    body: "发现有界 Stateless MCP 2026-07-28 Tool Catalog，消费 JSON/Request-scoped SSE，并安全介入 Multi-round Input。",
+    href: "/zh/docs/mcp-client/",
+    link: "使用 Tool Client",
+  },
+  {
     title: "绑定一个 MCP Remote Tool",
     body: "只发现一次严格 Stateless MCP 2026-07-28 Tool，固定 Identity 与 Schema，并保留不确定 Write Outcome。",
     href: "/zh/docs/mcp-remote-tool/",
@@ -119,10 +125,11 @@ const paths = [
       > 现在还提供可恢复多轮 Tool、Policy、Accounting 与精确 Cancellation。<a
         href="/zh/docs/agent-service/">AgentService v1</a
       > 已经把 Submission、Verified Read 与 Cancellation 暴露为 Authorization-first
-      嵌入式边界；<a href="/zh/docs/mcp-remote-tool/"
-        >严格 MCP Remote Tool Profile</a
-      > 已经实现一个 Stateless Client-side Tool Binding。稳定 Network Transport、更广
-      MCP Client/Server Conformance、A2A 与生产验证仍是发布阻断项。
+      嵌入式边界。<a href="/zh/docs/mcp-client/">通用 MCP Tool Client</a>
+      现在还提供有界动态 Discovery、JSON/Request-scoped SSE、Custom Header 与 MRTR；<a
+        href="/zh/docs/mcp-remote-tool/">严格 MCP Remote Tool Profile</a
+      >
+      保留更强耐久 Binding。OAuth、MCP Server、稳定 Network Transport、A2A 与生产验证仍是发布阻断项。
     </p>
   </aside>
 
@@ -207,6 +214,15 @@ const paths = [
           自动生成并 Canonical Digest-pinned 的 Input/Output Schema、离线
           Provider Profile Binding、有界类型化 Request/Result 校验，以及第一方
           OpenAI Responses 与 Anthropic Messages Unary/SSE Transport。
+        </dd>
+      </div>
+      <div>
+        <dt>通用 MCP Tool Client</dt>
+        <dd>
+          有界 Stateless Discovery/Pagination、JSON/Request-scoped
+          SSE、标准与嵌套 Custom Header、无效 Tool 隔离、Request-scoped
+          Authorization、禁止网络 Schema Dereference，以及精确 Multi-round
+          Request State。
         </dd>
       </div>
       <div>

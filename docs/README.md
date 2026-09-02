@@ -59,6 +59,16 @@ conformance output, and the release gates in these documents.
     exact accounting, two-phase cancellation, operations, and PostgreSQL
     evidence. A [Simplified Chinese edition](provider-native-agent.zh-CN.md) is
     maintained alongside it.
+15. [General stateless MCP Tool client](mcp-client.md) — bounded dynamic Tool
+    discovery/calls, JSON and request-scoped SSE, custom headers, MRTR, security
+    boundaries, and pinned official non-OAuth conformance evidence. A
+    [Simplified Chinese edition](mcp-client.zh-CN.md) is maintained alongside
+    it.
+16. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
+    passed and skipped checks, CI reproduction, and the explicit boundary that
+    excludes OAuth, server, and SDK-tier claims. A
+    [Simplified Chinese edition](mcp-conformance.zh-CN.md) is maintained
+    alongside it.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
 the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),

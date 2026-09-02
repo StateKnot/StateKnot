@@ -66,6 +66,12 @@ const paths = [
     link: "Integrate invocations",
   },
   {
+    title: "Call a general MCP Tool",
+    body: "Discover a bounded stateless MCP 2026-07-28 Tool catalog, consume JSON/request-scoped SSE, and mediate multi-round input safely.",
+    href: "/docs/mcp-client/",
+    link: "Use the Tool client",
+  },
+  {
     title: "Bind one MCP Remote Tool",
     body: "Discover a strict stateless MCP 2026-07-28 Tool once, pin its identity and schemas, and preserve ambiguous write outcomes.",
     href: "/docs/mcp-remote-tool/",
@@ -119,12 +125,13 @@ const paths = [
         >prebuilt provider-native Agent graph</a
       > now adds recovered multi-turn Tools, policy, accounting, and exact cancellation.
       <a href="/docs/agent-service/">AgentService v1</a> now exposes submission, verified
-      reads, and cancellation as an authorization-first embedding boundary; the <a
-        href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a
-      >
-      adds one stateless client-side Tool binding. Stable network transport, broader
-      MCP client/server conformance, A2A, and production qualification remain release
-      blockers.
+      reads, and cancellation as an authorization-first embedding boundary. The <a
+        href="/docs/mcp-client/">general MCP Tool client</a
+      > now adds bounded dynamic discovery, JSON/request-scoped SSE, custom headers,
+      and MRTR; the <a href="/docs/mcp-remote-tool/"
+        >strict MCP Remote Tool profile</a
+      > preserves the stronger durable binding. OAuth, MCP Server, stable network
+      transport, A2A, and production qualification remain release blockers.
     </p>
   </aside>
 
@@ -212,6 +219,15 @@ const paths = [
           provider-profile binding; bounded typed request/result validation; and
           first-party OpenAI Responses and Anthropic Messages unary and SSE
           transports.
+        </dd>
+      </div>
+      <div>
+        <dt>General MCP Tool client</dt>
+        <dd>
+          Bounded stateless discovery and pagination, JSON/request-scoped SSE,
+          standard and nested custom headers, invalid-Tool isolation,
+          request-scoped authorization, no network schema dereference, and exact
+          multi-round request state.
         </dd>
       </div>
       <div>
