@@ -3,12 +3,18 @@
 
 //! End-to-end transport contract for the general stateless MCP Tool client.
 
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
 
 use serde_json::{Value, json};
+use stateknot_core::BoxFuture;
 use stateknot_integrations::{
-    ApiKey, McpClient, McpClientIdentity, McpClientOptions, McpToolCall, ProviderEndpoint,
-    StaticMcpBearerAuthorization,
+    ApiKey, McpAuthorization, McpAuthorizationError, McpClient, McpClientAuthorizationChallenge,
+    McpClientAuthorizationChallengeStatus, McpClientAuthorizationProvider,
+    McpClientAuthorizationRequest, McpClientAuthorizationRetry, McpClientIdentity,
+    McpClientOptions, McpToolCall, ProviderEndpoint, StaticMcpBearerAuthorization,
 };
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -247,4 +253,105 @@ async fn general_client_sends_modern_metadata_and_decodes_fragmented_sse() {
     let call_headers = String::from_utf8_lossy(&captured[2]).to_ascii_lowercase();
     assert!(call_headers.contains("mcp-name: deploy"));
     assert!(call_headers.contains("mcp-param-region: cn-north-1"));
+}
+
+struct ChallengeAuthorization {
+    handled: AtomicUsize,
+}
+
+impl McpClientAuthorizationProvider for ChallengeAuthorization {
+    fn resolve(
+        &self,
+        _request: &McpClientAuthorizationRequest,
+    ) -> BoxFuture<'_, Result<McpAuthorization, McpAuthorizationError>> {
+        Box::pin(async move {
+            if self.handled.load(Ordering::Acquire) == 0 {
+                Ok(McpAuthorization::Anonymous)
+            } else {
+                Ok(McpAuthorization::Bearer(ApiKey::new(SECRET).unwrap()))
+            }
+        })
+    }
+
+    fn handle_challenge<'a>(
+        &'a self,
+        request: &'a McpClientAuthorizationRequest,
+        challenge: &'a McpClientAuthorizationChallenge,
+    ) -> BoxFuture<'a, Result<McpClientAuthorizationRetry, McpAuthorizationError>> {
+        Box::pin(async move {
+            assert_eq!(request.method(), "server/discover");
+            assert_eq!(
+                challenge.status(),
+                McpClientAuthorizationChallengeStatus::Unauthorized
+            );
+            assert!(challenge.bearer().unwrap().contains("invalid_token"));
+            self.handled.fetch_add(1, Ordering::AcqRel);
+            Ok(McpClientAuthorizationRetry::Retry)
+        })
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn bearer_challenge_is_bounded_and_replays_exactly_once() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let endpoint = ProviderEndpoint::loopback_http(&format!("http://{address}/mcp/")).unwrap();
+    let server = tokio::spawn(async move {
+        let mut captured = Vec::new();
+        for attempt in 0..2 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut socket).await;
+            if attempt == 0 {
+                socket
+                    .write_all(
+                        b"HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Bearer error=\"invalid_token\", resource_metadata=\"http://127.0.0.1/metadata\"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                    )
+                    .await
+                    .unwrap();
+            } else {
+                let message: Value = serde_json::from_slice(request_body(&request)).unwrap();
+                write_json(
+                    &mut socket,
+                    &json!({
+                        "jsonrpc": "2.0",
+                        "id": message["id"],
+                        "result": {
+                            "resultType": "complete",
+                            "supportedVersions": ["2026-07-28"],
+                            "capabilities": {},
+                            "ttlMs": 0,
+                            "cacheScope": "private"
+                        }
+                    }),
+                )
+                .await;
+            }
+            socket.shutdown().await.unwrap();
+            captured.push(request);
+        }
+        captured
+    });
+
+    let authorization = Arc::new(ChallengeAuthorization {
+        handled: AtomicUsize::new(0),
+    });
+    McpClient::connect(
+        endpoint,
+        McpClientIdentity::new("stateknot-challenge-test", "1.0.0").unwrap(),
+        authorization.clone(),
+        McpClientOptions::default(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(authorization.handled.load(Ordering::Acquire), 1);
+
+    let captured = server.await.unwrap();
+    let first = String::from_utf8_lossy(&captured[0]).to_ascii_lowercase();
+    let second = String::from_utf8_lossy(&captured[1]).to_ascii_lowercase();
+    assert!(!first.contains("authorization:"));
+    assert!(second.contains(&format!("authorization: bearer {SECRET}")));
+    let first_body: Value = serde_json::from_slice(request_body(&captured[0])).unwrap();
+    let second_body: Value = serde_json::from_slice(request_body(&captured[1])).unwrap();
+    assert_eq!(first_body["method"], second_body["method"]);
+    assert_ne!(first_body["id"], second_body["id"]);
 }

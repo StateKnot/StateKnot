@@ -83,8 +83,14 @@ const currentCut = [
   {
     surface: "通用 MCP Tool Client",
     state: "已实现切片",
-    evidence: "全部 7 个计分非 OAuth 场景、45 项官方 Assertion",
+    evidence: "全部 32 个计分 Client 场景、373 项计分 Assertion",
     href: "/zh/docs/mcp-client/",
+  },
+  {
+    surface: "MCP OAuth Client",
+    state: "已实现切片",
+    evidence: "全部 25 个计分 OAuth 场景与有界 Challenge Replay",
+    href: "/zh/docs/mcp-oauth/",
   },
   {
     surface: "MCP Remote Tool",
@@ -145,12 +151,18 @@ const roadmap = [
   },
   {
     index: "08",
-    state: "现在",
+    state: "已实现",
     title: "闭合 MCP OAuth 边界",
-    body: "设计并安全评审 OAuth Metadata、Registration、Issuer、Scope、Token Endpoint Authentication、Migration 与 Retry，再通过剩余全部 25 个冻结 Client 场景。",
+    body: "Challenge-driven Metadata、Registration Priority、PKCE、Issuer/Callback 校验、有界 Scope/Replay、Durable Store 与全部 25 个计分 OAuth 场景现已具备可执行证据。",
   },
   {
     index: "09",
+    state: "现在",
+    title: "构建 MCP Server Profile",
+    body: "通过有界 Stateless Server 暴露已审核 Local Tool，并验证 Discovery、Authorization、Schema、Concurrency、Cancellation 与全部适用官方 Server Requirement，且不削弱 Runtime Policy。",
+  },
+  {
+    index: "10",
     state: "v1 前",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
@@ -172,9 +184,10 @@ const roadmap = [
             Model/Tool Attempt、Lifecycle Commit、公平调度、耐久 Ingress
             与经过验证的 Result 运行类型化 Root Graph。已实现 Surface 包括
             OpenAI/Anthropic Adapter、可恢复 Provider-native Agent
-            Graph、AgentService v1、通用 Stateless MCP Tool Client，以及具备
-            Lost-write Reconciliation 的严格 MCP Remote Tool。MCP OAuth/Server
-            Profile、稳定 Network API、A2A、高级 Graph 语义与生产验证仍未完成。
+            Graph、AgentService v1、带交互式 OAuth 的通用 Stateless MCP Tool
+            Client，以及具备 Lost-write Reconciliation 的严格 MCP Remote
+            Tool。MCP Server Profile、稳定 Network API、A2A、高级 Graph
+            语义与生产验证仍未完成。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -312,9 +325,9 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
         <h2 id="roadmap-title">开发顺序由证据决定。</h2>
         <p>
           严格 MCP Binding 保留 PostgreSQL-backed Recovery 证据；独立通用 Tool
-          Client 现在已通过全部 7 个计分非 OAuth 官方场景。下一条验证边界是 MCP
-          OAuth 与剩余 25 个冻结 Client 场景；MCP Server 与 A2A 将作为独立
-          Profile 后续实现。
+          Client 与 OAuth Provider 现在已通过全部 32 个计分 Client 场景。下一条
+          验证边界是 MCP Server Profile；更广 Client Extension 与 A2A
+          仍作为独立门禁。
         </p>
       </div>
 

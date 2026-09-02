@@ -61,12 +61,18 @@ conformance output, and the release gates in these documents.
     maintained alongside it.
 15. [General stateless MCP Tool client](mcp-client.md) — bounded dynamic Tool
     discovery/calls, JSON and request-scoped SSE, custom headers, MRTR, security
-    boundaries, and pinned official non-OAuth conformance evidence. A
+    boundaries, OAuth challenge integration, and pinned official conformance
+    evidence. A
     [Simplified Chinese edition](mcp-client.zh-CN.md) is maintained alongside
     it.
-16. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
-    passed and skipped checks, CI reproduction, and the explicit boundary that
-    excludes OAuth, server, and SDK-tier claims. A
+16. [MCP OAuth client authorization](mcp-oauth.md) — challenge-driven metadata
+    discovery, registration, PKCE, issuer/callback validation, bounded replay,
+    durable store requirements, operations, and all 25 scored OAuth scenarios.
+    A [Simplified Chinese edition](mcp-oauth.zh-CN.md) is maintained alongside
+    it.
+17. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
+    all 32 scored client scenarios, CI reproduction, explicitly not-scored
+    extensions, and the boundary that excludes server and SDK-tier claims. A
     [Simplified Chinese edition](mcp-conformance.zh-CN.md) is maintained
     alongside it.
 

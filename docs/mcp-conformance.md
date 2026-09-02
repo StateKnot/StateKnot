@@ -16,11 +16,15 @@ StateKnot implements two distinct MCP `2026-07-28` client-side Tool surfaces:
   server/schema pins and reconciliation-first ambiguous writes;
 - [`McpClient`](mcp-client.md), a bounded general stateless Tool client with
   dynamic discovery, JSON/request-scoped SSE, `x-mcp-header`, and MRTR.
+- [`McpOAuthAuthorization`](mcp-oauth.md), a challenge-driven interactive OAuth
+  provider with discovery, PKCE, issuer migration, scope upgrade, refresh, and
+  caller-owned durable stores.
 
-The general client passes every scored **non-OAuth client scenario** in the
-frozen official `2026-07-28` requirement set. StateKnot does not implement the
-remaining 25 scored OAuth client scenarios and makes no complete MCP client,
-server, authorization-server, or SDK-tier conformance claim.
+The general client and OAuth provider pass all **32 scored client scenarios**
+in the frozen official `2026-07-28` requirement set, including all 25 OAuth
+scenarios. This is an evidence claim for the implemented pre-alpha client
+profile, not an MCP Server, authorization-server, extension, stable-API, or
+SDK-tier conformance claim.
 
 ## Frozen evaluation input
 
@@ -50,28 +54,31 @@ set contains seven non-OAuth scenarios and 25 OAuth scenarios.
 
 ## Result
 
-| Official client scenario | Success | Skipped | Failure |
-| --- | ---: | ---: | ---: |
-| `tools_call` | 2 | 0 | 0 |
-| `request-metadata` | 5 | 3 | 0 |
-| `http-standard-headers` | 3 | 8 | 0 |
-| `http-custom-headers` | 18 | 0 | 0 |
-| `http-invalid-tool-headers` | 11 | 0 | 0 |
-| `json-schema-ref-no-deref` | 1 | 0 | 0 |
-| `sep-2322-client-request-state` | 5 | 0 | 0 |
-| **Total** | **45** | **11** | **0** |
+| Official client inventory | Scenarios | Success | Skipped | Failure |
+| --- | ---: | ---: | ---: | ---: |
+| Required non-OAuth | 7 | 45 | 11 | 0 |
+| Required OAuth | 25 | 328 | 0 | 0 |
+| **Required total** | **32** | **373** | **11** | **0** |
+| Explicitly not scored | 7 | 33 | 6 | 17 |
 
 The three metadata skips are optional Roots, Sampling, and Elicitation
 capability declarations that StateKnot does not advertise. The eight standard
 header skips cover lifecycle, Resource, and Prompt methods outside this Tool
 client surface. A skip is not counted as a pass and no unsupported capability
-is claimed.
+is claimed. The final row contains Client Credentials, Enterprise Managed
+Authorization, DPoP, Workload Identity Federation, and a post-release JSON
+Schema preservation scenario. The official requirement set reports these seven
+scenarios but explicitly excludes them from scoring; their 17 failures do not
+become expected failures and StateKnot does not claim those extensions.
 
 The successful checks cover Tool invocation and wire-schema validity; required
 request metadata and version retry; Tool-specific standard headers; primitive,
 nested, null-omitting, and Base64 custom headers; individual rejection of
 invalid annotated Tools; no network `$ref` dereference; and exact isolated MRTR
-request-state behavior with fresh JSON-RPC IDs.
+request-state behavior with fresh JSON-RPC IDs. OAuth checks cover all metadata
+discovery variants, CIMD and pre-registration, scope source/omission/step-up,
+three token endpoint authentication modes, resource mismatch, offline access,
+authorization-server migration, and the complete RFC 9207 issuer matrix.
 
 ## Reproduce the gate
 
@@ -82,10 +89,13 @@ cd ../..
 bash conformance/mcp-client/run-2026-07-28.sh
 ```
 
-The script builds the real Rust driver, runs the seven exact scenarios one at a
-time, stores raw official output below the ignored `results/` directory, and
-then requires the exact 45-success/11-skip/zero-failure result. Missing,
-duplicate, unexpected, or drifted scenario evidence fails the command.
+The script builds the real Rust driver and asks the pinned runner to execute the
+entire frozen client requirement set: 32 required and seven explicitly
+not-scored scenarios. It stores raw output below the ignored `results/`
+directory, then independently requires the exact required inventory,
+373-success/11-skip/zero-failure/zero-warning result, and the exact not-scored
+inventory. Missing, duplicate, unexpected, or drifted required evidence fails
+the command. No expected-failures file is used.
 
 CI runs the same script with pinned Rust and Node toolchains. It does not use an
 expected-failures baseline. The standalone HTTP/SSE contract additionally
@@ -111,12 +121,13 @@ recovery guarantees.
 
 ## Remaining gates
 
-Complete MCP client conformance remains blocked on a separately reviewed OAuth
-implementation and all 25 frozen OAuth scenarios. MCP Server, Resources,
-Prompts, Tasks, and SDK-tier claims require their own implementation and
-official evidence. A future claim must also publish generated checks and
-platform identity as release artifacts, while preserving the strict Remote
-Tool PostgreSQL recovery tests as independent gates.
+The next independent gates are the MCP Server profile; broader Resources,
+Prompts, and Task-extension surfaces; the seven currently not-scored client
+extensions; stable SDK/API review; and release artifact publication. Each needs
+its own implementation and applicable official evidence. A release claim must
+publish generated checks and platform identity as release artifacts while
+preserving the strict Remote Tool PostgreSQL recovery tests as independent
+gates.
 
 The source of truth for the runner is the
 [official MCP Conformance repository](https://github.com/modelcontextprotocol/conformance).

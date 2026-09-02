@@ -223,10 +223,19 @@ from the repository.
   runner and require all seven scored non-OAuth client scenarios in CI: 45
   assertions pass, zero fail, and 11 out-of-surface checks are explicitly
   skipped without an expected-failures file.
+- [x] Implement the interactive MCP OAuth client profile with bounded 401/403
+  challenge capture and replay, protected-resource/authorization-server
+  discovery, pre-registration/CIMD/DCR priority, PKCE, exact resource/issuer/
+  callback binding, token endpoint authentication negotiation, refresh,
+  offline access, scope step-up, issuer migration, redacted errors, and
+  caller-owned durable credential/state stores. Require the complete frozen
+  client requirement set in CI: all 32 scored scenarios, including all 25
+  OAuth scenarios, pass with 373 scored assertions and zero failures. Report
+  but do not claim the seven explicitly not-scored extensions.
 - [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
-  protocol-specific outbox adapters, MCP OAuth and its 25 frozen official
-  client scenarios, the MCP server profile, role isolation, general retention,
+  protocol-specific outbox adapters, the MCP server profile and broader client
+  extensions, role isolation, general retention,
   failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.
