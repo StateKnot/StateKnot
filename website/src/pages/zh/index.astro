@@ -83,7 +83,7 @@ const currentCut = [
   {
     surface: "MCP Remote Tool",
     state: "已实现切片",
-    evidence: "严格 Stateless Discovery、Schema Pin 与 Ambiguous Lost Write",
+    evidence: "耐久 Dispatch、一次 Lost Write Call 与精确 Reconciliation",
     href: "/zh/docs/mcp-remote-tool/",
   },
   {
@@ -127,12 +127,18 @@ const roadmap = [
   },
   {
     index: "06",
-    state: "现在",
+    state: "已实现",
     title: "组合并验证协议边界",
-    body: "让 MCP Adapter 进入 PostgreSQL-backed Invocation Recovery，并在扩大 Supported Profile 前发布锁定版本的官方 Conformance Report。",
+    body: "真实 PostgreSQL 与 Loopback MCP 证据现已证明 Durable-before-dispatch State、Unknown Lost Write、No Redispatch 与精确 Result Reconciliation；Runtime PostgreSQL 证据单独证明 Error 分支，冻结的官方清单记录声明边界。",
   },
   {
     index: "07",
+    state: "现在",
+    title: "分离通用 MCP Client",
+    body: "设计并安全评审更广互操作 Surface，不削弱严格耐久 Tool Binding，然后运行其完整适用的冻结官方 Requirement Set。",
+  },
+  {
+    index: "08",
     state: "v1 前",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
@@ -150,12 +156,12 @@ const roadmap = [
           <p class="hero-status">Pre-alpha · 尚无稳定公开 API</p>
           <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
           <p class="hero-lede">
-            StateKnot 现已通过 PostgreSQL-backed Crash Recovery、原子 Agent
-            Admission、耐久 Model/Tool Attempt、Lifecycle Commit、加权
-            Cross-tenant Scheduling、耐久 Ingress Key、经过验证的 Run/Result
-            Read、强类型 Agent 合约、首批 OpenAI/Anthropic Adapter、可恢复
-            Provider-native 多轮 Agent Graph、AgentService v1，以及一个严格 MCP
-            Remote Tool Binding 运行类型化 Root Graph。稳定 Network API、更广
+            StateKnot 现已通过 PostgreSQL Crash Recovery、原子 Admission、耐久
+            Model/Tool Attempt、Lifecycle Commit、公平调度、耐久 Ingress
+            与经过验证的 Result 运行类型化 Root Graph。已实现 Surface 包括
+            OpenAI/Anthropic Adapter、可恢复 Provider-native Agent
+            Graph、AgentService v1，以及具备 Lost-write Reconciliation 的严格
+            MCP Remote Tool。稳定 Network API、完整官方 MCP Conformance、更广
             MCP/A2A Profile、高级 Graph 语义与生产验证仍未完成。
           </p>
           <div class="hero-actions">
@@ -293,9 +299,10 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">开发顺序由证据决定。</h2>
         <p>
-          严格 MCP Binding 现在已冻结 Discovery、Identity、Schema、Credential 与
-          Lost-write Semantics。下一步必须证明 PostgreSQL-backed Crash Recovery
-          与官方 Conformance，之后才扩大 Profile 并进入 A2A。
+          严格 MCP Binding 现在已经具备 PostgreSQL-backed Crash Recovery 与
+          Reconciliation 证据。下一步是独立通用 MCP Client Boundary
+          及其完整适用官方 Requirement Set；后续扩大 MCP 与进入 A2A
+          时不能削弱严格 Binding。
         </p>
       </div>
 

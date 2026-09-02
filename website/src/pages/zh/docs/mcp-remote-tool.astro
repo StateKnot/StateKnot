@@ -14,6 +14,18 @@ const bindingCode = `let adapter = McpRemoteTool::connect(
     McpHttpOptions::default(),
 )
 .await?;`;
+
+const reconciliationCode = `let reconciliation = ToolReconciliationHandoff::result(
+    live_fence,
+    unknown_invocation,
+    reconciliation_event_id,
+    authoritative_result,
+)?;
+
+match executor.commit_tool_reconciliation(reconciliation).await? {
+    ToolReconciliationOutcome::Committed { .. } => acknowledge(),
+    ToolReconciliationOutcome::Idempotent { .. } => acknowledge(),
+}`;
 ---
 
 <DocsLayout
@@ -141,6 +153,36 @@ const bindingCode = `let adapter = McpRemoteTool::connect(
     </ol>
   </section>
 
+  <section aria-labelledby="mcp-reconciliation-title">
+    <h2 id="mcp-reconciliation-title">不再次调用 Tool 的权威对账</h2>
+    <p>
+      可信 Worker 或运维边界可以把精确的 <code>Unknown</code> Physical Attempt 转换为经过验证的
+      Result 或 Error。Runtime 会把证据绑定到 Invocation 与 Attempt，使用冻结的本地
+      Schema 校验 Result JSON，并在一个带 Fence 的 PostgreSQL Transaction 中提交独立
+      Audit Event。整个过程不会解析或 Dispatch Tool Provider。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 权威 Reconciliation</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-reconciliation-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-reconciliation-code"
+        tabindex="0"><code>{reconciliationCode}</code></pre>
+    </div>
+    <p>
+      同一事件的精确 Retry 是幂等的。Persistence Failure 后，Handoff 仍保留权威
+      Evidence，并且只能为同一 Run 重新绑定新的 Live Fence。
+    </p>
+  </section>
+
   <section aria-labelledby="mcp-exclusions-title">
     <h2 id="mcp-exclusions-title">明确当前拒绝项</h2>
     <ul>
@@ -158,10 +200,10 @@ const bindingCode = `let adapter = McpRemoteTool::connect(
   </section>
 
   <section aria-labelledby="mcp-proof-title">
-    <h2 id="mcp-proof-title">运行 Literal-loopback Contract</h2>
+    <h2 id="mcp-proof-title">运行 Profile 与耐久 Contract</h2>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
-        <span>Shell · 不需要外部 MCP Service</span>
+        <span>Shell · MCP Contract 与真实 PostgreSQL Recovery</span>
         <button
           class="copy-button affordance"
           type="button"
@@ -173,15 +215,20 @@ const bindingCode = `let adapter = McpRemoteTool::connect(
       </div>
       <pre
         id="mcp-proof-command"
-        tabindex="0"><code>cargo test -p stateknot-integrations --test mcp_contract --locked</code></pre>
+        tabindex="0"><code>cargo test -p stateknot-integrations --test mcp_contract --locked
+cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1</code></pre>
     </div>
     <p>
       Suite 证明 Discovery Order、Identity/Schema Pinning、Credential Header、
       Annotation Distrust、Pre-registration Drift Rejection 与 Ambiguous Lost
-      Write。查看完整<a
+      Write。PostgreSQL 16/17 Matrix 还会证明 Durable-before-dispatch
+      State、Lost Write Response、<code>Unknown</code>、Duplicate
+      Suppression、权威 Reconciliation，以及始终只有一次 Physical Network
+      Call。查看完整<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-remote-tool.zh-CN.md"
         >Profile 与运维合约</a
-      >。更广 MCP 声明仍以官方 Conformance Evidence 为 Release Gate。
+      >和<a href="/zh/docs/mcp-conformance/">冻结的 MCP Conformance 状态</a
+      >。StateKnot 不声明完整的官方 MCP Client 或 Server Conformance。
     </p>
   </section>
 </DocsLayout>

@@ -27,9 +27,9 @@ use stateknot_core::{
     Digest, ErasedTool, EventId, ExecutionCount, Extensions, Failure, FailureCategory, FailureCode,
     FailureId, FailureMessage, FailureOrigin, GraphBarrierDisposition, GraphExecutionLimits,
     GraphNode, GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference,
-    GraphReference, GraphRoutes, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
-    JournalEventKind, JournalExpectation, JournalPayload, JsonContent, KnownCosts, Model,
-    ModelContext, ModelDescriptor, ModelError, ModelEvent, ModelFinishReason,
+    GraphReference, GraphRoutes, GraphSchemaValidationError, InvocationId, IssuerId, JournalAppend,
+    JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload, JsonContent,
+    KnownCosts, Model, ModelContext, ModelDescriptor, ModelError, ModelEvent, ModelFinishReason,
     ModelInvocationIntent, ModelInvocationStatus, ModelOutputItem, ModelProviderReplay,
     ModelProviderReplayFormat, ModelProviderToolCallId, ModelRequest, ModelResponse,
     ModelResponseMode, ModelResponseProvenance, ModelToolCallProposal, ModelUsage, NodeActivation,
@@ -39,7 +39,8 @@ use stateknot_core::{
     SchedulerShardId, SchemaId, SchemaReference, SecurityLabel, SubjectId, Superstep, TenantId,
     ThreadId, TimerId, Timestamp, TokenCount, ToolArtifacts, ToolContext, ToolDescriptor,
     ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput,
-    ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus, ToolResult, Version,
+    ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus, ToolResult,
+    ToolResultProvenance, Version,
 };
 use stateknot_runtime::{
     AgentCancellationIds, AgentCancellationOutcome, AgentInvocationAccounting,
@@ -65,7 +66,8 @@ use stateknot_runtime::{
     ModelAttemptTerminalKind, ModelEventSink, ModelEventSinkError, ModelProviderRegistryBuilder,
     ProviderNativeAgentGraph, ProviderNativeAgentLifecycleEvidence, TenantFairnessWeight,
     TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind,
-    ToolProviderRegistryBuilder, WeightedFairnessPolicy,
+    ToolProviderRegistryBuilder, ToolReconciliationCommitFailure, ToolReconciliationHandoff,
+    ToolReconciliationKind, ToolReconciliationOutcome, WeightedFairnessPolicy,
     register_standard_agent_admission_event_schema,
     register_standard_agent_cancellation_event_schema,
     register_standard_agent_service_control_event_schema,
@@ -1246,6 +1248,16 @@ fn invocation_budget() -> ResolvedBudget {
 fn invocation_schema_registry() -> JsonSchemaRegistry {
     let mut builder = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
     register_standard_invocation_execution_event_schema(&mut builder).unwrap();
+    builder.build().unwrap()
+}
+
+fn invocation_schema_registry_with(
+    reference: SchemaReference,
+    document: Value,
+) -> JsonSchemaRegistry {
+    let mut builder = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
+    register_standard_invocation_execution_event_schema(&mut builder).unwrap();
+    builder.register(reference, document).unwrap();
     builder.build().unwrap()
 }
 
@@ -2950,7 +2962,7 @@ async fn streaming_model_executor_validates_emits_accumulates_and_deduplicates()
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[allow(clippy::too_many_lines)]
-async fn timed_out_tool_write_commits_unknown_and_duplicate_start_never_redispatches() {
+async fn timed_out_tool_write_reconciles_without_redispatch_or_invalid_schema_commit() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
         return;
@@ -2965,7 +2977,19 @@ async fn timed_out_tool_write_commits_unknown_and_duplicate_start_never_redispat
         .unwrap()
         .lease()
         .clone();
-    let descriptor = tool_descriptor();
+    let template = tool_descriptor();
+    let (tool_input_schema, _) = schema("reconciliation-tool-input");
+    let (tool_output_schema, tool_output_document) = schema("reconciliation-tool-output");
+    let descriptor = ToolDescriptor::new(
+        template.metadata().clone(),
+        tool_input_schema,
+        tool_output_schema.clone(),
+        template.semantics().clone(),
+        template.resources().clone(),
+        template.invocation().clone(),
+        template.limits().clone(),
+    )
+    .unwrap();
     let invocation_id = InvocationId::generate();
     let intent = ToolInvocationIntent::new(
         invocation_activation(checkpoint.checkpoint()),
@@ -2993,13 +3017,13 @@ async fn timed_out_tool_write_commits_unknown_and_duplicate_start_never_redispat
     let mut tools = ToolProviderRegistryBuilder::new();
     tools
         .register(Arc::new(PendingWriteTool {
-            descriptor,
+            descriptor: descriptor.clone(),
             calls: Arc::clone(&calls),
         }))
         .unwrap();
     let executor = DurableInvocationExecutor::with_clock(
         store.clone(),
-        invocation_schema_registry(),
+        invocation_schema_registry_with(tool_output_schema, tool_output_document),
         ModelProviderRegistryBuilder::new().build(),
         tools.build(),
         Arc::new(StaticInvocationBudget {
@@ -3044,10 +3068,192 @@ async fn timed_out_tool_write_commits_unknown_and_duplicate_start_never_redispat
     assert_eq!(error.failure().retry_advice(), RetryAdvice::ReconcileFirst);
 
     assert!(matches!(
+        executor.execute_tool(handoff.clone()).await.unwrap(),
+        ToolAttemptOutcome::Recovered { .. }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    let attempt_id = stored.attempt_id().unwrap();
+    let invalid_result = ToolResult::new(
+        ToolResultProvenance::new(
+            invocation_id,
+            attempt_id,
+            descriptor.metadata().identity().clone(),
+        ),
+        descriptor.output_schema().clone(),
+        BoundedJson::try_from_value(json!("not-an-object")).unwrap(),
+        ToolArtifacts::empty(),
+    );
+    let invalid_reconciliation = ToolReconciliationHandoff::result(
+        lease.fence().clone(),
+        stored.clone(),
+        EventId::generate(),
+        invalid_result,
+    )
+    .unwrap();
+    let invalid_error = executor
+        .commit_tool_reconciliation(invalid_reconciliation)
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        invalid_error.source_error(),
+        ToolReconciliationCommitFailure::OutputSchema {
+            source: GraphSchemaValidationError::Rejected,
+        }
+    ));
+    assert_eq!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ToolInvocationStatus::Unknown
+    );
+
+    let result = ToolResult::new(
+        ToolResultProvenance::new(
+            invocation_id,
+            attempt_id,
+            descriptor.metadata().identity().clone(),
+        ),
+        descriptor.output_schema().clone(),
+        BoundedJson::try_from_value(json!({"receipt": "confirmed"})).unwrap(),
+        ToolArtifacts::empty(),
+    );
+    let reconciliation = ToolReconciliationHandoff::result(
+        lease.fence().clone(),
+        stored,
+        EventId::generate(),
+        result,
+    )
+    .unwrap();
+    let committed = executor
+        .commit_tool_reconciliation(reconciliation.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        committed,
+        ToolReconciliationOutcome::Committed { .. }
+    ));
+    assert_eq!(committed.kind(), ToolReconciliationKind::Result);
+    assert_eq!(
+        committed.invocation().status(),
+        ToolInvocationStatus::Committed
+    );
+    assert_eq!(
+        committed.event().payload().kind().as_str(),
+        "tool-reconciliation-result-committed"
+    );
+    let repeated = executor
+        .commit_tool_reconciliation(reconciliation)
+        .await
+        .unwrap();
+    assert!(matches!(
+        repeated,
+        ToolReconciliationOutcome::Idempotent { .. }
+    ));
+    assert_eq!(repeated.event().event_id(), committed.event().event_id());
+
+    assert!(matches!(
         executor.execute_tool(handoff).await.unwrap(),
         ToolAttemptOutcome::Recovered { .. }
     ));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    let second_invocation_id = InvocationId::generate();
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    let second_prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                run.journal_head().unwrap().clone(),
+                lease.fence().clone(),
+            ),
+            ToolInvocationIntent::new(
+                invocation_activation(checkpoint.checkpoint()),
+                second_invocation_id,
+                descriptor.clone(),
+                tool_input(&descriptor),
+                descriptor.limits().clone(),
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    let second_handoff = ToolAttemptHandoff::new(
+        lease.fence().clone(),
+        second_prepared.invocation().clone(),
+        AttemptId::generate(),
+        InvocationAttemptEventIds::generate(),
+        CancellationSignal::never(),
+        None,
+    )
+    .unwrap();
+    assert!(matches!(
+        executor.execute_tool(second_handoff.clone()).await.unwrap(),
+        ToolAttemptOutcome::Dispatched {
+            terminal: ToolAttemptTerminalKind::Error,
+            ..
+        }
+    ));
+    let second_unknown = store
+        .load_tool_invocation(&tenant_id, run_id, second_invocation_id)
+        .await
+        .unwrap();
+    assert_eq!(second_unknown.status(), ToolInvocationStatus::Unknown);
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+
+    let reconciled_failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::DependencyUnavailable,
+        FailureCode::new("runtime.test.reconciled_not_applied").unwrap(),
+        FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+        FailureMessage::new("Authoritative status proves the write was not applied.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap();
+    let reconciled_error = ToolError::new(
+        reconciled_failure,
+        ToolErrorPhase::Execution,
+        ToolExternalEffect::NotApplied,
+        ToolErrorProvenance::new(
+            second_invocation_id,
+            second_unknown.attempt_id().unwrap(),
+            descriptor.metadata().identity().clone(),
+        ),
+    )
+    .unwrap();
+    let error_reconciliation = ToolReconciliationHandoff::error(
+        lease.fence().clone(),
+        second_unknown,
+        EventId::generate(),
+        reconciled_error,
+    )
+    .unwrap();
+    let failed = executor
+        .commit_tool_reconciliation(error_reconciliation.clone())
+        .await
+        .unwrap();
+    assert_eq!(failed.kind(), ToolReconciliationKind::Error);
+    assert_eq!(failed.invocation().status(), ToolInvocationStatus::Failed);
+    assert_eq!(
+        failed.event().payload().kind().as_str(),
+        "tool-reconciliation-error-committed"
+    );
+    assert!(
+        executor
+            .commit_tool_reconciliation(error_reconciliation)
+            .await
+            .unwrap()
+            .is_idempotent()
+    );
+    assert!(matches!(
+        executor.execute_tool(second_handoff).await.unwrap(),
+        ToolAttemptOutcome::Recovered { .. }
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
     store.close().await;
 }
 

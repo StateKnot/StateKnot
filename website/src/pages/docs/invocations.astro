@@ -31,6 +31,18 @@ const recoveryCode = `match executor.execute_model(handoff).await {
     }
     Err(error) => handle_pre_dispatch_failure(error),
 }`;
+
+const reconciliationCode = `let reconciliation = ToolReconciliationHandoff::result(
+    live_fence,
+    unknown_invocation,
+    reconciliation_event_id,
+    authoritative_result,
+)?;
+
+match executor.commit_tool_reconciliation(reconciliation).await? {
+    ToolReconciliationOutcome::Committed { .. } => acknowledge(),
+    ToolReconciliationOutcome::Idempotent { .. } => acknowledge(),
+}`;
 ---
 
 <DocsLayout
@@ -53,8 +65,9 @@ const recoveryCode = `match executor.execute_model(handoff).await {
         >prebuilt provider-native Agent graph</a
       > now composes this executor. The <a href="/docs/mcp-remote-tool/"
         >strict MCP Remote Tool profile</a
-      > also binds one stateless MCP 2026-07-28 Tool to this execution contract. Broader
-      MCP conformance and live-provider qualification have not shipped.
+      > also composes one stateless MCP 2026-07-28 Tool with the PostgreSQL execution
+      contract. Complete official MCP conformance and live-provider qualification
+      have not shipped.
     </p>
   </aside>
 
@@ -161,6 +174,42 @@ const recoveryCode = `match executor.execute_model(handoff).await {
     </p>
   </section>
 
+  <section aria-labelledby="tool-reconciliation-title">
+    <h2 id="tool-reconciliation-title">
+      Resolve unknown attempts from authoritative evidence
+    </h2>
+    <p>
+      <code>ToolReconciliationHandoff::result</code> and <code>::error</code>
+      accept evidence only for the exact <code>Unknown</code> invocation and physical
+      attempt. Result evidence must pass the frozen local output schema before any
+      database mutation. The commit appends a distinct audit event and advances the
+      ledger atomically under the live fence without provider lookup or Tool I/O.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · no-dispatch Tool reconciliation</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="tool-reconciliation-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="tool-reconciliation-code"
+        tabindex="0"><code>{reconciliationCode}</code></pre>
+    </div>
+    <p>
+      Exact event retries converge idempotently. Persistence failures retain the
+      evidence handoff; ownership changes allow only a same-run live-fence
+      rebind. A network-facing service must add authorization and
+      evidence-source policy before exposing this trusted worker/operations
+      boundary.
+    </p>
+  </section>
+
   <section aria-labelledby="terminal-recovery-title">
     <h2 id="terminal-recovery-title">
       Retain terminal evidence, not another call
@@ -199,7 +248,7 @@ const recoveryCode = `match executor.execute_model(handoff).await {
         ><code
           >https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0</code
         ></a
-      >. The six closed operations expose only binding kind, invocation ID,
+      >. The eight closed operations expose only binding kind, invocation ID,
       attempt ID, and intent digest—never prompts, arguments, outputs, errors,
       endpoints, or credentials.
     </p>
@@ -210,8 +259,11 @@ const recoveryCode = `match executor.execute_model(handoff).await {
     <p>
       PostgreSQL 16/17 tests cover terminal commit after lease takeover without
       redispatch or budget re-evaluation, an ordered seven-event durable model
-      stream with duplicate suppression, and a timed-out idempotent write tool
-      that remains reconcile-first. Read the complete <a
+      stream with duplicate suppression, and timed-out idempotent writes that
+      reconcile to either a validated result or authoritative error. A combined
+      real PostgreSQL and loopback MCP test proves durable state before network
+      completion, a lost response, <code>Unknown</code>, no redispatch, exact
+      reconciliation replay, and one physical call. Read the complete <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-invocation-executor.md"
         >integration and operations contract</a
       > before adopting this pre-alpha surface.

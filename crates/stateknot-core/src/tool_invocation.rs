@@ -1225,6 +1225,53 @@ impl ToolInvocation {
         self.state.attempt_id()
     }
 
+    /// Validates authoritative success evidence for this invocation's unknown attempt.
+    ///
+    /// This performs the same invocation, attempt, tool, schema, inline-size,
+    /// artifact-limit, and artifact-ownership checks used by [`Self::advance`]
+    /// before a reconciliation transaction is attempted.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ToolInvocationError`] unless this revision is unknown and the
+    /// result is bound to its exact durable intent and physical attempt.
+    pub fn validate_reconciliation_result(
+        &self,
+        result: &ToolResult,
+    ) -> Result<(), ToolInvocationError> {
+        let ToolInvocationState::Unknown { error } = &self.state else {
+            return Err(ToolInvocationError::InvalidTransition {
+                status: self.status(),
+                transition: ToolInvocationTransitionKind::ReconcileResult,
+            });
+        };
+        validate_result_binding(&self.intent, error.provenance().attempt_id(), result)
+    }
+
+    /// Validates authoritative failure/effect evidence for an unknown attempt.
+    ///
+    /// The evidence may resolve the invocation to `Failed`, or deliberately
+    /// retain `Unknown` when the external effect remains uncertain. The same
+    /// identity, attempt, risk/effect, and retry-safety checks used by
+    /// [`Self::advance`] are applied here.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ToolInvocationError`] unless this revision is unknown and the
+    /// error is bound to its exact durable intent and physical attempt.
+    pub fn validate_reconciliation_error(
+        &self,
+        error: &ToolError,
+    ) -> Result<(), ToolInvocationError> {
+        let ToolInvocationState::Unknown { error: previous } = &self.state else {
+            return Err(ToolInvocationError::InvalidTransition {
+                status: self.status(),
+                transition: ToolInvocationTransitionKind::ReconcileError,
+            });
+        };
+        validate_error_binding(&self.intent, previous.provenance().attempt_id(), error)
+    }
+
     /// Returns the exact predecessor head, absent only for preparation.
     #[must_use]
     pub const fn previous(&self) -> Option<&ToolInvocationHead> {
@@ -2615,6 +2662,17 @@ mod tests {
             )
             .unwrap();
         assert_eq!(unknown.status(), ToolInvocationStatus::Unknown);
+        unknown.validate_reconciliation_result(&result()).unwrap();
+        unknown
+            .validate_reconciliation_error(&fixture_error("1"))
+            .unwrap();
+        assert!(matches!(
+            prepared.validate_reconciliation_result(&result()),
+            Err(ToolInvocationError::InvalidTransition {
+                status: ToolInvocationStatus::Prepared,
+                transition: ToolInvocationTransitionKind::ReconcileResult,
+            })
+        ));
         assert!(matches!(
             unknown.advance(
                 ToolInvocationTransition::StartAttempt {
@@ -2635,6 +2693,13 @@ mod tests {
             )
             .unwrap();
         assert_eq!(reconciled.status(), ToolInvocationStatus::Committed);
+        assert!(matches!(
+            reconciled.validate_reconciliation_error(&fixture_error("1")),
+            Err(ToolInvocationError::InvalidTransition {
+                status: ToolInvocationStatus::Committed,
+                transition: ToolInvocationTransitionKind::ReconcileError,
+            })
+        ));
     }
 
     #[test]

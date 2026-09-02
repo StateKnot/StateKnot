@@ -34,6 +34,7 @@ zeroize.workspace = true
 
 [dev-dependencies]
 stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }
+stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
 tokio = { workspace = true, features = ["io-util", "net"] }
 
 [lints]

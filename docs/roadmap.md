@@ -210,10 +210,16 @@ from the repository.
   with modern stateless discovery, complete JSON transport, exact local
   schema/server pins, attempt-scoped authorization, bounded catalog/body/time
   policy, annotation distrust, and reconciliation-first ambiguous writes.
+- [x] Compose the strict MCP Remote Tool with the durable invocation executor
+  and real PostgreSQL: prove durable start before `tools/call`, ambiguous lost
+  write response persistence, duplicate no-redispatch, frozen-schema
+  reconciliation, and exact event replay on PostgreSQL 16/17. Publish the
+  pinned official requirement inventory and an explicit no-false-claim
+  [conformance status](mcp-conformance.md).
 - [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
-  protocol-specific outbox adapters, the combined PostgreSQL-backed MCP
-  recovery proof and official conformance report, role isolation, general
+  protocol-specific outbox adapters, a separate general MCP client and its
+  applicable complete official conformance report, role isolation, general
   retention, failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.

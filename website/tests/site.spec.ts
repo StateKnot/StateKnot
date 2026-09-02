@@ -94,6 +94,12 @@ const localizedRoutePairs = [
     zhHeading: "绑定一个 MCP Tool，不削弱耐久语义。",
   },
   {
+    en: "/docs/mcp-conformance/",
+    zh: "/zh/docs/mcp-conformance/",
+    enHeading: "MCP conformance claims stop at the evidence.",
+    zhHeading: "MCP Conformance 声明以证据为界。",
+  },
+  {
     en: "/docs/fair-scheduling/",
     zh: "/zh/docs/fair-scheduling/",
     enHeading: "Schedule tenants from one durable order.",
@@ -396,6 +402,7 @@ for (const route of [
   "/docs/provider-native-agent/",
   "/docs/agent-service/",
   "/docs/mcp-remote-tool/",
+  "/docs/mcp-conformance/",
   "/docs/fair-scheduling/",
   "/zh/",
   "/zh/docs/getting-started/",
@@ -408,6 +415,7 @@ for (const route of [
   "/zh/docs/provider-native-agent/",
   "/zh/docs/agent-service/",
   "/zh/docs/mcp-remote-tool/",
+  "/zh/docs/mcp-conformance/",
   "/zh/docs/fair-scheduling/",
 ] as const) {
   for (const width of [320, 375, 414, 768] as const) {
@@ -508,11 +516,38 @@ test("MCP tutorial states the strict profile and ambiguous write contract", asyn
   ).toBeVisible();
   await expect(page.getByText("ReconcileFirst", { exact: true })).toBeVisible();
   await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Reconcile without calling the Tool again",
+    }),
+  ).toBeVisible();
+  await expect(
     page.getByText("not a claim of complete MCP conformance", {
       exact: false,
     }),
   ).toBeVisible();
-  await expect(page.locator("[data-copy-button]")).toHaveCount(2);
+  await expect(page.locator("[data-copy-button]")).toHaveCount(3);
+});
+
+test("MCP conformance page freezes evidence without overclaiming", async ({
+  page,
+}) => {
+  await page.goto("/docs/mcp-conformance/");
+  await expect(page.getByText("Current claim", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("does not claim complete official MCP client", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("69 scored scenarios", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("c321dd32035556e6769d3724a8ee97d87c3faaac", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(1);
 });
 
 for (const route of localizedRoutePairs) {

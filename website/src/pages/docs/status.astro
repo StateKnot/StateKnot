@@ -75,13 +75,13 @@ const capabilities = [
     state: "Implemented",
     className: "status-implemented",
     title: "Strict MCP Remote Tool profile",
-    body: "One MCP 2026-07-28 client-side Tool binding with modern stateless discovery, complete JSON transport, exact local schema/server pins, attempt-scoped authorization, and reconciliation-first ambiguous writes.",
+    body: "One MCP 2026-07-28 client-side Tool binding with modern stateless discovery, complete JSON transport, exact local schema/server pins, attempt-scoped authorization, durable-before-dispatch PostgreSQL state, no-redispatch ambiguity, and authoritative reconciliation.",
   },
   {
     state: "Active work",
     className: "status-active",
     title: "Advanced execution and service boundary",
-    body: "Artifact retrieval, parallel sibling/tool ordering, output repair, loop/subgraph semantics, stable network transport, protocol-specific outbox dispatch, and combined durable MCP qualification remain active work.",
+    body: "Artifact retrieval, parallel sibling/tool ordering, output repair, loop/subgraph semantics, stable network transport, and protocol-specific outbox dispatch remain active work.",
   },
   {
     state: "Not shipped",
@@ -93,7 +93,7 @@ const capabilities = [
     state: "Not shipped",
     className: "status-planned",
     title: "Broader MCP and A2A profiles",
-    body: "MCP server, resources/prompts and broader client features, official MCP conformance evidence, and all A2A client/server bindings remain unshipped.",
+    body: "A separate general MCP client, MCP server, resources/prompts and broader client features, complete official MCP client/server conformance, and all A2A client/server bindings remain unshipped.",
   },
   {
     state: "Not shipped",
@@ -142,13 +142,14 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      AgentService v1 now proves authorization-first submission/read/cancel
-      semantics, and the strict MCP binding proves modern discovery, exact
-      identity/schema pins, attempt credentials, and ambiguous lost-write
-      mapping. The next proof boundary composes that adapter with the PostgreSQL
-      invocation ledger and crash recovery, then publishes the pinned official
-      MCP conformance report. A2A follows only after this narrower protocol
-      profile has end-to-end durable evidence.
+      The strict MCP binding now has end-to-end PostgreSQL evidence for
+      durable-before-dispatch state, lost-response ambiguity, duplicate
+      suppression, and authoritative reconciliation. Its frozen official runner
+      inventory also records why this intentionally narrower binding cannot
+      claim complete client or server conformance. The next protocol boundary is
+      a separately security-reviewed general MCP client and its complete
+      applicable official requirement set; A2A follows after that boundary is
+      explicit.
     </p>
   </section>
 
@@ -187,6 +188,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/docs/mcp-remote-tool/">Strict MCP Remote Tool profile</a>
+      </li>
+      <li>
+        <a href="/docs/mcp-conformance/">MCP conformance evidence and limits</a>
       </li>
       <li>
         <a href="/docs/fair-scheduling/"

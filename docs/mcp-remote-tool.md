@@ -111,6 +111,36 @@ The runtime must reconcile through a status query, an intrinsic provider key,
 compensation, or a human decision before another write. The adapter never hides
 an uncertain write as a safe retry.
 
+## Durable reconciliation
+
+`ToolReconciliationHandoff::result` and `ToolReconciliationHandoff::error`
+bind authoritative evidence to the exact durable `Unknown` invocation and
+physical attempt. Construction reuses the core invocation, tool identity,
+attempt, output-schema, result-limit, artifact-ownership, risk/effect, and retry
+safety invariants.
+
+```rust,ignore
+let handoff = ToolReconciliationHandoff::result(
+    live_fence,
+    unknown_invocation,
+    EventId::generate(),
+    authoritative_result,
+)?;
+let outcome = executor.commit_tool_reconciliation(handoff).await?;
+```
+
+Before a result commit, the runtime also validates its inline output against
+the exact frozen local schema registry. The executor then appends a distinct
+reconciliation audit event and advances the Tool ledger in one fenced
+PostgreSQL transaction. It never resolves or calls the MCP adapter. Retrying the
+same handoff/event is exactly idempotent. `rebind_fence` may attach retained
+evidence to a newer live fence in the same run after lease takeover.
+
+Error evidence with an authoritative known external effect resolves the ledger
+to `Failed`. Evidence whose effect is still `Unknown` deliberately leaves it
+unresolved. This API is a trusted worker/operations boundary; an HTTP or RPC
+service must authorize evidence submission before constructing the handoff.
+
 ## Deliberately rejected today
 
 - stateful MCP sessions and `Mcp-Session-Id`;
@@ -152,9 +182,15 @@ responses:
 
 ```console
 cargo test -p stateknot-integrations --test mcp_contract --locked
+cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1
 ```
 
-This suite is adapter contract evidence, not the official MCP conformance
-report. StateKnot will claim a complete MCP client or server profile only after
-the corresponding supported surface passes the pinned official conformance
-suite and its report is published.
+The durable suite uses a real PostgreSQL store and pauses a real loopback MCP
+request to observe `Executing` before I/O completes. It then proves ambiguous
+write persistence, duplicate suppression, authoritative reconciliation, and
+idempotent replay with one network call. CI runs it on PostgreSQL 16 and 17.
+
+These suites are profile evidence, not a complete official MCP client/server
+pass. See the pinned, explicit [MCP conformance status](mcp-conformance.md) for
+the official requirement inventory and the reason this strict profile is not
+misreported as a general client.

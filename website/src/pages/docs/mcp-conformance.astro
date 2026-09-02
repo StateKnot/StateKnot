@@ -1,0 +1,145 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const inventoryCommand =
+  "npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2026-07-28";
+---
+
+<DocsLayout
+  title="MCP conformance claims stop at the evidence."
+  description="Inspect the frozen official runner inventory, the strict Tool profile evidence, and what StateKnot deliberately does not claim."
+  section="MCP conformance status"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-conformance-boundary-title"
+  >
+    <h2 id="mcp-conformance-boundary-title">Current claim</h2>
+    <p>
+      StateKnot implements a strict durable MCP 2026-07-28 Remote Tool profile.
+      It does not claim complete official MCP client, server, or SDK-tier
+      conformance.
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-conformance-input-title">
+    <h2 id="mcp-conformance-input-title">Frozen evaluation input</h2>
+    <p>The inventory was refreshed on 2026-09-02 with:</p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · official requirement inventory</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-conformance-inventory-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-conformance-inventory-code"
+        tabindex="0"><code>{inventoryCommand}</code></pre>
+    </div>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Runner</dt>
+        <dd><code>@modelcontextprotocol/conformance@0.2.0-alpha.11</code></dd>
+      </div>
+      <div>
+        <dt>Source identity</dt>
+        <dd><code>c321dd32035556e6769d3724a8ee97d87c3faaac</code></dd>
+      </div>
+      <div>
+        <dt>Requirement revision</dt>
+        <dd><code>2026-07-28</code></dd>
+      </div>
+      <div>
+        <dt>Inventory</dt>
+        <dd>69 scored scenarios: 37 server and 32 client scenarios.</dd>
+      </div>
+    </dl>
+    <p>
+      See the <a href="https://github.com/modelcontextprotocol/conformance"
+        >official conformance repository</a
+      > and the <a
+        href="https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx"
+        >MCP 2026-07-28 Tool specification</a
+      > for the authoritative runner and protocol requirements.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-conformance-difference-title">
+    <h2 id="mcp-conformance-difference-title">
+      The strict profile is not the general client role
+    </h2>
+    <p>
+      <code>McpRemoteTool</code> requires reviewed local input and output schemas,
+      byte-identical remote schemas, a pinned server implementation, and complete
+      <code>structuredContent</code> validated locally. The official required
+      <code>tools_call</code> client fixture advertises no output schema and returns
+      text without structured content. A general client can call that fixture; the
+      strict StateKnot binding must reject it.
+    </p>
+    <p>
+      StateKnot will not loosen its production contract only for the runner and
+      will not turn an expected failure into a conformance badge. A separate
+      general MCP client surface is required before broader interoperability can
+      be claimed honestly.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-conformance-evidence-title">
+    <h2 id="mcp-conformance-evidence-title">Executable evidence that exists</h2>
+    <ul>
+      <li>
+        The strict loopback contract proves protocol headers, discovery order,
+        exact server/schema pins, attempt authorization, bounded calls, drift
+        rejection, and reconcile-first lost writes.
+      </li>
+      <li>
+        The PostgreSQL 16/17 durable contract proves the invocation is
+        <code>Executing</code> before MCP I/O completes, a lost response becomes
+        <code>Unknown</code>, duplicate dispatch is suppressed, and
+        authoritative reconciliation commits idempotently with one physical
+        network call.
+      </li>
+    </ul>
+    <p>
+      These are StateKnot profile tests, not substitutes for the official MCP
+      requirement set. Read the <a href="/docs/mcp-remote-tool/"
+        >strict Remote Tool contract</a
+      > or the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-conformance.md"
+        >complete evidence report</a
+      >.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-conformance-gate-title">
+    <h2 id="mcp-conformance-gate-title">Gate for a future claim</h2>
+    <ol>
+      <li>Define and security-review a separate general MCP client surface.</li>
+      <li>
+        Implement every applicable scored client capability in one frozen
+        requirement revision, including its authorization and request-state
+        behavior.
+      </li>
+      <li>
+        Run that exact official requirement set in mandatory CI without a
+        misleading expected-failure blanket.
+      </li>
+      <li>
+        Publish the runner identity, generated checks, platform, date, and
+        result as a release artifact.
+      </li>
+      <li>
+        Keep strict profile tests and PostgreSQL recovery proof as independent
+        release gates.
+      </li>
+    </ol>
+  </section>
+</DocsLayout>

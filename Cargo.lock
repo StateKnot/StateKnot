@@ -1973,6 +1973,7 @@ dependencies = [
  "sse-stream",
  "stateknot-core",
  "stateknot-runtime",
+ "stateknot-store-postgres",
  "thiserror",
  "tokio",
  "zeroize",
