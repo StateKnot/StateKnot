@@ -53,8 +53,9 @@ bash conformance/mcp-client/run-2026-07-28.sh`;
     </h2>
     <p>
       <code>McpClient</code> implements the stateless MCP 2026-07-28 Tool surface.
-      OAuth, MCP Server, Resources, Prompts, Tasks, and stable SDK-tier support are
-      not implemented. The crate remains unpublished.
+      Its separate OAuth provider implements the interactive authorization-code profile.
+      MCP Server, Resources, Prompts, Tasks, OAuth extensions, and stable SDK-tier
+      support are not implemented. The crate remains unpublished.
     </p>
   </aside>
 
@@ -173,9 +174,11 @@ bash conformance/mcp-client/run-2026-07-28.sh`;
     <p>
       The logical request deadline has a 24-hour hard ceiling. Redirects and
       generic retries are disabled. A timeout or lost Tool response is never
-      automatically replayed. Only the protocol-defined
-      <code>-32022</code> version negotiation path receives one retry after the server
-      explicitly advertises this version.
+      automatically replayed. Protocol version negotiation receives one bounded
+      retry after the server explicitly advertises this version. A Bearer
+      challenge receives one replay by default only after the authorization
+      provider explicitly approves recovery; the replay uses a fresh JSON-RPC
+      ID. See the <a href="/docs/mcp-oauth/">MCP OAuth client contract</a>.
     </p>
   </section>
 
@@ -198,10 +201,10 @@ bash conformance/mcp-client/run-2026-07-28.sh`;
         tabindex="0"><code>{verifyCode}</code></pre>
     </div>
     <p>
-      The pinned official runner passes all seven scored non-OAuth client
-      scenarios: 45 assertions succeed, zero fail, and 11 out-of-surface checks
-      are explicitly skipped. Read the <a href="/docs/mcp-conformance/"
-        >exact conformance boundary</a
+      The pinned official runner passes all 32 scored client scenarios,
+      including all 25 OAuth scenarios: 373 scored assertions succeed, zero
+      fail, and 11 out-of-surface checks are explicitly skipped. Read the <a
+        href="/docs/mcp-conformance/">exact conformance boundary</a
       > before making a compatibility claim.
     </p>
   </section>

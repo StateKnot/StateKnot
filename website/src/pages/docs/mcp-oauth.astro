@@ -1,0 +1,188 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const oauthCode = `use std::sync::Arc;
+
+use stateknot_integrations::{
+    McpClient, McpClientIdentity, McpClientOptions,
+    McpOAuthAuthorization, McpOAuthOptions, McpOAuthRegistration,
+    McpOAuthResource, ProviderEndpoint,
+};
+
+let endpoint = ProviderEndpoint::https("https://mcp.example.com/mcp/")?;
+let resource = McpOAuthResource::from_endpoint(&endpoint)?;
+let registration = McpOAuthRegistration::client_metadata_document(
+    "https://agent.example.com/oauth/client-metadata.json",
+)?;
+let policy = McpOAuthOptions::native(
+    "http://127.0.0.1:49152/callback",
+    "Inventory Agent",
+    registration,
+)?;
+let authorization = Arc::new(
+    McpOAuthAuthorization::new_with_stores(
+        resource,
+        policy,
+        user_agent,
+        encrypted_credential_store,
+        expiring_pkce_state_store,
+    )
+    .await?,
+);
+
+let client = McpClient::connect(
+    endpoint,
+    McpClientIdentity::new("inventory-agent", "1.0.0")?,
+    authorization,
+    McpClientOptions::default().with_maximum_authorization_retries(1)?,
+)
+.await?;`;
+
+const verifyCode = `cargo test -p stateknot-integrations --test mcp_client_contract --locked
+bash conformance/mcp-client/run-2026-07-28.sh`;
+---
+
+<DocsLayout
+  title="Authorize one MCP resource without widening trust."
+  description="Configure StateKnot's challenge-driven MCP OAuth client, durable credential stores, exact callback boundary, bounded replay, and frozen official evidence."
+  section="MCP OAuth client"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-oauth-boundary-title"
+  >
+    <h2 id="mcp-oauth-boundary-title">Implemented pre-alpha profile</h2>
+    <p>
+      The interactive authorization-code profile passes all 25 scored OAuth
+      client scenarios required by the frozen MCP 2026-07-28 set. Client
+      credentials, Enterprise Managed Authorization, DPoP, Workload Identity
+      Federation, stable SDK support, and MCP Server authorization are not
+      implemented or claimed.
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-oauth-connect-title">
+    <h2 id="mcp-oauth-connect-title">Bind OAuth to one exact resource</h2>
+    <p>
+      Production MCP resources require HTTPS. The host supplies a trusted user
+      agent plus encrypted, tenant-scoped credential and expiring PKCE-state
+      stores. The in-memory constructor is for processes that deliberately do
+      not promise restart recovery.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · durable OAuth binding</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-oauth-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="mcp-oauth-code" tabindex="0"><code>{oauthCode}</code></pre>
+    </div>
+    <p>
+      Use pre-registration when credentials were provisioned out of band. Use
+      CIMD for a published HTTPS client metadata document. Enable DCR fallback
+      only when it is an accepted deployment policy.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-oauth-flow-title">
+    <h2 id="mcp-oauth-flow-title">Keep challenge recovery finite</h2>
+    <ol>
+      <li>The client sends anonymously when no usable credential exists.</li>
+      <li>
+        A bounded 401/403 Bearer challenge drives protected-resource and
+        authorization-server discovery.
+      </li>
+      <li>
+        StateKnot restores issuer-bound credentials or starts a PKCE flow using
+        pre-registration, CIMD, then DCR according to policy.
+      </li>
+      <li>
+        The host opens the validated authorization URL and returns the complete
+        callback URL from the exact registered origin and path.
+      </li>
+      <li>
+        After token exchange, the MCP method is replayed once with a fresh
+        JSON-RPC ID. Timeout and ambiguous dispatch are never replayed.
+      </li>
+    </ol>
+    <p>
+      A 403 triggers step-up only for an explicit
+      <code>insufficient_scope</code> challenge carrying a scope. Scope upgrade and
+      transport replay have separate hard ceilings. An issuer change forces a new
+      issuer-bound registration flow.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-oauth-user-agent-title">
+    <h2 id="mcp-oauth-user-agent-title">Own the user-agent boundary</h2>
+    <p>
+      A native host reserves its loopback listener before opening the browser,
+      accepts only the configured address, port, and path, returns one complete
+      callback URL, and closes the listener. StateKnot enforces a five-minute
+      default handoff timeout, exact callback binding, PKCE, state, RFC 8707
+      resource indicators, and RFC 9207 issuer checks. URLs, codes, verifier
+      material, client identity, and tokens must never enter logs.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-oauth-store-title">
+    <h2 id="mcp-oauth-store-title">Treat stores as security infrastructure</h2>
+    <ul>
+      <li>
+        Encrypt access tokens, refresh tokens, client secrets, and PKCE state at
+        rest with a rotation procedure.
+      </li>
+      <li>
+        Isolate records by tenant, principal, MCP resource, and authorization
+        server issuer.
+      </li>
+      <li>
+        Make state one-time and expiring; make credential replacement atomic.
+      </li>
+      <li>
+        Emit only redacted audit facts for discovery, registration, refresh,
+        migration, scope upgrade, cancellation, and failure.
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="mcp-oauth-proof-title">
+    <h2 id="mcp-oauth-proof-title">Reproduce the exact claim</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · local contract and frozen official gate</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-oauth-verify-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-oauth-verify-code"
+        tabindex="0"><code>{verifyCode}</code></pre>
+    </div>
+    <p>
+      The frozen gate passes all 32 scored client scenarios, including all 25
+      OAuth scenarios: 373 scored assertions succeed and zero fail. Seven
+      explicitly not-scored extensions are reported separately and remain
+      outside the claim. Read the <a href="/docs/mcp-conformance/"
+        >complete evidence boundary</a
+      > and the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-oauth.md"
+        >full operating contract</a
+      >.
+    </p>
+  </section>
+</DocsLayout>

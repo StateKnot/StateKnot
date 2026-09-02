@@ -22,7 +22,7 @@ impl ApiKey {
     /// Returns [`ApiKeyError`] for empty, oversized, whitespace-padded, or
     /// header-unsafe values.
     pub fn new(value: impl Into<String>) -> Result<Self, ApiKeyError> {
-        let value = value.into();
+        let value = Zeroizing::new(value.into());
         if value.is_empty() {
             return Err(ApiKeyError::Empty);
         }
@@ -32,7 +32,7 @@ impl ApiKey {
                 actual: value.len(),
             });
         }
-        if value.trim() != value {
+        if value.trim() != value.as_str() {
             return Err(ApiKeyError::WhitespacePadded);
         }
         if let Some((index, _)) = value
@@ -42,7 +42,7 @@ impl ApiKey {
         {
             return Err(ApiKeyError::InvalidByte { index });
         }
-        Ok(Self(Zeroizing::new(value)))
+        Ok(Self(value))
     }
 
     pub(crate) fn expose_secret(&self) -> &str {

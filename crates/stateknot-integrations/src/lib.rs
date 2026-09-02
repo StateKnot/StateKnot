@@ -15,6 +15,7 @@ mod credential;
 mod http;
 mod mcp;
 mod mcp_client;
+mod mcp_oauth;
 mod openai;
 mod sse;
 
@@ -30,10 +31,19 @@ pub use mcp::{
     McpServerIdentity, McpServerIdentityError, StaticMcpBearerAuthorization,
 };
 pub use mcp_client::{
-    MCP_PROTOCOL_VERSION_2026_07_28, McpCachePolicy, McpClient, McpClientAuthorizationProvider,
-    McpClientAuthorizationRequest, McpClientIdentity, McpClientIdentityError, McpClientOptions,
-    McpClientOptionsError, McpClientServer, McpCompleteToolResult, McpInputRequired,
-    McpNotification, McpRejectedTool, McpRemoteError, McpTool, McpToolCall, McpToolCallResponse,
-    McpToolCatalog, McpToolPage, McpToolRejectionReason, StatelessMcpClientError,
+    MCP_PROTOCOL_VERSION_2026_07_28, McpCachePolicy, McpClient, McpClientAuthorizationChallenge,
+    McpClientAuthorizationChallengeStatus, McpClientAuthorizationProvider,
+    McpClientAuthorizationRequest, McpClientAuthorizationRetry, McpClientIdentity,
+    McpClientIdentityError, McpClientOptions, McpClientOptionsError, McpClientServer,
+    McpCompleteToolResult, McpInputRequired, McpNotification, McpRejectedTool, McpRemoteError,
+    McpTool, McpToolCall, McpToolCallResponse, McpToolCatalog, McpToolPage, McpToolRejectionReason,
+    StatelessMcpClientError,
+};
+pub use mcp_oauth::{
+    InMemoryMcpOAuthCredentialStore, InMemoryMcpOAuthStateStore, McpOAuthAuthorization,
+    McpOAuthCredentialRefreshGuard, McpOAuthCredentialStore, McpOAuthOptions, McpOAuthOptionsError,
+    McpOAuthRegistration, McpOAuthResource, McpOAuthResourceError, McpOAuthStateStore,
+    McpOAuthStoredAuthorizationState, McpOAuthStoredCredentials, McpOAuthUserAgent,
+    McpOAuthUserAgentError, McpOAuthUserAuthorizationRequest,
 };
 pub use openai::OpenAiResponsesModel;

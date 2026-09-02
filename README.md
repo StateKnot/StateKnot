@@ -190,11 +190,15 @@ The separate `McpClient` now implements the general stateless MCP 2026-07-28
 Tool surface: bounded discovery and pagination, JSON/request-scoped SSE,
 standard and nested custom headers, per-request authorization, invalid-Tool
 isolation, no network schema dereference, and exact multi-round request-state
-handling. A pinned official runner gate covers all seven scored non-OAuth
-client scenarios with 45 successful assertions, zero failures, and 11
-explicit skips for capabilities or methods outside this Tool surface. The 25
-scored OAuth scenarios, MCP server, Resources, Prompts, and complete SDK-tier
-claims remain unimplemented.
+handling. `McpOAuthAuthorization` adds challenge-driven protected-resource and
+authorization-server discovery, pre-registration/CIMD/DCR, PKCE, issuer and
+callback validation, scope upgrade, refresh, bounded replay, and caller-owned
+durable stores. The pinned official runner gate covers all 32 scored client
+scenarios, including all 25 OAuth scenarios: 373 scored assertions succeed,
+zero fail, and 11 capability/method checks outside the advertised Tool surface
+are explicitly skipped. Seven explicitly not-scored extensions remain reported
+and unclaimed. MCP Server, Resources, Prompts, client extensions, and stable
+SDK-tier claims remain unimplemented.
 The adapter is now composed with the durable invocation executor in a real
 PostgreSQL + loopback MCP test: durable start is observed before request I/O,
 lost write responses remain unknown, duplicate execution never redispatches,
@@ -210,10 +214,9 @@ The current milestone is to:
 
 1. preserve the completed PostgreSQL-backed strict MCP recovery proof as a
    mandatory PostgreSQL 16/17 gate;
-2. preserve the separate general MCP Tool client and its exact pinned
-   non-OAuth official gate while designing the OAuth security boundary needed
-   for the remaining 25 scored client scenarios; no complete-client claim is
-   permitted before that boundary passes;
+2. preserve the separate general MCP Tool/OAuth client and its exact pinned
+   32-scenario official gate while implementing the MCP Server profile as an
+   independent trust and conformance boundary;
 3. validate the three frozen production scenarios and accept the core domain,
    graph, durability, and protocol/security RFCs;
 4. qualify role isolation, failover/restore, and the final stale-race gates; and
@@ -230,6 +233,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [AgentService v1](docs/agent-service.md),
 [strict MCP Remote Tool profile](docs/mcp-remote-tool.md),
 [general stateless MCP Tool client](docs/mcp-client.md),
+[MCP OAuth client authorization](docs/mcp-oauth.md),
 [MCP conformance status](docs/mcp-conformance.md),
 [durable invocation](docs/durable-invocation-executor.md),
 [fair scheduling](docs/cross-tenant-fair-scheduler.md), and

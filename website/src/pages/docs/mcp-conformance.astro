@@ -9,20 +9,17 @@ npm ci --ignore-scripts
 cd ../..
 bash conformance/mcp-client/run-2026-07-28.sh`;
 
-const scenarios = [
-  ["tools_call", 2, 0],
-  ["request-metadata", 5, 3],
-  ["http-standard-headers", 3, 8],
-  ["http-custom-headers", 18, 0],
-  ["http-invalid-tool-headers", 11, 0],
-  ["json-schema-ref-no-deref", 1, 0],
-  ["sep-2322-client-request-state", 5, 0],
+const results = [
+  ["Required non-OAuth", 7, 45, 11, 0],
+  ["Required OAuth", 25, 328, 0, 0],
+  ["Required total", 32, 373, 11, 0],
+  ["Explicitly not scored", 7, 33, 6, 17],
 ] as const;
 ---
 
 <DocsLayout
   title="MCP conformance claims stop at the evidence."
-  description="Inspect the pinned official runner, all seven non-OAuth client scenario results, reproducible CI gate, and the OAuth/server boundary StateKnot does not claim."
+  description="Inspect the pinned official runner, all 32 scored client scenario results, reproducible CI gate, and the extension/server boundary StateKnot does not claim."
   section="MCP conformance status"
 >
   <aside
@@ -31,10 +28,11 @@ const scenarios = [
   >
     <h2 id="mcp-conformance-boundary-title">Current claim</h2>
     <p>
-      The general stateless Tool client passes all seven scored non-OAuth client
-      scenarios in the frozen MCP 2026-07-28 requirement set. The remaining 25
-      scored OAuth scenarios are not implemented, so StateKnot makes no complete
-      client, server, authorization-server, or SDK-tier conformance claim.
+      The general stateless Tool client and its OAuth provider pass all 32
+      scored client scenarios in the frozen MCP 2026-07-28 requirement set,
+      including all 25 OAuth scenarios. This is a pre-alpha client-profile
+      evidence claim, not a server, authorization-server, extension, stable-API,
+      or SDK-tier claim.
     </p>
   </aside>
 
@@ -85,24 +83,23 @@ const scenarios = [
       <table>
         <thead>
           <tr
-            ><th>Official client scenario</th><th>Success</th><th>Skipped</th
+            ><th>Official inventory</th><th>Scenarios</th><th>Success</th><th
+              >Skipped</th
             ><th>Failure</th></tr
           >
         </thead>
         <tbody>
           {
-            scenarios.map(([name, success, skipped]) => (
+            results.map(([name, scenarios, success, skipped, failure]) => (
               <tr>
-                <td>
-                  <code>{name}</code>
-                </td>
+                <td>{name}</td>
+                <td>{scenarios}</td>
                 <td>{success}</td>
                 <td>{skipped}</td>
-                <td>0</td>
+                <td>{failure}</td>
               </tr>
             ))
           }
-          <tr><th>Total</th><th>45</th><th>11</th><th>0</th></tr>
         </tbody>
       </table>
     </div>
@@ -110,7 +107,10 @@ const scenarios = [
       Three metadata skips are optional Roots, Sampling, and Elicitation
       declarations StateKnot does not advertise. Eight standard-header skips are
       lifecycle, Resource, and Prompt methods outside this Tool client. Skips
-      are not counted as passes and grant no capability claim.
+      are not counted as passes and grant no capability claim. The seven
+      final-row scenarios are official extensions or post-release additions that
+      the frozen set explicitly runs but never scores; their failures remain
+      reported and outside StateKnot's claim.
     </p>
   </section>
 
@@ -133,10 +133,11 @@ const scenarios = [
         tabindex="0"><code>{reproduceCommand}</code></pre>
     </div>
     <p>
-      The script builds the real Rust driver, runs each scenario, stores raw
-      official output, and fails on missing, duplicate, unexpected, failed, or
-      count-drifted evidence. CI pins Rust 1.88.0 and Node.js 24.19.0 and runs
-      the same command without an expected-failures file.
+      The script builds the real Rust driver and runs all 32 required plus seven
+      explicitly not-scored scenarios. An independent verifier requires the
+      exact inventory and a 373-success, 11-skip, zero-failure, zero-warning
+      scored result. CI pins Rust 1.88.0 and Node.js 24.19.0 and uses no
+      expected-failures file.
     </p>
   </section>
 
@@ -158,10 +159,9 @@ const scenarios = [
   <section aria-labelledby="mcp-conformance-next-title">
     <h2 id="mcp-conformance-next-title">Remaining release gates</h2>
     <p>
-      Complete client conformance requires a separately security-reviewed OAuth
-      implementation and all 25 frozen OAuth scenarios. MCP Server, Resources,
-      Prompts, Tasks, and SDK-tier claims each require their own implementation
-      and official evidence. Read the <a
+      Remaining independent gates include MCP Server, broader Resources/Prompts
+      and Task extensions, the seven currently not-scored client extensions,
+      stable SDK/API review, and release evidence. Read the <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-conformance.md"
         >complete evidence report</a
       > and the <a href="https://github.com/modelcontextprotocol/conformance"

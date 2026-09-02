@@ -9,20 +9,17 @@ npm ci --ignore-scripts
 cd ../..
 bash conformance/mcp-client/run-2026-07-28.sh`;
 
-const scenarios = [
-  ["tools_call", 2, 0],
-  ["request-metadata", 5, 3],
-  ["http-standard-headers", 3, 8],
-  ["http-custom-headers", 18, 0],
-  ["http-invalid-tool-headers", 11, 0],
-  ["json-schema-ref-no-deref", 1, 0],
-  ["sep-2322-client-request-state", 5, 0],
+const results = [
+  ["必需非 OAuth", 7, 45, 11, 0],
+  ["必需 OAuth", 25, 328, 0, 0],
+  ["必需合计", 32, 373, 11, 0],
+  ["官方明确不计分", 7, 33, 6, 17],
 ] as const;
 ---
 
 <DocsLayout
   title="MCP Conformance 声明以证据为界。"
-  description="查看固定官方 Runner、全部 7 个非 OAuth Client 场景、可复现 CI 门禁，以及 StateKnot 不声明的 OAuth/Server 边界。"
+  description="查看固定官方 Runner、全部 32 个计分 Client 场景、可复现 CI 门禁，以及 StateKnot 不声明的 Extension/Server 边界。"
   section="MCP Conformance 状态"
   locale="zh-CN"
 >
@@ -32,10 +29,10 @@ const scenarios = [
   >
     <h2 id="mcp-conformance-boundary-title">当前声明</h2>
     <p>
-      通用 Stateless Tool Client 通过冻结 MCP 2026-07-28 Requirement Set 中全部
-      7 个计分非 OAuth Client 场景。剩余 25 个计分 OAuth 场景尚未实现，因此
-      StateKnot 不声明完整 Client、Server、Authorization Server 或 SDK-tier
-      Conformance。
+      通用 Stateless Tool Client 与 OAuth Provider 通过冻结 MCP 2026-07-28
+      Requirement Set 中全部 32 个计分 Client 场景，其中包括全部 25 个 OAuth
+      场景。 这是 pre-alpha Client Profile 证据声明，不是 Server、Authorization
+      Server、 Extension、Stable API 或 SDK-tier 声明。
     </p>
   </aside>
 
@@ -85,32 +82,32 @@ const scenarios = [
       <table>
         <thead>
           <tr
-            ><th>官方 Client 场景</th><th>Success</th><th>Skipped</th><th
+            ><th>官方清单</th><th>场景</th><th>Success</th><th>Skipped</th><th
               >Failure</th
             ></tr
           >
         </thead>
         <tbody>
           {
-            scenarios.map(([name, success, skipped]) => (
+            results.map(([name, scenarios, success, skipped, failure]) => (
               <tr>
-                <td>
-                  <code>{name}</code>
-                </td>
+                <td>{name}</td>
+                <td>{scenarios}</td>
                 <td>{success}</td>
                 <td>{skipped}</td>
-                <td>0</td>
+                <td>{failure}</td>
               </tr>
             ))
           }
-          <tr><th>合计</th><th>45</th><th>11</th><th>0</th></tr>
         </tbody>
       </table>
     </div>
     <p>
       3 个 Metadata Skip 是 StateKnot 没有声明的 Optional Roots、Sampling 与
       Elicitation。8 个 Standard Header Skip 属于本 Tool Client 外的 Lifecycle、
-      Resource 与 Prompt Method。Skip 不计作 Pass，也不会授予能力声明。
+      Resource 与 Prompt Method。Skip 不计作 Pass，也不会授予能力声明。最后一行
+      是冻结 Set 明确运行但永不计分的官方 Extension 或发布后新增场景；其 Failure
+      保持报告，并且不进入 StateKnot 声明。
     </p>
   </section>
 
@@ -133,10 +130,10 @@ const scenarios = [
         tabindex="0"><code>{reproduceCommand}</code></pre>
     </div>
     <p>
-      脚本构建真实 Rust Driver、逐个运行场景、保存官方原始
-      Output，并在场景缺失、 重复、意外增加、失败或 Count Drift 时失败。CI 固定
-      Rust 1.88.0 与 Node.js 24.19.0，不使用 Expected-failures File
-      执行同一命令。
+      脚本构建真实 Rust Driver，并运行全部 32 个必需场景与 7 个明确不计分场景。
+      独立 Verifier 强制精确清单，以及 373 Success、11 Skip、0 Failure、0
+      Warning 的计分结果。CI 固定 Rust 1.88.0 与 Node.js 24.19.0，不使用
+      Expected-failures File。
     </p>
   </section>
 
@@ -155,9 +152,9 @@ const scenarios = [
   <section aria-labelledby="mcp-conformance-next-title">
     <h2 id="mcp-conformance-next-title">剩余发布门禁</h2>
     <p>
-      完整 Client Conformance 需要经过独立安全评审的 OAuth 实现，并通过全部 25
-      个冻结 OAuth 场景。MCP Server、Resources、Prompts、Tasks 与 SDK-tier 声明
-      分别需要自己的实现和官方证据。阅读<a
+      剩余独立门禁包括 MCP Server、更广 Resources/Prompts 与 Task
+      Extension、当前 7 个不计分 Client Extension、稳定 SDK/API Review 与
+      Release Evidence。阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-conformance.zh-CN.md"
         >完整证据报告</a
       >与<a href="https://github.com/modelcontextprotocol/conformance"

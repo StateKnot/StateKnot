@@ -136,7 +136,7 @@ jobs:
         working-directory: conformance/mcp-client
         run: npm audit --audit-level=high
 
-      - name: Run frozen stateless Tool client scenarios
+      - name: Run frozen MCP client requirement set
         run: bash conformance/mcp-client/run-2026-07-28.sh
 
   cross-platform:

@@ -81,7 +81,13 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "通用 Stateless MCP Tool Client",
-    body: "有界 Discovery/Pagination、JSON 与 Request-scoped SSE、标准与嵌套 Custom Header、无效 Tool 隔离、逐请求 Authorization、禁止网络 Schema Dereference、精确 MRTR，以及强制固定官方 45-success 门禁。",
+    body: "有界 Discovery/Pagination、JSON 与 Request-scoped SSE、标准与嵌套 Custom Header、无效 Tool 隔离、禁止网络 Schema Dereference、精确 MRTR 与冻结官方 Client 门禁。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
+    title: "MCP OAuth Client Authorization",
+    body: "Challenge-driven Protected-resource/Authorization-server Discovery、Pre-registration/CIMD/DCR、PKCE、精确 Issuer/Callback 校验、有界 Scope/Replay、Durable Store Interface，以及全部 25 个计分 OAuth 场景。",
   },
   {
     state: "开发中",
@@ -99,7 +105,7 @@ const capabilities = [
     state: "尚未发布",
     className: "status-planned",
     title: "更广 MCP 与 A2A Profile",
-    body: "MCP OAuth、MCP Server、Resources/Prompts 与更广 Client Feature、完整官方 MCP Client/Server Conformance，以及全部 A2A Client/Server Binding 尚未交付。",
+    body: "MCP Server、Resources/Prompts 与更广 Client Extension、完整 Server/SDK-tier 证据，以及全部 A2A Client/Server Binding 尚未交付。",
   },
   {
     state: "尚未发布",
@@ -112,7 +118,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：严格与通用 MCP Tool Client 已加入耐久 Provider-native Path；OAuth、Server Profile、稳定 Network API、A2A、高级 Graph 语义与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：严格与通用 MCP Tool Client 加交互式 OAuth 已加入耐久 Provider-native Path；Server Profile、稳定 Network API、A2A、高级 Graph 语义与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -152,10 +158,10 @@ const capabilities = [
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
       严格 MCP Binding 保留端到端 PostgreSQL Recovery 证据。独立通用 Tool Client
-      现在已通过全部 7 个冻结计分非 OAuth Client 场景：45 项 Assertion Success、
-      0 Failure。下一条协议边界是经过独立安全评审的 OAuth 实现与剩余 25 个计分
-      Client 场景；通过前不声明完整 Client Conformance。MCP Server 与 A2A
-      将作为独立 Profile 后续实现。
+      与 OAuth Provider 现已通过全部 32 个冻结计分 Client 场景，其中包括全部 25
+      个 OAuth 场景：373 项计分 Assertion Success、0 Failure。下一条协议边界是
+      MCP Server Profile 与其独立官方证据；更广 Client Extension 与 A2A
+      仍是独立门禁。
     </p>
   </section>
 
@@ -194,6 +200,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/zh/docs/mcp-client/">通用 Stateless MCP Tool Client</a>
+      </li>
+      <li>
+        <a href="/zh/docs/mcp-oauth/">MCP OAuth Client Authorization</a>
       </li>
       <li>
         <a href="/zh/docs/mcp-remote-tool/">严格 MCP Remote Tool Profile</a>

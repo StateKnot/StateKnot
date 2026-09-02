@@ -37,12 +37,16 @@ must preserve admission, ambiguity, and reconciliation evidence.
   IDs, exact response-key matching, and isolation between concurrent calls;
 - request-scoped authorization resolution, hard resource ceilings, no
   redirects, and no generic HTTP retry;
+- bounded 401/403 Bearer challenge capture and explicit authorization-provider
+  recovery with a fresh JSON-RPC ID;
 - JSON Schemas retained as untrusted bounded values without network `$ref`
   dereferencing.
 
-This surface does not implement OAuth discovery/authorization, MCP Server,
-Resources, Prompts, Tasks, Roots, Sampling, or a stable SDK tier. Static bearer
-credentials are transport credentials, not an OAuth implementation.
+The separate [`McpOAuthAuthorization`](mcp-oauth.md) provider now implements the
+interactive OAuth authorization-code profile. This surface still does not
+implement MCP Server, Resources, Prompts, Tasks, Roots, Sampling, client
+credentials, DPoP, or a stable SDK tier. Static bearer credentials remain
+transport credentials, not an OAuth flow.
 
 ## Connect, discover, and call
 
@@ -147,13 +151,19 @@ Reqwest retries are disabled.
 so a production credential provider can rotate short-lived tokens without
 placing secrets in `_meta`, logs, or debug output. `AnonymousMcpAuthorization`
 and `StaticMcpBearerAuthorization` cover unauthenticated and fixed-token
-deployments. OAuth remains a separate unimplemented security boundary.
+deployments. `McpOAuthAuthorization` additionally handles bounded Bearer
+challenges, protected-resource and authorization-server discovery,
+pre-registration/CIMD/DCR, PKCE, token refresh, issuer migration, scope
+step-up, and exact callback validation. Production restart recovery requires
+caller-owned encrypted credential and expiring PKCE-state stores.
 
 The client performs no automatic retry after timeout, connection failure, or
-ambiguous Tool dispatch. Its sole automatic retry is the protocol-defined
-`-32022` version negotiation path when the server explicitly advertises
-`2026-07-28`. External writes that need recovery guarantees belong behind
-`McpRemoteTool` and the durable invocation executor.
+ambiguous Tool dispatch. Protocol version negotiation receives one retry when
+the server explicitly advertises `2026-07-28`. Authorization challenge recovery
+receives one replay by default only after the provider explicitly authorizes
+it; the replay uses a fresh JSON-RPC ID and has a hard maximum of three.
+External writes that need recovery guarantees belong behind `McpRemoteTool`
+and the durable invocation executor.
 
 ## Default resource ceilings
 
@@ -168,6 +178,7 @@ Defaults are finite and can be reduced through `ProviderHttpOptions` and
 | Request / complete JSON response | 16 MiB / 2 MiB |
 | SSE line / event / total stream | 512 KiB / 2 MiB / 64 MiB |
 | Notifications per response | 1,024 |
+| Authorization replays / challenge bytes | 1 / 64 KiB |
 
 Hard implementation ceilings prevent configuration from silently becoming
 unbounded; the logical request deadline cannot be configured above 24 hours.
@@ -187,7 +198,8 @@ Before deployment:
 
 1. pin the StateKnot revision and the MCP wire profile;
 2. allowlist an HTTPS endpoint and control DNS/egress outside the client;
-3. use a rotating request-scoped credential provider where tokens expire;
+3. use a rotating request-scoped provider, or the OAuth provider with encrypted
+   tenant-scoped stores, where tokens expire;
 4. treat discovery and Tool output as untrusted input;
 5. set limits below downstream model, proxy, and storage limits;
 6. classify Tool side effects before deciding whether a call may be retried;
@@ -195,8 +207,9 @@ Before deployment:
 8. monitor rejected Tools, protocol failures, timeouts, and Tool-level
    `isError` results without logging credentials or sensitive payloads.
 
-The pinned official evidence covers all seven scored non-OAuth client scenarios
-in the frozen `2026-07-28` requirement set: 45 assertions succeeded, none
-failed, and 11 optional or unimplemented-method checks were skipped. The 25
-scored OAuth scenarios remain unimplemented, so StateKnot does not claim
-complete client, server, or SDK-tier conformance.
+The pinned official evidence covers all 32 scored client scenarios in the
+frozen `2026-07-28` requirement set, including all 25 scored OAuth scenarios:
+373 scored assertions succeeded and none failed. Eleven optional or
+unimplemented-method checks were skipped. Seven explicitly not-scored
+extensions are reported separately and remain outside StateKnot's client,
+server, extension, and SDK-tier claims.

@@ -15,10 +15,14 @@ StateKnot 已实现两个相互独立的 MCP `2026-07-28` Client-side Tool Surfa
   Reconciliation-first Ambiguous Write 的严格耐久 Binding；
 - [`McpClient`](mcp-client.zh-CN.md)：支持动态 Discovery、JSON/Request-scoped
   SSE、`x-mcp-header` 与 MRTR 的有界通用 Stateless Tool Client。
+- [`McpOAuthAuthorization`](mcp-oauth.zh-CN.md)：支持 Discovery、PKCE、Issuer
+  Migration、Scope Upgrade、Refresh 与调用方 Durable Store 的 Challenge-driven
+  交互式 OAuth Provider。
 
-通用 Client 通过了冻结官方 `2026-07-28` Requirement Set 中全部计分的**非 OAuth
-Client 场景**。剩余 25 个计分 OAuth Client 场景尚未实现，因此 StateKnot 不声明
-完整 MCP Client、Server、Authorization Server 或 SDK-tier Conformance。
+通用 Client 与 OAuth Provider 通过冻结官方 `2026-07-28` Requirement Set 中全部
+**32 个计分 Client 场景**，其中包括全部 25 个 OAuth 场景。这是已实现 pre-alpha
+Client Profile 的证据声明，不是 MCP Server、Authorization Server、Extension、
+Stable API 或 SDK-tier Conformance 声明。
 
 ## 冻结的评估输入
 
@@ -47,25 +51,28 @@ npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2
 
 ## 结果
 
-| 官方 Client 场景 | Success | Skipped | Failure |
-| --- | ---: | ---: | ---: |
-| `tools_call` | 2 | 0 | 0 |
-| `request-metadata` | 5 | 3 | 0 |
-| `http-standard-headers` | 3 | 8 | 0 |
-| `http-custom-headers` | 18 | 0 | 0 |
-| `http-invalid-tool-headers` | 11 | 0 | 0 |
-| `json-schema-ref-no-deref` | 1 | 0 | 0 |
-| `sep-2322-client-request-state` | 5 | 0 | 0 |
-| **合计** | **45** | **11** | **0** |
+| 官方 Client 清单 | 场景 | Success | Skipped | Failure |
+| --- | ---: | ---: | ---: | ---: |
+| 必需非 OAuth | 7 | 45 | 11 | 0 |
+| 必需 OAuth | 25 | 328 | 0 | 0 |
+| **必需合计** | **32** | **373** | **11** | **0** |
+| 官方明确不计分 | 7 | 33 | 6 | 17 |
 
 3 个 Metadata Skip 是 StateKnot 没有声明的 Optional Roots、Sampling 与
 Elicitation Capability。8 个 Standard Header Skip 属于本 Tool Client Surface
 之外的 Lifecycle、Resource 与 Prompt Method。Skip 不计作 Pass，也不会据此声明不支持的能力。
+最后一行包含 Client Credentials、Enterprise Managed Authorization、DPoP、Workload
+Identity Federation 与发布后新增的 JSON Schema Preservation 场景。官方 Requirement
+Set 会报告这 7 个场景，但明确不计分；其 17 个 Failure 不是 Expected Failure，
+StateKnot 也不声明这些 Extension。
 
 成功 Check 覆盖 Tool 调用与 Wire Schema；必需 Request Metadata 与 Version Retry；
 Tool Standard Header；Primitive、Nested、Null-omitting、Base64 Custom Header；逐个
 排除无效 Annotation Tool；禁止网络 `$ref` Dereference；以及使用全新 JSON-RPC ID、
-精确隔离 Request State 的 MRTR。
+精确隔离 Request State 的 MRTR。OAuth Check 覆盖全部 Metadata Discovery Variant、
+CIMD 与 Pre-registration、Scope Source/Omission/Step-up、三种 Token Endpoint
+Authentication Mode、Resource Mismatch、Offline Access、Authorization-server
+Migration 与完整 RFC 9207 Issuer Matrix。
 
 ## 复现门禁
 
@@ -76,9 +83,11 @@ cd ../..
 bash conformance/mcp-client/run-2026-07-28.sh
 ```
 
-脚本会构建真实 Rust Driver，逐个运行 7 个精确场景，把官方原始 Output 保存到被
-Git 忽略的 `results/` 目录，然后强制校验 45 Success、11 Skip、0 Failure。场景
-缺失、重复、意外增加或 Result Drift 都会使命令失败。
+脚本构建真实 Rust Driver，并要求固定 Runner 执行完整冻结 Client Requirement Set：
+32 个必需场景与 7 个官方明确不计分场景。官方原始 Output 保存到 Git 忽略的
+`results/` 目录；独立 Verifier 强制校验精确必需清单、373 Success、11 Skip、0
+Failure、0 Warning，以及精确不计分清单。必需证据缺失、重复、意外增加或 Drift
+都会使命令失败，不使用 Expected-failures File。
 
 CI 使用固定 Rust 与 Node Toolchain 执行同一脚本，不使用 Expected-failures
 Baseline。独立 HTTP/SSE Contract 还会验证分片 Request-scoped SSE、Notification
@@ -101,10 +110,11 @@ Primitive，但保留不同的 Trust 与 Recovery Guarantee。
 
 ## 剩余门禁
 
-完整 MCP Client Conformance 仍需要单独安全评审的 OAuth 实现，并通过全部 25 个
-冻结 OAuth 场景。MCP Server、Resources、Prompts、Tasks 与 SDK-tier 声明都需要
-各自实现和官方证据。未来发布声明还必须把生成的 Check 与 Platform Identity 作为
-Release Artifact 发布，同时继续把严格 Remote Tool PostgreSQL Recovery Test 保留为独立门禁。
+下一组独立门禁是 MCP Server Profile、更广 Resources/Prompts 与 Task Extension、
+当前 7 个不计分 Client Extension、稳定 SDK/API Review，以及 Release Artifact
+发布。每项都需要自己的实现与适用官方证据。未来发布声明还必须把生成的 Check 与
+Platform Identity 作为 Release Artifact 发布，同时继续把严格 Remote Tool
+PostgreSQL Recovery Test 保留为独立门禁。
 
 Runner 的权威来源是[官方 MCP Conformance 仓库](https://github.com/modelcontextprotocol/conformance)。协议行为由
 [MCP 2026-07-28 Base Protocol](https://modelcontextprotocol.io/specification/2026-07-28/basic/index)、

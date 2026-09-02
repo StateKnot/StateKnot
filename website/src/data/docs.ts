@@ -126,10 +126,18 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "General MCP Tool client",
         description:
-          "Discover and call bounded stateless MCP 2026-07-28 Tools with JSON/SSE, custom headers, and mediated MRTR.",
+          "Discover and call bounded stateless MCP 2026-07-28 Tools with JSON/SSE, OAuth, custom headers, and mediated MRTR.",
         href: "/docs/mcp-client/",
         search:
-          "mcp general client tool stateless discover catalog sse custom header mrtr request state conformance",
+          "mcp general client tool stateless discover catalog sse oauth custom header mrtr request state conformance",
+      },
+      {
+        title: "MCP OAuth client",
+        description:
+          "Bind one MCP resource to challenge-driven discovery, PKCE, issuer validation, durable credentials, and bounded replay.",
+        href: "/docs/mcp-oauth/",
+        search:
+          "mcp oauth authorization pkce protected resource metadata cimd dcr issuer scope token callback durable credential",
       },
       {
         title: "MCP Remote Tool",
@@ -293,10 +301,18 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "通用 MCP Tool Client",
         description:
-          "通过 JSON/SSE、Custom Header 与受控 MRTR 发现和调用有界 Stateless MCP 2026-07-28 Tool。",
+          "通过 JSON/SSE、OAuth、Custom Header 与受控 MRTR 发现和调用有界 Stateless MCP 2026-07-28 Tool。",
         href: "/docs/mcp-client/",
         search:
-          "mcp 通用 client tool stateless 发现 catalog sse custom header mrtr request state conformance",
+          "mcp 通用 client tool stateless 发现 catalog sse oauth custom header mrtr request state conformance",
+      },
+      {
+        title: "MCP OAuth Client",
+        description:
+          "将一个 MCP Resource 绑定到 Challenge-driven Discovery、PKCE、Issuer 校验、耐久 Credential 与有界 Replay。",
+        href: "/docs/mcp-oauth/",
+        search:
+          "mcp oauth authorization pkce protected resource metadata cimd dcr issuer scope token callback 耐久 credential",
       },
       {
         title: "MCP Remote Tool",

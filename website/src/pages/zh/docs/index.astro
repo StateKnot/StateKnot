@@ -72,6 +72,12 @@ const paths = [
     link: "使用 Tool Client",
   },
   {
+    title: "授权一个 MCP Resource",
+    body: "集成 Challenge-driven OAuth Discovery、PKCE、精确 Issuer/Callback 校验、有界 Replay 与耐久 Credential Store。",
+    href: "/zh/docs/mcp-oauth/",
+    link: "配置 OAuth",
+  },
+  {
     title: "绑定一个 MCP Remote Tool",
     body: "只发现一次严格 Stateless MCP 2026-07-28 Tool，固定 Identity 与 Schema，并保留不确定 Write Outcome。",
     href: "/zh/docs/mcp-remote-tool/",
@@ -126,10 +132,10 @@ const paths = [
         href="/zh/docs/agent-service/">AgentService v1</a
       > 已经把 Submission、Verified Read 与 Cancellation 暴露为 Authorization-first
       嵌入式边界。<a href="/zh/docs/mcp-client/">通用 MCP Tool Client</a>
-      现在还提供有界动态 Discovery、JSON/Request-scoped SSE、Custom Header 与 MRTR；<a
-        href="/zh/docs/mcp-remote-tool/">严格 MCP Remote Tool Profile</a
-      >
-      保留更强耐久 Binding。OAuth、MCP Server、稳定 Network Transport、A2A 与生产验证仍是发布阻断项。
+      现在还提供有界动态 Discovery、JSON/Request-scoped SSE、Custom Header、MRTR 与<a
+        href="/zh/docs/mcp-oauth/">交互式 OAuth Authorization</a
+      >；<a href="/zh/docs/mcp-remote-tool/">严格 MCP Remote Tool Profile</a>
+      保留更强耐久 Binding。MCP Server、稳定 Network Transport、A2A 与生产验证仍是发布阻断项。
     </p>
   </aside>
 

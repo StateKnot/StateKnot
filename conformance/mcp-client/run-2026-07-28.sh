@@ -26,24 +26,11 @@ run_id="run-$(date -u +%Y%m%dT%H%M%SZ)-${PPID}"
 run_dir="${results_root}/${run_id}"
 mkdir -p "${run_dir}"
 
-scenarios=(
-  tools_call
-  request-metadata
-  http-standard-headers
-  http-custom-headers
-  http-invalid-tool-headers
-  json-schema-ref-no-deref
-  sep-2322-client-request-state
-)
-
-for scenario in "${scenarios[@]}"; do
-  "${runner}" client \
-    --command "${client_binary}" \
-    --scenario "${scenario}" \
-    --spec-version "${protocol_version}" \
-    --timeout 30000 \
-    --output-dir "${run_dir}/${scenario}"
-done
+"${runner}" client \
+  --command "${client_binary}" \
+  --requirements "${protocol_version}" \
+  --timeout 30000 \
+  --output-dir "${run_dir}"
 
 node "${script_dir}/verify-results.mjs" "${run_dir}"
 echo "MCP conformance evidence: ${run_dir}"

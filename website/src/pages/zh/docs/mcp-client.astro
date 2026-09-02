@@ -51,8 +51,9 @@ bash conformance/mcp-client/run-2026-07-28.sh`;
   >
     <h2 id="mcp-client-boundary-title">已实现 Tool Client，Pre-alpha API</h2>
     <p>
-      <code>McpClient</code> 已实现 Stateless MCP 2026-07-28 Tool Surface。 OAuth、MCP
-      Server、Resources、Prompts、Tasks 与稳定 SDK-tier 支持尚未实现； Crate 也尚未发布。
+      <code>McpClient</code> 已实现 Stateless MCP 2026-07-28 Tool Surface。独立 OAuth
+      Provider 已实现交互式 Authorization Code Profile。MCP Server、Resources、 Prompts、Tasks、OAuth
+      Extension 与稳定 SDK-tier 支持尚未实现；Crate 也尚未发布。
     </p>
   </aside>
 
@@ -162,10 +163,11 @@ bash conformance/mcp-client/run-2026-07-28.sh`;
       </table>
     </div>
     <p>
-      Logical Request Deadline 的硬上限为 24 小时。 Redirect 与 Generic Retry
-      被禁用。Timeout 或 Tool Response 丢失后绝不自动 Replay。只有协议定义的 <code
-        >-32022</code
-      > Version Negotiation 会在 Server 明确声明支持本版本后 Retry 一次。
+      Logical Request Deadline 的硬上限为 24 小时。Redirect 与 Generic Retry
+      被禁用；Timeout 或 Tool Response 丢失后绝不自动 Replay。Protocol Version
+      Negotiation 在 Server 明确声明该版本后获得一次有界 Retry。Bearer Challenge
+      只有 Authorization Provider 显式批准后才默认获得一次 Replay，并使用新
+      JSON-RPC ID。详见<a href="/zh/docs/mcp-oauth/">MCP OAuth Client 合约</a>。
     </p>
   </section>
 
@@ -188,9 +190,10 @@ bash conformance/mcp-client/run-2026-07-28.sh`;
         tabindex="0"><code>{verifyCode}</code></pre>
     </div>
     <p>
-      固定官方 Runner 通过全部 7 个计分非 OAuth Client 场景：45 项 Assertion
-      Success、0 Failure，11 项 Surface 外检查明确 Skip。提出兼容性声明前请阅读<a
-        href="/zh/docs/mcp-conformance/">精确 Conformance 边界</a
+      固定官方 Runner 通过全部 32 个计分 Client 场景，包括全部 25 个 OAuth
+      场景： 373 项计分 Assertion Success、0 Failure，11 项 Surface 外检查明确
+      Skip。 提出兼容性声明前请阅读<a href="/zh/docs/mcp-conformance/"
+        >精确 Conformance 边界</a
       >。
     </p>
   </section>

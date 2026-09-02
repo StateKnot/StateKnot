@@ -94,6 +94,12 @@ const localizedRoutePairs = [
     zhHeading: "安全调用一个 Stateless MCP Tool。",
   },
   {
+    en: "/docs/mcp-oauth/",
+    zh: "/zh/docs/mcp-oauth/",
+    enHeading: "Authorize one MCP resource without widening trust.",
+    zhHeading: "授权一个 MCP Resource，不扩大信任边界。",
+  },
+  {
     en: "/docs/mcp-remote-tool/",
     zh: "/zh/docs/mcp-remote-tool/",
     enHeading: "Bind one MCP Tool without weakening durability.",
@@ -197,6 +203,9 @@ test("homepage exposes honest implementation status and semantic structure", asy
     page
       .locator(".spec-list")
       .getByText("General MCP Tool client", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".spec-list").getByText("MCP OAuth client", { exact: true }),
   ).toBeVisible();
   await expect(
     page.locator(".spec-list").getByText("MCP Remote Tool", { exact: true }),
@@ -554,7 +563,7 @@ test("general MCP Tool client documents MRTR, limits, and official evidence", as
     }),
   ).toBeVisible();
   await expect(
-    page.getByText("45 assertions succeed", { exact: false }),
+    page.getByText("373 scored assertions succeed", { exact: false }),
   ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(2);
 });
@@ -565,7 +574,7 @@ test("MCP conformance page freezes evidence without overclaiming", async ({
   await page.goto("/docs/mcp-conformance/");
   await expect(page.getByText("Current claim", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("remaining 25 scored OAuth scenarios", {
+    page.getByText("all 25 OAuth scenarios", {
       exact: false,
     }),
   ).toBeVisible();
@@ -578,6 +587,25 @@ test("MCP conformance page freezes evidence without overclaiming", async ({
     }),
   ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(1);
+});
+
+test("MCP OAuth page documents durable stores and bounded replay", async ({
+  page,
+}) => {
+  await page.goto("/docs/mcp-oauth/");
+  await expect(
+    page.getByText("Implemented pre-alpha profile", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Treat stores as security infrastructure",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("all 25 scored OAuth", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(2);
 });
 
 for (const route of localizedRoutePairs) {

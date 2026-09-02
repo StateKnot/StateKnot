@@ -55,6 +55,9 @@ const MAX_PROTOCOL_VERSION_BYTES: usize = 128;
 const MAX_TOOL_NAME_BYTES: usize = 1024;
 const MAX_CURSOR_BYTES: usize = 4096;
 const MAX_REMOTE_ERROR_MESSAGE_BYTES: usize = 4096;
+const MAX_WWW_AUTHENTICATE_VALUES: usize = 16;
+const MAX_WWW_AUTHENTICATE_VALUE_BYTES: usize = 16 * 1024;
+const MAX_WWW_AUTHENTICATE_TOTAL_BYTES: usize = 64 * 1024;
 
 static NEXT_CLIENT_BINDING_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -143,6 +146,7 @@ fn validate_identity_component(value: &str) -> Result<(), McpClientIdentityError
 pub struct McpClientOptions {
     transport: ProviderHttpOptions,
     request_timeout: Duration,
+    maximum_authorization_retries: usize,
     maximum_concurrent_requests: usize,
     maximum_catalog_pages: usize,
     maximum_catalog_tools: usize,
@@ -150,10 +154,12 @@ pub struct McpClientOptions {
 }
 
 impl McpClientOptions {
-    /// Hard total deadline ceiling for one logical request.
+    /// Hard deadline ceiling for one outbound MCP HTTP attempt.
     pub const HARD_MAXIMUM_REQUEST_TIMEOUT: Duration = Duration::from_secs(24 * 60 * 60);
     /// Hard concurrent request ceiling.
     pub const HARD_MAXIMUM_CONCURRENT_REQUESTS: usize = 1024;
+    /// Hard authorization retry ceiling for one logical MCP request.
+    pub const HARD_MAXIMUM_AUTHORIZATION_RETRIES: usize = 3;
     /// Hard tool-catalog page ceiling.
     pub const HARD_MAXIMUM_CATALOG_PAGES: usize = 64;
     /// Hard tool-catalog entry ceiling.
@@ -194,6 +200,7 @@ impl McpClientOptions {
         Ok(Self {
             transport,
             request_timeout,
+            maximum_authorization_retries: 1,
             maximum_concurrent_requests,
             maximum_catalog_pages,
             maximum_catalog_tools,
@@ -207,11 +214,33 @@ impl McpClientOptions {
         self.transport
     }
 
-    /// Returns the total deadline for one logical request, including a single
-    /// safe protocol-version retry.
+    /// Returns the deadline for one outbound MCP HTTP attempt. Interactive
+    /// OAuth handoff uses its own independently bounded policy.
     #[must_use]
     pub const fn request_timeout(self) -> Duration {
         self.request_timeout
+    }
+
+    /// Returns the maximum OAuth challenge recoveries for one logical request.
+    #[must_use]
+    pub const fn maximum_authorization_retries(self) -> usize {
+        self.maximum_authorization_retries
+    }
+
+    /// Sets the bounded OAuth challenge recovery count.
+    ///
+    /// Zero disables automatic recovery. Values above the hard ceiling are
+    /// rejected so a malicious resource server cannot create an unbounded
+    /// authorization loop.
+    pub const fn with_maximum_authorization_retries(
+        mut self,
+        maximum: usize,
+    ) -> Result<Self, McpClientOptionsError> {
+        if maximum > Self::HARD_MAXIMUM_AUTHORIZATION_RETRIES {
+            return Err(McpClientOptionsError::AboveHardMaximum);
+        }
+        self.maximum_authorization_retries = maximum;
+        Ok(self)
     }
 
     /// Returns the maximum in-flight requests for this client.
@@ -244,6 +273,7 @@ impl Default for McpClientOptions {
         Self {
             transport: ProviderHttpOptions::default(),
             request_timeout: Duration::from_secs(30),
+            maximum_authorization_retries: 1,
             maximum_concurrent_requests: 16,
             maximum_catalog_pages: 16,
             maximum_catalog_tools: 1024,
@@ -301,6 +331,68 @@ pub trait McpClientAuthorizationProvider: Send + Sync + 'static {
         &self,
         request: &McpClientAuthorizationRequest,
     ) -> BoxFuture<'_, Result<McpAuthorization, McpAuthorizationError>>;
+
+    /// Handles a bounded HTTP Bearer challenge before the transport decides
+    /// whether the exact MCP request may be replayed once.
+    ///
+    /// Providers that do not implement interactive OAuth decline by default.
+    fn handle_challenge<'a>(
+        &'a self,
+        _request: &'a McpClientAuthorizationRequest,
+        _challenge: &'a McpClientAuthorizationChallenge,
+    ) -> BoxFuture<'a, Result<McpClientAuthorizationRetry, McpAuthorizationError>> {
+        Box::pin(async { Ok(McpClientAuthorizationRetry::Decline) })
+    }
+}
+
+/// HTTP status that triggered an MCP authorization challenge.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum McpClientAuthorizationChallengeStatus {
+    /// The resource server rejected missing, expired, or invalid credentials.
+    Unauthorized,
+    /// The resource server rejected the credential's current permissions.
+    Forbidden,
+}
+
+/// Bounded, public-safe facts from an MCP resource-server challenge.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct McpClientAuthorizationChallenge {
+    status: McpClientAuthorizationChallengeStatus,
+    www_authenticate: Arc<[Box<str>]>,
+}
+
+impl McpClientAuthorizationChallenge {
+    /// Returns the challenge status.
+    #[must_use]
+    pub const fn status(&self) -> McpClientAuthorizationChallengeStatus {
+        self.status
+    }
+
+    /// Returns all syntactically valid, bounded `WWW-Authenticate` values in
+    /// wire order. Values remain untrusted input.
+    #[must_use]
+    pub fn www_authenticate(&self) -> impl ExactSizeIterator<Item = &str> {
+        self.www_authenticate.iter().map(AsRef::as_ref)
+    }
+
+    /// Returns the first Bearer challenge, matching the scheme
+    /// case-insensitively and without interpreting its parameters.
+    #[must_use]
+    pub fn bearer(&self) -> Option<&str> {
+        self.www_authenticate()
+            .find(|value| authentication_scheme(value) == Some("bearer"))
+    }
+}
+
+/// Result of an authorization provider handling one challenge.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum McpClientAuthorizationRetry {
+    /// Credentials changed and the transport may replay the rejected request.
+    Retry,
+    /// The provider did not handle this challenge.
+    Decline,
 }
 
 /// Cache metadata attached to a modern MCP result.
@@ -803,6 +895,9 @@ pub enum StatelessMcpClientError {
     /// The endpoint requires authorization.
     #[error("MCP endpoint requires authorization")]
     AuthorizationRequired,
+    /// An HTTP authorization challenge exceeded its syntax or resource bounds.
+    #[error("MCP endpoint returned an invalid authorization challenge")]
+    InvalidAuthorizationChallenge,
     /// The supplied authorization lacks permission.
     #[error("MCP endpoint denied permission")]
     PermissionDenied,
@@ -894,9 +989,9 @@ impl McpClient {
     /// Builds a bounded transport and validates the endpoint through
     /// `server/discover`.
     ///
-    /// The only automatic network retry is one `-32022`
-    /// `UnsupportedProtocolVersion` retry when the server explicitly lists
-    /// this client's version. Redirects and generic HTTP retries remain off.
+    /// Automatic replays are limited to one `-32022`
+    /// `UnsupportedProtocolVersion` recovery and the configured bounded OAuth
+    /// challenge count. Redirects and generic HTTP retries remain off.
     pub async fn connect(
         endpoint: ProviderEndpoint,
         identity: McpClientIdentity,
@@ -1067,19 +1162,41 @@ impl McpClient {
         params: Map<String, Value>,
         promoted_headers: Vec<(HeaderName, HeaderValue)>,
     ) -> Result<RpcExchange, StatelessMcpClientError> {
-        let deadline = tokio::time::Instant::now() + self.inner.options.request_timeout();
         let mut attempted_version_retry = false;
+        let mut authorization_retries = 0usize;
+        let authorization_request = McpClientAuthorizationRequest {
+            method: method.to_owned().into_boxed_str(),
+            name: name.map(|value| value.to_owned().into_boxed_str()),
+        };
         loop {
+            let deadline = tokio::time::Instant::now() + self.inner.options.request_timeout();
             let response = self
                 .send_rpc_once(
                     deadline,
-                    method,
-                    name,
+                    &authorization_request,
                     params.clone(),
                     promoted_headers.clone(),
                 )
                 .await;
             match response {
+                Ok(RpcAttempt::Challenge(challenge)) => {
+                    if authorization_retries >= self.inner.options.maximum_authorization_retries() {
+                        return Err(challenge_error(challenge.status()));
+                    }
+                    let decision = self
+                        .inner
+                        .authorization
+                        .handle_challenge(&authorization_request, &challenge)
+                        .await?;
+                    match decision {
+                        McpClientAuthorizationRetry::Retry => {
+                            authorization_retries += 1;
+                        }
+                        McpClientAuthorizationRetry::Decline => {
+                            return Err(challenge_error(challenge.status()));
+                        }
+                    }
+                }
                 Err(StatelessMcpClientError::Remote(error))
                     if error.code() == -32_022 && !attempted_version_retry =>
                 {
@@ -1088,7 +1205,8 @@ impl McpClient {
                     }
                     attempted_version_retry = true;
                 }
-                other => return other,
+                Ok(RpcAttempt::Exchange(exchange)) => return Ok(exchange),
+                Err(error) => return Err(error),
             }
         }
     }
@@ -1096,11 +1214,12 @@ impl McpClient {
     async fn send_rpc_once(
         &self,
         deadline: tokio::time::Instant,
-        method: &str,
-        name: Option<&str>,
+        authorization_request: &McpClientAuthorizationRequest,
         mut params: Map<String, Value>,
         promoted_headers: Vec<(HeaderName, HeaderValue)>,
-    ) -> Result<RpcExchange, StatelessMcpClientError> {
+    ) -> Result<RpcAttempt, StatelessMcpClientError> {
+        let method = authorization_request.method();
+        let name = authorization_request.name();
         let id = allocate_monotonic_id(&self.inner.next_request_id)
             .ok_or(StatelessMcpClientError::RequestIdExhausted)?;
         params.insert("_meta".to_owned(), Value::Object(self.request_metadata()));
@@ -1115,16 +1234,12 @@ impl McpClient {
             return Err(StatelessMcpClientError::RequestTooLarge);
         }
 
-        let authorization_request = McpClientAuthorizationRequest {
-            method: method.to_owned().into_boxed_str(),
-            name: name.map(|value| value.to_owned().into_boxed_str()),
-        };
         let permit = wait_until(deadline, self.inner.concurrency.acquire())
             .await?
             .map_err(|_| StatelessMcpClientError::Transport)?;
         let authorization = wait_until(
             deadline,
-            self.inner.authorization.resolve(&authorization_request),
+            self.inner.authorization.resolve(authorization_request),
         )
         .await??;
 
@@ -1151,7 +1266,16 @@ impl McpClient {
         let response = wait_until(deadline, request.body(body).send())
             .await?
             .map_err(|_| StatelessMcpClientError::Transport)?;
-        let output = self.consume_response(deadline, id, response).await;
+        let output = if matches!(
+            response.status(),
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN
+        ) {
+            parse_authorization_challenge(&response).map(RpcAttempt::Challenge)
+        } else {
+            self.consume_response(deadline, id, response)
+                .await
+                .map(RpcAttempt::Exchange)
+        };
         drop(permit);
         output
     }
@@ -1183,12 +1307,6 @@ impl McpClient {
         response: reqwest::Response,
     ) -> Result<RpcExchange, StatelessMcpClientError> {
         let status = response.status();
-        if status == StatusCode::UNAUTHORIZED {
-            return Err(StatelessMcpClientError::AuthorizationRequired);
-        }
-        if status == StatusCode::FORBIDDEN {
-            return Err(StatelessMcpClientError::PermissionDenied);
-        }
         if matches!(status, StatusCode::ACCEPTED | StatusCode::NO_CONTENT) {
             return Err(StatelessMcpClientError::Protocol);
         }
@@ -1286,6 +1404,66 @@ impl fmt::Debug for McpClient {
 struct RpcExchange {
     result: Value,
     notifications: Vec<McpNotification>,
+}
+
+enum RpcAttempt {
+    Exchange(RpcExchange),
+    Challenge(McpClientAuthorizationChallenge),
+}
+
+fn parse_authorization_challenge(
+    response: &reqwest::Response,
+) -> Result<McpClientAuthorizationChallenge, StatelessMcpClientError> {
+    let status = match response.status() {
+        StatusCode::UNAUTHORIZED => McpClientAuthorizationChallengeStatus::Unauthorized,
+        StatusCode::FORBIDDEN => McpClientAuthorizationChallengeStatus::Forbidden,
+        _ => return Err(StatelessMcpClientError::Protocol),
+    };
+    let mut values = Vec::new();
+    let mut total_bytes = 0usize;
+    for value in response.headers().get_all(header::WWW_AUTHENTICATE) {
+        if values.len() >= MAX_WWW_AUTHENTICATE_VALUES {
+            return Err(StatelessMcpClientError::InvalidAuthorizationChallenge);
+        }
+        let value = value
+            .to_str()
+            .map_err(|_| StatelessMcpClientError::InvalidAuthorizationChallenge)?;
+        if value.is_empty() || value.len() > MAX_WWW_AUTHENTICATE_VALUE_BYTES {
+            return Err(StatelessMcpClientError::InvalidAuthorizationChallenge);
+        }
+        total_bytes = total_bytes
+            .checked_add(value.len())
+            .filter(|total| *total <= MAX_WWW_AUTHENTICATE_TOTAL_BYTES)
+            .ok_or(StatelessMcpClientError::InvalidAuthorizationChallenge)?;
+        values.push(value.to_owned().into_boxed_str());
+    }
+    Ok(McpClientAuthorizationChallenge {
+        status,
+        www_authenticate: values.into(),
+    })
+}
+
+fn challenge_error(status: McpClientAuthorizationChallengeStatus) -> StatelessMcpClientError {
+    match status {
+        McpClientAuthorizationChallengeStatus::Unauthorized => {
+            StatelessMcpClientError::AuthorizationRequired
+        }
+        McpClientAuthorizationChallengeStatus::Forbidden => {
+            StatelessMcpClientError::PermissionDenied
+        }
+    }
+}
+
+fn authentication_scheme(value: &str) -> Option<&str> {
+    let scheme = value
+        .trim_start()
+        .split_once(char::is_whitespace)
+        .map_or_else(|| value.trim(), |(scheme, _)| scheme);
+    if scheme.eq_ignore_ascii_case("bearer") {
+        Some("bearer")
+    } else {
+        None
+    }
 }
 
 enum ParsedMessage {

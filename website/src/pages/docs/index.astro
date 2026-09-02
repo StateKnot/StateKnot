@@ -72,6 +72,12 @@ const paths = [
     link: "Use the Tool client",
   },
   {
+    title: "Authorize an MCP resource",
+    body: "Integrate challenge-driven OAuth discovery, PKCE, exact issuer/callback validation, bounded replay, and durable credential stores.",
+    href: "/docs/mcp-oauth/",
+    link: "Configure OAuth",
+  },
+  {
     title: "Bind one MCP Remote Tool",
     body: "Discover a strict stateless MCP 2026-07-28 Tool once, pin its identity and schemas, and preserve ambiguous write outcomes.",
     href: "/docs/mcp-remote-tool/",
@@ -128,10 +134,10 @@ const paths = [
       reads, and cancellation as an authorization-first embedding boundary. The <a
         href="/docs/mcp-client/">general MCP Tool client</a
       > now adds bounded dynamic discovery, JSON/request-scoped SSE, custom headers,
-      and MRTR; the <a href="/docs/mcp-remote-tool/"
-        >strict MCP Remote Tool profile</a
-      > preserves the stronger durable binding. OAuth, MCP Server, stable network
-      transport, A2A, and production qualification remain release blockers.
+      MRTR, and <a href="/docs/mcp-oauth/">interactive OAuth authorization</a>;
+      the <a href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a> preserves
+      the stronger durable binding. MCP Server, stable network transport, A2A, and
+      production qualification remain release blockers.
     </p>
   </aside>
 

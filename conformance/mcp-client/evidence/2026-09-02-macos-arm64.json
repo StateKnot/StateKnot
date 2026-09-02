@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "scope": "StateKnot stateless Tool client; selected non-OAuth client scenarios required by the MCP 2026-07-28 requirement revision",
+  "schemaVersion": 2,
+  "scope": "StateKnot stateless Tool client and interactive OAuth authorization; every scored client scenario required by the frozen MCP 2026-07-28 requirement revision",
   "observedAt": "2026-09-02",
   "protocolVersion": "2026-07-28",
   "runner": {
@@ -10,27 +10,82 @@
     "sourceGitHead": "c321dd32035556e6769d3724a8ee97d87c3faaac"
   },
   "implementation": {
-    "source": "crates/stateknot-integrations/examples/mcp_conformance_client.rs",
+    "sources": [
+      "crates/stateknot-integrations/src/mcp_client.rs",
+      "crates/stateknot-integrations/src/mcp_oauth.rs",
+      "crates/stateknot-integrations/examples/mcp_conformance_client.rs"
+    ],
     "rustc": "1.88.0 (6b00bc388 2025-06-23)",
     "node": "24.19.0",
     "platform": "aarch64-apple-darwin"
   },
   "command": "bash conformance/mcp-client/run-2026-07-28.sh",
   "expectedFailuresFile": null,
-  "scenarios": {
-    "tools_call": { "success": 2, "skipped": 0 },
-    "request-metadata": { "success": 5, "skipped": 3 },
-    "http-standard-headers": { "success": 3, "skipped": 8 },
-    "http-custom-headers": { "success": 18, "skipped": 0 },
-    "http-invalid-tool-headers": { "success": 11, "skipped": 0 },
-    "json-schema-ref-no-deref": { "success": 1, "skipped": 0 },
-    "sep-2322-client-request-state": { "success": 5, "skipped": 0 }
+  "required": {
+    "nonOAuthScenarios": [
+      "tools_call",
+      "request-metadata",
+      "http-standard-headers",
+      "http-custom-headers",
+      "http-invalid-tool-headers",
+      "json-schema-ref-no-deref",
+      "sep-2322-client-request-state"
+    ],
+    "oauthScenarios": [
+      "auth/metadata-default",
+      "auth/metadata-var1",
+      "auth/metadata-var2",
+      "auth/metadata-var3",
+      "auth/basic-cimd",
+      "auth/scope-from-www-authenticate",
+      "auth/scope-from-scopes-supported",
+      "auth/scope-omitted-when-undefined",
+      "auth/scope-step-up",
+      "auth/scope-retry-limit",
+      "auth/token-endpoint-auth-basic",
+      "auth/token-endpoint-auth-post",
+      "auth/token-endpoint-auth-none",
+      "auth/pre-registration",
+      "auth/resource-mismatch",
+      "auth/offline-access-scope",
+      "auth/offline-access-not-supported",
+      "auth/authorization-server-migration",
+      "auth/iss-supported",
+      "auth/iss-not-advertised",
+      "auth/iss-supported-missing",
+      "auth/iss-wrong-issuer",
+      "auth/iss-unexpected",
+      "auth/iss-normalized",
+      "auth/metadata-issuer-mismatch"
+    ],
+    "totals": {
+      "scenarios": 32,
+      "oauthScenarios": 25,
+      "success": 373,
+      "skipped": 11,
+      "info": 424,
+      "failure": 0,
+      "warning": 0
+    }
   },
-  "totals": {
-    "scenarios": 7,
-    "success": 45,
-    "skipped": 11,
-    "failure": 0
+  "notScored": {
+    "scenarios": [
+      "auth/client-credentials-jwt",
+      "auth/client-credentials-basic",
+      "auth/enterprise-managed-authorization",
+      "auth/dpop",
+      "auth/dpop-nonce",
+      "auth/wif-jwt-bearer",
+      "json-schema-2020-12-preservation"
+    ],
+    "totals": {
+      "scenarios": 7,
+      "success": 33,
+      "skipped": 6,
+      "info": 46,
+      "failure": 17,
+      "warning": 0
+    }
   },
-  "claimBoundary": "This evidence is not a complete MCP client, server, OAuth, or SDK-tier conformance claim."
+  "claimBoundary": "All 32 scored MCP 2026-07-28 client scenarios pass, including all 25 scored OAuth scenarios. The seven explicitly not-scored extension scenarios are reported but not claimed. This is not an MCP server, authorization-server, extension, stable-API, or SDK-tier conformance claim."
 }
