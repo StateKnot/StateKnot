@@ -158,7 +158,7 @@ results, reconciliation-safe tool failures, and no-dispatch terminal recovery.
 Migration 14 and `DurableFairScheduler` add an immutable shard-scoped smooth
 weighted policy, globally ordered lost-ACK-safe reservations, exact cycle
 shares, explicit reservation-count starvation bounds, and bounded
-database-time retention. Twenty-six runtime scenarios and 102 provider cases are
+database-time retention. Twenty-seven runtime scenarios and 102 provider cases are
 mandatory on both PostgreSQL 16 and 17.
 The repository now also includes a schema-pinned typed Agent contract plus
 first-party OpenAI Responses and Anthropic Messages unary/SSE adapters with
@@ -186,6 +186,12 @@ only public-safe admission/policy/decision digests and a stable failure ID.
 schema and server-identity pins, attempt-scoped authorization, bounded
 transport, and reconciliation-first ambiguous writes. It is a client-side
 Remote Tool profile, not a complete MCP client/server conformance claim.
+The adapter is now composed with the durable invocation executor in a real
+PostgreSQL + loopback MCP test: durable start is observed before request I/O,
+lost write responses remain unknown, duplicate execution never redispatches,
+and authoritative result reconciliation is schema-validated, fenced, atomic,
+and exactly idempotent on PostgreSQL 16 and 17. The runtime PostgreSQL suite
+separately proves the authoritative error branch.
 Stable network Agent/cancellation transport, protocol-specific outbox dispatch adapters,
 artifacts, parallel siblings/Tools, output repair, loops/subgraphs, role
 isolation, general retention, failover, restore, and the final stale-race gates
@@ -193,10 +199,11 @@ have not shipped yet.
 
 The current milestone is to:
 
-1. compose the strict MCP Remote Tool with PostgreSQL-backed invocation
-   recovery and prove no-redispatch/ambiguous-write behavior end to end;
-2. run the pinned official MCP conformance suite for every claimed client
-   feature and publish the report;
+1. preserve the completed PostgreSQL-backed strict MCP recovery proof as a
+   mandatory PostgreSQL 16/17 gate;
+2. design a separate general MCP client surface before attempting the complete
+   official client requirement set; the current strict profile is intentionally
+   narrower and its published conformance report makes no false pass claim;
 3. validate the three frozen production scenarios and accept the core domain,
    graph, durability, and protocol/security RFCs;
 4. qualify role isolation, failover/restore, and the final stale-race gates; and
@@ -212,6 +219,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [provider-native Agent graph](docs/provider-native-agent.md),
 [AgentService v1](docs/agent-service.md),
 [strict MCP Remote Tool profile](docs/mcp-remote-tool.md),
+[MCP conformance status](docs/mcp-conformance.md),
 [durable invocation](docs/durable-invocation-executor.md),
 [fair scheduling](docs/cross-tenant-fair-scheduler.md), and
 [completeness audit](docs/plan-completeness-audit.md) guides.

@@ -15,14 +15,15 @@ use serde_json::json;
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, BoxFuture, BudgetRemaining, CancellationSignal,
     Digest, EventId, ExecutionCount, Failure, FailureCategory, FailureCode, FailureId,
-    FailureMessage, FailureOrigin, InvocationId, JournalAppend, JournalEventIntent,
-    JournalEventKind, JournalExpectation, JournalPayload, ModelContext, ModelContextError,
-    ModelError, ModelErrorPhase, ModelErrorProvenance, ModelEvent, ModelEventAccumulator,
-    ModelInvocation, ModelInvocationStatus, ModelInvocationTransition, ModelRequest, ModelResponse,
-    ModelResponseMode, ModelStopReason, RetryAdvice, RunFence, SchemaReference, Timestamp,
-    ToolContext, ToolContextError, ToolError, ToolErrorPhase, ToolErrorProvenance,
-    ToolExternalEffect, ToolInputValidationError, ToolInvocation, ToolInvocationStatus,
-    ToolInvocationTransition, ToolProgressSink, ToolResult, ToolRisk, ToolStopReason,
+    FailureMessage, FailureOrigin, GraphSchemaValidationError, InvocationId, JournalAppend,
+    JournalEvent, JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload,
+    ModelContext, ModelContextError, ModelError, ModelErrorPhase, ModelErrorProvenance, ModelEvent,
+    ModelEventAccumulator, ModelInvocation, ModelInvocationStatus, ModelInvocationTransition,
+    ModelRequest, ModelResponse, ModelResponseMode, ModelStopReason, RetryAdvice, RunFence,
+    SchemaReference, Timestamp, ToolContext, ToolContextError, ToolError, ToolErrorPhase,
+    ToolErrorProvenance, ToolExternalEffect, ToolInputValidationError, ToolInvocation,
+    ToolInvocationError, ToolInvocationStatus, ToolInvocationTransition, ToolProgressSink,
+    ToolResult, ToolRisk, ToolStopReason,
 };
 use stateknot_store_postgres::{
     ModelInvocationCommitOutcome, PostgresStore, StoreError, ToolInvocationCommitOutcome,
@@ -677,6 +678,233 @@ pub enum ToolAttemptOutcome {
     },
 }
 
+/// Authoritative evidence classification for one ambiguous tool attempt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ToolReconciliationKind {
+    /// Authoritative evidence supplies the exact successful result.
+    Result,
+    /// Authoritative evidence supplies a failure and external-effect fact.
+    Error,
+}
+
+#[derive(Clone)]
+enum ToolReconciliationEvidence {
+    Result(ToolResult),
+    Error(ToolError),
+}
+
+/// Retained, validation-bound evidence for reconciling an unknown tool attempt.
+///
+/// Construction binds the evidence to an exact unknown invocation revision and
+/// physical attempt. Debug output deliberately excludes result/error payloads.
+/// Committing this handoff performs no tool or provider I/O.
+#[derive(Clone)]
+pub struct ToolReconciliationHandoff {
+    fence: RunFence,
+    invocation: ToolInvocation,
+    event_id: EventId,
+    evidence: ToolReconciliationEvidence,
+}
+
+impl ToolReconciliationHandoff {
+    /// Binds authoritative successful-result evidence to an unknown attempt.
+    ///
+    /// # Errors
+    ///
+    /// Rejects crossed tenant/run scope, a non-unknown invocation, or result
+    /// evidence that violates the exact durable invocation contract.
+    pub fn result(
+        fence: RunFence,
+        invocation: ToolInvocation,
+        event_id: EventId,
+        result: ToolResult,
+    ) -> Result<Self, ToolReconciliationHandoffError> {
+        validate_tool_reconciliation_scope(&fence, &invocation)?;
+        invocation
+            .validate_reconciliation_result(&result)
+            .map_err(ToolReconciliationHandoffError::invalid_evidence)?;
+        Ok(Self {
+            fence,
+            invocation,
+            event_id,
+            evidence: ToolReconciliationEvidence::Result(result),
+        })
+    }
+
+    /// Binds authoritative failure/effect evidence to an unknown attempt.
+    ///
+    /// `Unknown` effect evidence may intentionally retain the unresolved state;
+    /// an authoritative known effect resolves it to `Failed`.
+    ///
+    /// # Errors
+    ///
+    /// Rejects crossed tenant/run scope, a non-unknown invocation, or error
+    /// evidence that violates the exact durable invocation contract.
+    pub fn error(
+        fence: RunFence,
+        invocation: ToolInvocation,
+        event_id: EventId,
+        error: ToolError,
+    ) -> Result<Self, ToolReconciliationHandoffError> {
+        validate_tool_reconciliation_scope(&fence, &invocation)?;
+        invocation
+            .validate_reconciliation_error(&error)
+            .map_err(ToolReconciliationHandoffError::invalid_evidence)?;
+        Ok(Self {
+            fence,
+            invocation,
+            event_id,
+            evidence: ToolReconciliationEvidence::Error(error),
+        })
+    }
+
+    /// Returns the authoritative reconciliation classification.
+    #[must_use]
+    pub const fn kind(&self) -> ToolReconciliationKind {
+        match &self.evidence {
+            ToolReconciliationEvidence::Result(_) => ToolReconciliationKind::Result,
+            ToolReconciliationEvidence::Error(_) => ToolReconciliationKind::Error,
+        }
+    }
+
+    /// Returns the worker fence attached to this reconciliation mutation.
+    #[must_use]
+    pub const fn fence(&self) -> &RunFence {
+        &self.fence
+    }
+
+    /// Returns the exact unknown invocation revision being reconciled.
+    #[must_use]
+    pub const fn invocation(&self) -> &ToolInvocation {
+        &self.invocation
+    }
+
+    /// Returns the stable journal event identity retained across commit retries.
+    #[must_use]
+    pub const fn event_id(&self) -> EventId {
+        self.event_id
+    }
+
+    /// Rebinds retained evidence to a newer live fence in the same run.
+    ///
+    /// This changes no evidence bytes and never calls the tool. The durable
+    /// store validates current fence ownership at commit time.
+    ///
+    /// # Errors
+    ///
+    /// Rejects a fence from another tenant or run.
+    pub fn rebind_fence(mut self, fence: RunFence) -> Result<Self, ToolReconciliationHandoffError> {
+        validate_tool_reconciliation_scope(&fence, &self.invocation)?;
+        self.fence = fence;
+        Ok(self)
+    }
+}
+
+impl fmt::Debug for ToolReconciliationHandoff {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ToolReconciliationHandoff")
+            .field("fence", &self.fence)
+            .field("invocation_head", &self.invocation.head())
+            .field("event_id", &self.event_id)
+            .field("kind", &self.kind())
+            .finish_non_exhaustive()
+    }
+}
+
+/// Invalid binding between reconciliation evidence and durable invocation state.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ToolReconciliationHandoffError {
+    /// Fence and invocation crossed tenant/run or journal scope.
+    #[error("tool reconciliation handoff crosses its retained worker fence")]
+    ScopeMismatch,
+    /// Result/error evidence did not belong to the exact unknown attempt.
+    #[error("tool reconciliation evidence violates the durable invocation contract: {source}")]
+    InvalidEvidence {
+        /// Exact public-safe core invariant violation.
+        #[source]
+        source: ToolInvocationError,
+    },
+}
+
+impl ToolReconciliationHandoffError {
+    fn invalid_evidence(source: ToolInvocationError) -> Self {
+        Self::InvalidEvidence { source }
+    }
+}
+
+fn validate_tool_reconciliation_scope(
+    fence: &RunFence,
+    invocation: &ToolInvocation,
+) -> Result<(), ToolReconciliationHandoffError> {
+    if invocation.intent().tenant_id() != fence.tenant_id()
+        || invocation.intent().run_id() != fence.run_id()
+        || invocation.journal_head().tenant_id() != fence.tenant_id()
+        || invocation.journal_head().run_id() != fence.run_id()
+    {
+        return Err(ToolReconciliationHandoffError::ScopeMismatch);
+    }
+    Ok(())
+}
+
+/// Result of durably committing authoritative tool reconciliation evidence.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum ToolReconciliationOutcome {
+    /// A new reconciliation event and invocation revision committed atomically.
+    Committed {
+        /// Reconciliation evidence classification.
+        kind: ToolReconciliationKind,
+        /// Newly committed immutable journal event.
+        event: JournalEvent,
+        /// Newly committed terminal or deliberately still-unknown revision.
+        invocation: ToolInvocation,
+    },
+    /// The exact reconciliation event and mutation had already committed.
+    Idempotent {
+        /// Reconciliation evidence classification.
+        kind: ToolReconciliationKind,
+        /// Previously committed immutable journal event.
+        event: JournalEvent,
+        /// Previously committed terminal or deliberately still-unknown revision.
+        invocation: ToolInvocation,
+    },
+}
+
+impl ToolReconciliationOutcome {
+    /// Returns the reconciliation evidence classification.
+    #[must_use]
+    pub const fn kind(&self) -> ToolReconciliationKind {
+        match self {
+            Self::Committed { kind, .. } | Self::Idempotent { kind, .. } => *kind,
+        }
+    }
+
+    /// Returns the exact reconciliation journal event.
+    #[must_use]
+    pub const fn event(&self) -> &JournalEvent {
+        match self {
+            Self::Committed { event, .. } | Self::Idempotent { event, .. } => event,
+        }
+    }
+
+    /// Returns the resulting durable invocation revision.
+    #[must_use]
+    pub const fn invocation(&self) -> &ToolInvocation {
+        match self {
+            Self::Committed { invocation, .. } | Self::Idempotent { invocation, .. } => invocation,
+        }
+    }
+
+    /// Returns whether this exact reconciliation had already committed.
+    #[must_use]
+    pub const fn is_idempotent(&self) -> bool {
+        matches!(self, Self::Idempotent { .. })
+    }
+}
+
 #[derive(Clone)]
 #[allow(clippy::large_enum_variant)]
 enum ModelTerminalEvidence {
@@ -876,6 +1104,60 @@ impl ToolTerminalCommitError {
     /// Recovers the exact result/error commit handoff for a no-dispatch retry.
     #[must_use]
     pub fn into_recovery(self) -> ToolTerminalCommitHandoff {
+        *self.recovery
+    }
+}
+
+/// Payload-safe cause of a durable tool reconciliation commit failure.
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum ToolReconciliationCommitFailure {
+    /// The durable store rejected or could not complete the mutation.
+    #[error(transparent)]
+    Store(#[from] StoreError),
+    /// Successful evidence was rejected by or missing from the frozen registry.
+    #[error("tool reconciliation output schema validation failed: {source}")]
+    OutputSchema {
+        /// Public-safe unavailable/rejected classification.
+        #[source]
+        source: GraphSchemaValidationError,
+    },
+    /// Runtime-owned standard event data could not be encoded or validated.
+    #[error("tool reconciliation event payload is invalid")]
+    InvalidEventPayload,
+    /// Runtime-owned worker journal metadata violated its invariant.
+    #[error("tool reconciliation journal append is invalid")]
+    InvalidJournalAppend,
+    /// The run lost its durable journal anchor before evidence could commit.
+    #[error("tool reconciliation run journal is unavailable")]
+    RunJournalUnavailable,
+    /// Retained evidence no longer references an unknown physical attempt.
+    #[error("tool reconciliation does not reference an unknown physical attempt")]
+    InvalidInvocationState,
+    /// The store returned a future commit outcome unknown to this runtime.
+    #[error("tool reconciliation store outcome is unsupported by this runtime")]
+    UnsupportedStoreOutcome,
+}
+
+/// Reconciliation failure retaining the exact evidence for a no-dispatch retry.
+#[derive(Debug, Error)]
+#[error("tool reconciliation commit failed: {source}")]
+pub struct ToolReconciliationCommitError {
+    #[source]
+    source: ToolReconciliationCommitFailure,
+    recovery: Box<ToolReconciliationHandoff>,
+}
+
+impl ToolReconciliationCommitError {
+    /// Returns the payload-redacted commit failure.
+    #[must_use]
+    pub const fn source_error(&self) -> &ToolReconciliationCommitFailure {
+        &self.source
+    }
+
+    /// Recovers the exact evidence handoff for an identical no-dispatch retry.
+    #[must_use]
+    pub fn into_recovery(self) -> ToolReconciliationHandoff {
         *self.recovery
     }
 }
@@ -1495,6 +1777,140 @@ impl DurableInvocationExecutor {
                 source: InvocationTerminalCommitFailure::Store(source),
                 recovery: Box::new(handoff),
             }),
+        }
+    }
+
+    /// Atomically commits authoritative evidence for an unknown tool attempt.
+    ///
+    /// This is a trusted worker/operations boundary. It validates successful
+    /// output against the frozen local schema registry, appends a distinct audit
+    /// event, and advances the invocation in one fenced `PostgreSQL` transaction.
+    /// It never resolves or calls a tool provider.
+    pub fn commit_tool_reconciliation(
+        &self,
+        handoff: ToolReconciliationHandoff,
+    ) -> BoxFuture<'_, Result<ToolReconciliationOutcome, ToolReconciliationCommitError>> {
+        Box::pin(self.commit_tool_reconciliation_inner(handoff))
+    }
+
+    async fn commit_tool_reconciliation_inner(
+        &self,
+        handoff: ToolReconciliationHandoff,
+    ) -> Result<ToolReconciliationOutcome, ToolReconciliationCommitError> {
+        let kind = handoff.kind();
+        let (operation, event_kind, transition) = match self.reconciliation_transition(&handoff) {
+            Ok(prepared) => prepared,
+            Err(source) => {
+                return Err(ToolReconciliationCommitError {
+                    source,
+                    recovery: Box::new(handoff),
+                });
+            }
+        };
+        let Some(attempt_id) = handoff.invocation.attempt_id() else {
+            return Err(ToolReconciliationCommitError {
+                source: ToolReconciliationCommitFailure::InvalidInvocationState,
+                recovery: Box::new(handoff),
+            });
+        };
+        let Ok(payload) = self.event_payload(
+            event_kind,
+            operation,
+            "tool",
+            handoff.invocation.intent().invocation_id(),
+            attempt_id,
+            handoff.invocation.intent().intent_digest(),
+        ) else {
+            return Err(ToolReconciliationCommitError {
+                source: ToolReconciliationCommitFailure::InvalidEventPayload,
+                recovery: Box::new(handoff),
+            });
+        };
+        let run = match self
+            .store
+            .load_run(
+                handoff.invocation.intent().tenant_id(),
+                handoff.invocation.intent().run_id(),
+            )
+            .await
+        {
+            Ok(run) => run,
+            Err(source) => {
+                return Err(ToolReconciliationCommitError {
+                    source: ToolReconciliationCommitFailure::Store(source),
+                    recovery: Box::new(handoff),
+                });
+            }
+        };
+        let Some(journal_head) = run.journal_head().cloned() else {
+            return Err(ToolReconciliationCommitError {
+                source: ToolReconciliationCommitFailure::RunJournalUnavailable,
+                recovery: Box::new(handoff),
+            });
+        };
+        let Ok(append) = worker_append(&handoff.fence, journal_head, handoff.event_id, payload)
+        else {
+            return Err(ToolReconciliationCommitError {
+                source: ToolReconciliationCommitFailure::InvalidJournalAppend,
+                recovery: Box::new(handoff),
+            });
+        };
+        match self
+            .advance_tool_with_retry(append, &handoff.invocation, transition)
+            .await
+        {
+            Ok(ToolInvocationCommitOutcome::Committed { event, invocation }) => {
+                Ok(ToolReconciliationOutcome::Committed {
+                    kind,
+                    event,
+                    invocation,
+                })
+            }
+            Ok(ToolInvocationCommitOutcome::Idempotent { event, invocation }) => {
+                Ok(ToolReconciliationOutcome::Idempotent {
+                    kind,
+                    event,
+                    invocation,
+                })
+            }
+            Ok(_) => Err(ToolReconciliationCommitError {
+                source: ToolReconciliationCommitFailure::UnsupportedStoreOutcome,
+                recovery: Box::new(handoff),
+            }),
+            Err(source) => Err(ToolReconciliationCommitError {
+                source: ToolReconciliationCommitFailure::Store(source),
+                recovery: Box::new(handoff),
+            }),
+        }
+    }
+
+    fn reconciliation_transition(
+        &self,
+        handoff: &ToolReconciliationHandoff,
+    ) -> Result<
+        (&'static str, &'static str, ToolInvocationTransition),
+        ToolReconciliationCommitFailure,
+    > {
+        match &handoff.evidence {
+            ToolReconciliationEvidence::Result(result) => {
+                self.schemas
+                    .validate_bounded(result.output_schema(), result.output())
+                    .map_err(|source| ToolReconciliationCommitFailure::OutputSchema { source })?;
+                Ok((
+                    "tool_result_committed",
+                    "tool-reconciliation-result-committed",
+                    ToolInvocationTransition::ReconcileResult {
+                        result: result.clone(),
+                    },
+                ))
+            }
+            ToolReconciliationEvidence::Error(error) => Ok((
+                "tool_error_committed",
+                "tool-reconciliation-error-committed",
+                ToolInvocationTransition::ReconcileError {
+                    error: error.clone(),
+                },
+            )),
         }
     }
 

@@ -126,10 +126,18 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "MCP Remote Tool",
         description:
-          "Bind one strict stateless MCP 2026-07-28 Tool with pinned identity, schemas, and write ambiguity.",
+          "Bind one strict stateless MCP 2026-07-28 Tool with pinned identity, schemas, durable dispatch, and reconciliation.",
         href: "/docs/mcp-remote-tool/",
         search:
-          "mcp remote tool 2026 07 28 stateless discovery schema authorization ambiguous write",
+          "mcp remote tool 2026 07 28 stateless discovery schema authorization ambiguous write postgres reconciliation",
+      },
+      {
+        title: "MCP conformance status",
+        description:
+          "See the frozen official runner inventory, implemented evidence, and exact boundary of current MCP claims.",
+        href: "/docs/mcp-conformance/",
+        search:
+          "mcp conformance official runner requirements evidence client server claim 2026 07 28",
       },
     ],
   },
@@ -277,10 +285,18 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "MCP Remote Tool",
         description:
-          "固定 Identity、Schema 与 Write Ambiguity，绑定严格 Stateless MCP 2026-07-28 Tool。",
+          "固定 Identity、Schema、耐久 Dispatch 与 Reconciliation，绑定严格 Stateless MCP 2026-07-28 Tool。",
         href: "/docs/mcp-remote-tool/",
         search:
-          "mcp remote tool 2026 07 28 stateless discovery schema authorization 不确定 写入",
+          "mcp remote tool 2026 07 28 stateless discovery schema authorization 不确定 写入 postgres 对账",
+      },
+      {
+        title: "MCP Conformance 状态",
+        description:
+          "查看冻结的官方 Runner 清单、已实现证据与当前 MCP 声明的精确边界。",
+        href: "/docs/mcp-conformance/",
+        search:
+          "mcp conformance 官方 runner requirement 证据 client server 声明 2026 07 28",
       },
     ],
   },

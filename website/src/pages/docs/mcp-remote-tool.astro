@@ -14,6 +14,18 @@ const bindingCode = `let adapter = McpRemoteTool::connect(
     McpHttpOptions::default(),
 )
 .await?;`;
+
+const reconciliationCode = `let reconciliation = ToolReconciliationHandoff::result(
+    live_fence,
+    unknown_invocation,
+    reconciliation_event_id,
+    authoritative_result,
+)?;
+
+match executor.commit_tool_reconciliation(reconciliation).await? {
+    ToolReconciliationOutcome::Committed { .. } => acknowledge(),
+    ToolReconciliationOutcome::Idempotent { .. } => acknowledge(),
+}`;
 ---
 
 <DocsLayout
@@ -146,6 +158,40 @@ const bindingCode = `let adapter = McpRemoteTool::connect(
     </ol>
   </section>
 
+  <section aria-labelledby="mcp-reconciliation-title">
+    <h2 id="mcp-reconciliation-title">
+      Reconcile without calling the Tool again
+    </h2>
+    <p>
+      A trusted worker or operations boundary may convert an exact
+      <code>Unknown</code> physical attempt into a validated result or error. The
+      runtime binds the evidence to the invocation and attempt, validates result JSON
+      against the frozen local schema, and commits a distinct audit event in one fenced
+      PostgreSQL transaction. It never resolves or dispatches the Tool provider.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · authoritative reconciliation</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-reconciliation-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-reconciliation-code"
+        tabindex="0"><code>{reconciliationCode}</code></pre>
+    </div>
+    <p>
+      Exact retries are idempotent. A handoff retains its authoritative evidence
+      across persistence failures and can be rebound only to a new live fence
+      for the same run.
+    </p>
+  </section>
+
   <section aria-labelledby="mcp-exclusions-title">
     <h2 id="mcp-exclusions-title">Know what this profile rejects</h2>
     <ul>
@@ -163,10 +209,10 @@ const bindingCode = `let adapter = McpRemoteTool::connect(
   </section>
 
   <section aria-labelledby="mcp-proof-title">
-    <h2 id="mcp-proof-title">Run the literal-loopback contract</h2>
+    <h2 id="mcp-proof-title">Run the profile and durable contracts</h2>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
-        <span>Shell · no external MCP service required</span>
+        <span>Shell · MCP contract and real PostgreSQL recovery</span>
         <button
           class="copy-button affordance"
           type="button"
@@ -178,16 +224,22 @@ const bindingCode = `let adapter = McpRemoteTool::connect(
       </div>
       <pre
         id="mcp-proof-command"
-        tabindex="0"><code>cargo test -p stateknot-integrations --test mcp_contract --locked</code></pre>
+        tabindex="0"><code>cargo test -p stateknot-integrations --test mcp_contract --locked
+cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1</code></pre>
     </div>
     <p>
       The suite proves discovery order, identity/schema pinning, credential
       headers, annotation distrust, pre-registration drift rejection, and
-      ambiguous lost writes. Read the full <a
+      ambiguous lost writes. The PostgreSQL 16/17 matrix additionally proves
+      durable-before-dispatch state, a lost write response, <code>Unknown</code
+      >, duplicate suppression, authoritative reconciliation, and one physical
+      network call. Read the full <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-remote-tool.md"
         >profile and operations contract</a
-      >. Official conformance evidence remains a release gate for broader MCP
-      claims.
+      > and the <a href="/docs/mcp-conformance/"
+        >frozen MCP conformance status</a
+      >. StateKnot does not claim complete official MCP client or server
+      conformance.
     </p>
   </section>
 </DocsLayout>

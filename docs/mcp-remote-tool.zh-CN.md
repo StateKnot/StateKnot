@@ -79,6 +79,24 @@ Remote Tool Annotation 只是不可依赖的 Hint，不能覆盖本地 Descripto
 
 Runtime 必须先通过 Status Query、Provider Intrinsic Key、Compensation 或 Human Decision 完成 Reconciliation，之后才能再次写入。Adapter 不会把不确定 Write 伪装成安全 Retry。
 
+## 耐久 Reconciliation
+
+`ToolReconciliationHandoff::result` 与 `ToolReconciliationHandoff::error` 会把权威证据绑定到精确的耐久 `Unknown` Invocation 与 Physical Attempt。构造过程复用 Core 中同一套 Invocation、Tool Identity、Attempt、Output Schema、Result Limit、Artifact Ownership、Risk/Effect 与 Retry Safety 不变量。
+
+```rust,ignore
+let handoff = ToolReconciliationHandoff::result(
+    live_fence,
+    unknown_invocation,
+    EventId::generate(),
+    authoritative_result,
+)?;
+let outcome = executor.commit_tool_reconciliation(handoff).await?;
+```
+
+提交 Result 前，Runtime 还会使用精确冻结的本地 Schema Registry 校验 Inline Output。随后 Executor 在一个 Fenced PostgreSQL Transaction 中追加独立 Reconciliation Audit Event 并推进 Tool Ledger，整个过程不会解析或调用 MCP Adapter。使用相同 Handoff/Event 重试会精确幂等。Lease Takeover 后，可用 `rebind_fence` 把保留证据绑定到同一 Run 的新 Live Fence。
+
+带权威已知 External Effect 的 Error Evidence 会把 Ledger 解析为 `Failed`；Effect 仍为 `Unknown` 的证据会有意保留未决状态。该 API 是 Trusted Worker/Operations Boundary；HTTP 或 RPC Service 必须先授权 Evidence Submission，才能构造 Handoff。
+
 ## 当前明确拒绝
 
 - Stateful MCP Session 与 `Mcp-Session-Id`；
@@ -109,6 +127,9 @@ Literal-loopback Contract Suite 证明：精确 Modern Discovery、Schema/Identi
 
 ```console
 cargo test -p stateknot-integrations --test mcp_contract --locked
+cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1
 ```
 
-该 Suite 是 Adapter Contract Evidence，不是官方 MCP Conformance Report。只有相应 Client/Server 支持面通过锁定版本的官方 Conformance Suite 并发布报告后，StateKnot 才会声明完整 MCP Profile。
+Durable Suite 会使用真实 PostgreSQL Store，并暂停一个真实 Loopback MCP Request，以便在 I/O 完成前现场观察 `Executing`；随后证明 Ambiguous Write Persistence、Duplicate Suppression、Authoritative Reconciliation 与单次网络调用下的 Idempotent Replay。CI 会在 PostgreSQL 16 和 17 上运行它。
+
+这些 Suite 是 Profile Evidence，不是完整官方 MCP Client/Server Pass。固定版本的官方 Requirement Inventory，以及为什么不能把严格 Profile 误报为通用 Client，见[MCP Conformance 状态](mcp-conformance.zh-CN.md)。

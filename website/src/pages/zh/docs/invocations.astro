@@ -31,6 +31,18 @@ const recoveryCode = `match executor.execute_model(handoff).await {
     }
     Err(error) => handle_pre_dispatch_failure(error),
 }`;
+
+const reconciliationCode = `let reconciliation = ToolReconciliationHandoff::result(
+    live_fence,
+    unknown_invocation,
+    reconciliation_event_id,
+    authoritative_result,
+)?;
+
+match executor.commit_tool_reconciliation(reconciliation).await? {
+    ToolReconciliationOutcome::Committed { .. } => acknowledge(),
+    ToolReconciliationOutcome::Idempotent { .. } => acknowledge(),
+}`;
 ---
 
 <DocsLayout
@@ -51,8 +63,8 @@ const recoveryCode = `match executor.execute_model(handoff).await {
         >预置 Provider-native Agent Graph</a
       > 现在会组合该 Executor；<a href="/zh/docs/mcp-remote-tool/"
         >严格 MCP Remote Tool Profile</a
-      > 也已经把一个 Stateless MCP 2026-07-28 Tool 绑定到该执行合约。更广 MCP Conformance
-      与 Live-provider Qualification 尚未交付。
+      > 也已经把一个 Stateless MCP 2026-07-28 Tool 与 PostgreSQL 执行合约组合。完整官方
+      MCP Conformance 与 Live-provider Qualification 尚未交付。
     </p>
   </aside>
 
@@ -153,6 +165,39 @@ const recoveryCode = `match executor.execute_model(handoff).await {
     </p>
   </section>
 
+  <section aria-labelledby="zh-tool-reconciliation-title">
+    <h2 id="zh-tool-reconciliation-title">使用权威证据解析 Unknown Attempt</h2>
+    <p>
+      <code>ToolReconciliationHandoff::result</code> 与 <code>::error</code> 只接受绑定到精确
+      <code>Unknown</code> Invocation 与 Physical Attempt 的 Evidence。Result Evidence
+      必须在任何数据库 Mutation 之前通过冻结的本地 Output Schema 校验。Commit 会追加独立
+      Audit Event，并在 Live Fence 下原子推进 Ledger，不执行 Provider Lookup 或 Tool
+      I/O。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 不重新 Dispatch 的 Tool Reconciliation</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-tool-reconciliation-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-tool-reconciliation-code"
+        tabindex="0"><code>{reconciliationCode}</code></pre>
+    </div>
+    <p>
+      同一 Event 的精确 Retry 会幂等收敛。Persistence Failure 会保留 Evidence
+      Handoff； Ownership 变化时只允许重新绑定同一 Run 的 Live
+      Fence。Network-facing Service 必须先增加 Authorization 与 Evidence-source
+      Policy，才能暴露这个可信 Worker/Operations Boundary。
+    </p>
+  </section>
+
   <section aria-labelledby="zh-terminal-recovery-title">
     <h2 id="zh-terminal-recovery-title">
       保留 Terminal Evidence，而不是再调用一次
@@ -191,7 +236,7 @@ const recoveryCode = `match executor.execute_model(handoff).await {
         ><code
           >https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0</code
         ></a
-      >。六种关闭 Operation 只暴露 Binding Kind、Invocation ID、Attempt ID 与
+      >。八种关闭 Operation 只暴露 Binding Kind、Invocation ID、Attempt ID 与
       Intent Digest，不暴露 Prompt、Argument、Output、Error、Endpoint 或
       Credential。
     </p>
@@ -202,8 +247,12 @@ const recoveryCode = `match executor.execute_model(handoff).await {
     <p>
       PostgreSQL 16/17 Test 覆盖 Lease Takeover 后只提交一次 Terminal、无
       Redispatch 与 Budget Re-evaluation；七个 Event 的有序耐久 Model Stream 与
-      Duplicate Suppression；以及 Timed-out Idempotent-write Tool 保持
-      Reconcile-first。使用该 pre-alpha Surface 前请阅读完整<a
+      Duplicate Suppression；以及 Timed-out Idempotent-write Tool
+      分别对账为经过校验的 Result 或权威 Error。组合式真实 PostgreSQL 与
+      Loopback MCP Test 证明 Network 完成前已有 Durable State、Lost Response、<code
+        >Unknown</code
+      >、No Redispatch、精确 Reconciliation Replay 与一次 Physical Call。使用该
+      pre-alpha Surface 前请阅读完整<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-invocation-executor.zh-CN.md"
         >集成与运维合约</a
       >。

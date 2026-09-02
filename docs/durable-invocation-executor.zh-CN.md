@@ -106,6 +106,10 @@ Read-only Tool 可以记录结果已知的 Cancellation 或 Deadline Failure。�
 耐久 Tool Ledger 保持 `Unknown`，直到应用自己的 Reconciliation
 确认外部结果。Executor 不会因为本地 Future 被丢弃就再次调用 Tool。
 
+`ToolReconciliationHandoff::result` 与 `::error` 现在提供可信 Runtime Commit Boundary。它们只接受绑定到精确 Unknown Invocation 与 Attempt 的证据。Result Evidence 在发生任何数据库 Mutation 前，还必须通过冻结的本地 Output Schema 校验。随后 `commit_tool_reconciliation` 会追加独立 Audit Event，并在 Live Worker Fence 下原子推进 Ledger，不执行 Provider Lookup 或 Tool I/O。相同 Event 的重试精确幂等；同一 Run 的 Successor Fence 可通过 `rebind_fence` 重新绑定。
+
+Known Effect Evidence 会把 Invocation 解析为 `Failed`，成功证据会解析为 `Committed`，Effect 仍然未知的证据会有意保留 `Unknown`。Network Service 必须在这个 Trusted Worker/Operations API 前增加 Authorization 与 Evidence-source Policy。
+
 Provider SDK 的隐藏重试同样必须关闭，除非 Adapter 能证明它复用精确 Provider Request Identity，并满足耐久 Descriptor 声明的语义。StateKnot 本身不会隐藏一次外部重试。
 
 ## 不重复 Dispatch 的 Terminal Commit 恢复
@@ -145,7 +149,7 @@ Terminal Recovery Payload 含应用数据，因此有意不支持序列化或打
 https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0
 ```
 
-六种 Operation 覆盖 Model/Tool Start，以及 Terminal Response/Result/Error Fact。每个 Event 只暴露 Binding Kind、Logical Invocation ID、Physical Attempt ID 和 Intent Digest。应用 Payload 保留在各自有界 Ledger 中。
+八种 Operation 覆盖 Model/Tool Preparation、Start，以及 Terminal Response/Result/Error Fact。每个 Event 只暴露 Binding Kind、Logical Invocation ID、Physical Attempt ID 和 Intent Digest。应用 Payload 保留在各自有界 Ledger 中。Reconciliation 复用不可变 Tool Result/Error Operation Shape，同时使用独立 Journal Event Kind 让恢复动作可审计。
 
 ## 运维要求
 
@@ -166,10 +170,10 @@ https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0
 
 - Model Call 期间原 Fence 被取代后，Terminal Evidence 会被保留、Rebind 到新 Live Fence、只 Commit 一次，并且后续重试不重新计算 Budget、不重新 Dispatch；
 - 七个语义 Model Stream Event 按序到达耐久 Sink，累积为已提交 Response，Duplicate Recovery 不再产生 Event 或 Provider Call；
-- Timed-out Idempotent-write Tool 记录 Ambiguous/Reconcile-first Outcome，重试时不会再次调用 Tool。
+- Timed-out Idempotent-write Tool 记录 Ambiguous/Reconcile-first Outcome；Schema-invalid Reconciliation 被拒绝且不发生 Mutation；权威 Result 或 Known-effect Error Evidence 可提交；相同重试会收敛，且 Tool 不会被再次调用；
+- 严格 MCP Adapter 在真实 Loopback MCP Exchange 与 PostgreSQL 16/17 上通过同一套 Durable-before-dispatch 与 Reconciliation Proof。
 
 该边界仍是 pre-alpha。第一方 OpenAI Responses/Anthropic Messages Adapter 与强类型 Agent
 Contract、原子 Admission，以及在预置 Provider-native Graph 内耐久组装 Transcript 已实现；
-应用持久化 Model Stream Sink、部署专用 Price Table 与 Artifact Evidence、完整
-Reconciliation Supervision、Telemetry 与 Live-provider Qualification 尚未完成，因此还不能
+应用持久化 Model Stream Sink、Authorization-first Network Reconciliation Service、部署专用 Price Table 与 Artifact Evidence、Telemetry 与 Live-provider Qualification 尚未完成，因此还不能
 声称生产支持。

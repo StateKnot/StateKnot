@@ -84,7 +84,7 @@ const currentCut = [
   {
     surface: "MCP Remote Tool",
     state: "Implemented slice",
-    evidence: "Strict stateless discovery, schema pins, ambiguous lost writes",
+    evidence: "Durable dispatch, one lost write call, exact reconciliation",
     href: "/docs/mcp-remote-tool/",
   },
   {
@@ -128,12 +128,18 @@ const roadmap = [
   },
   {
     index: "06",
-    state: "Now",
+    state: "Implemented",
     title: "Compose and qualify the protocol boundary",
-    body: "Run the MCP adapter through PostgreSQL-backed invocation recovery and publish the pinned official conformance report before broadening the supported profile.",
+    body: "Real PostgreSQL plus loopback MCP evidence now proves durable-before-dispatch state, unknown lost writes, no redispatch, and exact result reconciliation; runtime PostgreSQL evidence separately proves the error branch, while the pinned official inventory records the claim boundary.",
   },
   {
     index: "07",
+    state: "Now",
+    title: "Separate the general MCP client",
+    body: "Design and security-review a broader interoperability surface without weakening the strict durable Tool binding, then run its complete applicable frozen official requirement set.",
+  },
+  {
+    index: "08",
     state: "Before v1",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -153,14 +159,14 @@ const roadmap = [
             Durable agent orchestration, written for Rust.
           </h1>
           <p class="hero-lede">
-            StateKnot now runs typed root Graphs through PostgreSQL-backed crash
-            recovery, atomic Agent admission, durable model/tool attempts,
-            lifecycle commits, weighted cross-tenant scheduling, durable ingress
-            keys, verified run/result reads, typed Agent contracts, the first
-            OpenAI/Anthropic adapters, a recovered provider-native multi-turn
-            Agent graph, AgentService v1, and one strict MCP Remote Tool
-            binding. Stable network APIs, broader MCP/A2A profiles, advanced
-            graph semantics, and production qualification remain unfinished.
+            StateKnot now runs typed root Graphs through PostgreSQL crash
+            recovery, atomic admission, durable model/tool attempts, lifecycle
+            commits, fair scheduling, durable ingress, and verified results.
+            Implemented surfaces include OpenAI/Anthropic adapters, a recovered
+            provider-native Agent graph, AgentService v1, and one strict MCP
+            Remote Tool with lost-write reconciliation. Stable network APIs,
+            complete official MCP conformance, broader MCP/A2A profiles,
+            advanced graph semantics, and production qualification remain open.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -299,10 +305,10 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
       <div class="section-head section-head--narrow">
         <h2 id="roadmap-title">The road ahead is ordered by proof.</h2>
         <p>
-          The strict MCP binding now freezes discovery, identity, schemas,
-          credentials, and lost-write semantics. It must next prove PostgreSQL-
-          backed crash recovery and official conformance before the profile
-          broadens and A2A begins.
+          The strict MCP binding now has PostgreSQL-backed crash-recovery and
+          reconciliation evidence. The next step is a separate general MCP
+          client boundary and its complete applicable official requirement set;
+          broader MCP and A2A work follows without weakening the strict binding.
         </p>
       </div>
 

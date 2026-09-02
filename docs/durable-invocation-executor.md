@@ -128,6 +128,20 @@ The durable tool ledger remains `Unknown` until application-owned
 reconciliation establishes the external outcome. The executor never calls the
 tool again merely because its local future was dropped.
 
+`ToolReconciliationHandoff::result` and `::error` now provide the trusted
+runtime commit boundary. They accept only evidence bound to the exact unknown
+invocation and attempt. Result evidence is additionally checked against the
+frozen local output schema before any database mutation. Then
+`commit_tool_reconciliation` appends a distinct audit event and advances the
+ledger atomically under the live worker fence, without provider lookup or Tool
+I/O. Exact event retries converge idempotently; a same-run successor fence can
+be attached with `rebind_fence`.
+
+Known effect evidence resolves the invocation to `Failed`, successful evidence
+resolves it to `Committed`, and still-unknown effect evidence deliberately
+retains `Unknown`. A network service must put authorization and evidence-source
+policy in front of this trusted worker/operations API.
+
 Provider SDK retries must also be disabled unless the adapter can prove they
 reuse the exact provider request identity and satisfy the durable descriptor's
 semantics. StateKnot itself does not hide an external retry.
@@ -185,10 +199,12 @@ is:
 https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0
 ```
 
-The six operations cover model/tool start and terminal response/result/error
+The eight operations cover model/tool preparation, start, and terminal
+response/result/error
 facts. Each event exposes only binding kind, logical invocation ID, physical
 attempt ID, and intent digest. Application payloads remain in their dedicated
-bounded ledgers.
+bounded ledgers. Reconciliation reuses the immutable Tool result/error operation
+shape while its distinct journal event kind makes the recovery action auditable.
 
 ## Operational requirements
 
@@ -218,11 +234,16 @@ Real PostgreSQL integration coverage proves:
   accumulates into the committed response, and emits nothing on duplicate
   recovery; and
 - a timed-out idempotent-write tool records an ambiguous reconcile-first
-  outcome and is not called again on retry.
+  outcome, rejects schema-invalid reconciliation without mutation, commits
+  authoritative result or known-effect error evidence, converges exact retries,
+  and never calls the Tool again; and
+- the strict MCP adapter passes the same durable-before-dispatch and
+  reconciliation proof over a real loopback MCP exchange and PostgreSQL on
+  versions 16 and 17.
 
 The boundary remains pre-alpha. First-party OpenAI Responses and Anthropic
 Messages adapters, the typed Agent contract, and durable transcript assembly in
 the prebuilt provider-native graph are implemented. An application-persisted
-model stream sink, deployment-specific price tables and artifact evidence,
-complete reconciliation supervision, telemetry, and live-provider
+model stream sink, an authorization-first network reconciliation service,
+deployment-specific price tables and artifact evidence, telemetry, and live-provider
 qualification are still required before production support can be claimed.

@@ -1,0 +1,141 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const inventoryCommand =
+  "npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2026-07-28";
+---
+
+<DocsLayout
+  title="MCP Conformance 声明以证据为界。"
+  description="查看冻结的官方 Runner 清单、严格 Tool Profile 证据，以及 StateKnot 明确不作出的声明。"
+  section="MCP Conformance 状态"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-conformance-boundary-title"
+  >
+    <h2 id="mcp-conformance-boundary-title">当前声明</h2>
+    <p>
+      StateKnot 已实现严格、耐久的 MCP 2026-07-28 Remote Tool
+      Profile，但不声明完整的 官方 MCP Client、Server 或 SDK-tier Conformance。
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-conformance-input-title">
+    <h2 id="mcp-conformance-input-title">冻结的评估输入</h2>
+    <p>场景清单于 2026-09-02 使用以下命令刷新：</p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 官方 Requirement 清单</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-conformance-inventory-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-conformance-inventory-code"
+        tabindex="0"><code>{inventoryCommand}</code></pre>
+    </div>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Runner</dt>
+        <dd><code>@modelcontextprotocol/conformance@0.2.0-alpha.11</code></dd>
+      </div>
+      <div>
+        <dt>Source Identity</dt>
+        <dd><code>c321dd32035556e6769d3724a8ee97d87c3faaac</code></dd>
+      </div>
+      <div>
+        <dt>Requirement Revision</dt>
+        <dd><code>2026-07-28</code></dd>
+      </div>
+      <div>
+        <dt>场景清单</dt>
+        <dd>69 个计分场景：37 个 Server 场景与 32 个 Client 场景。</dd>
+      </div>
+    </dl>
+    <p>
+      权威 Runner 与协议要求见<a
+        href="https://github.com/modelcontextprotocol/conformance"
+        >官方 Conformance 仓库</a
+      >和 <a
+        href="https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx"
+        >MCP 2026-07-28 Tool Specification</a
+      >。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-conformance-difference-title">
+    <h2 id="mcp-conformance-difference-title">
+      严格 Profile 不是通用 Client Role
+    </h2>
+    <p>
+      <code>McpRemoteTool</code> 要求经过审核的本地 Input/Output Schema、Byte-identical
+      Remote Schema、固定的 Server Implementation，以及通过本地校验的完整
+      <code>structuredContent</code>。官方必需的 <code>tools_call</code> Client Fixture
+      不发布 Output Schema，并返回没有 Structured Content 的 Text。通用 Client 可以调用它，但
+      StateKnot 的严格 Binding 必须拒绝。
+    </p>
+    <p>
+      StateKnot 不会只为 Runner 放松生产合约，也不会把 Expected Failure 包装成
+      Conformance Badge。要诚实扩大互操作声明，必须先实现独立的通用 MCP Client
+      Surface。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-conformance-evidence-title">
+    <h2 id="mcp-conformance-evidence-title">已经具备的可执行证据</h2>
+    <ul>
+      <li>
+        严格 Loopback Contract 证明 Protocol Header、Discovery Order、精确
+        Server/Schema Pin、Attempt Authorization、有界调用、Drift Rejection 与
+        Reconcile-first Lost Write。
+      </li>
+      <li>
+        PostgreSQL 16/17 耐久 Contract 证明 MCP I/O 完成前 Invocation 已进入
+        <code>Executing</code>；Lost Response 进入 <code>Unknown</code
+        >；Duplicate Dispatch 被抑制；权威 Reconciliation 精确幂等提交；Physical
+        Network Call 始终只有一次。
+      </li>
+    </ul>
+    <p>
+      这些是 StateKnot Profile Test，不是官方 MCP Requirement Set
+      的替代品。继续阅读<a href="/zh/docs/mcp-remote-tool/"
+        >严格 Remote Tool 合约</a
+      >或<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-conformance.zh-CN.md"
+        >完整证据报告</a
+      >。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-conformance-gate-title">
+    <h2 id="mcp-conformance-gate-title">未来声明的发布门槛</h2>
+    <ol>
+      <li>定义并安全评审独立的通用 MCP Client Surface。</li>
+      <li>
+        实现一个冻结 Requirement Revision 中全部适用的计分 Client
+        Capability，包括其 Authorization 与 Request-state 行为。
+      </li>
+      <li>
+        在强制 CI 中执行这套精确的官方 Requirement Set，不使用误导性的整套
+        Expected-failure。
+      </li>
+      <li>
+        将 Runner Identity、生成的 Check、Platform、Date 与 Result 作为 Release
+        Artifact 发布。
+      </li>
+      <li>
+        继续把严格 Profile Test 与 PostgreSQL Recovery Proof 作为独立发布门禁。
+      </li>
+    </ol>
+  </section>
+</DocsLayout>

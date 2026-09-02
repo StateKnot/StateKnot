@@ -85,7 +85,9 @@ pub use invocation_executor::{
     ModelAttemptExecutionError, ModelAttemptHandoff, ModelAttemptOutcome, ModelAttemptTerminalKind,
     ModelEventSink, ModelEventSinkError, ModelTerminalCommitError, ModelTerminalCommitHandoff,
     SystemInvocationClock, ToolAttemptExecutionError, ToolAttemptHandoff, ToolAttemptOutcome,
-    ToolAttemptTerminalKind, ToolTerminalCommitError, ToolTerminalCommitHandoff,
+    ToolAttemptTerminalKind, ToolReconciliationCommitError, ToolReconciliationCommitFailure,
+    ToolReconciliationHandoff, ToolReconciliationHandoffError, ToolReconciliationKind,
+    ToolReconciliationOutcome, ToolTerminalCommitError, ToolTerminalCommitHandoff,
 };
 pub use invocation_schema::{
     STANDARD_INVOCATION_EXECUTION_EVENT_SCHEMA_ID, StandardInvocationExecutionSchemaError,
