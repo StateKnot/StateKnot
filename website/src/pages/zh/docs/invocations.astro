@@ -43,6 +43,22 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
     ToolReconciliationOutcome::Committed { .. } => acknowledge(),
     ToolReconciliationOutcome::Idempotent { .. } => acknowledge(),
 }`;
+
+const providerReconciliationCode = `let probe = ToolReconciliationAttemptHandoff::new(
+    live_fence,
+    unknown_invocation,
+    stable_reconciliation_event_id,
+    cancellation,
+)?;
+
+match executor.reconcile_tool(probe).await? {
+    ToolReconciliationAttemptOutcome::Resolved { invocation, .. } => {
+        continue_from(invocation)
+    }
+    ToolReconciliationAttemptOutcome::Pending { retry_after, .. } => {
+        persist_delayed_retry(retry_after)
+    }
+}`;
 ---
 
 <DocsLayout
@@ -197,6 +213,34 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
       Handoff； Ownership 变化时只允许重新绑定同一 Run 的 Live
       Fence。Network-facing Service 必须先增加 Authorization 与 Evidence-source
       Policy，才能暴露这个可信 Worker/Operations Boundary。
+    </p>
+    <p>
+      Provider 也可以实现 Reconciliation SPI，并声明与之匹配的 Status-query
+      Capability。<code>reconcile_tool</code> 只针对原 Attempt 执行一次受 Deadline
+      与 Cancellation 约束的 Probe。Result 或权威 Error 复用同一条原子 Commit Path；<code
+        >Pending</code
+      > 不产生 Mutation，必须转换为耐久 Delayed Retry。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · Provider-backed Reconciliation</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-provider-reconciliation-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-provider-reconciliation-code"
+        tabindex="0"><code>{providerReconciliationCode}</code></pre>
+    </div>
+    <p>
+      默认 Provider 实现会 Fail Closed。若 Provider 声称支持
+      Reconciliation、但冻结 Descriptor 未声明 Status Query，Startup
+      会拒绝注册；反向组合仍可用于明确的人工 Reconciler。
     </p>
   </section>
 

@@ -29,6 +29,8 @@ Runtime 当前提供：
   Model/Tool `StartAttempt` Commit；
 - Unary Model、语义 Streaming 校验与累积，以及必需的耐久 Stream Event Sink；
 - Tool 执行，并对 Write Effect 的 Cancellation/Deadline 歧义做显式分类；
+- 针对精确 Unknown Tool Attempt 执行一次有界 Provider Reconciliation Probe，包含有限
+  Deadline、Cooperative Cancellation、Poll Advice 校验与 Terminal Evidence 原子提交；
 - 使用相同事务意图的有界 PostgreSQL 重试与精确 Lost-ACK Convergence；
 - 保留 Terminal Handoff，只重试持久化而不重复 Provider/Tool I/O；
 - 关闭的 Public-safe Journal Schema，明确排除 Prompt、Argument、Response、Error、Endpoint Identity 与 Credential。
@@ -107,6 +109,27 @@ Read-only Tool 可以记录结果已知的 Cancellation 或 Deadline Failure。�
 耐久 Tool Ledger 保持 `Unknown`，直到应用自己的 Reconciliation
 确认外部结果。Executor 不会因为本地 Future 被丢弃就再次调用 Tool。
 
+`ErasedTool` 可显式实现 `supports_reconciliation` 与 `reconcile`。如果不可变 Descriptor
+没有声明 Status-query Support，启动 Registry 会拒绝 Provider 的实现声明；反向情况
+是合法的：Descriptor 可以声明该 Operation，而当前 Binding 把执行留给独立授权的人工
+Reconciler。
+
+`DurableInvocationExecutor::reconcile_tool` 会在 Provider I/O 前重新加载精确 Invocation，
+并且只接受原 Physical Attempt。它传入 `ToolReconciliationContext`：包含有界 Identity、
+需要时稳定的 Idempotency Key、与已 Admission Run Deadline 取交集后的 Timeout，以及
+Cancellation。Provider 只可返回：
+
+- `Result` 或 Known-effect `Error`：完成 Schema/Provenance 校验，并通过稳定 Audit Event
+  原子提交；
+- `Pending`：不修改 Invocation，同时给出经过校验的 1 ms–1 h 延迟，交给耐久 Node
+  Retry；
+- `ToolReconciliationProbeError`：Public-safe、不会递归 Reconcile，Retry Advice 只能是
+  有界 `SafeAfter` 或 `Never`。
+
+若重新加载时 Invocation 已 Terminal，Executor 会直接返回，不再 Probe。Unknown-effect
+`Error`、递归 `ReconcileFirst`、非法 Poll Delay、Identity Drift 或不支持的 Observation
+全部 Fail Closed。
+
 `ToolReconciliationHandoff::result` 与 `::error` 现在提供可信 Runtime Commit Boundary。它们只接受绑定到精确 Unknown Invocation 与 Attempt 的证据。Result Evidence 在发生任何数据库 Mutation 前，还必须通过冻结的本地 Output Schema 校验。随后 `commit_tool_reconciliation` 会追加独立 Audit Event，并在 Live Worker Fence 下原子推进 Ledger，不执行 Provider Lookup 或 Tool I/O。相同 Event 的重试精确幂等；同一 Run 的 Successor Fence 可通过 `rebind_fence` 重新绑定。
 
 Known Effect Evidence 会把 Invocation 解析为 `Failed`，成功证据会解析为 `Committed`，Effect 仍然未知的证据会有意保留 `Unknown`。Network Service 必须在这个 Trusted Worker/Operations API 前增加 Authorization 与 Evidence-source Policy。
@@ -175,7 +198,10 @@ https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0
 - 严格 MCP Adapter 在真实 Loopback MCP Exchange 与 PostgreSQL 16/17 上通过同一套 Durable-before-dispatch 与 Reconciliation Proof；
 - 严格 A2A Adapter 在 PostgreSQL 16/17 上证明真实 Loopback Send 前已有 Executing
   Revision、Lost Response 会持久化为 `Unknown`，且 Recovery 不会重新 Dispatch 同一
-  Invocation。
+  Invocation；
+- Provider-native Agent Run 会持久化 Unknown Tool Call、为 Pending Reconciliation
+  安排耐久延迟 Retry、在后续 Lease 下解析结果并继续 Model Turn；两次 Probe 期间只有
+  一次 Business Call。
 
 该边界仍是 pre-alpha。第一方 OpenAI Responses/Anthropic Messages Adapter 与强类型 Agent
 Contract、原子 Admission，以及在预置 Provider-native Graph 内耐久组装 Transcript 已实现；

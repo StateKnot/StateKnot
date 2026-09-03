@@ -166,7 +166,7 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "A2A 1.0 Client",
         description:
-          "Discover and pin one agent, call all eleven operations, and bind durable outbound sends without blind retries.",
+          "Discover and pin one agent, call all eleven operations, and reconcile durable unknown sends only through attested remote guarantees.",
         href: "/docs/a2a-client/",
         search:
           "a2a 1.0 client remote agent durable outbound discovery card interface pin jsonrpc http json sse unknown reconcile",
@@ -373,7 +373,7 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "A2A 1.0 Client",
         description:
-          "发现并固定一个 Agent，调用全部 11 个 Operation，并在不盲目重试的前提下绑定耐久 Outbound Send。",
+          "发现并固定一个 Agent，调用全部 11 个 Operation，并只依据已背书的远端保证对耐久 Unknown Send 执行 Reconciliation。",
         href: "/docs/a2a-client/",
         search:
           "a2a 1.0 client remote agent 耐久 outbound discovery card interface pin jsonrpc http json sse unknown reconcile 客户端",

@@ -54,7 +54,8 @@ const currentCut = [
   {
     surface: "Durable model/tool attempts",
     state: "Implemented slice",
-    evidence: "Exact providers, durable starts, streaming, terminal recovery",
+    evidence:
+      "Exact providers, durable starts, bounded probes, atomic evidence",
     href: "/docs/invocations/",
   },
   {
@@ -72,7 +73,7 @@ const currentCut = [
   {
     surface: "Provider-native Agent graph",
     state: "Implemented slice",
-    evidence: "Recovered multi-turn tools, pinned policy, exact cancellation",
+    evidence: "Unknown-to-Pending recovery, pinned policy, exact cancellation",
     href: "/docs/provider-native-agent/",
   },
   {
@@ -108,8 +109,7 @@ const currentCut = [
   {
     surface: "A2A 1.0 Client and remote agent",
     state: "Implemented slice",
-    evidence:
-      "Eleven operations on both bindings plus durable Unknown recovery",
+    evidence: "Eleven operations plus two attested durable recovery strategies",
     href: "/docs/a2a-client/",
   },
   {
@@ -185,7 +185,7 @@ const roadmap = [
     index: "11",
     state: "Implemented",
     title: "Build the durable A2A Client boundary",
-    body: "All eleven operations now run across HTTP+JSON and JSON-RPC/SSE with exact discovery/interface pins and bounded Bearer/OAuth2/OpenID security; the Remote Agent adapter has real PostgreSQL durable-before-dispatch, Unknown, and no-redispatch evidence.",
+    body: "All eleven operations now run across HTTP+JSON and JSON-RPC/SSE with exact discovery/interface pins and bounded security; the Remote Agent adds PostgreSQL Unknown evidence plus operator-attested context/history lookup and message-ID replay.",
   },
   {
     index: "12",
@@ -216,7 +216,7 @@ const roadmap = [
             Remote Tool/Server profiles, and A2A 1.0 HTTP+JSON/JSON-RPC
             Client/Server profiles. Stable network Agent APIs, A2A gRPC, MCP
             Tasks, advanced graph semantics, Client live-peer qualification, and
-            production qualification remain open.
+            recovery-attestation/production qualification remain open.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -360,9 +360,10 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
           all 32 scored Client scenarios and the MCP Server profile passes all
           37 scored Server scenarios. The A2A 1.0 Server gate has 177 official
           TCK passes with zero failures; the Client now adds an eleven-operation
-          dual-binding matrix and real PostgreSQL Unknown/no-redispatch proof.
-          Live-peer qualification, reconciliation, MCP Tasks, and broader
-          extensions remain independent gates.
+          dual-binding matrix, real PostgreSQL Unknown/no-redispatch proof, and
+          bounded operator-attested recovery. Live-peer and recovery-attestation
+          qualification, MCP Tasks, and broader extensions remain independent
+          gates.
         </p>
       </div>
 

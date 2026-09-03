@@ -91,7 +91,7 @@ const paths = [
   },
   {
     title: "调用耐久 A2A Agent",
-    body: "冻结 Agent Card、Interface、Security Choice 与本地 Schema Contract，并在不盲目重试的前提下保留 Unknown Outbound Outcome。",
+    body: "冻结 Agent Card 与本地 Contract；保留 Unknown Send，或只依据明确背书的远端保证执行 Reconciliation。",
     href: "/zh/docs/a2a-client/",
     link: "集成 A2A Client",
   },
@@ -157,9 +157,9 @@ const paths = [
       >通过 177 个用例且没有 Failure 或 Error。<a href="/zh/docs/a2a-client/"
         >A2A 1.0 Client 与耐久 Remote Agent</a
       > 已实现全部 11 个 Dual-binding Operation，并将 Lost Send 保留为 PostgreSQL-backed
-      Unknown Outcome。稳定 Network Agent Transport、MCP Tasks、生产耐久 A2A Task/Push
-      Backend、Client Live-peer Qualification、Reconciliation、gRPC 与生产验证仍是
-      发布阻断项。
+      Unknown Outcome，还支持有界、由运维方背书的 Context/History Query 与 Message-ID
+      Replay。稳定 Network Agent Transport、MCP Tasks、生产耐久 A2A Task/Push Backend、Client
+      Live-peer 与 Recovery-attestation Qualification、gRPC 与生产验证仍是 发布阻断项。
     </p>
   </aside>
 

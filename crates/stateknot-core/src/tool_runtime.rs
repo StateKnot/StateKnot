@@ -58,6 +58,339 @@ impl fmt::Debug for ToolIdempotencyKey {
     }
 }
 
+/// Ephemeral, capability-limited context for reconciling one physical tool attempt.
+///
+/// Reconciliation is not a new business attempt: it receives the original
+/// invocation and attempt identities, never a fresh attempt identifier or a
+/// mutable property bag. The finite deadline is independently bounded by the
+/// run deadline and the frozen tool timeout. A descriptor must explicitly
+/// declare status-query support before this context can be constructed.
+#[derive(Clone)]
+pub struct ToolReconciliationContext {
+    tenant_id: TenantId,
+    run_id: RunId,
+    thread_id: ThreadId,
+    invocation_id: InvocationId,
+    attempt_id: AttemptId,
+    tool: CapabilityIdentity,
+    idempotency: ToolIdempotency,
+    idempotency_key: Option<ToolIdempotencyKey>,
+    observed_at: Timestamp,
+    deadline: Timestamp,
+    deadline_instant: Instant,
+    effective_timeout: DurationMillis,
+    cancellation: CancellationSignal,
+}
+
+impl ToolReconciliationContext {
+    /// Constructs a finite context for the original ambiguous attempt.
+    ///
+    /// # Errors
+    ///
+    /// Rejects descriptors without status-query support, zero or widened
+    /// timeouts, expired run deadlines, and unrepresentable monotonic deadlines.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        tenant_id: TenantId,
+        run_id: RunId,
+        thread_id: ThreadId,
+        invocation_id: InvocationId,
+        attempt_id: AttemptId,
+        descriptor: &ToolDescriptor,
+        effective_timeout: DurationMillis,
+        observed_at: Timestamp,
+        observed_instant: Instant,
+        run_deadline: Timestamp,
+        cancellation: CancellationSignal,
+    ) -> Result<Self, ToolReconciliationContextError> {
+        if !descriptor.semantics().supports_status_query() {
+            return Err(ToolReconciliationContextError::StatusQueryUnsupported);
+        }
+        if effective_timeout == DurationMillis::ZERO {
+            return Err(ToolReconciliationContextError::ZeroEffectiveTimeout);
+        }
+        let descriptor_timeout = descriptor.limits().timeout();
+        if effective_timeout > descriptor_timeout {
+            return Err(ToolReconciliationContextError::TimeoutExceedsDescriptor {
+                descriptor: descriptor_timeout,
+                actual: effective_timeout,
+            });
+        }
+
+        let run_remaining_micros = i128::from(run_deadline.unix_micros())
+            .checked_sub(i128::from(observed_at.unix_micros()))
+            .expect("subtracting two i64 timestamps cannot overflow i128");
+        if run_remaining_micros <= 0 {
+            return Err(ToolReconciliationContextError::DeadlineReached {
+                deadline: run_deadline,
+                observed_at,
+            });
+        }
+        let timeout_micros = i128::from(effective_timeout.as_i64()) * 1_000;
+        let remaining_micros = run_remaining_micros.min(timeout_micros);
+        let deadline_micros = i128::from(observed_at.unix_micros()) + remaining_micros;
+        let deadline_micros = i64::try_from(deadline_micros)
+            .expect("a reconciliation deadline bounded by a valid run deadline fits i64");
+        let deadline = Timestamp::from_unix_micros(deadline_micros)
+            .expect("a reconciliation deadline bounded by a valid run deadline is valid");
+        let remaining_micros = u64::try_from(remaining_micros)
+            .expect("a positive supported timestamp distance fits u64 microseconds");
+        let remaining = Duration::from_micros(remaining_micros);
+        let deadline_instant = observed_instant
+            .checked_add(remaining)
+            .ok_or(ToolReconciliationContextError::MonotonicDeadlineOutOfRange { remaining })?;
+
+        let idempotency = descriptor.semantics().idempotency();
+        let idempotency_key = descriptor
+            .semantics()
+            .requires_idempotency_key()
+            .then_some(ToolIdempotencyKey::from_invocation_id(invocation_id));
+        Ok(Self {
+            tenant_id,
+            run_id,
+            thread_id,
+            invocation_id,
+            attempt_id,
+            tool: descriptor.metadata().identity().clone(),
+            idempotency,
+            idempotency_key,
+            observed_at,
+            deadline,
+            deadline_instant,
+            effective_timeout,
+            cancellation,
+        })
+    }
+
+    /// Returns the tenant boundary.
+    #[must_use]
+    pub const fn tenant_id(&self) -> &TenantId {
+        &self.tenant_id
+    }
+
+    /// Returns the enclosing run identity.
+    #[must_use]
+    pub const fn run_id(&self) -> RunId {
+        self.run_id
+    }
+
+    /// Returns the enclosing conversation thread identity.
+    #[must_use]
+    pub const fn thread_id(&self) -> ThreadId {
+        self.thread_id
+    }
+
+    /// Returns the original logical invocation identity.
+    #[must_use]
+    pub const fn invocation_id(&self) -> InvocationId {
+        self.invocation_id
+    }
+
+    /// Returns the original physical attempt identity.
+    #[must_use]
+    pub const fn attempt_id(&self) -> AttemptId {
+        self.attempt_id
+    }
+
+    /// Returns the frozen owner-qualified tool identity.
+    #[must_use]
+    pub const fn tool(&self) -> &CapabilityIdentity {
+        &self.tool
+    }
+
+    /// Returns the descriptor-declared idempotency mechanism.
+    #[must_use]
+    pub const fn idempotency(&self) -> ToolIdempotency {
+        self.idempotency
+    }
+
+    /// Returns the stable original invocation key when required.
+    #[must_use]
+    pub const fn idempotency_key(&self) -> Option<ToolIdempotencyKey> {
+        self.idempotency_key
+    }
+
+    /// Returns the trusted wall-clock observation.
+    #[must_use]
+    pub const fn observed_at(&self) -> Timestamp {
+        self.observed_at
+    }
+
+    /// Returns the finite wall-clock probe deadline.
+    #[must_use]
+    pub const fn deadline(&self) -> Timestamp {
+        self.deadline
+    }
+
+    /// Returns the equivalent process-local monotonic deadline.
+    #[must_use]
+    pub const fn deadline_instant(&self) -> Instant {
+        self.deadline_instant
+    }
+
+    /// Returns the effective probe timeout.
+    #[must_use]
+    pub const fn effective_timeout(&self) -> DurationMillis {
+        self.effective_timeout
+    }
+
+    /// Returns the cooperative cancellation signal.
+    #[must_use]
+    pub const fn cancellation(&self) -> &CancellationSignal {
+        &self.cancellation
+    }
+
+    /// Returns a stop reason at one monotonic observation.
+    #[must_use]
+    pub fn stop_reason_at(&self, observed_instant: Instant) -> Option<ToolStopReason> {
+        if self.cancellation.is_cancelled() {
+            Some(ToolStopReason::Cancelled)
+        } else if self
+            .deadline_instant
+            .checked_duration_since(observed_instant)
+            .filter(|remaining| !remaining.is_zero())
+            .is_none()
+        {
+            Some(ToolStopReason::DeadlineExceeded)
+        } else {
+            None
+        }
+    }
+
+    /// Revalidates this context against the immutable descriptor snapshot.
+    pub fn validate_for(
+        &self,
+        descriptor: &ToolDescriptor,
+    ) -> Result<(), ToolReconciliationContextBindingError> {
+        if !descriptor.semantics().supports_status_query() {
+            return Err(ToolReconciliationContextBindingError::StatusQueryUnsupported);
+        }
+        let expected_tool = descriptor.metadata().identity();
+        if &self.tool != expected_tool {
+            return Err(
+                ToolReconciliationContextBindingError::ToolIdentityMismatch {
+                    expected: Box::new(expected_tool.clone()),
+                    actual: Box::new(self.tool.clone()),
+                },
+            );
+        }
+        let expected_idempotency = descriptor.semantics().idempotency();
+        if self.idempotency != expected_idempotency {
+            return Err(ToolReconciliationContextBindingError::IdempotencyMismatch {
+                expected: expected_idempotency,
+                actual: self.idempotency,
+            });
+        }
+        if self.effective_timeout > descriptor.limits().timeout() {
+            return Err(
+                ToolReconciliationContextBindingError::TimeoutExceedsDescriptor {
+                    descriptor: descriptor.limits().timeout(),
+                    actual: self.effective_timeout,
+                },
+            );
+        }
+        let key_is_valid = matches!(
+            (self.idempotency, self.idempotency_key),
+            (ToolIdempotency::RequiredKey, Some(key)) if key.invocation_id() == self.invocation_id
+        ) || (self.idempotency != ToolIdempotency::RequiredKey
+            && self.idempotency_key.is_none());
+        if !key_is_valid {
+            return Err(ToolReconciliationContextBindingError::InvalidIdempotencyKeyBinding);
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for ToolReconciliationContext {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ToolReconciliationContext")
+            .field("tenant_id", &self.tenant_id)
+            .field("run_id", &self.run_id)
+            .field("thread_id", &self.thread_id)
+            .field("invocation_id", &self.invocation_id)
+            .field("attempt_id", &self.attempt_id)
+            .field("tool", &self.tool)
+            .field("idempotency", &self.idempotency)
+            .field("has_idempotency_key", &self.idempotency_key.is_some())
+            .field("observed_at", &self.observed_at)
+            .field("deadline", &self.deadline)
+            .field("effective_timeout", &self.effective_timeout)
+            .field("cancelled", &self.cancellation.is_cancelled())
+            .finish_non_exhaustive()
+    }
+}
+
+/// Failure to construct a finite reconciliation context.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ToolReconciliationContextError {
+    /// The descriptor did not declare an executable status query.
+    #[error("tool descriptor does not support reconciliation status queries")]
+    StatusQueryUnsupported,
+    /// A zero timeout would create an immediately ineligible probe.
+    #[error("tool reconciliation effective timeout must be greater than zero")]
+    ZeroEffectiveTimeout,
+    /// A runtime layer attempted to widen the immutable tool timeout.
+    #[error("tool reconciliation timeout {actual}ms exceeds descriptor timeout {descriptor}ms")]
+    TimeoutExceedsDescriptor {
+        /// Immutable descriptor ceiling.
+        descriptor: DurationMillis,
+        /// Rejected effective timeout.
+        actual: DurationMillis,
+    },
+    /// The run deadline was already reached.
+    #[error("tool reconciliation deadline {deadline} was reached at {observed_at}")]
+    DeadlineReached {
+        /// Durable run deadline.
+        deadline: Timestamp,
+        /// Wall-clock observation.
+        observed_at: Timestamp,
+    },
+    /// The finite deadline could not be represented by the monotonic clock.
+    #[error("tool reconciliation monotonic deadline is out of range after {remaining:?}")]
+    MonotonicDeadlineOutOfRange {
+        /// Positive duration to the deadline.
+        remaining: Duration,
+    },
+}
+
+/// Invalid relationship between a reconciliation context and descriptor.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ToolReconciliationContextBindingError {
+    /// The descriptor no longer declares a status query.
+    #[error("tool descriptor does not support reconciliation status queries")]
+    StatusQueryUnsupported,
+    /// The context names a different immutable tool version.
+    #[error("tool reconciliation identity {actual:?} does not match descriptor {expected:?}")]
+    ToolIdentityMismatch {
+        /// Expected identity.
+        expected: Box<CapabilityIdentity>,
+        /// Actual identity.
+        actual: Box<CapabilityIdentity>,
+    },
+    /// The descriptor idempotency mechanism changed.
+    #[error("tool reconciliation idempotency {actual:?} does not match descriptor {expected:?}")]
+    IdempotencyMismatch {
+        /// Expected mechanism.
+        expected: ToolIdempotency,
+        /// Actual mechanism.
+        actual: ToolIdempotency,
+    },
+    /// The context widened the immutable timeout ceiling.
+    #[error("tool reconciliation timeout {actual}ms exceeds descriptor timeout {descriptor}ms")]
+    TimeoutExceedsDescriptor {
+        /// Immutable descriptor ceiling.
+        descriptor: DurationMillis,
+        /// Actual timeout.
+        actual: DurationMillis,
+    },
+    /// The stable idempotency key does not belong to the original invocation.
+    #[error("tool reconciliation idempotency key is not bound to its invocation")]
+    InvalidIdempotencyKeyBinding,
+}
+
 /// Reason a tool boundary must stop before accepting another result.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
@@ -2476,6 +2809,168 @@ pub trait Tool: Send + Sync + 'static {
     ) -> crate::BoxFuture<'_, Result<ToolOutput<Self::Output>, ToolError>>;
 }
 
+/// One bounded observation produced by a tool reconciliation probe.
+///
+/// Result and error evidence must describe the original physical attempt; the
+/// durable runtime revalidates that binding before commit. `Pending` means the
+/// remote system supplied no authoritative terminal fact and therefore causes
+/// no invocation-ledger mutation.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum ToolReconciliationObservation {
+    /// Authoritative successful evidence for the original attempt.
+    Result(ToolResult),
+    /// Authoritative failure/effect evidence for the original attempt.
+    Error(ToolError),
+    /// No authoritative outcome is available yet.
+    Pending {
+        /// Minimum delay before the next bounded probe.
+        retry_after: DurationMillis,
+    },
+}
+
+impl ToolReconciliationObservation {
+    /// Maximum provider-selected polling interval accepted by the core API.
+    pub const MAX_RETRY_AFTER: DurationMillis = match DurationMillis::new(3_600_000) {
+        Ok(value) => value,
+        Err(_) => panic!("one hour is a valid duration"),
+    };
+
+    /// Constructs a positive, bounded pending observation.
+    ///
+    /// # Errors
+    ///
+    /// Rejects zero and intervals greater than one hour. Longer waits are
+    /// represented by repeated durable probes so cancellation and leases stay
+    /// observable.
+    pub fn pending(
+        retry_after: DurationMillis,
+    ) -> Result<Self, ToolReconciliationObservationError> {
+        validate_reconciliation_retry_after(retry_after)?;
+        Ok(Self::Pending { retry_after })
+    }
+
+    /// Revalidates provider-authored polling bounds.
+    ///
+    /// Runtimes call this even when a provider constructed the public enum
+    /// variant directly.
+    pub fn validate(&self) -> Result<(), ToolReconciliationObservationError> {
+        match self {
+            Self::Result(_) | Self::Error(_) => Ok(()),
+            Self::Pending { retry_after } => validate_reconciliation_retry_after(*retry_after),
+        }
+    }
+}
+
+fn validate_reconciliation_retry_after(
+    retry_after: DurationMillis,
+) -> Result<(), ToolReconciliationObservationError> {
+    if retry_after == DurationMillis::ZERO {
+        return Err(ToolReconciliationObservationError::ZeroRetryDelay);
+    }
+    if retry_after > ToolReconciliationObservation::MAX_RETRY_AFTER {
+        return Err(ToolReconciliationObservationError::RetryDelayTooLarge {
+            maximum: ToolReconciliationObservation::MAX_RETRY_AFTER,
+            actual: retry_after,
+        });
+    }
+    Ok(())
+}
+
+/// Invalid polling advice returned by a reconciliation provider.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ToolReconciliationObservationError {
+    /// An immediate durable retry would create a hot loop.
+    #[error("tool reconciliation retry delay must be greater than zero")]
+    ZeroRetryDelay,
+    /// Provider advice exceeded the bounded polling ceiling.
+    #[error("tool reconciliation retry delay {actual}ms exceeds maximum {maximum}ms")]
+    RetryDelayTooLarge {
+        /// Maximum accepted delay.
+        maximum: DurationMillis,
+        /// Rejected delay.
+        actual: DurationMillis,
+    },
+}
+
+/// Public-safe failure of the reconciliation probe itself.
+///
+/// This is not evidence about the original tool outcome. In particular it may
+/// never request `ReconcileFirst`, which would recursively turn a read/replay
+/// probe failure into another ambiguous business operation.
+#[derive(Clone, Debug, Error)]
+#[error("tool reconciliation probe failed: {failure}")]
+pub struct ToolReconciliationProbeError {
+    failure: Box<Failure>,
+}
+
+impl ToolReconciliationProbeError {
+    /// Wraps a public-safe probe failure with finite recovery advice.
+    ///
+    /// # Errors
+    ///
+    /// Rejects reconcile-first advice and unbounded or zero safe-after delays.
+    pub fn new(failure: Failure) -> Result<Self, ToolReconciliationProbeErrorBuildError> {
+        if failure.retry_advice().requires_reconciliation() {
+            return Err(ToolReconciliationProbeErrorBuildError::RecursiveReconciliation);
+        }
+        if let Some(delay) = failure.retry_advice().safe_after_delay() {
+            validate_reconciliation_retry_after(delay)
+                .map_err(ToolReconciliationProbeErrorBuildError::invalid_retry)?;
+        }
+        Ok(Self {
+            failure: Box::new(failure),
+        })
+    }
+
+    /// Returns the public-safe probe failure.
+    #[must_use]
+    pub fn failure(&self) -> &Failure {
+        self.failure.as_ref()
+    }
+
+    fn unsupported() -> Self {
+        let failure = Failure::new(
+            FailureId::generate(),
+            FailureCategory::Unsupported,
+            FailureCode::new("stateknot.tool.reconciliation_unsupported")
+                .expect("static reconciliation failure code is valid"),
+            FailureOrigin::new("stateknot.tool")
+                .expect("static reconciliation failure origin is valid"),
+            FailureMessage::new("This tool does not implement reconciliation.")
+                .expect("static reconciliation failure message is valid"),
+            RetryAdvice::Never,
+        )
+        .expect("static reconciliation failure semantics are coherent");
+        Self {
+            failure: Box::new(failure),
+        }
+    }
+}
+
+/// Invalid recovery advice attached to a reconciliation-probe failure.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ToolReconciliationProbeErrorBuildError {
+    /// A probe failure cannot itself claim an ambiguous business outcome.
+    #[error("tool reconciliation probe failure cannot require reconciliation")]
+    RecursiveReconciliation,
+    /// Safe retry advice violated polling bounds.
+    #[error("tool reconciliation probe retry advice is invalid: {source}")]
+    InvalidRetry {
+        /// Exact polling-bound violation.
+        #[source]
+        source: ToolReconciliationObservationError,
+    },
+}
+
+impl ToolReconciliationProbeErrorBuildError {
+    const fn invalid_retry(source: ToolReconciliationObservationError) -> Self {
+        Self::InvalidRetry { source }
+    }
+}
+
 /// Object-safe tool boundary used by heterogeneous registries and runtimes.
 ///
 /// Only adapters that have passed typed schema registration should enter an
@@ -2485,12 +2980,38 @@ pub trait ErasedTool: Send + Sync + 'static {
     /// Returns the immutable descriptor snapshot used by this adapter.
     fn descriptor(&self) -> &ToolDescriptor;
 
+    /// Returns whether this executable binding implements reconciliation.
+    ///
+    /// Immutable registries reject an implementation claim that was not
+    /// declared by the descriptor. A descriptor may still declare a status
+    /// query while leaving execution to a separately authorized manual
+    /// reconciler, in which case this returns `false`.
+    #[must_use]
+    fn supports_reconciliation(&self) -> bool {
+        false
+    }
+
     /// Validates, decodes, executes, encodes, and revalidates one attempt.
     fn call(
         &self,
         context: ToolContext,
         input: ToolInput,
     ) -> crate::BoxFuture<'_, Result<ToolResult, ToolError>>;
+
+    /// Reconciles the outcome of the original ambiguous physical attempt.
+    ///
+    /// Implementations must query authoritative provider state or perform an
+    /// operator-attested deduplicated replay. They must never issue an
+    /// unprotected duplicate write. The default fails closed so older and
+    /// ordinary tools cannot accidentally claim recovery support.
+    fn reconcile(
+        &self,
+        _context: ToolReconciliationContext,
+        _input: ToolInput,
+    ) -> crate::BoxFuture<'_, Result<ToolReconciliationObservation, ToolReconciliationProbeError>>
+    {
+        Box::pin(async { Err(ToolReconciliationProbeError::unsupported()) })
+    }
 }
 
 /// Framework-owned typed-to-erased adapter with pinned schema enforcement.
@@ -2983,6 +3504,70 @@ mod tests {
         assert!(matches!(
             make(DurationMillis::new(30_001).unwrap()),
             Err(ToolContextError::TimeoutExceedsDescriptor { .. })
+        ));
+    }
+
+    #[test]
+    fn reconciliation_context_preserves_original_identity_and_is_finite() {
+        let descriptor = descriptor();
+        let observed_at = OBSERVED_AT.parse::<Timestamp>().unwrap();
+        let context = ToolReconciliationContext::new(
+            TenantId::new("tenant-production").unwrap(),
+            RUN_ID.parse().unwrap(),
+            THREAD_ID.parse().unwrap(),
+            INVOCATION_ID.parse().unwrap(),
+            ATTEMPT_ID.parse().unwrap(),
+            &descriptor,
+            DurationMillis::new(30_000).unwrap(),
+            observed_at,
+            Instant::now(),
+            "2030-01-01T00:00:00.000000Z".parse().unwrap(),
+            CancellationSignal::never(),
+        )
+        .unwrap();
+
+        context.validate_for(&descriptor).unwrap();
+        assert_eq!(context.invocation_id().to_string(), INVOCATION_ID);
+        assert_eq!(context.attempt_id().to_string(), ATTEMPT_ID);
+        assert_eq!(
+            context.idempotency_key().unwrap().to_string(),
+            INVOCATION_ID
+        );
+        assert_eq!(
+            context.deadline(),
+            "2030-01-01T00:00:00.000000Z".parse().unwrap()
+        );
+        assert!(format!("{context:?}").contains("has_idempotency_key: true"));
+    }
+
+    #[test]
+    fn reconciliation_polling_and_probe_failures_are_bounded() {
+        assert_eq!(
+            ToolReconciliationObservation::pending(DurationMillis::ZERO).unwrap_err(),
+            ToolReconciliationObservationError::ZeroRetryDelay
+        );
+        let excessive = DurationMillis::new(3_600_001).unwrap();
+        assert!(matches!(
+            ToolReconciliationObservation::pending(excessive),
+            Err(ToolReconciliationObservationError::RetryDelayTooLarge { .. })
+        ));
+        let ambiguous = failure(
+            FailureCategory::AmbiguousExternalOutcome,
+            RetryAdvice::ReconcileFirst,
+        );
+        assert_eq!(
+            ToolReconciliationProbeError::new(ambiguous).unwrap_err(),
+            ToolReconciliationProbeErrorBuildError::RecursiveReconciliation
+        );
+        let zero_retry = failure(
+            FailureCategory::DependencyUnavailable,
+            RetryAdvice::SafeAfter {
+                delay: DurationMillis::ZERO,
+            },
+        );
+        assert!(matches!(
+            ToolReconciliationProbeError::new(zero_retry),
+            Err(ToolReconciliationProbeErrorBuildError::InvalidRetry { .. })
         ));
     }
 

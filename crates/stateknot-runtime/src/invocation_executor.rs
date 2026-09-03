@@ -14,16 +14,19 @@ use std::{
 use serde_json::json;
 use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, BoxFuture, BudgetRemaining, CancellationSignal,
-    Digest, EventId, ExecutionCount, Failure, FailureCategory, FailureCode, FailureId,
-    FailureMessage, FailureOrigin, GraphSchemaValidationError, InvocationId, JournalAppend,
-    JournalEvent, JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload,
-    ModelContext, ModelContextError, ModelError, ModelErrorPhase, ModelErrorProvenance, ModelEvent,
-    ModelEventAccumulator, ModelInvocation, ModelInvocationStatus, ModelInvocationTransition,
-    ModelRequest, ModelResponse, ModelResponseMode, ModelStopReason, RetryAdvice, RunFence,
-    SchemaReference, Timestamp, ToolContext, ToolContextError, ToolError, ToolErrorPhase,
-    ToolErrorProvenance, ToolExternalEffect, ToolInputValidationError, ToolInvocation,
-    ToolInvocationError, ToolInvocationStatus, ToolInvocationTransition, ToolProgressSink,
-    ToolResult, ToolRisk, ToolStopReason,
+    Digest, DurationMillis, EventId, ExecutionCount, Failure, FailureCategory, FailureCode,
+    FailureId, FailureMessage, FailureOrigin, GraphSchemaValidationError, InvocationId,
+    JournalAppend, JournalEvent, JournalEventIntent, JournalEventKind, JournalExpectation,
+    JournalPayload, ModelContext, ModelContextError, ModelError, ModelErrorPhase,
+    ModelErrorProvenance, ModelEvent, ModelEventAccumulator, ModelInvocation,
+    ModelInvocationStatus, ModelInvocationTransition, ModelRequest, ModelResponse,
+    ModelResponseMode, ModelStopReason, RetryAdvice, RunFence, SchemaReference, Timestamp,
+    ToolContext, ToolContextError, ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance,
+    ToolExternalEffect, ToolInputValidationError, ToolInvocation, ToolInvocationError,
+    ToolInvocationState, ToolInvocationStatus, ToolInvocationTransition, ToolProgressSink,
+    ToolReconciliationContext, ToolReconciliationContextError, ToolReconciliationObservation,
+    ToolReconciliationObservationError, ToolReconciliationProbeError, ToolResult, ToolRisk,
+    ToolStopReason,
 };
 use stateknot_store_postgres::{
     ModelInvocationCommitOutcome, PostgresStore, StoreError, ToolInvocationCommitOutcome,
@@ -678,6 +681,166 @@ pub enum ToolAttemptOutcome {
     },
 }
 
+/// Retained request to probe one exact unknown tool attempt.
+///
+/// The event identity is stable across node and process retries. A probe that
+/// remains pending performs no mutation; authoritative evidence is committed
+/// through the existing atomic reconciliation transition.
+#[derive(Clone)]
+pub struct ToolReconciliationAttemptHandoff {
+    fence: RunFence,
+    invocation: ToolInvocation,
+    event_id: EventId,
+    cancellation: CancellationSignal,
+}
+
+impl ToolReconciliationAttemptHandoff {
+    /// Constructs a scope- and capability-bound reconciliation probe.
+    ///
+    /// # Errors
+    ///
+    /// Rejects crossed run scope, non-unknown invocation state, a missing
+    /// physical attempt, or a descriptor without status-query support.
+    pub fn new(
+        fence: RunFence,
+        invocation: ToolInvocation,
+        event_id: EventId,
+        cancellation: CancellationSignal,
+    ) -> Result<Self, ToolReconciliationAttemptHandoffError> {
+        validate_tool_reconciliation_attempt_handoff(&fence, &invocation)?;
+        Ok(Self {
+            fence,
+            invocation,
+            event_id,
+            cancellation,
+        })
+    }
+
+    /// Returns the live worker fence used for reads and commit.
+    #[must_use]
+    pub const fn fence(&self) -> &RunFence {
+        &self.fence
+    }
+
+    /// Returns the exact unknown invocation revision.
+    #[must_use]
+    pub const fn invocation(&self) -> &ToolInvocation {
+        &self.invocation
+    }
+
+    /// Returns the stable audit-event identity.
+    #[must_use]
+    pub const fn event_id(&self) -> EventId {
+        self.event_id
+    }
+
+    /// Rebinds the probe to a newer live fence for the same run.
+    ///
+    /// # Errors
+    ///
+    /// Rejects a fence from another tenant or run.
+    pub fn rebind_fence(
+        mut self,
+        fence: RunFence,
+    ) -> Result<Self, ToolReconciliationAttemptHandoffError> {
+        if self.invocation.intent().tenant_id() != fence.tenant_id()
+            || self.invocation.intent().run_id() != fence.run_id()
+        {
+            return Err(ToolReconciliationAttemptHandoffError::ScopeMismatch);
+        }
+        self.fence = fence;
+        Ok(self)
+    }
+}
+
+impl fmt::Debug for ToolReconciliationAttemptHandoff {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ToolReconciliationAttemptHandoff")
+            .field("fence", &self.fence)
+            .field("invocation_head", &self.invocation.head())
+            .field("event_id", &self.event_id)
+            .field("cancelled", &self.cancellation.is_cancelled())
+            .finish_non_exhaustive()
+    }
+}
+
+/// Invalid request to execute an automated reconciliation probe.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ToolReconciliationAttemptHandoffError {
+    /// Fence and invocation crossed tenant/run or journal scope.
+    #[error("tool reconciliation attempt crosses its retained worker fence")]
+    ScopeMismatch,
+    /// The invocation is not currently unknown.
+    #[error("tool reconciliation attempt does not reference an unknown invocation")]
+    InvocationNotUnknown,
+    /// The unknown invocation does not identify its physical attempt.
+    #[error("tool reconciliation attempt has no physical attempt identity")]
+    MissingAttempt,
+    /// The descriptor does not declare status-query support.
+    #[error("tool reconciliation attempt is not declared by the descriptor")]
+    StatusQueryUnsupported,
+}
+
+fn validate_tool_reconciliation_attempt_handoff(
+    fence: &RunFence,
+    invocation: &ToolInvocation,
+) -> Result<(), ToolReconciliationAttemptHandoffError> {
+    if invocation.intent().tenant_id() != fence.tenant_id()
+        || invocation.intent().run_id() != fence.run_id()
+        || invocation.journal_head().tenant_id() != fence.tenant_id()
+        || invocation.journal_head().run_id() != fence.run_id()
+    {
+        return Err(ToolReconciliationAttemptHandoffError::ScopeMismatch);
+    }
+    if invocation.status() != ToolInvocationStatus::Unknown {
+        return Err(ToolReconciliationAttemptHandoffError::InvocationNotUnknown);
+    }
+    if invocation.attempt_id().is_none() {
+        return Err(ToolReconciliationAttemptHandoffError::MissingAttempt);
+    }
+    if !invocation
+        .intent()
+        .descriptor()
+        .semantics()
+        .supports_status_query()
+    {
+        return Err(ToolReconciliationAttemptHandoffError::StatusQueryUnsupported);
+    }
+    Ok(())
+}
+
+/// Result of one bounded provider-backed reconciliation probe.
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum ToolReconciliationAttemptOutcome {
+    /// Authoritative evidence is now durable, or was already durable.
+    Resolved {
+        /// Result or known-error evidence classification.
+        kind: ToolReconciliationKind,
+        /// Current terminal invocation revision.
+        invocation: ToolInvocation,
+    },
+    /// No authoritative evidence exists yet; no ledger mutation occurred.
+    Pending {
+        /// Earliest safe time for another bounded probe.
+        retry_after: DurationMillis,
+        /// Current unchanged unknown invocation revision.
+        invocation: ToolInvocation,
+    },
+}
+
+impl ToolReconciliationAttemptOutcome {
+    /// Returns the current invocation revision.
+    #[must_use]
+    pub const fn invocation(&self) -> &ToolInvocation {
+        match self {
+            Self::Resolved { invocation, .. } | Self::Pending { invocation, .. } => invocation,
+        }
+    }
+}
+
 /// Authoritative evidence classification for one ambiguous tool attempt.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
@@ -1162,6 +1325,108 @@ impl ToolReconciliationCommitError {
     }
 }
 
+/// Failure before, during, or after one automated reconciliation probe.
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum ToolReconciliationAttemptExecutionError {
+    /// The retained probe request violated scope or state invariants.
+    #[error(transparent)]
+    Handoff(#[from] ToolReconciliationAttemptHandoffError),
+    /// No exact executable tool binding was installed.
+    #[error(transparent)]
+    Registry(#[from] ToolProviderRegistryError),
+    /// The exact binding leaves status reconciliation to an external operator.
+    #[error("installed tool binding does not implement automated reconciliation")]
+    ProviderReconciliationUnsupported,
+    /// Durable state could not be loaded.
+    #[error(transparent)]
+    Store(#[from] StoreError),
+    /// Stored run provenance crossed the retained worker fence.
+    #[error("stored run provenance does not match the tool reconciliation fence")]
+    RunProvenanceMismatch,
+    /// Runtime clock observation failed.
+    #[error(transparent)]
+    Clock(#[from] InvocationClockError),
+    /// The descriptor-bounded fallback deadline was not representable.
+    #[error("tool reconciliation deadline is outside the supported timestamp range")]
+    DeadlineOutOfRange,
+    /// A finite reconciliation context could not be constructed.
+    #[error(transparent)]
+    Context(#[from] ToolReconciliationContextError),
+    /// Cancellation or the run/probe deadline won.
+    #[error("tool reconciliation stopped: {reason:?}")]
+    Stopped {
+        /// Deterministic stop reason.
+        reason: ToolStopReason,
+    },
+    /// The provider's probe itself failed without resolving the original call.
+    #[error(transparent)]
+    Probe(#[from] ToolReconciliationProbeError),
+    /// Provider polling advice violated hard resource bounds.
+    #[error(transparent)]
+    Observation(#[from] ToolReconciliationObservationError),
+    /// A probe returned another ambiguous outcome instead of `Pending`.
+    #[error("tool reconciliation returned unresolved error evidence")]
+    UnresolvedErrorEvidence,
+    /// A newer provider observation variant is unsupported by this runtime.
+    #[error("tool reconciliation observation is unsupported by this runtime")]
+    UnsupportedObservation,
+    /// Result or known-error evidence violated the exact unknown invocation.
+    #[error(transparent)]
+    Evidence(#[from] ToolReconciliationHandoffError),
+    /// The invocation changed to another durable intent.
+    #[error("recovered tool reconciliation invocation does not match the retained intent")]
+    RecoveredInvocationMismatch,
+    /// The invocation no longer references the original physical attempt.
+    #[error("tool reconciliation invocation advanced under another attempt or state")]
+    InvocationAdvanced,
+    /// Authoritative evidence was produced but its atomic commit failed.
+    #[error(transparent)]
+    Commit(#[from] ToolReconciliationCommitError),
+}
+
+impl ToolReconciliationAttemptExecutionError {
+    /// Returns explicit node-level recovery advice for this probe failure.
+    ///
+    /// Retryability is inherited only from an explicit provider failure or a
+    /// retryable durable-store classification. Contract and integrity failures
+    /// remain terminal.
+    #[must_use]
+    pub fn retry_advice(&self) -> RetryAdvice {
+        let store_retry = || RetryAdvice::SafeAfter {
+            delay: DurationMillis::new(100).expect("positive static retry delay"),
+        };
+        match self {
+            Self::Probe(source) => source.failure().retry_advice(),
+            Self::Store(source) if source.is_retryable() => store_retry(),
+            Self::Commit(source)
+                if matches!(
+                    source.source_error(),
+                    ToolReconciliationCommitFailure::Store(store) if store.is_retryable()
+                ) =>
+            {
+                store_retry()
+            }
+            Self::Handoff(_)
+            | Self::Registry(_)
+            | Self::ProviderReconciliationUnsupported
+            | Self::Store(_)
+            | Self::RunProvenanceMismatch
+            | Self::Clock(_)
+            | Self::DeadlineOutOfRange
+            | Self::Context(_)
+            | Self::Stopped { .. }
+            | Self::Observation(_)
+            | Self::UnresolvedErrorEvidence
+            | Self::UnsupportedObservation
+            | Self::Evidence(_)
+            | Self::RecoveredInvocationMismatch
+            | Self::InvocationAdvanced
+            | Self::Commit(_) => RetryAdvice::Never,
+        }
+    }
+}
+
 /// First-party durable model/tool attempt executor.
 #[derive(Clone)]
 pub struct DurableInvocationExecutor {
@@ -1176,6 +1441,20 @@ pub struct DurableInvocationExecutor {
 }
 
 impl DurableInvocationExecutor {
+    /// Returns whether the exact installed binding implements reconciliation.
+    ///
+    /// # Errors
+    ///
+    /// Fails if no exact provider binding exists for the descriptor snapshot.
+    pub fn supports_tool_reconciliation(
+        &self,
+        descriptor: &ToolDescriptor,
+    ) -> Result<bool, ToolProviderRegistryError> {
+        self.tools
+            .resolve(descriptor)
+            .map(|provider| provider.supports_reconciliation())
+    }
+
     /// Builds an executor using the production system/monotonic clock.
     ///
     /// # Errors
@@ -1347,6 +1626,66 @@ impl DurableInvocationExecutor {
                 handoff.cancellation.clone(),
             )
         }
+    }
+
+    async fn prepare_tool_reconciliation_context(
+        &self,
+        handoff: &ToolReconciliationAttemptHandoff,
+        invocation: &ToolInvocation,
+    ) -> Result<ToolReconciliationContext, ToolReconciliationAttemptExecutionError> {
+        let run = self
+            .store
+            .load_run(handoff.fence.tenant_id(), handoff.fence.run_id())
+            .await?;
+        let provenance = run.lifecycle().provenance();
+        if provenance.tenant_id() != handoff.fence.tenant_id()
+            || provenance.run_id() != handoff.fence.run_id()
+        {
+            return Err(ToolReconciliationAttemptExecutionError::RunProvenanceMismatch);
+        }
+        let observation = self.clock.observe()?;
+        let intent = invocation.intent();
+        let timeout_micros = intent
+            .effective_limits()
+            .timeout()
+            .as_i64()
+            .checked_mul(1_000)
+            .ok_or(ToolReconciliationAttemptExecutionError::DeadlineOutOfRange)?;
+        let fallback_deadline_micros = observation
+            .observed_at()
+            .unix_micros()
+            .checked_add(timeout_micros)
+            .ok_or(ToolReconciliationAttemptExecutionError::DeadlineOutOfRange)?;
+        let fallback_deadline = Timestamp::from_unix_micros(fallback_deadline_micros)
+            .map_err(|_| ToolReconciliationAttemptExecutionError::DeadlineOutOfRange)?;
+        let run_deadline = match self
+            .store
+            .load_agent_admission(handoff.fence.tenant_id(), handoff.fence.run_id())
+            .await
+        {
+            Ok(stored) => stored.admission().intent().budget().deadline(),
+            Err(StoreError::AgentAdmissionNotFound) => fallback_deadline,
+            Err(source) => return Err(source.into()),
+        };
+        let context = ToolReconciliationContext::new(
+            provenance.tenant_id().clone(),
+            provenance.run_id(),
+            provenance.thread_id(),
+            intent.invocation_id(),
+            invocation
+                .attempt_id()
+                .ok_or(ToolReconciliationAttemptExecutionError::InvocationAdvanced)?,
+            intent.descriptor(),
+            intent.effective_limits().timeout(),
+            observation.observed_at(),
+            observation.observed_instant(),
+            run_deadline,
+            handoff.cancellation.clone(),
+        )?;
+        if let Some(reason) = context.stop_reason_at(Instant::now()) {
+            return Err(ToolReconciliationAttemptExecutionError::Stopped { reason });
+        }
+        Ok(context)
     }
 
     async fn recover_model_if_started(
@@ -1778,6 +2117,113 @@ impl DurableInvocationExecutor {
                 recovery: Box::new(handoff),
             }),
         }
+    }
+
+    /// Performs at most one bounded provider reconciliation probe and commits
+    /// any authoritative evidence atomically.
+    ///
+    /// The current invocation is reloaded before provider I/O. If the stable
+    /// reconciliation event already won, this returns the terminal revision
+    /// without another query or replay. `Pending` performs no durable mutation;
+    /// callers should persist a delayed node retry using the supplied interval.
+    pub fn reconcile_tool(
+        &self,
+        handoff: ToolReconciliationAttemptHandoff,
+    ) -> BoxFuture<
+        '_,
+        Result<ToolReconciliationAttemptOutcome, ToolReconciliationAttemptExecutionError>,
+    > {
+        Box::pin(self.reconcile_tool_inner(handoff))
+    }
+
+    async fn reconcile_tool_inner(
+        &self,
+        handoff: ToolReconciliationAttemptHandoff,
+    ) -> Result<ToolReconciliationAttemptOutcome, ToolReconciliationAttemptExecutionError> {
+        validate_tool_reconciliation_attempt_handoff(&handoff.fence, &handoff.invocation)?;
+        let current = self
+            .store
+            .load_tool_invocation(
+                handoff.fence.tenant_id(),
+                handoff.fence.run_id(),
+                handoff.invocation.intent().invocation_id(),
+            )
+            .await?;
+        if current.intent() != handoff.invocation.intent() {
+            return Err(ToolReconciliationAttemptExecutionError::RecoveredInvocationMismatch);
+        }
+        if current.attempt_id() != handoff.invocation.attempt_id() {
+            return Err(ToolReconciliationAttemptExecutionError::InvocationAdvanced);
+        }
+        match current.state() {
+            ToolInvocationState::Committed { .. } => {
+                return Ok(ToolReconciliationAttemptOutcome::Resolved {
+                    kind: ToolReconciliationKind::Result,
+                    invocation: current,
+                });
+            }
+            ToolInvocationState::Failed { .. } => {
+                return Ok(ToolReconciliationAttemptOutcome::Resolved {
+                    kind: ToolReconciliationKind::Error,
+                    invocation: current,
+                });
+            }
+            ToolInvocationState::Unknown { .. } => {}
+            ToolInvocationState::Prepared | ToolInvocationState::Executing { .. } => {
+                return Err(ToolReconciliationAttemptExecutionError::InvocationAdvanced);
+            }
+        }
+
+        let provider = self.tools.resolve(current.intent().descriptor())?;
+        if !provider.supports_reconciliation() {
+            return Err(ToolReconciliationAttemptExecutionError::ProviderReconciliationUnsupported);
+        }
+        let context = self
+            .prepare_tool_reconciliation_context(&handoff, &current)
+            .await?;
+        let input = current.intent().input().clone();
+        let deadline = tokio::time::Instant::from_std(context.deadline_instant());
+        let observation = tokio::select! {
+            biased;
+            () = context.cancellation().cancelled() => {
+                return Err(ToolReconciliationAttemptExecutionError::Stopped {
+                    reason: ToolStopReason::Cancelled,
+                });
+            }
+            () = tokio::time::sleep_until(deadline) => {
+                return Err(ToolReconciliationAttemptExecutionError::Stopped {
+                    reason: ToolStopReason::DeadlineExceeded,
+                });
+            }
+            observation = provider.reconcile(context.clone(), input) => observation?,
+        };
+        observation.validate()?;
+
+        let evidence = match observation {
+            ToolReconciliationObservation::Pending { retry_after } => {
+                return Ok(ToolReconciliationAttemptOutcome::Pending {
+                    retry_after,
+                    invocation: current,
+                });
+            }
+            ToolReconciliationObservation::Result(result) => {
+                ToolReconciliationHandoff::result(handoff.fence, current, handoff.event_id, result)?
+            }
+            ToolReconciliationObservation::Error(error) => {
+                if error.external_effect() == ToolExternalEffect::Unknown {
+                    return Err(ToolReconciliationAttemptExecutionError::UnresolvedErrorEvidence);
+                }
+                ToolReconciliationHandoff::error(handoff.fence, current, handoff.event_id, error)?
+            }
+            _ => {
+                return Err(ToolReconciliationAttemptExecutionError::UnsupportedObservation);
+            }
+        };
+        let outcome = self.commit_tool_reconciliation(evidence).await?;
+        Ok(ToolReconciliationAttemptOutcome::Resolved {
+            kind: outcome.kind(),
+            invocation: outcome.invocation().clone(),
+        })
     }
 
     /// Atomically commits authoritative evidence for an unknown tool attempt.

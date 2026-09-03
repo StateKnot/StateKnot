@@ -113,8 +113,14 @@ Attempt，但不能改写已经提交的外部结果。
 
 已知失败的 Tool 会继续作为有序 Transcript Outcome；其精确 Terminal Revision 绑定到
 Node Result，下一轮 Model 会收到失败结果，而不是虚构 Success。Write Tool 的 `Unknown`
-Outcome 必须等待 Status Query、Idempotency Proof、Compensation 或人工 Reconciliation；
-Graph 不会把它当作普通失败自动 Retry。
+Outcome 绝不会作为普通 Business Call 自动 Retry。当不可变 Descriptor 与精确安装的
+Provider 都启用 Reconciliation 时，Tool Node 会针对原 Physical Attempt 执行一次有界
+Probe；权威 Evidence 原子提交，`Pending` 则转换为后续 Lease 下的耐久 `SafeAfter`
+Node Retry。否则 Run 会保持阻塞，等待显式人工 Reconciliation。
+
+每个 Tool Plan 都从已经持久化的不可变 Identity 确定性派生 Reconciliation Audit
+`EventId`，不增加 Checkpoint 字段或 State Schema Version；升级前已经 Admission 的 Graph
+Reference 因而保持完全相同的 Wire 与 Digest Compatibility。
 
 ## 两阶段耐久 Cancellation
 
@@ -175,6 +181,8 @@ Runtime Integration Suite 在真实 PostgreSQL 16/17 上运行 Provider-native �
   Lifecycle Success；
 - 更高 Fence 赢得 Stale Policy Race，且无重复 External Dispatch；
 - 已知失败 Tool 以正确顺序进入 Transcript，并绑定精确 Terminal Revision；
+- Unknown Tool Outcome 返回 `Pending` 后耐久延迟，在后续 Lease 下完成解析并继续下一轮
+  Model；两次 Reconciliation Probe 期间只发生一次 Business Call；
 - 已提交 Model 后 Cancellation，恢复精确 Usage，并验证 Lost-ACK Replay；
 - Provider Dispatch 前 Cancellation 由 `DurableAgentLoop` 自动确认；
 - 精确 Evidence 不可用时，Cancellation 保持 Fail-closed。
@@ -194,7 +202,7 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked
 本里程碑尚未交付 Parallel Sibling/Tool Execution、Output Repair、Loop/Subgraph 语义、
 Artifact Retrieval、稳定 Network Agent/Cancellation Transport、Protocol-specific Outbox
 Dispatch、MCP/A2A Server Composition、更广 Protocol Extension、A2A Live-peer
-Qualification/Reconciliation、Live-provider Drift Cassette、数据库 Role Separation、通用
+Reconciliation Qualification、Live-provider Drift Cassette、数据库 Role Separation、通用
 Retention、Failover/Restore Qualification 或生产 Release。
 [`AgentServiceV1`](agent-service.zh-CN.md) 现在提供嵌入式 Service Boundary，
 [`McpRemoteTool`](mcp-remote-tool.zh-CN.md) 提供严格 Client-side Tool Profile，

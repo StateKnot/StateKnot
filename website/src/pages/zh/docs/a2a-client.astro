@@ -18,11 +18,18 @@ const discoverCode = `let client = A2aClient::discover(
     A2aClientOptions::default(),
 ).await?;`;
 
-const bindCode = `let remote = A2aRemoteAgent::bind(
+const bindCode = `let recovery = A2aRemoteAgentRecovery::operator_attested_context_task_history(
+    4,
+    64,
+    DurationMillis::new(1_000)?,
+)?;
+
+let remote = A2aRemoteAgent::bind_with_recovery(
     descriptor,
     client,
     "answer",
     A2aRemoteAgentDelivery::AtMostOnce,
+    recovery,
     schemas,
 )?;
 
@@ -168,8 +175,8 @@ let tools = tools.build();`;
     <p>
       Invocation Ledger 在唯一一次 Network Send 前提交 <code>executing</code
       >；合法 Response 经过 Schema 校验后才 Commit。可能 Dispatch
-      后的任何不确定结果都会 变为 <code>Unknown + ReconcileFirst</code
-      >，Recovery 不会再次发送。
+      后的任何不确定结果都会 变为 <code>Unknown + ReconcileFirst</code>，普通
+      Recovery 不会再次发送。
     </p>
     <p>
       Adapter 显式设置 <code>returnImmediately: true</code>。返回 Task 只提交
@@ -209,7 +216,53 @@ let tools = tools.build();`;
     <p>
       A2A 本身不要求接收端对 <code>messageId</code> 去重。只有 Operator 证明远端在
       本地 Ledger Retention 与灾备窗口内都能耐久去重时，第二种 Mode 才安全。Lost Send
-      Response 不一定返回 Task ID，因此 Reconciliation 是应用自有、独立授权的 Workflow。
+      Response 不一定返回 Task ID。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-recovery-title">
+    <h2 id="a2a-client-recovery-title">只根据经过证明的远端事实恢复</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="A2A Remote Agent Recovery Contract"
+    >
+      <table>
+        <thead>
+          <tr><th>Mode</th><th>必需的部署证据</th><th>行为</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Disabled</code></td><td>无</td><td
+              >保持 Fail Closed，等待人工 Reconciliation</td
+            >
+          </tr>
+          <tr>
+            <td><code>ContextTaskHistory</code></td><td
+              >保留 Client Context、完整稳定的 Task Pagination、保留原始 Message
+              ID</td
+            ><td>有界 <code>ListTasks</code> 扫描；绝不重发</td>
+          </tr>
+          <tr>
+            <td><code>MessageIdReplay</code></td><td
+              >在完整 Recovery Window 内耐久去重 Message ID</td
+            ><td>重放精确 Request Identity；只允许 Deduplicated Delivery</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Enabled Mode 要求 Descriptor Status-query 声明一致，并配置有界 Poll
+      Interval。 Context Recovery 会给原始 Message 增加单向 Opaque ID，最多扫描
+      16 页、每页 100 个 Task、每个 Task 最多 256 条 History，并且只接受唯一
+      Match，且 Role、Context 与 Payload 必须等于原始 Message。没有 Match 变为
+      <code>Pending</code>；重复 Identity、歧义 Match、同 ID Payload
+      Substitution 或扫描上限耗尽都会 Fail Closed。
+    </p>
+    <p>
+      Provider-native Agent 会原子提交权威 Evidence。Pending Probe 会变成后续
+      Lease 下的 耐久 <code>SafeAfter</code> Node Retry，原 Physical Attempt 与 Business-call
+      Count 保持不变。
     </p>
   </section>
 
@@ -242,17 +295,19 @@ let tools = tools.build();`;
     <h2 id="a2a-client-proof-title">先看证据，再看边界</h2>
     <p>
       真实 Loopback Test 在两种 Binding 上执行全部 11 个 Operation，并覆盖严格
-      Discovery、Authorization、Error、Stream 与 Lost Response；真实 PostgreSQL
-      Test 证明 Durable-before-dispatch State、持久化 Unknown，以及 Duplicate
-      No-redispatch。
+      Discovery、Authorization、Error、Stream 与 Lost Response；还证明无需重发的
+      Context/History Recovery、同 ID Payload Substitution 拒绝，以及显式 Dedup
+      Attestation 下的精确 Replay。另一项 Provider-neutral 真实 PostgreSQL Test
+      证明 <code>Unknown → Pending → 耐久 Retry → Committed</code>，两次 Probe
+      期间只有一次 Business Call。
     </p>
     <p>
       请阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/a2a-client.zh-CN.md"
         >完整生产指南与复现命令</a
       >。<a href="/zh/docs/a2a-conformance/">官方 TCK 证据</a>只适用于独立
-      Server Profile；Client Live-peer Qualification、gRPC、Automatic
-      Reconciliation、 Stable API Review 与完整生产 Release 仍是独立门禁。
+      Server Profile；Client Live-peer 与 Recovery-attestation
+      Qualification、gRPC、 Stable API Review 与完整生产 Release 仍是独立门禁。
     </p>
   </section>
 </DocsLayout>

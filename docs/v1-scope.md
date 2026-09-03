@@ -34,11 +34,13 @@ Client now implements all eleven HTTP+JSON/JSON-RPC operations, both SSE
 surfaces, exact discovery/interface pins, a bounded anonymous or
 Bearer/OAuth2/OpenID security profile, and one
 `A2aRemoteAgent` binding whose lost-response path is proven against the real
-PostgreSQL invocation ledger. These are implementation slices toward the
-surface below, not claims that the stable network Agent API, MCP Tasks or other
+PostgreSQL invocation ledger. Its optional operator-attested context/history
+lookup and deduplicated message-ID replay can reconcile exact unknown attempts
+without blind resend. These are implementation slices toward the surface
+below, not claims that the stable network Agent API, MCP Tasks or other
 extensions, stable SDK-tier API, a production durable A2A task/push backend,
-official A2A Client conformance, automatic outbound reconciliation, or A2A
-gRPC support has shipped.
+official A2A Client/live-peer recovery qualification, or A2A gRPC support has
+shipped.
 Their exact boundaries are documented in
 [AgentService v1](agent-service.md), the
 [strict MCP Remote Tool profile](mcp-remote-tool.md), the

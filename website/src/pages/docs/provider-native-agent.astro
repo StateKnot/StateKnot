@@ -144,8 +144,12 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
     </ol>
     <p>
       Known Tool failures remain ordered transcript outcomes. An ambiguous write
-      stays <code>Unknown</code> until a status query, idempotency proof, compensation,
-      or human decision reconciles it.
+      is never repeated as an ordinary business call. When the descriptor and
+      exact provider both enable reconciliation, <code>Unknown</code> triggers one
+      bounded original-attempt probe. Authoritative evidence commits atomically; <code
+        >Pending</code
+      > becomes a durable delayed retry under a later lease. Other bindings stay blocked
+      for manual reconciliation.
     </p>
   </section>
 
@@ -216,7 +220,8 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
     </div>
     <p>
       The focused cases cover multi-turn recovery without model redispatch,
-      stale-fence policy races, known failed Tools, exact-usage cancellation,
+      stale-fence policy races, known failed Tools, Unknown → Pending →
+      committed reconciliation with one business call, exact-usage cancellation,
       pre-dispatch cancellation, and evidence-unavailable fail-closed behavior
       on both supported PostgreSQL majors.
     </p>
@@ -243,7 +248,7 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
         The provider-native execution core, strict MCP Remote Tool, and A2A
         Remote Agent bindings are implemented. Independent MCP/A2A Server
         profiles exist but are not composed into this Graph. Broader protocol
-        extensions, A2A live-peer qualification/reconciliation, artifact
+        extensions, A2A live-peer reconciliation qualification, artifact
         retrieval, failover, and a production release remain ahead.
       </li>
     </ul>

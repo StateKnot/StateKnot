@@ -8,8 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 > Status: implemented pre-alpha profile; the Rust API is not stable.<br>
 > Bindings: HTTP+JSON and JSON-RPC 2.0, including SSE.<br>
 > Explicit exclusions: gRPC, autonomous public-agent trust, automatic send
-> retries, automatic reconciliation, API-key/Basic/mTLS security profiles, and
-> an official client-conformance claim.
+> retries, recovery without an operator attestation, API-key/Basic/mTLS
+> security profiles, and an official client-conformance claim.
 
 This profile has two deliberately separate layers:
 
@@ -143,14 +143,23 @@ routes a message to a skill. Therefore:
 
 ```rust,no_run
 use std::sync::Arc;
-use stateknot_integrations::{A2aRemoteAgent, A2aRemoteAgentDelivery};
+use stateknot_core::DurationMillis;
+use stateknot_integrations::{
+    A2aRemoteAgent, A2aRemoteAgentDelivery, A2aRemoteAgentRecovery,
+};
 use stateknot_runtime::ToolProviderRegistryBuilder;
 
-let remote = A2aRemoteAgent::bind(
+let recovery = A2aRemoteAgentRecovery::operator_attested_context_task_history(
+    4,
+    64,
+    DurationMillis::new(1_000)?,
+)?;
+let remote = A2aRemoteAgent::bind_with_recovery(
     descriptor,
     client,
     "answer",
     A2aRemoteAgentDelivery::AtMostOnce,
+    recovery,
     schemas,
 )?;
 
@@ -162,8 +171,10 @@ let tools = tools.build();
 
 Binding fails unless the descriptor exactly matches the executable behavior:
 read/write network access, no filesystem or dynamic code, cooperative
-cancellation, no progress events, matching credential requirement, no status
-query or compensation claim, and both local schemas present.
+cancellation, no progress events, matching credential requirement, matching
+status-query/recovery policy, no compensation claim, and both local schemas
+present. Use `A2aRemoteAgent::bind` for the fail-closed disabled recovery mode;
+that descriptor must not claim status-query support.
 
 ## Delivery and recovery contract
 
@@ -181,6 +192,25 @@ least the complete local invocation-ledger retention and disaster-recovery
 window. Document the remote key scope, conflict behavior, retention, replica
 consistency, backup behavior, and evidence test before enabling this mode.
 
+Automatic reconciliation is separately selected with
+`A2aRemoteAgentRecovery`:
+
+| Recovery mode | Required operator evidence | Provider action on `Unknown` |
+| --- | --- | --- |
+| `Disabled` | none | no provider I/O; leave the invocation for an authorized manual reconciler |
+| `ContextTaskHistory` | the peer preserves the supplied context ID, provides complete stable `ListTasks` pagination, and retains the original user `messageId` in task history for the complete recovery window | query at most 1–16 pages of at most 100 tasks, with a 1–256-message history suffix; never resend |
+| `MessageIdReplay` | the peer durably deduplicates the exact `messageId` across the complete recovery and retention window | replay the exact original request identity; accepted only with `MessageIdDeduplicated` delivery |
+
+Both enabled modes require descriptor status-query support and a positive
+1 ms–1 hour durable polling interval. `ContextTaskHistory` attaches an opaque,
+one-way context ID to the initial message. A probe accepts exactly one matching
+task history and requires that the matching role, context, and payload equal
+the original message (the server may only add that task's ID). No match returns
+`Pending`; repeated task IDs, multiple message matches, same-ID payload
+substitution, invalid pagination, or exhaustion of the configured scan bound
+fail closed. The context contains no raw tenant, run, thread, invocation, or
+attempt identifier.
+
 The durable execution sequence is:
 
 ```text
@@ -195,8 +225,9 @@ The adapter deliberately sets `returnImmediately: true`. A valid Task response
 therefore commits the **message submission and returned durable handle**, not a
 claim that the remote task reached a terminal A2A state. Waiting for remote
 completion requires an application-owned, separately authorized `get_task` or
-`subscribe_to_task` workflow. The adapter consequently advertises neither a
-status-query capability nor terminal-task completion semantics.
+`subscribe_to_task` workflow. Recovery status queries establish only whether
+the original message submission has an authoritative Task projection; they do
+not wait for remote terminal-task completion.
 
 Cancellation or deadline before possible dispatch is `NotStarted`. After
 dispatch may have begun, a timeout, cancellation, lost connection, invalid
@@ -206,9 +237,13 @@ that authoritatively reject the request before application—parse error,
 invalid request/params, method/operation/content/extension/version
 unsupported—become `NotApplied + Never`.
 
-Recovery of `Unknown` requires an application-owned, separately authorized
-reconciliation workflow. This adapter deliberately does not claim that an A2A
-task ID is available after a lost send response.
+On the provider-native Agent path, an enabled binding turns `Unknown` into one
+bounded reconciliation probe under the current fence and original physical
+attempt identity. Authoritative result/error evidence commits atomically to the
+existing invocation ledger. `Pending` mutates no invocation evidence and
+becomes a durable `SafeAfter` node retry. A later lease probes again; it never
+repeats the business send unless `MessageIdReplay` was explicitly attested.
+Bindings without an enabled provider remain on the manual fail-closed path.
 
 ## Default resource policy
 
@@ -243,6 +278,9 @@ actual use case; never increase them merely to accept an unbounded peer.
 - Register the adapter only through the durable invocation executor and keep
   PostgreSQL retention longer than every remote deduplication/reconciliation
   window.
+- Record the owner, review date, evidence artifact, exact peer deployment,
+  retention window, pagination consistency, and rollback procedure for every
+  recovery attestation; disable recovery when any claim drifts.
 - Alert on `Unknown`, reconciliation backlog, card-digest drift, invalid remote
   contracts, authorization denial/unavailability, stream limits, and deadline
   exhaustion without recording payloads or credentials.
@@ -260,17 +298,26 @@ STATEKNOT_TEST_DATABASE_URL='postgres://...' \
 cargo test -p stateknot-integrations --test mcp_durable \
   a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched \
   --locked -- --test-threads=1
+
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+STATEKNOT_TEST_DATABASE_URL='postgres://...' \
+cargo test -p stateknot-runtime --test postgres \
+  provider_native_graph_reconciles_unknown_tool_without_repeating_business_io \
+  --locked -- --test-threads=1
 ```
 
 The loopback suite exercises all eleven operations over both HTTP+JSON and
 JSON-RPC, both SSE surfaces, tenant/header mapping, attempt-scoped
-authorization, card/interface drift, strict errors, stream bounds, and lost
-responses. The PostgreSQL test proves the executing revision exists before
-request dispatch, the lost response commits `Unknown`, and replay does not send
-a second message.
+authorization, card/interface drift, strict errors, stream bounds, lost
+responses, context/history recovery without resend, and attested exact-message
+replay. PostgreSQL evidence proves the executing revision exists before request
+dispatch, the lost response commits `Unknown`, and ordinary recovery does not
+send a second message. The provider-native test proves `Unknown -> Pending ->`
+durable delayed retry `-> Committed`, with one business call and two bounded
+probes.
 
 This is implementation evidence, not an official A2A client certification.
 The frozen official TCK evidence currently applies to the separate
 [A2A Server profile](a2a-server.md). Stable API review, live-partner
-qualification, gRPC, automatic reconciliation, and production durable
+qualification of both recovery attestations, gRPC, and production durable
 server-side task/push storage remain independent release gates.

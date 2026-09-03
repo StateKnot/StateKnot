@@ -7,8 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 
 > 状态：已实现的 Pre-alpha Profile；Rust API 尚不稳定。<br>
 > Binding：HTTP+JSON 与 JSON-RPC 2.0，包含 SSE。<br>
-> 明确排除：gRPC、自动信任公网 Agent、自动重试 Send、自动 Reconciliation，
-> API-key/Basic/mTLS Security Profile，以及官方 Client Conformance 声明。
+> 明确排除：gRPC、自动信任公网 Agent、自动重试 Send、没有运维证明的自动
+> Reconciliation、API-key/Basic/mTLS Security Profile，以及官方 Client
+> Conformance 声明。
 
 本 Profile 有两个刻意分离的层次：
 
@@ -126,14 +127,23 @@ Argument JSON Schema，也没有在 Send Request 中路由到 Skill 的字段。
 
 ```rust,no_run
 use std::sync::Arc;
-use stateknot_integrations::{A2aRemoteAgent, A2aRemoteAgentDelivery};
+use stateknot_core::DurationMillis;
+use stateknot_integrations::{
+    A2aRemoteAgent, A2aRemoteAgentDelivery, A2aRemoteAgentRecovery,
+};
 use stateknot_runtime::ToolProviderRegistryBuilder;
 
-let remote = A2aRemoteAgent::bind(
+let recovery = A2aRemoteAgentRecovery::operator_attested_context_task_history(
+    4,
+    64,
+    DurationMillis::new(1_000)?,
+)?;
+let remote = A2aRemoteAgent::bind_with_recovery(
     descriptor,
     client,
     "answer",
     A2aRemoteAgentDelivery::AtMostOnce,
+    recovery,
     schemas,
 )?;
 
@@ -145,7 +155,9 @@ let tools = tools.build();
 
 只有 Descriptor 与真实行为完全一致时 Binding 才会成功：Network Read/Write、无
 Filesystem 与 Dynamic Code、Cooperative Cancellation、无 Progress Event、Credential
-Requirement 一致、不声明 Status Query/Compensation，并且两个本地 Schema 都存在。
+Requirement 一致、Status-query 声明与 Recovery Policy 一致、不声明 Compensation，
+并且两个本地 Schema 都存在。使用 `A2aRemoteAgent::bind` 可保持 Fail-closed 的
+Disabled Recovery；对应 Descriptor 不得声明 Status-query Support。
 
 ## Delivery 与 Recovery Contract
 
@@ -162,6 +174,22 @@ A2A 1.0 不保证接收方对 `messageId` 去重。必须选择一个真实的�
 ID。启用前需记录 Remote Key Scope、Conflict Behavior、Retention、Replica
 Consistency、Backup Behavior 与验证证据。
 
+自动 Reconciliation 由 `A2aRemoteAgentRecovery` 单独选择：
+
+| Recovery Mode | 必需的运维证明 | `Unknown` 时的 Provider 行为 |
+| --- | --- | --- |
+| `Disabled` | 无 | 不执行 Provider I/O；留给已授权的人工 Reconciler |
+| `ContextTaskHistory` | Peer 在完整 Recovery Window 内保留 Client 提供的 Context ID，提供完整且稳定的 `ListTasks` Pagination，并在 Task History 中保留原始 User `messageId` | 最多查询 1–16 页、每页最多 100 个 Task、每个 Task 取 1–256 条 History；绝不重新 Send |
+| `MessageIdReplay` | Peer 在完整 Recovery/Retention Window 内对精确 `messageId` 做耐久去重 | 重放精确的原始 Request Identity；只允许与 `MessageIdDeduplicated` Delivery 一起启用 |
+
+两个 Enabled Mode 都要求 Descriptor 声明 Status-query Support，并配置 1 ms–1 h
+的正数耐久 Poll Interval。`ContextTaskHistory` 会在首次 Message 上附加单向、不透明的
+Context ID。Probe 只接受唯一匹配的 Task History，并要求其中的 Role、Context 与
+Payload 等于原始 Message（Server 只能补充该 Task 的 ID）；没有匹配返回 `Pending`，
+重复 Task ID、多个 Message Match、同 ID Payload Substitution、非法 Pagination 或扫描
+超过配置上限都会 Fail Closed。该 Context 不暴露原始 Tenant、Run、Thread、Invocation
+或 Attempt ID。
+
 耐久执行顺序如下：
 
 ```text
@@ -175,7 +203,8 @@ PostgreSQL prepared/executing revision
 Adapter 会显式设置 `returnImmediately: true`。因此，收到合法 Task Response 后提交的
 语义是**消息已提交且拿到耐久句柄**，并不表示远端 Task 已进入 A2A 终态。等待远端完成
 必须使用应用自有、独立授权的 `get_task` 或 `subscribe_to_task` Workflow；所以该
-Adapter 不声明 Status-query Capability，也不声明 Remote Task Terminal Completion。
+Recovery Status Query 只证明原 Message Submission 是否已有权威 Task Projection，
+不等待 Remote Task 进入终态。
 
 可能 Dispatch 前的 Cancellation/Deadline 是 `NotStarted`。Dispatch 可能开始之后，
 Timeout、Cancellation、Lost Connection、Invalid Response、HTTP Ambiguity 或非权威
@@ -184,8 +213,12 @@ Remote Error 都变成 `Unknown + ReconcileFirst`，StateKnot 不会再次发送
 Method/Operation/Content/Extension/Version Unsupported——才变成
 `NotApplied + Never`。
 
-`Unknown` Recovery 需要应用自有、独立授权的 Reconciliation Workflow。Send
-Response 丢失后不一定拿得到 A2A Task ID，所以本 Adapter 刻意不虚构自动查询能力。
+在 Provider-native Agent 路径上，Enabled Binding 会把 `Unknown` 转换为一次受当前
+Fence 与原 Physical Attempt Identity 约束的有界 Probe。权威 Result/Error Evidence
+会原子提交到现有 Invocation Ledger；`Pending` 不修改 Invocation Evidence，而是形成
+耐久 `SafeAfter` Node Retry。后续 Lease 再次 Probe；除非明确启用了经过证明的
+`MessageIdReplay`，否则绝不会重复 Business Send。未启用 Provider 的 Binding 继续
+保持人工 Fail-closed 路径。
 
 ## 默认 Resource Policy
 
@@ -217,6 +250,9 @@ StateKnot Protocol Contract 还有更低的结构上限，包括 1 MiB Agent Car
   Token 不能写进配置文件、URL、Metadata、Log 或 Trace。
 - 只通过 Durable Invocation Executor 注册 Adapter；PostgreSQL Retention 必须长于
   所有 Remote Deduplication/Reconciliation Window。
+- 每项 Recovery Attestation 都要记录 Owner、Review Date、Evidence Artifact、精确 Peer
+  Deployment、Retention Window、Pagination Consistency 与 Rollback Procedure；任一
+  声明发生 Drift 时必须关闭 Recovery。
 - 对 `Unknown`、Reconciliation Backlog、Card-digest Drift、非法 Remote Contract、
   Authorization Denial/Unavailable、Stream Limit 与 Deadline Exhaustion 告警，但不记录
   Payload 或 Credential。
@@ -234,15 +270,23 @@ STATEKNOT_TEST_DATABASE_URL='postgres://...' \
 cargo test -p stateknot-integrations --test mcp_durable \
   a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched \
   --locked -- --test-threads=1
+
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+STATEKNOT_TEST_DATABASE_URL='postgres://...' \
+cargo test -p stateknot-runtime --test postgres \
+  provider_native_graph_reconciles_unknown_tool_without_repeating_business_io \
+  --locked -- --test-threads=1
 ```
 
 Loopback Suite 在 HTTP+JSON 和 JSON-RPC 两种 Binding 上执行全部 11 个 Operation、
 两个 SSE Surface、Tenant/Header Mapping、Attempt-scoped Authorization、Card/Interface
-Drift、严格 Error、Stream Bound 与 Lost Response。PostgreSQL Test 证明 Request
-Dispatch 前已经存在 Executing Revision，Lost Response 会提交为 `Unknown`，Replay
-不会发送第二条消息。
+Drift、严格 Error、Stream Bound、Lost Response、无需重发的 Context/History Recovery，
+以及经过证明的精确 Message Replay。PostgreSQL Evidence 证明 Request Dispatch 前已经
+存在 Executing Revision，Lost Response 会提交为 `Unknown`，普通 Recovery 不会发送
+第二条 Message。Provider-native Test 证明 `Unknown -> Pending ->` 耐久延迟 Retry
+`-> Committed`，期间只有一次 Business Call 和两次有界 Probe。
 
 这些是实现证据，不是官方 A2A Client 认证。冻结的官方 TCK 证据目前只适用于独立的
 [A2A Server Profile](a2a-server.zh-CN.md)。Stable API Review、Live-partner
-Qualification、gRPC、Automatic Reconciliation，以及生产耐久 Server-side Task/Push
-Store 仍是独立 Release Gate。
+对两种 Recovery Attestation 的 Qualification、gRPC，以及生产耐久 Server-side
+Task/Push Store 仍是独立 Release Gate。

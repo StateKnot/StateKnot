@@ -141,8 +141,10 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
     </ol>
     <p>
       已知 Tool Failure 会保留为有序 Transcript Outcome。Write 的模糊结果保持
-      <code>Unknown</code>，直到 Status Query、Idempotency Proof、Compensation
-      或人工决策 完成 Reconciliation。
+      <code>Unknown</code>，绝不会作为普通 Business Call 重复执行。当 Descriptor
+      与 Exact Provider 都启用 Reconciliation 时，Runtime 会针对原 Attempt
+      执行一次有界 Probe；权威 Evidence 原子提交，<code>Pending</code> 则成为后续
+      Lease 下的耐久延迟 Retry。其他 Binding 继续阻塞，等待人工 Reconciliation。
     </p>
   </section>
 
@@ -209,9 +211,9 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
     </div>
     <p>
       Focused Case 在两个受支持 PostgreSQL Major 上覆盖：多轮 Recovery 不重复
-      Model Dispatch、Stale-fence Policy Race、已知失败 Tool、精确 Usage
-      Cancellation、 Pre-dispatch Cancellation，以及 Evidence-unavailable 的
-      Fail-closed 行为。
+      Model Dispatch、Stale-fence Policy Race、已知失败 Tool、一次 Business Call
+      的 Unknown → Pending → Committed Reconciliation、精确 Usage Cancellation、
+      Pre-dispatch Cancellation，以及 Evidence-unavailable 的 Fail-closed 行为。
     </p>
   </section>
 
@@ -233,9 +235,8 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
       <li>
         已实现 Provider-native Execution Core、严格 MCP Remote Tool 与 A2A
         Remote Agent Binding。独立 MCP/A2A Server Profile 已存在，但尚未组合进本
-        Graph； 更广 Protocol Extension、A2A Live-peer
-        Qualification/Reconciliation、Artifact Retrieval、Failover 与生产
-        Release 仍未交付。
+        Graph； 更广 Protocol Extension、A2A Live-peer Reconciliation
+        Qualification、Artifact Retrieval、Failover 与生产 Release 仍未交付。
       </li>
     </ul>
     <p>

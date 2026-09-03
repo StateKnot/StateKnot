@@ -43,6 +43,22 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
     ToolReconciliationOutcome::Committed { .. } => acknowledge(),
     ToolReconciliationOutcome::Idempotent { .. } => acknowledge(),
 }`;
+
+const providerReconciliationCode = `let probe = ToolReconciliationAttemptHandoff::new(
+    live_fence,
+    unknown_invocation,
+    stable_reconciliation_event_id,
+    cancellation,
+)?;
+
+match executor.reconcile_tool(probe).await? {
+    ToolReconciliationAttemptOutcome::Resolved { invocation, .. } => {
+        continue_from(invocation)
+    }
+    ToolReconciliationAttemptOutcome::Pending { retry_after, .. } => {
+        persist_delayed_retry(retry_after)
+    }
+}`;
 ---
 
 <DocsLayout
@@ -208,6 +224,35 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
       rebind. A network-facing service must add authorization and
       evidence-source policy before exposing this trusted worker/operations
       boundary.
+    </p>
+    <p>
+      A provider can instead implement the reconciliation SPI and advertise the
+      matching status-query capability. <code>reconcile_tool</code> performs one deadline-
+      and cancellation-bounded probe for the original attempt. A result or authoritative
+      error uses the same atomic commit path; <code>Pending</code> performs no mutation
+      and must become a durable delayed retry.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · provider-backed reconciliation</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="provider-reconciliation-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="provider-reconciliation-code"
+        tabindex="0"><code>{providerReconciliationCode}</code></pre>
+    </div>
+    <p>
+      The default provider implementation fails closed. Startup rejects a
+      provider that claims reconciliation while its frozen descriptor omits a
+      status query. The inverse remains valid for an explicitly manual
+      reconciler.
     </p>
   </section>
 

@@ -24,12 +24,13 @@ use stateknot_core::{
     BoxStream, BudgetLimits, BudgetRemaining, BudgetUsage, ByteCount, CancellationSignal,
     CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint, CheckpointId,
     CheckpointState, CheckpointWrite, CompiledGraph, ContentMetadata, ContentPart, ContentSource,
-    Digest, ErasedTool, EventId, ExecutionCount, Extensions, Failure, FailureCategory, FailureCode,
-    FailureId, FailureMessage, FailureOrigin, GraphBarrierDisposition, GraphExecutionLimits,
-    GraphNode, GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference,
-    GraphReference, GraphRoutes, GraphSchemaValidationError, InvocationId, IssuerId, JournalAppend,
-    JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload, JsonContent,
-    KnownCosts, Model, ModelContext, ModelDescriptor, ModelError, ModelEvent, ModelFinishReason,
+    Digest, DurationMillis, ErasedTool, EventId, ExecutionCount, Extensions, Failure,
+    FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
+    GraphBarrierDisposition, GraphExecutionLimits, GraphNode, GraphReducer, GraphReducerError,
+    GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
+    GraphSchemaValidationError, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
+    JournalEventKind, JournalExpectation, JournalPayload, JsonContent, KnownCosts, Model,
+    ModelContext, ModelDescriptor, ModelError, ModelEvent, ModelFinishReason,
     ModelInvocationIntent, ModelInvocationStatus, ModelOutputItem, ModelProviderReplay,
     ModelProviderReplayFormat, ModelProviderToolCallId, ModelRequest, ModelResponse,
     ModelResponseMode, ModelResponseProvenance, ModelToolCallProposal, ModelUsage, NodeActivation,
@@ -38,9 +39,10 @@ use stateknot_core::{
     RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind, RunTransition,
     SchedulerShardId, SchemaId, SchemaReference, SecurityLabel, SubjectId, Superstep, TenantId,
     ThreadId, TimerId, Timestamp, TokenCount, ToolArtifacts, ToolContext, ToolDescriptor,
-    ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput,
-    ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus, ToolResult,
-    ToolResultProvenance, Version,
+    ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExecutionSemantics, ToolExternalEffect,
+    ToolIdempotency, ToolInput, ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus,
+    ToolReconciliationContext, ToolReconciliationObservation, ToolReconciliationProbeError,
+    ToolResult, ToolResultProvenance, ToolRisk, Version,
 };
 use stateknot_runtime::{
     AgentCancellationIds, AgentCancellationOutcome, AgentInvocationAccounting,
@@ -66,7 +68,8 @@ use stateknot_runtime::{
     ModelAttemptTerminalKind, ModelEventSink, ModelEventSinkError, ModelProviderRegistryBuilder,
     ProviderNativeAgentGraph, ProviderNativeAgentLifecycleEvidence, TenantFairnessWeight,
     TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind,
-    ToolProviderRegistryBuilder, ToolReconciliationCommitFailure, ToolReconciliationHandoff,
+    ToolProviderRegistryBuilder, ToolReconciliationAttemptHandoff,
+    ToolReconciliationAttemptOutcome, ToolReconciliationCommitFailure, ToolReconciliationHandoff,
     ToolReconciliationKind, ToolReconciliationOutcome, WeightedFairnessPolicy,
     register_standard_agent_admission_event_schema,
     register_standard_agent_cancellation_event_schema,
@@ -371,6 +374,72 @@ impl ErasedTool for PendingWriteTool {
     }
 }
 
+struct ScriptedReconciliationTool {
+    descriptor: ToolDescriptor,
+    calls: Arc<AtomicUsize>,
+    probes: Arc<AtomicUsize>,
+    retry_after: DurationMillis,
+}
+
+impl ErasedTool for ScriptedReconciliationTool {
+    fn descriptor(&self) -> &ToolDescriptor {
+        &self.descriptor
+    }
+
+    fn supports_reconciliation(&self) -> bool {
+        true
+    }
+
+    fn call(
+        &self,
+        context: ToolContext,
+        _: ToolInput,
+    ) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let failure = Failure::new(
+            FailureId::generate(),
+            FailureCategory::AmbiguousExternalOutcome,
+            FailureCode::new("runtime.test.outcome_unknown").unwrap(),
+            FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+            FailureMessage::new("The test write outcome is unknown.").unwrap(),
+            RetryAdvice::ReconcileFirst,
+        )
+        .unwrap();
+        let error = ToolError::new(
+            failure,
+            ToolErrorPhase::Execution,
+            ToolExternalEffect::Unknown,
+            ToolErrorProvenance::for_invocation(&context, &self.descriptor),
+        )
+        .unwrap();
+        Box::pin(async move { Err(error) })
+    }
+
+    fn reconcile(
+        &self,
+        context: ToolReconciliationContext,
+        _: ToolInput,
+    ) -> BoxFuture<'_, Result<ToolReconciliationObservation, ToolReconciliationProbeError>> {
+        let probe = self.probes.fetch_add(1, Ordering::SeqCst);
+        let descriptor = self.descriptor.clone();
+        Box::pin(async move {
+            if probe == 0 {
+                return Ok(ToolReconciliationObservation::pending(self.retry_after).unwrap());
+            }
+            Ok(ToolReconciliationObservation::Result(ToolResult::new(
+                ToolResultProvenance::new(
+                    context.invocation_id(),
+                    context.attempt_id(),
+                    descriptor.metadata().identity().clone(),
+                ),
+                descriptor.output_schema().clone(),
+                BoundedJson::try_from_value(json!({"receipt": "confirmed"})).unwrap(),
+                ToolArtifacts::empty(),
+            )))
+        })
+    }
+}
+
 struct ProviderNativeScriptedModel {
     descriptor: ModelDescriptor,
     tool: ToolDescriptor,
@@ -659,6 +728,7 @@ struct ProviderNativeFixture {
     registry: ExecutableGraphRegistry,
     model_calls: Arc<AtomicUsize>,
     tool_calls: Arc<AtomicUsize>,
+    tool_probes: Arc<AtomicUsize>,
     policy_calls: Arc<AtomicUsize>,
     transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
     failed_outcomes: Arc<AtomicUsize>,
@@ -710,16 +780,21 @@ impl AgentServiceAuthorizer for StaticAgentServiceAuthorizer {
 }
 
 fn provider_native_fixture(store: PostgresStore) -> ProviderNativeFixture {
-    provider_native_fixture_with(store, true, false, None)
+    provider_native_fixture_with(store, true, false, false, None)
 }
 
 fn provider_native_failed_tool_fixture(store: PostgresStore) -> ProviderNativeFixture {
-    provider_native_fixture_with(store, false, true, None)
+    provider_native_fixture_with(store, false, true, false, None)
+}
+
+fn provider_native_reconciliation_fixture(store: PostgresStore) -> ProviderNativeFixture {
+    provider_native_fixture_with(store, false, false, true, None)
 }
 
 fn provider_native_stale_race_fixture(store: PostgresStore) -> ProviderNativeFixture {
     provider_native_fixture_with(
         store,
+        false,
         false,
         false,
         Some(Arc::new(PolicyPause {
@@ -734,6 +809,7 @@ fn provider_native_fixture_with(
     store: PostgresStore,
     fail_policy_once: bool,
     fail_tool: bool,
+    reconcile_tool: bool,
     policy_pause: Option<Arc<PolicyPause>>,
 ) -> ProviderNativeFixture {
     let (input_schema, input_document) = schema("provider-native-input");
@@ -748,11 +824,22 @@ fn provider_native_fixture_with(
         serde_json::from_value::<AgentDescriptor>(fixture["descriptors"]["valid"][0].clone())
             .unwrap();
     let tool_template = template.tools().iter().next().unwrap().clone();
+    let semantics = if reconcile_tool {
+        ToolExecutionSemantics::new(
+            ToolRisk::IdempotentWrite,
+            ToolIdempotency::RequiredKey,
+            true,
+            false,
+        )
+        .unwrap()
+    } else {
+        tool_template.semantics().clone()
+    };
     let tool = ToolDescriptor::new(
         tool_template.metadata().clone(),
         tool_input_schema.clone(),
         tool_output_schema.clone(),
-        tool_template.semantics().clone(),
+        semantics,
         tool_template.resources().clone(),
         tool_template.invocation().clone(),
         tool_template.limits().clone(),
@@ -779,6 +866,7 @@ fn provider_native_fixture_with(
     .unwrap();
     let model_calls = Arc::new(AtomicUsize::new(0));
     let tool_calls = Arc::new(AtomicUsize::new(0));
+    let tool_probes = Arc::new(AtomicUsize::new(0));
     let policy_calls = Arc::new(AtomicUsize::new(0));
     let transcript_lengths = Arc::new(tokio::sync::Mutex::new(Vec::new()));
     let failed_outcomes = Arc::new(AtomicUsize::new(0));
@@ -841,13 +929,24 @@ fn provider_native_fixture_with(
         }))
         .unwrap();
     let mut tools = ToolProviderRegistryBuilder::new();
-    tools
-        .register(Arc::new(ProviderNativeLookupTool {
-            descriptor: tool,
-            calls: Arc::clone(&tool_calls),
-            fail: fail_tool,
-        }))
-        .unwrap();
+    if reconcile_tool {
+        tools
+            .register(Arc::new(ScriptedReconciliationTool {
+                descriptor: tool,
+                calls: Arc::clone(&tool_calls),
+                probes: Arc::clone(&tool_probes),
+                retry_after: DurationMillis::new(10_000).unwrap(),
+            }))
+            .unwrap();
+    } else {
+        tools
+            .register(Arc::new(ProviderNativeLookupTool {
+                descriptor: tool,
+                calls: Arc::clone(&tool_calls),
+                fail: fail_tool,
+            }))
+            .unwrap();
+    }
     let invocation_executor = DurableInvocationExecutor::with_clock(
         store.clone(),
         schemas.clone(),
@@ -871,6 +970,7 @@ fn provider_native_fixture_with(
         registry: registry_builder.build().unwrap(),
         model_calls,
         tool_calls,
+        tool_probes,
         policy_calls,
         transcript_lengths,
         failed_outcomes,
@@ -1795,10 +1895,22 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
         ))
         .await
         .unwrap();
-    let driver = DurableGraphDriver::new(
+    // Bound the first drive to exactly one physical node attempt. The policy
+    // retry delay is intentionally short in production, so a slow CI worker
+    // may otherwise make the retry due before the driver observes it and
+    // legally finish the graph in this same call.
+    let first_driver = DurableGraphDriver::new(
         store.clone(),
         fixture.registry.clone(),
-        DurableGraphDriverOptions::default(),
+        DurableGraphDriverOptions::new(
+            GraphReplayLimits::default(),
+            2,
+            Duration::from_secs(10),
+            Duration::from_secs(15 * 60),
+            3,
+            Duration::from_millis(25),
+        )
+        .unwrap(),
     )
     .unwrap();
 
@@ -1808,15 +1920,21 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
         .unwrap()
         .lease()
         .clone();
-    let first = driver
+    let first = first_driver
         .drive(first_lease.fence().clone(), CancellationSignal::never())
         .await
         .unwrap();
     assert!(
-        matches!(first.outcome(), GraphDriveOutcome::Deferred { .. }),
+        matches!(
+            first.outcome(),
+            GraphDriveOutcome::Yielded {
+                release: LeaseReleaseOutcome::Released
+            }
+        ),
         "unexpected first drive outcome: {:?}",
         first.outcome()
     );
+    assert_eq!(first.report().durable_events(), 2);
     assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
     assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
     assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
@@ -1825,6 +1943,12 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
     // durably committed. A later physical node attempt must consume that exact
     // ledger response and must not call the model again for the same turn.
     tokio::time::sleep(Duration::from_millis(250)).await;
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
     let second_lease = store
         .claim_lease(&tenant_id, run_id, AttemptId::generate())
         .await
@@ -1874,6 +1998,110 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
     assert_eq!(result.usage().model_attempts(), ExecutionCount::new(2));
     assert_eq!(result.usage().model_turns(), ExecutionCount::new(2));
     assert_eq!(result.usage().tool_calls(), ExecutionCount::new(1));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_graph_reconciles_unknown_tool_without_repeating_business_io() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_reconciliation_fixture(store.clone());
+    let tenant_id = tenant("runtime-provider-native-reconciliation");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request(
+            &fixture,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let first = driver
+        .drive(first_lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(
+        matches!(first.outcome(), GraphDriveOutcome::Deferred { .. }),
+        "pending reconciliation must become a durable delayed retry: {:?}",
+        first.outcome()
+    );
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_probes.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
+    assert!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .lease()
+            .is_none()
+    );
+
+    tokio::time::sleep(Duration::from_millis(10_500)).await;
+    let second_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let second = driver
+        .drive(second_lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let handoff = match second.into_parts().0 {
+        GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
+        other => panic!("reconciled provider-native graph must complete: {other:?}"),
+    };
+
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_probes.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(*fixture.transcript_lengths.lock().await, vec![0, 1]);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.commit_barrier(*handoff).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(run.lifecycle().status(), RunStatus::Succeeded);
+    assert_eq!(
+        run.lifecycle().result().unwrap().usage().tool_calls(),
+        ExecutionCount::new(1)
+    );
     store.close().await;
 }
 
@@ -3254,6 +3482,155 @@ async fn timed_out_tool_write_reconciles_without_redispatch_or_invalid_schema_co
         ToolAttemptOutcome::Recovered { .. }
     ));
     assert_eq!(calls.load(Ordering::SeqCst), 2);
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn provider_probe_persists_pending_then_commits_once_and_recovers_without_io() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant_id = tenant("runtime-provider-reconciliation");
+    let run_id = RunId::generate();
+    let checkpoint = start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let template = tool_descriptor();
+    let (input_schema, _) = schema("provider-reconciliation-input");
+    let (output_schema, output_document) = schema("provider-reconciliation-output");
+    let descriptor = ToolDescriptor::new(
+        template.metadata().clone(),
+        input_schema,
+        output_schema.clone(),
+        template.semantics().clone(),
+        template.resources().clone(),
+        template.invocation().clone(),
+        template.limits().clone(),
+    )
+    .unwrap();
+    let invocation_id = InvocationId::generate();
+    let prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                checkpoint.event().head(),
+                lease.fence().clone(),
+            ),
+            ToolInvocationIntent::new(
+                invocation_activation(checkpoint.checkpoint()),
+                invocation_id,
+                descriptor.clone(),
+                tool_input(&descriptor),
+                descriptor.limits().clone(),
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let probes = Arc::new(AtomicUsize::new(0));
+    let mut tools = ToolProviderRegistryBuilder::new();
+    tools
+        .register(Arc::new(ScriptedReconciliationTool {
+            descriptor: descriptor.clone(),
+            calls: Arc::clone(&calls),
+            probes: Arc::clone(&probes),
+            retry_after: DurationMillis::new(25).unwrap(),
+        }))
+        .unwrap();
+    let executor = DurableInvocationExecutor::with_clock(
+        store.clone(),
+        invocation_schema_registry_with(output_schema, output_document),
+        ModelProviderRegistryBuilder::new().build(),
+        tools.build(),
+        Arc::new(StaticInvocationBudget {
+            resolved: invocation_budget(),
+        }),
+        Arc::new(FixedInvocationClock {
+            observed_at: "2029-12-31T23:59:30.000000Z".parse().unwrap(),
+        }),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let attempt_id = AttemptId::generate();
+    let attempt = ToolAttemptHandoff::new(
+        lease.fence().clone(),
+        prepared.invocation().clone(),
+        attempt_id,
+        InvocationAttemptEventIds::generate(),
+        CancellationSignal::never(),
+        None,
+    )
+    .unwrap();
+    let dispatched = executor.execute_tool(attempt).await.unwrap();
+    let (ToolAttemptOutcome::Dispatched {
+        invocation: unknown,
+        ..
+    }
+    | ToolAttemptOutcome::Recovered {
+        invocation: unknown,
+    }) = dispatched
+    else {
+        panic!("unexpected future tool-attempt outcome")
+    };
+    assert_eq!(unknown.status(), ToolInvocationStatus::Unknown);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    let reconciliation = ToolReconciliationAttemptHandoff::new(
+        lease.fence().clone(),
+        unknown,
+        EventId::generate(),
+        CancellationSignal::never(),
+    )
+    .unwrap();
+    let pending = executor
+        .reconcile_tool(reconciliation.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        pending,
+        ToolReconciliationAttemptOutcome::Pending { retry_after, .. }
+            if retry_after == DurationMillis::new(25).unwrap()
+    ));
+    assert_eq!(pending.invocation().status(), ToolInvocationStatus::Unknown);
+    assert_eq!(probes.load(Ordering::SeqCst), 1);
+
+    let resolved = executor
+        .reconcile_tool(reconciliation.clone())
+        .await
+        .unwrap();
+    assert!(matches!(
+        resolved,
+        ToolReconciliationAttemptOutcome::Resolved {
+            kind: ToolReconciliationKind::Result,
+            ..
+        }
+    ));
+    assert_eq!(
+        resolved.invocation().status(),
+        ToolInvocationStatus::Committed
+    );
+    assert_eq!(probes.load(Ordering::SeqCst), 2);
+
+    let recovered = executor.reconcile_tool(reconciliation).await.unwrap();
+    assert!(matches!(
+        recovered,
+        ToolReconciliationAttemptOutcome::Resolved {
+            kind: ToolReconciliationKind::Result,
+            ..
+        }
+    ));
+    assert_eq!(probes.load(Ordering::SeqCst), 2);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
     store.close().await;
 }
 

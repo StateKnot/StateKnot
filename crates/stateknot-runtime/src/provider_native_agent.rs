@@ -43,7 +43,8 @@ use crate::{
     GraphTerminalEvidence, GraphTerminalEvidenceContext, InvocationAttemptEventIds,
     JsonSchemaRegistry, JsonSchemaRegistryBuilder, JsonSchemaRegistryError, ModelAttemptHandoff,
     ModelAttemptOutcome, ToolAttemptHandoff, ToolAttemptOutcome,
-    standard_invocation_execution_event_schema,
+    ToolReconciliationAttemptExecutionError, ToolReconciliationAttemptHandoff,
+    ToolReconciliationAttemptOutcome, standard_invocation_execution_event_schema,
 };
 
 const IMPLEMENTATION_VERSION: &str = "stateknot.provider-native-agent.v1";
@@ -360,6 +361,32 @@ impl ProviderNativeToolPlan {
     #[must_use]
     pub const fn attempt_terminal_event_id(&self) -> EventId {
         self.attempt_terminal_event_id
+    }
+
+    /// Derives the stable automated-reconciliation audit event identity.
+    ///
+    /// The identity is domain-separated from the immutable plan rather than
+    /// persisted as another field. Existing checkpoint schemas and graph
+    /// references therefore remain byte-for-byte compatible across this
+    /// runtime upgrade.
+    #[must_use]
+    pub fn reconciliation_event_id(&self) -> EventId {
+        let mut material =
+            b"stateknot.provider-native-agent.tool-reconciliation-event.v1\0".to_vec();
+        material.extend_from_slice(self.invocation_id.as_uuid().as_bytes());
+        material.extend_from_slice(self.attempt_id.as_uuid().as_bytes());
+        material.extend_from_slice(self.attempt_terminal_event_id.as_uuid().as_bytes());
+        material.extend_from_slice(self.action_digest.as_bytes());
+        material.extend_from_slice(self.policy_evidence_digest.as_bytes());
+        let digest = Digest::sha256(material);
+
+        let mut bytes = [0_u8; 16];
+        bytes[..6].copy_from_slice(&self.attempt_terminal_event_id.as_uuid().as_bytes()[..6]);
+        bytes[6..].copy_from_slice(&digest.as_bytes()[..10]);
+        bytes[6] = (bytes[6] & 0x0f) | 0x70;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        EventId::from_uuid(uuid::Uuid::from_bytes(bytes))
+            .expect("derived reconciliation event bytes are a valid UUIDv7")
     }
 
     /// Returns the action digest approved by policy.
@@ -1781,11 +1808,53 @@ impl ProviderNativeToolsNode {
                     | ToolAttemptOutcome::Recovered { invocation } => invocation,
                 }
             }
-            ToolInvocationState::Executing { .. } | ToolInvocationState::Unknown { .. } => {
+            ToolInvocationState::Executing { .. } => {
                 return Err(ProviderNativeAgentNodeError::UncertainInvocation);
             }
-            ToolInvocationState::Committed { .. } | ToolInvocationState::Failed { .. } => {
-                invocation
+            ToolInvocationState::Unknown { .. }
+            | ToolInvocationState::Committed { .. }
+            | ToolInvocationState::Failed { .. } => invocation,
+        };
+
+        let ToolInvocationState::Unknown { .. } = invocation.state() else {
+            return Ok(invocation);
+        };
+        if !invocation
+            .intent()
+            .descriptor()
+            .semantics()
+            .supports_status_query()
+        {
+            return Err(ProviderNativeAgentNodeError::UncertainInvocation);
+        }
+        let available = self
+            .shared
+            .invocation_executor
+            .supports_tool_reconciliation(invocation.intent().descriptor())
+            .map_err(|_| ProviderNativeAgentNodeError::InvocationExecutor)?;
+        if !available {
+            return Err(ProviderNativeAgentNodeError::UncertainInvocation);
+        }
+        let handoff = ToolReconciliationAttemptHandoff::new(
+            context.attempt().fence().clone(),
+            invocation,
+            plan.reconciliation_event_id(),
+            context.cancellation().clone(),
+        )
+        .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
+        let invocation = match self
+            .shared
+            .invocation_executor
+            .reconcile_tool(handoff)
+            .await
+            .map_err(ProviderNativeAgentNodeError::Reconciliation)?
+        {
+            ToolReconciliationAttemptOutcome::Resolved { invocation, .. } => invocation,
+            ToolReconciliationAttemptOutcome::Pending {
+                retry_after,
+                invocation: _,
+            } => {
+                return Err(ProviderNativeAgentNodeError::ReconciliationPending { retry_after });
             }
         };
         Ok(invocation)
@@ -2429,6 +2498,7 @@ fn worker_append(
         .map_err(|_| ProviderNativeAgentNodeError::Integrity)
 }
 
+#[allow(clippy::too_many_lines)]
 fn node_execution_error(
     error: ProviderNativeAgentNodeError,
     usage: BudgetUsage,
@@ -2464,6 +2534,29 @@ fn node_execution_error(
             "An external invocation must be reconciled before the run can continue.",
             RetryAdvice::Never,
         ),
+        ProviderNativeAgentNodeError::ReconciliationPending { retry_after } => (
+            FailureCategory::DependencyUnavailable,
+            "runtime.agent.reconciliation_pending",
+            "The external invocation has no authoritative outcome yet.",
+            RetryAdvice::SafeAfter {
+                delay: *retry_after,
+            },
+        ),
+        ProviderNativeAgentNodeError::Reconciliation(source) => {
+            let advice = match source.retry_advice() {
+                RetryAdvice::ReconcileFirst => RetryAdvice::Never,
+                advice => advice,
+            };
+            (
+                match advice {
+                    RetryAdvice::SafeAfter { .. } => FailureCategory::DependencyUnavailable,
+                    RetryAdvice::Never | RetryAdvice::ReconcileFirst => FailureCategory::Internal,
+                },
+                "runtime.agent.reconciliation_failed",
+                "The external invocation could not be reconciled safely.",
+                advice,
+            )
+        }
         ProviderNativeAgentNodeError::Budget => (
             FailureCategory::RateLimited,
             "runtime.agent.budget_exhausted",
@@ -2502,8 +2595,6 @@ fn node_execution_error(
             RetryAdvice::Never,
         ),
     };
-    // Invocation uncertainty is surfaced as a terminal fail-closed graph error;
-    // the exact invocation ledger remains available to a dedicated reconciler.
     let failure = Failure::new(
         FailureId::generate(),
         category,
@@ -2738,6 +2829,10 @@ enum ProviderNativeAgentNodeError {
     Budget,
     #[error("provider-native agent observed an uncertain external invocation")]
     UncertainInvocation,
+    #[error("provider-native agent reconciliation is still pending")]
+    ReconciliationPending { retry_after: DurationMillis },
+    #[error("provider-native agent reconciliation failed")]
+    Reconciliation(#[source] ToolReconciliationAttemptExecutionError),
     #[error("provider-native agent policy dependency is unavailable")]
     Policy,
     #[error("provider-native agent invocation executor failed")]
@@ -2926,6 +3021,40 @@ mod tests {
         assert_eq!(
             validate_transition(&model_node, &current, &tampered, &definition),
             Err(ProviderNativeAgentStateError::Transition)
+        );
+    }
+
+    #[test]
+    fn reconciliation_event_identity_is_stable_without_changing_checkpoint_wire_shape() {
+        let plan = ProviderNativeToolPlan::generate(
+            0,
+            Digest::sha256(b"action"),
+            Digest::sha256(b"policy"),
+        );
+        let event_id = plan.reconciliation_event_id();
+        let wire = serde_json::to_value(&plan).unwrap();
+        assert!(wire.get("reconciliation_event_id").is_none());
+        let restored: ProviderNativeToolPlan = serde_json::from_value(wire).unwrap();
+        assert_eq!(restored.reconciliation_event_id(), event_id);
+        assert_ne!(event_id, plan.prepared_event_id());
+        assert_ne!(event_id, plan.attempt_start_event_id());
+        assert_ne!(event_id, plan.attempt_terminal_event_id());
+    }
+
+    #[test]
+    fn pending_reconciliation_becomes_a_durable_safe_after_node_retry() {
+        let delay = DurationMillis::new(750).unwrap();
+        let error = node_execution_error(
+            ProviderNativeAgentNodeError::ReconciliationPending { retry_after: delay },
+            BudgetUsage::zero(),
+        );
+        assert_eq!(
+            error.failure().retry_advice(),
+            RetryAdvice::SafeAfter { delay }
+        );
+        assert_eq!(
+            error.failure().code().as_str(),
+            "runtime.agent.reconciliation_pending"
         );
     }
 

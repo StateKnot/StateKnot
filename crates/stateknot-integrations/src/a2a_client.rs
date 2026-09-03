@@ -1177,6 +1177,30 @@ impl A2aClient {
         &self,
         request: A2aListTasksRequest,
     ) -> Result<A2aTaskPage, A2aClientError> {
+        self.list_tasks_scoped(request, A2aCallScope::new(None))
+            .await
+    }
+
+    pub(crate) async fn list_tasks_with_attempt(
+        &self,
+        request: A2aListTasksRequest,
+        attempt: A2aClientAttemptIdentity,
+        required_scopes: Arc<[Box<str>]>,
+    ) -> Result<A2aTaskPage, A2aClientError> {
+        self.list_tasks_scoped(
+            request,
+            A2aCallScope::new(None)
+                .with_attempt(attempt)
+                .with_required_scopes(required_scopes),
+        )
+        .await
+    }
+
+    async fn list_tasks_scoped(
+        &self,
+        request: A2aListTasksRequest,
+        scope: A2aCallScope,
+    ) -> Result<A2aTaskPage, A2aClientError> {
         let expectation = A2aListTasksExpectation::from_request(&request);
         let wire = request.into_wire(self.tenant());
         let mut url = self.rest_url(&["tasks"])?;
@@ -1218,7 +1242,7 @@ impl A2aClient {
                 wire::methods::LIST_TASKS,
                 params,
                 RestRequest::empty(Method::GET, url),
-                A2aCallScope::new(None),
+                scope,
             )
             .await?;
         let page = decode_value::<wire::ListTasksResponse>(value).and_then(|value| {
