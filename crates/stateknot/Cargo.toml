@@ -18,6 +18,7 @@ categories.workspace = true
 publish = false
 
 [dependencies]
+stateknot-artifact-store = { version = "=0.0.0", path = "../stateknot-artifact-store" }
 stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
 stateknot-integrations = { version = "=0.0.0", path = "../stateknot-integrations" }
 stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }

@@ -1144,8 +1144,32 @@ impl A2aClient {
 
     /// Gets one task snapshot.
     pub async fn get_task(&self, request: A2aGetTaskRequest) -> Result<A2aTask, A2aClientError> {
+        self.get_task_scoped(request, A2aCallScope::new(None)).await
+    }
+
+    pub(crate) async fn get_task_with_attempt(
+        &self,
+        request: A2aGetTaskRequest,
+        attempt: A2aClientAttemptIdentity,
+        required_scopes: Arc<[Box<str>]>,
+    ) -> Result<A2aTask, A2aClientError> {
+        self.get_task_scoped(
+            request,
+            A2aCallScope::new(None)
+                .with_attempt(attempt)
+                .with_required_scopes(required_scopes),
+        )
+        .await
+    }
+
+    async fn get_task_scoped(
+        &self,
+        request: A2aGetTaskRequest,
+        mut scope: A2aCallScope,
+    ) -> Result<A2aTask, A2aClientError> {
         let task_id = request.id().to_owned();
         let history_length = request.history_length();
+        scope.task_id = Some(task_id.clone().into_boxed_str());
         let wire = request
             .into_wire(self.tenant())
             .map_err(|_| A2aClientError::before(A2aClientErrorKind::Request))?;
@@ -1161,7 +1185,7 @@ impl A2aClient {
                 wire::methods::GET_TASK,
                 params,
                 RestRequest::empty(Method::GET, url),
-                A2aCallScope::new(Some(&task_id)),
+                scope,
             )
             .await?;
         let task = decode_value::<wire::Task>(value).and_then(|value| {

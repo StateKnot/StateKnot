@@ -96,6 +96,12 @@ const paths = [
     link: "集成 A2A Client",
   },
   {
+    title: "持久化耐久 Artifact",
+    body: "不重发 Message，直接轮询已接纳的 A2A Task，再把 Terminal Part 绑定到不可变 PostgreSQL Metadata 与私有、经过校验的 Object Bytes。",
+    href: "/zh/docs/artifacts/",
+    link: "配置 Artifact Storage",
+  },
+  {
     title: "运行 Provider-native Agent",
     body: "编译一套 Pinned 多轮 Model/Tool Graph，在不重复 Dispatch 的前提下恢复 Transcript，并依据精确 Usage Evidence 确认 Cancellation。",
     href: "/zh/docs/provider-native-agent/",
@@ -158,8 +164,12 @@ const paths = [
         >A2A 1.0 Client 与耐久 Remote Agent</a
       > 已实现全部 11 个 Dual-binding Operation，并将 Lost Send 保留为 PostgreSQL-backed
       Unknown Outcome，还支持有界、由运维方背书的 Context/History Query 与 Message-ID
-      Replay。稳定 Network Agent Transport、MCP Tasks、生产耐久 A2A Task/Push Backend、Client
-      Live-peer 与 Recovery-attestation Qualification、gRPC 与生产验证仍是 发布阻断项。
+      Replay。<a href="/zh/docs/artifacts/">耐久 Artifact 边界</a>会在不重发
+      Message 的前提下直接轮询已接纳 Task，再把 Terminal Part 注册为不可变
+      PostgreSQL 事实，并由私有、完整校验的 S3-compatible Object Bytes
+      承载。稳定 Network Agent Transport、MCP Tasks、生产耐久 A2A Task/Push
+      Backend、Client Live-peer 与 Recovery-attestation Qualification、gRPC
+      与生产验证仍是 发布阻断项。
     </p>
   </aside>
 
@@ -270,6 +280,15 @@ const paths = [
           Operation、两个有界 SSE Surface、Attempt-scoped Bearer
           Authorization、本地 Schema Authority、显式 Delivery Semantics，以及
           PostgreSQL-backed Unknown/No-redispatch Recovery。
+        </dd>
+      </div>
+      <div>
+        <dt>耐久 A2A Artifact Storage</dt>
+        <dd>
+          直接且 No-resend 的 Task Recovery、有界 Terminal-part
+          Ingestion、不可变 PostgreSQL Metadata、私有 Conditional Object
+          Publication、Authorization-before-lookup， 以及完整 Length/SHA-256
+          校验。
         </dd>
       </div>
       <div>

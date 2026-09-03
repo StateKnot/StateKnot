@@ -111,6 +111,12 @@ const currentCut = [
     href: "/zh/docs/a2a-client/",
   },
   {
+    surface: "耐久 A2A Artifact Storage",
+    state: "已实现切片",
+    evidence: "直接 Task Poll、Migration 18 与私有、完整校验的 Object Bytes",
+    href: "/zh/docs/artifacts/",
+  },
+  {
     surface: "A2A 1.0 Server Profile",
     state: "已实现切片",
     evidence: "官方 TCK 177 Pass；HTTP+JSON 与 JSON-RPC/SSE",
@@ -187,6 +193,12 @@ const roadmap = [
   },
   {
     index: "12",
+    state: "已实现",
+    title: "使 Terminal A2A Artifact 耐久化",
+    body: "已接纳 Task 现在通过直接、No-resend Polling 恢复；有界 Terminal Part 会收敛为不可变 PostgreSQL Metadata 与私有、Conditional Publication、完整校验的 Object Bytes。",
+  },
+  {
+    index: "13",
     state: "下一步",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
@@ -204,14 +216,13 @@ const roadmap = [
           <p class="hero-status">Pre-alpha · 尚无稳定公开 API</p>
           <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
           <p class="hero-lede">
-            StateKnot 现已通过 PostgreSQL Crash Recovery、原子 Admission、耐久
-            Model/Tool Attempt、Lifecycle Commit、公平调度、耐久 Ingress
-            与经过验证的 Result 运行类型化 Root Graph。已实现 Surface 包括
-            OpenAI/Anthropic Adapter、Provider-native Graph、AgentService v1、
-            MCP Client/OAuth/严格 Remote Tool/Server Profile，以及 A2A 1.0
-            HTTP+JSON/JSON-RPC Client/Server Profile。稳定 Network Agent
-            API、A2A gRPC、MCP Tasks、高级 Graph 语义、Client Live-peer
-            Qualification、Recovery-attestation 与生产验证仍未完成。
+            StateKnot 通过 PostgreSQL Crash Recovery、原子 Admission、耐久
+            Model/Tool Attempt、Lifecycle Commit、公平调度、Ingress 与 Verified
+            Result 运行类型化 Root Graph。已实现 OpenAI/Anthropic Adapter、
+            Provider-native Graph、AgentService v1、MCP Client/OAuth/Remote
+            Tool/Server，以及带耐久 Terminal-task Artifact Storage 的 A2A 1.0
+            HTTP+JSON/JSON-RPC Client/Server。稳定 Network Agent API、A2A gRPC、
+            MCP Tasks、高级 Graph 语义、Live-peer 与生产验证仍未完成。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"

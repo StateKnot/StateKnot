@@ -113,6 +113,13 @@ const currentCut = [
     href: "/docs/a2a-client/",
   },
   {
+    surface: "Durable A2A artifact storage",
+    state: "Implemented slice",
+    evidence:
+      "Direct task polling, migration 18, private verified object bytes",
+    href: "/docs/artifacts/",
+  },
+  {
     surface: "A2A 1.0 Server profile",
     state: "Implemented slice",
     evidence: "177 official TCK passes; HTTP+JSON and JSON-RPC/SSE",
@@ -189,6 +196,12 @@ const roadmap = [
   },
   {
     index: "12",
+    state: "Implemented",
+    title: "Make terminal A2A artifacts durable",
+    body: "Accepted tasks now recover through direct no-resend polling, while bounded terminal parts converge on immutable PostgreSQL metadata and private, conditionally published, fully verified object bytes.",
+  },
+  {
+    index: "13",
     state: "Next",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -208,15 +221,15 @@ const roadmap = [
             Durable agent orchestration, written for Rust.
           </h1>
           <p class="hero-lede">
-            StateKnot now runs typed root Graphs through PostgreSQL crash
-            recovery, atomic admission, durable model/tool attempts, lifecycle
-            commits, fair scheduling, durable ingress, and verified results.
-            Implemented surfaces include OpenAI/Anthropic adapters, the
-            provider-native graph, AgentService v1, MCP client/OAuth/strict
-            Remote Tool/Server profiles, and A2A 1.0 HTTP+JSON/JSON-RPC
-            Client/Server profiles. Stable network Agent APIs, A2A gRPC, MCP
-            Tasks, advanced graph semantics, Client live-peer qualification, and
-            recovery-attestation/production qualification remain open.
+            StateKnot runs typed root Graphs through PostgreSQL crash recovery,
+            atomic admission, durable model/tool attempts, lifecycle commits,
+            fair scheduling, ingress, and verified results. Implemented surfaces
+            include OpenAI/Anthropic adapters, a provider-native graph,
+            AgentService v1, MCP client/OAuth/Remote Tool/Server profiles, and
+            A2A 1.0 HTTP+JSON/JSON-RPC Client/Server with durable terminal-task
+            Artifact storage. Stable network Agent APIs, A2A gRPC, MCP Tasks,
+            advanced graph semantics, live-peer and production qualification
+            remain open.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"

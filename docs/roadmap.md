@@ -270,7 +270,15 @@ from the repository.
   prove both A2A strategies and payload-substitution rejection through loopback
   HTTP, and separately prove one-business-call Agent Loop completion on real
   PostgreSQL.
-- [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
+- [x] Materialize terminal A2A artifacts through an endpoint-bound durable task
+  recovery handle that polls `GetTask` without resending the business message.
+  Add PostgreSQL migration 18's immutable tenant-qualified artifact registry,
+  private S3-compatible staging and conditional final publication, complete
+  length/SHA-256 verification, authorization before registry lookup, and
+  bounded URL/multipart ingestion. Prove no-resend completion on both A2A
+  bindings, migration 17→18 preservation and schema refusal, object retry and
+  tamper behavior, and the real PostgreSQL/object-store boundary.
+- [ ] Complete parallel sibling/Tool ordering, output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,

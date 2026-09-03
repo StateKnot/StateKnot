@@ -163,6 +163,26 @@ store.health_check().await?;</code></pre>
     </p>
   </section>
 
+  <section aria-labelledby="artifact-registry-title">
+    <h2 id="artifact-registry-title">
+      Register artifacts as immutable evidence
+    </h2>
+    <p>
+      Migration 18 adds tenant-qualified <code>artifacts</code> and <code
+        >artifact_parents</code
+      >. Each row binds canonical reference bytes and digest, content length and
+      digest, the origin run/event, same-tenant lineage, idempotency key, and a
+      private provider-neutral locator. Exact retries converge; changed metadata
+      conflicts, and every load revalidates the complete projection.
+    </p>
+    <p>
+      Object I/O stays outside the registry transaction. The <a
+        href="/docs/artifacts/">durable artifact guide</a
+      > defines private conditional publication, authorization-before-lookup, complete
+      integrity verification, egress policy, and cleanup obligations.
+    </p>
+  </section>
+
   <section aria-labelledby="permissions-title">
     <h2 id="permissions-title">Separate database roles</h2>
     <p>
@@ -186,19 +206,24 @@ store.health_check().await?;</code></pre>
     <h2 id="qualification-title">Qualification and current limits</h2>
     <p>
       CI runs the mandatory integration suite independently against PostgreSQL
-      16 and 17: 102 provider cases plus 27 durable Runtime scenarios per
-      version. The suite covers migrations, lost acknowledgements, fencing,
-      corruption rejection, concurrency, rollback injection, outbox recovery,
-      durable waits, quarantine, immutable graph registration/recovery,
-      ready-node planning, delayed-retry scheduling, lifecycle commits, durable
-      model/tool execution, fairness reservations and retention, atomic Agent
-      admission, durable ingress-key/run-result verification, and weighted
-      cross-tenant Agent Loop execution.
+      16 and 17: 104 provider cases, 29 durable Runtime scenarios, plus the
+      five-case artifact-store suite per version. The suite covers migrations,
+      lost acknowledgements, fencing, corruption rejection, concurrency,
+      rollback injection, outbox recovery, durable waits, quarantine, immutable
+      graph registration/recovery, ready-node planning, delayed-retry
+      scheduling, lifecycle commits, durable model/tool execution, fairness
+      reservations and retention, atomic Agent admission, durable
+      ingress-key/run-result verification, and weighted cross-tenant Agent Loop
+      execution. Artifact evidence adds populated migration 17→18, schema
+      refusal, immutable registration, private object publication,
+      authorization-first lookup, multipart ingestion, and complete digest
+      verification.
     </p>
     <p>
       Production release still requires role isolation, general retention and
       garbage collection, failover and point-in-time restore exercises,
-      stale-race qualification, and stable provider-native Agent composition.
+      stale-race qualification, role-separated service deployment, and live
+      workload qualification.
     </p>
   </section>
 </DocsLayout>

@@ -124,6 +124,12 @@ const localizedRoutePairs = [
     zhHeading: "调用 A2A Agent，不猜测执行结果。",
   },
   {
+    en: "/docs/artifacts/",
+    zh: "/zh/docs/artifacts/",
+    enHeading: "Persist A2A artifacts as verifiable facts.",
+    zhHeading: "把 A2A Artifact 持久化为可验证事实。",
+  },
+  {
     en: "/docs/a2a-server/",
     zh: "/zh/docs/a2a-server/",
     enHeading: "Serve A2A 1.0 without leaking wire types.",

@@ -232,7 +232,7 @@ silently skipping the suite.
 ## Explicit remaining gates
 
 This milestone does not ship parallel sibling/tool execution, output repair,
-loop/subgraph semantics, artifact retrieval, stable network Agent/cancellation
+loop/subgraph semantics, general artifact lifecycle/public delivery, stable network Agent/cancellation
 transport, protocol-specific outbox dispatch, MCP/A2A server composition,
 broader protocol extensions, A2A live-peer reconciliation qualification,
 live-provider drift cassettes, role-separated database procedures, general

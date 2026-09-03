@@ -96,6 +96,12 @@ const paths = [
     link: "Integrate the A2A Client",
   },
   {
+    title: "Persist durable artifacts",
+    body: "Poll accepted A2A tasks without resending, then bind terminal parts to immutable PostgreSQL metadata and private verified object bytes.",
+    href: "/docs/artifacts/",
+    link: "Configure artifact storage",
+  },
+  {
     title: "Run the provider-native Agent",
     body: "Compile one pinned multi-turn model/tool graph, recover transcripts without redispatch, and confirm cancellation from exact usage evidence.",
     href: "/docs/provider-native-agent/",
@@ -161,8 +167,12 @@ const paths = [
         href="/docs/a2a-client/">A2A 1.0 Client and durable remote agent</a
       > implement all eleven dual-binding operations and preserve lost sends as PostgreSQL-backed
       Unknown outcomes. They also support bounded operator-attested context/history
-      lookup and message-ID replay. Stable network Agent transport, MCP Tasks, a production
-      durable A2A task/push backend, Client live-peer and recovery-attestation qualification,
+      lookup and message-ID replay. The <a href="/docs/artifacts/"
+        >durable artifact boundary</a
+      > polls accepted tasks directly without resending, then registers terminal parts
+      as immutable PostgreSQL facts backed by private, fully verified S3-compatible
+      object bytes. Stable network Agent transport, MCP Tasks, a production durable
+      A2A task/push backend, Client live-peer and recovery-attestation qualification,
       gRPC, and production qualification remain release blockers.
     </p>
   </aside>
@@ -277,6 +287,15 @@ const paths = [
           JSON-RPC operations, both bounded SSE surfaces, attempt-scoped bearer
           authorization, local schema authority, explicit delivery semantics,
           and Unknown/no-redispatch recovery through PostgreSQL.
+        </dd>
+      </div>
+      <div>
+        <dt>Durable A2A artifact storage</dt>
+        <dd>
+          Direct no-resend task recovery, bounded terminal-part ingestion,
+          immutable PostgreSQL metadata, private conditional object publication,
+          authorization-before-lookup, and complete length and SHA-256
+          verification.
         </dd>
       </div>
       <div>

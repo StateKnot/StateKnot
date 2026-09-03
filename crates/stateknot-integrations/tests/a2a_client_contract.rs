@@ -13,19 +13,23 @@ use std::{
 use futures_util::StreamExt;
 use serde_json::{Value, json};
 use stateknot_core::{
-    AttemptId, BoundedJson, BoxFuture, BudgetUsage, CancellationSignal, Digest, DurationMillis,
-    ErasedTool, FailureCategory, InvocationId, ResolvedBudget, RetryAdvice, SchemaId,
-    SchemaReference, TenantId, Timestamp, ToolContext, ToolDescriptor, ToolExternalEffect,
-    ToolInput, ToolReconciliationContext, ToolReconciliationObservation, Version,
+    ArtifactId, ArtifactIdentity, ArtifactModality, ArtifactName, ArtifactParents,
+    ArtifactPresentation, ArtifactProvenance, ArtifactRef, ArtifactRepresentation, AttemptId,
+    BoundedJson, BoxFuture, BudgetUsage, ByteCount, CancellationSignal, ContentMetadata,
+    ContentSource, Digest, DurationMillis, ErasedTool, FailureCategory, InvocationId,
+    ResolvedBudget, RetentionClass, RetryAdvice, SchemaId, SchemaReference, SecurityLabel,
+    TenantId, Timestamp, ToolContext, ToolDescriptor, ToolExternalEffect, ToolInput,
+    ToolReconciliationContext, ToolReconciliationObservation, ToolRecoveryHandle, Version,
 };
 use stateknot_integrations::{
     A2aAgentCapabilities, A2aAgentCard, A2aAgentCardEndpoint, A2aAgentCardTrust, A2aAgentInterface,
-    A2aAgentSkill, A2aBearerTokenProvider, A2aBinding, A2aCancelTaskRequest, A2aClient,
+    A2aAgentSkill, A2aArtifactIngestionError, A2aArtifactIngestionRequest, A2aArtifactIngestor,
+    A2aBearerTokenProvider, A2aBinding, A2aCancelTaskRequest, A2aClient,
     A2aClientAuthorizationError, A2aClientAuthorizationRequest, A2aClientBuildError,
     A2aClientInterfacePin, A2aClientOperation, A2aClientOptions, A2aClientSecurity,
     A2aDeletePushConfigRequest, A2aGetPushConfigRequest, A2aGetTaskRequest,
     A2aListPushConfigsRequest, A2aListTasksRequest, A2aMessage, A2aMessageRole, A2aPart,
-    A2aPushConfig, A2aRemoteAgent, A2aRemoteAgentDelivery, A2aRemoteAgentRecovery,
+    A2aPartContent, A2aPushConfig, A2aRemoteAgent, A2aRemoteAgentDelivery, A2aRemoteAgentRecovery,
     A2aSecurityScheme, A2aSendMessageRequest, A2aSendMessageResponse, A2aStreamEvent,
     A2aSubscribeTaskRequest, A2aTaskState, ApiKey, ProviderHttpOptions, StaticA2aBearerToken,
     a2a_agent_card_digest,
@@ -43,6 +47,7 @@ const RUN_ID: &str = "01912345-6789-7abc-8def-0123456789b1";
 const THREAD_ID: &str = "01912345-6789-7abc-8def-0123456789b2";
 const INVOCATION_ID: &str = "01912345-6789-7abc-8def-0123456789b3";
 const ATTEMPT_ID: &str = "01912345-6789-7abc-8def-0123456789b4";
+const ORIGIN_EVENT_ID: &str = "01912345-6789-7abc-8def-0123456789b5";
 const ROUTING_TENANT: &str = "remote-tenant";
 
 #[derive(Clone, Copy)]
@@ -60,6 +65,7 @@ enum OperationBehavior {
     ContextHistoryRecovery,
     ContextHistoryPayloadMismatch,
     DeduplicatedReplayRecovery,
+    DurableTaskRecovery,
 }
 
 struct TestA2aServer {
@@ -102,6 +108,7 @@ impl TestA2aServer {
         let task = tokio::spawn(async move {
             let mut reconciliation_message = None;
             let mut replay_send_count = 0_u8;
+            let mut task_get_count = 0_u8;
             loop {
                 let Ok((mut socket, _)) = listener.accept().await else {
                     return;
@@ -293,6 +300,77 @@ impl TestA2aServer {
                             reconciliation_message.as_ref().unwrap()["messageId"]
                         );
                         write_json(&mut socket, binding, "200 OK", &success).await;
+                    }
+                    OperationBehavior::DurableTaskRecovery => {
+                        let value: Value =
+                            serde_json::from_slice(request_body(&request)).unwrap_or(Value::Null);
+                        let operation = if binding == A2aBinding::JsonRpc {
+                            value["method"].as_str()
+                        } else if target.contains("message:send") {
+                            Some("SendMessage")
+                        } else {
+                            Some("GetTask")
+                        };
+                        if operation == Some("SendMessage") {
+                            let payload = if binding == A2aBinding::JsonRpc {
+                                &value["params"]
+                            } else {
+                                &value
+                            };
+                            reconciliation_message = Some(payload["message"].clone());
+                            let result = json!({
+                                "task": {
+                                    "id": "durable-task-1",
+                                    "contextId": payload["message"]["contextId"].clone(),
+                                    "status": {"state": "TASK_STATE_WORKING"}
+                                }
+                            });
+                            let response = if binding == A2aBinding::JsonRpc {
+                                json!({
+                                    "jsonrpc": "2.0",
+                                    "id": value["id"].clone(),
+                                    "result": result
+                                })
+                            } else {
+                                result
+                            };
+                            write_json(&mut socket, binding, "200 OK", &response).await;
+                            continue;
+                        }
+                        assert_eq!(operation, Some("GetTask"));
+                        task_get_count = task_get_count.saturating_add(1);
+                        let state = if task_get_count == 1 {
+                            "TASK_STATE_WORKING"
+                        } else {
+                            "TASK_STATE_COMPLETED"
+                        };
+                        let mut task = json!({
+                            "id": "durable-task-1",
+                            "contextId": reconciliation_message.as_ref().unwrap()["contextId"],
+                            "status": {"state": state}
+                        });
+                        if task_get_count > 1 {
+                            task["artifacts"] = json!([{
+                                "artifactId": "remote-artifact-1",
+                                "name": "answer.txt",
+                                "description": "Remote answer",
+                                "parts": [{
+                                    "text": "durable artifact",
+                                    "mediaType": "text/plain;charset=utf-8",
+                                    "filename": "answer.txt"
+                                }]
+                            }]);
+                        }
+                        let response = if binding == A2aBinding::JsonRpc {
+                            json!({
+                                "jsonrpc": "2.0",
+                                "id": value["id"].clone(),
+                                "result": task
+                            })
+                        } else {
+                            task
+                        };
+                        write_json(&mut socket, binding, "200 OK", &response).await;
                     }
                 }
             }
@@ -663,6 +741,41 @@ fn schemas() -> (Arc<JsonSchemaRegistry>, SchemaReference, SchemaReference) {
     )
 }
 
+fn durable_schemas() -> (Arc<JsonSchemaRegistry>, SchemaReference, SchemaReference) {
+    let input = json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://schemas.stateknot.test/a2a-durable-input/1.0.0",
+        "type": "object",
+        "properties": {"question": {"type": "string", "maxLength": 256}},
+        "required": ["question"],
+        "additionalProperties": false
+    });
+    let output = json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://schemas.stateknot.test/a2a-durable-output/1.0.0",
+        "type": "object",
+        "properties": {
+            "kind": {"const": "task"},
+            "task_id": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "context_id": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "state": {"const": "completed"},
+            "artifact_count": {"type": "integer", "minimum": 0, "maximum": 64}
+        },
+        "required": ["kind", "task_id", "context_id", "state", "artifact_count"],
+        "additionalProperties": false
+    });
+    let input_reference = schema_reference(&input);
+    let output_reference = schema_reference(&output);
+    let mut builder = JsonSchemaRegistryBuilder::with_default_limits();
+    builder.register(input_reference.clone(), input).unwrap();
+    builder.register(output_reference.clone(), output).unwrap();
+    (
+        Arc::new(builder.build().unwrap()),
+        input_reference,
+        output_reference,
+    )
+}
+
 fn schema_reference(document: &Value) -> SchemaReference {
     SchemaReference::new(
         document["$id"]
@@ -768,6 +881,94 @@ fn reconciliation_context(descriptor: &ToolDescriptor) -> ToolReconciliationCont
         CancellationSignal::never(),
     )
     .unwrap()
+}
+
+fn durable_context(descriptor: &ToolDescriptor) -> ToolContext {
+    context(descriptor).with_durable_origin_event(ORIGIN_EVENT_ID.parse().unwrap())
+}
+
+fn durable_reconciliation_context(
+    descriptor: &ToolDescriptor,
+    handle: ToolRecoveryHandle,
+) -> ToolReconciliationContext {
+    reconciliation_context(descriptor)
+        .with_durable_recovery(ORIGIN_EVENT_ID.parse().unwrap(), Some(handle))
+}
+
+#[derive(Default)]
+struct CapturingArtifactIngestor {
+    requests: Mutex<Vec<(String, String, u16, u16)>>,
+}
+
+impl A2aArtifactIngestor for CapturingArtifactIngestor {
+    fn ingest(
+        &self,
+        request: A2aArtifactIngestionRequest,
+    ) -> BoxFuture<'_, Result<ArtifactRef, A2aArtifactIngestionError>> {
+        self.requests.lock().unwrap().push((
+            request.source().task_id().to_owned(),
+            request.source().artifact_id().to_owned(),
+            request.source().artifact_index(),
+            request.source().part_index(),
+        ));
+        Box::pin(async move {
+            let bytes = match request.part().content() {
+                A2aPartContent::Text(value) => value.as_bytes().to_vec(),
+                A2aPartContent::Data(value) => serde_json_canonicalizer::to_vec(value).unwrap(),
+                A2aPartContent::Raw(value) => value.to_vec(),
+                A2aPartContent::Url(_) => panic!("the capture ingestor does not fetch URLs"),
+                _ => panic!("unsupported A2A part type in the capture ingestor"),
+            };
+            assert!(u64::try_from(bytes.len()).unwrap() <= request.maximum_bytes().get());
+            let media_type = request
+                .part()
+                .media_type()
+                .unwrap_or("application/octet-stream")
+                .parse()
+                .unwrap();
+            let modality = match request.part().content() {
+                A2aPartContent::Text(_) => ArtifactModality::Text,
+                A2aPartContent::Data(_) => ArtifactModality::StructuredData,
+                A2aPartContent::Raw(_) | A2aPartContent::Url(_) => ArtifactModality::Binary,
+                _ => panic!("unsupported A2A part type in the capture ingestor"),
+            };
+            let name = request
+                .part()
+                .filename()
+                .or_else(|| request.artifact_name())
+                .unwrap_or("a2a-artifact.bin");
+            Ok(ArtifactRef::new(
+                ArtifactIdentity::new(
+                    request.tenant_id().clone(),
+                    "01912345-6789-7abc-8def-0123456789c1"
+                        .parse::<ArtifactId>()
+                        .unwrap(),
+                ),
+                ArtifactPresentation::new(ArtifactName::new(name).unwrap(), None),
+                ArtifactRepresentation::new(
+                    media_type,
+                    modality,
+                    ByteCount::new(u64::try_from(bytes.len()).unwrap()),
+                    Digest::sha256(&bytes),
+                    None,
+                )
+                .unwrap(),
+                ContentMetadata::untrusted(
+                    ContentSource::Artifact,
+                    SecurityLabel::new("external/a2a").unwrap(),
+                ),
+                RetentionClass::new("standard").unwrap(),
+                ArtifactProvenance::new(
+                    request.tool().owner().clone(),
+                    Some(request.tool().capability().clone()),
+                    request.run_id(),
+                    request.origin_event_id(),
+                ),
+                ArtifactParents::empty(),
+            )
+            .unwrap())
+        })
+    }
 }
 
 async fn discover(
@@ -995,6 +1196,152 @@ async fn context_history_reconciliation_recovers_lost_send_without_replay() {
             .await
             .is_err(),
         "context-history recovery must not send the message again"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn http_json_durable_task_handle_polls_without_resend_and_materializes_artifacts() {
+    exercise_durable_task_recovery(A2aBinding::HttpJson).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn json_rpc_durable_task_handle_polls_without_resend_and_materializes_artifacts() {
+    exercise_durable_task_recovery(A2aBinding::JsonRpc).await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn exercise_durable_task_recovery(binding: A2aBinding) {
+    let mut server = TestA2aServer::start(
+        binding,
+        None,
+        false,
+        false,
+        OperationBehavior::DurableTaskRecovery,
+    )
+    .await;
+    let client = discover(
+        &server,
+        A2aClientSecurity::Anonymous,
+        A2aClientOptions::default(),
+    )
+    .await;
+    let (registry, input_schema, output_schema) = durable_schemas();
+    let descriptor = reconciliation_descriptor(
+        &input_schema,
+        &output_schema,
+        A2aRemoteAgentDelivery::AtMostOnce,
+    );
+    let recovery = A2aRemoteAgentRecovery::operator_attested_context_task_history(
+        2,
+        16,
+        DurationMillis::new(25).unwrap(),
+    )
+    .unwrap();
+    let ingestor = Arc::new(CapturingArtifactIngestor::default());
+    let adapter = A2aRemoteAgent::bind_with_durable_artifacts(
+        descriptor.clone(),
+        client,
+        "answer",
+        A2aRemoteAgentDelivery::AtMostOnce,
+        recovery,
+        registry,
+        ingestor.clone(),
+    )
+    .unwrap();
+    let input = ToolInput::new(
+        input_schema,
+        BoundedJson::try_from_value(json!({"question": "Return one artifact"})).unwrap(),
+    )
+    .unwrap();
+
+    let error = adapter
+        .call(durable_context(&descriptor), input.clone())
+        .await
+        .unwrap_err();
+    assert_eq!(error.external_effect(), ToolExternalEffect::Unknown);
+    let handle = error.recovery_handle().unwrap().clone();
+    assert_eq!(handle.opaque_id(), "durable-task-1");
+    assert!(!format!("{error:?}").contains("durable-task-1"));
+    assert_eq!(
+        serde_json::to_value(&error).unwrap()["recovery_handle"]["opaque_id"],
+        "durable-task-1"
+    );
+
+    let first = adapter
+        .reconcile(
+            durable_reconciliation_context(&descriptor, handle.clone()),
+            input.clone(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        first,
+        ToolReconciliationObservation::Pending { retry_after }
+            if retry_after == DurationMillis::new(25).unwrap()
+    ));
+
+    let second = adapter
+        .reconcile(durable_reconciliation_context(&descriptor, handle), input)
+        .await
+        .unwrap();
+    let result = match second {
+        ToolReconciliationObservation::Result(result) => result,
+        other => panic!("expected a durable artifact result, got {other:?}"),
+    };
+    assert_eq!(result.output().as_value()["state"], "completed");
+    assert_eq!(result.output().as_value()["artifact_count"], 1);
+    assert_eq!(result.artifacts().len(), 1);
+    assert_eq!(
+        result
+            .artifacts()
+            .iter()
+            .next()
+            .unwrap()
+            .representation()
+            .byte_length(),
+        ByteCount::new(16)
+    );
+    assert_eq!(
+        ingestor.requests.lock().unwrap().as_slice(),
+        &[(
+            "durable-task-1".to_string(),
+            "remote-artifact-1".to_string(),
+            0,
+            0,
+        )]
+    );
+
+    let discovery = server.next_request().await;
+    let send = server.next_request().await;
+    let first_get = server.next_request().await;
+    let second_get = server.next_request().await;
+    assert_eq!(request_target(&discovery), "/.well-known/agent-card.json");
+    match binding {
+        A2aBinding::HttpJson => {
+            assert_eq!(request_target(&send), "/a2a/message:send");
+            assert_eq!(request_target(&first_get), "/a2a/tasks/durable-task-1");
+            assert_eq!(request_target(&second_get), "/a2a/tasks/durable-task-1");
+        }
+        A2aBinding::JsonRpc => {
+            for (request, method) in [
+                (&send, "SendMessage"),
+                (&first_get, "GetTask"),
+                (&second_get, "GetTask"),
+            ] {
+                assert_eq!(request_target(request), "/rpc");
+                assert_eq!(
+                    serde_json::from_slice::<Value>(request_body(request)).unwrap()["method"],
+                    method
+                );
+            }
+        }
+        _ => unreachable!("test covers the implemented A2A bindings"),
+    }
+    assert!(
+        tokio::time::timeout(Duration::from_millis(100), server.requests.recv())
+            .await
+            .is_err(),
+        "task polling must not replay the original business message"
     );
 }
 

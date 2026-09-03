@@ -228,14 +228,14 @@ adds:
 - runtime-facade rejection of Agent/Graph and authorization-schema drift before
   any database write.
 
-The repository currently runs 102 PostgreSQL provider cases and 27 durable
+The repository currently runs 104 PostgreSQL provider cases and 29 durable
 runtime scenarios on each supported database version.
 
 ## Next public Agent boundary
 
 Admission plus `DurableAgentRuns` now provide atomic ingress idempotency and a
-fully revalidated public run/result read. The next slice must compose the
-provider-native multi-turn model/tool graph, policy middleware, cancellation
-mutation, artifact access, typed decoding ergonomics, and service transport.
-Those pieces still require release qualification before StateKnot claims a
+fully revalidated public run/result read. The provider-native graph,
+AgentService embedding boundary, cancellation mutation, and durable A2A
+artifact access are implemented above it. Stable network transport, typed API
+ergonomics, and release qualification remain before StateKnot claims a
 stable or production-supported Agent API.

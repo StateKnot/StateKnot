@@ -212,7 +212,7 @@ Deadline 必须能放进保留的 Handoff Lease；超时后应释放所有权，
 
 ## 验证证据与剩余门禁
 
-二十七个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
+二十九个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
 Success/Wait/Failure/Cancellation 原子性与精确 Lost-ACK Replay、数据库时间 Wait
 Materialization、Agent Loop 成功与 Evidence Failure、Tenant 与加权 Cross-tenant Scheduling、
 耐久 Model/Tool Attempt 与 Streaming、Provider-native 多轮 Recovery、Noninitial Replay、
@@ -223,8 +223,8 @@ CI 把两套测试都设为 Mandatory。
 原子 Admission、公开 Run/Result Facade，以及带 Transcript Recovery、Policy Evidence、精确
 Accounting 与 Cancellation Confirmation 的 Provider-native Graph 已实现。剩余 Release
 Blocker 中，AgentService v1 已提供嵌入式 Cancellation Ingress，并已有一个严格 MCP
-Client-side Remote Tool Binding；尚待完成的是稳定 Network Transport、Artifact Retrieval、
-Parallel Sibling Policy、Loop/Subgraph 语义、组合式 PostgreSQL-backed MCP Recovery Proof
-与官方 Conformance Report、协议专用 Outbox Dispatch、数据库角色隔离存储过程、通用
+Client-side Remote Tool Binding；尚待完成的是稳定 Network Transport、通用 Artifact
+Lifecycle/Public Delivery、Parallel Sibling Policy、Loop/Subgraph 语义、Live-peer Protocol
+Qualification、协议专用 Outbox Dispatch、数据库角色隔离存储过程、通用
 Retention、Backup/Restore、Failover、Stale-race Qualification、完整 Observability 与
 Release Hardening。

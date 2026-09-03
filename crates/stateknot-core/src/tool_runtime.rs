@@ -16,10 +16,10 @@ use thiserror::Error;
 
 use crate::{
     ArtifactRef, AttemptId, BoundedJson, BudgetRemaining, ByteCount, CancellationSignal,
-    CapabilityIdentity, CapabilityReference, DurationMillis, ExecutionCount, Failure,
-    FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin, InvocationId,
+    CapabilityIdentity, CapabilityReference, Digest, DurationMillis, EventId, ExecutionCount,
+    Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin, InvocationId,
     JsonLimits, PrincipalIdentity, RetryAdvice, RunId, SchemaReference, TenantId, ThreadId,
-    Timestamp, ToolDescriptor, ToolIdempotency, ToolRisk,
+    Timestamp, ToolDescriptor, ToolExecutionLimits, ToolIdempotency, ToolRisk,
 };
 
 /// Stable provider-facing idempotency key for one logical tool invocation.
@@ -58,6 +58,167 @@ impl fmt::Debug for ToolIdempotencyKey {
     }
 }
 
+/// Bounded opaque reference used to resume one provider-side operation.
+///
+/// The namespace identifies the adapter-owned format and `binding` pins the
+/// exact discovered endpoint or provider configuration. The opaque identifier
+/// is durable but redacted from `Debug`; possessing it never grants access.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ToolRecoveryHandle {
+    namespace: FailureOrigin,
+    binding: Digest,
+    opaque_id: Box<str>,
+}
+
+impl ToolRecoveryHandle {
+    /// Maximum UTF-8 length of the provider-owned identifier.
+    pub const MAX_OPAQUE_ID_BYTES: usize = 1024;
+
+    /// Constructs a provider-bound durable operation handle.
+    ///
+    /// # Errors
+    ///
+    /// Rejects empty, oversized, whitespace-ambiguous, control-bearing, or
+    /// Unicode-noncharacter identifiers.
+    pub fn new(
+        namespace: FailureOrigin,
+        binding: Digest,
+        opaque_id: impl Into<String>,
+    ) -> Result<Self, ToolRecoveryHandleError> {
+        let opaque_id = opaque_id.into();
+        validate_recovery_opaque_id(&opaque_id)?;
+        Ok(Self {
+            namespace,
+            binding,
+            opaque_id: opaque_id.into_boxed_str(),
+        })
+    }
+
+    /// Returns the adapter-owned handle namespace.
+    #[must_use]
+    pub const fn namespace(&self) -> &FailureOrigin {
+        &self.namespace
+    }
+
+    /// Returns the exact immutable provider/endpoint binding digest.
+    #[must_use]
+    pub const fn binding(&self) -> Digest {
+        self.binding
+    }
+
+    /// Returns the provider-owned identifier to the matching trusted adapter.
+    #[must_use]
+    pub fn opaque_id(&self) -> &str {
+        &self.opaque_id
+    }
+}
+
+fn validate_recovery_opaque_id(value: &str) -> Result<(), ToolRecoveryHandleError> {
+    if value.is_empty() {
+        return Err(ToolRecoveryHandleError::EmptyOpaqueId);
+    }
+    if value.len() > ToolRecoveryHandle::MAX_OPAQUE_ID_BYTES {
+        return Err(ToolRecoveryHandleError::OpaqueIdTooLong {
+            maximum: ToolRecoveryHandle::MAX_OPAQUE_ID_BYTES,
+            actual: value.len(),
+        });
+    }
+    if value.chars().next().is_some_and(char::is_whitespace)
+        || value.chars().next_back().is_some_and(char::is_whitespace)
+    {
+        return Err(ToolRecoveryHandleError::OpaqueIdBoundaryWhitespace);
+    }
+    if value.chars().any(|scalar| {
+        let code_point = scalar as u32;
+        scalar.is_control()
+            || (0xfdd0..=0xfdef).contains(&code_point)
+            || code_point & 0xfffe == 0xfffe
+    }) {
+        return Err(ToolRecoveryHandleError::OpaqueIdDisallowedCodePoint);
+    }
+    Ok(())
+}
+
+impl fmt::Debug for ToolRecoveryHandle {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ToolRecoveryHandle")
+            .field("namespace", &self.namespace)
+            .field("binding", &self.binding)
+            .field("opaque_id_bytes", &self.opaque_id.len())
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Deserialize, JsonSchema, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ToolRecoveryHandleWire {
+    namespace: FailureOrigin,
+    binding: Digest,
+    opaque_id: String,
+}
+
+impl Serialize for ToolRecoveryHandle {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        ToolRecoveryHandleWire {
+            namespace: self.namespace.clone(),
+            binding: self.binding,
+            opaque_id: self.opaque_id.to_string(),
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ToolRecoveryHandle {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = ToolRecoveryHandleWire::deserialize(deserializer)?;
+        Self::new(wire.namespace, wire.binding, wire.opaque_id).map_err(de::Error::custom)
+    }
+}
+
+impl JsonSchema for ToolRecoveryHandle {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "ToolRecoveryHandle".into()
+    }
+
+    fn schema_id() -> std::borrow::Cow<'static, str> {
+        concat!(module_path!(), "::ToolRecoveryHandle").into()
+    }
+
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        ToolRecoveryHandleWire::json_schema(generator)
+    }
+}
+
+/// Invalid provider operation handle.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ToolRecoveryHandleError {
+    /// The provider reference was empty.
+    #[error("tool recovery opaque identifier must not be empty")]
+    EmptyOpaqueId,
+    /// The provider reference exceeded the durable wire ceiling.
+    #[error("tool recovery opaque identifier is {actual} bytes; maximum is {maximum}")]
+    OpaqueIdTooLong {
+        /// Maximum accepted UTF-8 byte length.
+        maximum: usize,
+        /// Observed UTF-8 byte length.
+        actual: usize,
+    },
+    /// Leading or trailing whitespace made the identity ambiguous.
+    #[error("tool recovery opaque identifier must not have boundary whitespace")]
+    OpaqueIdBoundaryWhitespace,
+    /// The identifier contained a control or Unicode noncharacter.
+    #[error("tool recovery opaque identifier contains a disallowed code point")]
+    OpaqueIdDisallowedCodePoint,
+}
+
 /// Ephemeral, capability-limited context for reconciling one physical tool attempt.
 ///
 /// Reconciliation is not a new business attempt: it receives the original
@@ -80,6 +241,11 @@ pub struct ToolReconciliationContext {
     deadline_instant: Instant,
     effective_timeout: DurationMillis,
     cancellation: CancellationSignal,
+    origin_event_id: Option<EventId>,
+    recovery_handle: Option<ToolRecoveryHandle>,
+    max_inline_result_bytes: ByteCount,
+    max_artifacts: ExecutionCount,
+    max_total_artifact_bytes: ByteCount,
 }
 
 impl ToolReconciliationContext {
@@ -159,7 +325,47 @@ impl ToolReconciliationContext {
             deadline_instant,
             effective_timeout,
             cancellation,
+            origin_event_id: None,
+            recovery_handle: None,
+            max_inline_result_bytes: descriptor.limits().max_inline_result_bytes(),
+            max_artifacts: descriptor.limits().max_artifacts(),
+            max_total_artifact_bytes: descriptor.limits().max_total_artifact_bytes(),
         })
+    }
+
+    /// Intersects artifact capacity with a previously resolved durable limit.
+    ///
+    /// Passing a wider value cannot increase capacity. The runtime supplies the
+    /// invocation intent's system/tenant/policy/run intersection here so a
+    /// reconciliation adapter can reject oversized remote output before it
+    /// creates durable artifacts.
+    #[must_use]
+    pub fn narrow_artifact_limits(mut self, limits: &ToolExecutionLimits) -> Self {
+        self.max_inline_result_bytes = self
+            .max_inline_result_bytes
+            .min(limits.max_inline_result_bytes());
+        self.max_artifacts = self.max_artifacts.min(limits.max_artifacts());
+        self.max_total_artifact_bytes = self
+            .max_total_artifact_bytes
+            .min(limits.max_total_artifact_bytes());
+        self
+    }
+
+    /// Binds the probe to the already committed journal event that caused the
+    /// external operation and to its optional durable provider handle.
+    ///
+    /// The runtime obtains both values from the verified invocation ledger.
+    /// Adapters use the event for artifact provenance and the handle for a
+    /// direct status lookup; neither value grants authorization by itself.
+    #[must_use]
+    pub fn with_durable_recovery(
+        mut self,
+        origin_event_id: EventId,
+        recovery_handle: Option<ToolRecoveryHandle>,
+    ) -> Self {
+        self.origin_event_id = Some(origin_event_id);
+        self.recovery_handle = recovery_handle;
+        self
     }
 
     /// Returns the tenant boundary.
@@ -240,6 +446,36 @@ impl ToolReconciliationContext {
         &self.cancellation
     }
 
+    /// Returns the already committed journal event causing this operation.
+    #[must_use]
+    pub const fn origin_event_id(&self) -> Option<EventId> {
+        self.origin_event_id
+    }
+
+    /// Returns the durable, provider-bound operation handle when one exists.
+    #[must_use]
+    pub const fn recovery_handle(&self) -> Option<&ToolRecoveryHandle> {
+        self.recovery_handle.as_ref()
+    }
+
+    /// Returns the resolved maximum number of result artifacts.
+    #[must_use]
+    pub const fn max_artifacts(&self) -> ExecutionCount {
+        self.max_artifacts
+    }
+
+    /// Returns the resolved maximum compact inline result bytes.
+    #[must_use]
+    pub const fn max_inline_result_bytes(&self) -> ByteCount {
+        self.max_inline_result_bytes
+    }
+
+    /// Returns resolved aggregate result-artifact byte capacity.
+    #[must_use]
+    pub const fn max_total_artifact_bytes(&self) -> ByteCount {
+        self.max_total_artifact_bytes
+    }
+
     /// Returns a stop reason at one monotonic observation.
     #[must_use]
     pub fn stop_reason_at(&self, observed_instant: Instant) -> Option<ToolStopReason> {
@@ -317,6 +553,8 @@ impl fmt::Debug for ToolReconciliationContext {
             .field("deadline", &self.deadline)
             .field("effective_timeout", &self.effective_timeout)
             .field("cancelled", &self.cancellation.is_cancelled())
+            .field("has_origin_event", &self.origin_event_id.is_some())
+            .field("has_recovery_handle", &self.recovery_handle.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -429,6 +667,10 @@ pub struct ToolContext {
     effective_timeout: DurationMillis,
     cancellation: CancellationSignal,
     progress: Option<ToolProgressReporter>,
+    origin_event_id: Option<EventId>,
+    max_inline_result_bytes: ByteCount,
+    max_artifacts: ExecutionCount,
+    max_total_artifact_bytes: ByteCount,
 }
 
 impl ToolContext {
@@ -497,6 +739,14 @@ impl ToolContext {
             .semantics()
             .requires_idempotency_key()
             .then_some(ToolIdempotencyKey::from_invocation_id(invocation_id));
+        let max_inline_result_bytes = descriptor
+            .limits()
+            .max_inline_result_bytes()
+            .min(budget.output_bytes());
+        let max_total_artifact_bytes = descriptor
+            .limits()
+            .max_total_artifact_bytes()
+            .min(budget.artifact_bytes());
 
         Ok(Self {
             tenant_id,
@@ -514,7 +764,39 @@ impl ToolContext {
             effective_timeout,
             cancellation,
             progress: None,
+            origin_event_id: None,
+            max_inline_result_bytes,
+            max_artifacts: descriptor.limits().max_artifacts(),
+            max_total_artifact_bytes,
         })
+    }
+
+    /// Intersects artifact capacity with the fully resolved invocation limits.
+    ///
+    /// The runtime calls this before dispatch. It lets an adapter reject a
+    /// remote result before creating objects that a later result validator
+    /// would have to discard.
+    #[must_use]
+    pub fn narrow_artifact_limits(mut self, limits: &ToolExecutionLimits) -> Self {
+        self.max_inline_result_bytes = self
+            .max_inline_result_bytes
+            .min(limits.max_inline_result_bytes());
+        self.max_artifacts = self.max_artifacts.min(limits.max_artifacts());
+        self.max_total_artifact_bytes = self
+            .max_total_artifact_bytes
+            .min(limits.max_total_artifact_bytes());
+        self
+    }
+
+    /// Binds this attempt to its preallocated durable-before-dispatch event.
+    ///
+    /// The runtime calls this before invoking provider code and commits that
+    /// exact event before dispatch. Artifact producers require the value so
+    /// every immutable result has a durable causation anchor.
+    #[must_use]
+    pub fn with_durable_origin_event(mut self, event_id: EventId) -> Self {
+        self.origin_event_id = Some(event_id);
+        self
     }
 
     /// Constructs a context with a durable, ordered progress sink.
@@ -678,6 +960,30 @@ impl ToolContext {
         self.progress.as_ref()
     }
 
+    /// Returns the durable-before-dispatch event causing this attempt.
+    #[must_use]
+    pub const fn origin_event_id(&self) -> Option<EventId> {
+        self.origin_event_id
+    }
+
+    /// Returns the resolved maximum number of result artifacts.
+    #[must_use]
+    pub const fn max_artifacts(&self) -> ExecutionCount {
+        self.max_artifacts
+    }
+
+    /// Returns the resolved maximum compact inline result bytes.
+    #[must_use]
+    pub const fn max_inline_result_bytes(&self) -> ByteCount {
+        self.max_inline_result_bytes
+    }
+
+    /// Returns the resolved aggregate result-artifact byte capacity.
+    #[must_use]
+    pub const fn max_total_artifact_bytes(&self) -> ByteCount {
+        self.max_total_artifact_bytes
+    }
+
     /// Returns remaining monotonic time, or `None` at and after the deadline.
     #[must_use]
     pub fn remaining_time_at(&self, observed_instant: Instant) -> Option<Duration> {
@@ -771,6 +1077,9 @@ impl fmt::Debug for ToolContext {
             .field("effective_timeout", &self.effective_timeout)
             .field("cancelled", &self.cancellation.is_cancelled())
             .field("progress_enabled", &self.progress.is_some())
+            .field("max_artifacts", &self.max_artifacts)
+            .field("max_total_artifact_bytes", &self.max_total_artifact_bytes)
+            .field("has_origin_event", &self.origin_event_id.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -2380,6 +2689,7 @@ pub struct ToolError {
     phase: ToolErrorPhase,
     external_effect: ToolExternalEffect,
     provenance: ToolErrorProvenance,
+    recovery_handle: Option<ToolRecoveryHandle>,
 }
 
 impl ToolError {
@@ -2401,7 +2711,26 @@ impl ToolError {
             phase,
             external_effect,
             provenance,
+            recovery_handle: None,
         })
+    }
+
+    /// Attaches the exact provider operation needed to reconcile an unknown
+    /// external outcome without replaying the business request.
+    ///
+    /// # Errors
+    ///
+    /// A recovery handle is accepted only with explicit `Unknown` effect
+    /// evidence; known failures and successes must not carry one.
+    pub fn with_recovery_handle(
+        mut self,
+        recovery_handle: ToolRecoveryHandle,
+    ) -> Result<Self, ToolErrorBuildError> {
+        if self.external_effect != ToolExternalEffect::Unknown {
+            return Err(ToolErrorBuildError::RecoveryHandleRequiresUnknownEffect);
+        }
+        self.recovery_handle = Some(recovery_handle);
+        Ok(self)
     }
 
     /// Revalidates invocation, tool identity, risk, and retry safety.
@@ -2494,6 +2823,13 @@ impl ToolError {
     pub const fn provenance(&self) -> &ToolErrorProvenance {
         &self.provenance
     }
+
+    /// Returns the durable provider operation handle when reconciliation can
+    /// target a known remote operation directly.
+    #[must_use]
+    pub const fn recovery_handle(&self) -> Option<&ToolRecoveryHandle> {
+        self.recovery_handle.as_ref()
+    }
 }
 
 fn validate_tool_error_shape(
@@ -2538,6 +2874,7 @@ impl fmt::Debug for ToolError {
             .field("phase", &self.phase)
             .field("external_effect", &self.external_effect)
             .field("provenance", &self.provenance)
+            .field("has_recovery_handle", &self.recovery_handle.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -2561,6 +2898,8 @@ struct ToolErrorWire {
     phase: ToolErrorPhase,
     external_effect: ToolExternalEffect,
     provenance: ToolErrorProvenance,
+    #[serde(default)]
+    recovery_handle: Option<ToolRecoveryHandle>,
 }
 
 #[derive(Serialize)]
@@ -2569,6 +2908,8 @@ struct ToolErrorWireRef<'a> {
     phase: ToolErrorPhase,
     external_effect: ToolExternalEffect,
     provenance: &'a ToolErrorProvenance,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    recovery_handle: Option<&'a ToolRecoveryHandle>,
 }
 
 impl Serialize for ToolError {
@@ -2581,6 +2922,7 @@ impl Serialize for ToolError {
             phase: self.phase,
             external_effect: self.external_effect,
             provenance: &self.provenance,
+            recovery_handle: self.recovery_handle.as_ref(),
         }
         .serialize(serializer)
     }
@@ -2592,13 +2934,19 @@ impl<'de> Deserialize<'de> for ToolError {
         D: Deserializer<'de>,
     {
         let wire = ToolErrorWire::deserialize(deserializer)?;
-        Self::new(
+        let error = Self::new(
             wire.failure,
             wire.phase,
             wire.external_effect,
             wire.provenance,
         )
-        .map_err(de::Error::custom)
+        .map_err(de::Error::custom)?;
+        match wire.recovery_handle {
+            Some(handle) => error
+                .with_recovery_handle(handle)
+                .map_err(de::Error::custom),
+            None => Ok(error),
+        }
     }
 }
 
@@ -2634,6 +2982,9 @@ pub enum ToolErrorBuildError {
         /// Contradictory effect evidence.
         effect: ToolExternalEffect,
     },
+    /// A provider handle was attached after the outcome became authoritative.
+    #[error("tool recovery handles require unknown external-effect evidence")]
+    RecoveryHandleRequiresUnknownEffect,
 }
 
 /// Invalid relationship between a tool failure and invocation snapshot.
@@ -3511,6 +3862,13 @@ mod tests {
     fn reconciliation_context_preserves_original_identity_and_is_finite() {
         let descriptor = descriptor();
         let observed_at = OBSERVED_AT.parse::<Timestamp>().unwrap();
+        let handle = ToolRecoveryHandle::new(
+            FailureOrigin::new("protocol.a2a.task").unwrap(),
+            Digest::sha256(b"agent-card"),
+            "remote-task-42",
+        )
+        .unwrap();
+        let origin_event_id = FAILURE_ID.parse().unwrap();
         let context = ToolReconciliationContext::new(
             TenantId::new("tenant-production").unwrap(),
             RUN_ID.parse().unwrap(),
@@ -3524,7 +3882,8 @@ mod tests {
             "2030-01-01T00:00:00.000000Z".parse().unwrap(),
             CancellationSignal::never(),
         )
-        .unwrap();
+        .unwrap()
+        .with_durable_recovery(origin_event_id, Some(handle.clone()));
 
         context.validate_for(&descriptor).unwrap();
         assert_eq!(context.invocation_id().to_string(), INVOCATION_ID);
@@ -3537,6 +3896,8 @@ mod tests {
             context.deadline(),
             "2030-01-01T00:00:00.000000Z".parse().unwrap()
         );
+        assert_eq!(context.origin_event_id(), Some(origin_event_id));
+        assert_eq!(context.recovery_handle(), Some(&handle));
         assert!(format!("{context:?}").contains("has_idempotency_key: true"));
     }
 
@@ -3677,6 +4038,59 @@ mod tests {
             ),
             Err(FailureBuildError::AmbiguousOutcomeRequiresReconciliation)
         ));
+    }
+
+    #[test]
+    fn recovery_handles_are_bounded_redacted_and_only_bind_unknown_outcomes() {
+        let handle = ToolRecoveryHandle::new(
+            FailureOrigin::new("protocol.a2a.task").unwrap(),
+            Digest::sha256(b"agent-card"),
+            "remote-task-secret-42",
+        )
+        .unwrap();
+        assert!(!format!("{handle:?}").contains("remote-task-secret-42"));
+        assert_eq!(
+            ToolRecoveryHandle::new(
+                FailureOrigin::new("protocol.a2a.task").unwrap(),
+                Digest::sha256(b"agent-card"),
+                " remote-task",
+            )
+            .unwrap_err(),
+            ToolRecoveryHandleError::OpaqueIdBoundaryWhitespace
+        );
+
+        let ambiguous = ToolError::new(
+            failure(
+                FailureCategory::AmbiguousExternalOutcome,
+                RetryAdvice::ReconcileFirst,
+            ),
+            ToolErrorPhase::Execution,
+            ToolExternalEffect::Unknown,
+            provenance(),
+        )
+        .unwrap()
+        .with_recovery_handle(handle.clone())
+        .unwrap();
+        assert_eq!(ambiguous.recovery_handle(), Some(&handle));
+        let encoded = to_value(&ambiguous).unwrap();
+        assert_eq!(
+            encoded["recovery_handle"]["opaque_id"],
+            "remote-task-secret-42"
+        );
+        let decoded: ToolError = serde_json::from_value(encoded).unwrap();
+        assert_eq!(decoded.recovery_handle(), Some(&handle));
+
+        let known = ToolError::new(
+            failure(FailureCategory::Internal, RetryAdvice::Never),
+            ToolErrorPhase::Execution,
+            ToolExternalEffect::Applied,
+            provenance(),
+        )
+        .unwrap();
+        assert_eq!(
+            known.with_recovery_handle(handle).unwrap_err(),
+            ToolErrorBuildError::RecoveryHandleRequiresUnknownEffect
+        );
     }
 
     #[derive(Debug, Deserialize, JsonSchema)]

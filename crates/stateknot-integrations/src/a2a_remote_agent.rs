@@ -13,6 +13,7 @@
 
 use std::{
     collections::HashSet,
+    error::Error as StdError,
     fmt,
     sync::{
         Arc,
@@ -22,22 +23,390 @@ use std::{
 };
 
 use stateknot_core::{
-    BoundedJson, BoxFuture, Digest, DurationMillis, ErasedTool, Failure, FailureCategory,
-    FailureCode, FailureId, FailureMessage, FailureOrigin, GraphSchemaValidator,
-    ModelSchemaRegistry, RetryAdvice, ToolArtifacts, ToolCancellationSupport, ToolContext,
-    ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect,
-    ToolIdempotency, ToolInput, ToolReconciliationContext, ToolReconciliationObservation,
-    ToolReconciliationObservationError, ToolReconciliationProbeError, ToolResourceAccess,
-    ToolResult, ToolResultProvenance, ToolRisk, ToolStopReason,
+    ArtifactRef, AttemptId, BoundedJson, BoxFuture, ByteCount, CapabilityIdentity, Digest,
+    DurationMillis, ErasedTool, EventId, ExecutionCount, Failure, FailureCategory, FailureCode,
+    FailureId, FailureMessage, FailureOrigin, GraphSchemaValidator, InvocationId,
+    ModelSchemaRegistry, RetryAdvice, RunId, TenantId, ToolArtifacts, ToolCancellationSupport,
+    ToolContext, ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance,
+    ToolExternalEffect, ToolIdempotency, ToolInput, ToolReconciliationContext,
+    ToolReconciliationObservation, ToolReconciliationObservationError,
+    ToolReconciliationProbeError, ToolRecoveryHandle, ToolResourceAccess, ToolResult,
+    ToolResultProvenance, ToolRisk, ToolStopReason,
 };
 use thiserror::Error;
 
 use crate::{
     A2aClient, A2aClientAttemptIdentity, A2aClientAuthorizationError, A2aClientError,
-    A2aClientErrorKind, A2aClientSecurityError, A2aContractError, A2aListTasksRequest, A2aMessage,
-    A2aMessageRole, A2aPart, A2aSendConfiguration, A2aSendMessageRequest, A2aSendMessageResponse,
-    A2aTask,
+    A2aClientErrorKind, A2aClientSecurityError, A2aContractError, A2aGetTaskRequest,
+    A2aListTasksRequest, A2aMessage, A2aMessageRole, A2aPart, A2aSendConfiguration,
+    A2aSendMessageRequest, A2aSendMessageResponse, A2aTask, A2aTaskState,
 };
+
+const A2A_TASK_RECOVERY_NAMESPACE: &str = "protocol.a2a.task";
+const MAX_A2A_ARTIFACT_SOURCE_ID_BYTES: usize = 512;
+const MAX_A2A_ARTIFACT_NAME_BYTES: usize = 512;
+const MAX_A2A_ARTIFACT_DESCRIPTION_BYTES: usize = 16 * 1024;
+
+/// Stable protocol origin for one content part presented to artifact storage.
+#[derive(Clone)]
+#[non_exhaustive]
+pub enum A2aArtifactSource {
+    /// One part in a terminal A2A task artifact.
+    TaskArtifact {
+        /// Opaque remote task identifier.
+        task_id: Box<str>,
+        /// Opaque remote artifact identifier.
+        artifact_id: Box<str>,
+        /// Zero-based artifact position in the terminal task snapshot.
+        artifact_index: u16,
+        /// Zero-based part position inside the remote artifact.
+        part_index: u16,
+    },
+}
+
+impl A2aArtifactSource {
+    /// Constructs stable correlation for one task artifact part.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`A2aContractError`] when either remote identifier is empty,
+    /// oversized, has boundary whitespace, or contains control characters.
+    pub fn task_artifact(
+        task_id: impl Into<String>,
+        artifact_id: impl Into<String>,
+        artifact_index: u16,
+        part_index: u16,
+    ) -> Result<Self, A2aContractError> {
+        let task_id = task_id.into();
+        let artifact_id = artifact_id.into();
+        validate_ingestion_text(
+            "artifact source task id",
+            &task_id,
+            MAX_A2A_ARTIFACT_SOURCE_ID_BYTES,
+        )?;
+        validate_ingestion_text(
+            "artifact source artifact id",
+            &artifact_id,
+            MAX_A2A_ARTIFACT_SOURCE_ID_BYTES,
+        )?;
+        Ok(Self::TaskArtifact {
+            task_id: task_id.into_boxed_str(),
+            artifact_id: artifact_id.into_boxed_str(),
+            artifact_index,
+            part_index,
+        })
+    }
+
+    /// Returns the remote task identifier to the trusted ingestor.
+    #[must_use]
+    pub fn task_id(&self) -> &str {
+        match self {
+            Self::TaskArtifact { task_id, .. } => task_id,
+        }
+    }
+
+    /// Returns the remote artifact identifier to the trusted ingestor.
+    #[must_use]
+    pub fn artifact_id(&self) -> &str {
+        match self {
+            Self::TaskArtifact { artifact_id, .. } => artifact_id,
+        }
+    }
+
+    /// Returns the zero-based task artifact position.
+    #[must_use]
+    pub const fn artifact_index(&self) -> u16 {
+        match self {
+            Self::TaskArtifact { artifact_index, .. } => *artifact_index,
+        }
+    }
+
+    /// Returns the zero-based part position.
+    #[must_use]
+    pub const fn part_index(&self) -> u16 {
+        match self {
+            Self::TaskArtifact { part_index, .. } => *part_index,
+        }
+    }
+}
+
+impl fmt::Debug for A2aArtifactSource {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::TaskArtifact {
+                task_id,
+                artifact_id,
+                artifact_index,
+                part_index,
+            } => formatter
+                .debug_struct("A2aArtifactSource::TaskArtifact")
+                .field("task_id_bytes", &task_id.len())
+                .field("artifact_id_bytes", &artifact_id.len())
+                .field("artifact_index", artifact_index)
+                .field("part_index", part_index)
+                .finish(),
+        }
+    }
+}
+
+/// Complete bounded request for one A2A artifact part ingestion.
+#[derive(Clone)]
+pub struct A2aArtifactIngestionRequest {
+    tenant_id: TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+    attempt_id: AttemptId,
+    origin_event_id: EventId,
+    tool: CapabilityIdentity,
+    source: A2aArtifactSource,
+    artifact_name: Option<Box<str>>,
+    artifact_description: Option<Box<str>>,
+    part: A2aPart,
+    maximum_bytes: ByteCount,
+}
+
+impl A2aArtifactIngestionRequest {
+    /// Constructs one complete bounded ingestion request.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`A2aContractError`] when optional remote presentation metadata
+    /// violates the A2A contract bounds.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        tenant_id: TenantId,
+        run_id: RunId,
+        invocation_id: InvocationId,
+        attempt_id: AttemptId,
+        origin_event_id: EventId,
+        tool: CapabilityIdentity,
+        source: A2aArtifactSource,
+        artifact_name: Option<String>,
+        artifact_description: Option<String>,
+        part: A2aPart,
+        maximum_bytes: ByteCount,
+    ) -> Result<Self, A2aContractError> {
+        if let Some(name) = artifact_name.as_deref() {
+            validate_ingestion_text("artifact ingestion name", name, MAX_A2A_ARTIFACT_NAME_BYTES)?;
+        }
+        if let Some(description) = artifact_description.as_deref() {
+            validate_ingestion_text(
+                "artifact ingestion description",
+                description,
+                MAX_A2A_ARTIFACT_DESCRIPTION_BYTES,
+            )?;
+        }
+        Ok(Self {
+            tenant_id,
+            run_id,
+            invocation_id,
+            attempt_id,
+            origin_event_id,
+            tool,
+            source,
+            artifact_name: artifact_name.map(String::into_boxed_str),
+            artifact_description: artifact_description.map(String::into_boxed_str),
+            part,
+            maximum_bytes,
+        })
+    }
+
+    /// Returns the local tenant boundary.
+    #[must_use]
+    pub const fn tenant_id(&self) -> &TenantId {
+        &self.tenant_id
+    }
+
+    /// Returns the local durable run.
+    #[must_use]
+    pub const fn run_id(&self) -> RunId {
+        self.run_id
+    }
+
+    /// Returns the logical remote-agent invocation.
+    #[must_use]
+    pub const fn invocation_id(&self) -> InvocationId {
+        self.invocation_id
+    }
+
+    /// Returns the original physical attempt.
+    #[must_use]
+    pub const fn attempt_id(&self) -> AttemptId {
+        self.attempt_id
+    }
+
+    /// Returns the already committed causation event.
+    #[must_use]
+    pub const fn origin_event_id(&self) -> EventId {
+        self.origin_event_id
+    }
+
+    /// Returns the exact owner-qualified remote-agent capability.
+    #[must_use]
+    pub const fn tool(&self) -> &CapabilityIdentity {
+        &self.tool
+    }
+
+    /// Returns stable remote protocol correlation.
+    #[must_use]
+    pub const fn source(&self) -> &A2aArtifactSource {
+        &self.source
+    }
+
+    /// Returns the optional untrusted remote display name.
+    #[must_use]
+    pub fn artifact_name(&self) -> Option<&str> {
+        self.artifact_name.as_deref()
+    }
+
+    /// Returns the optional untrusted remote description.
+    #[must_use]
+    pub fn artifact_description(&self) -> Option<&str> {
+        self.artifact_description.as_deref()
+    }
+
+    /// Returns the validated protocol part.
+    #[must_use]
+    pub const fn part(&self) -> &A2aPart {
+        &self.part
+    }
+
+    /// Returns the remaining per-invocation artifact byte capacity.
+    #[must_use]
+    pub const fn maximum_bytes(&self) -> ByteCount {
+        self.maximum_bytes
+    }
+}
+
+fn validate_ingestion_text(
+    field: &'static str,
+    value: &str,
+    maximum: usize,
+) -> Result<(), A2aContractError> {
+    if value.is_empty() {
+        return Err(A2aContractError::Empty { field });
+    }
+    if value.len() > maximum {
+        return Err(A2aContractError::TooLarge {
+            field,
+            maximum,
+            actual: value.len(),
+        });
+    }
+    if value.trim() != value || value.chars().any(char::is_control) {
+        return Err(A2aContractError::InvalidText { field });
+    }
+    Ok(())
+}
+
+impl fmt::Debug for A2aArtifactIngestionRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("A2aArtifactIngestionRequest")
+            .field("tenant_id", &self.tenant_id)
+            .field("run_id", &self.run_id)
+            .field("invocation_id", &self.invocation_id)
+            .field("attempt_id", &self.attempt_id)
+            .field("origin_event_id", &self.origin_event_id)
+            .field("tool", &self.tool)
+            .field("source", &self.source)
+            .field("has_artifact_name", &self.artifact_name.is_some())
+            .field(
+                "has_artifact_description",
+                &self.artifact_description.is_some(),
+            )
+            .field("maximum_bytes", &self.maximum_bytes)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Stable public classification for artifact-boundary failures.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum A2aArtifactIngestionErrorKind {
+    /// Remote content or its declared representation was invalid.
+    InvalidContent,
+    /// Local egress or data-handling policy denied the content.
+    PolicyDenied,
+    /// The fetched or stored bytes failed integrity verification.
+    Integrity,
+    /// Artifact persistence or remote retrieval is temporarily unavailable.
+    Unavailable,
+}
+
+type PrivateArtifactIngestionSource = dyn StdError + Send + Sync + 'static;
+
+/// Payload-redacted A2A artifact ingestion failure.
+#[derive(Clone)]
+pub struct A2aArtifactIngestionError {
+    kind: A2aArtifactIngestionErrorKind,
+    private_source: Arc<PrivateArtifactIngestionSource>,
+}
+
+impl A2aArtifactIngestionError {
+    /// Wraps a private implementation diagnostic with a stable classification.
+    #[must_use]
+    pub fn new<E>(kind: A2aArtifactIngestionErrorKind, source: E) -> Self
+    where
+        E: StdError + Send + Sync + 'static,
+    {
+        Self {
+            kind,
+            private_source: Arc::new(source),
+        }
+    }
+
+    /// Returns the public-safe classification.
+    #[must_use]
+    pub const fn kind(&self) -> A2aArtifactIngestionErrorKind {
+        self.kind
+    }
+
+    /// Returns the private diagnostic to trusted in-process telemetry.
+    #[must_use]
+    pub fn private_source(&self) -> &(dyn StdError + Send + Sync + 'static) {
+        self.private_source.as_ref()
+    }
+}
+
+impl fmt::Debug for A2aArtifactIngestionError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("A2aArtifactIngestionError")
+            .field("kind", &self.kind)
+            .field("has_private_source", &true)
+            .finish_non_exhaustive()
+    }
+}
+
+impl fmt::Display for A2aArtifactIngestionError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "A2A artifact ingestion failed: {:?}", self.kind)
+    }
+}
+
+impl StdError for A2aArtifactIngestionError {}
+
+/// Trusted boundary that materializes one remote A2A part as an immutable
+/// tenant-scoped artifact.
+pub trait A2aArtifactIngestor: Send + Sync + 'static {
+    /// Ingests exactly one part under the supplied remaining byte ceiling.
+    ///
+    /// Implementations must be exactly idempotent for the tuple of tenant,
+    /// invocation attempt, origin event, tool, and [`A2aArtifactSource`]. A
+    /// repeated request must return the same immutable reference or fail closed
+    /// if the source bytes or metadata changed. Success means both bytes and
+    /// their tenant-scoped registry row are durable.
+    fn ingest(
+        &self,
+        request: A2aArtifactIngestionRequest,
+    ) -> BoxFuture<'_, Result<ArtifactRef, A2aArtifactIngestionError>>;
+}
+
+enum DurableTaskResultError {
+    Invalid,
+    Ingestion(A2aArtifactIngestionError),
+}
 
 /// Schema capabilities required by the A2A remote-agent adapter.
 ///
@@ -222,6 +591,7 @@ pub struct A2aRemoteAgent {
     required_scopes: Arc<[Box<str>]>,
     output_modes: Arc<[Box<str>]>,
     schemas: Arc<dyn A2aSchemaRegistry>,
+    artifact_ingestor: Option<Arc<dyn A2aArtifactIngestor>>,
 }
 
 impl A2aRemoteAgent {
@@ -265,6 +635,53 @@ impl A2aRemoteAgent {
         delivery: A2aRemoteAgentDelivery,
         recovery: A2aRemoteAgentRecovery,
         schemas: Arc<dyn A2aSchemaRegistry>,
+    ) -> Result<Self, A2aRemoteAgentBuildError> {
+        Self::bind_internal(
+            descriptor, client, skill_id, delivery, recovery, schemas, None,
+        )
+    }
+
+    /// Freezes an A2A task binding that durably materializes every terminal
+    /// task-artifact part through a trusted artifact boundary.
+    ///
+    /// This profile accepts only task responses. A non-terminal task is stored
+    /// as an opaque, endpoint-bound recovery handle and later queried directly;
+    /// the original business message is never resent merely to poll status.
+    pub fn bind_with_durable_artifacts(
+        descriptor: ToolDescriptor,
+        client: A2aClient,
+        skill_id: impl Into<String>,
+        delivery: A2aRemoteAgentDelivery,
+        recovery: A2aRemoteAgentRecovery,
+        schemas: Arc<dyn A2aSchemaRegistry>,
+        artifact_ingestor: Arc<dyn A2aArtifactIngestor>,
+    ) -> Result<Self, A2aRemoteAgentBuildError> {
+        if recovery.mode() == A2aRemoteAgentRecoveryMode::Disabled {
+            return Err(A2aRemoteAgentBuildError::DurableArtifactsRequireRecovery);
+        }
+        if descriptor.limits().max_artifacts() == ExecutionCount::ZERO {
+            return Err(A2aRemoteAgentBuildError::ArtifactCapacityRequired);
+        }
+        Self::bind_internal(
+            descriptor,
+            client,
+            skill_id,
+            delivery,
+            recovery,
+            schemas,
+            Some(artifact_ingestor),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn bind_internal(
+        descriptor: ToolDescriptor,
+        client: A2aClient,
+        skill_id: impl Into<String>,
+        delivery: A2aRemoteAgentDelivery,
+        recovery: A2aRemoteAgentRecovery,
+        schemas: Arc<dyn A2aSchemaRegistry>,
+        artifact_ingestor: Option<Arc<dyn A2aArtifactIngestor>>,
     ) -> Result<Self, A2aRemoteAgentBuildError> {
         validate_descriptor(&descriptor, &client, delivery, recovery)?;
         schemas
@@ -314,6 +731,7 @@ impl A2aRemoteAgent {
                 .collect::<Vec<_>>()
                 .into(),
             schemas,
+            artifact_ingestor,
         })
     }
 
@@ -333,6 +751,13 @@ impl A2aRemoteAgent {
     #[must_use]
     pub const fn recovery(&self) -> A2aRemoteAgentRecovery {
         self.recovery
+    }
+
+    /// Returns whether terminal A2A parts are materialized as immutable
+    /// `StateKnot` artifacts instead of being copied into inline JSON.
+    #[must_use]
+    pub const fn durable_artifacts_enabled(&self) -> bool {
+        self.artifact_ingestor.is_some()
     }
 
     fn preparation_error(
@@ -384,6 +809,22 @@ impl A2aRemoteAgent {
         )
     }
 
+    fn task_recovery_handle(&self, task_id: &str) -> ToolRecoveryHandle {
+        ToolRecoveryHandle::new(
+            FailureOrigin::new(A2A_TASK_RECOVERY_NAMESPACE)
+                .expect("A2A task recovery namespace is valid"),
+            self.client.agent_card_digest(),
+            task_id,
+        )
+        .expect("validated A2A task identifiers fit the recovery-handle contract")
+    }
+
+    fn unknown_task_outcome(&self, context: &ToolContext, task_id: &str) -> ToolError {
+        self.unknown_outcome(context)
+            .with_recovery_handle(self.task_recovery_handle(task_id))
+            .expect("unknown A2A outcomes accept a recovery handle")
+    }
+
     fn invalid_result(&self, context: &ToolContext) -> ToolError {
         self.error(
             context,
@@ -394,6 +835,158 @@ impl A2aRemoteAgent {
             RetryAdvice::Never,
             ToolExternalEffect::Applied,
         )
+    }
+
+    fn terminal_task_error(&self, context: &ToolContext, state: A2aTaskState) -> ToolError {
+        let (category, code, message) = terminal_task_failure(state);
+        self.error(
+            context,
+            ToolErrorPhase::Execution,
+            category,
+            code,
+            message,
+            RetryAdvice::Never,
+            ToolExternalEffect::Applied,
+        )
+    }
+
+    fn artifact_ingestion_error(
+        &self,
+        context: &ToolContext,
+        task_id: &str,
+        error: &A2aArtifactIngestionError,
+    ) -> ToolError {
+        match error.kind() {
+            A2aArtifactIngestionErrorKind::Unavailable => {
+                self.unknown_task_outcome(context, task_id)
+            }
+            A2aArtifactIngestionErrorKind::PolicyDenied => self.error(
+                context,
+                ToolErrorPhase::Result,
+                FailureCategory::PermissionDenied,
+                "artifact.policy_denied",
+                "Local policy denied an A2A artifact.",
+                RetryAdvice::Never,
+                ToolExternalEffect::Applied,
+            ),
+            A2aArtifactIngestionErrorKind::InvalidContent
+            | A2aArtifactIngestionErrorKind::Integrity => self.invalid_result(context),
+        }
+    }
+
+    fn durable_task_projection(
+        &self,
+        task: &A2aTask,
+        artifact_count: usize,
+        maximum_inline_bytes: ByteCount,
+    ) -> Result<BoundedJson, DurableTaskResultError> {
+        let value = serde_json::json!({
+            "kind": "task",
+            "task_id": task.id(),
+            "context_id": task.context_id(),
+            "state": "completed",
+            "artifact_count": artifact_count,
+        });
+        let output =
+            BoundedJson::try_from_value(value).map_err(|_| DurableTaskResultError::Invalid)?;
+        let encoded_bytes = u64::try_from(output.stats().compact_bytes()).unwrap_or(u64::MAX);
+        if encoded_bytes > maximum_inline_bytes.get()
+            || self
+                .schemas
+                .validate(self.descriptor.output_schema(), &output)
+                .is_err()
+        {
+            return Err(DurableTaskResultError::Invalid);
+        }
+        Ok(output)
+    }
+
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+    async fn durable_task_components(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        invocation_id: InvocationId,
+        attempt_id: AttemptId,
+        origin_event_id: EventId,
+        maximum_inline_bytes: ByteCount,
+        maximum_artifacts: ExecutionCount,
+        maximum_artifact_bytes: ByteCount,
+        task: &A2aTask,
+    ) -> Result<(BoundedJson, ToolArtifacts), DurableTaskResultError> {
+        let ingestor = self
+            .artifact_ingestor
+            .as_ref()
+            .expect("durable task mapping requires an artifact ingestor");
+        let remote_artifacts = task.artifacts();
+        let artifact_count = remote_artifacts
+            .iter()
+            .map(|artifact| artifact.parts().len())
+            .try_fold(0_usize, usize::checked_add)
+            .ok_or(DurableTaskResultError::Invalid)?;
+        let hard_maximum = usize::try_from(maximum_artifacts.get())
+            .unwrap_or(usize::MAX)
+            .min(ToolArtifacts::MAX_LEN);
+        if artifact_count > hard_maximum {
+            return Err(DurableTaskResultError::Invalid);
+        }
+
+        // Validate the complete inline projection before the first storage write.
+        let output = self.durable_task_projection(task, artifact_count, maximum_inline_bytes)?;
+        let mut remaining = maximum_artifact_bytes;
+        let mut local_artifacts = Vec::with_capacity(artifact_count);
+        let mut identities = HashSet::with_capacity(artifact_count);
+        for (artifact_index, artifact) in remote_artifacts.into_iter().enumerate() {
+            for (part_index, part) in artifact.parts().enumerate() {
+                let request = A2aArtifactIngestionRequest {
+                    tenant_id: tenant_id.clone(),
+                    run_id,
+                    invocation_id,
+                    attempt_id,
+                    origin_event_id,
+                    tool: self.descriptor.metadata().identity().clone(),
+                    source: A2aArtifactSource::TaskArtifact {
+                        task_id: task.id().to_owned().into_boxed_str(),
+                        artifact_id: artifact.artifact_id().to_owned().into_boxed_str(),
+                        artifact_index: u16::try_from(artifact_index)
+                            .map_err(|_| DurableTaskResultError::Invalid)?,
+                        part_index: u16::try_from(part_index)
+                            .map_err(|_| DurableTaskResultError::Invalid)?,
+                    },
+                    artifact_name: artifact
+                        .name()
+                        .map(|value| value.to_owned().into_boxed_str()),
+                    artifact_description: artifact
+                        .description()
+                        .map(|value| value.to_owned().into_boxed_str()),
+                    part: part.to_owned(),
+                    maximum_bytes: remaining,
+                };
+                let local = ingestor
+                    .ingest(request)
+                    .await
+                    .map_err(DurableTaskResultError::Ingestion)?;
+                if local.identity().tenant_id() != tenant_id
+                    || local.provenance().run_id() != run_id
+                    || local.provenance().event_id() != origin_event_id
+                    || local.provenance().principal()
+                        != self.descriptor.metadata().identity().owner()
+                    || local.provenance().capability()
+                        != Some(self.descriptor.metadata().identity().capability())
+                    || local.representation().byte_length() > remaining
+                    || !identities.insert(local.identity().clone())
+                {
+                    return Err(DurableTaskResultError::Invalid);
+                }
+                remaining = remaining
+                    .checked_sub(local.representation().byte_length())
+                    .ok_or(DurableTaskResultError::Invalid)?;
+                local_artifacts.push(local);
+            }
+        }
+        let artifacts =
+            ToolArtifacts::try_new(local_artifacts).map_err(|_| DurableTaskResultError::Invalid)?;
+        Ok((output, artifacts))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -453,6 +1046,15 @@ impl A2aRemoteAgent {
                     RetryAdvice::Never,
                 )
             })?;
+        if self.artifact_ingestor.is_some() && context.origin_event_id().is_none() {
+            return Err(self.preparation_error(
+                &context,
+                FailureCategory::Internal,
+                "artifact.origin_event_missing",
+                "The durable A2A artifact origin is unavailable.",
+                RetryAdvice::Never,
+            ));
+        }
 
         if let Some(reason) = context.stop_reason_at(Instant::now()) {
             return Err(self.stop_before_dispatch(&context, reason));
@@ -508,16 +1110,49 @@ impl A2aRemoteAgent {
             })?
             .map_err(|error| self.client_error(&context, &error))?;
 
-        let value = response
-            .to_json()
-            .map_err(|_| self.invalid_result(&context))?;
-        let output =
-            BoundedJson::try_from_value(value).map_err(|_| self.invalid_result(&context))?;
-        self.schemas
-            .validate(self.descriptor.output_schema(), &output)
-            .map_err(|_| self.invalid_result(&context))?;
-        let result =
-            ToolResult::for_invocation(&context, &self.descriptor, output, ToolArtifacts::empty());
+        let (output, artifacts) = if self.artifact_ingestor.is_some() {
+            let A2aSendMessageResponse::Task(task) = response else {
+                return Err(self.invalid_result(&context));
+            };
+            match task.state() {
+                A2aTaskState::Completed => self
+                    .durable_task_components(
+                        context.tenant_id(),
+                        context.run_id(),
+                        context.invocation_id(),
+                        context.attempt_id(),
+                        context
+                            .origin_event_id()
+                            .expect("durable artifact mode checked the origin event"),
+                        context.max_inline_result_bytes(),
+                        context.max_artifacts(),
+                        context.max_total_artifact_bytes(),
+                        &task,
+                    )
+                    .await
+                    .map_err(|error| match error {
+                        DurableTaskResultError::Invalid => self.invalid_result(&context),
+                        DurableTaskResultError::Ingestion(error) => {
+                            self.artifact_ingestion_error(&context, task.id(), &error)
+                        }
+                    })?,
+                state if state.is_terminal() => {
+                    return Err(self.terminal_task_error(&context, state));
+                }
+                _ => return Err(self.unknown_task_outcome(&context, task.id())),
+            }
+        } else {
+            let value = response
+                .to_json()
+                .map_err(|_| self.invalid_result(&context))?;
+            let output =
+                BoundedJson::try_from_value(value).map_err(|_| self.invalid_result(&context))?;
+            self.schemas
+                .validate(self.descriptor.output_schema(), &output)
+                .map_err(|_| self.invalid_result(&context))?;
+            (output, ToolArtifacts::empty())
+        };
+        let result = ToolResult::for_invocation(&context, &self.descriptor, output, artifacts);
         result
             .validate_for(&context, &self.descriptor)
             .map_err(|_| self.invalid_result(&context))?;
@@ -754,6 +1389,160 @@ impl A2aRemoteAgent {
         ))
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn reconciled_error(
+        &self,
+        context: &ToolReconciliationContext,
+        phase: ToolErrorPhase,
+        category: FailureCategory,
+        code: &'static str,
+        message: &'static str,
+    ) -> ToolError {
+        let failure = Failure::new(
+            FailureId::generate(),
+            category,
+            FailureCode::new(code).expect("A2A reconciliation failure code is valid"),
+            FailureOrigin::new("protocol.a2a").expect("A2A reconciliation failure origin is valid"),
+            FailureMessage::new(message).expect("A2A reconciliation failure message is bounded"),
+            RetryAdvice::Never,
+        )
+        .expect("A2A terminal reconciliation failure semantics are coherent");
+        ToolError::new(
+            failure,
+            phase,
+            ToolExternalEffect::Applied,
+            ToolErrorProvenance::new(
+                context.invocation_id(),
+                context.attempt_id(),
+                self.descriptor.metadata().identity().clone(),
+            ),
+        )
+        .expect("terminal A2A reconciliation evidence has a valid shape")
+    }
+
+    fn reconciled_terminal_task_error(
+        &self,
+        context: &ToolReconciliationContext,
+        state: A2aTaskState,
+    ) -> ToolError {
+        let (category, code, message) = terminal_task_failure(state);
+        self.reconciled_error(context, ToolErrorPhase::Execution, category, code, message)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn reconciled_observation(
+        &self,
+        context: &ToolReconciliationContext,
+        response: &A2aSendMessageResponse,
+    ) -> Result<ToolReconciliationObservation, ToolReconciliationProbeError> {
+        if self.artifact_ingestor.is_none() {
+            return self
+                .reconciled_result(context, response)
+                .map(ToolReconciliationObservation::Result);
+        }
+        let A2aSendMessageResponse::Task(task) = response else {
+            return Ok(ToolReconciliationObservation::Error(self.reconciled_error(
+                context,
+                ToolErrorPhase::Result,
+                FailureCategory::DataCorruption,
+                "result.task_required",
+                "The durable A2A binding received a direct message instead of a task.",
+            )));
+        };
+        match task.state() {
+            A2aTaskState::Completed => {
+                let origin_event_id = context.origin_event_id().ok_or_else(|| {
+                    Self::invalid_probe_contract(
+                        "probe.origin_event_missing",
+                        "The durable A2A artifact origin is unavailable.",
+                    )
+                })?;
+                match self
+                    .durable_task_components(
+                        context.tenant_id(),
+                        context.run_id(),
+                        context.invocation_id(),
+                        context.attempt_id(),
+                        origin_event_id,
+                        context.max_inline_result_bytes(),
+                        context.max_artifacts(),
+                        context.max_total_artifact_bytes(),
+                        task,
+                    )
+                    .await
+                {
+                    Ok((output, artifacts)) => {
+                        Ok(ToolReconciliationObservation::Result(ToolResult::new(
+                            ToolResultProvenance::new(
+                                context.invocation_id(),
+                                context.attempt_id(),
+                                self.descriptor.metadata().identity().clone(),
+                            ),
+                            self.descriptor.output_schema().clone(),
+                            output,
+                            artifacts,
+                        )))
+                    }
+                    Err(DurableTaskResultError::Invalid) => {
+                        Ok(ToolReconciliationObservation::Error(self.reconciled_error(
+                            context,
+                            ToolErrorPhase::Result,
+                            FailureCategory::DataCorruption,
+                            "result.invalid",
+                            "The A2A agent returned a result outside the pinned local contract.",
+                        )))
+                    }
+                    Err(DurableTaskResultError::Ingestion(error)) => match error.kind() {
+                        A2aArtifactIngestionErrorKind::Unavailable => Err(Self::probe_error(
+                            FailureCategory::DependencyUnavailable,
+                            "probe.artifact_store_unavailable",
+                            "The A2A artifact store is temporarily unavailable.",
+                            RetryAdvice::SafeAfter {
+                                delay: self
+                                    .recovery
+                                    .retry_after()
+                                    .expect("durable artifact mode requires recovery"),
+                            },
+                        )),
+                        A2aArtifactIngestionErrorKind::PolicyDenied => {
+                            Ok(ToolReconciliationObservation::Error(self.reconciled_error(
+                                context,
+                                ToolErrorPhase::Result,
+                                FailureCategory::PermissionDenied,
+                                "artifact.policy_denied",
+                                "Local policy denied an A2A artifact.",
+                            )))
+                        }
+                        A2aArtifactIngestionErrorKind::InvalidContent
+                        | A2aArtifactIngestionErrorKind::Integrity => {
+                            Ok(ToolReconciliationObservation::Error(self.reconciled_error(
+                                context,
+                                ToolErrorPhase::Result,
+                                FailureCategory::DataCorruption,
+                                "artifact.integrity_invalid",
+                                "The A2A artifact failed local integrity validation.",
+                            )))
+                        }
+                    },
+                }
+            }
+            state if state.is_terminal() => Ok(ToolReconciliationObservation::Error(
+                self.reconciled_terminal_task_error(context, state),
+            )),
+            _ => ToolReconciliationObservation::pending(
+                self.recovery
+                    .retry_after()
+                    .expect("durable artifact mode requires recovery"),
+            )
+            .map_err(|_| {
+                Self::invalid_probe_contract(
+                    "probe.retry_delay_invalid",
+                    "The configured A2A reconciliation delay is invalid.",
+                )
+            }),
+        }
+    }
+
     fn matching_message_occurrences(
         task: &A2aTask,
         expected_message: &A2aMessage,
@@ -850,8 +1639,7 @@ impl A2aRemoteAgent {
                 return match matched_task {
                     Some(task) => {
                         let response = A2aSendMessageResponse::Task(task);
-                        self.reconciled_result(context, &response)
-                            .map(ToolReconciliationObservation::Result)
+                        self.reconciled_observation(context, &response).await
                     }
                     None => ToolReconciliationObservation::pending(retry_after).map_err(|_| {
                         Self::invalid_probe_contract(
@@ -876,12 +1664,50 @@ impl A2aRemoteAgent {
         ))
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn reconcile_inner(
         &self,
         context: ToolReconciliationContext,
         input: ToolInput,
     ) -> Result<ToolReconciliationObservation, ToolReconciliationProbeError> {
         self.validate_reconciliation_input(&context, &input)?;
+        if let Some(handle) = context.recovery_handle() {
+            if self.artifact_ingestor.is_none()
+                || handle.namespace().as_str() != A2A_TASK_RECOVERY_NAMESPACE
+                || handle.binding() != self.client.agent_card_digest()
+            {
+                return Err(Self::invalid_probe_contract(
+                    "probe.recovery_handle_mismatch",
+                    "The durable A2A recovery handle does not match this binding.",
+                ));
+            }
+            let request = A2aGetTaskRequest::new(handle.opaque_id().to_owned()).map_err(|_| {
+                Self::invalid_probe_contract(
+                    "probe.recovery_handle_invalid",
+                    "The durable A2A recovery handle is not a valid task identity.",
+                )
+            })?;
+            let attempt = A2aClientAttemptIdentity::new(
+                context.tenant_id().clone(),
+                context.run_id(),
+                context.invocation_id(),
+                context.attempt_id(),
+            );
+            let task = self
+                .client
+                .get_task_with_attempt(request, attempt, self.required_scopes.clone())
+                .await
+                .map_err(|error| self.probe_client_error(&error))?;
+            if task.id() != handle.opaque_id() {
+                return Err(Self::invalid_probe_contract(
+                    "probe.task_identity_mismatch",
+                    "The A2A task response substituted the requested identity.",
+                ));
+            }
+            return self
+                .reconciled_observation(&context, &A2aSendMessageResponse::Task(task))
+                .await;
+        }
         let message_id = self.reconciliation_message_id(&context).ok_or_else(|| {
             Self::invalid_probe_contract(
                 "probe.idempotency_key_missing",
@@ -947,8 +1773,7 @@ impl A2aRemoteAgent {
                     )
                     .await
                     .map_err(|error| self.probe_client_error(&error))?;
-                self.reconciled_result(&context, &response)
-                    .map(ToolReconciliationObservation::Result)
+                self.reconciled_observation(&context, &response).await
             }
         }
     }
@@ -1051,6 +1876,7 @@ impl fmt::Debug for A2aRemoteAgent {
             .field("skill_id", &self.skill_id)
             .field("delivery", &self.delivery)
             .field("recovery", &self.recovery.mode())
+            .field("durable_artifacts", &self.artifact_ingestor.is_some())
             .field("client", &self.client)
             .finish_non_exhaustive()
     }
@@ -1152,6 +1978,31 @@ fn definitive_rejection(
     }
 }
 
+fn terminal_task_failure(state: A2aTaskState) -> (FailureCategory, &'static str, &'static str) {
+    match state {
+        A2aTaskState::Failed => (
+            FailureCategory::Internal,
+            "task.failed",
+            "The A2A task completed with a failure.",
+        ),
+        A2aTaskState::Canceled => (
+            FailureCategory::Cancelled,
+            "task.canceled",
+            "The A2A task was canceled.",
+        ),
+        A2aTaskState::Rejected => (
+            FailureCategory::PermissionDenied,
+            "task.rejected",
+            "The A2A task was rejected.",
+        ),
+        _ => (
+            FailureCategory::DataCorruption,
+            "task.state_invalid",
+            "The A2A task supplied an invalid terminal state.",
+        ),
+    }
+}
+
 async fn wait_for_tool<T, F>(context: &ToolContext, future: F) -> Result<T, ToolStopReason>
 where
     F: std::future::Future<Output = T>,
@@ -1204,6 +2055,14 @@ pub enum A2aRemoteAgentBuildError {
     /// Replay recovery requires an exact durable message-ID deduplication claim.
     #[error("A2A message replay recovery requires message-ID-deduplicated delivery")]
     RecoveryDeliveryMismatch,
+    /// Durable artifact materialization needs a status-query path so a
+    /// completed remote task can be re-read after a local persistence failure.
+    #[error("durable A2A artifacts require an enabled recovery mode")]
+    DurableArtifactsRequireRecovery,
+    /// Durable artifact mode is unusable when the descriptor permits no
+    /// artifact references or bytes.
+    #[error("durable A2A artifacts require positive descriptor artifact capacity")]
+    ArtifactCapacityRequired,
     /// The adapter observes cancellation and requires that fact in the descriptor.
     #[error("A2A remote-agent binding requires cooperative cancellation semantics")]
     CancellationContractMismatch,

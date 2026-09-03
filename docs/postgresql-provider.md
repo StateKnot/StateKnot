@@ -181,8 +181,9 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 98 integration tests against PostgreSQL 16 and
-17.
+The current database suite runs 104 provider integration tests, 29 durable
+Runtime tests, and the five-case artifact-store integration suite against
+PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v15 without guessed projection or physical-attempt provenance, real v3
 tool-attempt history backfilled into the run-wide registry, admission, direct
@@ -290,8 +291,12 @@ database-clock expiry, immutable event/checkpoint anchoring, exact retry after
 time-sensitive boundaries, tamper rejection, late rollback, and 24-way
 single-commit convergence. Migration-16 coverage adds populated upgrades,
 durable ingress-key convergence/conflicts, raw-key non-persistence, tamper
-rejection, and atomic rollback. The 102 provider tests and 27 durable Runtime tests run independently against
-PostgreSQL 16 and PostgreSQL 17.
+rejection, and atomic rollback. Migration-17 coverage adds explicit terminal
+Tool status and failed-Tool transcript recovery. Migration-18 coverage proves
+that a populated v17 database preserves its runs while installing the immutable
+artifact registry, and that startup refuses removed registry constraints. The
+104 provider tests, 29 durable Runtime tests, and artifact-store suite run
+independently against PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
 
@@ -299,6 +304,10 @@ To run the database suite manually, point it at a disposable PostgreSQL instance
 STATEKNOT_TEST_DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/DATABASE \
 STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
 cargo test -p stateknot-store-postgres --test postgres --locked -- --test-threads=1
+
+STATEKNOT_TEST_DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/DATABASE \
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-artifact-store --test artifact_store --locked -- --test-threads=1
 ```
 
 The opt-in test role must be allowed to create and drop a temporary database so
@@ -655,13 +664,26 @@ its immutable ledger evidence. Fresh install, v16 upgrade, status constraint,
 foreign-key tamper, and provider-native failed-Tool recovery pass on PostgreSQL
 16 and 17.
 
+Migration 18 adds immutable `artifacts` and `artifact_parents` registries. An
+artifact row binds the tenant-qualified canonical `ArtifactRef`, reference and
+content digests, content length and type, origin run/event, idempotency key, and
+a private provider-neutral storage locator. Parent edges must remain within the
+same tenant, reference an existing child and parent, and cannot point to self.
+An exact registration retry returns the original row; changed metadata under
+the same identity or idempotency key conflicts. Every load revalidates the
+canonical reference, redundant projection columns, digest and length bounds,
+origin-event provenance, and lineage. The v17→v18 migration test preserves an
+existing run, while schema verification refuses a removed critical constraint.
+The artifact-store suite additionally proves conditional object publication,
+full digest verification, authorization-before-lookup, and an actual object plus
+PostgreSQL registry round trip.
+
 ## Not yet implemented
 
 This slice is not a production release or the complete agent runtime. The first
 model-provider adapters live above this store boundary; it does not yet
-implement protocol-specific outbox dispatch adapters, artifacts, public
-cancellation transport, general
-retention/archive/legal hold,
+implement protocol-specific outbox dispatch adapters, public cancellation
+transport, general retention/archive/legal hold,
 backup/restore, failover qualification, or the
 10,000-race stale-worker gate. The implemented lifecycle coordinator now
 atomically commits complete Wait/success/failure/cancellation handoffs, and the tenant worker

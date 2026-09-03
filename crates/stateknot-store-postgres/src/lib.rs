@@ -51,6 +51,7 @@ pub use config::{PostgresStoreOptions, PostgresTransportSecurity};
 pub use error::{ConfigurationError, StoreError};
 pub use model::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
+    ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
     BarrierCommitOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
     CheckpointLineagePageSize, CheckpointPointer, CorruptionQuarantineContext,
     DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor, ExpiredInterruptPage,
@@ -67,7 +68,7 @@ pub use model::{
     RunnableRunPage, RunnableRunPageCursor, RunnableRunPageSize,
     SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
     SchedulerFairnessReservation, SchedulerFairnessRetentionPolicy,
-    SchedulerFairnessRetentionReport, StoredAgentAdmission, StoredAgentSubmission,
+    SchedulerFairnessRetentionReport, StoredAgentAdmission, StoredAgentSubmission, StoredArtifact,
     StoredGraphDefinition, StoredOutboxDestination, StoredRun, StoredSchedulerFairnessPolicy,
     TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
     ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,

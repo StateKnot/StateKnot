@@ -1,0 +1,204 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  title="把 A2A Artifact 持久化为可验证事实。"
+  description="配置 StateKnot 不可变 PostgreSQL Artifact Registry、私有 S3-compatible Bytes、直接 Task Poll、Authorization-first Read 与完整性校验。"
+  section="耐久 Artifact Storage"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="artifact-boundary-title">
+    <h2 id="artifact-boundary-title">已实现的 Pre-alpha 边界</h2>
+    <p>
+      Terminal A2A Task Part 现在可以成为 Tenant-qualified <code
+        >ArtifactRef</code
+      >，而不是 Tool Inline JSON。Migration 18 保存不可变 Metadata；私有
+      S3-compatible Backend 保存 Bytes。API 仍不稳定，通用
+      Retention、Registry-aware Orphan Collection、公开下载、签名 Artifact 与
+      Live-provider Qualification 尚未交付。
+    </p>
+  </aside>
+
+  <section aria-labelledby="artifact-flow-title">
+    <h2 id="artifact-flow-title">沿一条证据链执行</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>耐久 A2A Completion</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="artifact-flow-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="artifact-flow-code"
+        tabindex="0"><code>Executing Event → 一次 A2A Send → Task Recovery Handle
+  → 直接 GetTask Poll（不重发业务 Message）
+  → 有界 Terminal Part → 唯一 Staging Object
+  → Conditional-create Final Object → Length + SHA-256 校验
+  → 不可变 PostgreSQL Registration → 已授权、完整校验的 Read</code></pre>
+    </div>
+    <p>
+      Final Key 由精确 Tenant、Run、Logical Invocation、Physical Attempt、Origin
+      Event、Tool、Remote Identity 与 Part Position 确定性生成。Exact Retry
+      会收敛； 已有 Object 若包含不同 Bytes，会触发 Integrity
+      Failure，绝不允许覆盖。
+    </p>
+  </section>
+
+  <section aria-labelledby="artifact-invariants-title">
+    <h2 id="artifact-invariants-title">分离 Metadata、Bytes 与 Authority</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>私有 Bytes</dt>
+        <dd>
+          Startup 会真实执行 Put、Conditional Copy、Read、Repeated-copy
+          Rejection 与 Delete Probe。无法证明 Immutable Final Publication 的
+          Backend 会在接收 Traffic 前被拒绝。
+        </dd>
+      </div>
+      <div>
+        <dt>不可变 Registry</dt>
+        <dd>
+          PostgreSQL 绑定 Canonical Reference Bytes/Digest、Content
+          Length/Digest、 Origin Run/Event、Same-tenant Parent、Idempotency Key
+          与 Private Locator； Transaction 内不执行 Object I/O。
+        </dd>
+      </div>
+      <div>
+        <dt>Authorization First</dt>
+        <dd>
+          在 Registry Lookup 前授权精确 Principal 与 Tenant-qualified
+          Identity，避免 Artifact 存在性或 Locator 泄露。
+        </dd>
+      </div>
+      <div>
+        <dt>Verified Resolution</dt>
+        <dd>
+          若 Provider 提供 Version/ETag，就应用已捕获的 Precondition；完整
+          Length 与 SHA-256 校验结束前不返回任何 Byte。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="artifact-config-title">
+    <h2 id="artifact-config-title">构建并探测精确生产 Backend</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 当前 Pre-alpha API</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="artifact-config-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="artifact-config-code"
+        tabindex="0"><code>let objects = S3CompatibleBackendBuilder::from_env(bucket, region)?
+    .with_https_endpoint(endpoint)?
+    .with_conditional_copy(S3ConditionalCopy::AmazonMultipart)
+    .with_sha256_checksum()
+    .with_kms_key_id(kms_key)?
+    .build()?;
+
+let artifacts = Arc::new(StateKnotArtifactStore::initialize(
+    objects,
+    Arc::new(postgres_store.clone()),
+    Arc::new(read_authorizer),
+    "production-artifacts-v1",
+    options,
+).await?);
+
+let remote = A2aRemoteAgent::bind_with_durable_artifacts(
+    descriptor, client, "answer", delivery, recovery, schemas, artifacts,
+)?;</code></pre>
+    </div>
+    <p>
+      AWS S3 使用 Multipart Conditional-copy Strategy。其他兼容 Provider
+      可能要求 文档规定的 Destination-precondition Header/Status。必须测试实际
+      Endpoint、Bucket Policy、Encryption Policy 与 Workload Identity，不能从
+      “S3-compatible” 标签推断 Atomic Behavior。
+    </p>
+    <p>
+      <code>from_env</code> 只导入 Credential-selection Variable。环境中的 Endpoint、
+      HTTP Enablement、Metadata Override、Unsigned Request、Retry Behavior、Bucket/Region
+      Selection 与 Encryption 设置无法绕过 Builder。非默认 Web-identity STS Endpoint
+      必须通过 <code>with_https_sts_endpoint</code> 显式配置。
+    </p>
+  </section>
+
+  <section aria-labelledby="artifact-egress-title">
+    <h2 id="artifact-egress-title">把 URL Part 作为独立 Egress Boundary</h2>
+    <ul>
+      <li>只批准带显式 IP Pin 的精确生产 HTTPS Origin。</li>
+      <li>重新校验每一跳 Redirect；拒绝 URL Credential 与 Fragment。</li>
+      <li>
+        禁用环境 Proxy、隐式 Retry、Cookie、自动 Redirect 与透明 Content
+        Decoding。
+      </li>
+      <li>
+        要求 Identity Encoding、Media Type 一致，以及声明和实测 Length
+        均保持有界。
+      </li>
+    </ul>
+    <p>
+      Literal Loopback HTTP 只用于测试或受控 Same-host Sidecar。Tool Limit
+      还会约束 Artifact Count、Total Bytes、每个 Part 与 Completion Projection。
+    </p>
+  </section>
+
+  <section aria-labelledby="artifact-limits-title">
+    <h2 id="artifact-limits-title">显式限制资源并运维 Cleanup</h2>
+    <div class="docs-table-wrap" tabindex="0">
+      <table>
+        <thead>
+          <tr><th>Limit</th><th>默认值</th><th>Hard Ceiling</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Object Operation</td><td>60 s</td><td>10 min</td></tr>
+          <tr><td>完整 Remote Request</td><td>120 s</td><td>10 min</td></tr>
+          <tr><td>Multipart Part</td><td>8 MiB</td><td>5–64 MiB</td></tr>
+          <tr
+            ><td>Remote Object / Resolved Read</td><td>64 MiB</td><td>1 GiB</td
+            ></tr
+          >
+          <tr><td>Redirect</td><td>3</td><td>3</td></tr>
+          <tr><td>Concurrent Operation</td><td>8</td><td>256</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      一个 Process-local Permit 覆盖每条完整 Ingest 或 Materialized-read
+      路径。必须为 Abandoned Multipart Upload 与 <code
+        >stateknot/staging/v1/</code
+      >
+      配置 Lifecycle Rule，并在 <code>staging_cleanup_failures()</code> 增长时告警。
+      不能对 Final Object 采用盲目按年龄删除；Registry-aware Collection 完成前，删除
+      疑似 Orphan 前必须与 PostgreSQL 对账。
+    </p>
+  </section>
+
+  <section aria-labelledby="artifact-proof-title">
+    <h2 id="artifact-proof-title">明确证据所能证明的范围</h2>
+    <p>
+      测试覆盖 Exact Retry、Tampering、Authorization-before-lookup、URL Policy、
+      Multipart Ingestion、完整 Read、真实 PostgreSQL Registration、Migration
+      17→18， 以及 HTTP+JSON/JSON-RPC 两种 Binding 下 No-resend Terminal-task
+      Recovery。启用前请阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/artifact-storage.zh-CN.md"
+        >完整部署与验证指南</a
+      >。
+    </p>
+  </section>
+</DocsLayout>
