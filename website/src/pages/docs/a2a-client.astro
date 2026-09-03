@@ -18,11 +18,18 @@ const discoverCode = `let client = A2aClient::discover(
     A2aClientOptions::default(),
 ).await?;`;
 
-const bindCode = `let remote = A2aRemoteAgent::bind(
+const bindCode = `let recovery = A2aRemoteAgentRecovery::operator_attested_context_task_history(
+    4,
+    64,
+    DurationMillis::new(1_000)?,
+)?;
+
+let remote = A2aRemoteAgent::bind_with_recovery(
     descriptor,
     client,
     "answer",
     A2aRemoteAgentDelivery::AtMostOnce,
+    recovery,
     schemas,
 )?;
 
@@ -179,7 +186,7 @@ let tools = tools.build();`;
       The invocation ledger commits <code>executing</code> before the one network
       send. A valid response is schema-checked before commit. Any uncertain outcome
       after possible dispatch becomes <code>Unknown + ReconcileFirst</code>;
-      recovery does not send again.
+      ordinary recovery does not send again.
     </p>
     <p>
       The adapter sets <code>returnImmediately: true</code>. A returned Task
@@ -220,8 +227,62 @@ let tools = tools.build();`;
       A2A itself does not require receivers to deduplicate <code>messageId</code
       >. The second mode is safe only when operators prove durable remote
       deduplication across the full local ledger-retention and disaster-recovery
-      window. A lost send response may not yield a task ID, so reconciliation is
-      an application-owned, separately authorized workflow.
+      window.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-recovery-title">
+    <h2 id="a2a-client-recovery-title">
+      Recover only from attested remote facts
+    </h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="A2A Remote Agent recovery contracts"
+    >
+      <table>
+        <thead>
+          <tr
+            ><th>Mode</th><th>Required deployment evidence</th><th>Action</th
+            ></tr
+          >
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Disabled</code></td><td>None</td><td
+              >Remain fail-closed for manual reconciliation</td
+            >
+          </tr>
+          <tr>
+            <td><code>ContextTaskHistory</code></td><td
+              >Preserved client context, complete stable task pagination,
+              retained original message ID</td
+            ><td>Bounded <code>ListTasks</code> scan; never resend</td>
+          </tr>
+          <tr>
+            <td><code>MessageIdReplay</code></td><td
+              >Durable message-ID deduplication across the complete recovery
+              window</td
+            ><td
+              >Replay the exact request identity; deduplicated delivery only</td
+            >
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Enabled modes require a matching descriptor status-query claim and a
+      bounded polling interval. Context recovery adds a one-way opaque ID to the
+      original message, scans at most 16 pages of 100 tasks with at most 256
+      history messages, and accepts exactly one match whose role, context, and
+      payload equal the original message. No match becomes <code>Pending</code>;
+      duplicate identities, ambiguous matches, same-ID payload substitution, or
+      exhausted scan bounds fail closed.
+    </p>
+    <p>
+      The provider-native Agent commits authoritative evidence atomically. A
+      pending probe becomes a durable <code>SafeAfter</code> node retry under a later
+      lease, with the original physical attempt and business-call count unchanged.
     </p>
   </section>
 
@@ -256,17 +317,20 @@ let tools = tools.build();`;
     <p>
       Real loopback tests execute all eleven operations over both bindings and
       exercise strict discovery, authorization, errors, streams, and lost
-      responses. A real PostgreSQL test proves durable-before-dispatch state,
-      persisted Unknown outcome, and duplicate no-redispatch.
+      responses. They also prove context/history recovery without resend and
+      exact replay under an explicit deduplication attestation, including
+      rejection of same-ID payload substitution. A separate provider-neutral
+      real PostgreSQL test proves <code
+        >Unknown → Pending → durable retry → Committed</code
+      > with one business call across two probes.
     </p>
     <p>
       Use the <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/a2a-client.md"
         >complete production guide and reproduction commands</a
       >. The <a href="/docs/a2a-conformance/">official TCK evidence</a> applies to
-      the separate Server profile; Client live-peer qualification, gRPC, automatic
-      reconciliation, stable API review, and a complete production release remain
-      separate gates.
+      the separate Server profile; Client live-peer and recovery-attestation qualification,
+      gRPC, stable API review, and a complete production release remain separate gates.
     </p>
   </section>
 </DocsLayout>

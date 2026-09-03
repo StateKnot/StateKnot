@@ -154,7 +154,9 @@ most one run per tick, and exposes bounded contention and retry counters.
 The runtime now also freezes exact model and tool provider registries and
 executes their durable attempts through trusted budget/deadline admission,
 durable-before-dispatch starts, validated unary or durably-sunk streaming model
-results, reconciliation-safe tool failures, and no-dispatch terminal recovery.
+results, reconciliation-safe tool failures, one bounded original-attempt
+provider probe with durable `Pending` retries, atomic reconciliation evidence,
+and no-dispatch terminal recovery.
 Migration 14 and `DurableFairScheduler` add an immutable shard-scoped smooth
 weighted policy, globally ordered lost-ACK-safe reservations, exact cycle
 shares, explicit reservation-count starvation bounds, and bounded
@@ -231,8 +233,12 @@ Tool execution contract with explicit
 AtMostOnce or operator-attested message-ID deduplication semantics. Real
 loopback tests execute the complete operation matrix over both bindings; a
 real PostgreSQL test proves durable state before A2A send, lost-response
-`Unknown`, and duplicate no-redispatch. Official Client conformance,
-automatic reconciliation, gRPC, and a production durable server-side
+`Unknown`, and duplicate no-redispatch. Optional operator-attested recovery can
+now query bounded context/task history without resend or replay the exact
+message ID only under durable deduplication evidence. The provider-native Agent
+turn converts `Pending` into a durable delayed retry and commits authoritative
+evidence without repeating the business call. Official Client conformance,
+live-peer recovery qualification, gRPC, and a production durable server-side
 task/push backend remain separate gates.
 The strict MCP adapter is also composed with the durable invocation executor
 in a real PostgreSQL + loopback test: durable start is observed before request
@@ -241,8 +247,8 @@ redispatches, and authoritative result reconciliation is schema-validated,
 fenced, atomic, and exactly idempotent on PostgreSQL 16 and 17. The runtime
 PostgreSQL suite separately proves the authoritative error branch.
 Stable network Agent/cancellation transport, production protocol-specific
-outbox dispatch adapters, A2A Client live-peer/conformance qualification and
-reconciliation, A2A gRPC, artifact retrieval, parallel
+outbox dispatch adapters, A2A Client live-peer/conformance and reconciliation
+attestation qualification, A2A gRPC, artifact retrieval, parallel
 siblings/Tools, output repair, loops/subgraphs, role isolation, general
 retention, failover, restore, and the final stale-race gates have not shipped
 yet.
@@ -255,8 +261,8 @@ The current milestone is to:
    32-client/37-server official gates while completing stable API review and
    keeping Tasks and other extensions behind independent claims;
 3. preserve the A2A 1.0 HTTP+JSON/JSON-RPC Server gate and implemented durable
-   Client/outbound boundary while adding official/live-peer qualification and
-   an application-owned reconciliation profile;
+   Client/outbound/reconciliation boundary while adding official/live-peer
+   qualification of the exact deployment attestations;
 4. validate the three frozen production scenarios and accept the core domain,
    graph, durability, and protocol/security RFCs;
 5. qualify role isolation, failover/restore, and the final stale-race gates; and

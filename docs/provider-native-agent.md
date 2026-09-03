@@ -130,9 +130,18 @@ result.
 
 Known failed tools remain ordered transcript outcomes. Their exact terminal
 revision is bound into the node result, and the next model turn receives the
-failure outcome without inventing success. An `Unknown` write outcome remains
-unavailable for explicit status-query, idempotency proof, compensation, or
-human reconciliation; the graph does not retry it as ordinary failure.
+failure outcome without inventing success. An `Unknown` write outcome is never
+retried as an ordinary business call. When both the immutable descriptor and
+the exact installed provider enable reconciliation, the Tool node runs one
+bounded probe for the original physical attempt. Authoritative evidence is
+committed atomically; `Pending` becomes a durable `SafeAfter` node retry under a
+later lease. Otherwise the run remains blocked for explicit manual
+reconciliation.
+
+Each Tool plan derives its reconciliation audit `EventId` deterministically
+from already-persisted immutable identities. No new checkpoint field or state
+schema version is required, so previously admitted graph references retain
+their exact wire and digest compatibility.
 
 ## Two-phase durable cancellation
 
@@ -202,6 +211,9 @@ PostgreSQL 16 and 17. Focused scenarios cover:
 - a higher-fence stale policy race with no duplicate external dispatch;
 - a known failed tool retained in transcript order with its exact terminal
   binding;
+- an unknown tool outcome that returns `Pending`, is durably delayed, resolves
+  under a later lease, continues the next model turn, and performs exactly one
+  business call across two reconciliation probes;
 - cancellation after a committed model with exact usage and lost-ack replay;
 - cancellation before provider dispatch through `DurableAgentLoop`; and
 - fail-closed cancellation when exact evidence is unavailable.
@@ -222,7 +234,7 @@ silently skipping the suite.
 This milestone does not ship parallel sibling/tool execution, output repair,
 loop/subgraph semantics, artifact retrieval, stable network Agent/cancellation
 transport, protocol-specific outbox dispatch, MCP/A2A server composition,
-broader protocol extensions, A2A live-peer qualification/reconciliation,
+broader protocol extensions, A2A live-peer reconciliation qualification,
 live-provider drift cassettes, role-separated database procedures, general
 retention, failover/restore qualification, or a production release.
 [`AgentServiceV1`](agent-service.md) now supplies the embedding service boundary,

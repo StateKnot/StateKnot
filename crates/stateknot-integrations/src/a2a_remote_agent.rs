@@ -12,6 +12,7 @@
 //! an uncertain result is reported as `Unknown` with `ReconcileFirst`.
 
 use std::{
+    collections::HashSet,
     fmt,
     sync::{
         Arc,
@@ -21,18 +22,21 @@ use std::{
 };
 
 use stateknot_core::{
-    BoundedJson, BoxFuture, DurationMillis, ErasedTool, Failure, FailureCategory, FailureCode,
-    FailureId, FailureMessage, FailureOrigin, GraphSchemaValidator, ModelSchemaRegistry,
-    RetryAdvice, ToolArtifacts, ToolCancellationSupport, ToolContext, ToolDescriptor, ToolError,
-    ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolIdempotency, ToolInput,
-    ToolResourceAccess, ToolResult, ToolRisk, ToolStopReason,
+    BoundedJson, BoxFuture, Digest, DurationMillis, ErasedTool, Failure, FailureCategory,
+    FailureCode, FailureId, FailureMessage, FailureOrigin, GraphSchemaValidator,
+    ModelSchemaRegistry, RetryAdvice, ToolArtifacts, ToolCancellationSupport, ToolContext,
+    ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect,
+    ToolIdempotency, ToolInput, ToolReconciliationContext, ToolReconciliationObservation,
+    ToolReconciliationObservationError, ToolReconciliationProbeError, ToolResourceAccess,
+    ToolResult, ToolResultProvenance, ToolRisk, ToolStopReason,
 };
 use thiserror::Error;
 
 use crate::{
     A2aClient, A2aClientAttemptIdentity, A2aClientAuthorizationError, A2aClientError,
-    A2aClientErrorKind, A2aClientSecurityError, A2aMessage, A2aMessageRole, A2aPart,
-    A2aSendConfiguration, A2aSendMessageRequest,
+    A2aClientErrorKind, A2aClientSecurityError, A2aContractError, A2aListTasksRequest, A2aMessage,
+    A2aMessageRole, A2aPart, A2aSendConfiguration, A2aSendMessageRequest, A2aSendMessageResponse,
+    A2aTask,
 };
 
 /// Schema capabilities required by the A2A remote-agent adapter.
@@ -56,12 +60,165 @@ pub enum A2aRemoteAgentDelivery {
     MessageIdDeduplicated,
 }
 
+/// Enabled A2A reconciliation mechanism.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum A2aRemoteAgentRecoveryMode {
+    /// No automated recovery claim is installed.
+    Disabled,
+    /// Query task pages by an operator-attested client context and exact
+    /// original message ID in retained task history.
+    ContextTaskHistory,
+    /// Replay the exact original message ID against an operator-attested
+    /// durable deduplication implementation.
+    MessageIdReplay,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum A2aRemoteAgentRecoveryKind {
+    Disabled,
+    ContextTaskHistory {
+        maximum_pages: u8,
+        history_length: u16,
+        retry_after: DurationMillis,
+    },
+    MessageIdReplay {
+        retry_after: DurationMillis,
+    },
+}
+
+/// Explicit operator attestation controlling automated A2A reconciliation.
+///
+/// A2A 1.0 does not guarantee client context retention or `messageId`
+/// deduplication. Enabling either strategy asserts a deployment-specific
+/// property for at least the complete local invocation-ledger retention window.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct A2aRemoteAgentRecovery {
+    kind: A2aRemoteAgentRecoveryKind,
+}
+
+impl A2aRemoteAgentRecovery {
+    /// Maximum number of 100-task pages inspected by one probe.
+    pub const MAXIMUM_CONTEXT_PAGES: u8 = 16;
+    /// A2A 1.0 maximum retained history suffix accepted by this client.
+    pub const MAXIMUM_HISTORY_LENGTH: u16 = 256;
+
+    /// Disables automatic reconciliation.
+    #[must_use]
+    pub const fn disabled() -> Self {
+        Self {
+            kind: A2aRemoteAgentRecoveryKind::Disabled,
+        }
+    }
+
+    /// Enables bounded context/task-history lookup under an operator attestation.
+    ///
+    /// The operator asserts that this exact remote deployment accepts and
+    /// preserves client-supplied context IDs, exposes all matching tasks through
+    /// stable `ListTasks` pagination, and retains the original user `messageId`
+    /// in the requested history suffix for the full recovery window.
+    pub fn operator_attested_context_task_history(
+        maximum_pages: u8,
+        history_length: u16,
+        retry_after: DurationMillis,
+    ) -> Result<Self, A2aRemoteAgentRecoveryError> {
+        if maximum_pages == 0 || maximum_pages > Self::MAXIMUM_CONTEXT_PAGES {
+            return Err(A2aRemoteAgentRecoveryError::InvalidMaximumPages);
+        }
+        if history_length == 0 || history_length > Self::MAXIMUM_HISTORY_LENGTH {
+            return Err(A2aRemoteAgentRecoveryError::InvalidHistoryLength);
+        }
+        validate_recovery_delay(retry_after)?;
+        Ok(Self {
+            kind: A2aRemoteAgentRecoveryKind::ContextTaskHistory {
+                maximum_pages,
+                history_length,
+                retry_after,
+            },
+        })
+    }
+
+    /// Enables exact-message replay under an operator deduplication attestation.
+    ///
+    /// The operator asserts that duplicate `messageId` values return the same
+    /// semantic operation without reapplying the write for the full recovery
+    /// window. This strategy is accepted only with `MessageIdDeduplicated`.
+    pub fn operator_attested_message_id_replay(
+        retry_after: DurationMillis,
+    ) -> Result<Self, A2aRemoteAgentRecoveryError> {
+        validate_recovery_delay(retry_after)?;
+        Ok(Self {
+            kind: A2aRemoteAgentRecoveryKind::MessageIdReplay { retry_after },
+        })
+    }
+
+    /// Returns the selected recovery mechanism without exposing mutable policy.
+    #[must_use]
+    pub const fn mode(self) -> A2aRemoteAgentRecoveryMode {
+        match self.kind {
+            A2aRemoteAgentRecoveryKind::Disabled => A2aRemoteAgentRecoveryMode::Disabled,
+            A2aRemoteAgentRecoveryKind::ContextTaskHistory { .. } => {
+                A2aRemoteAgentRecoveryMode::ContextTaskHistory
+            }
+            A2aRemoteAgentRecoveryKind::MessageIdReplay { .. } => {
+                A2aRemoteAgentRecoveryMode::MessageIdReplay
+            }
+        }
+    }
+
+    const fn retry_after(self) -> Option<DurationMillis> {
+        match self.kind {
+            A2aRemoteAgentRecoveryKind::Disabled => None,
+            A2aRemoteAgentRecoveryKind::ContextTaskHistory { retry_after, .. }
+            | A2aRemoteAgentRecoveryKind::MessageIdReplay { retry_after } => Some(retry_after),
+        }
+    }
+}
+
+impl Default for A2aRemoteAgentRecovery {
+    fn default() -> Self {
+        Self::disabled()
+    }
+}
+
+fn validate_recovery_delay(retry_after: DurationMillis) -> Result<(), A2aRemoteAgentRecoveryError> {
+    ToolReconciliationObservation::pending(retry_after)
+        .map(|_| ())
+        .map_err(A2aRemoteAgentRecoveryError::invalid_retry_delay)
+}
+
+/// Invalid operator-attested A2A recovery configuration.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum A2aRemoteAgentRecoveryError {
+    /// A probe must inspect between one and sixteen pages.
+    #[error("A2A reconciliation maximum pages must be between 1 and 16")]
+    InvalidMaximumPages,
+    /// A history suffix must contain between one and 256 messages.
+    #[error("A2A reconciliation history length must be between 1 and 256")]
+    InvalidHistoryLength,
+    /// The durable polling interval violated core bounds.
+    #[error("A2A reconciliation retry delay is invalid: {source}")]
+    InvalidRetryDelay {
+        /// Exact bounded-delay violation.
+        #[source]
+        source: ToolReconciliationObservationError,
+    },
+}
+
+impl A2aRemoteAgentRecoveryError {
+    const fn invalid_retry_delay(source: ToolReconciliationObservationError) -> Self {
+        Self::InvalidRetryDelay { source }
+    }
+}
+
 /// One immutable A2A agent-skill binding exposed as a durable `StateKnot` tool.
 pub struct A2aRemoteAgent {
     descriptor: ToolDescriptor,
     client: A2aClient,
     skill_id: Box<str>,
     delivery: A2aRemoteAgentDelivery,
+    recovery: A2aRemoteAgentRecovery,
     required_scopes: Arc<[Box<str>]>,
     output_modes: Arc<[Box<str>]>,
     schemas: Arc<dyn A2aSchemaRegistry>,
@@ -84,7 +241,32 @@ impl A2aRemoteAgent {
         delivery: A2aRemoteAgentDelivery,
         schemas: Arc<dyn A2aSchemaRegistry>,
     ) -> Result<Self, A2aRemoteAgentBuildError> {
-        validate_descriptor(&descriptor, &client, delivery)?;
+        Self::bind_with_recovery(
+            descriptor,
+            client,
+            skill_id,
+            delivery,
+            A2aRemoteAgentRecovery::disabled(),
+            schemas,
+        )
+    }
+
+    /// Freezes an A2A binding with an explicit operator-attested recovery mode.
+    ///
+    /// # Errors
+    ///
+    /// Performs the same schema, card, security, media, descriptor, and
+    /// delivery validation as [`Self::bind`], plus exact reconciliation-policy
+    /// compatibility checks.
+    pub fn bind_with_recovery(
+        descriptor: ToolDescriptor,
+        client: A2aClient,
+        skill_id: impl Into<String>,
+        delivery: A2aRemoteAgentDelivery,
+        recovery: A2aRemoteAgentRecovery,
+        schemas: Arc<dyn A2aSchemaRegistry>,
+    ) -> Result<Self, A2aRemoteAgentBuildError> {
+        validate_descriptor(&descriptor, &client, delivery, recovery)?;
         schemas
             .canonical_schema_bytes(descriptor.input_schema())
             .ok_or(A2aRemoteAgentBuildError::InputSchemaUnavailable)?;
@@ -124,6 +306,7 @@ impl A2aRemoteAgent {
             client,
             skill_id: skill_id.into_boxed_str(),
             delivery,
+            recovery,
             required_scopes,
             output_modes: output_modes
                 .into_iter()
@@ -144,6 +327,12 @@ impl A2aRemoteAgent {
     #[must_use]
     pub const fn delivery(&self) -> A2aRemoteAgentDelivery {
         self.delivery
+    }
+
+    /// Returns the immutable operator-attested recovery policy.
+    #[must_use]
+    pub const fn recovery(&self) -> A2aRemoteAgentRecovery {
+        self.recovery
     }
 
     fn preparation_error(
@@ -277,40 +466,24 @@ impl A2aRemoteAgent {
                 RetryAdvice::Never,
             )
         })?;
-        let part = A2aPart::data(input.value().as_value().clone())
-            .and_then(|part| part.with_media_type("application/json"))
-            .map_err(|_| {
-                self.preparation_error(
-                    &context,
-                    FailureCategory::InvalidInput,
-                    "input.protocol_mapping_failed",
-                    "The A2A input could not be mapped into a bounded data part.",
-                    RetryAdvice::Never,
-                )
-            })?;
-        let message =
-            A2aMessage::new(message_id, A2aMessageRole::User, vec![part]).map_err(|_| {
-                self.preparation_error(
-                    &context,
-                    FailureCategory::Internal,
-                    "request.message_invalid",
-                    "The A2A request message could not be constructed.",
-                    RetryAdvice::Never,
-                )
-            })?;
-        let configuration = A2aSendConfiguration::new()
-            .with_accepted_output_modes(self.output_modes.iter().map(ToString::to_string).collect())
+        let context_id = self.context_id(
+            context.tenant_id().as_str(),
+            &context.run_id().to_string(),
+            &context.thread_id().to_string(),
+            &context.invocation_id().to_string(),
+            &context.attempt_id().to_string(),
+        );
+        let request = self
+            .request(message_id, context_id, input.value())
             .map_err(|_| {
                 self.preparation_error(
                     &context,
                     FailureCategory::Internal,
-                    "request.output_modes_invalid",
-                    "The pinned A2A output modes could not be encoded.",
+                    "request.mapping_failed",
+                    "The bounded A2A request could not be constructed.",
                     RetryAdvice::Never,
                 )
-            })?
-            .return_immediately(true);
-        let request = A2aSendMessageRequest::new(message).with_configuration(configuration);
+            })?;
         let attempt = A2aClientAttemptIdentity::new(
             context.tenant_id().clone(),
             context.run_id(),
@@ -359,6 +532,424 @@ impl A2aRemoteAgent {
             A2aRemoteAgentDelivery::MessageIdDeduplicated => context
                 .idempotency_key()
                 .map(|key| format!("stateknot-invocation-{key}")),
+        }
+    }
+
+    fn request(
+        &self,
+        message_id: String,
+        context_id: Option<String>,
+        input: &BoundedJson,
+    ) -> Result<A2aSendMessageRequest, A2aContractError> {
+        let part = A2aPart::data(input.as_value().clone())?.with_media_type("application/json")?;
+        let mut message = A2aMessage::new(message_id, A2aMessageRole::User, vec![part])?;
+        if let Some(context_id) = context_id {
+            message = message.with_context_id(context_id)?;
+        }
+        let configuration = A2aSendConfiguration::new()
+            .with_accepted_output_modes(
+                self.output_modes.iter().map(ToString::to_string).collect(),
+            )?
+            .return_immediately(true);
+        Ok(A2aSendMessageRequest::new(message).with_configuration(configuration))
+    }
+
+    fn reconciliation_message_id(&self, context: &ToolReconciliationContext) -> Option<String> {
+        match self.delivery {
+            A2aRemoteAgentDelivery::AtMostOnce => {
+                Some(format!("stateknot-attempt-{}", context.attempt_id()))
+            }
+            A2aRemoteAgentDelivery::MessageIdDeduplicated => context
+                .idempotency_key()
+                .map(|key| format!("stateknot-invocation-{key}")),
+        }
+    }
+
+    fn reconciliation_context_id(&self, context: &ToolReconciliationContext) -> Option<String> {
+        self.context_id(
+            context.tenant_id().as_str(),
+            &context.run_id().to_string(),
+            &context.thread_id().to_string(),
+            &context.invocation_id().to_string(),
+            &context.attempt_id().to_string(),
+        )
+    }
+
+    fn context_id(
+        &self,
+        tenant_id: &str,
+        run_id: &str,
+        thread_id: &str,
+        invocation_id: &str,
+        attempt_id: &str,
+    ) -> Option<String> {
+        if !matches!(
+            self.recovery.kind,
+            A2aRemoteAgentRecoveryKind::ContextTaskHistory { .. }
+        ) {
+            return None;
+        }
+        let mut material = b"stateknot.a2a.reconciliation-context.v1\0".to_vec();
+        for value in [tenant_id, run_id, thread_id, invocation_id, attempt_id] {
+            material.extend_from_slice(value.as_bytes());
+            material.push(0);
+        }
+        let identity = serde_json_canonicalizer::to_vec(self.descriptor.metadata().identity())
+            .expect("validated capability identities have a canonical JSON representation");
+        material.extend_from_slice(&identity);
+        material.push(0);
+        material.extend_from_slice(self.client.agent_card_digest().as_bytes());
+        Some(format!(
+            "stateknot-context-{}",
+            digest_bytes_hex(Digest::sha256(material).as_bytes())
+        ))
+    }
+
+    fn probe_error(
+        category: FailureCategory,
+        code: &'static str,
+        message: &'static str,
+        retry: RetryAdvice,
+    ) -> ToolReconciliationProbeError {
+        let failure = Failure::new(
+            FailureId::generate(),
+            category,
+            FailureCode::new(code).expect("A2A reconciliation failure code is valid"),
+            FailureOrigin::new("protocol.a2a.reconciliation")
+                .expect("A2A reconciliation failure origin is valid"),
+            FailureMessage::new(message)
+                .expect("A2A reconciliation public failure message is valid"),
+            retry,
+        )
+        .expect("A2A reconciliation failure semantics are coherent");
+        ToolReconciliationProbeError::new(failure)
+            .expect("A2A reconciliation retry advice is bounded and non-recursive")
+    }
+
+    fn invalid_probe_contract(
+        code: &'static str,
+        message: &'static str,
+    ) -> ToolReconciliationProbeError {
+        Self::probe_error(
+            FailureCategory::DataCorruption,
+            code,
+            message,
+            RetryAdvice::Never,
+        )
+    }
+
+    fn probe_client_error(&self, error: &A2aClientError) -> ToolReconciliationProbeError {
+        if error.authorization_error() == Some(A2aClientAuthorizationError::PermissionDenied) {
+            return Self::probe_error(
+                FailureCategory::PermissionDenied,
+                "authorization.permission_denied",
+                "A2A reconciliation authorization was denied.",
+                RetryAdvice::Never,
+            );
+        }
+        if error.kind() == A2aClientErrorKind::Remote
+            && definitive_rejection(error.remote_code()).is_some()
+        {
+            return Self::probe_error(
+                FailureCategory::Unsupported,
+                "probe.remote_operation_rejected",
+                "The A2A agent rejected the configured reconciliation operation.",
+                RetryAdvice::Never,
+            );
+        }
+        match error.kind() {
+            A2aClientErrorKind::Authorization | A2aClientErrorKind::Transport => Self::probe_error(
+                FailureCategory::DependencyUnavailable,
+                "probe.dependency_unavailable",
+                "The A2A reconciliation dependency is temporarily unavailable.",
+                RetryAdvice::SafeAfter {
+                    delay: self
+                        .recovery
+                        .retry_after()
+                        .expect("enabled reconciliation has a retry delay"),
+                },
+            ),
+            A2aClientErrorKind::Remote => Self::probe_error(
+                FailureCategory::DependencyUnavailable,
+                "probe.remote_unavailable",
+                "The A2A agent could not complete reconciliation.",
+                RetryAdvice::SafeAfter {
+                    delay: self
+                        .recovery
+                        .retry_after()
+                        .expect("enabled reconciliation has a retry delay"),
+                },
+            ),
+            A2aClientErrorKind::Request | A2aClientErrorKind::Capability => Self::probe_error(
+                FailureCategory::Unsupported,
+                "probe.operation_unsupported",
+                "The pinned A2A reconciliation operation is unavailable.",
+                RetryAdvice::Never,
+            ),
+            A2aClientErrorKind::HttpProtocol | A2aClientErrorKind::InvalidResponse => {
+                Self::invalid_probe_contract(
+                    "probe.invalid_response",
+                    "The A2A reconciliation response violated the pinned protocol contract.",
+                )
+            }
+        }
+    }
+
+    fn validate_reconciliation_input(
+        &self,
+        context: &ToolReconciliationContext,
+        input: &ToolInput,
+    ) -> Result<(), ToolReconciliationProbeError> {
+        if context.validate_for(&self.descriptor).is_err()
+            || input.schema() != self.descriptor.input_schema()
+            || u64::try_from(input.value().stats().compact_bytes()).unwrap_or(u64::MAX)
+                > self.descriptor.limits().max_input_bytes().get()
+            || self
+                .schemas
+                .validate(self.descriptor.input_schema(), input.value())
+                .is_err()
+        {
+            return Err(Self::invalid_probe_contract(
+                "probe.input_binding_invalid",
+                "The durable A2A reconciliation input violated its pinned contract.",
+            ));
+        }
+        Ok(())
+    }
+
+    fn reconciled_result(
+        &self,
+        context: &ToolReconciliationContext,
+        response: &A2aSendMessageResponse,
+    ) -> Result<ToolResult, ToolReconciliationProbeError> {
+        let value = response.to_json().map_err(|_| {
+            Self::invalid_probe_contract(
+                "probe.result_encoding_invalid",
+                "The reconciled A2A result could not be encoded safely.",
+            )
+        })?;
+        let output = BoundedJson::try_from_value(value).map_err(|_| {
+            Self::invalid_probe_contract(
+                "probe.result_limit_exceeded",
+                "The reconciled A2A result exceeded bounded JSON limits.",
+            )
+        })?;
+        self.schemas
+            .validate(self.descriptor.output_schema(), &output)
+            .map_err(|_| {
+                Self::invalid_probe_contract(
+                    "probe.result_schema_invalid",
+                    "The reconciled A2A result violated its pinned output schema.",
+                )
+            })?;
+        Ok(ToolResult::new(
+            ToolResultProvenance::new(
+                context.invocation_id(),
+                context.attempt_id(),
+                self.descriptor.metadata().identity().clone(),
+            ),
+            self.descriptor.output_schema().clone(),
+            output,
+            ToolArtifacts::empty(),
+        ))
+    }
+
+    fn matching_message_occurrences(
+        task: &A2aTask,
+        expected_message: &A2aMessage,
+    ) -> Result<usize, ToolReconciliationProbeError> {
+        let task_bound_message = expected_message
+            .clone()
+            .with_task_id(task.id().to_owned())
+            .map_err(|_| {
+                Self::invalid_probe_contract(
+                    "probe.task_binding_invalid",
+                    "The A2A reconciliation task identity could not be validated.",
+                )
+            })?;
+        let mut occurrences = 0_usize;
+        for message in task
+            .history()
+            .iter()
+            .filter(|message| message.message_id() == expected_message.message_id())
+        {
+            if message != expected_message && message != &task_bound_message {
+                return Err(Self::invalid_probe_contract(
+                    "probe.message_mismatch",
+                    "The A2A task history changed the original message payload.",
+                ));
+            }
+            occurrences += 1;
+        }
+        Ok(occurrences)
+    }
+
+    async fn reconcile_context_task_history(
+        &self,
+        context: &ToolReconciliationContext,
+        expected_message: &A2aMessage,
+        context_id: String,
+        maximum_pages: u8,
+        history_length: u16,
+        retry_after: DurationMillis,
+    ) -> Result<ToolReconciliationObservation, ToolReconciliationProbeError> {
+        let attempt = A2aClientAttemptIdentity::new(
+            context.tenant_id().clone(),
+            context.run_id(),
+            context.invocation_id(),
+            context.attempt_id(),
+        );
+        let mut page_token = None;
+        let mut seen_tasks = HashSet::new();
+        let mut matched_task: Option<A2aTask> = None;
+        for page_index in 0..maximum_pages {
+            let mut request = A2aListTasksRequest::new()
+                .with_context_id(context_id.clone())
+                .and_then(|request| request.with_page_size(A2aListTasksRequest::MAX_PAGE_SIZE))
+                .and_then(|request| request.with_history_length(u32::from(history_length)))
+                .map(|request| request.include_artifacts(true))
+                .map_err(|_| {
+                    Self::invalid_probe_contract(
+                        "probe.request_invalid",
+                        "The bounded A2A reconciliation query could not be constructed.",
+                    )
+                })?;
+            if let Some(token) = page_token.take() {
+                request = request.with_page_token(token).map_err(|_| {
+                    Self::invalid_probe_contract(
+                        "probe.cursor_invalid",
+                        "The A2A reconciliation cursor violated protocol bounds.",
+                    )
+                })?;
+            }
+            let page = self
+                .client
+                .list_tasks_with_attempt(request, attempt.clone(), self.required_scopes.clone())
+                .await
+                .map_err(|error| self.probe_client_error(&error))?;
+            for task in page.tasks() {
+                if !seen_tasks.insert(task.id().to_owned()) {
+                    return Err(Self::invalid_probe_contract(
+                        "probe.duplicate_task",
+                        "The A2A stable task snapshot repeated a task identity.",
+                    ));
+                }
+                let occurrences = Self::matching_message_occurrences(task, expected_message)?;
+                if occurrences > 1 || (occurrences == 1 && matched_task.is_some()) {
+                    return Err(Self::invalid_probe_contract(
+                        "probe.ambiguous_match",
+                        "More than one A2A task history matched the original message.",
+                    ));
+                }
+                if occurrences == 1 {
+                    matched_task = Some(task.clone());
+                }
+            }
+            page_token = page.next_page_token().map(ToOwned::to_owned);
+            if page_token.is_none() {
+                return match matched_task {
+                    Some(task) => {
+                        let response = A2aSendMessageResponse::Task(task);
+                        self.reconciled_result(context, &response)
+                            .map(ToolReconciliationObservation::Result)
+                    }
+                    None => ToolReconciliationObservation::pending(retry_after).map_err(|_| {
+                        Self::invalid_probe_contract(
+                            "probe.retry_delay_invalid",
+                            "The configured A2A reconciliation delay is invalid.",
+                        )
+                    }),
+                };
+            }
+            if page_index + 1 == maximum_pages {
+                return Err(Self::probe_error(
+                    FailureCategory::RateLimited,
+                    "probe.scan_limit_exceeded",
+                    "The A2A task snapshot exceeds the configured reconciliation scan bound.",
+                    RetryAdvice::Never,
+                ));
+            }
+        }
+        Err(Self::invalid_probe_contract(
+            "probe.scan_invariant",
+            "The bounded A2A reconciliation scan ended unexpectedly.",
+        ))
+    }
+
+    async fn reconcile_inner(
+        &self,
+        context: ToolReconciliationContext,
+        input: ToolInput,
+    ) -> Result<ToolReconciliationObservation, ToolReconciliationProbeError> {
+        self.validate_reconciliation_input(&context, &input)?;
+        let message_id = self.reconciliation_message_id(&context).ok_or_else(|| {
+            Self::invalid_probe_contract(
+                "probe.idempotency_key_missing",
+                "The original A2A message identity cannot be reconstructed.",
+            )
+        })?;
+        match self.recovery.kind {
+            A2aRemoteAgentRecoveryKind::Disabled => Err(Self::probe_error(
+                FailureCategory::Unsupported,
+                "probe.disabled",
+                "Automated A2A reconciliation is disabled.",
+                RetryAdvice::Never,
+            )),
+            A2aRemoteAgentRecoveryKind::ContextTaskHistory {
+                maximum_pages,
+                history_length,
+                retry_after,
+            } => {
+                let context_id = self.reconciliation_context_id(&context).ok_or_else(|| {
+                    Self::invalid_probe_contract(
+                        "probe.context_missing",
+                        "The opaque A2A reconciliation context cannot be reconstructed.",
+                    )
+                })?;
+                let expected_request = self
+                    .request(message_id, Some(context_id.clone()), input.value())
+                    .map_err(|_| {
+                        Self::invalid_probe_contract(
+                            "probe.request_invalid",
+                            "The original A2A message cannot be reconstructed.",
+                        )
+                    })?;
+                self.reconcile_context_task_history(
+                    &context,
+                    expected_request.message(),
+                    context_id,
+                    maximum_pages,
+                    history_length,
+                    retry_after,
+                )
+                .await
+            }
+            A2aRemoteAgentRecoveryKind::MessageIdReplay { .. } => {
+                let request = self.request(message_id, None, input.value()).map_err(|_| {
+                    Self::invalid_probe_contract(
+                        "probe.request_invalid",
+                        "The original A2A request cannot be reconstructed.",
+                    )
+                })?;
+                let attempt = A2aClientAttemptIdentity::new(
+                    context.tenant_id().clone(),
+                    context.run_id(),
+                    context.invocation_id(),
+                    context.attempt_id(),
+                );
+                let response = self
+                    .client
+                    .send_message_with_attempt(
+                        request,
+                        attempt,
+                        self.required_scopes.clone(),
+                        Arc::new(AtomicBool::new(false)),
+                    )
+                    .await
+                    .map_err(|error| self.probe_client_error(&error))?;
+                self.reconciled_result(&context, &response)
+                    .map(ToolReconciliationObservation::Result)
+            }
         }
     }
 
@@ -431,12 +1022,24 @@ impl ErasedTool for A2aRemoteAgent {
         &self.descriptor
     }
 
+    fn supports_reconciliation(&self) -> bool {
+        self.recovery.mode() != A2aRemoteAgentRecoveryMode::Disabled
+    }
+
     fn call(
         &self,
         context: ToolContext,
         input: ToolInput,
     ) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
         Box::pin(self.call_inner(context, input))
+    }
+
+    fn reconcile(
+        &self,
+        context: ToolReconciliationContext,
+        input: ToolInput,
+    ) -> BoxFuture<'_, Result<ToolReconciliationObservation, ToolReconciliationProbeError>> {
+        Box::pin(self.reconcile_inner(context, input))
     }
 }
 
@@ -447,6 +1050,7 @@ impl fmt::Debug for A2aRemoteAgent {
             .field("descriptor", &self.descriptor)
             .field("skill_id", &self.skill_id)
             .field("delivery", &self.delivery)
+            .field("recovery", &self.recovery.mode())
             .field("client", &self.client)
             .finish_non_exhaustive()
     }
@@ -456,6 +1060,7 @@ fn validate_descriptor(
     descriptor: &ToolDescriptor,
     client: &A2aClient,
     delivery: A2aRemoteAgentDelivery,
+    recovery: A2aRemoteAgentRecovery,
 ) -> Result<(), A2aRemoteAgentBuildError> {
     let semantics = descriptor.semantics();
     let valid_delivery = matches!(
@@ -473,8 +1078,14 @@ fn validate_descriptor(
     if !valid_delivery {
         return Err(A2aRemoteAgentBuildError::DeliverySemanticsMismatch);
     }
-    if semantics.supports_status_query() || semantics.supports_compensation() {
+    let recovery_enabled = recovery.mode() != A2aRemoteAgentRecoveryMode::Disabled;
+    if semantics.supports_status_query() != recovery_enabled || semantics.supports_compensation() {
         return Err(A2aRemoteAgentBuildError::RecoveryOperationsUnsupported);
+    }
+    if recovery.mode() == A2aRemoteAgentRecoveryMode::MessageIdReplay
+        && delivery != A2aRemoteAgentDelivery::MessageIdDeduplicated
+    {
+        return Err(A2aRemoteAgentBuildError::RecoveryDeliveryMismatch);
     }
     if descriptor.invocation().cancellation() != ToolCancellationSupport::Cooperative {
         return Err(A2aRemoteAgentBuildError::CancellationContractMismatch);
@@ -505,6 +1116,16 @@ fn accepts_json(value: &str) -> bool {
         (type_name == "application" && matches!(subtype, "json" | "*"))
             || (type_name == "*" && subtype == "*")
     })
+}
+
+fn digest_bytes_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut value = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        value.push(char::from(HEX[usize::from(byte >> 4)]));
+        value.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    value
 }
 
 fn definitive_rejection(
@@ -576,9 +1197,13 @@ pub enum A2aRemoteAgentBuildError {
     /// Descriptor risk/idempotency does not match the delivery assertion.
     #[error("A2A delivery assertion does not match descriptor semantics")]
     DeliverySemanticsMismatch,
-    /// This adapter does not expose a separately authorized status or compensation operation.
-    #[error("A2A remote-agent binding does not implement declared recovery operations")]
+    /// Descriptor recovery claims differ from the configured adapter policy,
+    /// or unsupported compensation was declared.
+    #[error("A2A remote-agent recovery policy does not match descriptor semantics")]
     RecoveryOperationsUnsupported,
+    /// Replay recovery requires an exact durable message-ID deduplication claim.
+    #[error("A2A message replay recovery requires message-ID-deduplicated delivery")]
+    RecoveryDeliveryMismatch,
     /// The adapter observes cancellation and requires that fact in the descriptor.
     #[error("A2A remote-agent binding requires cooperative cancellation semantics")]
     CancellationContractMismatch,
@@ -646,5 +1271,41 @@ mod tests {
         assert!(definitive_rejection(Some(a2a::error_code::INTERNAL_ERROR)).is_none());
         assert!(definitive_rejection(Some(a2a::error_code::INVALID_AGENT_RESPONSE)).is_none());
         assert!(definitive_rejection(None).is_none());
+    }
+
+    #[test]
+    fn recovery_attestations_enforce_bounded_polling_and_scan_work() {
+        assert_eq!(
+            A2aRemoteAgentRecovery::operator_attested_context_task_history(
+                0,
+                1,
+                DurationMillis::new(250).unwrap(),
+            )
+            .unwrap_err(),
+            A2aRemoteAgentRecoveryError::InvalidMaximumPages
+        );
+        assert_eq!(
+            A2aRemoteAgentRecovery::operator_attested_context_task_history(
+                1,
+                0,
+                DurationMillis::new(250).unwrap(),
+            )
+            .unwrap_err(),
+            A2aRemoteAgentRecoveryError::InvalidHistoryLength
+        );
+        assert!(matches!(
+            A2aRemoteAgentRecovery::operator_attested_message_id_replay(DurationMillis::ZERO),
+            Err(A2aRemoteAgentRecoveryError::InvalidRetryDelay { .. })
+        ));
+        assert_eq!(
+            A2aRemoteAgentRecovery::operator_attested_context_task_history(
+                2,
+                32,
+                DurationMillis::new(250).unwrap(),
+            )
+            .unwrap()
+            .mode(),
+            A2aRemoteAgentRecoveryMode::ContextTaskHistory
+        );
     }
 }

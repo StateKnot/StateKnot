@@ -91,7 +91,7 @@ const paths = [
   },
   {
     title: "Call a durable A2A agent",
-    body: "Freeze one Agent Card, interface, security choice, and local schema contract; then preserve unknown outbound outcomes without blind retries.",
+    body: "Freeze one Agent Card and local contract; then preserve unknown sends or reconcile them through an explicitly attested remote guarantee.",
     href: "/docs/a2a-client/",
     link: "Integrate the A2A Client",
   },
@@ -160,9 +160,10 @@ const paths = [
       passes 177 cases with zero failures or errors. The <a
         href="/docs/a2a-client/">A2A 1.0 Client and durable remote agent</a
       > implement all eleven dual-binding operations and preserve lost sends as PostgreSQL-backed
-      Unknown outcomes. Stable network Agent transport, MCP Tasks, a production durable
-      A2A task/push backend, Client live-peer qualification, reconciliation, gRPC,
-      and production qualification remain release blockers.
+      Unknown outcomes. They also support bounded operator-attested context/history
+      lookup and message-ID replay. Stable network Agent transport, MCP Tasks, a production
+      durable A2A task/push backend, Client live-peer and recovery-attestation qualification,
+      gRPC, and production qualification remain release blockers.
     </p>
   </aside>
 

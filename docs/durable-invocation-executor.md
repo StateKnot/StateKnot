@@ -35,6 +35,9 @@ The runtime currently provides:
   required durable stream-event sink;
 - tool execution with explicit cancellation/deadline ambiguity for write
   effects;
+- one bounded provider reconciliation probe for an exact unknown Tool attempt,
+  with finite deadlines, cooperative cancellation, validated polling advice,
+  and atomic terminal evidence commit;
 - bounded identical PostgreSQL mutation retries with exact lost-acknowledgement
   convergence;
 - retained terminal handoffs that retry persistence without repeating provider
@@ -128,6 +131,29 @@ executor therefore records:
 The durable tool ledger remains `Unknown` until application-owned
 reconciliation establishes the external outcome. The executor never calls the
 tool again merely because its local future was dropped.
+
+An `ErasedTool` may explicitly implement `supports_reconciliation` and
+`reconcile`. Startup rejects an implementation claim unless the immutable
+descriptor declares status-query support. The inverse remains legal: a
+descriptor can declare the operation while the installed binding leaves it to
+an independently authorized manual reconciler.
+
+`DurableInvocationExecutor::reconcile_tool` reloads the exact invocation before
+provider I/O and accepts only the original physical attempt. It supplies a
+`ToolReconciliationContext` containing bounded identity, the stable
+idempotency key when required, a timeout intersected with the admitted run
+deadline, and cancellation. A provider returns one of:
+
+- `Result` or known-effect `Error`: schema/provenance validated and committed
+  atomically through a stable audit event;
+- `Pending`: no invocation mutation, plus a validated 1 ms–1 hour delay for a
+  durable node retry; or
+- `ToolReconciliationProbeError`: a public-safe, non-recursive failure whose
+  retry advice is either bounded `SafeAfter` or `Never`.
+
+A terminal invocation discovered on reload returns immediately without another
+probe. An unknown-effect `Error`, recursive `ReconcileFirst`, invalid polling
+delay, identity drift, or unsupported observation fails closed.
 
 `ToolReconciliationHandoff::result` and `::error` now provide the trusted
 runtime commit boundary. They accept only evidence bound to the exact unknown
@@ -243,7 +269,10 @@ Real PostgreSQL integration coverage proves:
   versions 16 and 17; and
 - the strict A2A adapter proves an executing revision before a real loopback
   send, persists a lost response as `Unknown`, and never redispatches the same
-  invocation during recovery on PostgreSQL 16 and 17.
+  invocation during ordinary recovery on PostgreSQL 16 and 17; and
+- a provider-native Agent run persists an unknown Tool call, durably schedules
+  a pending reconciliation retry, resolves it under a later lease, completes
+  the model turn, and records exactly one business call across two probes.
 
 The boundary remains pre-alpha. First-party OpenAI Responses and Anthropic
 Messages adapters, the typed Agent contract, and durable transcript assembly in

@@ -53,7 +53,7 @@ const currentCut = [
   {
     surface: "耐久 Model/Tool Attempt",
     state: "已实现切片",
-    evidence: "精确 Provider、Durable Start、Streaming 与 Terminal Recovery",
+    evidence: "精确 Provider、Durable Start、有界 Probe 与原子 Evidence",
     href: "/zh/docs/invocations/",
   },
   {
@@ -71,7 +71,7 @@ const currentCut = [
   {
     surface: "Provider-native Agent Graph",
     state: "已实现切片",
-    evidence: "可恢复多轮 Tool、Pinned Policy 与精确 Cancellation",
+    evidence: "Unknown-to-Pending Recovery、Pinned Policy 与精确 Cancellation",
     href: "/zh/docs/provider-native-agent/",
   },
   {
@@ -107,7 +107,7 @@ const currentCut = [
   {
     surface: "A2A 1.0 Client 与 Remote Agent",
     state: "已实现切片",
-    evidence: "两种 Binding 的 11 个 Operation，加耐久 Unknown Recovery",
+    evidence: "两种 Binding 的 11 个 Operation，加两种背书型耐久 Recovery",
     href: "/zh/docs/a2a-client/",
   },
   {
@@ -183,7 +183,7 @@ const roadmap = [
     index: "11",
     state: "已实现",
     title: "构建耐久 A2A Client 边界",
-    body: "全部 11 个 Operation 现已跨 HTTP+JSON 与 JSON-RPC/SSE 运行，并固定 Discovery/Interface 与有界 Bearer/OAuth2/OpenID Security；Remote Agent Adapter 具备真实 PostgreSQL Durable-before-dispatch、Unknown 与 No-redispatch 证据。",
+    body: "全部 11 个 Operation 现已跨 HTTP+JSON 与 JSON-RPC/SSE 运行，并固定 Discovery/Interface 与有界 Security；Remote Agent 具备 PostgreSQL Unknown 证据，以及由运维方背书的 Context/History Query 与 Message-ID Replay。",
   },
   {
     index: "12",
@@ -211,7 +211,7 @@ const roadmap = [
             MCP Client/OAuth/严格 Remote Tool/Server Profile，以及 A2A 1.0
             HTTP+JSON/JSON-RPC Client/Server Profile。稳定 Network Agent
             API、A2A gRPC、MCP Tasks、高级 Graph 语义、Client Live-peer
-            Qualification 与生产 验证仍未完成。
+            Qualification、Recovery-attestation 与生产验证仍未完成。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -353,8 +353,9 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
           Server Profile 通过全部 37 个计分 Server 场景。A2A 1.0 Server 门禁有
           177 项官方 TCK Pass 且 0 Failure；Client 现已增加 11-Operation
           Dual-binding Matrix 与真实 PostgreSQL Unknown/No-redispatch
-          证明。Live-peer Qualification、Reconciliation、MCP Tasks 与更广
-          Extension 仍是独立门禁。
+          证明，并加入有界、由运维方背书的 Recovery。Live-peer 与
+          Recovery-attestation Qualification、MCP Tasks 与更广 Extension
+          仍是独立门禁。
         </p>
       </div>
 

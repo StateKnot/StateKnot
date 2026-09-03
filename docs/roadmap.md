@@ -262,10 +262,18 @@ from the repository.
   deduplication semantics. Prove all operations on both bindings through real
   loopback HTTP and prove durable-before-dispatch, lost-response `Unknown`, and
   duplicate no-redispatch through the real PostgreSQL invocation ledger.
+- [x] Implement provider-backed durable Tool reconciliation with an exact
+  original-attempt context, finite probe deadlines, bounded polling advice,
+  atomic result/error commits, and provider-native `SafeAfter` recovery. Add
+  A2A operator-attested context/task-history lookup and exact message-ID replay,
+  reject blind resend by default, preserve the existing checkpoint wire/digest,
+  prove both A2A strategies and payload-substitution rejection through loopback
+  HTTP, and separately prove one-business-call Agent Loop completion on real
+  PostgreSQL.
 - [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
-  extension, A2A Client official/live-peer qualification and reconciliation,
+  extension, A2A Client official/live-peer recovery-attestation qualification,
   A2A gRPC, role isolation, general retention,
   failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.

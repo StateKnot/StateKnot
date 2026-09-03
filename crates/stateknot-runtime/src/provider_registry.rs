@@ -193,6 +193,13 @@ impl ToolProviderRegistryBuilder {
         }
         let descriptor = provider.descriptor().clone();
         let identity = descriptor.metadata().identity().clone();
+        if provider.supports_reconciliation() && !descriptor.semantics().supports_status_query() {
+            return Err(
+                ToolProviderRegistryError::ReconciliationCapabilityMismatch {
+                    identity: Box::new(identity),
+                },
+            );
+        }
         if self.bindings.contains_key(&identity) {
             return Err(ToolProviderRegistryError::DuplicateIdentity {
                 identity: Box::new(identity),
@@ -304,6 +311,12 @@ pub enum ToolProviderRegistryError {
         /// Conflicting owner/name/version identity.
         identity: Box<CapabilityIdentity>,
     },
+    /// Descriptor status-query semantics and executable provider capability differ.
+    #[error("tool reconciliation capability differs from its descriptor declaration")]
+    ReconciliationCapabilityMismatch {
+        /// Rejected exact binding identity.
+        identity: Box<CapabilityIdentity>,
+    },
 }
 
 #[cfg(test)]
@@ -350,6 +363,10 @@ mod tests {
             &self.descriptor
         }
 
+        fn supports_reconciliation(&self) -> bool {
+            true
+        }
+
         fn call(
             &self,
             _: ToolContext,
@@ -378,6 +395,12 @@ mod tests {
         let mut descriptor = fixture["descriptors"]["valid"][0].clone();
         descriptor["metadata"]["identity"]["capability"]["name"] =
             serde_json::Value::String(name.to_owned());
+        serde_json::from_value(descriptor).unwrap()
+    }
+
+    fn tool_descriptor_without_status_query(name: &str) -> ToolDescriptor {
+        let mut descriptor = serde_json::to_value(tool_descriptor(name)).unwrap();
+        descriptor["semantics"]["status_query"] = serde_json::Value::Bool(false);
         serde_json::from_value(descriptor).unwrap()
     }
 
@@ -426,6 +449,17 @@ mod tests {
         assert!(matches!(
             registry.resolve(&alternate),
             Err(ToolProviderRegistryError::MissingBinding { .. })
+        ));
+    }
+
+    #[test]
+    fn tool_registry_rejects_undeclared_reconciliation_implementations() {
+        let mut builder = ToolProviderRegistryBuilder::new();
+        assert!(matches!(
+            builder.register(Arc::new(TestTool {
+                descriptor: tool_descriptor_without_status_query("payments.unreconciled"),
+            })),
+            Err(ToolProviderRegistryError::ReconciliationCapabilityMismatch { .. })
         ));
     }
 }

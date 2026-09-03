@@ -45,7 +45,7 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "耐久 Model/Tool 执行",
-    body: "精确不可变 Provider Registry、可信 Budget Admission、Durable-before-dispatch Attempt、Unary 与 Durably-sunk Streaming Model、Tool Ambiguity 和 No-dispatch Terminal Recovery。",
+    body: "精确不可变 Provider Registry、可信 Budget Admission、Durable-before-dispatch Attempt、Unary 与 Durably-sunk Streaming Model、Tool Ambiguity、有界 Provider Reconciliation 和 No-dispatch Terminal Recovery。",
   },
   {
     state: "已实现",
@@ -63,7 +63,7 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "Provider-native Agent Graph",
-    body: "Digest-pinned 预置多轮 Model/Tool Graph，支持串行 Tool、Provider-native Transcript Recovery、本地 Policy Evidence、精确 Accounting、No-redispatch Terminal Recovery 与两阶段 Cancellation Confirmation。",
+    body: "Digest-pinned 预置多轮 Model/Tool Graph，支持串行 Tool、Provider-native Transcript Recovery、本地 Policy Evidence、精确 Accounting、不重复 Business Call 的 Unknown-to-Pending 自动 Reconciliation 与两阶段 Cancellation Confirmation。",
   },
   {
     state: "已实现",
@@ -99,7 +99,7 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "A2A 1.0 Client 与耐久 Remote Agent",
-    body: "全部 11 个 HTTP+JSON/JSON-RPC Operation、两个有界 SSE Surface、精确 Card/Interface Pin、有界 Bearer/OAuth2/OpenID Security、本地 Schema、显式 Delivery Semantics，以及 PostgreSQL-backed Unknown/No-redispatch Recovery。",
+    body: "全部 11 个 HTTP+JSON/JSON-RPC Operation、两个有界 SSE Surface、精确 Card/Interface Pin、有界 Bearer/OAuth2/OpenID Security、本地 Schema、显式 Delivery Semantics，以及面向 PostgreSQL-backed Unknown Attempt、由运维方背书的 Context/History 或 Message-ID Recovery。",
   },
   {
     state: "已实现",
@@ -123,7 +123,7 @@ const capabilities = [
     state: "尚未发布",
     className: "status-planned",
     title: "MCP Extension 与 A2A Qualification",
-    body: "MCP Tasks 与更广 Client Extension、Stable SDK-tier 证据、A2A Client Live-peer/Conformance Qualification 与 Reconciliation，以及 A2A gRPC 尚未交付。",
+    body: "MCP Tasks 与更广 Client Extension、Stable SDK-tier 证据、A2A Client Live-peer/Conformance 与 Recovery-attestation Qualification，以及 A2A gRPC 尚未交付。",
   },
   {
     state: "尚未发布",
@@ -182,8 +182,9 @@ const capabilities = [
       Warning。A2A 1.0 Server 门禁另有 177 项官方 TCK Pass、88 项声明 Skip、0
       Failure/Error/Xfail。耐久 A2A Client 现已增加 11-Operation、Dual-binding
       Loopback Matrix，以及真实 PostgreSQL Durable-before-dispatch/Unknown/
-      No-redispatch 证据。官方 Client/Live-peer Qualification 与
-      Reconciliation、 MCP Tasks 和更广 Extension 仍是独立门禁。
+      No-redispatch 证据，并加入有界、由运维方背书的 Context/History 与
+      Message-ID Recovery。官方 Client/Live-peer 与 Recovery-attestation
+      Qualification、MCP Tasks 和更广 Extension 仍是独立门禁。
     </p>
   </section>
 

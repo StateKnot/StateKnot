@@ -16,7 +16,7 @@ use stateknot_core::{
     AttemptId, BoundedJson, BoxFuture, BudgetUsage, CancellationSignal, Digest, DurationMillis,
     ErasedTool, FailureCategory, InvocationId, ResolvedBudget, RetryAdvice, SchemaId,
     SchemaReference, TenantId, Timestamp, ToolContext, ToolDescriptor, ToolExternalEffect,
-    ToolInput, Version,
+    ToolInput, ToolReconciliationContext, ToolReconciliationObservation, Version,
 };
 use stateknot_integrations::{
     A2aAgentCapabilities, A2aAgentCard, A2aAgentCardEndpoint, A2aAgentCardTrust, A2aAgentInterface,
@@ -25,9 +25,10 @@ use stateknot_integrations::{
     A2aClientInterfacePin, A2aClientOperation, A2aClientOptions, A2aClientSecurity,
     A2aDeletePushConfigRequest, A2aGetPushConfigRequest, A2aGetTaskRequest,
     A2aListPushConfigsRequest, A2aListTasksRequest, A2aMessage, A2aMessageRole, A2aPart,
-    A2aPushConfig, A2aRemoteAgent, A2aRemoteAgentDelivery, A2aSecurityScheme,
-    A2aSendMessageRequest, A2aSendMessageResponse, A2aStreamEvent, A2aSubscribeTaskRequest,
-    A2aTaskState, ApiKey, ProviderHttpOptions, StaticA2aBearerToken, a2a_agent_card_digest,
+    A2aPushConfig, A2aRemoteAgent, A2aRemoteAgentDelivery, A2aRemoteAgentRecovery,
+    A2aSecurityScheme, A2aSendMessageRequest, A2aSendMessageResponse, A2aStreamEvent,
+    A2aSubscribeTaskRequest, A2aTaskState, ApiKey, ProviderHttpOptions, StaticA2aBearerToken,
+    a2a_agent_card_digest,
 };
 use stateknot_runtime::{JsonSchemaRegistry, JsonSchemaRegistryBuilder};
 use tokio::{
@@ -56,6 +57,9 @@ enum OperationBehavior {
     TaskBoundSuccess,
     JsonRpcNoContent,
     OperationMatrix,
+    ContextHistoryRecovery,
+    ContextHistoryPayloadMismatch,
+    DeduplicatedReplayRecovery,
 }
 
 struct TestA2aServer {
@@ -96,6 +100,8 @@ impl TestA2aServer {
         let success = successful_send_response();
         let (sender, requests) = mpsc::channel(32);
         let task = tokio::spawn(async move {
+            let mut reconciliation_message = None;
+            let mut replay_send_count = 0_u8;
             loop {
                 let Ok((mut socket, _)) = listener.accept().await else {
                     return;
@@ -241,6 +247,52 @@ impl TestA2aServer {
                             &extended_card,
                         )
                         .await;
+                    }
+                    OperationBehavior::ContextHistoryRecovery
+                    | OperationBehavior::ContextHistoryPayloadMismatch => {
+                        if target.contains("message:send") {
+                            let value: Value =
+                                serde_json::from_slice(request_body(&request)).unwrap();
+                            reconciliation_message = Some(value["message"].clone());
+                            socket.shutdown().await.unwrap();
+                            continue;
+                        }
+                        let mut message = reconciliation_message
+                            .clone()
+                            .expect("the lost send precedes reconciliation");
+                        if matches!(behavior, OperationBehavior::ContextHistoryPayloadMismatch) {
+                            message["parts"][0]["data"]["question"] =
+                                Value::String("substituted payload".to_string());
+                        }
+                        let context_id = message["contextId"].clone();
+                        let response = json!({
+                            "tasks": [{
+                                "id": "recovered-task-1",
+                                "contextId": context_id,
+                                "status": {"state": "TASK_STATE_WORKING"},
+                                "history": [message]
+                            }],
+                            "nextPageToken": "",
+                            "pageSize": 100,
+                            "totalSize": 1
+                        });
+                        write_json(&mut socket, binding, "200 OK", &response).await;
+                    }
+                    OperationBehavior::DeduplicatedReplayRecovery => {
+                        replay_send_count = replay_send_count.saturating_add(1);
+                        if replay_send_count == 1 {
+                            let value: Value =
+                                serde_json::from_slice(request_body(&request)).unwrap();
+                            reconciliation_message = Some(value["message"].clone());
+                            socket.shutdown().await.unwrap();
+                            continue;
+                        }
+                        let value: Value = serde_json::from_slice(request_body(&request)).unwrap();
+                        assert_eq!(
+                            value["message"]["messageId"],
+                            reconciliation_message.as_ref().unwrap()["messageId"]
+                        );
+                        write_json(&mut socket, binding, "200 OK", &success).await;
                     }
                 }
             }
@@ -664,6 +716,16 @@ fn descriptor(
     serde_json::from_value(value).unwrap()
 }
 
+fn reconciliation_descriptor(
+    input: &SchemaReference,
+    output: &SchemaReference,
+    delivery: A2aRemoteAgentDelivery,
+) -> ToolDescriptor {
+    let mut value = serde_json::to_value(descriptor(input, output, delivery, false)).unwrap();
+    value["semantics"]["status_query"] = Value::Bool(true);
+    serde_json::from_value(value).unwrap()
+}
+
 fn context(descriptor: &ToolDescriptor) -> ToolContext {
     let fixture: Value = serde_json::from_str(include_str!(
         "../../stateknot-core/tests/fixtures/core-budget-v1.json"
@@ -685,6 +747,24 @@ fn context(descriptor: &ToolDescriptor) -> ToolContext {
         DurationMillis::new(30_000).unwrap(),
         observed_at,
         Instant::now(),
+        CancellationSignal::never(),
+    )
+    .unwrap()
+}
+
+fn reconciliation_context(descriptor: &ToolDescriptor) -> ToolReconciliationContext {
+    let observed_at = "2029-12-31T23:59:59.000000Z".parse::<Timestamp>().unwrap();
+    ToolReconciliationContext::new(
+        TenantId::new("tenant-a2a-contract").unwrap(),
+        RUN_ID.parse().unwrap(),
+        THREAD_ID.parse().unwrap(),
+        INVOCATION_ID.parse().unwrap(),
+        ATTEMPT_ID.parse().unwrap(),
+        descriptor,
+        DurationMillis::new(30_000).unwrap(),
+        observed_at,
+        Instant::now(),
+        "2030-01-01T00:00:00.000000Z".parse().unwrap(),
         CancellationSignal::never(),
     )
     .unwrap()
@@ -830,6 +910,222 @@ async fn http_json_adapter_preserves_tenant_headers_and_attempt_message_id() {
     assert_eq!(
         body["configuration"]["acceptedOutputModes"],
         json!(["application/json"])
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn context_history_reconciliation_recovers_lost_send_without_replay() {
+    let mut server = TestA2aServer::start(
+        A2aBinding::HttpJson,
+        None,
+        false,
+        false,
+        OperationBehavior::ContextHistoryRecovery,
+    )
+    .await;
+    let client = discover(
+        &server,
+        A2aClientSecurity::Anonymous,
+        A2aClientOptions::default(),
+    )
+    .await;
+    let (registry, input_schema, output_schema) = schemas();
+    let descriptor = reconciliation_descriptor(
+        &input_schema,
+        &output_schema,
+        A2aRemoteAgentDelivery::AtMostOnce,
+    );
+    let recovery = A2aRemoteAgentRecovery::operator_attested_context_task_history(
+        2,
+        16,
+        DurationMillis::new(250).unwrap(),
+    )
+    .unwrap();
+    let adapter = A2aRemoteAgent::bind_with_recovery(
+        descriptor.clone(),
+        client,
+        "answer",
+        A2aRemoteAgentDelivery::AtMostOnce,
+        recovery,
+        registry,
+    )
+    .unwrap();
+    let input = ToolInput::new(
+        input_schema,
+        BoundedJson::try_from_value(json!({"question": "Recover without replay"})).unwrap(),
+    )
+    .unwrap();
+    let error = adapter
+        .call(context(&descriptor), input.clone())
+        .await
+        .unwrap_err();
+    assert_eq!(error.external_effect(), ToolExternalEffect::Unknown);
+    assert_eq!(error.failure().retry_advice(), RetryAdvice::ReconcileFirst);
+
+    let _discovery = server.next_request().await;
+    let lost_send = server.next_request().await;
+    let sent: Value = serde_json::from_slice(request_body(&lost_send)).unwrap();
+    let opaque_context = sent["message"]["contextId"].as_str().unwrap();
+    assert!(opaque_context.starts_with("stateknot-context-"));
+    assert!(!opaque_context.contains(RUN_ID));
+
+    let observation = adapter
+        .reconcile(reconciliation_context(&descriptor), input)
+        .await
+        .unwrap();
+    let result = match observation {
+        ToolReconciliationObservation::Result(result) => result,
+        other => panic!("expected reconciled result, got {other:?}"),
+    };
+    assert_eq!(
+        result.provenance().invocation_id().to_string(),
+        INVOCATION_ID
+    );
+    assert_eq!(result.provenance().attempt_id().to_string(), ATTEMPT_ID);
+    assert_eq!(result.output().as_value()["task"]["id"], "recovered-task-1");
+
+    let query = server.next_request().await;
+    assert_eq!(request_method(&query), "GET");
+    let target = request_target(&query);
+    assert!(target.starts_with("/a2a/tasks?"));
+    assert!(target.contains("contextId=stateknot-context-"));
+    assert!(target.contains("historyLength=16"));
+    assert!(
+        tokio::time::timeout(Duration::from_millis(100), server.requests.recv())
+            .await
+            .is_err(),
+        "context-history recovery must not send the message again"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn context_history_reconciliation_rejects_same_id_payload_substitution() {
+    let server = TestA2aServer::start(
+        A2aBinding::HttpJson,
+        None,
+        false,
+        false,
+        OperationBehavior::ContextHistoryPayloadMismatch,
+    )
+    .await;
+    let client = discover(
+        &server,
+        A2aClientSecurity::Anonymous,
+        A2aClientOptions::default(),
+    )
+    .await;
+    let (registry, input_schema, output_schema) = schemas();
+    let descriptor = reconciliation_descriptor(
+        &input_schema,
+        &output_schema,
+        A2aRemoteAgentDelivery::AtMostOnce,
+    );
+    let recovery = A2aRemoteAgentRecovery::operator_attested_context_task_history(
+        2,
+        16,
+        DurationMillis::new(250).unwrap(),
+    )
+    .unwrap();
+    let adapter = A2aRemoteAgent::bind_with_recovery(
+        descriptor.clone(),
+        client,
+        "answer",
+        A2aRemoteAgentDelivery::AtMostOnce,
+        recovery,
+        registry,
+    )
+    .unwrap();
+    let input = ToolInput::new(
+        input_schema,
+        BoundedJson::try_from_value(json!({"question": "Reject substitution"})).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        adapter
+            .call(context(&descriptor), input.clone())
+            .await
+            .unwrap_err()
+            .external_effect(),
+        ToolExternalEffect::Unknown
+    );
+
+    let error = adapter
+        .reconcile(reconciliation_context(&descriptor), input)
+        .await
+        .unwrap_err();
+    assert_eq!(error.failure().category(), FailureCategory::DataCorruption);
+    assert_eq!(error.failure().code().as_str(), "probe.message_mismatch");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn deduplicated_replay_uses_the_exact_original_message_identity() {
+    let mut server = TestA2aServer::start(
+        A2aBinding::HttpJson,
+        None,
+        false,
+        false,
+        OperationBehavior::DeduplicatedReplayRecovery,
+    )
+    .await;
+    let client = discover(
+        &server,
+        A2aClientSecurity::Anonymous,
+        A2aClientOptions::default(),
+    )
+    .await;
+    let (registry, input_schema, output_schema) = schemas();
+    let descriptor = reconciliation_descriptor(
+        &input_schema,
+        &output_schema,
+        A2aRemoteAgentDelivery::MessageIdDeduplicated,
+    );
+    let recovery = A2aRemoteAgentRecovery::operator_attested_message_id_replay(
+        DurationMillis::new(250).unwrap(),
+    )
+    .unwrap();
+    let adapter = A2aRemoteAgent::bind_with_recovery(
+        descriptor.clone(),
+        client,
+        "answer",
+        A2aRemoteAgentDelivery::MessageIdDeduplicated,
+        recovery,
+        registry,
+    )
+    .unwrap();
+    let input = ToolInput::new(
+        input_schema,
+        BoundedJson::try_from_value(json!({"question": "Replay once safely"})).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        adapter
+            .call(context(&descriptor), input.clone())
+            .await
+            .unwrap_err()
+            .external_effect(),
+        ToolExternalEffect::Unknown
+    );
+    let observation = adapter
+        .reconcile(reconciliation_context(&descriptor), input)
+        .await
+        .unwrap();
+    assert!(matches!(
+        observation,
+        ToolReconciliationObservation::Result(_)
+    ));
+
+    let _discovery = server.next_request().await;
+    let initial = server.next_request().await;
+    let replay = server.next_request().await;
+    let initial: Value = serde_json::from_slice(request_body(&initial)).unwrap();
+    let replay: Value = serde_json::from_slice(request_body(&replay)).unwrap();
+    assert_eq!(
+        initial["message"]["messageId"],
+        format!("stateknot-invocation-{INVOCATION_ID}")
+    );
+    assert_eq!(
+        replay["message"]["messageId"],
+        initial["message"]["messageId"]
     );
 }
 

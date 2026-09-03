@@ -14,6 +14,20 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Provider-neutral durable Tool reconciliation SPI with original-attempt
+  identity, finite deadline/cancellation context, bounded `Pending` polling,
+  public-safe probe failures, pre-I/O ledger reload, and atomic schema-checked
+  result/error commits that converge without repeating provider I/O.
+- Provider-native Agent automatic `Unknown` recovery through durable
+  `SafeAfter` node retries, using a deterministic reconciliation audit event
+  derived from the existing immutable Tool plan so checkpoint wire and digest
+  compatibility remain unchanged.
+- A2A operator-attested context/task-history reconciliation and exact
+  message-ID replay modes, with opaque local context correlation, bounded
+  pagination/history scans, attempt-scoped authorization, fail-closed duplicate
+  and same-ID payload-substitution detection, no blind resend, A2A loopback
+  contract tests, and separate provider-neutral PostgreSQL Agent Loop evidence
+  proving one business call across pending recovery.
 - A2A 1.0 HTTP+JSON and JSON-RPC/SSE Server profile with StateKnot-owned bounded
   Agent Card, message, task, artifact, stream, and push contracts; exact
   Host/Origin/route/version/extension enforcement; authentication before body

@@ -83,7 +83,8 @@ conformance output, and the release gates in these documents.
 19. [A2A 1.0 Client and durable remote-agent profile](a2a-client.md) — strict
     discovery, all HTTP+JSON/JSON-RPC/SSE operations, attempt-scoped
     authorization, exact delivery semantics, PostgreSQL-backed ambiguous-write
-    recovery, and production deployment gates. A
+    recovery, operator-attested context/history or deduplicated replay,
+    provider-native durable polling, and production deployment gates. A
     [Simplified Chinese edition](a2a-client.zh-CN.md) is maintained alongside it.
 20. [A2A 1.0 Server profile](a2a-server.md) — bounded StateKnot-owned contracts,
     strict HTTP+JSON/JSON-RPC/SSE boundary, authorization-first dispatch,

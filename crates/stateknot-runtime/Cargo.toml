@@ -28,6 +28,7 @@ stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
 stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
 thiserror.workspace = true
 tokio.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true

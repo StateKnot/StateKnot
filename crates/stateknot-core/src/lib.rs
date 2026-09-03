@@ -243,8 +243,12 @@ pub use tool_runtime::{
     ToolIdempotencyKey, ToolInput, ToolInputError, ToolInputValidationError, ToolOutput,
     ToolProgressError, ToolProgressEvent, ToolProgressEventValidationError, ToolProgressProvenance,
     ToolProgressReporter, ToolProgressSink, ToolProgressSinkError, ToolProgressUpdate,
-    ToolProgressUpdateError, ToolResult, ToolResultProvenance, ToolResultValidationError,
-    ToolSchemaRegistry, ToolSchemaRole, ToolSchemaValidationError, ToolStopReason,
+    ToolProgressUpdateError, ToolReconciliationContext, ToolReconciliationContextBindingError,
+    ToolReconciliationContextError, ToolReconciliationObservation,
+    ToolReconciliationObservationError, ToolReconciliationProbeError,
+    ToolReconciliationProbeErrorBuildError, ToolResult, ToolResultProvenance,
+    ToolResultValidationError, ToolSchemaRegistry, ToolSchemaRole, ToolSchemaValidationError,
+    ToolStopReason,
 };
 pub use version::{Version, VersionComponent, VersionError};
 pub use wait::{
