@@ -20,10 +20,12 @@ use sqlx_core::{
 use sqlx_postgres::{PgPool, PgPoolOptions};
 use stateknot_core::{
     AgentAdmission, AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentAdmissionIntent,
-    AgentDescriptor, AgentRequest, AgentResultProvenance, AgentSubmissionKey, AttemptId,
-    BoundedJson, BudgetLimits, BudgetUsage, CapabilityIdentity, CapabilityName,
-    CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
-    CheckpointState, CheckpointWrite, CompiledGraph, DeliveryId, DestinationId, Digest,
+    AgentDescriptor, AgentRequest, AgentResultProvenance, AgentSubmissionKey, ArtifactId,
+    ArtifactIdentity, ArtifactModality, ArtifactName, ArtifactParents, ArtifactPresentation,
+    ArtifactProvenance, ArtifactRef, ArtifactRepresentation, AttemptId, BoundedJson, BudgetLimits,
+    BudgetUsage, ByteCount, CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint,
+    CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointState, CheckpointWrite,
+    CompiledGraph, ContentMetadata, ContentSource, DeliveryId, DestinationId, Digest,
     DurationMillis, EventId, Failure, FailureCategory, FailureCode, FailureId, FailureMessage,
     FailureOrigin, GraphExecutionLimits, GraphNamespace, GraphNode, GraphReducer,
     GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
@@ -36,16 +38,17 @@ use stateknot_core::{
     NodeInvocationBinding, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
     OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead, PendingNodeResultIntent,
     PrincipalIdentity, QuarantineId, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind,
-    RetryAdvice, RunCancellationRequest, RunFailure, RunId, RunInterruptKind, RunStatus,
-    RunTimerKind, RunTransition, SchedulerReservationId, SchedulerShardId, SchemaId,
-    SchemaReference, Scope, ScopeSet, SubjectId, Superstep, TenantId, ThreadId, TimerFiringIntent,
-    TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor, ToolError,
-    ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput, ToolInvocation,
+    RetentionClass, RetryAdvice, RunCancellationRequest, RunFailure, RunId, RunInterruptKind,
+    RunStatus, RunTimerKind, RunTransition, SchedulerReservationId, SchedulerShardId, SchemaId,
+    SchemaReference, Scope, ScopeSet, SecurityLabel, SubjectId, Superstep, TenantId, ThreadId,
+    TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor,
+    ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput, ToolInvocation,
     ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
     ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
+    ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
     BarrierCommitOutcome, CheckpointCommitOutcome, CheckpointLineagePageSize,
     CorruptionQuarantineContext, DelayedRetryScheduleOutcome, GraphDefinitionRegistrationOutcome,
     GraphReplayLimits, InterruptResolutionCommitOutcome, JournalPageSize, LeaseClaimOutcome,
@@ -357,7 +360,25 @@ async fn remove_agent_submission_keys(pool: &PgPool) {
     assert_eq!(deleted, 1);
 }
 
+async fn remove_artifact_registry(pool: &PgPool) {
+    query("DROP TABLE stateknot.artifact_parents")
+        .execute(pool)
+        .await
+        .expect("v18 artifact-parent registry must be removed from the fixture");
+    query("DROP TABLE stateknot.artifacts")
+        .execute(pool)
+        .await
+        .expect("v18 artifact registry must be removed from the fixture");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 18")
+        .execute(pool)
+        .await
+        .expect("v18 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
 async fn remove_terminal_tool_result_bindings(pool: &PgPool) {
+    remove_artifact_registry(pool).await;
     for (table, revision_table) in [
         (
             "pending_node_result_tool_bindings",
@@ -2686,6 +2707,56 @@ fn provenance(tenant_id: TenantId, run_id: RunId) -> AgentResultProvenance {
 
 fn tenant(prefix: &str) -> TenantId {
     TenantId::new(format!("{prefix}-{}", RunId::generate())).unwrap()
+}
+
+fn artifact_registration(
+    tenant_id: TenantId,
+    run_id: RunId,
+    event_id: EventId,
+    artifact_id: ArtifactId,
+    parents: ArtifactParents,
+    content: &[u8],
+) -> ArtifactRegistration {
+    let owner = PrincipalIdentity::new(
+        "https://issuer.example.com/stateknot"
+            .parse::<IssuerId>()
+            .unwrap(),
+        "artifact-registry".parse::<SubjectId>().unwrap(),
+    );
+    let capability = CapabilityReference::new(
+        CapabilityName::new("artifact-producer").unwrap(),
+        Version::new(1, 0, 0),
+    );
+    let artifact = ArtifactRef::new(
+        ArtifactIdentity::new(tenant_id, artifact_id),
+        ArtifactPresentation::new(ArtifactName::new("answer.json").unwrap(), None),
+        ArtifactRepresentation::new(
+            "application/json".parse().unwrap(),
+            ArtifactModality::StructuredData,
+            ByteCount::new(u64::try_from(content.len()).unwrap()),
+            Digest::sha256(content),
+            None,
+        )
+        .unwrap(),
+        ContentMetadata::untrusted(
+            ContentSource::Artifact,
+            SecurityLabel::new("external/a2a").unwrap(),
+        ),
+        RetentionClass::new("standard").unwrap(),
+        ArtifactProvenance::new(owner, Some(capability), run_id, event_id),
+        parents,
+    )
+    .unwrap();
+    let mut key_material = b"stateknot.test.artifact-registration.v1\0".to_vec();
+    key_material.extend_from_slice(artifact_id.as_uuid().as_bytes());
+    let locator = ArtifactStorageLocator::new(
+        "integration-artifacts-v1",
+        format!("objects/{artifact_id}"),
+        Some("version-1".to_string()),
+        Some("\"etag-1\"".to_string()),
+    )
+    .unwrap();
+    ArtifactRegistration::new(Digest::sha256(key_material), artifact, locator)
 }
 
 fn scheduler_shard(prefix: &str) -> SchedulerShardId {
@@ -14732,6 +14803,166 @@ async fn migration_twelve_preserves_queue_age_and_installs_delayed_retry_guards(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn artifact_registry_is_exact_tenant_scoped_and_lineage_safe() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("artifact-registry");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_469)).await;
+    let event_id = checkpoint.event().event_id();
+    let parent_id = ArtifactId::generate();
+    let parent = artifact_registration(
+        tenant_id.clone(),
+        run_id,
+        event_id,
+        parent_id,
+        ArtifactParents::empty(),
+        br#"{"kind":"parent"}"#,
+    );
+
+    let registered = store.register_artifact(parent.clone()).await.unwrap();
+    assert!(matches!(
+        registered,
+        ArtifactRegistrationOutcome::Registered(_)
+    ));
+    assert_eq!(registered.stored().registration(), &parent);
+    let idempotent = store.register_artifact(parent.clone()).await.unwrap();
+    assert!(matches!(
+        idempotent,
+        ArtifactRegistrationOutcome::Idempotent(_)
+    ));
+    assert_eq!(idempotent.stored(), registered.stored());
+    assert_eq!(
+        store
+            .load_artifact(parent.artifact().identity())
+            .await
+            .unwrap(),
+        registered.stored().clone()
+    );
+
+    let child_id = ArtifactId::generate();
+    let child = artifact_registration(
+        tenant_id.clone(),
+        run_id,
+        event_id,
+        child_id,
+        ArtifactParents::new([parent_id]).unwrap(),
+        br#"{"kind":"child"}"#,
+    );
+    let child_registered = store.register_artifact(child.clone()).await.unwrap();
+    assert_eq!(child_registered.stored().registration(), &child);
+
+    let missing_parent = artifact_registration(
+        tenant_id.clone(),
+        run_id,
+        event_id,
+        ArtifactId::generate(),
+        ArtifactParents::new([ArtifactId::generate()]).unwrap(),
+        br#"{"kind":"orphan"}"#,
+    );
+    assert!(matches!(
+        store.register_artifact(missing_parent).await,
+        Err(StoreError::ArtifactParentNotFound)
+    ));
+
+    let missing_event = artifact_registration(
+        tenant_id.clone(),
+        run_id,
+        EventId::generate(),
+        ArtifactId::generate(),
+        ArtifactParents::empty(),
+        br#"{"kind":"unanchored"}"#,
+    );
+    assert!(matches!(
+        store.register_artifact(missing_event).await,
+        Err(StoreError::ArtifactProvenanceNotFound)
+    ));
+
+    let conflicting_identity = artifact_registration(
+        tenant_id.clone(),
+        run_id,
+        event_id,
+        parent_id,
+        ArtifactParents::empty(),
+        br#"{"kind":"substitution"}"#,
+    );
+    assert!(matches!(
+        store.register_artifact(conflicting_identity).await,
+        Err(StoreError::ArtifactRegistrationConflict)
+    ));
+
+    let reused_key_base = artifact_registration(
+        tenant_id.clone(),
+        run_id,
+        event_id,
+        ArtifactId::generate(),
+        ArtifactParents::empty(),
+        br#"{"kind":"key-reuse"}"#,
+    );
+    let reused_key = ArtifactRegistration::new(
+        parent.registration_key(),
+        reused_key_base.artifact().clone(),
+        reused_key_base.locator().clone(),
+    );
+    assert!(matches!(
+        store.register_artifact(reused_key).await,
+        Err(StoreError::ArtifactRegistrationConflict)
+    ));
+
+    let reused_locator_base = artifact_registration(
+        tenant_id.clone(),
+        run_id,
+        event_id,
+        ArtifactId::generate(),
+        ArtifactParents::empty(),
+        br#"{"kind":"locator-reuse"}"#,
+    );
+    let reused_locator = ArtifactRegistration::new(
+        reused_locator_base.registration_key(),
+        reused_locator_base.artifact().clone(),
+        parent.locator().clone(),
+    );
+    assert!(matches!(
+        store.register_artifact(reused_locator).await,
+        Err(StoreError::ArtifactRegistrationConflict)
+    ));
+
+    let other_tenant = tenant("artifact-registry-other");
+    let crossed_identity = ArtifactIdentity::new(other_tenant, parent_id);
+    assert!(matches!(
+        store.load_artifact(&crossed_identity).await,
+        Err(StoreError::ArtifactNotFound)
+    ));
+
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    query(
+        "UPDATE stateknot.artifacts \
+         SET artifact_ref_bytes = artifact_ref_bytes || convert_to(' ', 'UTF8') \
+         WHERE tenant_id = $1 AND artifact_id = $2",
+    )
+    .bind(tenant_id.as_str())
+    .bind(*parent_id.as_uuid())
+    .execute(&administration)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store.load_artifact(parent.artifact().identity()).await,
+        Err(StoreError::CorruptData { .. })
+    ));
+
+    administration.close().await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn graph_registry_is_tenant_scoped_immutable_and_fully_verified() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
@@ -16476,6 +16707,123 @@ async fn migration_seventeen_preserves_committed_bindings_and_installs_terminal_
     query(
         "ALTER TABLE stateknot.pending_node_result_tool_bindings \
          DROP CONSTRAINT pending_node_result_tool_bindings_status_valid",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_eighteen_preserves_v17_runs_and_installs_the_artifact_registry() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v18_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+
+    let current = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let tenant_id = tenant("v18-existing-run");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(
+        &current, &tenant_id, run_id, 1_800,
+    ))
+    .await;
+    let event_id = checkpoint.event().event_id();
+    current.close().await;
+
+    let fixture = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_artifact_registry(&fixture).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        17
+    );
+    assert_eq!(
+        query_scalar::<_, i64>(
+            "SELECT count(*) FROM stateknot.runs WHERE tenant_id = $1 AND run_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .fetch_one(&fixture)
+        .await
+        .unwrap(),
+        1
+    );
+    fixture.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 18 must upgrade an exact populated v17 schema");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("the upgraded v18 schema must pass exact verification");
+    upgraded.verify_schema().await.unwrap();
+    upgraded.load_run(&tenant_id, run_id).await.unwrap();
+    let registration = artifact_registration(
+        tenant_id,
+        run_id,
+        event_id,
+        ArtifactId::generate(),
+        ArtifactParents::empty(),
+        br#"{"kind":"post-upgrade"}"#,
+    );
+    assert!(matches!(
+        upgraded.register_artifact(registration).await.unwrap(),
+        ArtifactRegistrationOutcome::Registered(_)
+    ));
+
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    query(
+        "ALTER TABLE stateknot.artifacts \
+         DROP CONSTRAINT artifacts_ref_bytes_bounded",
     )
     .execute(&verification)
     .await

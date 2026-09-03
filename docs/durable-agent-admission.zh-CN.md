@@ -200,13 +200,13 @@ Canonical Digest 重算、Wire Tamper、Size Bound 与脱敏诊断。PostgreSQL 
 - Migration 15 Upgrade、Index、Constraint 与 Tamper 检查；
 - Runtime Facade 在任何数据库写入前拒绝 Agent/Graph 与 Authorization Schema Drift。
 
-仓库目前会在每个支持的数据库版本上运行 102 个 PostgreSQL Provider Case 与 27 个耐久
+仓库目前会在每个支持的数据库版本上运行 104 个 PostgreSQL Provider Case 与 29 个耐久
 Runtime Scenario。
 
 ## 下一条公开 Agent 边界
 
 Admission 与 `DurableAgentRuns` 现已提供原子 Ingress Idempotency 和完整重校验的公开
-Run/Result Read。下一切片必须继续组合 Provider-native 多轮 Model/Tool Graph、Policy
-Middleware、Cancellation Mutation、Artifact Access、类型化 Decode Ergonomics 与
-Service Transport。完成 Release Qualification 前，StateKnot 仍不会声明稳定或受生产
-支持的 Agent API。
+Run/Result Read。Provider-native Graph、AgentService Embedding Boundary、Cancellation
+Mutation 与耐久 A2A Artifact Access 已在其上实现。Stable Network Transport、类型化
+API Ergonomics 与 Release Qualification 仍未完成；在此之前，StateKnot 不会声明稳定
+或受生产支持的 Agent API。

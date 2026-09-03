@@ -48,8 +48,10 @@ pub use a2a_contract::{
     A2aSubscribeTaskRequest, A2aTask, A2aTaskPage, A2aTaskState, A2aTaskStatus,
 };
 pub use a2a_remote_agent::{
-    A2aRemoteAgent, A2aRemoteAgentBuildError, A2aRemoteAgentDelivery, A2aRemoteAgentRecovery,
-    A2aRemoteAgentRecoveryError, A2aRemoteAgentRecoveryMode, A2aSchemaRegistry,
+    A2aArtifactIngestionError, A2aArtifactIngestionErrorKind, A2aArtifactIngestionRequest,
+    A2aArtifactIngestor, A2aArtifactSource, A2aRemoteAgent, A2aRemoteAgentBuildError,
+    A2aRemoteAgentDelivery, A2aRemoteAgentRecovery, A2aRemoteAgentRecoveryError,
+    A2aRemoteAgentRecoveryMode, A2aSchemaRegistry,
 };
 pub use a2a_server::{
     A2aEventStream, A2aRequestContext, A2aServer, A2aServerAdmissionControl,

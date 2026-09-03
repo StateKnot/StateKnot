@@ -15,6 +15,8 @@
 
 #![forbid(unsafe_code)]
 
+/// Integrity-checked S3-compatible artifact persistence and resolution.
+pub use stateknot_artifact_store as artifacts;
 /// Protocol-neutral domain, graph, journal, invocation, and lifecycle contracts.
 pub use stateknot_core as core;
 /// First-party model-provider and protocol adapters.

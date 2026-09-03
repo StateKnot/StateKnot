@@ -1596,7 +1596,7 @@ impl DurableInvocationExecutor {
         observation: InvocationClockObservation,
     ) -> Result<ToolContext, ToolContextError> {
         let intent = handoff.invocation.intent();
-        if let Some(progress_sink) = &handoff.progress_sink {
+        let context = if let Some(progress_sink) = &handoff.progress_sink {
             ToolContext::new_with_progress(
                 provenance.tenant_id().clone(),
                 provenance.run_id(),
@@ -1610,7 +1610,7 @@ impl DurableInvocationExecutor {
                 observation.observed_instant,
                 handoff.cancellation.clone(),
                 Arc::clone(progress_sink),
-            )
+            )?
         } else {
             ToolContext::new(
                 provenance.tenant_id().clone(),
@@ -1624,8 +1624,11 @@ impl DurableInvocationExecutor {
                 observation.observed_at,
                 observation.observed_instant,
                 handoff.cancellation.clone(),
-            )
-        }
+            )?
+        };
+        Ok(context
+            .with_durable_origin_event(handoff.events.start())
+            .narrow_artifact_limits(intent.effective_limits()))
     }
 
     async fn prepare_tool_reconciliation_context(
@@ -1667,6 +1670,15 @@ impl DurableInvocationExecutor {
             Err(StoreError::AgentAdmissionNotFound) => fallback_deadline,
             Err(source) => return Err(source.into()),
         };
+        let recovery_handle = match invocation.state() {
+            ToolInvocationState::Unknown { error } => error.recovery_handle().cloned(),
+            _ => None,
+        };
+        let origin_event_id = invocation
+            .previous()
+            .filter(|head| head.status() == stateknot_core::ToolInvocationStatus::Executing)
+            .map(|head| head.journal_head().event_id())
+            .ok_or(ToolReconciliationAttemptExecutionError::InvocationAdvanced)?;
         let context = ToolReconciliationContext::new(
             provenance.tenant_id().clone(),
             provenance.run_id(),
@@ -1681,7 +1693,9 @@ impl DurableInvocationExecutor {
             observation.observed_instant(),
             run_deadline,
             handoff.cancellation.clone(),
-        )?;
+        )?
+        .with_durable_recovery(origin_event_id, recovery_handle)
+        .narrow_artifact_limits(intent.effective_limits());
         if let Some(reason) = context.stop_reason_at(Instant::now()) {
             return Err(ToolReconciliationAttemptExecutionError::Stopped { reason });
         }

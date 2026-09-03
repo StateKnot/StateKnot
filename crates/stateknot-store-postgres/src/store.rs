@@ -26,37 +26,38 @@ use sqlx_core::{
 use sqlx_postgres::{PgPool, PgRow, Postgres};
 use stateknot_core::{
     AgentAdmission, AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentAdmissionIntent,
-    AgentDescriptor, AgentRequest, AgentResultProvenance, AgentSubmissionKey, AttemptId,
-    BarrierResultHeads, BoundedJson, BudgetUsage, CanonicalJson, Checkpoint, CheckpointBarrier,
-    CheckpointHead, CheckpointId, CheckpointLineageVerifier, CheckpointState, CheckpointWrite,
-    CompiledGraph, DeliveryFence, DeliveryId, DestinationId, Digest, DurableTimer,
-    DurableTimerRecord, DurableWait, EventId, Failure, FencingEpoch, GraphBarrierPlanError,
-    GraphNamespace, GraphReducer, GraphReducerError, GraphReference, GraphSchemaValidationError,
-    GraphSchemaValidator, InterruptId, InterruptRecord, InterruptRequest, InterruptResolution,
-    InterruptResolutionIntent, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
-    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalPayload,
-    JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
-    ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
-    ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
-    ModelInvocationTransitionKind, NodeActivation, NodeAttempt, NodeAttemptCompletion,
-    NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart, NodeAttemptStartHead,
-    NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding, NodeInvocationBindingKind,
-    OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptHistoryVerifier, OutboxAttemptOutcome,
-    OutboxAttemptStart, OutboxDelivery, OutboxDeliveryIntent, OutboxDeliveryStatus,
-    OutboxDestinationRef, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
-    PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner,
-    ReadyNodes, RecoveryNodeKind, ResolvedBudget, RetryAdvice, RunFence, RunId, RunInterruptKind,
-    RunLease, RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTimerKind,
-    RunTransition, RunTransitionKind, RunWaits, SchedulerReservationId, SchedulerShardId,
-    Superstep, TenantId, TimerFiring, TimerFiringIntent, TimerId, Timestamp, ToolInvocation,
-    ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
-    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    AgentDescriptor, AgentRequest, AgentResultProvenance, AgentSubmissionKey, ArtifactId,
+    ArtifactIdentity, ArtifactRef, AttemptId, BarrierResultHeads, BoundedJson, BudgetUsage,
+    CanonicalJson, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
+    CheckpointLineageVerifier, CheckpointState, CheckpointWrite, CompiledGraph, DeliveryFence,
+    DeliveryId, DestinationId, Digest, DurableTimer, DurableTimerRecord, DurableWait, EventId,
+    Failure, FencingEpoch, GraphBarrierPlanError, GraphNamespace, GraphReducer, GraphReducerError,
+    GraphReference, GraphSchemaValidationError, GraphSchemaValidator, InterruptId, InterruptRecord,
+    InterruptRequest, InterruptResolution, InterruptResolutionIntent, InvocationId, JournalAppend,
+    JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent, JournalEventSource,
+    JournalHead, JournalPayload, JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation,
+    ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
+    ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
+    ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeAttempt,
+    NodeAttemptCompletion, NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart,
+    NodeAttemptStartHead, NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding,
+    NodeInvocationBindingKind, OutboxAttempt, OutboxAttemptCompletion,
+    OutboxAttemptHistoryVerifier, OutboxAttemptOutcome, OutboxAttemptStart, OutboxDelivery,
+    OutboxDeliveryIntent, OutboxDeliveryStatus, OutboxDestinationRef, PendingNodeResult,
+    PendingNodeResultError, PendingNodeResultHead, PendingNodeResultIntent, QuarantineId,
+    ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind, ResolvedBudget,
+    RetryAdvice, RunFence, RunId, RunInterruptKind, RunLease, RunLeaseValidationError,
+    RunLifecycle, RunRevision, RunStatus, RunTimerKind, RunTransition, RunTransitionKind, RunWaits,
+    SchedulerReservationId, SchedulerShardId, Superstep, TenantId, TimerFiring, TimerFiringIntent,
+    TimerId, Timestamp, ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier,
+    ToolInvocationIntent, ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
     ToolInvocationTransitionKind, WaitRegistrationIntent,
 };
 use uuid::Uuid;
 
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
+    ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
     BarrierCommitOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
     CheckpointLineagePageSize, CheckpointPointer, CorruptionQuarantineContext,
     DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor, ExpiredInterruptPage,
@@ -74,10 +75,11 @@ use crate::{
     SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
     SchedulerFairnessReservation, SchedulerFairnessRetentionPolicy,
     SchedulerFairnessRetentionReport, StoreError, StoredAgentAdmission, StoredAgentSubmission,
-    StoredGraphDefinition, StoredOutboxDestination, StoredRun, StoredSchedulerFairnessPolicy,
-    TimerFiringCommitOutcome, ToolInvocationCommitOutcome, ToolInvocationHistoryPage,
-    ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,
-    WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    StoredArtifact, StoredGraphDefinition, StoredOutboxDestination, StoredRun,
+    StoredSchedulerFairnessPolicy, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPage, ToolInvocationHistoryPageSize, WaitAbandonment,
+    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
+    WaitDiscoveryPageSize,
 };
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
@@ -205,6 +207,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             )),
             false,
         ),
+        Migration::new(
+            18,
+            Cow::Borrowed("immutable artifact registry"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0018_artifact_registry.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -216,6 +225,7 @@ const MAX_POSTGRES_VERSION_NUMBER: i32 = 179_999;
 const MAX_CHECKPOINT_BYTES: usize = 2_621_440;
 const MAX_COMPILED_GRAPH_BYTES: usize = CompiledGraph::MAX_DEFINITION_BYTES + 128;
 const MAX_AGENT_ADMISSION_BYTES: usize = 16_777_216;
+const MAX_ARTIFACT_REF_BYTES: usize = 262_144;
 const MAX_TOOL_INVOCATION_INTENT_BYTES: usize = 4_194_304;
 const MAX_TOOL_INVOCATION_RECORD_BYTES: usize = 16_777_216;
 const MAX_MODEL_INVOCATION_INTENT_BYTES: usize = 134_217_728;
@@ -256,6 +266,33 @@ const TIMER_FIRING_PROJECTION_DIGEST_DOMAIN: &[u8] =
 const WAIT_ABANDONMENT_DIGEST_DOMAIN: &[u8] = b"stateknot-postgres-wait-abandonment-v1\0";
 const WAIT_ABANDONMENT_PROJECTION_DIGEST_DOMAIN: &[u8] =
     b"stateknot-postgres-wait-abandonment-projection-v1\0";
+
+const SELECT_ARTIFACT: &str = r"
+SELECT
+    tenant_id,
+    artifact_id,
+    registration_key_digest,
+    artifact_ref_digest,
+    artifact_ref_bytes,
+    content_byte_length,
+    content_digest,
+    provenance_run_id,
+    provenance_event_id,
+    storage_namespace,
+    object_key,
+    object_version,
+    object_etag,
+    registered_at
+FROM stateknot.artifacts
+WHERE tenant_id = $1 AND artifact_id = $2
+";
+
+const SELECT_ARTIFACT_PARENTS: &str = r"
+SELECT parent_artifact_id
+FROM stateknot.artifact_parents
+WHERE tenant_id = $1 AND artifact_id = $2
+ORDER BY parent_artifact_id ASC
+";
 
 const SELECT_GRAPH_DEFINITION: &str = r"
 SELECT
@@ -381,6 +418,10 @@ WHERE reservation.reservation_id = $1
 
 const VERIFY_SCHEMA_OBJECTS: &str = r"
 SELECT to_regclass('stateknot.runs') IS NOT NULL
+   AND to_regclass('stateknot.artifacts') IS NOT NULL
+   AND to_regclass('stateknot.artifact_parents') IS NOT NULL
+   AND to_regclass('stateknot.artifacts_provenance') IS NOT NULL
+   AND to_regclass('stateknot.artifact_parents_reverse_lineage') IS NOT NULL
    AND to_regclass('stateknot.graph_definitions') IS NOT NULL
    AND to_regclass('stateknot.graph_definitions_digest_lookup') IS NOT NULL
    AND to_regclass('stateknot.agent_admissions') IS NOT NULL
@@ -425,6 +466,60 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
    AND to_regclass('stateknot.scheduler_fairness_reservations_retention') IS NOT NULL
    AND lower(pg_get_indexdef(to_regclass('stateknot.runs_scheduler_ready')))
        LIKE '%checkpoint_id is not null%'
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifacts')
+         AND conname = 'artifacts_registration_key_unique'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifacts')
+         AND conname = 'artifacts_object_locator_unique'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifacts')
+         AND conname = 'artifacts_provenance_event_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifacts')
+         AND conname = 'artifacts_digest_lengths'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifacts')
+         AND conname = 'artifacts_ref_bytes_bounded'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifacts')
+         AND conname = 'artifacts_content_length_valid'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifact_parents')
+         AND conname = 'artifact_parents_child_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifact_parents')
+         AND conname = 'artifact_parents_parent_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.artifact_parents')
+         AND conname = 'artifact_parents_not_self'
+         AND convalidated
+   )
    AND EXISTS (
        SELECT 1 FROM pg_catalog.pg_constraint
        WHERE conrelid = to_regclass('stateknot.graph_definitions')
@@ -3001,6 +3096,146 @@ impl PostgresStore {
     /// Gracefully closes the shared connection pool.
     pub async fn close(&self) {
         self.pool.close().await;
+    }
+
+    /// Idempotently registers one immutable artifact and its private object locator.
+    ///
+    /// The artifact bytes must already exist at the supplied locator. This
+    /// transaction performs no object-store I/O: it atomically binds the
+    /// canonical [`ArtifactRef`], one caller-generated idempotency digest, the
+    /// locator, the causing journal event, and every same-tenant direct parent.
+    /// Exact retries recover the original database-clock observation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ArtifactParentNotFound`] when any direct parent is
+    /// absent, [`StoreError::ArtifactRegistrationConflict`] when an identity,
+    /// idempotency key, or locator already owns different immutable evidence,
+    /// or an encoding, corruption, or database error.
+    pub async fn register_artifact(
+        &self,
+        registration: ArtifactRegistration,
+    ) -> Result<ArtifactRegistrationOutcome, StoreError> {
+        let artifact = registration.artifact();
+        let identity = artifact.identity();
+        let tenant_id = identity.tenant_id();
+        let artifact_bytes = encode_artifact_ref(artifact)?;
+        let artifact_ref_digest = Digest::sha256(&artifact_bytes);
+        let representation = artifact.representation();
+        let content_byte_length = i64::try_from(representation.byte_length().get())
+            .map_err(|_| StoreError::encoding("artifact content byte length"))?;
+        let provenance = artifact.provenance();
+        let locator = registration.locator();
+
+        let mut transaction = self.begin_mutation("artifact registration").await?;
+        let registered_at = database_now(&mut transaction, "artifact registration clock").await?;
+        let inserted = query(
+            r"
+INSERT INTO stateknot.artifacts (
+    tenant_id,
+    artifact_id,
+    registration_key_digest,
+    artifact_ref_digest,
+    artifact_ref_bytes,
+    content_byte_length,
+    content_digest,
+    provenance_run_id,
+    provenance_event_id,
+    storage_namespace,
+    object_key,
+    object_version,
+    object_etag,
+    registered_at
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+ON CONFLICT DO NOTHING
+",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*identity.artifact_id().as_uuid())
+        .bind(registration.registration_key().as_bytes())
+        .bind(artifact_ref_digest.as_bytes())
+        .bind(&artifact_bytes)
+        .bind(content_byte_length)
+        .bind(representation.digest().as_bytes())
+        .bind(*provenance.run_id().as_uuid())
+        .bind(*provenance.event_id().as_uuid())
+        .bind(locator.storage_namespace())
+        .bind(locator.object_key())
+        .bind(locator.object_version())
+        .bind(locator.object_etag())
+        .bind(to_database_time(registered_at)?)
+        .execute(&mut *transaction)
+        .await
+        .map_err(map_artifact_insert_error)?
+        .rows_affected();
+
+        if inserted == 1 {
+            for parent in artifact.parents().as_slice() {
+                let result = query(
+                    "INSERT INTO stateknot.artifact_parents (\
+                         tenant_id, artifact_id, parent_artifact_id\
+                     ) VALUES ($1, $2, $3)",
+                )
+                .bind(tenant_id.as_str())
+                .bind(*identity.artifact_id().as_uuid())
+                .bind(*parent.as_uuid())
+                .execute(&mut *transaction)
+                .await;
+                match result {
+                    Ok(_) => {}
+                    Err(source)
+                        if has_database_constraint(&source, "artifact_parents_parent_fk") =>
+                    {
+                        return Err(StoreError::ArtifactParentNotFound);
+                    }
+                    Err(source) => {
+                        return Err(StoreError::database("artifact parent insert", source));
+                    }
+                }
+            }
+        }
+
+        let stored = load_artifact_record(&mut transaction, identity)
+            .await?
+            .ok_or(StoreError::ArtifactRegistrationConflict)?;
+        if stored.registration() != &registration {
+            return Err(StoreError::ArtifactRegistrationConflict);
+        }
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("artifact registration commit", source))?;
+        Ok(if inserted == 1 {
+            ArtifactRegistrationOutcome::Registered(stored)
+        } else {
+            ArtifactRegistrationOutcome::Idempotent(stored)
+        })
+    }
+
+    /// Loads and fully verifies one tenant-qualified immutable artifact record.
+    ///
+    /// This trusted storage API returns private object coordinates. Callers
+    /// that serve artifact bytes must authorize the principal before invoking
+    /// it and must still verify the stored length and digest while streaming.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::ArtifactNotFound`] when the exact tenant-qualified
+    /// identity is absent, or a corruption/database error.
+    pub async fn load_artifact(
+        &self,
+        identity: &ArtifactIdentity,
+    ) -> Result<StoredArtifact, StoreError> {
+        let mut transaction = self.begin_repeatable_read("artifact load").await?;
+        let stored = load_artifact_record(&mut transaction, identity)
+            .await?
+            .ok_or(StoreError::ArtifactNotFound)?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("artifact load commit", source))?;
+        Ok(stored)
     }
 
     /// Idempotently registers one immutable compiled graph version.
@@ -9494,6 +9729,23 @@ struct GraphDefinitionRow {
     registered_at: DateTime<Utc>,
 }
 
+struct ArtifactRow {
+    tenant_id: String,
+    artifact_id: Uuid,
+    registration_key_digest: Vec<u8>,
+    artifact_ref_digest: Vec<u8>,
+    artifact_ref_bytes: Vec<u8>,
+    content_byte_length: i64,
+    content_digest: Vec<u8>,
+    provenance_run_id: Uuid,
+    provenance_event_id: Uuid,
+    storage_namespace: String,
+    object_key: String,
+    object_version: Option<String>,
+    object_etag: Option<String>,
+    registered_at: DateTime<Utc>,
+}
+
 struct AgentAdmissionRow {
     tenant_id: String,
     run_id: Uuid,
@@ -10058,6 +10310,27 @@ impl<'row> FromRow<'row, PgRow> for GraphDefinitionRow {
             graph_version: row.try_get("graph_version")?,
             definition_digest: row.try_get("definition_digest")?,
             definition_bytes: row.try_get("definition_bytes")?,
+            registered_at: row.try_get("registered_at")?,
+        })
+    }
+}
+
+impl<'row> FromRow<'row, PgRow> for ArtifactRow {
+    fn from_row(row: &'row PgRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            tenant_id: row.try_get("tenant_id")?,
+            artifact_id: row.try_get("artifact_id")?,
+            registration_key_digest: row.try_get("registration_key_digest")?,
+            artifact_ref_digest: row.try_get("artifact_ref_digest")?,
+            artifact_ref_bytes: row.try_get("artifact_ref_bytes")?,
+            content_byte_length: row.try_get("content_byte_length")?,
+            content_digest: row.try_get("content_digest")?,
+            provenance_run_id: row.try_get("provenance_run_id")?,
+            provenance_event_id: row.try_get("provenance_event_id")?,
+            storage_namespace: row.try_get("storage_namespace")?,
+            object_key: row.try_get("object_key")?,
+            object_version: row.try_get("object_version")?,
+            object_etag: row.try_get("object_etag")?,
             registered_at: row.try_get("registered_at")?,
         })
     }
@@ -12923,6 +13196,111 @@ fn encode_graph_definition(graph: &CompiledGraph) -> Result<Vec<u8>, StoreError>
         return Err(StoreError::encoding("compiled graph definition size"));
     }
     Ok(bytes)
+}
+
+fn encode_artifact_ref(artifact: &ArtifactRef) -> Result<Vec<u8>, StoreError> {
+    let bytes = serde_json_canonicalizer::to_vec(artifact)
+        .map_err(|_| StoreError::encoding("artifact reference"))?;
+    if !(2..=MAX_ARTIFACT_REF_BYTES).contains(&bytes.len()) {
+        return Err(StoreError::encoding("artifact reference size"));
+    }
+    Ok(bytes)
+}
+
+async fn load_artifact_record(
+    transaction: &mut Transaction<'_, Postgres>,
+    identity: &ArtifactIdentity,
+) -> Result<Option<StoredArtifact>, StoreError> {
+    let row = query_as::<_, ArtifactRow>(SELECT_ARTIFACT)
+        .bind(identity.tenant_id().as_str())
+        .bind(*identity.artifact_id().as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("artifact load", source))?;
+    let Some(row) = row else {
+        return Ok(None);
+    };
+    let stored = decode_artifact_row(row)?;
+    if stored.artifact().identity() != identity {
+        return Err(StoreError::corrupt("artifact identity projection"));
+    }
+
+    let parent_rows = query_scalar::<_, Uuid>(SELECT_ARTIFACT_PARENTS)
+        .bind(identity.tenant_id().as_str())
+        .bind(*identity.artifact_id().as_uuid())
+        .fetch_all(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("artifact parent load", source))?;
+    let mut parents = parent_rows
+        .into_iter()
+        .map(|parent| {
+            ArtifactId::from_uuid(parent)
+                .map_err(|_| StoreError::corrupt("artifact parent identifier"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    parents.sort_unstable();
+    if parents.as_slice() != stored.artifact().parents().as_slice() {
+        return Err(StoreError::corrupt("artifact parent projection"));
+    }
+    Ok(Some(stored))
+}
+
+fn decode_artifact_row(row: ArtifactRow) -> Result<StoredArtifact, StoreError> {
+    if !(2..=MAX_ARTIFACT_REF_BYTES).contains(&row.artifact_ref_bytes.len()) {
+        return Err(StoreError::corrupt("artifact reference byte length"));
+    }
+    let artifact = serde_json::from_slice::<ArtifactRef>(&row.artifact_ref_bytes)
+        .map_err(|_| StoreError::corrupt("artifact reference bytes"))?;
+    let canonical = serde_json_canonicalizer::to_vec(&artifact)
+        .map_err(|_| StoreError::corrupt("artifact reference canonicalization"))?;
+    if canonical != row.artifact_ref_bytes
+        || Digest::sha256(&canonical)
+            != decode_digest(&row.artifact_ref_digest, "artifact reference digest")?
+    {
+        return Err(StoreError::corrupt("artifact reference integrity"));
+    }
+
+    let tenant_id =
+        TenantId::try_from(row.tenant_id).map_err(|_| StoreError::corrupt("artifact tenant"))?;
+    let artifact_id = ArtifactId::from_uuid(row.artifact_id)
+        .map_err(|_| StoreError::corrupt("artifact identifier"))?;
+    let identity = ArtifactIdentity::new(tenant_id, artifact_id);
+    let representation = artifact.representation();
+    let content_byte_length = u64::try_from(row.content_byte_length)
+        .map_err(|_| StoreError::corrupt("artifact content byte length"))?;
+    let provenance = artifact.provenance();
+    if artifact.identity() != &identity
+        || representation.byte_length().get() != content_byte_length
+        || representation.digest() != decode_digest(&row.content_digest, "artifact content digest")?
+        || *provenance.run_id().as_uuid() != row.provenance_run_id
+        || *provenance.event_id().as_uuid() != row.provenance_event_id
+    {
+        return Err(StoreError::corrupt("artifact redundant projection"));
+    }
+
+    let registration_key = decode_digest(
+        &row.registration_key_digest,
+        "artifact registration key digest",
+    )?;
+    let locator = ArtifactStorageLocator::new(
+        row.storage_namespace,
+        row.object_key,
+        row.object_version,
+        row.object_etag,
+    )
+    .map_err(|_| StoreError::corrupt("artifact storage locator"))?;
+    Ok(StoredArtifact {
+        registration: ArtifactRegistration::new(registration_key, artifact, locator),
+        registered_at: from_database_time(row.registered_at)?,
+    })
+}
+
+fn map_artifact_insert_error(source: sqlx_core::Error) -> StoreError {
+    if has_database_constraint(&source, "artifacts_provenance_event_fk") {
+        StoreError::ArtifactProvenanceNotFound
+    } else {
+        StoreError::database("artifact insert", source)
+    }
 }
 
 fn decode_graph_definition(row: GraphDefinitionRow) -> Result<StoredGraphDefinition, StoreError> {

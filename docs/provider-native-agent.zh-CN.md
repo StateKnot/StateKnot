@@ -200,7 +200,7 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked
 ## 明确剩余门禁
 
 本里程碑尚未交付 Parallel Sibling/Tool Execution、Output Repair、Loop/Subgraph 语义、
-Artifact Retrieval、稳定 Network Agent/Cancellation Transport、Protocol-specific Outbox
+通用 Artifact Lifecycle/Public Delivery、稳定 Network Agent/Cancellation Transport、Protocol-specific Outbox
 Dispatch、MCP/A2A Server Composition、更广 Protocol Extension、A2A Live-peer
 Reconciliation Qualification、Live-provider Drift Cassette、数据库 Role Separation、通用
 Retention、Failover/Restore Qualification 或生产 Release。

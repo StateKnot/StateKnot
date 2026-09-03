@@ -4,6 +4,7 @@
 [workspace]
 members = [
     "crates/stateknot",
+    "crates/stateknot-artifact-store",
     "crates/stateknot-core",
     "crates/stateknot-integrations",
     "crates/stateknot-runtime",
@@ -28,6 +29,7 @@ http-body-util = "0.1.5"
 httpdate = "1.0.3"
 language-tags = "0.3.2"
 mime = "0.3.17"
+object_store = { version = "=0.14.1", default-features = false, features = ["aws"] }
 jsonschema = { version = "=0.52.1", default-features = false }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 reqwest = { version = "=0.12.28", default-features = false, features = [

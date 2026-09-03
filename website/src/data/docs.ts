@@ -172,6 +172,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "a2a 1.0 client remote agent durable outbound discovery card interface pin jsonrpc http json sse unknown reconcile",
       },
       {
+        title: "Durable artifact storage",
+        description:
+          "Materialize terminal A2A parts into immutable PostgreSQL metadata and private integrity-checked object bytes.",
+        href: "/docs/artifacts/",
+        search:
+          "artifact storage a2a task postgres s3 object integrity retrieval multipart authorization",
+      },
+      {
         title: "A2A 1.0 Server",
         description:
           "Expose bounded HTTP+JSON and JSON-RPC/SSE through identity-first policy and a durable service contract.",
@@ -377,6 +385,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/a2a-client/",
         search:
           "a2a 1.0 client remote agent 耐久 outbound discovery card interface pin jsonrpc http json sse unknown reconcile 客户端",
+      },
+      {
+        title: "耐久 Artifact Storage",
+        description:
+          "将 Terminal A2A Part 物化为不可变 PostgreSQL Metadata 与私有、经过完整性校验的 Object Bytes。",
+        href: "/docs/artifacts/",
+        search:
+          "artifact storage a2a task postgres s3 object 完整性 读取 multipart authorization 耐久",
       },
       {
         title: "A2A 1.0 Server",

@@ -283,14 +283,14 @@ const outcomes = [
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行 27 个 Runtime 场景。六个保留 Driver
+      CI 在 PostgreSQL 16 与 17 上分别运行 29 个 Runtime 场景。六个保留 Driver
       恢复覆盖：Continue 后的非初始 Replay 与 Terminal Handoff、Same-fence
       重复抑制、通过续租执行超过原始 Lease、Node 启动前刷新临近过期
       Lease、执行前隔离非法初始状态，以及 Higher-fence Takeover；其余场景覆盖
       Success/Wait/Failure/Cancellation Lifecycle 原子提交、精确 Lost-ACK
       Recovery、Agent Loop Cleanup、Tenant 与加权 Scheduling、耐久 Model/Tool
       执行、Streaming、 Provider-native 多轮 Recovery、精确 Cancellation、原子
-      Agent Admission 与耐久 Run/Result Read。每个数据库版本还会运行 102 个
+      Agent Admission 与耐久 Run/Result Read。每个数据库版本还会运行 104 个
       Provider Case。部署这个 Pre-alpha Surface 前请阅读完整的<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.zh-CN.md"
         >集成与运维契约</a

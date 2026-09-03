@@ -221,13 +221,25 @@ PostgreSQL prepared/executing revision
   -> PostgreSQL committed/failed/unknown terminal revision
 ```
 
-The adapter deliberately sets `returnImmediately: true`. A valid Task response
-therefore commits the **message submission and returned durable handle**, not a
-claim that the remote task reached a terminal A2A state. Waiting for remote
-completion requires an application-owned, separately authorized `get_task` or
-`subscribe_to_task` workflow. Recovery status queries establish only whether
-the original message submission has an authoritative Task projection; they do
-not wait for remote terminal-task completion.
+Every adapter deliberately sets `returnImmediately: true`. The standard `bind`
+and `bind_with_recovery` paths therefore project a valid Task response without
+claiming that the remote task reached a terminal A2A state; application-owned,
+separately authorized `get_task` or `subscribe_to_task` remains responsible for
+waiting.
+
+`bind_with_durable_artifacts` is the explicit durable-completion profile. It
+requires a Task response. A nonterminal Task returns `Unknown` with a
+card/interface/endpoint-bound `protocol.a2a.task` recovery handle. The provider
+then issues only directly authorized `GetTask` requests for that exact Task;
+it never resends the original business message. `Completed` ingests every
+bounded terminal part through the configured artifact sink, while terminal
+failure, cancellation, rejection, and unknown remote states remain terminal
+errors. This profile also requires the exact origin event, enabled provider
+recovery, and positive Tool artifact capacity. Its Tool output is only the
+bounded `{kind, task_id, context_id, state, artifact_count}` projection; the
+materialized values live in `ToolArtifacts`. See the
+[durable artifact storage guide](artifact-storage.md) for PostgreSQL and object
+storage invariants.
 
 Cancellation or deadline before possible dispatch is `NotStarted`. After
 dispatch may have begun, a timeout, cancellation, lost connection, invalid

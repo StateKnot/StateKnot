@@ -19,6 +19,9 @@ allow = [
   "Apache-2.0 WITH LLVM-exception",
   "BSD-2-Clause",
   "BSD-3-Clause",
+  # Root-certificate data embedded by reqwest's platform verifier. Preserve its
+  # attribution when distributing binaries or OCI images.
+  "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
   "MIT-0", # `borrow-or-share`, via the RFC 3986 parser

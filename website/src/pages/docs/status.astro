@@ -104,6 +104,12 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "Durable A2A artifact storage",
+    body: "Direct no-resend polling of accepted tasks, migration 18's immutable PostgreSQL registry, private S3-compatible conditional publication, authorization-before-lookup, and complete length plus SHA-256 verification.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "A2A 1.0 Server profile",
     body: "StateKnot-owned bounded Agent Card/message/task/artifact/push contracts behind strict HTTP+JSON and JSON-RPC/SSE policy; 177 official TCK cases pass, 88 declared cases skip, and none fail, error, or xfail.",
   },
@@ -111,7 +117,7 @@ const capabilities = [
     state: "Active work",
     className: "status-active",
     title: "Advanced execution and service boundary",
-    body: "Artifact retrieval, parallel sibling/tool ordering, output repair, loop/subgraph semantics, stable network transport, and protocol-specific outbox dispatch remain active work.",
+    body: "Parallel sibling/tool ordering, output repair, loop/subgraph semantics, stable network transport, and protocol-specific outbox dispatch remain active work.",
   },
   {
     state: "Not shipped",
@@ -182,8 +188,12 @@ const capabilities = [
       A2A Client now adds an eleven-operation, dual-binding loopback matrix and
       real PostgreSQL durable-before-dispatch/Unknown/no-redispatch evidence,
       plus bounded operator-attested context/history and message-ID recovery.
-      Official Client/live-peer and recovery-attestation qualification, MCP
-      Tasks, and broader extensions remain separate gates.
+      Durable terminal-task recovery now polls both bindings directly without a
+      business resend; migration 17→18, immutable registry, conditional object
+      publication, multipart ingestion, authorization-first reads, and full
+      digest verification all have executable PostgreSQL and object-store
+      evidence. Official Client/live-peer and recovery-attestation
+      qualification, MCP Tasks, and broader extensions remain separate gates.
     </p>
   </section>
 
@@ -237,6 +247,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/docs/a2a-client/">A2A 1.0 Client and durable remote agent</a>
+      </li>
+      <li>
+        <a href="/docs/artifacts/">Durable A2A artifact storage</a>
       </li>
       <li>
         <a href="/docs/a2a-server/">A2A 1.0 Server profile</a>

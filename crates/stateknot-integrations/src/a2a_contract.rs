@@ -330,6 +330,14 @@ impl<'a> A2aPartRef<'a> {
     pub const fn metadata(self) -> Option<&'a HashMap<String, Value>> {
         self.inner.metadata.as_ref()
     }
+
+    /// Clones this already validated part for an asynchronous ingestion job.
+    #[must_use]
+    pub fn to_owned(self) -> A2aPart {
+        A2aPart {
+            inner: self.inner.clone(),
+        }
+    }
 }
 
 /// A bounded A2A content part.
@@ -887,6 +895,29 @@ impl A2aArtifact {
     #[must_use]
     pub fn artifact_id(&self) -> &str {
         &self.inner.artifact_id
+    }
+
+    /// Returns the optional untrusted display name.
+    #[must_use]
+    pub fn name(&self) -> Option<&str> {
+        self.inner.name.as_deref()
+    }
+
+    /// Returns the optional untrusted description.
+    #[must_use]
+    pub fn description(&self) -> Option<&str> {
+        self.inner.description.as_deref()
+    }
+
+    /// Iterates allocation-free borrowed views of the artifact parts.
+    pub fn parts(&self) -> impl ExactSizeIterator<Item = A2aPartRef<'_>> {
+        self.inner.parts.iter().map(|inner| A2aPartRef { inner })
+    }
+
+    /// Returns untrusted protocol metadata.
+    #[must_use]
+    pub const fn metadata(&self) -> Option<&HashMap<String, Value>> {
+        self.inner.metadata.as_ref()
     }
 
     fn try_from_wire(inner: wire::Artifact) -> Result<Self, A2aContractError> {

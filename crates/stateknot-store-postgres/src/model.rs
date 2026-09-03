@@ -1,22 +1,297 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use std::time::Duration;
+use std::{fmt, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use stateknot_core::{
-    AgentAdmission, Checkpoint, CheckpointHead, CheckpointId, CompiledGraph, DeliveryFence, Digest,
-    DurableTimer, DurableTimerRecord, DurableWait, FencingEpoch, InterruptRecord, InterruptRequest,
-    JournalEvent, JournalExpectation, JournalHead, JournalPayload, ModelInvocation, NodeAttempt,
-    OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery,
-    OutboxDestinationRef, PendingNodeResult, PendingNodeResultHead, QuarantineId, RunFence, RunId,
-    RunLease, RunLifecycle, RunRevision, RunTransition, SchedulerReservationId, SchedulerShardId,
-    Superstep, TenantId, Timestamp, ToolInvocation,
+    AgentAdmission, ArtifactRef, Checkpoint, CheckpointHead, CheckpointId, CompiledGraph,
+    DeliveryFence, Digest, DurableTimer, DurableTimerRecord, DurableWait, FencingEpoch,
+    InterruptRecord, InterruptRequest, JournalEvent, JournalExpectation, JournalHead,
+    JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt, OutboxAttemptCompletion,
+    OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef, PendingNodeResult,
+    PendingNodeResultHead, QuarantineId, RunFence, RunId, RunLease, RunLifecycle, RunRevision,
+    RunTransition, SchedulerReservationId, SchedulerShardId, Superstep, TenantId, Timestamp,
+    ToolInvocation,
 };
 
 use crate::StoreError;
 
 const SCHEDULER_FAIRNESS_POLICY_DIGEST_DOMAIN: &[u8] = b"stateknot.scheduler-fairness-policy.v1\0";
+
+/// Private storage coordinates for one immutable artifact object.
+///
+/// This value belongs only inside trusted storage providers. It must never be
+/// serialized into an [`ArtifactRef`], returned through an Agent protocol, or
+/// accepted as authorization. `Debug` deliberately omits every coordinate.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ArtifactStorageLocator {
+    storage_namespace: Box<str>,
+    object_key: Box<str>,
+    object_version: Option<Box<str>>,
+    object_etag: Option<Box<str>>,
+}
+
+impl ArtifactStorageLocator {
+    /// Maximum byte length of a deployment-owned storage namespace.
+    pub const MAX_STORAGE_NAMESPACE_BYTES: usize = 128;
+    /// Maximum UTF-8 byte length of a provider object key.
+    pub const MAX_OBJECT_KEY_BYTES: usize = 1024;
+    /// Maximum byte length of an opaque provider object version.
+    pub const MAX_OBJECT_VERSION_BYTES: usize = 1024;
+    /// Maximum byte length of an opaque provider entity tag.
+    pub const MAX_OBJECT_ETAG_BYTES: usize = 1024;
+
+    /// Validates private, provider-neutral object coordinates.
+    ///
+    /// The namespace is a non-secret deployment identifier, not a bucket name
+    /// or endpoint. Object keys are relative and reject control characters,
+    /// backslashes, empty segments, and traversal-like segments so the same
+    /// locator remains safe across S3-compatible and in-memory backends.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError::InvalidArtifactStorageLocator`] when any value is
+    /// empty, oversized, contains a forbidden byte, or is path-like.
+    pub fn new(
+        storage_namespace: impl Into<String>,
+        object_key: impl Into<String>,
+        object_version: Option<String>,
+        object_etag: Option<String>,
+    ) -> Result<Self, StoreError> {
+        let storage_namespace = storage_namespace.into();
+        let object_key = object_key.into();
+        validate_storage_namespace(&storage_namespace)?;
+        validate_object_key(&object_key)?;
+        let object_version =
+            validate_opaque_locator_value(object_version, Self::MAX_OBJECT_VERSION_BYTES)?;
+        let object_etag = validate_opaque_locator_value(object_etag, Self::MAX_OBJECT_ETAG_BYTES)?;
+        Ok(Self {
+            storage_namespace: storage_namespace.into_boxed_str(),
+            object_key: object_key.into_boxed_str(),
+            object_version,
+            object_etag,
+        })
+    }
+
+    /// Returns the deployment-owned storage namespace.
+    #[must_use]
+    pub fn storage_namespace(&self) -> &str {
+        &self.storage_namespace
+    }
+
+    /// Returns the private relative object key.
+    #[must_use]
+    pub fn object_key(&self) -> &str {
+        &self.object_key
+    }
+
+    /// Returns the optional immutable provider version identifier.
+    #[must_use]
+    pub fn object_version(&self) -> Option<&str> {
+        self.object_version.as_deref()
+    }
+
+    /// Returns the optional provider entity tag captured after upload.
+    #[must_use]
+    pub fn object_etag(&self) -> Option<&str> {
+        self.object_etag.as_deref()
+    }
+}
+
+impl fmt::Debug for ArtifactStorageLocator {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ArtifactStorageLocator")
+            .field("coordinates", &"<redacted>")
+            .field("has_object_version", &self.object_version.is_some())
+            .field("has_object_etag", &self.object_etag.is_some())
+            .finish_non_exhaustive()
+    }
+}
+
+/// Exact immutable input for one idempotent artifact registration.
+#[derive(Clone, Eq, PartialEq)]
+pub struct ArtifactRegistration {
+    registration_key: Digest,
+    artifact: ArtifactRef,
+    locator: ArtifactStorageLocator,
+}
+
+impl ArtifactRegistration {
+    /// Constructs an exact registry write intent.
+    #[must_use]
+    pub const fn new(
+        registration_key: Digest,
+        artifact: ArtifactRef,
+        locator: ArtifactStorageLocator,
+    ) -> Self {
+        Self {
+            registration_key,
+            artifact,
+            locator,
+        }
+    }
+
+    /// Returns the caller's domain-separated idempotency digest.
+    #[must_use]
+    pub const fn registration_key(&self) -> Digest {
+        self.registration_key
+    }
+
+    /// Returns the public immutable artifact metadata.
+    #[must_use]
+    pub const fn artifact(&self) -> &ArtifactRef {
+        &self.artifact
+    }
+
+    /// Returns private object coordinates for the trusted provider.
+    #[must_use]
+    pub const fn locator(&self) -> &ArtifactStorageLocator {
+        &self.locator
+    }
+}
+
+impl fmt::Debug for ArtifactRegistration {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ArtifactRegistration")
+            .field("identity", self.artifact.identity())
+            .field("locator", &self.locator)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Fully verified immutable artifact registry record.
+#[derive(Clone, Eq, PartialEq)]
+pub struct StoredArtifact {
+    pub(crate) registration: ArtifactRegistration,
+    pub(crate) registered_at: Timestamp,
+}
+
+impl StoredArtifact {
+    /// Constructs a verified registry result for a custom registry provider.
+    ///
+    /// Custom implementations are responsible for returning this value only
+    /// after enforcing the same immutable, tenant, lineage, and idempotency
+    /// guarantees as `PostgresStore`.
+    #[must_use]
+    pub const fn new(registration: ArtifactRegistration, registered_at: Timestamp) -> Self {
+        Self {
+            registration,
+            registered_at,
+        }
+    }
+
+    /// Returns the exact immutable registration.
+    #[must_use]
+    pub const fn registration(&self) -> &ArtifactRegistration {
+        &self.registration
+    }
+
+    /// Returns the public artifact reference.
+    #[must_use]
+    pub const fn artifact(&self) -> &ArtifactRef {
+        self.registration.artifact()
+    }
+
+    /// Returns private object coordinates for the trusted provider.
+    #[must_use]
+    pub const fn locator(&self) -> &ArtifactStorageLocator {
+        self.registration.locator()
+    }
+
+    /// Returns the database-clock registration observation.
+    #[must_use]
+    pub const fn registered_at(&self) -> Timestamp {
+        self.registered_at
+    }
+}
+
+impl fmt::Debug for StoredArtifact {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("StoredArtifact")
+            .field("identity", self.artifact().identity())
+            .field("registered_at", &self.registered_at)
+            .field("locator", self.locator())
+            .finish_non_exhaustive()
+    }
+}
+
+/// Result of idempotently registering one immutable artifact and its locator.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ArtifactRegistrationOutcome {
+    /// A new registry record committed.
+    Registered(StoredArtifact),
+    /// The exact record was already committed by an earlier attempt.
+    Idempotent(StoredArtifact),
+}
+
+impl ArtifactRegistrationOutcome {
+    /// Returns the fully verified durable record.
+    #[must_use]
+    pub const fn stored(&self) -> &StoredArtifact {
+        match self {
+            Self::Registered(stored) | Self::Idempotent(stored) => stored,
+        }
+    }
+}
+
+fn validate_storage_namespace(value: &str) -> Result<(), StoreError> {
+    if value.is_empty()
+        || value.len() > ArtifactStorageLocator::MAX_STORAGE_NAMESPACE_BYTES
+        || value == "."
+        || value == ".."
+        || !value.as_bytes()[0].is_ascii_alphanumeric()
+        || value
+            .bytes()
+            .any(|byte| !byte.is_ascii_alphanumeric() && !matches!(byte, b'.' | b'_' | b':' | b'-'))
+    {
+        return Err(StoreError::InvalidArtifactStorageLocator);
+    }
+    Ok(())
+}
+
+fn validate_object_key(value: &str) -> Result<(), StoreError> {
+    if value.is_empty()
+        || value.len() > ArtifactStorageLocator::MAX_OBJECT_KEY_BYTES
+        || value.starts_with('/')
+        || value.ends_with('/')
+        || value.chars().any(|character| {
+            character == '\\'
+                || character.is_control()
+                || matches!(character, '\u{FDD0}'..='\u{FDEF}')
+                || (character as u32 & 0xFFFE) == 0xFFFE
+        })
+        || value
+            .split('/')
+            .any(|segment| segment.is_empty() || matches!(segment, "." | ".."))
+    {
+        return Err(StoreError::InvalidArtifactStorageLocator);
+    }
+    Ok(())
+}
+
+fn validate_opaque_locator_value(
+    value: Option<String>,
+    maximum_bytes: usize,
+) -> Result<Option<Box<str>>, StoreError> {
+    value
+        .map(|value| {
+            if value.is_empty()
+                || value.len() > maximum_bytes
+                || !value
+                    .bytes()
+                    .all(|byte| byte.is_ascii_graphic() || byte == b' ')
+            {
+                return Err(StoreError::InvalidArtifactStorageLocator);
+            }
+            Ok(value.into_boxed_str())
+        })
+        .transpose()
+}
 
 /// Immutable canonical policy bytes registered for one scheduler shard.
 ///

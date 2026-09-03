@@ -180,7 +180,7 @@ PostgreSQL 16/17 Matrix 覆盖：带既有数据的 Migration 15→16 Upgrade、
 Failed 与已确认 Cancelled Outcome；测试会按 Run 与 Key 重新加载，重校验 Output 与
 Provenance，并拒绝不可能、字段不完整或 Failure Kind 错配的 Public Wire Snapshot。
 
-当前仓库在每个受支持数据库版本包含 102 个 PostgreSQL Provider Scenario 与 27 个
+当前仓库在每个受支持数据库版本包含 104 个 PostgreSQL Provider Scenario 与 29 个
 耐久 Runtime PostgreSQL Scenario。这些是实现事实，不代表生产支持声明；Release
 Qualification、HTTP/SSE Service Role、已发布 Crate、通用 Retention 与兼容性保证仍在
 v1 之前完成。

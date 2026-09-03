@@ -241,3 +241,9 @@ jobs:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
         run: cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1
+
+      - name: Run durable artifact storage integration tests
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: cargo test -p stateknot-artifact-store --test artifact_store --locked -- --test-threads=1

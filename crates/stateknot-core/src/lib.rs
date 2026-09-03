@@ -246,9 +246,9 @@ pub use tool_runtime::{
     ToolProgressUpdateError, ToolReconciliationContext, ToolReconciliationContextBindingError,
     ToolReconciliationContextError, ToolReconciliationObservation,
     ToolReconciliationObservationError, ToolReconciliationProbeError,
-    ToolReconciliationProbeErrorBuildError, ToolResult, ToolResultProvenance,
-    ToolResultValidationError, ToolSchemaRegistry, ToolSchemaRole, ToolSchemaValidationError,
-    ToolStopReason,
+    ToolReconciliationProbeErrorBuildError, ToolRecoveryHandle, ToolRecoveryHandleError,
+    ToolResult, ToolResultProvenance, ToolResultValidationError, ToolSchemaRegistry,
+    ToolSchemaRole, ToolSchemaValidationError, ToolStopReason,
 };
 pub use version::{Version, VersionComponent, VersionError};
 pub use wait::{

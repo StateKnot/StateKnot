@@ -86,6 +86,21 @@ pub enum StoreError {
     /// Migration metadata exists but required schema objects are missing.
     #[error("StateKnot PostgreSQL schema objects are incomplete")]
     IncompleteSchema,
+    /// Private artifact object coordinates violated the portable storage contract.
+    #[error("artifact storage locator is invalid")]
+    InvalidArtifactStorageLocator,
+    /// No immutable artifact exists inside the supplied tenant boundary.
+    #[error("artifact was not found in the tenant registry")]
+    ArtifactNotFound,
+    /// An artifact identity, idempotency key, or object locator already owns another record.
+    #[error("artifact registration conflicts with durable registry evidence")]
+    ArtifactRegistrationConflict,
+    /// A direct artifact parent does not already exist in the same tenant.
+    #[error("artifact parent was not found in the tenant registry")]
+    ArtifactParentNotFound,
+    /// The artifact's causing run event does not exist in the same tenant.
+    #[error("artifact provenance event was not found in the tenant journal")]
+    ArtifactProvenanceNotFound,
     /// No exact compiled graph exists inside the supplied tenant registry.
     #[error("compiled graph definition was not found in the tenant registry")]
     GraphDefinitionNotFound,

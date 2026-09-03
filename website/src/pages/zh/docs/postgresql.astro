@@ -148,6 +148,24 @@ store.health_check().await?;</code></pre>
     </p>
   </section>
 
+  <section aria-labelledby="artifact-registry-title">
+    <h2 id="artifact-registry-title">把 Artifact 注册为不可变 Evidence</h2>
+    <p>
+      Migration 18 增加 Tenant-qualified <code>artifacts</code> 与 <code
+        >artifact_parents</code
+      >。每条记录会绑定 Canonical Reference Bytes/Digest、Content
+      Length/Digest、 Origin Run/Event、Same-tenant Lineage、Idempotency Key
+      与私有、Provider-neutral Locator。Exact Retry 会收敛；Changed Metadata
+      会产生 Conflict，每次 Load 都会重新校验完整 Projection。
+    </p>
+    <p>
+      Object I/O 位于 Registry Transaction 之外。<a href="/zh/docs/artifacts/"
+        >耐久 Artifact 指南</a
+      >定义私有 Conditional Publication、Authorization-before-lookup、完整
+      Integrity Verification、Egress Policy 与 Cleanup 责任。
+    </p>
+  </section>
+
   <section aria-labelledby="permissions-title">
     <h2 id="permissions-title">分离数据库角色</h2>
     <p>
@@ -168,17 +186,21 @@ store.health_check().await?;</code></pre>
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证范围与当前限制</h2>
     <p>
-      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 102 个
-      Provider Case 与 27 个耐久 Runtime 场景，覆盖迁移、Lost
-      ACK、Fencing、损坏拒绝、并发、Rollback Injection、Outbox Recovery、Durable
-      Wait、Quarantine、不可变 Graph Registration/Recovery、Ready-node Planning
-      与延迟重试调度、Lifecycle Commit、耐久 Model/Tool 执行、Fairness
-      Reservation / Retention、原子 Agent Admission、耐久 Ingress-key/Run-result
-      校验和加权 Cross-tenant Agent Loop 执行。
+      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 104 个
+      Provider Case、29 个耐久 Runtime 场景与 5 个 Artifact-store
+      Case，覆盖迁移、Lost ACK、Fencing、损坏拒绝、并发、Rollback
+      Injection、Outbox Recovery、Durable Wait、Quarantine、不可变 Graph
+      Registration/Recovery、Ready-node Planning 与延迟重试调度、Lifecycle
+      Commit、耐久 Model/Tool 执行、Fairness Reservation / Retention、原子 Agent
+      Admission、耐久 Ingress-key/Run-result 校验和加权 Cross-tenant Agent Loop
+      执行。Artifact Evidence 还覆盖已填充的 Migration 17→18、Schema
+      Refusal、不可变 Registration、私有 Object Publication、
+      Authorization-first Lookup、Multipart Ingestion 与完整 Digest 校验。
     </p>
     <p>
       正式生产发布仍需要角色隔离、通用 Retention/GC、Failover/PITR
-      恢复演练、Stale-race 验证与稳定 Provider-native Agent 组合。
+      恢复演练、Stale-race 验证、Role-separated Service Deployment 与
+      Live-workload Qualification。
     </p>
   </section>
 </DocsLayout>

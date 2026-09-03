@@ -249,7 +249,7 @@ commit.
 
 ## Qualification evidence and remaining gates
 
-Twenty-seven runtime integration scenarios run against both PostgreSQL 16 and
+Twenty-nine runtime integration scenarios run against both PostgreSQL 16 and
 17. They cover lifecycle success/Wait/failure/cancellation atomicity and exact
 lost-ack replay, database-time Wait materialization, Agent Loop success and
 evidence failure, tenant and weighted cross-tenant scheduling, durable
@@ -263,9 +263,9 @@ Atomic admission, the public run/result facade, and the provider-native graph
 with transcript recovery, policy evidence, exact accounting, and cancellation
 confirmation are implemented. AgentService v1 now supplies the embedding
 cancellation ingress, and one strict MCP client-side Remote Tool binding exists.
-The remaining release blockers include stable network transport, artifact
-retrieval, parallel sibling policy, loop/subgraph semantics, the combined
-PostgreSQL-backed MCP recovery proof and official conformance report,
+The remaining release blockers include stable network transport, general
+artifact lifecycle/public delivery, parallel sibling policy, loop/subgraph
+semantics, live-peer protocol qualification,
 protocol-specific outbox dispatch, role-separated database procedures, general
 retention, backup/restore, failover, stale-race qualification, observability,
 and release hardening.

@@ -160,7 +160,7 @@ and no-dispatch terminal recovery.
 Migration 14 and `DurableFairScheduler` add an immutable shard-scoped smooth
 weighted policy, globally ordered lost-ACK-safe reservations, exact cycle
 shares, explicit reservation-count starvation bounds, and bounded
-database-time retention. Twenty-seven runtime scenarios and 102 provider cases are
+database-time retention. Twenty-nine runtime scenarios and 104 provider cases are
 mandatory on both PostgreSQL 16 and 17.
 The repository now also includes a schema-pinned typed Agent contract plus
 first-party OpenAI Responses and Anthropic Messages unary/SSE adapters with
@@ -240,6 +240,17 @@ turn converts `Pending` into a durable delayed retry and commits authoritative
 evidence without repeating the business call. Official Client conformance,
 live-peer recovery qualification, gRPC, and a production durable server-side
 task/push backend remain separate gates.
+The durable A2A artifact path now accepts a returned Task handle, polls that
+exact endpoint-bound task directly without resending the business message, and
+materializes terminal parts outside Tool JSON. PostgreSQL migration 18 stores
+immutable tenant-qualified references, origin-event provenance, lineage, and a
+private object locator. `stateknot-artifact-store` publishes bytes to a private
+S3-compatible backend through staging plus conditional final creation, probes
+the backend contract at startup, authorizes before registry lookup, and verifies
+the complete length and SHA-256 digest before registration and every read.
+Loopback tests cover both A2A bindings; object-store tests cover retries,
+tampering, egress policy, redirects, multipart ingestion, and a real PostgreSQL
+registry boundary.
 The strict MCP adapter is also composed with the durable invocation executor
 in a real PostgreSQL + loopback test: durable start is observed before request
 I/O, lost write responses remain unknown, duplicate execution never
@@ -248,7 +259,7 @@ fenced, atomic, and exactly idempotent on PostgreSQL 16 and 17. The runtime
 PostgreSQL suite separately proves the authoritative error branch.
 Stable network Agent/cancellation transport, production protocol-specific
 outbox dispatch adapters, A2A Client live-peer/conformance and reconciliation
-attestation qualification, A2A gRPC, artifact retrieval, parallel
+attestation qualification, A2A gRPC, parallel
 siblings/Tools, output repair, loops/subgraphs, role isolation, general
 retention, failover, restore, and the final stale-race gates have not shipped
 yet.
@@ -283,6 +294,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [MCP Server profile](docs/mcp-server.md),
 [MCP conformance status](docs/mcp-conformance.md),
 [A2A 1.0 Client and durable remote-agent profile](docs/a2a-client.md),
+[durable artifact storage](docs/artifact-storage.md),
 [A2A 1.0 Server profile](docs/a2a-server.md),
 [A2A 1.0 conformance status](docs/a2a-conformance.md),
 [durable invocation](docs/durable-invocation-executor.md),
@@ -294,6 +306,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
+crates/stateknot-artifact-store/  Private object publication, immutable artifact registration, and authorized verified reads
 crates/stateknot-integrations/  OpenAI/Anthropic adapters plus bounded MCP and A2A protocol profiles
 crates/stateknot-runtime/  AgentService v1, executable/provider registries, durable Driver, invocation executor, Agent Loop, and fair scheduler
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice

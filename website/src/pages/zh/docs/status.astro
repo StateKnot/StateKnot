@@ -104,6 +104,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "耐久 A2A Artifact Storage",
+    body: "直接且 No-resend 地轮询已接纳 Task、Migration 18 不可变 PostgreSQL Registry、私有 S3-compatible Conditional Publication、Authorization-before-lookup，以及完整 Length/SHA-256 校验。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "A2A 1.0 Server Profile",
     body: "StateKnot-owned 有界 Agent Card/Message/Task/Artifact/Push 合约位于严格 HTTP+JSON 与 JSON-RPC/SSE Policy 后；官方 TCK 177 Pass、88 声明 Skip、0 Failure/Error/Xfail。",
   },
@@ -111,7 +117,7 @@ const capabilities = [
     state: "开发中",
     className: "status-active",
     title: "高级执行与 Service Boundary",
-    body: "Artifact Retrieval、Parallel Sibling/Tool Ordering、Output Repair、Loop/Subgraph 语义、稳定 Network Transport 与 Protocol-specific Outbox Dispatch 仍在开发中。",
+    body: "Parallel Sibling/Tool Ordering、Output Repair、Loop/Subgraph 语义、稳定 Network Transport 与 Protocol-specific Outbox Dispatch 仍在开发中。",
   },
   {
     state: "尚未发布",
@@ -183,8 +189,13 @@ const capabilities = [
       Failure/Error/Xfail。耐久 A2A Client 现已增加 11-Operation、Dual-binding
       Loopback Matrix，以及真实 PostgreSQL Durable-before-dispatch/Unknown/
       No-redispatch 证据，并加入有界、由运维方背书的 Context/History 与
-      Message-ID Recovery。官方 Client/Live-peer 与 Recovery-attestation
-      Qualification、MCP Tasks 和更广 Extension 仍是独立门禁。
+      Message-ID Recovery。耐久 Terminal-task Recovery 现在能对两种 Binding
+      直接轮询且不重发业务 Message；Migration 17→18、不可变
+      Registry、Conditional Object Publication、Multipart
+      Ingestion、Authorization-first Read 与完整 Digest 校验都具备可执行
+      PostgreSQL/Object-store 证据。官方 Client/Live-peer 与
+      Recovery-attestation Qualification、MCP Tasks 和更广 Extension
+      仍是独立门禁。
     </p>
   </section>
 
@@ -238,6 +249,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/zh/docs/a2a-client/">A2A 1.0 Client 与耐久 Remote Agent</a>
+      </li>
+      <li>
+        <a href="/zh/docs/artifacts/">耐久 A2A Artifact Storage</a>
       </li>
       <li>
         <a href="/zh/docs/a2a-server/">A2A 1.0 Server Profile</a>

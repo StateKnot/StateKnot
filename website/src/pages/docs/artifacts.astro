@@ -1,0 +1,217 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  title="Persist A2A artifacts as verifiable facts."
+  description="Configure StateKnot's immutable PostgreSQL artifact registry, private S3-compatible bytes, direct task polling, authorization-first reads, and integrity verification."
+  section="Durable artifact storage"
+>
+  <aside class="docs-callout" aria-labelledby="artifact-boundary-title">
+    <h2 id="artifact-boundary-title">Implemented pre-alpha boundary</h2>
+    <p>
+      Terminal A2A task parts can now become tenant-qualified <code
+        >ArtifactRef</code
+      > values instead of inline Tool JSON. Migration 18 stores immutable metadata;
+      a private S3-compatible backend stores bytes. The API remains unstable, and
+      general retention, registry-aware orphan collection, public downloads, signed
+      artifacts, and live-provider qualification are not shipped.
+    </p>
+  </aside>
+
+  <section aria-labelledby="artifact-flow-title">
+    <h2 id="artifact-flow-title">Follow one evidence chain</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Durable A2A completion</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="artifact-flow-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="artifact-flow-code"
+        tabindex="0"><code>Executing event → one A2A send → task recovery handle
+  → direct GetTask polling (no business resend)
+  → bounded terminal parts → unique staging object
+  → conditional-create final object → length + SHA-256 verification
+  → immutable PostgreSQL registration → authorized verified read</code></pre>
+    </div>
+    <p>
+      The final key is deterministic for the exact tenant, run, logical
+      invocation, physical attempt, origin event, Tool, remote identities, and
+      part position. Exact retries converge. An existing object with different
+      bytes is an integrity failure, never an overwrite opportunity.
+    </p>
+  </section>
+
+  <section aria-labelledby="artifact-invariants-title">
+    <h2 id="artifact-invariants-title">
+      Keep metadata, bytes, and authority separate
+    </h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>Private bytes</dt>
+        <dd>
+          Startup performs a real put, conditional copy, read, repeated-copy
+          rejection, and delete probe. A backend that cannot prove immutable
+          final publication is rejected before traffic.
+        </dd>
+      </div>
+      <div>
+        <dt>Immutable registry</dt>
+        <dd>
+          PostgreSQL binds canonical reference bytes and digest, content length
+          and digest, origin run/event, same-tenant parents, idempotency key,
+          and a private locator. Object I/O never runs inside its transaction.
+        </dd>
+      </div>
+      <div>
+        <dt>Authorization first</dt>
+        <dd>
+          The exact principal and tenant-qualified identity are authorized
+          before registry lookup, preventing existence or locator disclosure.
+        </dd>
+      </div>
+      <div>
+        <dt>Verified resolution</dt>
+        <dd>
+          Captured version/ETag preconditions are applied when available.
+          Complete length and SHA-256 verification finishes before any byte is
+          returned.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="artifact-config-title">
+    <h2 id="artifact-config-title">
+      Build and probe the exact production backend
+    </h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · current pre-alpha API</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="artifact-config-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="artifact-config-code"
+        tabindex="0"><code>let objects = S3CompatibleBackendBuilder::from_env(bucket, region)?
+    .with_https_endpoint(endpoint)?
+    .with_conditional_copy(S3ConditionalCopy::AmazonMultipart)
+    .with_sha256_checksum()
+    .with_kms_key_id(kms_key)?
+    .build()?;
+
+let artifacts = Arc::new(StateKnotArtifactStore::initialize(
+    objects,
+    Arc::new(postgres_store.clone()),
+    Arc::new(read_authorizer),
+    "production-artifacts-v1",
+    options,
+).await?);
+
+let remote = A2aRemoteAgent::bind_with_durable_artifacts(
+    descriptor, client, "answer", delivery, recovery, schemas, artifacts,
+)?;</code></pre>
+    </div>
+    <p>
+      AWS S3 uses the multipart conditional-copy strategy. Other compatible
+      providers may require a documented destination-precondition header and
+      status. Test the exact endpoint, bucket policy, encryption policy, and
+      workload identity; do not infer atomic behavior from an S3-compatible
+      label.
+    </p>
+    <p>
+      <code>from_env</code> imports only credential-selection variables. Environment
+      endpoints, HTTP enablement, metadata overrides, unsigned requests, retry behavior,
+      bucket/region selection, and encryption settings cannot bypass this builder.
+      Configure a non-default web-identity STS endpoint explicitly through <code
+        >with_https_sts_endpoint</code
+      >.
+    </p>
+  </section>
+
+  <section aria-labelledby="artifact-egress-title">
+    <h2 id="artifact-egress-title">
+      Treat URL parts as a separate egress boundary
+    </h2>
+    <ul>
+      <li>Allow only exact production HTTPS origins with explicit IP pins.</li>
+      <li>
+        Revalidate every redirect hop; reject URL credentials and fragments.
+      </li>
+      <li>
+        Disable environment proxies, implicit retries, cookies, automatic
+        redirects, and transparent content decoding.
+      </li>
+      <li>
+        Require identity encoding, consistent media types, and bounded declared
+        and observed lengths.
+      </li>
+    </ul>
+    <p>
+      Literal loopback HTTP is reserved for tests or a managed same-host
+      sidecar. Tool limits further bound artifact count, total bytes, each part,
+      and the completion projection.
+    </p>
+  </section>
+
+  <section aria-labelledby="artifact-limits-title">
+    <h2 id="artifact-limits-title">
+      Bound resources and operate cleanup explicitly
+    </h2>
+    <div class="docs-table-wrap" tabindex="0">
+      <table>
+        <thead>
+          <tr><th>Limit</th><th>Default</th><th>Hard ceiling</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Object operation</td><td>60 s</td><td>10 min</td></tr>
+          <tr><td>Complete remote request</td><td>120 s</td><td>10 min</td></tr>
+          <tr><td>Multipart part</td><td>8 MiB</td><td>5–64 MiB</td></tr>
+          <tr
+            ><td>Remote object / resolved read</td><td>64 MiB</td><td>1 GiB</td
+            ></tr
+          >
+          <tr><td>Redirects</td><td>3</td><td>3</td></tr>
+          <tr><td>Concurrent operations</td><td>8</td><td>256</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      One process-local permit covers each complete ingest or materialized-read
+      path. Configure lifecycle rules for abandoned multipart uploads and <code
+        >stateknot/staging/v1/</code
+      >. Alert whenever <code>staging_cleanup_failures()</code> increases. Never apply
+      a blind age rule to final objects: until registry-aware collection ships, reconcile
+      suspected orphans against PostgreSQL before deletion.
+    </p>
+  </section>
+
+  <section aria-labelledby="artifact-proof-title">
+    <h2 id="artifact-proof-title">Know what the evidence proves</h2>
+    <p>
+      Tests cover exact retries, tampering, authorization-before-lookup, URL
+      policy, multipart ingestion, full reads, real PostgreSQL registration,
+      migration 17→18, and no-resend terminal-task recovery over both HTTP+JSON
+      and JSON-RPC. Read the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/artifact-storage.md"
+        >complete deployment and verification guide</a
+      > before enabling the boundary.
+    </p>
+  </section>
+</DocsLayout>

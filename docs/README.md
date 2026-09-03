@@ -95,6 +95,12 @@ conformance output, and the release gates in these documents.
     skips, CI reproduction, and the server-only claim boundary. A
     [Simplified Chinese edition](a2a-conformance.zh-CN.md) is maintained
     alongside it.
+22. [Durable artifact storage and A2A task completion](artifact-storage.md) —
+    direct no-resend task polling, migration 18's immutable registry, private
+    conditional object publication, authorization-first resolution, complete
+    integrity verification, and production operations. A
+    [Simplified Chinese edition](artifact-storage.zh-CN.md) is maintained
+    alongside it.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
 the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),

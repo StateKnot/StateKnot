@@ -200,11 +200,20 @@ PostgreSQL prepared/executing revision
   -> PostgreSQL committed/failed/unknown terminal revision
 ```
 
-Adapter 会显式设置 `returnImmediately: true`。因此，收到合法 Task Response 后提交的
-语义是**消息已提交且拿到耐久句柄**，并不表示远端 Task 已进入 A2A 终态。等待远端完成
-必须使用应用自有、独立授权的 `get_task` 或 `subscribe_to_task` Workflow；所以该
-Recovery Status Query 只证明原 Message Submission 是否已有权威 Task Projection，
-不等待 Remote Task 进入终态。
+所有 Adapter 都会显式设置 `returnImmediately: true`。标准 `bind` 与
+`bind_with_recovery` 路径只投影合法 Task Response，不声称远端 Task 已进入 A2A
+终态；等待仍由应用自有、独立授权的 `get_task` 或 `subscribe_to_task` 负责。
+
+`bind_with_durable_artifacts` 是明确的耐久完成 Profile，并且只接受 Task Response。
+非终态 Task 会返回 `Unknown`，同时携带绑定 Card/Interface/Endpoint 的
+`protocol.a2a.task` Recovery Handle。Provider 之后只会针对该精确 Task 发起直接授权的
+`GetTask`，绝不重发原始业务 Message。进入 `Completed` 后，每个有界 Terminal Part
+都会通过配置的 Artifact Sink 写入；Failure、Cancellation、Rejection 与未知远端状态
+继续作为 Terminal Error。该 Profile 还要求精确 Origin Event、已启用 Provider Recovery
+以及正数 Tool Artifact Capacity。Tool Output 只包含有界
+`{kind, task_id, context_id, state, artifact_count}` Projection；物化后的值位于
+`ToolArtifacts`。PostgreSQL 与 Object Storage 不变量见
+[耐久 Artifact Storage 指南](artifact-storage.zh-CN.md)。
 
 可能 Dispatch 前的 Cancellation/Deadline 是 `NotStarted`。Dispatch 可能开始之后，
 Timeout、Cancellation、Lost Connection、Invalid Response、HTTP Ambiguity 或非权威
