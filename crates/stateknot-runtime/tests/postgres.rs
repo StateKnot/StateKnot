@@ -1895,10 +1895,22 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
         ))
         .await
         .unwrap();
-    let driver = DurableGraphDriver::new(
+    // Bound the first drive to exactly one physical node attempt. The policy
+    // retry delay is intentionally short in production, so a slow CI worker
+    // may otherwise make the retry due before the driver observes it and
+    // legally finish the graph in this same call.
+    let first_driver = DurableGraphDriver::new(
         store.clone(),
         fixture.registry.clone(),
-        DurableGraphDriverOptions::default(),
+        DurableGraphDriverOptions::new(
+            GraphReplayLimits::default(),
+            2,
+            Duration::from_secs(10),
+            Duration::from_secs(15 * 60),
+            3,
+            Duration::from_millis(25),
+        )
+        .unwrap(),
     )
     .unwrap();
 
@@ -1908,15 +1920,21 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
         .unwrap()
         .lease()
         .clone();
-    let first = driver
+    let first = first_driver
         .drive(first_lease.fence().clone(), CancellationSignal::never())
         .await
         .unwrap();
     assert!(
-        matches!(first.outcome(), GraphDriveOutcome::Deferred { .. }),
+        matches!(
+            first.outcome(),
+            GraphDriveOutcome::Yielded {
+                release: LeaseReleaseOutcome::Released
+            }
+        ),
         "unexpected first drive outcome: {:?}",
         first.outcome()
     );
+    assert_eq!(first.report().durable_events(), 2);
     assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
     assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
     assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
@@ -1925,6 +1943,12 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
     // durably committed. A later physical node attempt must consume that exact
     // ledger response and must not call the model again for the same turn.
     tokio::time::sleep(Duration::from_millis(250)).await;
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
     let second_lease = store
         .claim_lease(&tenant_id, run_id, AttemptId::generate())
         .await
