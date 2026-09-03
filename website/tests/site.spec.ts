@@ -118,6 +118,18 @@ const localizedRoutePairs = [
     zhHeading: "MCP Conformance 声明以证据为界。",
   },
   {
+    en: "/docs/a2a-server/",
+    zh: "/zh/docs/a2a-server/",
+    enHeading: "Serve A2A 1.0 without leaking wire types.",
+    zhHeading: "在不泄露 Wire Type 的前提下提供 A2A 1.0。",
+  },
+  {
+    en: "/docs/a2a-conformance/",
+    zh: "/zh/docs/a2a-conformance/",
+    enHeading: "A2A conformance claims stop at the evidence.",
+    zhHeading: "A2A Conformance 声明以证据为界。",
+  },
+  {
     en: "/docs/fair-scheduling/",
     zh: "/zh/docs/fair-scheduling/",
     enHeading: "Schedule tenants from one durable order.",
@@ -223,7 +235,9 @@ test("homepage exposes honest implementation status and semantic structure", asy
     page.locator(".spec-list").getByText("AgentService v1", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.locator(".spec-list").getByText("A2A adapters", { exact: true }),
+    page
+      .locator(".spec-list")
+      .getByText("A2A 1.0 Server profile", { exact: true }),
   ).toBeVisible();
   await expect(
     page
@@ -432,6 +446,8 @@ for (const route of [
   "/docs/agent-service/",
   "/docs/mcp-remote-tool/",
   "/docs/mcp-conformance/",
+  "/docs/a2a-server/",
+  "/docs/a2a-conformance/",
   "/docs/fair-scheduling/",
   "/zh/",
   "/zh/docs/getting-started/",
@@ -445,6 +461,8 @@ for (const route of [
   "/zh/docs/agent-service/",
   "/zh/docs/mcp-remote-tool/",
   "/zh/docs/mcp-conformance/",
+  "/zh/docs/a2a-server/",
+  "/zh/docs/a2a-conformance/",
   "/zh/docs/fair-scheduling/",
 ] as const) {
   for (const width of [320, 375, 414, 768] as const) {
@@ -595,6 +613,42 @@ test("MCP conformance page freezes evidence without overclaiming", async ({
       exact: true,
     }),
   ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(1);
+});
+
+test("A2A Server page keeps policy and durability boundaries explicit", async ({
+  page,
+}) => {
+  await page.goto("/docs/a2a-server/");
+  await expect(
+    page.getByText("Implemented server profile, pre-alpha API"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Keep identity ahead of parsing",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("process memory for durability", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(1);
+});
+
+test("A2A conformance page freezes exact evidence without overclaiming", async ({
+  page,
+}) => {
+  await page.goto("/docs/a2a-conformance/");
+  await expect(
+    page.getByText("Server evidence, not framework certification"),
+  ).toBeVisible();
+  await expect(page.getByText("177", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("263b9cfaf16a554bdfb166a7ba5b67716e946349", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("78.8%", { exact: true })).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(1);
 });
 

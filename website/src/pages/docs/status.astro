@@ -96,6 +96,12 @@ const capabilities = [
     body: "Strict stateless HTTP plus StateKnot-owned immutable Tools, Resources, Resource Templates, Prompts, optional Completion, and MRTR with authorization-first policy; all 37 scored Server scenarios pass with zero failures or warnings.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "A2A 1.0 Server profile",
+    body: "StateKnot-owned bounded Agent Card/message/task/artifact/push contracts behind strict HTTP+JSON and JSON-RPC/SSE policy; 177 official TCK cases pass, 88 declared cases skip, and none fail, error, or xfail.",
+  },
+  {
     state: "Active work",
     className: "status-active",
     title: "Advanced execution and service boundary",
@@ -110,8 +116,8 @@ const capabilities = [
   {
     state: "Not shipped",
     className: "status-planned",
-    title: "MCP extensions and A2A profiles",
-    body: "MCP Tasks and broader client extensions, stable SDK-tier evidence, and all A2A client/server bindings remain unshipped.",
+    title: "MCP extensions and A2A Client",
+    body: "MCP Tasks and broader client extensions, stable SDK-tier evidence, and the durable A2A Client/gRPC boundary remain unshipped.",
   },
   {
     state: "Not shipped",
@@ -124,7 +130,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: bounded MCP Client and Server profiles now join the durable provider-native path; stable network Agent APIs, A2A, MCP Tasks, advanced graph semantics, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: bounded MCP Client/Server and A2A 1.0 Server profiles join the durable provider-native path; stable network Agent APIs, A2A Client/gRPC, MCP Tasks, advanced graph semantics, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -165,8 +171,10 @@ const capabilities = [
       scored client scenarios, including all 25 OAuth scenarios: 373 scored
       assertions succeed and none fail. The Server profile passes all 37 scored
       Server scenarios with 114 successes, five skips, one Info, and zero
-      failures or warnings. The next protocol boundary is A2A 1.0; MCP Tasks and
-      broader extensions remain separate gates.
+      failures or warnings. The A2A 1.0 Server gate adds 177 official TCK
+      passes, 88 declared skips, and zero failures/errors/xfails. The next
+      protocol boundary is the durable A2A Client; MCP Tasks and broader
+      extensions remain separate gates.
     </p>
   </section>
 
@@ -217,6 +225,12 @@ const capabilities = [
       </li>
       <li>
         <a href="/docs/mcp-conformance/">MCP conformance evidence and limits</a>
+      </li>
+      <li>
+        <a href="/docs/a2a-server/">A2A 1.0 Server profile</a>
+      </li>
+      <li>
+        <a href="/docs/a2a-conformance/">A2A conformance evidence and limits</a>
       </li>
       <li>
         <a href="/docs/fair-scheduling/"

@@ -1,0 +1,158 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const buildCode = `let options = A2aServerHttpOptions::new()
+    .with_allowed_authorities(["agents.example.com"])?
+    .with_allowed_origins(["https://console.example.com"])?
+    .with_limits(1_048_576, 1_024, 512)?
+    .with_timeouts(Duration::from_secs(30), Duration::from_secs(60))?
+    .with_maximum_stream_events(16_384)?
+    .with_bearer_challenge("Bearer realm=\\"stateknot-a2a\\"")?;
+
+let shutdown = CancellationToken::new();
+let server = A2aServer::new(
+    card,
+    authenticator,
+    authorizer,
+    shared_admission,
+    durable_task_service,
+    options,
+    shutdown.clone(),
+)?;
+
+axum::serve(listener, server.router())
+    .with_graceful_shutdown(shutdown.cancelled_owned())
+    .await?;`;
+---
+
+<DocsLayout
+  title="在不泄露 Wire Type 的前提下提供 A2A 1.0。"
+  description="通过有界 StateKnot 合约、Authorization-first Policy、显式 Admission 与耐久 Application Interface 暴露 HTTP+JSON 和 JSON-RPC/SSE。"
+  section="A2A 1.0 Server"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="a2a-boundary-title"
+  >
+    <h2 id="a2a-boundary-title">已实现 Server Profile，Pre-alpha API</h2>
+    <p>
+      已实现 A2A <code>1.0</code> HTTP+JSON 与 JSON-RPC 2.0，包括 SSE Send 和 Subscription
+      Stream。A2A Client、gRPC、内置耐久 Task Store 与 Stable Rust API 不在当前声明内。
+    </p>
+  </aside>
+
+  <section aria-labelledby="a2a-flow-title">
+    <h2 id="a2a-flow-title">让 Identity 先于 Parsing</h2>
+    <ol>
+      <li>
+        校验 Shutdown State、Host、Origin、Path、Content Type 与 Body Ceiling。
+      </li>
+      <li>获取进程内 Request Capacity。</li>
+      <li>在解析 Request Body 前认证 Bearer Credential。</li>
+      <li>解码并校验有界 A2A Operation。</li>
+      <li>在 Task/Push-config Lookup 前授权 Decoded Operation。</li>
+      <li>执行调用方实现的 Replica-wide Quota Admission。</li>
+      <li>执行耐久 Service，并限制 Unary Response 或整个 Stream。</li>
+    </ol>
+    <p>
+      Agent Card Discovery 是唯一 Public Route，带完整 Cache Validator。若其
+      Capability 或 Interface URL 与挂载 Service 不一致，启动构建直接失败。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-surface-title">
+    <h2 id="a2a-surface-title">一份 Application 合约，两种 Binding</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="A2A Server Profile Operation"
+    >
+      <table>
+        <thead>
+          <tr
+            ><th>Surface</th><th>HTTP+JSON</th><th>JSON-RPC</th><th>耐久义务</th
+            ></tr
+          >
+        </thead>
+        <tbody>
+          <tr
+            ><td>Send / Get / List</td><td>是</td><td>是</td><td
+              >Idempotency、Tenant-scoped Projection、Stable Cursor</td
+            ></tr
+          >
+          <tr
+            ><td>Stream / Subscribe</td><td>SSE</td><td>SSE</td><td
+              >先 Snapshot，再输出已提交有序 Event</td
+            ></tr
+          >
+          <tr
+            ><td>Cancel</td><td>是</td><td>是</td><td
+              >耐久 Intent 与 Race-safe Lifecycle Fence</td
+            ></tr
+          >
+          <tr
+            ><td>Push Config CRUD</td><td>是</td><td>是</td><td
+              >Secret 加密、Egress Policy、Transactional Outbox</td
+            ></tr
+          >
+          <tr
+            ><td>Extended Agent Card</td><td>是</td><td>是</td><td
+              >Authenticated Caller-scoped Projection</td
+            ></tr
+          >
+        </tbody>
+      </table>
+    </div>
+    <p>
+      StateKnot 自有并限制 Agent Card、Message、Part、Task、Artifact、Update 与
+      Push Config。固定版本的官方 SDK 只是 Private Wire Adapter。ProtoJSON
+      要求的 Unknown Field 会被忽略；非法 Enum、Lifecycle Combination、Version、
+      Route、Media 与 Limit 一律 Fail Closed。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-build-title">
+    <h2 id="a2a-build-title">只在启动时构建一次</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 生产组装边界</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-a2a-build-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="zh-a2a-build-code" tabindex="0"><code>{buildCode}</code></pre>
+    </div>
+    <p>
+      使用生产基础设施实现 <code>A2aServerAuthenticator</code>、
+      <code>A2aServerAuthorizer</code>、<code>A2aServerAdmissionControl</code> 与
+      <code>A2aTaskService</code>。TLS 和可信 Proxy Termination 位于 Router
+      外层；配置应用实际看到的精确 Authority。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-durable-title">
+    <h2 id="a2a-durable-title">不能用进程内存替代耐久性</h2>
+    <p>
+      生产 Task Service 必须耐久去重 Message Identity、在一个 Tenant 内映射
+      Opaque Task ID、从 Stable Snapshot 分页、流式输出已提交 Journal Evidence、
+      提交 Cancellation Intent、加密 Push Credential、拒绝不安全 Destination，
+      并从 Transactional At-least-once Outbox 投递。仓库内的 In-memory Fixture
+      只服务于确定性 TCK Scenario。
+    </p>
+    <p>
+      暴露流量或发布兼容性声明前，请阅读完整<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/a2a-server.zh-CN.md"
+        >生产检查清单</a
+      >和<a href="/zh/docs/a2a-conformance/">精确 Conformance 边界</a>。
+    </p>
+  </section>
+</DocsLayout>

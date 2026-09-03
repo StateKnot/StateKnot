@@ -1,0 +1,172 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const buildCode = `let options = A2aServerHttpOptions::new()
+    .with_allowed_authorities(["agents.example.com"])?
+    .with_allowed_origins(["https://console.example.com"])?
+    .with_limits(1_048_576, 1_024, 512)?
+    .with_timeouts(Duration::from_secs(30), Duration::from_secs(60))?
+    .with_maximum_stream_events(16_384)?
+    .with_bearer_challenge("Bearer realm=\\"stateknot-a2a\\"")?;
+
+let shutdown = CancellationToken::new();
+let server = A2aServer::new(
+    card,
+    authenticator,
+    authorizer,
+    shared_admission,
+    durable_task_service,
+    options,
+    shutdown.clone(),
+)?;
+
+axum::serve(listener, server.router())
+    .with_graceful_shutdown(shutdown.cancelled_owned())
+    .await?;`;
+---
+
+<DocsLayout
+  title="Serve A2A 1.0 without leaking wire types."
+  description="Expose HTTP+JSON and JSON-RPC/SSE through bounded StateKnot contracts, authorization-first policy, explicit admission, and a durable application interface."
+  section="A2A 1.0 Server"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="a2a-boundary-title"
+  >
+    <h2 id="a2a-boundary-title">Implemented server profile, pre-alpha API</h2>
+    <p>
+      A2A <code>1.0</code> HTTP+JSON and JSON-RPC 2.0, including SSE send and subscription
+      streams, are implemented. A2A Client, gRPC, a bundled durable task store, and
+      a stable Rust API are not claimed.
+    </p>
+  </aside>
+
+  <section aria-labelledby="a2a-flow-title">
+    <h2 id="a2a-flow-title">Keep identity ahead of parsing</h2>
+    <ol>
+      <li>
+        Validate shutdown state, Host, Origin, path, content type, and body
+        ceiling.
+      </li>
+      <li>Acquire process-local request capacity.</li>
+      <li>Authenticate Bearer credentials before parsing the request body.</li>
+      <li>Decode and validate the bounded A2A operation.</li>
+      <li>
+        Authorize the decoded operation before task or push-config lookup.
+      </li>
+      <li>Apply caller-owned, replica-wide quota admission.</li>
+      <li>
+        Execute the durable service and bound the unary response or full stream.
+      </li>
+    </ol>
+    <p>
+      Agent Card discovery is the sole public route. It includes cache
+      validators, and startup fails if its capabilities or interface URLs
+      disagree with the mounted service.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-surface-title">
+    <h2 id="a2a-surface-title">One application contract, two bindings</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="A2A server profile operations"
+    >
+      <table>
+        <thead>
+          <tr
+            ><th>Surface</th><th>HTTP+JSON</th><th>JSON-RPC</th><th
+              >Durable obligation</th
+            ></tr
+          >
+        </thead>
+        <tbody>
+          <tr
+            ><td>Send / get / list</td><td>Yes</td><td>Yes</td><td
+              >Idempotency, tenant-scoped projection, stable cursors</td
+            ></tr
+          >
+          <tr
+            ><td>Stream / subscribe</td><td>SSE</td><td>SSE</td><td
+              >Snapshot then committed ordered events</td
+            ></tr
+          >
+          <tr
+            ><td>Cancel</td><td>Yes</td><td>Yes</td><td
+              >Durable intent and race-safe lifecycle fence</td
+            ></tr
+          >
+          <tr
+            ><td>Push config CRUD</td><td>Yes</td><td>Yes</td><td
+              >Encrypted secrets, egress policy, transactional outbox</td
+            ></tr
+          >
+          <tr
+            ><td>Extended Agent Card</td><td>Yes</td><td>Yes</td><td
+              >Authenticated caller-scoped projection</td
+            ></tr
+          >
+        </tbody>
+      </table>
+    </div>
+    <p>
+      StateKnot owns and bounds Agent Cards, messages, parts, tasks, artifacts,
+      updates, and push configuration. The pinned official SDK remains a private
+      wire adapter. Unknown fields are ignored as ProtoJSON requires; invalid
+      enums, lifecycle combinations, versions, routes, media, and limits fail
+      closed.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-build-title">
+    <h2 id="a2a-build-title">Build once at startup</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · production assembly boundary</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="a2a-build-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="a2a-build-code" tabindex="0"><code>{buildCode}</code></pre>
+    </div>
+    <p>
+      Implement <code>A2aServerAuthenticator</code>, <code
+        >A2aServerAuthorizer</code
+      >,
+      <code>A2aServerAdmissionControl</code>, and <code>A2aTaskService</code> with
+      production infrastructure. TLS and trusted proxy termination stay outside this
+      router; configure the exact authority seen by the application.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-durable-title">
+    <h2 id="a2a-durable-title">
+      Do not substitute process memory for durability
+    </h2>
+    <p>
+      A production task service deduplicates message identity durably, maps
+      opaque task IDs within one tenant, pages from a stable snapshot, streams
+      committed journal evidence, commits cancellation intent, encrypts push
+      credentials, rejects unsafe destinations, and delivers from a
+      transactional at-least-once outbox. The repository's in-memory fixture
+      exists only for deterministic TCK scenarios.
+    </p>
+    <p>
+      Read the full <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/a2a-server.md"
+        >production checklist</a
+      > and the <a href="/docs/a2a-conformance/">exact conformance boundary</a> before
+      exposing traffic or publishing compatibility claims.
+    </p>
+  </section>
+</DocsLayout>

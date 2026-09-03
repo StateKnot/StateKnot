@@ -14,6 +14,18 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A2A 1.0 HTTP+JSON and JSON-RPC/SSE Server profile with StateKnot-owned bounded
+  Agent Card, message, task, artifact, stream, and push contracts; exact
+  Host/Origin/route/version/extension enforcement; authentication before body
+  parsing; authorization before lookup; process and replica admission; bounded
+  responses; Agent Card caching; and cooperative shutdown.
+- Frozen official A2A TCK commit and archive checksum, audited upstream harness
+  patch, deterministic full-capability fixture, independent result-drift
+  verifier, retained CI evidence, and mandatory 265-case gate: 177 pass, 88
+  declared skips, zero failures/errors/xfails, with critical cases required to
+  execute.
+- English and Simplified Chinese A2A Server production guide, exact conformance
+  disclosure, site routes, navigation, status updates, and browser contracts.
 - Separate general stateless MCP 2026-07-28 Tool client with bounded discovery
   and pagination, JSON/request-scoped SSE, standard and nested custom headers,
   invalid-Tool isolation, request-scoped authorization, exact MRTR request

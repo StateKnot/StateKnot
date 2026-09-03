@@ -105,10 +105,10 @@ const currentCut = [
     href: "/zh/docs/mcp-server/",
   },
   {
-    surface: "A2A Adapter",
-    state: "尚未发布",
-    evidence: "A2A 1.0 REST/JSON-RPC Client/Server 仍在规划",
-    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/v1-scope.md",
+    surface: "A2A 1.0 Server Profile",
+    state: "已实现切片",
+    evidence: "官方 TCK 177 Pass；HTTP+JSON 与 JSON-RPC/SSE",
+    href: "/zh/docs/a2a-server/",
   },
 ];
 
@@ -169,12 +169,18 @@ const roadmap = [
   },
   {
     index: "10",
-    state: "现在",
-    title: "构建 A2A 1.0 Profile",
-    body: "把 Agent Card、Message、Task、Artifact、Streaming、Cancellation、Subscription 与可靠 Push 映射到 StateKnot 耐久领域，再通过官方 TCK 验证 REST 与 JSON-RPC。",
+    state: "已实现",
+    title: "构建 A2A 1.0 Server Profile",
+    body: "有界 Agent Card、Message、Task、Artifact、Streaming、Cancellation、Subscription 与 Push Config 现已通过严格 Policy 提供 HTTP+JSON 和 JSON-RPC/SSE；官方 TCK 177 项通过。",
   },
   {
     index: "11",
+    state: "现在",
+    title: "构建耐久 A2A Client 边界",
+    body: "把 Outbound Agent Discovery/Invocation 绑定到精确 Identity、Capability、Credential、Idempotency、Durable-before-dispatch、Streaming、Cancellation 与 Ambiguous-write Recovery 保证。",
+  },
+  {
+    index: "12",
     state: "v1 前",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
@@ -195,11 +201,10 @@ const roadmap = [
             StateKnot 现已通过 PostgreSQL Crash Recovery、原子 Admission、耐久
             Model/Tool Attempt、Lifecycle Commit、公平调度、耐久 Ingress
             与经过验证的 Result 运行类型化 Root Graph。已实现 Surface 包括
-            OpenAI/Anthropic Adapter、可恢复 Provider-native Agent
-            Graph、AgentService v1、带交互式 OAuth 的通用 Stateless MCP Tool
-            Client、具备 Lost-write Reconciliation 的严格 MCP Remote Tool，以及
-            有界 MCP Server Profile。稳定 Network Agent API、A2A、MCP
-            Tasks、高级 Graph 语义与生产验证仍未完成。
+            OpenAI/Anthropic Adapter、Provider-native Graph、AgentService v1、
+            MCP Client/OAuth/严格 Remote Tool/Server Profile，以及 A2A 1.0
+            HTTP+JSON/JSON-RPC Server。稳定 Network Agent API、A2A Client/gRPC、
+            MCP Tasks、高级 Graph 语义与生产验证仍未完成。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -337,9 +342,10 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
         <h2 id="roadmap-title">开发顺序由证据决定。</h2>
         <p>
           严格 MCP Binding 保留 PostgreSQL-backed Recovery 证据；独立通用 Tool
-          Client 与 OAuth Provider 现已通过全部 32 个计分 Client 场景，Server
-          Profile 通过全部 37 个计分 Server 场景。下一条协议验证边界是 A2A 1.0；
-          MCP Tasks 与更广 Extension 仍作为独立门禁。
+          Client 与 OAuth Provider 现已通过全部 32 个计分 Client 场景，MCP
+          Server Profile 通过全部 37 个计分 Server 场景。A2A 1.0 Server 门禁现有
+          177 项 官方 TCK Pass 且 0 Failure；下一条协议验证是耐久 A2A Client
+          边界。 MCP Tasks 与更广 Extension 仍作为独立门禁。
         </p>
       </div>
 

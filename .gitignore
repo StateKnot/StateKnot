@@ -24,3 +24,4 @@ coverage/
 /conformance/mcp-client/node_modules/
 /conformance/mcp-client/results/
 /conformance/mcp-server/results/
+/conformance/a2a-server/results/

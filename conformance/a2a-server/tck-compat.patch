@@ -1,0 +1,51 @@
+diff --git a/tck/requirements/core_operations.py b/tck/requirements/core_operations.py
+index 77e7692..9cacbab 100644
+--- a/tck/requirements/core_operations.py
++++ b/tck/requirements/core_operations.py
+@@ -11,0 +12 @@ from tck.requirements.base import (
++    CONTENT_TYPE_NOT_SUPPORTED_ERROR,
+@@ -110,0 +112 @@ CORE_OPERATIONS_REQUIREMENTS: list[RequirementSpec] = [
++        expected_error=CONTENT_TYPE_NOT_SUPPORTED_ERROR,
+diff --git a/tck/transport/jsonrpc_client.py b/tck/transport/jsonrpc_client.py
+index 7db3e37..205da70 100644
+--- a/tck/transport/jsonrpc_client.py
++++ b/tck/transport/jsonrpc_client.py
+@@ -212 +212,3 @@ class JsonRpcClient(BaseTransportClient):
+-        params = _build_params(id=id, history_length=history_length)
++        params = _build_params(id=id)
++        if history_length is not None:
++            params["historyLength"] = history_length
+@@ -229,5 +230,0 @@ class JsonRpcClient(BaseTransportClient):
+-            page_size=page_size,
+-            page_token=page_token,
+-            history_length=history_length,
+-            status_timestamp_after=status_timestamp_after,
+-            include_artifacts=include_artifacts,
+@@ -235 +232,10 @@ class JsonRpcClient(BaseTransportClient):
+-        params["context_id"] = context_id
++        params["contextId"] = context_id
++        for name, value in (
++            ("pageSize", page_size),
++            ("pageToken", page_token),
++            ("historyLength", history_length),
++            ("statusTimestampAfter", status_timestamp_after),
++            ("includeArtifacts", include_artifacts),
++        ):
++            if value is not None:
++                params[name] = value
+@@ -252 +258 @@ class JsonRpcClient(BaseTransportClient):
+-        params = {"task_id": task_id, **config}
++        params = {"taskId": task_id, **config}
+@@ -257 +263 @@ class JsonRpcClient(BaseTransportClient):
+-        return self._call(OperationType.GET_PUSH_CONFIG.value, {"task_id": task_id, "id": id})
++        return self._call(OperationType.GET_PUSH_CONFIG.value, {"taskId": task_id, "id": id})
+@@ -267 +273,5 @@ class JsonRpcClient(BaseTransportClient):
+-        params = _build_params(task_id=task_id, page_size=page_size, page_token=page_token)
++        params = {"taskId": task_id}
++        if page_size is not None:
++            params["pageSize"] = page_size
++        if page_token is not None:
++            params["pageToken"] = page_token
+@@ -272 +282 @@ class JsonRpcClient(BaseTransportClient):
+-        return self._call(OperationType.DELETE_PUSH_CONFIG.value, {"task_id": task_id, "id": id})
++        return self._call(OperationType.DELETE_PUSH_CONFIG.value, {"taskId": task_id, "id": id})

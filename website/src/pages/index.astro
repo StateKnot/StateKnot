@@ -106,10 +106,10 @@ const currentCut = [
     href: "/docs/mcp-server/",
   },
   {
-    surface: "A2A adapters",
-    state: "Not shipped",
-    evidence: "A2A 1.0 REST/JSON-RPC client/server remains planned",
-    href: "https://github.com/StateKnot/StateKnot/blob/main/docs/v1-scope.md",
+    surface: "A2A 1.0 Server profile",
+    state: "Implemented slice",
+    evidence: "177 official TCK passes; HTTP+JSON and JSON-RPC/SSE",
+    href: "/docs/a2a-server/",
   },
 ];
 
@@ -170,12 +170,18 @@ const roadmap = [
   },
   {
     index: "10",
-    state: "Now",
-    title: "Build the A2A 1.0 profile",
-    body: "Map Agent Cards, messages, tasks, artifacts, streaming, cancellation, subscriptions, and reliable push into the durable StateKnot domain, then qualify REST and JSON-RPC with the official TCK.",
+    state: "Implemented",
+    title: "Build the A2A 1.0 Server profile",
+    body: "Bounded Agent Cards, messages, tasks, artifacts, streaming, cancellation, subscriptions, and push configuration now serve HTTP+JSON and JSON-RPC/SSE behind strict policy; 177 official TCK cases pass.",
   },
   {
     index: "11",
+    state: "Now",
+    title: "Build the durable A2A Client boundary",
+    body: "Bind outbound Agent discovery and invocation to exact identity, capability, credential, idempotency, durable-before-dispatch, streaming, cancellation, and ambiguous-write recovery guarantees.",
+  },
+  {
+    index: "12",
     state: "Before v1",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -198,12 +204,11 @@ const roadmap = [
             StateKnot now runs typed root Graphs through PostgreSQL crash
             recovery, atomic admission, durable model/tool attempts, lifecycle
             commits, fair scheduling, durable ingress, and verified results.
-            Implemented surfaces include OpenAI/Anthropic adapters, a recovered
-            provider-native Agent graph, AgentService v1, a general stateless
-            MCP Tool client with interactive OAuth, one strict MCP Remote Tool
-            with lost-write reconciliation, and a bounded MCP Server profile.
-            Stable network Agent APIs, A2A, MCP Tasks, advanced graph semantics,
-            and production qualification remain open.
+            Implemented surfaces include OpenAI/Anthropic adapters, the
+            provider-native graph, AgentService v1, MCP client/OAuth/strict
+            Remote Tool/Server profiles, and an A2A 1.0 HTTP+JSON/JSON-RPC
+            Server. Stable network Agent APIs, A2A Client/gRPC, MCP Tasks,
+            advanced graph semantics, and production qualification remain open.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -344,9 +349,11 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
         <p>
           The strict MCP binding retains PostgreSQL-backed recovery evidence,
           while the separate general Tool client plus OAuth provider now pass
-          all 32 scored Client scenarios and the Server profile passes all 37
-          scored Server scenarios. The next protocol proof boundary is A2A 1.0;
-          MCP Tasks and broader extensions remain independent gates.
+          all 32 scored Client scenarios and the MCP Server profile passes all
+          37 scored Server scenarios. The A2A 1.0 Server gate now has 177
+          official TCK passes with zero failures; the next protocol proof is the
+          durable A2A Client boundary. MCP Tasks and broader extensions remain
+          independent gates.
         </p>
       </div>
 

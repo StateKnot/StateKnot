@@ -142,6 +142,35 @@ jobs:
       - name: Run frozen MCP server requirement set
         run: bash conformance/mcp-server/run-2026-07-28.sh
 
+  a2a-conformance:
+    name: A2A 1.0 Conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.88.0 --profile minimal
+
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.25"
+          enable-cache: false
+
+      - name: Run frozen A2A 1.0 server profile
+        run: bash conformance/a2a-server/run-1.0.sh
+
+      - name: Upload A2A conformance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: a2a-1.0-conformance-${{ github.run_id }}
+          path: conformance/a2a-server/results/
+          if-no-files-found: error
+          retention-days: 30
+
   cross-platform:
     name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

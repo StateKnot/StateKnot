@@ -241,10 +241,21 @@ from the repository.
   scoped catalogs. Require all 37 scored official Server scenarios in CI:
   114 assertions pass, five capability checks skip, one SSE check is
   informational, and zero fail or warn. Keep Tasks explicitly unclaimed.
+- [x] Implement the A2A 1.0 Server profile with StateKnot-owned bounded Agent
+  Card/message/task/artifact/push contracts, HTTP+JSON and JSON-RPC bindings,
+  SSE send/subscription streams, authentication-before-parsing,
+  authorization-before-lookup, exact Host/Origin/version/extension policy,
+  process and replica admission boundaries, response/event ceilings, and
+  graceful shutdown. Freeze the official TCK commit and archive digest in CI;
+  require 265 collected cases with 177 passes, 88 declared skips, zero
+  failure/error/xfail, and explicit execution of critical streaming, push,
+  extended-card, error, caching, and unknown-field cases. Keep A2A Client and
+  gRPC explicitly unclaimed.
 - [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
-  extension, role isolation, general retention,
+  extension, A2A Client/gRPC and durable outbound dispatch, role isolation,
+  general retention,
   failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.

@@ -80,6 +80,15 @@ conformance output, and the release gates in these documents.
     explicitly unscored extensions, and the stable-API/Tasks claim boundary. A
     [Simplified Chinese edition](mcp-conformance.zh-CN.md) is maintained
     alongside it.
+19. [A2A 1.0 Server profile](a2a-server.md) — bounded StateKnot-owned contracts,
+    strict HTTP+JSON/JSON-RPC/SSE boundary, authorization-first dispatch,
+    durable backend obligations, and production deployment gates. A
+    [Simplified Chinese edition](a2a-server.zh-CN.md) is maintained alongside it.
+20. [A2A 1.0 conformance status](a2a-conformance.md) — exact official TCK
+    commit/archive identity, audited harness patch, 177 passing cases, explicit
+    skips, CI reproduction, and the server-only claim boundary. A
+    [Simplified Chinese edition](a2a-conformance.zh-CN.md) is maintained
+    alongside it.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
 the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),

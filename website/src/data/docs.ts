@@ -163,6 +163,22 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         search:
           "mcp conformance official runner requirements evidence client server claim 2026 07 28",
       },
+      {
+        title: "A2A 1.0 Server",
+        description:
+          "Expose bounded HTTP+JSON and JSON-RPC/SSE through identity-first policy and a durable service contract.",
+        href: "/docs/a2a-server/",
+        search:
+          "a2a 1.0 server agent card task artifact streaming subscription push jsonrpc http json authorization",
+      },
+      {
+        title: "A2A conformance status",
+        description:
+          "Inspect the frozen official TCK, audited harness patch, exact result, and server-only claim boundary.",
+        href: "/docs/a2a-conformance/",
+        search:
+          "a2a conformance official tck evidence 177 265 jsonrpc http json skip claim",
+      },
     ],
   },
   {
@@ -345,6 +361,22 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/mcp-conformance/",
         search:
           "mcp conformance 官方 runner requirement 证据 client server 声明 2026 07 28",
+      },
+      {
+        title: "A2A 1.0 Server",
+        description:
+          "通过 Identity-first Policy 与耐久 Service 合约暴露有界 HTTP+JSON 和 JSON-RPC/SSE。",
+        href: "/docs/a2a-server/",
+        search:
+          "a2a 1.0 server agent card task artifact streaming subscription push jsonrpc http json authorization 服务端",
+      },
+      {
+        title: "A2A Conformance 状态",
+        description:
+          "查看冻结的官方 TCK、已审计 Harness Patch、精确结果与 Server-only 声明边界。",
+        href: "/docs/a2a-conformance/",
+        search:
+          "a2a conformance 官方 tck 证据 177 265 jsonrpc http json skip 声明",
       },
     ],
   },
