@@ -90,6 +90,12 @@ const paths = [
     link: "Build the Server profile",
   },
   {
+    title: "Call a durable A2A agent",
+    body: "Freeze one Agent Card, interface, security choice, and local schema contract; then preserve unknown outbound outcomes without blind retries.",
+    href: "/docs/a2a-client/",
+    link: "Integrate the A2A Client",
+  },
+  {
     title: "Run the provider-native Agent",
     body: "Compile one pinned multi-turn model/tool graph, recover transcripts without redispatch, and confirm cancellation from exact usage evidence.",
     href: "/docs/provider-native-agent/",
@@ -151,8 +157,11 @@ const paths = [
       and push-management boundaries across HTTP+JSON, JSON-RPC, and SSE; its <a
         href="/docs/a2a-conformance/">frozen official TCK gate</a
       >
-      passes 177 cases with zero failures or errors. Stable network Agent transport,
-      MCP Tasks, a production durable A2A task/push backend, the A2A Client, gRPC,
+      passes 177 cases with zero failures or errors. The <a
+        href="/docs/a2a-client/">A2A 1.0 Client and durable remote agent</a
+      > implement all eleven dual-binding operations and preserve lost sends as PostgreSQL-backed
+      Unknown outcomes. Stable network Agent transport, MCP Tasks, a production durable
+      A2A task/push backend, Client live-peer qualification, reconciliation, gRPC,
       and production qualification remain release blockers.
     </p>
   </aside>
@@ -258,6 +267,15 @@ const paths = [
           MCP 2026-07-28 modern discovery, stateless complete-JSON transport,
           exact local schema and server-identity pins, attempt-scoped
           authorization, and reconciliation-first lost-write behavior.
+        </dd>
+      </div>
+      <div>
+        <dt>A2A Client and durable remote agent</dt>
+        <dd>
+          Strict Agent Card and interface discovery, all eleven HTTP+JSON and
+          JSON-RPC operations, both bounded SSE surfaces, attempt-scoped bearer
+          authorization, local schema authority, explicit delivery semantics,
+          and Unknown/no-redispatch recovery through PostgreSQL.
         </dd>
       </div>
       <div>

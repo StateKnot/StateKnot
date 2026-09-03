@@ -90,6 +90,12 @@ const paths = [
     link: "构建 Server Profile",
   },
   {
+    title: "调用耐久 A2A Agent",
+    body: "冻结 Agent Card、Interface、Security Choice 与本地 Schema Contract，并在不盲目重试的前提下保留 Unknown Outbound Outcome。",
+    href: "/zh/docs/a2a-client/",
+    link: "集成 A2A Client",
+  },
+  {
     title: "运行 Provider-native Agent",
     body: "编译一套 Pinned 多轮 Model/Tool Graph，在不重复 Dispatch 的前提下恢复 Transcript，并依据精确 Usage Evidence 确认 Cancellation。",
     href: "/zh/docs/provider-native-agent/",
@@ -148,9 +154,12 @@ const paths = [
       现已通过 HTTP+JSON、JSON-RPC 与 SSE 提供有界 Agent Card、Message、Task、Streaming、
       Cancellation、Resubscription 与 Push Management 边界；其<a
         href="/zh/docs/a2a-conformance/">冻结版官方 TCK 门禁</a
-      >通过 177 个用例且没有 Failure 或 Error。稳定 Network Agent Transport、MCP
-      Tasks、生产耐久 A2A Task/Push Backend、A2A Client、gRPC
-      与生产验证仍是发布阻断项。
+      >通过 177 个用例且没有 Failure 或 Error。<a href="/zh/docs/a2a-client/"
+        >A2A 1.0 Client 与耐久 Remote Agent</a
+      > 已实现全部 11 个 Dual-binding Operation，并将 Lost Send 保留为 PostgreSQL-backed
+      Unknown Outcome。稳定 Network Agent Transport、MCP Tasks、生产耐久 A2A Task/Push
+      Backend、Client Live-peer Qualification、Reconciliation、gRPC 与生产验证仍是
+      发布阻断项。
     </p>
   </aside>
 
@@ -252,6 +261,15 @@ const paths = [
           MCP 2026-07-28 Modern Discovery、Stateless Complete-JSON
           Transport、精确 Local Schema/Server-identity Pin、Attempt-scoped
           Authorization 与 Reconciliation-first Lost-write 行为。
+        </dd>
+      </div>
+      <div>
+        <dt>A2A Client 与耐久 Remote Agent</dt>
+        <dd>
+          严格 Agent Card/Interface Discovery、全部 11 个 HTTP+JSON/JSON-RPC
+          Operation、两个有界 SSE Surface、Attempt-scoped Bearer
+          Authorization、本地 Schema Authority、显式 Delivery Semantics，以及
+          PostgreSQL-backed Unknown/No-redispatch Recovery。
         </dd>
       </div>
       <div>

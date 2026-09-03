@@ -63,8 +63,10 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
         >预置 Provider-native Agent Graph</a
       > 现在会组合该 Executor；<a href="/zh/docs/mcp-remote-tool/"
         >严格 MCP Remote Tool Profile</a
-      > 也已经把一个 Stateless MCP 2026-07-28 Tool 与 PostgreSQL 执行合约组合。完整官方
-      MCP Conformance 与 Live-provider Qualification 尚未交付。
+      > 已经把一个 Stateless MCP 2026-07-28 Tool 与 PostgreSQL 执行合约组合；<a
+        href="/zh/docs/a2a-client/">A2A Remote Agent Profile</a
+      > 用同一 Ledger 组合一个已冻结 A2A Skill。Stable API 与 Live-provider/Partner
+      Qualification 尚未交付。
     </p>
   </aside>
 
@@ -252,7 +254,9 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
       Loopback MCP Test 证明 Network 完成前已有 Durable State、Lost Response、<code
         >Unknown</code
       >、No Redispatch、精确 Reconciliation Replay 与一次 Physical Call。使用该
-      pre-alpha Surface 前请阅读完整<a
+      独立 PostgreSQL + Loopback A2A Test 证明 Send 前已有 Durable State、
+      Lost-response Unknown 与 Duplicate No-redispatch。使用该 pre-alpha Surface
+      前请阅读完整<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-invocation-executor.zh-CN.md"
         >集成与运维合约</a
       >。

@@ -8,7 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 > Status: implemented pre-alpha server profile; public Rust API is not stable.<br>
 > Protocol: A2A `1.0`.<br>
 > Bindings: HTTP+JSON and JSON-RPC 2.0, including SSE streaming.<br>
-> Explicit exclusions: A2A client and gRPC binding.
+> Page scope exclusions: Client behavior/evidence and gRPC binding. The Client
+> is implemented and documented separately; gRPC is not implemented.
 
 StateKnot exposes an A2A server without making the official SDK its domain
 model. `A2aAgentCard`, messages, parts, tasks, artifacts, status updates, push
@@ -176,7 +177,8 @@ Before exposing traffic, verify all of the following:
 
 ## Not claimed
 
-- A2A client behavior or durable outbound-agent invocation;
+- A2A client behavior or durable outbound-agent invocation, which belongs to
+  the separate [A2A Client profile](a2a-client.md);
 - gRPC transport;
 - a bundled identity provider, policy engine, database task service, or push
   dispatcher;

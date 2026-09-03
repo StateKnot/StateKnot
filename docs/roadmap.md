@@ -249,13 +249,24 @@ from the repository.
   graceful shutdown. Freeze the official TCK commit and archive digest in CI;
   require 265 collected cases with 177 passes, 88 declared skips, zero
   failure/error/xfail, and explicit execution of critical streaming, push,
-  extended-card, error, caching, and unknown-field cases. Keep A2A Client and
-  gRPC explicitly unclaimed.
+  extended-card, error, caching, and unknown-field cases. Keep gRPC explicitly
+  unclaimed and keep the Server TCK claim separate from Client evidence.
+- [x] Implement the strict A2A 1.0 Client across all eleven HTTP+JSON and
+  JSON-RPC operations and both bounded SSE surfaces. Freeze one Agent Card,
+  server-preferred interface, egress pin, extension set, tenant mapping, and
+  anonymous or complete single-scheme HTTP Bearer/OAuth2/OpenID security
+  alternative; reject redirects,
+  retries, duplicate JSON keys, ambiguous unions, protocol drift, and
+  unbounded streams. Bind one advertised skill as `A2aRemoteAgent` with local
+  schema authority and exact AtMostOnce or operator-attested message-ID
+  deduplication semantics. Prove all operations on both bindings through real
+  loopback HTTP and prove durable-before-dispatch, lost-response `Unknown`, and
+  duplicate no-redispatch through the real PostgreSQL invocation ledger.
 - [ ] Complete artifact retrieval, parallel sibling/Tool ordering, output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
-  extension, A2A Client/gRPC and durable outbound dispatch, role isolation,
-  general retention,
+  extension, A2A Client official/live-peer qualification and reconciliation,
+  A2A gRPC, role isolation, general retention,
   failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.

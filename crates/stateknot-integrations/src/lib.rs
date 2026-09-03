@@ -9,7 +9,9 @@
 
 #![forbid(unsafe_code)]
 
+mod a2a_client;
 mod a2a_contract;
+mod a2a_remote_agent;
 mod a2a_server;
 mod adapter;
 mod anthropic;
@@ -26,6 +28,14 @@ mod mcp_server_tool;
 mod openai;
 mod sse;
 
+pub use a2a_client::{
+    A2aAgentCardEndpoint, A2aAgentCardTrust, A2aBearerTokenProvider, A2aClient,
+    A2aClientAttemptIdentity, A2aClientAuthorizationError, A2aClientAuthorizationRequest,
+    A2aClientBuildError, A2aClientEndpointError, A2aClientError, A2aClientErrorKind,
+    A2aClientEventStream, A2aClientInterfacePin, A2aClientOperation, A2aClientOptions,
+    A2aClientOptionsError, A2aClientSecurity, A2aClientSecurityError, StaticA2aBearerToken,
+    a2a_agent_card_digest,
+};
 pub use a2a_contract::{
     A2A_AGENT_CARD_PATH, A2A_BINDING_HTTP_JSON, A2A_BINDING_JSONRPC, A2A_PROTOCOL_VERSION_1_0,
     A2aAgentCapabilities, A2aAgentCard, A2aAgentCardBuilder, A2aAgentCardSignature,
@@ -36,6 +46,9 @@ pub use a2a_contract::{
     A2aPushConfig, A2aPushConfigPage, A2aSecret, A2aSecurityScheme, A2aSendConfiguration,
     A2aSendMessageRequest, A2aSendMessageResponse, A2aStatusUpdate, A2aStreamEvent,
     A2aSubscribeTaskRequest, A2aTask, A2aTaskPage, A2aTaskState, A2aTaskStatus,
+};
+pub use a2a_remote_agent::{
+    A2aRemoteAgent, A2aRemoteAgentBuildError, A2aRemoteAgentDelivery, A2aSchemaRegistry,
 };
 pub use a2a_server::{
     A2aEventStream, A2aRequestContext, A2aServer, A2aServerAdmissionControl,

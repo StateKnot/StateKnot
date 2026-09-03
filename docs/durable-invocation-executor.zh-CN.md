@@ -6,9 +6,10 @@ SPDX-License-Identifier: Apache-2.0
 # 耐久 Model/Tool 调用执行
 
 `stateknot-runtime` 现在包含耐久 Model/Tool Ledger 与外部 Adapter
-之间的 Provider-neutral 执行边界。它仍是未发布的 pre-alpha。本文件记录代码已经执行的集成与恢复合约。OpenAI Responses、Anthropic Messages 与一个严格 MCP
-2026-07-28 Client-side Remote Tool Profile 已接入该合约；这不代表更广 MCP
-Conformance 或 Live-provider Qualification 已完成。
+之间的 Provider-neutral 执行边界。它仍是未发布的 pre-alpha。本文件记录代码已经执行的集成与恢复合约。OpenAI Responses、Anthropic Messages、一个严格 MCP
+2026-07-28 Client-side Remote Tool 与一个严格 A2A 1.0 Remote Agent Profile
+已接入该合约；这不代表 Stable API、更广 Protocol Conformance 或 Live-provider/
+Partner Qualification 已完成。
 
 英文版见 [Durable model and tool invocation execution](durable-invocation-executor.md)。
 
@@ -171,7 +172,10 @@ https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0
 - Model Call 期间原 Fence 被取代后，Terminal Evidence 会被保留、Rebind 到新 Live Fence、只 Commit 一次，并且后续重试不重新计算 Budget、不重新 Dispatch；
 - 七个语义 Model Stream Event 按序到达耐久 Sink，累积为已提交 Response，Duplicate Recovery 不再产生 Event 或 Provider Call；
 - Timed-out Idempotent-write Tool 记录 Ambiguous/Reconcile-first Outcome；Schema-invalid Reconciliation 被拒绝且不发生 Mutation；权威 Result 或 Known-effect Error Evidence 可提交；相同重试会收敛，且 Tool 不会被再次调用；
-- 严格 MCP Adapter 在真实 Loopback MCP Exchange 与 PostgreSQL 16/17 上通过同一套 Durable-before-dispatch 与 Reconciliation Proof。
+- 严格 MCP Adapter 在真实 Loopback MCP Exchange 与 PostgreSQL 16/17 上通过同一套 Durable-before-dispatch 与 Reconciliation Proof；
+- 严格 A2A Adapter 在 PostgreSQL 16/17 上证明真实 Loopback Send 前已有 Executing
+  Revision、Lost Response 会持久化为 `Unknown`，且 Recovery 不会重新 Dispatch 同一
+  Invocation。
 
 该边界仍是 pre-alpha。第一方 OpenAI Responses/Anthropic Messages Adapter 与强类型 Agent
 Contract、原子 Admission，以及在预置 Provider-native Graph 内耐久组装 Transcript 已实现；

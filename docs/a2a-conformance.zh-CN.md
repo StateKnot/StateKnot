@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # A2A 1.0 Conformance 状态
 
 本文记录 StateKnot 已实现的 A2A 1.0 HTTP+JSON 与 JSON-RPC Server Profile
-的精确证据。它不是 Client、gRPC、Stable API 或整个框架的认证声明。
+的精确证据。它不证明独立实现的 Client、gRPC、Stable API，也不是整个框架的认证声明。
 
 ## 冻结的评估输入
 
@@ -85,4 +85,6 @@ Runner 合约见 [`conformance/a2a-server/README.md`](../conformance/a2a-server/
 通过此门禁只证明已实现的 Server Wire/Application Boundary。生产验证仍然需要
 耐久 Application `A2aTaskService`、Cross-replica Policy/Admission、
 Transactional Push Outbox、Security/Failure Test、Stable API Review、Release
-Artifact 与 Operations Evidence。A2A Client 和 gRPC Binding 仍是独立的未来门禁。
+Artifact 与 Operations Evidence。独立实现的
+[A2A Client Profile](a2a-client.zh-CN.md) 已有本地 HTTP+JSON/JSON-RPC Operation
+Matrix 与 PostgreSQL Durability 证据，但不声明官方 Client TCK；gRPC 仍未实现。

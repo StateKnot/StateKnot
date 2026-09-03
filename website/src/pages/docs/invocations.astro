@@ -66,8 +66,9 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
       > now composes this executor. The <a href="/docs/mcp-remote-tool/"
         >strict MCP Remote Tool profile</a
       > also composes one stateless MCP 2026-07-28 Tool with the PostgreSQL execution
-      contract. Complete official MCP conformance and live-provider qualification
-      have not shipped.
+      contract; the <a href="/docs/a2a-client/">A2A Remote Agent profile</a>
+      composes one frozen A2A skill with the same ledger. Stable API and live-provider/partner
+      qualification have not shipped.
     </p>
   </aside>
 
@@ -263,7 +264,9 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
       reconcile to either a validated result or authoritative error. A combined
       real PostgreSQL and loopback MCP test proves durable state before network
       completion, a lost response, <code>Unknown</code>, no redispatch, exact
-      reconciliation replay, and one physical call. Read the complete <a
+      reconciliation replay, and one physical call. A separate PostgreSQL plus
+      loopback A2A test proves durable state before send, lost-response Unknown,
+      and duplicate no-redispatch. Read the complete <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-invocation-executor.md"
         >integration and operations contract</a
       > before adopting this pre-alpha surface.

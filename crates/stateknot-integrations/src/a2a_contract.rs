@@ -7,7 +7,10 @@
 //! wrappers validate every inbound and outbound value, keep credentials out of
 //! `Debug`, and prevent a wire dependency from becoming `StateKnot`'s domain API.
 
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 use a2a as wire;
 use chrono::{DateTime, Utc};
@@ -804,6 +807,19 @@ impl A2aTaskStatus {
         self.inner.message.clone().map(|inner| A2aMessage { inner })
     }
 
+    fn try_from_wire(inner: wire::TaskStatus) -> Result<Self, A2aContractError> {
+        let state = A2aTaskState::try_from(inner.state.clone())?;
+        if matches!(state, A2aTaskState::AuthRequired) && inner.message.is_none() {
+            return Err(A2aContractError::InvalidLifecycle(
+                "auth-required status needs an explanatory message",
+            ));
+        }
+        if let Some(message) = inner.message.iter().next().cloned() {
+            A2aMessage::try_from_wire(message)?;
+        }
+        Ok(Self { inner })
+    }
+
     fn into_wire(self) -> wire::TaskStatus {
         self.inner
     }
@@ -873,6 +889,38 @@ impl A2aArtifact {
         &self.inner.artifact_id
     }
 
+    fn try_from_wire(inner: wire::Artifact) -> Result<Self, A2aContractError> {
+        validate_required_text("artifact id", &inner.artifact_id, MAX_ID_BYTES)?;
+        validate_optional_text("artifact name", inner.name.as_deref(), MAX_LABEL_BYTES)?;
+        validate_optional_text(
+            "artifact description",
+            inner.description.as_deref(),
+            MAX_DESCRIPTION_BYTES,
+        )?;
+        if inner.parts.is_empty() {
+            return Err(A2aContractError::Empty {
+                field: "artifact parts",
+            });
+        }
+        validate_count("artifact parts", inner.parts.len(), MAX_PARTS)?;
+        for part in inner.parts.iter().cloned() {
+            A2aPart::try_from_wire(part)?;
+        }
+        validate_metadata("artifact metadata", inner.metadata.as_ref())?;
+        if let Some(extensions) = inner.extensions.as_ref() {
+            validate_string_list(
+                "artifact extensions",
+                extensions,
+                MAX_EXTENSIONS,
+                MAX_URL_BYTES,
+            )?;
+            for extension in extensions {
+                validate_url("artifact extension", extension)?;
+            }
+        }
+        Ok(Self { inner })
+    }
+
     fn into_wire(self) -> wire::Artifact {
         self.inner
     }
@@ -911,6 +959,7 @@ impl A2aTask {
     /// Adds a bounded artifact projection.
     pub fn with_artifacts(mut self, artifacts: Vec<A2aArtifact>) -> Result<Self, A2aContractError> {
         validate_count("task artifacts", artifacts.len(), MAX_ARTIFACTS)?;
+        validate_unique_artifact_ids(&artifacts)?;
         self.inner.artifacts = Some(artifacts.into_iter().map(A2aArtifact::into_wire).collect());
         Ok(self)
     }
@@ -985,9 +1034,62 @@ impl A2aTask {
             .collect()
     }
 
+    pub(crate) fn history_len(&self) -> usize {
+        self.inner.history.as_ref().map_or(0, Vec::len)
+    }
+
+    pub(crate) fn has_artifact_projection(&self) -> bool {
+        self.inner.artifacts.is_some()
+    }
+
+    pub(crate) fn artifact_ids(&self) -> impl Iterator<Item = &str> {
+        self.inner
+            .artifacts
+            .as_deref()
+            .unwrap_or_default()
+            .iter()
+            .map(|artifact| artifact.artifact_id.as_str())
+    }
+
+    pub(crate) fn try_from_wire(inner: wire::Task) -> Result<Self, A2aContractError> {
+        validate_required_text("task id", &inner.id, MAX_ID_BYTES)?;
+        validate_required_text("context id", &inner.context_id, MAX_ID_BYTES)?;
+        A2aTaskStatus::try_from_wire(inner.status.clone())?;
+        if let Some(artifacts) = inner.artifacts.as_ref() {
+            validate_count("task artifacts", artifacts.len(), MAX_ARTIFACTS)?;
+            let artifacts = artifacts
+                .iter()
+                .cloned()
+                .map(A2aArtifact::try_from_wire)
+                .collect::<Result<Vec<_>, _>>()?;
+            validate_unique_artifact_ids(&artifacts)?;
+        }
+        if let Some(history) = inner.history.as_ref() {
+            validate_count("task history", history.len(), MAX_MESSAGES)?;
+            for message in history.iter().cloned() {
+                A2aMessage::try_from_wire(message)?;
+            }
+        }
+        validate_metadata("task metadata", inner.metadata.as_ref())?;
+        Ok(Self { inner })
+    }
+
     pub(crate) fn into_wire(self) -> wire::Task {
         self.inner
     }
+}
+
+fn validate_unique_artifact_ids(artifacts: &[A2aArtifact]) -> Result<(), A2aContractError> {
+    let mut ids = HashSet::with_capacity(artifacts.len());
+    if artifacts
+        .iter()
+        .any(|artifact| !ids.insert(artifact.artifact_id()))
+    {
+        return Err(A2aContractError::InvalidLifecycle(
+            "artifact identifiers must be unique within a task",
+        ));
+    }
+    Ok(())
 }
 
 /// Optional execution controls on a send request.
@@ -1089,14 +1191,51 @@ impl A2aSendConfiguration {
                 actual: history_length.unwrap_or_default() as usize,
             });
         }
+        let push_config = value
+            .task_push_notification_config
+            .map(A2aPushConfig::try_from_wire)
+            .transpose()?;
+        if push_config
+            .as_ref()
+            .is_some_and(|config| config.task_id().is_some())
+        {
+            return Err(A2aContractError::InvalidLifecycle(
+                "send-message push configuration must not contain a task id",
+            ));
+        }
         Ok(Self {
             accepted_output_modes,
-            push_config: value
-                .task_push_notification_config
-                .map(A2aPushConfig::try_from_wire)
-                .transpose()?,
+            push_config,
             history_length,
             return_immediately: value.return_immediately.unwrap_or(false),
+        })
+    }
+
+    fn into_wire(self) -> Result<wire::SendMessageConfiguration, A2aContractError> {
+        if self
+            .push_config
+            .as_ref()
+            .is_some_and(|config| config.task_id().is_some())
+        {
+            return Err(A2aContractError::InvalidLifecycle(
+                "send-message push configuration must not contain a task id",
+            ));
+        }
+        Ok(wire::SendMessageConfiguration {
+            accepted_output_modes: (!self.accepted_output_modes.is_empty())
+                .then_some(self.accepted_output_modes),
+            task_push_notification_config: self.push_config.map(A2aPushConfig::into_wire),
+            history_length: self
+                .history_length
+                .map(|value| {
+                    i32::try_from(value).map_err(|_| {
+                        A2aContractError::InvalidLifecycle(
+                            "history length cannot be represented on the wire",
+                        )
+                    })
+                })
+                .transpose()?,
+            return_immediately: self.return_immediately.then_some(true),
         })
     }
 }
@@ -1172,13 +1311,39 @@ impl A2aSendMessageRequest {
                 value: "tenant".to_string(),
             });
         }
+        let message = A2aMessage::try_from_wire(value.message)?;
+        if message.role() != A2aMessageRole::User {
+            return Err(A2aContractError::InvalidLifecycle(
+                "send-message requests require a user-role message",
+            ));
+        }
         Ok(Self {
-            message: A2aMessage::try_from_wire(value.message)?,
+            message,
             configuration: value
                 .configuration
                 .map(A2aSendConfiguration::try_from_wire)
                 .transpose()?,
             metadata: value.metadata,
+        })
+    }
+
+    pub(crate) fn into_wire(
+        self,
+        tenant: Option<String>,
+    ) -> Result<wire::SendMessageRequest, A2aContractError> {
+        if self.message.role() != A2aMessageRole::User {
+            return Err(A2aContractError::InvalidLifecycle(
+                "send-message requests require a user-role message",
+            ));
+        }
+        Ok(wire::SendMessageRequest {
+            message: self.message.into_wire(),
+            configuration: self
+                .configuration
+                .map(A2aSendConfiguration::into_wire)
+                .transpose()?,
+            metadata: self.metadata,
+            tenant,
         })
     }
 }
@@ -1194,6 +1359,45 @@ pub enum A2aSendMessageResponse {
 }
 
 impl A2aSendMessageResponse {
+    pub(crate) fn try_from_wire(
+        value: wire::SendMessageResponse,
+    ) -> Result<Self, A2aContractError> {
+        match value {
+            wire::SendMessageResponse::Task(task) => Ok(Self::Task(A2aTask::try_from_wire(task)?)),
+            wire::SendMessageResponse::Message(message) => {
+                Ok(Self::Message(A2aMessage::try_from_wire(message)?))
+            }
+        }
+    }
+
+    /// Returns the standard field-presence JSON representation.
+    pub fn to_json(&self) -> Result<Value, A2aContractError> {
+        let wire = match self {
+            Self::Task(task) => wire::SendMessageResponse::Task(task.inner.clone()),
+            Self::Message(message) => wire::SendMessageResponse::Message(message.inner.clone()),
+        };
+        serde_json::to_value(wire).map_err(|_| A2aContractError::InvalidJson {
+            field: "send response",
+        })
+    }
+
+    /// Parses and bounds a standard field-presence JSON response.
+    pub fn from_json(value: Value) -> Result<Self, A2aContractError> {
+        validate_json("send response", &value, MAX_PART_BYTES * 2)?;
+        let object = value.as_object().ok_or(A2aContractError::InvalidJson {
+            field: "send response",
+        })?;
+        if object.len() != 1 || !(object.contains_key("task") || object.contains_key("message")) {
+            return Err(A2aContractError::InvalidJson {
+                field: "send response",
+            });
+        }
+        let wire = serde_json::from_value(value).map_err(|_| A2aContractError::InvalidJson {
+            field: "send response",
+        })?;
+        Self::try_from_wire(wire)
+    }
+
     pub(crate) fn into_wire(self) -> wire::SendMessageResponse {
         match self {
             Self::Task(task) => wire::SendMessageResponse::Task(task.into_wire()),
@@ -1260,6 +1464,26 @@ impl A2aGetTaskRequest {
         }
         Ok(request)
     }
+
+    pub(crate) fn into_wire(
+        self,
+        tenant: Option<String>,
+    ) -> Result<wire::GetTaskRequest, A2aContractError> {
+        Ok(wire::GetTaskRequest {
+            id: self.id.into(),
+            history_length: self
+                .history_length
+                .map(|value| {
+                    i32::try_from(value).map_err(|_| {
+                        A2aContractError::InvalidLifecycle(
+                            "history length cannot be represented on the wire",
+                        )
+                    })
+                })
+                .transpose()?,
+            tenant,
+        })
+    }
 }
 
 /// Bounded filters and cursor for task listing.
@@ -1275,10 +1499,10 @@ pub struct A2aListTasksRequest {
 }
 
 impl A2aListTasksRequest {
-    /// Default and maximum page size accepted by the adapter.
+    /// Protocol-defined default page size.
     pub const DEFAULT_PAGE_SIZE: u16 = 50;
-    /// Hard page-size ceiling.
-    pub const MAX_PAGE_SIZE: u16 = 256;
+    /// A2A 1.0 protocol page-size ceiling.
+    pub const MAX_PAGE_SIZE: u16 = 100;
 
     /// Constructs an unfiltered first page.
     #[must_use]
@@ -1341,7 +1565,7 @@ impl A2aListTasksRequest {
         Ok(self)
     }
 
-    /// Filters task status timestamps strictly after this instant.
+    /// Filters task status timestamps to this instant or later.
     #[must_use]
     pub const fn with_status_timestamp_after(mut self, value: DateTime<Utc>) -> Self {
         self.status_timestamp_after = Some(value);
@@ -1431,6 +1655,21 @@ impl A2aListTasksRequest {
         request.include_artifacts = value.include_artifacts.unwrap_or(false);
         Ok(request)
     }
+
+    pub(crate) fn into_wire(self, tenant: Option<String>) -> wire::ListTasksRequest {
+        wire::ListTasksRequest {
+            context_id: self.context_id.map(Into::into),
+            status: self.status.map(Into::into),
+            page_size: Some(i32::from(self.page_size)),
+            page_token: self.page_token.map(Into::into),
+            history_length: self
+                .history_length
+                .map(|value| i32::try_from(value).expect("bounded history length fits i32")),
+            status_timestamp_after: self.status_timestamp_after,
+            include_artifacts: self.include_artifacts.then_some(true),
+            tenant,
+        }
+    }
 }
 
 /// One stable-snapshot page of A2A tasks.
@@ -1438,6 +1677,7 @@ impl A2aListTasksRequest {
 pub struct A2aTaskPage {
     tasks: Vec<A2aTask>,
     next_page_token: Option<Box<str>>,
+    page_size: u16,
     total_size: u64,
 }
 
@@ -1446,6 +1686,7 @@ impl A2aTaskPage {
     pub fn new(
         tasks: Vec<A2aTask>,
         next_page_token: Option<String>,
+        page_size: u16,
         total_size: u64,
     ) -> Result<Self, A2aContractError> {
         validate_count(
@@ -1453,17 +1694,50 @@ impl A2aTaskPage {
             tasks.len(),
             usize::from(A2aListTasksRequest::MAX_PAGE_SIZE),
         )?;
+        if page_size == 0 || page_size > A2aListTasksRequest::MAX_PAGE_SIZE {
+            return Err(A2aContractError::InvalidLifecycle(
+                "task response page size is outside the protocol range",
+            ));
+        }
+        if tasks.len() > usize::from(page_size) {
+            return Err(A2aContractError::InvalidLifecycle(
+                "task response contains more tasks than its page size",
+            ));
+        }
+        if total_size < tasks.len() as u64 {
+            return Err(A2aContractError::InvalidLifecycle(
+                "task response total size is smaller than the returned page",
+            ));
+        }
+        let mut task_ids = HashSet::with_capacity(tasks.len());
+        let mut previous_timestamp = None;
+        for task in &tasks {
+            let timestamp = task.status().timestamp();
+            if !task_ids.insert(task.id())
+                || previous_timestamp
+                    .zip(timestamp)
+                    .is_some_and(|(previous, current)| previous < current)
+            {
+                return Err(A2aContractError::InvalidLifecycle(
+                    "task page must contain unique IDs in newest-status-first order",
+                ));
+            }
+            if timestamp.is_some() {
+                previous_timestamp = timestamp;
+            }
+        }
         if let Some(token) = next_page_token.as_deref() {
             validate_required_text("page token", token, MAX_ID_BYTES * 4)?;
         }
         Ok(Self {
             tasks,
             next_page_token: next_page_token.map(String::into_boxed_str),
+            page_size,
             total_size,
         })
     }
 
-    /// Returns tasks in backend-defined stable order.
+    /// Returns tasks in protocol-defined newest-status-first order.
     #[must_use]
     pub fn tasks(&self) -> &[A2aTask] {
         &self.tasks
@@ -1475,6 +1749,12 @@ impl A2aTaskPage {
         self.next_page_token.as_deref()
     }
 
+    /// Returns the page size used by the remote service.
+    #[must_use]
+    pub const fn page_size(&self) -> u16 {
+        self.page_size
+    }
+
     /// Returns the authorized total size when known by the backend.
     #[must_use]
     pub const fn total_size(&self) -> u64 {
@@ -1482,18 +1762,41 @@ impl A2aTaskPage {
     }
 
     pub(crate) fn into_wire(self) -> Result<wire::ListTasksResponse, A2aContractError> {
-        let page_size = i32::try_from(self.tasks.len()).map_err(|_| {
-            A2aContractError::InvalidLifecycle("task page count cannot be represented")
-        })?;
         let total_size = i32::try_from(self.total_size).map_err(|_| {
             A2aContractError::InvalidLifecycle("task total count cannot be represented")
         })?;
         Ok(wire::ListTasksResponse {
             tasks: self.tasks.into_iter().map(A2aTask::into_wire).collect(),
             next_page_token: self.next_page_token.map(Into::into).unwrap_or_default(),
-            page_size,
+            page_size: i32::from(self.page_size),
             total_size,
         })
+    }
+
+    pub(crate) fn try_from_wire(value: wire::ListTasksResponse) -> Result<Self, A2aContractError> {
+        if value.total_size < 0 {
+            return Err(A2aContractError::InvalidLifecycle(
+                "task page counts must be non-negative",
+            ));
+        }
+        let page_size = u16::try_from(value.page_size).map_err(|_| {
+            A2aContractError::InvalidLifecycle(
+                "task response page size is outside the protocol range",
+            )
+        })?;
+        let tasks = value
+            .tasks
+            .into_iter()
+            .map(A2aTask::try_from_wire)
+            .collect::<Result<Vec<_>, _>>()?;
+        let next = (!value.next_page_token.is_empty()).then_some(value.next_page_token);
+        Self::new(
+            tasks,
+            next,
+            page_size,
+            u64::try_from(value.total_size)
+                .expect("non-negative i32 task total always fits in u64"),
+        )
     }
 }
 
@@ -1550,6 +1853,14 @@ impl A2aCancelTaskRequest {
         }
         Ok(request)
     }
+
+    pub(crate) fn into_wire(self, tenant: Option<String>) -> wire::CancelTaskRequest {
+        wire::CancelTaskRequest {
+            id: self.id.into(),
+            metadata: self.metadata,
+            tenant,
+        }
+    }
 }
 
 /// Validated task-subscription request.
@@ -1584,6 +1895,13 @@ impl A2aSubscribeTaskRequest {
             });
         }
         Self::new(value.id)
+    }
+
+    pub(crate) fn into_wire(self, tenant: Option<String>) -> wire::SubscribeToTaskRequest {
+        wire::SubscribeToTaskRequest {
+            id: self.id.into(),
+            tenant,
+        }
     }
 }
 
@@ -1782,13 +2100,22 @@ impl A2aPushConfig {
             tenant: None,
         }
     }
+
+    pub(crate) fn into_wire_for_tenant(
+        self,
+        tenant: Option<String>,
+    ) -> wire::TaskPushNotificationConfig {
+        let mut value = self.into_wire();
+        value.tenant = tenant;
+        value
+    }
 }
 
 impl fmt::Debug for A2aPushConfig {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("A2aPushConfig")
-            .field("url", &self.url)
+            .field("url", &"[REDACTED]")
             .field("id", &self.id)
             .field("task_id", &self.task_id)
             .field("token", &self.token.as_ref().map(|_| "[REDACTED]"))
@@ -1842,6 +2169,28 @@ impl A2aGetPushConfigRequest {
             });
         }
         Self::new(value.task_id, value.id)
+    }
+
+    pub(crate) fn into_get_wire(
+        self,
+        tenant: Option<String>,
+    ) -> wire::GetTaskPushNotificationConfigRequest {
+        wire::GetTaskPushNotificationConfigRequest {
+            task_id: self.task_id.into(),
+            id: self.config_id.into(),
+            tenant,
+        }
+    }
+
+    pub(crate) fn into_delete_wire(
+        self,
+        tenant: Option<String>,
+    ) -> wire::DeleteTaskPushNotificationConfigRequest {
+        wire::DeleteTaskPushNotificationConfigRequest {
+            task_id: self.task_id.into(),
+            id: self.config_id.into(),
+            tenant,
+        }
     }
 }
 
@@ -1924,6 +2273,18 @@ impl A2aListPushConfigsRequest {
         }
         Ok(request)
     }
+
+    pub(crate) fn into_wire(
+        self,
+        tenant: Option<String>,
+    ) -> wire::ListTaskPushNotificationConfigsRequest {
+        wire::ListTaskPushNotificationConfigsRequest {
+            task_id: self.task_id.into(),
+            page_size: Some(i32::from(self.page_size)),
+            page_token: self.page_token.map(Into::into),
+            tenant,
+        }
+    }
 }
 
 /// One stable page of push configurations.
@@ -1971,6 +2332,17 @@ impl A2aPushConfigPage {
             next_page_token: self.next_page_token.map(Into::into),
         }
     }
+
+    pub(crate) fn try_from_wire(
+        value: wire::ListTaskPushNotificationConfigsResponse,
+    ) -> Result<Self, A2aContractError> {
+        let configs = value
+            .configs
+            .into_iter()
+            .map(A2aPushConfig::try_from_wire)
+            .collect::<Result<Vec<_>, _>>()?;
+        Self::new(configs, value.next_page_token)
+    }
 }
 
 /// Request to delete one push configuration.
@@ -2009,6 +2381,21 @@ impl A2aStreamEvent {
             Self::ArtifactUpdate(update) => {
                 wire::StreamResponse::ArtifactUpdate(update.into_wire())
             }
+        }
+    }
+
+    pub(crate) fn try_from_wire(value: wire::StreamResponse) -> Result<Self, A2aContractError> {
+        match value {
+            wire::StreamResponse::Task(task) => Ok(Self::Task(A2aTask::try_from_wire(task)?)),
+            wire::StreamResponse::Message(message) => {
+                Ok(Self::Message(A2aMessage::try_from_wire(message)?))
+            }
+            wire::StreamResponse::StatusUpdate(update) => {
+                Ok(Self::StatusUpdate(A2aStatusUpdate::try_from_wire(update)?))
+            }
+            wire::StreamResponse::ArtifactUpdate(update) => Ok(Self::ArtifactUpdate(
+                A2aArtifactUpdate::try_from_wire(update)?,
+            )),
         }
     }
 }
@@ -2077,6 +2464,18 @@ impl A2aStatusUpdate {
             metadata: self.metadata,
         }
     }
+
+    fn try_from_wire(value: wire::TaskStatusUpdateEvent) -> Result<Self, A2aContractError> {
+        let mut update = Self::new(
+            value.task_id,
+            value.context_id,
+            A2aTaskStatus::try_from_wire(value.status)?,
+        )?;
+        if let Some(metadata) = value.metadata {
+            update = update.with_metadata(metadata)?;
+        }
+        Ok(update)
+    }
 }
 
 /// Artifact update or ordered artifact chunk.
@@ -2116,6 +2515,15 @@ impl A2aArtifactUpdate {
     pub const fn as_chunk(mut self, last_chunk: bool) -> Self {
         self.append = true;
         self.last_chunk = last_chunk;
+        self
+    }
+
+    /// Marks this event as the first, non-final chunk of a new or replaced artifact.
+    /// Subsequent chunks must use [`Self::as_chunk`].
+    #[must_use]
+    pub const fn as_initial_chunk(mut self) -> Self {
+        self.append = false;
+        self.last_chunk = false;
         self
     }
 
@@ -2169,6 +2577,22 @@ impl A2aArtifactUpdate {
             metadata: self.metadata,
         }
     }
+
+    fn try_from_wire(value: wire::TaskArtifactUpdateEvent) -> Result<Self, A2aContractError> {
+        let append = value.append.unwrap_or(false);
+        let last_chunk = value.last_chunk.unwrap_or(false);
+        let mut update = Self::new(
+            value.task_id,
+            value.context_id,
+            A2aArtifact::try_from_wire(value.artifact)?,
+        )?;
+        update.append = append;
+        update.last_chunk = last_chunk;
+        if let Some(metadata) = value.metadata {
+            update = update.with_metadata(metadata)?;
+        }
+        Ok(update)
+    }
 }
 
 /// Transport binding supported by the `StateKnot` A2A v1 profile.
@@ -2212,6 +2636,7 @@ impl TryFrom<&str> for A2aBinding {
 pub struct A2aAgentInterface {
     url: Box<str>,
     binding: A2aBinding,
+    tenant: Option<Box<str>>,
 }
 
 impl A2aAgentInterface {
@@ -2222,7 +2647,16 @@ impl A2aAgentInterface {
         Ok(Self {
             url: url.into_boxed_str(),
             binding,
+            tenant: None,
         })
+    }
+
+    /// Binds the opaque routing tenant required by this interface.
+    pub fn with_tenant(mut self, tenant: impl Into<String>) -> Result<Self, A2aContractError> {
+        let tenant = tenant.into();
+        validate_required_text("interface tenant", &tenant, MAX_ID_BYTES)?;
+        self.tenant = Some(tenant.into_boxed_str());
+        Ok(self)
     }
 
     /// Returns the endpoint URL.
@@ -2237,23 +2671,28 @@ impl A2aAgentInterface {
         self.binding
     }
 
-    fn try_from_wire(value: wire::AgentInterface) -> Result<Self, A2aContractError> {
+    /// Returns the opaque routing tenant advertised for this interface.
+    #[must_use]
+    pub fn tenant(&self) -> Option<&str> {
+        self.tenant.as_deref()
+    }
+
+    pub(crate) fn try_from_wire(value: wire::AgentInterface) -> Result<Self, A2aContractError> {
         if value.protocol_version != A2A_PROTOCOL_VERSION_1_0 {
             return Err(A2aContractError::Unsupported {
                 field: "protocol version",
                 value: value.protocol_version,
             });
         }
-        if value.tenant.is_some() {
-            return Err(A2aContractError::Unsupported {
-                field: "Agent Card tenant override",
-                value: "tenant".to_string(),
-            });
-        }
-        Self::new(
+        let tenant = value.tenant;
+        let mut interface = Self::new(
             value.url,
             A2aBinding::try_from(value.protocol_binding.as_str())?,
-        )
+        )?;
+        if let Some(tenant) = tenant {
+            interface = interface.with_tenant(tenant)?;
+        }
+        Ok(interface)
     }
 
     fn into_wire(self) -> wire::AgentInterface {
@@ -2261,9 +2700,28 @@ impl A2aAgentInterface {
             url: self.url.into(),
             protocol_binding: self.binding.as_str().to_string(),
             protocol_version: A2A_PROTOCOL_VERSION_1_0.to_string(),
-            tenant: None,
+            tenant: self.tenant.map(Into::into),
         }
     }
+}
+
+fn validate_wire_interface(value: &wire::AgentInterface) -> Result<(), A2aContractError> {
+    validate_required_text("agent interface address", &value.url, MAX_URL_BYTES)?;
+    validate_required_text(
+        "protocol binding",
+        value.protocol_binding.as_str(),
+        MAX_LABEL_BYTES,
+    )?;
+    validate_required_text(
+        "protocol version",
+        value.protocol_version.as_str(),
+        MAX_LABEL_BYTES,
+    )?;
+    validate_optional_text("interface tenant", value.tenant.as_deref(), MAX_ID_BYTES)?;
+    if A2aBinding::try_from(value.protocol_binding.as_str()).is_ok() {
+        validate_url("agent interface", &value.url)?;
+    }
+    Ok(())
 }
 
 /// A declared A2A extension.
@@ -2546,7 +3004,7 @@ impl A2aAgentSkill {
         mut self,
         values: Vec<HashMap<String, Vec<String>>>,
     ) -> Result<Self, A2aContractError> {
-        validate_security_requirements(&values, None)?;
+        validate_security_requirements(&values)?;
         self.inner.security_requirements = Some(values);
         Ok(self)
     }
@@ -2555,6 +3013,22 @@ impl A2aAgentSkill {
     #[must_use]
     pub fn id(&self) -> &str {
         &self.inner.id
+    }
+
+    /// Returns skill-specific input modes; an empty slice means card defaults.
+    #[must_use]
+    pub fn input_modes(&self) -> &[String] {
+        self.inner.input_modes.as_deref().unwrap_or_default()
+    }
+
+    /// Returns skill-specific output modes; an empty slice means card defaults.
+    #[must_use]
+    pub fn output_modes(&self) -> &[String] {
+        self.inner.output_modes.as_deref().unwrap_or_default()
+    }
+
+    pub(crate) fn security_requirements(&self) -> Option<&[wire::SecurityRequirement]> {
+        self.inner.security_requirements.as_deref()
     }
 
     fn try_from_wire(value: wire::AgentSkill) -> Result<Self, A2aContractError> {
@@ -2760,7 +3234,6 @@ fn validate_scope_map(scopes: &HashMap<String, String>) -> Result<(), A2aContrac
 
 fn validate_security_requirements(
     requirements: &[HashMap<String, Vec<String>>],
-    schemes: Option<&HashMap<String, wire::SecurityScheme>>,
 ) -> Result<(), A2aContractError> {
     validate_count(
         "security requirements",
@@ -2775,12 +3248,21 @@ fn validate_security_requirements(
         )?;
         for (name, scopes) in requirement {
             validate_required_text("security scheme name", name, MAX_LABEL_BYTES)?;
-            if schemes.is_some_and(|schemes| !schemes.contains_key(name)) {
-                return Err(A2aContractError::InvalidLifecycle(
-                    "security requirement references an unknown scheme",
-                ));
-            }
             validate_string_list("security scopes", scopes, MAX_SCOPES, MAX_LABEL_BYTES)?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_security_requirement_references(
+    requirements: &[HashMap<String, Vec<String>>],
+    schemes: Option<&HashMap<String, wire::SecurityScheme>>,
+) -> Result<(), A2aContractError> {
+    for name in requirements.iter().flat_map(HashMap::keys) {
+        if schemes.is_none_or(|schemes| !schemes.contains_key(name)) {
+            return Err(A2aContractError::InvalidLifecycle(
+                "security requirement references an unknown scheme",
+            ));
         }
     }
     Ok(())
@@ -2880,16 +3362,15 @@ impl A2aAgentCard {
             .expect("A2aAgentCard construction validates capabilities")
     }
 
-    /// Returns supported interfaces in preference order.
+    /// Returns StateKnot-supported A2A 1.0 interfaces in preference order.
     #[must_use]
     pub fn interfaces(&self) -> Vec<A2aAgentInterface> {
         self.inner
             .supported_interfaces
             .iter()
             .cloned()
-            .map(A2aAgentInterface::try_from_wire)
-            .collect::<Result<Vec<_>, _>>()
-            .expect("A2aAgentCard construction validates interfaces")
+            .filter_map(|interface| A2aAgentInterface::try_from_wire(interface).ok())
+            .collect()
     }
 
     /// Returns skill descriptors in declaration order.
@@ -2902,6 +3383,29 @@ impl A2aAgentCard {
             .map(A2aAgentSkill::try_from_wire)
             .collect::<Result<Vec<_>, _>>()
             .expect("A2aAgentCard construction validates skills")
+    }
+
+    /// Returns the card-wide accepted input modes in preference order.
+    #[must_use]
+    pub fn default_input_modes(&self) -> &[String] {
+        &self.inner.default_input_modes
+    }
+
+    /// Returns the card-wide produced output modes in preference order.
+    #[must_use]
+    pub fn default_output_modes(&self) -> &[String] {
+        &self.inner.default_output_modes
+    }
+
+    /// Returns the number of interfaces advertised, including unknown future
+    /// bindings that are preserved for signature and digest verification.
+    #[must_use]
+    pub fn advertised_interface_count(&self) -> usize {
+        self.inner.supported_interfaces.len()
+    }
+
+    pub(crate) fn wire(&self) -> &wire::AgentCard {
+        &self.inner
     }
 
     /// Serializes the standard A2A 1.0 JSON representation.
@@ -2938,8 +3442,19 @@ impl A2aAgentCard {
             inner.supported_interfaces.len(),
             MAX_INTERFACES,
         )?;
-        for interface in inner.supported_interfaces.iter().cloned() {
-            A2aAgentInterface::try_from_wire(interface)?;
+        let mut interfaces = HashSet::with_capacity(inner.supported_interfaces.len());
+        for interface in &inner.supported_interfaces {
+            validate_wire_interface(interface)?;
+            if !interfaces.insert((
+                interface.url.as_str(),
+                interface.protocol_binding.as_str(),
+                interface.protocol_version.as_str(),
+                interface.tenant.as_deref(),
+            )) {
+                return Err(A2aContractError::InvalidLifecycle(
+                    "duplicate Agent Card interface",
+                ));
+            }
         }
         A2aAgentCapabilities::try_from_wire(inner.capabilities.clone())?;
         validate_modes("default input modes", &inner.default_input_modes)?;
@@ -2950,8 +3465,14 @@ impl A2aAgentCard {
             });
         }
         validate_count("agent skills", inner.skills.len(), MAX_SKILLS)?;
+        let mut skill_ids = HashSet::with_capacity(inner.skills.len());
         for skill in inner.skills.iter().cloned() {
-            A2aAgentSkill::try_from_wire(skill)?;
+            let skill = A2aAgentSkill::try_from_wire(skill)?;
+            if !skill_ids.insert(skill.id().to_owned()) {
+                return Err(A2aContractError::InvalidLifecycle(
+                    "duplicate Agent Skill identifier",
+                ));
+            }
         }
         if let Some(provider) = inner.provider.as_ref() {
             validate_required_text(
@@ -2975,7 +3496,19 @@ impl A2aAgentCard {
             }
         }
         if let Some(requirements) = inner.security_requirements.as_ref() {
-            validate_security_requirements(requirements, inner.security_schemes.as_ref())?;
+            validate_security_requirements(requirements)?;
+            validate_security_requirement_references(
+                requirements,
+                inner.security_schemes.as_ref(),
+            )?;
+        }
+        for skill in &inner.skills {
+            if let Some(requirements) = skill.security_requirements.as_deref() {
+                validate_security_requirement_references(
+                    requirements,
+                    inner.security_schemes.as_ref(),
+                )?;
+            }
         }
         if let Some(signatures) = inner.signatures.as_ref() {
             validate_count(
@@ -3141,7 +3674,7 @@ impl A2aAgentCardBuilder {
         mut self,
         requirements: Vec<HashMap<String, Vec<String>>>,
     ) -> Result<Self, A2aContractError> {
-        validate_security_requirements(&requirements, self.card.security_schemes.as_ref())?;
+        validate_security_requirements(&requirements)?;
         self.card.security_requirements = Some(requirements);
         Ok(self)
     }
@@ -3250,5 +3783,108 @@ mod tests {
             tenant: Some("other".to_string()),
         };
         assert!(A2aGetTaskRequest::try_from_wire(request).is_err());
+    }
+
+    #[test]
+    fn task_pagination_enforces_a2a_protocol_bounds() {
+        assert!(A2aListTasksRequest::new().with_page_size(100).is_ok());
+        assert!(A2aListTasksRequest::new().with_page_size(101).is_err());
+
+        let response = wire::ListTasksResponse {
+            tasks: Vec::new(),
+            next_page_token: String::new(),
+            page_size: 101,
+            total_size: 0,
+        };
+        assert!(A2aTaskPage::try_from_wire(response).is_err());
+    }
+
+    #[test]
+    fn inert_future_interfaces_are_preserved_without_becoming_executable() {
+        let mut value = card().to_json().unwrap();
+        value["supportedInterfaces"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "url": "grpc.example.test:443",
+                "protocolBinding": "GRPC",
+                "protocolVersion": "1.0"
+            }));
+
+        let decoded = A2aAgentCard::from_json(value).unwrap();
+        assert_eq!(decoded.advertised_interface_count(), 2);
+        assert_eq!(decoded.interfaces().len(), 1);
+    }
+
+    #[test]
+    fn duplicate_skill_ids_are_rejected_on_untrusted_cards() {
+        let mut value = card().to_json().unwrap();
+        let duplicate = value["skills"][0].clone();
+        value["skills"].as_array_mut().unwrap().push(duplicate);
+        assert!(A2aAgentCard::from_json(value).is_err());
+    }
+
+    #[test]
+    fn card_and_skill_security_requirements_must_reference_declared_schemes() {
+        let missing = HashMap::from([("missing".to_string(), Vec::new())]);
+
+        let mut card_requirement = card().into_wire();
+        card_requirement.security_requirements = Some(vec![missing.clone()]);
+        assert!(A2aAgentCard::try_from_wire(card_requirement).is_err());
+
+        let mut skill_requirement = card().into_wire();
+        skill_requirement.skills[0].security_requirements = Some(vec![missing]);
+        assert!(A2aAgentCard::try_from_wire(skill_requirement).is_err());
+    }
+
+    #[test]
+    fn artifact_update_wire_flags_are_preserved_exactly() {
+        let update = wire::TaskArtifactUpdateEvent {
+            task_id: "task-1".to_string(),
+            context_id: "context-1".to_string(),
+            artifact: A2aArtifact::new("artifact-1", vec![A2aPart::text("first chunk").unwrap()])
+                .unwrap()
+                .into_wire(),
+            append: Some(false),
+            last_chunk: Some(false),
+            metadata: None,
+        };
+
+        let decoded = A2aArtifactUpdate::try_from_wire(update).unwrap();
+        assert!(!decoded.append());
+        assert!(!decoded.last_chunk());
+    }
+
+    #[test]
+    fn outbound_send_rejects_agent_roles_and_bound_push_tasks() {
+        let agent_message = A2aMessage::new(
+            "message-1",
+            A2aMessageRole::Agent,
+            vec![A2aPart::text("not a client message").unwrap()],
+        )
+        .unwrap();
+        assert!(
+            A2aSendMessageRequest::new(agent_message)
+                .into_wire(None)
+                .is_err()
+        );
+
+        let push = A2aPushConfig::new("https://hooks.example.test/a2a")
+            .unwrap()
+            .with_task_id("task-1")
+            .unwrap();
+        let configuration = A2aSendConfiguration::new().with_push_config(push);
+        let user_message = A2aMessage::new(
+            "message-2",
+            A2aMessageRole::User,
+            vec![A2aPart::text("valid role").unwrap()],
+        )
+        .unwrap();
+        assert!(
+            A2aSendMessageRequest::new(user_message)
+                .with_configuration(configuration)
+                .into_wire(None)
+                .is_err()
+        );
     }
 }

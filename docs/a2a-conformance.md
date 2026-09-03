@@ -6,8 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 # A2A 1.0 conformance status
 
 This page records the exact evidence for StateKnot's implemented A2A 1.0
-HTTP+JSON and JSON-RPC server profile. It is not a client, gRPC, stable-API, or
-complete-framework certification claim.
+HTTP+JSON and JSON-RPC server profile. It is not evidence for the separately
+implemented client, gRPC, a stable API, or complete-framework certification.
 
 ## Frozen evaluation input
 
@@ -94,4 +94,6 @@ Passing this gate supports only the implemented server wire/application
 boundary. Production qualification still requires a durable application
 `A2aTaskService`, cross-replica policy and admission, transactional push outbox,
 security/failure tests, stable API review, release artifacts, and operations
-evidence. The A2A client and gRPC binding remain separate future gates.
+evidence. The separately implemented [A2A Client profile](a2a-client.md) has local
+HTTP+JSON/JSON-RPC operation-matrix and PostgreSQL durability evidence, but no
+official Client TCK claim. gRPC remains unimplemented.

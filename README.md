@@ -220,16 +220,29 @@ bounded unary/stream responses, and graceful shutdown. The checksum-pinned
 official TCK gate collects 265 cases: 177 pass, 88 are declared skips, and zero
 fail, error, or xfail. Critical streaming, multi-subscriber, authenticated push,
 extended-card, caching, error-mapping, and unknown-field cases must execute.
-A2A Client, gRPC, and a production durable task/push backend remain separate
-unimplemented gates.
-The adapter is now composed with the durable invocation executor in a real
-PostgreSQL + loopback MCP test: durable start is observed before request I/O,
-lost write responses remain unknown, duplicate execution never redispatches,
-and authoritative result reconciliation is schema-validated, fenced, atomic,
-and exactly idempotent on PostgreSQL 16 and 17. The runtime PostgreSQL suite
-separately proves the authoritative error branch.
+The separate strict A2A 1.0 Client implements all eleven HTTP+JSON and JSON-RPC
+operations plus both SSE surfaces. Discovery freezes the bounded Agent Card,
+server-preferred interface, exact egress pin, extensions, tenant, and security
+alternative. The current authenticated profile accepts complete single-scheme
+HTTP Bearer, OAuth 2.0, or OpenID Connect requirements; API-key, Basic, mTLS,
+and multi-scheme profiles remain explicit exclusions. `A2aRemoteAgent` binds
+one advertised skill and local input/output schemas to the existing durable
+Tool execution contract with explicit
+AtMostOnce or operator-attested message-ID deduplication semantics. Real
+loopback tests execute the complete operation matrix over both bindings; a
+real PostgreSQL test proves durable state before A2A send, lost-response
+`Unknown`, and duplicate no-redispatch. Official Client conformance,
+automatic reconciliation, gRPC, and a production durable server-side
+task/push backend remain separate gates.
+The strict MCP adapter is also composed with the durable invocation executor
+in a real PostgreSQL + loopback test: durable start is observed before request
+I/O, lost write responses remain unknown, duplicate execution never
+redispatches, and authoritative result reconciliation is schema-validated,
+fenced, atomic, and exactly idempotent on PostgreSQL 16 and 17. The runtime
+PostgreSQL suite separately proves the authoritative error branch.
 Stable network Agent/cancellation transport, production protocol-specific
-outbox dispatch adapters, A2A Client/gRPC, artifact retrieval, parallel
+outbox dispatch adapters, A2A Client live-peer/conformance qualification and
+reconciliation, A2A gRPC, artifact retrieval, parallel
 siblings/Tools, output repair, loops/subgraphs, role isolation, general
 retention, failover, restore, and the final stale-race gates have not shipped
 yet.
@@ -241,8 +254,9 @@ The current milestone is to:
 2. preserve the separate MCP Client and Server profiles and their exact pinned
    32-client/37-server official gates while completing stable API review and
    keeping Tasks and other extensions behind independent claims;
-3. preserve the A2A 1.0 HTTP+JSON/JSON-RPC Server gate while implementing and
-   qualifying the separate durable A2A Client/outbound boundary;
+3. preserve the A2A 1.0 HTTP+JSON/JSON-RPC Server gate and implemented durable
+   Client/outbound boundary while adding official/live-peer qualification and
+   an application-owned reconciliation profile;
 4. validate the three frozen production scenarios and accept the core domain,
    graph, durability, and protocol/security RFCs;
 5. qualify role isolation, failover/restore, and the final stale-race gates; and
@@ -262,6 +276,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [MCP OAuth client authorization](docs/mcp-oauth.md),
 [MCP Server profile](docs/mcp-server.md),
 [MCP conformance status](docs/mcp-conformance.md),
+[A2A 1.0 Client and durable remote-agent profile](docs/a2a-client.md),
 [A2A 1.0 Server profile](docs/a2a-server.md),
 [A2A 1.0 conformance status](docs/a2a-conformance.md),
 [durable invocation](docs/durable-invocation-executor.md),

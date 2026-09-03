@@ -2187,7 +2187,7 @@ mod tests {
             _request: A2aListTasksRequest,
         ) -> BoxFuture<'_, Result<A2aTaskPage, A2aTaskServiceError>> {
             Box::pin(async {
-                A2aTaskPage::new(Vec::new(), None, 0)
+                A2aTaskPage::new(Vec::new(), None, A2aListTasksRequest::DEFAULT_PAGE_SIZE, 0)
                     .map_err(|_| A2aTaskServiceError::InvalidAgentResponse)
             })
         }

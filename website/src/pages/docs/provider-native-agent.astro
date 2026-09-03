@@ -36,8 +36,9 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
         href="/docs/agent-service/">AgentService v1</a
       > now exposes this definition through an embedding boundary, and the <a
         href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a
-      > supplies one client-side Tool adapter. Stable network transport, broader MCP/A2A
-      support, and production qualification remain ahead.
+      > plus <a href="/docs/a2a-client/">A2A Remote Agent profile</a> supply client-side
+      Tool adapters. Stable network transport, broader protocol extensions, and production
+      qualification remain ahead.
     </p>
   </aside>
 
@@ -239,11 +240,11 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
         ingress are implemented; stable HTTP/gRPC transport is not.
       </li>
       <li>
-        The provider-native execution core and one strict MCP client-side Remote
-        Tool binding are implemented. The independent MCP Server profile exists,
-        but is not composed into this Graph. Broader client support, A2A,
-        artifact retrieval, live-provider drift qualification, failover, and a
-        production release remain ahead.
+        The provider-native execution core, strict MCP Remote Tool, and A2A
+        Remote Agent bindings are implemented. Independent MCP/A2A Server
+        profiles exist but are not composed into this Graph. Broader protocol
+        extensions, A2A live-peer qualification/reconciliation, artifact
+        retrieval, failover, and a production release remain ahead.
       </li>
     </ul>
     <p>

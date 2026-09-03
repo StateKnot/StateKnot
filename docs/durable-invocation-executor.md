@@ -8,9 +8,10 @@ SPDX-License-Identifier: Apache-2.0
 `stateknot-runtime` now contains the provider-neutral execution boundary between
 durable model/tool ledgers and external adapters. It is pre-alpha and
 unpublished. This document is the integration and recovery contract already
-enforced by code. OpenAI Responses, Anthropic Messages, and one strict MCP
-2026-07-28 client-side Remote Tool profile now bind to this contract; that does
-not imply broader MCP conformance or live-provider qualification.
+enforced by code. OpenAI Responses, Anthropic Messages, one strict MCP
+2026-07-28 client-side Remote Tool, and one strict A2A 1.0 Remote Agent profile
+now bind to this contract; that does not imply stable APIs, broader protocol
+conformance, or live-provider/partner qualification.
 
 A [Simplified Chinese edition](durable-invocation-executor.zh-CN.md) is
 maintained alongside this document.
@@ -239,7 +240,10 @@ Real PostgreSQL integration coverage proves:
   and never calls the Tool again; and
 - the strict MCP adapter passes the same durable-before-dispatch and
   reconciliation proof over a real loopback MCP exchange and PostgreSQL on
-  versions 16 and 17.
+  versions 16 and 17; and
+- the strict A2A adapter proves an executing revision before a real loopback
+  send, persists a lost response as `Unknown`, and never redispatches the same
+  invocation during recovery on PostgreSQL 16 and 17.
 
 The boundary remains pre-alpha. First-party OpenAI Responses and Anthropic
 Messages adapters, the typed Agent contract, and durable transcript assembly in

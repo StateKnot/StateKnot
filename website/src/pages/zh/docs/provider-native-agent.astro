@@ -36,8 +36,8 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
         href="/zh/docs/agent-service/">AgentService v1</a
       > 已通过嵌入式边界暴露该 Definition，<a href="/zh/docs/mcp-remote-tool/"
         >严格 MCP Remote Tool Profile</a
-      > 已提供一个 Client-side Tool Adapter。稳定 Network Transport、更广 MCP/A2A
-      支持与生产验证仍未交付。
+      > 与 <a href="/zh/docs/a2a-client/">A2A Remote Agent Profile</a> 已提供 Client-side
+      Tool Adapter。稳定 Network Transport、更广 Protocol Extension 与生产 验证仍未交付。
     </p>
   </aside>
 
@@ -231,10 +231,11 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
         尚未实现稳定 HTTP/gRPC Transport。
       </li>
       <li>
-        已实现 Provider-native Execution Core 与一个严格 MCP Client-side Remote
-        Tool Binding。独立 MCP Server Profile 已存在，但尚未组合进本 Graph；更广
-        Client、A2A、Artifact Retrieval、Live-provider Drift Qualification、
-        Failover 与生产 Release 仍未交付。
+        已实现 Provider-native Execution Core、严格 MCP Remote Tool 与 A2A
+        Remote Agent Binding。独立 MCP/A2A Server Profile 已存在，但尚未组合进本
+        Graph； 更广 Protocol Extension、A2A Live-peer
+        Qualification/Reconciliation、Artifact Retrieval、Failover 与生产
+        Release 仍未交付。
       </li>
     </ul>
     <p>

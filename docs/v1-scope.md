@@ -29,10 +29,16 @@ a StateKnot-owned A2A `1.0` Server profile for Agent Cards, messages, tasks,
 artifacts, streaming, cancellation, resubscription, and push-notification
 configuration over HTTP+JSON, JSON-RPC, and SSE. Its frozen official TCK gate
 passes 177 cases, skips 88 unconfigured or non-applicable cases, and reports
-zero failures, errors, or expected failures. These are implementation slices
-toward the surface below, not claims that the stable network Agent API, MCP
-Tasks or other extensions, stable SDK-tier API, a production durable A2A
-task/push backend, the A2A Client, or A2A gRPC support has shipped.
+zero failures, errors, or expected failures. A separate strict A2A `1.0`
+Client now implements all eleven HTTP+JSON/JSON-RPC operations, both SSE
+surfaces, exact discovery/interface pins, a bounded anonymous or
+Bearer/OAuth2/OpenID security profile, and one
+`A2aRemoteAgent` binding whose lost-response path is proven against the real
+PostgreSQL invocation ledger. These are implementation slices toward the
+surface below, not claims that the stable network Agent API, MCP Tasks or other
+extensions, stable SDK-tier API, a production durable A2A task/push backend,
+official A2A Client conformance, automatic outbound reconciliation, or A2A
+gRPC support has shipped.
 Their exact boundaries are documented in
 [AgentService v1](agent-service.md), the
 [strict MCP Remote Tool profile](mcp-remote-tool.md), the
@@ -40,7 +46,8 @@ Their exact boundaries are documented in
 [MCP OAuth client](mcp-oauth.md), the
 [MCP Server profile](mcp-server.md), and the
 [MCP conformance report](mcp-conformance.md), plus the
-[A2A Server profile](a2a-server.md) and its
+[A2A Client and durable remote-agent profile](a2a-client.md), the
+[A2A Server profile](a2a-server.md), and its
 [A2A conformance report](a2a-conformance.md).
 
 ## Product statement
