@@ -145,7 +145,14 @@ const paths = [
       the stronger durable binding. The <a href="/docs/mcp-server/"
         >MCP Server profile</a
       > now exposes bounded Tools, Resources, Prompts, Completion, and MRTR behind
-      the strict production transport. Stable network Agent transport, A2A, MCP Tasks,
+      the strict production transport. The <a href="/docs/a2a-server/"
+        >A2A 1.0 Server profile</a
+      > now adds bounded Agent Card, messaging, task, streaming, cancellation, resubscription,
+      and push-management boundaries across HTTP+JSON, JSON-RPC, and SSE; its <a
+        href="/docs/a2a-conformance/">frozen official TCK gate</a
+      >
+      passes 177 cases with zero failures or errors. Stable network Agent transport,
+      MCP Tasks, a production durable A2A task/push backend, the A2A Client, gRPC,
       and production qualification remain release blockers.
     </p>
   </aside>

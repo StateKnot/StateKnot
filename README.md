@@ -211,16 +211,28 @@ gates add 32 successes. The conformance fixture validates the production
 transport; StateKnot's registry and policy layer has separate real-HTTP tests.
 MCP Tasks, broader client extensions, stable API/SDK-tier claims, and complete
 framework production qualification remain unimplemented.
+The new A2A 1.0 Server profile keeps official SDK wire types private behind
+bounded StateKnot-owned Agent Card, message, task, artifact, stream, and push
+contracts. Its HTTP+JSON and JSON-RPC/SSE boundary enforces exact Host/Origin/
+route/version/extension policy, authentication before body parsing,
+authorization before task/config lookup, caller-owned replica admission,
+bounded unary/stream responses, and graceful shutdown. The checksum-pinned
+official TCK gate collects 265 cases: 177 pass, 88 are declared skips, and zero
+fail, error, or xfail. Critical streaming, multi-subscriber, authenticated push,
+extended-card, caching, error-mapping, and unknown-field cases must execute.
+A2A Client, gRPC, and a production durable task/push backend remain separate
+unimplemented gates.
 The adapter is now composed with the durable invocation executor in a real
 PostgreSQL + loopback MCP test: durable start is observed before request I/O,
 lost write responses remain unknown, duplicate execution never redispatches,
 and authoritative result reconciliation is schema-validated, fenced, atomic,
 and exactly idempotent on PostgreSQL 16 and 17. The runtime PostgreSQL suite
 separately proves the authoritative error branch.
-Stable network Agent/cancellation transport, protocol-specific outbox dispatch adapters,
-artifacts, parallel siblings/Tools, output repair, loops/subgraphs, role
-isolation, general retention, failover, restore, and the final stale-race gates
-have not shipped yet.
+Stable network Agent/cancellation transport, production protocol-specific
+outbox dispatch adapters, A2A Client/gRPC, artifact retrieval, parallel
+siblings/Tools, output repair, loops/subgraphs, role isolation, general
+retention, failover, restore, and the final stale-race gates have not shipped
+yet.
 
 The current milestone is to:
 
@@ -229,10 +241,12 @@ The current milestone is to:
 2. preserve the separate MCP Client and Server profiles and their exact pinned
    32-client/37-server official gates while completing stable API review and
    keeping Tasks and other extensions behind independent claims;
-3. validate the three frozen production scenarios and accept the core domain,
+3. preserve the A2A 1.0 HTTP+JSON/JSON-RPC Server gate while implementing and
+   qualifying the separate durable A2A Client/outbound boundary;
+4. validate the three frozen production scenarios and accept the core domain,
    graph, durability, and protocol/security RFCs;
-4. qualify role isolation, failover/restore, and the final stale-race gates; and
-5. publish compatibility and performance evidence before claiming support.
+5. qualify role isolation, failover/restore, and the final stale-race gates; and
+6. publish compatibility and performance evidence before claiming support.
 
 See the [qualification scenarios](docs/scenarios/README.md), the
 [roadmap](docs/roadmap.md), the full
@@ -248,6 +262,8 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [MCP OAuth client authorization](docs/mcp-oauth.md),
 [MCP Server profile](docs/mcp-server.md),
 [MCP conformance status](docs/mcp-conformance.md),
+[A2A 1.0 Server profile](docs/a2a-server.md),
+[A2A 1.0 conformance status](docs/a2a-conformance.md),
 [durable invocation](docs/durable-invocation-executor.md),
 [fair scheduling](docs/cross-tenant-fair-scheduler.md), and
 [completeness audit](docs/plan-completeness-audit.md) guides.
@@ -257,7 +273,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ```text
 crates/stateknot/        Unpublished facade crate used to validate the workspace
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
-crates/stateknot-integrations/  OpenAI/Anthropic adapters plus bounded MCP client and server profiles
+crates/stateknot-integrations/  OpenAI/Anthropic adapters plus bounded MCP and A2A protocol profiles
 crates/stateknot-runtime/  AgentService v1, executable/provider registries, durable Driver, invocation executor, Agent Loop, and fair scheduler
 crates/stateknot-store-postgres/  PostgreSQL journal/checkpoint/invocation/lease/outbox durability slice
 docs/                    Architecture contracts, qualification scenarios, and roadmap

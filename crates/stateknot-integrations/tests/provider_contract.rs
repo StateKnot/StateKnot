@@ -132,6 +132,18 @@ fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         .position(|window| window == needle)
 }
 
+fn request_header<'a>(request: &'a str, expected_name: &str) -> Option<&'a str> {
+    request
+        .lines()
+        .skip(1)
+        .take_while(|line| !line.is_empty())
+        .find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            name.eq_ignore_ascii_case(expected_name)
+                .then_some(value.trim())
+        })
+}
+
 fn schema_registry() -> Arc<JsonSchemaRegistry> {
     let reference = placeholder_schema();
     let id = "https://schemas.stateknot.test/placeholder/1.0.0";
@@ -495,8 +507,14 @@ async fn openai_unary_maps_request_response_and_redacts_secrets() {
     assert_eq!(text.text(), "hello");
 
     let captured = String::from_utf8(server.request.await.unwrap()).unwrap();
-    assert!(captured.contains("authorization: Bearer super-secret-key"));
-    assert!(captured.contains(&format!("x-client-request-id: {ATTEMPT_ID}")));
+    assert_eq!(
+        request_header(&captured, "authorization"),
+        Some("Bearer super-secret-key")
+    );
+    assert_eq!(
+        request_header(&captured, "x-client-request-id"),
+        Some(ATTEMPT_ID)
+    );
     let body = captured.split("\r\n\r\n").nth(1).unwrap();
     let body: Value = serde_json::from_str(body).unwrap();
     assert_eq!(body["store"], false);
@@ -526,8 +544,14 @@ async fn anthropic_unary_normalizes_cache_usage_and_headers() {
     assert_eq!(response.usage().input_tokens().get(), 15);
     assert_eq!(response.usage().cached_input_tokens().unwrap().get(), 3);
     let captured = String::from_utf8(server.request.await.unwrap()).unwrap();
-    assert!(captured.contains("x-api-key: super-secret-key"));
-    assert!(captured.contains("anthropic-version: 2023-06-01"));
+    assert_eq!(
+        request_header(&captured, "x-api-key"),
+        Some("super-secret-key")
+    );
+    assert_eq!(
+        request_header(&captured, "anthropic-version"),
+        Some("2023-06-01")
+    );
 }
 
 #[tokio::test]

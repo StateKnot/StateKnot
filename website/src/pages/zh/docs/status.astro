@@ -96,6 +96,12 @@ const capabilities = [
     body: "严格 Stateless HTTP，加 StateKnot-owned Immutable Tools、Resources、Resource Templates、Prompts、Optional Completion 与 MRTR，并执行 Authorization-first Policy；全部 37 个计分 Server 场景以 0 Failure、0 Warning 通过。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "A2A 1.0 Server Profile",
+    body: "StateKnot-owned 有界 Agent Card/Message/Task/Artifact/Push 合约位于严格 HTTP+JSON 与 JSON-RPC/SSE Policy 后；官方 TCK 177 Pass、88 声明 Skip、0 Failure/Error/Xfail。",
+  },
+  {
     state: "开发中",
     className: "status-active",
     title: "高级执行与 Service Boundary",
@@ -110,8 +116,8 @@ const capabilities = [
   {
     state: "尚未发布",
     className: "status-planned",
-    title: "MCP Extension 与 A2A Profile",
-    body: "MCP Tasks 与更广 Client Extension、Stable SDK-tier 证据，以及全部 A2A Client/Server Binding 尚未交付。",
+    title: "MCP Extension 与 A2A Client",
+    body: "MCP Tasks 与更广 Client Extension、Stable SDK-tier 证据，以及耐久 A2A Client/gRPC 边界尚未交付。",
   },
   {
     state: "尚未发布",
@@ -124,7 +130,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：有界 MCP Client 与 Server Profile 已加入耐久 Provider-native Path；稳定 Network Agent API、A2A、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：有界 MCP Client/Server 与 A2A 1.0 Server Profile 已加入耐久 Provider-native Path；稳定 Network Agent API、A2A Client/gRPC、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -167,8 +173,9 @@ const capabilities = [
       与 OAuth Provider 现已通过全部 32 个冻结计分 Client 场景，其中包括全部 25
       个 OAuth 场景：373 项计分 Assertion Success、0 Failure。Server Profile
       通过 全部 37 个计分 Server 场景：114 Success、5 Skip、1 Info、0 Failure、0
-      Warning。下一条协议边界是 A2A 1.0；MCP Tasks 与更广 Extension
-      仍是独立门禁。
+      Warning。A2A 1.0 Server 门禁另有 177 项官方 TCK Pass、88 项声明 Skip、0
+      Failure/Error/Xfail。下一条协议边界是耐久 A2A Client；MCP Tasks 与更广
+      Extension 仍是独立门禁。
     </p>
   </section>
 
@@ -219,6 +226,12 @@ const capabilities = [
       </li>
       <li>
         <a href="/zh/docs/mcp-conformance/">MCP Conformance 证据与边界</a>
+      </li>
+      <li>
+        <a href="/zh/docs/a2a-server/">A2A 1.0 Server Profile</a>
+      </li>
+      <li>
+        <a href="/zh/docs/a2a-conformance/">A2A Conformance 证据与边界</a>
       </li>
       <li>
         <a href="/zh/docs/fair-scheduling/">跨租户公平调度合约</a>

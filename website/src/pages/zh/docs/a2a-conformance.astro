@@ -1,0 +1,111 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const verifyCode = `bash conformance/a2a-server/run-1.0.sh`;
+---
+
+<DocsLayout
+  title="A2A Conformance 声明以证据为界。"
+  description="检查冻结的官方 TCK 输入、已审计 Compatibility Patch、HTTP+JSON/JSON-RPC 精确结果与明确排除项。"
+  section="A2A Conformance"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="a2a-proof-boundary-title"
+  >
+    <h2 id="a2a-proof-boundary-title">Server 证据，不是框架认证</h2>
+    <p>
+      此门禁覆盖已实现的 A2A <code>1.0</code> HTTP+JSON 与 JSON-RPC/SSE Server Boundary。它不认证
+      Client、gRPC、耐久 Application Backend、Stable API 或生产就绪的 StateKnot Release。
+    </p>
+  </aside>
+
+  <section aria-labelledby="a2a-result-title">
+    <h2 id="a2a-result-title">精确结果</h2>
+    <div class="docs-table-wrap" tabindex="0" aria-label="A2A TCK 精确结果">
+      <table>
+        <thead><tr><th>Outcome</th><th>数量</th></tr></thead>
+        <tbody>
+          <tr><td>Collected</td><td>265</td></tr>
+          <tr><td>Passed</td><td>177</td></tr>
+          <tr><td>声明 Skip</td><td>88</td></tr>
+          <tr><td>Failed / Errors / Xfails</td><td>0 / 0 / 0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      分 Surface 报告为 Agent Card <code>10/10</code>；JSON-RPC
+      <code>94/101</code>，含 7 个 Skip；HTTP+JSON <code>91/96</code>，含 5 个
+      Skip。其他 Skip 主要覆盖未配置 gRPC 与互斥 Capability 分支。Skip 不算
+      Pass。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-input-title">
+    <h2 id="a2a-input-title">冻结每一项可执行输入</h2>
+    <ul>
+      <li>
+        官方 TCK Commit <code>263b9cfaf16a554bdfb166a7ba5b67716e946349</code>。
+      </li>
+      <li>
+        Archive SHA-256 <code
+          >694c798e93fff30f650d44bdb3db0e1768b865a4f3ddbed64ec158db209bf5db</code
+        >。
+      </li>
+      <li>
+        <code>uv 0.11.25</code>、以 <code>--frozen</code> 读取的 TCK Lockfile，以及
+        Rust <code>1.88.0</code>。
+      </li>
+      <li>
+        不使用 Expected-failures File；独立校验器拒绝结果漂移或关键用例 Skip。
+      </li>
+    </ul>
+    <p>
+      校验器要求 Cache、Unknown-field、Streaming、Multi-subscriber、Push
+      Authentication、Extended Card、HTTP Error 与 JSON-RPC SSE 代表性用例实际
+      执行。CI 即使失败也会上传完整 HTML、JSON、XML、Summary 与 Server Log。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-patch-title">
+    <h2 id="a2a-patch-title">审计 Harness Patch</h2>
+    <p>
+      固定 TCK 遗漏了 <code>CORE-SEND-003</code> 已定义的 Expected Error Metadata，并用
+      Python snake_case 而非 A2A camelCase Wire Name 序列化若干 JSON-RPC Parameter。已提交
+      Patch 只修正 Metadata 与 Request Serialization； 不弱化 Assertion、不删除 Test，也不增加
+      Expected Failure。第一个缺陷见<a
+        href="https://github.com/a2aproject/a2a-tck/issues/202"
+        >上游 issue #202</a
+      >。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-reproduce-title">
+    <h2 id="a2a-reproduce-title">复现门禁</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 固定官方 TCK</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-a2a-verify-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="zh-a2a-verify-code" tabindex="0"><code>{verifyCode}</code></pre>
+    </div>
+    <p>
+      TCK 还会针对完整 Requirement/Transport Inventory 输出 <code>78.8%</code>
+      Aggregate，其中包含未配置 gRPC 与不适用分支。StateKnot 保留该原始输出和 精确
+      Test Count，不把它包装成 100% 认证。下一步阅读<a
+        href="/zh/docs/a2a-server/">生产 Service 义务</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

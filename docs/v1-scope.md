@@ -24,17 +24,24 @@ application for Tools, Resources, Resource Templates, Prompts, optional
 Completion, and MRTR. The frozen official requirement gates pass all 32 scored
 Client scenarios, including all 25 OAuth scenarios, with 373 assertions and
 zero failures, plus all 37 scored Server scenarios with 114 successes, five
-skips, one informational check, and zero failures or warnings. These are
-implementation slices toward the surface below, not claims that the stable
-network Agent API, MCP Tasks or other extensions, stable SDK-tier API, or A2A
-support has shipped.
+skips, one informational check, and zero failures or warnings. It also contains
+a StateKnot-owned A2A `1.0` Server profile for Agent Cards, messages, tasks,
+artifacts, streaming, cancellation, resubscription, and push-notification
+configuration over HTTP+JSON, JSON-RPC, and SSE. Its frozen official TCK gate
+passes 177 cases, skips 88 unconfigured or non-applicable cases, and reports
+zero failures, errors, or expected failures. These are implementation slices
+toward the surface below, not claims that the stable network Agent API, MCP
+Tasks or other extensions, stable SDK-tier API, a production durable A2A
+task/push backend, the A2A Client, or A2A gRPC support has shipped.
 Their exact boundaries are documented in
 [AgentService v1](agent-service.md), the
 [strict MCP Remote Tool profile](mcp-remote-tool.md), the
 [general MCP Tool client](mcp-client.md), the
 [MCP OAuth client](mcp-oauth.md), the
 [MCP Server profile](mcp-server.md), and the
-[MCP conformance report](mcp-conformance.md).
+[MCP conformance report](mcp-conformance.md), plus the
+[A2A Server profile](a2a-server.md) and its
+[A2A conformance report](a2a-conformance.md).
 
 ## Product statement
 

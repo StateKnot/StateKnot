@@ -9,6 +9,8 @@
 
 #![forbid(unsafe_code)]
 
+mod a2a_contract;
+mod a2a_server;
 mod adapter;
 mod anthropic;
 mod credential;
@@ -24,6 +26,26 @@ mod mcp_server_tool;
 mod openai;
 mod sse;
 
+pub use a2a_contract::{
+    A2A_AGENT_CARD_PATH, A2A_BINDING_HTTP_JSON, A2A_BINDING_JSONRPC, A2A_PROTOCOL_VERSION_1_0,
+    A2aAgentCapabilities, A2aAgentCard, A2aAgentCardBuilder, A2aAgentCardSignature,
+    A2aAgentExtension, A2aAgentInterface, A2aAgentSkill, A2aArtifact, A2aArtifactUpdate,
+    A2aBinding, A2aCancelTaskRequest, A2aContractError, A2aDeletePushConfigRequest,
+    A2aGetPushConfigRequest, A2aGetTaskRequest, A2aListPushConfigsRequest, A2aListTasksRequest,
+    A2aMessage, A2aMessageRole, A2aPart, A2aPartContent, A2aPartRef, A2aPushAuthentication,
+    A2aPushConfig, A2aPushConfigPage, A2aSecret, A2aSecurityScheme, A2aSendConfiguration,
+    A2aSendMessageRequest, A2aSendMessageResponse, A2aStatusUpdate, A2aStreamEvent,
+    A2aSubscribeTaskRequest, A2aTask, A2aTaskPage, A2aTaskState, A2aTaskStatus,
+};
+pub use a2a_server::{
+    A2aEventStream, A2aRequestContext, A2aServer, A2aServerAdmissionControl,
+    A2aServerAdmissionError, A2aServerAdmissionRequest, A2aServerAuthenticationError,
+    A2aServerAuthenticationRequest, A2aServerAuthenticator, A2aServerAuthorizationError,
+    A2aServerAuthorizationRequest, A2aServerAuthorizer, A2aServerBuildError, A2aServerHttpOptions,
+    A2aServerHttpOptionsError, A2aServerOperation, A2aServerPrincipal, A2aServerPrincipalError,
+    A2aTaskService, A2aTaskServiceCapabilities, A2aTaskServiceError, AllowA2aServerAdmission,
+    AllowA2aServerAuthorization,
+};
 pub use adapter::ModelAdapterBuildError;
 pub use anthropic::AnthropicMessagesModel;
 pub use credential::{ApiKey, ApiKeyError, ApiKeyProvider, ApiKeyResolutionError, StaticApiKey};
