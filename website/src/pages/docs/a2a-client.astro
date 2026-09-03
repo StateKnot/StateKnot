@@ -1,0 +1,272 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const discoverCode = `let client = A2aClient::discover(
+    A2aAgentCardEndpoint::https(
+        "https://partner.example/.well-known/agent-card.json",
+    )?,
+    vec![A2aClientInterfacePin::https(
+        "https://partner.example/a2a",
+        A2aBinding::HttpJson,
+    )?],
+    A2aAgentCardTrust::TlsServerIdentity,
+    A2aClientSecurity::bearer("oidc", Arc::new(token_provider))?,
+    vec![],
+    A2aClientOptions::default(),
+).await?;`;
+
+const bindCode = `let remote = A2aRemoteAgent::bind(
+    descriptor,
+    client,
+    "answer",
+    A2aRemoteAgentDelivery::AtMostOnce,
+    schemas,
+)?;
+
+let mut tools = ToolProviderRegistryBuilder::new();
+tools.register(Arc::new(remote))?;
+let tools = tools.build();`;
+---
+
+<DocsLayout
+  title="Call an A2A agent without guessing the outcome."
+  description="Freeze an A2A 1.0 Agent Card and egress interface, use every HTTP+JSON or JSON-RPC/SSE operation, and bind outbound sends to PostgreSQL durability."
+  section="A2A 1.0 Client"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="a2a-client-boundary-title"
+  >
+    <h2 id="a2a-client-boundary-title">
+      Implemented Client and durable adapter, pre-alpha API
+    </h2>
+    <p>
+      <code>A2aClient</code> implements all eleven A2A 1.0 HTTP+JSON and JSON-RPC
+      operations plus both SSE surfaces. <code>A2aRemoteAgent</code> exposes one frozen
+      skill as a durable StateKnot Tool. This is executable evidence—not an official
+      Client TCK, stable API, gRPC, API-key/Basic/mTLS auth profile, or complete production
+      release claim.
+    </p>
+  </aside>
+
+  <section aria-labelledby="a2a-client-surface-title">
+    <h2 id="a2a-client-surface-title">One operation surface, two bindings</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="A2A Client operation matrix"
+    >
+      <table>
+        <thead>
+          <tr><th>Area</th><th>Operations</th><th>Transport result</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Message</td><td>Send, streaming send</td><td
+              >Task/message or bounded SSE</td
+            >
+          </tr>
+          <tr>
+            <td>Task</td><td>Get, list, cancel, subscribe</td><td
+              >Bounded snapshots/pages or SSE</td
+            >
+          </tr>
+          <tr>
+            <td>Push config</td><td>Create, get, list, delete</td><td
+              >Secret-redacted bounded contracts</td
+            >
+          </tr>
+          <tr>
+            <td>Card</td><td>Authenticated extended card</td><td
+              >Revalidated Agent Card</td
+            >
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Every request sends <code>A2A-Version: 1.0</code>. The client checks
+      response media, JSON-RPC version and ID, exclusive result/error presence,
+      exact response unions, duplicate JSON keys, resource identity,
+      blocking-send lifecycle, task-page filters/order, SSE event lifecycle,
+      artifact append continuity, idle time, event count, and byte ceilings. It
+      never follows redirects or retries a request.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-discovery-title">
+    <h2 id="a2a-client-discovery-title">Freeze discovery before execution</h2>
+    <ol>
+      <li>
+        Use verified HTTPS; literal loopback HTTP is an explicit test/sidecar
+        boundary.
+      </li>
+      <li>
+        Fetch one bounded public Agent Card and optionally verify its RFC 8785
+        digest.
+      </li>
+      <li>
+        Select the first supported 1.0 interface in server preference order.
+      </li>
+      <li>Require its binding and URL to match a local egress pin exactly.</li>
+      <li>
+        Validate extension, tenant, and a complete anonymous or single-scheme
+        bearer-compatible security choice.
+      </li>
+    </ol>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · immutable discovery boundary</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="a2a-client-discover-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="a2a-client-discover-code"
+        tabindex="0"><code>{discoverCode}</code></pre>
+    </div>
+    <p>
+      A production bearer provider resolves a short-lived credential for every
+      exact operation, remote routing tenant, task, and scope. Durable sends
+      also expose local tenant, run, invocation, and physical-attempt identity.
+      The implemented profile covers HTTP Bearer, OAuth 2.0, and OpenID Connect
+      token use; unsupported or multi-scheme requirements fail closed. Tokens,
+      response bodies, and remote text never enter public errors or debug
+      output.
+    </p>
+    <p>
+      The extended card is authenticated and revalidated, but returned as data.
+      It never mutates this immutable client or silently changes egress/security
+      pins; adopting it requires a reviewed, newly constructed binding.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-durable-title">
+    <h2 id="a2a-client-durable-title">
+      Make PostgreSQL the dispatch authority
+    </h2>
+    <p>
+      Agent Cards do not carry skill argument/result JSON Schemas, and A2A 1.0
+      has no send field that routes to a skill. The selected skill therefore
+      freezes media and security evidence; a trusted local registry validates
+      input and the standard one-key <code>{`{"message": ...}`}</code> or <code
+        >{`{"task": ...}`}</code
+      > output.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · durable Tool registration</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="a2a-client-bind-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="a2a-client-bind-code" tabindex="0"><code>{bindCode}</code></pre>
+    </div>
+    <p>
+      The invocation ledger commits <code>executing</code> before the one network
+      send. A valid response is schema-checked before commit. Any uncertain outcome
+      after possible dispatch becomes <code>Unknown + ReconcileFirst</code>;
+      recovery does not send again.
+    </p>
+    <p>
+      The adapter sets <code>returnImmediately: true</code>. A returned Task
+      commits message submission plus its durable handle—not remote terminal
+      completion. Waiting for completion is a separately authorized,
+      application-owned <code>get_task</code> or <code>subscribe_to_task</code> workflow.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-delivery-title">
+    <h2 id="a2a-client-delivery-title">Do not invent message-ID idempotency</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="A2A Remote Agent delivery contracts"
+    >
+      <table>
+        <thead>
+          <tr
+            ><th>Mode</th><th>Descriptor truth</th><th>Message identity</th></tr
+          >
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>AtMostOnce</code></td><td
+              >Non-idempotent write; unsupported key</td
+            ><td>Physical attempt ID</td>
+          </tr>
+          <tr>
+            <td><code>MessageIdDeduplicated</code></td><td
+              >Idempotent write; required key</td
+            ><td>Stable invocation key</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      A2A itself does not require receivers to deduplicate <code>messageId</code
+      >. The second mode is safe only when operators prove durable remote
+      deduplication across the full local ledger-retention and disaster-recovery
+      window. A lost send response may not yield a task ID, so reconciliation is
+      an application-owned, separately authorized workflow.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-limits-title">
+    <h2 id="a2a-client-limits-title">Bound every exchange</h2>
+    <ul>
+      <li>
+        15-second discovery, 60-second unary/stream-establishment, and 60-second
+        stream-idle defaults.
+      </li>
+      <li>16 MiB request and 2 MiB unary-response transport defaults.</li>
+      <li>
+        512 KiB line, 2 MiB event, 64 MiB total, and 4,096-event SSE defaults.
+      </li>
+      <li>
+        Task pages follow A2A's 100-item maximum, inclusive timestamp filtering,
+        and newest-first ordering; push-config pages have a local 256-item
+        ceiling.
+      </li>
+    </ul>
+    <p>
+      Before production, independently restrict DNS/proxy egress, review every
+      card change, use attempt-scoped workload credentials, align local ledger
+      retention with remote deduplication, alert on Unknown outcomes, and test
+      accepted-request/lost-response, cancellation races, malformed streams,
+      database failover, and restore.
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-proof-title">
+    <h2 id="a2a-client-proof-title">Read the evidence, then the limits</h2>
+    <p>
+      Real loopback tests execute all eleven operations over both bindings and
+      exercise strict discovery, authorization, errors, streams, and lost
+      responses. A real PostgreSQL test proves durable-before-dispatch state,
+      persisted Unknown outcome, and duplicate no-redispatch.
+    </p>
+    <p>
+      Use the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/a2a-client.md"
+        >complete production guide and reproduction commands</a
+      >. The <a href="/docs/a2a-conformance/">official TCK evidence</a> applies to
+      the separate Server profile; Client live-peer qualification, gRPC, automatic
+      reconciliation, stable API review, and a complete production release remain
+      separate gates.
+    </p>
+  </section>
+</DocsLayout>

@@ -98,6 +98,12 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "A2A 1.0 Client and durable remote agent",
+    body: "All eleven HTTP+JSON and JSON-RPC operations, both bounded SSE surfaces, exact card/interface pins, bounded Bearer/OAuth2/OpenID security, local schemas, explicit delivery semantics, and PostgreSQL-backed Unknown/no-redispatch recovery.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "A2A 1.0 Server profile",
     body: "StateKnot-owned bounded Agent Card/message/task/artifact/push contracts behind strict HTTP+JSON and JSON-RPC/SSE policy; 177 official TCK cases pass, 88 declared cases skip, and none fail, error, or xfail.",
   },
@@ -116,8 +122,8 @@ const capabilities = [
   {
     state: "Not shipped",
     className: "status-planned",
-    title: "MCP extensions and A2A Client",
-    body: "MCP Tasks and broader client extensions, stable SDK-tier evidence, and the durable A2A Client/gRPC boundary remain unshipped.",
+    title: "MCP extensions and A2A qualification",
+    body: "MCP Tasks and broader client extensions, stable SDK-tier evidence, A2A Client live-peer/conformance qualification and reconciliation, and A2A gRPC remain unshipped.",
   },
   {
     state: "Not shipped",
@@ -130,7 +136,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: bounded MCP Client/Server and A2A 1.0 Server profiles join the durable provider-native path; stable network Agent APIs, A2A Client/gRPC, MCP Tasks, advanced graph semantics, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: bounded MCP Client/Server and A2A 1.0 Client/Server profiles join the durable provider-native path; stable network Agent APIs, A2A gRPC, MCP Tasks, advanced graph semantics, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -172,9 +178,11 @@ const capabilities = [
       assertions succeed and none fail. The Server profile passes all 37 scored
       Server scenarios with 114 successes, five skips, one Info, and zero
       failures or warnings. The A2A 1.0 Server gate adds 177 official TCK
-      passes, 88 declared skips, and zero failures/errors/xfails. The next
-      protocol boundary is the durable A2A Client; MCP Tasks and broader
-      extensions remain separate gates.
+      passes, 88 declared skips, and zero failures/errors/xfails. The durable
+      A2A Client now adds an eleven-operation, dual-binding loopback matrix and
+      real PostgreSQL durable-before-dispatch/Unknown/no-redispatch evidence.
+      Official Client/live-peer qualification and reconciliation, MCP Tasks, and
+      broader extensions remain separate gates.
     </p>
   </section>
 
@@ -225,6 +233,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/docs/mcp-conformance/">MCP conformance evidence and limits</a>
+      </li>
+      <li>
+        <a href="/docs/a2a-client/">A2A 1.0 Client and durable remote agent</a>
       </li>
       <li>
         <a href="/docs/a2a-server/">A2A 1.0 Server profile</a>

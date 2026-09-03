@@ -564,7 +564,7 @@ impl A2aTaskService for ConformanceTaskService {
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             let next_page_token = (end < records.len()).then(|| end.to_string());
-            A2aTaskPage::new(page, next_page_token, total_size)
+            A2aTaskPage::new(page, next_page_token, request.page_size(), total_size)
                 .map_err(|_| A2aTaskServiceError::InvalidAgentResponse)
         })
     }

@@ -1,0 +1,258 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const discoverCode = `let client = A2aClient::discover(
+    A2aAgentCardEndpoint::https(
+        "https://partner.example/.well-known/agent-card.json",
+    )?,
+    vec![A2aClientInterfacePin::https(
+        "https://partner.example/a2a",
+        A2aBinding::HttpJson,
+    )?],
+    A2aAgentCardTrust::TlsServerIdentity,
+    A2aClientSecurity::bearer("oidc", Arc::new(token_provider))?,
+    vec![],
+    A2aClientOptions::default(),
+).await?;`;
+
+const bindCode = `let remote = A2aRemoteAgent::bind(
+    descriptor,
+    client,
+    "answer",
+    A2aRemoteAgentDelivery::AtMostOnce,
+    schemas,
+)?;
+
+let mut tools = ToolProviderRegistryBuilder::new();
+tools.register(Arc::new(remote))?;
+let tools = tools.build();`;
+---
+
+<DocsLayout
+  title="调用 A2A Agent，不猜测执行结果。"
+  description="冻结 A2A 1.0 Agent Card 与 Egress Interface，使用完整 HTTP+JSON 或 JSON-RPC/SSE Operation，并将 Outbound Send 绑定到 PostgreSQL Durability。"
+  section="A2A 1.0 Client"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="a2a-client-boundary-title"
+  >
+    <h2 id="a2a-client-boundary-title">
+      已实现 Client 与耐久 Adapter，API 仍处于 Pre-alpha
+    </h2>
+    <p>
+      <code>A2aClient</code> 实现全部 11 个 A2A 1.0 HTTP+JSON/JSON-RPC Operation 与两个
+      SSE Surface；<code>A2aRemoteAgent</code> 把一个已冻结 Skill 暴露为耐久 StateKnot
+      Tool。这是可执行实现证据，不是官方 Client TCK、Stable API、gRPC 或完整生产 Release
+      声明；API-key/Basic/mTLS Auth Profile 也尚未实现。
+    </p>
+  </aside>
+
+  <section aria-labelledby="a2a-client-surface-title">
+    <h2 id="a2a-client-surface-title">一套 Operation Surface，两种 Binding</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="A2A Client Operation Matrix"
+    >
+      <table>
+        <thead>
+          <tr><th>领域</th><th>Operation</th><th>Transport Result</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Message</td><td>Send、Streaming Send</td><td
+              >Task/Message 或有界 SSE</td
+            >
+          </tr>
+          <tr>
+            <td>Task</td><td>Get、List、Cancel、Subscribe</td><td
+              >有界 Snapshot/Page 或 SSE</td
+            >
+          </tr>
+          <tr>
+            <td>Push Config</td><td>Create、Get、List、Delete</td><td
+              >Secret-redacted 有界 Contract</td
+            >
+          </tr>
+          <tr>
+            <td>Card</td><td>Authenticated Extended Card</td><td
+              >重新校验的 Agent Card</td
+            >
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      每个请求发送 <code>A2A-Version: 1.0</code>。Client 校验 Response Media、
+      JSON-RPC Version/ID、Result/Error 互斥存在、精确 Response Union、Duplicate
+      JSON Key、Resource Identity、Blocking-send Lifecycle、Task-page
+      Filter/Order、 SSE Event Lifecycle、Artifact Append 连续性、Idle
+      Time、Event Count 与 Byte Ceiling；不会跟随 Redirect，也不会自动 Retry
+      Request。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-discovery-title">
+    <h2 id="a2a-client-discovery-title">在执行前冻结 Discovery</h2>
+    <ol>
+      <li>
+        使用已验证 HTTPS；Literal Loopback HTTP 只属于显式 Test/Sidecar
+        Boundary。
+      </li>
+      <li>读取一个有界 Public Agent Card，并可校验 RFC 8785 Digest。</li>
+      <li>按 Server Preference 选择首个受支持的 1.0 Interface。</li>
+      <li>要求其 Binding 和 URL 与本地 Egress Pin 精确一致。</li>
+      <li>
+        校验 Extension、Tenant，以及完整的 Anonymous 或单 Scheme
+        Bearer-compatible Security 选择。
+      </li>
+    </ol>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · Immutable Discovery Boundary</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="a2a-client-discover-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="a2a-client-discover-code"
+        tabindex="0"><code>{discoverCode}</code></pre>
+    </div>
+    <p>
+      生产 Bearer Provider 针对每个精确 Operation、Remote Routing Tenant、Task
+      与 Scope 解析短期 Credential。Durable Send 还会传递本地
+      Tenant、Run、Invocation 与 Physical Attempt Identity。当前 Profile 支持
+      HTTP Bearer、OAuth 2.0 与 OpenID Connect Token；不支持或 Multi-scheme
+      Requirement 会 Fail Closed。 Token、Response Body 与 Remote Text
+      都不会进入 Public Error 或 Debug Output。
+    </p>
+    <p>
+      Extended Card 必须经过认证并重新校验，但只作为数据返回；它不会修改
+      Immutable Client，也不会静默改变 Egress/Security
+      Pin。采用它必须经过审核并新建 Binding。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-durable-title">
+    <h2 id="a2a-client-durable-title">让 PostgreSQL 独占 Dispatch 决策权</h2>
+    <p>
+      Agent Card 不携带 Skill Argument/Result JSON Schema，A2A 1.0 也没有把 Send
+      路由到 Skill 的字段。所选 Skill 只固定 Media 和 Security 证据；可信本地
+      Registry 校验 Input，以及标准单 Key <code>{`{"message": ...}`}</code> 或 <code
+        >{`{"task": ...}`}</code
+      > Output。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · Durable Tool Registration</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="a2a-client-bind-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="a2a-client-bind-code" tabindex="0"><code>{bindCode}</code></pre>
+    </div>
+    <p>
+      Invocation Ledger 在唯一一次 Network Send 前提交 <code>executing</code
+      >；合法 Response 经过 Schema 校验后才 Commit。可能 Dispatch
+      后的任何不确定结果都会 变为 <code>Unknown + ReconcileFirst</code
+      >，Recovery 不会再次发送。
+    </p>
+    <p>
+      Adapter 显式设置 <code>returnImmediately: true</code>。返回 Task 只提交
+      Message Submission
+      与耐久句柄，不代表远端已经进入终态。等待完成属于应用自有、独立授权的
+      <code>get_task</code> 或 <code>subscribe_to_task</code> Workflow。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-delivery-title">
+    <h2 id="a2a-client-delivery-title">不要虚构 Message-ID Idempotency</h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="A2A Remote Agent Delivery Contract"
+    >
+      <table>
+        <thead>
+          <tr
+            ><th>Mode</th><th>Descriptor Truth</th><th>Message Identity</th></tr
+          >
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>AtMostOnce</code></td><td
+              >Non-idempotent Write；不支持 Key</td
+            ><td>Physical Attempt ID</td>
+          </tr>
+          <tr>
+            <td><code>MessageIdDeduplicated</code></td><td
+              >Idempotent Write；Key 必填</td
+            ><td>Stable Invocation Key</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      A2A 本身不要求接收端对 <code>messageId</code> 去重。只有 Operator 证明远端在
+      本地 Ledger Retention 与灾备窗口内都能耐久去重时，第二种 Mode 才安全。Lost Send
+      Response 不一定返回 Task ID，因此 Reconciliation 是应用自有、独立授权的 Workflow。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-limits-title">
+    <h2 id="a2a-client-limits-title">对每次 Exchange 设上限</h2>
+    <ul>
+      <li>
+        默认 Discovery 15 秒、Unary/Stream-establishment 60 秒、Stream Idle 60
+        秒。
+      </li>
+      <li>默认 Request 16 MiB、Unary Response 2 MiB。</li>
+      <li>
+        默认 SSE Line 512 KiB、Event 2 MiB、Total 64 MiB、4,096 个 Event。
+      </li>
+      <li>
+        Task Page 遵循 A2A 的 100 条上限、包含等号的 Timestamp Filter
+        与最新优先排序； Push-config Page 本地上限 256。
+      </li>
+    </ul>
+    <p>
+      上生产前还要独立限制 DNS/Proxy Egress、审核每次 Card 变化、使用
+      Attempt-scoped Workload Credential、对齐本地 Ledger 与远端 Dedup
+      Retention、 对 Unknown Outcome 告警，并验证
+      Accepted-request/Lost-response、Cancellation Race、Malformed
+      Stream、Database Failover 与 Restore。
+    </p>
+  </section>
+
+  <section aria-labelledby="a2a-client-proof-title">
+    <h2 id="a2a-client-proof-title">先看证据，再看边界</h2>
+    <p>
+      真实 Loopback Test 在两种 Binding 上执行全部 11 个 Operation，并覆盖严格
+      Discovery、Authorization、Error、Stream 与 Lost Response；真实 PostgreSQL
+      Test 证明 Durable-before-dispatch State、持久化 Unknown，以及 Duplicate
+      No-redispatch。
+    </p>
+    <p>
+      请阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/a2a-client.zh-CN.md"
+        >完整生产指南与复现命令</a
+      >。<a href="/zh/docs/a2a-conformance/">官方 TCK 证据</a>只适用于独立
+      Server Profile；Client Live-peer Qualification、gRPC、Automatic
+      Reconciliation、 Stable API Review 与完整生产 Release 仍是独立门禁。
+    </p>
+  </section>
+</DocsLayout>

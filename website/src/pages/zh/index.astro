@@ -105,6 +105,12 @@ const currentCut = [
     href: "/zh/docs/mcp-server/",
   },
   {
+    surface: "A2A 1.0 Client 与 Remote Agent",
+    state: "已实现切片",
+    evidence: "两种 Binding 的 11 个 Operation，加耐久 Unknown Recovery",
+    href: "/zh/docs/a2a-client/",
+  },
+  {
     surface: "A2A 1.0 Server Profile",
     state: "已实现切片",
     evidence: "官方 TCK 177 Pass；HTTP+JSON 与 JSON-RPC/SSE",
@@ -175,13 +181,13 @@ const roadmap = [
   },
   {
     index: "11",
-    state: "现在",
+    state: "已实现",
     title: "构建耐久 A2A Client 边界",
-    body: "把 Outbound Agent Discovery/Invocation 绑定到精确 Identity、Capability、Credential、Idempotency、Durable-before-dispatch、Streaming、Cancellation 与 Ambiguous-write Recovery 保证。",
+    body: "全部 11 个 Operation 现已跨 HTTP+JSON 与 JSON-RPC/SSE 运行，并固定 Discovery/Interface 与有界 Bearer/OAuth2/OpenID Security；Remote Agent Adapter 具备真实 PostgreSQL Durable-before-dispatch、Unknown 与 No-redispatch 证据。",
   },
   {
     index: "12",
-    state: "v1 前",
+    state: "下一步",
     title: "发布验证证据",
     body: "在负载与故障条件下执行冻结场景；兼容性、性能和恢复证据发布后才提出支持声明。",
   },
@@ -203,8 +209,9 @@ const roadmap = [
             与经过验证的 Result 运行类型化 Root Graph。已实现 Surface 包括
             OpenAI/Anthropic Adapter、Provider-native Graph、AgentService v1、
             MCP Client/OAuth/严格 Remote Tool/Server Profile，以及 A2A 1.0
-            HTTP+JSON/JSON-RPC Server。稳定 Network Agent API、A2A Client/gRPC、
-            MCP Tasks、高级 Graph 语义与生产验证仍未完成。
+            HTTP+JSON/JSON-RPC Client/Server Profile。稳定 Network Agent
+            API、A2A gRPC、MCP Tasks、高级 Graph 语义、Client Live-peer
+            Qualification 与生产 验证仍未完成。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -343,9 +350,11 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
         <p>
           严格 MCP Binding 保留 PostgreSQL-backed Recovery 证据；独立通用 Tool
           Client 与 OAuth Provider 现已通过全部 32 个计分 Client 场景，MCP
-          Server Profile 通过全部 37 个计分 Server 场景。A2A 1.0 Server 门禁现有
-          177 项 官方 TCK Pass 且 0 Failure；下一条协议验证是耐久 A2A Client
-          边界。 MCP Tasks 与更广 Extension 仍作为独立门禁。
+          Server Profile 通过全部 37 个计分 Server 场景。A2A 1.0 Server 门禁有
+          177 项官方 TCK Pass 且 0 Failure；Client 现已增加 11-Operation
+          Dual-binding Matrix 与真实 PostgreSQL Unknown/No-redispatch
+          证明。Live-peer Qualification、Reconciliation、MCP Tasks 与更广
+          Extension 仍是独立门禁。
         </p>
       </div>
 

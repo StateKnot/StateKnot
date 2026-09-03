@@ -236,7 +236,7 @@ jobs:
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
         run: cargo test -p stateknot-runtime --test postgres --locked -- --test-threads=1
 
-      - name: Run durable MCP integration tests
+      - name: Run durable protocol integration tests
         env:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test

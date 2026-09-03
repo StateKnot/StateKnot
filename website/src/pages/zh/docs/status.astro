@@ -98,6 +98,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "A2A 1.0 Client 与耐久 Remote Agent",
+    body: "全部 11 个 HTTP+JSON/JSON-RPC Operation、两个有界 SSE Surface、精确 Card/Interface Pin、有界 Bearer/OAuth2/OpenID Security、本地 Schema、显式 Delivery Semantics，以及 PostgreSQL-backed Unknown/No-redispatch Recovery。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "A2A 1.0 Server Profile",
     body: "StateKnot-owned 有界 Agent Card/Message/Task/Artifact/Push 合约位于严格 HTTP+JSON 与 JSON-RPC/SSE Policy 后；官方 TCK 177 Pass、88 声明 Skip、0 Failure/Error/Xfail。",
   },
@@ -116,8 +122,8 @@ const capabilities = [
   {
     state: "尚未发布",
     className: "status-planned",
-    title: "MCP Extension 与 A2A Client",
-    body: "MCP Tasks 与更广 Client Extension、Stable SDK-tier 证据，以及耐久 A2A Client/gRPC 边界尚未交付。",
+    title: "MCP Extension 与 A2A Qualification",
+    body: "MCP Tasks 与更广 Client Extension、Stable SDK-tier 证据、A2A Client Live-peer/Conformance Qualification 与 Reconciliation，以及 A2A gRPC 尚未交付。",
   },
   {
     state: "尚未发布",
@@ -130,7 +136,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：有界 MCP Client/Server 与 A2A 1.0 Server Profile 已加入耐久 Provider-native Path；稳定 Network Agent API、A2A Client/gRPC、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：有界 MCP Client/Server 与 A2A 1.0 Client/Server Profile 已加入耐久 Provider-native Path；稳定 Network Agent API、A2A gRPC、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -174,8 +180,10 @@ const capabilities = [
       个 OAuth 场景：373 项计分 Assertion Success、0 Failure。Server Profile
       通过 全部 37 个计分 Server 场景：114 Success、5 Skip、1 Info、0 Failure、0
       Warning。A2A 1.0 Server 门禁另有 177 项官方 TCK Pass、88 项声明 Skip、0
-      Failure/Error/Xfail。下一条协议边界是耐久 A2A Client；MCP Tasks 与更广
-      Extension 仍是独立门禁。
+      Failure/Error/Xfail。耐久 A2A Client 现已增加 11-Operation、Dual-binding
+      Loopback Matrix，以及真实 PostgreSQL Durable-before-dispatch/Unknown/
+      No-redispatch 证据。官方 Client/Live-peer Qualification 与
+      Reconciliation、 MCP Tasks 和更广 Extension 仍是独立门禁。
     </p>
   </section>
 
@@ -226,6 +234,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/zh/docs/mcp-conformance/">MCP Conformance 证据与边界</a>
+      </li>
+      <li>
+        <a href="/zh/docs/a2a-client/">A2A 1.0 Client 与耐久 Remote Agent</a>
       </li>
       <li>
         <a href="/zh/docs/a2a-server/">A2A 1.0 Server Profile</a>

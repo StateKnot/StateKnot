@@ -8,7 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 > 状态：已实现的 pre-alpha Server Profile；公开 Rust API 尚未稳定。<br>
 > 协议：A2A `1.0`。<br>
 > Binding：HTTP+JSON 与 JSON-RPC 2.0，包含 SSE Streaming。<br>
-> 明确排除：A2A Client 与 gRPC Binding。
+> 本页范围排除：Client 行为/证据与 gRPC Binding。Client 已独立实现并另行记录；
+> gRPC 尚未实现。
 
 StateKnot 可以暴露 A2A Server，但不会把官方 SDK 变成领域模型。
 `A2aAgentCard`、Message、Part、Task、Artifact、Status Update、Push Config
@@ -166,7 +167,8 @@ Authority；除非外层可信组件已经替换 Request Authority，否则不�
 
 ## 不作出的声明
 
-- A2A Client 行为或耐久 Outbound-agent Invocation；
+- A2A Client 行为或耐久 Outbound-agent Invocation；它们属于独立的
+  [A2A Client Profile](a2a-client.zh-CN.md)；
 - gRPC Transport；
 - 内置 Identity Provider、Policy Engine、数据库 Task Service 或 Push
   Dispatcher；

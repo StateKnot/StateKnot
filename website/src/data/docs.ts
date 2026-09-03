@@ -164,6 +164,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "mcp conformance official runner requirements evidence client server claim 2026 07 28",
       },
       {
+        title: "A2A 1.0 Client",
+        description:
+          "Discover and pin one agent, call all eleven operations, and bind durable outbound sends without blind retries.",
+        href: "/docs/a2a-client/",
+        search:
+          "a2a 1.0 client remote agent durable outbound discovery card interface pin jsonrpc http json sse unknown reconcile",
+      },
+      {
         title: "A2A 1.0 Server",
         description:
           "Expose bounded HTTP+JSON and JSON-RPC/SSE through identity-first policy and a durable service contract.",
@@ -361,6 +369,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/mcp-conformance/",
         search:
           "mcp conformance 官方 runner requirement 证据 client server 声明 2026 07 28",
+      },
+      {
+        title: "A2A 1.0 Client",
+        description:
+          "发现并固定一个 Agent，调用全部 11 个 Operation，并在不盲目重试的前提下绑定耐久 Outbound Send。",
+        href: "/docs/a2a-client/",
+        search:
+          "a2a 1.0 client remote agent 耐久 outbound discovery card interface pin jsonrpc http json sse unknown reconcile 客户端",
       },
       {
         title: "A2A 1.0 Server",

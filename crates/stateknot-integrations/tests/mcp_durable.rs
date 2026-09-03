@@ -1,7 +1,7 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//! Real `PostgreSQL` + loopback MCP durability tests.
+//! Real `PostgreSQL` + loopback protocol-adapter durability tests.
 
 use std::{
     sync::{
@@ -24,7 +24,10 @@ use stateknot_core::{
     ToolResultProvenance, Version,
 };
 use stateknot_integrations::{
-    AnonymousMcpAuthorization, McpHttpOptions, McpRemoteTool, McpServerIdentity, ProviderEndpoint,
+    A2aAgentCapabilities, A2aAgentCard, A2aAgentCardEndpoint, A2aAgentCardTrust, A2aAgentInterface,
+    A2aAgentSkill, A2aBinding, A2aClient, A2aClientInterfacePin, A2aClientOptions,
+    A2aClientSecurity, A2aRemoteAgent, A2aRemoteAgentDelivery, AnonymousMcpAuthorization,
+    McpHttpOptions, McpRemoteTool, McpServerIdentity, ProviderEndpoint, a2a_agent_card_digest,
 };
 use stateknot_runtime::{
     DurableInvocationExecutor, DurableInvocationExecutorOptions, InvocationAttemptEventIds,
@@ -55,6 +58,98 @@ struct PausedLostResponseMcpServer {
     release_call: Arc<Notify>,
     tool_calls: Arc<AtomicUsize>,
     task: JoinHandle<()>,
+}
+
+struct PausedLostResponseA2aServer {
+    card_endpoint: A2aAgentCardEndpoint,
+    interface_pin: A2aClientInterfacePin,
+    card: Value,
+    call_seen: mpsc::Receiver<()>,
+    release_call: Arc<Notify>,
+    message_sends: Arc<AtomicUsize>,
+    task: JoinHandle<()>,
+}
+
+impl PausedLostResponseA2aServer {
+    async fn start() -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let interface_url = format!("http://{address}/a2a");
+        let card = A2aAgentCard::builder(
+            "StateKnot durable A2A test",
+            "Applies one test message before losing its response.",
+            "1.0.0",
+        )
+        .unwrap()
+        .capabilities(A2aAgentCapabilities::new())
+        .interface(A2aAgentInterface::new(&interface_url, A2aBinding::HttpJson).unwrap())
+        .unwrap()
+        .default_input_modes(vec!["application/json".to_string()])
+        .unwrap()
+        .default_output_modes(vec!["application/json".to_string()])
+        .unwrap()
+        .skill(
+            A2aAgentSkill::new(
+                "write_once",
+                "Write once",
+                "Applies exactly one durable test write.",
+                vec!["test".to_string()],
+            )
+            .unwrap()
+            .with_input_modes(vec!["application/json".to_string()])
+            .unwrap()
+            .with_output_modes(vec!["application/json".to_string()])
+            .unwrap(),
+        )
+        .unwrap()
+        .build()
+        .unwrap()
+        .to_json()
+        .unwrap();
+        let encoded_card = serde_json::to_vec(&card).unwrap();
+        let (call_sender, call_seen) = mpsc::channel(1);
+        let release_call = Arc::new(Notify::new());
+        let release = Arc::clone(&release_call);
+        let message_sends = Arc::new(AtomicUsize::new(0));
+        let sends = Arc::clone(&message_sends);
+        let task = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let discovery = read_request(&mut socket).await;
+            assert!(
+                String::from_utf8_lossy(&discovery)
+                    .starts_with("GET /.well-known/agent-card.json HTTP/1.1")
+            );
+            write_a2a_response(&mut socket, "application/json", &encoded_card).await;
+
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let request = read_request(&mut socket).await;
+            assert!(
+                String::from_utf8_lossy(&request).starts_with("POST /a2a/message:send HTTP/1.1")
+            );
+            let body: Value = serde_json::from_slice(request_body(&request)).unwrap();
+            assert_eq!(body["configuration"]["returnImmediately"], true);
+            sends.fetch_add(1, Ordering::SeqCst);
+            call_sender.send(()).await.unwrap();
+            release.notified().await;
+            socket.shutdown().await.unwrap();
+        });
+        Self {
+            card_endpoint: A2aAgentCardEndpoint::loopback_http(&format!(
+                "http://{address}/.well-known/agent-card.json"
+            ))
+            .unwrap(),
+            interface_pin: A2aClientInterfacePin::loopback_http(
+                &interface_url,
+                A2aBinding::HttpJson,
+            )
+            .unwrap(),
+            card,
+            call_seen,
+            release_call,
+            message_sends,
+            task,
+        }
+    }
 }
 
 impl PausedLostResponseMcpServer {
@@ -151,7 +246,7 @@ async fn read_request(socket: &mut tokio::net::TcpStream) -> Vec<u8> {
                     .then(|| value.trim().parse::<usize>().ok())
                     .flatten()
             })
-            .unwrap();
+            .unwrap_or(0);
         if bytes.len() >= header_end + 4 + content_length {
             return bytes;
         }
@@ -177,6 +272,16 @@ async fn write_json_response(socket: &mut tokio::net::TcpStream, response: &Valu
     );
     socket.write_all(headers.as_bytes()).await.unwrap();
     socket.write_all(&encoded).await.unwrap();
+    socket.shutdown().await.unwrap();
+}
+
+async fn write_a2a_response(socket: &mut tokio::net::TcpStream, content_type: &str, body: &[u8]) {
+    let headers = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        body.len()
+    );
+    socket.write_all(headers.as_bytes()).await.unwrap();
+    socket.write_all(body).await.unwrap();
     socket.shutdown().await.unwrap();
 }
 
@@ -381,6 +486,141 @@ async fn mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch(
     store.close().await;
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched() {
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let (schemas, input_schema, _, output_schema, _) = tool_schemas();
+    let descriptor = a2a_write_descriptor(&input_schema, &output_schema);
+    let mut server = PausedLostResponseA2aServer::start().await;
+    let client = A2aClient::discover(
+        server.card_endpoint.clone(),
+        vec![server.interface_pin.clone()],
+        A2aAgentCardTrust::CanonicalSha256(a2a_agent_card_digest(&server.card).unwrap()),
+        A2aClientSecurity::Anonymous,
+        Vec::new(),
+        A2aClientOptions::default(),
+    )
+    .await
+    .unwrap();
+    let adapter = A2aRemoteAgent::bind(
+        descriptor.clone(),
+        client,
+        "write_once",
+        A2aRemoteAgentDelivery::AtMostOnce,
+        Arc::new(schemas.clone()),
+    )
+    .unwrap();
+
+    let graph = graph();
+    let tenant_id = TenantId::new(format!("a2a-durable-{}", RunId::generate())).unwrap();
+    let run_id = RunId::generate();
+    let checkpoint = start_run(&store, &graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let invocation_id = InvocationId::generate();
+    let prepared = store
+        .prepare_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                checkpoint.event().head(),
+                lease.fence().clone(),
+            ),
+            ToolInvocationIntent::new(
+                invocation_activation(checkpoint.checkpoint()),
+                invocation_id,
+                descriptor.clone(),
+                ToolInput::new(
+                    input_schema,
+                    BoundedJson::try_from_value(json!({"request": "apply-once"})).unwrap(),
+                )
+                .unwrap(),
+                descriptor.limits().clone(),
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let mut tools = ToolProviderRegistryBuilder::new();
+    tools.register(Arc::new(adapter)).unwrap();
+    let executor = DurableInvocationExecutor::with_clock(
+        store.clone(),
+        schemas,
+        ModelProviderRegistryBuilder::new().build(),
+        tools.build(),
+        Arc::new(StaticInvocationBudget {
+            resolved: invocation_budget(),
+        }),
+        Arc::new(FixedInvocationClock),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let handoff = ToolAttemptHandoff::new(
+        lease.fence().clone(),
+        prepared.invocation().clone(),
+        AttemptId::generate(),
+        InvocationAttemptEventIds::generate(),
+        CancellationSignal::never(),
+        None,
+    )
+    .unwrap();
+    let executing_task = {
+        let executor = executor.clone();
+        let handoff = handoff.clone();
+        tokio::spawn(async move { executor.execute_tool(handoff).await })
+    };
+
+    tokio::time::timeout(Duration::from_secs(5), server.call_seen.recv())
+        .await
+        .expect("A2A message/send must reach the loopback server")
+        .expect("A2A call observation channel must remain open");
+    assert_eq!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ToolInvocationStatus::Executing,
+        "the durable start must commit before A2A request I/O"
+    );
+    server.release_call.notify_one();
+
+    let outcome = executing_task.await.unwrap().unwrap();
+    assert!(matches!(
+        outcome,
+        ToolAttemptOutcome::Dispatched {
+            terminal: ToolAttemptTerminalKind::Error,
+            ..
+        }
+    ));
+    assert_eq!(
+        store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap()
+            .status(),
+        ToolInvocationStatus::Unknown
+    );
+    assert_eq!(server.message_sends.load(Ordering::SeqCst), 1);
+    assert!(matches!(
+        executor.execute_tool(handoff).await.unwrap(),
+        ToolAttemptOutcome::Recovered { .. }
+    ));
+    assert_eq!(server.message_sends.load(Ordering::SeqCst), 1);
+
+    server.task.await.unwrap();
+    store.close().await;
+}
+
 fn tool_schemas() -> (
     JsonSchemaRegistry,
     SchemaReference,
@@ -458,6 +698,17 @@ fn write_descriptor(input: &SchemaReference, output: &SchemaReference) -> ToolDe
     value["invocation"] = json!({
         "cancellation": "cooperative",
         "max_progress_events": "0"
+    });
+    serde_json::from_value(value).unwrap()
+}
+
+fn a2a_write_descriptor(input: &SchemaReference, output: &SchemaReference) -> ToolDescriptor {
+    let mut value = serde_json::to_value(write_descriptor(input, output)).unwrap();
+    value["semantics"] = json!({
+        "risk": "non_idempotent_write",
+        "idempotency": "unsupported",
+        "status_query": false,
+        "compensation": false
     });
     serde_json::from_value(value).unwrap()
 }

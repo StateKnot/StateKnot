@@ -118,6 +118,12 @@ const localizedRoutePairs = [
     zhHeading: "MCP Conformance 声明以证据为界。",
   },
   {
+    en: "/docs/a2a-client/",
+    zh: "/zh/docs/a2a-client/",
+    enHeading: "Call an A2A agent without guessing the outcome.",
+    zhHeading: "调用 A2A Agent，不猜测执行结果。",
+  },
+  {
     en: "/docs/a2a-server/",
     zh: "/zh/docs/a2a-server/",
     enHeading: "Serve A2A 1.0 without leaking wire types.",
@@ -216,6 +222,11 @@ test("homepage exposes honest implementation status and semantic structure", asy
   ).toBeVisible();
   await expect(
     page.getByText("Pre-alpha · no stable public API"),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".spec-list")
+      .getByText("A2A 1.0 Client and remote agent", { exact: true }),
   ).toBeVisible();
   await expect(
     page
@@ -446,6 +457,7 @@ for (const route of [
   "/docs/agent-service/",
   "/docs/mcp-remote-tool/",
   "/docs/mcp-conformance/",
+  "/docs/a2a-client/",
   "/docs/a2a-server/",
   "/docs/a2a-conformance/",
   "/docs/fair-scheduling/",
@@ -461,6 +473,7 @@ for (const route of [
   "/zh/docs/agent-service/",
   "/zh/docs/mcp-remote-tool/",
   "/zh/docs/mcp-conformance/",
+  "/zh/docs/a2a-client/",
   "/zh/docs/a2a-server/",
   "/zh/docs/a2a-conformance/",
   "/zh/docs/fair-scheduling/",
@@ -633,6 +646,31 @@ test("A2A Server page keeps policy and durability boundaries explicit", async ({
     page.getByText("process memory for durability", { exact: false }),
   ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(1);
+});
+
+test("A2A Client page documents all operations and unknown recovery", async ({
+  page,
+}) => {
+  await page.goto("/docs/a2a-client/");
+  await expect(
+    page.getByText("Implemented Client and durable adapter, pre-alpha API"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Make PostgreSQL the dispatch authority",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Unknown + ReconcileFirst", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".docs-article")
+      .getByText("all eleven operations", { exact: false })
+      .first(),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(2);
 });
 
 test("A2A conformance page freezes exact evidence without overclaiming", async ({

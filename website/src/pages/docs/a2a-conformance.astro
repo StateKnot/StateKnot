@@ -21,8 +21,10 @@ const verifyCode = `bash conformance/a2a-server/run-1.0.sh`;
     </h2>
     <p>
       This gate covers the implemented A2A <code>1.0</code> HTTP+JSON and JSON-RPC/SSE
-      server boundary. It does not certify a Client, gRPC, a durable application backend,
-      stable APIs, or a production StateKnot release.
+      server boundary. It does not certify the <a href="/docs/a2a-client/"
+        >separately implemented Client</a
+      >, gRPC, a durable application backend, stable APIs, or a production
+      StateKnot release.
     </p>
   </aside>
 
@@ -116,7 +118,8 @@ const verifyCode = `bash conformance/a2a-server/run-1.0.sh`;
       and transport inventory, including unconfigured gRPC and non-applicable branches.
       StateKnot preserves that raw output alongside the exact test counts instead
       of presenting it as 100% certification. Read the
-      <a href="/docs/a2a-server/">production service obligations</a> next.
+      <a href="/docs/a2a-server/">production service obligations</a> and the separate
+      <a href="/docs/a2a-client/">Client evidence and recovery boundary</a> next.
     </p>
   </section>
 </DocsLayout>
