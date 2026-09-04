@@ -49,7 +49,7 @@ const paths = [
   },
   {
     title: "驱动耐久 Graph",
-    body: "冻结可执行 Schema、Reducer 与 Node，重放非初始 Checkpoint，并正确处理每种带 Fence 的 Driver Outcome。",
+    body: "冻结可执行 Schema、Reducer 与 Node，重放非初始 Checkpoint，并在同一个 Fence 下运行 Canonical 有界 Sibling Batch。",
     href: "/zh/docs/runtime/",
     link: "集成 Driver",
   },
@@ -103,7 +103,7 @@ const paths = [
   },
   {
     title: "运行 Provider-native Agent",
-    body: "编译一套 Pinned 多轮 Model/Tool Graph，在不重复 Dispatch 的前提下恢复 Transcript，并依据精确 Usage Evidence 确认 Cancellation。",
+    body: "编译一套 Pinned 多轮 Model/Tool Graph，在 Write Barrier 之间有界并行 Read-only Tool，并在不重复 Dispatch 的前提下恢复 Transcript。",
     href: "/zh/docs/provider-native-agent/",
     link: "集成 Agent Graph",
   },
@@ -146,8 +146,9 @@ const paths = [
       Work；耐久 Ingress Key 与公开 Run/Result Facade 会恢复 Lost ACK 并校验
       Terminal Read。已经实现的<a href="/zh/docs/provider-native-agent/"
         >预置 Provider-native Agent Graph</a
-      > 现在还提供可恢复多轮 Tool、Policy、Accounting 与精确 Cancellation。<a
-        href="/zh/docs/agent-service/">AgentService v1</a
+      > 现在还提供可恢复多轮 Tool、有界有序 Read-only 并发、串行 Write Barrier、Policy、
+      Accounting 与精确 Cancellation。<a href="/zh/docs/agent-service/"
+        >AgentService v1</a
       > 已经把 Submission、Verified Read 与 Cancellation 暴露为 Authorization-first
       嵌入式边界。<a href="/zh/docs/mcp-client/">通用 MCP Tool Client</a>
       现在还提供有界动态 Discovery、JSON/Request-scoped SSE、Custom Header、MRTR 与<a

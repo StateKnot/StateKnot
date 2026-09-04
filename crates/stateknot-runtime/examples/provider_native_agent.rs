@@ -222,7 +222,7 @@ fn agent_definition(
             ModelToolCapabilities::new(
                 Some(schema_profile.clone()),
                 ExecutionCount::new(1),
-                ExecutionCount::new(1),
+                ExecutionCount::new(4),
                 ModelToolChoices::try_new([ModelToolChoice::Auto, ModelToolChoice::None])?,
                 true,
             )?,
@@ -250,8 +250,8 @@ fn agent_definition(
         AgentStructuredOutputStrategy::ModelNative,
         ExecutionCount::new(3),
         ExecutionCount::ZERO,
-        ExecutionCount::new(1),
-        AgentToolConcurrency::sequential(),
+        ExecutionCount::new(4),
+        AgentToolConcurrency::parallel_read_only(ExecutionCount::new(2)),
     )?;
     Ok(AgentBuilder::<IncidentRequest, IncidentReport>::new(
         metadata(

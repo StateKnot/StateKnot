@@ -521,13 +521,19 @@ test("provider-native tutorial exposes recovery and cancellation boundaries", as
   await expect(
     page.getByRole("heading", {
       level: 2,
+      name: "Parallelize reads; make every write a barrier",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
       name: "Treat cancellation as two durable facts",
     }),
   ).toBeVisible();
   await expect(
     page.getByText("StateKnot never substitutes zero usage", { exact: false }),
   ).toBeVisible();
-  await expect(page.locator("[data-copy-button]")).toHaveCount(3);
+  await expect(page.locator("[data-copy-button]")).toHaveCount(4);
 });
 
 test("durable run tutorial documents retry, conflict, and public snapshot semantics", async ({

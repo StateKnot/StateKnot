@@ -33,7 +33,7 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "耐久 Graph Driver",
-    body: "离线可执行 Schema/Reducer/Node 闭包、完整 Checkpoint State 与有界非初始 Replay 验证、Durable-before-dispatch 执行、Near-expiry Lease Refresh、单调 Renewal、耐久 Cancellation Polling、Continue Barrier 与类型化 Lifecycle Handoff。",
+    body: "离线可执行 Schema/Reducer/Node 闭包、完整 Checkpoint State 与有界非初始 Replay 验证、Durable-before-dispatch 执行、Canonical Journal-isolated Sibling Batch、Near-expiry Lease Refresh、单调 Renewal、耐久 Cancellation Polling、Continue Barrier 与类型化 Lifecycle Handoff。",
   },
   {
     state: "已实现",
@@ -63,7 +63,7 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "Provider-native Agent Graph",
-    body: "Digest-pinned 预置多轮 Model/Tool Graph，支持串行 Tool、Provider-native Transcript Recovery、本地 Policy Evidence、精确 Accounting、不重复 Business Call 的 Unknown-to-Pending 自动 Reconciliation 与两阶段 Cancellation Confirmation。",
+    body: "Digest-pinned 预置多轮 Model/Tool Graph，支持串行或有界 Parallel Read-only Tool、串行 Write Barrier、Provider-native Transcript Recovery、本地 Policy Evidence、精确 Accounting、不重复 Business Call 的 Unknown-to-Pending 自动 Reconciliation 与两阶段 Cancellation Confirmation。",
   },
   {
     state: "已实现",
@@ -117,7 +117,7 @@ const capabilities = [
     state: "开发中",
     className: "status-active",
     title: "高级执行与 Service Boundary",
-    body: "Parallel Sibling/Tool Ordering、Output Repair、Loop/Subgraph 语义、稳定 Network Transport 与 Protocol-specific Outbox Dispatch 仍在开发中。",
+    body: "Output Repair、Loop/Subgraph 语义、稳定 Network Transport、Protocol-specific Outbox Dispatch 与更广生产验证仍在开发中。",
   },
   {
     state: "尚未发布",
@@ -181,15 +181,18 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">下一条验证边界</h2>
     <p>
-      严格 MCP Binding 保留端到端 PostgreSQL Recovery 证据。独立通用 Tool Client
-      与 OAuth Provider 现已通过全部 32 个冻结计分 Client 场景，其中包括全部 25
-      个 OAuth 场景：373 项计分 Assertion Success、0 Failure。Server Profile
-      通过 全部 37 个计分 Server 场景：114 Success、5 Skip、1 Info、0 Failure、0
-      Warning。A2A 1.0 Server 门禁另有 177 项官方 TCK Pass、88 项声明 Skip、0
-      Failure/Error/Xfail。耐久 A2A Client 现已增加 11-Operation、Dual-binding
-      Loopback Matrix，以及真实 PostgreSQL Durable-before-dispatch/Unknown/
-      No-redispatch 证据，并加入有界、由运维方背书的 Context/History 与
-      Message-ID Recovery。耐久 Terminal-task Recovery 现在能对两种 Binding
+      32-Case Runtime Matrix 现在已经在 PostgreSQL 16/17 上证明真实 Sibling
+      Overlap、 Canonical Commit、Higher-fence Orphan Takeover、有序 Read-only
+      Tool Wave 与串行 Write Barrier。 严格 MCP Binding 保留端到端 PostgreSQL
+      Recovery 证据。独立通用 Tool Client 与 OAuth Provider 现已通过全部 32
+      个冻结计分 Client 场景，其中包括全部 25 个 OAuth 场景：373 项计分
+      Assertion Success、0 Failure。Server Profile 通过 全部 37 个计分 Server
+      场景：114 Success、5 Skip、1 Info、0 Failure、0 Warning。A2A 1.0 Server
+      门禁另有 177 项官方 TCK Pass、88 项声明 Skip、0 Failure/Error/Xfail。耐久
+      A2A Client 现已增加 11-Operation、Dual-binding Loopback Matrix，以及真实
+      PostgreSQL Durable-before-dispatch/Unknown/ No-redispatch
+      证据，并加入有界、由运维方背书的 Context/History 与 Message-ID
+      Recovery。耐久 Terminal-task Recovery 现在能对两种 Binding
       直接轮询且不重发业务 Message；Migration 17→18、不可变
       Registry、Conditional Object Publication、Multipart
       Ingestion、Authorization-first Read 与完整 Digest 校验都具备可执行

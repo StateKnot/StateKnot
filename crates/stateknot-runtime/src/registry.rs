@@ -233,6 +233,27 @@ pub enum GraphNodeExecutionErrorBuildError {
     ReconciliationNotAllowed,
 }
 
+/// Trusted scheduling contract for one executable graph node.
+///
+/// The durable driver cannot inspect arbitrary node code, so concurrent
+/// eligibility is an explicit startup-time assertion made by the executable
+/// binding. The conservative default preserves exclusive execution.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum GraphNodeScheduling {
+    /// Run this node alone within its run.
+    #[default]
+    Exclusive,
+    /// The node may overlap journal-isolated siblings from the same checkpoint.
+    ///
+    /// A journal-isolated executor must not append run-scoped journal or
+    /// invocation-ledger records from `execute`, and its semantic result must
+    /// not depend on sibling start/completion timing. External work that needs
+    /// durable invocation evidence must use a purpose-built ordered batch
+    /// coordinator instead of selecting this mode.
+    JournalIsolated,
+}
+
 /// Object-safe executable implementation of one exact graph node.
 pub trait GraphNodeExecutor: Send + Sync + 'static {
     /// Returns the whole immutable graph definition this code was built for.
@@ -240,6 +261,15 @@ pub trait GraphNodeExecutor: Send + Sync + 'static {
 
     /// Returns the stable compiled node identity implemented by this code.
     fn node_id(&self) -> &NodeId;
+
+    /// Declares whether this trusted binding may overlap ready siblings.
+    ///
+    /// Existing implementations remain exclusive. Returning
+    /// [`GraphNodeScheduling::JournalIsolated`] is a trusted production
+    /// contract, not a performance hint.
+    fn scheduling(&self) -> GraphNodeScheduling {
+        GraphNodeScheduling::Exclusive
+    }
 
     /// Executes exactly one already-durably-started physical attempt.
     fn execute(

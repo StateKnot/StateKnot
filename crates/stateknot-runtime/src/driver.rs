@@ -5,6 +5,7 @@
 
 use std::{
     fmt,
+    panic::AssertUnwindSafe,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -12,6 +13,7 @@ use std::{
     time::Duration,
 };
 
+use futures_util::FutureExt;
 use serde_json::{Value, json};
 use stateknot_core::{
     AttemptId, BoundedJson, BoxFuture, BudgetUsage, CancellationObserver, CancellationSignal,
@@ -31,14 +33,14 @@ use stateknot_store_postgres::{
 use thiserror::Error;
 use tokio::{
     sync::Notify,
-    task::{JoinError, JoinHandle},
+    task::{JoinError, JoinSet},
     time::Instant,
 };
 
 use crate::{
     ExecutableGraph, ExecutableGraphRegistry, GraphNodeContext, GraphNodeContextError,
-    GraphNodeExecution, GraphNodeExecutionError, StandardGraphDriverSchemaError,
-    standard_graph_driver_event_schema,
+    GraphNodeExecution, GraphNodeExecutionError, GraphNodeScheduling,
+    StandardGraphDriverSchemaError, standard_graph_driver_event_schema,
 };
 
 const MAX_NODE_TIMEOUT: Duration = Duration::from_secs(7 * 24 * 60 * 60);
@@ -54,6 +56,7 @@ pub struct DurableGraphDriverOptions {
     node_execution_timeout: Duration,
     cancellation_poll_interval: Duration,
     cancellation_grace_period: Duration,
+    maximum_parallel_nodes: u16,
     maximum_mutation_attempts: u8,
     mutation_retry_initial_delay: Duration,
 }
@@ -69,6 +72,8 @@ impl DurableGraphDriverOptions {
     pub const HARD_MAXIMUM_CANCELLATION_POLL_INTERVAL: Duration = Duration::from_secs(60);
     /// Longest cooperative cleanup window after durable cancellation wins.
     pub const HARD_MAXIMUM_CANCELLATION_GRACE_PERIOD: Duration = Duration::from_secs(5 * 60);
+    /// Absolute process-local concurrency ceiling for one run.
+    pub const HARD_MAXIMUM_PARALLEL_NODES: u16 = 64;
 
     /// Constructs a fully explicit driver policy.
     ///
@@ -112,6 +117,7 @@ impl DurableGraphDriverOptions {
             node_execution_timeout,
             cancellation_poll_interval: Duration::from_millis(250),
             cancellation_grace_period: Duration::from_secs(5),
+            maximum_parallel_nodes: 1,
             maximum_mutation_attempts,
             mutation_retry_initial_delay,
         })
@@ -144,6 +150,28 @@ impl DurableGraphDriverOptions {
         }
         self.cancellation_poll_interval = poll_interval;
         self.cancellation_grace_period = grace_period;
+        Ok(self)
+    }
+
+    /// Enables bounded overlap for executors that explicitly declare the
+    /// journal-isolated scheduling contract.
+    ///
+    /// The effective batch width is the minimum of this value, the compiled
+    /// graph limit, the ready set, and the remaining durable-event quantum.
+    /// Exclusive executors always run alone.
+    ///
+    /// # Errors
+    ///
+    /// Rejects zero or process-unbounded concurrency.
+    pub fn with_parallel_node_limit(
+        mut self,
+        maximum_parallel_nodes: u16,
+    ) -> Result<Self, DurableGraphDriverOptionsError> {
+        if maximum_parallel_nodes == 0 || maximum_parallel_nodes > Self::HARD_MAXIMUM_PARALLEL_NODES
+        {
+            return Err(DurableGraphDriverOptionsError::InvalidParallelNodeLimit);
+        }
+        self.maximum_parallel_nodes = maximum_parallel_nodes;
         Ok(self)
     }
 
@@ -184,6 +212,12 @@ impl DurableGraphDriverOptions {
         self.cancellation_grace_period
     }
 
+    /// Returns the process-local ready-node concurrency ceiling.
+    #[must_use]
+    pub const fn maximum_parallel_nodes(self) -> u16 {
+        self.maximum_parallel_nodes
+    }
+
     /// Returns the maximum identical attempts for one idempotent mutation.
     #[must_use]
     pub const fn maximum_mutation_attempts(self) -> u8 {
@@ -206,6 +240,7 @@ impl Default for DurableGraphDriverOptions {
             node_execution_timeout: Duration::from_secs(15 * 60),
             cancellation_poll_interval: Duration::from_millis(250),
             cancellation_grace_period: Duration::from_secs(5),
+            maximum_parallel_nodes: 1,
             maximum_mutation_attempts: 3,
             mutation_retry_initial_delay: Duration::from_millis(25),
         }
@@ -231,6 +266,9 @@ pub enum DurableGraphDriverOptionsError {
     /// Cooperative cancellation cleanup was zero, imprecise, or above five minutes.
     #[error("graph driver cancellation grace period is invalid")]
     InvalidCancellationGracePeriod,
+    /// Ready-node concurrency was zero or above the process safety ceiling.
+    #[error("graph driver parallel node limit is invalid")]
+    InvalidParallelNodeLimit,
     /// Mutation attempts were zero or above the hard ceiling.
     #[error("graph driver mutation attempt count is invalid")]
     InvalidMutationAttempts,
@@ -501,50 +539,96 @@ impl DurableGraphDriver {
                     report,
                 ));
             }
-            let node = plan
+            let first_node = plan
                 .nodes()
                 .iter()
                 .find(|node| node.kind() == RecoveryNodeKind::Dispatchable)
                 .ok_or(GraphDriverError::RuntimeInvariant {
                     operation: "select dispatchable graph node",
                 })?;
-            let node_id = node.activation().node_id().clone();
-            let executor = executable.node_executor(&node_id).ok_or_else(|| {
-                GraphDriverError::ExecutableNodeUnavailable {
-                    graph: Box::new(executable.graph().reference()),
-                    node_id: node_id.clone(),
+            let first_node_id = first_node.activation().node_id().clone();
+            let first_executor = Self::resolve_node_executor(&executable, &first_node_id)?;
+            let batch_limit = usize::from(self.options.maximum_parallel_nodes)
+                .min(usize::from(
+                    executable.graph().limits().maximum_parallelism(),
+                ))
+                .min(
+                    usize::try_from(
+                        (self
+                            .options
+                            .maximum_durable_events
+                            .saturating_sub(report.durable_events))
+                            / 2,
+                    )
+                    .unwrap_or(usize::MAX),
+                );
+            let first_scheduling = first_executor.scheduling();
+            let mut selected = Vec::with_capacity(batch_limit);
+            selected.push((first_node_id, first_executor));
+            if first_scheduling == GraphNodeScheduling::JournalIsolated && batch_limit > 1 {
+                for node in plan
+                    .nodes()
+                    .iter()
+                    .filter(|node| node.kind() == RecoveryNodeKind::Dispatchable)
+                    .skip(1)
+                    .take(batch_limit.saturating_sub(1))
+                {
+                    let node_id = node.activation().node_id().clone();
+                    let executor = Self::resolve_node_executor(&executable, &node_id)?;
+                    if executor.scheduling() != GraphNodeScheduling::JournalIsolated {
+                        break;
+                    }
+                    selected.push((node_id, executor));
                 }
-            })?;
-            let attempt_id = AttemptId::generate();
-            let start_event_id = EventId::generate();
-            let payload = self.node_started_payload(
-                &executable.graph().reference(),
-                plan.checkpoint(),
-                &node_id,
-                attempt_id,
-            )?;
-            let append =
-                worker_append(&fence, plan.journal_head().clone(), start_event_id, payload)?;
-            let start = self
-                .start_node_with_retry(append, &plan, &node_id, attempt_id, &mut report)
-                .await?;
-            let start_head = match start {
-                NodeAttemptCommitOutcome::Committed { event: _, attempt } => {
-                    report.durable_events = report.durable_events.saturating_add(1);
-                    report.node_attempts_started = report.node_attempts_started.saturating_add(1);
-                    attempt.start().head()
+            }
+
+            // Start facts are serialized in canonical NodeId order before any
+            // journal-isolated executor is spawned. This makes both launch
+            // authority and the later result-commit order independent of task
+            // completion timing.
+            let mut journal_head = plan.journal_head().clone();
+            let mut started = Vec::with_capacity(selected.len());
+            for (node_id, executor) in selected {
+                let attempt_id = AttemptId::generate();
+                let start_event_id = EventId::generate();
+                let payload = self.node_started_payload(
+                    &executable.graph().reference(),
+                    plan.checkpoint(),
+                    &node_id,
+                    attempt_id,
+                )?;
+                let append = worker_append(&fence, journal_head.clone(), start_event_id, payload)?;
+                let start = self
+                    .start_node_with_retry(append, &plan, &node_id, attempt_id, &mut report)
+                    .await?;
+                match start {
+                    NodeAttemptCommitOutcome::Committed { event, attempt } => {
+                        report.durable_events = report.durable_events.saturating_add(1);
+                        report.node_attempts_started =
+                            report.node_attempts_started.saturating_add(1);
+                        journal_head = event.head();
+                        started.push(StartedNode {
+                            executor,
+                            start: attempt.start().head(),
+                        });
+                    }
+                    NodeAttemptCommitOutcome::Idempotent { .. } => {
+                        // Lost acknowledgement convergence never grants launch
+                        // authority. Any starts committed earlier in this batch
+                        // still execute and settle normally.
+                        report.durable_events = report.durable_events.saturating_add(1);
+                        break;
+                    }
+                    _ => {
+                        return Err(GraphDriverError::RuntimeInvariant {
+                            operation: "handle unsupported node attempt start outcome",
+                        });
+                    }
                 }
-                NodeAttemptCommitOutcome::Idempotent { .. } => {
-                    // Lost acknowledgement convergence never grants launch authority.
-                    report.durable_events = report.durable_events.saturating_add(1);
-                    continue;
-                }
-                _ => {
-                    return Err(GraphDriverError::RuntimeInvariant {
-                        operation: "handle unsupported node attempt start outcome",
-                    });
-                }
-            };
+            }
+            if started.is_empty() {
+                continue;
+            }
             let checkpoint = Arc::new(plan.checkpoint().clone());
             drop(recovery);
 
@@ -556,10 +640,13 @@ impl DurableGraphDriver {
             // and the executor is never launched under an unsafe lease margin.
             let current_lease = self.prepare_execution_lease(&fence, &mut report).await?;
 
+            report.node_batches_started = report.node_batches_started.saturating_add(1);
+            report.maximum_nodes_in_batch = report
+                .maximum_nodes_in_batch
+                .max(u16::try_from(started.len()).unwrap_or(u16::MAX));
             let execution = self
-                .execute_started_node(
-                    executor,
-                    start_head.clone(),
+                .execute_started_nodes(
+                    &started,
                     checkpoint,
                     current_lease,
                     shutdown.clone(),
@@ -567,23 +654,30 @@ impl DurableGraphDriver {
                 )
                 .await?;
             match execution {
-                StartedNodeExecution::Cancelled => {
+                StartedNodesExecution::Cancelled => {
                     let release = self.release_with_retry(&fence, &mut report).await?;
                     return Ok(GraphDriveResult::new(
                         GraphDriveOutcome::Cancelled { release },
                         report,
                     ));
                 }
-                StartedNodeExecution::RunCancellationObserved => {}
-                StartedNodeExecution::Finished(result) => {
-                    self.commit_node_execution(
-                        &fence,
-                        &executable,
-                        &start_head,
-                        result,
-                        &mut report,
-                    )
-                    .await?;
+                StartedNodesExecution::RunCancellationObserved => {}
+                StartedNodesExecution::Finished(results) => {
+                    for (started, result) in started.iter().zip(results) {
+                        if matches!(
+                            self.commit_node_execution(
+                                &fence,
+                                &executable,
+                                &started.start,
+                                result,
+                                &mut report,
+                            )
+                            .await?,
+                            NodeExecutionCommit::RunCancellationObserved
+                        ) {
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -772,81 +866,141 @@ impl DurableGraphDriver {
         }
     }
 
-    async fn execute_started_node(
+    fn resolve_node_executor(
+        executable: &ExecutableGraph,
+        node_id: &stateknot_core::NodeId,
+    ) -> Result<Arc<dyn crate::GraphNodeExecutor>, GraphDriverError> {
+        executable.node_executor(node_id).ok_or_else(|| {
+            GraphDriverError::ExecutableNodeUnavailable {
+                graph: Box::new(executable.graph().reference()),
+                node_id: node_id.clone(),
+            }
+        })
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn execute_started_nodes(
         &self,
-        executor: Arc<dyn crate::GraphNodeExecutor>,
-        start: NodeAttemptStartHead,
+        started: &[StartedNode],
         checkpoint: Arc<Checkpoint>,
         lease: GuardedRunLease,
         shutdown: CancellationSignal,
         report: &mut GraphDriveReport,
-    ) -> Result<StartedNodeExecution, GraphDriverError> {
+    ) -> Result<StartedNodesExecution, GraphDriverError> {
         if shutdown.is_cancelled() {
-            return Ok(StartedNodeExecution::Cancelled);
+            return Ok(StartedNodesExecution::Cancelled);
         }
-        let cancellation = DriverCancellation::new();
-        let context = GraphNodeContext::new(start, checkpoint, cancellation.signal())?;
-        let mut task = tokio::spawn(async move { executor.execute(context).await });
-        let mut timeout = Box::pin(tokio::time::sleep(self.options.node_execution_timeout));
+        if started.is_empty() {
+            return Err(GraphDriverError::RuntimeInvariant {
+                operation: "execute an empty graph node batch",
+            });
+        }
+
+        let mut tasks = JoinSet::new();
+        let mut cancellations = Vec::with_capacity(started.len());
+        for (index, started_node) in started.iter().enumerate() {
+            let cancellation = DriverCancellation::new();
+            let context = GraphNodeContext::new(
+                started_node.start.clone(),
+                Arc::clone(&checkpoint),
+                cancellation.signal(),
+            )?;
+            let executor = Arc::clone(&started_node.executor);
+            let task_cancellation = cancellation.clone();
+            let timeout = self.options.node_execution_timeout;
+            cancellations.push(cancellation);
+            tasks.spawn(async move {
+                // Wrap both the synchronous `execute` call and the returned
+                // future. Object-safe executors are third-party code and may
+                // panic before they construct their future.
+                let execution =
+                    AssertUnwindSafe(async move { executor.execute(context).await }).catch_unwind();
+                tokio::pin!(execution);
+                let deadline = tokio::time::sleep(timeout);
+                tokio::pin!(deadline);
+                let outcome = tokio::select! {
+                    result = &mut execution => match result {
+                        Ok(result) => Ok(result),
+                        Err(_) => DurableGraphDriver::node_panic_failure(),
+                    },
+                    () = &mut deadline => {
+                        task_cancellation.cancel();
+                        DurableGraphDriver::node_timeout_failure().map(Err)
+                    }
+                };
+                (index, outcome)
+            });
+        }
+
         let fence = lease.lease.fence().clone();
         let lease_deadline = lease.deadline;
         let maintenance = self.maintain_execution_lease(lease, report);
         tokio::pin!(maintenance);
         let durable_cancellation = self.observe_run_cancellation(&fence);
         tokio::pin!(durable_cancellation);
+        let mut results = std::iter::repeat_with(|| None)
+            .take(started.len())
+            .collect::<Vec<_>>();
+        let mut completed = 0_usize;
 
-        tokio::select! {
-            result = &mut task => {
-                match result {
-                    Ok(result) => Ok(StartedNodeExecution::Finished(result)),
-                    Err(source) => Ok(StartedNodeExecution::Finished(Err(
-                        Self::node_task_failure(source)?,
-                    ))),
-                }
-            }
-            result = &mut maintenance => {
-                cancellation.cancel();
-                abort_node_task(&mut task).await;
-                match result {
-                    Ok(()) => Err(GraphDriverError::RuntimeInvariant {
-                        operation: "maintain a live node execution lease",
-                    }),
-                    Err(error) => Err(error),
-                }
-            }
-            () = shutdown.cancelled() => {
-                cancellation.cancel();
-                abort_node_task(&mut task).await;
-                Ok(StartedNodeExecution::Cancelled)
-            }
-            result = &mut durable_cancellation => {
-                cancellation.cancel();
-                if let Err(error) = result {
-                    abort_node_task(&mut task).await;
-                    return Err(error);
-                }
-                let grace_deadline = Instant::now()
-                    .checked_add(self.options.cancellation_grace_period)
-                    .unwrap_or(lease_deadline)
-                    .min(lease_deadline);
-                if grace_deadline <= Instant::now() {
-                    abort_node_task(&mut task).await;
-                } else {
-                    tokio::select! {
-                        _ = &mut task => {}
-                        () = tokio::time::sleep_until(grace_deadline) => {
-                            abort_node_task(&mut task).await;
-                        }
+        loop {
+            tokio::select! {
+                joined = tasks.join_next(), if completed < started.len() => {
+                    let (index, result) = joined
+                        .ok_or(GraphDriverError::RuntimeInvariant {
+                            operation: "join a complete graph node batch",
+                        })?
+                        .map_err(|_| GraphDriverError::RuntimeInvariant {
+                            operation: "join an unexpectedly cancelled graph node task",
+                        })?;
+                    let result = result?;
+                    let slot = results.get_mut(index).ok_or(GraphDriverError::RuntimeInvariant {
+                        operation: "place a graph node batch result",
+                    })?;
+                    if slot.replace(result).is_some() {
+                        return Err(GraphDriverError::RuntimeInvariant {
+                            operation: "deduplicate a graph node batch result",
+                        });
+                    }
+                    completed = completed.saturating_add(1);
+                    if completed == started.len() {
+                        let ordered = results
+                            .into_iter()
+                            .collect::<Option<Vec<_>>>()
+                            .ok_or(GraphDriverError::RuntimeInvariant {
+                                operation: "materialize ordered graph node batch results",
+                            })?;
+                        return Ok(StartedNodesExecution::Finished(ordered));
                     }
                 }
-                Ok(StartedNodeExecution::RunCancellationObserved)
-            }
-            () = &mut timeout => {
-                cancellation.cancel();
-                abort_node_task(&mut task).await;
-                Ok(StartedNodeExecution::Finished(Err(
-                    Self::node_timeout_failure()?,
-                )))
+                result = &mut maintenance => {
+                    cancel_node_batch(&cancellations);
+                    abort_node_batch(&mut tasks).await;
+                    return match result {
+                        Ok(()) => Err(GraphDriverError::RuntimeInvariant {
+                            operation: "maintain a live node execution lease",
+                        }),
+                        Err(error) => Err(error),
+                    };
+                }
+                () = shutdown.cancelled() => {
+                    cancel_node_batch(&cancellations);
+                    abort_node_batch(&mut tasks).await;
+                    return Ok(StartedNodesExecution::Cancelled);
+                }
+                result = &mut durable_cancellation => {
+                    cancel_node_batch(&cancellations);
+                    if let Err(error) = result {
+                        abort_node_batch(&mut tasks).await;
+                        return Err(error);
+                    }
+                    let grace_deadline = Instant::now()
+                        .checked_add(self.options.cancellation_grace_period)
+                        .unwrap_or(lease_deadline)
+                        .min(lease_deadline);
+                    drain_node_batch_until(&mut tasks, grace_deadline).await;
+                    return Ok(StartedNodesExecution::RunCancellationObserved);
+                }
             }
         }
     }
@@ -1285,15 +1439,17 @@ impl DurableGraphDriver {
             .map_err(|_| GraphDriverError::RuntimeFailureInvalid)
     }
 
-    fn node_task_failure(source: JoinError) -> Result<GraphNodeExecutionError, GraphDriverError> {
+    fn node_panic_failure()
+    -> Result<Result<GraphNodeExecution, GraphNodeExecutionError>, GraphDriverError> {
         let failure = runtime_failure(
             FailureCategory::Internal,
-            "runtime.node_task_failed",
-            "graph node execution task terminated unexpectedly",
-            Some(source),
+            "runtime.node_task_panicked",
+            "graph node execution task panicked",
+            None::<JoinError>,
         )?;
-        GraphNodeExecutionError::new(failure, BudgetUsage::zero())
-            .map_err(|_| GraphDriverError::RuntimeFailureInvalid)
+        let execution = GraphNodeExecutionError::new(failure, BudgetUsage::zero())
+            .map_err(|_| GraphDriverError::RuntimeFailureInvalid)?;
+        Ok(Err(execution))
     }
 }
 
@@ -1330,6 +1486,8 @@ pub struct GraphDriveReport {
     durable_events: u32,
     node_attempts_started: u32,
     node_attempts_completed: u32,
+    node_batches_started: u32,
+    maximum_nodes_in_batch: u16,
     barriers_committed: u32,
     lease_renewals: u32,
     mutation_retries: u32,
@@ -1342,6 +1500,8 @@ impl GraphDriveReport {
             durable_events: 0,
             node_attempts_started: 0,
             node_attempts_completed: 0,
+            node_batches_started: 0,
+            maximum_nodes_in_batch: 0,
             barriers_committed: 0,
             lease_renewals: 0,
             mutation_retries: 0,
@@ -1370,6 +1530,18 @@ impl GraphDriveReport {
     #[must_use]
     pub const fn node_attempts_completed(self) -> u32 {
         self.node_attempts_completed
+    }
+
+    /// Returns the number of executor batches launched by this drive call.
+    #[must_use]
+    pub const fn node_batches_started(self) -> u32 {
+        self.node_batches_started
+    }
+
+    /// Returns the largest executor batch launched by this drive call.
+    #[must_use]
+    pub const fn maximum_nodes_in_batch(self) -> u16 {
+        self.maximum_nodes_in_batch
     }
 
     /// Returns Continue barriers converged by this call.
@@ -1796,9 +1968,14 @@ impl From<StoreError> for GraphDriverError {
     }
 }
 
+struct StartedNode {
+    executor: Arc<dyn crate::GraphNodeExecutor>,
+    start: NodeAttemptStartHead,
+}
+
 #[allow(clippy::large_enum_variant)]
-enum StartedNodeExecution {
-    Finished(Result<GraphNodeExecution, GraphNodeExecutionError>),
+enum StartedNodesExecution {
+    Finished(Vec<Result<GraphNodeExecution, GraphNodeExecutionError>>),
     Cancelled,
     RunCancellationObserved,
 }
@@ -1942,9 +2119,33 @@ where
     Ok(failure)
 }
 
-async fn abort_node_task<T>(task: &mut JoinHandle<T>) {
-    task.abort();
-    let _ = task.await;
+fn cancel_node_batch(cancellations: &[DriverCancellation]) {
+    for cancellation in cancellations {
+        cancellation.cancel();
+    }
+}
+
+async fn abort_node_batch<T>(tasks: &mut JoinSet<T>)
+where
+    T: Send + 'static,
+{
+    tasks.abort_all();
+    while tasks.join_next().await.is_some() {}
+}
+
+async fn drain_node_batch_until<T>(tasks: &mut JoinSet<T>, deadline: Instant)
+where
+    T: Send + 'static,
+{
+    while !tasks.is_empty() && deadline > Instant::now() {
+        tokio::select! {
+            _ = tasks.join_next() => {}
+            () = tokio::time::sleep_until(deadline) => break,
+        }
+    }
+    if !tasks.is_empty() {
+        abort_node_batch(tasks).await;
+    }
 }
 
 #[derive(Default)]
@@ -2068,6 +2269,23 @@ mod tests {
             ),
             Err(DurableGraphDriverOptionsError::InvalidCancellationGracePeriod)
         ));
+        assert!(matches!(
+            options.with_parallel_node_limit(0),
+            Err(DurableGraphDriverOptionsError::InvalidParallelNodeLimit)
+        ));
+        assert!(matches!(
+            options.with_parallel_node_limit(
+                DurableGraphDriverOptions::HARD_MAXIMUM_PARALLEL_NODES + 1
+            ),
+            Err(DurableGraphDriverOptionsError::InvalidParallelNodeLimit)
+        ));
+        assert_eq!(
+            options
+                .with_parallel_node_limit(4)
+                .unwrap()
+                .maximum_parallel_nodes(),
+            4
+        );
     }
 
     #[tokio::test]

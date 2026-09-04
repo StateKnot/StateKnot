@@ -156,6 +156,28 @@ match executor.reconcile_tool(probe).await? {
     </p>
   </section>
 
+  <section aria-labelledby="zh-staged-tool-title">
+    <h2 id="zh-staged-tool-title">
+      需要让顺序独立于时序时，分阶段执行 Tool I/O
+    </h2>
+    <p>
+      普通调用方使用 <code>execute_tool</code>。可信有界 Coordinator 可以先调用 <code
+        >start_tool_attempt</code
+      >，只把 Fresh <code>ToolDispatchHandoff</code> 交给 <code
+        >dispatch_started_tool</code
+      >，随后把保留的 <code>ToolTerminalCommitHandoff</code> 传给 <code
+        >commit_tool_terminal</code
+      >。Duplicate Start 只返回 <code>Recovered</code>，并禁止 Provider I/O。
+    </p>
+    <p>
+      三阶段路径允许 Read-only Provider Call 重叠，同时让 Start/Terminal Fact
+      保持串行且具有 语义顺序；它不授权 Parallel Write。Coordinator 必须限制
+      Retained Payload、Settled 每个已启动 Call，并让 Child Task 随 Owner 一起
+      Abort。丢弃 Dispatch Handoff 只会留下 可见 <code>Executing</code> Evidence，绝不会产生隐式
+      Redispatch Authority。
+    </p>
+  </section>
+
   <section aria-labelledby="zh-streaming-title">
     <h2 id="zh-streaming-title">Streaming 必须有耐久 Sink</h2>
     <p>

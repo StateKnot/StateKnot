@@ -81,10 +81,10 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "Durable Graph runtime",
         description:
-          "Register exact executable code, replay noninitial state, and drive one fenced run.",
+          "Register exact executable code, replay noninitial state, and drive deterministic bounded sibling batches under one fence.",
         href: "/docs/runtime/",
         search:
-          "runtime graph driver executable registry replay lease fence crash recovery handoff",
+          "runtime graph driver executable registry replay lease fence crash recovery handoff parallel sibling deterministic batch",
       },
       {
         title: "Durable Agent Loop",
@@ -97,7 +97,7 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "Durable invocations",
         description:
-          "Execute exact model and tool attempts with durable starts, streaming validation, and no-dispatch terminal recovery.",
+          "Execute exact model and tool attempts with durable starts, staged ordered Tool coordination, streaming validation, and no-dispatch terminal recovery.",
         href: "/docs/invocations/",
         search:
           "model tool provider registry invocation executor streaming budget terminal recovery lost acknowledgement",
@@ -105,10 +105,10 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "Provider-native Agent",
         description:
-          "Compile and operate the durable multi-turn model/tool graph with pinned policy, accounting, and cancellation evidence.",
+          "Compile and operate the durable multi-turn graph with ordered parallel read-only Tools, write barriers, policy, accounting, and cancellation evidence.",
         href: "/docs/provider-native-agent/",
         search:
-          "provider native agent graph multi turn tool policy accounting cancellation recovery transcript",
+          "provider native agent graph multi turn tool parallel read only write barrier policy accounting cancellation recovery transcript",
       },
     ],
   },
@@ -296,10 +296,10 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "耐久 Graph Runtime",
         description:
-          "注册精确可执行代码、重放非初始状态，并驱动一个带 Fence 的 Run。",
+          "注册精确可执行代码、重放非初始状态，并在一个 Fence 下驱动确定性有界 Sibling Batch。",
         href: "/docs/runtime/",
         search:
-          "runtime graph driver 可执行 注册表 重放 租约 fence 崩溃 恢复 handoff",
+          "runtime graph driver 可执行 注册表 重放 租约 fence 崩溃 恢复 handoff 并行 sibling 确定性 batch",
       },
       {
         title: "耐久 Agent Loop",
@@ -312,7 +312,7 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "耐久调用执行",
         description:
-          "通过耐久 Start、Streaming 校验与 No-dispatch Terminal Recovery 执行精确 Model/Tool Attempt。",
+          "通过耐久 Start、分阶段有序 Tool Coordination、Streaming 校验与 No-dispatch Terminal Recovery 执行精确 Model/Tool Attempt。",
         href: "/docs/invocations/",
         search:
           "model tool provider registry invocation executor streaming budget terminal recovery lost ack 调用 执行",
@@ -320,10 +320,10 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "Provider-native Agent",
         description:
-          "编译并运维耐久多轮 Model/Tool Graph，固定 Policy、Accounting 与 Cancellation Evidence。",
+          "编译并运维支持有序 Parallel Read-only Tool 与 Write Barrier 的耐久多轮 Graph，并固定 Policy、Accounting 与 Cancellation Evidence。",
         href: "/docs/provider-native-agent/",
         search:
-          "provider native agent graph 多轮 tool policy accounting cancellation recovery transcript 恢复",
+          "provider native agent graph 多轮 tool parallel read only write barrier policy accounting cancellation recovery transcript 恢复",
       },
     ],
   },

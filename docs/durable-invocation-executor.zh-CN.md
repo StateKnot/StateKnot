@@ -33,6 +33,8 @@ Runtime 当前提供：
   Deadline、Cooperative Cancellation、Poll Advice 校验与 Terminal Evidence 原子提交；
 - 使用相同事务意图的有界 PostgreSQL 重试与精确 Lost-ACK Convergence；
 - 保留 Terminal Handoff，只重试持久化而不重复 Provider/Tool I/O；
+- 分阶段 Tool Path，把 Durable Start、Exactly-one Provider I/O 与 Terminal Commit 分离，
+  供有界、有序的 Read-only Coordinator 使用；
 - 关闭的 Public-safe Journal Schema，明确排除 Prompt、Argument、Response、Error、Endpoint Identity 与 Credential。
 
 Model 或 Tool 代码运行期间不会保持数据库事务。
@@ -87,6 +89,22 @@ Alias、Model Family、可变 Endpoint Routing 和 Fallback Selection
 7. 对精确 Invocation Head 提交 Terminal Fact。
 
 以 Idempotent 方式观察到的 Start 只返回 `Recovered`，绝不再次调用外部 Adapter。它可能表示数据库 ACK 丢失，也可能表示另一个 Executor，因此不是新的 Dispatch Authority。
+
+### 面向 Ordered Coordinator 的分阶段 Tool 执行
+
+普通集成应调用 `execute_tool`。可信、有界 Coordinator 可以把同一个操作拆成三步：
+
+1. `start_tool_attempt` 返回 `ToolAttemptStartOutcome`；只有 `Started` 携带新的 Dispatch
+   Authority，`Recovered` 明确禁止 Provider I/O。
+2. `dispatch_started_tool` 消费 `ToolDispatchHandoff`，精确执行一次 Provider Call，返回
+   保留 Payload 的 `ToolTerminalCommitHandoff`，但不写 Terminal Journal Fact。
+3. `commit_tool_terminal` 消费 Terminal Evidence，且不再执行 Provider I/O。
+
+这个拆分允许 Coordinator 串行提交 Start、重叠 Policy-safe Read-only Call，再按语义顺序
+串行提交 Terminal；它不授权 Parallel Write。Coordinator 必须限制 Retained Payload 数量，
+Commit 或显式保留每一个 Terminal Handoff，在 Owner 取消时 Abort Child Task，并按照普通
+Terminal Recovery Evidence 的规则对这些不可序列化值进行脱敏。丢弃 Dispatch Handoff 会
+留下可观察的 `Executing` Ledger Revision，绝不会静默授予未来调用方重新 Dispatch 的权限。
 
 ## Streaming 合约
 

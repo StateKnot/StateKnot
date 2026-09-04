@@ -249,14 +249,15 @@ commit.
 
 ## Qualification evidence and remaining gates
 
-Twenty-nine runtime integration scenarios run against both PostgreSQL 16 and
+Thirty-two runtime integration scenarios run against both PostgreSQL 16 and
 17. They cover lifecycle success/Wait/failure/cancellation atomicity and exact
 lost-ack replay, database-time Wait materialization, Agent Loop success and
 evidence failure, tenant and weighted cross-tenant scheduling, durable
 model/tool attempts and streaming, provider-native multi-turn recovery,
-noninitial replay, same-fence suppression, lease renewal, near-expiry refresh,
-initial-state quarantine, higher-fence takeover, and the public durable
-run/result facade. The PostgreSQL provider suite also runs independently for
+ordered parallel read-only Tools and write barriers, noninitial replay,
+same-fence suppression, lease renewal, near-expiry refresh, initial-state
+quarantine, canonical sibling overlap, higher-fence takeover, and the public
+durable run/result facade. The PostgreSQL provider suite also runs independently for
 each database version. CI makes both suites mandatory.
 
 Atomic admission, the public run/result facade, and the provider-native graph
@@ -264,8 +265,7 @@ with transcript recovery, policy evidence, exact accounting, and cancellation
 confirmation are implemented. AgentService v1 now supplies the embedding
 cancellation ingress, and one strict MCP client-side Remote Tool binding exists.
 The remaining release blockers include stable network transport, general
-artifact lifecycle/public delivery, parallel sibling policy, loop/subgraph
-semantics, live-peer protocol qualification,
+artifact lifecycle/public delivery, loop/subgraph semantics, live-peer protocol qualification,
 protocol-specific outbox dispatch, role-separated database procedures, general
 retention, backup/restore, failover, stale-race qualification, observability,
 and release hardening.

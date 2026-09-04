@@ -32,14 +32,15 @@ The v1 graph currently accepts exactly this subset:
 - model-native JSON Schema output;
 - at most the descriptor's finite `max_model_turns`;
 - at most the descriptor's finite `max_tool_calls_per_turn`;
-- sequential tool execution in provider proposal order;
+- either sequential Tool execution or bounded parallel execution for
+  descriptor-declared read-only Tools, while every write remains serialized;
 - zero output-repair turns; and
 - compact checkpoint references capped at 4,096 model/tool invocation IDs.
 
 `ProviderNativeAgentGraph::compile` rejects tool-call-emulated final output,
-repair turns, parallel tool dispatch, oversized call limits, and a composition
-that cannot fit the durable superstep range. These cases do not silently fall
-back to weaker behavior.
+repair turns, oversized call limits, invalid concurrency bounds, and a
+composition that cannot fit the durable superstep range. These cases do not
+silently fall back to weaker behavior.
 
 The generated graph has two stable executable nodes:
 
@@ -48,7 +49,8 @@ The generated graph has two stable executable nodes:
    either produces the final model-native output or commits a route to tools.
 2. `agent.tools` resolves each proposed tool against the admitted descriptor,
    validates arguments, evaluates the pinned policy, and executes or recovers
-   tools sequentially before returning to `agent.model`.
+   Tools through the configured ordered pipeline before returning to
+   `agent.model`.
 
 The checkpoint stores only the composition digest, stable input-message ID,
 bounded invocation references, and the next phase. Provider responses, tool
@@ -109,6 +111,45 @@ a genuinely free invocation. Return `Unpriced` when the exact price is not
 known; StateKnot preserves the usage evidence and stops before another call
 when a finite monetary budget cannot be evaluated. Missing price data is never
 converted to zero cost.
+
+## Ordered parallel Tool waves
+
+`AgentToolConcurrency::sequential()` retains one-at-a-time execution.
+`parallel_read_only(max_concurrency)` partitions one model response into
+maximal contiguous read-only waves, splitting each wave at the finite bound.
+Risk is taken from the immutable admitted `ToolDescriptor`, never from model
+output or provider annotations. Every idempotent or non-idempotent write is a
+singleton barrier: all earlier reads settle before it starts, and later reads
+do not start until it commits a terminal fact.
+
+```rust,ignore
+let execution = AgentExecutionConfig::new(
+    AgentStructuredOutputStrategy::ModelNative,
+    max_model_turns,
+    ExecutionCount::ZERO,
+    max_tool_calls_per_turn,
+    AgentToolConcurrency::parallel_read_only(ExecutionCount::new(8)),
+)?;
+```
+
+Choose the bound from provider quotas, connection-pool capacity, and the
+largest admitted response; do not copy the example value without load evidence.
+
+For each read-only wave, StateKnot validates policy and arguments, prepares
+logical invocations, and commits physical starts serially in provider proposal
+order. Only then may the external provider calls overlap. Their terminal
+evidence is retained in memory and committed serially in the original proposal
+order, so task timing cannot change Journal or model Transcript semantics. If a
+later launch fails, every already-started call is still drained through that
+ordered terminal path before the launch error is returned. Cancellation drops
+no detached provider task: child calls are aborted with their owning Graph
+node, while the durable starts remain visible for fenced supervision.
+
+This mode parallelizes only provider I/O. It does not weaken durable start
+authority, Tool ambiguity, schema validation, budget accounting, or
+no-redispatch recovery. A process crash after a start but before terminal
+persistence remains fail-closed: StateKnot never guesses a lost read result or
+blindly repeats a write.
 
 ## Durable dispatch and recovery
 
@@ -211,6 +252,9 @@ PostgreSQL 16 and 17. Focused scenarios cover:
 - a higher-fence stale policy race with no duplicate external dispatch;
 - a known failed tool retained in transcript order with its exact terminal
   binding;
+- two read-only calls that overlap physically and complete out of order, while
+  a following write forms a barrier and the next model turn observes the exact
+  original proposal order;
 - an unknown tool outcome that returns `Pending`, is durably delayed, resolves
   under a later lease, continues the next model turn, and performs exactly one
   business call across two reconciliation probes;
@@ -231,8 +275,8 @@ silently skipping the suite.
 
 ## Explicit remaining gates
 
-This milestone does not ship parallel sibling/tool execution, output repair,
-loop/subgraph semantics, general artifact lifecycle/public delivery, stable network Agent/cancellation
+This milestone does not ship parallel writes, output repair, loop/subgraph
+semantics, general artifact lifecycle/public delivery, stable network Agent/cancellation
 transport, protocol-specific outbox dispatch, MCP/A2A server composition,
 broader protocol extensions, A2A live-peer reconciliation qualification,
 live-provider drift cassettes, role-separated database procedures, general

@@ -33,7 +33,7 @@ const capabilities = [
     state: "Implemented",
     className: "status-implemented",
     title: "Durable Graph Driver",
-    body: "Offline executable schema/reducer/node closure, full checkpoint-state and bounded noninitial replay validation, durable-before-dispatch execution, near-expiry lease refresh, monotonic renewal, durable cancellation polling, Continue barriers, and typed lifecycle handoffs.",
+    body: "Offline executable schema/reducer/node closure, full checkpoint-state and bounded noninitial replay validation, durable-before-dispatch execution, canonical journal-isolated sibling batches, near-expiry lease refresh, monotonic renewal, durable cancellation polling, Continue barriers, and typed lifecycle handoffs.",
   },
   {
     state: "Implemented",
@@ -63,7 +63,7 @@ const capabilities = [
     state: "Implemented",
     className: "status-implemented",
     title: "Provider-native Agent graph",
-    body: "A digest-pinned prebuilt multi-turn model/tool graph with sequential tools, provider-native transcript recovery, local policy evidence, exact accounting, automatic Unknown-to-Pending reconciliation without repeating the business call, and two-phase cancellation confirmation.",
+    body: "A digest-pinned prebuilt multi-turn model/tool graph with sequential or bounded parallel read-only Tools, serialized write barriers, provider-native transcript recovery, local policy evidence, exact accounting, automatic Unknown-to-Pending reconciliation without repeating the business call, and two-phase cancellation confirmation.",
   },
   {
     state: "Implemented",
@@ -117,7 +117,7 @@ const capabilities = [
     state: "Active work",
     className: "status-active",
     title: "Advanced execution and service boundary",
-    body: "Parallel sibling/tool ordering, output repair, loop/subgraph semantics, stable network transport, and protocol-specific outbox dispatch remain active work.",
+    body: "Output repair, loop/subgraph semantics, stable network transport, protocol-specific outbox dispatch, and broader production qualification remain active work.",
   },
   {
     state: "Not shipped",
@@ -178,18 +178,21 @@ const capabilities = [
   <section aria-labelledby="next-proof-title">
     <h2 id="next-proof-title">The next proof boundary</h2>
     <p>
-      The strict MCP binding retains end-to-end PostgreSQL recovery evidence.
-      The separate general Tool client and OAuth provider now pass all 32 frozen
-      scored client scenarios, including all 25 OAuth scenarios: 373 scored
-      assertions succeed and none fail. The Server profile passes all 37 scored
-      Server scenarios with 114 successes, five skips, one Info, and zero
-      failures or warnings. The A2A 1.0 Server gate adds 177 official TCK
-      passes, 88 declared skips, and zero failures/errors/xfails. The durable
-      A2A Client now adds an eleven-operation, dual-binding loopback matrix and
-      real PostgreSQL durable-before-dispatch/Unknown/no-redispatch evidence,
-      plus bounded operator-attested context/history and message-ID recovery.
-      Durable terminal-task recovery now polls both bindings directly without a
-      business resend; migration 17→18, immutable registry, conditional object
+      The 32-case Runtime matrix now proves real overlap with canonical sibling
+      commits, higher-fence orphan takeover, ordered read-only Tool waves, and
+      serialized write barriers on PostgreSQL 16 and 17. The strict MCP binding
+      retains end-to-end PostgreSQL recovery evidence. The separate general Tool
+      client and OAuth provider now pass all 32 frozen scored client scenarios,
+      including all 25 OAuth scenarios: 373 scored assertions succeed and none
+      fail. The Server profile passes all 37 scored Server scenarios with 114
+      successes, five skips, one Info, and zero failures or warnings. The A2A
+      1.0 Server gate adds 177 official TCK passes, 88 declared skips, and zero
+      failures/errors/xfails. The durable A2A Client now adds an
+      eleven-operation, dual-binding loopback matrix and real PostgreSQL
+      durable-before-dispatch/Unknown/no-redispatch evidence, plus bounded
+      operator-attested context/history and message-ID recovery. Durable
+      terminal-task recovery now polls both bindings directly without a business
+      resend; migration 17→18, immutable registry, conditional object
       publication, multipart ingestion, authorization-first reads, and full
       digest verification all have executable PostgreSQL and object-store
       evidence. Official Client/live-peer and recovery-attestation

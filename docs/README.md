@@ -27,8 +27,9 @@ conformance output, and the release gates in these documents.
    durability slice, deployment boundary, validation, and explicit blockers.
 8. [Durable Graph runtime](durable-graph-runtime.md) — production integration
    contract for executable registration, noninitial replay, fenced driving,
-   lifecycle handoffs, and crash recovery. A [Simplified Chinese edition](durable-graph-runtime.zh-CN.md)
-   is maintained alongside it.
+   canonical bounded sibling batches, lifecycle handoffs, and crash recovery.
+   A [Simplified Chinese edition](durable-graph-runtime.zh-CN.md) is maintained
+   alongside it.
 9. [Durable Agent Loop and tenant scheduler](durable-agent-loop.md) — production
    integration contract for trusted lifecycle evidence, atomic Wait/Terminal/
    failure commits, lost-ack recovery, and tenant-scoped scheduling. A
@@ -36,7 +37,8 @@ conformance output, and the release gates in these documents.
    alongside it.
 10. [Durable model and tool invocation execution](durable-invocation-executor.md)
     — exact provider registration, trusted budget admission,
-    durable-before-dispatch calls, streaming, ambiguity, and terminal recovery.
+    durable-before-dispatch calls, staged ordered Tool coordination, streaming,
+    ambiguity, and terminal recovery.
     A [Simplified Chinese edition](durable-invocation-executor.zh-CN.md) is
     maintained alongside it.
 11. [Typed Agent and first-party model adapters](typed-agent.md) — generated
@@ -55,10 +57,10 @@ conformance output, and the release gates in these documents.
     [Simplified Chinese edition](cross-tenant-fair-scheduler.zh-CN.md) is
     maintained alongside it.
 14. [Provider-native Agent graph](provider-native-agent.md) — digest-pinned
-    model/tool composition, sequential transcript recovery, local policy,
-    exact accounting, two-phase cancellation, operations, and PostgreSQL
-    evidence. A [Simplified Chinese edition](provider-native-agent.zh-CN.md) is
-    maintained alongside it.
+    model/tool composition, bounded parallel read-only waves with serialized
+    writes, ordered transcript recovery, local policy, exact accounting,
+    two-phase cancellation, operations, and PostgreSQL evidence. A [Simplified
+    Chinese edition](provider-native-agent.zh-CN.md) is maintained alongside it.
 15. [General stateless MCP Tool client](mcp-client.md) — bounded dynamic Tool
     discovery/calls, JSON and request-scoped SSE, custom headers, MRTR, security
     boundaries, OAuth challenge integration, and pinned official conformance

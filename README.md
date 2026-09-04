@@ -142,7 +142,10 @@ advances Continue barriers, and returns typed lease-bound handoffs for
 Wait/Terminal or blocked failure supervision. Root-to-terminal continuation,
 same-fence duplicate suppression, near-expiry launch protection, higher-fence
 crash takeover, and execution beyond the original lease pass on PostgreSQL 16
-and 17.
+and 17. Explicitly trusted `JournalIsolated` siblings can now overlap beneath a
+finite process/graph limit: starts and completions remain canonical
+`NodeId`-ordered facts, exclusive executors run alone, and higher-fence orphan
+takeover preserves the same ordering.
 The same runtime now includes a fenced lifecycle coordinator, a bounded durable
 Agent Loop, and a tenant-scoped scheduler worker. Wait barriers materialize
 their complete interrupt/timer batch with database time; successful Terminal
@@ -160,7 +163,7 @@ and no-dispatch terminal recovery.
 Migration 14 and `DurableFairScheduler` add an immutable shard-scoped smooth
 weighted policy, globally ordered lost-ACK-safe reservations, exact cycle
 shares, explicit reservation-count starvation bounds, and bounded
-database-time retention. Twenty-nine runtime scenarios and 104 provider cases are
+database-time retention. Thirty-two runtime scenarios and 104 provider cases are
 mandatory on both PostgreSQL 16 and 17.
 The repository now also includes a schema-pinned typed Agent contract plus
 first-party OpenAI Responses and Anthropic Messages unary/SSE adapters with
@@ -173,11 +176,12 @@ input, policy, graph, state, or identities fail closed.
 Migration 16 and `DurableAgentRuns` add tenant-scoped durable ingress keys,
 fresh-ID lost-ACK convergence, changed-content conflicts, fully revalidated
 public run snapshots, and terminal success/failure/cancellation results.
-The prebuilt `ProviderNativeAgentGraph` now composes sequential multi-turn
-model/tool execution, provider-native transcript reconstruction, digest-pinned
-local policy, exact deterministic accounting, no-redispatch recovery, known
-failed-Tool continuation, and two-phase cancellation confirmation over those
-durable layers. Migration 17 binds pending Tool results to their exact
+The prebuilt `ProviderNativeAgentGraph` now composes sequential or bounded
+parallel read-only multi-turn model/tool execution, serialized write barriers,
+provider-native transcript reconstruction, digest-pinned local policy, exact
+deterministic accounting, no-redispatch recovery, known failed-Tool
+continuation, and two-phase cancellation confirmation over those durable
+layers. Migration 17 binds pending Tool results to their exact
 `committed` or `failed` terminal revision instead of fabricating success.
 `AgentServiceV1` now adds an exact-version, authorization-first embedding
 boundary for tenant-scoped submission recovery, verified run/key reads, and
@@ -259,8 +263,7 @@ fenced, atomic, and exactly idempotent on PostgreSQL 16 and 17. The runtime
 PostgreSQL suite separately proves the authoritative error branch.
 Stable network Agent/cancellation transport, production protocol-specific
 outbox dispatch adapters, A2A Client live-peer/conformance and reconciliation
-attestation qualification, A2A gRPC, parallel
-siblings/Tools, output repair, loops/subgraphs, role isolation, general
+attestation qualification, A2A gRPC, output repair, loops/subgraphs, role isolation, general
 retention, failover, restore, and the final stale-race gates have not shipped
 yet.
 

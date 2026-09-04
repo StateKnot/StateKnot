@@ -163,6 +163,31 @@ match executor.reconcile_tool(probe).await? {
     </p>
   </section>
 
+  <section aria-labelledby="staged-tool-title">
+    <h2 id="staged-tool-title">
+      Stage Tool I/O when order must outlive timing
+    </h2>
+    <p>
+      Ordinary callers use <code>execute_tool</code>. A trusted bounded
+      coordinator can call <code>start_tool_attempt</code>, consume only a fresh <code
+        >ToolDispatchHandoff</code
+      > through <code>dispatch_started_tool</code>, and later pass the retained <code
+        >ToolTerminalCommitHandoff</code
+      > to <code>commit_tool_terminal</code>. Duplicate starts return <code
+        >Recovered</code
+      >
+      and forbid provider I/O.
+    </p>
+    <p>
+      This three-stage path lets read-only provider calls overlap while starts
+      and terminal facts remain serial and semantic. It does not authorize
+      parallel writes. The coordinator must bound retained payloads, settle
+      every started call, and abort child tasks with its owner; dropping a
+      dispatch handoff leaves visible <code>Executing</code> evidence, never implicit
+      redispatch authority.
+    </p>
+  </section>
+
   <section aria-labelledby="streaming-title">
     <h2 id="streaming-title">Streaming requires a durable sink</h2>
     <p>

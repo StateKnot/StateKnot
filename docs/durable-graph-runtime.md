@@ -180,6 +180,10 @@ Tune `DurableGraphDriverOptions` from measured workload bounds:
   barrier. The default is 64 MiB and the hard ceiling is 512 MiB.
 - `maximum_durable_events` bounds one `drive` quantum. Yielding happens only
   between durable operations; the default is 1,024.
+- `maximum_parallel_nodes` is the process-local ready-node ceiling. It defaults
+  to one, must be explicitly enabled, and has a hard ceiling of 64. The
+  effective width can never exceed the compiled graph's own parallelism limit,
+  the ready set, or the remaining start/completion pairs in the event quantum.
 - `lease_renewal_interval` must fit at least three times inside the provider's
   lease duration and must not exceed its maximum renewal horizon.
 - `node_execution_timeout` is a hard wall-clock deadline; the default is 15
@@ -202,6 +206,31 @@ tool, and model request deadlines below the node deadline. Monitor replay counts
 retained replay bytes, starts, completions, barriers, renewals, and mutation
 retries from `GraphDriveReport`.
 
+## Deterministic parallel sibling contract
+
+`GraphNodeExecutor::scheduling` defaults to `GraphNodeScheduling::Exclusive`,
+so existing executors retain serial behavior. A binding may return
+`JournalIsolated` only when its `execute` implementation appends no run-scoped
+journal or invocation-ledger records and its semantic result is independent of
+sibling start and completion timing. This is a trusted deployment contract,
+not a performance hint. External work requiring durable invocation evidence
+belongs in a purpose-built ordered coordinator, such as the provider-native
+Tool pipeline, rather than in a journal-isolated sibling.
+
+When parallelism is enabled with `with_parallel_node_limit`, the Driver takes a
+canonical `NodeId`-ordered prefix of eligible siblings. It serializes every
+physical start in that same order before spawning any executor, runs the batch
+under one fenced lease/cancellation watchdog, buffers out-of-order task
+completion, and serializes terminal commits back in canonical order. An
+exclusive executor is a batch boundary. Panics and deadlines become
+public-safe node failures; process shutdown or durable cancellation signals the
+entire batch and leaves any uncommitted durable starts for supervised
+higher-fence recovery.
+
+Monitor `GraphDriveReport::node_batches_started` and
+`maximum_nodes_in_batch` alongside attempt and renewal counters. A configured
+limit above one does not make an executor eligible by itself.
+
 ## Recovery and safety invariants
 
 - A node start is durable before code runs.
@@ -213,13 +242,12 @@ retries from `GraphDriveReport`.
 - Missing or contradictory durable graph evidence is quarantined under the
   current live fence before execution.
 - Continue is the only lifecycle barrier the Driver commits autonomously.
-- Ready siblings execute sequentially in stable plan order today. This preserves
-  one unambiguous journal predecessor and recovery authority; bounded parallel
-  sibling scheduling is not enabled until its ordering policy is qualified.
+- Eligible ready siblings may overlap, but their starts and completions remain
+  canonical `NodeId`-ordered journal facts. Exclusive nodes still run alone.
 
 ## Qualification evidence and remaining gates
 
-Twenty-nine runtime scenarios run against both PostgreSQL 16 and 17. Six retain the
+Thirty-two runtime scenarios run against both PostgreSQL 16 and 17. Eight retain the
 Driver-specific recovery coverage:
 
 1. Continue-barrier commit followed by noninitial replay and a Terminal handoff;
@@ -227,15 +255,20 @@ Driver-specific recovery coverage:
 3. lease renewal through execution longer than the original lease;
 4. near-expiry claim refresh before node code is launched;
 5. invalid initial checkpoint state quarantined before any executor call; and
-6. one higher-fence takeover of an unfinished physical attempt.
+6. one higher-fence takeover of an unfinished physical attempt;
+7. three journal-isolated siblings that finish in reverse order while starts
+   and completions remain canonical; and
+8. higher-fence takeover of an orphaned member followed by one overlapping
+   successor batch.
 
 The lifecycle/scheduler coverage verifies atomic successful Terminal, Wait,
 supervised failure, and cancellation handoffs with exact lost-ack retries;
 database-time Wait registration; Agent Loop success and evidence-unavailable
 cleanup; and tenant scheduler selection, claim, execution, and idle
 convergence. Provider-native cases additionally verify multi-turn no-redispatch
-recovery, a stale policy race, known failed Tool continuation, exact-usage
-cancellation, pre-dispatch cancellation, and fail-closed unavailable evidence.
+recovery, a stale policy race, known failed Tool continuation, ordered parallel
+read-only calls with a serialized write barrier, exact-usage cancellation,
+pre-dispatch cancellation, and fail-closed unavailable evidence.
 The PostgreSQL provider suite runs separately for each database version. CI
 treats both external database suites as mandatory and fails when the service is
 unavailable.
@@ -244,8 +277,8 @@ The later typed-Agent milestone now ships the first OpenAI Responses and
 Anthropic Messages adapters; atomic admission, the public durable run/result
 facade, and the prebuilt provider-native graph with policy, exact accounting,
 transcript recovery, and cancellation confirmation are also implemented.
-Public cancellation transport, parallel siblings, loops/subgraphs,
-protocol-specific outbox adapters,
+Public cancellation transport, side-effecting sibling batches,
+loops/subgraphs, protocol-specific outbox adapters,
 role-separated database procedures, retention/archive, failover/restore
 qualification, the 10,000 stale-race gate, and a stable public release have not
 shipped. Those remain release blockers rather than hidden fallback behavior.

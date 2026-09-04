@@ -128,6 +128,9 @@ Model 与 Tool 外部副作用必须通过各自的 Durable Invocation Ledger。
   默认 64 MiB，硬上限 512 MiB。
 - `maximum_durable_events` 限制一次 `drive` 的工作量；只会在 Durable Operation 之间
   Yield，默认 1,024。
+- `maximum_parallel_nodes` 是进程内 Ready Node 并发上限；默认值为 1，必须显式开启，
+  硬上限为 64。实际 Batch Width 还会同时受 Compiled Graph Parallelism、Ready Set 与
+  当前 Event Quantum 剩余 Start/Completion Pair 限制。
 - `lease_renewal_interval` 至少要在 Provider Lease Duration 内容纳三次，并且不能超过
   Maximum Renewal Horizon。
 - `node_execution_timeout` 是 Node 的硬 Wall-clock Deadline；默认 15 分钟，硬上限 7 天。
@@ -145,6 +148,25 @@ Watchdog 会先取消 Node。
 必须小于 Node Deadline。生产监控应采集 `GraphDriveReport` 的 Replay Checkpoint/Barrier/
 Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Retry 计数。
 
+## 确定性 Parallel Sibling 合约
+
+`GraphNodeExecutor::scheduling` 默认返回 `GraphNodeScheduling::Exclusive`，因此已有
+Executor 继续串行执行。只有当 `execute` 不追加 Run-scoped Journal/Invocation Ledger，
+并且语义结果不依赖 Sibling Start/Completion Timing 时，Binding 才能返回
+`JournalIsolated`。这是可信 Deployment Contract，不是性能 Hint。需要耐久 Invocation
+Evidence 的外部工作必须使用专门的 Ordered Coordinator，例如 Provider-native Tool
+Pipeline，不能伪装成 Journal-isolated Sibling。
+
+通过 `with_parallel_node_limit` 开启后，Driver 会从 Canonical `NodeId` 顺序中选取一个
+Eligible Prefix。它先按相同顺序串行提交全部 Physical Start，再启动任何 Executor；整个
+Batch 共用同一套 Fenced Lease/Cancellation Watchdog。任务即使乱序完成，Terminal Commit
+也会缓冲并恢复成 Canonical 顺序；Exclusive Executor 会形成 Batch Boundary。Panic 与
+Deadline 会转成 Public-safe Node Failure；Process Shutdown 或 Durable Cancellation 会向
+整个 Batch 发送信号，尚未提交结果的 Durable Start 留给受监督的 Higher-fence Recovery。
+
+生产环境还应监控 `GraphDriveReport::node_batches_started` 与
+`maximum_nodes_in_batch`。仅仅把配置值设为大于 1，不会自动赋予 Executor 并发资格。
+
 ## 恢复与安全不变量
 
 - Node Start 一定先于代码执行持久化。
@@ -155,32 +177,35 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
   Result Set 与 Checkpoint Parentage。
 - Durable Graph 证据缺失或矛盾时，当前 Live Fence 必须先把 Run Quarantine，再允许返回。
 - Driver 只会自主提交 Continue；Wait 与 Terminal 必须经过生命周期集成层。
-- 当前同一 Run 的 Ready Sibling 按稳定 Plan 顺序串行执行，以保持唯一 Journal Predecessor
-  和恢复授权。并行 Sibling 需要独立的有界排序与 Admission Policy，通过验证前不会打开。
+- Eligible Ready Sibling 可以重叠执行，但 Start 与 Completion 仍是按 Canonical `NodeId`
+  排序的 Journal Fact；Exclusive Node 始终单独执行。
 
 ## 已验证证据与剩余门禁
 
-二十九个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中六个保留 Driver 专属恢复覆盖：
+三十二个 Runtime 场景会在 PostgreSQL 16 与 17 独立运行，其中八个保留 Driver 专属恢复覆盖：
 
 1. Continue Barrier 提交后执行 Noninitial Replay，并交出 Terminal Handoff；
 2. Same-fence In-flight 恢复不重复调用 Executor；
 3. Node 执行超过原始 Lease 后仍通过续租完成；
 4. 临近过期的 Claim 会在 Node 代码启动前刷新；
 5. 非法初始 Checkpoint State 会在任何 Executor 调用前被 Quarantine；
-6. 更高 Fence 对未完成 Physical Attempt 只接管一次。
+6. 更高 Fence 对未完成 Physical Attempt 只接管一次；
+7. 三个 Journal-isolated Sibling 反向完成，但 Start/Completion 仍保持 Canonical 顺序；
+8. Higher Fence 接管一个 Orphaned Sibling 后，以一个重叠 Successor Batch 完成。
 
 Lifecycle/Scheduler 覆盖会验证 Success Terminal、Wait、受监督 Failure 与 Cancellation
 Handoff 的原子提交和精确 Lost-ACK Retry、数据库时间 Wait Registration、Agent Loop 成功与
 Evidence-unavailable Cleanup，以及 Tenant Scheduler 的选择、Claim、执行和 Idle 收敛。
 Provider-native 场景还验证多轮 No-redispatch Recovery、Stale Policy Race、已知失败 Tool
-Continuation、Exact-usage Cancellation、Pre-dispatch Cancellation 与 Evidence Unavailable
-时的 Fail-closed 行为。PostgreSQL Provider Suite 会在每个数据库版本上独立运行。CI 把两套
+Continuation、有序 Parallel Read-only Call 与串行 Write Barrier、Exact-usage Cancellation、
+Pre-dispatch Cancellation 与 Evidence Unavailable 时的 Fail-closed 行为。PostgreSQL
+Provider Suite 会在每个数据库版本上独立运行。CI 把两套
 外部数据库测试都设为 Mandatory；数据库服务缺失时必须失败，不能静默跳过。
 
 后续 Typed Agent 里程碑已经提供第一批 OpenAI Responses 与 Anthropic Messages Adapter；
 原子 Admission、公开耐久 Run/Result Facade，以及带 Policy、精确 Accounting、Transcript
 Recovery 与 Cancellation Confirmation 的预置 Provider-native Graph 也已经实现。仍未完成的
-包括 Public Cancellation Transport、Parallel Sibling、
-Loop/Subgraph、协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
+包括 Public Cancellation Transport、Side-effecting Sibling Batch、Loop/Subgraph、
+协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、
 Failover/Restore 验证、10,000 次 Stale-race 门禁或稳定公共发行。这些都是明确 Release
 Blocker，不会用隐藏的降级逻辑替代。

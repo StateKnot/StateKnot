@@ -16,11 +16,19 @@ const compileCode = `let definition = ProviderNativeAgentGraph::compile(
 
 definition.register_schema(&mut schemas)?;
 register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
+
+const parallelToolCode = `let execution = AgentExecutionConfig::new(
+    AgentStructuredOutputStrategy::ModelNative,
+    max_model_turns,
+    ExecutionCount::ZERO,
+    max_tool_calls_per_turn,
+    AgentToolConcurrency::parallel_read_only(ExecutionCount::new(8)),
+)?;`;
 ---
 
 <DocsLayout
   title="运行 Provider-native Model/Tool Graph。"
-  description="编译一套 Digest-pinned Agent 组合，从耐久证据执行串行 Model/Tool Turn，并在不伪造 Usage 的前提下确认 Cancellation。"
+  description="编译一套 Digest-pinned Agent 组合，从耐久证据执行有序、有界并行的 Model/Tool Turn，并在不伪造 Usage 的前提下确认 Cancellation。"
   section="Provider-native Agent"
   locale="zh-CN"
 >
@@ -32,8 +40,9 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
     <p>
       预置 Graph、本地 Policy 边界、精确 Invocation Accounting、多轮 Transcript
       Assembly、耐久 Cancellation Observation 与 Lifecycle Confirmation
-      已实现。Crate 尚未发布；Parallel Tool 与 Output Repair 尚未交付。<a
-        href="/zh/docs/agent-service/">AgentService v1</a
+      已实现。Crate 尚未发布；有界 Read-only Tool 并发已经实现，Parallel Write
+      与 Output Repair 尚未交付。<a href="/zh/docs/agent-service/"
+        >AgentService v1</a
       > 已通过嵌入式边界暴露该 Definition，<a href="/zh/docs/mcp-remote-tool/"
         >严格 MCP Remote Tool Profile</a
       > 与 <a href="/zh/docs/a2a-client/">A2A Remote Agent Profile</a> 已提供 Client-side
@@ -148,6 +157,45 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
     </p>
   </section>
 
+  <section aria-labelledby="provider-native-parallel-title">
+    <h2 id="provider-native-parallel-title">
+      并行 Read，让每个 Write 成为 Barrier
+    </h2>
+    <p>
+      <code>parallel_read_only</code> 只把不可变 Descriptor Risk 为 <code
+        >ReadOnly</code
+      > 的连续 Tool 按配置上限分组。Policy、Arguments、Prepare 与 Physical Start 仍按
+      Provider Proposal 顺序串行；只有 Provider I/O 会重叠。Terminal Evidence 会先缓冲，
+      再按相同顺序提交，因此完成时序无法重排 Journal 或下一轮 Model Transcript。
+    </p>
+    <p>
+      每个 Write 必须等前面的 Read 全部落盘后单独执行，后面的 Read 也必须等待其
+      Terminal Fact。Cancellation 会 Abort Child Provider Task，不会将其
+      Detach；已提交 Start 仍由 Fenced Recovery 观察。并发值必须依据真实
+      Provider Quota 与 Connection Capacity 设置。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 有界 Read-only Tool I/O</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-provider-native-parallel-code"
+          data-copy-idle="复制"
+          data-copy-loading="复制中"
+          data-copy-success="已复制"
+          data-copy-error="复制失败"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-provider-native-parallel-code"
+        tabindex="0"><code>{parallelToolCode}</code></pre>
+    </div>
+  </section>
+
   <section aria-labelledby="provider-native-cancel-title">
     <h2 id="provider-native-cancel-title">把 Cancellation 视为两条耐久事实</h2>
     <dl class="docs-definition-list">
@@ -212,8 +260,9 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
     <p>
       Focused Case 在两个受支持 PostgreSQL Major 上覆盖：多轮 Recovery 不重复
       Model Dispatch、Stale-fence Policy Race、已知失败 Tool、一次 Business Call
-      的 Unknown → Pending → Committed Reconciliation、精确 Usage Cancellation、
-      Pre-dispatch Cancellation，以及 Evidence-unavailable 的 Fail-closed 行为。
+      的 Unknown → Pending → Committed Reconciliation、有界 Read-only Overlap
+      与有序 Write Barrier、精确 Usage Cancellation、 Pre-dispatch
+      Cancellation，以及 Evidence-unavailable 的 Fail-closed 行为。
     </p>
   </section>
 
@@ -221,8 +270,9 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
     <h2 id="provider-native-boundary-title">保持 Release Boundary 可见</h2>
     <ul>
       <li>
-        已实现串行 Tool Execution；尚未实现 Parallel Tool 与 Graph Sibling
-        Ordering。
+        已实现串行与有界 Parallel Read-only Tool；所有 Write
+        有意保持串行。显式可信 Executor Contract 下的 Journal-isolated Graph
+        Sibling Ordering 也已实现。
       </li>
       <li>
         已实现 Model-native Structured Output；Output Repair 与

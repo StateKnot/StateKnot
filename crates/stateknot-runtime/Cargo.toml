@@ -19,6 +19,7 @@ publish = false
 
 [dependencies]
 futures-core.workspace = true
+futures-util.workspace = true
 jsonschema.workspace = true
 schemars.workspace = true
 serde.workspace = true

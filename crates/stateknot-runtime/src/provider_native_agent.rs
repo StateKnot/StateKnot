@@ -42,9 +42,10 @@ use crate::{
     GraphNodeContext, GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor,
     GraphTerminalEvidence, GraphTerminalEvidenceContext, InvocationAttemptEventIds,
     JsonSchemaRegistry, JsonSchemaRegistryBuilder, JsonSchemaRegistryError, ModelAttemptHandoff,
-    ModelAttemptOutcome, ToolAttemptHandoff, ToolAttemptOutcome,
+    ModelAttemptOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptStartOutcome,
     ToolReconciliationAttemptExecutionError, ToolReconciliationAttemptHandoff,
-    ToolReconciliationAttemptOutcome, standard_invocation_execution_event_schema,
+    ToolReconciliationAttemptOutcome, ToolTerminalCommitHandoff,
+    standard_invocation_execution_event_schema,
 };
 
 const IMPLEMENTATION_VERSION: &str = "stateknot.provider-native-agent.v1";
@@ -52,7 +53,7 @@ const MAX_CHECKPOINT_INVOCATION_REFERENCES: u64 = 4096;
 
 /// Stable model node identifier used by every v1 provider-native graph.
 pub const PROVIDER_NATIVE_MODEL_NODE_ID: &str = "agent.model";
-/// Stable sequential tool node identifier used by every v1 provider-native graph.
+/// Stable ordered tool node identifier used by every v1 provider-native graph.
 pub const PROVIDER_NATIVE_TOOLS_NODE_ID: &str = "agent.tools";
 /// Conditional route selected when a committed response proposes tools.
 pub const PROVIDER_NATIVE_TOOLS_ROUTE_ID: &str = "tools";
@@ -437,7 +438,7 @@ pub enum ProviderNativeAgentPhase {
     Tools {
         /// Committed tool-calling model invocation.
         model_invocation_id: InvocationId,
-        /// Exact sequential tool plans in provider order.
+        /// Exact ordered tool plans in provider proposal order.
         plans: Vec<ProviderNativeToolPlan>,
     },
 }
@@ -500,10 +501,10 @@ impl ProviderNativeAgentGraph {
 
     /// Compiles the supported v1 provider-native execution subset.
     ///
-    /// V1 deliberately rejects tool-call emulated final output, repair turns,
-    /// and parallel dispatch. This is a fail-closed compatibility boundary:
-    /// unsupported semantics are never silently downgraded to sequential or
-    /// best-effort behavior.
+    /// V1 deliberately rejects tool-call emulated final output and repair
+    /// turns. Sequential Tools and bounded parallel read-only Tools are
+    /// supported without allowing writes or completion timing to reorder the
+    /// durable transcript.
     pub fn compile(
         descriptor: AgentDescriptor,
         graph_identity: CapabilityIdentity,
@@ -981,9 +982,6 @@ pub enum ProviderNativeAgentGraphBuildError {
     /// Output repair is not yet a safe v1 graph transition.
     #[error("provider-native agent graph v1 requires zero output-repair turns")]
     OutputRepairUnsupported,
-    /// Parallel tool dispatch requires a separate durable start batch.
-    #[error("provider-native agent graph v1 requires sequential tool execution")]
-    ParallelToolsUnsupported,
     /// One tool node cannot bind more than 256 terminal invocation revisions.
     #[error("provider-native agent graph allows at most 256 tool calls per turn")]
     ToolCallsPerTurnLimit,
@@ -1481,6 +1479,7 @@ impl GraphNodeExecutor for ProviderNativeToolsNode {
 }
 
 impl ProviderNativeToolsNode {
+    #[allow(clippy::too_many_lines)]
     async fn execute_tools(
         &self,
         context: GraphNodeContext,
@@ -1491,35 +1490,79 @@ impl ProviderNativeToolsNode {
         let mut outcomes = Vec::with_capacity(observation.plans.len());
         let mut bindings = Vec::with_capacity(observation.plans.len());
         let mut usage = BudgetUsage::zero();
-        for (index, (proposal, plan)) in observation
+        let proposals = observation
             .response
             .tool_calls()
-            .zip(&observation.plans)
-            .enumerate()
-        {
-            let step = self
-                .execute_tool_plan(
+            .cloned()
+            .collect::<Vec<_>>();
+        let concurrency = self
+            .shared
+            .definition
+            .descriptor
+            .execution()
+            .tool_concurrency();
+        let mut index = 0_usize;
+        while index < proposals.len() {
+            let parallel_end = match concurrency {
+                AgentToolConcurrency::Sequential {} => index + 1,
+                AgentToolConcurrency::ParallelReadOnly { max_concurrency } => {
+                    let maximum = usize::try_from(max_concurrency.get())
+                        .map_err(|_| ProviderNativeAgentNodeError::Budget)?;
+                    let mut end = index;
+                    while end < proposals.len()
+                        && end.saturating_sub(index) < maximum
+                        && self.proposal_tool_risk(&proposals[end])? == ToolRisk::ReadOnly
+                    {
+                        end = end.saturating_add(1);
+                    }
+                    end.max(index + 1)
+                }
+            };
+            let steps = if parallel_end.saturating_sub(index) > 1 {
+                Box::pin(self.execute_read_only_tool_wave(
                     &context,
                     &observation.stored,
                     observation.model_invocation_id,
-                    head,
+                    head.clone(),
                     index,
-                    proposal,
-                    plan,
-                )
+                    &proposals[index..parallel_end],
+                    &observation.plans[index..parallel_end],
+                ))
                 .await
                 .map_err(|source| {
                     ProviderNativeAgentExecutionError::observed(source, usage.clone())
+                })?
+            } else {
+                vec![
+                    self.execute_tool_plan(
+                        &context,
+                        &observation.stored,
+                        observation.model_invocation_id,
+                        head.clone(),
+                        index,
+                        &proposals[index],
+                        &observation.plans[index],
+                    )
+                    .await
+                    .map_err(|source| {
+                        ProviderNativeAgentExecutionError::observed(source, usage.clone())
+                    })?,
+                ]
+            };
+            for step in steps {
+                usage = usage.checked_accumulate(&step.usage).map_err(|_| {
+                    ProviderNativeAgentExecutionError::observed(
+                        ProviderNativeAgentNodeError::Budget,
+                        usage.clone(),
+                    )
                 })?;
-            usage = usage.checked_accumulate(&step.usage).map_err(|_| {
-                ProviderNativeAgentExecutionError::observed(
-                    ProviderNativeAgentNodeError::Budget,
-                    usage.clone(),
-                )
-            })?;
-            bindings.push(step.binding);
-            head = step.journal_head;
-            outcomes.push(step.outcome);
+                bindings.push(step.binding);
+                head = latest_journal_head(head, step.journal_head).map_err(|source| {
+                    ProviderNativeAgentExecutionError::observed(source, usage.clone())
+                })?;
+                outcomes.push(step.outcome);
+            }
+            index = parallel_end;
         }
         ModelTranscriptTurn::new(observation.response, outcomes).map_err(|_| {
             ProviderNativeAgentExecutionError::observed(
@@ -1637,6 +1680,14 @@ impl ProviderNativeToolsNode {
         let invocation = self
             .dispatch_or_recover_tool(context, plan, invocation)
             .await?;
+        self.completed_tool_step(provider_call_id, &invocation)
+    }
+
+    fn completed_tool_step(
+        &self,
+        provider_call_id: stateknot_core::ModelProviderToolCallId,
+        invocation: &ToolInvocation,
+    ) -> Result<ProviderNativeToolStep, ProviderNativeAgentNodeError> {
         let outcome = match invocation.state() {
             ToolInvocationState::Committed { result } => {
                 ModelToolOutcome::succeeded(provider_call_id, result.clone())
@@ -1650,8 +1701,8 @@ impl ProviderNativeToolsNode {
                 return Err(ProviderNativeAgentNodeError::UncertainInvocation);
             }
         };
-        let usage = tool_usage(&invocation, self.shared.definition.accounting.as_ref())?;
-        let binding = NodeInvocationBinding::from_tool(&invocation)
+        let usage = tool_usage(invocation, self.shared.definition.accounting.as_ref())?;
+        let binding = NodeInvocationBinding::from_tool(invocation)
             .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
         Ok(ProviderNativeToolStep {
             outcome,
@@ -1659,6 +1710,201 @@ impl ProviderNativeToolsNode {
             journal_head: invocation.journal_head().clone(),
             usage,
         })
+    }
+
+    fn proposal_tool_risk(
+        &self,
+        proposal: &ModelToolCallProposal,
+    ) -> Result<ToolRisk, ProviderNativeAgentNodeError> {
+        self.shared
+            .definition
+            .descriptor
+            .tools()
+            .iter()
+            .find(|tool| tool.metadata().identity() == proposal.tool())
+            .map(|tool| tool.semantics().risk())
+            .ok_or(ProviderNativeAgentNodeError::InvalidModelOutput)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn execute_read_only_tool_wave(
+        &self,
+        context: &GraphNodeContext,
+        stored: &stateknot_store_postgres::StoredAgentAdmission,
+        model_invocation_id: InvocationId,
+        mut head: stateknot_core::JournalHead,
+        first_index: usize,
+        proposals: &[ModelToolCallProposal],
+        plans: &[ProviderNativeToolPlan],
+    ) -> Result<Vec<ProviderNativeToolStep>, ProviderNativeAgentNodeError> {
+        if proposals.len() < 2 || proposals.len() != plans.len() {
+            return Err(ProviderNativeAgentNodeError::Integrity);
+        }
+        let mut entries = Vec::with_capacity(proposals.len());
+        let mut launch_error = None;
+        for (offset, (proposal, plan)) in proposals.iter().zip(plans).enumerate() {
+            let index = first_index
+                .checked_add(offset)
+                .ok_or(ProviderNativeAgentNodeError::Budget)?;
+            let prepared = Box::pin(self.launch_read_only_tool(
+                context,
+                stored,
+                model_invocation_id,
+                head.clone(),
+                index,
+                proposal,
+                plan,
+            ))
+            .await;
+            match prepared {
+                Ok((entry, next_head)) => {
+                    entries.push(entry);
+                    head = next_head;
+                }
+                Err(error) => {
+                    launch_error = Some(error);
+                    break;
+                }
+            }
+        }
+
+        let settled = self.settle_read_only_tool_wave(entries).await;
+        if let Some(error) = launch_error {
+            // Every already-started provider call was awaited and offered to
+            // the ordered terminal commit path before the launch error wins.
+            let _ = settled;
+            return Err(error);
+        }
+        settled
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn launch_read_only_tool(
+        &self,
+        context: &GraphNodeContext,
+        stored: &stateknot_store_postgres::StoredAgentAdmission,
+        model_invocation_id: InvocationId,
+        mut head: stateknot_core::JournalHead,
+        index: usize,
+        proposal: &ModelToolCallProposal,
+        plan: &ProviderNativeToolPlan,
+    ) -> Result<
+        (ProviderNativeToolWaveEntry, stateknot_core::JournalHead),
+        ProviderNativeAgentNodeError,
+    > {
+        let (provider_call_id, expected_intent) =
+            self.prepare_tool_intent(context, stored, model_invocation_id, index, proposal, plan)?;
+        if expected_intent.descriptor().semantics().risk() != ToolRisk::ReadOnly {
+            return Err(ProviderNativeAgentNodeError::Integrity);
+        }
+        let invocation = self
+            .load_or_prepare_tool(context, head.clone(), plan, expected_intent)
+            .await?;
+        head = latest_journal_head(head, invocation.journal_head().clone())?;
+        if !matches!(invocation.state(), ToolInvocationState::Prepared) {
+            let invocation = self
+                .dispatch_or_recover_tool(context, plan, invocation)
+                .await?;
+            head = latest_journal_head(head, invocation.journal_head().clone())?;
+            return Ok((
+                ProviderNativeToolWaveEntry::Resolved {
+                    provider_call_id,
+                    invocation: Box::new(invocation),
+                },
+                head,
+            ));
+        }
+        let events = InvocationAttemptEventIds::new(
+            plan.attempt_start_event_id,
+            plan.attempt_terminal_event_id,
+        )
+        .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
+        let handoff = ToolAttemptHandoff::new(
+            context.attempt().fence().clone(),
+            invocation,
+            plan.attempt_id,
+            events,
+            context.cancellation().clone(),
+            None,
+        )
+        .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
+        match self
+            .shared
+            .invocation_executor
+            .start_tool_attempt(handoff)
+            .await
+            .map_err(|_| ProviderNativeAgentNodeError::InvocationExecutor)?
+        {
+            ToolAttemptStartOutcome::Started(dispatch) => {
+                head = latest_journal_head(head, dispatch.invocation().journal_head().clone())?;
+                let executor = self.shared.invocation_executor.clone();
+                Ok((
+                    ProviderNativeToolWaveEntry::Dispatched {
+                        provider_call_id,
+                        task: AbortOnDropToolTask::new(tokio::spawn(async move {
+                            executor.dispatch_started_tool(*dispatch).await
+                        })),
+                    },
+                    head,
+                ))
+            }
+            ToolAttemptStartOutcome::Recovered { invocation } => {
+                let invocation = self
+                    .dispatch_or_recover_tool(context, plan, *invocation)
+                    .await?;
+                head = latest_journal_head(head, invocation.journal_head().clone())?;
+                Ok((
+                    ProviderNativeToolWaveEntry::Resolved {
+                        provider_call_id,
+                        invocation: Box::new(invocation),
+                    },
+                    head,
+                ))
+            }
+        }
+    }
+
+    async fn settle_read_only_tool_wave(
+        &self,
+        entries: Vec<ProviderNativeToolWaveEntry>,
+    ) -> Result<Vec<ProviderNativeToolStep>, ProviderNativeAgentNodeError> {
+        let mut steps = Vec::with_capacity(entries.len());
+        let mut first_error = None;
+        for entry in entries {
+            let result = match entry {
+                ProviderNativeToolWaveEntry::Resolved {
+                    provider_call_id,
+                    invocation,
+                } => self.completed_tool_step(provider_call_id, invocation.as_ref()),
+                ProviderNativeToolWaveEntry::Dispatched {
+                    provider_call_id,
+                    task,
+                } => match task.join().await {
+                    Ok(terminal) => match self
+                        .shared
+                        .invocation_executor
+                        .commit_tool_terminal(terminal)
+                        .await
+                    {
+                        Ok(
+                            ToolAttemptOutcome::Dispatched { invocation, .. }
+                            | ToolAttemptOutcome::Recovered { invocation },
+                        ) => self.completed_tool_step(provider_call_id, &invocation),
+                        Err(_) => Err(ProviderNativeAgentNodeError::InvocationExecutor),
+                    },
+                    Err(_) => Err(ProviderNativeAgentNodeError::InvocationExecutor),
+                },
+            };
+            match result {
+                Ok(step) if first_error.is_none() => steps.push(step),
+                Err(error) if first_error.is_none() => first_error = Some(error),
+                Ok(_) | Err(_) => {}
+            }
+        }
+        if let Some(error) = first_error {
+            return Err(error);
+        }
+        Ok(steps)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1874,6 +2120,55 @@ struct ProviderNativeToolStep {
     binding: NodeInvocationBinding,
     journal_head: stateknot_core::JournalHead,
     usage: BudgetUsage,
+}
+
+enum ProviderNativeToolWaveEntry {
+    Resolved {
+        provider_call_id: stateknot_core::ModelProviderToolCallId,
+        invocation: Box<ToolInvocation>,
+    },
+    Dispatched {
+        provider_call_id: stateknot_core::ModelProviderToolCallId,
+        task: AbortOnDropToolTask,
+    },
+}
+
+/// Prevents a cancelled Graph node from detaching provider I/O into the
+/// runtime. A started attempt remains durable for fenced supervision, but the
+/// process-local provider future must not outlive its owning Tool wave.
+struct AbortOnDropToolTask {
+    task: tokio::task::JoinHandle<ToolTerminalCommitHandoff>,
+}
+
+impl AbortOnDropToolTask {
+    const fn new(task: tokio::task::JoinHandle<ToolTerminalCommitHandoff>) -> Self {
+        Self { task }
+    }
+
+    async fn join(mut self) -> Result<ToolTerminalCommitHandoff, tokio::task::JoinError> {
+        (&mut self.task).await
+    }
+}
+
+impl Drop for AbortOnDropToolTask {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+fn latest_journal_head(
+    current: stateknot_core::JournalHead,
+    candidate: stateknot_core::JournalHead,
+) -> Result<stateknot_core::JournalHead, ProviderNativeAgentNodeError> {
+    if current.tenant_id() != candidate.tenant_id() || current.run_id() != candidate.run_id() {
+        return Err(ProviderNativeAgentNodeError::Integrity);
+    }
+    match current.sequence().cmp(&candidate.sequence()) {
+        std::cmp::Ordering::Less => Ok(candidate),
+        std::cmp::Ordering::Greater => Ok(current),
+        std::cmp::Ordering::Equal if current == candidate => Ok(current),
+        std::cmp::Ordering::Equal => Err(ProviderNativeAgentNodeError::Integrity),
+    }
 }
 
 fn validate_admission(
@@ -2619,9 +2914,6 @@ fn validate_supported_execution(
     if descriptor.execution().max_output_repair_turns() != ExecutionCount::ZERO {
         return Err(ProviderNativeAgentGraphBuildError::OutputRepairUnsupported);
     }
-    if descriptor.execution().tool_concurrency() != AgentToolConcurrency::sequential() {
-        return Err(ProviderNativeAgentGraphBuildError::ParallelToolsUnsupported);
-    }
     if descriptor.execution().max_tool_calls_per_turn().get() > 256 {
         return Err(ProviderNativeAgentGraphBuildError::ToolCallsPerTurnLimit);
     }
@@ -2874,6 +3166,8 @@ impl From<ProviderNativeAgentNodeError> for ProviderNativeAgentExecutionError {
 
 #[cfg(test)]
 mod tests {
+    use std::{future::pending, time::Duration};
+
     use serde_json::Value;
     use stateknot_core::{
         CapabilityName, CapabilityReference, IssuerId, PrincipalIdentity, SubjectId,
@@ -3088,5 +3382,65 @@ mod tests {
             ),
             Err(ProviderNativeAgentGraphBuildError::StructuredOutputUnsupported)
         ));
+    }
+
+    #[test]
+    fn bounded_parallel_read_only_execution_compiles_without_changing_graph_wire_shape() {
+        let mut fixture: Value = serde_json::from_str(include_str!(
+            "../../stateknot-core/tests/fixtures/core-agent-v1.json"
+        ))
+        .unwrap();
+        let mut value = fixture["descriptors"]["valid"][0].take();
+        value["execution"]["max_output_repair_turns"] = Value::String("0".into());
+        value["execution"]["tool_concurrency"] = serde_json::json!({
+            "mode": "parallel_read_only",
+            "max_concurrency": "2"
+        });
+        let descriptor: AgentDescriptor = serde_json::from_value(value).unwrap();
+        let definition = ProviderNativeAgentGraph::compile(
+            descriptor,
+            identity("provider-native-parallel-graph"),
+            identity("provider-native-parallel-reducer"),
+            "https://schemas.example.com/provider-native/parallel-state/1.0.0"
+                .parse()
+                .unwrap(),
+            SecurityLabel::new("tenant/user-input").unwrap(),
+            Arc::new(AllowAllPolicy {
+                reference: AgentToolPolicyReference::new(
+                    identity("parallel-tool-policy"),
+                    Digest::sha256(b"parallel-allow-all-v1"),
+                ),
+            }),
+            accounting(),
+        )
+        .unwrap();
+        assert_eq!(
+            definition.descriptor().execution().tool_concurrency(),
+            AgentToolConcurrency::parallel_read_only(ExecutionCount::new(2))
+        );
+        assert_eq!(definition.graph().limits().maximum_parallelism(), 1);
+    }
+
+    #[tokio::test]
+    async fn dropping_a_parallel_tool_wave_aborts_its_provider_task() {
+        struct NotifyOnDrop(Arc<tokio::sync::Notify>);
+
+        impl Drop for NotifyOnDrop {
+            fn drop(&mut self) {
+                self.0.notify_one();
+            }
+        }
+
+        let dropped = Arc::new(tokio::sync::Notify::new());
+        let task_guard = NotifyOnDrop(Arc::clone(&dropped));
+        let task = tokio::spawn(async move {
+            let _task_guard = task_guard;
+            pending::<ToolTerminalCommitHandoff>().await
+        });
+        drop(AbortOnDropToolTask::new(task));
+
+        tokio::time::timeout(Duration::from_secs(1), dropped.notified())
+            .await
+            .expect("dropping a Tool wave must cancel its detached provider future");
     }
 }

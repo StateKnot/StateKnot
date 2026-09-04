@@ -187,13 +187,14 @@ store.health_check().await?;</code></pre>
     <h2 id="qualification-title">验证范围与当前限制</h2>
     <p>
       CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 104 个
-      Provider Case、29 个耐久 Runtime 场景与 5 个 Artifact-store
+      Provider Case、32 个耐久 Runtime 场景与 5 个 Artifact-store
       Case，覆盖迁移、Lost ACK、Fencing、损坏拒绝、并发、Rollback
       Injection、Outbox Recovery、Durable Wait、Quarantine、不可变 Graph
       Registration/Recovery、Ready-node Planning 与延迟重试调度、Lifecycle
       Commit、耐久 Model/Tool 执行、Fairness Reservation / Retention、原子 Agent
-      Admission、耐久 Ingress-key/Run-result 校验和加权 Cross-tenant Agent Loop
-      执行。Artifact Evidence 还覆盖已填充的 Migration 17→18、Schema
+      Admission、Canonical Parallel Sibling Commit、有序 Read-only Tool Wave 与
+      Write Barrier、耐久 Ingress-key/Run-result 校验和加权 Cross-tenant Agent
+      Loop 执行。Artifact Evidence 还覆盖已填充的 Migration 17→18、Schema
       Refusal、不可变 Registration、私有 Object Publication、
       Authorization-first Lookup、Multipart Ingestion 与完整 Digest 校验。
     </p>

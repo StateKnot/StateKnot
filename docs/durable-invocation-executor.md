@@ -41,7 +41,9 @@ The runtime currently provides:
 - bounded identical PostgreSQL mutation retries with exact lost-acknowledgement
   convergence;
 - retained terminal handoffs that retry persistence without repeating provider
-  or tool I/O; and
+  or tool I/O;
+- a staged Tool path that separates durable start, exactly-one provider I/O,
+  and terminal commit for bounded ordered read-only coordination; and
 - a closed public-safe journal schema that excludes prompts, arguments,
   responses, errors, endpoint identifiers, and credentials.
 
@@ -103,6 +105,27 @@ Call `execute_model` or `execute_tool` once with that handoff. The executor then
 An idempotently observed start returns `Recovered` and never calls the external
 adapter. It may represent a lost database acknowledgement or a concurrent
 executor, so it is not fresh dispatch authority.
+
+### Staged Tool execution for ordered coordinators
+
+Ordinary integrations should call `execute_tool`. A trusted bounded coordinator
+may instead use the same operation as three explicit stages:
+
+1. `start_tool_attempt` returns `ToolAttemptStartOutcome`; only `Started`
+   contains fresh dispatch authority, while `Recovered` forbids provider I/O.
+2. `dispatch_started_tool` consumes `ToolDispatchHandoff`, performs exactly one
+   provider call, and returns payload-retaining `ToolTerminalCommitHandoff`
+   without writing its terminal Journal fact.
+3. `commit_tool_terminal` consumes terminal evidence without provider I/O.
+
+This split lets a coordinator serialize starts, overlap policy-safe read-only
+calls, then serialize terminal commits in semantic order. It does not authorize
+parallel writes. The coordinator must bound the number of retained payloads,
+commit or explicitly retain every returned terminal handoff, abort child tasks
+when its owner is cancelled, and redact these non-serializable values exactly
+like ordinary terminal recovery evidence. Dropping a dispatch handoff leaves a
+visible `Executing` ledger revision; it never silently grants a future caller
+redispatch authority.
 
 ## Streaming contract
 

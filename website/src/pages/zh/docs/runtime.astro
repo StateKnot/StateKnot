@@ -33,6 +33,17 @@ let result = driver
 
 let (outcome, report) = result.into_parts();`;
 
+const parallelCode = `impl GraphNodeExecutor for ReadOnlyComputeNode {
+    fn scheduling(&self) -> GraphNodeScheduling {
+        GraphNodeScheduling::JournalIsolated
+    }
+
+    // graph()、node_id() 与 execute() 省略
+}
+
+let options = DurableGraphDriverOptions::default()
+    .with_parallel_node_limit(8)?;`;
+
 const outcomes = [
   {
     term: "LifecycleBarrierReady",
@@ -75,8 +86,8 @@ const outcomes = [
       Model/Tool Attempt 与加权 Cross-tenant Selection
       已建立在这条路径上。第一批 OpenAI/Anthropic Adapter、强类型 Agent
       Contract、公开 Run/Result Facade 与 Provider-native 多轮 Agent Graph
-      也已实现；Parallel Sibling、Loop、Subgraph 与稳定 Service API
-      仍是发布阻断项。
+      也已实现。有界 Journal-isolated Sibling 现可重叠执行并保持确定性 Commit；
+      Loop、Subgraph 与稳定 Service API 仍是发布阻断项。
     </p>
   </aside>
 
@@ -190,6 +201,43 @@ const outcomes = [
     </div>
   </section>
 
+  <section aria-labelledby="parallel-title">
+    <h2 id="parallel-title">允许工作重叠，但不让时序成为语义</h2>
+    <p>
+      Executor 默认保持 <code>Exclusive</code>。只有当执行过程不追加 Run Journal
+      或 Invocation-ledger Fact，且 Result 不依赖 Sibling Timing 时，才能声明 <code
+        >JournalIsolated</code
+      >。这是可信 Deployment Contract；外部 Model/Tool 工作必须进入有序耐久
+      Coordinator。
+    </p>
+    <p>
+      Driver 先按 Canonical <code>NodeId</code> 顺序串行提交全部 Fresh Start，再让
+      Eligible Batch 共用一套 Lease/Cancellation Watchdog。乱序完成会先缓冲，再按相同顺序提交
+      Terminal Fact。实际 Width 同时受 Process Policy、Compiled Graph Policy、Ready
+      Work 与剩余 Event Quantum 限制；Exclusive Node 会形成 Batch Boundary。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 显式可信并发</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-runtime-parallel-code"
+          data-copy-idle="复制"
+          data-copy-loading="复制中"
+          data-copy-success="已复制"
+          data-copy-error="复制失败"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-runtime-parallel-code"
+        tabindex="0"><code>{parallelCode}</code></pre>
+    </div>
+  </section>
+
   <section aria-labelledby="outcome-title">
     <h2 id="outcome-title">显式处理每种 Outcome</h2>
     <dl class="docs-definition-list">
@@ -222,6 +270,7 @@ const outcomes = [
         一次 <code>drive</code> 默认最多处理 1,024 个 Driver-owned Durable Event，并且只在
         Durable Operation 之间 Yield。
       </li>
+      <li>Ready-node 并发默认值为 1，必须显式开启，进程内硬上限为 64。</li>
       <li>
         Renewal Interval 必须至少能在 Provider Lease Duration 中容纳三次；默认
         Node Deadline 为 15 分钟。
@@ -237,7 +286,8 @@ const outcomes = [
     </ul>
     <p>
       生产监控应从 <code>GraphDriveReport</code> 采集 Replay 数量与保留字节、Attempt
-      Start/Completion、Continue Barrier、Lease Renewal 和 Mutation Retry。
+      Start/Completion、Batch 数与最大实际 Width、Continue Barrier、Lease Renewal
+      和 Mutation Retry。
     </p>
   </section>
 
@@ -283,15 +333,17 @@ const outcomes = [
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行 29 个 Runtime 场景。六个保留 Driver
-      恢复覆盖：Continue 后的非初始 Replay 与 Terminal Handoff、Same-fence
+      CI 在 PostgreSQL 16 与 17 上分别运行 32 个 Runtime 场景。八个保留 Driver
+      恢复/排序覆盖：Continue 后的非初始 Replay 与 Terminal Handoff、Same-fence
       重复抑制、通过续租执行超过原始 Lease、Node 启动前刷新临近过期
-      Lease、执行前隔离非法初始状态，以及 Higher-fence Takeover；其余场景覆盖
-      Success/Wait/Failure/Cancellation Lifecycle 原子提交、精确 Lost-ACK
-      Recovery、Agent Loop Cleanup、Tenant 与加权 Scheduling、耐久 Model/Tool
-      执行、Streaming、 Provider-native 多轮 Recovery、精确 Cancellation、原子
-      Agent Admission 与耐久 Run/Result Read。每个数据库版本还会运行 104 个
-      Provider Case。部署这个 Pre-alpha Surface 前请阅读完整的<a
+      Lease、执行前隔离非法初始状态、Higher-fence Takeover、三个 Sibling
+      反向完成但按 Canonical 顺序提交，以及 Higher Fence 接管 Orphaned Parallel
+      Member；其余场景覆盖 Success/Wait/Failure/Cancellation Lifecycle
+      原子提交、精确 Lost-ACK Recovery、Agent Loop Cleanup、Tenant 与加权
+      Scheduling、耐久 Model/Tool 执行、Streaming、 Provider-native 多轮
+      Recovery、精确 Cancellation、原子 Agent Admission 与耐久 Run/Result
+      Read。每个数据库版本还会运行 104 个 Provider Case。部署这个 Pre-alpha
+      Surface 前请阅读完整的<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.zh-CN.md"
         >集成与运维契约</a
       >。
