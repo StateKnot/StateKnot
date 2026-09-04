@@ -81,9 +81,9 @@ use stateknot_runtime::{
 use stateknot_store_postgres::{
     AgentAdmissionCommitOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
     CorruptionQuarantineContext, GraphDefinitionRegistrationOutcome, GraphReplayLimits,
-    JournalPageSize, LeaseReleaseOutcome, NodeAttemptCommitOutcome, PostgresStore,
-    PostgresStoreOptions, PostgresTransportSecurity, RunProjection, RunnableRunPageSize,
-    StoreError, WaitCheckpointCommitOutcome,
+    JournalPageSize, LeaseReleaseOutcome, NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize,
+    PostgresStore, PostgresStoreOptions, PostgresTransportSecurity, RunProjection,
+    RunnableRunPageSize, StoreError, WaitCheckpointCommitOutcome,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -4864,6 +4864,7 @@ async fn journal_isolated_siblings_overlap_but_commit_in_canonical_node_order() 
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
 async fn successor_fence_restarts_an_orphaned_parallel_sibling_batch_once() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
@@ -4894,6 +4895,13 @@ async fn successor_fence_restarts_an_orphaned_parallel_sibling_batch_once() {
         .unwrap();
     let plan = recovery.plan_ready_nodes().await.unwrap();
     let orphaned_node_id = NodeId::new("branch-b").unwrap();
+    let orphaned_activation = plan
+        .nodes()
+        .iter()
+        .find(|node| node.activation().node_id() == &orphaned_node_id)
+        .expect("branch-b must be ready in the initial checkpoint")
+        .activation()
+        .clone();
     let started = store
         .start_recovered_node_attempt(
             worker_append(
@@ -4939,20 +4947,22 @@ async fn successor_fence_restarts_an_orphaned_parallel_sibling_batch_once() {
     assert_eq!(fixture.branch_calls.load(Ordering::SeqCst), 3);
     assert_eq!(fixture.maximum_active.load(Ordering::SeqCst), 3);
     assert_eq!(result.report().maximum_nodes_in_batch(), 3);
-
-    let page = store
-        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(32).unwrap())
+    let attempts = store
+        .load_node_attempt_history_page(
+            &orphaned_activation,
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
         .await
         .unwrap();
-    let branch_b_starts = page
-        .events()
-        .iter()
-        .filter(|event| {
-            event.payload().kind().as_str() == "graph-node-attempt-started"
-                && event.payload().data().as_value()["node_id"] == "branch-b"
-        })
-        .count();
-    assert_eq!(branch_b_starts, 2);
+    assert_eq!(attempts.records().len(), 2);
+    assert!(!attempts.has_more());
+    assert_eq!(attempts.records()[0].start().fence(), first_lease.fence());
+    assert_eq!(attempts.records()[1].start().fence(), successor.fence());
+    assert_eq!(
+        attempts.records()[1].status(),
+        stateknot_core::NodeAttemptStatus::Succeeded
+    );
     assert_eq!(
         store.release_lease(successor.fence()).await.unwrap(),
         LeaseReleaseOutcome::Released
