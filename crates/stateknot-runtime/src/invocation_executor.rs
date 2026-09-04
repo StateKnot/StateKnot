@@ -681,6 +681,69 @@ pub enum ToolAttemptOutcome {
     },
 }
 
+/// Closed result of the durable-before-dispatch half of one tool attempt.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum ToolAttemptStartOutcome {
+    /// A fresh executing revision committed and this caller owns dispatch.
+    Started(Box<ToolDispatchHandoff>),
+    /// The stable start identity already advanced; provider I/O is not allowed.
+    Recovered {
+        /// Current exact invocation revision after duplicate suppression.
+        invocation: Box<ToolInvocation>,
+    },
+}
+
+impl ToolAttemptStartOutcome {
+    /// Returns the current invocation revision in either outcome.
+    #[must_use]
+    pub fn invocation(&self) -> &ToolInvocation {
+        match self {
+            Self::Started(handoff) => handoff.invocation(),
+            Self::Recovered { invocation } => invocation.as_ref(),
+        }
+    }
+}
+
+/// Fresh durable tool start retained for exactly one provider dispatch.
+///
+/// This type exists so a trusted coordinator can serialize multiple start
+/// facts, overlap only policy-safe provider calls, and then serialize retained
+/// terminal evidence in semantic order. Dropping it never calls a provider,
+/// but leaves the durable attempt executing for higher-fence recovery.
+pub struct ToolDispatchHandoff {
+    fence: RunFence,
+    invocation: ToolInvocation,
+    terminal_event_id: EventId,
+    provider: Arc<dyn stateknot_core::ErasedTool>,
+    context: ToolContext,
+}
+
+impl ToolDispatchHandoff {
+    /// Returns the exact live fence that committed the start.
+    #[must_use]
+    pub const fn fence(&self) -> &RunFence {
+        &self.fence
+    }
+
+    /// Returns the fresh executing invocation revision.
+    #[must_use]
+    pub const fn invocation(&self) -> &ToolInvocation {
+        &self.invocation
+    }
+}
+
+impl fmt::Debug for ToolDispatchHandoff {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ToolDispatchHandoff")
+            .field("fence", &self.fence)
+            .field("invocation_head", &self.invocation.head())
+            .field("terminal_event_id", &self.terminal_event_id)
+            .finish_non_exhaustive()
+    }
+}
+
 /// Retained request to probe one exact unknown tool attempt.
 ///
 /// The event identity is stable across node and process retries. A probe that
@@ -1963,9 +2026,45 @@ impl DurableInvocationExecutor {
         &self,
         handoff: ToolAttemptHandoff,
     ) -> Result<ToolAttemptOutcome, ToolAttemptExecutionError> {
+        let started = self.start_tool_attempt_inner(handoff).await?;
+        let ToolAttemptStartOutcome::Started(dispatch) = started else {
+            let ToolAttemptStartOutcome::Recovered { invocation } = started else {
+                unreachable!("closed tool attempt start outcome")
+            };
+            return Ok(ToolAttemptOutcome::Recovered {
+                invocation: *invocation,
+            });
+        };
+        let terminal = self.dispatch_started_tool_inner(*dispatch).await;
+        self.commit_tool_terminal(terminal)
+            .await
+            .map_err(ToolAttemptExecutionError::Terminal)
+    }
+
+    /// Commits a tool attempt start without performing provider I/O.
+    ///
+    /// Only [`ToolAttemptStartOutcome::Started`] grants dispatch authority.
+    /// This split is intended for bounded ordered coordinators; ordinary
+    /// callers should prefer [`Self::execute_tool`].
+    pub fn start_tool_attempt(
+        &self,
+        handoff: ToolAttemptHandoff,
+    ) -> BoxFuture<'_, Result<ToolAttemptStartOutcome, ToolAttemptExecutionError>> {
+        Box::pin(self.start_tool_attempt_inner(handoff))
+    }
+
+    async fn start_tool_attempt_inner(
+        &self,
+        handoff: ToolAttemptHandoff,
+    ) -> Result<ToolAttemptStartOutcome, ToolAttemptExecutionError> {
         validate_tool_handoff(&handoff.fence, &handoff.invocation)?;
         if let Some(recovered) = self.recover_tool_if_started(&handoff).await? {
-            return Ok(recovered);
+            let ToolAttemptOutcome::Recovered { invocation } = recovered else {
+                return Err(ToolAttemptExecutionError::UnsupportedStoreOutcome);
+            };
+            return Ok(ToolAttemptStartOutcome::Recovered {
+                invocation: Box::new(invocation),
+            });
         }
         let provider = self
             .tools
@@ -2013,32 +2112,59 @@ impl DurableInvocationExecutor {
                 if current.attempt_id() != Some(handoff.attempt_id) {
                     return Err(ToolAttemptExecutionError::InvocationAdvanced);
                 }
-                return Ok(ToolAttemptOutcome::Recovered {
-                    invocation: current,
+                return Ok(ToolAttemptStartOutcome::Recovered {
+                    invocation: Box::new(current),
                 });
             }
             _ => return Err(ToolAttemptExecutionError::UnsupportedStoreOutcome),
         };
 
-        let evidence = if let Some(reason) = context.stop_reason_at(Instant::now()) {
+        Ok(ToolAttemptStartOutcome::Started(Box::new(
+            ToolDispatchHandoff {
+                fence: handoff.fence,
+                invocation: executing,
+                terminal_event_id: handoff.events.terminal,
+                provider,
+                context,
+            },
+        )))
+    }
+
+    /// Performs exactly one provider call for a fresh durable start and retains
+    /// its terminal evidence without committing it.
+    ///
+    /// The returned handoff must be committed with
+    /// [`Self::commit_tool_terminal`]. Separating provider completion from the
+    /// commit lets a coordinator restore proposal-order journal semantics even
+    /// when read-only calls finish out of order.
+    pub fn dispatch_started_tool(
+        &self,
+        handoff: ToolDispatchHandoff,
+    ) -> BoxFuture<'_, ToolTerminalCommitHandoff> {
+        Box::pin(self.dispatch_started_tool_inner(handoff))
+    }
+
+    async fn dispatch_started_tool_inner(
+        &self,
+        handoff: ToolDispatchHandoff,
+    ) -> ToolTerminalCommitHandoff {
+        let evidence = if let Some(reason) = handoff.context.stop_reason_at(Instant::now()) {
             ToolTerminalEvidence::Error(tool_stop_error(
-                &context,
-                executing.intent().descriptor(),
+                &handoff.context,
+                handoff.invocation.intent().descriptor(),
                 reason,
             ))
         } else {
-            let input = executing.intent().input().clone();
-            self.dispatch_tool(provider, context, input).await
+            let input = handoff.invocation.intent().input().clone();
+            self.dispatch_tool(handoff.provider, handoff.context, input)
+                .await
         };
-        let terminal = ToolTerminalCommitHandoff {
+        ToolTerminalCommitHandoff {
             fence: handoff.fence,
-            invocation: executing,
-            event_id: handoff.events.terminal,
+            invocation: handoff.invocation,
+            event_id: handoff.terminal_event_id,
             evidence,
-        };
-        self.commit_tool_terminal(terminal)
-            .await
-            .map_err(ToolAttemptExecutionError::Terminal)
+        }
     }
 
     /// Commits retained terminal tool evidence without calling the tool.

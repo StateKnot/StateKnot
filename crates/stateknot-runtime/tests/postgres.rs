@@ -9,7 +9,7 @@ use std::{
     pin::Pin,
     sync::{
         Arc,
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     task::{Context, Poll},
     time::{Duration, Instant},
@@ -60,17 +60,18 @@ use stateknot_runtime::{
     GraphBarrierLifecycleOutcome, GraphCancellationEvidence, GraphCancellationEvidenceContext,
     GraphDriveOutcome, GraphDriverError, GraphFailureEvidence, GraphFailureEvidenceContext,
     GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider, GraphNodeContext,
-    GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor, GraphTerminalEvidence,
-    GraphTerminalEvidenceContext, InvocationAttemptEventIds, InvocationBudgetContext,
-    InvocationBudgetProvider, InvocationBudgetProviderError, InvocationClock, InvocationClockError,
-    InvocationClockObservation, JsonSchemaRegistry, JsonSchemaRegistryBuilder,
-    JsonSchemaRegistryLimits, ModelAttemptExecutionError, ModelAttemptHandoff, ModelAttemptOutcome,
-    ModelAttemptTerminalKind, ModelEventSink, ModelEventSinkError, ModelProviderRegistryBuilder,
-    ProviderNativeAgentGraph, ProviderNativeAgentLifecycleEvidence, TenantFairnessWeight,
-    TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind,
-    ToolProviderRegistryBuilder, ToolReconciliationAttemptHandoff,
-    ToolReconciliationAttemptOutcome, ToolReconciliationCommitFailure, ToolReconciliationHandoff,
-    ToolReconciliationKind, ToolReconciliationOutcome, WeightedFairnessPolicy,
+    GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor, GraphNodeScheduling,
+    GraphTerminalEvidence, GraphTerminalEvidenceContext, InvocationAttemptEventIds,
+    InvocationBudgetContext, InvocationBudgetProvider, InvocationBudgetProviderError,
+    InvocationClock, InvocationClockError, InvocationClockObservation, JsonSchemaRegistry,
+    JsonSchemaRegistryBuilder, JsonSchemaRegistryLimits, ModelAttemptExecutionError,
+    ModelAttemptHandoff, ModelAttemptOutcome, ModelAttemptTerminalKind, ModelEventSink,
+    ModelEventSinkError, ModelProviderRegistryBuilder, ProviderNativeAgentGraph,
+    ProviderNativeAgentLifecycleEvidence, TenantFairnessWeight, TenantSchedulerOutcome,
+    ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind, ToolProviderRegistryBuilder,
+    ToolReconciliationAttemptHandoff, ToolReconciliationAttemptOutcome,
+    ToolReconciliationCommitFailure, ToolReconciliationHandoff, ToolReconciliationKind,
+    ToolReconciliationOutcome, WeightedFairnessPolicy,
     register_standard_agent_admission_event_schema,
     register_standard_agent_cancellation_event_schema,
     register_standard_agent_service_control_event_schema,
@@ -80,9 +81,9 @@ use stateknot_runtime::{
 use stateknot_store_postgres::{
     AgentAdmissionCommitOutcome, BarrierCommitOutcome, CheckpointCommitOutcome,
     CorruptionQuarantineContext, GraphDefinitionRegistrationOutcome, GraphReplayLimits,
-    LeaseReleaseOutcome, NodeAttemptCommitOutcome, PostgresStore, PostgresStoreOptions,
-    PostgresTransportSecurity, RunProjection, RunnableRunPageSize, StoreError,
-    WaitCheckpointCommitOutcome,
+    JournalPageSize, LeaseReleaseOutcome, NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize,
+    PostgresStore, PostgresStoreOptions, PostgresTransportSecurity, RunProjection,
+    RunnableRunPageSize, StoreError, WaitCheckpointCommitOutcome,
 };
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
@@ -147,6 +148,50 @@ impl GraphNodeExecutor for TestNodeExecutor {
             Ok(GraphNodeExecution::new(
                 NodeStateChange::Unchanged,
                 control,
+                NodeInvocationBindings::empty(),
+                BudgetUsage::zero(),
+            ))
+        })
+    }
+}
+
+struct JournalIsolatedTestNodeExecutor {
+    graph: GraphReference,
+    node_id: NodeId,
+    gate: Arc<tokio::sync::Barrier>,
+    completion_delay: Duration,
+    calls: Arc<AtomicUsize>,
+    active: Arc<AtomicUsize>,
+    maximum_active: Arc<AtomicUsize>,
+}
+
+impl GraphNodeExecutor for JournalIsolatedTestNodeExecutor {
+    fn graph(&self) -> &GraphReference {
+        &self.graph
+    }
+
+    fn node_id(&self) -> &NodeId {
+        &self.node_id
+    }
+
+    fn scheduling(&self) -> GraphNodeScheduling {
+        GraphNodeScheduling::JournalIsolated
+    }
+
+    fn execute(
+        &self,
+        _: GraphNodeContext,
+    ) -> BoxFuture<'_, Result<GraphNodeExecution, GraphNodeExecutionError>> {
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            let active = self.active.fetch_add(1, Ordering::SeqCst) + 1;
+            self.maximum_active.fetch_max(active, Ordering::SeqCst);
+            self.gate.wait().await;
+            tokio::time::sleep(self.completion_delay).await;
+            self.active.fetch_sub(1, Ordering::SeqCst);
+            Ok(GraphNodeExecution::new(
+                NodeStateChange::Unchanged,
+                NodeControl::Continue,
                 NodeInvocationBindings::empty(),
                 BudgetUsage::zero(),
             ))
@@ -601,6 +646,180 @@ impl ErasedTool for ProviderNativeLookupTool {
     }
 }
 
+struct OrderedParallelTool {
+    descriptor: ToolDescriptor,
+    calls: Arc<AtomicUsize>,
+    active: Arc<AtomicUsize>,
+    maximum_active: Arc<AtomicUsize>,
+    write_overlap: Arc<AtomicBool>,
+    write: bool,
+}
+
+impl ErasedTool for OrderedParallelTool {
+    fn descriptor(&self) -> &ToolDescriptor {
+        &self.descriptor
+    }
+
+    fn call(
+        &self,
+        context: ToolContext,
+        input: ToolInput,
+    ) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let active = Arc::clone(&self.active);
+        let maximum_active = Arc::clone(&self.maximum_active);
+        let write_overlap = Arc::clone(&self.write_overlap);
+        let descriptor = self.descriptor.clone();
+        let write = self.write;
+        let ordinal = input.value().as_value()["ordinal"].as_u64().unwrap();
+        Box::pin(async move {
+            let now_active = active.fetch_add(1, Ordering::SeqCst) + 1;
+            maximum_active.fetch_max(now_active, Ordering::SeqCst);
+            if write && now_active != 1 {
+                write_overlap.store(true, Ordering::SeqCst);
+            }
+            let delay = match ordinal {
+                0 => Duration::from_millis(160),
+                1 => Duration::from_millis(20),
+                2 => Duration::from_millis(30),
+                _ => Duration::from_millis(10),
+            };
+            tokio::time::sleep(delay).await;
+            active.fetch_sub(1, Ordering::SeqCst);
+            Ok(ToolResult::for_invocation(
+                &context,
+                &descriptor,
+                BoundedJson::try_from_value(json!({"ordinal": ordinal})).unwrap(),
+                ToolArtifacts::empty(),
+            ))
+        })
+    }
+}
+
+struct OrderedParallelModel {
+    descriptor: ModelDescriptor,
+    read_tool: ToolDescriptor,
+    write_tool: ToolDescriptor,
+    output_schema: SchemaReference,
+    calls: Arc<AtomicUsize>,
+    transcript_order: Arc<tokio::sync::Mutex<Vec<String>>>,
+}
+
+impl Model for OrderedParallelModel {
+    fn descriptor(&self) -> &ModelDescriptor {
+        &self.descriptor
+    }
+
+    fn invoke(
+        &self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxFuture<'_, Result<ModelResponse, ModelError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let descriptor = self.descriptor.clone();
+        let read_tool = self.read_tool.clone();
+        let write_tool = self.write_tool.clone();
+        let output_schema = self.output_schema.clone();
+        let transcript_order = Arc::clone(&self.transcript_order);
+        Box::pin(async move {
+            let provenance = ModelResponseProvenance::new(
+                context.attempt_id(),
+                descriptor.metadata().identity().clone(),
+                None,
+                None,
+            );
+            let usage = ModelUsage::new(
+                TokenCount::new(12),
+                Some(TokenCount::new(2)),
+                TokenCount::new(4),
+                Some(TokenCount::new(1)),
+            )
+            .unwrap();
+            if request.transcript().is_empty() {
+                let calls = [
+                    (&read_tool, "call_parallel_0", 0_u64),
+                    (&read_tool, "call_parallel_1", 1_u64),
+                    (&write_tool, "call_write_2", 2_u64),
+                    (&read_tool, "call_parallel_3", 3_u64),
+                ]
+                .into_iter()
+                .map(|(tool, provider_call_id, ordinal)| {
+                    ModelOutputItem::tool_call(
+                        ModelToolCallProposal::new(
+                            tool.metadata().identity().clone(),
+                            Some(ModelProviderToolCallId::new(provider_call_id).unwrap()),
+                            BoundedJson::try_from_value(json!({"ordinal": ordinal})).unwrap(),
+                            Extensions::default(),
+                        )
+                        .unwrap(),
+                    )
+                });
+                let response = ModelResponse::new(
+                    provenance,
+                    &descriptor,
+                    &request,
+                    calls,
+                    ModelFinishReason::ToolCalls,
+                    usage,
+                    Extensions::default(),
+                )
+                .unwrap();
+                let replay = ModelProviderReplay::new(
+                    ModelProviderReplayFormat::new("stateknot.test.parallel.v1").unwrap(),
+                    BoundedJson::try_from_value(json!([
+                        {"type": "function_call", "call_id": "call_parallel_0"},
+                        {"type": "function_call", "call_id": "call_parallel_1"},
+                        {"type": "function_call", "call_id": "call_write_2"},
+                        {"type": "function_call", "call_id": "call_parallel_3"}
+                    ]))
+                    .unwrap(),
+                )
+                .unwrap();
+                Ok(response.with_provider_replay(replay).unwrap())
+            } else {
+                let turn = &request.transcript().as_slice()[0];
+                let mut observed = Vec::with_capacity(turn.outcomes().len());
+                for outcome in turn.outcomes() {
+                    let ordinal = outcome.result().unwrap().output().as_value()["ordinal"]
+                        .as_u64()
+                        .unwrap();
+                    observed.push(format!("{}:{ordinal}", outcome.provider_call_id().as_str()));
+                }
+                *transcript_order.lock().await = observed;
+                let output = ModelOutputItem::content(ContentPart::Json(JsonContent::new(
+                    BoundedJson::try_from_value(json!({"answer": "ordered"})).unwrap(),
+                    Some(output_schema),
+                    ContentMetadata::untrusted(
+                        ContentSource::Model,
+                        "internal/provider-native-parallel-test"
+                            .parse::<SecurityLabel>()
+                            .unwrap(),
+                    ),
+                )))
+                .unwrap();
+                Ok(ModelResponse::new(
+                    provenance,
+                    &descriptor,
+                    &request,
+                    [output],
+                    ModelFinishReason::Completed,
+                    usage,
+                    Extensions::default(),
+                )
+                .unwrap())
+            }
+        })
+    }
+
+    fn stream(
+        &self,
+        _: ModelContext,
+        _: ModelRequest,
+    ) -> BoxStream<'_, Result<ModelEvent, ModelError>> {
+        Box::pin(EmptyModelStream)
+    }
+}
+
 struct FailOnceAgentToolPolicy {
     reference: AgentToolPolicyReference,
     calls: Arc<AtomicUsize>,
@@ -723,6 +942,13 @@ struct DriverFixture {
     second_calls: Arc<AtomicUsize>,
 }
 
+struct ParallelDriverFixture {
+    graph: CompiledGraph,
+    registry: ExecutableGraphRegistry,
+    branch_calls: Arc<AtomicUsize>,
+    maximum_active: Arc<AtomicUsize>,
+}
+
 struct ProviderNativeFixture {
     definition: ProviderNativeAgentGraph,
     registry: ExecutableGraphRegistry,
@@ -734,6 +960,17 @@ struct ProviderNativeFixture {
     failed_outcomes: Arc<AtomicUsize>,
     input_schema: SchemaReference,
     policy_pause: Option<Arc<PolicyPause>>,
+}
+
+struct ProviderNativeParallelFixture {
+    definition: ProviderNativeAgentGraph,
+    registry: ExecutableGraphRegistry,
+    model_calls: Arc<AtomicUsize>,
+    tool_calls: Arc<AtomicUsize>,
+    maximum_active_tools: Arc<AtomicUsize>,
+    write_overlap: Arc<AtomicBool>,
+    transcript_order: Arc<tokio::sync::Mutex<Vec<String>>>,
+    input_schema: SchemaReference,
 }
 
 struct StaticAgentServiceAuthorizer {
@@ -979,6 +1216,176 @@ fn provider_native_fixture_with(
     }
 }
 
+#[allow(clippy::too_many_lines)]
+fn provider_native_parallel_fixture(store: PostgresStore) -> ProviderNativeParallelFixture {
+    let (input_schema, input_document) = schema("provider-native-parallel-input");
+    let (output_schema, output_document) = schema("provider-native-parallel-output");
+    let (tool_input_schema, tool_input_document) = schema("provider-native-parallel-tool-input");
+    let (tool_output_schema, tool_output_document) = schema("provider-native-parallel-tool-output");
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-v1.json"
+    ))
+    .unwrap();
+    let template =
+        serde_json::from_value::<AgentDescriptor>(fixture["descriptors"]["valid"][0].clone())
+            .unwrap();
+    let read_template = template.tools().iter().next().unwrap().clone();
+    let read_tool = ToolDescriptor::new(
+        read_template.metadata().clone(),
+        tool_input_schema.clone(),
+        tool_output_schema.clone(),
+        read_template.semantics().clone(),
+        read_template.resources().clone(),
+        read_template.invocation().clone(),
+        read_template.limits().clone(),
+    )
+    .unwrap();
+    let mut write_template_value = serde_json::to_value(&read_template).unwrap();
+    write_template_value["metadata"]["identity"]["capability"]["name"] = json!("tools.record");
+    write_template_value["metadata"]["description"] = json!("Idempotent ordered test write");
+    let write_template = serde_json::from_value::<ToolDescriptor>(write_template_value).unwrap();
+    let write_tool = ToolDescriptor::new(
+        write_template.metadata().clone(),
+        tool_input_schema.clone(),
+        tool_output_schema.clone(),
+        ToolExecutionSemantics::new(
+            ToolRisk::IdempotentWrite,
+            ToolIdempotency::RequiredKey,
+            false,
+            false,
+        )
+        .unwrap(),
+        write_template.resources().clone(),
+        write_template.invocation().clone(),
+        write_template.limits().clone(),
+    )
+    .unwrap();
+    let execution = AgentExecutionConfig::new(
+        AgentStructuredOutputStrategy::ModelNative,
+        ExecutionCount::new(3),
+        ExecutionCount::ZERO,
+        ExecutionCount::new(4),
+        AgentToolConcurrency::parallel_read_only(ExecutionCount::new(2)),
+    )
+    .unwrap();
+    let descriptor = AgentDescriptor::new(
+        template.metadata().clone(),
+        input_schema.clone(),
+        output_schema.clone(),
+        template.model().clone(),
+        template.instructions().clone(),
+        AgentTools::try_new([read_tool.clone(), write_tool.clone()]).unwrap(),
+        execution,
+        template.budget_limits().clone(),
+    )
+    .unwrap();
+    let policy_calls = Arc::new(AtomicUsize::new(0));
+    let definition = ProviderNativeAgentGraph::compile(
+        descriptor,
+        capability("provider-native-parallel-agent-graph"),
+        capability("provider-native-parallel-agent-reducer"),
+        "https://stknot.com/schemas/tests/provider-native-parallel-state/1.0.0"
+            .parse::<SchemaId>()
+            .unwrap(),
+        "internal/provider-native-parallel-input"
+            .parse::<SecurityLabel>()
+            .unwrap(),
+        Arc::new(FailOnceAgentToolPolicy {
+            reference: AgentToolPolicyReference::new(
+                capability("provider-native-parallel-tool-policy"),
+                Digest::sha256(b"provider-native parallel integration policy v1"),
+            ),
+            calls: policy_calls,
+            fail_once: false,
+            pause_first: None,
+        }),
+        Arc::new(KnownFreeInvocationAccounting {
+            reference: AgentInvocationAccountingReference::new(
+                capability("provider-native-parallel-accounting"),
+                Digest::sha256(b"provider-native parallel known-free accounting v1"),
+            ),
+        }),
+    )
+    .unwrap();
+
+    let mut schema_builder = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
+    for (reference, document) in [
+        (input_schema.clone(), input_document),
+        (output_schema.clone(), output_document),
+        (tool_input_schema, tool_input_document),
+        (tool_output_schema, tool_output_document),
+    ] {
+        schema_builder.register(reference, document).unwrap();
+    }
+    definition.register_schema(&mut schema_builder).unwrap();
+    register_standard_graph_driver_event_schema(&mut schema_builder).unwrap();
+    register_standard_graph_lifecycle_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_service_control_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_admission_event_schema(&mut schema_builder).unwrap();
+    register_standard_invocation_execution_event_schema(&mut schema_builder).unwrap();
+    let schemas = schema_builder.build().unwrap();
+
+    let model_calls = Arc::new(AtomicUsize::new(0));
+    let tool_calls = Arc::new(AtomicUsize::new(0));
+    let active = Arc::new(AtomicUsize::new(0));
+    let maximum_active_tools = Arc::new(AtomicUsize::new(0));
+    let write_overlap = Arc::new(AtomicBool::new(false));
+    let transcript_order = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    let mut models = ModelProviderRegistryBuilder::new();
+    models
+        .register(Arc::new(OrderedParallelModel {
+            descriptor: definition.descriptor().model().clone(),
+            read_tool: read_tool.clone(),
+            write_tool: write_tool.clone(),
+            output_schema,
+            calls: Arc::clone(&model_calls),
+            transcript_order: Arc::clone(&transcript_order),
+        }))
+        .unwrap();
+    let mut tools = ToolProviderRegistryBuilder::new();
+    for (tool, write) in [(read_tool, false), (write_tool, true)] {
+        tools
+            .register(Arc::new(OrderedParallelTool {
+                descriptor: tool,
+                calls: Arc::clone(&tool_calls),
+                active: Arc::clone(&active),
+                maximum_active: Arc::clone(&maximum_active_tools),
+                write_overlap: Arc::clone(&write_overlap),
+                write,
+            }))
+            .unwrap();
+    }
+    let invocation_executor = DurableInvocationExecutor::with_clock(
+        store.clone(),
+        schemas.clone(),
+        models.build(),
+        tools.build(),
+        Arc::new(StaticInvocationBudget {
+            resolved: invocation_budget(),
+        }),
+        Arc::new(FixedInvocationClock {
+            observed_at: "2029-01-01T00:00:00.000000Z".parse().unwrap(),
+        }),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let mut registry_builder = ExecutableGraphRegistryBuilder::new(schemas.clone());
+    definition
+        .register_executable(&mut registry_builder, store, invocation_executor, schemas)
+        .unwrap();
+    ProviderNativeParallelFixture {
+        definition,
+        registry: registry_builder.build().unwrap(),
+        model_calls,
+        tool_calls,
+        maximum_active_tools,
+        write_overlap,
+        transcript_order,
+        input_schema,
+    }
+}
+
 struct StaticLifecycleEvidence {
     terminal: GraphTerminalEvidence,
     failure: Option<GraphFailureEvidence>,
@@ -1122,6 +1529,110 @@ fn driver_fixture_with_first_delay(first_delay: Duration) -> DriverFixture {
         registry: registry.build().unwrap(),
         first_calls,
         second_calls,
+    }
+}
+
+fn parallel_driver_fixture() -> ParallelDriverFixture {
+    let (input_schema, input_document) = schema("parallel-driver-input");
+    let (state_schema, state_document) = state_schema();
+    let (update_schema, update_document) = schema("parallel-driver-update");
+    let (output_schema, output_document) = schema("parallel-driver-output");
+    let reducer_reference = GraphReducerReference::new(
+        capability("parallel-driver-reducer"),
+        Digest::sha256(b"stateknot runtime parallel integration reducer v1"),
+    );
+    let branch_ids = [
+        NodeId::new("branch-a").unwrap(),
+        NodeId::new("branch-b").unwrap(),
+        NodeId::new("branch-c").unwrap(),
+    ];
+    let join_id = NodeId::new("join").unwrap();
+    let mut nodes = branch_ids
+        .iter()
+        .map(|node_id| {
+            GraphNode::new(
+                node_id.clone(),
+                Some(ReadyNodes::try_new([join_id.clone()]).unwrap()),
+                GraphRoutes::empty(),
+                None,
+                false,
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+    nodes.push(GraphNode::new(join_id.clone(), None, GraphRoutes::empty(), None, true).unwrap());
+    let graph = CompiledGraph::compile(
+        capability("parallel-driver-graph"),
+        input_schema.clone(),
+        state_schema,
+        update_schema,
+        output_schema.clone(),
+        reducer_reference.clone(),
+        ReadyNodes::try_new(branch_ids.clone()).unwrap(),
+        nodes,
+        GraphExecutionLimits::new(Superstep::new(8).unwrap(), 3).unwrap(),
+    )
+    .unwrap();
+
+    let mut schemas = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
+    for (reference, document) in [
+        (input_schema, input_document),
+        (graph.state_schema().clone(), state_document),
+        (graph.update_schema().clone(), update_document),
+        (output_schema.clone(), output_document),
+    ] {
+        schemas.register(reference, document).unwrap();
+    }
+    register_standard_graph_driver_event_schema(&mut schemas).unwrap();
+    register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
+    register_standard_agent_admission_event_schema(&mut schemas).unwrap();
+    let schemas = schemas.build().unwrap();
+
+    let branch_calls = Arc::new(AtomicUsize::new(0));
+    let active = Arc::new(AtomicUsize::new(0));
+    let maximum_active = Arc::new(AtomicUsize::new(0));
+    let gate = Arc::new(tokio::sync::Barrier::new(branch_ids.len()));
+    let graph_reference = graph.reference();
+    let mut registry = ExecutableGraphRegistryBuilder::new(schemas);
+    registry.register_graph(graph.clone()).unwrap();
+    registry
+        .register_reducer(Arc::new(TestReducer {
+            reference: reducer_reference,
+        }))
+        .unwrap();
+    for (node_id, completion_delay) in branch_ids.into_iter().zip([
+        Duration::from_millis(180),
+        Duration::from_millis(20),
+        Duration::from_millis(90),
+    ]) {
+        registry
+            .register_node(Arc::new(JournalIsolatedTestNodeExecutor {
+                graph: graph_reference.clone(),
+                node_id,
+                gate: Arc::clone(&gate),
+                completion_delay,
+                calls: Arc::clone(&branch_calls),
+                active: Arc::clone(&active),
+                maximum_active: Arc::clone(&maximum_active),
+            }))
+            .unwrap();
+    }
+    registry
+        .register_node(Arc::new(TestNodeExecutor {
+            graph: graph_reference,
+            node_id: join_id,
+            behavior: TestNodeBehavior::Terminal(output_schema),
+            delay: Duration::ZERO,
+            calls: Arc::new(AtomicUsize::new(0)),
+        }))
+        .unwrap();
+
+    ParallelDriverFixture {
+        graph,
+        registry: registry.build().unwrap(),
+        branch_calls,
+        maximum_active,
     }
 }
 
@@ -1541,9 +2052,23 @@ fn provider_native_admission_request(
     tenant_id: TenantId,
     ids: AgentRunIds,
 ) -> DurableAgentAdmissionRequest {
-    let descriptor = fixture.definition.descriptor().clone();
+    provider_native_admission_request_for(
+        &fixture.definition,
+        &fixture.input_schema,
+        tenant_id,
+        ids,
+    )
+}
+
+fn provider_native_admission_request_for(
+    definition: &ProviderNativeAgentGraph,
+    input_schema: &SchemaReference,
+    tenant_id: TenantId,
+    ids: AgentRunIds,
+) -> DurableAgentAdmissionRequest {
+    let descriptor = definition.descriptor().clone();
     let request = AgentRequest::new(
-        fixture.input_schema.clone(),
+        input_schema.clone(),
         BoundedJson::try_from_value(json!({
             "question": "Can this run continue without repeating provider I/O?"
         }))
@@ -1552,7 +2077,7 @@ fn provider_native_admission_request(
     );
     let policy = capability("provider-native-admission-policy");
     let evidence = JournalPayload::new(
-        fixture.input_schema.clone(),
+        input_schema.clone(),
         JournalEventKind::new(AgentAdmissionAuthority::EVIDENCE_KIND).unwrap(),
         BoundedJson::try_from_value(json!({"decision": "allow"})).unwrap(),
     )
@@ -1585,11 +2110,137 @@ fn provider_native_admission_request(
         descriptor,
         request,
         [layer],
-        fixture.definition.graph().reference(),
+        definition.graph().reference(),
         authority,
-        fixture.definition.initial_state().unwrap(),
+        definition.initial_state().unwrap(),
     )
     .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposal_order() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_parallel_fixture(store.clone());
+    let tenant_id = tenant("runtime-provider-native-parallel-tools");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request_for(
+            &fixture.definition,
+            &fixture.input_schema,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+
+    let drive_result = tokio::time::timeout(
+        Duration::from_secs(10),
+        driver.drive(lease.fence().clone(), CancellationSignal::never()),
+    )
+    .await
+    .expect("bounded parallel read-only tools must complete")
+    .unwrap();
+    let handoff = match drive_result.into_parts().0 {
+        GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
+        other => panic!("parallel provider-native graph must finish: {other:?}"),
+    };
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 4);
+    assert_eq!(fixture.maximum_active_tools.load(Ordering::SeqCst), 2);
+    assert!(!fixture.write_overlap.load(Ordering::SeqCst));
+    assert_eq!(
+        *fixture.transcript_order.lock().await,
+        [
+            "call_parallel_0:0",
+            "call_parallel_1:1",
+            "call_write_2:2",
+            "call_parallel_3:3",
+        ]
+    );
+
+    let page = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(64).unwrap())
+        .await
+        .unwrap();
+    let tool_event_kinds = page
+        .events()
+        .iter()
+        .filter_map(|event| {
+            let kind = event.payload().kind().as_str();
+            matches!(
+                kind,
+                "tool-invocation-prepared" | "tool-attempt-started" | "tool-result-committed"
+            )
+            .then(|| kind.to_owned())
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        tool_event_kinds,
+        [
+            "tool-invocation-prepared",
+            "tool-attempt-started",
+            "tool-invocation-prepared",
+            "tool-attempt-started",
+            "tool-result-committed",
+            "tool-result-committed",
+            "tool-invocation-prepared",
+            "tool-attempt-started",
+            "tool-result-committed",
+            "tool-invocation-prepared",
+            "tool-attempt-started",
+            "tool-result-committed",
+        ]
+    );
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.commit_barrier(*handoff).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    assert_eq!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .lifecycle()
+            .result()
+            .unwrap()
+            .usage()
+            .tool_calls(),
+        ExecutionCount::new(4)
+    );
+    store.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -4127,6 +4778,195 @@ async fn durable_agent_loop_releases_lease_when_terminal_evidence_is_unavailable
     let stored = store.load_run(&tenant_id, run_id).await.unwrap();
     assert_eq!(stored.lifecycle().status(), RunStatus::Active);
     assert!(stored.lease().is_none());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn journal_isolated_siblings_overlap_but_commit_in_canonical_node_order() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = parallel_driver_fixture();
+    let tenant_id = tenant("runtime-driver-parallel-siblings");
+    let run_id = RunId::generate();
+    start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let options = DurableGraphDriverOptions::default()
+        .with_parallel_node_limit(3)
+        .unwrap();
+    let driver = DurableGraphDriver::new(store.clone(), fixture.registry, options).unwrap();
+
+    let result = tokio::time::timeout(
+        Duration::from_secs(5),
+        driver.drive(lease.fence().clone(), CancellationSignal::never()),
+    )
+    .await
+    .expect("three journal-isolated siblings must reach their shared gate")
+    .unwrap();
+    assert!(matches!(
+        result.outcome(),
+        GraphDriveOutcome::LifecycleBarrierReady(_)
+    ));
+    assert_eq!(fixture.branch_calls.load(Ordering::SeqCst), 3);
+    assert_eq!(fixture.maximum_active.load(Ordering::SeqCst), 3);
+    assert_eq!(result.report().maximum_nodes_in_batch(), 3);
+    assert_eq!(result.report().node_batches_started(), 2);
+
+    let page = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(32).unwrap())
+        .await
+        .unwrap();
+    assert!(!page.has_more());
+    let node_events = page
+        .events()
+        .iter()
+        .filter_map(|event| {
+            let kind = event.payload().kind().as_str();
+            if !matches!(
+                kind,
+                "graph-node-attempt-started" | "graph-node-attempt-succeeded"
+            ) {
+                return None;
+            }
+            Some((
+                kind.to_owned(),
+                event.payload().data().as_value()["node_id"]
+                    .as_str()
+                    .unwrap()
+                    .to_owned(),
+            ))
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        node_events,
+        [
+            ("graph-node-attempt-started".into(), "branch-a".into()),
+            ("graph-node-attempt-started".into(), "branch-b".into()),
+            ("graph-node-attempt-started".into(), "branch-c".into()),
+            ("graph-node-attempt-succeeded".into(), "branch-a".into()),
+            ("graph-node-attempt-succeeded".into(), "branch-b".into()),
+            ("graph-node-attempt-succeeded".into(), "branch-c".into()),
+            ("graph-node-attempt-started".into(), "join".into()),
+            ("graph-node-attempt-succeeded".into(), "join".into()),
+        ]
+    );
+    assert_eq!(
+        store.release_lease(lease.fence()).await.unwrap(),
+        LeaseReleaseOutcome::Released
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn successor_fence_restarts_an_orphaned_parallel_sibling_batch_once() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = parallel_driver_fixture();
+    let tenant_id = tenant("runtime-driver-parallel-takeover");
+    let run_id = RunId::generate();
+    start_run(&store, &fixture.graph, tenant_id.clone(), run_id).await;
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    let context = CorruptionQuarantineContext::new(
+        tenant_id.clone(),
+        run_id,
+        QuarantineId::generate(),
+        JournalExpectation::exact(run.journal_head().unwrap().clone()),
+        Digest::sha256(b"runtime parallel driver takeover integration evidence"),
+    )
+    .unwrap();
+    let recovery = store
+        .begin_claimed_run_recovery(first_lease.fence().clone(), context)
+        .await
+        .unwrap();
+    let plan = recovery.plan_ready_nodes().await.unwrap();
+    let orphaned_node_id = NodeId::new("branch-b").unwrap();
+    let orphaned_activation = plan
+        .nodes()
+        .iter()
+        .find(|node| node.activation().node_id() == &orphaned_node_id)
+        .expect("branch-b must be ready in the initial checkpoint")
+        .activation()
+        .clone();
+    let started = store
+        .start_recovered_node_attempt(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                plan.journal_head().clone(),
+                first_lease.fence().clone(),
+            ),
+            &plan,
+            &orphaned_node_id,
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        started,
+        NodeAttemptCommitOutcome::Committed { .. }
+    ));
+    drop(recovery);
+
+    let successor = store
+        .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let options = DurableGraphDriverOptions::default()
+        .with_parallel_node_limit(3)
+        .unwrap();
+    let driver = DurableGraphDriver::new(store.clone(), fixture.registry, options).unwrap();
+    let result = tokio::time::timeout(
+        Duration::from_secs(5),
+        driver.drive(successor.fence().clone(), CancellationSignal::never()),
+    )
+    .await
+    .expect("the successor fence must replace the orphaned sibling attempt")
+    .unwrap();
+    assert!(matches!(
+        result.outcome(),
+        GraphDriveOutcome::LifecycleBarrierReady(_)
+    ));
+    assert_eq!(fixture.branch_calls.load(Ordering::SeqCst), 3);
+    assert_eq!(fixture.maximum_active.load(Ordering::SeqCst), 3);
+    assert_eq!(result.report().maximum_nodes_in_batch(), 3);
+    let attempts = store
+        .load_node_attempt_history_page(
+            &orphaned_activation,
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(attempts.records().len(), 2);
+    assert!(!attempts.has_more());
+    assert_eq!(attempts.records()[0].start().fence(), first_lease.fence());
+    assert_eq!(attempts.records()[1].start().fence(), successor.fence());
+    assert_eq!(
+        attempts.records()[1].status(),
+        stateknot_core::NodeAttemptStatus::Succeeded
+    );
+    assert_eq!(
+        store.release_lease(successor.fence()).await.unwrap(),
+        LeaseReleaseOutcome::Released
+    );
     store.close().await;
 }
 

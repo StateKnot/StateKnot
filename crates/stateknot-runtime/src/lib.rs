@@ -85,12 +85,12 @@ pub use invocation_executor::{
     ModelAttemptExecutionError, ModelAttemptHandoff, ModelAttemptOutcome, ModelAttemptTerminalKind,
     ModelEventSink, ModelEventSinkError, ModelTerminalCommitError, ModelTerminalCommitHandoff,
     SystemInvocationClock, ToolAttemptExecutionError, ToolAttemptHandoff, ToolAttemptOutcome,
-    ToolAttemptTerminalKind, ToolReconciliationAttemptExecutionError,
-    ToolReconciliationAttemptHandoff, ToolReconciliationAttemptHandoffError,
-    ToolReconciliationAttemptOutcome, ToolReconciliationCommitError,
-    ToolReconciliationCommitFailure, ToolReconciliationHandoff, ToolReconciliationHandoffError,
-    ToolReconciliationKind, ToolReconciliationOutcome, ToolTerminalCommitError,
-    ToolTerminalCommitHandoff,
+    ToolAttemptStartOutcome, ToolAttemptTerminalKind, ToolDispatchHandoff,
+    ToolReconciliationAttemptExecutionError, ToolReconciliationAttemptHandoff,
+    ToolReconciliationAttemptHandoffError, ToolReconciliationAttemptOutcome,
+    ToolReconciliationCommitError, ToolReconciliationCommitFailure, ToolReconciliationHandoff,
+    ToolReconciliationHandoffError, ToolReconciliationKind, ToolReconciliationOutcome,
+    ToolTerminalCommitError, ToolTerminalCommitHandoff,
 };
 pub use invocation_schema::{
     STANDARD_INVOCATION_EXECUTION_EVENT_SCHEMA_ID, StandardInvocationExecutionSchemaError,
@@ -140,6 +140,7 @@ pub use registry::{
     ExecutableGraph, ExecutableGraphRegistry, ExecutableGraphRegistryBuilder,
     ExecutableGraphRegistryError, GraphNodeContext, GraphNodeContextError, GraphNodeExecution,
     GraphNodeExecutionError, GraphNodeExecutionErrorBuildError, GraphNodeExecutor,
+    GraphNodeScheduling,
 };
 pub use schema::{
     JsonSchemaRegistry, JsonSchemaRegistryBuilder, JsonSchemaRegistryError,

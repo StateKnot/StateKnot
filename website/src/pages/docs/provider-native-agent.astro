@@ -16,11 +16,19 @@ const compileCode = `let definition = ProviderNativeAgentGraph::compile(
 
 definition.register_schema(&mut schemas)?;
 register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
+
+const parallelToolCode = `let execution = AgentExecutionConfig::new(
+    AgentStructuredOutputStrategy::ModelNative,
+    max_model_turns,
+    ExecutionCount::ZERO,
+    max_tool_calls_per_turn,
+    AgentToolConcurrency::parallel_read_only(ExecutionCount::new(8)),
+)?;`;
 ---
 
 <DocsLayout
   title="Run the provider-native model/tool graph."
-  description="Compile one digest-pinned Agent composition, execute sequential model/tool turns from durable evidence, and confirm cancellation without inventing usage."
+  description="Compile one digest-pinned Agent composition, execute ordered bounded-parallel model/tool turns from durable evidence, and confirm cancellation without inventing usage."
   section="Provider-native Agent"
 >
   <aside
@@ -32,8 +40,9 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
       The prebuilt graph, local policy boundary, exact invocation accounting,
       multi-turn transcript assembly, durable cancellation observation, and
       lifecycle confirmation are implemented. The crate remains unpublished;
-      parallel tools and output repair have not shipped. <a
-        href="/docs/agent-service/">AgentService v1</a
+      bounded read-only Tool concurrency is implemented, while parallel writes
+      and output repair have not shipped. <a href="/docs/agent-service/"
+        >AgentService v1</a
       > now exposes this definition through an embedding boundary, and the <a
         href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a
       > plus <a href="/docs/a2a-client/">A2A Remote Agent profile</a> supply client-side
@@ -153,6 +162,42 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
     </p>
   </section>
 
+  <section aria-labelledby="provider-native-parallel-title">
+    <h2 id="provider-native-parallel-title">
+      Parallelize reads; make every write a barrier
+    </h2>
+    <p>
+      <code>parallel_read_only</code> groups contiguous Tools whose immutable descriptor
+      risk is <code>ReadOnly</code>, up to the configured bound. Policy,
+      arguments, preparation, and physical starts remain serialized in provider
+      proposal order. Only provider I/O overlaps. Terminal evidence is buffered
+      and committed in that same order, so completion timing cannot reorder the
+      Journal or next model Transcript.
+    </p>
+    <p>
+      Every write runs alone after earlier reads settle, and later reads wait
+      for its terminal fact. Cancellation aborts child provider tasks instead of
+      detaching them; committed starts remain visible to fenced recovery. Choose
+      the bound from real provider quotas and connection capacity.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · bounded read-only Tool I/O</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="provider-native-parallel-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="provider-native-parallel-code"
+        tabindex="0"><code>{parallelToolCode}</code></pre>
+    </div>
+  </section>
+
   <section aria-labelledby="provider-native-cancel-title">
     <h2 id="provider-native-cancel-title">
       Treat cancellation as two durable facts
@@ -221,9 +266,10 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
     <p>
       The focused cases cover multi-turn recovery without model redispatch,
       stale-fence policy races, known failed Tools, Unknown → Pending →
-      committed reconciliation with one business call, exact-usage cancellation,
-      pre-dispatch cancellation, and evidence-unavailable fail-closed behavior
-      on both supported PostgreSQL majors.
+      committed reconciliation with one business call, bounded read-only overlap
+      with an ordered write barrier, exact-usage cancellation, pre-dispatch
+      cancellation, and evidence-unavailable fail-closed behavior on both
+      supported PostgreSQL majors.
     </p>
   </section>
 
@@ -233,8 +279,10 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
     </h2>
     <ul>
       <li>
-        Sequential Tool execution is implemented; parallel Tool and Graph
-        sibling ordering is not.
+        Sequential and bounded parallel read-only Tool execution are
+        implemented; every write is intentionally serialized. Journal-isolated
+        Graph sibling ordering is also implemented behind an explicit trusted
+        executor contract.
       </li>
       <li>
         Model-native structured output is implemented; output repair and

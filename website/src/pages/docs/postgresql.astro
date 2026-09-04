@@ -206,13 +206,14 @@ store.health_check().await?;</code></pre>
     <h2 id="qualification-title">Qualification and current limits</h2>
     <p>
       CI runs the mandatory integration suite independently against PostgreSQL
-      16 and 17: 104 provider cases, 29 durable Runtime scenarios, plus the
+      16 and 17: 104 provider cases, 32 durable Runtime scenarios, plus the
       five-case artifact-store suite per version. The suite covers migrations,
       lost acknowledgements, fencing, corruption rejection, concurrency,
       rollback injection, outbox recovery, durable waits, quarantine, immutable
       graph registration/recovery, ready-node planning, delayed-retry
       scheduling, lifecycle commits, durable model/tool execution, fairness
-      reservations and retention, atomic Agent admission, durable
+      reservations and retention, canonical parallel sibling commits, ordered
+      read-only Tool waves with write barriers, atomic Agent admission, durable
       ingress-key/run-result verification, and weighted cross-tenant Agent Loop
       execution. Artifact evidence adds populated migration 17→18, schema
       refusal, immutable registration, private object publication,

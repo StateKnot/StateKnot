@@ -181,7 +181,7 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 104 provider integration tests, 29 durable
+The current database suite runs 104 provider integration tests, 32 durable
 Runtime tests, and the five-case artifact-store integration suite against
 PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
@@ -295,7 +295,7 @@ rejection, and atomic rollback. Migration-17 coverage adds explicit terminal
 Tool status and failed-Tool transcript recovery. Migration-18 coverage proves
 that a populated v17 database preserves its runs while installing the immutable
 artifact registry, and that startup refuses removed registry constraints. The
-104 provider tests, 29 durable Runtime tests, and artifact-store suite run
+104 provider tests, 32 durable Runtime tests, and artifact-store suite run
 independently against PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -691,10 +691,12 @@ binds runnable discovery, lease claim, Driver, and lifecycle coordination into
 one bounded Agent Loop quantum. It still requires the embedding service to
 supply trusted durable cumulative-accounting and terminal artifact evidence;
 admission itself can now be loaded from the provider, and no layer guesses
-missing values. The current Graph Driver is deliberately
-sequential within one run so exact journal serialization and recovery authority
-remain unambiguous; parallel sibling scheduling requires its own bounded
-ordering and admission policy before it can be enabled.
+missing values. The Graph Driver now overlaps only explicitly trusted
+`JournalIsolated` siblings: physical starts and terminal facts remain canonical
+`NodeId`-ordered, exclusive executors stay serial, and the effective batch is
+bounded by both process and compiled-graph policy. Side-effecting node work must
+still use an ordered durable invocation coordinator rather than bypassing the
+Journal.
 
 The current pool is a trusted server-side persistence boundary. Database
 credentials must not be distributed to untrusted workers: PostgreSQL

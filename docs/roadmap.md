@@ -278,7 +278,15 @@ from the repository.
   bounded URL/multipart ingestion. Prove no-resend completion on both A2A
   bindings, migration 17→18 preservation and schema refusal, object retry and
   tamper behavior, and the real PostgreSQL/object-store boundary.
-- [ ] Complete parallel sibling/Tool ordering, output
+- [x] Implement deterministic bounded Graph sibling overlap behind the explicit
+  `JournalIsolated` executor contract: serialize fresh starts, share one fenced
+  lease/cancellation watchdog, buffer out-of-order completion, and commit in
+  canonical `NodeId` order. Implement the staged durable Tool executor and
+  provider-native `parallel_read_only` waves so writes are barriers and model
+  transcript order remains identical to proposal order. Prove overlap,
+  reversed completion, ordered evidence, child-task cancellation, and
+  higher-fence orphan takeover on real PostgreSQL.
+- [ ] Complete output
   repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,

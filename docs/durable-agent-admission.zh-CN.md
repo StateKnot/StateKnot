@@ -200,7 +200,7 @@ Canonical Digest 重算、Wire Tamper、Size Bound 与脱敏诊断。PostgreSQL 
 - Migration 15 Upgrade、Index、Constraint 与 Tamper 检查；
 - Runtime Facade 在任何数据库写入前拒绝 Agent/Graph 与 Authorization Schema Drift。
 
-仓库目前会在每个支持的数据库版本上运行 104 个 PostgreSQL Provider Case 与 29 个耐久
+仓库目前会在每个支持的数据库版本上运行 104 个 PostgreSQL Provider Case 与 32 个耐久
 Runtime Scenario。
 
 ## 下一条公开 Agent 边界

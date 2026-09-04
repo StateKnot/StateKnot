@@ -143,9 +143,9 @@ let pinned = recovery.load_pinned_graph().await?;</code></pre>
       Successor Checkpoint Intent。Runtime 现已把该 Definition 绑定到离线 Schema/Reducer/Node
       可执行闭包，并驱动耐久 Root Path。接下来阅读<a href="/zh/docs/runtime/"
         >耐久 Graph Runtime 指南</a
-      >，再阅读<a href="/zh/docs/agent-loop/">耐久 Agent Loop 指南</a>。Parallel
-      Sibling、Loop、Subgraph 与完整 Model/Tool Agent Ergonomics
-      属于后续里程碑。
+      >，再阅读<a href="/zh/docs/agent-loop/">耐久 Agent Loop 指南</a>。有界
+      Journal-isolated Sibling 已能重叠执行并保持 Canonical
+      Commit；Loop、Subgraph 与稳定 Public Agent API 属于后续里程碑。
     </p>
   </section>
 </DocsLayout>

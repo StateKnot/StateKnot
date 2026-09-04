@@ -49,7 +49,7 @@ const paths = [
   },
   {
     title: "Drive a durable Graph",
-    body: "Freeze executable schemas, reducers, and nodes; replay noninitial checkpoints; then handle each fenced Driver outcome correctly.",
+    body: "Freeze executable schemas, reducers, and nodes; replay noninitial checkpoints; then run canonical bounded sibling batches under one fence.",
     href: "/docs/runtime/",
     link: "Integrate the Driver",
   },
@@ -103,7 +103,7 @@ const paths = [
   },
   {
     title: "Run the provider-native Agent",
-    body: "Compile one pinned multi-turn model/tool graph, recover transcripts without redispatch, and confirm cancellation from exact usage evidence.",
+    body: "Compile one pinned multi-turn model/tool graph, overlap bounded read-only Tools behind write barriers, and recover transcripts without redispatch.",
     href: "/docs/provider-native-agent/",
     link: "Integrate the Agent graph",
   },
@@ -147,7 +147,8 @@ const paths = [
       run/result facade recover lost acknowledgements and verify terminal reads.
       The <a href="/docs/provider-native-agent/"
         >prebuilt provider-native Agent graph</a
-      > now adds recovered multi-turn Tools, policy, accounting, and exact cancellation.
+      > now adds recovered multi-turn Tools, bounded ordered read-only concurrency,
+      serialized write barriers, policy, accounting, and exact cancellation.
       <a href="/docs/agent-service/">AgentService v1</a> now exposes submission, verified
       reads, and cancellation as an authorization-first embedding boundary. The <a
         href="/docs/mcp-client/">general MCP Tool client</a

@@ -27,20 +27,22 @@ cargo run -p stateknot-runtime --example provider_native_agent --locked
 - Model-native JSON Schema Output；
 - 不超过 Descriptor 中有限的 `max_model_turns`；
 - 每轮不超过有限的 `max_tool_calls_per_turn`；
-- 按 Provider Proposal 顺序串行执行 Tool；
+- 支持串行 Tool，或仅对 Descriptor 声明为 Read-only 的 Tool 进行有界并行；所有 Write
+  始终串行；
 - Output Repair Turn 必须为零；
 - 每个 Checkpoint 最多保留 4,096 个紧凑 Model/Tool Invocation 引用。
 
 `ProviderNativeAgentGraph::compile` 会拒绝以 Tool Call 模拟最终输出、Repair Turn、
-并行 Tool Dispatch、过大的调用上限，以及无法装入耐久 Superstep 范围的组合。它不会
-静默降级为更弱的行为。
+过大的调用上限、非法并发边界，以及无法装入耐久 Superstep 范围的组合。它不会静默
+降级为更弱的行为。
 
 生成的 Graph 有两个稳定的可执行 Node：
 
 1. `agent.model` 从不可变 Invocation Ledger 重建完整 Provider-native Transcript，
    Prepare 或恢复一个 Model Attempt，并产生最终 Model-native Output 或提交 Tool Route。
 2. `agent.tools` 依据已 Admission 的 Descriptor 解析每个 Proposal、校验 Arguments、
-   执行固定版本 Policy，再按顺序执行或恢复 Tool，最后返回 `agent.model`。
+   执行固定版本 Policy，再通过已配置的 Ordered Pipeline 执行或恢复 Tool，最后返回
+   `agent.model`。
 
 Checkpoint 只保存组合 Digest、稳定 Input Message ID、有界 Invocation 引用与下一 Phase。
 Provider Response、Tool Result 与累计 Usage 始终保存在各自的不可变 Ledger 中。
@@ -94,6 +96,41 @@ Action Digest 与 Policy-evidence Digest；Recovery 会在任何 I/O 前重新�
 且确定性。只有真正免费的 Invocation 才能返回 `Known(KnownCosts::empty())`。无法获得
 精确价格时返回 `Unpriced`；StateKnot 会保留 Usage Evidence，并在有限 Monetary Budget
 无法继续计算时阻止下一次调用。缺失价格绝不会被转换为零成本。
+
+## 有序 Parallel Tool Wave
+
+`AgentToolConcurrency::sequential()` 保持逐个执行；
+`parallel_read_only(max_concurrency)` 把一次 Model Response 划分为最大的连续 Read-only
+Wave，并按有限并发值切分。Risk 只来自不可变、已 Admission 的 `ToolDescriptor`，绝不
+相信 Model Output 或 Provider Annotation。每个 Idempotent/Non-idempotent Write 都是一个
+Singleton Barrier：前面的 Read 全部落盘后才能启动，后面的 Read 必须等它提交 Terminal
+Fact 后才能开始。
+
+```rust,ignore
+let execution = AgentExecutionConfig::new(
+    AgentStructuredOutputStrategy::ModelNative,
+    max_model_turns,
+    ExecutionCount::ZERO,
+    max_tool_calls_per_turn,
+    AgentToolConcurrency::parallel_read_only(ExecutionCount::new(8)),
+)?;
+```
+
+并发值应依据 Provider Quota、Connection Pool Capacity 与最大已 Admission Response
+实测确定，不能直接复制示例值。
+
+每个 Read-only Wave 会先按 Provider Proposal 顺序校验 Policy/Arguments、Prepare Logical
+Invocation，并串行提交 Physical Start；只有之后 External Provider Call 才能重叠。完成
+Evidence 保留在内存，并按原 Proposal 顺序串行 Commit，因此任务完成时序不会改变 Journal
+或 Model Transcript。若后续 Launch 失败，所有已经启动的 Call 仍会先经过同一条有序
+Terminal Path，再返回 Launch Error。Cancellation 不会遗留 Detached Provider Task：
+Child Call 会随所属 Graph Node 一起 Abort，而 Durable Start 仍可由 Fenced Supervisor
+观察。
+
+该模式只并行 Provider I/O，不会削弱 Durable Start Authority、Tool Ambiguity、Schema
+Validation、Budget Accounting 或 No-redispatch Recovery。进程在 Start 后、Terminal
+Persistence 前崩溃时继续 Fail Closed：StateKnot 不会猜测丢失的 Read Result，也不会盲目
+重复 Write。
 
 ## 耐久 Dispatch 与 Recovery
 
@@ -181,6 +218,8 @@ Runtime Integration Suite 在真实 PostgreSQL 16/17 上运行 Provider-native �
   Lifecycle Success；
 - 更高 Fence 赢得 Stale Policy Race，且无重复 External Dispatch；
 - 已知失败 Tool 以正确顺序进入 Transcript，并绑定精确 Terminal Revision；
+- 两个 Read-only Call 真实重叠并乱序完成，后续 Write 形成 Barrier，下一轮 Model 仍按
+  原始 Proposal 顺序读取 Transcript；
 - Unknown Tool Outcome 返回 `Pending` 后耐久延迟，在后续 Lease 下完成解析并继续下一轮
   Model；两次 Reconciliation Probe 期间只发生一次 Business Call；
 - 已提交 Model 后 Cancellation，恢复精确 Usage，并验证 Lost-ACK Replay；
@@ -199,7 +238,7 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked
 
 ## 明确剩余门禁
 
-本里程碑尚未交付 Parallel Sibling/Tool Execution、Output Repair、Loop/Subgraph 语义、
+本里程碑尚未交付 Parallel Write、Output Repair、Loop/Subgraph 语义、
 通用 Artifact Lifecycle/Public Delivery、稳定 Network Agent/Cancellation Transport、Protocol-specific Outbox
 Dispatch、MCP/A2A Server Composition、更广 Protocol Extension、A2A Live-peer
 Reconciliation Qualification、Live-provider Drift Cassette、数据库 Role Separation、通用

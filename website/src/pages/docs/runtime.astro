@@ -33,6 +33,17 @@ let result = driver
 
 let (outcome, report) = result.into_parts();`;
 
+const parallelCode = `impl GraphNodeExecutor for ReadOnlyComputeNode {
+    fn scheduling(&self) -> GraphNodeScheduling {
+        GraphNodeScheduling::JournalIsolated
+    }
+
+    // graph(), node_id(), and execute() omitted
+}
+
+let options = DurableGraphDriverOptions::default()
+    .with_parallel_node_limit(8)?;`;
+
 const outcomes = [
   {
     term: "LifecycleBarrierReady",
@@ -76,8 +87,9 @@ const outcomes = [
       remain unpublished. Durable model/tool attempts and weighted cross-tenant
       selection now build on this path. The first OpenAI/Anthropic adapters,
       typed Agent contract, public run/result facade, and provider-native
-      multi-turn Agent graph are also implemented; parallel siblings, loops,
-      subgraphs, and stable service APIs remain release blockers.
+      multi-turn Agent graph are also implemented. Bounded journal-isolated
+      siblings now overlap with deterministic commits; loops, subgraphs, and
+      stable service APIs remain release blockers.
     </p>
   </aside>
 
@@ -183,6 +195,40 @@ const outcomes = [
     </div>
   </section>
 
+  <section aria-labelledby="parallel-title">
+    <h2 id="parallel-title">Overlap work without making timing semantic</h2>
+    <p>
+      Executors remain <code>Exclusive</code> by default. Declare <code
+        >JournalIsolated</code
+      > only when execution appends no run Journal or invocation-ledger facts and
+      its result cannot depend on sibling timing. This is a trusted deployment contract;
+      external model or Tool work belongs in an ordered durable coordinator.
+    </p>
+    <p>
+      The Driver serializes all fresh starts in canonical <code>NodeId</code> order,
+      runs the eligible batch under one lease/cancellation watchdog, buffers out-of-order
+      completion, and commits terminal facts back in the same order. The effective
+      width is bounded by process policy, compiled Graph policy, ready work, and the
+      remaining event quantum. Exclusive nodes form batch boundaries.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · explicit trusted concurrency</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="runtime-parallel-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="runtime-parallel-code"
+        tabindex="0"><code>{parallelCode}</code></pre>
+    </div>
+  </section>
+
   <section aria-labelledby="outcome-title">
     <h2 id="outcome-title">Handle every outcome explicitly</h2>
     <dl class="docs-definition-list">
@@ -216,6 +262,10 @@ const outcomes = [
         and yields only between durable operations.
       </li>
       <li>
+        Ready-node concurrency defaults to one, must be enabled explicitly, and
+        has a process hard ceiling of 64.
+      </li>
+      <li>
         The renewal interval must fit at least three times inside the provider
         lease duration. The default node deadline is 15 minutes.
       </li>
@@ -230,8 +280,8 @@ const outcomes = [
     </ul>
     <p>
       Monitor replay counts and retained bytes, attempt starts and completions,
-      Continue barriers, lease renewals, and mutation retries through
-      <code>GraphDriveReport</code>.
+      batch starts and maximum observed width, Continue barriers, lease
+      renewals, and mutation retries through <code>GraphDriveReport</code>.
     </p>
   </section>
 
@@ -280,17 +330,19 @@ const outcomes = [
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">Qualification evidence</h2>
     <p>
-      CI runs 29 Runtime scenarios on PostgreSQL 16 and 17. Six retain the
-      Driver recovery coverage: Continue followed by noninitial replay and
-      Terminal handoff; same-fence duplicate suppression; execution beyond the
-      original lease through renewal; near-expiry refresh before launch; invalid
-      initial-state quarantine before execution; and higher-fence takeover. Six
-      remaining cases cover atomic success/Wait/failure/cancellation lifecycle
-      commits, exact lost-ack recovery, Agent Loop cleanup, tenant and weighted
-      scheduling, durable model/tool execution and streaming, provider-native
-      multi-turn recovery, exact cancellation, atomic Agent admission, and
-      durable run/result reads. Each database version also runs 104 provider
-      cases. See the complete <a
+      CI runs 32 Runtime scenarios on PostgreSQL 16 and 17. Eight retain the
+      Driver recovery/ordering coverage: Continue followed by noninitial replay
+      and Terminal handoff; same-fence duplicate suppression; execution beyond
+      the original lease through renewal; near-expiry refresh before launch;
+      invalid initial-state quarantine before execution; higher-fence takeover;
+      three siblings that complete in reverse order but commit canonically; and
+      a higher-fence takeover of an orphaned parallel member. Remaining cases
+      cover atomic success/Wait/failure/cancellation lifecycle commits, exact
+      lost-ack recovery, Agent Loop cleanup, tenant and weighted scheduling,
+      durable model/tool execution and streaming, provider-native multi-turn
+      recovery, exact cancellation, atomic Agent admission, and durable
+      run/result reads. Each database version also runs 104 provider cases. See
+      the complete <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.md"
         >integration and operations contract</a
       > before deploying this pre-alpha surface.
