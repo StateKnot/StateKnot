@@ -247,7 +247,7 @@ limit above one does not make an executor eligible by itself.
 
 ## Qualification evidence and remaining gates
 
-Thirty-two runtime scenarios run against both PostgreSQL 16 and 17. Eight retain the
+Thirty-six runtime scenarios run against both PostgreSQL 16 and 17. Eight retain the
 Driver-specific recovery coverage:
 
 1. Continue-barrier commit followed by noninitial replay and a Terminal handoff;

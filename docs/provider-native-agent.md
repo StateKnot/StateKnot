@@ -34,11 +34,13 @@ The v1 graph currently accepts exactly this subset:
 - at most the descriptor's finite `max_tool_calls_per_turn`;
 - either sequential Tool execution or bounded parallel execution for
   descriptor-declared read-only Tools, while every write remains serialized;
-- zero output-repair turns; and
-- compact checkpoint references capped at 4,096 model/tool invocation IDs.
+- a finite `max_output_repair_turns` strictly below `max_model_turns`; and
+- compact checkpoint references capped at 4,096 Tool invocation IDs, with Model
+  invocation references bounded by the finite model-turn ceiling.
 
 `ProviderNativeAgentGraph::compile` rejects tool-call-emulated final output,
-repair turns, oversized call limits, invalid concurrency bounds, and a
+oversized call limits, invalid concurrency bounds, a conflicting reserved
+repair instruction, an instruction set with no reserved repair slot, and a
 composition that cannot fit the durable superstep range. These cases do not
 silently fall back to weaker behavior.
 
@@ -126,7 +128,7 @@ do not start until it commits a terminal fact.
 let execution = AgentExecutionConfig::new(
     AgentStructuredOutputStrategy::ModelNative,
     max_model_turns,
-    ExecutionCount::ZERO,
+    ExecutionCount::new(1),
     max_tool_calls_per_turn,
     AgentToolConcurrency::parallel_read_only(ExecutionCount::new(8)),
 )?;
@@ -150,6 +152,55 @@ authority, Tool ambiguity, schema validation, budget accounting, or
 no-redispatch recovery. A process crash after a start but before terminal
 persistence remains fail-closed: StateKnot never guesses a lost read result or
 blindly repeats a write.
+
+## Repair structured output from durable evidence
+
+Output repair is an explicit bounded model self-loop, not an adapter retry.
+Set `max_output_repair_turns` to the maximum number of additional paid model
+turns the run may consume. Every repair is also subject to the total model-turn,
+token, byte, cost, deadline, and lease limits.
+
+StateKnot starts a repair only for one of two exact terminal facts:
+
+- a committed `Completed` response that does not contain exactly one JSON value
+  satisfying the admitted output schema; or
+- a complete-response adapter failure in phase `Response`, with stable code
+  `response.malformed` and an exact normalized usage snapshot. This is the
+  failure shape produced when the first-party OpenAI Responses or Anthropic
+  Messages adapter can identify provider usage but cannot accept the structured
+  output. A malformed envelope without usage remains a normal fail-closed model
+  failure.
+
+The failed attempt is committed first. Its exact `committed` or `failed` model
+revision is then bound into the node result and represented in the successor
+checkpoint only by its invocation ID. The successor gets a newly generated
+logical invocation ID and physical attempt ID. After a crash, replay reloads
+the prior terminal ledger and advances to that new plan; it never redispatches
+the malformed attempt or counts it twice.
+
+Repair requests reconstruct the original input and trusted instructions, then
+append one framework-owned instruction named `stateknot.output_repair`. The
+invalid payload and provider error text are deliberately not copied into the
+prompt or the model transcript. If earlier turns called Tools, the repair request
+retains only their exact definitions and completed outcomes for transcript
+validation and provider replay. Tool selection is `none`, the call ceiling is
+zero, and strict arguments are disabled. Compilation requires explicit model
+support for the `none` choice when Tools and repair are configured; unsupported
+bindings fail before admission. It also reserves one of the 32 instruction
+slots and rejects an application instruction using that name, so a deployment
+cannot shadow the repair policy.
+
+The first-party mappings follow the providers' explicit disabled-selection
+contracts: [OpenAI Responses](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
+and [Anthropic tool selection](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools).
+Loopback adapter tests verify retained history together with `tool_choice: none`;
+the local response validator independently rejects any new Tool call.
+
+A provider Tool proposal during repair is invalid output. StateKnot does not call
+the Tool policy and does not prepare or dispatch any Tool; the proposal consumes
+the current repair turn. Once the configured allowance is consumed, execution
+fails with `runtime.agent.output_repair_exhausted` and lifecycle evidence
+reports the exact attempts and turns already charged.
 
 ## Durable dispatch and recovery
 
@@ -258,6 +309,14 @@ PostgreSQL 16 and 17. Focused scenarios cover:
 - an unknown tool outcome that returns `Pending`, is durably delayed, resolves
   under a later lease, continues the next model turn, and performs exactly one
   business call across two reconciliation probes;
+- invalid committed JSON that checkpoints a distinct bounded repair plan and
+  resumes under a new lease without redispatch, both before any Tool call and
+  after a completed Tool turn whose history remains available during repair;
+- a first-party-compatible `response.malformed` failure with exact usage that
+  is bound as a failed model revision, repaired from its checkpoint, and counted
+  as one paid turn;
+- exact repair exhaustion accounting; and
+- a repair-time Tool proposal that reaches neither policy nor Tool I/O;
 - cancellation after a committed model with exact usage and lost-ack replay;
 - cancellation before provider dispatch through `DurableAgentLoop`; and
 - fail-closed cancellation when exact evidence is unavailable.
@@ -275,9 +334,9 @@ silently skipping the suite.
 
 ## Explicit remaining gates
 
-This milestone does not ship parallel writes, output repair, loop/subgraph
-semantics, general artifact lifecycle/public delivery, stable network Agent/cancellation
-transport, protocol-specific outbox dispatch, MCP/A2A server composition,
+This milestone does not ship parallel writes, loop/subgraph semantics, general
+artifact lifecycle/public delivery, stable network Agent/cancellation transport,
+protocol-specific outbox dispatch, MCP/A2A server composition,
 broader protocol extensions, A2A live-peer reconciliation qualification,
 live-provider drift cassettes, role-separated database procedures, general
 retention, failover/restore qualification, or a production release.

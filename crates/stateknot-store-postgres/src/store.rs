@@ -214,6 +214,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0018_artifact_registry.sql")),
             false,
         ),
+        Migration::new(
+            19,
+            Cow::Borrowed("terminal model failure bindings"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0019_terminal_model_failure_bindings.sql"
+            )),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -603,6 +612,8 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
        WHERE conrelid = to_regclass('stateknot.pending_node_result_model_bindings')
          AND conname = 'pending_node_result_model_bindings_status_valid'
          AND convalidated
+         AND pg_get_constraintdef(oid) LIKE '%''committed''%'
+         AND pg_get_constraintdef(oid) LIKE '%''failed''%'
    )
    AND EXISTS (
        SELECT 1 FROM pg_catalog.pg_constraint
@@ -1624,7 +1635,7 @@ SELECT EXISTS (
       AND base_checkpoint_id = $3
       AND base_superstep = $4
       AND base_checkpoint_digest = $5
-      AND current_status <> 'committed'
+      AND current_status NOT IN ('committed', 'failed')
 )
 ";
 

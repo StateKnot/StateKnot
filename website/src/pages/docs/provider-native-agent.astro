@@ -20,7 +20,7 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
 const parallelToolCode = `let execution = AgentExecutionConfig::new(
     AgentStructuredOutputStrategy::ModelNative,
     max_model_turns,
-    ExecutionCount::ZERO,
+    ExecutionCount::new(1),
     max_tool_calls_per_turn,
     AgentToolConcurrency::parallel_read_only(ExecutionCount::new(8)),
 )?;`;
@@ -41,9 +41,9 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
       multi-turn transcript assembly, durable cancellation observation, and
       lifecycle confirmation are implemented. The crate remains unpublished;
       bounded read-only Tool concurrency is implemented, while parallel writes
-      and output repair have not shipped. <a href="/docs/agent-service/"
-        >AgentService v1</a
-      > now exposes this definition through an embedding boundary, and the <a
+      remain serialized and bounded durable structured-output repair is
+      implemented. <a href="/docs/agent-service/">AgentService v1</a> now exposes
+      this definition through an embedding boundary, and the <a
         href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a
       > plus <a href="/docs/a2a-client/">A2A Remote Agent profile</a> supply client-side
       Tool adapters. Stable network transport, broader protocol extensions, and production
@@ -162,6 +162,32 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
     </p>
   </section>
 
+  <section aria-labelledby="provider-native-repair-title">
+    <h2 id="provider-native-repair-title">
+      Repair structured output from durable evidence
+    </h2>
+    <p>
+      Configure a finite <code>max_output_repair_turns</code> below the total model-turn
+      ceiling. A committed schema-invalid response, or a response-phase <code
+        >response.malformed</code
+      > adapter failure with exact usage, is bound to the node result before a distinct
+      repair invocation and attempt are generated. A crash reloads that terminal ledger
+      fact and never dispatches the malformed attempt again.
+    </p>
+    <p>
+      The fresh request retains the original input and trusted instructions,
+      then appends the reserved framework instruction <code
+        >stateknot.output_repair</code
+      >. Invalid payloads and provider error text are not copied into the prompt
+      or Transcript. Completed Tool history retains its exact definitions and
+      results; selection is <code>none</code> with zero allowed calls. Models must
+      explicitly support this choice when Tools and repair are configured. Repair-time
+      Tool proposals reach neither policy nor Tool I/O. Exhaustion fails with
+      <code>runtime.agent.output_repair_exhausted</code> and exact charged-turn evidence;
+      malformed envelopes without usage remain fail closed.
+    </p>
+  </section>
+
   <section aria-labelledby="provider-native-parallel-title">
     <h2 id="provider-native-parallel-title">
       Parallelize reads; make every write a barrier
@@ -267,9 +293,11 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
       The focused cases cover multi-turn recovery without model redispatch,
       stale-fence policy races, known failed Tools, Unknown → Pending →
       committed reconciliation with one business call, bounded read-only overlap
-      with an ordered write barrier, exact-usage cancellation, pre-dispatch
-      cancellation, and evidence-unavailable fail-closed behavior on both
-      supported PostgreSQL majors.
+      with an ordered write barrier, committed and adapter-failed output repair
+      across a new lease, exact repair exhaustion, repair-time Tool rejection,
+      exact-usage cancellation, pre-dispatch cancellation, and
+      evidence-unavailable fail-closed behavior on both supported PostgreSQL
+      majors.
     </p>
   </section>
 
@@ -285,8 +313,8 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
         executor contract.
       </li>
       <li>
-        Model-native structured output is implemented; output repair and
-        Tool-call-emulated final output are rejected.
+        Model-native structured output and bounded durable repair are
+        implemented; Tool-call-emulated final output is rejected.
       </li>
       <li>
         Exact cancellation confirmation and the AgentService v1 embedding

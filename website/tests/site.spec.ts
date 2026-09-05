@@ -521,6 +521,12 @@ test("provider-native tutorial exposes recovery and cancellation boundaries", as
   await expect(
     page.getByRole("heading", {
       level: 2,
+      name: "Repair structured output from durable evidence",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
       name: "Parallelize reads; make every write a barrier",
     }),
   ).toBeVisible();

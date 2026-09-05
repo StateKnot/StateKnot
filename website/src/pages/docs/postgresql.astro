@@ -183,6 +183,26 @@ store.health_check().await?;</code></pre>
     </p>
   </section>
 
+  <section aria-labelledby="terminal-model-binding-title">
+    <h2 id="terminal-model-binding-title">
+      Bind known model failures without weakening the barrier
+    </h2>
+    <p>
+      Migration 19 lets a pending node result bind an exact terminal Model
+      revision whose status is <code>committed</code> or <code>failed</code>.
+      The composite foreign key still pins tenant, run, invocation, revision,
+      digest, status, and Journal anchor. Prepared and executing revisions
+      remain ineligible and continue to block Checkpoint advancement.
+    </p>
+    <p>
+      The Provider-native Graph uses this only for deterministic bounded output
+      repair: a response-phase <code>response.malformed</code> failure must include
+      exact Usage before it may become consumed evidence. The PostgreSQL 16/17 matrix
+      covers a populated v18→v19 upgrade, legacy-constraint refusal, failed-binding
+      reload, and successor-barrier commit.
+    </p>
+  </section>
+
   <section aria-labelledby="permissions-title">
     <h2 id="permissions-title">Separate database roles</h2>
     <p>
@@ -206,8 +226,8 @@ store.health_check().await?;</code></pre>
     <h2 id="qualification-title">Qualification and current limits</h2>
     <p>
       CI runs the mandatory integration suite independently against PostgreSQL
-      16 and 17: 104 provider cases, 32 durable Runtime scenarios, plus the
-      five-case artifact-store suite per version. The suite covers migrations,
+      16 and 17: 106 provider cases, 36 durable Runtime scenarios, plus the
+      seven-case artifact-store suite per version. The suite covers migrations,
       lost acknowledgements, fencing, corruption rejection, concurrency,
       rollback injection, outbox recovery, durable waits, quarantine, immutable
       graph registration/recovery, ready-node planning, delayed-retry
@@ -215,8 +235,10 @@ store.health_check().await?;</code></pre>
       reservations and retention, canonical parallel sibling commits, ordered
       read-only Tool waves with write barriers, atomic Agent admission, durable
       ingress-key/run-result verification, and weighted cross-tenant Agent Loop
-      execution. Artifact evidence adds populated migration 17→18, schema
-      refusal, immutable registration, private object publication,
+      execution. Model binding evidence adds populated migration 18→19,
+      committed-only constraint refusal, exact failed-revision recovery, and
+      successor-barrier release. Artifact evidence adds populated migration
+      17→18, schema refusal, immutable registration, private object publication,
       authorization-first lookup, multipart ingestion, and complete digest
       verification.
     </p>

@@ -20,7 +20,7 @@ register_standard_agent_cancellation_event_schema(&mut schemas)?;`;
 const parallelToolCode = `let execution = AgentExecutionConfig::new(
     AgentStructuredOutputStrategy::ModelNative,
     max_model_turns,
-    ExecutionCount::ZERO,
+    ExecutionCount::new(1),
     max_tool_calls_per_turn,
     AgentToolConcurrency::parallel_read_only(ExecutionCount::new(8)),
 )?;`;
@@ -41,8 +41,8 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
       预置 Graph、本地 Policy 边界、精确 Invocation Accounting、多轮 Transcript
       Assembly、耐久 Cancellation Observation 与 Lifecycle Confirmation
       已实现。Crate 尚未发布；有界 Read-only Tool 并发已经实现，Parallel Write
-      与 Output Repair 尚未交付。<a href="/zh/docs/agent-service/"
-        >AgentService v1</a
+      保持串行，并且有界耐久 Structured-output Repair 已实现。<a
+        href="/zh/docs/agent-service/">AgentService v1</a
       > 已通过嵌入式边界暴露该 Definition，<a href="/zh/docs/mcp-remote-tool/"
         >严格 MCP Remote Tool Profile</a
       > 与 <a href="/zh/docs/a2a-client/">A2A Remote Agent Profile</a> 已提供 Client-side
@@ -157,6 +157,29 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
     </p>
   </section>
 
+  <section aria-labelledby="provider-native-repair-title">
+    <h2 id="provider-native-repair-title">从耐久证据修复 Structured Output</h2>
+    <p>
+      将有限的 <code>max_output_repair_turns</code> 配置在总 Model-turn Ceiling 之下。已提交但不符合
+      Schema 的 Response，或带精确 Usage、发生在 Response Phase 的 <code
+        >response.malformed</code
+      > Adapter Failure，会先绑定进 Node Result，再生成不同的 Repair Invocation 与
+      Attempt。Crash 后会加载该 Terminal Ledger Fact，绝不会重新 Dispatch 已损坏的
+      Attempt。
+    </p>
+    <p>
+      新 Request 保留原始 Input 与可信 Instruction，再附加保留的 Framework
+      Instruction <code>stateknot.output_repair</code>。无效 Payload 与 Provider
+      Error Text 不进入 Prompt 或 Transcript；已完成 Tool
+      的定义与结果会保留在历史上下文中， 同时选择 <code>none</code
+      >、调用上限设为 0。启用 Tool 与 Repair 的 Model 必须显式支持该选择。
+      Repair 期间的 Tool Proposal 不会到达 Policy 或 Tool I/O。达到上限后以 <code
+        >runtime.agent.output_repair_exhausted</code
+      >
+      失败并保留精确计费 Turn；缺少 Usage 的损坏 Envelope 继续 Fail Closed。
+    </p>
+  </section>
+
   <section aria-labelledby="provider-native-parallel-title">
     <h2 id="provider-native-parallel-title">
       并行 Read，让每个 Write 成为 Barrier
@@ -261,8 +284,10 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
       Focused Case 在两个受支持 PostgreSQL Major 上覆盖：多轮 Recovery 不重复
       Model Dispatch、Stale-fence Policy Race、已知失败 Tool、一次 Business Call
       的 Unknown → Pending → Committed Reconciliation、有界 Read-only Overlap
-      与有序 Write Barrier、精确 Usage Cancellation、 Pre-dispatch
-      Cancellation，以及 Evidence-unavailable 的 Fail-closed 行为。
+      与有序 Write Barrier、跨新 Lease 的已提交/Adapter-failed Output
+      Repair、精确 Repair Exhaustion、Repair-time Tool Rejection、精确 Usage
+      Cancellation、 Pre-dispatch Cancellation，以及 Evidence-unavailable 的
+      Fail-closed 行为。
     </p>
   </section>
 
@@ -275,7 +300,7 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
         Sibling Ordering 也已实现。
       </li>
       <li>
-        已实现 Model-native Structured Output；Output Repair 与
+        已实现 Model-native Structured Output 与有界耐久 Repair；
         Tool-call-emulated Final Output 会被拒绝。
       </li>
       <li>

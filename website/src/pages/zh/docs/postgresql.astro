@@ -166,6 +166,25 @@ store.health_check().await?;</code></pre>
     </p>
   </section>
 
+  <section aria-labelledby="terminal-model-binding-title">
+    <h2 id="terminal-model-binding-title">
+      绑定已知 Model Failure，但不削弱 Barrier
+    </h2>
+    <p>
+      Migration 19 允许 Pending Node Result 绑定状态为 <code>committed</code> 或
+      <code>failed</code> 的精确 Terminal Model Revision。Composite Foreign Key 仍固定
+      Tenant、Run、Invocation、Revision、Digest、Status 与 Journal Anchor； Prepared/Executing
+      Revision 仍不可绑定，并继续阻塞 Checkpoint 推进。
+    </p>
+    <p>
+      Provider-native Graph 只把它用于确定性、有界 Output Repair：Response Phase
+      的
+      <code>response.malformed</code> Failure 必须携带精确 Usage，才能成为已消费 Evidence。PostgreSQL
+      16/17 Matrix 会验证已填充 v18→v19 Upgrade、Legacy Constraint 拒绝、Failed-binding
+      Reload 与 Successor Barrier Commit。
+    </p>
+  </section>
+
   <section aria-labelledby="permissions-title">
     <h2 id="permissions-title">分离数据库角色</h2>
     <p>
@@ -186,15 +205,17 @@ store.health_check().await?;</code></pre>
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证范围与当前限制</h2>
     <p>
-      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 104 个
-      Provider Case、32 个耐久 Runtime 场景与 5 个 Artifact-store
+      CI 会分别在 PostgreSQL 16 与 17 上执行强制集成测试：每个版本包含 106 个
+      Provider Case、36 个耐久 Runtime 场景与 7 个 Artifact-store
       Case，覆盖迁移、Lost ACK、Fencing、损坏拒绝、并发、Rollback
       Injection、Outbox Recovery、Durable Wait、Quarantine、不可变 Graph
       Registration/Recovery、Ready-node Planning 与延迟重试调度、Lifecycle
       Commit、耐久 Model/Tool 执行、Fairness Reservation / Retention、原子 Agent
       Admission、Canonical Parallel Sibling Commit、有序 Read-only Tool Wave 与
       Write Barrier、耐久 Ingress-key/Run-result 校验和加权 Cross-tenant Agent
-      Loop 执行。Artifact Evidence 还覆盖已填充的 Migration 17→18、Schema
+      Loop 执行。Model Binding Evidence 还覆盖已填充的 Migration 18→19、
+      Committed-only Constraint 拒绝、精确 Failed-revision Recovery 与 Successor
+      Barrier Release。Artifact Evidence 还覆盖已填充的 Migration 17→18、Schema
       Refusal、不可变 Registration、私有 Object Publication、
       Authorization-first Lookup、Multipart Ingestion 与完整 Digest 校验。
     </p>

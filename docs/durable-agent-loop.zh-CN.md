@@ -212,7 +212,7 @@ Deadline 必须能放进保留的 Handoff Lease；超时后应释放所有权，
 
 ## 验证证据与剩余门禁
 
-三十二个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
+三十六个 Runtime Integration Scenario 会分别在 PostgreSQL 16 与 17 上运行，覆盖 Lifecycle
 Success/Wait/Failure/Cancellation 原子性与精确 Lost-ACK Replay、数据库时间 Wait
 Materialization、Agent Loop 成功与 Evidence Failure、Tenant 与加权 Cross-tenant Scheduling、
 耐久 Model/Tool Attempt 与 Streaming、Provider-native 多轮 Recovery、Noninitial Replay、

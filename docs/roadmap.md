@@ -286,8 +286,14 @@ from the repository.
   transcript order remains identical to proposal order. Prove overlap,
   reversed completion, ordered evidence, child-task cancellation, and
   higher-fence orphan takeover on real PostgreSQL.
-- [ ] Complete output
-  repair, loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
+- [x] Implement bounded durable model-native output repair with a reserved,
+  framework-owned instruction; distinct logical/physical attempt identities;
+  exact `committed`/`failed` model bindings through PostgreSQL migration 19;
+  crash-safe replay without redispatch; exact usage and exhaustion evidence;
+  and fail-closed repair-time Tool proposals. Qualify committed schema failures
+  and first-party-compatible response-phase `response.malformed` failures on
+  PostgreSQL 16 and 17.
+- [ ] Complete loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,
   A2A gRPC, role isolation, general retention,

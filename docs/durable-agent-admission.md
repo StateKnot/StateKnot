@@ -228,7 +228,7 @@ adds:
 - runtime-facade rejection of Agent/Graph and authorization-schema drift before
   any database write.
 
-The repository currently runs 104 PostgreSQL provider cases and 32 durable
+The repository currently runs 106 PostgreSQL provider cases and 36 durable
 runtime scenarios on each supported database version.
 
 ## Next public Agent boundary

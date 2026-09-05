@@ -181,8 +181,8 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 104 provider integration tests, 32 durable
-Runtime tests, and the five-case artifact-store integration suite against
+The current database suite runs 106 provider integration tests, 36 durable
+Runtime tests, and the seven-case artifact-store integration suite against
 PostgreSQL 16 and 17.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v15 without guessed projection or physical-attempt provenance, real v3
@@ -294,8 +294,11 @@ durable ingress-key convergence/conflicts, raw-key non-persistence, tamper
 rejection, and atomic rollback. Migration-17 coverage adds explicit terminal
 Tool status and failed-Tool transcript recovery. Migration-18 coverage proves
 that a populated v17 database preserves its runs while installing the immutable
-artifact registry, and that startup refuses removed registry constraints. The
-104 provider tests, 32 durable Runtime tests, and artifact-store suite run
+artifact registry, and that startup refuses removed registry constraints.
+Migration-19 coverage preserves a populated v18 database, admits exact
+known-failed Model bindings, releases their checkpoint barrier, and refuses the
+legacy committed-only constraint. The 106 provider tests, 36 durable Runtime
+tests, and artifact-store suite run
 independently against PostgreSQL 16 and PostgreSQL 17.
 
 To run the database suite manually, point it at a disposable PostgreSQL instance:
@@ -654,9 +657,9 @@ rederive the logical submission digest and revalidate the selected admission.
 A populated v15 upgrade, 24-way convergence, raw-key non-persistence, injected
 late rollback, and mapping tamper detection run on PostgreSQL 16 and 17.
 
-Migration 17 makes terminal invocation status explicit in pending node-result
-bindings. Model bindings remain committed-only; Tool bindings accept the exact
-terminal `committed` or `failed` revision. Composite foreign keys include the
+Migration 17 made terminal invocation status explicit in pending node-result
+bindings. It initially kept Model bindings committed-only while Tool bindings
+accepted the exact terminal `committed` or `failed` revision. Composite foreign keys include the
 status, record digest, journal sequence/time/digest, invocation identity, and
 revision, so a known deterministic Tool failure can enter the next
 provider-native transcript without being mislabeled as success or detached from
@@ -677,6 +680,25 @@ existing run, while schema verification refuses a removed critical constraint.
 The artifact-store suite additionally proves conditional object publication,
 full digest verification, authorization-before-lookup, and an actual object plus
 PostgreSQL registry round trip.
+
+Migration 19 changes the Model-binding status guard from committed-only to the
+exact terminal set `committed` or `failed`. The composite foreign key continues
+to bind tenant, run, invocation identity, revision, record digest, status, and
+Journal anchor to the immutable Model revision. Prepared and executing calls
+still block Checkpoint advancement. Node code consumes a known failed Model
+outcome by explicitly binding that exact terminal evidence; the
+Provider-native Graph uses this for bounded Structured Output Repair after a
+response-phase `response.malformed` error with exact Usage. Fresh installation,
+populated v18 upgrade, legacy-constraint refusal, failed-binding recovery, and
+Checkpoint release run on PostgreSQL 16 and 17.
+
+For rollout, stop workers, take a consistent database backup, run the migration
+with the migration role, and start the new workers only after schema verification
+succeeds. Existing zero-repair graph identities and checkpoint bytes remain
+unchanged. Do not restart a v18 binary against a v19 database: older binaries
+cannot validate the new migration set or consume failed Model bindings. After
+such bindings are written, rollback requires a consistent pre-upgrade database
+restore; prefer a forward fix to preserve newly committed work.
 
 ## Not yet implemented
 

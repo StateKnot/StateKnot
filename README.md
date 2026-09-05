@@ -163,7 +163,7 @@ and no-dispatch terminal recovery.
 Migration 14 and `DurableFairScheduler` add an immutable shard-scoped smooth
 weighted policy, globally ordered lost-ACK-safe reservations, exact cycle
 shares, explicit reservation-count starvation bounds, and bounded
-database-time retention. Thirty-two runtime scenarios and 104 provider cases are
+database-time retention. Thirty-six runtime scenarios and 106 provider cases are
 mandatory on both PostgreSQL 16 and 17.
 The repository now also includes a schema-pinned typed Agent contract plus
 first-party OpenAI Responses and Anthropic Messages unary/SSE adapters with
@@ -180,9 +180,13 @@ The prebuilt `ProviderNativeAgentGraph` now composes sequential or bounded
 parallel read-only multi-turn model/tool execution, serialized write barriers,
 provider-native transcript reconstruction, digest-pinned local policy, exact
 deterministic accounting, no-redispatch recovery, known failed-Tool
-continuation, and two-phase cancellation confirmation over those durable
-layers. Migration 17 binds pending Tool results to their exact
-`committed` or `failed` terminal revision instead of fabricating success.
+continuation, bounded durable structured-output repair, and two-phase
+cancellation confirmation over those durable layers. Migration 17 binds pending
+Tool results to their exact `committed` or `failed` terminal revision instead
+of fabricating success. Migration 19 extends the same exact binding to known
+failed Model revisions, allowing a first-party adapter's response-phase
+`response.malformed` evidence with exact usage to survive checkpoint recovery
+without redispatch.
 `AgentServiceV1` now adds an exact-version, authorization-first embedding
 boundary for tenant-scoped submission recovery, verified run/key reads, and
 caller-retained two-phase cancellation identities. Its control event records
@@ -263,7 +267,7 @@ fenced, atomic, and exactly idempotent on PostgreSQL 16 and 17. The runtime
 PostgreSQL suite separately proves the authoritative error branch.
 Stable network Agent/cancellation transport, production protocol-specific
 outbox dispatch adapters, A2A Client live-peer/conformance and reconciliation
-attestation qualification, A2A gRPC, output repair, loops/subgraphs, role isolation, general
+attestation qualification, A2A gRPC, loops/subgraphs, role isolation, general
 retention, failover, restore, and the final stale-race gates have not shipped
 yet.
 

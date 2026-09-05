@@ -9,27 +9,29 @@
 //! continuation. This keeps checkpoint size bounded and prevents a crashed node
 //! from redispatching an external call whose durable start already committed.
 
-use std::{fmt, sync::Arc};
+use std::{collections::BTreeSet, fmt, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use stateknot_core::{
-    AgentArtifacts, AgentDescriptor, AgentStructuredOutputStrategy, AgentToolConcurrency,
-    AttemptId, BoundedJson, BoxFuture, BudgetUsage, ByteCount, CapabilityIdentity, Checkpoint,
-    CheckpointState, CompiledGraph, ContentMetadata, ContentPart, ContentSource, Digest,
-    DurationMillis, EventId, ExecutionCount, Failure, FailureCategory, FailureCode, FailureId,
-    FailureMessage, FailureOrigin, GraphCompileError, GraphExecutionLimits, GraphNode,
-    GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference,
-    GraphRoute, GraphRoutes, InvocationId, JournalAppend, JournalEventIntent, JournalEventKind,
-    JournalExpectation, JournalPayload, JsonContent, KnownCosts, Message, MessageId, MessageParts,
-    MessageProducer, MessageProvenance, MessageRole, ModelFinishReason, ModelInvocation,
-    ModelInvocationIntent, ModelInvocationState, ModelOutputItem, ModelRequest, ModelRequestLimits,
-    ModelTextOutputFormat, ModelToolCallProposal, ModelToolOutcome, ModelToolSelection,
-    ModelTranscript, ModelTranscriptTurn, NodeActivation, NodeControl, NodeId,
-    NodeInvocationBinding, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
-    NodeTerminalOutput, ReadyNodes, RetryAdvice, RouteId, SchemaId, SchemaReference, SecurityLabel,
-    Superstep, TokenCount, ToolInput, ToolInvocation, ToolInvocationIntent, ToolInvocationState,
+    AgentArtifacts, AgentDescriptor, AgentInstructions, AgentStructuredOutputStrategy,
+    AgentToolConcurrency, AttemptId, BoundedJson, BoxFuture, BudgetUsage, ByteCount,
+    CapabilityIdentity, Checkpoint, CheckpointState, CompiledGraph, ContentMetadata, ContentPart,
+    ContentSource, ContentTrust, Digest, DurationMillis, EventId, ExecutionCount, Failure,
+    FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin, GraphCompileError,
+    GraphExecutionLimits, GraphNode, GraphReducer, GraphReducerError, GraphReducerInput,
+    GraphReducerReference, GraphReference, GraphRoute, GraphRoutes, Instruction,
+    InstructionIdentity, InstructionName, InstructionProvenance, InvocationId, JournalAppend,
+    JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload, JsonContent,
+    KnownCosts, Message, MessageId, MessageParts, MessageProducer, MessageProvenance, MessageRole,
+    ModelError, ModelErrorPhase, ModelFinishReason, ModelInvocation, ModelInvocationIntent,
+    ModelInvocationState, ModelOutputItem, ModelRequest, ModelRequestLimits, ModelTextOutputFormat,
+    ModelToolCallProposal, ModelToolChoice, ModelToolOutcome, ModelToolSelection, ModelTranscript,
+    ModelTranscriptTurn, NodeActivation, NodeControl, NodeId, NodeInvocationBinding,
+    NodeInvocationBindings, NodeStateChange, NodeStateUpdate, NodeTerminalOutput, ReadyNodes,
+    RedactionState, RetryAdvice, RouteId, SchemaId, SchemaReference, SecurityLabel, Superstep,
+    TextContent, TokenCount, ToolInput, ToolInvocation, ToolInvocationIntent, ToolInvocationState,
     ToolRisk, Version,
 };
 use stateknot_store_postgres::{NodeAttemptHistoryPageSize, PostgresStore, StoreError};
@@ -50,6 +52,8 @@ use crate::{
 
 const IMPLEMENTATION_VERSION: &str = "stateknot.provider-native-agent.v1";
 const MAX_CHECKPOINT_INVOCATION_REFERENCES: u64 = 4096;
+const OUTPUT_REPAIR_INSTRUCTION_NAME: &str = "stateknot.output_repair";
+const OUTPUT_REPAIR_INSTRUCTION_TEXT: &str = "A prior model attempt did not produce exactly one JSON value that satisfies the required JSON Schema. Return exactly one JSON value that conforms to the requested schema. Do not call tools. Do not include prose, Markdown, or additional content.";
 
 /// Stable model node identifier used by every v1 provider-native graph.
 pub const PROVIDER_NATIVE_MODEL_NODE_ID: &str = "agent.model";
@@ -412,7 +416,7 @@ pub struct ProviderNativeCompletedTurn {
 }
 
 impl ProviderNativeCompletedTurn {
-    /// Returns the committed model invocation for this turn.
+    /// Returns the terminal model invocation for this completed turn or repair marker.
     #[must_use]
     pub const fn model_invocation_id(&self) -> InvocationId {
         self.model_invocation_id
@@ -422,6 +426,16 @@ impl ProviderNativeCompletedTurn {
     #[must_use]
     pub fn tool_invocation_ids(&self) -> &[InvocationId] {
         &self.tool_invocation_ids
+    }
+
+    /// Returns whether this model turn is a durable output-repair marker.
+    ///
+    /// Repair markers deliberately retain no invalid model payload in the
+    /// checkpoint. The exact terminal outcome remains in the immutable model ledger
+    /// named by [`Self::model_invocation_id`].
+    #[must_use]
+    pub fn requires_output_repair(&self) -> bool {
+        self.tool_invocation_ids.is_empty()
     }
 }
 
@@ -493,6 +507,7 @@ pub struct ProviderNativeAgentGraph {
     model_node_id: NodeId,
     tools_node_id: NodeId,
     tools_route_id: RouteId,
+    output_repair_instruction: Option<Instruction>,
 }
 
 impl ProviderNativeAgentGraph {
@@ -501,10 +516,10 @@ impl ProviderNativeAgentGraph {
 
     /// Compiles the supported v1 provider-native execution subset.
     ///
-    /// V1 deliberately rejects tool-call emulated final output and repair
-    /// turns. Sequential Tools and bounded parallel read-only Tools are
-    /// supported without allowing writes or completion timing to reorder the
-    /// durable transcript.
+    /// V1 deliberately rejects tool-call emulated final output. Model-native
+    /// structured output supports finite durable repair turns. Sequential
+    /// Tools and bounded parallel read-only Tools are supported without
+    /// allowing writes or completion timing to reorder the durable transcript.
     pub fn compile(
         descriptor: AgentDescriptor,
         graph_identity: CapabilityIdentity,
@@ -515,6 +530,7 @@ impl ProviderNativeAgentGraph {
         accounting: Arc<dyn AgentInvocationAccounting>,
     ) -> Result<Self, ProviderNativeAgentGraphBuildError> {
         validate_supported_execution(&descriptor)?;
+        let output_repair_instruction = build_output_repair_instruction(&descriptor)?;
         let contract_digest = composition_digest(
             &descriptor,
             policy.reference(),
@@ -535,6 +551,7 @@ impl ProviderNativeAgentGraph {
             contract_digest,
             maximum_turns,
             maximum_calls,
+            descriptor.execution().max_output_repair_turns().get(),
         )?;
         let reducer = GraphReducerReference::new(reducer_identity, contract_digest);
         let model_node_id = NodeId::new(PROVIDER_NATIVE_MODEL_NODE_ID)
@@ -543,9 +560,17 @@ impl ProviderNativeAgentGraph {
             .map_err(|_| ProviderNativeAgentGraphBuildError::StaticDefinition)?;
         let tools_route_id = RouteId::new(PROVIDER_NATIVE_TOOLS_ROUTE_ID)
             .map_err(|_| ProviderNativeAgentGraphBuildError::StaticDefinition)?;
+        let model_continue_to = if output_repair_instruction.is_some() {
+            Some(
+                ReadyNodes::try_new([model_node_id.clone()])
+                    .map_err(|_| ProviderNativeAgentGraphBuildError::StaticDefinition)?,
+            )
+        } else {
+            None
+        };
         let model = GraphNode::new(
             model_node_id.clone(),
-            None,
+            model_continue_to,
             GraphRoutes::try_new([GraphRoute::new(
                 tools_route_id.clone(),
                 ReadyNodes::try_new([tools_node_id.clone()])
@@ -600,6 +625,7 @@ impl ProviderNativeAgentGraph {
             model_node_id,
             tools_node_id,
             tools_route_id,
+            output_repair_instruction,
         })
     }
 
@@ -804,7 +830,7 @@ impl ProviderNativeAgentLifecycleEvidence {
         let ProviderNativeAgentPhase::Model { plan } = state.phase() else {
             return Err(GraphLifecycleEvidenceError::Corrupt);
         };
-        let (transcript, prior_usage) = reconstruct_transcript(
+        let (transcript, prior_usage, output_repair_ordinal) = reconstruct_transcript(
             &self.store,
             checkpoint.tenant_id(),
             checkpoint.run_id(),
@@ -819,6 +845,7 @@ impl ProviderNativeAgentLifecycleEvidence {
             state.input_message_id(),
             transcript,
             &prior_usage,
+            output_repair_ordinal,
         )
         .map_err(evidence_node_error)?;
         let invocation = self
@@ -979,9 +1006,15 @@ pub enum ProviderNativeAgentGraphBuildError {
     /// Only model-native structured output is implemented in v1.
     #[error("provider-native agent graph requires model-native structured output")]
     StructuredOutputUnsupported,
-    /// Output repair is not yet a safe v1 graph transition.
-    #[error("provider-native agent graph v1 requires zero output-repair turns")]
-    OutputRepairUnsupported,
+    /// The Agent already occupies the framework-owned repair instruction name.
+    #[error("provider-native agent instructions use the reserved output-repair identity")]
+    OutputRepairInstructionConflict,
+    /// Adding the required repair instruction would exceed the request bound.
+    #[error("provider-native agent has no instruction capacity for output repair")]
+    OutputRepairInstructionCapacity,
+    /// Tools may occur before repair, so their history needs disabled selection.
+    #[error("output repair with Tools requires model support for tool selection none")]
+    OutputRepairToolSelectionUnsupported,
     /// One tool node cannot bind more than 256 terminal invocation revisions.
     #[error("provider-native agent graph allows at most 256 tool calls per turn")]
     ToolCallsPerTurnLimit,
@@ -1149,7 +1182,7 @@ impl ProviderNativeModelNode {
             .await
             .map_err(ProviderNativeAgentNodeError::Store)?;
         validate_admission(&stored, &self.shared.definition)?;
-        let (transcript, prior_usage) = reconstruct_transcript(
+        let (transcript, prior_usage, output_repair_ordinal) = reconstruct_transcript(
             &self.shared.store,
             context.attempt().fence().tenant_id(),
             context.attempt().fence().run_id(),
@@ -1163,6 +1196,7 @@ impl ProviderNativeModelNode {
             state.input_message_id,
             transcript,
             &prior_usage,
+            output_repair_ordinal,
         )?;
         let expected_intent = ModelInvocationIntent::new(
             context.attempt().activation().clone(),
@@ -1177,28 +1211,17 @@ impl ProviderNativeModelNode {
         let invocation = self
             .dispatch_or_recover_model(context, &plan, invocation)
             .await?;
-        let response = match invocation.state() {
-            ModelInvocationState::Committed { response } => response.clone(),
-            ModelInvocationState::Failed { error } => {
-                let usage = failed_model_usage(
-                    &invocation,
-                    error,
-                    self.shared.definition.accounting.as_ref(),
-                )?;
-                return Err(ProviderNativeAgentExecutionError::observed(
-                    ProviderNativeAgentNodeError::ModelFailed(Box::new(error.failure().clone())),
-                    usage,
-                ));
-            }
-            ModelInvocationState::Prepared | ModelInvocationState::Executing { .. } => {
-                return Err(ProviderNativeAgentNodeError::UncertainInvocation.into());
-            }
-        };
-        let usage = model_usage(
-            &invocation,
-            &response,
-            self.shared.definition.accounting.as_ref(),
-        )?;
+        let ProviderNativeTerminalModelEvidence {
+            response,
+            usage,
+            failure,
+        } = self.terminal_model_evidence(&invocation)?;
+        if let Some(failure) = failure {
+            return Err(ProviderNativeAgentExecutionError::observed(
+                ProviderNativeAgentNodeError::ModelFailed(failure),
+                usage,
+            ));
+        }
         let binding = NodeInvocationBinding::from_model(&invocation)
             .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
         let bindings = NodeInvocationBindings::try_new(context.attempt().activation(), [binding])
@@ -1211,6 +1234,61 @@ impl ProviderNativeModelNode {
             usage,
             bindings,
         })
+    }
+
+    fn terminal_model_evidence(
+        &self,
+        invocation: &ModelInvocation,
+    ) -> Result<ProviderNativeTerminalModelEvidence, ProviderNativeAgentNodeError> {
+        let evidence = match invocation.state() {
+            ModelInvocationState::Committed { response } => ProviderNativeTerminalModelEvidence {
+                response: Some(response.clone()),
+                usage: model_usage(
+                    invocation,
+                    response,
+                    self.shared.definition.accounting.as_ref(),
+                )?,
+                failure: None,
+            },
+            ModelInvocationState::Failed { error }
+                if repairable_model_output_error(error)
+                    && self
+                        .shared
+                        .definition
+                        .descriptor
+                        .execution()
+                        .max_output_repair_turns()
+                        != ExecutionCount::ZERO =>
+            {
+                ProviderNativeTerminalModelEvidence {
+                    response: None,
+                    usage: failed_model_usage(
+                        invocation,
+                        error,
+                        self.shared.definition.accounting.as_ref(),
+                        true,
+                    )?,
+                    failure: None,
+                }
+            }
+            ModelInvocationState::Failed { error } => {
+                let usage = failed_model_usage(
+                    invocation,
+                    error,
+                    self.shared.definition.accounting.as_ref(),
+                    false,
+                )?;
+                ProviderNativeTerminalModelEvidence {
+                    response: None,
+                    usage,
+                    failure: Some(Box::new(error.failure().clone())),
+                }
+            }
+            ModelInvocationState::Prepared | ModelInvocationState::Executing { .. } => {
+                return Err(ProviderNativeAgentNodeError::UncertainInvocation);
+            }
+        };
+        Ok(evidence)
     }
 
     async fn load_or_prepare_model(
@@ -1312,8 +1390,14 @@ impl ProviderNativeModelNode {
         &self,
         mut observation: ProviderNativeModelObservation,
     ) -> Result<GraphNodeExecution, ProviderNativeAgentNodeError> {
-        match observation.response.finish_reason() {
+        let Some(response) = observation.response.as_ref() else {
+            return self.output_repair_execution(observation);
+        };
+        match response.finish_reason() {
             ModelFinishReason::Completed => self.completed_model_execution(observation),
+            ModelFinishReason::ToolCalls if output_repair_active(&observation.state) => {
+                self.output_repair_execution(observation)
+            }
             ModelFinishReason::ToolCalls => {
                 let turn = observation
                     .state
@@ -1334,11 +1418,7 @@ impl ProviderNativeModelNode {
                     return Err(ProviderNativeAgentNodeError::Budget);
                 }
                 let plans = self
-                    .authorize_tool_plans(
-                        &observation.stored,
-                        &observation.plan,
-                        &observation.response,
-                    )
+                    .authorize_tool_plans(&observation.stored, &observation.plan, response)
                     .await?;
                 observation.state.phase = ProviderNativeAgentPhase::Tools {
                     model_invocation_id: observation.plan.invocation_id,
@@ -1362,11 +1442,23 @@ impl ProviderNativeModelNode {
         &self,
         observation: ProviderNativeModelObservation,
     ) -> Result<GraphNodeExecution, ProviderNativeAgentNodeError> {
-        let output = completed_json_output(&observation.response)?;
-        self.shared
-            .schemas
-            .validate_bounded(self.shared.definition.descriptor.output_schema(), &output)
-            .map_err(|_| ProviderNativeAgentNodeError::InvalidModelOutput)?;
+        let response = observation
+            .response
+            .as_ref()
+            .ok_or(ProviderNativeAgentNodeError::Integrity)?;
+        let output = match completed_json_output(response).and_then(|output| {
+            self.shared
+                .schemas
+                .validate_bounded(self.shared.definition.descriptor.output_schema(), &output)
+                .map(|()| output)
+                .map_err(|_| ProviderNativeAgentNodeError::InvalidModelOutput)
+        }) {
+            Ok(output) => output,
+            Err(ProviderNativeAgentNodeError::InvalidModelOutput) => {
+                return self.output_repair_execution(observation);
+            }
+            Err(error) => return Err(error),
+        };
         let terminal = NodeTerminalOutput::new(
             self.shared.definition.descriptor.output_schema().clone(),
             output,
@@ -1375,6 +1467,58 @@ impl ProviderNativeModelNode {
         Ok(GraphNodeExecution::new(
             NodeStateChange::Unchanged,
             NodeControl::Terminal { output: terminal },
+            observation.bindings,
+            observation.usage,
+        ))
+    }
+
+    fn output_repair_execution(
+        &self,
+        mut observation: ProviderNativeModelObservation,
+    ) -> Result<GraphNodeExecution, ProviderNativeAgentNodeError> {
+        let completed_repairs = output_repair_ordinal(&observation.state)?;
+        let maximum_repairs = self
+            .shared
+            .definition
+            .descriptor
+            .execution()
+            .max_output_repair_turns();
+        if completed_repairs >= maximum_repairs {
+            return Err(if maximum_repairs == ExecutionCount::ZERO {
+                ProviderNativeAgentNodeError::InvalidModelOutput
+            } else {
+                ProviderNativeAgentNodeError::OutputRepairExhausted
+            });
+        }
+        let completed_model_turns = u64::try_from(observation.state.completed_turns.len())
+            .map_err(|_| ProviderNativeAgentNodeError::Budget)?
+            .checked_add(1)
+            .ok_or(ProviderNativeAgentNodeError::Budget)?;
+        if completed_model_turns
+            >= self
+                .shared
+                .definition
+                .descriptor
+                .execution()
+                .max_model_turns()
+                .get()
+        {
+            return Err(ProviderNativeAgentNodeError::Budget);
+        }
+        observation
+            .state
+            .completed_turns
+            .push(ProviderNativeCompletedTurn {
+                model_invocation_id: observation.plan.invocation_id,
+                tool_invocation_ids: Vec::new(),
+            });
+        observation.state.phase = ProviderNativeAgentPhase::Model {
+            plan: ProviderNativeModelPlan::generate(),
+        };
+        let update = self.shared.definition.encode_update(&observation.state)?;
+        Ok(GraphNodeExecution::new(
+            NodeStateChange::Update { update },
+            NodeControl::Continue,
             observation.bindings,
             observation.usage,
         ))
@@ -1446,9 +1590,15 @@ struct ProviderNativeModelObservation {
     state: ProviderNativeAgentState,
     stored: stateknot_store_postgres::StoredAgentAdmission,
     plan: ProviderNativeModelPlan,
-    response: stateknot_core::ModelResponse,
+    response: Option<stateknot_core::ModelResponse>,
     usage: BudgetUsage,
     bindings: NodeInvocationBindings,
+}
+
+struct ProviderNativeTerminalModelEvidence {
+    response: Option<stateknot_core::ModelResponse>,
+    usage: BudgetUsage,
+    failure: Option<Box<Failure>>,
 }
 
 struct ProviderNativeToolsNode {
@@ -2190,23 +2340,48 @@ async fn reconstruct_transcript(
     run_id: stateknot_core::RunId,
     state: &ProviderNativeAgentState,
     definition: &ProviderNativeAgentGraph,
-) -> Result<(ModelTranscript, BudgetUsage), ProviderNativeAgentNodeError> {
+) -> Result<(ModelTranscript, BudgetUsage, ExecutionCount), ProviderNativeAgentNodeError> {
     let mut turns = Vec::with_capacity(state.completed_turns.len());
     let mut usage = BudgetUsage::zero();
+    let mut output_repair_turns = 0_u64;
     for turn in &state.completed_turns {
         let model = store
             .load_model_invocation(tenant_id, run_id, turn.model_invocation_id)
             .await
             .map_err(ProviderNativeAgentNodeError::Store)?;
-        let response = match model.state() {
-            ModelInvocationState::Committed { response }
-                if response.finish_reason() == ModelFinishReason::ToolCalls =>
-            {
-                response.clone()
-            }
-            _ => return Err(ProviderNativeAgentNodeError::Integrity),
+        if turn.requires_output_repair() {
+            let model_delta = match model.state() {
+                ModelInvocationState::Committed { response } => {
+                    let valid_repair_marker = match response.finish_reason() {
+                        ModelFinishReason::Completed => true,
+                        ModelFinishReason::ToolCalls => output_repair_turns != 0,
+                        _ => false,
+                    };
+                    if !valid_repair_marker {
+                        return Err(ProviderNativeAgentNodeError::Integrity);
+                    }
+                    model_usage(&model, response, definition.accounting.as_ref())?
+                }
+                ModelInvocationState::Failed { error } if repairable_model_output_error(error) => {
+                    failed_model_usage(&model, error, definition.accounting.as_ref(), true)?
+                }
+                _ => return Err(ProviderNativeAgentNodeError::Integrity),
+            };
+            usage = usage
+                .checked_accumulate(&model_delta)
+                .map_err(|_| ProviderNativeAgentNodeError::Budget)?;
+            output_repair_turns = output_repair_turns
+                .checked_add(1)
+                .ok_or(ProviderNativeAgentNodeError::Budget)?;
+            continue;
+        }
+        let ModelInvocationState::Committed { response } = model.state() else {
+            return Err(ProviderNativeAgentNodeError::Integrity);
         };
-        let model_delta = model_usage(&model, &response, definition.accounting.as_ref())?;
+        if output_repair_turns != 0 || response.finish_reason() != ModelFinishReason::ToolCalls {
+            return Err(ProviderNativeAgentNodeError::Integrity);
+        }
+        let model_delta = model_usage(&model, response, definition.accounting.as_ref())?;
         usage = usage
             .checked_accumulate(&model_delta)
             .map_err(|_| ProviderNativeAgentNodeError::Budget)?;
@@ -2243,13 +2418,13 @@ async fn reconstruct_transcript(
             outcomes.push(outcome);
         }
         turns.push(
-            ModelTranscriptTurn::new(response, outcomes)
+            ModelTranscriptTurn::new(response.clone(), outcomes)
                 .map_err(|_| ProviderNativeAgentNodeError::Integrity)?,
         );
     }
     let transcript =
         ModelTranscript::try_new(turns).map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
-    Ok((transcript, usage))
+    Ok((transcript, usage, ExecutionCount::new(output_repair_turns)))
 }
 
 fn validate_terminal_model_binding(
@@ -2277,7 +2452,7 @@ async fn recover_failure_usage(
     checkpoint: &Checkpoint,
     state: &ProviderNativeAgentState,
 ) -> Result<BudgetUsage, GraphLifecycleEvidenceError> {
-    let (_, usage) = reconstruct_transcript(
+    let (_, usage, _) = reconstruct_transcript(
         store,
         checkpoint.tenant_id(),
         checkpoint.run_id(),
@@ -2347,8 +2522,14 @@ async fn recover_model_phase_usage(
             if error.usage().is_none() {
                 return Err(GraphLifecycleEvidenceError::Unavailable);
             }
-            failed_model_usage(&invocation, error, definition.accounting.as_ref())
-                .map_err(evidence_node_error)?
+            failed_model_usage(
+                &invocation,
+                error,
+                definition.accounting.as_ref(),
+                definition.descriptor.execution().max_output_repair_turns() != ExecutionCount::ZERO
+                    && repairable_model_output_error(error),
+            )
+            .map_err(evidence_node_error)?
         }
     };
     usage
@@ -2509,6 +2690,7 @@ fn build_model_request(
     input_message_id: MessageId,
     transcript: ModelTranscript,
     prior_usage: &BudgetUsage,
+    output_repair_ordinal: ExecutionCount,
 ) -> Result<ModelRequest, ProviderNativeAgentNodeError> {
     let admission = stored.admission();
     let intent = admission.intent();
@@ -2548,6 +2730,16 @@ fn build_model_request(
         ),
     )
     .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
+    let repairing_output = output_repair_ordinal != ExecutionCount::ZERO;
+    let historical_tools = if repairing_output {
+        transcript
+            .iter()
+            .flat_map(|turn| turn.response().tool_calls())
+            .map(|proposal| proposal.tool().clone())
+            .collect::<BTreeSet<_>>()
+    } else {
+        BTreeSet::new()
+    };
     let mut builder = ModelRequest::builder(limits)
         .message(message)
         .transcript(transcript)
@@ -2557,7 +2749,19 @@ fn build_model_request(
     for instruction in definition.descriptor.instructions() {
         builder = builder.instruction(instruction.clone());
     }
-    if definition.descriptor.tools().is_empty() {
+    if repairing_output {
+        let instruction = definition
+            .output_repair_instruction
+            .as_ref()
+            .ok_or(ProviderNativeAgentNodeError::Integrity)?;
+        builder = builder.instruction(instruction.clone());
+    }
+    if repairing_output || definition.descriptor.tools().is_empty() {
+        for tool in definition.descriptor.tools() {
+            if historical_tools.contains(tool.metadata().identity()) {
+                builder = builder.tool(tool.clone());
+            }
+        }
         builder = builder
             .tool_selection(ModelToolSelection::none())
             .max_tool_calls_per_response(ExecutionCount::ZERO)
@@ -2627,6 +2831,32 @@ fn completed_json_output(
     Ok(json.value().clone())
 }
 
+fn output_repair_active(state: &ProviderNativeAgentState) -> bool {
+    state
+        .completed_turns
+        .last()
+        .is_some_and(ProviderNativeCompletedTurn::requires_output_repair)
+}
+
+fn output_repair_ordinal(
+    state: &ProviderNativeAgentState,
+) -> Result<ExecutionCount, ProviderNativeAgentNodeError> {
+    let repairs = state
+        .completed_turns
+        .iter()
+        .filter(|turn| turn.requires_output_repair())
+        .count();
+    Ok(ExecutionCount::new(
+        u64::try_from(repairs).map_err(|_| ProviderNativeAgentNodeError::Budget)?,
+    ))
+}
+
+fn repairable_model_output_error(error: &ModelError) -> bool {
+    error.phase() == ModelErrorPhase::Response
+        && error.failure().code().as_str() == "response.malformed"
+        && error.usage().is_some()
+}
+
 fn model_usage(
     invocation: &ModelInvocation,
     response: &stateknot_core::ModelResponse,
@@ -2666,12 +2896,18 @@ fn failed_model_usage(
     invocation: &ModelInvocation,
     error: &stateknot_core::ModelError,
     accounting: &dyn AgentInvocationAccounting,
+    count_model_turn: bool,
 ) -> Result<BudgetUsage, ProviderNativeAgentNodeError> {
     let input_bytes = serde_json_canonicalizer::to_vec(invocation.intent().request())
         .map_err(|_| ProviderNativeAgentNodeError::Integrity)?
         .len();
     let builder = BudgetUsage::builder()
         .model_attempts(ExecutionCount::new(1))
+        .model_turns(if count_model_turn {
+            ExecutionCount::new(1)
+        } else {
+            ExecutionCount::ZERO
+        })
         .input_bytes(ByteCount::new(input_bytes as u64));
     let mut builder = match accounting.model_charge(invocation) {
         AgentInvocationCharge::Known(costs) => builder.known_costs(costs),
@@ -2865,6 +3101,12 @@ fn node_execution_error(
             "The model did not produce a valid terminal output or tool turn.",
             RetryAdvice::Never,
         ),
+        ProviderNativeAgentNodeError::OutputRepairExhausted => (
+            FailureCategory::InvalidInput,
+            "runtime.agent.output_repair_exhausted",
+            "The model exhausted the configured structured-output repair turns.",
+            RetryAdvice::Never,
+        ),
         ProviderNativeAgentNodeError::Policy => (
             FailureCategory::DependencyUnavailable,
             "runtime.agent.policy_unavailable",
@@ -2911,13 +3153,60 @@ fn validate_supported_execution(
     if descriptor.execution().structured_output() != AgentStructuredOutputStrategy::ModelNative {
         return Err(ProviderNativeAgentGraphBuildError::StructuredOutputUnsupported);
     }
-    if descriptor.execution().max_output_repair_turns() != ExecutionCount::ZERO {
-        return Err(ProviderNativeAgentGraphBuildError::OutputRepairUnsupported);
+    if descriptor.execution().max_output_repair_turns() != ExecutionCount::ZERO
+        && !descriptor.tools().is_empty()
+        && !descriptor
+            .model()
+            .capabilities()
+            .tools()
+            .choices()
+            .contains(ModelToolChoice::None)
+    {
+        return Err(ProviderNativeAgentGraphBuildError::OutputRepairToolSelectionUnsupported);
     }
     if descriptor.execution().max_tool_calls_per_turn().get() > 256 {
         return Err(ProviderNativeAgentGraphBuildError::ToolCallsPerTurnLimit);
     }
     Ok(())
+}
+
+fn build_output_repair_instruction(
+    descriptor: &AgentDescriptor,
+) -> Result<Option<Instruction>, ProviderNativeAgentGraphBuildError> {
+    if descriptor.execution().max_output_repair_turns() == ExecutionCount::ZERO {
+        return Ok(None);
+    }
+    if descriptor.instructions().len() == AgentInstructions::MAX_LEN {
+        return Err(ProviderNativeAgentGraphBuildError::OutputRepairInstructionCapacity);
+    }
+    if descriptor
+        .instructions()
+        .iter()
+        .any(|instruction| instruction.identity().name().as_str() == OUTPUT_REPAIR_INSTRUCTION_NAME)
+    {
+        return Err(ProviderNativeAgentGraphBuildError::OutputRepairInstructionConflict);
+    }
+    let metadata = ContentMetadata::new(
+        ContentSource::Application,
+        ContentTrust::ApplicationControlled,
+        SecurityLabel::new("stateknot/internal/output-repair")
+            .map_err(|_| ProviderNativeAgentGraphBuildError::StaticDefinition)?,
+        RedactionState::NotApplied,
+    );
+    let content = TextContent::new(OUTPUT_REPAIR_INSTRUCTION_TEXT, None, metadata)
+        .map_err(|_| ProviderNativeAgentGraphBuildError::StaticDefinition)?;
+    let identity = InstructionIdentity::new(
+        InstructionName::new(OUTPUT_REPAIR_INSTRUCTION_NAME)
+            .map_err(|_| ProviderNativeAgentGraphBuildError::StaticDefinition)?,
+        Version::new(1, 0, 0),
+    );
+    Instruction::new(
+        identity,
+        content.into(),
+        InstructionProvenance::new(descriptor.metadata().identity().owner().clone()),
+    )
+    .map(Some)
+    .map_err(|_| ProviderNativeAgentGraphBuildError::StaticDefinition)
 }
 
 fn composition_digest(
@@ -2952,6 +3241,7 @@ fn build_state_schema(
     contract_digest: Digest,
     maximum_turns: u64,
     maximum_calls: u64,
+    maximum_repairs: u64,
 ) -> Result<(SchemaReference, Value), ProviderNativeAgentGraphBuildError> {
     let mut document = serde_json::to_value(schemars::schema_for!(ProviderNativeAgentState))
         .map_err(|_| ProviderNativeAgentGraphBuildError::StateSchema)?;
@@ -2963,12 +3253,16 @@ fn build_state_schema(
         Value::String("https://json-schema.org/draft/2020-12/schema".into()),
     );
     object.insert("$id".into(), Value::String(schema_id.as_str().into()));
-    object.insert(
-        "description".into(),
-        Value::String(format!(
+    let description = if maximum_repairs == 0 {
+        format!(
             "StateKnot provider-native agent state; contract={contract_digest:?}; max_turns={maximum_turns}; max_calls_per_turn={maximum_calls}"
-        )),
-    );
+        )
+    } else {
+        format!(
+            "StateKnot provider-native agent state; contract={contract_digest:?}; max_turns={maximum_turns}; max_calls_per_turn={maximum_calls}; max_output_repair_turns={maximum_repairs}"
+        )
+    };
+    object.insert("description".into(), Value::String(description));
     let canonical = serde_json_canonicalizer::to_vec(&document)
         .map_err(|_| ProviderNativeAgentGraphBuildError::Canonicalization)?;
     Ok((
@@ -2996,30 +3290,83 @@ fn validate_state(
         .map_err(|_| ProviderNativeAgentStateError::Bounds)?;
     let maximum_calls = usize::try_from(execution.max_tool_calls_per_turn().get())
         .map_err(|_| ProviderNativeAgentStateError::Bounds)?;
-    if state.completed_turns.len() > maximum_turns {
+    let maximum_repairs = usize::try_from(execution.max_output_repair_turns().get())
+        .map_err(|_| ProviderNativeAgentStateError::Bounds)?;
+    if state.completed_turns.len() >= maximum_turns {
         return Err(ProviderNativeAgentStateError::Bounds);
     }
     let mut reference_count = 0_usize;
+    let mut invocation_ids = BTreeSet::new();
+    let mut output_repair_turns = 0_usize;
+    let mut output_repair_active = false;
     for turn in &state.completed_turns {
-        if turn.tool_invocation_ids.is_empty() || turn.tool_invocation_ids.len() > maximum_calls {
+        if !invocation_ids.insert(turn.model_invocation_id) {
+            return Err(ProviderNativeAgentStateError::Transition);
+        }
+        if turn.requires_output_repair() {
+            output_repair_active = true;
+            output_repair_turns = output_repair_turns
+                .checked_add(1)
+                .ok_or(ProviderNativeAgentStateError::Bounds)?;
+            continue;
+        }
+        if output_repair_active || turn.tool_invocation_ids.len() > maximum_calls {
             return Err(ProviderNativeAgentStateError::Bounds);
+        }
+        for invocation_id in &turn.tool_invocation_ids {
+            if !invocation_ids.insert(*invocation_id) {
+                return Err(ProviderNativeAgentStateError::Transition);
+            }
         }
         reference_count = reference_count
             .checked_add(turn.tool_invocation_ids.len())
             .ok_or(ProviderNativeAgentStateError::Bounds)?;
+    }
+    if output_repair_turns > maximum_repairs {
+        return Err(ProviderNativeAgentStateError::Bounds);
     }
     if u64::try_from(reference_count).map_err(|_| ProviderNativeAgentStateError::Bounds)?
         > MAX_CHECKPOINT_INVOCATION_REFERENCES
     {
         return Err(ProviderNativeAgentStateError::Bounds);
     }
-    if let ProviderNativeAgentPhase::Tools { plans, .. } = &state.phase {
-        if plans.is_empty() || plans.len() > maximum_calls {
-            return Err(ProviderNativeAgentStateError::Bounds);
-        }
-        for (index, plan) in plans.iter().enumerate() {
-            if usize::from(plan.proposal_index) != index {
+    match &state.phase {
+        ProviderNativeAgentPhase::Model { plan } => {
+            if !invocation_ids.insert(plan.invocation_id) {
                 return Err(ProviderNativeAgentStateError::Transition);
+            }
+        }
+        ProviderNativeAgentPhase::Tools {
+            model_invocation_id,
+            plans,
+        } => {
+            let consumed_model_turns = state
+                .completed_turns
+                .len()
+                .checked_add(1)
+                .ok_or(ProviderNativeAgentStateError::Bounds)?;
+            if output_repair_active
+                || consumed_model_turns >= maximum_turns
+                || plans.is_empty()
+                || plans.len() > maximum_calls
+                || !invocation_ids.insert(*model_invocation_id)
+            {
+                return Err(ProviderNativeAgentStateError::Bounds);
+            }
+            reference_count = reference_count
+                .checked_add(plans.len())
+                .ok_or(ProviderNativeAgentStateError::Bounds)?;
+            if u64::try_from(reference_count).map_err(|_| ProviderNativeAgentStateError::Bounds)?
+                > MAX_CHECKPOINT_INVOCATION_REFERENCES
+            {
+                return Err(ProviderNativeAgentStateError::Bounds);
+            }
+            for (index, plan) in plans.iter().enumerate() {
+                if usize::from(plan.proposal_index) != index
+                    || !invocation_ids.insert(plan.invocation_id)
+                {
+                    return Err(ProviderNativeAgentStateError::Transition);
+                }
             }
         }
     }
@@ -3038,17 +3385,32 @@ fn validate_transition(
         return Err(ProviderNativeAgentStateError::Transition);
     }
     if node_id == &graph.model_node_id {
-        if current.completed_turns != next.completed_turns {
+        let ProviderNativeAgentPhase::Model { plan } = &current.phase else {
             return Err(ProviderNativeAgentStateError::Transition);
-        }
-        match (&current.phase, &next.phase) {
-            (
-                ProviderNativeAgentPhase::Model { plan },
-                ProviderNativeAgentPhase::Tools {
-                    model_invocation_id,
-                    ..
-                },
-            ) if plan.invocation_id == *model_invocation_id => Ok(()),
+        };
+        match &next.phase {
+            ProviderNativeAgentPhase::Tools {
+                model_invocation_id,
+                ..
+            } if !output_repair_active(current)
+                && current.completed_turns == next.completed_turns
+                && plan.invocation_id == *model_invocation_id =>
+            {
+                Ok(())
+            }
+            ProviderNativeAgentPhase::Model { plan: next_plan }
+                if next.completed_turns.len() == current.completed_turns.len() + 1
+                    && next.completed_turns[..current.completed_turns.len()]
+                        == current.completed_turns
+                    && next.completed_turns.last().is_some_and(|turn| {
+                        turn.requires_output_repair()
+                            && turn.model_invocation_id == plan.invocation_id
+                    })
+                    && next_plan.invocation_id != plan.invocation_id
+                    && next_plan.attempt_id != plan.attempt_id =>
+            {
+                Ok(())
+            }
             _ => Err(ProviderNativeAgentStateError::Transition),
         }
     } else if node_id == &graph.tools_node_id {
@@ -3135,6 +3497,8 @@ enum ProviderNativeAgentNodeError {
     PolicyDenied(Box<Failure>),
     #[error("provider-native agent model output is invalid")]
     InvalidModelOutput,
+    #[error("provider-native agent exhausted configured output-repair turns")]
+    OutputRepairExhausted,
     #[error("provider-native agent model output is incomplete")]
     IncompleteModelOutput,
 }
@@ -3233,17 +3597,24 @@ mod tests {
         )
     }
 
-    fn descriptor() -> AgentDescriptor {
+    fn descriptor_with_repairs(repairs: u64) -> AgentDescriptor {
         let mut fixture: Value = serde_json::from_str(include_str!(
             "../../stateknot-core/tests/fixtures/core-agent-v1.json"
         ))
         .unwrap();
         let mut descriptor = fixture["descriptors"]["valid"][0].take();
-        descriptor["execution"]["max_output_repair_turns"] = Value::String("0".into());
+        descriptor["execution"]["max_output_repair_turns"] = Value::String(repairs.to_string());
+        if repairs != 0 {
+            descriptor["model"]["capabilities"]["tools"]["choices"] = json!(["auto", "none"]);
+        }
         serde_json::from_value(descriptor).unwrap()
     }
 
-    fn definition() -> ProviderNativeAgentGraph {
+    fn descriptor() -> AgentDescriptor {
+        descriptor_with_repairs(0)
+    }
+
+    fn definition_with_descriptor(descriptor: AgentDescriptor) -> ProviderNativeAgentGraph {
         let policy: Arc<dyn AgentToolPolicy> = Arc::new(AllowAllPolicy {
             reference: AgentToolPolicyReference::new(
                 identity("tool-policy"),
@@ -3251,7 +3622,7 @@ mod tests {
             ),
         });
         ProviderNativeAgentGraph::compile(
-            descriptor(),
+            descriptor,
             identity("provider-native-graph"),
             identity("provider-native-reducer"),
             "https://schemas.example.com/provider-native/state/1.0.0"
@@ -3262,6 +3633,10 @@ mod tests {
             accounting(),
         )
         .unwrap()
+    }
+
+    fn definition() -> ProviderNativeAgentGraph {
+        definition_with_descriptor(descriptor())
     }
 
     #[test]
@@ -3287,6 +3662,132 @@ mod tests {
         schemas
             .validate_bounded(initial.schema(), initial.data())
             .unwrap();
+    }
+
+    #[test]
+    fn output_repair_compiles_as_a_bounded_model_self_loop_without_new_state_fields() {
+        let definition = definition_with_descriptor(descriptor_with_repairs(2));
+        let mut unsupported = serde_json::to_value(definition.descriptor()).unwrap();
+        unsupported["model"]["capabilities"]["tools"]["choices"] = json!(["auto"]);
+        let unsupported = serde_json::from_value::<AgentDescriptor>(unsupported).unwrap();
+        assert!(matches!(
+            validate_supported_execution(&unsupported),
+            Err(ProviderNativeAgentGraphBuildError::OutputRepairToolSelectionUnsupported)
+        ));
+        let model = definition.graph().node(&definition.model_node_id).unwrap();
+        assert_eq!(
+            model.continue_to().unwrap().iter().collect::<Vec<_>>(),
+            vec![&definition.model_node_id]
+        );
+        let instruction = definition.output_repair_instruction.as_ref().unwrap();
+        assert_eq!(
+            instruction.identity().name().as_str(),
+            OUTPUT_REPAIR_INSTRUCTION_NAME
+        );
+        let initial = definition.initial_state().unwrap();
+        assert_eq!(
+            initial
+                .data()
+                .as_value()
+                .as_object()
+                .unwrap()
+                .keys()
+                .cloned()
+                .collect::<BTreeSet<_>>(),
+            [
+                "completed_turns",
+                "contract_digest",
+                "input_message_id",
+                "phase"
+            ]
+            .into_iter()
+            .map(str::to_owned)
+            .collect()
+        );
+    }
+
+    #[test]
+    fn reducer_accepts_only_an_exact_distinct_output_repair_transition() {
+        let definition = definition_with_descriptor(descriptor_with_repairs(2));
+        let initial = definition.initial_state().unwrap();
+        let current = definition.decode_checkpoint(&initial).unwrap();
+        let current_plan = match current.phase() {
+            ProviderNativeAgentPhase::Model { plan } => plan.clone(),
+            ProviderNativeAgentPhase::Tools { .. } => panic!("initial phase must be model"),
+        };
+        let next_plan = ProviderNativeModelPlan::generate();
+        let mut next = current.clone();
+        next.completed_turns.push(ProviderNativeCompletedTurn {
+            model_invocation_id: current_plan.invocation_id(),
+            tool_invocation_ids: Vec::new(),
+        });
+        next.phase = ProviderNativeAgentPhase::Model {
+            plan: next_plan.clone(),
+        };
+        validate_state(&next, &definition).unwrap();
+        validate_transition(&definition.model_node_id, &current, &next, &definition).unwrap();
+        assert!(next.completed_turns()[0].requires_output_repair());
+        assert_ne!(current_plan.invocation_id(), next_plan.invocation_id());
+        assert_ne!(current_plan.attempt_id(), next_plan.attempt_id());
+
+        let mut reused_attempt = next.clone();
+        reused_attempt.phase = ProviderNativeAgentPhase::Model {
+            plan: ProviderNativeModelPlan {
+                invocation_id: next_plan.invocation_id(),
+                attempt_id: current_plan.attempt_id(),
+                ..next_plan.clone()
+            },
+        };
+        assert_eq!(
+            validate_transition(
+                &definition.model_node_id,
+                &current,
+                &reused_attempt,
+                &definition,
+            ),
+            Err(ProviderNativeAgentStateError::Transition)
+        );
+
+        let mut reused = next.clone();
+        reused.phase = ProviderNativeAgentPhase::Model { plan: current_plan };
+        assert_eq!(
+            validate_state(&reused, &definition),
+            Err(ProviderNativeAgentStateError::Transition)
+        );
+    }
+
+    #[test]
+    fn output_repair_reserves_one_framework_instruction_slot() {
+        let mut fixture: Value = serde_json::from_str(include_str!(
+            "../../stateknot-core/tests/fixtures/core-agent-v1.json"
+        ))
+        .unwrap();
+        let descriptor = &mut fixture["descriptors"]["valid"][0];
+        descriptor["execution"]["max_output_repair_turns"] = Value::String("1".into());
+        descriptor["instructions"][0]["identity"]["name"] =
+            Value::String(OUTPUT_REPAIR_INSTRUCTION_NAME.into());
+        let conflict: AgentDescriptor = serde_json::from_value(descriptor.clone()).unwrap();
+        assert!(matches!(
+            build_output_repair_instruction(&conflict),
+            Err(ProviderNativeAgentGraphBuildError::OutputRepairInstructionConflict)
+        ));
+
+        let template = descriptor["instructions"][0].clone();
+        descriptor["instructions"] = Value::Array(
+            (0..AgentInstructions::MAX_LEN)
+                .map(|index| {
+                    let mut instruction = template.clone();
+                    instruction["identity"]["name"] =
+                        Value::String(format!("application.instruction.{index}"));
+                    instruction
+                })
+                .collect(),
+        );
+        let full: AgentDescriptor = serde_json::from_value(descriptor.clone()).unwrap();
+        assert!(matches!(
+            build_output_repair_instruction(&full),
+            Err(ProviderNativeAgentGraphBuildError::OutputRepairInstructionCapacity)
+        ));
     }
 
     #[test]

@@ -472,7 +472,9 @@ usable only if its journal head is an ancestor of the current verified head.
 The core `PendingNodeResultIntent` is the logical idempotency value. It binds
 the base checkpoint, graph namespace, node ID, activation input digest, bounded
 schema-pinned update, closed route/wait/terminal/continue outcome, and a
-canonical set of exact committed model/tool revision heads. The immutable
+canonical set of exact terminal model/tool revision heads. Successful and
+known-failed outcomes are consumable; prepared, executing, and uncertain Tool
+outcomes are not. The immutable
 `PendingNodeResult` additionally binds the winning worker attempt/epoch and its
 exact journal head. SQL must prove the base checkpoint and every invocation
 revision through composite tenant/run foreign keys, verify the worker source
@@ -484,7 +486,10 @@ Migration 5 and the current store implement the immutable write/read and atomic
 consumption boundary of this contract. `pending_node_results` has one logical activation key, exact
 base-checkpoint and worker-event/fence foreign keys, bounded canonical bytes,
 and separate tool/model binding tables whose ordinary composite foreign keys
-prove exact activation plus committed revision. Identical semantic retries
+prove exact activation plus terminal revision. Migrations 17 and 19 extend the
+original committed-only guards to known-failed Tool and model revisions,
+respectively, without weakening revision, activation, or journal bindings.
+Identical semantic retries
 return the original winner even after lease takeover; changed semantics
 conflict. Recovery revalidates the full record, binding projections, full
 invocation records, and journal anchors in one repeatable-read snapshot. The
