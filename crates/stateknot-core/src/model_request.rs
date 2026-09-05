@@ -41,7 +41,7 @@ pub enum ModelResponseMode {
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ModelToolSelection {
-    /// No tool definitions are supplied and no tool call may be emitted.
+    /// No tool call may be emitted. Definitions may be retained for history.
     None {},
     /// The model decides whether and which supplied tool to call.
     Auto {},
@@ -1036,7 +1036,10 @@ fn validate_tool_controls(
     }
 
     if selection.choice() == ModelToolChoice::None {
-        return Err(ModelRequestError::ToolsRequireActiveSelection);
+        if max_calls != ExecutionCount::ZERO || strict_arguments {
+            return Err(ModelRequestError::DisabledToolControls);
+        }
+        return Ok(());
     }
     if max_calls.get() == 0 {
         return Err(ModelRequestError::ZeroToolCalls);
@@ -1521,9 +1524,9 @@ pub enum ModelRequestError {
     /// Strict arguments were requested without tools.
     #[error("model request without tools cannot require strict tool arguments")]
     StrictArgumentsWithoutTools,
-    /// Tool definitions were supplied while selection was disabled.
-    #[error("model request with tools requires auto, required, or specific selection")]
-    ToolsRequireActiveSelection,
+    /// Disabled tool selection cannot allow calls or require strict arguments.
+    #[error("disabled tool selection requires zero calls and non-strict arguments")]
+    DisabledToolControls,
     /// Active tools had no possible response call capacity.
     #[error("model request with tools requires a positive tool-call ceiling")]
     ZeroToolCalls,
@@ -1847,6 +1850,46 @@ mod tests {
     }
 
     #[test]
+    fn disabled_tools_retain_definitions_and_require_explicit_provider_support() {
+        let request = base_builder()
+            .tool(tool("payments.capture"))
+            .build()
+            .unwrap();
+        assert_eq!(request.tools().len(), 1);
+        assert_eq!(request.max_tool_calls_per_response(), ExecutionCount::ZERO);
+        assert!(
+            request
+                .requirements()
+                .tools()
+                .choices()
+                .contains(ModelToolChoice::None)
+        );
+        assert_eq!(
+            request.requirements().tools().min_definitions(),
+            ExecutionCount::new(1)
+        );
+        assert_eq!(
+            request.requirements().tools().min_calls_per_response(),
+            ExecutionCount::ZERO
+        );
+        let wire = serde_json::to_value(&request).unwrap();
+        assert_eq!(
+            serde_json::from_value::<ModelRequest>(wire.clone()).unwrap(),
+            request
+        );
+        let mut tampered = wire;
+        tampered["max_tool_calls_per_response"] = serde_json::json!("1");
+        assert!(serde_json::from_value::<ModelRequest>(tampered).is_err());
+        assert_eq!(
+            base_builder()
+                .tool(tool("payments.capture"))
+                .strict_tool_arguments(true)
+                .build(),
+            Err(ModelRequestError::DisabledToolControls)
+        );
+    }
+
+    #[test]
     fn tool_controls_and_registry_names_fail_closed() {
         assert_eq!(
             base_builder()
@@ -1869,8 +1912,11 @@ mod tests {
             Err(ModelRequestError::StrictArgumentsWithoutTools)
         );
         assert_eq!(
-            base_builder().tool(tool("payments.capture")).build(),
-            Err(ModelRequestError::ToolsRequireActiveSelection)
+            base_builder()
+                .tool(tool("payments.capture"))
+                .max_tool_calls_per_response(ExecutionCount::new(1))
+                .build(),
+            Err(ModelRequestError::DisabledToolControls)
         );
         assert_eq!(
             base_builder()

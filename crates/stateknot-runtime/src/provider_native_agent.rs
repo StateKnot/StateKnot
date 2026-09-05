@@ -27,7 +27,7 @@ use stateknot_core::{
     KnownCosts, Message, MessageId, MessageParts, MessageProducer, MessageProvenance, MessageRole,
     ModelError, ModelErrorPhase, ModelFinishReason, ModelInvocation, ModelInvocationIntent,
     ModelInvocationState, ModelOutputItem, ModelRequest, ModelRequestLimits, ModelTextOutputFormat,
-    ModelToolCallProposal, ModelToolOutcome, ModelToolSelection, ModelTranscript,
+    ModelToolCallProposal, ModelToolChoice, ModelToolOutcome, ModelToolSelection, ModelTranscript,
     ModelTranscriptTurn, NodeActivation, NodeControl, NodeId, NodeInvocationBinding,
     NodeInvocationBindings, NodeStateChange, NodeStateUpdate, NodeTerminalOutput, ReadyNodes,
     RedactionState, RetryAdvice, RouteId, SchemaId, SchemaReference, SecurityLabel, Superstep,
@@ -1012,6 +1012,9 @@ pub enum ProviderNativeAgentGraphBuildError {
     /// Adding the required repair instruction would exceed the request bound.
     #[error("provider-native agent has no instruction capacity for output repair")]
     OutputRepairInstructionCapacity,
+    /// Tools may occur before repair, so their history needs disabled selection.
+    #[error("output repair with Tools requires model support for tool selection none")]
+    OutputRepairToolSelectionUnsupported,
     /// One tool node cannot bind more than 256 terminal invocation revisions.
     #[error("provider-native agent graph allows at most 256 tool calls per turn")]
     ToolCallsPerTurnLimit,
@@ -2727,6 +2730,16 @@ fn build_model_request(
         ),
     )
     .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
+    let repairing_output = output_repair_ordinal != ExecutionCount::ZERO;
+    let historical_tools = if repairing_output {
+        transcript
+            .iter()
+            .flat_map(|turn| turn.response().tool_calls())
+            .map(|proposal| proposal.tool().clone())
+            .collect::<BTreeSet<_>>()
+    } else {
+        BTreeSet::new()
+    };
     let mut builder = ModelRequest::builder(limits)
         .message(message)
         .transcript(transcript)
@@ -2736,7 +2749,6 @@ fn build_model_request(
     for instruction in definition.descriptor.instructions() {
         builder = builder.instruction(instruction.clone());
     }
-    let repairing_output = output_repair_ordinal != ExecutionCount::ZERO;
     if repairing_output {
         let instruction = definition
             .output_repair_instruction
@@ -2745,6 +2757,11 @@ fn build_model_request(
         builder = builder.instruction(instruction.clone());
     }
     if repairing_output || definition.descriptor.tools().is_empty() {
+        for tool in definition.descriptor.tools() {
+            if historical_tools.contains(tool.metadata().identity()) {
+                builder = builder.tool(tool.clone());
+            }
+        }
         builder = builder
             .tool_selection(ModelToolSelection::none())
             .max_tool_calls_per_response(ExecutionCount::ZERO)
@@ -3135,6 +3152,17 @@ fn validate_supported_execution(
 ) -> Result<(), ProviderNativeAgentGraphBuildError> {
     if descriptor.execution().structured_output() != AgentStructuredOutputStrategy::ModelNative {
         return Err(ProviderNativeAgentGraphBuildError::StructuredOutputUnsupported);
+    }
+    if descriptor.execution().max_output_repair_turns() != ExecutionCount::ZERO
+        && !descriptor.tools().is_empty()
+        && !descriptor
+            .model()
+            .capabilities()
+            .tools()
+            .choices()
+            .contains(ModelToolChoice::None)
+    {
+        return Err(ProviderNativeAgentGraphBuildError::OutputRepairToolSelectionUnsupported);
     }
     if descriptor.execution().max_tool_calls_per_turn().get() > 256 {
         return Err(ProviderNativeAgentGraphBuildError::ToolCallsPerTurnLimit);
@@ -3576,6 +3604,9 @@ mod tests {
         .unwrap();
         let mut descriptor = fixture["descriptors"]["valid"][0].take();
         descriptor["execution"]["max_output_repair_turns"] = Value::String(repairs.to_string());
+        if repairs != 0 {
+            descriptor["model"]["capabilities"]["tools"]["choices"] = json!(["auto", "none"]);
+        }
         serde_json::from_value(descriptor).unwrap()
     }
 
@@ -3636,6 +3667,13 @@ mod tests {
     #[test]
     fn output_repair_compiles_as_a_bounded_model_self_loop_without_new_state_fields() {
         let definition = definition_with_descriptor(descriptor_with_repairs(2));
+        let mut unsupported = serde_json::to_value(definition.descriptor()).unwrap();
+        unsupported["model"]["capabilities"]["tools"]["choices"] = json!(["auto"]);
+        let unsupported = serde_json::from_value::<AgentDescriptor>(unsupported).unwrap();
+        assert!(matches!(
+            validate_supported_execution(&unsupported),
+            Err(ProviderNativeAgentGraphBuildError::OutputRepairToolSelectionUnsupported)
+        ));
         let model = definition.graph().node(&definition.model_node_id).unwrap();
         assert_eq!(
             model.continue_to().unwrap().iter().collect::<Vec<_>>(),

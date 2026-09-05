@@ -181,10 +181,20 @@ the malformed attempt or counts it twice.
 Repair requests reconstruct the original input and trusted instructions, then
 append one framework-owned instruction named `stateknot.output_repair`. The
 invalid payload and provider error text are deliberately not copied into the
-prompt or the model transcript. The repair request advertises no Tools and sets
-Tool selection to `none`. Compilation reserves one of the 32 instruction
+prompt or the model transcript. If earlier turns called Tools, the repair request
+retains only their exact definitions and completed outcomes for transcript
+validation and provider replay. Tool selection is `none`, the call ceiling is
+zero, and strict arguments are disabled. Compilation requires explicit model
+support for the `none` choice when Tools and repair are configured; unsupported
+bindings fail before admission. It also reserves one of the 32 instruction
 slots and rejects an application instruction using that name, so a deployment
 cannot shadow the repair policy.
+
+The first-party mappings follow the providers' explicit disabled-selection
+contracts: [OpenAI Responses](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
+and [Anthropic tool selection](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools).
+Loopback adapter tests verify retained history together with `tool_choice: none`;
+the local response validator independently rejects any new Tool call.
 
 A provider Tool proposal during repair is invalid output. StateKnot does not call
 the Tool policy and does not prepare or dispatch any Tool; the proposal consumes
@@ -300,7 +310,8 @@ PostgreSQL 16 and 17. Focused scenarios cover:
   under a later lease, continues the next model turn, and performs exactly one
   business call across two reconciliation probes;
 - invalid committed JSON that checkpoints a distinct bounded repair plan and
-  resumes under a new lease without redispatch;
+  resumes under a new lease without redispatch, both before any Tool call and
+  after a completed Tool turn whose history remains available during repair;
 - a first-party-compatible `response.malformed` failure with exact usage that
   is bound as a failed model revision, repaired from its checkpoint, and counted
   as one paid turn;

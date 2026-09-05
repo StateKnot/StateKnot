@@ -606,6 +606,7 @@ struct ProviderNativeRepairModel {
     malformed_failures: usize,
     invalid_responses: usize,
     tool_call_on_repair: bool,
+    initial_tool_turn: bool,
     calls: Arc<AtomicUsize>,
     request_instruction_names: Arc<tokio::sync::Mutex<Vec<Vec<String>>>>,
     request_transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
@@ -644,6 +645,7 @@ impl Model for ProviderNativeRepairModel {
         &self.descriptor
     }
 
+    #[allow(clippy::too_many_lines)]
     fn invoke(
         &self,
         context: ModelContext,
@@ -652,9 +654,11 @@ impl Model for ProviderNativeRepairModel {
         let call = self.calls.fetch_add(1, Ordering::SeqCst);
         let descriptor = self.descriptor.clone();
         let output_schema = self.output_schema.clone();
-        let malformed = call < self.malformed_failures;
-        let invalid =
-            !malformed && call.saturating_sub(self.malformed_failures) < self.invalid_responses;
+        let initial_tool_turn = self.initial_tool_turn && call == 0;
+        let output_call = call.saturating_sub(usize::from(self.initial_tool_turn));
+        let malformed = output_call < self.malformed_failures;
+        let invalid = !malformed
+            && output_call.saturating_sub(self.malformed_failures) < self.invalid_responses;
         let tool_call_on_repair = self.tool_call_on_repair;
         let request_instruction_names = Arc::clone(&self.request_instruction_names);
         let request_transcript_lengths = Arc::clone(&self.request_transcript_lengths);
@@ -672,12 +676,16 @@ impl Model for ProviderNativeRepairModel {
                 .await
                 .push(request.transcript().len());
             attempt_ids.lock().await.push(context.attempt_id());
-            if call != 0 {
-                assert_eq!(request.tools().len(), 0);
+            if output_call != 0 {
+                assert_eq!(
+                    request.tools().len(),
+                    usize::from(!request.transcript().is_empty())
+                );
                 assert_eq!(
                     request.tool_selection(),
                     &stateknot_core::ModelToolSelection::none()
                 );
+                assert_eq!(request.max_tool_calls_per_response(), ExecutionCount::ZERO);
             }
             let provenance = ModelResponseProvenance::new(
                 context.attempt_id(),
@@ -692,6 +700,38 @@ impl Model for ProviderNativeRepairModel {
                 Some(TokenCount::new(1)),
             )
             .unwrap();
+            if initial_tool_turn {
+                let tool = request.tools().next().unwrap();
+                let proposal = ModelToolCallProposal::new(
+                    tool.metadata().identity().clone(),
+                    Some(ModelProviderToolCallId::new("call_before_repair").unwrap()),
+                    BoundedJson::try_from_value(json!({"query": "durable repair"})).unwrap(),
+                    Extensions::default(),
+                )
+                .unwrap();
+                let response = ModelResponse::new(
+                    provenance,
+                    &descriptor,
+                    &request,
+                    [ModelOutputItem::tool_call(proposal)],
+                    ModelFinishReason::ToolCalls,
+                    usage,
+                    Extensions::default(),
+                )
+                .unwrap();
+                return Ok(response
+                    .with_provider_replay(
+                        ModelProviderReplay::new(
+                            ModelProviderReplayFormat::new("stateknot.test.v1").unwrap(),
+                            BoundedJson::try_from_value(
+                                json!([{"type": "function_call", "call_id": "call_before_repair"}]),
+                            )
+                            .unwrap(),
+                        )
+                        .unwrap(),
+                    )
+                    .unwrap());
+            }
             if malformed {
                 return Err(malformed_repair_response_error(
                     &context,
@@ -1385,6 +1425,7 @@ fn provider_native_repair_fixture(
         invalid_responses,
         maximum_repairs,
         tool_call_on_repair,
+        false,
     )
 }
 
@@ -1395,6 +1436,7 @@ fn provider_native_repair_fixture_with_failures(
     invalid_responses: usize,
     maximum_repairs: u64,
     tool_call_on_repair: bool,
+    initial_tool_turn: bool,
 ) -> ProviderNativeRepairFixture {
     let (input_schema, input_document) = schema("provider-native-repair-input");
     let (tool_input_schema, tool_input_document) = schema("provider-native-repair-tool-input");
@@ -1419,9 +1461,9 @@ fn provider_native_repair_fixture_with_failures(
         "../../stateknot-core/tests/fixtures/core-agent-v1.json"
     ))
     .unwrap();
-    let template =
-        serde_json::from_value::<AgentDescriptor>(fixture["descriptors"]["valid"][0].clone())
-            .unwrap();
+    let mut template = fixture["descriptors"]["valid"][0].clone();
+    template["model"]["capabilities"]["tools"]["choices"] = json!(["auto", "none"]);
+    let template = serde_json::from_value::<AgentDescriptor>(template).unwrap();
     let tool_template = template.tools().iter().next().unwrap().clone();
     let tool = ToolDescriptor::new(
         tool_template.metadata().clone(),
@@ -1517,6 +1559,7 @@ fn provider_native_repair_fixture_with_failures(
             malformed_failures,
             invalid_responses,
             tool_call_on_repair,
+            initial_tool_turn,
             calls: Arc::clone(&model_calls),
             request_instruction_names: Arc::clone(&request_instruction_names),
             request_transcript_lengths: Arc::clone(&request_transcript_lengths),
@@ -2596,138 +2639,180 @@ async fn provider_native_output_repair_resumes_from_checkpoint_without_redispatc
     let Some(store) = test_store().await else {
         return;
     };
-    let fixture = provider_native_repair_fixture(store.clone(), 1, 1, false);
-    let tenant_id = tenant("runtime-provider-native-output-repair");
-    let ids = AgentRunIds::generate();
-    let run_id = ids.run_id();
-    store
-        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
-        .await
-        .unwrap();
-    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
-        .unwrap()
-        .admit(provider_native_admission_request_for(
-            &fixture.definition,
-            &fixture.input_schema,
-            tenant_id.clone(),
-            ids,
-        ))
-        .await
-        .unwrap();
-
-    let first_driver = DurableGraphDriver::new(
-        store.clone(),
-        fixture.registry.clone(),
-        DurableGraphDriverOptions::new(
-            GraphReplayLimits::default(),
-            3,
-            Duration::from_secs(10),
-            Duration::from_secs(15 * 60),
-            3,
-            Duration::from_millis(25),
-        )
-        .unwrap(),
-    )
-    .unwrap();
-    let first_lease = store
-        .claim_lease(&tenant_id, run_id, AttemptId::generate())
-        .await
-        .unwrap()
-        .lease()
-        .clone();
-    let first = first_driver
-        .drive(first_lease.fence().clone(), CancellationSignal::never())
-        .await
-        .unwrap();
-    assert!(matches!(first.outcome(), GraphDriveOutcome::Yielded { .. }));
-    assert_eq!(first.report().durable_events(), 3);
-    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
-
-    let run = store.load_run(&tenant_id, run_id).await.unwrap();
-    let checkpoint_pointer = run.checkpoint().unwrap();
-    let checkpoint = store
-        .load_checkpoint(&tenant_id, run_id, checkpoint_pointer.checkpoint_id())
-        .await
-        .unwrap();
-    let repair_state = fixture
-        .definition
-        .restore_state(checkpoint.state())
-        .unwrap();
-    assert_eq!(repair_state.completed_turns().len(), 1);
-    assert!(repair_state.completed_turns()[0].requires_output_repair());
-    let first_invocation_id = repair_state.completed_turns()[0].model_invocation_id();
-    let ProviderNativeAgentPhase::Model { plan: repair_plan } = repair_state.phase() else {
-        panic!("the repair checkpoint must schedule a model turn")
-    };
-    assert_ne!(first_invocation_id, repair_plan.invocation_id());
-
-    let second_driver = DurableGraphDriver::new(
-        store.clone(),
-        fixture.registry.clone(),
-        DurableGraphDriverOptions::default(),
-    )
-    .unwrap();
-    let second_lease = store
-        .claim_lease(&tenant_id, run_id, AttemptId::generate())
-        .await
-        .unwrap()
-        .lease()
-        .clone();
-    let second = second_driver
-        .drive(second_lease.fence().clone(), CancellationSignal::never())
-        .await
-        .unwrap();
-    let handoff = match second.into_parts().0 {
-        GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
-        other => panic!("repaired output must reach the lifecycle barrier: {other:?}"),
-    };
-    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
-    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
-    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 0);
-    assert_eq!(
-        *fixture.request_transcript_lengths.lock().await,
-        vec![0, 0],
-        "invalid final output is ledger evidence, not a fabricated tool transcript"
-    );
-    let instruction_names = fixture.request_instruction_names.lock().await;
-    assert_eq!(instruction_names.len(), 2);
-    assert!(
-        !instruction_names[0]
-            .iter()
-            .any(|name| name == "stateknot.output_repair")
-    );
-    assert_eq!(
-        instruction_names[1].last().map(String::as_str),
-        Some("stateknot.output_repair")
-    );
-    drop(instruction_names);
-    let attempt_ids = fixture.attempt_ids.lock().await;
-    assert_eq!(attempt_ids.len(), 2);
-    assert_ne!(attempt_ids[0], attempt_ids[1]);
-    drop(attempt_ids);
-
-    let lifecycle = DurableGraphLifecycle::new(
-        store.clone(),
-        fixture.registry,
-        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
-            fixture.definition,
+    for initial_tool_turn in [false, true] {
+        let fixture = provider_native_repair_fixture_with_failures(
             store.clone(),
-        )),
-        DurableGraphLifecycleOptions::default(),
-    )
-    .unwrap();
-    assert!(matches!(
-        lifecycle.commit_barrier(*handoff).await.unwrap(),
-        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
-    ));
-    let completed = store.load_run(&tenant_id, run_id).await.unwrap();
-    let result = completed.lifecycle().result().unwrap();
-    assert_eq!(
-        result.output().as_value(),
-        &json!({"answer": "The durable repair turn succeeded."})
-    );
-    assert_eq!(result.usage().model_attempts(), ExecutionCount::new(2));
-    assert_eq!(result.usage().model_turns(), ExecutionCount::new(2));
+            0,
+            1,
+            1,
+            false,
+            initial_tool_turn,
+        );
+        let prior_turns = if initial_tool_turn { 2 } else { 1 };
+        let expected_attempts = prior_turns + 1;
+        let event_quantum = if initial_tool_turn { 9 } else { 3 };
+        let tenant_id = tenant("runtime-provider-native-output-repair");
+        let ids = AgentRunIds::generate();
+        let run_id = ids.run_id();
+        store
+            .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+            .await
+            .unwrap();
+        DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+            .unwrap()
+            .admit(provider_native_admission_request_for(
+                &fixture.definition,
+                &fixture.input_schema,
+                tenant_id.clone(),
+                ids,
+            ))
+            .await
+            .unwrap();
+
+        let first_driver = DurableGraphDriver::new(
+            store.clone(),
+            fixture.registry.clone(),
+            DurableGraphDriverOptions::new(
+                GraphReplayLimits::default(),
+                event_quantum,
+                Duration::from_secs(10),
+                Duration::from_secs(15 * 60),
+                3,
+                Duration::from_millis(25),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let first_lease = store
+            .claim_lease(&tenant_id, run_id, AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .clone();
+        let first = first_driver
+            .drive(first_lease.fence().clone(), CancellationSignal::never())
+            .await
+            .unwrap();
+        assert!(matches!(first.outcome(), GraphDriveOutcome::Yielded { .. }));
+        assert_eq!(first.report().durable_events(), event_quantum);
+        assert_eq!(fixture.model_calls.load(Ordering::SeqCst), prior_turns);
+
+        let run = store.load_run(&tenant_id, run_id).await.unwrap();
+        let checkpoint_pointer = run.checkpoint().unwrap();
+        let checkpoint = store
+            .load_checkpoint(&tenant_id, run_id, checkpoint_pointer.checkpoint_id())
+            .await
+            .unwrap();
+        let repair_state = fixture
+            .definition
+            .restore_state(checkpoint.state())
+            .unwrap();
+        assert_eq!(repair_state.completed_turns().len(), prior_turns);
+        let repair_marker = repair_state.completed_turns().last().unwrap();
+        assert!(repair_marker.requires_output_repair());
+        let first_invocation_id = repair_marker.model_invocation_id();
+        let ProviderNativeAgentPhase::Model { plan: repair_plan } = repair_state.phase() else {
+            panic!("the repair checkpoint must schedule a model turn")
+        };
+        assert_ne!(first_invocation_id, repair_plan.invocation_id());
+
+        let second_driver = DurableGraphDriver::new(
+            store.clone(),
+            fixture.registry.clone(),
+            DurableGraphDriverOptions::default(),
+        )
+        .unwrap();
+        let second_lease = store
+            .claim_lease(&tenant_id, run_id, AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .clone();
+        let second = second_driver
+            .drive(second_lease.fence().clone(), CancellationSignal::never())
+            .await
+            .unwrap();
+        let handoff = match second.into_parts().0 {
+            GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
+            other => panic!("repaired output must reach the lifecycle barrier: {other:?}"),
+        };
+        assert_eq!(
+            fixture.model_calls.load(Ordering::SeqCst),
+            expected_attempts
+        );
+        assert_eq!(
+            fixture.tool_calls.load(Ordering::SeqCst),
+            usize::from(initial_tool_turn)
+        );
+        assert_eq!(
+            fixture.policy_calls.load(Ordering::SeqCst),
+            usize::from(initial_tool_turn)
+        );
+        assert_eq!(
+            *fixture.request_transcript_lengths.lock().await,
+            if initial_tool_turn {
+                vec![0, 1, 1]
+            } else {
+                vec![0, 0]
+            },
+            "invalid final output is ledger evidence, not a fabricated tool transcript"
+        );
+        let instruction_names = fixture.request_instruction_names.lock().await;
+        assert_eq!(instruction_names.len(), expected_attempts);
+        assert!(
+            !instruction_names[0]
+                .iter()
+                .any(|name| name == "stateknot.output_repair")
+        );
+        assert_eq!(
+            instruction_names.last().unwrap().last().map(String::as_str),
+            Some("stateknot.output_repair")
+        );
+        drop(instruction_names);
+        let attempt_ids = fixture.attempt_ids.lock().await;
+        assert_eq!(attempt_ids.len(), expected_attempts);
+        assert_eq!(
+            attempt_ids
+                .iter()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len(),
+            expected_attempts
+        );
+        drop(attempt_ids);
+
+        let lifecycle = DurableGraphLifecycle::new(
+            store.clone(),
+            fixture.registry,
+            Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+                fixture.definition,
+                store.clone(),
+            )),
+            DurableGraphLifecycleOptions::default(),
+        )
+        .unwrap();
+        assert!(matches!(
+            lifecycle.commit_barrier(*handoff).await.unwrap(),
+            GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+        ));
+        let completed = store.load_run(&tenant_id, run_id).await.unwrap();
+        let result = completed.lifecycle().result().unwrap();
+        assert_eq!(
+            result.output().as_value(),
+            &json!({"answer": "The durable repair turn succeeded."})
+        );
+        assert_eq!(
+            result.usage().model_attempts(),
+            ExecutionCount::new(expected_attempts as u64)
+        );
+        assert_eq!(
+            result.usage().model_turns(),
+            ExecutionCount::new(expected_attempts as u64)
+        );
+        assert_eq!(
+            result.usage().tool_calls(),
+            ExecutionCount::new(u64::from(initial_tool_turn))
+        );
+    }
     store.close().await;
 }
 
@@ -2738,7 +2823,8 @@ async fn provider_native_malformed_adapter_response_repairs_from_failed_ledger()
     let Some(store) = test_store().await else {
         return;
     };
-    let fixture = provider_native_repair_fixture_with_failures(store.clone(), 1, 0, 1, false);
+    let fixture =
+        provider_native_repair_fixture_with_failures(store.clone(), 1, 0, 1, false, false);
     let tenant_id = tenant("runtime-provider-native-malformed-response-repair");
     let ids = AgentRunIds::generate();
     let run_id = ids.run_id();

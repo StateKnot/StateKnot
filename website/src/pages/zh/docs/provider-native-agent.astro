@@ -170,9 +170,10 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
     <p>
       新 Request 保留原始 Input 与可信 Instruction，再附加保留的 Framework
       Instruction <code>stateknot.output_repair</code>。无效 Payload 与 Provider
-      Error Text 不进入 Prompt 或 Transcript；Request 不发布 Tool，并选择 <code
-        >none</code
-      >； Repair 期间的 Tool Proposal 不会到达 Policy 或 Tool I/O。达到上限后以 <code
+      Error Text 不进入 Prompt 或 Transcript；已完成 Tool
+      的定义与结果会保留在历史上下文中， 同时选择 <code>none</code
+      >、调用上限设为 0。启用 Tool 与 Repair 的 Model 必须显式支持该选择。
+      Repair 期间的 Tool Proposal 不会到达 Policy 或 Tool I/O。达到上限后以 <code
         >runtime.agent.output_repair_exhausted</code
       >
       失败并保留精确计费 Turn；缺少 Usage 的损坏 Envelope 继续 Fail Closed。

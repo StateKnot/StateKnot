@@ -2224,6 +2224,31 @@ mod tests {
     }
 
     #[test]
+    fn disabled_tool_definitions_cannot_authorize_a_new_call() {
+        let descriptor = descriptor("models.primary");
+        let selected = tool("incidents.lookup");
+        let request = base_builder().tool(selected.clone()).build().unwrap();
+        assert!(matches!(
+            ModelResponse::new(
+                provenance(&descriptor),
+                &descriptor,
+                &request,
+                [ModelOutputItem::tool_call(proposal(
+                    &selected,
+                    Some("forbidden")
+                ))],
+                ModelFinishReason::ToolCalls,
+                usage(),
+                Extensions::default(),
+            ),
+            Err(ModelResponseError::ToolCallsExceedRequest {
+                maximum: ExecutionCount::ZERO,
+                ..
+            })
+        ));
+    }
+
+    #[test]
     fn tool_argument_and_correlation_invariants_fail_closed() {
         let descriptor = descriptor("models.primary");
         let selected = tool("incidents.lookup");

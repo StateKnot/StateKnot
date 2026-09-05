@@ -1146,8 +1146,10 @@ exact normalized usage. Each repair has a fresh invocation and attempt ID,
 binds the preceding terminal revision into its checkpoint transition, and
 replays from that evidence after a crash. Failed output and provider error text
 are not inserted into the model transcript. The framework reserves an
-application-controlled `stateknot.output_repair` instruction and disables Tool
-advertising and selection during repair. Repairs consume the ordinary run
+application-controlled `stateknot.output_repair` instruction and disables new
+Tool calls during repair. Completed Tool history retains its exact definitions
+under explicit `none` selection, zero call capacity, and non-strict arguments;
+the model binding must advertise that choice. Repairs consume the ordinary run
 budgets; exhaustion returns `runtime.agent.output_repair_exhausted`. Unknown
 usage and unfinished invocations remain ineligible for this transition.
 

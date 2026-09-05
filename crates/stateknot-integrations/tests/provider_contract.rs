@@ -206,7 +206,7 @@ fn descriptor_with_tools(streaming: bool) -> ModelDescriptor {
         "schema_profile": placeholder_schema(),
         "max_definitions": "4",
         "max_calls_per_response": "4",
-        "choices": ["auto"],
+        "choices": ["auto", "none"],
         "strict_arguments": true
     });
     serde_json::from_value(value).unwrap()
@@ -291,6 +291,19 @@ fn successful_tool_outcome(call_id: &str) -> ModelToolOutcome {
             ToolArtifacts::empty(),
         ),
     )
+}
+
+fn request_with_disabled_tools(transcript: ModelTranscript) -> ModelRequest {
+    let mut value =
+        serde_json::to_value(request_with_tool(ModelResponseMode::Complete, transcript)).unwrap();
+    value["tool_selection"] = json!({"mode": "none"});
+    value["max_tool_calls_per_response"] = json!("0");
+    value["strict_tool_arguments"] = json!(false);
+    value["requirements"]["tools"] = json!({
+        "min_definitions": "1", "min_calls_per_response": "0",
+        "choices": ["none"], "strict_arguments": false
+    });
+    serde_json::from_value(value).unwrap()
 }
 
 fn context_with(
@@ -606,10 +619,7 @@ async fn openai_tool_transcript_replays_complete_output_before_call_results() {
     )
     .unwrap();
     second_model
-        .invoke(
-            context(),
-            request_with_tool(ModelResponseMode::Complete, transcript),
-        )
+        .invoke(context(), request_with_disabled_tools(transcript))
         .await
         .unwrap();
     let captured = String::from_utf8(second_server.request.await.unwrap()).unwrap();
@@ -622,6 +632,9 @@ async fn openai_tool_transcript_replays_complete_output_before_call_results() {
     assert_eq!(input[3]["type"], "function_call_output");
     assert_eq!(input[3]["call_id"], "call_weather_01");
     assert_eq!(body["include"], json!(["reasoning.encrypted_content"]));
+    assert_eq!(body["tool_choice"], "none");
+    assert_eq!(body["tools"].as_array().unwrap().len(), 1);
+    assert_eq!(body["parallel_tool_calls"], false);
 }
 
 #[tokio::test]
@@ -675,10 +688,7 @@ async fn anthropic_tool_transcript_preserves_assistant_then_grouped_results() {
     )
     .unwrap();
     second_model
-        .invoke(
-            context(),
-            request_with_tool(ModelResponseMode::Complete, transcript),
-        )
+        .invoke(context(), request_with_disabled_tools(transcript))
         .await
         .unwrap();
     let captured = String::from_utf8(second_server.request.await.unwrap()).unwrap();
@@ -691,6 +701,8 @@ async fn anthropic_tool_transcript_preserves_assistant_then_grouped_results() {
     assert_eq!(messages[2]["content"][0]["type"], "tool_result");
     assert_eq!(messages[2]["content"][0]["tool_use_id"], "toolu_weather_01");
     assert_eq!(messages[2]["content"][0]["is_error"], false);
+    assert_eq!(body["tool_choice"], json!({"type": "none"}));
+    assert_eq!(body["tools"].as_array().unwrap().len(), 1);
 }
 
 #[tokio::test]

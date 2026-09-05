@@ -155,9 +155,18 @@ Ledger 并推进到新 Plan，不会重新 Dispatch 已损坏的 Attempt，也�
 
 Repair Request 会重建原始 Input 与可信 Instruction，再附加一个 Framework-owned、名为
 `stateknot.output_repair` 的 Instruction。无效 Payload 与 Provider Error Text 不会复制
-进 Prompt 或 Model Transcript；Repair Request 不发布任何 Tool，并把 Tool Selection
-设为 `none`。Compile 会预留 32 个 Instruction Slot 中的一个，并拒绝
+进 Prompt 或 Model Transcript；如果此前已经调用 Tool，Repair Request 会保留这些 Tool
+的精确定义和已完成结果，用于历史校验与 Provider Replay，同时把 Tool Selection 设为
+`none`、调用上限设为 0，并关闭 Strict Arguments。同时启用 Tool 和 Repair 时，Model
+必须显式声明支持 `none`，否则 Compile 会在准入前拒绝。Compile 还会预留 32 个
+Instruction Slot 中的一个，并拒绝
 应用占用该保留名称，因此 Deployment 无法覆盖 Repair Policy。
+
+一方 Adapter 遵循 Provider 显式禁用 Tool Selection 的契约：
+[OpenAI Responses](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
+与 [Anthropic Tool Selection](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools)。
+回环 HTTP 测试验证保留历史时仍发送 `tool_choice: none`，本地 Response Validator
+也会独立拒绝任何新的 Tool Call。
 
 Provider 在 Repair 期间返回的 Tool Proposal 属于无效 Output。StateKnot 不调用 Tool Policy，也不会
 Prepare 或 Dispatch Tool；该 Proposal 会消耗当前 Repair Turn。达到配置上限后，执行以

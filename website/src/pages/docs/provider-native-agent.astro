@@ -179,9 +179,10 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
       then appends the reserved framework instruction <code
         >stateknot.output_repair</code
       >. Invalid payloads and provider error text are not copied into the prompt
-      or Transcript; the request advertises no Tools and selects none.
-      Repair-time Tool proposals reach neither policy nor Tool I/O. Exhaustion
-      fails with
+      or Transcript. Completed Tool history retains its exact definitions and
+      results; selection is <code>none</code> with zero allowed calls. Models must
+      explicitly support this choice when Tools and repair are configured. Repair-time
+      Tool proposals reach neither policy nor Tool I/O. Exhaustion fails with
       <code>runtime.agent.output_repair_exhausted</code> and exact charged-turn evidence;
       malformed envelopes without usage remain fail closed.
     </p>

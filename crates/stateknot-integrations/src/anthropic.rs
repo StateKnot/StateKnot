@@ -1014,7 +1014,7 @@ fn build_request(
             "tool_choice".to_owned(),
             match request.tool_selection() {
                 ModelToolSelection::None {} => {
-                    json!({"type": "none", "disable_parallel_tool_use": true})
+                    json!({"type": "none"})
                 }
                 ModelToolSelection::Auto {} => json!({
                     "type": "auto",

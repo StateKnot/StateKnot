@@ -1226,8 +1226,9 @@ pub struct ModelToolRequirements {
 impl ModelToolRequirements {
     /// Constructs and validates tool requirements.
     ///
-    /// Definition and call minima must both be zero or both be positive. Choice
-    /// and strict-mode requirements are meaningful only in the positive case.
+    /// Definition and call minima must both be zero or both be positive, except
+    /// when definitions are retained with the sole `None` choice, zero calls,
+    /// and non-strict arguments (for example, to replay completed Tool history).
     ///
     /// # Errors
     ///
@@ -1239,7 +1240,14 @@ impl ModelToolRequirements {
         choices: ModelToolChoices,
         strict_arguments: bool,
     ) -> Result<Self, ModelToolRequirementsError> {
-        if (min_definitions.get() == 0) != (min_calls_per_response.get() == 0) {
+        let disabled_with_definitions = min_definitions.get() != 0
+            && min_calls_per_response.get() == 0
+            && choices.len() == 1
+            && choices.contains(ModelToolChoice::None)
+            && !strict_arguments;
+        if (min_definitions.get() == 0) != (min_calls_per_response.get() == 0)
+            && !disabled_with_definitions
+        {
             return Err(ModelToolRequirementsError::CapacityMismatch);
         }
         if min_definitions.get() == 0 && (!choices.is_empty() || strict_arguments) {
@@ -1264,7 +1272,7 @@ impl ModelToolRequirements {
         }
     }
 
-    /// Returns whether tool calling is required.
+    /// Returns whether provider support for Tool definitions and controls is required.
     #[must_use]
     pub const fn requires_tool_calling(&self) -> bool {
         self.min_definitions.get() != 0
@@ -1330,8 +1338,8 @@ impl<'de> Deserialize<'de> for ModelToolRequirements {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum ModelToolRequirementsError {
-    /// Only one capacity dimension was active.
-    #[error("model tool requirements need both definition and call minima to be zero or positive")]
+    /// Capacity dimensions differed without an explicit disabled-definition contract.
+    #[error("model tool requirements need paired capacities or explicitly disabled definitions")]
     CapacityMismatch,
     /// An inactive requirement carried active controls.
     #[error("inactive model tool requirements cannot require choices or strict arguments")]
