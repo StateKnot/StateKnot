@@ -105,10 +105,10 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "Provider-native Agent",
         description:
-          "Compile and operate the durable multi-turn graph with ordered parallel read-only Tools, write barriers, policy, accounting, and cancellation evidence.",
+          "Compile and operate the durable multi-turn graph with bounded output repair, ordered parallel read-only Tools, write barriers, policy, accounting, and cancellation evidence.",
         href: "/docs/provider-native-agent/",
         search:
-          "provider native agent graph multi turn tool parallel read only write barrier policy accounting cancellation recovery transcript",
+          "provider native agent graph multi turn structured output repair malformed tool parallel read only write barrier policy accounting cancellation recovery transcript",
       },
     ],
   },
@@ -320,10 +320,10 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "Provider-native Agent",
         description:
-          "编译并运维支持有序 Parallel Read-only Tool 与 Write Barrier 的耐久多轮 Graph，并固定 Policy、Accounting 与 Cancellation Evidence。",
+          "编译并运维支持有界 Output Repair、有序 Parallel Read-only Tool 与 Write Barrier 的耐久多轮 Graph，并固定 Policy、Accounting 与 Cancellation Evidence。",
         href: "/docs/provider-native-agent/",
         search:
-          "provider native agent graph 多轮 tool parallel read only write barrier policy accounting cancellation recovery transcript 恢复",
+          "provider native agent graph 多轮 structured output repair 修复 malformed tool parallel read only write barrier policy accounting cancellation recovery transcript 恢复",
       },
     ],
   },

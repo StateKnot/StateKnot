@@ -249,7 +249,7 @@ commit.
 
 ## Qualification evidence and remaining gates
 
-Thirty-two runtime integration scenarios run against both PostgreSQL 16 and
+Thirty-six runtime integration scenarios run against both PostgreSQL 16 and
 17. They cover lifecycle success/Wait/failure/cancellation atomicity and exact
 lost-ack replay, database-time Wait materialization, Agent Loop success and
 evidence failure, tenant and weighted cross-tenant scheduling, durable

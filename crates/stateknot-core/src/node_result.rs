@@ -986,11 +986,15 @@ pub enum NodeInvocationBindingKind {
 #[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NodeInvocationBinding {
-    /// Exact committed model invocation.
+    /// Exact terminal model invocation.
+    ///
+    /// Both successful and known-failed model outcomes are consumable when a
+    /// node has deterministic semantics for the failure. Ambiguous or
+    /// unfinished provider outcomes remain ineligible.
     Model {
         /// Activation recorded by the full invocation intent.
         activation: NodeActivation,
-        /// Compact committed model revision identity.
+        /// Compact terminal model revision identity.
         head: ModelInvocationHead,
     },
     /// Exact terminal tool invocation.
@@ -1001,18 +1005,19 @@ pub enum NodeInvocationBinding {
     Tool {
         /// Activation recorded by the full invocation intent.
         activation: NodeActivation,
-        /// Compact committed tool revision identity.
+        /// Compact terminal tool revision identity.
         head: ToolInvocationHead,
     },
 }
 
 impl NodeInvocationBinding {
-    /// Constructs a binding from a fully validated committed model invocation.
+    /// Constructs a binding from a fully validated terminal model invocation.
     ///
     /// # Errors
     ///
     /// Returns [`NodeInvocationBindingError`] unless the invocation is
-    /// committed and its journal anchor strictly follows its base checkpoint.
+    /// committed or known-failed and its journal anchor strictly follows its
+    /// base checkpoint.
     pub fn from_model(invocation: &ModelInvocation) -> Result<Self, NodeInvocationBindingError> {
         Self::restore_model(invocation.intent().activation().clone(), invocation.head())
     }
@@ -1085,8 +1090,11 @@ impl NodeInvocationBinding {
         activation: NodeActivation,
         head: ModelInvocationHead,
     ) -> Result<Self, NodeInvocationBindingError> {
-        if head.status() != ModelInvocationStatus::Committed {
-            return Err(NodeInvocationBindingError::ModelNotCommitted {
+        if !matches!(
+            head.status(),
+            ModelInvocationStatus::Committed | ModelInvocationStatus::Failed
+        ) {
+            return Err(NodeInvocationBindingError::ModelNotConsumable {
                 actual: head.status(),
             });
         }
@@ -1151,9 +1159,11 @@ impl<'de> Deserialize<'de> for NodeInvocationBinding {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum NodeInvocationBindingError {
-    /// Model revision was not committed.
-    #[error("model invocation binding must reference committed state, got {actual:?}")]
-    ModelNotCommitted {
+    /// Model revision was neither successful nor a known failure.
+    #[error(
+        "model invocation binding must reference committed or known-failed state, got {actual:?}"
+    )]
+    ModelNotConsumable {
         /// Rejected lifecycle status.
         actual: ModelInvocationStatus,
     },
@@ -2189,10 +2199,58 @@ mod tests {
         .unwrap();
         assert_eq!(
             NodeInvocationBinding::restore_model(activation, executing),
-            Err(NodeInvocationBindingError::ModelNotCommitted {
+            Err(NodeInvocationBindingError::ModelNotConsumable {
                 actual: ModelInvocationStatus::Executing,
             })
         );
+    }
+
+    #[test]
+    fn invocation_bindings_accept_known_model_failures_but_reject_unfinished_outcomes() {
+        let activation = node_activation("call-model");
+        let failed = ModelInvocationHead::new(
+            activation.tenant_id().clone(),
+            activation.run_id(),
+            invocation_id("d4"),
+            ModelInvocationRevision::new(2).unwrap(),
+            ModelInvocationStatus::Failed,
+            Some(attempt_id("a4")),
+            journal(&activation, 2),
+            Digest::sha256(b"known-model-failure"),
+        )
+        .unwrap();
+        assert!(NodeInvocationBinding::restore_model(activation.clone(), failed).is_ok());
+
+        for status in [
+            ModelInvocationStatus::Prepared,
+            ModelInvocationStatus::Executing,
+        ] {
+            let attempt_id = if status == ModelInvocationStatus::Prepared {
+                None
+            } else {
+                Some(AttemptId::generate())
+            };
+            let revision = if status == ModelInvocationStatus::Prepared {
+                ModelInvocationRevision::INITIAL
+            } else {
+                ModelInvocationRevision::new(1).unwrap()
+            };
+            let head = ModelInvocationHead::new(
+                activation.tenant_id().clone(),
+                activation.run_id(),
+                InvocationId::generate(),
+                revision,
+                status,
+                attempt_id,
+                journal(&activation, 3),
+                Digest::sha256(b"unfinished-model"),
+            )
+            .unwrap();
+            assert_eq!(
+                NodeInvocationBinding::restore_model(activation.clone(), head),
+                Err(NodeInvocationBindingError::ModelNotConsumable { actual: status })
+            );
+        }
     }
 
     #[test]

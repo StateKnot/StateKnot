@@ -1139,6 +1139,18 @@ model transcript in proposal order. The effective run budget is still the
 intersection of system, tenant, agent, and request layers and may stop the loop
 before these descriptor ceilings.
 
+For the provider-native graph, output repair consumes a new model turn only
+after a durable terminal outcome: a committed final response that fails local
+JSON/schema validation, or a response-phase `response.malformed` failure with
+exact normalized usage. Each repair has a fresh invocation and attempt ID,
+binds the preceding terminal revision into its checkpoint transition, and
+replays from that evidence after a crash. Failed output and provider error text
+are not inserted into the model transcript. The framework reserves an
+application-controlled `stateknot.output_repair` instruction and disables Tool
+advertising and selection during repair. Repairs consume the ordinary run
+budgets; exhaustion returns `runtime.agent.output_repair_exhausted`. Unknown
+usage and unfinished invocations remain ineligible for this transition.
+
 Descriptor construction fails before execution when the pinned model cannot
 accept every exposed tool definition, cannot emit the configured number of
 calls, cannot implement the resolved output strategy, when tool names collide,

@@ -29,12 +29,13 @@ cargo run -p stateknot-runtime --example provider_native_agent --locked
 - 每轮不超过有限的 `max_tool_calls_per_turn`；
 - 支持串行 Tool，或仅对 Descriptor 声明为 Read-only 的 Tool 进行有界并行；所有 Write
   始终串行；
-- Output Repair Turn 必须为零；
-- 每个 Checkpoint 最多保留 4,096 个紧凑 Model/Tool Invocation 引用。
+- 有限的 `max_output_repair_turns`，且必须严格小于 `max_model_turns`；
+- 每个 Checkpoint 最多保留 4,096 个紧凑 Tool Invocation 引用，Model Invocation
+  引用数量受有限的模型轮次上限约束。
 
-`ProviderNativeAgentGraph::compile` 会拒绝以 Tool Call 模拟最终输出、Repair Turn、
-过大的调用上限、非法并发边界，以及无法装入耐久 Superstep 范围的组合。它不会静默
-降级为更弱的行为。
+`ProviderNativeAgentGraph::compile` 会拒绝以 Tool Call 模拟最终输出、过大的调用上限、
+非法并发边界、与保留 Repair Instruction 冲突或没有预留 Repair Slot 的 Instruction Set，
+以及无法装入耐久 Superstep 范围的组合。它不会静默降级为更弱的行为。
 
 生成的 Graph 有两个稳定的可执行 Node：
 
@@ -110,7 +111,7 @@ Fact 后才能开始。
 let execution = AgentExecutionConfig::new(
     AgentStructuredOutputStrategy::ModelNative,
     max_model_turns,
-    ExecutionCount::ZERO,
+    ExecutionCount::new(1),
     max_tool_calls_per_turn,
     AgentToolConcurrency::parallel_read_only(ExecutionCount::new(8)),
 )?;
@@ -131,6 +132,37 @@ Child Call 会随所属 Graph Node 一起 Abort，而 Durable Start 仍可由 Fe
 Validation、Budget Accounting 或 No-redispatch Recovery。进程在 Start 后、Terminal
 Persistence 前崩溃时继续 Fail Closed：StateKnot 不会猜测丢失的 Read Result，也不会盲目
 重复 Write。
+
+## 从耐久证据修复 Structured Output
+
+Output Repair 是显式、有界的 Model Self-loop，不是 Adapter 内部 Retry。
+`max_output_repair_turns` 表示一个 Run 最多可以额外消耗多少次付费 Model Turn；每次
+Repair 仍同时受总 Model Turn、Token、Byte、Cost、Deadline 与 Lease 上限约束。
+
+StateKnot 只会根据以下两类精确 Terminal Fact 启动 Repair：
+
+- 已提交的 `Completed` Response 未包含唯一且满足已 Admission Output Schema 的 JSON；
+- Complete-response Adapter 在 `Response` Phase 失败，稳定错误码为
+  `response.malformed`，并且带有精确的标准化 Usage Snapshot。当第一方 OpenAI
+  Responses 或 Anthropic Messages Adapter 能识别 Provider Usage、但无法接受其
+  Structured Output 时，就会产生这种 Failure Shape；无法取得 Usage 的损坏 Envelope
+  仍作为普通 Model Failure Fail Closed。
+
+失败 Attempt 必须先提交。随后，其精确 `committed` 或 `failed` Model Revision 会绑定进
+Node Result；Successor Checkpoint 只保存对应 Invocation ID，并为下一轮生成全新的
+Logical Invocation ID 与 Physical Attempt ID。Crash 后，Replay 会加载此前 Terminal
+Ledger 并推进到新 Plan，不会重新 Dispatch 已损坏的 Attempt，也不会重复计费。
+
+Repair Request 会重建原始 Input 与可信 Instruction，再附加一个 Framework-owned、名为
+`stateknot.output_repair` 的 Instruction。无效 Payload 与 Provider Error Text 不会复制
+进 Prompt 或 Model Transcript；Repair Request 不发布任何 Tool，并把 Tool Selection
+设为 `none`。Compile 会预留 32 个 Instruction Slot 中的一个，并拒绝
+应用占用该保留名称，因此 Deployment 无法覆盖 Repair Policy。
+
+Provider 在 Repair 期间返回的 Tool Proposal 属于无效 Output。StateKnot 不调用 Tool Policy，也不会
+Prepare 或 Dispatch Tool；该 Proposal 会消耗当前 Repair Turn。达到配置上限后，执行以
+`runtime.agent.output_repair_exhausted` 失败，Lifecycle Evidence 会精确报告已计费的
+Attempt 与 Turn。
 
 ## 耐久 Dispatch 与 Recovery
 
@@ -222,6 +254,12 @@ Runtime Integration Suite 在真实 PostgreSQL 16/17 上运行 Provider-native �
   原始 Proposal 顺序读取 Transcript；
 - Unknown Tool Outcome 返回 `Pending` 后耐久延迟，在后续 Lease 下完成解析并继续下一轮
   Model；两次 Reconciliation Probe 期间只发生一次 Business Call；
+- 无效的已提交 JSON 会写入带全新 Invocation Identity 的有限 Repair Plan，并在新 Lease
+  下恢复且不重复 Dispatch；
+- 带精确 Usage、兼容第一方 Adapter 的 `response.malformed` Failure 会作为 Failed Model
+  Revision 绑定，从 Checkpoint 修复，并按一个付费 Turn 计量；
+- Repair Exhaustion 会精确累计 Usage；
+- Repair 期间的 Tool Proposal 不会到达 Policy 或 Tool I/O；
 - 已提交 Model 后 Cancellation，恢复精确 Usage，并验证 Lost-ACK Replay；
 - Provider Dispatch 前 Cancellation 由 `DurableAgentLoop` 自动确认；
 - 精确 Evidence 不可用时，Cancellation 保持 Fail-closed。
@@ -238,8 +276,8 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked
 
 ## 明确剩余门禁
 
-本里程碑尚未交付 Parallel Write、Output Repair、Loop/Subgraph 语义、
-通用 Artifact Lifecycle/Public Delivery、稳定 Network Agent/Cancellation Transport、Protocol-specific Outbox
+本里程碑尚未交付 Parallel Write、Loop/Subgraph 语义、通用 Artifact
+Lifecycle/Public Delivery、稳定 Network Agent/Cancellation Transport、Protocol-specific Outbox
 Dispatch、MCP/A2A Server Composition、更广 Protocol Extension、A2A Live-peer
 Reconciliation Qualification、Live-provider Drift Cassette、数据库 Role Separation、通用
 Retention、Failover/Restore Qualification 或生产 Release。

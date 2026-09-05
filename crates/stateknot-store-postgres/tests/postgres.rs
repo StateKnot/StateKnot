@@ -361,6 +361,7 @@ async fn remove_agent_submission_keys(pool: &PgPool) {
 }
 
 async fn remove_artifact_registry(pool: &PgPool) {
+    remove_terminal_model_failure_bindings(pool).await;
     query("DROP TABLE stateknot.artifact_parents")
         .execute(pool)
         .await
@@ -373,6 +374,24 @@ async fn remove_artifact_registry(pool: &PgPool) {
         .execute(pool)
         .await
         .expect("v18 migration metadata must be removed from the fixture")
+        .rows_affected();
+    assert_eq!(deleted, 1);
+}
+
+async fn remove_terminal_model_failure_bindings(pool: &PgPool) {
+    query(
+        "ALTER TABLE stateknot.pending_node_result_model_bindings \
+         DROP CONSTRAINT pending_node_result_model_bindings_status_valid, \
+         ADD CONSTRAINT pending_node_result_model_bindings_status_valid \
+         CHECK (invocation_status = 'committed')",
+    )
+    .execute(pool)
+    .await
+    .expect("v18 committed-only model binding guard must be restored");
+    let deleted = query("DELETE FROM _sqlx_migrations WHERE version = 19")
+        .execute(pool)
+        .await
+        .expect("v19 migration metadata must be removed from the fixture")
         .rows_affected();
     assert_eq!(deleted, 1);
 }
@@ -7578,6 +7597,136 @@ async fn pending_node_result_bindings_prove_exact_committed_tool_and_model_revis
         .await
         .expect("bound pending result must verify every full invocation record");
     assert_eq!(restored, *committed.result());
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn pending_node_result_bindings_accept_exact_failed_model_revisions() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant_id = tenant("pending-node-result-failed-model-binding");
+    let run_id = RunId::generate();
+    let checkpoint = Box::pin(start_run_with_checkpoint(&store, &tenant_id, run_id, 1_128)).await;
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let activation = pending_activation(checkpoint.checkpoint(), b"failed model binding");
+    let intent =
+        model_invocation_intent_for_activation(activation.clone(), InvocationId::generate());
+    let prepared = store
+        .prepare_model_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                lease.fence().clone(),
+                1_129,
+            ),
+            intent.clone(),
+        )
+        .await
+        .unwrap();
+    let attempt_id = AttemptId::generate();
+    let executing = store
+        .advance_model_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(prepared.event().head()),
+                lease.fence().clone(),
+                1_130,
+            ),
+            &prepared.invocation().head(),
+            ModelInvocationTransition::StartAttempt { attempt_id },
+        )
+        .await
+        .unwrap();
+    let failed = store
+        .advance_model_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(executing.event().head()),
+                lease.fence().clone(),
+                1_131,
+            ),
+            &executing.invocation().head(),
+            ModelInvocationTransition::RecordError {
+                error: model_error(&intent, attempt_id, RetryAdvice::Never),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(failed.invocation().status(), ModelInvocationStatus::Failed);
+    let bindings = NodeInvocationBindings::try_new(
+        &activation,
+        [NodeInvocationBinding::from_model(failed.invocation()).unwrap()],
+    )
+    .unwrap();
+    let committed = store
+        .commit_test_pending_node_result(
+            worker_append(
+                tenant_id,
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(failed.event().head()),
+                lease.fence().clone(),
+                1_132,
+            ),
+            pending_result_intent(activation.clone(), bindings),
+        )
+        .await
+        .expect("an exact known-failed model revision must be consumable");
+    assert_eq!(
+        committed
+            .result()
+            .intent()
+            .bindings()
+            .iter()
+            .next()
+            .unwrap()
+            .model_head()
+            .unwrap()
+            .status(),
+        ModelInvocationStatus::Failed
+    );
+    assert_eq!(
+        store.load_pending_node_result(&activation).await.unwrap(),
+        *committed.result()
+    );
+    let barrier = CheckpointBarrier::new(
+        checkpoint.checkpoint(),
+        successor_checkpoint_write(CheckpointId::generate(), checkpoint.checkpoint(), 1),
+        [committed.result().head()],
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .append_worker_barrier(
+                worker_append(
+                    activation.tenant_id().clone(),
+                    activation.run_id(),
+                    EventId::generate(),
+                    JournalExpectation::exact(committed.event().head()),
+                    lease.fence().clone(),
+                    1_133,
+                ),
+                RunProjection::unchanged(),
+                barrier,
+            )
+            .await
+            .unwrap(),
+        BarrierCommitOutcome::Committed { .. }
+    ));
     store.close().await;
 }
 
@@ -16824,6 +16973,122 @@ async fn migration_eighteen_preserves_v17_runs_and_installs_the_artifact_registr
     query(
         "ALTER TABLE stateknot.artifacts \
          DROP CONSTRAINT artifacts_ref_bytes_bounded",
+    )
+    .execute(&verification)
+    .await
+    .unwrap();
+    assert!(matches!(
+        upgraded.verify_schema().await,
+        Err(StoreError::IncompleteSchema)
+    ));
+    verification.close().await;
+    upgraded.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn migration_nineteen_preserves_v18_runs_and_installs_terminal_model_bindings() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let database_name = format!(
+        "stateknot_v19_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration_url = database_url_with_name(&database_url, "postgres");
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&administration_url)
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+
+    let current = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .unwrap();
+    let tenant_id = tenant("v19-existing-run");
+    let run_id = RunId::generate();
+    Box::pin(start_run_with_checkpoint(
+        &current, &tenant_id, run_id, 1_900,
+    ))
+    .await;
+    current.close().await;
+
+    let fixture = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    remove_terminal_model_failure_bindings(&fixture).await;
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        18
+    );
+    let legacy_definition = query_scalar::<_, String>(
+        "SELECT pg_get_constraintdef(oid) \
+         FROM pg_catalog.pg_constraint \
+         WHERE conrelid = 'stateknot.pending_node_result_model_bindings'::regclass \
+           AND conname = 'pending_node_result_model_bindings_status_valid'",
+    )
+    .fetch_one(&fixture)
+    .await
+    .unwrap();
+    assert!(!legacy_definition.contains("failed"));
+    fixture.close().await;
+
+    PostgresStore::migrate_database(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("migration 19 must upgrade an exact populated v18 schema");
+    let upgraded = PostgresStore::connect(&isolated_url, test_options(Duration::from_secs(30)))
+        .await
+        .expect("the upgraded v19 schema must pass exact verification");
+    upgraded.verify_schema().await.unwrap();
+    upgraded.load_run(&tenant_id, run_id).await.unwrap();
+
+    let verification = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&isolated_url)
+        .await
+        .unwrap();
+    let upgraded_definition = query_scalar::<_, String>(
+        "SELECT pg_get_constraintdef(oid) \
+         FROM pg_catalog.pg_constraint \
+         WHERE conrelid = 'stateknot.pending_node_result_model_bindings'::regclass \
+           AND conname = 'pending_node_result_model_bindings_status_valid'",
+    )
+    .fetch_one(&verification)
+    .await
+    .unwrap();
+    assert!(upgraded_definition.contains("committed"));
+    assert!(upgraded_definition.contains("failed"));
+    query(
+        "ALTER TABLE stateknot.pending_node_result_model_bindings \
+         DROP CONSTRAINT pending_node_result_model_bindings_status_valid, \
+         ADD CONSTRAINT pending_node_result_model_bindings_status_valid \
+         CHECK (invocation_status = 'committed')",
     )
     .execute(&verification)
     .await

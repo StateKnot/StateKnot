@@ -249,7 +249,7 @@ fn agent_definition(
     let execution = AgentExecutionConfig::new(
         AgentStructuredOutputStrategy::ModelNative,
         ExecutionCount::new(3),
-        ExecutionCount::ZERO,
+        ExecutionCount::new(1),
         ExecutionCount::new(4),
         AgentToolConcurrency::parallel_read_only(ExecutionCount::new(2)),
     )?;

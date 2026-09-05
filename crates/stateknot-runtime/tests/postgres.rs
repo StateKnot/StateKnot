@@ -30,19 +30,19 @@ use stateknot_core::{
     GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
     GraphSchemaValidationError, InvocationId, IssuerId, JournalAppend, JournalEventIntent,
     JournalEventKind, JournalExpectation, JournalPayload, JsonContent, KnownCosts, Model,
-    ModelContext, ModelDescriptor, ModelError, ModelEvent, ModelFinishReason,
-    ModelInvocationIntent, ModelInvocationStatus, ModelOutputItem, ModelProviderReplay,
-    ModelProviderReplayFormat, ModelProviderToolCallId, ModelRequest, ModelResponse,
-    ModelResponseMode, ModelResponseProvenance, ModelToolCallProposal, ModelUsage, NodeActivation,
-    NodeControl, NodeId, NodeInvocationBindings, NodeStateChange, NodeTerminalOutput, NodeWait,
-    NodeWaits, PrincipalIdentity, QuarantineId, ReadyNodes, ResolvedBudget, RetryAdvice,
-    RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind, RunTransition,
-    SchedulerShardId, SchemaId, SchemaReference, SecurityLabel, SubjectId, Superstep, TenantId,
-    ThreadId, TimerId, Timestamp, TokenCount, ToolArtifacts, ToolContext, ToolDescriptor,
-    ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExecutionSemantics, ToolExternalEffect,
-    ToolIdempotency, ToolInput, ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus,
-    ToolReconciliationContext, ToolReconciliationObservation, ToolReconciliationProbeError,
-    ToolResult, ToolResultProvenance, ToolRisk, Version,
+    ModelContext, ModelDescriptor, ModelError, ModelErrorPhase, ModelErrorProvenance, ModelEvent,
+    ModelFinishReason, ModelInvocationIntent, ModelInvocationStatus, ModelOutputItem,
+    ModelProviderReplay, ModelProviderReplayFormat, ModelProviderToolCallId, ModelRequest,
+    ModelResponse, ModelResponseMode, ModelResponseProvenance, ModelToolCallProposal, ModelUsage,
+    NodeActivation, NodeControl, NodeId, NodeInvocationBindings, NodeStateChange,
+    NodeTerminalOutput, NodeWait, NodeWaits, PrincipalIdentity, QuarantineId, ReadyNodes,
+    ResolvedBudget, RetryAdvice, RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind,
+    RunTransition, SchedulerShardId, SchemaId, SchemaReference, SecurityLabel, SubjectId,
+    Superstep, TenantId, ThreadId, TimerId, Timestamp, TokenCount, ToolArtifacts, ToolContext,
+    ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExecutionSemantics,
+    ToolExternalEffect, ToolIdempotency, ToolInput, ToolInvocationIntent, ToolInvocationState,
+    ToolInvocationStatus, ToolReconciliationContext, ToolReconciliationObservation,
+    ToolReconciliationProbeError, ToolResult, ToolResultProvenance, ToolRisk, Version,
 };
 use stateknot_runtime::{
     AgentCancellationIds, AgentCancellationOutcome, AgentInvocationAccounting,
@@ -67,11 +67,11 @@ use stateknot_runtime::{
     JsonSchemaRegistryBuilder, JsonSchemaRegistryLimits, ModelAttemptExecutionError,
     ModelAttemptHandoff, ModelAttemptOutcome, ModelAttemptTerminalKind, ModelEventSink,
     ModelEventSinkError, ModelProviderRegistryBuilder, ProviderNativeAgentGraph,
-    ProviderNativeAgentLifecycleEvidence, TenantFairnessWeight, TenantSchedulerOutcome,
-    ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind, ToolProviderRegistryBuilder,
-    ToolReconciliationAttemptHandoff, ToolReconciliationAttemptOutcome,
-    ToolReconciliationCommitFailure, ToolReconciliationHandoff, ToolReconciliationKind,
-    ToolReconciliationOutcome, WeightedFairnessPolicy,
+    ProviderNativeAgentLifecycleEvidence, ProviderNativeAgentPhase, TenantFairnessWeight,
+    TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind,
+    ToolProviderRegistryBuilder, ToolReconciliationAttemptHandoff,
+    ToolReconciliationAttemptOutcome, ToolReconciliationCommitFailure, ToolReconciliationHandoff,
+    ToolReconciliationKind, ToolReconciliationOutcome, WeightedFairnessPolicy,
     register_standard_agent_admission_event_schema,
     register_standard_agent_cancellation_event_schema,
     register_standard_agent_service_control_event_schema,
@@ -600,6 +600,150 @@ impl Model for ProviderNativeScriptedModel {
     }
 }
 
+struct ProviderNativeRepairModel {
+    descriptor: ModelDescriptor,
+    output_schema: SchemaReference,
+    malformed_failures: usize,
+    invalid_responses: usize,
+    tool_call_on_repair: bool,
+    calls: Arc<AtomicUsize>,
+    request_instruction_names: Arc<tokio::sync::Mutex<Vec<Vec<String>>>>,
+    request_transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
+    attempt_ids: Arc<tokio::sync::Mutex<Vec<AttemptId>>>,
+}
+
+fn malformed_repair_response_error(
+    context: &ModelContext,
+    descriptor: &ModelDescriptor,
+    usage: ModelUsage,
+) -> ModelError {
+    ModelError::new(
+        Failure::new(
+            FailureId::generate(),
+            FailureCategory::DataCorruption,
+            FailureCode::new("response.malformed").unwrap(),
+            FailureOrigin::new("stateknot.integrations.test").unwrap(),
+            FailureMessage::new("The model provider returned a malformed response.").unwrap(),
+            RetryAdvice::Never,
+        )
+        .unwrap(),
+        ModelErrorPhase::Response,
+        ModelErrorProvenance::new(
+            context.attempt_id(),
+            descriptor.metadata().identity().clone(),
+            None,
+            None,
+            None,
+        ),
+        Some(usage),
+    )
+}
+
+impl Model for ProviderNativeRepairModel {
+    fn descriptor(&self) -> &ModelDescriptor {
+        &self.descriptor
+    }
+
+    fn invoke(
+        &self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxFuture<'_, Result<ModelResponse, ModelError>> {
+        let call = self.calls.fetch_add(1, Ordering::SeqCst);
+        let descriptor = self.descriptor.clone();
+        let output_schema = self.output_schema.clone();
+        let malformed = call < self.malformed_failures;
+        let invalid =
+            !malformed && call.saturating_sub(self.malformed_failures) < self.invalid_responses;
+        let tool_call_on_repair = self.tool_call_on_repair;
+        let request_instruction_names = Arc::clone(&self.request_instruction_names);
+        let request_transcript_lengths = Arc::clone(&self.request_transcript_lengths);
+        let attempt_ids = Arc::clone(&self.attempt_ids);
+        Box::pin(async move {
+            request_instruction_names.lock().await.push(
+                request
+                    .instructions()
+                    .iter()
+                    .map(|instruction| instruction.identity().name().as_str().to_owned())
+                    .collect(),
+            );
+            request_transcript_lengths
+                .lock()
+                .await
+                .push(request.transcript().len());
+            attempt_ids.lock().await.push(context.attempt_id());
+            if call != 0 {
+                assert_eq!(request.tools().len(), 0);
+                assert_eq!(
+                    request.tool_selection(),
+                    &stateknot_core::ModelToolSelection::none()
+                );
+            }
+            let provenance = ModelResponseProvenance::new(
+                context.attempt_id(),
+                descriptor.metadata().identity().clone(),
+                None,
+                None,
+            );
+            let usage = ModelUsage::new(
+                TokenCount::new(10),
+                Some(TokenCount::new(2)),
+                TokenCount::new(3),
+                Some(TokenCount::new(1)),
+            )
+            .unwrap();
+            if malformed {
+                return Err(malformed_repair_response_error(
+                    &context,
+                    &descriptor,
+                    usage,
+                ));
+            }
+            if call != 0 && tool_call_on_repair {
+                return Err(malformed_repair_response_error(
+                    &context,
+                    &descriptor,
+                    usage,
+                ));
+            }
+            let value = if invalid {
+                json!({"not_answer": true})
+            } else {
+                json!({"answer": "The durable repair turn succeeded."})
+            };
+            let output = ModelOutputItem::content(ContentPart::Json(JsonContent::new(
+                BoundedJson::try_from_value(value).unwrap(),
+                Some(output_schema),
+                ContentMetadata::untrusted(
+                    ContentSource::Model,
+                    "internal/provider-native-repair-test"
+                        .parse::<SecurityLabel>()
+                        .unwrap(),
+                ),
+            )))
+            .unwrap();
+            Ok(ModelResponse::new(
+                provenance,
+                &descriptor,
+                &request,
+                [output],
+                ModelFinishReason::Completed,
+                usage,
+                Extensions::default(),
+            )
+            .unwrap())
+        })
+    }
+
+    fn stream(
+        &self,
+        _: ModelContext,
+        _: ModelRequest,
+    ) -> BoxStream<'_, Result<ModelEvent, ModelError>> {
+        Box::pin(EmptyModelStream)
+    }
+}
+
 struct ProviderNativeLookupTool {
     descriptor: ToolDescriptor,
     calls: Arc<AtomicUsize>,
@@ -973,6 +1117,18 @@ struct ProviderNativeParallelFixture {
     input_schema: SchemaReference,
 }
 
+struct ProviderNativeRepairFixture {
+    definition: ProviderNativeAgentGraph,
+    registry: ExecutableGraphRegistry,
+    model_calls: Arc<AtomicUsize>,
+    tool_calls: Arc<AtomicUsize>,
+    policy_calls: Arc<AtomicUsize>,
+    request_instruction_names: Arc<tokio::sync::Mutex<Vec<Vec<String>>>>,
+    request_transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
+    attempt_ids: Arc<tokio::sync::Mutex<Vec<AttemptId>>>,
+    input_schema: SchemaReference,
+}
+
 struct StaticAgentServiceAuthorizer {
     submission: AgentServiceSubmissionGrant,
     run: AgentServiceRunGrant,
@@ -1213,6 +1369,196 @@ fn provider_native_fixture_with(
         failed_outcomes,
         input_schema,
         policy_pause,
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+fn provider_native_repair_fixture(
+    store: PostgresStore,
+    invalid_responses: usize,
+    maximum_repairs: u64,
+    tool_call_on_repair: bool,
+) -> ProviderNativeRepairFixture {
+    provider_native_repair_fixture_with_failures(
+        store,
+        0,
+        invalid_responses,
+        maximum_repairs,
+        tool_call_on_repair,
+    )
+}
+
+#[allow(clippy::too_many_lines)]
+fn provider_native_repair_fixture_with_failures(
+    store: PostgresStore,
+    malformed_failures: usize,
+    invalid_responses: usize,
+    maximum_repairs: u64,
+    tool_call_on_repair: bool,
+) -> ProviderNativeRepairFixture {
+    let (input_schema, input_document) = schema("provider-native-repair-input");
+    let (tool_input_schema, tool_input_document) = schema("provider-native-repair-tool-input");
+    let (tool_output_schema, tool_output_document) = schema("provider-native-repair-tool-output");
+    let output_schema_id = "https://stknot.com/schemas/tests/provider-native-repair-output/1.0.0";
+    let output_document = json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": output_schema_id,
+        "type": "object",
+        "properties": {
+            "answer": {"type": "string"}
+        },
+        "required": ["answer"],
+        "additionalProperties": false
+    });
+    let output_schema = SchemaReference::new(
+        output_schema_id.parse::<SchemaId>().unwrap(),
+        Version::new(1, 0, 0),
+        Digest::sha256(serde_json_canonicalizer::to_vec(&output_document).unwrap()),
+    );
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-agent-v1.json"
+    ))
+    .unwrap();
+    let template =
+        serde_json::from_value::<AgentDescriptor>(fixture["descriptors"]["valid"][0].clone())
+            .unwrap();
+    let tool_template = template.tools().iter().next().unwrap().clone();
+    let tool = ToolDescriptor::new(
+        tool_template.metadata().clone(),
+        tool_input_schema.clone(),
+        tool_output_schema.clone(),
+        tool_template.semantics().clone(),
+        tool_template.resources().clone(),
+        tool_template.invocation().clone(),
+        tool_template.limits().clone(),
+    )
+    .unwrap();
+    let execution = AgentExecutionConfig::new(
+        AgentStructuredOutputStrategy::ModelNative,
+        ExecutionCount::new(maximum_repairs + 2),
+        ExecutionCount::new(maximum_repairs),
+        ExecutionCount::new(1),
+        AgentToolConcurrency::sequential(),
+    )
+    .unwrap();
+    let descriptor = AgentDescriptor::new(
+        template.metadata().clone(),
+        input_schema.clone(),
+        output_schema.clone(),
+        template.model().clone(),
+        template.instructions().clone(),
+        AgentTools::try_new([tool.clone()]).unwrap(),
+        execution,
+        template.budget_limits().clone(),
+    )
+    .unwrap();
+    let policy_calls = Arc::new(AtomicUsize::new(0));
+    let policy = Arc::new(FailOnceAgentToolPolicy {
+        reference: AgentToolPolicyReference::new(
+            capability("provider-native-repair-tool-policy"),
+            Digest::sha256(b"provider-native repair policy v1"),
+        ),
+        calls: Arc::clone(&policy_calls),
+        fail_once: false,
+        pause_first: None,
+    });
+    let definition = ProviderNativeAgentGraph::compile(
+        descriptor,
+        capability("provider-native-repair-agent-graph"),
+        capability("provider-native-repair-agent-reducer"),
+        "https://stknot.com/schemas/tests/provider-native-repair-state/1.0.0"
+            .parse::<SchemaId>()
+            .unwrap(),
+        "internal/provider-native-repair-input"
+            .parse::<SecurityLabel>()
+            .unwrap(),
+        policy,
+        Arc::new(KnownFreeInvocationAccounting {
+            reference: AgentInvocationAccountingReference::new(
+                capability("provider-native-repair-accounting"),
+                Digest::sha256(b"provider-native repair known-free accounting v1"),
+            ),
+        }),
+    )
+    .unwrap();
+
+    let mut schema_builder = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
+    schema_builder
+        .register(input_schema.clone(), input_document)
+        .unwrap();
+    schema_builder
+        .register(output_schema.clone(), output_document)
+        .unwrap();
+    schema_builder
+        .register(tool_input_schema, tool_input_document)
+        .unwrap();
+    schema_builder
+        .register(tool_output_schema, tool_output_document)
+        .unwrap();
+    definition.register_schema(&mut schema_builder).unwrap();
+    register_standard_graph_driver_event_schema(&mut schema_builder).unwrap();
+    register_standard_graph_lifecycle_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_service_control_event_schema(&mut schema_builder).unwrap();
+    register_standard_agent_admission_event_schema(&mut schema_builder).unwrap();
+    register_standard_invocation_execution_event_schema(&mut schema_builder).unwrap();
+    let schemas = schema_builder.build().unwrap();
+
+    let model_calls = Arc::new(AtomicUsize::new(0));
+    let tool_calls = Arc::new(AtomicUsize::new(0));
+    let request_instruction_names = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    let request_transcript_lengths = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    let attempt_ids = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    let mut models = ModelProviderRegistryBuilder::new();
+    models
+        .register(Arc::new(ProviderNativeRepairModel {
+            descriptor: definition.descriptor().model().clone(),
+            output_schema,
+            malformed_failures,
+            invalid_responses,
+            tool_call_on_repair,
+            calls: Arc::clone(&model_calls),
+            request_instruction_names: Arc::clone(&request_instruction_names),
+            request_transcript_lengths: Arc::clone(&request_transcript_lengths),
+            attempt_ids: Arc::clone(&attempt_ids),
+        }))
+        .unwrap();
+    let mut tools = ToolProviderRegistryBuilder::new();
+    tools
+        .register(Arc::new(ProviderNativeLookupTool {
+            descriptor: tool,
+            calls: Arc::clone(&tool_calls),
+            fail: false,
+        }))
+        .unwrap();
+    let invocation_executor = DurableInvocationExecutor::with_clock(
+        store.clone(),
+        schemas.clone(),
+        models.build(),
+        tools.build(),
+        Arc::new(StaticInvocationBudget {
+            resolved: invocation_budget(),
+        }),
+        Arc::new(FixedInvocationClock {
+            observed_at: "2029-01-01T00:00:00.000000Z".parse().unwrap(),
+        }),
+        DurableInvocationExecutorOptions::default(),
+    )
+    .unwrap();
+    let mut registry_builder = ExecutableGraphRegistryBuilder::new(schemas.clone());
+    definition
+        .register_executable(&mut registry_builder, store, invocation_executor, schemas)
+        .unwrap();
+    ProviderNativeRepairFixture {
+        definition,
+        registry: registry_builder.build().unwrap(),
+        model_calls,
+        tool_calls,
+        policy_calls,
+        request_instruction_names,
+        request_transcript_lengths,
+        attempt_ids,
+        input_schema,
     }
 }
 
@@ -2239,6 +2585,441 @@ async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposa
             .usage()
             .tool_calls(),
         ExecutionCount::new(4)
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_output_repair_resumes_from_checkpoint_without_redispatch() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_repair_fixture(store.clone(), 1, 1, false);
+    let tenant_id = tenant("runtime-provider-native-output-repair");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request_for(
+            &fixture.definition,
+            &fixture.input_schema,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+
+    let first_driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::new(
+            GraphReplayLimits::default(),
+            3,
+            Duration::from_secs(10),
+            Duration::from_secs(15 * 60),
+            3,
+            Duration::from_millis(25),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let first = first_driver
+        .drive(first_lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(matches!(first.outcome(), GraphDriveOutcome::Yielded { .. }));
+    assert_eq!(first.report().durable_events(), 3);
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
+
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    let checkpoint_pointer = run.checkpoint().unwrap();
+    let checkpoint = store
+        .load_checkpoint(&tenant_id, run_id, checkpoint_pointer.checkpoint_id())
+        .await
+        .unwrap();
+    let repair_state = fixture
+        .definition
+        .restore_state(checkpoint.state())
+        .unwrap();
+    assert_eq!(repair_state.completed_turns().len(), 1);
+    assert!(repair_state.completed_turns()[0].requires_output_repair());
+    let first_invocation_id = repair_state.completed_turns()[0].model_invocation_id();
+    let ProviderNativeAgentPhase::Model { plan: repair_plan } = repair_state.phase() else {
+        panic!("the repair checkpoint must schedule a model turn")
+    };
+    assert_ne!(first_invocation_id, repair_plan.invocation_id());
+
+    let second_driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let second_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let second = second_driver
+        .drive(second_lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let handoff = match second.into_parts().0 {
+        GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
+        other => panic!("repaired output must reach the lifecycle barrier: {other:?}"),
+    };
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        *fixture.request_transcript_lengths.lock().await,
+        vec![0, 0],
+        "invalid final output is ledger evidence, not a fabricated tool transcript"
+    );
+    let instruction_names = fixture.request_instruction_names.lock().await;
+    assert_eq!(instruction_names.len(), 2);
+    assert!(
+        !instruction_names[0]
+            .iter()
+            .any(|name| name == "stateknot.output_repair")
+    );
+    assert_eq!(
+        instruction_names[1].last().map(String::as_str),
+        Some("stateknot.output_repair")
+    );
+    drop(instruction_names);
+    let attempt_ids = fixture.attempt_ids.lock().await;
+    assert_eq!(attempt_ids.len(), 2);
+    assert_ne!(attempt_ids[0], attempt_ids[1]);
+    drop(attempt_ids);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.commit_barrier(*handoff).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    let completed = store.load_run(&tenant_id, run_id).await.unwrap();
+    let result = completed.lifecycle().result().unwrap();
+    assert_eq!(
+        result.output().as_value(),
+        &json!({"answer": "The durable repair turn succeeded."})
+    );
+    assert_eq!(result.usage().model_attempts(), ExecutionCount::new(2));
+    assert_eq!(result.usage().model_turns(), ExecutionCount::new(2));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_malformed_adapter_response_repairs_from_failed_ledger() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_repair_fixture_with_failures(store.clone(), 1, 0, 1, false);
+    let tenant_id = tenant("runtime-provider-native-malformed-response-repair");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request_for(
+            &fixture.definition,
+            &fixture.input_schema,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+
+    let first_driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::new(
+            GraphReplayLimits::default(),
+            3,
+            Duration::from_secs(10),
+            Duration::from_secs(15 * 60),
+            3,
+            Duration::from_millis(25),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let first_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let first = first_driver
+        .drive(first_lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(matches!(first.outcome(), GraphDriveOutcome::Yielded { .. }));
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
+
+    let run = store.load_run(&tenant_id, run_id).await.unwrap();
+    let checkpoint = store
+        .load_checkpoint(
+            &tenant_id,
+            run_id,
+            run.checkpoint().unwrap().checkpoint_id(),
+        )
+        .await
+        .unwrap();
+    let repair_state = fixture
+        .definition
+        .restore_state(checkpoint.state())
+        .unwrap();
+    assert_eq!(repair_state.completed_turns().len(), 1);
+    assert!(repair_state.completed_turns()[0].requires_output_repair());
+    let failed_invocation_id = repair_state.completed_turns()[0].model_invocation_id();
+    let failed_invocation = store
+        .load_model_invocation(&tenant_id, run_id, failed_invocation_id)
+        .await
+        .unwrap();
+    assert_eq!(failed_invocation.status(), ModelInvocationStatus::Failed);
+    let ProviderNativeAgentPhase::Model { plan: repair_plan } = repair_state.phase() else {
+        panic!("a malformed response must schedule a distinct repair invocation")
+    };
+    assert_ne!(failed_invocation_id, repair_plan.invocation_id());
+
+    let second_lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let second_driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let second = second_driver
+        .drive(second_lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let handoff = match second.into_parts().0 {
+        GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
+        other => panic!("the adapter-backed repair must complete: {other:?}"),
+    };
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(*fixture.request_transcript_lengths.lock().await, vec![0, 0]);
+    let attempts = fixture.attempt_ids.lock().await;
+    assert_eq!(attempts.len(), 2);
+    assert_ne!(attempts[0], attempts[1]);
+    drop(attempts);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.commit_barrier(*handoff).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    let completed = store.load_run(&tenant_id, run_id).await.unwrap();
+    let usage = completed.lifecycle().result().unwrap().usage();
+    assert_eq!(usage.model_attempts(), ExecutionCount::new(2));
+    assert_eq!(usage.model_turns(), ExecutionCount::new(2));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_output_repair_exhaustion_fails_with_exact_usage() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_repair_fixture(store.clone(), usize::MAX, 1, false);
+    let tenant_id = tenant("runtime-provider-native-output-repair-exhausted");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request_for(
+            &fixture.definition,
+            &fixture.input_schema,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let drive_result = driver
+        .drive(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let blocked = match drive_result.into_parts().0 {
+        GraphDriveOutcome::Blocked(blocked) => blocked,
+        other => panic!("repair exhaustion must produce a failure handoff: {other:?}"),
+    };
+    assert_eq!(blocked.blockers().failed(), 1);
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(*fixture.request_transcript_lengths.lock().await, vec![0, 0]);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.resolve_blocked(*blocked).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Failed(stateknot_store_postgres::AppendOutcome::Committed(_))
+    ));
+    let failed = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(failed.lifecycle().status(), RunStatus::Failed);
+    assert_eq!(
+        failed
+            .lifecycle()
+            .terminal_failure()
+            .unwrap()
+            .code()
+            .as_str(),
+        "runtime.agent.output_repair_exhausted"
+    );
+    let usage = failed.lifecycle().terminal_usage().unwrap();
+    assert_eq!(usage.model_attempts(), ExecutionCount::new(2));
+    assert_eq!(usage.model_turns(), ExecutionCount::new(2));
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_output_repair_never_executes_a_proposed_tool() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_repair_fixture(store.clone(), 1, 1, true);
+    let tenant_id = tenant("runtime-provider-native-output-repair-tool-rejected");
+    let ids = AgentRunIds::generate();
+    let run_id = ids.run_id();
+    store
+        .register_graph_definition(tenant_id.clone(), fixture.definition.graph().clone())
+        .await
+        .unwrap();
+    DurableAgentAdmission::new(store.clone(), fixture.registry.clone())
+        .unwrap()
+        .admit(provider_native_admission_request_for(
+            &fixture.definition,
+            &fixture.input_schema,
+            tenant_id.clone(),
+            ids,
+        ))
+        .await
+        .unwrap();
+    let lease = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let drive_result = driver
+        .drive(lease.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let blocked = match drive_result.into_parts().0 {
+        GraphDriveOutcome::Blocked(blocked) => blocked,
+        other => panic!("a repair-time tool proposal must fail closed: {other:?}"),
+    };
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition,
+            store.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.resolve_blocked(*blocked).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Failed(stateknot_store_postgres::AppendOutcome::Committed(_))
+    ));
+    let failed = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(
+        failed
+            .lifecycle()
+            .terminal_failure()
+            .unwrap()
+            .code()
+            .as_str(),
+        "runtime.agent.output_repair_exhausted"
+    );
+    assert_eq!(
+        failed
+            .lifecycle()
+            .terminal_usage()
+            .unwrap()
+            .model_attempts(),
+        ExecutionCount::new(2)
     );
     store.close().await;
 }

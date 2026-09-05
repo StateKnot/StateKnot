@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Bounded durable model-native structured-output repair with distinct invocation
+  and attempt identities, exact usage accounting, crash-safe replay, reserved
+  trusted instructions, disabled repair-time Tools, and explicit exhaustion.
+  PostgreSQL migration 19 allows node results to consume exact known-failed
+  model revisions while rejecting unfinished outcomes. Includes bilingual
+  integration guides and PostgreSQL 16/17 qualification cases.
 - Provider-neutral durable Tool reconciliation SPI with original-attempt
   identity, finite deadline/cancellation context, bounded `Pending` polling,
   public-safe probe failures, pre-I/O ledger reload, and atomic schema-checked
