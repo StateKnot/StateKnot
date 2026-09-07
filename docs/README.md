@@ -11,6 +11,11 @@ conformance output, and the release gates in these documents.
 
 ## Start here
 
+The next isolated-child increment is documented in
+[Durable child-run core contracts](durable-child-runs.md) and its
+[Chinese edition](durable-child-runs.zh-CN.md). Core identity and cumulative
+capacity arithmetic are implemented; durable child execution is not yet enabled.
+
 1. [v1 scope baseline](v1-scope.md) — the capabilities, guarantees, supported
    environment, and explicit exclusions that control implementation work.
 2. [Qualification scenarios](scenarios/README.md) — the three production-shaped

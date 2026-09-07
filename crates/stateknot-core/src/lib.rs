@@ -20,9 +20,11 @@ mod agent_runtime;
 mod artifact;
 mod barrier;
 mod budget;
+mod budget_reservation;
 mod canonical;
 mod capability;
 mod checkpoint;
+mod child_run;
 mod content;
 mod decimal;
 mod digest;
@@ -92,6 +94,7 @@ pub use budget::{
     BudgetUsage, BudgetUsageBuilder, BudgetUsageError, CostCollectionError, CostLimits, KnownCosts,
     MAX_BUDGET_LAYERS, MAX_COST_CURRENCIES, ResolvedBudget,
 };
+pub use budget_reservation::{CumulativeBudgetReservation, CumulativeBudgetReservationError};
 pub use canonical::{CanonicalJson, CanonicalJsonError};
 pub use capability::{
     CapabilityDescription, CapabilityDescriptionError, CapabilityIdentity, CapabilityKind,
@@ -105,6 +108,7 @@ pub use checkpoint::{
     CheckpointWrite, CheckpointWriteError, GraphReference, NodeId, NodeIdError, ReadyNodes,
     ReadyNodesError, Superstep, SuperstepError,
 };
+pub use child_run::{ChildRunKey, ChildRunKeyError, ChildRunSlot};
 pub use content::{
     ContentMetadata, ContentSource, ContentTrust, JsonContent, LanguageTag, LanguageTagError,
     RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,
