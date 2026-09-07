@@ -5,7 +5,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable child runs: core contracts and remaining work
 
-Status: core identity and cumulative-capacity primitives implemented; durable
+Status: core identity, cumulative capacity, and read-only child admission
+preparation implemented; durable
 child admission, ownership storage, joins, and cancellation are **not yet
 implemented**. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
@@ -71,6 +72,54 @@ deadline narrowing, authorization, ancestry, active subtree concurrency, and
 fan-out independently. Existing high-water usage is validated, but remaining
 high-water counts returned by this calculation do not authorize new topology.
 
+## Pinned child admission preparation
+
+`ChildRunAdmissionIntent` now retains a parent admission digest, logical child
+key, candidate `AgentAdmissionIntent`, complete compiled child graph, private
+initial state, and a stable `spawn_digest`. Its complete canonical envelope is
+bounded to 16 MiB. Both construction and deserialization check internal scope,
+graph/schema closure, interoperable JSON numbers, and digest integrity.
+
+The retry digest binds the full child descriptor, graph reference (and hence
+definition), request, budget layers and resolved budget, authority evidence,
+initial state/ready set, parent admission/key, and fixed `cancel_and_join` close
+policy. Candidate child Run/thread/invocation IDs are excluded, matching ingress
+submission semantics; they remain in the envelope with their admission-intent
+checksum. Changed IDs alone preserve `spawn_digest`, while changed business
+inputs conflict. Admission event and checkpoint IDs are not allocated here.
+
+`ResolvedBudget::validate_narrowing` rejects widening of every scalar, deadline,
+or currency ceiling without clamping. Same-principal child authority and scope
+subset checks are implemented. This is structural validation, not permission
+to redelegate all granted scopes: a trusted admission policy still has to
+authorize the particular declared child slot and target. Cross-principal
+identity exchange is not supported by this first profile.
+
+`DurableAgentAdmission::prepare_child` binds the candidate to the frozen
+executable registry using a `StoredAgentAdmission` and full current checkpoint.
+`validate_child_preparation` rechecks restored candidates. Both methods are
+synchronous and read-only: no child Run, lease, budget reservation, journal
+event, or provider call is created. A compiled usage example is in the method's
+Rust documentation (`cargo test -p stateknot-runtime --doc --locked`).
+
+Preparation requires an Active, non-quarantined parent snapshot, matching
+current checkpoint pointer and deterministic ready-root activation, exact
+parent admission, available parent/child executable closures, live parent/child
+deadlines, and offline validation of child input/state/authority evidence.
+Same-run nested namespaces are refused. Independent child state can use a
+different schema; parent and child state are not implicitly merged.
+
+The lower-level core `validate_for` requires externally supplied authoritative
+parent/checkpoint/schema/clock data. Deserialization cannot authenticate those
+sources. A valid historical checkpoint is not necessarily current, and a
+successful read-only check can immediately race cancellation or other spending.
+Future commit-time validation must repeat these checks while holding the
+necessary locks and include active topology and outstanding reservations.
+Exact committed lost-ACK lookup must precede fresh deadline/readiness checks.
+
+The spawn fixture digest is
+`sha256:64a2d833b22e3f017d502b4a1c30281ef44680c3c0a710399b1eec02c5d595b8`.
+
 ## Verification and next implementation gates
 
 Core tests cover canonical ownership identity, scope/input/version changes,
@@ -80,8 +129,15 @@ currency refusal, integer/monetary overflow, work bounds, and order-independent
 arithmetic. The frozen ownership fixture digest is
 `sha256:21da0ea8e1d1e20c7745a8a4f1794bffc6f42f7d62c24145db141c2dfb855a48`.
 
-Before enabling durable children, finish executable declarations and spawn
-intent binding; topology/deadline/authority narrowing; atomic PostgreSQL
+Real PostgreSQL preparation tests prove no child rows or node dispatches,
+candidate-ID replay, registry recreation, schema/deployment refusal, rejection
+after parent cancellation, and refusal of old/nonmatching checkpoints after
+the ordinary graph driver has committed a real noninitial checkpoint. These
+tests do not establish atomic child execution or budget settlement.
+
+Before enabling durable children, finish registered executable child-slot
+declarations and explicit delegation authorization; active topology enforcement;
+atomic PostgreSQL
 admission/reservation and direct-work enforcement; version-safe closure guards;
 terminal binding/settlement; durable join/cancel/resume; and PostgreSQL 16/17
 fault qualification. No database migration or website capability claim is

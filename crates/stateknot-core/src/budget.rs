@@ -724,6 +724,60 @@ macro_rules! define_resolved_getters {
 }
 
 impl ResolvedBudget {
+    /// Verifies that this budget does not widen any ceiling of `parent`.
+    ///
+    /// Includes the absolute deadline, every cumulative and high-water limit,
+    /// and exact currency ceilings. An extra currency is rejected even with a
+    /// zero ceiling. This compares immutable limits, not remaining capacity;
+    /// concurrent reservations, live topology, and usage still require atomic
+    /// admission checks. No value is silently clamped.
+    pub fn validate_narrowing(&self, parent: &Self) -> Result<(), BudgetNarrowingError> {
+        macro_rules! check {
+            ($(($field:ident, $dimension:ident)),+ $(,)?) => {
+                $(if self.$field > parent.$field {
+                    return Err(BudgetNarrowingError::Widened {
+                        dimension: BudgetDimension::$dimension,
+                    });
+                })+
+            };
+        }
+        check!(
+            (deadline, Deadline),
+            (graph_depth, GraphDepth),
+            (graph_steps, GraphSteps),
+            (model_attempts, ModelAttempts),
+            (model_turns, ModelTurns),
+            (input_tokens, InputTokens),
+            (cached_input_tokens, CachedInputTokens),
+            (reasoning_tokens, ReasoningTokens),
+            (output_tokens, OutputTokens),
+            (tool_calls, ToolCalls),
+            (write_calls, WriteCalls),
+            (remote_agent_delegations, RemoteAgentDelegations),
+            (retries, Retries),
+            (concurrent_branches, ConcurrentBranches),
+            (fan_out, FanOut),
+            (input_bytes, InputBytes),
+            (output_bytes, OutputBytes),
+            (event_bytes, EventBytes),
+            (checkpoint_bytes, CheckpointBytes),
+            (artifact_bytes, ArtifactBytes),
+        );
+        for limit in &self.costs {
+            let outer = parent.costs.get(limit.currency()).ok_or(
+                BudgetNarrowingError::UnbudgetedCurrency {
+                    currency: limit.currency(),
+                },
+            )?;
+            if limit.micro_units() > outer.micro_units() {
+                return Err(BudgetNarrowingError::CostWidened {
+                    currency: limit.currency(),
+                });
+            }
+        }
+        Ok(())
+    }
+
     /// Resolves ordered configuration layers by taking each finite minimum.
     ///
     /// Layer order does not affect the result. The slice is bounded so an
@@ -849,6 +903,30 @@ impl ResolvedBudget {
         }
         Ok(())
     }
+}
+
+/// An attempted child or delegated budget would widen immutable parent limits.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum BudgetNarrowingError {
+    /// A scalar or deadline ceiling was widened.
+    #[error("delegated budget widens {dimension:?}")]
+    Widened {
+        /// The rejected dimension.
+        dimension: BudgetDimension,
+    },
+    /// The parent did not configure this currency.
+    #[error("delegated budget adds currency {currency}")]
+    UnbudgetedCurrency {
+        /// The rejected currency.
+        currency: CurrencyCode,
+    },
+    /// A configured same-currency amount was widened.
+    #[error("delegated budget widens cost in {currency}")]
+    CostWidened {
+        /// The currency whose ceiling was exceeded.
+        currency: CurrencyCode,
+    },
 }
 
 impl<'de> Deserialize<'de> for ResolvedBudget {
@@ -1796,6 +1874,71 @@ mod tests {
 
     fn resolved(value: u64) -> ResolvedBudget {
         ResolvedBudget::resolve(&[full_limits(value)]).unwrap()
+    }
+
+    #[test]
+    fn narrowing_checks_every_scalar_without_clamping() {
+        let parent_wire = to_value(resolved(100)).unwrap();
+        for field in parent_wire
+            .as_object()
+            .unwrap()
+            .keys()
+            .filter(|key| *key != "costs")
+        {
+            let mut parent = parent_wire.clone();
+            let mut child = to_value(resolved(50)).unwrap();
+            let inclusive = match field.as_str() {
+                "cached_input_tokens" => Some("input_tokens"),
+                "reasoning_tokens" => Some("output_tokens"),
+                "write_calls" => Some("tool_calls"),
+                _ => None,
+            };
+            if let Some(inclusive) = inclusive {
+                parent[inclusive] = json!("200");
+                child[inclusive] = json!("200");
+            }
+            child[field] = if field == "deadline" {
+                json!("2030-01-01T00:00:00.000001Z")
+            } else {
+                json!("101")
+            };
+            let child: ResolvedBudget = from_value(child).unwrap();
+            let parent: ResolvedBudget = from_value(parent).unwrap();
+            assert_eq!(
+                child.validate_narrowing(&parent),
+                Err(BudgetNarrowingError::Widened {
+                    dimension: from_value(json!(field)).unwrap(),
+                }),
+                "{field}"
+            );
+        }
+    }
+
+    #[test]
+    fn narrowing_preserves_equality_zero_and_currency_denial() {
+        let parent = resolved(100);
+        assert!(parent.validate_narrowing(&parent).is_ok());
+        assert!(resolved(0).validate_narrowing(&parent).is_ok());
+        for amount in [0, 1] {
+            let child = ResolvedBudget::resolve(&[full_limits(50)
+                .with_costs(CostLimits::try_new([Money::new(eur(), amount)]).unwrap())])
+            .unwrap();
+            assert_eq!(
+                child.validate_narrowing(&parent),
+                Err(BudgetNarrowingError::UnbudgetedCurrency { currency: eur() })
+            );
+        }
+        let child = ResolvedBudget::resolve(&[
+            full_limits(50).with_costs(CostLimits::try_new([Money::new(usd(), 101)]).unwrap())
+        ])
+        .unwrap();
+        assert_eq!(
+            child.validate_narrowing(&parent),
+            Err(BudgetNarrowingError::CostWidened { currency: usd() })
+        );
+        let child =
+            ResolvedBudget::resolve(&[full_limits(50).with_costs(CostLimits::default())]).unwrap();
+        assert!(child.validate_narrowing(&parent).is_ok());
     }
 
     #[test]

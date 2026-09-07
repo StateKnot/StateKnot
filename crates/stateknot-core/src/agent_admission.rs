@@ -768,7 +768,9 @@ impl AgentAdmissionError {
     }
 }
 
-fn canonical_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, AgentAdmissionIntentError> {
+pub(crate) fn canonical_bytes<T: Serialize>(
+    value: &T,
+) -> Result<Vec<u8>, AgentAdmissionIntentError> {
     let value = serde_json::to_value(value)
         .map_err(|_| AgentAdmissionIntentError::IntegritySerialization)?;
     validate_i_json_numbers(&value)?;

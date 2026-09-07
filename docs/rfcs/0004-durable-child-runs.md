@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — core identity/capacity primitives implemented; no child runtime
+- Status: Draft — identity/capacity and read-only admission preparation implemented; no durable child execution
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -70,6 +70,16 @@ No implicit JSON merge, child failure suppression, retry with fresh child IDs,
 or conversion of a failed child into successful parent state is permitted.
 
 ## Detailed semantics
+
+### Implemented preparation increment
+
+`ChildRunAdmissionIntent` and the runtime `prepare_child` /
+`validate_child_preparation` methods freeze complete retry material and validate
+authoritative parent snapshots against an offline executable registry. They
+perform no storage mutation. See [the contract guide](../durable-child-runs.md)
+for the closed encoding, snapshot bound, same-principal profile, narrowing,
+real-store tests, and remaining commit-time checks. This increment does not
+resolve durable slot registration, reservations, joins, or parent-close guards.
 
 ### Identity and admission
 
@@ -256,8 +266,10 @@ root-only data. Preserve all static-composition and root-run regression tests.
 
 - Exact versioned Rust and SQL representations, including graph declaration
   extension and dedicated join control, with compilable examples.
-- Concrete multidimensional reservation rules compatible with existing budget
-  and ledger contracts, including unknown usage and deadline exhaustion.
+- Concrete transactional reservation/settlement rules compatible with existing
+  budget and ledger contracts, including parent direct work and unknown usage.
+  Scalar/deadline/currency narrowing and cumulative arithmetic are implemented;
+  they do not themselves provide atomic resource ownership or topology limits.
 - Exhaustive terminal-write-path inventory, verified lock order, and database
   enforcement protecting older workers during upgrade.
 - Numeric depth/fanout/scan limits and measured recovery/capacity thresholds.

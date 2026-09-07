@@ -68,8 +68,9 @@ pub use driver_schema::{
     standard_graph_driver_event_schema,
 };
 pub use durable_admission::{
-    AgentRunIds, DurableAgentAdmission, DurableAgentAdmissionBuildError,
-    DurableAgentAdmissionError, DurableAgentAdmissionRequest, DurableAgentAdmissionRequestError,
+    AgentRunIds, ChildAdmissionPreparationError, DurableAgentAdmission,
+    DurableAgentAdmissionBuildError, DurableAgentAdmissionError, DurableAgentAdmissionRequest,
+    DurableAgentAdmissionRequestError,
 };
 pub use durable_runs::{
     AgentRunAdmissionOutcome, AgentRunSnapshot, AgentRunSnapshotError, AgentRunTerminalOutcome,

@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Pinned child admission preparation with candidate-ID-independent retry
+  fingerprints, exact parent/checkpoint binding, same-principal scope narrowing,
+  all-dimension immutable budget narrowing, and offline child graph/schema
+  validation. Includes read-only runtime preparation/revalidation, compiled
+  documentation, and real PostgreSQL no-write/cancellation/noninitial tests.
+  Atomic child admission, reservations, joins, and cancellation remain unshipped.
 - Core child ownership keys with strict, digest-checked wire restoration and
   retry/fence-independent logical identity; bounded cumulative budget
   reservation arithmetic separating high-water topology from expenditure.

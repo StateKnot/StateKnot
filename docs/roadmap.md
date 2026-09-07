@@ -303,8 +303,10 @@ from the repository.
   [RFC-0004](rfcs/0004-durable-child-runs.md): atomic ownership/admission and
   budget reservation, durable terminal joins, cancel-and-join closure, and
   independent worker recovery. Core logical ownership and cumulative capacity
-  arithmetic are implemented with an offline example; durable admission and
-  lifecycle remain unimplemented and the RFC remains Draft.
+  arithmetic, pinned retry-safe child admission intent, and read-only runtime
+  preparation/revalidation are implemented and tested. Transactional admission,
+  direct-work budget serialization, slot registration, and lifecycle remain
+  unimplemented; the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,
