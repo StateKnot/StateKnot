@@ -58,6 +58,12 @@ const localizedRoutePairs = [
     zhHeading: "编译一个确定性 Graph。",
   },
   {
+    en: "/docs/graph-composition/",
+    zh: "/zh/docs/graph-composition/",
+    enHeading: "Compose durable subgraphs and bounded loops.",
+    zhHeading: "组合耐久子图与有界循环。",
+  },
+  {
     en: "/docs/runtime/",
     zh: "/zh/docs/runtime/",
     enHeading: "Drive a Graph from durable evidence.",

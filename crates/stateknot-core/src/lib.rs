@@ -29,6 +29,7 @@ mod digest;
 mod extension;
 mod failure;
 mod graph;
+mod graph_composition;
 mod identity;
 mod ids;
 mod journal;
@@ -123,6 +124,10 @@ pub use graph::{
     GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference, GraphRoute,
     GraphRouteError, GraphRoutes, GraphRoutesError, GraphSchemaValidationError,
     GraphSchemaValidator, GraphValueKind,
+};
+pub use graph_composition::{
+    GraphComposition, GraphCompositionError, GraphNodeSource, GraphSubgraphCall,
+    SharedStateSubgraph,
 };
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{

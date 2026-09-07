@@ -293,7 +293,13 @@ from the repository.
   and fail-closed repair-time Tool proposals. Qualify committed schema failures
   and first-party-compatible response-phase `response.malformed` failures on
   PostgreSQL 16 and 17.
-- [ ] Complete loop/subgraph semantics, stable HTTP/gRPC/SSE Agent transport,
+- [x] Implement static shared-state subgraph composition and finite do/while
+  expansion with explicit exhaustion, version-pinned scoped node/route IDs,
+  source-order preservation, exact schema/reducer closure, and hard expansion
+  limits. Qualify pending-result recovery, higher-fence orphan takeover,
+  changed-version refusal, wait/resume, and pre-dispatch global step-limit
+  lifecycle failure with real PostgreSQL; retain bilingual runnable guidance.
+- [ ] Complete isolated namespaced child-run semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,
   A2A gRPC, role isolation, general retention,

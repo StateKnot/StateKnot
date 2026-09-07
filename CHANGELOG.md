@@ -14,6 +14,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Static shared-state subgraph composition and finite loop expansion into the
+  existing durable graph contract, with exact schema/reducer pins, scoped
+  node/route identities, preserved source ordering, explicit return/exhaustion
+  continuations, static nesting, and bounded compilation. Includes a runnable
+  executable-registry example, bilingual guides, and PostgreSQL recovery tests.
+- Pre-dispatch global graph superstep enforcement, including recovered runs at
+  the limit, with exact-usage lifecycle supervision and idempotent terminal
+  failure instead of dispatching excess work or repeatedly retrying a barrier.
 - Bounded durable model-native structured-output repair with distinct invocation
   and attempt identities, exact usage accounting, crash-safe replay, reserved
   trusted instructions, retained completed Tool history with new calls disabled,

@@ -905,7 +905,11 @@ impl ProviderNativeAgentLifecycleEvidence {
             .await?;
         let usage =
             recover_failure_usage(&self.store, &self.definition, &checkpoint, &state).await?;
-        let failure = load_current_node_failure(&self.store, &checkpoint).await?;
+        let failure = if context.blockers().superstep_limit_reached() {
+            crate::lifecycle::superstep_limit_failure()
+        } else {
+            load_current_node_failure(&self.store, &checkpoint).await?
+        };
         Ok(GraphFailureEvidence::new(failure, usage))
     }
 

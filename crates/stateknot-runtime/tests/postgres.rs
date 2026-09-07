@@ -3,6 +3,9 @@
 
 //! Real `PostgreSQL` durable graph-driver tests.
 
+#[path = "postgres/graph_composition.rs"]
+mod graph_composition;
+
 use std::{
     collections::VecDeque,
     future,
