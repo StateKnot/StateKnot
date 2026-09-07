@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Core child-budget account state transitions with separate direct observations,
+  outstanding ceilings and exact immediate-child subtree settlements. Frozen
+  versioned snapshots retain retry identities, refuse regressing direct evidence,
+  preserve known overruns, and keep unknown-price reservations unsettled.
+  Includes bounded decoding, canonical integrity fixtures, property tests and
+  bilingual guidance. These are pure contracts, not a durable ledger, child
+  execution API or a replacement for transactional direct-work enforcement.
 - Graph-pinned version-one child delegation policies with exact Agent definition,
   graph and I/O schema pins, bounded node-owned slots, explicit topology ceilings,
   and startup target/depth closure. Runtime preparation now rejects undeclared

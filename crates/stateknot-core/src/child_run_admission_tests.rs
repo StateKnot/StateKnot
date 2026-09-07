@@ -11,6 +11,10 @@ use crate::{
 use serde_json::{Value, from_value, json, to_value};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+// Reuse the same admission/graph fixtures for the separate accounting contract.
+#[path = "child_run_budget_tests.rs"]
+mod budget_account;
+
 struct Fixture {
     parent: AgentAdmission,
     checkpoint: Checkpoint,

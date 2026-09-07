@@ -26,6 +26,7 @@ mod capability;
 mod checkpoint;
 mod child_run;
 mod child_run_admission;
+mod child_run_budget;
 mod child_run_policy;
 mod content;
 mod decimal;
@@ -112,6 +113,9 @@ pub use checkpoint::{
 };
 pub use child_run::{ChildRunKey, ChildRunKeyError, ChildRunSlot};
 pub use child_run_admission::{ChildRunAdmissionIntent, ChildRunAdmissionIntentError};
+pub use child_run_budget::{
+    ChildRunBudgetAccount, ChildRunBudgetEntry, ChildRunBudgetError, ChildRunBudgetSettlement,
+};
 pub use child_run_policy::{
     ChildAgentReference, ChildRunDeclaration, ChildRunPolicyError, ChildRunTopologyLimits,
     GraphChildRunPolicy,

@@ -1153,6 +1153,72 @@ macro_rules! define_usage_getters {
 }
 
 impl BudgetUsage {
+    /// Projects only additive expenditure, excluding all three topology peaks.
+    ///
+    /// Use this when charging an immediate child's complete subtree to its
+    /// parent. Child-local peaks cannot describe ancestor depth or simultaneous
+    /// work; a runtime must observe and enforce that topology separately.
+    #[must_use]
+    pub fn cumulative_only(&self) -> Self {
+        Self {
+            graph_depth: ExecutionCount::ZERO,
+            concurrent_branches: ExecutionCount::ZERO,
+            fan_out: ExecutionCount::ZERO,
+            ..self.clone()
+        }
+    }
+
+    /// Rejects a cumulative snapshot that would erase previously recorded work.
+    ///
+    /// This checks observations, not deltas or provenance. It does not establish
+    /// a consistent database snapshot or authorize replacing a durable record.
+    pub fn validate_monotonic_after(&self, previous: &Self) -> Result<(), BudgetUsageError> {
+        macro_rules! check {
+            ($($field:ident => $dimension:ident),+ $(,)?) => { $(
+                if self.$field < previous.$field {
+                    return Err(BudgetUsageError::Regression {
+                        dimension: BudgetDimension::$dimension,
+                    });
+                }
+            )+ };
+        }
+        check!(
+            graph_depth => GraphDepth,
+            graph_steps => GraphSteps,
+            model_attempts => ModelAttempts,
+            model_turns => ModelTurns,
+            input_tokens => InputTokens,
+            cached_input_tokens => CachedInputTokens,
+            reasoning_tokens => ReasoningTokens,
+            output_tokens => OutputTokens,
+            tool_calls => ToolCalls,
+            write_calls => WriteCalls,
+            remote_agent_delegations => RemoteAgentDelegations,
+            retries => Retries,
+            concurrent_branches => ConcurrentBranches,
+            fan_out => FanOut,
+            input_bytes => InputBytes,
+            output_bytes => OutputBytes,
+            event_bytes => EventBytes,
+            checkpoint_bytes => CheckpointBytes,
+            artifact_bytes => ArtifactBytes,
+            unpriced_cost_events => Costs,
+        );
+        for cost in &previous.known_costs {
+            if self
+                .known_costs
+                .get(cost.currency())
+                .map_or(0, Money::micro_units)
+                < cost.micro_units()
+            {
+                return Err(BudgetUsageError::Regression {
+                    dimension: BudgetDimension::Costs,
+                });
+            }
+        }
+        Ok(())
+    }
+
     /// Returns a builder initialized to zero usage.
     #[must_use]
     pub fn builder() -> BudgetUsageBuilder {
@@ -1455,6 +1521,12 @@ fn add_bytes(
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum BudgetUsageError {
+    /// A cumulative observation would erase a previously recorded quantity.
+    #[error("budget usage regressed dimension {dimension:?}")]
+    Regression {
+        /// Regressing dimension, including disappeared known monetary charges.
+        dimension: BudgetDimension,
+    },
     /// Provider-normalized subset usage exceeded its inclusive total.
     #[error("usage subset {subset:?} exceeds inclusive usage {inclusive:?}")]
     SubsetExceedsInclusive {

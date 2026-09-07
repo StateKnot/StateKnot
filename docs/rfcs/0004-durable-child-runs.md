@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — identity/capacity, pinned delegation declarations and read-only admission preparation implemented; no durable child execution
+- Status: Draft — identity/capacity/account transitions, pinned delegation declarations and read-only admission preparation implemented; no durable child execution
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -176,6 +176,16 @@ Define parent subtree usage as direct usage plus immediate children's subtree
 usage; never add descendants twice. Preserve direct and delegated totals
 separately in audit evidence. Unknown external usage retains its reservation
 and blocks exact settlement. No zero-usage fallback is permitted.
+
+The core `ChildRunBudgetAccount` now implements these pure transitions, with
+head-bound monotonic direct observations, retained first-child identities,
+single-settlement conflict checks, bounded versioned restoration and account
+digests for future atomic replacement. It preserves known overruns rather than
+clipping true usage; subsequent capacity decisions fail closed. Child-local
+topology peaks are excluded from delegated additive charges. This does not
+implement a durable ledger, serialize direct work, prove terminal evidence,
+or complete lifecycle joins. See the bilingual contract guide for the exact
+encoding and trust boundary.
 
 Finite depth, children-per-activation, children-per-run, and active descendant
 limits are mandatory and admission-checked. Values and wire bounds remain

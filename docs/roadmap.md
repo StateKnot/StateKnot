@@ -306,7 +306,10 @@ from the repository.
   arithmetic, pinned retry-safe child admission intent, and read-only runtime
   preparation/revalidation, graph-pinned node-owned Agent/graph declarations,
   finite topology contracts and startup target closure are implemented and
-  tested. Transactional admission, live topology enforcement,
+  tested. Checked budget-account transitions now separate monotonic direct
+  observations, outstanding reservations and once-only exact terminal subtree
+  charges, with bounded integrity-checked wire snapshots and retained retry IDs.
+  Transactional admission, live topology enforcement,
   direct-work budget serialization and lifecycle remain
   unimplemented; the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
