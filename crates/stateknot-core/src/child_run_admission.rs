@@ -28,7 +28,7 @@ const SPAWN_DOMAIN: &[u8] = b"stateknot.child-run-admission-intent.v1\0";
 /// This is preparation, not permission to spawn. Neither construction nor
 /// deserialization proves live authority, declaration membership, lease,
 /// remaining budget, depth, or concurrency. A future store must call
-/// [`Self::validate_for`] against authoritative snapshots and perform those
+/// [`Self::validate_for`] and [`Self::validate_declaration`] against authoritative snapshots and perform those
 /// additional checks in its ownership/admission transaction. No existing root
 /// admission API may be used as a substitute for that transaction.
 #[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
@@ -135,6 +135,8 @@ impl ChildRunAdmissionIntent {
     /// offline schemas, and an authoritative fresh-admission clock observation.
     ///
     /// Deserialization alone cannot perform these external checks. The supplied
+    /// parent graph policy must additionally pass [`Self::validate_declaration`].
+    /// The supplied
     /// checkpoint must be the locked current head for actual admission; an
     /// unlocked preview does not authorize a later commit. Lost-ACK recovery
     /// must first look up exact committed spawn

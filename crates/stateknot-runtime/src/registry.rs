@@ -6,9 +6,9 @@
 use std::{collections::HashMap, fmt, sync::Arc};
 
 use stateknot_core::{
-    BoxFuture, BudgetUsage, CancellationSignal, Checkpoint, CompiledGraph, Failure, GraphReducer,
-    GraphReducerReference, GraphReference, NodeAttemptStartHead, NodeControl, NodeId,
-    NodeInvocationBindings, NodeStateChange, RetryAdvice,
+    BoxFuture, BudgetUsage, CancellationSignal, Checkpoint, ChildRunPolicyError, CompiledGraph,
+    Failure, GraphReducer, GraphReducerReference, GraphReference, NodeAttemptStartHead,
+    NodeControl, NodeId, NodeInvocationBindings, NodeStateChange, RetryAdvice,
 };
 use thiserror::Error;
 
@@ -473,6 +473,25 @@ impl ExecutableGraphRegistryBuilder {
             return Err(ExecutableGraphRegistryError::EmptyGraphs);
         }
 
+        for (reference, graph) in &self.graphs {
+            if let Some(policy) = graph.child_runs() {
+                for declaration in policy.declarations() {
+                    let target = self.graphs.get(declaration.graph()).ok_or_else(|| {
+                        ExecutableGraphRegistryError::MissingChildGraph {
+                            parent: Box::new(reference.clone()),
+                            child: Box::new(declaration.graph().clone()),
+                        }
+                    })?;
+                    declaration
+                        .validate_target(target, policy.limits())
+                        .map_err(|source| ExecutableGraphRegistryError::ChildPolicy {
+                            graph: Box::new(reference.clone()),
+                            source,
+                        })?;
+                }
+            }
+        }
+
         let mut executable = HashMap::with_capacity(self.graphs.len());
         let mut used_reducers = std::collections::HashSet::new();
         let mut used_nodes = std::collections::HashSet::new();
@@ -603,6 +622,23 @@ impl fmt::Debug for ExecutableGraphRegistry {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum ExecutableGraphRegistryError {
+    /// A declared child target has no exact graph in this frozen deployment.
+    #[error("executable registry lacks a declared child graph")]
+    MissingChildGraph {
+        /// Declaring parent graph.
+        parent: Box<GraphReference>,
+        /// Missing exact child graph.
+        child: Box<GraphReference>,
+    },
+    /// A declared target has incompatible schema pins or remaining depth.
+    #[error("executable registry child policy validation failed: {source}")]
+    ChildPolicy {
+        /// Declaring parent graph.
+        graph: Box<GraphReference>,
+        /// Closed, public-safe reason.
+        #[source]
+        source: ChildRunPolicyError,
+    },
     /// No executable graph could be resolved.
     #[error("executable graph registry must contain at least one graph")]
     EmptyGraphs,
@@ -705,6 +741,10 @@ pub enum ExecutableGraphRegistryError {
         node_id: NodeId,
     },
 }
+
+#[cfg(test)]
+#[path = "registry_child_tests.rs"]
+mod child_tests;
 
 #[cfg(test)]
 mod tests {

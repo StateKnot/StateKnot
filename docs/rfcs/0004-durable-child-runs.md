@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — identity/capacity and read-only admission preparation implemented; no durable child execution
+- Status: Draft — identity/capacity, pinned delegation declarations and read-only admission preparation implemented; no durable child execution
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -79,7 +79,16 @@ authoritative parent snapshots against an offline executable registry. They
 perform no storage mutation. See [the contract guide](../durable-child-runs.md)
 for the closed encoding, snapshot bound, same-principal profile, narrowing,
 real-store tests, and remaining commit-time checks. This increment does not
-resolve durable slot registration, reservations, joins, or parent-close guards.
+resolve reservations, joins, or parent-close guards.
+
+`GraphChildRunPolicy` version 1 now embeds node-owned Agent/graph/schema pins
+in the parent graph digest, with canonical node/slot ordering, 256 aggregate
+declarations and 64 slots per node. `ChildRunTopologyLimits` bounds remaining
+descendant depth to 32, lifetime direct children to 256, and active descendants
+to 256. Exact target closure and strictly decreasing declared depth are checked
+at registry startup; both runtime preparation paths validate declaration
+membership. These declarations do not provide transactional live-count or
+caller authorization checks. Legacy graph encodings stay unchanged.
 
 ### Identity and admission
 
@@ -264,15 +273,17 @@ root-only data. Preserve all static-composition and root-run regression tests.
 
 ## Unresolved questions / acceptance blockers
 
-- Exact versioned Rust and SQL representations, including graph declaration
-  extension and dedicated join control, with compilable examples.
+- Exact SQL representations and dedicated join control, with executable
+  recovery evidence. Version-one graph declarations and an offline Rust example
+  are implemented; runtime topology enforcement is still required.
 - Concrete transactional reservation/settlement rules compatible with existing
   budget and ledger contracts, including parent direct work and unknown usage.
   Scalar/deadline/currency narrowing and cumulative arithmetic are implemented;
   they do not themselves provide atomic resource ownership or topology limits.
 - Exhaustive terminal-write-path inventory, verified lock order, and database
   enforcement protecting older workers during upgrade.
-- Numeric depth/fanout/scan limits and measured recovery/capacity thresholds.
+- Transactional enforcement of the frozen depth/child-count bounds, bounded
+  recovery scans, and measured recovery/capacity thresholds.
 
 This RFC is deliberately Draft until these decisions and executable evidence
 exist. It does not authorize advertising or enabling durable child runs.
