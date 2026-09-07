@@ -1,0 +1,138 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const command =
+  "cargo run -p stateknot-runtime --example durable_graph_composition --locked";
+const code = `let call = GraphSubgraphCall::bounded_loop(
+    NodeId::new("review")?,
+    SharedStateSubgraph::new(body)?,
+    NodeId::new("again")?,
+    3,
+)?;
+let composition = GraphComposition::compile(parent, [call])?;`;
+---
+
+<DocsLayout
+  title="组合耐久子图与有界循环。"
+  description="通过显式返回端口、隔离的节点身份、可恢复的循环和派发前上限检查，复用共享状态子图。"
+  section="子图与循环"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="composition-scope-title"
+  >
+    <h2 id="composition-scope-title">已实现的共享状态边界</h2>
+    <p>
+      静态子图、有限先执行后判断循环、提前返回、显式耗尽和静态嵌套，都会编译成普通耐久
+      Graph 节点。每个子节点提交自己的
+      Barrier，不是一次原子的子调用。私有子状态、独立子 Run、
+      动态递归和独立子取消不属于这一 Profile。Crate 仍处于未发布的 pre-alpha，
+      完整生产资格验证尚未完成。
+    </p>
+  </aside>
+
+  <section aria-labelledby="composition-example-title">
+    <h2 id="composition-example-title">从可执行注册表示例开始</h2>
+    <p>
+      示例构建审核子图、最多三轮的上限、明确的成功与耗尽出口、Schema、Reducer，以及八个
+      可执行节点绑定。示例不调用数据库或模型服务。实际执行使用
+      <a href="/zh/docs/agent-loop/">DurableAgentLoop 与 PostgreSQL</a
+      >；数据库测试独立验证恢复。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 离线启动校验</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="composition-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="composition-command" tabindex="0"><code>{command}</code></pre>
+    </div>
+    <p>
+      初始状态使用 <code>{'{"count":0}'}</code>。下方片段依赖
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-runtime/examples/durable_graph_composition.rs"
+        >完整示例</a
+      >
+      中的父图和子图定义，请先阅读完整代码。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · body 与 parent 在示例中定义</span>
+      </div>
+      <pre tabindex="0"><code>{code}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="composition-returns-title">
+    <h2 id="composition-returns-title">明确返回与耗尽路径</h2>
+    <p>
+      无环模板中的纯 Terminal
+      节点是符号返回端口，不执行代码。父图调用位置为每个端口
+      声明一条对应路线。工作节点通过强类型 State Update
+      传递结果，不能产生随后被丢弃的 子图 Terminal Output。
+    </p>
+    <p>
+      选择 <code>again</code> 进入下一轮；最后一轮则执行必需的父图耗尽出口。 其他端口提前退出。<code
+        >GraphSubgraphCall::once</code
+      > 只执行一份子图。 多个调用位置复用同一模板时，父图 Route ID 必须全局唯一，使用
+      <code>with_return_routes</code> 显式绑定。
+    </p>
+    <p>
+      状态在每个 Barrier 后可见。子图 Wait 暂停整个所在
+      Run，耐久解析后继续映射后的后继。 父子图共享精确的
+      Input/State/Update/Output Schema 和 Reducer 引用。 原有 BSP 排序及 Ready
+      Set 去重规则继续适用，不新增异步跨步 Join。
+    </p>
+  </section>
+
+  <section aria-labelledby="composition-bindings-title">
+    <h2 id="composition-bindings-title">保留真实的耐久执行身份</h2>
+    <p>
+      只注册 <code>composition.graph()</code>。通过 <code
+        >node_source(node_id)</code
+      >
+      选择源执行角色，但绑定组合后的图引用和生成节点 ID。局部决策通过
+      <code>source.route_id(&amp;local_route_id)</code> 解析路线。Reducer 同样收到组合后
+      的节点 ID，其逻辑应与角色名无关，或显式使用不可变 Source Map。
+    </p>
+    <p>
+      向耐久调用代码原样传递实际 <code>GraphNodeContext</code>，不要伪造子
+      Checkpoint 或替换 Activation。SHA-256
+      作用域身份固定父图/模板版本、调用位置、轮次、上限和返回
+      绑定；规范序号保留同一实例内的源排序。在途运行排空前，必须保留旧可执行版本。
+    </p>
+  </section>
+
+  <section aria-labelledby="composition-limits-title">
+    <h2 id="composition-limits-title">在派发前执行上限检查</h2>
+    <p>
+      完整展开最多 1,024 个可执行节点、二 MiB 规范定义，并遵守既有路线与 Ready
+      Set 上限。
+      分配前计算所有循环副本。模板必须无环并符合自身步数上限；父图并行上限不能高于任何
+      模板的上限。超限不会退回无界执行。
+    </p>
+    <p>
+      全局 <code>maximum_supersteps</code> 预算在新节点 Start 前生效，重启后位于上限时
+      也适用。只有可信累计用量可用时，Lifecycle 才记录
+      <code>runtime.graph.superstep_limit_reached</code
+      >。证据缺失不能变成猜测的零用量。 已提交的失败 Handoff 可以安全重试。
+    </p>
+    <p>
+      无需修改 Checkpoint Wire，也没有新的数据库 Migration。PostgreSQL 测试覆盖
+      Pending Result 复用、提前返回、耗尽、孤立 Attempt 接管、版本漂移拒绝与
+      Wait/Resume。 阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/graph-composition.zh-CN.md"
+        >完整契约与升级指南</a
+      >， 或继续查看<a href="/zh/docs/runtime/">耐久 Runtime 指南</a>。
+    </p>
+  </section>
+</DocsLayout>

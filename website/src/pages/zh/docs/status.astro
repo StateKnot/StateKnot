@@ -114,10 +114,16 @@ const capabilities = [
     body: "StateKnot-owned 有界 Agent Card/Message/Task/Artifact/Push 合约位于严格 HTTP+JSON 与 JSON-RPC/SSE Policy 后；官方 TCK 177 Pass、88 声明 Skip、0 Failure/Error/Xfail。",
   },
   {
+    state: "已实现",
+    className: "status-implemented",
+    title: "共享状态子图与有界循环",
+    body: "静态嵌套、精确 Schema/Reducer Pin、隔离且有序的节点/路线身份、显式返回与耗尽、Pending Result 与 Wait 恢复，以及派发前全图步数上限处理；不包含独立子 Run 生命周期。",
+  },
+  {
     state: "开发中",
     className: "status-active",
     title: "高级执行与 Service Boundary",
-    body: "Loop/Subgraph 语义、稳定 Network Transport、Protocol-specific Outbox Dispatch 与更广生产验证仍在开发中。",
+    body: "隔离的命名空间子 Run、稳定 Network Transport、Protocol-specific Outbox Dispatch 与更广生产验证仍在开发中。",
   },
   {
     state: "尚未发布",

@@ -114,10 +114,16 @@ const capabilities = [
     body: "StateKnot-owned bounded Agent Card/message/task/artifact/push contracts behind strict HTTP+JSON and JSON-RPC/SSE policy; 177 official TCK cases pass, 88 declared cases skip, and none fail, error, or xfail.",
   },
   {
+    state: "Implemented",
+    className: "status-implemented",
+    title: "Shared-state subgraphs and bounded loops",
+    body: "Static nesting, exact schema/reducer pins, scoped ordered node/route identities, explicit return/exhaustion, pending-result and wait recovery, and pre-dispatch global step-limit supervision; no independent child-run lifecycle.",
+  },
+  {
     state: "Active work",
     className: "status-active",
     title: "Advanced execution and service boundary",
-    body: "Loop/subgraph semantics, stable network transport, protocol-specific outbox dispatch, and broader production qualification remain active work.",
+    body: "Isolated namespaced child runs, stable network transport, protocol-specific outbox dispatch, and broader production qualification remain active work.",
   },
   {
     state: "Not shipped",

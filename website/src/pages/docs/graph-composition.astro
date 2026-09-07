@@ -1,0 +1,151 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const command =
+  "cargo run -p stateknot-runtime --example durable_graph_composition --locked";
+const code = `let call = GraphSubgraphCall::bounded_loop(
+    NodeId::new("review")?,
+    SharedStateSubgraph::new(body)?,
+    NodeId::new("again")?,
+    3,
+)?;
+let composition = GraphComposition::compile(parent, [call])?;`;
+---
+
+<DocsLayout
+  title="Compose durable subgraphs and bounded loops."
+  description="Reuse shared-state graph templates with explicit return ports, scoped identities, crash-safe iterations, and pre-dispatch limits."
+  section="Subgraphs and loops"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="composition-scope-title"
+  >
+    <h2 id="composition-scope-title">Implemented shared-state boundary</h2>
+    <p>
+      Static subgraphs, finite do/while loops, early return, explicit
+      exhaustion, and static nesting compile into ordinary durable Graph nodes.
+      Each child node commits its own barrier; this is not an atomic child call.
+      Private child state, independent child runs, dynamic recursion, and
+      independent child cancellation are outside this profile. The crates remain
+      unpublished pre-alpha; complete production qualification remains ahead.
+    </p>
+  </aside>
+
+  <section aria-labelledby="composition-example-title">
+    <h2 id="composition-example-title">
+      Start with the executable registry example
+    </h2>
+    <p>
+      The example builds a review body, a three-iteration ceiling, explicit
+      success and exhaustion paths, schemas, a reducer, and eight executable
+      node bindings. It performs no provider or database I/O. Actual execution
+      uses <a href="/docs/agent-loop/">DurableAgentLoop and PostgreSQL</a>; the
+      database suite verifies recovery separately.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · offline startup verification</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="composition-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="composition-command" tabindex="0"><code>{command}</code></pre>
+    </div>
+    <p>
+      Use initial state <code>{'{"count":0}'}</code>. Read the
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-runtime/examples/durable_graph_composition.rs"
+        >complete example</a
+      >
+      before adapting the abbreviated composition below.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · body and parent defined in the example</span>
+      </div>
+      <pre tabindex="0"><code>{code}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="composition-returns-title">
+    <h2 id="composition-returns-title">
+      Make return and exhaustion paths explicit
+    </h2>
+    <p>
+      Pure terminal nodes in an acyclic template are symbolic return ports,
+      never executable nodes. The parent's call-site declares one matching route
+      per port. Body nodes exchange typed state updates; they cannot produce
+      child terminal outputs that might be discarded.
+    </p>
+    <p>
+      Selecting <code>again</code> enters the next iteration. On the final iteration
+      it follows the mandatory parent exhaustion route. Other ports exit early. <code
+        >GraphSubgraphCall::once</code
+      > executes one copy. Reusing a template at multiple call-sites requires globally
+      unique parent routes; bind them with <code>with_return_routes</code>.
+    </p>
+    <p>
+      State is visible after each barrier. A child wait suspends the containing
+      run; durable resolution resumes its mapped successors. Parent and child
+      share exact input/state/update/output schemas and reducer references.
+      Ordinary BSP ordering and deduplicated ready sets still apply; this API
+      does not add asynchronous cross-step joins.
+    </p>
+  </section>
+
+  <section aria-labelledby="composition-bindings-title">
+    <h2 id="composition-bindings-title">Keep actual durable identities</h2>
+    <p>
+      Register only <code>composition.graph()</code>. Use
+      <code>node_source(node_id)</code> to select the original executable role, but
+      bind it to the composed graph and generated node ID. Resolve local decisions
+      through <code>source.route_id(&amp;local_route_id)</code>. Reducers also
+      receive composed IDs and must be role-independent or use the immutable
+      source map.
+    </p>
+    <p>
+      Pass the actual <code>GraphNodeContext</code> to durable invocation code unchanged.
+      Do not manufacture child checkpoints or replace activation identities. SHA-256
+      scope identities pin parent/template revisions, call-sites, iterations, bounds,
+      and return bindings; canonical ordinals preserve source order within each instance.
+      Keep old executable revisions until their in-flight runs drain.
+    </p>
+  </section>
+
+  <section aria-labelledby="composition-limits-title">
+    <h2 id="composition-limits-title">Enforce limits before dispatch</h2>
+    <p>
+      The full expansion is capped at 1,024 executable nodes and a two-MiB
+      canonical definition, with existing route and ready-set limits. Every
+      iteration counts before allocation. Templates must be acyclic and fit
+      their own step ceiling; parent parallelism cannot exceed a template's
+      ceiling. There is no unbounded fallback.
+    </p>
+    <p>
+      The global <code>maximum_supersteps</code> budget stops new node starts, including
+      after restart at the limit. Lifecycle supervision records
+      <code>runtime.graph.superstep_limit_reached</code> only after trusted cumulative
+      usage is available. Missing evidence never becomes invented zero usage. A committed
+      failure handoff remains safe to retry.
+    </p>
+    <p>
+      No checkpoint wire change or database migration is needed. PostgreSQL
+      tests cover pending-result reuse, early return, exhaustion, orphan
+      takeover, changed-version rejection, and wait/resume. Read the
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/graph-composition.md"
+        >complete contract and upgrade guide</a
+      >
+      or the <a href="/docs/runtime/">durable runtime guide</a>.
+    </p>
+  </section>
+</DocsLayout>

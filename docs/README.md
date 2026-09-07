@@ -104,6 +104,12 @@ conformance output, and the release gates in these documents.
     [Simplified Chinese edition](artifact-storage.zh-CN.md) is maintained
     alongside it.
 
+23. [Shared-state subgraphs and bounded loops](graph-composition.md) — scoped
+    static composition, explicit loop exhaustion, pre-dispatch step limits,
+    executable registration, PostgreSQL recovery, and upgrade obligations. A
+    [Simplified Chinese edition](graph-composition.zh-CN.md) is maintained
+    alongside it.
+
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
 the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),
 and the [PostgreSQL durability contract](rfcs/0003-postgresql-durability-recovery-and-migration.md).

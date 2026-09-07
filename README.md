@@ -187,6 +187,12 @@ of fabricating success. Migration 19 extends the same exact binding to known
 failed Model revisions, allowing a first-party adapter's response-phase
 `response.malformed` evidence with exact usage to survive checkpoint recovery
 without redispatch.
+Static shared-state subgraphs and bounded loops now compile into that same
+durable graph: exact source revisions, scoped node/route IDs, source-order
+preservation, mandatory return/exhaustion continuations, and no in-memory
+child executor. Global step limits stop new dispatch and enter exact-usage
+lifecycle failure supervision. Independent child state/lifecycles remain
+outside this shared-state profile; see the [composition guide](docs/graph-composition.md).
 `AgentServiceV1` now adds an exact-version, authorization-first embedding
 boundary for tenant-scoped submission recovery, verified run/key reads, and
 caller-retained two-phase cancellation identities. Its control event records
@@ -294,6 +300,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [durable Agent admission](docs/durable-agent-admission.md),
 [durable Agent runs and results](docs/durable-agent-runs.md),
 [provider-native Agent graph](docs/provider-native-agent.md),
+[shared-state subgraphs and bounded loops](docs/graph-composition.md),
 [AgentService v1](docs/agent-service.md),
 [strict MCP Remote Tool profile](docs/mcp-remote-tool.md),
 [general stateless MCP Tool client](docs/mcp-client.md),

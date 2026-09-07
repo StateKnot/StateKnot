@@ -183,6 +183,57 @@ compatibility across ports, enforceable cycle analysis, nested subgraphs, and
 reserved identities remain acceptance work; the partial compiler and registry
 do not make this RFC accepted.
 
+### Implementation-backed static shared-state composition
+
+`SharedStateSubgraph` validates an acyclic compiled template whose pure
+terminal nodes are symbolic return ports, never executable nodes. Entry ports
+and mixed terminal/control nodes are rejected. The longest executable path
+must fit the template's step limit. `GraphSubgraphCall` replaces one parent
+route-only call-site with that template; exact input/state/update/output
+schemas and reducer references must match. Parent parallelism cannot exceed
+any template limit. A complete bijective return-route mapping supports
+multiple call-sites without violating graph-global route uniqueness.
+
+`bounded_loop` lowers a finite do/while-style loop. A selected repeat port
+enters the next body copy until the pinned iteration limit; the final repeat
+takes a mandatory explicit parent exhaustion route. Other ports return early.
+Limits apply per call-site entry, so an enclosing cycle still needs the global
+superstep bound. An already composed acyclic graph can be used as a template
+for static nesting. Expansion above the existing 1,024-node, route, ready-set,
+or descriptor-byte ceilings is rejected without a runtime fallback.
+
+Every generated node has an ordinary root activation and an ordinary barrier.
+State is shared and becomes visible at each barrier, not atomically at child
+return. Wait/cancellation affect the containing run. This does not implement
+the independent namespaced child-checkpoint contract described elsewhere in
+this draft, private child state, dynamic recursion, or independent child runs.
+
+Full SHA-256 scope digests bind parent/template references, call-site,
+iteration, repeat policy, and return mappings. Canonical source-node ordinals
+preserve reducer order within an instance. Route identities are separately
+scoped. The source map binds ordinary executors to composed identities;
+invocation code receives the actual durable context unchanged. Reducers also
+receive composed IDs and must be role-independent or use that immutable map.
+Changing these inputs requires a new graph revision and retained old code for
+in-flight runs. Empty composition preserves old descriptor bytes. There is no
+new checkpoint wire format or database migration.
+
+The driver enforces the global superstep limit before new attempt starts,
+including restart at the limit. Exhaustion becomes a fenced lifecycle failure
+with exact cumulative usage, not corruption or automatic retry. Missing usage
+evidence fails closed; a retained committed failure handoff is idempotent.
+Existing journal node-blocker counts stay node-specific; the terminal failure
+code records `runtime.graph.superstep_limit_reached` without changing the
+versioned event schema.
+
+The [composition guide](../graph-composition.md) specifies identity preimages,
+binding instructions, upgrade obligations, and executable acceptance tests.
+The alternative of recursively invoking a child driver inside a node was
+rejected: it would need a separate child activation/checkpoint/fence contract
+and must not borrow the root contract without proving it. This implementation
+is a bounded shared-state feature, not a shortcut to claim isolated child
+workflow support or acceptance of this RFC.
+
 ## Node execution contract
 
 Conceptually, typed nodes implement:

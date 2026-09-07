@@ -9,11 +9,12 @@ use serde_json::{Value, json};
 use stateknot_core::{
     AgentArtifacts, AgentDescriptor, AgentRequest, AgentResult, AgentResultError,
     AgentResultProvenance, AgentResultValidationError, BoundedJson, BoxFuture, BudgetUsage,
-    CheckpointHead, CheckpointId, Digest, DurableWaitError, EventId, Failure, FailureId,
-    GraphBarrierDisposition, GraphReference, GraphSchemaValidationError, JournalAppend,
-    JournalEventIntent, JournalEventKind, JournalExpectation, JournalHead, JournalPayload,
-    ResolvedBudget, RunFailure, RunFailureError, RunFence, RunLease, RunRevision, RunStatus,
-    RunTransition, SchemaReference, Superstep, Timestamp,
+    CheckpointHead, CheckpointId, Digest, DurableWaitError, EventId, Failure, FailureCategory,
+    FailureCode, FailureId, FailureMessage, FailureOrigin, GraphBarrierDisposition, GraphReference,
+    GraphSchemaValidationError, JournalAppend, JournalEventIntent, JournalEventKind,
+    JournalExpectation, JournalHead, JournalPayload, ResolvedBudget, RetryAdvice, RunFailure,
+    RunFailureError, RunFence, RunLease, RunRevision, RunStatus, RunTransition, SchemaReference,
+    Superstep, Timestamp,
 };
 use stateknot_store_postgres::{
     AppendOutcome, BarrierCommitOutcome, LeaseReleaseOutcome, PostgresStore, RunProjection,
@@ -746,7 +747,11 @@ impl DurableGraphLifecycle {
             let release = self.release_with_retry(&fence).await?;
             return Ok(GraphBarrierLifecycleOutcome::Released(release));
         }
-        if blockers.failed() == 0 && blockers.exhausted() == 0 && blockers.unsupported() == 0 {
+        if blockers.failed() == 0
+            && blockers.exhausted() == 0
+            && blockers.unsupported() == 0
+            && !blockers.superstep_limit_reached()
+        {
             return Err(GraphLifecycleError::InvalidHandoff {
                 operation: "supervise a blocked plan without terminal blockers",
             });
@@ -780,6 +785,11 @@ impl DurableGraphLifecycle {
                     .await
                     .map_err(GraphLifecycleError::Evidence)?;
                 let (failure, usage) = evidence.into_parts();
+                let failure = if blockers.superstep_limit_reached() {
+                    superstep_limit_failure()
+                } else {
+                    failure
+                };
                 RunFailure::new(failure, plan.observed_at(), usage)
                     .map_err(GraphLifecycleError::run_failure)?
             }
@@ -1098,6 +1108,19 @@ impl DurableGraphLifecycle {
         JournalPayload::new(schema.clone(), kind, data)
             .map_err(|_| GraphLifecycleError::EventPayloadInvalid)
     }
+}
+
+pub(crate) fn superstep_limit_failure() -> Failure {
+    Failure::new(
+        FailureId::generate(),
+        FailureCategory::RateLimited,
+        FailureCode::new("runtime.graph.superstep_limit_reached").expect("static failure code"),
+        FailureOrigin::new("stateknot.runtime.graph").expect("static failure origin"),
+        FailureMessage::new("The graph exhausted its configured superstep limit.")
+            .expect("static failure message"),
+        RetryAdvice::Never,
+    )
+    .expect("static superstep failure semantics")
 }
 
 impl fmt::Debug for DurableGraphLifecycle {

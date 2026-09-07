@@ -442,7 +442,12 @@ impl DurableGraphDriver {
                     report,
                 ));
             }
-            let blockers = GraphDriveBlockers::from_plan(&plan);
+            let mut blockers = GraphDriveBlockers::from_plan(&plan);
+            // Stop before durable attempt starts or external dispatch, including
+            // after recovery at the last permitted barrier. A finite graph
+            // budget is a lifecycle failure, not corruption or a retry loop.
+            blockers.superstep_limit_reached = plan.checkpoint().superstep().get()
+                >= executable.graph().limits().maximum_supersteps().get();
             if !blockers.is_empty() {
                 let lease = exact_live_lease(&live, &fence)?.clone();
                 return Ok(GraphDriveResult::new(
@@ -1763,6 +1768,7 @@ pub struct GraphDriveBlockers {
     failed: u16,
     exhausted: u16,
     unsupported: u16,
+    superstep_limit_reached: bool,
 }
 
 impl GraphDriveBlockers {
@@ -1814,10 +1820,23 @@ impl GraphDriveBlockers {
         self.unsupported
     }
 
+    /// Returns whether the graph exhausted its pinned global barrier budget.
+    ///
+    /// This is independent of physical node-attempt counts. Failure evidence
+    /// must still recover exact cumulative usage, including earlier iterations.
+    #[must_use]
+    pub const fn superstep_limit_reached(self) -> bool {
+        self.superstep_limit_reached
+    }
+
     /// Returns whether no blocking classification exists.
     #[must_use]
     pub const fn is_empty(self) -> bool {
-        self.in_flight == 0 && self.failed == 0 && self.exhausted == 0 && self.unsupported == 0
+        self.in_flight == 0
+            && self.failed == 0
+            && self.exhausted == 0
+            && self.unsupported == 0
+            && !self.superstep_limit_reached
     }
 }
 

@@ -72,6 +72,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "graph compile compiler node route reducer schema canonical digest tutorial",
       },
       {
+        title: "Subgraphs and loops",
+        description:
+          "Compose shared-state subgraphs, finite loops, and explicit recovery-safe return paths.",
+        href: "/docs/graph-composition/",
+        search:
+          "graph subgraph composition loop bounded iteration return exhaustion shared state recovery",
+      },
+      {
         title: "Durability model",
         description:
           "Learn how journal, checkpoint, lease, fence, and recovery evidence fit together.",
@@ -285,6 +293,13 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/concepts/graphs/",
         search:
           "graph 编译 compiler 节点 route reducer schema canonical 摘要 教程",
+      },
+      {
+        title: "子图与循环",
+        description: "组合共享状态子图、有界循环与能够耐久恢复的显式返回路径。",
+        href: "/docs/graph-composition/",
+        search:
+          "graph subgraph composition loop 子图 循环 有界 轮次 返回 耗尽 共享 状态 恢复",
       },
       {
         title: "耐久执行模型",
