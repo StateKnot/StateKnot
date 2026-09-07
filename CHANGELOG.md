@@ -14,6 +14,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Graph-pinned version-one child delegation policies with exact Agent definition,
+  graph and I/O schema pins, bounded node-owned slots, explicit topology ceilings,
+  and startup target/depth closure. Runtime preparation now rejects undeclared
+  or substituted targets. Existing graph digests are preserved; static expansion
+  cannot silently discard declarations. Includes strict wire and real-store
+  tests, an offline example, and bilingual contract guidance. Durable child
+  execution and transactional topology/budget enforcement remain unshipped.
+
 - Pinned child admission preparation with candidate-ID-independent retry
   fingerprints, exact parent/checkpoint binding, same-principal scope narrowing,
   all-dimension immutable budget narrowing, and offline child graph/schema

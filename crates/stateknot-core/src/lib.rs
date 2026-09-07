@@ -26,6 +26,7 @@ mod capability;
 mod checkpoint;
 mod child_run;
 mod child_run_admission;
+mod child_run_policy;
 mod content;
 mod decimal;
 mod digest;
@@ -111,6 +112,10 @@ pub use checkpoint::{
 };
 pub use child_run::{ChildRunKey, ChildRunKeyError, ChildRunSlot};
 pub use child_run_admission::{ChildRunAdmissionIntent, ChildRunAdmissionIntentError};
+pub use child_run_policy::{
+    ChildAgentReference, ChildRunDeclaration, ChildRunPolicyError, ChildRunTopologyLimits,
+    GraphChildRunPolicy,
+};
 pub use content::{
     ContentMetadata, ContentSource, ContentTrust, JsonContent, LanguageTag, LanguageTagError,
     RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,

@@ -5,20 +5,30 @@
 
 use super::*;
 use stateknot_core::{
-    ChildRunAdmissionIntent, ChildRunAdmissionIntentError, ChildRunKey, ChildRunSlot,
+    ChildRunAdmissionIntent, ChildRunAdmissionIntentError, ChildRunDeclaration, ChildRunKey,
+    ChildRunPolicyError, ChildRunSlot, ChildRunTopologyLimits, GraphChildRunPolicy,
 };
 use stateknot_runtime::ChildAdmissionPreparationError;
 use stateknot_store_postgres::StoredAgentAdmission;
 
 struct PreparationFixture {
     driver: DriverFixture,
+    child_driver: DriverFixture,
     facade: DurableAgentAdmission,
     parent: StoredAgentAdmission,
 }
 
 async fn setup(store: &PostgresStore, name: &str) -> PreparationFixture {
-    let driver = driver_fixture();
     let tenant_id = tenant(name);
+    let child_driver = driver_fixture();
+    let child = durable_admission_request(
+        &child_driver,
+        tenant_id.clone(),
+        AgentRunIds::generate(),
+        child_driver.graph.output_schema().clone(),
+        child_driver.graph.input_schema().clone(),
+    );
+    let driver = declared_parent(&child_driver, child.intent().descriptor());
     store
         .register_graph_definition(tenant_id.clone(), driver.graph.clone())
         .await
@@ -38,15 +48,185 @@ async fn setup(store: &PostgresStore, name: &str) -> PreparationFixture {
         .clone();
     PreparationFixture {
         driver,
+        child_driver,
         facade,
         parent,
     }
 }
 
+fn declared_parent(child: &DriverFixture, agent: &AgentDescriptor) -> DriverFixture {
+    let leaf = &child.graph;
+    let declarations = leaf.nodes().iter().map(|node| {
+        ChildRunDeclaration::new(
+            node.node_id().clone(),
+            ChildRunSlot::new("analysis").unwrap(),
+            agent,
+            leaf,
+        )
+        .unwrap()
+    });
+    let graph = CompiledGraph::compile(
+        capability("declared-child-parent"),
+        leaf.input_schema().clone(),
+        leaf.state_schema().clone(),
+        leaf.update_schema().clone(),
+        leaf.output_schema().clone(),
+        leaf.reducer().clone(),
+        leaf.entry_nodes().clone(),
+        leaf.nodes().iter().cloned(),
+        leaf.limits(),
+    )
+    .unwrap()
+    .with_child_runs(
+        GraphChildRunPolicy::new(ChildRunTopologyLimits::new(1, 16, 8).unwrap(), declarations)
+            .unwrap(),
+    )
+    .unwrap();
+    let first_calls = Arc::new(AtomicUsize::new(0));
+    let second_calls = Arc::new(AtomicUsize::new(0));
+    let mut registry = ExecutableGraphRegistryBuilder::new(child.registry.schemas().clone());
+    registry.register_graph(leaf.clone()).unwrap();
+    registry.register_graph(graph.clone()).unwrap();
+    registry
+        .register_reducer(Arc::new(TestReducer {
+            reference: leaf.reducer().clone(),
+        }))
+        .unwrap();
+    for node in leaf.nodes() {
+        registry
+            .register_node(
+                child
+                    .registry
+                    .resolve(&leaf.reference())
+                    .unwrap()
+                    .node_executor(node.node_id())
+                    .unwrap(),
+            )
+            .unwrap();
+        let (behavior, calls) = if node.allows_terminal() {
+            (
+                TestNodeBehavior::Terminal(leaf.output_schema().clone()),
+                Arc::clone(&second_calls),
+            )
+        } else {
+            (TestNodeBehavior::Continue, Arc::clone(&first_calls))
+        };
+        registry
+            .register_node(Arc::new(TestNodeExecutor {
+                graph: graph.reference(),
+                node_id: node.node_id().clone(),
+                behavior,
+                delay: Duration::ZERO,
+                calls,
+            }))
+            .unwrap();
+    }
+    DriverFixture {
+        graph,
+        registry: registry.build().unwrap(),
+        first_calls,
+        second_calls,
+    }
+}
+
+#[tokio::test]
+async fn preparation_refuses_undeclared_slots_without_writing() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = Box::pin(setup(&store, "child-undeclared-slot")).await;
+    let child = fixture.child();
+    let key = PreparationFixture::key(fixture.parent.checkpoint());
+    let undeclared =
+        ChildRunKey::new(key.parent().clone(), ChildRunSlot::new("other").unwrap()).unwrap();
+    assert!(matches!(
+        fixture.facade.prepare_child(
+            &fixture.parent,
+            fixture.parent.checkpoint(),
+            undeclared,
+            child.intent().clone(),
+            child.initial_state().clone(),
+            store.observe_database_clock().await.unwrap(),
+        ),
+        Err(ChildAdmissionPreparationError::Declaration(
+            ChildRunPolicyError::DelegationNotDeclared
+        ))
+    ));
+    assert!(matches!(
+        store
+            .load_run(
+                child.intent().provenance().tenant_id(),
+                child.intent().provenance().run_id()
+            )
+            .await,
+        Err(StoreError::RunNotFound)
+    ));
+    let current = store
+        .load_agent_admission(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap();
+    assert_eq!(
+        current.run().journal_head(),
+        fixture.parent.run().journal_head()
+    );
+    store.close().await;
+}
+
+#[tokio::test]
+async fn ordinary_root_graph_cannot_prepare_children_without_declaration() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = driver_fixture();
+    let tenant = tenant("child-no-delegation-policy");
+    store
+        .register_graph_definition(tenant.clone(), fixture.graph.clone())
+        .await
+        .unwrap();
+    let facade = DurableAgentAdmission::new(store.clone(), fixture.registry.clone()).unwrap();
+    let request = || {
+        durable_admission_request(
+            &fixture,
+            tenant.clone(),
+            AgentRunIds::generate(),
+            fixture.graph.output_schema().clone(),
+            fixture.graph.input_schema().clone(),
+        )
+    };
+    let parent = Box::pin(facade.admit(request()))
+        .await
+        .unwrap()
+        .stored()
+        .clone();
+    let child = request();
+    assert!(matches!(
+        facade.prepare_child(
+            &parent,
+            parent.checkpoint(),
+            PreparationFixture::key(parent.checkpoint()),
+            child.intent().clone(),
+            child.initial_state().clone(),
+            store.observe_database_clock().await.unwrap(),
+        ),
+        Err(ChildAdmissionPreparationError::Declaration(
+            ChildRunPolicyError::DelegationNotDeclared
+        ))
+    ));
+    assert!(matches!(
+        store
+            .load_run(&tenant, child.intent().provenance().run_id())
+            .await,
+        Err(StoreError::RunNotFound)
+    ));
+    store.close().await;
+}
+
 impl PreparationFixture {
     fn child(&self) -> DurableAgentAdmissionRequest {
         durable_admission_request(
-            &self.driver,
+            &self.child_driver,
             self.parent
                 .admission()
                 .intent()
@@ -54,8 +234,8 @@ impl PreparationFixture {
                 .tenant_id()
                 .clone(),
             AgentRunIds::generate(),
-            self.driver.graph.output_schema().clone(),
-            self.driver.graph.input_schema().clone(),
+            self.child_driver.graph.output_schema().clone(),
+            self.child_driver.graph.input_schema().clone(),
         )
     }
 

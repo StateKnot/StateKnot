@@ -107,6 +107,37 @@ fn bounded(iterations: u16) -> GraphComposition {
     )
     .unwrap()
 }
+
+#[test]
+fn expansion_cannot_discard_parent_child_declarations() {
+    let template = body();
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../tests/fixtures/core-agent-v1.json")).unwrap();
+    let mut descriptor = fixture["descriptors"]["valid"][0].clone();
+    descriptor["input_schema"] = serde_json::to_value(template.graph().input_schema()).unwrap();
+    descriptor["output_schema"] = serde_json::to_value(template.graph().output_schema()).unwrap();
+    let descriptor: crate::AgentDescriptor = serde_json::from_value(descriptor).unwrap();
+    let declaration = crate::ChildRunDeclaration::new(
+        id("review"),
+        crate::ChildRunSlot::new("analysis").unwrap(),
+        &descriptor,
+        template.graph(),
+    )
+    .unwrap();
+    let declared = parent()
+        .with_child_runs(
+            crate::GraphChildRunPolicy::new(
+                crate::ChildRunTopologyLimits::new(1, 8, 4).unwrap(),
+                [declaration],
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    assert!(matches!(
+        GraphComposition::compile(declared, [GraphSubgraphCall::once(id("review"), template)]),
+        Err(GraphCompositionError::ChildDelegationUnsupported)
+    ));
+}
 fn generated(composition: &GraphComposition, slot: &str, iteration: u16, name: &str) -> NodeId {
     composition
         .node_sources()

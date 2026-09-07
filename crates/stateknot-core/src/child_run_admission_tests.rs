@@ -574,3 +574,131 @@ fn namespaced_parent_and_non_interoperable_state_are_rejected() {
         .is_err()
     );
 }
+
+fn policy_fixture(declared: bool) -> (Fixture, CompiledGraph) {
+    use crate::{ChildRunDeclaration, ChildRunTopologyLimits, GraphChildRunPolicy};
+    let mut value = fixture();
+    let node = value.key.parent().node_id().clone();
+    let mut graph = CompiledGraph::compile(
+        value.checkpoint.graph().identity().clone(),
+        value.graph.input_schema().clone(),
+        value.graph.state_schema().clone(),
+        value.graph.update_schema().clone(),
+        value.graph.output_schema().clone(),
+        value.graph.reducer().clone(),
+        ReadyNodes::try_new([node.clone()]).unwrap(),
+        [GraphNode::new(node.clone(), None, GraphRoutes::empty(), None, true).unwrap()],
+        value.graph.limits(),
+    )
+    .unwrap();
+    if declared {
+        graph = graph
+            .with_child_runs(
+                GraphChildRunPolicy::new(
+                    ChildRunTopologyLimits::new(1, 8, 4).unwrap(),
+                    [ChildRunDeclaration::new(
+                        node.clone(),
+                        value.key.slot().clone(),
+                        value.child.descriptor(),
+                        &value.graph,
+                    )
+                    .unwrap()],
+                )
+                .unwrap(),
+            )
+            .unwrap();
+    }
+    let old = value.parent.intent();
+    value.parent = AgentAdmission::commit(
+        AgentAdmissionIntent::new(
+            old.provenance().clone(),
+            old.descriptor().clone(),
+            old.request().clone(),
+            old.budget_layers().to_vec(),
+            graph.reference(),
+            old.authority().clone(),
+        )
+        .unwrap(),
+        value.parent.admitted_at(),
+    )
+    .unwrap();
+    value.checkpoint = Checkpoint::commit(
+        crate::CheckpointWrite::initial(
+            value.checkpoint.tenant_id().clone(),
+            value.checkpoint.run_id(),
+            value.checkpoint.checkpoint_id(),
+            graph.reference(),
+            value.checkpoint.state().clone(),
+            graph.entry_nodes().clone(),
+        )
+        .unwrap(),
+        value.checkpoint.journal_head().clone(),
+    )
+    .unwrap();
+    value.key = ChildRunKey::new(
+        NodeActivation::for_ready_root(&value.checkpoint, node).unwrap(),
+        value.key.slot().clone(),
+    )
+    .unwrap();
+    (value, graph)
+}
+
+#[test]
+fn declaration_validation_denies_legacy_and_undeclared_slots() {
+    use crate::ChildRunPolicyError;
+    let (value, graph) = policy_fixture(false);
+    assert_eq!(
+        value.intent().unwrap().validate_declaration(&graph),
+        Err(ChildRunPolicyError::DelegationNotDeclared)
+    );
+    let (mut value, graph) = policy_fixture(true);
+    let intent = value.intent().unwrap();
+    intent.validate_declaration(&graph).unwrap();
+    intent
+        .validate_for(&value.parent, &value.checkpoint, &Schemas::allow(), now())
+        .unwrap();
+    value.key = ChildRunKey::new(
+        value.key.parent().clone(),
+        ChildRunSlot::new("other").unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        value.intent().unwrap().validate_declaration(&graph),
+        Err(ChildRunPolicyError::DelegationNotDeclared)
+    );
+    assert_eq!(
+        intent.validate_declaration(&value.graph),
+        Err(ChildRunPolicyError::ParentGraphMismatch)
+    );
+}
+
+#[test]
+fn declaration_revalidation_rejects_same_identity_agent_replacement() {
+    let (mut value, graph) = policy_fixture(true);
+    let original = value.intent().unwrap();
+    let restored: ChildRunAdmissionIntent =
+        serde_json::from_slice(&original.canonical_bytes().unwrap()).unwrap();
+    restored.validate_declaration(&graph).unwrap();
+    let mut wire = to_value(value.child.descriptor()).unwrap();
+    wire["budget_limits"]["model_turns"] = json!("1");
+    let changed: AgentDescriptor = from_value(wire).unwrap();
+    assert_eq!(
+        changed.metadata().identity(),
+        value.child.descriptor().metadata().identity()
+    );
+    value.child = AgentAdmissionIntent::new(
+        value.child.provenance().clone(),
+        changed,
+        value.child.request().clone(),
+        value.child.budget_layers().to_vec(),
+        value.child.graph().clone(),
+        value.child.authority().clone(),
+    )
+    .unwrap();
+    let replaced = value.intent().unwrap();
+    assert_ne!(original.spawn_digest(), replaced.spawn_digest());
+    assert_eq!(
+        replaced.validate_declaration(&graph),
+        Err(crate::ChildRunPolicyError::TargetAgentMismatch)
+    );
+}

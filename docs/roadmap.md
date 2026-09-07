@@ -304,8 +304,10 @@ from the repository.
   budget reservation, durable terminal joins, cancel-and-join closure, and
   independent worker recovery. Core logical ownership and cumulative capacity
   arithmetic, pinned retry-safe child admission intent, and read-only runtime
-  preparation/revalidation are implemented and tested. Transactional admission,
-  direct-work budget serialization, slot registration, and lifecycle remain
+  preparation/revalidation, graph-pinned node-owned Agent/graph declarations,
+  finite topology contracts and startup target closure are implemented and
+  tested. Transactional admission, live topology enforcement,
+  direct-work budget serialization and lifecycle remain
   unimplemented; the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks

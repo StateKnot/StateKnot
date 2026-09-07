@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable child runs: core contracts and remaining work
 
-Status: core identity, cumulative capacity, and read-only child admission
+Status: core identity, cumulative capacity, graph-pinned delegation declarations, and read-only child admission
 preparation implemented; durable
 child admission, ownership storage, joins, and cancellation are **not yet
 implemented**. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
@@ -42,7 +42,54 @@ strings, not floating-point JSON numbers.
 A checksum is not an authorization proof or signature. The future store must
 validate actual committed readiness and current admission authority. The key
 also does not bind a child spawn intent: pinned child executable, input,
-authority, budget, and initial-state comparison remain separate required work.
+authority, budget, and initial-state comparison are handled separately by
+`ChildRunAdmissionIntent`.
+
+## Declared delegation policy
+
+```console
+cargo run -p stateknot-core --example child_run_declarations --locked
+```
+
+`CompiledGraph::with_child_runs(GraphChildRunPolicy)` seals a new graph
+reference. Declare the policy **before** binding executors, registering the
+graph, or admitting a parent. Changing an already registered definition requires
+a new graph identity/version, not overwriting its existing pin. A graph without a policy delegates nothing; its
+previous canonical bytes/digest are unchanged. Policies carry explicit wire
+version `1`; unsupported versions and unknown fields are rejected.
+
+Each `ChildRunDeclaration` belongs to one exact parent node and case-sensitive
+slot, and pins the complete child Agent descriptor fingerprint, child graph,
+and input/output schemas. `ChildAgentReference` hashes the complete strict
+canonical descriptor with domain `stateknot.child-agent-definition.v1\0`.
+Changing instructions, model, tools, or limits changes the pin even when the
+Agent owner/name/version is unchanged. The parent stores the fingerprint,
+not private child instructions. A pin is not a signature or a policy grant.
+
+There are at most 256 declarations per graph and 64 per node. Canonical
+`(node_id, slot)` order is the future join reduction order; input ordering does
+not change the graph. Missing parent nodes, duplicate slots, empty policies,
+and oversized collections fail closed, including bounded wire decoding.
+
+`ChildRunTopologyLimits` requires positive values: maximum remaining descendant
+depth 1–32, lifetime immediate children per Run 1–256, and simultaneous active
+descendants 1–256. A leaf has remaining depth zero. Registry construction
+resolves every declared target and requires its remaining depth to be strictly
+smaller than the parent's; schema mismatch or missing targets prevents startup.
+Live counts and all ancestor ceilings still need atomic store enforcement.
+These hard bounds are safety ceilings, not measured throughput promises.
+
+Both runtime preparation methods now call core `validate_declaration` against
+the exact parent executable graph. Legacy undeclared preparation calls are
+rejected; callers must register a new declared graph and admit a new parent,
+not modify an existing admitted graph. Lower-level core callers must use both
+`validate_declaration` and `validate_for`. Trusted authorization of the caller,
+scope delegation, current fences, and remaining budget remain separate checks.
+
+Static shared-state expansion rejects graphs/templates with child policies
+rather than dropping or remapping ownership declarations. An empty composition
+is a no-op and retains the entire graph. Declare children after static lowering
+against its final node identities when combining these startup operations.
 
 ## Cumulative capacity arithmetic
 
@@ -104,7 +151,7 @@ Rust documentation (`cargo test -p stateknot-runtime --doc --locked`).
 
 Preparation requires an Active, non-quarantined parent snapshot, matching
 current checkpoint pointer and deterministic ready-root activation, exact
-parent admission, available parent/child executable closures, live parent/child
+parent admission, a declared exact child target, available parent/child executable closures, live parent/child
 deadlines, and offline validation of child input/state/authority evidence.
 Same-run nested namespaces are refused. Independent child state can use a
 different schema; parent and child state are not implicitly merged.
@@ -135,8 +182,8 @@ after parent cancellation, and refusal of old/nonmatching checkpoints after
 the ordinary graph driver has committed a real noninitial checkpoint. These
 tests do not establish atomic child execution or budget settlement.
 
-Before enabling durable children, finish registered executable child-slot
-declarations and explicit delegation authorization; active topology enforcement;
+Before enabling durable children, finish explicit commit-time delegation
+authorization and active topology enforcement;
 atomic PostgreSQL
 admission/reservation and direct-work enforcement; version-safe closure guards;
 terminal binding/settlement; durable join/cancel/resume; and PostgreSQL 16/17

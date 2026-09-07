@@ -13,11 +13,11 @@ use stateknot_core::{
     AgentAdmissionIntentError, AgentDescriptor, AgentRequest, AgentResultProvenance,
     AgentSubmissionKey, BoundedJson, BoundedJsonError, CanonicalJson, CanonicalJsonError,
     Checkpoint, CheckpointId, CheckpointState, CheckpointWrite, CheckpointWriteError,
-    ChildRunAdmissionIntent, ChildRunAdmissionIntentError, ChildRunKey, Digest, EventId,
-    GraphReference, GraphSchemaValidationError, InvocationId, JournalAppend, JournalAppendError,
-    JournalEventIntent, JournalEventKind, JournalEventKindError, JournalExpectation,
-    JournalIntentError, JournalPayload, JournalPayloadError, RunId, RunStatus, TenantId, ThreadId,
-    Timestamp,
+    ChildRunAdmissionIntent, ChildRunAdmissionIntentError, ChildRunKey, ChildRunPolicyError,
+    Digest, EventId, GraphReference, GraphSchemaValidationError, InvocationId, JournalAppend,
+    JournalAppendError, JournalEventIntent, JournalEventKind, JournalEventKindError,
+    JournalExpectation, JournalIntentError, JournalPayload, JournalPayloadError, RunId, RunStatus,
+    TenantId, ThreadId, Timestamp,
 };
 use stateknot_store_postgres::{
     AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, PostgresStore, StoreError,
@@ -296,7 +296,8 @@ impl DurableAgentAdmission {
     /// This synchronous operation performs no writes, lease claims, or provider
     /// I/O. It does not create a child Run or reserve budget. It binds the exact
     /// executable child graph and rechecks parent activity, checkpoint, schemas,
-    /// authority shape, and immutable budget narrowing. A future atomic child
+    /// authority shape, immutable budget narrowing, and the parent graph's exact
+    /// node-owned child Agent/graph declaration. A future atomic child
     /// admission must recheck these snapshots and serialize budget/ownership;
     /// calling [`Self::admit`] with the child candidate is not that operation.
     ///
@@ -308,6 +309,8 @@ impl DurableAgentAdmission {
     /// # tenant: &TenantId, parent_run: RunId, node: NodeId,
     /// # child: AgentAdmissionIntent, state: CheckpointState)
     /// # -> Result<(), Box<dyn std::error::Error>> {
+    /// // The registered parent graph must declare this node's "analysis" slot
+    /// // with the exact child descriptor and graph before parent admission.
     /// let parent = store.load_agent_admission(tenant, parent_run).await?;
     /// let checkpoint = store.load_current_checkpoint(tenant, parent_run)
     ///     .await?.ok_or("parent has no checkpoint")?;
@@ -351,7 +354,8 @@ impl DurableAgentAdmission {
     /// Revalidates a restored preparation against freshly loaded parent data.
     ///
     /// Rejects cancelled/waiting/terminal/quarantined snapshots, mismatched
-    /// checkpoint pointers, deployment drift, and core/schema failures. Even a
+    /// checkpoint pointers, undeclared or substituted child targets, deployment
+    /// drift, and core/schema failures. Even a
     /// successful read-only validation can race a later lifecycle change; it
     /// never acts as a durable admission permit or a lost-ACK commit lookup.
     pub fn validate_child_preparation(
@@ -371,14 +375,14 @@ impl DurableAgentAdmission {
         }) {
             return Err(ChildAdmissionPreparationError::CurrentCheckpointMismatch);
         }
-        if self
+        let parent_graph = self
             .registry
             .resolve(parent.admission().intent().graph())
-            .is_none()
-            || self.registry.resolve(intent.child().graph()).is_none()
-        {
+            .ok_or(ChildAdmissionPreparationError::ExecutableUnavailable)?;
+        if self.registry.resolve(intent.child().graph()).is_none() {
             return Err(ChildAdmissionPreparationError::ExecutableUnavailable);
         }
+        intent.validate_declaration(parent_graph.graph())?;
         intent.validate_for(
             parent.admission(),
             checkpoint,
@@ -559,6 +563,9 @@ impl fmt::Debug for DurableAgentAdmission {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum ChildAdmissionPreparationError {
+    /// The parent does not declare this exact child Agent/graph selection.
+    #[error(transparent)]
+    Declaration(#[from] ChildRunPolicyError),
     /// Only an active, non-quarantined parent snapshot may propose children.
     #[error("child preparation requires an active non-quarantined parent")]
     ParentNotActive,

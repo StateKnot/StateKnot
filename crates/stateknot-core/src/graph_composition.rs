@@ -45,6 +45,9 @@ impl SharedStateSubgraph {
     /// Rejects mixed executable/terminal nodes, entry return ports, cycles,
     /// absent return ports, and paths exceeding the template's step ceiling.
     pub fn new(graph: CompiledGraph) -> Result<Self, GraphCompositionError> {
+        if graph.child_runs().is_some() {
+            return Err(GraphCompositionError::ChildDelegationUnsupported);
+        }
         let mut ports = BTreeSet::new();
         for node in graph.nodes() {
             if node.allows_terminal() {
@@ -265,6 +268,9 @@ impl GraphComposition {
                 graph: parent,
                 sources: BTreeMap::new(),
             });
+        }
+        if parent.child_runs().is_some() {
+            return Err(GraphCompositionError::ChildDelegationUnsupported);
         }
 
         let mut sources = BTreeMap::new();
@@ -607,6 +613,9 @@ fn remap_node(
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum GraphCompositionError {
+    /// Static expansion cannot silently discard or remap durable child ownership.
+    #[error("static composition does not support child delegation declarations")]
+    ChildDelegationUnsupported,
     /// A return port also declared executable control outcomes.
     #[error("subgraph return port {node_id} also declares executable controls")]
     MixedReturnPort {

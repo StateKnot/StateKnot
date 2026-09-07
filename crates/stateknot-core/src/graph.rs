@@ -24,9 +24,9 @@ use thiserror::Error;
 use crate::{
     BoundedJson, CapabilityIdentity, Checkpoint, CheckpointBarrier, CheckpointBarrierError,
     CheckpointId, CheckpointState, CheckpointStateError, CheckpointWrite, CheckpointWriteError,
-    Digest, GraphReference, NodeActivation, NodeControl, NodeControlKind, NodeId, NodeStateUpdate,
-    NodeTerminalOutput, NodeWait, NodeWaits, NodeWaitsError, PendingNodeResult, ReadyNodes,
-    RouteId, SchemaReference, Superstep,
+    ChildRunPolicyError, Digest, GraphChildRunPolicy, GraphReference, NodeActivation, NodeControl,
+    NodeControlKind, NodeId, NodeStateUpdate, NodeTerminalOutput, NodeWait, NodeWaits,
+    NodeWaitsError, PendingNodeResult, ReadyNodes, RouteId, SchemaReference, Superstep,
 };
 
 const MEBIBYTE: usize = 1024 * 1024;
@@ -498,6 +498,8 @@ pub struct CompiledGraph {
     #[schemars(length(max = 1024))]
     nodes: Box<[GraphNode]>,
     limits: GraphExecutionLimits,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    child_runs: Option<GraphChildRunPolicy>,
     definition_digest: Digest,
 }
 
@@ -542,6 +544,7 @@ impl CompiledGraph {
             nodes,
             limits,
             None,
+            None,
         )
     }
 
@@ -556,6 +559,7 @@ impl CompiledGraph {
         entry_nodes: ReadyNodes,
         nodes: I,
         limits: GraphExecutionLimits,
+        child_runs: Option<GraphChildRunPolicy>,
         supplied_digest: Option<Digest>,
     ) -> Result<Self, GraphCompileError>
     where
@@ -575,8 +579,12 @@ impl CompiledGraph {
             entry_nodes,
             nodes,
             limits,
+            child_runs,
             definition_digest: Digest::sha256([]),
         };
+        if let Some(policy) = &graph.child_runs {
+            policy.validate_nodes(&graph)?;
+        }
         let canonical = graph.canonical_definition_bytes()?;
         if canonical.len() > Self::MAX_DEFINITION_BYTES {
             return Err(GraphCompileError::DefinitionTooLarge {
@@ -589,6 +597,34 @@ impl CompiledGraph {
             return Err(GraphCompileError::DigestMismatch);
         }
         Ok(graph)
+    }
+
+    /// Pins finite child delegation declarations into a new graph definition.
+    ///
+    /// The resulting reference differs from this graph's old reference. Bind
+    /// executors only after this call. Graphs without a policy retain their
+    /// exact previous canonical encoding and delegate nothing. Target registry
+    /// closure and live admission checks remain separate requirements.
+    pub fn with_child_runs(self, policy: GraphChildRunPolicy) -> Result<Self, GraphCompileError> {
+        Self::build(
+            self.identity,
+            self.input_schema,
+            self.state_schema,
+            self.update_schema,
+            self.output_schema,
+            self.reducer,
+            self.entry_nodes,
+            self.nodes.into_vec(),
+            self.limits,
+            Some(policy),
+            None,
+        )
+    }
+
+    /// Returns the exact delegation policy, or no authority to select children.
+    #[must_use]
+    pub const fn child_runs(&self) -> Option<&GraphChildRunPolicy> {
+        self.child_runs.as_ref()
     }
 
     /// Returns the owner-qualified graph identity.
@@ -677,6 +713,7 @@ impl CompiledGraph {
             entry_nodes: &self.entry_nodes,
             nodes: &self.nodes,
             limits: self.limits,
+            child_runs: self.child_runs.as_ref(),
         })
         .map_err(|_| GraphCompileError::CanonicalSerialization)
     }
@@ -829,6 +866,7 @@ impl fmt::Debug for CompiledGraph {
             .field("entry_nodes", &self.entry_nodes)
             .field("node_count", &self.nodes.len())
             .field("limits", &self.limits)
+            .field("child_runs", &self.child_runs)
             .field("definition_digest", &self.definition_digest)
             .finish_non_exhaustive()
     }
@@ -851,6 +889,7 @@ impl<'de> Deserialize<'de> for CompiledGraph {
             entry_nodes: ReadyNodes,
             nodes: Vec<GraphNode>,
             limits: GraphExecutionLimits,
+            child_runs: Option<GraphChildRunPolicy>,
             definition_digest: Digest,
         }
 
@@ -865,6 +904,7 @@ impl<'de> Deserialize<'de> for CompiledGraph {
             wire.entry_nodes,
             wire.nodes,
             wire.limits,
+            wire.child_runs,
             Some(wire.definition_digest),
         )
         .map_err(de::Error::custom)
@@ -882,6 +922,8 @@ struct GraphDefinitionDigestWire<'a> {
     entry_nodes: &'a ReadyNodes,
     nodes: &'a [GraphNode],
     limits: GraphExecutionLimits,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    child_runs: Option<&'a GraphChildRunPolicy>,
 }
 
 fn validate_reachability(
@@ -1039,6 +1081,9 @@ pub enum GraphCompileError {
     /// Persisted definition checksum did not match the descriptor.
     #[error("compiled graph definition digest does not match its fields")]
     DigestMismatch,
+    /// Delegation declarations violate their closed policy or parent node set.
+    #[error(transparent)]
+    ChildPolicy(#[from] ChildRunPolicyError),
 }
 
 /// Public-safe reason a schema registry could not validate a value.
