@@ -12,13 +12,16 @@ use stateknot_core::{
     AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentAdmissionIntent,
     AgentAdmissionIntentError, AgentDescriptor, AgentRequest, AgentResultProvenance,
     AgentSubmissionKey, BoundedJson, BoundedJsonError, CanonicalJson, CanonicalJsonError,
-    CheckpointId, CheckpointState, CheckpointWrite, CheckpointWriteError, Digest, EventId,
+    Checkpoint, CheckpointId, CheckpointState, CheckpointWrite, CheckpointWriteError,
+    ChildRunAdmissionIntent, ChildRunAdmissionIntentError, ChildRunKey, Digest, EventId,
     GraphReference, GraphSchemaValidationError, InvocationId, JournalAppend, JournalAppendError,
     JournalEventIntent, JournalEventKind, JournalEventKindError, JournalExpectation,
-    JournalIntentError, JournalPayload, JournalPayloadError, RunId, TenantId, ThreadId,
+    JournalIntentError, JournalPayload, JournalPayloadError, RunId, RunStatus, TenantId, ThreadId,
+    Timestamp,
 };
 use stateknot_store_postgres::{
     AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, PostgresStore, StoreError,
+    StoredAgentAdmission,
 };
 use thiserror::Error;
 
@@ -288,6 +291,103 @@ impl DurableAgentAdmission {
         &self.event_schema
     }
 
+    /// Prepares an isolated child candidate from verified parent snapshots.
+    ///
+    /// This synchronous operation performs no writes, lease claims, or provider
+    /// I/O. It does not create a child Run or reserve budget. It binds the exact
+    /// executable child graph and rechecks parent activity, checkpoint, schemas,
+    /// authority shape, and immutable budget narrowing. A future atomic child
+    /// admission must recheck these snapshots and serialize budget/ownership;
+    /// calling [`Self::admit`] with the child candidate is not that operation.
+    ///
+    /// ```no_run
+    /// # use stateknot_core::*;
+    /// # use stateknot_runtime::DurableAgentAdmission;
+    /// # use stateknot_store_postgres::PostgresStore;
+    /// # async fn example(store: &PostgresStore, facade: &DurableAgentAdmission,
+    /// # tenant: &TenantId, parent_run: RunId, node: NodeId,
+    /// # child: AgentAdmissionIntent, state: CheckpointState)
+    /// # -> Result<(), Box<dyn std::error::Error>> {
+    /// let parent = store.load_agent_admission(tenant, parent_run).await?;
+    /// let checkpoint = store.load_current_checkpoint(tenant, parent_run)
+    ///     .await?.ok_or("parent has no checkpoint")?;
+    /// let key = ChildRunKey::new(
+    ///     NodeActivation::for_ready_root(&checkpoint, node)?,
+    ///     ChildRunSlot::new("analysis")?,
+    /// )?;
+    /// let candidate = facade.prepare_child(&parent, &checkpoint, key, child,
+    ///     state, store.observe_database_clock().await?)?;
+    /// let bytes = candidate.canonical_bytes()?;
+    /// let restored: ChildRunAdmissionIntent = serde_json::from_slice(&bytes)?;
+    /// facade.validate_child_preparation(&parent, &checkpoint, &restored,
+    ///     store.observe_database_clock().await?)?;
+    /// // This prepared value is not a durable child or an admission permit.
+    /// # Ok(()) }
+    /// ```
+    pub fn prepare_child(
+        &self,
+        parent: &StoredAgentAdmission,
+        checkpoint: &Checkpoint,
+        key: ChildRunKey,
+        child: AgentAdmissionIntent,
+        initial_state: CheckpointState,
+        observed_at: Timestamp,
+    ) -> Result<ChildRunAdmissionIntent, ChildAdmissionPreparationError> {
+        let executable = self
+            .registry
+            .resolve(child.graph())
+            .ok_or(ChildAdmissionPreparationError::ExecutableUnavailable)?;
+        let intent = ChildRunAdmissionIntent::new(
+            parent.admission(),
+            key,
+            child,
+            executable.graph().clone(),
+            initial_state,
+        )?;
+        self.validate_child_preparation(parent, checkpoint, &intent, observed_at)?;
+        Ok(intent)
+    }
+
+    /// Revalidates a restored preparation against freshly loaded parent data.
+    ///
+    /// Rejects cancelled/waiting/terminal/quarantined snapshots, mismatched
+    /// checkpoint pointers, deployment drift, and core/schema failures. Even a
+    /// successful read-only validation can race a later lifecycle change; it
+    /// never acts as a durable admission permit or a lost-ACK commit lookup.
+    pub fn validate_child_preparation(
+        &self,
+        parent: &StoredAgentAdmission,
+        checkpoint: &Checkpoint,
+        intent: &ChildRunAdmissionIntent,
+        observed_at: Timestamp,
+    ) -> Result<(), ChildAdmissionPreparationError> {
+        if parent.run().is_quarantined() || parent.run().lifecycle().status() != RunStatus::Active {
+            return Err(ChildAdmissionPreparationError::ParentNotActive);
+        }
+        if !parent.run().checkpoint().is_some_and(|pointer| {
+            pointer.checkpoint_id() == checkpoint.checkpoint_id()
+                && pointer.superstep() == checkpoint.superstep()
+                && pointer.digest() == checkpoint.digest()
+        }) {
+            return Err(ChildAdmissionPreparationError::CurrentCheckpointMismatch);
+        }
+        if self
+            .registry
+            .resolve(parent.admission().intent().graph())
+            .is_none()
+            || self.registry.resolve(intent.child().graph()).is_none()
+        {
+            return Err(ChildAdmissionPreparationError::ExecutableUnavailable);
+        }
+        intent.validate_for(
+            parent.admission(),
+            checkpoint,
+            self.registry.schemas(),
+            observed_at,
+        )?;
+        Ok(())
+    }
+
     /// Validates and atomically commits one new executable Agent run.
     ///
     /// Exact retries recover durable admission evidence before time-sensitive
@@ -453,6 +553,24 @@ impl fmt::Debug for DurableAgentAdmission {
             .field("event_schema", &self.event_schema)
             .finish_non_exhaustive()
     }
+}
+
+/// Read-only child preparation failed; no admission or reservation was written.
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ChildAdmissionPreparationError {
+    /// Only an active, non-quarantined parent snapshot may propose children.
+    #[error("child preparation requires an active non-quarantined parent")]
+    ParentNotActive,
+    /// The supplied checkpoint is not the current pointer of the parent snapshot.
+    #[error("child preparation current checkpoint mismatch")]
+    CurrentCheckpointMismatch,
+    /// The frozen registry lacks the exact parent or child executable closure.
+    #[error("child preparation executable graph unavailable")]
+    ExecutableUnavailable,
+    /// Core scope, integrity, narrowing, readiness, clock, or schema checks failed.
+    #[error(transparent)]
+    Intent(#[from] ChildRunAdmissionIntentError),
 }
 
 /// Startup failure while binding the durable admission facade.

@@ -25,6 +25,7 @@ mod canonical;
 mod capability;
 mod checkpoint;
 mod child_run;
+mod child_run_admission;
 mod content;
 mod decimal;
 mod digest;
@@ -90,9 +91,9 @@ pub use barrier::{
     CheckpointBarrierIntegrityError,
 };
 pub use budget::{
-    BudgetDimension, BudgetEvaluationError, BudgetLimits, BudgetRemaining, BudgetResolutionError,
-    BudgetUsage, BudgetUsageBuilder, BudgetUsageError, CostCollectionError, CostLimits, KnownCosts,
-    MAX_BUDGET_LAYERS, MAX_COST_CURRENCIES, ResolvedBudget,
+    BudgetDimension, BudgetEvaluationError, BudgetLimits, BudgetNarrowingError, BudgetRemaining,
+    BudgetResolutionError, BudgetUsage, BudgetUsageBuilder, BudgetUsageError, CostCollectionError,
+    CostLimits, KnownCosts, MAX_BUDGET_LAYERS, MAX_COST_CURRENCIES, ResolvedBudget,
 };
 pub use budget_reservation::{CumulativeBudgetReservation, CumulativeBudgetReservationError};
 pub use canonical::{CanonicalJson, CanonicalJsonError};
@@ -109,6 +110,7 @@ pub use checkpoint::{
     ReadyNodesError, Superstep, SuperstepError,
 };
 pub use child_run::{ChildRunKey, ChildRunKeyError, ChildRunSlot};
+pub use child_run_admission::{ChildRunAdmissionIntent, ChildRunAdmissionIntentError};
 pub use content::{
     ContentMetadata, ContentSource, ContentTrust, JsonContent, LanguageTag, LanguageTagError,
     RedactionState, SecurityLabel, SecurityLabelError, TextContent, TextContentError,
