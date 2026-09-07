@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable child runs: core contracts and remaining work
 
-Status: core identity, cumulative capacity, graph-pinned delegation declarations, and read-only child admission
+Status: core identity, cumulative capacity/account transitions, graph-pinned delegation declarations, and read-only child admission
 preparation implemented; durable
 child admission, ownership storage, joins, and cancellation are **not yet
 implemented**. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
@@ -118,6 +118,65 @@ and settle once against verified terminal evidence. It must also check child
 deadline narrowing, authorization, ancestry, active subtree concurrency, and
 fan-out independently. Existing high-water usage is validated, but remaining
 high-water counts returned by this calculation do not authorize new topology.
+
+## Checked budget account transitions
+
+`ChildRunBudgetAccount` is a pure, immutable state-transition contract, **not a
+PostgreSQL ledger or permission to execute children**. `new(parent, graph,
+direct_head, direct_usage)` binds the exact admitted parent, finite budget,
+declared lifetime child bound, and an authoritative direct-usage observation.
+It never assumes an existing Run has spent zero. Restore canonical bytes and
+call `validate_for` against trusted immutable parent/graph records; separately
+verify that every accounting observation is complete and durable.
+
+`reserve(intent, parent_graph, observed_at)` rechecks the node-owned declaration
+and includes direct usage, all settled contributions, and every outstanding
+reservation in the capacity decision. Same ownership key and spawn digest
+return the unchanged first-selected child identities, including after expiry;
+changed intent conflicts. A distinct key cannot reuse an existing child Run ID.
+The lifetime bound includes settled children; no slot deletion/refund exists.
+
+`ChildRunBudgetSettlement::new(admission, lifecycle, terminal_head)` binds the
+full child provenance, admission/intent fingerprints, exact terminal journal
+observation, status, complete terminal lifecycle checksum and usage. Only
+success, failure and cancellation can settle. `settle(key, evidence)` replaces
+one reservation exactly once; equal retry is unchanged and substituted
+terminal evidence conflicts. Failed and cancelled work still incurs its actual
+charge. Unknown pricing keeps the reservation outstanding. Known overruns or
+unbudgeted currencies are retained, not clipped; further capacity checks refuse
+new work. Deadline expiry does not prevent recording actual settlement.
+
+`observe_direct(head, usage)` accepts an absolute **direct-only** cumulative
+observation, not a delta or a total already including children. Exact replay is
+unchanged; different usage at the same head, older heads/clocks, other Run IDs,
+or any regressing counter/known currency charge is refused. Over-budget or
+unpriced direct observations remain visible and block new allocation.
+
+`accounted_usage` is direct usage plus each immediate child's complete subtree
+usage once. `delegated_usage` deliberately removes child-local depth/concurrency/
+fan-out peaks using `BudgetUsage::cumulative_only`; it does not claim the maximum
+of child-local peaks describes parent topology. Runtime topology observation
+and enforcement remain separate. `remaining` additionally includes outstanding
+reservations, checks a clock no earlier than retained evidence, and rejects
+overflow, expiry, unknown price and exhausted ceilings. Never persist that
+projection as expenditure or add grandchildren a second time.
+
+Version-one snapshots have at most 256 lifetime entries and an 8 MiB canonical
+encoding ceiling. The decoder bounds the entry array while reading; adapters
+must cap raw request/storage bytes before decoding. Entries are sorted by key
+digest for accounting integrity (this is **not** join reduction order). Closed
+wire decoding recomputes the account digest over
+`stateknot.child-run-budget-account.v1\0` plus canonical state with its digest
+field set to SHA-256(empty). Terminal fingerprints use domain
+`stateknot.child-run-budget-terminal.v1\0` plus canonical complete lifecycle.
+Checksums detect drift, not forged provenance or authorization.
+
+A future storage transaction must compare the old account digest and atomically
+commit the new account **together with** child ownership/admission/settlement,
+parent direct-work admission and lifecycle changes. Computing two snapshots
+and saving them independently loses reservations. A successful accounting
+settlement alone does not constitute a child Join or authorize parent closure.
+No migration, durable child API or capability enablement ships in this increment.
 
 ## Pinned child admission preparation
 
