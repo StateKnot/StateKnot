@@ -299,7 +299,13 @@ from the repository.
   limits. Qualify pending-result recovery, higher-fence orphan takeover,
   changed-version refusal, wait/resume, and pre-dispatch global step-limit
   lifecycle failure with real PostgreSQL; retain bilingual runnable guidance.
-- [ ] Complete isolated namespaced child-run semantics, stable HTTP/gRPC/SSE Agent transport,
+- [ ] Implement isolated durable child runs following
+  [RFC-0004](rfcs/0004-durable-child-runs.md): atomic ownership/admission and
+  budget reservation, durable terminal joins, cancel-and-join closure, and
+  independent worker recovery. Core logical ownership and cumulative capacity
+  arithmetic are implemented with an offline example; durable admission and
+  lifecycle remain unimplemented and the RFC remains Draft.
+- [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,
   A2A gRPC, role isolation, general retention,

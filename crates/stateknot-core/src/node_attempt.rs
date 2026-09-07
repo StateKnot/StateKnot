@@ -888,7 +888,7 @@ struct NodeAttemptCompletionDigestWire<'a> {
     journal_head: &'a JournalHead,
 }
 
-fn compute_activation_digest(
+pub(crate) fn compute_activation_digest(
     activation: &NodeActivation,
 ) -> Result<Digest, NodeAttemptIntegrityError> {
     domain_separated_digest(ACTIVATION_DIGEST_DOMAIN, activation)

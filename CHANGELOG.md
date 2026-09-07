@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Core child ownership keys with strict, digest-checked wire restoration and
+  retry/fence-independent logical identity; bounded cumulative budget
+  reservation arithmetic separating high-water topology from expenditure.
+  Includes an offline example, bilingual contract notes, and RFC-0004. These
+  primitives do not yet implement durable child admission, joins, or lifecycle.
 - Static shared-state subgraph composition and finite loop expansion into the
   existing durable graph contract, with exact schema/reducer pins, scoped
   node/route identities, preserved source ordering, explicit return/exhaustion
