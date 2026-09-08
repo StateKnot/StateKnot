@@ -1153,6 +1153,148 @@ macro_rules! define_usage_getters {
 }
 
 impl BudgetUsage {
+    /// Deducts a verified cumulative contribution exactly once, preserving topology peaks.
+    /// Rejects missing expenditure, currency underflow, and inconsistent inclusive/subset totals.
+    #[allow(clippy::too_many_lines)]
+    pub fn checked_subtract_cumulative(
+        &self,
+        contribution: &Self,
+    ) -> Result<Self, BudgetUsageError> {
+        self.validate_monotonic_after(&contribution.cumulative_only())?;
+        let mut result = self.clone();
+        result.graph_steps = self
+            .graph_steps
+            .checked_sub(contribution.graph_steps)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::GraphSteps,
+            })?;
+        result.model_attempts = self
+            .model_attempts
+            .checked_sub(contribution.model_attempts)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::ModelAttempts,
+            })?;
+        result.model_turns = self
+            .model_turns
+            .checked_sub(contribution.model_turns)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::ModelTurns,
+            })?;
+        result.input_tokens = self
+            .input_tokens
+            .checked_sub(contribution.input_tokens)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::InputTokens,
+            })?;
+        result.cached_input_tokens = self
+            .cached_input_tokens
+            .checked_sub(contribution.cached_input_tokens)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::CachedInputTokens,
+            })?;
+        result.reasoning_tokens = self
+            .reasoning_tokens
+            .checked_sub(contribution.reasoning_tokens)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::ReasoningTokens,
+            })?;
+        result.output_tokens = self
+            .output_tokens
+            .checked_sub(contribution.output_tokens)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::OutputTokens,
+            })?;
+        result.tool_calls = self.tool_calls.checked_sub(contribution.tool_calls).ok_or(
+            BudgetUsageError::Regression {
+                dimension: BudgetDimension::ToolCalls,
+            },
+        )?;
+        result.write_calls = self
+            .write_calls
+            .checked_sub(contribution.write_calls)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::WriteCalls,
+            })?;
+        result.remote_agent_delegations = self
+            .remote_agent_delegations
+            .checked_sub(contribution.remote_agent_delegations)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::RemoteAgentDelegations,
+            })?;
+        result.retries =
+            self.retries
+                .checked_sub(contribution.retries)
+                .ok_or(BudgetUsageError::Regression {
+                    dimension: BudgetDimension::Retries,
+                })?;
+        result.input_bytes = self
+            .input_bytes
+            .checked_sub(contribution.input_bytes)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::InputBytes,
+            })?;
+        result.output_bytes = self
+            .output_bytes
+            .checked_sub(contribution.output_bytes)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::OutputBytes,
+            })?;
+        result.event_bytes = self
+            .event_bytes
+            .checked_sub(contribution.event_bytes)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::EventBytes,
+            })?;
+        result.checkpoint_bytes = self
+            .checkpoint_bytes
+            .checked_sub(contribution.checkpoint_bytes)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::CheckpointBytes,
+            })?;
+        result.artifact_bytes = self
+            .artifact_bytes
+            .checked_sub(contribution.artifact_bytes)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::ArtifactBytes,
+            })?;
+        result.unpriced_cost_events = self
+            .unpriced_cost_events
+            .checked_sub(contribution.unpriced_cost_events)
+            .ok_or(BudgetUsageError::Regression {
+                dimension: BudgetDimension::Costs,
+            })?;
+        result.known_costs = KnownCosts::try_new(self.known_costs.iter().map(|cost| {
+            Money::new(
+                cost.currency(),
+                cost.micro_units()
+                    - contribution
+                        .known_costs
+                        .get(cost.currency())
+                        .map_or(0, Money::micro_units),
+            )
+        }))
+        .map_err(BudgetUsageError::Costs)?;
+        if result.cached_input_tokens > result.input_tokens {
+            return Err(BudgetUsageError::SubsetExceedsInclusive {
+                subset: BudgetDimension::CachedInputTokens,
+                inclusive: BudgetDimension::InputTokens,
+            });
+        }
+        if result.reasoning_tokens > result.output_tokens {
+            return Err(BudgetUsageError::SubsetExceedsInclusive {
+                subset: BudgetDimension::ReasoningTokens,
+                inclusive: BudgetDimension::OutputTokens,
+            });
+        }
+        if result.write_calls > result.tool_calls {
+            return Err(BudgetUsageError::SubsetExceedsInclusive {
+                subset: BudgetDimension::WriteCalls,
+                inclusive: BudgetDimension::ToolCalls,
+            });
+        }
+        Ok(result)
+    }
+
     /// Projects only additive expenditure, excluding all three topology peaks.
     ///
     /// Use this when charging an immediate child's complete subtree to its
@@ -1709,6 +1851,92 @@ macro_rules! define_remaining_getters {
 }
 
 impl BudgetRemaining {
+    /// Deducts additional verified cumulative charges from this already evaluated capacity.
+    /// Topology peaks and deadline are unchanged; unknown costs and underflow fail closed.
+    /// The caller must ensure these charges were not included in the original observation.
+    pub fn deduct_cumulative(&self, usage: &BudgetUsage) -> Result<Self, BudgetEvaluationError> {
+        Ok(Self {
+            graph_steps: remaining_execution(
+                BudgetDimension::GraphSteps,
+                self.graph_steps,
+                usage.graph_steps,
+            )?,
+            model_attempts: remaining_execution(
+                BudgetDimension::ModelAttempts,
+                self.model_attempts,
+                usage.model_attempts,
+            )?,
+            model_turns: remaining_execution(
+                BudgetDimension::ModelTurns,
+                self.model_turns,
+                usage.model_turns,
+            )?,
+            input_tokens: remaining_tokens(
+                BudgetDimension::InputTokens,
+                self.input_tokens,
+                usage.input_tokens,
+            )?,
+            cached_input_tokens: remaining_tokens(
+                BudgetDimension::CachedInputTokens,
+                self.cached_input_tokens,
+                usage.cached_input_tokens,
+            )?,
+            reasoning_tokens: remaining_tokens(
+                BudgetDimension::ReasoningTokens,
+                self.reasoning_tokens,
+                usage.reasoning_tokens,
+            )?,
+            output_tokens: remaining_tokens(
+                BudgetDimension::OutputTokens,
+                self.output_tokens,
+                usage.output_tokens,
+            )?,
+            tool_calls: remaining_execution(
+                BudgetDimension::ToolCalls,
+                self.tool_calls,
+                usage.tool_calls,
+            )?,
+            write_calls: remaining_execution(
+                BudgetDimension::WriteCalls,
+                self.write_calls,
+                usage.write_calls,
+            )?,
+            remote_agent_delegations: remaining_execution(
+                BudgetDimension::RemoteAgentDelegations,
+                self.remote_agent_delegations,
+                usage.remote_agent_delegations,
+            )?,
+            retries: remaining_execution(BudgetDimension::Retries, self.retries, usage.retries)?,
+            input_bytes: remaining_bytes(
+                BudgetDimension::InputBytes,
+                self.input_bytes,
+                usage.input_bytes,
+            )?,
+            output_bytes: remaining_bytes(
+                BudgetDimension::OutputBytes,
+                self.output_bytes,
+                usage.output_bytes,
+            )?,
+            event_bytes: remaining_bytes(
+                BudgetDimension::EventBytes,
+                self.event_bytes,
+                usage.event_bytes,
+            )?,
+            checkpoint_bytes: remaining_bytes(
+                BudgetDimension::CheckpointBytes,
+                self.checkpoint_bytes,
+                usage.checkpoint_bytes,
+            )?,
+            artifact_bytes: remaining_bytes(
+                BudgetDimension::ArtifactBytes,
+                self.artifact_bytes,
+                usage.artifact_bytes,
+            )?,
+            costs: remaining_costs(&self.costs, usage)?,
+            ..self.clone()
+        })
+    }
+
     /// Returns the absolute deadline used by this remaining-capacity view.
     #[must_use]
     pub const fn deadline(&self) -> Timestamp {
@@ -1946,6 +2174,64 @@ mod tests {
 
     fn resolved(value: u64) -> ResolvedBudget {
         ResolvedBudget::resolve(&[full_limits(value)]).unwrap()
+    }
+
+    #[test]
+    fn cumulative_deduction_preserves_topology_and_independent_remaining_subsets() {
+        let direct = BudgetUsage::builder()
+            .input_tokens(TokenCount::new(80))
+            .graph_depth(ExecutionCount::new(3))
+            .build()
+            .unwrap();
+        let child = BudgetUsage::builder()
+            .input_tokens(TokenCount::new(10))
+            .cached_input_tokens(TokenCount::new(5))
+            .graph_depth(ExecutionCount::new(99))
+            .known_costs(KnownCosts::try_new([Money::new(usd(), 7)]).unwrap())
+            .build()
+            .unwrap();
+        let remaining = resolved(100)
+            .remaining(&direct, timestamp("2029-01-01T00:00:00.000000Z"))
+            .unwrap();
+        let deducted = remaining.deduct_cumulative(&child).unwrap();
+        assert_eq!(deducted.input_tokens(), TokenCount::new(10));
+        assert_eq!(deducted.cached_input_tokens(), TokenCount::new(95));
+        assert_eq!(deducted.graph_depth(), remaining.graph_depth());
+        assert_eq!(deducted.costs().get(usd()).unwrap().micro_units(), 93);
+        let total = direct.checked_accumulate(&child.cumulative_only()).unwrap();
+        let recovered = total.checked_subtract_cumulative(&child).unwrap();
+        assert_eq!(recovered.input_tokens(), direct.input_tokens());
+        assert_eq!(recovered.graph_depth(), direct.graph_depth());
+        assert_eq!(recovered.known_costs().get(usd()).unwrap().micro_units(), 0);
+        assert!(direct.checked_subtract_cumulative(&child).is_err());
+        assert!(deducted.deduct_cumulative(&direct).is_err());
+        let unknown = BudgetUsage::builder()
+            .unpriced_cost_events(ExecutionCount::new(1))
+            .build()
+            .unwrap();
+        assert!(remaining.deduct_cumulative(&unknown).is_err());
+        let wrong_currency = BudgetUsage::builder()
+            .known_costs(KnownCosts::try_new([Money::new(eur(), 1)]).unwrap())
+            .build()
+            .unwrap();
+        assert!(remaining.deduct_cumulative(&wrong_currency).is_err());
+    }
+
+    #[test]
+    fn cumulative_subtraction_refuses_inconsistent_residual_subsets() {
+        let total = BudgetUsage::builder()
+            .input_tokens(TokenCount::new(10))
+            .cached_input_tokens(TokenCount::new(9))
+            .build()
+            .unwrap();
+        let child = BudgetUsage::builder()
+            .input_tokens(TokenCount::new(5))
+            .build()
+            .unwrap();
+        assert!(matches!(
+            total.checked_subtract_cumulative(&child),
+            Err(BudgetUsageError::SubsetExceedsInclusive { .. })
+        ));
     }
 
     #[test]

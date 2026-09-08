@@ -3,14 +3,90 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Durable child runs: core contracts and remaining work
+# Durable child runs: transactional storage and remaining runtime work
 
-Status: core identity, cumulative capacity/account transitions, graph-pinned delegation declarations, and read-only child admission
-preparation implemented; durable
-child admission, ownership storage, joins, and cancellation are **not yet
-implemented**. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
+Status: core contracts, graph-pinned declarations, read-only preparation, and
+PostgreSQL atomic ownership/admission, reservation and terminal settlement are
+implemented. Automatic child Join, cancel propagation and parent resumption
+are **not yet implemented**; this is not an end-to-end child execution tutorial. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
 [static shared-state composition](graph-composition.md) for the distinction.
+
+## PostgreSQL transactional storage (migration 20)
+
+This is a trusted-store building block, not an automatic child coordinator.
+Authenticate the caller and authorize delegation to the declared slot before
+calling it. The database pool is trusted; its custom transaction settings are
+a mixed-binary compatibility fence, **not** a security boundary for untrusted
+SQL users.
+
+`PostgresStore::admit_child_run` takes the prepared intent, exact live physical
+parent node-start head, worker parent append (`child-run-admitted`), independent
+child admission append/checkpoint, and a complete **direct-only** usage
+observation at the parent's exact journal head. Schema callbacks run before
+the write transaction. The store then:
+
+1. Serializes the tree and locks ancestor Run rows root-to-parent.
+2. Rechecks current checkpoint/ready activation, unfinished physical start,
+   immutable admission/declaration, live fence, all ancestor Active statuses,
+   depth/active-descendant ceilings, and cumulative capacity.
+3. Atomically commits a fresh child admission and initial checkpoint, immutable
+   ownership/audit evidence, the parent's account reservation and journal head.
+
+A pre-existing independent Run is never adopted. Same key plus equal spawn
+digest recovers the first committed IDs before fresh lease/deadline checks;
+different business intent conflicts. Lifetime children are retained (maximum
+256); terminal-but-unsettled descendants occupy active topology capacity.
+Depth is bounded at 32. These are safety bounds, not throughput guarantees.
+
+The first profile serializes parent external work with children: an unfinished
+parent model/tool invocation prevents spawning, and outstanding children block
+new parent model/tool revisions. After settlement, direct work may resume.
+`InvocationBudgetProvider` reports direct-only remaining capacity; the executor
+deducts settled subtree charges and passes the exact account digest to the
+start transaction. Legacy store start methods cannot bypass that requirement.
+Lost-ACK recovery does not dispatch again or charge a second time.
+
+Every terminal writer passes the central child-inclusive accounting check.
+`GraphLifecycleEvidenceProvider` supplies **direct-only** evidence on fresh
+success/failure/cancellation; the lifecycle coordinator adds verified child
+charges exactly once. Low-level writers must provide complete subtree totals,
+or use `include_child_usage` on complete direct evidence before constructing
+the terminal transition. The journal CAS and terminal transaction revalidate
+this observation. Child-local topology peaks are never summed into ancestors.
+
+Owned child terminal commits capture the exact immutable lifecycle and terminal
+journal anchor in the child's own transaction, with a durable notification and
+**no ancestor row lock**. Later audit appends cannot replace that anchor.
+`settle_child_run` locks tree → parent → child and atomically replaces one
+reservation with the complete subtree usage, records the parent settlement
+event (`child-run-settled`), and consumes the notification. Repeated settlement
+recovers the original event. Known overruns remain recorded; unknown pricing
+remains unsettled and cannot be silently treated as zero.
+
+Use `pending_child_settlements` for the first page (at most 16 bounded keys) and
+`pending_child_settlements_after` with the last returned key for subsequent
+pages. The cursor remains usable after that child settles. Continue past items
+requiring price reconciliation, then restart from the first page after a full
+sweep; commit order can differ from event-time order. Do not use a timestamp as
+a permanent delivery watermark. `load_child_run` and
+`load_child_budget_account` verify canonical bytes, ownership, graph/parent
+pins, physical node/checkpoint/journal anchors and settlement bindings.
+
+Unsettled owned children block **all** parent terminal transitions and checkpoint
+advancement. This does not synthesize a Join, timer, or user interrupt. Cancelling
+an ancestor blocks fresh descendant admission, but automatic cancellation
+delivery and parent suspend/resume are not installed yet. Do not expose this
+storage API as an end-to-end child execution service without those coordinators.
+
+Upgrade with the existing explicit `PostgresStore::migrate_database` workflow
+before starting compatible workers. Migration 20 backfills capability version
+1 on existing child-declaring admissions and fences new child-enabled admissions.
+Older workers cannot mutate these Runs; ordinary root Runs remain compatible.
+Startup verifies migration checksums, required constraints/indexes/triggers and
+the installed guard function bodies. Once child evidence exists, rollback means
+stopping new spawns and draining/reconciling with compatible workers, not dropping
+the migration, deleting ownership, disabling guards or clearing reservations.
 
 ## Run the offline contract example
 
@@ -39,8 +115,9 @@ The activation digest is exactly the existing node-attempt activation digest;
 the old activation encoding is unchanged. Scalar counters remain decimal
 strings, not floating-point JSON numbers.
 
-A checksum is not an authorization proof or signature. The future store must
-validate actual committed readiness and current admission authority. The key
+A checksum is not an authorization proof or signature. The store validates
+committed readiness and the current worker fence; caller delegation authorization
+and complete direct usage remain trusted server responsibilities. The key
 also does not bind a child spawn intent: pinned child executable, input,
 authority, budget, and initial-state comparison are handled separately by
 `ChildRunAdmissionIntent`.
@@ -76,7 +153,8 @@ depth 1–32, lifetime immediate children per Run 1–256, and simultaneous acti
 descendants 1–256. A leaf has remaining depth zero. Registry construction
 resolves every declared target and requires its remaining depth to be strictly
 smaller than the parent's; schema mismatch or missing targets prevents startup.
-Live counts and all ancestor ceilings still need atomic store enforcement.
+The store now enforces live counts and every ancestor ceiling atomically.
+For capacity safety, terminal-but-unsettled descendants still count as active.
 These hard bounds are safety ceilings, not measured throughput promises.
 
 Both runtime preparation methods now call core `validate_declaration` against
@@ -111,8 +189,8 @@ spent usage. Parent usage with unknown price fails closed; an unconfigured
 currency is refused even for a zero amount. Overflow and deadline equality
 also fail closed.
 
-This is not a database reservation or settlement API. A storage transaction
-must serialize child admission with other children **and parent direct work**,
+The pure arithmetic is not itself a database reservation API. The PostgreSQL
+transaction described below serializes child admission with other children **and parent direct work**,
 bind allocations to unique ownership keys, read the complete outstanding set,
 and settle once against verified terminal evidence. It must also check child
 deadline narrowing, authorization, ancestry, active subtree concurrency, and
@@ -171,12 +249,11 @@ field set to SHA-256(empty). Terminal fingerprints use domain
 `stateknot.child-run-budget-terminal.v1\0` plus canonical complete lifecycle.
 Checksums detect drift, not forged provenance or authorization.
 
-A future storage transaction must compare the old account digest and atomically
-commit the new account **together with** child ownership/admission/settlement,
-parent direct-work admission and lifecycle changes. Computing two snapshots
-and saving them independently loses reservations. A successful accounting
-settlement alone does not constitute a child Join or authorize parent closure.
-No migration, durable child API or capability enablement ships in this increment.
+The PostgreSQL adapter serializes account replacement under the parent row lock
+and commits it **together with** ownership/admission/settlement. Invocation starts
+also compare the observed child-account digest under that lock. Computing and
+saving two snapshots independently is not supported. Accounting settlement is
+not a child Join; all other lifecycle and graph completion checks still apply.
 
 ## Pinned child admission preparation
 
@@ -219,8 +296,8 @@ The lower-level core `validate_for` requires externally supplied authoritative
 parent/checkpoint/schema/clock data. Deserialization cannot authenticate those
 sources. A valid historical checkpoint is not necessarily current, and a
 successful read-only check can immediately race cancellation or other spending.
-Future commit-time validation must repeat these checks while holding the
-necessary locks and include active topology and outstanding reservations.
+Commit-time validation repeats mutable readiness/authority checks while holding
+the necessary locks and includes active topology and outstanding reservations.
 Exact committed lost-ACK lookup must precede fresh deadline/readiness checks.
 
 The spawn fixture digest is
@@ -241,10 +318,7 @@ after parent cancellation, and refusal of old/nonmatching checkpoints after
 the ordinary graph driver has committed a real noninitial checkpoint. These
 tests do not establish atomic child execution or budget settlement.
 
-Before enabling durable children, finish explicit commit-time delegation
-authorization and active topology enforcement;
-atomic PostgreSQL
-admission/reservation and direct-work enforcement; version-safe closure guards;
-terminal binding/settlement; durable join/cancel/resume; and PostgreSQL 16/17
-fault qualification. No database migration or website capability claim is
-introduced by the core-contract increment.
+Before enabling automatic durable children, finish dedicated Join bindings,
+lease-releasing parent suspension/resumption, durable cancel-and-join propagation,
+registry recreation and end-to-end fault qualification. The website must not
+advertise the full capability until those gates pass.

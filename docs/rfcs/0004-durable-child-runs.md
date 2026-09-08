@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — identity/capacity/account transitions, pinned delegation declarations and read-only admission preparation implemented; no durable child execution
+- Status: Draft — core contracts, declarations, preparation, PostgreSQL ownership/admission/settlement and direct-work guards implemented; automatic Join/cancel/resume unshipped
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -285,15 +285,17 @@ root-only data. Preserve all static-composition and root-run regression tests.
 
 - Exact SQL representations and dedicated join control, with executable
   recovery evidence. Version-one graph declarations and an offline Rust example
-  are implemented; runtime topology enforcement is still required.
+  and PostgreSQL ancestor-limit enforcement are implemented; dedicated Join
+  execution and recovery remain required.
 - Concrete transactional reservation/settlement rules compatible with existing
   budget and ledger contracts, including parent direct work and unknown usage.
   Scalar/deadline/currency narrowing and cumulative arithmetic are implemented;
-  they do not themselves provide atomic resource ownership or topology limits.
-- Exhaustive terminal-write-path inventory, verified lock order, and database
-  enforcement protecting older workers during upgrade.
-- Transactional enforcement of the frozen depth/child-count bounds, bounded
-  recovery scans, and measured recovery/capacity thresholds.
+  the PostgreSQL adapter now enforces resource ownership and ancestor limits.
+  Full automatic runtime coordination remains a separate gate.
+- End-to-end qualification of future Join/cancel writers against the current
+  central terminal guards and version-fenced store lock order.
+- Measured recovery/capacity thresholds and cancellation delivery qualification;
+  bounded terminal discovery and transactional topology limits are implemented.
 
 This RFC is deliberately Draft until these decisions and executable evidence
 exist. It does not authorize advertising or enabling durable child runs.

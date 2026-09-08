@@ -61,7 +61,7 @@ impl ChildRunBudgetSettlement {
     ) -> Result<Self, ChildRunBudgetError> {
         if lifecycle.provenance() != admission.intent().provenance()
             || lifecycle.admitted_at() != admission.admitted_at()
-            || lifecycle.changed_at() != terminal.recorded_at()
+            || lifecycle.changed_at() > terminal.recorded_at()
         {
             return Err(ChildRunBudgetError::TerminalMismatch);
         }

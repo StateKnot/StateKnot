@@ -3,6 +3,9 @@
 
 //! Real `PostgreSQL` migration, transaction, idempotency, and fencing tests.
 
+#[path = "postgres/child_upgrade.rs"]
+mod child_upgrade;
+
 use std::{
     borrow::Cow,
     collections::BTreeSet,
@@ -378,7 +381,88 @@ async fn remove_artifact_registry(pool: &PgPool) {
     assert_eq!(deleted, 1);
 }
 
+async fn remove_child_run_ownership(pool: &PgPool) {
+    query("DROP TRIGGER runs_child_mutation_guard ON stateknot.runs")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP TRIGGER runs_child_terminal_capture ON stateknot.runs")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP TRIGGER admissions_child_capability ON stateknot.agent_admissions")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP TRIGGER tool_revisions_child_budget_guard ON stateknot.tool_invocation_revisions")
+        .execute(pool)
+        .await
+        .unwrap();
+    query(
+        "DROP TRIGGER model_revisions_child_budget_guard ON stateknot.model_invocation_revisions",
+    )
+    .execute(pool)
+    .await
+    .unwrap();
+    query("DROP TRIGGER ownership_child_immutable ON stateknot.child_run_ownership")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP TRIGGER terminals_child_immutable ON stateknot.child_run_terminals")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP TRIGGER settlements_child_immutable ON stateknot.child_run_settlements")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.guard_child_run_mutation()")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.capture_child_run_terminal()")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.mark_child_graph_admission()")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.guard_child_direct_invocation()")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.guard_child_evidence()")
+        .execute(pool)
+        .await
+        .unwrap();
+    for table in [
+        "child_run_settlements",
+        "child_run_terminals",
+        "child_run_ownership",
+        "child_run_budget_accounts",
+    ] {
+        query(&format!("DROP TABLE stateknot.{table}"))
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+    query("ALTER TABLE stateknot.runs DROP COLUMN child_runtime_version")
+        .execute(pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        query("DELETE FROM _sqlx_migrations WHERE version = 20")
+            .execute(pool)
+            .await
+            .unwrap()
+            .rows_affected(),
+        1
+    );
+}
+
 async fn remove_terminal_model_failure_bindings(pool: &PgPool) {
+    remove_child_run_ownership(pool).await;
     query(
         "ALTER TABLE stateknot.pending_node_result_model_bindings \
          DROP CONSTRAINT pending_node_result_model_bindings_status_valid, \
@@ -1413,7 +1497,9 @@ WHERE tenant_id = $1 AND run_id = $2
     assert_eq!(successor.event().sequence().get(), 2);
     store.close().await;
 
-    query(&format!("DROP DATABASE {database_name}"))
+    // This uniquely generated database belongs only to this fixture. Pool
+    // shutdown may precede PostgreSQL finishing a backend's teardown.
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
         .execute(&administration)
         .await
         .expect("isolated upgrade database must be dropped");
@@ -15736,11 +15822,37 @@ async fn concurrent_scheduler_replicas_share_one_linear_fairness_cursor() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
 async fn scheduler_reservation_retention_is_database_timed_bounded_and_cursor_neutral() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
-    let Some(store) = test_store().await else {
+    let Some(shared) = test_store().await else {
         return;
     };
+    shared.close().await;
+    // Retention intentionally scans every shard. A tenant/shard suffix does
+    // not isolate it from expired reservations left by earlier test runs.
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let database_name = format!(
+        "stateknot_retention_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url_with_name(&database_url, "postgres"))
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {database_name}"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    let isolated_url = database_url_with_name(&database_url, &database_name);
+    let options = test_options(Duration::from_secs(30));
+    PostgresStore::migrate_database(&isolated_url, options.clone())
+        .await
+        .unwrap();
+    let store = PostgresStore::connect(&isolated_url, options)
+        .await
+        .unwrap();
     assert!(matches!(
         SchedulerFairnessRetentionPolicy::new(Duration::from_secs(60), 1),
         Err(StoreError::InvalidSchedulerFairnessRetention)
@@ -15774,9 +15886,9 @@ async fn scheduler_reservation_retention_is_database_timed_bounded_and_cursor_ne
         );
     }
 
-    let administration = PgPoolOptions::new()
+    let fixture = PgPoolOptions::new()
         .max_connections(1)
-        .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+        .connect(&isolated_url)
         .await
         .unwrap();
     query(
@@ -15790,7 +15902,7 @@ async fn scheduler_reservation_retention_is_database_timed_bounded_and_cursor_ne
             .map(|reservation| *reservation.reservation_id().as_uuid())
             .collect::<Vec<_>>(),
     )
-    .execute(&administration)
+    .execute(&fixture)
     .await
     .unwrap();
     let policy = SchedulerFairnessRetentionPolicy::new(Duration::from_secs(60 * 60), 1).unwrap();
@@ -15816,7 +15928,7 @@ async fn scheduler_reservation_retention_is_database_timed_bounded_and_cursor_ne
             "SELECT count(*) FROM stateknot.scheduler_fairness_reservations WHERE shard_id = $1",
         )
         .bind(shard_id.as_str())
-        .fetch_one(&administration)
+        .fetch_one(&fixture)
         .await
         .unwrap(),
         1
@@ -15831,8 +15943,13 @@ async fn scheduler_reservation_retention_is_database_timed_bounded_and_cursor_ne
         .unwrap();
     assert_eq!(next.sequence(), 3);
     assert_eq!(next.slot(), 1);
-    administration.close().await;
+    fixture.close().await;
     store.close().await;
+    query(&format!("DROP DATABASE {database_name} WITH (FORCE)"))
+        .execute(&administration)
+        .await
+        .unwrap();
+    administration.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

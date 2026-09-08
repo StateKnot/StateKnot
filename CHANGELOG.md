@@ -14,6 +14,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- PostgreSQL migration 20: atomic isolated child admission/ownership and cumulative
+  reservation; ancestor topology limits, immutable terminal notification/settlement,
+  bounded resumable discovery, mixed-worker capability gates and centralized parent
+  closure/checkpoint guards. Runtime model/tool starts deduct child charges and pin
+  the account digest; terminal success/failure/cancellation include delegated usage.
+  Includes fault-injection and retry/concurrency tests. Automatic Join, cancel
+  propagation and parent resumption remain unshipped (RFC-0004 stays Draft).
+
 - Core child-budget account state transitions with separate direct observations,
   outstanding ceilings and exact immediate-child subtree settlements. Frozen
   versioned snapshots retain retry identities, refuse regressing direct evidence,
@@ -27,14 +35,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   or substituted targets. Existing graph digests are preserved; static expansion
   cannot silently discard declarations. Includes strict wire and real-store
   tests, an offline example, and bilingual contract guidance. Durable child
-  execution and transactional topology/budget enforcement remain unshipped.
+  Join, cancellation propagation and automatic parent resumption remain unshipped.
 
 - Pinned child admission preparation with candidate-ID-independent retry
   fingerprints, exact parent/checkpoint binding, same-principal scope narrowing,
   all-dimension immutable budget narrowing, and offline child graph/schema
   validation. Includes read-only runtime preparation/revalidation, compiled
   documentation, and real PostgreSQL no-write/cancellation/noninitial tests.
-  Atomic child admission, reservations, joins, and cancellation remain unshipped.
+  Automatic child joins and cancellation propagation remain unshipped.
 - Core child ownership keys with strict, digest-checked wire restoration and
   retry/fence-independent logical identity; bounded cumulative budget
   reservation arithmetic separating high-water topology from expenditure.

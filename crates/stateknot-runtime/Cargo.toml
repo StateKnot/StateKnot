@@ -33,6 +33,8 @@ uuid.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true
+sqlx-core.workspace = true
+sqlx-postgres.workspace = true
 
 [lints]
 workspace = true

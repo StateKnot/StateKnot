@@ -172,9 +172,11 @@ impl InvocationBudgetContext {
 /// Trusted admission/accounting source for exact remaining run capacity.
 ///
 /// Implementations load the immutable resolved budget and cumulative durable
-/// usage by `provenance`, recheck the intent/attempt admission policy, and
+/// DIRECT-only usage by `provenance`, recheck the intent/attempt admission policy, and
 /// return a finite [`BudgetRemaining`] evaluated at `observed_at`. The executor
-/// never accepts a caller-authored remaining-budget value directly.
+/// never accepts a caller-authored remaining-budget value directly. The executor
+/// deducts verified child subtree charges exactly once, then binds their account
+/// digest to the durable start transaction. Providers must not include children.
 pub trait InvocationBudgetProvider: Send + Sync + 'static {
     /// Resolves exact remaining capacity before a durable attempt start.
     fn remaining(
@@ -184,6 +186,29 @@ pub trait InvocationBudgetProvider: Send + Sync + 'static {
 }
 
 type PrivateBudgetSource = dyn StdError + Send + Sync + 'static;
+
+fn deduct_child_budget(
+    remaining: BudgetRemaining,
+    account: Option<&stateknot_core::ChildRunBudgetAccount>,
+) -> Result<BudgetRemaining, StoreError> {
+    let Some(account) = account else {
+        return Ok(remaining);
+    };
+    if account
+        .children()
+        .iter()
+        .any(|entry| entry.settlement().is_none())
+    {
+        return Err(StoreError::UnsettledChildRuns);
+    }
+    remaining
+        .deduct_cumulative(
+            &account
+                .delegated_usage()
+                .map_err(|_| StoreError::IncompleteChildAccounting)?,
+        )
+        .map_err(|_| StoreError::IncompleteChildAccounting)
+}
 
 /// Payload-redacted trusted accounting-provider failure.
 #[derive(Clone)]
@@ -1578,13 +1603,20 @@ impl DurableInvocationExecutor {
     async fn prepare_model_context(
         &self,
         handoff: &ModelAttemptHandoff,
-    ) -> Result<ModelContext, ModelAttemptExecutionError> {
+    ) -> Result<(ModelContext, Option<Digest>), ModelAttemptExecutionError> {
         let run = self
             .store
             .load_run(handoff.fence.tenant_id(), handoff.fence.run_id())
             .await?;
         let provenance = run.lifecycle().provenance().clone();
         validate_run_provenance(&provenance, &handoff.fence)?;
+        let account = self
+            .store
+            .load_child_budget_account(handoff.fence.tenant_id(), handoff.fence.run_id())
+            .await?;
+        let child_budget = account
+            .as_ref()
+            .map(stateknot_core::ChildRunBudgetAccount::digest);
         let observation = self.clock.observe()?;
         let remaining = self
             .budget
@@ -1597,6 +1629,10 @@ impl DurableInvocationExecutor {
                 observed_at: observation.observed_at,
             })
             .await?;
+        validate_model_budget(&remaining, handoff.invocation.intent().request())?;
+        let remaining = deduct_child_budget(remaining, account.as_ref()).map_err(|error| {
+            ModelAttemptExecutionError::BudgetProvider(InvocationBudgetProviderError::new(error))
+        })?;
         validate_model_budget(&remaining, handoff.invocation.intent().request())?;
         let context = ModelContext::new(
             provenance.tenant_id().clone(),
@@ -1611,19 +1647,26 @@ impl DurableInvocationExecutor {
         if let Some(reason) = context.stop_reason_at(Instant::now()) {
             return Err(ModelAttemptExecutionError::StoppedBeforeStart { reason });
         }
-        Ok(context)
+        Ok((context, child_budget))
     }
 
     async fn prepare_tool_context(
         &self,
         handoff: &ToolAttemptHandoff,
-    ) -> Result<ToolContext, ToolAttemptExecutionError> {
+    ) -> Result<(ToolContext, Option<Digest>), ToolAttemptExecutionError> {
         let run = self
             .store
             .load_run(handoff.fence.tenant_id(), handoff.fence.run_id())
             .await?;
         let provenance = run.lifecycle().provenance().clone();
         validate_tool_run_provenance(&provenance, &handoff.fence)?;
+        let account = self
+            .store
+            .load_child_budget_account(handoff.fence.tenant_id(), handoff.fence.run_id())
+            .await?;
+        let child_budget = account
+            .as_ref()
+            .map(stateknot_core::ChildRunBudgetAccount::digest);
         let observation = self.clock.observe()?;
         let remaining = self
             .budget
@@ -1636,6 +1679,9 @@ impl DurableInvocationExecutor {
                 observed_at: observation.observed_at,
             })
             .await?;
+        let remaining = deduct_child_budget(remaining, account.as_ref()).map_err(|error| {
+            ToolAttemptExecutionError::BudgetProvider(InvocationBudgetProviderError::new(error))
+        })?;
         validate_tool_budget(
             &remaining,
             handoff.invocation.intent().descriptor().semantics().risk(),
@@ -1649,7 +1695,7 @@ impl DurableInvocationExecutor {
         if let Some(reason) = context.stop_reason_at(Instant::now()) {
             return Err(ToolAttemptExecutionError::StoppedBeforeStart { reason });
         }
-        Ok(context)
+        Ok((context, child_budget))
     }
 
     fn build_tool_context(
@@ -1845,7 +1891,7 @@ impl DurableInvocationExecutor {
         let provider = self
             .models
             .resolve(handoff.invocation.intent().descriptor())?;
-        let context = self.prepare_model_context(&handoff).await?;
+        let (context, child_budget) = self.prepare_model_context(&handoff).await?;
 
         let start_transition = ModelInvocationTransition::StartAttempt {
             attempt_id: handoff.attempt_id,
@@ -1866,7 +1912,12 @@ impl DurableInvocationExecutor {
         )
         .map_err(|_| ModelAttemptExecutionError::JournalAppend)?;
         let start = self
-            .advance_model_with_retry(start_append, &handoff.invocation, start_transition)
+            .advance_model_with_retry(
+                start_append,
+                &handoff.invocation,
+                start_transition,
+                child_budget,
+            )
             .await?;
         let executing = match start {
             ModelInvocationCommitOutcome::Committed { invocation, .. } => invocation,
@@ -1997,7 +2048,7 @@ impl DurableInvocationExecutor {
             });
         };
         match self
-            .advance_model_with_retry(append, &handoff.invocation, transition)
+            .advance_model_with_retry(append, &handoff.invocation, transition, None)
             .await
         {
             Ok(outcome) => Ok(ModelAttemptOutcome::Dispatched {
@@ -2069,7 +2120,7 @@ impl DurableInvocationExecutor {
         let provider = self
             .tools
             .resolve(handoff.invocation.intent().descriptor())?;
-        let context = self.prepare_tool_context(&handoff).await?;
+        let (context, child_budget) = self.prepare_tool_context(&handoff).await?;
 
         let start_payload = self.event_payload(
             "tool-attempt-started",
@@ -2093,6 +2144,7 @@ impl DurableInvocationExecutor {
                 ToolInvocationTransition::StartAttempt {
                     attempt_id: handoff.attempt_id,
                 },
+                child_budget,
             )
             .await?;
         let executing = match start {
@@ -2245,7 +2297,7 @@ impl DurableInvocationExecutor {
             });
         };
         match self
-            .advance_tool_with_retry(append, &handoff.invocation, transition)
+            .advance_tool_with_retry(append, &handoff.invocation, transition, None)
             .await
         {
             Ok(outcome) => Ok(ToolAttemptOutcome::Dispatched {
@@ -2442,7 +2494,7 @@ impl DurableInvocationExecutor {
             });
         };
         match self
-            .advance_tool_with_retry(append, &handoff.invocation, transition)
+            .advance_tool_with_retry(append, &handoff.invocation, transition, None)
             .await
         {
             Ok(ToolInvocationCommitOutcome::Committed { event, invocation }) => {
@@ -2754,12 +2806,18 @@ impl DurableInvocationExecutor {
         append: JournalAppend,
         expected: &ModelInvocation,
         transition: ModelInvocationTransition,
+        child_budget: Option<Digest>,
     ) -> Result<ModelInvocationCommitOutcome, StoreError> {
         let mut attempt = 1_u8;
         loop {
             match self
                 .store
-                .advance_model_invocation(append.clone(), &expected.head(), transition.clone())
+                .advance_model_invocation_with_child_budget(
+                    append.clone(),
+                    &expected.head(),
+                    transition.clone(),
+                    child_budget,
+                )
                 .await
             {
                 Ok(outcome) => return Ok(outcome),
@@ -2784,12 +2842,18 @@ impl DurableInvocationExecutor {
         append: JournalAppend,
         expected: &ToolInvocation,
         transition: ToolInvocationTransition,
+        child_budget: Option<Digest>,
     ) -> Result<ToolInvocationCommitOutcome, StoreError> {
         let mut attempt = 1_u8;
         loop {
             match self
                 .store
-                .advance_tool_invocation(append.clone(), &expected.head(), transition.clone())
+                .advance_tool_invocation_with_child_budget(
+                    append.clone(),
+                    &expected.head(),
+                    transition.clone(),
+                    child_budget,
+                )
                 .await
             {
                 Ok(outcome) => return Ok(outcome),

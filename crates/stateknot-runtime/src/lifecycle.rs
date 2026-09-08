@@ -424,6 +424,10 @@ pub enum GraphLifecycleEvidenceError {
 /// they must never infer missing usage, fabricate a request, or re-run model or
 /// tool work. Provider diagnostics belong in protected telemetry and are mapped
 /// to the closed public-safe error above.
+///
+/// Fresh success/failure/cancellation evidence contains DIRECT-only Run usage.
+/// The coordinator adds verified settled child-subtree charges exactly once;
+/// providers must exclude those charges, and unresolved children block closure.
 pub trait GraphLifecycleEvidenceProvider: Send + Sync + 'static {
     /// Recovers success evidence for an exact terminal barrier.
     fn terminal_evidence(
@@ -570,7 +574,11 @@ impl DurableGraphLifecycle {
                 .cancellation_evidence(context)
                 .await
                 .map_err(GraphLifecycleError::Evidence)?;
-            (observation.observed_at(), evidence.into_usage())
+            let usage = self
+                .store
+                .include_child_usage(fence.tenant_id(), fence.run_id(), evidence.into_usage())
+                .await?;
+            (observation.observed_at(), usage)
         } else {
             let committed_revision = expected_revision.get().checked_add(1);
             let committed = committed_revision
@@ -676,11 +684,15 @@ impl DurableGraphLifecycle {
                             output_digest: output.digest(),
                             expected_revision,
                         };
-                        let evidence = self
+                        let mut evidence = self
                             .evidence
                             .terminal_evidence(context)
                             .await
                             .map_err(GraphLifecycleError::Evidence)?;
+                        evidence.usage = self
+                            .store
+                            .include_child_usage(fence.tenant_id(), fence.run_id(), evidence.usage)
+                            .await?;
                         self.validate_terminal_result(
                             run.lifecycle().provenance(),
                             journal_head.recorded_at(),
@@ -785,6 +797,10 @@ impl DurableGraphLifecycle {
                     .await
                     .map_err(GraphLifecycleError::Evidence)?;
                 let (failure, usage) = evidence.into_parts();
+                let usage = self
+                    .store
+                    .include_child_usage(fence.tenant_id(), fence.run_id(), usage)
+                    .await?;
                 let failure = if blockers.superstep_limit_reached() {
                     superstep_limit_failure()
                 } else {
