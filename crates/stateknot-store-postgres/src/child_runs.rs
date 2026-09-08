@@ -438,14 +438,31 @@ impl PostgresStore {
         } else {
             None
         };
-        let rows = query_scalar::<_, Vec<u8>>("SELECT key_bytes FROM stateknot.child_run_ownership WHERE tenant_id = $1 AND terminal_pending_at IS NOT NULL AND NOT settled AND ($2::timestamptz IS NULL OR (terminal_pending_at, child_run_id) > ($2,$3)) ORDER BY terminal_pending_at, child_run_id LIMIT 16")
-            .bind(tenant.as_str()).bind(cursor.map(|value| value.0)).bind(cursor.map(|value| value.1)).fetch_all(&self.pool).await
+        // Separate query shapes keep the cursor in the btree range condition,
+        // including PostgreSQL generic plans; an optional-parameter OR can scan
+        // an arbitrarily long earlier prefix of unresolved notifications.
+        let sql = if cursor.is_some() {
+            "SELECT key_bytes, key_digest, parent_run_id FROM stateknot.child_run_ownership WHERE tenant_id = $1 AND terminal_pending_at IS NOT NULL AND NOT settled AND (terminal_pending_at, child_run_id) > ($2,$3) ORDER BY terminal_pending_at, child_run_id LIMIT 16"
+        } else {
+            "SELECT key_bytes, key_digest, parent_run_id FROM stateknot.child_run_ownership WHERE tenant_id = $1 AND terminal_pending_at IS NOT NULL AND NOT settled ORDER BY terminal_pending_at, child_run_id LIMIT 16"
+        };
+        let mut listing = query_as::<_, (Vec<u8>, Vec<u8>, Uuid)>(sql).bind(tenant.as_str());
+        if let Some((at, child)) = cursor {
+            listing = listing.bind(at).bind(child);
+        }
+        let rows = listing
+            .fetch_all(&self.pool)
+            .await
             .map_err(|source| StoreError::database("child settlement discovery", source))?;
         rows.into_iter()
-            .map(|bytes| {
+            .map(|(bytes, digest, parent)| {
                 let key: ChildRunKey = serde_json::from_slice(&bytes)
                     .map_err(|_| StoreError::corrupt("pending child key"))?;
-                if key.tenant_id() != tenant || bytes.len() > 65_536 {
+                if key.tenant_id() != tenant
+                    || bytes.len() > 65_536
+                    || key.digest() != decode_digest(&digest, "pending child key digest")?
+                    || *key.parent_run_id().as_uuid() != parent
+                {
                     return Err(StoreError::corrupt("pending child key scope"));
                 }
                 Ok(key)
