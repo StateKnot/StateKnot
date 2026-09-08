@@ -3,6 +3,9 @@
 
 //! Real-store evidence for read-only preparation, not durable child execution.
 
+#[path = "child_ownership.rs"]
+mod ownership;
+
 use super::*;
 use stateknot_core::{
     ChildRunAdmissionIntent, ChildRunAdmissionIntentError, ChildRunDeclaration, ChildRunKey,
@@ -56,14 +59,16 @@ async fn setup(store: &PostgresStore, name: &str) -> PreparationFixture {
 
 fn declared_parent(child: &DriverFixture, agent: &AgentDescriptor) -> DriverFixture {
     let leaf = &child.graph;
-    let declarations = leaf.nodes().iter().map(|node| {
-        ChildRunDeclaration::new(
-            node.node_id().clone(),
-            ChildRunSlot::new("analysis").unwrap(),
-            agent,
-            leaf,
-        )
-        .unwrap()
+    let declarations = leaf.nodes().iter().flat_map(|node| {
+        ["analysis", "secondary"].map(|slot| {
+            ChildRunDeclaration::new(
+                node.node_id().clone(),
+                ChildRunSlot::new(slot).unwrap(),
+                agent,
+                leaf,
+            )
+            .unwrap()
+        })
     });
     let graph = CompiledGraph::compile(
         capability("declared-child-parent"),

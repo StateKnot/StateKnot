@@ -309,9 +309,11 @@ from the repository.
   tested. Checked budget-account transitions now separate monotonic direct
   observations, outstanding reservations and once-only exact terminal subtree
   charges, with bounded integrity-checked wire snapshots and retained retry IDs.
-  Transactional admission, live topology enforcement,
-  direct-work budget serialization and lifecycle remain
-  unimplemented; the RFC remains Draft.
+  PostgreSQL migration 20 now adds atomic child admission/ownership, live ancestor
+  limits, direct-work exclusion/digest fencing, immutable terminal notification
+  and once-only settlement, with mixed-worker closure guards. Dedicated Join,
+  durable cancellation propagation and automatic parent resume remain unimplemented;
+  the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,

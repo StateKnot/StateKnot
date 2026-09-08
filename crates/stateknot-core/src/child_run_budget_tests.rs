@@ -293,6 +293,24 @@ fn settlement_requires_matching_child_and_immutable_terminal_evidence() {
 }
 
 #[test]
+fn terminal_event_may_follow_but_never_precede_lifecycle_observation() {
+    let (value, _) = policy_fixture(true);
+    let admission =
+        AgentAdmission::commit(value.child.clone(), value.parent.admitted_at()).unwrap();
+    let lifecycle = failed_lifecycle(&admission, BudgetUsage::zero());
+    let later: Timestamp = "2030-01-01T00:00:02.000001Z".parse().unwrap();
+    let earlier: Timestamp = "2030-01-01T00:00:01.999999Z".parse().unwrap();
+    assert!(
+        ChildRunBudgetSettlement::new(&admission, &lifecycle, terminal_head(&admission, later))
+            .is_ok()
+    );
+    assert!(
+        ChildRunBudgetSettlement::new(&admission, &lifecycle, terminal_head(&admission, earlier))
+            .is_err()
+    );
+}
+
+#[test]
 fn direct_observations_are_absolute_head_bound_and_monotonic() {
     let (value, graph) = policy_fixture(true);
     let initial = account(&value, &graph);

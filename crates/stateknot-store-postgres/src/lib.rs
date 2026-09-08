@@ -74,4 +74,7 @@ pub use model::{
     ToolInvocationHistoryPageSize, WaitAbandonment, WaitAbandonmentCommitOutcome,
     WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
-pub use store::{ClaimedRunRecovery, PostgresStore};
+pub use store::{
+    ChildRunCommitOutcome, ChildRunRecord, ChildRunSettlementOutcome, ClaimedRunRecovery,
+    PostgresStore,
+};

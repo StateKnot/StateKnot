@@ -55,6 +55,33 @@ pub enum ConfigurationError {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum StoreError {
+    /// A pre-child binary attempted to mutate a child-enabled run.
+    #[error("compatible child runtime is required")]
+    UnsupportedChildRuntime,
+    /// Terminal accounting omitted already recorded direct or delegated usage.
+    #[error("terminal child accounting is incomplete")]
+    IncompleteChildAccounting,
+    /// Owned-child records, immutable input or scope do not match.
+    #[error("child run commit conflicts with durable ownership")]
+    ChildRunConflict,
+    /// No ownership record exists inside the supplied parent/tenant boundary.
+    #[error("child run ownership was not found")]
+    ChildRunNotFound,
+    /// A fresh child admission failed readiness, authority or budget validation.
+    #[error("child run admission was rejected")]
+    ChildRunRejected,
+    /// An ancestor's finite depth or unsettled-descendant ceiling was reached.
+    #[error("child run topology limit reached")]
+    ChildRunTopologyExceeded,
+    /// Outstanding child work blocks direct external dispatch or parent closure.
+    #[error("unsettled children block this run mutation")]
+    UnsettledChildRuns,
+    /// Invocation start requires a fresh verified child-adjusted budget snapshot.
+    #[error("child-adjusted invocation budget observation is required")]
+    ChildBudgetObservationRequired,
+    /// No complete, fully priced immutable terminal evidence is available yet.
+    #[error("child run terminal settlement evidence is unavailable")]
+    ChildRunSettlementUnavailable,
     /// Provider configuration was invalid.
     #[error(transparent)]
     Configuration(#[from] ConfigurationError),
@@ -525,7 +552,18 @@ pub enum StoreError {
 }
 
 impl StoreError {
-    pub(crate) const fn database(operation: &'static str, source: sqlx_core::Error) -> Self {
+    pub(crate) fn database(operation: &'static str, source: sqlx_core::Error) -> Self {
+        match source
+            .as_database_error()
+            .and_then(sqlx_core::error::DatabaseError::code)
+            .as_deref()
+        {
+            Some("SKC01") => return Self::UnsupportedChildRuntime,
+            Some("SKC02") => return Self::UnsettledChildRuns,
+            Some("SKC03") => return Self::ChildBudgetObservationRequired,
+            Some("SKC04") => return Self::IncompleteChildAccounting,
+            _ => {}
+        }
         Self::Database { operation, source }
     }
 

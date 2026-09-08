@@ -55,6 +55,10 @@ use stateknot_core::{
 };
 use uuid::Uuid;
 
+#[path = "child_runs.rs"]
+mod child_runs;
+pub use child_runs::{ChildRunCommitOutcome, ChildRunRecord, ChildRunSettlementOutcome};
+
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
     ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
@@ -221,6 +225,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!(
                 "../migrations/0019_terminal_model_failure_bindings.sql"
             )),
+            false,
+        ),
+        Migration::new(
+            20,
+            Cow::Borrowed("child run ownership"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0020_child_run_ownership.sql")),
             false,
         ),
     ]),
@@ -3039,6 +3050,7 @@ impl PostgresStore {
         if !complete {
             return Err(StoreError::IncompleteSchema);
         }
+        child_runs::verify_schema(&self.pool).await?;
         Ok(())
     }
 
@@ -6643,7 +6655,20 @@ WHERE tenant_id = $1
         expected: &ToolInvocationHead,
         transition: ToolInvocationTransition,
     ) -> Result<ToolInvocationCommitOutcome, StoreError> {
-        Box::pin(self.advance_tool_invocation_inner(append, expected, transition)).await
+        Box::pin(self.advance_tool_invocation_inner(append, expected, transition, None)).await
+    }
+
+    /// Advances with the exact verified child-account digest, checked under the run lock.
+    /// Lost-acknowledgement recovery does not require a fresh budget observation.
+    pub async fn advance_tool_invocation_with_child_budget(
+        &self,
+        append: JournalAppend,
+        expected: &ToolInvocationHead,
+        transition: ToolInvocationTransition,
+        child_budget: Option<Digest>,
+    ) -> Result<ToolInvocationCommitOutcome, StoreError> {
+        Box::pin(self.advance_tool_invocation_inner(append, expected, transition, child_budget))
+            .await
     }
 
     #[allow(clippy::too_many_lines)]
@@ -6652,6 +6677,7 @@ WHERE tenant_id = $1
         append: JournalAppend,
         expected: &ToolInvocationHead,
         transition: ToolInvocationTransition,
+        child_budget: Option<Digest>,
     ) -> Result<ToolInvocationCommitOutcome, StoreError> {
         let fence = append
             .worker_fence()
@@ -6789,6 +6815,15 @@ WHERE tenant_id = $1
         }
 
         let observed_at = database_now(&mut transaction, "tool invocation advance clock").await?;
+        if matches!(&transition, ToolInvocationTransition::StartAttempt { .. }) {
+            child_runs::authorize_invocation_budget(
+                &mut transaction,
+                &tenant_id,
+                run_id,
+                child_budget,
+            )
+            .await?;
+        }
         authorize_worker(&stored, &fence, observed_at)?;
         let recorded_at = stored
             .journal_head()
@@ -6984,7 +7019,20 @@ WHERE tenant_id = $1
         expected: &ModelInvocationHead,
         transition: ModelInvocationTransition,
     ) -> Result<ModelInvocationCommitOutcome, StoreError> {
-        Box::pin(self.advance_model_invocation_inner(append, expected, transition)).await
+        Box::pin(self.advance_model_invocation_inner(append, expected, transition, None)).await
+    }
+
+    /// Advances with the exact verified child-account digest, checked under the run lock.
+    /// Lost-acknowledgement recovery does not require a fresh budget observation.
+    pub async fn advance_model_invocation_with_child_budget(
+        &self,
+        append: JournalAppend,
+        expected: &ModelInvocationHead,
+        transition: ModelInvocationTransition,
+        child_budget: Option<Digest>,
+    ) -> Result<ModelInvocationCommitOutcome, StoreError> {
+        Box::pin(self.advance_model_invocation_inner(append, expected, transition, child_budget))
+            .await
     }
 
     #[allow(clippy::too_many_lines)]
@@ -6993,6 +7041,7 @@ WHERE tenant_id = $1
         append: JournalAppend,
         expected: &ModelInvocationHead,
         transition: ModelInvocationTransition,
+        child_budget: Option<Digest>,
     ) -> Result<ModelInvocationCommitOutcome, StoreError> {
         let fence = append
             .worker_fence()
@@ -7131,6 +7180,15 @@ WHERE tenant_id = $1
         }
 
         let observed_at = database_now(&mut transaction, "model invocation advance clock").await?;
+        if matches!(&transition, ModelInvocationTransition::StartAttempt { .. }) {
+            child_runs::authorize_invocation_budget(
+                &mut transaction,
+                &tenant_id,
+                run_id,
+                child_budget,
+            )
+            .await?;
+        }
         authorize_worker(&stored, &fence, observed_at)?;
         let recorded_at = stored
             .journal_head()
@@ -9670,6 +9728,10 @@ RETURNING observation.observed_at
             .await
             .map_err(|source| StoreError::database(operation, source))?;
         apply_transaction_timeouts(&mut transaction, &self.options, operation).await?;
+        query("SET LOCAL stateknot.child_runtime_version = '1'")
+            .execute(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database(operation, source))?;
         Ok(transaction)
     }
 
@@ -19340,6 +19402,14 @@ async fn update_run_head(
     event: &JournalEvent,
     projection: Option<&PreparedProjection>,
 ) -> Result<(), StoreError> {
+    if let Some(projection) = projection {
+        Box::pin(child_runs::validate_terminal_accounting(
+            transaction,
+            event,
+            projection,
+        ))
+        .await?;
+    }
     let sequence =
         i64::try_from(event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?;
     let recorded_at = to_database_time(event.recorded_at())?;
