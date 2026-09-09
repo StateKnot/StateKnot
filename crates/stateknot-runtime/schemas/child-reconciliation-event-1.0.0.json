@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/child-reconciliation-event/1.0.0",
+  "title": "StateKnot child reconciliation event data v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "ownership_digest"],
+  "properties": {
+    "operation": {"enum": ["child_run_cancellation_requested", "child_run_settled"]},
+    "ownership_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

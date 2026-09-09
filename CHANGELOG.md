@@ -14,13 +14,23 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- PostgreSQL migration 21 and a bounded `DurableChildReconciler`: atomic parent
+  cancellation capture/backfill, child request/real-wait cleanup/descendant queue
+  delivery with immutable recovery receipts, and restartable cancellation and
+  settlement pages that continue past unresolved items. Cancelling parents cannot
+  acquire new leases before child settlement; existing cleanup leases can renew.
+  Includes a pinned offline audit schema, compiled usage example, bilingual
+  operations guidance and PostgreSQL 16/17 race/fault/upgrade tests. No fabricated
+  terminal usage or force termination. Dedicated Join, deadline/failure close
+  policy and successful parent suspend/resume remain unshipped (RFC-0004 Draft).
+
 - PostgreSQL migration 20: atomic isolated child admission/ownership and cumulative
   reservation; ancestor topology limits, immutable terminal notification/settlement,
   bounded resumable discovery, mixed-worker capability gates and centralized parent
   closure/checkpoint guards. Runtime model/tool starts deduct child charges and pin
   the account digest; terminal success/failure/cancellation include delegated usage.
-  Includes fault-injection and retry/concurrency tests. Automatic Join, cancel
-  propagation and parent resumption remain unshipped (RFC-0004 stays Draft).
+  Includes fault-injection and retry/concurrency tests. Automatic Join and
+  successful parent resumption remain unshipped (RFC-0004 stays Draft).
 
 - Core child-budget account state transitions with separate direct observations,
   outstanding ceilings and exact immediate-child subtree settlements. Frozen
@@ -35,14 +45,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   or substituted targets. Existing graph digests are preserved; static expansion
   cannot silently discard declarations. Includes strict wire and real-store
   tests, an offline example, and bilingual contract guidance. Durable child
-  Join, cancellation propagation and automatic parent resumption remain unshipped.
+  Join and automatic successful parent resumption remain unshipped.
 
 - Pinned child admission preparation with candidate-ID-independent retry
   fingerprints, exact parent/checkpoint binding, same-principal scope narrowing,
   all-dimension immutable budget narrowing, and offline child graph/schema
   validation. Includes read-only runtime preparation/revalidation, compiled
   documentation, and real PostgreSQL no-write/cancellation/noninitial tests.
-  Automatic child joins and cancellation propagation remain unshipped.
+  Automatic child joins remain unshipped.
 - Core child ownership keys with strict, digest-checked wire restoration and
   retry/fence-independent logical identity; bounded cumulative budget
   reservation arithmetic separating high-water topology from expenditure.

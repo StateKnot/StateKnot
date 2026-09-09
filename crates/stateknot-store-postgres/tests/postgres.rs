@@ -381,7 +381,47 @@ async fn remove_artifact_registry(pool: &PgPool) {
     assert_eq!(deleted, 1);
 }
 
+async fn remove_child_run_cancellation(pool: &PgPool) {
+    query("DROP TRIGGER runs_child_cancellation_claim_guard ON stateknot.runs")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.guard_child_cancellation_claim()")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP TRIGGER runs_child_cancellation_capture ON stateknot.runs")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.capture_child_run_cancellation()")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP TABLE stateknot.child_run_cancellation_receipts")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP TABLE stateknot.child_run_cancellations")
+        .execute(pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.guard_child_cancellation_evidence()")
+        .execute(pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        query("DELETE FROM _sqlx_migrations WHERE version=21")
+            .execute(pool)
+            .await
+            .unwrap()
+            .rows_affected(),
+        1
+    );
+}
+
 async fn remove_child_run_ownership(pool: &PgPool) {
+    remove_child_run_cancellation(pool).await;
     query("DROP TRIGGER runs_child_mutation_guard ON stateknot.runs")
         .execute(pool)
         .await

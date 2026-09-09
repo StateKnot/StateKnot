@@ -639,7 +639,7 @@ pub(super) async fn validate_terminal_accounting(
     Ok(())
 }
 
-async fn lock_tree(
+pub(super) async fn lock_tree(
     tx: &mut Transaction<'_, Postgres>,
     tenant: &TenantId,
     root: RunId,
@@ -652,7 +652,7 @@ async fn lock_tree(
     Ok(())
 }
 
-async fn ancestry(
+pub(super) async fn ancestry(
     tx: &mut Transaction<'_, Postgres>,
     tenant: &TenantId,
     parent: RunId,
@@ -876,7 +876,7 @@ async fn save_account(
     Ok(())
 }
 
-async fn anchored_event(
+pub(super) async fn anchored_event(
     tx: &mut Transaction<'_, Postgres>,
     tenant: &TenantId,
     run: RunId,
@@ -898,7 +898,11 @@ async fn anchored_event(
     Ok((decode_event(row)?, projection))
 }
 
-fn row_head(row: &PgRow, tenant: &TenantId, run: RunId) -> Result<JournalHead, StoreError> {
+pub(super) fn row_head(
+    row: &PgRow,
+    tenant: &TenantId,
+    run: RunId,
+) -> Result<JournalHead, StoreError> {
     let get_error = |source| StoreError::database("child head decode", source);
     Ok(JournalHead::new(
         tenant.clone(),
@@ -987,7 +991,7 @@ async fn load_record(
 }
 
 #[allow(clippy::too_many_lines)]
-async fn load_record_inner(
+pub(super) async fn load_record_inner(
     tx: &mut Transaction<'_, Postgres>,
     key: &ChildRunKey,
     lock_child: bool,

@@ -59,6 +59,13 @@ use uuid::Uuid;
 mod child_runs;
 pub use child_runs::{ChildRunCommitOutcome, ChildRunRecord, ChildRunSettlementOutcome};
 
+#[path = "child_cancellation.rs"]
+mod child_cancellation;
+pub use child_cancellation::{
+    ChildCancellationDelivery, ChildCancellationOutcome, ChildCancellationReceipt,
+    ChildCancellationRecord,
+};
+
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
     ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
@@ -232,6 +239,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed("child run ownership"),
             MigrationType::Simple,
             Cow::Borrowed(include_str!("../migrations/0020_child_run_ownership.sql")),
+            false,
+        ),
+        Migration::new(
+            21,
+            Cow::Borrowed("child run cancellation"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0021_child_run_cancellation.sql"
+            )),
             false,
         ),
     ]),
@@ -793,6 +809,11 @@ WHERE tenant_id = $1
   AND scheduler_ready_at IS NOT NULL
   AND checkpoint_id IS NOT NULL
   AND lifecycle_status IN ('pending', 'active', 'cancellation_requested')
+  AND (lifecycle_status <> 'cancellation_requested' OR NOT EXISTS (
+      SELECT 1 FROM stateknot.child_run_ownership AS owned
+      WHERE owned.tenant_id = stateknot.runs.tenant_id
+        AND owned.parent_run_id = stateknot.runs.run_id AND NOT owned.settled
+  ))
   AND GREATEST(
           scheduler_ready_at,
           COALESCE(scheduler_not_before, scheduler_ready_at),
@@ -3051,6 +3072,7 @@ impl PostgresStore {
             return Err(StoreError::IncompleteSchema);
         }
         child_runs::verify_schema(&self.pool).await?;
+        child_cancellation::verify_schema(&self.pool).await?;
         Ok(())
     }
 
@@ -17667,6 +17689,17 @@ async fn load_wait_abandonment_set(
     transaction: &mut Transaction<'_, Postgres>,
     event: &JournalEvent,
 ) -> Result<Vec<WaitAbandonment>, StoreError> {
+    let values = load_wait_abandonment_set_or_empty(transaction, event).await?;
+    if values.is_empty() {
+        return Err(StoreError::WaitAbandonmentCommitConflict);
+    }
+    Ok(values)
+}
+
+async fn load_wait_abandonment_set_or_empty(
+    transaction: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+) -> Result<Vec<WaitAbandonment>, StoreError> {
     let sequence =
         i64::try_from(event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?;
     let rows = query_as::<_, WaitAbandonmentRow>(SELECT_WAIT_ABANDONMENTS_BY_EVENT.as_str())
@@ -17676,7 +17709,7 @@ async fn load_wait_abandonment_set(
         .fetch_all(&mut **transaction)
         .await
         .map_err(|source| StoreError::database("wait abandonment set load", source))?;
-    if rows.is_empty() || rows.len() > RunWaits::MAX_LEN {
+    if rows.len() > RunWaits::MAX_LEN {
         return Err(StoreError::WaitAbandonmentCommitConflict);
     }
     let mut abandonments = Vec::with_capacity(rows.len());
