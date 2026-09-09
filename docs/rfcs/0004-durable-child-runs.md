@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume and bounded publication implemented; deadline/failure-close policy and full-profile qualification unshipped
+- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication and database-clock deadline cancellation implemented; automatic failure-close intent and full-profile qualification unshipped
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -163,8 +163,12 @@ queue work and immutable receipt together. The bounded runtime reconciler drives
 delivery and terminal settlement without dispatching external work. New leases
 for cancelling parents are blocked until all children settle; existing cleanup
 leases remain renewable. This drain gate does not implement dedicated successful
-Join registration/wakeup. Automatic failure-close intent and deadline-triggered
-cancellation remain acceptance blockers, not implicit behavior of this worker.
+Join registration/wakeup. Automatic failure-close intent remains an acceptance
+blocker. Migration 23 and the separately scheduled `DurableAgentDeadlineReconciler`
+now provide indexed deadline discovery and post-lock database-clock cancellation,
+with atomic wait abandonment/child queue capture, unchanged first reasons,
+bounded tenant sweeps and explicit per-item failures. This is not implicit
+behavior of the cancellation/settlement worker; see [host integration](../agent-deadlines.md).
 
 Effective child deadlines cannot exceed the parent deadline. Deadline expiry
 initiates cancellation but is not evidence that external side effects stopped.
@@ -222,7 +226,7 @@ paths, not only the new API. Establish and test a lock order before implementing
 multi-run writes. Prefer durable delivery between child completion and parent
 settlement to taking ancestor locks inside a child's terminal transaction.
 
-Published migrations through 21 remain unchanged. Migration 20 implements
+Published migrations through 22 remain unchanged. Migration 20 implements
 ownership/admission/accounting and capability version 1, including populated
 v19 upgrade checks. Migration 21 adds cancellation evidence, indexed bounded
 discovery, immutable receipts, catalog/function verification, drain claim guards
@@ -233,7 +237,9 @@ pending-result consumption, a separate mixed-binary capability guard, exact
 catalog/function verification and populated v21 upgrade without synthetic joins.
 Failed/cancelled parents retain unconsumed successful-Join history while central
 child settlement guards still protect closure; automatic close intent remains
-a separate gate.
+a separate gate. Migration 23 adds an immutable deadline projection, an admission
+capture trigger and due-work index, populated v22 backfill without new lifecycle
+facts, exact startup catalog/function verification and atomic deadline cancellation.
 
 Rollback after child data exists means disabling new spawn and draining with
 compatible workers, not dropping ownership tables. Retention cannot remove
@@ -306,7 +312,7 @@ root-only data. Preserve all static-composition and root-run regression tests.
 
 ## Unresolved questions / acceptance blockers
 
-- Automatic deadline/failure-close policy and complete-profile qualification.
+- Automatic failure-close intent and complete-profile qualification.
   Opt-in Join execution/context, bounded publication, recreated-registry parent
   recovery and unique result consumption now have real-store integration evidence.
 - Concrete transactional reservation/settlement rules compatible with existing
@@ -314,7 +320,7 @@ root-only data. Preserve all static-composition and root-run regression tests.
   Scalar/deadline/currency narrowing and cumulative arithmetic are implemented;
   the PostgreSQL adapter now enforces resource ownership and ancestor limits.
   Complete-profile runtime qualification remains a separate gate.
-- End-to-end qualification of future failure-close/deadline writers against
+- End-to-end qualification of future failure-close writers against
   central terminal guards and the version-fenced store lock order.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
   rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,

@@ -321,7 +321,11 @@ from the repository.
   Opt-in exclusive Graph Driver Join control/context and the bounded publication
   worker now support automatic parent suspension, independently executed children,
   new-fence/registry recovery, validated slot reads and unique result consumption.
-  Deadline/failure-close policy and full-profile/capacity qualification remain
+  Migration 23 and `DurableAgentDeadlineReconciler` now add indexed immutable
+  deadline capture/backfill, post-lock database-clock cancellation, atomic
+  wait/child-queue drain intent, bounded restartable tenant sweeps and populated
+  v22 upgrade/guard verification. See the [host guide](agent-deadlines.md).
+  Automatic failure-close intent and full-profile/capacity qualification remain
   unimplemented; the complete profile stays gated and the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
