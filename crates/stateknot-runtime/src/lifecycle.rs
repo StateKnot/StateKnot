@@ -452,6 +452,8 @@ pub trait GraphLifecycleEvidenceProvider: Send + Sync + 'static {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum GraphBarrierLifecycleOutcome {
+    /// Original failure sealed, parent lease released, children draining.
+    FailureClosing(Box<stateknot_store_postgres::RunFailureCloseOutcome>),
     /// Cancellation acknowledgement, usage, event, and lease release committed atomically.
     Cancelled(AppendOutcome),
     /// Barrier, successor checkpoint, wait transition, registrations, and lease
@@ -504,6 +506,12 @@ impl DurableGraphLifecycle {
         let (cancellation_schema, _) = standard_agent_cancellation_event_schema()?;
         if !registry.schemas().contains(&cancellation_schema) {
             return Err(DurableGraphLifecycleBuildError::CancellationSchemaUnavailable);
+        }
+        if registry.has_child_graphs() {
+            let (schema, _) = crate::standard_run_failure_close_event_schema()?;
+            if !registry.schemas().contains(&schema) {
+                return Err(crate::RunFailureCloseBuildError::SchemaUnavailable.into());
+            }
         }
         Ok(Self {
             store,
@@ -744,6 +752,7 @@ impl DurableGraphLifecycle {
         Box::pin(self.resolve_blocked_inner(handoff))
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn resolve_blocked_inner(
         &self,
         handoff: GraphBlockedHandoff,
@@ -770,6 +779,27 @@ impl DurableGraphLifecycle {
         }
 
         let journal_head = plan.journal_head().clone();
+        let child_graph = self
+            .registry
+            .resolve(plan.checkpoint().graph())
+            .is_some_and(|entry| entry.graph().child_runs().is_some());
+        if child_graph {
+            if let Some(record) = self
+                .store
+                .load_run_failure_close(fence.tenant_id(), fence.run_id())
+                .await?
+            {
+                if record.checkpoint() != &plan.checkpoint().head()
+                    || record.registration().source().worker_fence() != Some(&fence)
+                    || record.lifecycle().revision() != expected_revision
+                {
+                    return Err(GraphLifecycleError::StaleHandoff);
+                }
+                return Ok(GraphBarrierLifecycleOutcome::FailureClosing(Box::new(
+                    stateknot_store_postgres::RunFailureCloseOutcome::Existing(record),
+                )));
+            }
+        }
         let snapshot = self
             .validate_handoff_snapshot(
                 &fence,
@@ -797,15 +827,27 @@ impl DurableGraphLifecycle {
                     .await
                     .map_err(GraphLifecycleError::Evidence)?;
                 let (failure, usage) = evidence.into_parts();
-                let usage = self
-                    .store
-                    .include_child_usage(fence.tenant_id(), fence.run_id(), usage)
-                    .await?;
                 let failure = if blockers.superstep_limit_reached() {
                     superstep_limit_failure()
                 } else {
                     failure
                 };
+                if child_graph {
+                    return self
+                        .request_failure_close(
+                            &fence,
+                            &checkpoint,
+                            journal_head,
+                            event_id,
+                            failure,
+                            usage,
+                        )
+                        .await;
+                }
+                let usage = self
+                    .store
+                    .include_child_usage(fence.tenant_id(), fence.run_id(), usage)
+                    .await?;
                 RunFailure::new(failure, plan.observed_at(), usage)
                     .map_err(GraphLifecycleError::run_failure)?
             }
@@ -832,6 +874,61 @@ impl DurableGraphLifecycle {
             RunProjection::transition(expected_revision, RunTransition::Fail { failure });
         let outcome = self.commit_failure_with_retry(append, projection).await?;
         Ok(GraphBarrierLifecycleOutcome::Failed(outcome))
+    }
+
+    async fn request_failure_close(
+        &self,
+        fence: &RunFence,
+        checkpoint: &CheckpointHead,
+        mut head: JournalHead,
+        event: EventId,
+        failure: Failure,
+        usage: BudgetUsage,
+    ) -> Result<GraphBarrierLifecycleOutcome, GraphLifecycleError> {
+        let (schema, _) = crate::standard_run_failure_close_event_schema().map_err(|_| {
+            GraphLifecycleError::InvalidHandoff {
+                operation: "load failure-close schema",
+            }
+        })?;
+        let payload =
+            crate::failure_close::payload(self.registry.schemas(), &schema, failure.id(), false)?;
+        for attempt in 1..=self.options.maximum_mutation_attempts() {
+            let append = worker_append(fence, head.clone(), event, payload.clone())?;
+            match self
+                .store
+                .request_run_failure_close(checkpoint, failure.clone(), usage.clone(), append)
+                .await
+            {
+                Ok(outcome) => {
+                    return Ok(GraphBarrierLifecycleOutcome::FailureClosing(Box::new(
+                        outcome,
+                    )));
+                }
+                Err(error)
+                    if attempt < self.options.maximum_mutation_attempts()
+                        && (error.is_retryable()
+                            || matches!(error, StoreError::StaleJournalHead)) =>
+                {
+                    tokio::time::sleep(
+                        self.options
+                            .mutation_retry_initial_delay()
+                            .saturating_mul(1_u32 << (attempt - 1))
+                            .min(Duration::from_secs(1)),
+                    )
+                    .await;
+                    let run = self
+                        .store
+                        .load_run(fence.tenant_id(), fence.run_id())
+                        .await?;
+                    head = run
+                        .journal_head()
+                        .cloned()
+                        .ok_or(GraphLifecycleError::StaleHandoff)?;
+                }
+                Err(error) => return Err(error.into()),
+            }
+        }
+        unreachable!("validated positive attempt count")
     }
 
     async fn validate_handoff_snapshot(
@@ -1155,6 +1252,9 @@ impl fmt::Debug for DurableGraphLifecycle {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum DurableGraphLifecycleBuildError {
+    /// Child-enabled lifecycles require the exact failure-close release schema.
+    #[error(transparent)]
+    FailureClose(#[from] crate::RunFailureCloseBuildError),
     /// The embedded lifecycle schema release artifact was malformed.
     #[error(transparent)]
     StandardSchema(#[from] StandardGraphLifecycleSchemaError),

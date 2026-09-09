@@ -1,0 +1,145 @@
+{
+  "columns": [
+    [
+      "run_failure_closes",
+      "tenant_id",
+      "text",
+      true
+    ],
+    [
+      "run_failure_closes",
+      "run_id",
+      "uuid",
+      true
+    ],
+    [
+      "run_failure_closes",
+      "intent_bytes",
+      "bytea",
+      true
+    ],
+    [
+      "run_failure_closes",
+      "intent_digest",
+      "bytea",
+      true
+    ],
+    [
+      "run_failure_closes",
+      "journal_sequence",
+      "bigint",
+      true
+    ],
+    [
+      "run_failure_closes",
+      "journal_event_id",
+      "uuid",
+      true
+    ],
+    [
+      "run_failure_closes",
+      "journal_recorded_at",
+      "timestamp(6) with time zone",
+      true
+    ],
+    [
+      "run_failure_closes",
+      "journal_digest",
+      "bytea",
+      true
+    ],
+    [
+      "run_failure_closes",
+      "completed_at",
+      "timestamp(6) with time zone",
+      false
+    ]
+  ],
+  "indexes": [
+    [
+      "run_failure_closes",
+      "CREATE INDEX run_failure_closes_pending ON stateknot.run_failure_closes USING btree (tenant_id, journal_recorded_at, run_id) WHERE (completed_at IS NULL)",
+      true,
+      true,
+      true
+    ],
+    [
+      "run_failure_closes",
+      "CREATE UNIQUE INDEX run_failure_closes_pkey ON stateknot.run_failure_closes USING btree (tenant_id, run_id)",
+      true,
+      true,
+      true
+    ]
+  ],
+  "triggers": [
+    [
+      "child_ownership_failure_close_guard",
+      "CREATE TRIGGER child_ownership_failure_close_guard BEFORE INSERT ON stateknot.child_run_ownership FOR EACH ROW EXECUTE FUNCTION stateknot.guard_failure_close_spawn()",
+      "O"
+    ],
+    [
+      "failure_closes_capture_children",
+      "CREATE TRIGGER failure_closes_capture_children AFTER INSERT ON stateknot.run_failure_closes FOR EACH ROW EXECUTE FUNCTION stateknot.capture_failure_close_children()",
+      "O"
+    ],
+    [
+      "failure_closes_immutable",
+      "CREATE TRIGGER failure_closes_immutable BEFORE DELETE OR UPDATE ON stateknot.run_failure_closes FOR EACH ROW EXECUTE FUNCTION stateknot.guard_failure_close_evidence()",
+      "O"
+    ],
+    [
+      "runs_failure_close_complete",
+      "CREATE TRIGGER runs_failure_close_complete AFTER UPDATE ON stateknot.runs FOR EACH ROW EXECUTE FUNCTION stateknot.complete_run_failure_close()",
+      "O"
+    ],
+    [
+      "runs_failure_close_guard",
+      "CREATE TRIGGER runs_failure_close_guard BEFORE UPDATE ON stateknot.runs FOR EACH ROW EXECUTE FUNCTION stateknot.guard_run_failure_close()",
+      "O"
+    ]
+  ],
+  "constraints": [
+    [
+      "run_failure_closes",
+      "run_failure_closes_check",
+      "CHECK ((intent_digest = sha256(intent_bytes)))",
+      true,
+      false
+    ],
+    [
+      "run_failure_closes",
+      "run_failure_closes_check1",
+      "CHECK (((completed_at IS NULL) OR (isfinite(completed_at) AND (completed_at >= journal_recorded_at))))",
+      true,
+      false
+    ],
+    [
+      "run_failure_closes",
+      "run_failure_closes_intent_bytes_check",
+      "CHECK (((octet_length(intent_bytes) >= 1) AND (octet_length(intent_bytes) <= 4194304)))",
+      true,
+      false
+    ],
+    [
+      "run_failure_closes",
+      "run_failure_closes_pkey",
+      "PRIMARY KEY (tenant_id, run_id)",
+      true,
+      false
+    ],
+    [
+      "run_failure_closes",
+      "run_failure_closes_tenant_id_run_id_fkey",
+      "FOREIGN KEY (tenant_id, run_id) REFERENCES stateknot.runs(tenant_id, run_id) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "run_failure_closes",
+      "run_failure_closes_tenant_id_run_id_journal_sequence_journ_fkey",
+      "FOREIGN KEY (tenant_id, run_id, journal_sequence, journal_event_id, journal_recorded_at, journal_digest) REFERENCES stateknot.run_events(tenant_id, run_id, sequence, event_id, recorded_at, event_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ]
+  ]
+}

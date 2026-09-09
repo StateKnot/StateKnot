@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication and database-clock deadline cancellation implemented; automatic failure-close intent and full-profile qualification unshipped
+- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication, database-clock deadlines and settled-direct failure close implemented; full-profile qualification remains gated
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -163,8 +163,11 @@ queue work and immutable receipt together. The bounded runtime reconciler drives
 delivery and terminal settlement without dispatching external work. New leases
 for cancelling parents are blocked until all children settle; existing cleanup
 leases remain renewable. This drain gate does not implement dedicated successful
-Join registration/wakeup. Automatic failure-close intent remains an acceptance
-blocker. Migration 23 and the separately scheduled `DurableAgentDeadlineReconciler`
+Join registration/wakeup. Migration 24 now seals original failure intent for
+Active parents with settled, fully priced direct evidence; separately scheduled
+`DurableRunFailureCloser` drains children and commits exact final accounting.
+Unknown parent-side effects still require fenced recovery before registration;
+see [failure close](../failure-close.md). Migration 23 and `DurableAgentDeadlineReconciler`
 now provide indexed deadline discovery and post-lock database-clock cancellation,
 with atomic wait abandonment/child queue capture, unchanged first reasons,
 bounded tenant sweeps and explicit per-item failures. This is not implicit
@@ -312,7 +315,7 @@ root-only data. Preserve all static-composition and root-run regression tests.
 
 ## Unresolved questions / acceptance blockers
 
-- Automatic failure-close intent and complete-profile qualification.
+- Complete-profile qualification, including failure close and arbitrary uncertain direct effects.
   Opt-in Join execution/context, bounded publication, recreated-registry parent
   recovery and unique result consumption now have real-store integration evidence.
 - Concrete transactional reservation/settlement rules compatible with existing
@@ -320,8 +323,10 @@ root-only data. Preserve all static-composition and root-run regression tests.
   Scalar/deadline/currency narrowing and cumulative arithmetic are implemented;
   the PostgreSQL adapter now enforces resource ownership and ancestor limits.
   Complete-profile runtime qualification remains a separate gate.
-- End-to-end qualification of future failure-close writers against
-  central terminal guards and the version-fenced store lock order.
+- Combined process-termination and provider-effect recovery qualification of
+  failure-close writers. The settled-direct path has real-store rollback,
+  original-failure, accounting, bounded sweep and populated-upgrade coverage
+  against central terminal guards and the version-fenced lock order.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
   rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,
   unpriced-prefix pagination and populated-upgrade tests; these do not measure

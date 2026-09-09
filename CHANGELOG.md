@@ -14,6 +14,19 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- PostgreSQL migration 24 and `DurableRunFailureCloser`: immutable original failure
+  decisions for Active parents with complete priced direct evidence, atomic child
+  cancellation capture and parent lease release, and bounded tenant maintenance
+  that commits the original Failed outcome with once-only child accounting.
+  Child-enabled graph lifecycle/Agent Loop handoffs expose `FailureClosing`;
+  ordinary graph failure behavior and existing lifecycle wire formats remain
+  unchanged. Includes source/final rollback, lease-expiry, unknown usage,
+  reconstructed handoff/child-close recovery, pagination/quarantine/tenant,
+  populated v23 upgrade and exact schema-drift tests, plus bilingual host guidance.
+  Existing migrations 1–23 and schemas are unchanged. Direct uncertain effects
+  must be recovered before registration; complete-profile process-kill, role
+  isolation, failover/restore and measured capacity qualification remain gated.
+
 - PostgreSQL migration 23 and `DurableAgentDeadlineReconciler`: indexed admitted
   root/child deadlines, immutable admission projection/backfill, exact startup
   guards and bounded tenant-scoped scans. Expiry is rechecked with the database

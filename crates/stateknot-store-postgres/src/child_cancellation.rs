@@ -73,6 +73,11 @@ pub struct ChildCancellationRecord {
 }
 
 impl ChildCancellationRecord {
+    /// True when the source is a sealed failure, not user cancellation.
+    #[must_use]
+    pub fn is_parent_failure_close(&self) -> bool {
+        self.parent_lifecycle.status() == RunStatus::Active
+    }
     /// Returns the exact tenant/parent activation/slot ownership key.
     #[must_use]
     pub const fn key(&self) -> &ChildRunKey {
@@ -128,6 +133,13 @@ impl PostgresStore {
     /// Loads a cancellation witness and verifies its ownership, lifecycle and exact anchors.
     /// Authentication and tenant delegation authorization must precede this trusted-store API.
     pub async fn load_child_cancellation(
+        &self,
+        key: &ChildRunKey,
+    ) -> Result<ChildCancellationRecord, StoreError> {
+        Box::pin(self.load_child_cancellation_inner(key)).await
+    }
+
+    async fn load_child_cancellation_inner(
         &self,
         key: &ChildRunKey,
     ) -> Result<ChildCancellationRecord, StoreError> {
@@ -266,6 +278,9 @@ impl PostgresStore {
                     .ok_or(StoreError::ChildRunRejected)?,
             )
         } else {
+            if failure_closes::exists(&mut tx, key.tenant_id(), record.child_run_id).await? {
+                return Err(StoreError::RunFailureClosing);
+            }
             if append.expectation().head() != current.journal_head() {
                 return Err(StoreError::StaleJournalHead);
             }
@@ -444,10 +459,19 @@ async fn load_cancellation(
     let child_id = child.child().admission().intent().provenance().run_id();
     let queued_at = from_database_time(row.try_get("queued_at").map_err(get_error)?)?;
     let delivered: Option<DateTime<Utc>> = row.try_get("delivered_at").map_err(get_error)?;
+    let valid_source = if lifecycle.status() == RunStatus::Active {
+        let close = failure_closes::load(tx, parent)
+            .await?
+            .ok_or_else(|| StoreError::corrupt("child failure close source"))?;
+        close.registration().head() == head
+            && encode_lifecycle(close.lifecycle())? == encode_lifecycle(&lifecycle)?
+    } else {
+        lifecycle.status() == RunStatus::CancellationRequested
+            && cancellation_matches(&lifecycle, parent.lifecycle())?
+    };
     if row.try_get::<Uuid, _>("child_run_id").map_err(get_error)? != *child_id.as_uuid()
-        || lifecycle.status() != RunStatus::CancellationRequested
+        || !valid_source
         || lifecycle.provenance() != parent.lifecycle().provenance()
-        || !cancellation_matches(&lifecycle, parent.lifecycle())?
         || parent.lifecycle().revision() < lifecycle.revision()
         || parent
             .journal_head()

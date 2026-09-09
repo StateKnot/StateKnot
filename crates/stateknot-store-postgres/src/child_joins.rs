@@ -209,6 +209,9 @@ impl PostgresStore {
         if parent.lifecycle().status() != RunStatus::Active {
             return Err(StoreError::RunNotRunnable);
         }
+        if failure_closes::exists(&mut tx, activation.tenant_id(), activation.run_id()).await? {
+            return Err(StoreError::RunFailureClosing);
+        }
         let at = child_runs::authorize_parent_append(&mut tx, &parent, &append, false).await?;
         let terminals = verify_members(&mut tx, request, true)
             .await?

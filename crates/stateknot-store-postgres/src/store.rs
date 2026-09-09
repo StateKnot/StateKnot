@@ -67,6 +67,10 @@ pub use child_joins::{ChildJoinCommitOutcome, ChildJoinRecord};
 mod agent_deadlines;
 pub use agent_deadlines::{AgentDeadlineCancellationOutcome, AgentDeadlineCursor};
 
+#[path = "failure_closes.rs"]
+mod failure_closes;
+pub use failure_closes::{RunFailureCloseCursor, RunFailureCloseOutcome, RunFailureCloseRecord};
+
 #[path = "child_cancellation.rs"]
 mod child_cancellation;
 pub use child_cancellation::{
@@ -270,6 +274,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed("agent deadlines"),
             MigrationType::Simple,
             Cow::Borrowed(include_str!("../migrations/0023_agent_deadlines.sql")),
+            false,
+        ),
+        Migration::new(
+            24,
+            Cow::Borrowed("run failure closes"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0024_run_failure_closes.sql")),
             false,
         ),
     ]),
@@ -831,6 +842,8 @@ WHERE tenant_id = $1
   AND scheduler_ready_at IS NOT NULL
   AND checkpoint_id IS NOT NULL
   AND lifecycle_status IN ('pending', 'active', 'cancellation_requested')
+  AND NOT EXISTS (SELECT 1 FROM stateknot.run_failure_closes AS closing
+      WHERE closing.tenant_id=stateknot.runs.tenant_id AND closing.run_id=stateknot.runs.run_id)
   AND (lifecycle_status <> 'active' OR NOT EXISTS (
       SELECT 1 FROM stateknot.child_run_joins AS joined
       WHERE joined.tenant_id = stateknot.runs.tenant_id
@@ -3102,6 +3115,7 @@ impl PostgresStore {
         child_cancellation::verify_schema(&self.pool).await?;
         child_joins::verify_schema(&self.pool).await?;
         agent_deadlines::verify_schema(&self.pool).await?;
+        failure_closes::verify_schema(&self.pool).await?;
         Ok(())
     }
 
@@ -9779,6 +9793,10 @@ RETURNING observation.observed_at
             .await
             .map_err(|source| StoreError::database(operation, source))?;
         apply_transaction_timeouts(&mut transaction, &self.options, operation).await?;
+        query("SET LOCAL stateknot.failure_close_version = '1'")
+            .execute(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database(operation, source))?;
         query("SET LOCAL stateknot.child_join_version = '1'")
             .execute(&mut *transaction)
             .await

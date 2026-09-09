@@ -11,8 +11,8 @@ The PostgreSQL/runtime profile now supplies database-clock deadline supervision
 for **admitted** root and child Runs. It requests cooperative cancellation;
 it never claims that time expiry stopped an external operation or established
 its final cost. Bare bootstrap Runs without an Agent admission are outside this
-profile. Failure-close intent and full durable-child profile qualification
-remain separate, unshipped work.
+profile. [Failure close](failure-close.md) now preserves an earlier failure
+decision; full durable-child profile qualification remains a separate gate.
 
 ## Host integration
 

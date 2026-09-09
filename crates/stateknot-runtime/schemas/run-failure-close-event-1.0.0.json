@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/run-failure-close-event/1.0.0",
+  "title": "StateKnot durable failure-close audit event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "failure_id"],
+  "properties": {
+    "operation": {"enum": ["run_failure_close_requested", "run_failure_close_completed"]},
+    "failure_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}
+  }
+}

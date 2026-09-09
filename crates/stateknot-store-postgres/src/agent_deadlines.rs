@@ -38,6 +38,8 @@ impl AgentDeadlineCursor {
 /// Observation after serializing with all lifecycle, spawn and wait writers.
 #[derive(Clone, Debug)]
 pub enum AgentDeadlineCancellationOutcome {
+    /// An earlier sealed failure owns closure; its original reason is retained.
+    FailureClosing,
     /// Request, wait abandonment and immediate-child cancellation queue committed together.
     Requested(JournalHead),
     /// An earlier cancellation won. Its original reason is never replaced.
@@ -67,9 +69,9 @@ impl PostgresStore {
             return Err(StoreError::InvalidAgentDeadline);
         }
         let sql = if after.is_some() {
-            "SELECT agent_deadline_at,run_id FROM stateknot.runs WHERE tenant_id=$1 AND agent_deadline_at IS NOT NULL AND lifecycle_status IN ('pending','active','waiting') AND agent_deadline_at <= statement_timestamp() AND (agent_deadline_at,run_id)>($2,$3) ORDER BY agent_deadline_at,run_id LIMIT 16"
+            "SELECT agent_deadline_at,run_id FROM stateknot.runs WHERE tenant_id=$1 AND agent_deadline_at IS NOT NULL AND lifecycle_status IN ('pending','active','waiting') AND NOT EXISTS (SELECT 1 FROM stateknot.run_failure_closes c WHERE c.tenant_id=stateknot.runs.tenant_id AND c.run_id=stateknot.runs.run_id) AND agent_deadline_at <= statement_timestamp() AND (agent_deadline_at,run_id)>($2,$3) ORDER BY agent_deadline_at,run_id LIMIT 16"
         } else {
-            "SELECT agent_deadline_at,run_id FROM stateknot.runs WHERE tenant_id=$1 AND agent_deadline_at IS NOT NULL AND lifecycle_status IN ('pending','active','waiting') AND agent_deadline_at <= statement_timestamp() ORDER BY agent_deadline_at,run_id LIMIT 16"
+            "SELECT agent_deadline_at,run_id FROM stateknot.runs WHERE tenant_id=$1 AND agent_deadline_at IS NOT NULL AND lifecycle_status IN ('pending','active','waiting') AND NOT EXISTS (SELECT 1 FROM stateknot.run_failure_closes c WHERE c.tenant_id=stateknot.runs.tenant_id AND c.run_id=stateknot.runs.run_id) AND agent_deadline_at <= statement_timestamp() ORDER BY agent_deadline_at,run_id LIMIT 16"
         };
         let mut listing = query_as::<_, (DateTime<Utc>, Uuid)>(sql).bind(tenant.as_str());
         if let Some(cursor) = after {
@@ -158,6 +160,9 @@ impl PostgresStore {
         }
         if run.is_quarantined() {
             return Err(StoreError::RunQuarantined);
+        }
+        if failure_closes::exists(&mut tx, tenant, run_id).await? {
+            return Ok(AgentDeadlineCancellationOutcome::FailureClosing);
         }
         let observed_at = database_now(&mut tx, "Agent deadline clock").await?;
         if observed_at < deadline {

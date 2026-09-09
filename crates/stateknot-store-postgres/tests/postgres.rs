@@ -383,6 +383,7 @@ async fn remove_artifact_registry(pool: &PgPool) {
 
 async fn remove_child_run_cancellation(pool: &PgPool) {
     for sql in [
+        include_str!("fixtures/revert_run_failure_closes.sql"),
         include_str!("fixtures/revert_agent_deadlines.sql"),
         include_str!("fixtures/revert_child_joins.sql"),
     ]
