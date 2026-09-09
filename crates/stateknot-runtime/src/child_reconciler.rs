@@ -398,10 +398,19 @@ impl DurableChildReconciler {
         let failure = Failure::new(
             failure_id,
             FailureCategory::Cancelled,
-            FailureCode::new("child.parent_cancelled").expect("static code"),
+            FailureCode::new(if record.is_parent_failure_close() {
+                "child.parent_failed"
+            } else {
+                "child.parent_cancelled"
+            })
+            .expect("static code"),
             FailureOrigin::new("stateknot.runtime.child_reconciler").expect("static origin"),
-            FailureMessage::new("The owning parent requested cancellation.")
-                .expect("static public message"),
+            FailureMessage::new(if record.is_parent_failure_close() {
+                "The owning parent is closing after failure."
+            } else {
+                "The owning parent requested cancellation."
+            })
+            .expect("static public message"),
             RetryAdvice::Never,
         )
         .expect("static cancellation semantics")

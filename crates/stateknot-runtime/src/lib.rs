@@ -17,6 +17,12 @@
 
 mod admission_schema;
 mod agent_deadlines;
+mod failure_close;
+pub use failure_close::{
+    DurableRunFailureCloser, RunFailureCloseBuildError, RunFailureCloseItem,
+    RunFailureCloseSweepCursor, RunFailureCloseTick, STANDARD_RUN_FAILURE_CLOSE_EVENT_SCHEMA_ID,
+    register_standard_run_failure_close_event_schema, standard_run_failure_close_event_schema,
+};
 mod agent_loop;
 mod agent_service;
 mod agent_typed;

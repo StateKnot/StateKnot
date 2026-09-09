@@ -55,6 +55,15 @@ pub enum ConfigurationError {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum StoreError {
+    /// The failure-close boundary lacks complete settled direct evidence or scope.
+    #[error("invalid failure close boundary or evidence")]
+    InvalidRunFailureClose,
+    /// An immutable failure decision already owns this run's execution boundary.
+    #[error("run is sealed for failure closure")]
+    RunFailureClosing,
+    /// An older writer cannot mutate a failure-closing run.
+    #[error("compatible failure close runtime is required")]
+    UnsupportedFailureCloseRuntime,
     /// Invalid tenant cursor or deadline cancellation audit construction.
     #[error("Agent deadline request or scan scope is invalid")]
     InvalidAgentDeadline,
@@ -573,6 +582,8 @@ impl StoreError {
             Some("SKC04") => return Self::IncompleteChildAccounting,
             Some("SKC06") => return Self::RunNotRunnable,
             Some("SKC07") => return Self::ChildJoinRejected,
+            Some("SKC08") => return Self::UnsupportedFailureCloseRuntime,
+            Some("SKC09") => return Self::RunFailureClosing,
             _ => {}
         }
         Self::Database { operation, source }

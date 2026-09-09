@@ -11,12 +11,14 @@ conformance output, and the release gates in these documents.
 
 ## Start here
 
-The next isolated-child increment is documented in
-[Durable child-run core contracts](durable-child-runs.md) and its
-[Chinese edition](durable-child-runs.zh-CN.md). Core identity and cumulative
-capacity arithmetic, graph-pinned delegation declarations, finite topology
-contracts, and pinned read-only admission preparation are implemented;
-durable child execution is not yet enabled.
+The implemented durable-child integration boundaries are documented in
+[Durable child runs](durable-child-runs.md) and its
+[Chinese edition](durable-child-runs.zh-CN.md): ownership/accounting, cancellation,
+opt-in Join execution and publication, [deadlines](agent-deadlines.md), and
+[failure close](failure-close.md) ([中文](failure-close.zh-CN.md)). The complete
+production profile remains gated by combined recovery, role-isolation and
+measured capacity qualification; individual implemented slices do not remove
+those gates.
 
 1. [v1 scope baseline](v1-scope.md) — the capabilities, guarantees, supported
    environment, and explicit exclusions that control implementation work.

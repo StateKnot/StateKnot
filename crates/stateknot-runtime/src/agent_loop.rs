@@ -25,6 +25,8 @@ const MAX_MUTATION_RETRY_DELAY: Duration = Duration::from_secs(1);
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum AgentLoopOutcome {
+    /// Original failure sealed and execution lease released; maintenance drains children.
+    FailureClosing(Box<stateknot_store_postgres::RunFailureCloseOutcome>),
     /// Dedicated child Join registration released the parent lease. This is
     /// neither a terminal failure nor a checkpointed timer/user wait.
     ChildJoin(Box<stateknot_core::ChildRunJoinRequest>),
@@ -266,6 +268,9 @@ impl DurableAgentLoop {
 
 fn lifecycle_outcome(outcome: GraphBarrierLifecycleOutcome) -> AgentLoopOutcome {
     match outcome {
+        GraphBarrierLifecycleOutcome::FailureClosing(outcome) => {
+            AgentLoopOutcome::FailureClosing(outcome)
+        }
         GraphBarrierLifecycleOutcome::Cancelled(outcome) => {
             AgentLoopOutcome::CancellationConfirmed(outcome)
         }

@@ -11,8 +11,8 @@ durable cancellation propagation with bounded runtime reconciliation, and the
 dedicated PostgreSQL Join registration/publication/consumption boundary are
 implemented, together with opt-in Graph Driver suspension/resumption and bounded
 Join publication and [database-clock deadline cancellation](agent-deadlines.md).
-**Automatic failure-close intent and full-profile
-qualification remain gated**; this is a trusted-host integration guide, not an
+[Failure close](failure-close.md) is implemented for Active parents with complete
+settled direct evidence. **Full-profile qualification remains gated**; this is a trusted-host integration guide, not an
 enabled general child execution service. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
 [static shared-state composition](graph-composition.md) for the distinction.
@@ -210,8 +210,9 @@ Unconsumed registrations block checkpoint advancement and successful parent
 closure, including older/low-level writers. Cancellation bypasses the successful
 wait gate but still drains and accounts for children before confirmation. A failed
 or cancelled parent retains the unconsumed Join history; no success consumption is
-fabricated. Automatic failure-close intent remains unshipped; deadline-driven
-cancellation now uses the separately scheduled maintenance lane.
+fabricated. [Failure close](failure-close.md) preserves the original failure after
+settled direct evidence; deadline cancellation and failure finalization use
+separately scheduled maintenance lanes.
 
 Ordinary pending-result bytes/digests are unchanged when `child_join` is absent;
 the optional evidence is part of semantic result identity when present. Published
@@ -536,7 +537,8 @@ after parent cancellation, and refusal of old/nonmatching checkpoints after
 the ordinary graph driver has committed a real noninitial checkpoint. These
 tests do not establish atomic child execution or budget settlement.
 
-Before enabling the full durable-child profile, implement and qualify automatic
-failure-close intent and measure recovery/capacity. Deadline cancellation, opt-in Join execution,
+Before enabling the full durable-child profile, qualify combined process-kill,
+provider recovery, role isolation and measured recovery/capacity. The settled-direct
+[failure-close path](failure-close.md), deadline cancellation, opt-in Join execution,
 publication and cancellation delivery/settlement are implemented above. The website must not
 advertise the full capability until those gates pass.

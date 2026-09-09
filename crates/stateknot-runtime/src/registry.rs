@@ -599,6 +599,11 @@ pub struct ExecutableGraphRegistry {
 }
 
 impl ExecutableGraphRegistry {
+    pub(crate) fn has_child_graphs(&self) -> bool {
+        self.graphs
+            .values()
+            .any(|entry| entry.graph().child_runs().is_some())
+    }
     /// Resolves an exact graph descriptor and all local executable bindings.
     #[must_use]
     pub fn resolve(&self, reference: &GraphReference) -> Option<&ExecutableGraph> {

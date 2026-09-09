@@ -78,5 +78,6 @@ pub use store::{
     AgentDeadlineCancellationOutcome, AgentDeadlineCursor, ChildCancellationDelivery,
     ChildCancellationOutcome, ChildCancellationReceipt, ChildCancellationRecord,
     ChildJoinCommitOutcome, ChildJoinRecord, ChildRunCommitOutcome, ChildRunRecord,
-    ChildRunSettlementOutcome, ClaimedRunRecovery, PostgresStore,
+    ChildRunSettlementOutcome, ClaimedRunRecovery, PostgresStore, RunFailureCloseCursor,
+    RunFailureCloseOutcome, RunFailureCloseRecord,
 };

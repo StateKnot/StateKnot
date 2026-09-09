@@ -567,7 +567,7 @@ fn decode_intent(bytes: &[u8]) -> Result<ChildRunAdmissionIntent, StoreError> {
     Ok(intent)
 }
 
-fn ensure_settled(account: &ChildRunBudgetAccount) -> Result<(), StoreError> {
+pub(super) fn ensure_settled(account: &ChildRunBudgetAccount) -> Result<(), StoreError> {
     if account
         .children()
         .iter()
@@ -611,15 +611,15 @@ pub(super) async fn validate_terminal_accounting(
     if !matches!(projection.status, "succeeded" | "failed" | "cancelled") {
         return Ok(());
     }
-    let Some(account) = load_account(tx, event.tenant_id(), event.run_id()).await? else {
-        return Ok(());
-    };
-    ensure_settled(&account)?;
     let lifecycle: RunLifecycle = serde_json::from_slice(&projection.lifecycle_bytes)
         .map_err(|_| StoreError::corrupt("child terminal accounting lifecycle"))?;
     let total = lifecycle
         .terminal_usage()
         .ok_or(StoreError::IncompleteChildAccounting)?;
+    let Some(account) = load_account(tx, event.tenant_id(), event.run_id()).await? else {
+        return failure_closes::validate_direct_usage(tx, event, total).await;
+    };
+    ensure_settled(&account)?;
     let direct = total
         .checked_subtract_cumulative(
             &account
@@ -627,6 +627,7 @@ pub(super) async fn validate_terminal_accounting(
                 .map_err(|_| StoreError::IncompleteChildAccounting)?,
         )
         .map_err(|_| StoreError::IncompleteChildAccounting)?;
+    failure_closes::validate_direct_usage(tx, event, &direct).await?;
     let account = account
         .observe_direct(event.head(), direct)
         .map_err(|_| StoreError::IncompleteChildAccounting)?;
@@ -1233,7 +1234,7 @@ async fn load_account(
     Box::pin(load_account_inner(tx, tenant, parent_id, true)).await
 }
 
-async fn load_account_inner(
+pub(super) async fn load_account_inner(
     tx: &mut Transaction<'_, Postgres>,
     tenant: &TenantId,
     parent_id: RunId,

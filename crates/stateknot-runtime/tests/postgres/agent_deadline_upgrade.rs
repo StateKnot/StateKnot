@@ -43,12 +43,15 @@ async fn deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_pro
         .connect(&url)
         .await
         .unwrap();
-    for sql in
-        include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql")
-            .split(';')
-            .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(&pool).await.unwrap();
+    for fixture in [
+        include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
+        ),
+        include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"),
+    ] {
+        for sql in fixture.split(';').filter(|sql| !sql.trim().is_empty()) {
+            query(sql).execute(&pool).await.unwrap();
+        }
     }
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")

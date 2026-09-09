@@ -325,8 +325,12 @@ from the repository.
   deadline capture/backfill, post-lock database-clock cancellation, atomic
   wait/child-queue drain intent, bounded restartable tenant sweeps and populated
   v22 upgrade/guard verification. See the [host guide](agent-deadlines.md).
-  Automatic failure-close intent and full-profile/capacity qualification remain
-  unimplemented; the complete profile stays gated and the RFC remains Draft.
+  Migration 24 and `DurableRunFailureCloser` now seal original failures after
+  complete priced direct evidence, release parent execution ownership, drain
+  children and commit exact once-only terminal accounting. Child-enabled blocked
+  graphs integrate this path; see [failure-close integration](failure-close.md).
+  Arbitrary uncertain direct-effect recovery and full-profile/process-kill/role/
+  capacity qualification remain gated; the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,

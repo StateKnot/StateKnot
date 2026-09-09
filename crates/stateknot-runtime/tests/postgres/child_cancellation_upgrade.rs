@@ -56,6 +56,9 @@ async fn populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutabl
         .run_id();
     // Only this isolated fixture is downgraded. Retain v20 ownership and live writer.
     for sql in [
+        include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
+        ),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_child_joins.sql"),
     ]
