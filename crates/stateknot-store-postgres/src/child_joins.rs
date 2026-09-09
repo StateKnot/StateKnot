@@ -623,7 +623,13 @@ pub(super) async fn verify_result(
             StoreError::ChildJoinRejected
         });
     }
-    let record = load(tx, a, false).await?;
+    // Publication sealed membership and proved every child terminal. Fresh
+    // consumption already holds the parent row; lock these terminal children
+    // in canonical slot order so operator quarantine cannot race consumption.
+    // Never acquire the tree lock after the parent. Terminal children cannot
+    // spawn or settle outstanding descendants; their audit/quarantine writers
+    // do not lock ancestors. Historical replay remains a nonlocking proof read.
+    let record = load(tx, a, !committed).await?;
     match record {
         None if result.intent().child_join().is_none() => Ok(()),
         Some(record)

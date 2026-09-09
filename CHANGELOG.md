@@ -18,7 +18,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   lazy slot access and automatic parent-result consumption, plus a tenant-scoped
   bounded `DurableChildJoinPublisher` with an independent pinned offline schema.
   Includes real-store independent child execution/restart/accounting, rollback,
-  cancellation, publication pagination/error recovery and pre-dispatch timeout
+  cancellation, publication pagination/error recovery, late operator-quarantine
+  read/consumption guards and pre-dispatch timeout
   qualification. Bilingual host integration guidance distinguishes remaining
   deadline/failure-close and full-profile gates. Published migrations 1–22 and
   existing protocol schemas are unchanged. Pre-alpha source change:

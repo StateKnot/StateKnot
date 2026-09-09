@@ -864,3 +864,147 @@ async fn published_join_cannot_dispatch_through_a_non_join_executor_binding() {
     store.release_lease(&fence).await.unwrap();
     store.close().await;
 }
+
+struct QuarantineOnResume {
+    store: PostgresStore,
+    graph: GraphReference,
+    node: NodeId,
+    rejected: Arc<AtomicBool>,
+}
+impl GraphNodeExecutor for QuarantineOnResume {
+    fn graph(&self) -> &GraphReference {
+        &self.graph
+    }
+    fn node_id(&self) -> &NodeId {
+        &self.node
+    }
+    fn supports_child_join(&self) -> bool {
+        true
+    }
+    fn execute(
+        &self,
+        context: GraphNodeContext,
+    ) -> BoxFuture<'_, Result<GraphNodeExecution, GraphNodeExecutionError>> {
+        Box::pin(async move {
+            use stateknot_store_postgres::{
+                RunQuarantineCause, RunQuarantineComponent, RunQuarantineRequest,
+            };
+            let join = context.child_join().unwrap();
+            let key = &join.binding().request().keys()[0];
+            let terminal = &join.binding().terminals()[0];
+            let child = self
+                .store
+                .load_run(key.tenant_id(), terminal.terminal().run_id())
+                .await
+                .unwrap();
+            // Trusted operator action committed AFTER successful Driver preflight.
+            let quarantine = RunQuarantineRequest::new(
+                key.tenant_id().clone(),
+                terminal.terminal().run_id(),
+                QuarantineId::generate(),
+                JournalExpectation::exact(child.journal_head().unwrap().clone()),
+                RunQuarantineCause::OperatorPolicy,
+                RunQuarantineComponent::new("join-test").unwrap(),
+                Digest::sha256("test evidence"),
+            )
+            .unwrap();
+            self.store.quarantine_run(quarantine).await.unwrap();
+            let result = join.load_child(key.slot()).await;
+            self.rejected.store(
+                matches!(result, Err(StoreError::RunQuarantined)),
+                Ordering::SeqCst,
+            );
+            // Even ignoring the read error cannot consume the quarantined binding.
+            Ok(GraphNodeExecution::new(
+                NodeStateChange::Unchanged,
+                NodeControl::Continue,
+                NodeInvocationBindings::empty(),
+                BudgetUsage::zero(),
+            ))
+        })
+    }
+}
+
+#[tokio::test]
+async fn child_quarantined_after_preflight_cannot_be_read_or_consumed() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let (value, request, child) = setup_join(&store, "join-late-quarantine").await;
+    store
+        .register_child_join(
+            request.clone(),
+            &value.node,
+            parent_append(&value, "child-join-registered"),
+        )
+        .await
+        .unwrap();
+    settle(&store, &value, child).await;
+    store
+        .publish_child_join(&request, publish_append(&store, &request).await)
+        .await
+        .unwrap();
+    let a = request.activation();
+    let rejected = Arc::new(AtomicBool::new(false));
+    let mut deployment =
+        ExecutableGraphRegistryBuilder::new(value.fixture.driver.registry.schemas().clone());
+    deployment
+        .register_reducer(Arc::new(TestReducer {
+            reference: value.fixture.driver.graph.reducer().clone(),
+        }))
+        .unwrap();
+    for graph in [
+        &value.fixture.driver.graph,
+        &value.fixture.child_driver.graph,
+    ] {
+        deployment.register_graph(graph.clone()).unwrap();
+        for node in graph.nodes() {
+            let executor: Arc<dyn GraphNodeExecutor> =
+                if graph == &value.fixture.driver.graph && node.node_id() == a.node_id() {
+                    Arc::new(QuarantineOnResume {
+                        store: store.clone(),
+                        graph: graph.reference(),
+                        node: node.node_id().clone(),
+                        rejected: rejected.clone(),
+                    })
+                } else {
+                    value
+                        .fixture
+                        .driver
+                        .registry
+                        .resolve(&graph.reference())
+                        .unwrap()
+                        .node_executor(node.node_id())
+                        .unwrap()
+                };
+            deployment.register_node(executor).unwrap();
+        }
+    }
+    let fence = store
+        .claim_lease(a.tenant_id(), a.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let result = DurableGraphDriver::new(
+        store.clone(),
+        deployment.build().unwrap(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap()
+    .drive(fence.clone(), CancellationSignal::never())
+    .await;
+    assert!(rejected.load(Ordering::SeqCst));
+    assert!(
+        matches!(result, Err(GraphDriverError::Store { source }) if matches!(*source, StoreError::RunQuarantined))
+    );
+    let pool = sql_pool().await;
+    let count: i64 = query_scalar("SELECT count(*) FROM stateknot.child_run_join_consumptions WHERE tenant_id=$1 AND parent_run_id=$2")
+        .bind(a.tenant_id().as_str()).bind(*a.run_id().as_uuid()).fetch_one(&pool).await.unwrap();
+    assert_eq!(count, 0);
+    store.release_lease(&fence).await.unwrap();
+    pool.close().await;
+    store.close().await;
+}

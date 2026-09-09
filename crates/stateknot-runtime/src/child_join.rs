@@ -155,6 +155,9 @@ impl GraphChildJoin {
             .store
             .load_child_run(&self.binding.request().keys()[index])
             .await?;
+        if record.child().run().is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
         if record.settlement() != Some(&self.binding.terminals()[index]) {
             return Err(StoreError::ChildJoinRejected);
         }

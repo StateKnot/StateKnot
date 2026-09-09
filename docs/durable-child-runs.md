@@ -268,7 +268,9 @@ attempt unfinished rather than fabricating node failure/usage.
 On this dispatch `context.child_join()` is present. Its `binding()` preserves
 canonical slot order; `load_child(slot).await` loads and revalidates one sealed
 slot, returning its typed `RunLifecycle` (successful Agent result, failure or
-cancellation). It cannot load an unsealed slot. The context retains compact
+cancellation). It cannot load an unsealed or quarantined child. Fresh consumption
+locks the already-terminal sealed children after the parent, serializing with
+operator quarantine; historical replay remains readable. The context retains compact
 proofs, not a 64-output buffer; each body remains under existing Run limits and
 the caller controls retention. Handle read errors with genuine observed evidence;
 never turn missing evidence into a successful empty result. Node code explicitly
@@ -291,7 +293,8 @@ schema/migration 1–22 was changed by this runtime integration.
 The real-store `join::driver` tests cover independent child execution, recreated
 connections/registries, parent success and once-only charges, failed child access,
 re-Join refusal, registration rollback with original spawn recovery, cancellation
-drain without consumption, publication error/pagination/restart, and blocked-read
+drain without consumption, publication error/pagination/restart, late child
+quarantine blocking both slot reads and fresh consumption, and blocked-read
 preparation without false completion. Test executors and lifecycle evidence are
 deterministic fixtures, **not live-provider or capacity qualification**. Run with
 `STATEKNOT_REQUIRE_POSTGRES_TESTS=1` and an isolated `STATEKNOT_TEST_DATABASE_URL`:
