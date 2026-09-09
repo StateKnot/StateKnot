@@ -1888,6 +1888,8 @@ fn driver_fixture_with_first_delay(first_delay: Duration) -> DriverFixture {
     register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
     register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
     register_standard_agent_admission_event_schema(&mut schemas).unwrap();
+    stateknot_runtime::register_standard_child_join_event_schema(&mut schemas).unwrap();
+    stateknot_runtime::register_standard_child_reconciliation_event_schema(&mut schemas).unwrap();
     let schemas = schemas.build().unwrap();
 
     let first_calls = Arc::new(AtomicUsize::new(0));

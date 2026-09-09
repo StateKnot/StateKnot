@@ -8,6 +8,9 @@ use stateknot_store_postgres::ChildJoinCommitOutcome;
 #[path = "child_join_qualification.rs"]
 mod qualification;
 
+#[path = "child_join_driver.rs"]
+mod driver;
+
 async fn setup_join(store: &PostgresStore, name: &str) -> (Started, ChildRunJoinRequest, RunId) {
     let mut value = started(store, name).await;
     let spawned = spawn(store, &value).await.unwrap();

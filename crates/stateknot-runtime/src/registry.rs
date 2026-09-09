@@ -12,7 +12,7 @@ use stateknot_core::{
 };
 use thiserror::Error;
 
-use crate::JsonSchemaRegistry;
+use crate::{GraphChildJoin, JsonSchemaRegistry};
 
 /// Exact, already-started execution context passed to one graph node.
 ///
@@ -25,6 +25,7 @@ pub struct GraphNodeContext {
     attempt: NodeAttemptStartHead,
     checkpoint: Arc<Checkpoint>,
     cancellation: CancellationSignal,
+    child_join: Option<Arc<GraphChildJoin>>,
 }
 
 impl GraphNodeContext {
@@ -53,6 +54,7 @@ impl GraphNodeContext {
             attempt,
             checkpoint,
             cancellation,
+            child_join: None,
         })
     }
 
@@ -72,6 +74,18 @@ impl GraphNodeContext {
     #[must_use]
     pub const fn cancellation(&self) -> &CancellationSignal {
         &self.cancellation
+    }
+
+    /// Published, verified children on a resumed activation. Reading does not
+    /// consume the Join; the driver binds it to the eventual successful result.
+    #[must_use]
+    pub fn child_join(&self) -> Option<&GraphChildJoin> {
+        self.child_join.as_deref()
+    }
+
+    pub(crate) fn with_child_join(mut self, join: Arc<GraphChildJoin>) -> Self {
+        self.child_join = Some(join);
+        self
     }
 }
 
@@ -101,17 +115,30 @@ pub enum GraphNodeContextError {
     CheckpointMismatch,
 }
 
-/// Successful semantic output of one graph-node attempt.
+/// A completed semantic result or a dedicated durable child suspension.
 ///
 /// The durable driver rebinds these fields to the exact context activation by
 /// constructing [`stateknot_core::PendingNodeResultIntent`]. Invocation
 /// bindings are therefore revalidated before any success can commit.
 #[derive(Clone, Debug)]
-pub struct GraphNodeExecution {
-    state_change: NodeStateChange,
-    control: NodeControl,
-    bindings: NodeInvocationBindings,
-    usage: BudgetUsage,
+// Keep the pre-existing completion payload inline on the ordinary hot path;
+// the less frequent suspension request is boxed instead.
+#[allow(clippy::large_enum_variant)]
+pub enum GraphNodeExecution {
+    /// Complete this physical attempt; normal control and accounting apply.
+    Completed {
+        /// Typed state contribution.
+        state_change: NodeStateChange,
+        /// Closed graph control outcome.
+        control: NodeControl,
+        /// Exact committed external invocation references.
+        bindings: NodeInvocationBindings,
+        /// Normalized usage for this physical attempt.
+        usage: BudgetUsage,
+    },
+    /// Seal all admitted children and release the lease without completing the
+    /// node. This carries no invented control, result, failure, or usage.
+    ChildJoin(Box<stateknot_core::ChildRunJoinRequest>),
 }
 
 impl GraphNodeExecution {
@@ -123,7 +150,7 @@ impl GraphNodeExecution {
         bindings: NodeInvocationBindings,
         usage: BudgetUsage,
     ) -> Self {
-        Self {
+        Self::Completed {
             state_change,
             control,
             bindings,
@@ -131,41 +158,11 @@ impl GraphNodeExecution {
         }
     }
 
-    /// Returns the typed state contribution.
+    /// Requests suspension before node completion. On recovery, inspect
+    /// `context.child_join()` and complete instead of registering again.
     #[must_use]
-    pub const fn state_change(&self) -> &NodeStateChange {
-        &self.state_change
-    }
-
-    /// Returns the closed graph control outcome.
-    #[must_use]
-    pub const fn control(&self) -> &NodeControl {
-        &self.control
-    }
-
-    /// Returns exact committed external invocation references.
-    #[must_use]
-    pub const fn bindings(&self) -> &NodeInvocationBindings {
-        &self.bindings
-    }
-
-    /// Returns normalized usage for this physical node attempt.
-    #[must_use]
-    pub const fn usage(&self) -> &BudgetUsage {
-        &self.usage
-    }
-
-    /// Consumes the execution into persistence-ready parts.
-    #[must_use]
-    pub fn into_parts(
-        self,
-    ) -> (
-        NodeStateChange,
-        NodeControl,
-        NodeInvocationBindings,
-        BudgetUsage,
-    ) {
-        (self.state_change, self.control, self.bindings, self.usage)
+    pub fn child_join(request: stateknot_core::ChildRunJoinRequest) -> Self {
+        Self::ChildJoin(Box::new(request))
     }
 }
 
@@ -269,6 +266,12 @@ pub trait GraphNodeExecutor: Send + Sync + 'static {
     /// contract, not a performance hint.
     fn scheduling(&self) -> GraphNodeScheduling {
         GraphNodeScheduling::Exclusive
+    }
+
+    /// Opts into child suspension/resumption. The registry requires declared
+    /// child slots, exclusive scheduling and the embedded child Join schema.
+    fn supports_child_join(&self) -> bool {
+        false
     }
 
     /// Executes exactly one already-durably-started physical attempt.
@@ -526,6 +529,19 @@ impl ExecutableGraphRegistryBuilder {
                         node_id: node.node_id().clone(),
                     }
                 })?;
+                let declares_children = graph.child_runs().is_some_and(|policy| {
+                    policy
+                        .declarations()
+                        .iter()
+                        .any(|d| d.node_id() == node.node_id())
+                });
+                if (declares_children && executor.scheduling() != GraphNodeScheduling::Exclusive)
+                    || (executor.supports_child_join()
+                        && (!declares_children
+                            || !crate::child_join::schema_available(&self.schemas)))
+                {
+                    return Err(ExecutableGraphRegistryError::InvalidChildJoinExecutor);
+                }
                 used_nodes.insert(key);
                 graph_nodes.insert(node.node_id().clone(), executor);
             }
@@ -622,6 +638,12 @@ impl fmt::Debug for ExecutableGraphRegistry {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum ExecutableGraphRegistryError {
+    /// Child executors require exclusive scheduling; Join additionally requires
+    /// declared slots and the exact embedded audit schema before any dispatch.
+    #[error(
+        "child Join executor requires declared slots, exclusive scheduling and its audit schema"
+    )]
+    InvalidChildJoinExecutor,
     /// A declared child target has no exact graph in this frozen deployment.
     #[error("executable registry lacks a declared child graph")]
     MissingChildGraph {

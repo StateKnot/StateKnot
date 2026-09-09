@@ -6,7 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 # 独立状态耐久子 Run：事务存储与剩余运行时工作
 
 状态：已实现核心契约、图内固定声明、只读准入准备，以及 PostgreSQL 原子归属/准入、预算预留、终态结算、带有界运行时协调器的耐久取消传播和专用 Join 注册/发布/消费事务边界。
-**Graph Driver 的自动 Join 控制与成功路径自动恢复尚未实现**，这里不是端到端子 Run 执行教程。完整设计与未决项见
+已接入显式启用的 Graph Driver 自动挂起/恢复和有界 Join 发布器。
+**自动截止时间取消、失败关闭策略和完整配置验收仍未完成**；这里是可信宿主集成说明，不代表通用子 Run 服务已启用。完整设计与未决项见
 [RFC-0004](rfcs/0004-durable-child-runs.md)。现有可用能力仍是
 [共享状态静态子图](graph-composition.zh-CN.md)。另见
 [英文说明](durable-child-runs.md)。
@@ -55,7 +56,7 @@ SPDX-License-Identifier: Apache-2.0
 
 任何未结算子项都会阻止父 Run 进入终态或推进 Checkpoint。这不会伪造 Join、
 计时器或用户中断。祖先取消后禁止继续派生，迁移 21 与下述协调器负责耐久取消投递。
-迁移 22 提供下文的专用 Join 存储边界，自动执行器挂起/恢复仍未接入；不能把存储接口暴露为完整的子 Run 执行服务。
+迁移 22 提供下文的专用 Join 存储边界，运行时挂起/恢复现已显式接入；不能仅把存储接口暴露为完整的子 Run 执行服务。
 
 升级时先通过现有 `PostgresStore::migrate_database` 流程执行迁移，再启动兼容 Worker。
 迁移 20 会为已存在的、声明子级能力的准入回填版本 1，新准入同样受保护；
@@ -107,15 +108,15 @@ tick 之间不持有事务或租约。有界页大小不是吞吐量或恢复时
 验证覆盖 PostgreSQL 16/17、重复投递/派生取消竞争、回执末端失败回滚、真实定时等待清理、
 三级逐级取消与自叶到根结算、重建/续扫越过整页未定价项、有数据的 v20 升级、
 证据不可变以及守卫被替换/禁用后的启动拒绝。
-完整子 Run 执行配置仍需自动截止时间取消策略、失败关闭意图、自动 Join 协调、
-成功路径的父级自动挂起与恢复；不得绕过守卫或把未知成本置零来强行关闭。
+完整子 Run 执行配置仍需自动截止时间取消策略、失败关闭意图和完整配置验收；
+不得绕过守卫或把未知成本置零来强行关闭。
 
 ## 专用 Join 事务边界（迁移 22）
 
-这是可信宿主的存储 API，**不是已经接入 Graph Driver 的自动 Join 节点**。
+本节说明可信宿主的存储 API；下节说明已接入的 Driver 自动执行路径。
 现有 `DurableChildReconciler` 仍只负责取消传播和预算结算，不会自动发布 Join。
 使用低层接口的宿主必须安排发布扫描，注册后停止父级执行，校验子输出 Schema，
-并把发布证据绑定到父结果。自动执行器、上下文与协调器接入仍是独立验收门槛。
+并把发布证据绑定到父结果。显式启用的 Driver 与独立 `DurableChildJoinPublisher` 现已负责这些操作。
 
 `ChildRunJoinRequest::new` 固定同一逻辑激活的完整归属集合：非空、最多 64 个子级，
 按大小写敏感的槽位顺序排序，不按完成时间排序。恢复时校验版本 1、激活摘要、
@@ -157,7 +158,66 @@ tick 之间不持有事务或租约。有界页大小不是吞吐量或恢复时
 验证覆盖完整成员集合、兄弟逆序完成、并发注册/发布、终态与注册竞争、三处最终写入回滚、
 丢失 ACK 恢复、独立租约下的真实子图成功、取消不伪造消费、跨未定价前缀的分页、
 有数据的 v21 升级、目录/守卫篡改检测，以及重建注册表后复用已提交 Join 结果推进
-非初始 Checkpoint。尚未证明执行器自动返回 Join 控制并自动挂起/恢复的完整流程。
+非初始 Checkpoint。下述运行时测试进一步验证了执行器自动挂起与恢复。
+
+## 显式启用 Graph Driver Join 与发布 Worker
+
+冻结 Schema 注册表前调用 `register_standard_child_join_event_schema`。
+内置 `child-join-event/1.0.0` 独立于已有 Driver/协调器 v1 协议，URL 只是离线身份；
+审计只包含操作名和请求摘要，不包含子任务输出。
+
+节点实现 `GraphNodeExecutor::supports_child_join() == true` 后启用 Join。
+启动校验要求已声明的子槽位、精确 Join Schema 和 `Exclusive` 调度。
+所有声明子级的执行器都必须独占，即使未启用 Join，也不能在兄弟节点仍执行时释放整条 Run 的租约。
+
+首次派发时，可信节点按上文契约完成原子子准入，再返回
+`GraphNodeExecution::child_join(ChildRunJoinRequest::new(keys)?)`。
+Driver 原子封存成员和释放父租约，返回 `GraphDriveOutcome::ChildJoin` 或
+`AgentLoopOutcome::ChildJoin` 后立即停止派发；原物理尝试仍未完成。
+这不是 `NodeControl::Wait`，也不会生成失败或零消耗完成。ACK 丢失后用同一逻辑 Key
+和不可变意图恢复原始子身份，不能因此再创建一个子 Run。
+
+独立租约的执行 Worker 旁边要运行**两种**维护 Worker：
+`DurableChildReconciler` 投递取消并完成定价结算；
+`DurableChildJoinPublisher::tick(tenant, cursor, shutdown)` 每次发布最多 16 个已就绪 Join。
+发布器复用有限重试配置（默认 3 次、25 ms 起步、1 s 上限），单项出错继续后续项，
+完整一轮后自动重置租户绑定游标；保留返回游标，进程重启则从 `None` 重扫。
+每个 item 的错误都必须检查。宿主负责租户认证、调度公平、告警和修复；
+未知价格保持未结算，两种维护 Worker 都不猜用量、不执行节点或 Provider。
+发布与取消由数据库事务协调。
+
+发布后，更高 Fence 恢复同一逻辑激活。Driver 在派发前逐个验证所有终态绑定，
+并按固定子图/Agent Schema 校验成功输出，不一次保留全部输出。
+验证受租约续期、取消和节点执行截止时间共同约束；若派发前超时，返回
+`ChildJoinPreparationIncomplete` 并保留未完成尝试，不伪造节点失败或消耗。
+
+恢复时 `context.child_join()` 存在：`binding()` 保持规范槽位顺序；
+`load_child(slot).await` 每次加载并重验一个已封存槽位，返回类型化 `RunLifecycle`，
+保留成功 Agent 结果、失败或取消事实，不能读取未封存槽位或已隔离的子级。
+新消费在父级之后锁定已终态的封存子项，与管理员隔离串行化；历史重放仍可读取。
+上下文只保留紧凑证据，不建立 64 份输出缓存；单份输出遵循既有 Run 上限，调用方控制保留量。
+读取错误必须按真实证据处理，不能变成成功的空结果。节点显式决定自己的状态贡献和常规控制，
+没有自动合并子状态。
+
+Driver 自动将精确发布头绑定到父 Pending Result，节点完成与唯一消费一次提交。
+读取不消费；已发布 Join 再注册会被拒绝。完成前崩溃可能重新执行**父节点**，
+因此外部副作用仍需使用现有耐久调用账本；完成后崩溃则复用已提交结果，不再执行节点。
+生命周期提供直接消耗证据，存储层对子树费用只累计一次。
+
+Pre-alpha 源码兼容性：`GraphNodeExecution::new(...)` 仍构造普通完成；
+类型现为 `Completed { state_change, control, bindings, usage } | ChildJoin(...)` 枚举。
+原来无条件的 getter 和 `into_parts()` 改用显式 match。此运行时接入不改变核心序列化结果、
+已发布 Schema 或迁移 1–22。
+
+真实数据库 `join::driver` 测试覆盖独立子级执行、连接/注册表重建、父成功与单次计费、
+失败子级读取、重复 Join 拒绝、注册回滚后复用原派生、取消排空而不消费、发布错误/分页/重启，
+预检后隔离同时阻止读取和新消费，以及证据读取阻塞不伪造节点完成。执行器与生命周期证据是确定性测试夹具，
+**不是实时模型供应商或生产容量验收**。在隔离数据库配置
+`STATEKNOT_REQUIRE_POSTGRES_TESTS=1` 和 `STATEKNOT_TEST_DATABASE_URL` 后运行：
+
+```console
+cargo test -p stateknot-runtime --test postgres --all-features --locked join::driver -- --test-threads=1
+```
 
 ## 已实现的核心原语
 
@@ -342,6 +402,6 @@ Run 内的嵌套命名空间。
 
 ## 尚未冻结的决策
 
-剩余工作是 Graph Driver 专用 Join 控制/上下文、自动发布协调与父级恢复、截止时间/失败关闭策略、完整运行时
-集成和可测量的恢复/容量指标。专用 Join 存储、耐久取消投递与结算协调已实现，但不代表完整执行闭环可用；草案不会
+剩余工作是截止时间/失败关闭策略、完整配置验收和可测量的恢复/容量指标。
+显式 Join 执行/发布/恢复、耐久取消与结算已实现，但不代表完整子 Run 服务可用；草案不会
 作为完整已实现能力发布到官网状态页。

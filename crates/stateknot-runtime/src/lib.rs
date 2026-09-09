@@ -20,6 +20,7 @@ mod agent_loop;
 mod agent_service;
 mod agent_typed;
 mod cancellation_schema;
+mod child_join;
 mod child_reconciler;
 mod driver;
 mod driver_schema;
@@ -36,6 +37,12 @@ mod registry;
 mod schema;
 mod service_schema;
 mod tenant_scheduler;
+
+pub use child_join::{
+    ChildJoinPublicationCursor, ChildJoinPublicationItem, ChildJoinPublicationTick,
+    DurableChildJoinPublisher, GraphChildJoin, STANDARD_CHILD_JOIN_EVENT_SCHEMA_ID,
+    register_standard_child_join_event_schema, standard_child_join_event_schema,
+};
 
 pub use child_reconciler::{
     ChildReconcilerBuildError, ChildReconciliationCommit, ChildReconciliationCursor,

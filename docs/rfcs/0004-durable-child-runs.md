@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — core contracts, declarations, preparation, PostgreSQL ownership/admission/settlement, cancellation reconciliation and dedicated Join transactions implemented; automatic Graph Driver Join control and suspend/resume unshipped
+- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume and bounded publication implemented; deadline/failure-close policy and full-profile qualification unshipped
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -133,8 +133,11 @@ after registration cannot lose a notification. Publication commits immutable
 terminal bindings with scheduler wakeup. Pending results must carry the exact
 published head and consume it atomically with physical completion. Missing or
 changed evidence blocks checkpoint/success; ordinary no-Join result bytes stay
-unchanged. A host must explicitly run bounded publication scans. Automatic
-Graph Driver Join control/context and publication integration are not implemented.
+unchanged. A host schedules `DurableChildJoinPublisher` alongside cancellation,
+settlement and independently leased execution workers. Opted-in exclusive nodes
+return dedicated Join control; the driver releases ownership, verifies published
+terminal/output evidence before recovery dispatch, and binds successful parent
+completion to unique consumption. See the bilingual integration guide.
 
 For multiple children, reduction order is declared slot order, never wall
 clock completion order. A terminal child is not a completed parent node:
@@ -303,16 +306,15 @@ root-only data. Preserve all static-composition and root-run regression tests.
 
 ## Unresolved questions / acceptance blockers
 
-- Dedicated Graph Driver Join control/context and automatic publication, with
-  executable suspend/resume recovery evidence. The exact SQL registration,
-  immutable publication, atomic lease release/wakeup and result-consumption
-  boundary is implemented and tested; full automatic execution remains required.
+- Automatic deadline/failure-close policy and complete-profile qualification.
+  Opt-in Join execution/context, bounded publication, recreated-registry parent
+  recovery and unique result consumption now have real-store integration evidence.
 - Concrete transactional reservation/settlement rules compatible with existing
   budget and ledger contracts, including parent direct work and unknown usage.
   Scalar/deadline/currency narrowing and cumulative arithmetic are implemented;
   the PostgreSQL adapter now enforces resource ownership and ancestor limits.
-  Full automatic runtime coordination remains a separate gate.
-- End-to-end qualification of future Join/failure-close/deadline writers against
+  Complete-profile runtime qualification remains a separate gate.
+- End-to-end qualification of future failure-close/deadline writers against
   central terminal guards and the version-fenced store lock order.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
   rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,

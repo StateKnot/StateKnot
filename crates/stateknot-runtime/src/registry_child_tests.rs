@@ -22,6 +22,12 @@ fn identity(name: &str) -> CapabilityIdentity {
 }
 
 fn fixture() -> (JsonSchemaRegistry, CompiledGraph, AgentDescriptor) {
+    fixture_with_join_schema(false)
+}
+
+fn fixture_with_join_schema(
+    join_schema: bool,
+) -> (JsonSchemaRegistry, CompiledGraph, AgentDescriptor) {
     let id = "https://example.com/child-value/1.0.0";
     let document =
         json!({"$id":id,"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object"});
@@ -32,6 +38,9 @@ fn fixture() -> (JsonSchemaRegistry, CompiledGraph, AgentDescriptor) {
     );
     let mut schemas = JsonSchemaRegistryBuilder::default();
     schemas.register(schema.clone(), document).unwrap();
+    if join_schema {
+        crate::register_standard_child_join_event_schema(&mut schemas).unwrap();
+    }
     let graph = CompiledGraph::compile(
         identity("leaf"),
         schema.clone(),
@@ -197,4 +206,73 @@ fn registry_refuses_same_target_with_drifted_io_schema() {
             ..
         })
     ));
+}
+
+struct JoinExecutor(Executor, GraphNodeScheduling);
+impl GraphNodeExecutor for JoinExecutor {
+    fn graph(&self) -> &GraphReference {
+        self.0.graph()
+    }
+    fn node_id(&self) -> &NodeId {
+        self.0.node_id()
+    }
+    fn scheduling(&self) -> GraphNodeScheduling {
+        self.1
+    }
+    fn supports_child_join(&self) -> bool {
+        true
+    }
+    fn execute(
+        &self,
+        context: GraphNodeContext,
+    ) -> BoxFuture<'_, Result<GraphNodeExecution, GraphNodeExecutionError>> {
+        self.0.execute(context)
+    }
+}
+
+#[test]
+fn join_registry_rejects_undeclared_unregistered_and_parallel_executors_before_dispatch() {
+    for has_schema in [false, true] {
+        let (schemas, leaf, agent) = fixture_with_join_schema(has_schema);
+        for declared in [false, true] {
+            for scheduling in [
+                GraphNodeScheduling::Exclusive,
+                GraphNodeScheduling::JournalIsolated,
+            ] {
+                let parent = parent("parent", &leaf, &agent, 1);
+                let mut registry = ExecutableGraphRegistryBuilder::new(schemas.clone());
+                registry
+                    .register_reducer(Arc::new(Reducer(leaf.reducer().clone())))
+                    .unwrap();
+                registry.register_graph(leaf.clone()).unwrap();
+                let target = if declared {
+                    registry.register_graph(parent.clone()).unwrap();
+                    registry
+                        .register_node(Arc::new(Executor(
+                            leaf.reference(),
+                            NodeId::new("work").unwrap(),
+                        )))
+                        .unwrap();
+                    &parent
+                } else {
+                    &leaf
+                };
+                registry
+                    .register_node(Arc::new(JoinExecutor(
+                        Executor(target.reference(), NodeId::new("work").unwrap()),
+                        scheduling,
+                    )))
+                    .unwrap();
+                let result = registry.build();
+                if has_schema && declared && scheduling == GraphNodeScheduling::Exclusive {
+                    result.unwrap();
+                } else {
+                    assert!(matches!(
+                        result,
+                        Err(ExecutableGraphRegistryError::InvalidChildJoinExecutor)
+                    ));
+                }
+            }
+        }
+    }
 }

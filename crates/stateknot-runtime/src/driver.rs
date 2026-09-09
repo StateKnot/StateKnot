@@ -669,18 +669,24 @@ impl DurableGraphDriver {
                 StartedNodesExecution::RunCancellationObserved => {}
                 StartedNodesExecution::Finished(results) => {
                     for (started, result) in started.iter().zip(results) {
-                        if matches!(
-                            self.commit_node_execution(
+                        match self
+                            .commit_node_execution(
                                 &fence,
                                 &executable,
-                                &started.start,
+                                started,
                                 result,
                                 &mut report,
                             )
-                            .await?,
-                            NodeExecutionCommit::RunCancellationObserved
-                        ) {
-                            break;
+                            .await?
+                        {
+                            NodeExecutionCommit::RunCancellationObserved => break,
+                            NodeExecutionCommit::Committed => {}
+                            NodeExecutionCommit::ChildJoin(request) => {
+                                return Ok(GraphDriveResult::new(
+                                    GraphDriveOutcome::ChildJoin(request),
+                                    report,
+                                ));
+                            }
                         }
                     }
                 }
@@ -911,26 +917,51 @@ impl DurableGraphDriver {
                 cancellation.signal(),
             )?;
             let executor = Arc::clone(&started_node.executor);
+            let store = self.store.clone();
+            let registry = self.registry.clone();
+            let has_children = registry
+                .resolve(executor.graph())
+                .is_some_and(|graph| graph.graph().child_runs().is_some());
             let task_cancellation = cancellation.clone();
             let timeout = self.options.node_execution_timeout;
             cancellations.push(cancellation);
             tasks.spawn(async move {
+                let executing = AtomicBool::new(false);
+                let executing_marker = &executing;
                 // Wrap both the synchronous `execute` call and the returned
                 // future. Object-safe executors are third-party code and may
                 // panic before they construct their future.
-                let execution =
-                    AssertUnwindSafe(async move { executor.execute(context).await }).catch_unwind();
+                let execution = AssertUnwindSafe(async move {
+                    let mut context = context;
+                    if has_children {
+                        if let Some(record) = store.load_child_join(context.attempt().activation()).await? {
+                            if !executor.supports_child_join() {
+                                return Err(StoreError::ChildJoinRejected.into());
+                            }
+                            context = context.with_child_join(crate::GraphChildJoin::prepare(store, registry, &record).await?);
+                        }
+                    }
+                    let child_join = context.child_join().map(|join| Box::new(join.head().clone()));
+                    executing_marker.store(true, Ordering::Release);
+                    let result = executor.execute(context).await;
+                    Ok(FinishedNodeExecution { result, child_join })
+                }).catch_unwind();
                 tokio::pin!(execution);
                 let deadline = tokio::time::sleep(timeout);
                 tokio::pin!(deadline);
                 let outcome = tokio::select! {
                     result = &mut execution => match result {
-                        Ok(result) => Ok(result),
-                        Err(_) => DurableGraphDriver::node_panic_failure(),
+                        Ok(result) => result,
+                        Err(_) if !executing.load(Ordering::Acquire) => Err(GraphDriverError::ChildJoinPreparationIncomplete),
+                        Err(_) => DurableGraphDriver::node_panic_failure().map(FinishedNodeExecution::without_join),
                     },
                     () = &mut deadline => {
                         task_cancellation.cancel();
-                        DurableGraphDriver::node_timeout_failure().map(Err)
+                        if executing.load(Ordering::Acquire) {
+                            DurableGraphDriver::node_timeout_failure().map(|error| FinishedNodeExecution::without_join(Err(error)))
+                        } else {
+                            Err(GraphDriverError::ChildJoinPreparationIncomplete)
+                        }
                     }
                 };
                 (index, outcome)
@@ -1087,10 +1118,11 @@ impl DurableGraphDriver {
         &self,
         fence: &RunFence,
         executable: &ExecutableGraph,
-        start: &NodeAttemptStartHead,
-        execution: Result<GraphNodeExecution, GraphNodeExecutionError>,
+        started: &StartedNode,
+        execution: FinishedNodeExecution,
         report: &mut GraphDriveReport,
     ) -> Result<NodeExecutionCommit, GraphDriverError> {
+        let start = &started.start;
         let run = self
             .store
             .load_run(fence.tenant_id(), fence.run_id())
@@ -1103,16 +1135,40 @@ impl DurableGraphDriver {
             .journal_head()
             .cloned()
             .ok_or(GraphDriverError::MissingJournalHead)?;
-        match execution {
-            Ok(execution) => {
-                let (state_change, control, bindings, usage) = execution.into_parts();
-                let intent = PendingNodeResultIntent::new(
+        match execution.result {
+            Ok(GraphNodeExecution::ChildJoin(request)) => {
+                if !started.executor.supports_child_join()
+                    || started.executor.scheduling() != GraphNodeScheduling::Exclusive
+                    || execution.child_join.is_some()
+                    || request.activation() != start.activation()
+                {
+                    return Err(StoreError::ChildJoinRejected.into());
+                }
+                Box::pin(self.register_child_join_with_retry(fence, start, &request, report))
+                    .await?;
+                report.durable_events = report.durable_events.saturating_add(1);
+                // Registration already released ownership atomically. Never run
+                // another node, complete this attempt, or release a newer fence.
+                return Ok(NodeExecutionCommit::ChildJoin(request));
+            }
+            Ok(GraphNodeExecution::Completed {
+                state_change,
+                control,
+                bindings,
+                usage,
+            }) => {
+                let mut intent = PendingNodeResultIntent::new(
                     start.activation().clone(),
                     state_change,
                     control,
                     bindings,
                 )
                 .map_err(|_| GraphDriverError::InvalidNodeResult)?;
+                if let Some(head) = execution.child_join {
+                    intent = intent
+                        .with_child_join(*head)
+                        .map_err(|_| GraphDriverError::InvalidNodeResult)?;
+                }
                 let payload = self.node_succeeded_payload(
                     &executable.graph().reference(),
                     start,
@@ -1154,6 +1210,51 @@ impl DurableGraphDriver {
         report.durable_events = report.durable_events.saturating_add(1);
         report.node_attempts_completed = report.node_attempts_completed.saturating_add(1);
         Ok(NodeExecutionCommit::Committed)
+    }
+
+    async fn register_child_join_with_retry(
+        &self,
+        fence: &RunFence,
+        start: &NodeAttemptStartHead,
+        request: &stateknot_core::ChildRunJoinRequest,
+        report: &mut GraphDriveReport,
+    ) -> Result<(), GraphDriverError> {
+        let id = EventId::generate();
+        let payload = crate::child_join::payload(self.registry.schemas(), request, false)?;
+        let mut attempt = 1_u8;
+        loop {
+            // Child settlement may append to the parent while its exclusive
+            // executor finishes spawning. Refresh CAS, retaining logical identity.
+            let result = async {
+                let run = self
+                    .store
+                    .load_run(fence.tenant_id(), fence.run_id())
+                    .await?;
+                let head = run
+                    .journal_head()
+                    .cloned()
+                    .ok_or(GraphDriverError::MissingJournalHead)?;
+                let append = worker_append(fence, head, id, payload.clone())?;
+                self.store
+                    .register_child_join(request.clone(), start, append)
+                    .await
+                    .map_err(GraphDriverError::from)
+            }
+            .await;
+            match result {
+                Ok(_) => return Ok(()),
+                Err(GraphDriverError::Store { source })
+                    if attempt < self.options.maximum_mutation_attempts
+                        && (source.is_retryable()
+                            || matches!(*source, StoreError::StaleJournalHead)) =>
+                {
+                    report.mutation_retries = report.mutation_retries.saturating_add(1);
+                    self.mutation_backoff(attempt).await;
+                    attempt = attempt.saturating_add(1);
+                }
+                Err(error) => return Err(error),
+            }
+        }
     }
 
     async fn run_cancellation_requested(&self, fence: &RunFence) -> Result<bool, GraphDriverError> {
@@ -1603,6 +1704,9 @@ impl GraphDriveResult {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum GraphDriveOutcome {
+    /// Children were sealed and the lease released in one transaction. The
+    /// node remains unfinished until publication and a higher-fence recovery.
+    ChildJoin(Box<stateknot_core::ChildRunJoinRequest>),
     /// Durable cancellation intent requires exact evidence and terminal acknowledgement.
     CancellationRequested(Box<GraphCancellationHandoff>),
     /// A Wait or successful Terminal barrier requires lifecycle metadata.
@@ -1906,6 +2010,10 @@ impl GraphBlockedHandoff {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum GraphDriverError {
+    /// Join evidence preparation timed out or panicked before node dispatch;
+    /// no node completion, failure or usage was synthesized.
+    #[error("child Join preparation did not complete before node dispatch")]
+    ChildJoinPreparationIncomplete,
     /// `PostgreSQL` rejected or could not complete an operation.
     #[error(transparent)]
     Store {
@@ -1994,7 +2102,7 @@ struct StartedNode {
 
 #[allow(clippy::large_enum_variant)]
 enum StartedNodesExecution {
-    Finished(Vec<Result<GraphNodeExecution, GraphNodeExecutionError>>),
+    Finished(Vec<FinishedNodeExecution>),
     Cancelled,
     RunCancellationObserved,
 }
@@ -2002,6 +2110,21 @@ enum StartedNodesExecution {
 enum NodeExecutionCommit {
     Committed,
     RunCancellationObserved,
+    ChildJoin(Box<stateknot_core::ChildRunJoinRequest>),
+}
+
+struct FinishedNodeExecution {
+    result: Result<GraphNodeExecution, GraphNodeExecutionError>,
+    child_join: Option<Box<stateknot_core::ChildRunJoinHead>>,
+}
+
+impl FinishedNodeExecution {
+    fn without_join(result: Result<GraphNodeExecution, GraphNodeExecutionError>) -> Self {
+        Self {
+            result,
+            child_join: None,
+        }
+    }
 }
 
 struct GuardedRunLease {
