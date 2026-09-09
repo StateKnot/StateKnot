@@ -59,6 +59,10 @@ use uuid::Uuid;
 mod child_runs;
 pub use child_runs::{ChildRunCommitOutcome, ChildRunRecord, ChildRunSettlementOutcome};
 
+#[path = "child_joins.rs"]
+mod child_joins;
+pub use child_joins::{ChildJoinCommitOutcome, ChildJoinRecord};
+
 #[path = "child_cancellation.rs"]
 mod child_cancellation;
 pub use child_cancellation::{
@@ -248,6 +252,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!(
                 "../migrations/0021_child_run_cancellation.sql"
             )),
+            false,
+        ),
+        Migration::new(
+            22,
+            Cow::Borrowed("child run joins"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0022_child_run_joins.sql")),
             false,
         ),
     ]),
@@ -809,6 +820,11 @@ WHERE tenant_id = $1
   AND scheduler_ready_at IS NOT NULL
   AND checkpoint_id IS NOT NULL
   AND lifecycle_status IN ('pending', 'active', 'cancellation_requested')
+  AND (lifecycle_status <> 'active' OR NOT EXISTS (
+      SELECT 1 FROM stateknot.child_run_joins AS joined
+      WHERE joined.tenant_id = stateknot.runs.tenant_id
+        AND joined.parent_run_id = stateknot.runs.run_id AND joined.ready_at IS NULL
+  ))
   AND (lifecycle_status <> 'cancellation_requested' OR NOT EXISTS (
       SELECT 1 FROM stateknot.child_run_ownership AS owned
       WHERE owned.tenant_id = stateknot.runs.tenant_id
@@ -3073,6 +3089,7 @@ impl PostgresStore {
         }
         child_runs::verify_schema(&self.pool).await?;
         child_cancellation::verify_schema(&self.pool).await?;
+        child_joins::verify_schema(&self.pool).await?;
         Ok(())
     }
 
@@ -9750,6 +9767,10 @@ RETURNING observation.observed_at
             .await
             .map_err(|source| StoreError::database(operation, source))?;
         apply_transaction_timeouts(&mut transaction, &self.options, operation).await?;
+        query("SET LOCAL stateknot.child_join_version = '1'")
+            .execute(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("child Join capability", source))?;
         query("SET LOCAL stateknot.child_runtime_version = '1'")
             .execute(&mut *transaction)
             .await
@@ -15309,15 +15330,7 @@ async fn verify_node_attempt(
     attempt: &NodeAttempt,
 ) -> Result<JournalEvent, StoreError> {
     let start = attempt.start();
-    verify_node_attempt_base_checkpoint(transaction, start).await?;
-    let start_event = verify_node_attempt_anchor(
-        transaction,
-        start.journal_head(),
-        start.fence(),
-        start.digest(),
-        "node attempt start anchor",
-    )
-    .await?;
+    let start_event = verify_node_attempt_start(transaction, start).await?;
 
     let Some(completion) = attempt.completion() else {
         return Ok(start_event);
@@ -15346,6 +15359,24 @@ async fn verify_node_attempt(
         verify_pending_node_result_bindings(transaction, &durable_result).await?;
     }
     Ok(event)
+}
+
+// Ownership points to an immutable start, never to a result that may itself
+// consume that ownership. Keep this direction acyclic; result replay separately
+// authenticates the complete completion and every consumed Join.
+async fn verify_node_attempt_start(
+    transaction: &mut Transaction<'_, Postgres>,
+    start: &NodeAttemptStart,
+) -> Result<JournalEvent, StoreError> {
+    verify_node_attempt_base_checkpoint(transaction, start).await?;
+    verify_node_attempt_anchor(
+        transaction,
+        start.journal_head(),
+        start.fence(),
+        start.digest(),
+        "node attempt start anchor",
+    )
+    .await
 }
 
 fn encode_pending_node_result(result: &PendingNodeResult) -> Result<Vec<u8>, StoreError> {
@@ -15811,6 +15842,7 @@ async fn verify_pending_node_result_bindings(
     transaction: &mut Transaction<'_, Postgres>,
     result: &PendingNodeResult,
 ) -> Result<(), StoreError> {
+    child_joins::verify_result(transaction, result, true).await?;
     let activation = result.intent().activation();
     let tool_rows =
         query_as::<_, PendingNodeResultBindingRow>(SELECT_PENDING_NODE_RESULT_TOOL_BINDINGS)
@@ -18789,6 +18821,7 @@ async fn insert_pending_node_result(
     node_attempt_id: AttemptId,
     fence: &RunFence,
 ) -> Result<(), StoreError> {
+    child_joins::verify_result(transaction, result, false).await?;
     let intent = result.intent();
     let activation = intent.activation();
     let base = activation.base_checkpoint();

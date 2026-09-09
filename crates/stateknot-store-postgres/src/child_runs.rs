@@ -752,7 +752,7 @@ async fn check_topology(
     Ok(())
 }
 
-async fn authorize_parent_append(
+pub(super) async fn authorize_parent_append(
     tx: &mut Transaction<'_, Postgres>,
     parent: &StoredRun,
     append: &JournalAppend,
@@ -1043,7 +1043,7 @@ pub(super) async fn load_record_inner(
     let node = load_node_attempt_record(tx, key.tenant_id(), &key.parent_run_id(), node_id)
         .await?
         .ok_or_else(|| StoreError::corrupt("child node attempt"))?;
-    verify_node_attempt(tx, &node).await?;
+    verify_node_attempt_start(tx, node.start()).await?;
     if node.start().activation() != key.parent()
         || node.start().activation_digest()
             != decode_digest(

@@ -382,6 +382,12 @@ async fn remove_artifact_registry(pool: &PgPool) {
 }
 
 async fn remove_child_run_cancellation(pool: &PgPool) {
+    for sql in include_str!("fixtures/revert_child_joins.sql")
+        .split(';')
+        .filter(|sql| !sql.trim().is_empty())
+    {
+        query(sql).execute(pool).await.unwrap();
+    }
     query("DROP TRIGGER runs_child_cancellation_claim_guard ON stateknot.runs")
         .execute(pool)
         .await

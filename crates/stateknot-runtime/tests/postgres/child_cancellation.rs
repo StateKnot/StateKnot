@@ -39,7 +39,11 @@ fn cancellation_request(at: Timestamp, event: EventId) -> RunCancellationRequest
     .unwrap()
 }
 
-async fn cancel_run(store: &PostgresStore, tenant: &TenantId, run: RunId) -> JournalHead {
+pub(super) async fn cancel_run(
+    store: &PostgresStore,
+    tenant: &TenantId,
+    run: RunId,
+) -> JournalHead {
     let current = store.load_run(tenant, run).await.unwrap();
     let event = EventId::generate();
     let request = cancellation_request(store.observe_database_clock().await.unwrap(), event);
@@ -88,7 +92,7 @@ async fn delivery(
     (append, request)
 }
 
-async fn confirm(
+pub(super) async fn confirm(
     store: &PostgresStore,
     tenant: &TenantId,
     run: RunId,

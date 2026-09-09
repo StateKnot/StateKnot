@@ -314,9 +314,13 @@ from the repository.
   and once-only settlement, with mixed-worker closure guards. Migration 21 and
   `DurableChildReconciler` now add atomic cancellation capture/delivery, real-wait
   cleanup, immutable receipts, cancellation-drain lease exclusion and bounded
-  restartable cancellation/settlement scans that pass unresolved items. Dedicated
-  Join, deadline/failure close policy and successful parent suspend/resume remain
-  unimplemented; the RFC remains Draft.
+  restartable cancellation/settlement scans that pass unresolved items. Migration
+  22 adds dedicated sealed Join registration with atomic lease release, bounded
+  ready discovery, immutable terminal publication/wakeup and pending-result-bound
+  once-only consumption, including race/rollback/upgrade/replay qualification.
+  Automatic Graph Driver Join control/context, publication coordination,
+  deadline/failure close policy and automatic parent suspend/resume remain
+  unimplemented; the complete profile stays gated and the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,

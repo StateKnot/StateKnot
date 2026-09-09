@@ -22,7 +22,10 @@ struct PreparationFixture {
 }
 
 async fn setup(store: &PostgresStore, name: &str) -> PreparationFixture {
-    let tenant_id = tenant(name);
+    setup_in_tenant(store, tenant(name)).await
+}
+
+async fn setup_in_tenant(store: &PostgresStore, tenant_id: TenantId) -> PreparationFixture {
     let child_driver = driver_fixture();
     let child = durable_admission_request(
         &child_driver,

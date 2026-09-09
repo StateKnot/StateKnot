@@ -1419,6 +1419,8 @@ pub struct PendingNodeResultIntent {
     state_change: NodeStateChange,
     control: NodeControl,
     bindings: NodeInvocationBindings,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    child_join: Option<Box<crate::ChildRunJoinHead>>,
     intent_digest: Digest,
 }
 
@@ -1442,12 +1444,14 @@ impl PendingNodeResultIntent {
             state_change: &state_change,
             control: &control,
             bindings: &bindings,
+            child_join: None,
         })?;
         Ok(Self {
             activation,
             state_change,
             control,
             bindings,
+            child_join: None,
             intent_digest,
         })
     }
@@ -1496,6 +1500,32 @@ impl PendingNodeResultIntent {
         &self.bindings
     }
 
+    /// Binds a published child Join to this exact logical result. The store must
+    /// authenticate publication and atomically record consumption at commit.
+    pub fn with_child_join(
+        mut self,
+        head: crate::ChildRunJoinHead,
+    ) -> Result<Self, PendingNodeResultIntentError> {
+        if head.activation() != &self.activation {
+            return Err(PendingNodeResultIntentError::ChildJoinScope);
+        }
+        self.child_join = Some(Box::new(head));
+        self.intent_digest = compute_intent_digest(&PendingNodeResultIntentDigestWire {
+            activation: &self.activation,
+            state_change: &self.state_change,
+            control: &self.control,
+            bindings: &self.bindings,
+            child_join: self.child_join.as_deref(),
+        })?;
+        Ok(self)
+    }
+
+    /// Returns dedicated child evidence, independent of external invocations.
+    #[must_use]
+    pub fn child_join(&self) -> Option<&crate::ChildRunJoinHead> {
+        self.child_join.as_deref()
+    }
+
     /// Returns the semantic idempotency fingerprint.
     #[must_use]
     pub const fn intent_digest(&self) -> Digest {
@@ -1540,18 +1570,28 @@ impl<'de> Deserialize<'de> for PendingNodeResultIntent {
             state_change: NodeStateChange,
             control: NodeControl,
             bindings: NodeInvocationBindings,
+            #[serde(default)]
+            child_join: Option<crate::ChildRunJoinHead>,
             intent_digest: Digest,
         }
 
         let wire = Wire::deserialize(deserializer)?;
-        Self::restore(
+        let mut result = Self::new(
             wire.activation,
             wire.state_change,
             wire.control,
             wire.bindings,
-            wire.intent_digest,
         )
-        .map_err(de::Error::custom)
+        .map_err(de::Error::custom)?;
+        if let Some(head) = wire.child_join {
+            result = result.with_child_join(head).map_err(de::Error::custom)?;
+        }
+        if result.intent_digest != wire.intent_digest {
+            return Err(de::Error::custom(
+                PendingNodeResultIntentError::DigestMismatch,
+            ));
+        }
+        Ok(result)
     }
 }
 
@@ -1559,6 +1599,9 @@ impl<'de> Deserialize<'de> for PendingNodeResultIntent {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum PendingNodeResultIntentError {
+    /// Child publication belongs to another logical activation.
+    #[error("pending node result child Join activation mismatch")]
+    ChildJoinScope,
     /// An external invocation reference crossed the node activation boundary.
     #[error("pending node result has invalid invocation bindings: {source}")]
     Bindings {
@@ -1870,6 +1913,14 @@ fn validate_result_shape(
     journal_head: &JournalHead,
 ) -> Result<(), PendingNodeResultError> {
     validate_basic_result_scope(intent.activation(), fence, journal_head)?;
+    if let Some(join) = intent.child_join() {
+        if journal_head.sequence() <= join.journal_head().sequence() {
+            return Err(PendingNodeResultError::JournalNotAfterBinding);
+        }
+        if journal_head.recorded_at() < join.journal_head().recorded_at() {
+            return Err(PendingNodeResultError::BindingClockRegression);
+        }
+    }
     for binding in intent.bindings().iter() {
         if journal_head.sequence() <= binding.journal_head().sequence() {
             return Err(PendingNodeResultError::JournalNotAfterBinding);
@@ -1920,6 +1971,8 @@ struct PendingNodeResultIntentDigestWire<'a> {
     state_change: &'a NodeStateChange,
     control: &'a NodeControl,
     bindings: &'a NodeInvocationBindings,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    child_join: Option<&'a crate::ChildRunJoinHead>,
 }
 
 #[derive(Serialize)]

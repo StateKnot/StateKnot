@@ -24,6 +24,7 @@ mod budget_reservation;
 mod canonical;
 mod capability;
 mod checkpoint;
+mod child_join;
 mod child_run;
 mod child_run_admission;
 mod child_run_budget;
@@ -110,6 +111,9 @@ pub use checkpoint::{
     CheckpointLineageError, CheckpointLineageVerifier, CheckpointState, CheckpointStateError,
     CheckpointWrite, CheckpointWriteError, GraphReference, NodeId, NodeIdError, ReadyNodes,
     ReadyNodesError, Superstep, SuperstepError,
+};
+pub use child_join::{
+    ChildRunJoinBinding, ChildRunJoinError, ChildRunJoinHead, ChildRunJoinRequest,
 };
 pub use child_run::{ChildRunKey, ChildRunKeyError, ChildRunSlot};
 pub use child_run_admission::{ChildRunAdmissionIntent, ChildRunAdmissionIntentError};
