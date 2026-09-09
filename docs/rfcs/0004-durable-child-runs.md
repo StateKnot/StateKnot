@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — core contracts, declarations, preparation, PostgreSQL ownership/admission/settlement, cancellation propagation and bounded runtime reconciliation implemented; dedicated Join and successful suspend/resume unshipped
+- Status: Draft — core contracts, declarations, preparation, PostgreSQL ownership/admission/settlement, cancellation reconciliation and dedicated Join transactions implemented; automatic Graph Driver Join control and suspend/resume unshipped
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -124,12 +124,17 @@ or an arbitrary user signal. A binding includes child admission digest,
 terminal event identity/digest, terminal outcome digest, and verified usage.
 It is immutable and unique per owned child.
 
-Join registration and terminal notification serialize on the ownership
-record. Registration checks already committed terminal evidence before
-suspending; terminal publication records a durable notification even if no
-waiter exists yet. A reconciler can reconstruct missing delivery from the
-binding without executing the child again. Parent resumption and consumption
-use the existing revision/fence checks and are idempotent.
+Migration 22 seals the complete nonempty set for one activation and commits
+registration with parent lease release under tree → parent → child locks.
+Registration verifies existing ownership/terminal evidence; publication is a
+separate transaction even if children already settled. Indexed discovery uses
+the durable registration and all-settled predicate, so completion before or
+after registration cannot lose a notification. Publication commits immutable
+terminal bindings with scheduler wakeup. Pending results must carry the exact
+published head and consume it atomically with physical completion. Missing or
+changed evidence blocks checkpoint/success; ordinary no-Join result bytes stay
+unchanged. A host must explicitly run bounded publication scans. Automatic
+Graph Driver Join control/context and publication integration are not implemented.
 
 For multiple children, reduction order is declared slot order, never wall
 clock completion order. A terminal child is not a completed parent node:
@@ -214,13 +219,18 @@ paths, not only the new API. Establish and test a lock order before implementing
 multi-run writes. Prefer durable delivery between child completion and parent
 settlement to taking ancestor locks inside a child's terminal transaction.
 
-Published migrations through 20 remain unchanged. Migration 20 implements
+Published migrations through 21 remain unchanged. Migration 20 implements
 ownership/admission/accounting and capability version 1, including populated
 v19 upgrade checks. Migration 21 adds cancellation evidence, indexed bounded
 discovery, immutable receipts, catalog/function verification, drain claim guards
 and populated v20 cancellation backfill. Old workers cannot bypass closure or
 new-lease drain guards; process configuration alone is not the compatibility
-boundary. Neither migration introduces a placeholder successful Join.
+boundary. Migration 22 adds dedicated Join registration, publication and unique
+pending-result consumption, a separate mixed-binary capability guard, exact
+catalog/function verification and populated v21 upgrade without synthetic joins.
+Failed/cancelled parents retain unconsumed successful-Join history while central
+child settlement guards still protect closure; automatic close intent remains
+a separate gate.
 
 Rollback after child data exists means disabling new spawn and draining with
 compatible workers, not dropping ownership tables. Retention cannot remove
@@ -293,10 +303,10 @@ root-only data. Preserve all static-composition and root-run regression tests.
 
 ## Unresolved questions / acceptance blockers
 
-- Exact SQL representations and dedicated join control, with executable
-  recovery evidence. Version-one graph declarations and an offline Rust example
-  and PostgreSQL ancestor-limit enforcement are implemented; dedicated Join
-  execution and recovery remain required.
+- Dedicated Graph Driver Join control/context and automatic publication, with
+  executable suspend/resume recovery evidence. The exact SQL registration,
+  immutable publication, atomic lease release/wakeup and result-consumption
+  boundary is implemented and tested; full automatic execution remains required.
 - Concrete transactional reservation/settlement rules compatible with existing
   budget and ledger contracts, including parent direct work and unknown usage.
   Scalar/deadline/currency narrowing and cumulative arithmetic are implemented;

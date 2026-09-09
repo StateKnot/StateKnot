@@ -76,6 +76,6 @@ pub use model::{
 };
 pub use store::{
     ChildCancellationDelivery, ChildCancellationOutcome, ChildCancellationReceipt,
-    ChildCancellationRecord, ChildRunCommitOutcome, ChildRunRecord, ChildRunSettlementOutcome,
-    ClaimedRunRecovery, PostgresStore,
+    ChildCancellationRecord, ChildJoinCommitOutcome, ChildJoinRecord, ChildRunCommitOutcome,
+    ChildRunRecord, ChildRunSettlementOutcome, ClaimedRunRecovery, PostgresStore,
 };

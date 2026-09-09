@@ -55,6 +55,9 @@ pub enum ConfigurationError {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum StoreError {
+    /// Missing, mismatched or unconsumed dedicated child Join evidence.
+    #[error("child Join evidence is unavailable or conflicts with this result")]
+    ChildJoinRejected,
     /// No durable parent cancellation witness owns this child key.
     #[error("child cancellation request was not found")]
     ChildCancellationNotFound,
@@ -566,6 +569,7 @@ impl StoreError {
             Some("SKC03") => return Self::ChildBudgetObservationRequired,
             Some("SKC04") => return Self::IncompleteChildAccounting,
             Some("SKC06") => return Self::RunNotRunnable,
+            Some("SKC07") => return Self::ChildJoinRejected,
             _ => {}
         }
         Self::Database { operation, source }

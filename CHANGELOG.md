@@ -14,6 +14,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- PostgreSQL migration 22 and bounded core Join contracts: sealed complete child
+  membership, atomic registration/parent lease release, indexed ready discovery,
+  exact terminal publication/scheduler wakeup and once-only parent-result
+  consumption. Adds mixed-binary/closure guards, canonical evidence verification,
+  populated v21 upgrade, concurrent/rollback/cancellation/replay tests and bilingual
+  operations guidance. Existing no-Join result bytes and migrations 1–21 stay
+  unchanged. Automatic Graph Driver Join control/context and publication worker,
+  failure-close/deadline policy and full-profile enablement remain unshipped.
+
 - PostgreSQL migration 21 and a bounded `DurableChildReconciler`: atomic parent
   cancellation capture/backfill, child request/real-wait cleanup/descendant queue
   delivery with immutable recovery receipts, and restartable cancellation and

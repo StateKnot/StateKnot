@@ -55,6 +55,13 @@ async fn populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutabl
         .provenance()
         .run_id();
     // Only this isolated fixture is downgraded. Retain v20 ownership and live writer.
+    for sql in
+        include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_child_joins.sql")
+            .split(';')
+            .filter(|sql| !sql.trim().is_empty())
+    {
+        query(sql).execute(&pool).await.unwrap();
+    }
     for sql in [
         "DROP TRIGGER runs_child_cancellation_claim_guard ON stateknot.runs",
         "DROP FUNCTION stateknot.guard_child_cancellation_claim()",

@@ -9,6 +9,9 @@ use crate::{
 };
 use proptest::prelude::*;
 
+#[path = "child_join_tests.rs"]
+mod join;
+
 fn account(value: &Fixture, graph: &CompiledGraph) -> ChildRunBudgetAccount {
     ChildRunBudgetAccount::new(
         &value.parent,

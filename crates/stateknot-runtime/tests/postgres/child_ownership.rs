@@ -9,6 +9,9 @@ mod tree;
 #[path = "child_cancellation.rs"]
 mod cancellation;
 
+#[path = "child_join.rs"]
+mod join;
+
 use super::*;
 use sqlx_core::{query::query, query_scalar::query_scalar};
 use stateknot_core::{AgentAdmission, JournalHead, NodeAttemptStartHead, RunFailure};
@@ -77,6 +80,10 @@ async fn started(store: &PostgresStore, name: &str) -> Started {
 
 async fn started_inner(store: &PostgresStore, name: &str) -> Started {
     let fixture = Box::pin(setup(store, name)).await;
+    Box::pin(started_fixture(store, fixture)).await
+}
+
+async fn started_fixture(store: &PostgresStore, fixture: PreparationFixture) -> Started {
     store
         .register_graph_definition(
             fixture

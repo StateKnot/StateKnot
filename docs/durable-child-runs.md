@@ -7,8 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 
 Status: core contracts, graph-pinned declarations, read-only preparation, and
 PostgreSQL atomic ownership/admission, reservation, terminal settlement and
-durable cancellation propagation with bounded runtime reconciliation are
-implemented. Automatic child Join and successful parent resumption
+durable cancellation propagation with bounded runtime reconciliation, and the
+dedicated PostgreSQL Join registration/publication/consumption boundary are
+implemented. Automatic child Join control in the Graph Driver and parent resumption
 are **not yet implemented**; this is not an end-to-end child execution tutorial. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
 [static shared-state composition](graph-composition.md) for the distinction.
@@ -78,7 +79,8 @@ Unsettled owned children block **all** parent terminal transitions and checkpoin
 advancement. This does not synthesize a Join, timer, or user interrupt. Cancelling
 an ancestor blocks fresh descendant admission; migration 21 and the reconciler
 below deliver cancellation. Dedicated Join and successful parent suspend/resume
-remain unshipped. Do not expose this storage API as an end-to-end child execution
+require automatic driver integration. Migration 22 supplies their storage boundary
+below. Do not expose this storage API as an end-to-end child execution
 service without those coordinators.
 
 Upgrade with the existing explicit `PostgresStore::migrate_database` workflow
@@ -149,9 +151,79 @@ spawn/cancel, final-receipt rollback, real timer abandonment, three-level
 leaf-to-root accounting, restart/cursor recovery past an unpriced first page,
 populated v20 upgrade, immutable evidence and replaced/disabled guard detection.
 Automatic deadline-to-cancel policy, failure-close intent, dedicated terminal
-Join bindings/wakeup and successful parent suspend/resume are still required
+driver Join coordination and successful automatic parent suspend/resume are still required
 before enabling the complete durable-child execution profile. Do not bypass
 guards or zero unknown costs to force closure.
+
+## Dedicated Join transaction boundary (migration 22)
+
+This is a trusted-host storage API, **not an automatic Graph Driver Join node**.
+The existing `DurableChildReconciler` continues to deliver cancellation and settle
+accounting; it does not call Join publication. A host using these low-level APIs
+must explicitly schedule publication, stop dispatch after registration, load and
+validate child output schemas, and bind publication to the parent result. The
+automatic executor/context/reconciler integration remains a release gate.
+
+`ChildRunJoinRequest::new` seals a nonempty set of at most 64 ownership keys for
+one exact logical activation. Order is case-sensitive slot order, not completion
+order. Version 1, activation identity and domain-separated digest are verified on
+restore; noncanonical order, duplicates and cross-activation keys are rejected.
+Canonical requests/bindings are bounded at 4 MiB and contain no child outputs.
+
+1. `register_child_join(request, physical_start, worker_append)` requires the
+   **complete admitted set**, current checkpoint, unfinished node start, exact live
+   fence, and no other unfinished node on that fence or unsettled direct invocation.
+   It locks tree → parent → children, records `child-join-registered`, seals further
+   spawning for that activation and releases the parent lease atomically. The
+   unfinished attempt is retained; no fake failure, zero-usage completion, timer or
+   interrupt is created. The caller must immediately stop work on that fence.
+2. The parent remains lifecycle `Active`, with a dedicated pending-Join predicate.
+   Runnable discovery and direct lease claims exclude it until publication. Child
+   workers use their own leases. Child terminal capture and priced settlement still
+   use migrations 20/21; settlement alone does not consume or publish Join.
+3. `pending_child_joins_after(tenant, cursor)` returns at most 16 unquarantined Active
+   parents with fully settled membership. Continue after the last request even if
+   that item's publication fails; restart from `None` after a full sweep or process
+   restart. Retained completed rows keep cursors valid. Unknown price cannot wake a
+   parent, and quarantined or cancelled parents are not published. Hosts own finite
+   retries, tenant fairness, per-item error reporting and scan cadence. A scan is
+   not a reservation, so concurrent publishers must tolerate idempotent recovery.
+4. `publish_child_join(request, control_plane_append)` verifies every exact owned
+   admission, immutable terminal lifecycle/journal and settlement in canonical slot
+   order. `child-join-published`, its compact binding and scheduler wakeup commit
+   together. Registration before/after child completion uses the same durable
+   predicate; no destructive dequeue can lose a wakeup. Publication does not add
+   usage or merge private outputs. The parent publication sequence is compared only
+   with parent events, never with child-local sequence numbers.
+5. After claiming a new lease, the host recovers the logical activation, reads
+   `load_child_join`, validates child outputs against pinned schemas, and computes
+   its own state contribution. Attach the exact `record.head()` using
+   `PendingNodeResultIntent::with_child_join`. `succeed_node_attempt` authenticates
+   publication and atomically commits the pending result, physical completion and
+   unique Join consumption. Missing/substituted evidence is rejected. Lost ACKs
+   recover original identities; reading or publishing does not consume a result.
+
+Unconsumed registrations block checkpoint advancement and successful parent
+closure, including older/low-level writers. Cancellation bypasses the successful
+wait gate but still drains and accounts for children before confirmation. A failed
+or cancelled parent retains the unconsumed Join history; no success consumption is
+fabricated. Failure-close and deadline-driven cancellation policies remain unshipped.
+
+Ordinary pending-result bytes/digests are unchanged when `child_join` is absent;
+the optional evidence is part of semantic result identity when present. Published
+migrations 1–21 are unchanged. Migration 22 does **not** invent Join registrations
+for existing children or settlements. A separate transaction capability setting
+fences pre-Join writers on registered parents. Startup checks exact columns,
+constraints, live indexes, enabled triggers and function bodies. These settings
+remain mixed-binary guards for a trusted pool, not SQL-user authentication.
+
+Qualification includes complete membership, reversed sibling completion,
+concurrent registration/publication, registration-versus-terminal races, three
+final-write rollbacks, lost-ACK recovery, real independently leased child graph
+success, cancellation without fake consumption, unpriced-prefix pagination,
+populated v21 upgrade, guard/catalog tampering, and recreated-registry checkpoint
+replay reusing a previously committed joined result. This does not yet demonstrate
+an executor that automatically suspends and resumes using a Join control output.
 
 ## Run the offline contract example
 
@@ -383,8 +455,8 @@ after parent cancellation, and refusal of old/nonmatching checkpoints after
 the ordinary graph driver has committed a real noninitial checkpoint. These
 tests do not establish atomic child execution or budget settlement.
 
-Before enabling automatic durable children, finish dedicated Join bindings,
-lease-releasing successful parent suspension/resumption, deadline/failure close
-policy, registry recreation and end-to-end fault qualification. Durable
-cancellation delivery/settlement is implemented above. The website must not
+Before enabling automatic durable children, integrate dedicated Graph Driver
+Join control/context and publication coordination, then qualify automatic parent
+suspension/resumption, deadline/failure close policy and end-to-end recovery.
+Durable Join storage and cancellation delivery/settlement are implemented above. The website must not
 advertise the full capability until those gates pass.

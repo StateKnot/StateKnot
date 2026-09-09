@@ -1,0 +1,413 @@
+{
+  "columns": [
+    [
+      "child_run_join_bindings",
+      "tenant_id",
+      "text",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "parent_run_id",
+      "uuid",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "activation_digest",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "binding_bytes",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "binding_checksum",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "head_bytes",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "journal_sequence",
+      "bigint",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "journal_event_id",
+      "uuid",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "journal_recorded_at",
+      "timestamp(6) with time zone",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "journal_digest",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_join_bindings",
+      "ready_at",
+      "timestamp(6) with time zone",
+      true
+    ],
+    [
+      "child_run_join_consumptions",
+      "tenant_id",
+      "text",
+      true
+    ],
+    [
+      "child_run_join_consumptions",
+      "parent_run_id",
+      "uuid",
+      true
+    ],
+    [
+      "child_run_join_consumptions",
+      "activation_digest",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_join_consumptions",
+      "journal_sequence",
+      "bigint",
+      true
+    ],
+    [
+      "child_run_join_consumptions",
+      "consumed_at",
+      "timestamp(6) with time zone",
+      true
+    ],
+    [
+      "child_run_joins",
+      "tenant_id",
+      "text",
+      true
+    ],
+    [
+      "child_run_joins",
+      "parent_run_id",
+      "uuid",
+      true
+    ],
+    [
+      "child_run_joins",
+      "activation_digest",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_joins",
+      "request_digest",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_joins",
+      "request_bytes",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_joins",
+      "request_checksum",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_joins",
+      "base_checkpoint_id",
+      "uuid",
+      true
+    ],
+    [
+      "child_run_joins",
+      "graph_namespace",
+      "text",
+      true
+    ],
+    [
+      "child_run_joins",
+      "node_id",
+      "text",
+      true
+    ],
+    [
+      "child_run_joins",
+      "node_attempt_id",
+      "uuid",
+      true
+    ],
+    [
+      "child_run_joins",
+      "journal_sequence",
+      "bigint",
+      true
+    ],
+    [
+      "child_run_joins",
+      "journal_event_id",
+      "uuid",
+      true
+    ],
+    [
+      "child_run_joins",
+      "journal_recorded_at",
+      "timestamp(6) with time zone",
+      true
+    ],
+    [
+      "child_run_joins",
+      "journal_digest",
+      "bytea",
+      true
+    ],
+    [
+      "child_run_joins",
+      "queued_at",
+      "timestamp(6) with time zone",
+      true
+    ],
+    [
+      "child_run_joins",
+      "ready_at",
+      "timestamp(6) with time zone",
+      false
+    ],
+    [
+      "child_run_joins",
+      "consumed_at",
+      "timestamp(6) with time zone",
+      false
+    ]
+  ],
+  "indexes": [
+    [
+      "child_run_join_bindings",
+      "CREATE UNIQUE INDEX child_run_join_bindings_pkey ON stateknot.child_run_join_bindings USING btree (tenant_id, parent_run_id, activation_digest)",
+      true,
+      true,
+      true
+    ],
+    [
+      "child_run_join_consumptions",
+      "CREATE UNIQUE INDEX child_run_join_consumptions_pkey ON stateknot.child_run_join_consumptions USING btree (tenant_id, parent_run_id, activation_digest)",
+      true,
+      true,
+      true
+    ],
+    [
+      "child_run_joins",
+      "CREATE INDEX child_run_joins_pending ON stateknot.child_run_joins USING btree (tenant_id, queued_at, parent_run_id, activation_digest) WHERE (ready_at IS NULL)",
+      true,
+      true,
+      true
+    ],
+    [
+      "child_run_joins",
+      "CREATE UNIQUE INDEX child_run_joins_activation_unique ON stateknot.child_run_joins USING btree (tenant_id, parent_run_id, base_checkpoint_id, graph_namespace, node_id)",
+      true,
+      true,
+      true
+    ],
+    [
+      "child_run_joins",
+      "CREATE UNIQUE INDEX child_run_joins_pkey ON stateknot.child_run_joins USING btree (tenant_id, parent_run_id, activation_digest)",
+      true,
+      true,
+      true
+    ],
+    [
+      "child_run_joins",
+      "CREATE UNIQUE INDEX child_run_joins_request_unique ON stateknot.child_run_joins USING btree (tenant_id, parent_run_id, request_digest)",
+      true,
+      true,
+      true
+    ]
+  ],
+  "triggers": [
+    [
+      "child_join_bindings_immutable",
+      "CREATE TRIGGER child_join_bindings_immutable BEFORE DELETE OR UPDATE ON stateknot.child_run_join_bindings FOR EACH ROW EXECUTE FUNCTION stateknot.guard_child_join_evidence()",
+      "O"
+    ],
+    [
+      "child_join_consumptions_immutable",
+      "CREATE TRIGGER child_join_consumptions_immutable BEFORE DELETE OR UPDATE ON stateknot.child_run_join_consumptions FOR EACH ROW EXECUTE FUNCTION stateknot.guard_child_join_evidence()",
+      "O"
+    ],
+    [
+      "child_join_spawn_guard",
+      "CREATE TRIGGER child_join_spawn_guard BEFORE INSERT ON stateknot.child_run_ownership FOR EACH ROW EXECUTE FUNCTION stateknot.guard_child_join_spawn()",
+      "O"
+    ],
+    [
+      "child_joins_immutable",
+      "CREATE TRIGGER child_joins_immutable BEFORE DELETE OR UPDATE ON stateknot.child_run_joins FOR EACH ROW EXECUTE FUNCTION stateknot.guard_child_join_evidence()",
+      "O"
+    ],
+    [
+      "pending_results_child_join_consume",
+      "CREATE TRIGGER pending_results_child_join_consume AFTER INSERT ON stateknot.pending_node_results FOR EACH ROW EXECUTE FUNCTION stateknot.consume_child_join_result()",
+      "O"
+    ],
+    [
+      "runs_child_join_guard",
+      "CREATE TRIGGER runs_child_join_guard BEFORE UPDATE ON stateknot.runs FOR EACH ROW EXECUTE FUNCTION stateknot.guard_child_join_run()",
+      "O"
+    ]
+  ],
+  "constraints": [
+    [
+      "child_run_join_bindings",
+      "child_run_join_bindings_binding_bytes_check",
+      "CHECK (((octet_length(binding_bytes) >= 1) AND (octet_length(binding_bytes) <= 4194304)))",
+      true,
+      false
+    ],
+    [
+      "child_run_join_bindings",
+      "child_run_join_bindings_check",
+      "CHECK ((binding_checksum = sha256(binding_bytes)))",
+      true,
+      false
+    ],
+    [
+      "child_run_join_bindings",
+      "child_run_join_bindings_event_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, journal_sequence, journal_event_id, journal_recorded_at, journal_digest) REFERENCES stateknot.run_events(tenant_id, run_id, sequence, event_id, recorded_at, event_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_join_bindings",
+      "child_run_join_bindings_head_bytes_check",
+      "CHECK (((octet_length(head_bytes) >= 1) AND (octet_length(head_bytes) <= 65536)))",
+      true,
+      false
+    ],
+    [
+      "child_run_join_bindings",
+      "child_run_join_bindings_pkey",
+      "PRIMARY KEY (tenant_id, parent_run_id, activation_digest)",
+      true,
+      false
+    ],
+    [
+      "child_run_join_bindings",
+      "child_run_join_bindings_request_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, activation_digest) REFERENCES stateknot.child_run_joins(tenant_id, parent_run_id, activation_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_join_consumptions",
+      "child_run_join_consumptions_binding_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, activation_digest) REFERENCES stateknot.child_run_join_bindings(tenant_id, parent_run_id, activation_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_join_consumptions",
+      "child_run_join_consumptions_pkey",
+      "PRIMARY KEY (tenant_id, parent_run_id, activation_digest)",
+      true,
+      false
+    ],
+    [
+      "child_run_join_consumptions",
+      "child_run_join_consumptions_result_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, journal_sequence) REFERENCES stateknot.pending_node_results(tenant_id, run_id, journal_sequence) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_activation_digest_check",
+      "CHECK ((octet_length(activation_digest) = 32))",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_activation_unique",
+      "UNIQUE (tenant_id, parent_run_id, base_checkpoint_id, graph_namespace, node_id)",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_check",
+      "CHECK ((request_checksum = sha256(request_bytes)))",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_clock_valid",
+      "CHECK ((((ready_at IS NULL) OR (ready_at >= queued_at)) AND ((consumed_at IS NULL) OR ((ready_at IS NOT NULL) AND (consumed_at >= ready_at)))))",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_event_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, journal_sequence, journal_event_id, journal_recorded_at, journal_digest) REFERENCES stateknot.run_events(tenant_id, run_id, sequence, event_id, recorded_at, event_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_node_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, node_attempt_id) REFERENCES stateknot.node_attempts(tenant_id, run_id, attempt_id) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_pkey",
+      "PRIMARY KEY (tenant_id, parent_run_id, activation_digest)",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_request_bytes_check",
+      "CHECK (((octet_length(request_bytes) >= 1) AND (octet_length(request_bytes) <= 4194304)))",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_request_digest_check",
+      "CHECK ((octet_length(request_digest) = 32))",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_request_unique",
+      "UNIQUE (tenant_id, parent_run_id, request_digest)",
+      true,
+      false
+    ]
+  ]
+}
