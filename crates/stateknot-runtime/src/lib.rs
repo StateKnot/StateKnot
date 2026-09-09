@@ -20,6 +20,7 @@ mod agent_loop;
 mod agent_service;
 mod agent_typed;
 mod cancellation_schema;
+mod child_reconciler;
 mod driver;
 mod driver_schema;
 mod durable_admission;
@@ -35,6 +36,15 @@ mod registry;
 mod schema;
 mod service_schema;
 mod tenant_scheduler;
+
+pub use child_reconciler::{
+    ChildReconcilerBuildError, ChildReconciliationCommit, ChildReconciliationCursor,
+    ChildReconciliationItem, ChildReconciliationKind, ChildReconciliationTick,
+    DurableChildReconciler, DurableChildReconcilerOptions,
+    STANDARD_CHILD_RECONCILIATION_EVENT_SCHEMA_ID,
+    register_standard_child_reconciliation_event_schema,
+    standard_child_reconciliation_event_schema,
+};
 
 pub use admission_schema::{
     STANDARD_AGENT_ADMISSION_EVENT_SCHEMA_ID, StandardAgentAdmissionSchemaError,

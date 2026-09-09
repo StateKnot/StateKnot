@@ -6,6 +6,9 @@
 #[path = "child_tree.rs"]
 mod tree;
 
+#[path = "child_cancellation.rs"]
+mod cancellation;
+
 use super::*;
 use sqlx_core::{query::query, query_scalar::query_scalar};
 use stateknot_core::{AgentAdmission, JournalHead, NodeAttemptStartHead, RunFailure};

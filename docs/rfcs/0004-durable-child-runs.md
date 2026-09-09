@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — core contracts, declarations, preparation, PostgreSQL ownership/admission/settlement and direct-work guards implemented; automatic Join/cancel/resume unshipped
+- Status: Draft — core contracts, declarations, preparation, PostgreSQL ownership/admission/settlement, cancellation propagation and bounded runtime reconciliation implemented; dedicated Join and successful suspend/resume unshipped
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -149,6 +149,15 @@ mechanism. Leases fence worker writes, while the durable close intent survives
 worker loss. Concurrent spawn and close serialize on the parent lifecycle:
 spawn either commits first and becomes owned cancellation work, or is refused.
 
+Implemented in migration 21: every cancellation writer captures immediate-child
+queue witnesses; delivery commits the request, real-wait abandonment, descendant
+queue work and immutable receipt together. The bounded runtime reconciler drives
+delivery and terminal settlement without dispatching external work. New leases
+for cancelling parents are blocked until all children settle; existing cleanup
+leases remain renewable. This drain gate does not implement dedicated successful
+Join registration/wakeup. Automatic failure-close intent and deadline-triggered
+cancellation remain acceptance blockers, not implicit behavior of this worker.
+
 Effective child deadlines cannot exceed the parent deadline. Deadline expiry
 initiates cancellation but is not evidence that external side effects stopped.
 Operators must reconcile uncertain invocations using existing recovery rules;
@@ -205,12 +214,13 @@ paths, not only the new API. Establish and test a lock order before implementing
 multi-run writes. Prefer durable delivery between child completion and parent
 settlement to taking ancestor locks inside a child's terminal transaction.
 
-Current migration 19 remains unchanged. Do not ship a placeholder migration.
-The eventual migration must include catalog verification, indexes for bounded
-pending-work scans, corruption checks, and upgrade tests from migration 19.
-Old workers must be prevented from claiming child-enabled graphs or bypassing
-close guards. Mixed-version safety needs a durable capability gate; process
-configuration alone is not sufficient.
+Published migrations through 20 remain unchanged. Migration 20 implements
+ownership/admission/accounting and capability version 1, including populated
+v19 upgrade checks. Migration 21 adds cancellation evidence, indexed bounded
+discovery, immutable receipts, catalog/function verification, drain claim guards
+and populated v20 cancellation backfill. Old workers cannot bypass closure or
+new-lease drain guards; process configuration alone is not the compatibility
+boundary. Neither migration introduces a placeholder successful Join.
 
 Rollback after child data exists means disabling new spawn and draining with
 compatible workers, not dropping ownership tables. Retention cannot remove
@@ -292,10 +302,12 @@ root-only data. Preserve all static-composition and root-run regression tests.
   Scalar/deadline/currency narrowing and cumulative arithmetic are implemented;
   the PostgreSQL adapter now enforces resource ownership and ancestor limits.
   Full automatic runtime coordination remains a separate gate.
-- End-to-end qualification of future Join/cancel writers against the current
-  central terminal guards and version-fenced store lock order.
-- Measured recovery/capacity thresholds and cancellation delivery qualification;
-  bounded terminal discovery and transactional topology limits are implemented.
+- End-to-end qualification of future Join/failure-close/deadline writers against
+  central terminal guards and the version-fenced store lock order.
+- Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
+  rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,
+  unpriced-prefix pagination and populated-upgrade tests; these do not measure
+  production capacity or qualify full child execution.
 
 This RFC is deliberately Draft until these decisions and executable evidence
 exist. It does not authorize advertising or enabling durable child runs.

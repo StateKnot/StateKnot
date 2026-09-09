@@ -55,6 +55,9 @@ pub enum ConfigurationError {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum StoreError {
+    /// No durable parent cancellation witness owns this child key.
+    #[error("child cancellation request was not found")]
+    ChildCancellationNotFound,
     /// A pre-child binary attempted to mutate a child-enabled run.
     #[error("compatible child runtime is required")]
     UnsupportedChildRuntime,
@@ -562,6 +565,7 @@ impl StoreError {
             Some("SKC02") => return Self::UnsettledChildRuns,
             Some("SKC03") => return Self::ChildBudgetObservationRequired,
             Some("SKC04") => return Self::IncompleteChildAccounting,
+            Some("SKC06") => return Self::RunNotRunnable,
             _ => {}
         }
         Self::Database { operation, source }

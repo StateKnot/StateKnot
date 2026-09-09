@@ -3,7 +3,7 @@
 
 use super::*;
 
-fn parent_graph(
+pub(super) fn parent_graph(
     child: &CompiledGraph,
     agent: &AgentDescriptor,
     name: &str,
@@ -39,7 +39,7 @@ fn parent_graph(
     .unwrap()
 }
 
-async fn root_admission(
+pub(super) async fn root_admission(
     store: &PostgresStore,
     fixture: &DriverFixture,
     tenant: TenantId,
@@ -91,7 +91,7 @@ async fn root_admission(
     .clone()
 }
 
-async fn spawn_below(
+pub(super) async fn spawn_below(
     store: &PostgresStore,
     parent: &StoredAgentAdmission,
     child: &DriverFixture,

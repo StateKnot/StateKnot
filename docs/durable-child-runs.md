@@ -6,8 +6,9 @@ SPDX-License-Identifier: Apache-2.0
 # Durable child runs: transactional storage and remaining runtime work
 
 Status: core contracts, graph-pinned declarations, read-only preparation, and
-PostgreSQL atomic ownership/admission, reservation and terminal settlement are
-implemented. Automatic child Join, cancel propagation and parent resumption
+PostgreSQL atomic ownership/admission, reservation, terminal settlement and
+durable cancellation propagation with bounded runtime reconciliation are
+implemented. Automatic child Join and successful parent resumption
 are **not yet implemented**; this is not an end-to-end child execution tutorial. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
 [static shared-state composition](graph-composition.md) for the distinction.
@@ -75,9 +76,10 @@ pins, physical node/checkpoint/journal anchors and settlement bindings.
 
 Unsettled owned children block **all** parent terminal transitions and checkpoint
 advancement. This does not synthesize a Join, timer, or user interrupt. Cancelling
-an ancestor blocks fresh descendant admission, but automatic cancellation
-delivery and parent suspend/resume are not installed yet. Do not expose this
-storage API as an end-to-end child execution service without those coordinators.
+an ancestor blocks fresh descendant admission; migration 21 and the reconciler
+below deliver cancellation. Dedicated Join and successful parent suspend/resume
+remain unshipped. Do not expose this storage API as an end-to-end child execution
+service without those coordinators.
 
 Upgrade with the existing explicit `PostgresStore::migrate_database` workflow
 before starting compatible workers. Migration 20 backfills capability version
@@ -87,6 +89,69 @@ Startup verifies migration checksums, required constraints/indexes/triggers and
 the installed guard function bodies. Once child evidence exists, rollback means
 stopping new spawns and draining/reconciling with compatible workers, not dropping
 the migration, deleting ownership, disabling guards or clearing reservations.
+
+## Durable cancellation and bounded reconciliation (migration 21)
+
+Every parent transition into `CancellationRequested` captures one immutable
+queue witness per unsettled immediate child in the **same transaction**. Spawn
+and cancellation serialize on the parent: a child either commits first and is
+queued, or is not admitted. Migration 21 also backfills previously cancelled
+parents with unsettled children. The upgrade witness may anchor a later audit
+event; it is not misrepresented as the original cancellation event. Migration
+20's capability version remains 1; no existing lifecycle or checkpoint wire
+shape changes. Startup additionally checks cancellation guards and their bodies.
+
+`deliver_child_cancellation` locks tree → parent → child and atomically commits
+the child request, abandonment of all real outstanding waits, next-level
+descendant queue work, and an immutable receipt. It never recursively locks a
+whole tree. Same ownership retries recover the first receipt, even with new
+candidate event IDs or stale heads. An already requested or terminal child
+keeps its original reason/outcome and journal head. Delivery **does not prove
+external work stopped**, confirm child termination, or invent budget usage.
+Execution workers must perform cooperative cleanup and retain unresolved
+provider effects until genuine terminal evidence is available.
+
+Cancelling parents with unsettled children are excluded from runnable discovery
+and cannot acquire a new lease, including via direct claim/supersession and
+older binaries. An existing lease can still renew or recover its lost ACK for
+cleanup. Once the last child settles, the parent becomes claimable for normal
+cancellation confirmation. This prevents draining parents from consuming the
+execution slots their children need; it is **not a successful child Join**.
+
+Run `DurableChildReconciler` alongside execution workers for each authorized
+tenant. Register `register_standard_child_reconciliation_event_schema` in the
+deployment's schema builder before freezing it. The schema is embedded, closed,
+digest-pinned, and loaded offline; its URL is an identity, not a requirement to
+fetch a hosted document. Audit payloads carry operation and ownership digest,
+not parent private diagnostics. See the compiled usage example in the runtime
+type's Rust documentation (`cargo test -p stateknot-runtime --doc --locked`).
+
+Each `tick(tenant, cursor, shutdown)` processes at most **16 cancellation and
+16 settlement keys**. Inspect every `items()` result and retain `cursor()` for
+the next tick, including after per-item errors. Failed/unpriced/quarantined
+items stay pending while the scan continues to later keys. Each lane restarts
+at the beginning after its full sweep. Recreating the reconciler does not lose
+durable work; after process loss start with `None`, not an event-time watermark.
+The cursor is tenant-bound and only an in-process continuation.
+
+Retries are finite (default 3 attempts, 25 ms initial backoff capped at 1 s),
+limited to transient database and journal/lifecycle CAS conflicts. Shutdown
+can interrupt an ambiguous commit; retry reads recover its immutable receipt
+or settlement. Queue-discovery errors fail the tick, while per-key errors are
+returned individually. Retry a failed tick from the retained cursor: earlier
+commits remain durable and cannot be charged twice. The host owns tick cadence,
+tenant fairness, error alerts, oldest-pending-age monitoring and authenticated
+operator repair. No transaction or lease is held between ticks. The hard scan
+limits are not a throughput or recovery-latency guarantee.
+
+Qualification covers PostgreSQL 16/17, concurrent duplicate delivery and
+spawn/cancel, final-receipt rollback, real timer abandonment, three-level
+leaf-to-root accounting, restart/cursor recovery past an unpriced first page,
+populated v20 upgrade, immutable evidence and replaced/disabled guard detection.
+Automatic deadline-to-cancel policy, failure-close intent, dedicated terminal
+Join bindings/wakeup and successful parent suspend/resume are still required
+before enabling the complete durable-child execution profile. Do not bypass
+guards or zero unknown costs to force closure.
 
 ## Run the offline contract example
 
@@ -319,6 +384,7 @@ the ordinary graph driver has committed a real noninitial checkpoint. These
 tests do not establish atomic child execution or budget settlement.
 
 Before enabling automatic durable children, finish dedicated Join bindings,
-lease-releasing parent suspension/resumption, durable cancel-and-join propagation,
-registry recreation and end-to-end fault qualification. The website must not
+lease-releasing successful parent suspension/resumption, deadline/failure close
+policy, registry recreation and end-to-end fault qualification. Durable
+cancellation delivery/settlement is implemented above. The website must not
 advertise the full capability until those gates pass.

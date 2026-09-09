@@ -311,9 +311,12 @@ from the repository.
   charges, with bounded integrity-checked wire snapshots and retained retry IDs.
   PostgreSQL migration 20 now adds atomic child admission/ownership, live ancestor
   limits, direct-work exclusion/digest fencing, immutable terminal notification
-  and once-only settlement, with mixed-worker closure guards. Dedicated Join,
-  durable cancellation propagation and automatic parent resume remain unimplemented;
-  the RFC remains Draft.
+  and once-only settlement, with mixed-worker closure guards. Migration 21 and
+  `DurableChildReconciler` now add atomic cancellation capture/delivery, real-wait
+  cleanup, immutable receipts, cancellation-drain lease exclusion and bounded
+  restartable cancellation/settlement scans that pass unresolved items. Dedicated
+  Join, deadline/failure close policy and successful parent suspend/resume remain
+  unimplemented; the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,
