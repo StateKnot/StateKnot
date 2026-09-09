@@ -75,7 +75,8 @@ pub use model::{
     WaitAbandonmentReason, WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 pub use store::{
-    ChildCancellationDelivery, ChildCancellationOutcome, ChildCancellationReceipt,
-    ChildCancellationRecord, ChildJoinCommitOutcome, ChildJoinRecord, ChildRunCommitOutcome,
-    ChildRunRecord, ChildRunSettlementOutcome, ClaimedRunRecovery, PostgresStore,
+    AgentDeadlineCancellationOutcome, AgentDeadlineCursor, ChildCancellationDelivery,
+    ChildCancellationOutcome, ChildCancellationReceipt, ChildCancellationRecord,
+    ChildJoinCommitOutcome, ChildJoinRecord, ChildRunCommitOutcome, ChildRunRecord,
+    ChildRunSettlementOutcome, ClaimedRunRecovery, PostgresStore,
 };

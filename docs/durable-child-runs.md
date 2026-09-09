@@ -10,7 +10,8 @@ PostgreSQL atomic ownership/admission, reservation, terminal settlement and
 durable cancellation propagation with bounded runtime reconciliation, and the
 dedicated PostgreSQL Join registration/publication/consumption boundary are
 implemented, together with opt-in Graph Driver suspension/resumption and bounded
-Join publication. **Automatic deadline/failure-close policy and full-profile
+Join publication and [database-clock deadline cancellation](agent-deadlines.md).
+**Automatic failure-close intent and full-profile
 qualification remain gated**; this is a trusted-host integration guide, not an
 enabled general child execution service. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
@@ -152,7 +153,8 @@ Qualification covers PostgreSQL 16/17, concurrent duplicate delivery and
 spawn/cancel, final-receipt rollback, real timer abandonment, three-level
 leaf-to-root accounting, restart/cursor recovery past an unpriced first page,
 populated v20 upgrade, immutable evidence and replaced/disabled guard detection.
-Automatic deadline-to-cancel policy, failure-close intent and full-profile qualification are still required
+Automatic deadline-to-cancel maintenance is now available in the
+[deadline guide](agent-deadlines.md). Failure-close intent and full-profile qualification are still required
 before enabling the complete durable-child execution profile. Do not bypass
 guards or zero unknown costs to force closure.
 
@@ -208,7 +210,8 @@ Unconsumed registrations block checkpoint advancement and successful parent
 closure, including older/low-level writers. Cancellation bypasses the successful
 wait gate but still drains and accounts for children before confirmation. A failed
 or cancelled parent retains the unconsumed Join history; no success consumption is
-fabricated. Failure-close and deadline-driven cancellation policies remain unshipped.
+fabricated. Automatic failure-close intent remains unshipped; deadline-driven
+cancellation now uses the separately scheduled maintenance lane.
 
 Ordinary pending-result bytes/digests are unchanged when `child_join` is absent;
 the optional evidence is part of semantic result identity when present. Published
@@ -534,6 +537,6 @@ the ordinary graph driver has committed a real noninitial checkpoint. These
 tests do not establish atomic child execution or budget settlement.
 
 Before enabling the full durable-child profile, implement and qualify automatic
-deadline/failure close policy and measure recovery/capacity. Opt-in Join execution,
+failure-close intent and measure recovery/capacity. Deadline cancellation, opt-in Join execution,
 publication and cancellation delivery/settlement are implemented above. The website must not
 advertise the full capability until those gates pass.

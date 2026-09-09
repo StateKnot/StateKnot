@@ -14,6 +14,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- PostgreSQL migration 23 and `DurableAgentDeadlineReconciler`: indexed admitted
+  root/child deadlines, immutable admission projection/backfill, exact startup
+  guards and bounded tenant-scoped scans. Expiry is rechecked with the database
+  clock under the Run lock; cancellation, wait abandonment and child queue capture
+  commit atomically. Includes real-store clock/race/rollback/restart/Join-drain,
+  quarantine, pagination, populated v22 upgrade tests and bilingual host guidance.
+  Migrations 1–22, existing wire contracts and audit schemas are unchanged. No
+  fabricated terminal usage, hard-kill/SLA claim, automatic failure-close intent
+  or general child-profile enablement.
+
 - Opt-in exclusive Graph Driver child Join suspension/resumption, schema-validated
   lazy slot access and automatic parent-result consumption, plus a tenant-scoped
   bounded `DurableChildJoinPublisher` with an independent pinned offline schema.

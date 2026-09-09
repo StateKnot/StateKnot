@@ -344,7 +344,7 @@ impl PostgresStore {
     }
 }
 
-async fn cancellation_waits(
+pub(super) async fn cancellation_waits(
     tx: &mut Transaction<'_, Postgres>,
     stored: &StoredRun,
 ) -> Result<Vec<DurableWait>, StoreError> {

@@ -55,6 +55,9 @@ pub enum ConfigurationError {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum StoreError {
+    /// Invalid tenant cursor or deadline cancellation audit construction.
+    #[error("Agent deadline request or scan scope is invalid")]
+    InvalidAgentDeadline,
     /// Missing, mismatched or unconsumed dedicated child Join evidence.
     #[error("child Join evidence is unavailable or conflicts with this result")]
     ChildJoinRejected,

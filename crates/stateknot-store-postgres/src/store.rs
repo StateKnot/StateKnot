@@ -63,6 +63,10 @@ pub use child_runs::{ChildRunCommitOutcome, ChildRunRecord, ChildRunSettlementOu
 mod child_joins;
 pub use child_joins::{ChildJoinCommitOutcome, ChildJoinRecord};
 
+#[path = "agent_deadlines.rs"]
+mod agent_deadlines;
+pub use agent_deadlines::{AgentDeadlineCancellationOutcome, AgentDeadlineCursor};
+
 #[path = "child_cancellation.rs"]
 mod child_cancellation;
 pub use child_cancellation::{
@@ -259,6 +263,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed("child run joins"),
             MigrationType::Simple,
             Cow::Borrowed(include_str!("../migrations/0022_child_run_joins.sql")),
+            false,
+        ),
+        Migration::new(
+            23,
+            Cow::Borrowed("agent deadlines"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0023_agent_deadlines.sql")),
             false,
         ),
     ]),
@@ -3090,6 +3101,7 @@ impl PostgresStore {
         child_runs::verify_schema(&self.pool).await?;
         child_cancellation::verify_schema(&self.pool).await?;
         child_joins::verify_schema(&self.pool).await?;
+        agent_deadlines::verify_schema(&self.pool).await?;
         Ok(())
     }
 

@@ -11,7 +11,7 @@ use stateknot_store_postgres::{ChildCancellationDelivery, ChildCancellationOutco
 #[path = "child_cancellation_upgrade.rs"]
 mod upgrade;
 
-fn reconciler(store: &PostgresStore) -> DurableChildReconciler {
+pub(super) fn reconciler(store: &PostgresStore) -> DurableChildReconciler {
     let mut builder = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
     register_standard_child_reconciliation_event_schema(&mut builder).unwrap();
     DurableChildReconciler::new(

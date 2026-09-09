@@ -12,6 +12,9 @@ mod cancellation;
 #[path = "child_join.rs"]
 mod join;
 
+#[path = "agent_deadlines.rs"]
+mod deadlines;
+
 use super::*;
 use sqlx_core::{query::query, query_scalar::query_scalar};
 use stateknot_core::{AgentAdmission, JournalHead, NodeAttemptStartHead, RunFailure};

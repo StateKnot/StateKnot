@@ -16,6 +16,7 @@
 #![forbid(unsafe_code)]
 
 mod admission_schema;
+mod agent_deadlines;
 mod agent_loop;
 mod agent_service;
 mod agent_typed;
@@ -42,6 +43,12 @@ pub use child_join::{
     ChildJoinPublicationCursor, ChildJoinPublicationItem, ChildJoinPublicationTick,
     DurableChildJoinPublisher, GraphChildJoin, STANDARD_CHILD_JOIN_EVENT_SCHEMA_ID,
     register_standard_child_join_event_schema, standard_child_join_event_schema,
+};
+
+pub use agent_deadlines::{
+    AgentDeadlineBuildError, AgentDeadlineItem, AgentDeadlineSweepCursor, AgentDeadlineTick,
+    DurableAgentDeadlineReconciler, STANDARD_AGENT_DEADLINE_EVENT_SCHEMA_ID,
+    register_standard_agent_deadline_event_schema, standard_agent_deadline_event_schema,
 };
 
 pub use child_reconciler::{

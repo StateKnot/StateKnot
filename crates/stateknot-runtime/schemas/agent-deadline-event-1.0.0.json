@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/agent-deadline-event/1.0.0",
+  "title": "StateKnot Agent deadline cancellation audit event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "admission_digest", "deadline", "failure_id"],
+  "properties": {
+    "operation": {"const": "agent_deadline_cancellation_requested"},
+    "admission_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "deadline": {"type": "string", "format": "date-time", "maxLength": 40},
+    "failure_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}
+  }
+}

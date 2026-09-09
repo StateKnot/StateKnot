@@ -1,0 +1,31 @@
+{
+  "index": [
+    "CREATE INDEX runs_due_agent_deadlines ON stateknot.runs USING btree (tenant_id, agent_deadline_at, run_id) WHERE ((agent_deadline_at IS NOT NULL) AND (lifecycle_status = ANY (ARRAY['pending'::text, 'active'::text, 'waiting'::text])))",
+    true,
+    true,
+    true
+  ],
+  "column": [
+    "timestamp(6) with time zone",
+    false,
+    "",
+    false
+  ],
+  "triggers": [
+    [
+      "agent_admissions_deadline_capture",
+      "CREATE TRIGGER agent_admissions_deadline_capture AFTER INSERT ON stateknot.agent_admissions FOR EACH ROW EXECUTE FUNCTION stateknot.capture_agent_deadline()",
+      "O"
+    ],
+    [
+      "runs_agent_deadline_guard",
+      "CREATE TRIGGER runs_agent_deadline_guard BEFORE INSERT OR UPDATE ON stateknot.runs FOR EACH ROW EXECUTE FUNCTION stateknot.guard_agent_deadline()",
+      "O"
+    ]
+  ],
+  "constraint": [
+    "CHECK (((agent_deadline_at IS NULL) OR isfinite(agent_deadline_at)))",
+    true,
+    false
+  ]
+}
