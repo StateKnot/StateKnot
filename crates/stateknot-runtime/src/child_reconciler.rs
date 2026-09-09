@@ -78,6 +78,12 @@ impl DurableChildReconcilerOptions {
     pub const fn maximum_mutation_attempts(self) -> u8 {
         self.maximum_mutation_attempts
     }
+
+    pub(crate) fn retry_delay(self, attempt: u8) -> Duration {
+        self.retry_initial_delay
+            .saturating_mul(1_u32 << (attempt - 1))
+            .min(Duration::from_secs(1))
+    }
 }
 impl Default for DurableChildReconcilerOptions {
     fn default() -> Self {

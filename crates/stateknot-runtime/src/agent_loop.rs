@@ -25,6 +25,9 @@ const MAX_MUTATION_RETRY_DELAY: Duration = Duration::from_secs(1);
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum AgentLoopOutcome {
+    /// Dedicated child Join registration released the parent lease. This is
+    /// neither a terminal failure nor a checkpointed timer/user wait.
+    ChildJoin(Box<stateknot_core::ChildRunJoinRequest>),
     /// Durable cancellation intent and exact cumulative usage were acknowledged.
     CancellationConfirmed(AppendOutcome),
     /// The graph suspended with a complete durable wait batch.
@@ -182,6 +185,7 @@ impl DurableAgentLoop {
                 not_before,
                 schedule,
             },
+            GraphDriveOutcome::ChildJoin(request) => AgentLoopOutcome::ChildJoin(request),
             GraphDriveOutcome::Yielded { release } => AgentLoopOutcome::Yielded { release },
             GraphDriveOutcome::Cancelled { release } => AgentLoopOutcome::Cancelled { release },
         };

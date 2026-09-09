@@ -9,8 +9,10 @@ Status: core contracts, graph-pinned declarations, read-only preparation, and
 PostgreSQL atomic ownership/admission, reservation, terminal settlement and
 durable cancellation propagation with bounded runtime reconciliation, and the
 dedicated PostgreSQL Join registration/publication/consumption boundary are
-implemented. Automatic child Join control in the Graph Driver and parent resumption
-are **not yet implemented**; this is not an end-to-end child execution tutorial. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
+implemented, together with opt-in Graph Driver suspension/resumption and bounded
+Join publication. **Automatic deadline/failure-close policy and full-profile
+qualification remain gated**; this is a trusted-host integration guide, not an
+enabled general child execution service. [RFC-0004](rfcs/0004-durable-child-runs.md) remains Draft. See
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
 [static shared-state composition](graph-composition.md) for the distinction.
 
@@ -79,8 +81,8 @@ Unsettled owned children block **all** parent terminal transitions and checkpoin
 advancement. This does not synthesize a Join, timer, or user interrupt. Cancelling
 an ancestor blocks fresh descendant admission; migration 21 and the reconciler
 below deliver cancellation. Dedicated Join and successful parent suspend/resume
-require automatic driver integration. Migration 22 supplies their storage boundary
-below. Do not expose this storage API as an end-to-end child execution
+use the opt-in driver integration below. Migration 22 supplies their storage boundary.
+Do not expose this storage API alone as an end-to-end child execution
 service without those coordinators.
 
 Upgrade with the existing explicit `PostgresStore::migrate_database` workflow
@@ -150,19 +152,18 @@ Qualification covers PostgreSQL 16/17, concurrent duplicate delivery and
 spawn/cancel, final-receipt rollback, real timer abandonment, three-level
 leaf-to-root accounting, restart/cursor recovery past an unpriced first page,
 populated v20 upgrade, immutable evidence and replaced/disabled guard detection.
-Automatic deadline-to-cancel policy, failure-close intent, dedicated terminal
-driver Join coordination and successful automatic parent suspend/resume are still required
+Automatic deadline-to-cancel policy, failure-close intent and full-profile qualification are still required
 before enabling the complete durable-child execution profile. Do not bypass
 guards or zero unknown costs to force closure.
 
 ## Dedicated Join transaction boundary (migration 22)
 
-This is a trusted-host storage API, **not an automatic Graph Driver Join node**.
+This section describes the trusted-host storage API; automatic driver integration follows below.
 The existing `DurableChildReconciler` continues to deliver cancellation and settle
 accounting; it does not call Join publication. A host using these low-level APIs
 must explicitly schedule publication, stop dispatch after registration, load and
 validate child output schemas, and bind publication to the parent result. The
-automatic executor/context/reconciler integration remains a release gate.
+driver and separate `DurableChildJoinPublisher` now implement those operations for opted-in nodes.
 
 `ChildRunJoinRequest::new` seals a nonempty set of at most 64 ownership keys for
 one exact logical activation. Order is case-sensitive slot order, not completion
@@ -222,8 +223,82 @@ concurrent registration/publication, registration-versus-terminal races, three
 final-write rollbacks, lost-ACK recovery, real independently leased child graph
 success, cancellation without fake consumption, unpriced-prefix pagination,
 populated v21 upgrade, guard/catalog tampering, and recreated-registry checkpoint
-replay reusing a previously committed joined result. This does not yet demonstrate
-an executor that automatically suspends and resumes using a Join control output.
+replay reusing a previously committed joined result. The runtime qualification below
+also executes automatic suspension and resumption.
+
+## Opt-in Graph Driver Join and publication worker
+
+Register `register_standard_child_join_event_schema` before freezing the schema
+registry. Its embedded `child-join-event/1.0.0` document is independent of the
+unchanged driver and reconciliation v1 schemas; the URL is an offline identity.
+Audit data contains only the operation and request digest, not child outputs.
+
+A node opts in with `GraphNodeExecutor::supports_child_join() == true`. Startup
+requires declared child slots, the exact Join schema, and `Exclusive` scheduling.
+All child-declaring executors must be exclusive, even without Join opt-in. This
+prevents releasing a whole-Run lease while sibling executors still own work.
+
+On first dispatch the trusted node prepares/recovers the original atomic child
+admissions through the storage contract above, then returns
+`GraphNodeExecution::child_join(ChildRunJoinRequest::new(keys)?)`. The Driver seals
+membership and releases its lease atomically, returning `GraphDriveOutcome::ChildJoin`
+or `AgentLoopOutcome::ChildJoin`. It stops dispatch immediately and does not mark
+the physical attempt complete. This is not `NodeControl::Wait` or a failed attempt.
+Spawn recovery uses the same logical key and original immutable intent; never
+create another child because an acknowledgement was lost.
+
+Run **both** maintenance workers alongside independently leased execution workers:
+`DurableChildReconciler` handles cancellation and priced settlement;
+`DurableChildJoinPublisher::tick(tenant, cursor, shutdown)` publishes at most 16
+eligible Joins. The publisher uses the same validated finite retry options
+(default 3 attempts, 25 ms initial delay, 1 s cap), continues past per-item errors,
+and resets its tenant-bound cursor after each sweep. Retain the returned cursor
+even after item failures; start with `None` after process loss. Inspect every item.
+The host owns authenticated tenant selection, fair scheduling, monitoring and
+repair. Unknown costs remain unsettled; neither worker guesses usage or runs
+provider/node code. Publication and cancellation serialize through the store.
+
+After publication a higher fence replays the same logical activation. Before
+dispatch the driver verifies every terminal binding and successful output against
+the frozen child graph/Agent schema, sequentially without retaining all output
+bodies. Preparation shares lease renewal, cancellation and the execution deadline;
+timeout before dispatch returns `ChildJoinPreparationIncomplete`, leaving the
+attempt unfinished rather than fabricating node failure/usage.
+
+On this dispatch `context.child_join()` is present. Its `binding()` preserves
+canonical slot order; `load_child(slot).await` loads and revalidates one sealed
+slot, returning its typed `RunLifecycle` (successful Agent result, failure or
+cancellation). It cannot load an unsealed slot. The context retains compact
+proofs, not a 64-output buffer; each body remains under existing Run limits and
+the caller controls retention. Handle read errors with genuine observed evidence;
+never turn missing evidence into a successful empty result. Node code explicitly
+chooses its state contribution and normal control; no automatic state merge.
+
+The driver automatically attaches the exact publication head to the node's
+successful pending result. Completion and unique consumption commit together;
+reading does not consume, re-registering a published Join is rejected, and a
+crash before completion may re-execute the **parent** node. Put external effects
+behind existing durable invocation ledgers. A crash after result commit reuses
+that result without executing the node again. Direct-only lifecycle evidence
+plus the store's settled child accounting includes each child charge once.
+
+Pre-alpha source compatibility: `GraphNodeExecution::new(...)` still constructs
+ordinary completion. The type is now the `Completed { state_change, control,
+bindings, usage } | ChildJoin(...)` enum; replace the former unconditional getters
+and `into_parts()` with an explicit match. No serialized core result or published
+schema/migration 1–22 was changed by this runtime integration.
+
+The real-store `join::driver` tests cover independent child execution, recreated
+connections/registries, parent success and once-only charges, failed child access,
+re-Join refusal, registration rollback with original spawn recovery, cancellation
+drain without consumption, publication error/pagination/restart, and blocked-read
+preparation without false completion. Test executors and lifecycle evidence are
+deterministic fixtures, **not live-provider or capacity qualification**. Run with
+`STATEKNOT_REQUIRE_POSTGRES_TESTS=1` and an isolated `STATEKNOT_TEST_DATABASE_URL`:
+
+```console
+cargo test -p stateknot-runtime --test postgres --all-features --locked join::driver -- --test-threads=1
+```
 
 ## Run the offline contract example
 
@@ -455,8 +530,7 @@ after parent cancellation, and refusal of old/nonmatching checkpoints after
 the ordinary graph driver has committed a real noninitial checkpoint. These
 tests do not establish atomic child execution or budget settlement.
 
-Before enabling automatic durable children, integrate dedicated Graph Driver
-Join control/context and publication coordination, then qualify automatic parent
-suspension/resumption, deadline/failure close policy and end-to-end recovery.
-Durable Join storage and cancellation delivery/settlement are implemented above. The website must not
+Before enabling the full durable-child profile, implement and qualify automatic
+deadline/failure close policy and measure recovery/capacity. Opt-in Join execution,
+publication and cancellation delivery/settlement are implemented above. The website must not
 advertise the full capability until those gates pass.

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/child-join-event/1.0.0",
+  "title": "StateKnot child Join event data v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation", "request_digest"],
+  "properties": {
+    "operation": {"enum": ["child_join_registered", "child_join_published"]},
+    "request_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

@@ -14,6 +14,18 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Opt-in exclusive Graph Driver child Join suspension/resumption, schema-validated
+  lazy slot access and automatic parent-result consumption, plus a tenant-scoped
+  bounded `DurableChildJoinPublisher` with an independent pinned offline schema.
+  Includes real-store independent child execution/restart/accounting, rollback,
+  cancellation, publication pagination/error recovery and pre-dispatch timeout
+  qualification. Bilingual host integration guidance distinguishes remaining
+  deadline/failure-close and full-profile gates. Published migrations 1–22 and
+  existing protocol schemas are unchanged. Pre-alpha source change:
+  `GraphNodeExecution::new` remains; unconditional getters/`into_parts` become
+  explicit matching on `Completed { .. }` versus `ChildJoin`. No automatic state
+  merge, fake wait/failure/usage, or general-profile website enablement.
+
 - PostgreSQL migration 22 and bounded core Join contracts: sealed complete child
   membership, atomic registration/parent lease release, indexed ready discovery,
   exact terminal publication/scheduler wakeup and once-only parent-result
