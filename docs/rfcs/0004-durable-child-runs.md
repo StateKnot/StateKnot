@@ -327,6 +327,10 @@ root-only data. Preserve all static-composition and root-run regression tests.
   failure-close writers. The settled-direct path has real-store rollback,
   original-failure, accounting, bounded sweep and populated-upgrade coverage
   against central terminal guards and the version-fenced lock order.
+  The [committed-boundary OS-kill profile](../process-kill-qualification.md)
+  additionally verifies six failure-close drain/replay checkpoints in separate
+  force-killed processes. It does not cover pre-/in-commit loss, provider effects,
+  or the combined Join/deadline/takeover process-termination matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
   rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,
   unpriced-prefix pagination and populated-upgrade tests; these do not measure

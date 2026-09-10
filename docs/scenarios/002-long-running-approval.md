@@ -119,6 +119,12 @@ In addition to the [shared objectives](README.md#shared-service-objectives):
 
 ## Required evidence
 
+Implemented partial evidence: the
+[failure-close committed-boundary process-kill profile](../process-kill-qualification.md)
+verifies six drain/replay boundaries with real force-killed processes on the
+mandatory PostgreSQL 16/17 CI path. It does not qualify this whole scenario or
+its pre-/in-commit, provider, failover, capacity and recovery-time requirements.
+
 - model-based tests for the run, interrupt, lease, invocation, and outbox state
   machines;
 - a deterministic kill-point matrix covering every transaction boundary;

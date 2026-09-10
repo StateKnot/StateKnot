@@ -236,6 +236,44 @@ jobs:
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
         run: cargo test -p stateknot-runtime --test postgres --locked -- --test-threads=1
 
+      - name: Record process-kill qualification environment
+        env:
+          STATEKNOT_QUALIFICATION_POSTGRES_IMAGE: ${{ matrix.image }}
+        run: |
+          {
+            git rev-parse HEAD
+            git rev-parse 'HEAD^{tree}'
+            sha256sum Cargo.lock
+            rustc -Vv
+            uname -a
+            lscpu
+            free -b
+            df -T .
+            printenv STATEKNOT_QUALIFICATION_POSTGRES_IMAGE
+          } | tee failure-close-process-environment.log
+
+      - name: Qualify committed failure-close process-kill boundaries
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-runtime --test postgres --locked -- \
+            --exact child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary \
+            --nocapture --test-threads=1 | tee failure-close-process-qualification.log
+          # Rust's test harness exits successfully even when a filter matches zero
+          # tests. Require all six machine-readable checkpoints as well as exit 0.
+          test "$(grep -c '^STATEKNOT_PROCESS_KILL_EVIDENCE=' failure-close-process-qualification.log)" = 6
+
+      - name: Upload process-kill qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: failure-close-process-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: failure-close-process-*.log
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Run durable protocol integration tests
         env:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"

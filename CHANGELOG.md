@@ -14,6 +14,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Executable six-point committed-boundary failure-close OS-kill qualification:
+  independently restarted processes, actual Unix SIGKILL/reaping, bounded
+  readiness, exact lifecycle/journal/receipt/account/settlement checks, original
+  failure preservation and once-only 7 + 11 token accounting. PostgreSQL 16/17
+  CI retains machine-readable phase evidence and source/environment metadata;
+  bilingual guidance defines exclusions. No production API, migration or
+  dependency changes; pre-/in-commit, provider-effect, role-isolation,
+  failover/restore and full-profile capacity gates remain open.
+
 - PostgreSQL migration 24 and `DurableRunFailureCloser`: immutable original failure
   decisions for Active parents with complete priced direct evidence, atomic child
   cancellation capture and parent lease release, and bounded tenant maintenance

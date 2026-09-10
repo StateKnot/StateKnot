@@ -18,7 +18,9 @@ opt-in Join execution and publication, [deadlines](agent-deadlines.md), and
 [failure close](failure-close.md) ([中文](failure-close.zh-CN.md)). The complete
 production profile remains gated by combined recovery, role-isolation and
 measured capacity qualification; individual implemented slices do not remove
-those gates.
+those gates. [Committed-boundary process-kill evidence](process-kill-qualification.md)
+([中文](process-kill-qualification.zh-CN.md)) defines the executable six-point
+failure-close recovery profile and its explicit exclusions.
 
 1. [v1 scope baseline](v1-scope.md) — the capabilities, guarantees, supported
    environment, and explicit exclusions that control implementation work.

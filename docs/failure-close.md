@@ -108,8 +108,10 @@ Real PostgreSQL tests cover source/final rollback, expiry after queue capture,
 original-cause preservation, unknown usage, changed terminal accounting,
 reconstructed worker/handoff recovery, a failure-closing child, 17-item sweeps,
 tenant/shutdown/quarantine handling, and populated v23 SQL upgrade/catalog drift.
-Recreated connections are not a claim of OS-kill coverage or a live-provider test.
-The whole child execution profile still requires combined process-kill and
+The separate [process-kill qualification](process-kill-qualification.md) executes
+real owned-process termination at six committed drain/replay boundaries, with
+exact journal, lifecycle and accounting verification. This is not pre-/in-commit
+or live-provider qualification. The whole child execution profile still requires combined process-kill and
 failover/restore drills, provider effect/usage recovery qualification, SQL role
 isolation, and measured full-sweep latency/capacity under retained history.
 

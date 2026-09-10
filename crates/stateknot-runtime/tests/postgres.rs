@@ -9,6 +9,9 @@ mod graph_composition;
 #[path = "postgres/child_admission.rs"]
 mod child_admission;
 
+#[path = "postgres/process_harness.rs"]
+mod process_harness;
+
 use std::{
     collections::VecDeque,
     future,

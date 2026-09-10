@@ -10,6 +10,9 @@ use stateknot_store_postgres::RunFailureCloseOutcome;
 #[path = "failure_close_upgrade.rs"]
 mod upgrade;
 
+#[path = "failure_close_process.rs"]
+mod process;
+
 struct Shutdown;
 impl stateknot_core::CancellationObserver for Shutdown {
     fn is_cancelled(&self) -> bool {
