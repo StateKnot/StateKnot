@@ -96,7 +96,8 @@ timeout: investigate contention and retry the whole deployment step if it fails.
 
 ## Upgrades, rotation and incident handling
 
-- New tables/columns/functions receive no automatic runtime privilege. New
+- New tables/functions receive no automatic runtime privilege. Additional columns
+  on existing tables inherit table-level SELECT/INSERT, but never UPDATE. New
   migrations require a reviewed version-specific allowlist, migration, apply,
   audit and functional smoke tests before the new application starts. Schema
   24 is checked here; migration checksums are checked by the pinned provider.
