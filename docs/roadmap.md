@@ -337,10 +337,15 @@ from the repository.
   a retained old worker after real lease expiry/higher-epoch takeover. Other pre-/in-commit kills,
   arbitrary uncertain direct-effect recovery and full-profile/process-kill/role/
   capacity qualification remain gated; the RFC remains Draft.
+- [x] Ship the schema-24 [trusted-server SQL role profile](postgresql-roles.md):
+  non-superuser migration ownership, runtime column grants and separate reservation
+  retention credentials; effective ACL/default/membership audit, rollback, real
+  role-separated durable recovery and concurrent submission/completion evidence.
+  This does not qualify untrusted-worker SQL capabilities or cross-tenant RLS.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,
-  A2A gRPC, role isolation, general retention,
+  A2A gRPC, untrusted-worker/service role isolation, general retention,
   failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
 - [ ] Commit the benchmark harness and fault-injection matrix.

@@ -3126,12 +3126,18 @@ async fn provider_native_output_repair_never_executes_a_proposed_tool() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[allow(clippy::too_many_lines)]
 async fn agent_service_authorizes_submits_recovers_and_cancels_without_redispatch() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
         return;
     };
+    Box::pin(qualify_agent_service_with_store(&store)).await;
+    store.close().await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn qualify_agent_service_with_store(store: &PostgresStore) {
+    let store = store.clone();
     let fixture = provider_native_fixture(store.clone());
     let tenant_id = tenant("runtime-agent-service-v1");
     store
@@ -3209,11 +3215,27 @@ async fn agent_service_authorizes_submits_recovers_and_cancels_without_redispatc
     );
     let agent = descriptor.metadata().identity().clone();
 
-    let admitted = service
-        .submit(caller.clone(), &key, &agent, request.clone())
-        .await
-        .unwrap();
-    assert!(matches!(admitted, AgentRunAdmissionOutcome::Committed(_)));
+    let admitted = futures_util::future::join_all(
+        (0..24).map(|_| service.submit(caller.clone(), &key, &agent, request.clone())),
+    )
+    .await
+    .into_iter()
+    .map(Result::unwrap)
+    .collect::<Vec<_>>();
+    assert_eq!(
+        admitted
+            .iter()
+            .filter(|outcome| matches!(outcome, AgentRunAdmissionOutcome::Committed(_)))
+            .count(),
+        1
+    );
+    let run_id = admitted[0].snapshot().provenance().run_id();
+    assert!(
+        admitted
+            .iter()
+            .all(|outcome| outcome.snapshot().provenance().run_id() == run_id)
+    );
+    let admitted = &admitted[0];
     let run_id = admitted.snapshot().provenance().run_id();
 
     // A retry regenerates provider-native initial IDs, but the service first
@@ -3315,7 +3337,6 @@ async fn agent_service_authorizes_submits_recovers_and_cancels_without_redispatc
     assert!(run_calls.load(Ordering::SeqCst) >= 5);
     assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 0);
     assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 0);
-    store.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -3400,13 +3421,19 @@ async fn durable_agent_admission_facade_validates_and_converges_exact_retries() 
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[allow(clippy::too_many_lines)]
 async fn provider_native_graph_recovers_committed_model_without_redispatch_and_completes_lifecycle()
 {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
         return;
     };
+    qualify_provider_native_with_store(&store).await;
+    store.close().await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn qualify_provider_native_with_store(store: &PostgresStore) {
+    let store = store.clone();
     let fixture = provider_native_fixture(store.clone());
     let tenant_id = tenant("runtime-provider-native-agent");
     let ids = AgentRunIds::generate();
@@ -3531,7 +3558,6 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
     assert_eq!(result.usage().model_attempts(), ExecutionCount::new(2));
     assert_eq!(result.usage().model_turns(), ExecutionCount::new(2));
     assert_eq!(result.usage().tool_calls(), ExecutionCount::new(1));
-    store.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

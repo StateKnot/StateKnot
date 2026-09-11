@@ -37,7 +37,10 @@
 //! across node, model, tool, remote-agent, or human work.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
-//! its database credentials to untrusted workers; role-separated procedures and
+//! its database credentials to untrusted workers. The schema-24 trusted-server
+//! ACL profile in `ops/trusted-role-profile.psql` separates migration, runtime
+//! and reservation-retention accounts; deployment must explicitly apply/audit it.
+//! Connecting a pool validates schema, not that ACL profile. Worker-only procedures and
 //! the final worker/control-plane service boundary remain release blockers.
 
 #![forbid(unsafe_code)]

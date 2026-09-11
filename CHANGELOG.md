@@ -14,6 +14,17 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Executable PostgreSQL 16/17 schema-24 trusted-server role profile separating
+  non-superuser migration ownership, column-scoped runtime writes and dedicated
+  fairness-reservation retention. Includes atomic apply/read-only effective ACL
+  audit, drift/default/membership/forbidden-SQL checks, actual role-separated
+  Agent/Join/provider recovery, 24-way submission/completion races and CI evidence.
+  Removes redundant immutable node-attempt/submission row locks while retaining
+  Run/advisory serialization, so append-only grants actually work. Bilingual
+  deployment/rotation/incident guidance defines the trusted-account boundary;
+  untrusted-worker SQL/service isolation and full failure-matrix qualification
+  remain gated. No public API, migration, lockfile or website changes.
+
 - Failure-close source COMMIT-loss and expired-fence qualification: a bounded,
   loopback-only, single-session PostgreSQL test proxy holds the COMMIT request or
   withholds both successful commit response frames before actual client SIGKILL.

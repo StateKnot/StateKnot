@@ -315,6 +315,12 @@ root-only data. Preserve all static-composition and root-run regression tests.
 
 ## Unresolved questions / acceptance blockers
 
+- The [trusted-server SQL role profile](../postgresql-roles.md) now separates
+  migration ownership, runtime ACLs and reservation-retention credentials with
+  real PostgreSQL evidence. It does not permit untrusted workers to hold runtime
+  credentials, enforce tenant RLS, or qualify every process fault under these
+  principals; the worker-only SQL/service boundary remains unresolved.
+
 - Complete-profile qualification, including failure close and arbitrary uncertain direct effects.
   Opt-in Join execution/context, bounded publication, recreated-registry parent
   recovery and unique result consumption now have real-store integration evidence.

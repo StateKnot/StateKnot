@@ -1,0 +1,14 @@
+-- Copyright 2026 StateKnot contributors
+-- SPDX-License-Identifier: Apache-2.0
+-- Run as the dedicated database/migration owner; credentials belong in libpq
+-- services/passfiles, never in this file. Variables are quoted as SQL literals.
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '30s';
+SET LOCAL search_path = pg_catalog;
+SELECT set_config('stateknot.profile_runtime', :'runtime_role', true),
+       set_config('stateknot.profile_retention', :'retention_role', true),
+       set_config('stateknot.profile_apply', :'apply', true);
+\ir trusted-role-profile.sql
+COMMIT;

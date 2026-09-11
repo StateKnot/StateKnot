@@ -293,6 +293,28 @@ jobs:
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
         run: cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1
 
+      - name: Qualify trusted SQL role profile
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-runtime --test postgres --locked -- \
+            --exact child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work \
+            --nocapture --test-threads=1 | tee trusted-role-profile-qualification.log
+          test "$(grep -c '^STATEKNOT_ROLE_PROFILE_EVIDENCE=' trusted-role-profile-qualification.log)" = 1
+
+      - name: Upload trusted SQL role evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: trusted-role-profile-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            trusted-role-profile-qualification.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Run durable artifact storage integration tests
         env:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"

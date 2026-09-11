@@ -427,19 +427,6 @@ FROM stateknot.agent_submission_keys
 WHERE tenant_id = $1 AND key_digest = $2
 ";
 
-const SELECT_AGENT_SUBMISSION_FOR_UPDATE: &str = r"
-SELECT
-    tenant_id,
-    key_digest,
-    submission_digest,
-    run_id,
-    admission_digest,
-    created_at
-FROM stateknot.agent_submission_keys
-WHERE tenant_id = $1 AND key_digest = $2
-FOR UPDATE
-";
-
 const SELECT_SCHEDULER_FAIRNESS_SHARD: &str = r"
 SELECT
     shard_id,
@@ -1375,36 +1362,6 @@ FROM stateknot.node_attempts
 WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3
 ";
 
-const SELECT_NODE_ATTEMPT_BY_ID_FOR_UPDATE: &str = r"
-SELECT
-    tenant_id,
-    run_id,
-    base_checkpoint_id,
-    base_superstep,
-    base_checkpoint_digest,
-    base_journal_sequence,
-    base_journal_event_id,
-    base_journal_recorded_at,
-    base_journal_digest,
-    graph_namespace,
-    node_id,
-    activation_input_digest,
-    activation_digest,
-    attempt_id,
-    fence_attempt_id,
-    fence_epoch,
-    journal_sequence,
-    journal_event_id,
-    journal_recorded_at,
-    journal_digest,
-    start_digest,
-    start_bytes,
-    created_at
-FROM stateknot.node_attempts
-WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3
-FOR UPDATE
-";
-
 const SELECT_NODE_ATTEMPT_COMPLETION: &str = r"
 SELECT
     tenant_id,
@@ -1493,7 +1450,7 @@ WHERE tenant_id = $1
   AND activation_input_digest = $8
 ";
 
-const SELECT_LATEST_NODE_ATTEMPT_FOR_UPDATE: &str = r"
+const SELECT_LATEST_NODE_ATTEMPT: &str = r"
 SELECT
     tenant_id,
     run_id,
@@ -1529,7 +1486,6 @@ WHERE tenant_id = $1
   AND activation_input_digest = $8
 ORDER BY journal_sequence DESC
 LIMIT 1
-FOR UPDATE
 ";
 
 const SELECT_TOOL_INVOCATION_HISTORY: &str = r"
@@ -13903,7 +13859,10 @@ async fn load_locked_agent_submission(
     key_digest: Digest,
 ) -> Result<Option<StoredAgentSubmission>, StoreError> {
     lock_agent_submission_key(transaction, tenant_id, key_digest).await?;
-    let row = query_as::<_, AgentSubmissionRow>(SELECT_AGENT_SUBMISSION_FOR_UPDATE)
+    // The transaction-scoped key advisory lock serializes every mapping writer.
+    // The mapping itself is immutable; a row lock would unnecessarily require
+    // UPDATE permission on this append-only table.
+    let row = query_as::<_, AgentSubmissionRow>(SELECT_AGENT_SUBMISSION)
         .bind(tenant_id.as_str())
         .bind(key_digest.as_bytes())
         .fetch_optional(&mut **transaction)
@@ -15238,13 +15197,15 @@ async fn load_locked_node_attempt(
     expected: &NodeAttemptStartHead,
 ) -> Result<NodeAttempt, StoreError> {
     let activation = expected.activation();
-    let row = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_BY_ID_FOR_UPDATE)
+    // Callers already hold the Run row lock, which serializes attempt starts,
+    // completions and Join registration. Never require UPDATE on immutable starts.
+    let row = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_BY_ID)
         .bind(activation.tenant_id().as_str())
         .bind(*activation.run_id().as_uuid())
         .bind(*expected.attempt_id().as_uuid())
         .fetch_optional(&mut **transaction)
         .await
-        .map_err(|source| StoreError::database("node attempt row lock", source))?
+        .map_err(|source| StoreError::database("run-locked node attempt load", source))?
         .ok_or(StoreError::NodeAttemptNotFound)?;
     let attempt = load_node_attempt_from_start_row(transaction, row).await?;
     if attempt.start().head() != *expected {
@@ -15260,7 +15221,8 @@ async fn load_latest_locked_node_attempt(
     let base = activation.base_checkpoint();
     let base_superstep = i64::try_from(base.superstep().get())
         .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
-    let row = query_as::<_, NodeAttemptStartRow>(SELECT_LATEST_NODE_ATTEMPT_FOR_UPDATE)
+    // start_node_attempt_inner holds the same Run lock before this history read.
+    let row = query_as::<_, NodeAttemptStartRow>(SELECT_LATEST_NODE_ATTEMPT)
         .bind(activation.tenant_id().as_str())
         .bind(*activation.run_id().as_uuid())
         .bind(*base.checkpoint_id().as_uuid())
@@ -15271,7 +15233,7 @@ async fn load_latest_locked_node_attempt(
         .bind(activation.input_digest().as_bytes())
         .fetch_optional(&mut **transaction)
         .await
-        .map_err(|source| StoreError::database("latest node attempt row lock", source))?;
+        .map_err(|source| StoreError::database("run-locked latest node attempt load", source))?;
     match row {
         Some(row) => load_node_attempt_from_start_row(transaction, row)
             .await
