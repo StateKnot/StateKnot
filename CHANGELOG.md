@@ -14,6 +14,17 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Failure-close source COMMIT-loss and expired-fence qualification: a bounded,
+  loopback-only, single-session PostgreSQL test proxy holds the COMMIT request or
+  withholds both successful commit response frames before actual client SIGKILL.
+  Independent reads verify rollback or original-decision recovery; a retained old
+  process is rejected with `StaleFence` after real database-clock lease expiry and
+  higher-epoch takeover. Includes exact journal/accounting recovery, process
+  resume/parser safety smoke tests, bilingual guides and mandatory PostgreSQL
+  16/17 CI evidence. Only Tokio test I/O features are enabled; no dependency
+  version, lockfile, production API/migration/schema or website changes. Other
+  transaction/provider/failover/role-isolation/capacity gates remain open.
+
 - Executable six-point committed-boundary failure-close OS-kill qualification:
   independently restarted processes, actual Unix SIGKILL/reaping, bounded
   readiness, exact lifecycle/journal/receipt/account/settlement checks, original

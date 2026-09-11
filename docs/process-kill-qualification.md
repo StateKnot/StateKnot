@@ -82,8 +82,10 @@ model/tool provider or prove unknown external effects/fees can be recovered.
 Kills happen **after a known successful commit**, not while COMMIT is in flight,
 before a transaction commits, or between a server commit and its client response.
 Existing transaction rollback and logical retry tests are separate evidence;
-they do not turn this profile into ambiguous-commit qualification. Remaining
-gates include pre-/in-commit OS kills, real provider effects and pricing recovery,
+they do not turn this profile into ambiguous-commit qualification. The separate
+[source COMMIT-loss/fencing profile](commit-loss-qualification.md) now verifies
+a held COMMIT, withheld commit response and retained-old-worker expiry/takeover.
+Remaining gates include other pre-/in-commit boundaries, real provider effects and pricing recovery,
 Join/deadline/higher-fence combined process-loss paths, SQL role isolation,
 failover/PITR/restore, retained-history capacity, fairness and latency. Do not
 remove the RFC Draft status or advertise complete-profile support from this test.

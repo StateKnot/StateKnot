@@ -265,12 +265,25 @@ jobs:
           # tests. Require all six machine-readable checkpoints as well as exit 0.
           test "$(grep -c '^STATEKNOT_PROCESS_KILL_EVIDENCE=' failure-close-process-qualification.log)" = 6
 
+      - name: Qualify commit loss and expired-fence takeover
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-runtime --test postgres --locked -- \
+            --exact child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable \
+            --nocapture --test-threads=1 | tee failure-close-commit-loss.log
+          test "$(grep -c '^STATEKNOT_COMMIT_LOSS_EVIDENCE=' failure-close-commit-loss.log)" = 2
+
       - name: Upload process-kill qualification evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: failure-close-process-postgres-${{ matrix.version }}-${{ github.run_id }}
-          path: failure-close-process-*.log
+          path: |
+            failure-close-process-*.log
+            failure-close-commit-loss.log
           if-no-files-found: error
           retention-days: 30
 

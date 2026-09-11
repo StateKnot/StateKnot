@@ -13,6 +13,9 @@ mod upgrade;
 #[path = "failure_close_process.rs"]
 mod process;
 
+#[path = "failure_close_commit_loss.rs"]
+mod commit_loss;
+
 struct Shutdown;
 impl stateknot_core::CancellationObserver for Shutdown {
     fn is_cancelled(&self) -> bool {
