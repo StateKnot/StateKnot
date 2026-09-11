@@ -63,6 +63,9 @@ impl TestProcess {
                 }
             };
             let _ = sender.send(result);
+            // Drain bounded remaining output so a resumed worker may exit through
+            // libtest normally. No second readiness message is accepted.
+            let _ = std::io::copy(&mut output, &mut std::io::sink());
         });
         Self {
             child,
@@ -120,6 +123,24 @@ impl TestProcess {
             tokio::time::sleep(Duration::from_millis(25)).await;
         }
     }
+
+    pub(super) fn resume(&mut self) {
+        let pipe = self.child.stdin.as_mut().expect("parent liveness pipe");
+        pipe.write_all(b"r").unwrap();
+        pipe.flush().unwrap();
+    }
+
+    pub(super) async fn wait_success(&mut self) {
+        let deadline = Instant::now() + READY_TIMEOUT;
+        loop {
+            if let Some(status) = self.child.try_wait().unwrap() {
+                assert!(status.success(), "resumed worker failed: {status}");
+                return;
+            }
+            assert!(Instant::now() < deadline, "resumed worker did not finish");
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+    }
 }
 
 impl Drop for TestProcess {
@@ -134,23 +155,62 @@ impl Drop for TestProcess {
     }
 }
 
-pub(super) async fn ready_and_park(data: Value) {
+pub(super) fn publish_ready(data: &Value) {
     let token = std::env::var(TOKEN_ENV).expect("worker requires a parent rendezvous token");
     println!("\n{MARKER}{}", json!({"token": token, "data": data}));
     std::io::stdout().flush().unwrap();
+}
+
+pub(super) async fn ready_and_park(data: Value) {
+    publish_ready(&data);
     // Keep the caller's store alive. No cooperative cancellation, pool.close(),
     // task abortion, Drop, process exit or in-memory recovery substitutes for kill.
     std::future::pending::<()>().await;
 }
 
 pub(super) fn watch_parent() {
+    drop(parent_control());
+}
+
+pub(super) fn parent_control() -> tokio::sync::oneshot::Receiver<()> {
+    let (sender, receiver) = tokio::sync::oneshot::channel();
     // The parent's otherwise-unused pipe is a liveness handle. If the controller
     // itself crashes, do not leave a parked worker behind. Exit 24 is cleanup,
     // never successful qualification (which independently requires SIGKILL).
-    std::thread::spawn(|| {
-        let _ = std::io::stdin().read(&mut [0_u8; 1]);
-        std::process::exit(24);
+    std::thread::spawn(move || {
+        let mut sender = Some(sender);
+        loop {
+            let mut byte = [0_u8; 1];
+            match std::io::stdin().read(&mut byte) {
+                Ok(1) if byte[0] == b'r' && sender.is_some() => {
+                    if sender.take().unwrap().send(()).is_err() {
+                        std::process::exit(24);
+                    }
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
+                _ => std::process::exit(24),
+            }
+        }
     });
+    receiver
+}
+
+#[tokio::test]
+async fn resume_worker() {
+    if std::env::var_os(INPUT_ENV).is_none() {
+        return;
+    }
+    let resume = parent_control();
+    publish_ready(&Value::Null);
+    resume.await.unwrap();
+}
+
+#[tokio::test]
+async fn process_harness_resumes_and_observes_asserting_worker_exit() {
+    let mut process = TestProcess::spawn("process_harness::resume_worker", &Value::Null);
+    process.ready().await.unwrap();
+    process.resume();
+    process.wait_success().await;
 }
 
 #[tokio::test]

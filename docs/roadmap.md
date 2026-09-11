@@ -331,7 +331,10 @@ from the repository.
   graphs integrate this path; see [failure-close integration](failure-close.md).
   Six committed failure-close drain/replay boundaries now have real owned-process
   kill/restart evidence and PostgreSQL CI artifacts; see the
-  [qualification profile](process-kill-qualification.md). Pre-/in-commit kills,
+  [qualification profile](process-kill-qualification.md). Source registration now
+  also has [COMMIT-loss/fencing qualification](commit-loss-qualification.md):
+  unforwarded COMMIT rollback, withheld acknowledgement recovery and rejection of
+  a retained old worker after real lease expiry/higher-epoch takeover. Other pre-/in-commit kills,
   arbitrary uncertain direct-effect recovery and full-profile/process-kill/role/
   capacity qualification remain gated; the RFC remains Draft.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,

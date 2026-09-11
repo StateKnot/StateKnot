@@ -21,6 +21,9 @@ measured capacity qualification; individual implemented slices do not remove
 those gates. [Committed-boundary process-kill evidence](process-kill-qualification.md)
 ([中文](process-kill-qualification.zh-CN.md)) defines the executable six-point
 failure-close recovery profile and its explicit exclusions.
+The companion [COMMIT-loss/fencing profile](commit-loss-qualification.md)
+([中文](commit-loss-qualification.zh-CN.md)) covers source-registration request and
+response loss plus a retained old worker across real lease expiry and takeover.
 
 1. [v1 scope baseline](v1-scope.md) — the capabilities, guarantees, supported
    environment, and explicit exclusions that control implementation work.

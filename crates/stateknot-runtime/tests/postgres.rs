@@ -12,6 +12,9 @@ mod child_admission;
 #[path = "postgres/process_harness.rs"]
 mod process_harness;
 
+#[path = "postgres/commit_proxy.rs"]
+mod commit_proxy;
+
 use std::{
     collections::VecDeque,
     future,

@@ -331,6 +331,11 @@ root-only data. Preserve all static-composition and root-run regression tests.
   additionally verifies six failure-close drain/replay checkpoints in separate
   force-killed processes. It does not cover pre-/in-commit loss, provider effects,
   or the combined Join/deadline/takeover process-termination matrix.
+  The companion [source COMMIT-loss profile](../commit-loss-qualification.md)
+  now qualifies an unforwarded COMMIT, withheld acknowledgement and a retained
+  old worker rejected after database-clock expiry and higher-epoch takeover.
+  Other transaction boundaries, database-server faults and provider effects
+  remain separate gates; this does not qualify the entire runtime matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
   rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,
   unpriced-prefix pagination and populated-upgrade tests; these do not measure

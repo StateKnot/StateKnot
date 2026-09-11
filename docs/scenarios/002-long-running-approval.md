@@ -124,6 +124,10 @@ Implemented partial evidence: the
 verifies six drain/replay boundaries with real force-killed processes on the
 mandatory PostgreSQL 16/17 CI path. It does not qualify this whole scenario or
 its pre-/in-commit, provider, failover, capacity and recovery-time requirements.
+The [source COMMIT-loss/fencing profile](../commit-loss-qualification.md)
+adds client termination with an unforwarded COMMIT or withheld response, and
+an actual retained old worker rejected after real lease expiry/new-epoch takeover.
+It remains partial evidence, not the full transaction/10,000-race/failover matrix.
 
 - model-based tests for the run, interrupt, lease, invocation, and outbox state
   machines;
