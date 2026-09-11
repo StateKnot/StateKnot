@@ -58,12 +58,18 @@ async fn settle(store: &PostgresStore, value: &Started, child: RunId) {
 }
 
 #[tokio::test]
-#[allow(clippy::too_many_lines)]
 async fn child_join_register_publish_recover_and_consume_exact_result() {
     let _guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
         return;
     };
+    Box::pin(qualify_join_with_store(&store)).await;
+    store.close().await;
+}
+
+#[allow(clippy::too_many_lines)]
+pub(super) async fn qualify_join_with_store(store: &PostgresStore) {
+    let store = store.clone();
     let (value, request, child) = setup_join(&store, "join-complete").await;
     let a = request.activation();
     let append = parent_append(&value, "child-join-registered");
@@ -245,7 +251,6 @@ async fn child_join_register_publish_recover_and_consume_exact_result() {
             .get()
             > 0
     );
-    store.close().await;
 }
 
 #[tokio::test]

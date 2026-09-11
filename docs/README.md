@@ -11,6 +11,10 @@ conformance output, and the release gates in these documents.
 
 ## Start here
 
+For database deployment, use the [trusted PostgreSQL role profile](postgresql-roles.md)
+([简体中文](postgresql-roles.zh-CN.md)): executable migration/runtime/retention
+privilege separation, audit, rollout and exact qualification boundaries.
+
 The implemented durable-child integration boundaries are documented in
 [Durable child runs](durable-child-runs.md) and its
 [Chinese edition](durable-child-runs.zh-CN.md): ownership/accounting, cancellation,

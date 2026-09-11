@@ -142,38 +142,18 @@ let store = PostgresStore::connect(&runtime_url, options).await?;
 
 The migration role needs database `CONNECT`/`CREATE` and permission to create
 `public._sqlx_migrations` and the owned `stateknot` schema. It need not be a
-superuser. The runtime role needs `CONNECT`, schema `USAGE`, read access to
-`public._sqlx_migrations`, `SELECT`/`INSERT`/`UPDATE` on `stateknot.runs`, and
-`SELECT`/`INSERT` on both `stateknot.run_events` and
-`stateknot.run_checkpoints`, `SELECT`/`INSERT` on
-`stateknot.tool_invocations` and `stateknot.model_invocations` plus
-column-scoped `UPDATE` only for
-`current_revision`, `current_status`, `current_attempt_id`,
-`current_record_digest`, and `updated_at`, and `SELECT`/`INSERT` on
-`stateknot.tool_invocation_revisions`,
-`stateknot.model_invocation_revisions`, `stateknot.run_attempt_claims`,
-`stateknot.node_attempts`, `stateknot.node_attempt_completions`,
-`stateknot.pending_node_results`, both pending-result binding tables, and
-`stateknot.pending_node_result_consumptions`; `SELECT`/`INSERT` on
-`stateknot.outbox_destinations`, `stateknot.outbox_attempts`, and
-`stateknot.outbox_attempt_completions`; and `SELECT`/`INSERT` plus only the
-claim/completion/reaper projection columns on `stateknot.outbox_deliveries`.
-It also needs `SELECT`/`INSERT` on `stateknot.interrupt_resolutions`,
-`stateknot.timer_firings`, and `stateknot.wait_abandonments`, plus
-`SELECT`/`INSERT` and terminal-projection-only `UPDATE` on
-`stateknot.run_wait_registrations`; and `SELECT`/`INSERT` on
-`stateknot.run_quarantines` and `stateknot.graph_definitions`. Fair scheduler
-workers need `SELECT`/`INSERT` on `stateknot.scheduler_fairness_shards`,
-column-scoped `UPDATE` only for `next_slot`, `next_sequence`, and `updated_at`,
-plus `SELECT`/`INSERT` on
-`stateknot.scheduler_fairness_reservations`. Grant bounded `DELETE` on the
-reservation table only to the separate maintenance role that invokes the
-retention API.
-Do not grant runtime DDL,
-checkpoint, node-attempt, invocation-revision, pending-result, or consumption
-update/delete permissions. Exact role/grant SQL will be
-shipped only with the role-separated server boundary so this document does not
-invent deployment-specific role names.
+superuser. The executable [trusted-server role profile](postgresql-roles.md)
+([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema-24 table/column
+allowlist, transactional apply, effective-privilege audit and separate
+reservation-retention credential. It grants no runtime DDL, DELETE or immutable
+evidence UPDATE, including node starts and submission mappings. Follow that
+guide's dedicated-database prerequisites and apply/audit the profile before
+connecting runtime pools. `connect` validates schema, not ACL compliance.
+
+The retention identity is trusted: its narrowly scoped reservation-table DELETE
+and row-lock-required column UPDATE can be used outside the bounded API. This
+is not SQL-enforced retention age, untrusted-worker capability isolation or RLS;
+the final worker/control-plane service boundary remains a release gate.
 
 `PostgresTransportSecurity::VerifyFull` is the default and overrides weaker URL
 settings. `RequireEncryption` deliberately forgoes server-identity verification.
@@ -181,9 +161,9 @@ settings. `RequireEncryption` deliberately forgoes server-identity verification.
 
 ## Validation
 
-The current database suite runs 106 provider integration tests, 36 durable
-Runtime tests, and the seven-case artifact-store integration suite against
-PostgreSQL 16 and 17.
+Mandatory PostgreSQL 16/17 CI runs the provider, durable Runtime, protocol and
+artifact-store integration suites, plus source-bound process/COMMIT-loss and
+trusted-role qualification profiles.
 They cover fresh migration, startup refusal, an existing v1 history upgrading to
 v15 without guessed projection or physical-attempt provenance, real v3
 tool-attempt history backfilled into the run-wide registry, admission, direct
