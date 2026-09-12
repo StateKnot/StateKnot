@@ -342,6 +342,12 @@ from the repository.
   retention credentials; effective ACL/default/membership audit, rollback, real
   role-separated durable recovery and concurrent submission/completion evidence.
   This does not qualify untrusted-worker SQL capabilities or cross-tenant RLS.
+- [x] Implement the restricted [MCP compute Worker](mcp-compute-worker.md):
+  explicit input projection, independently pinned descriptors and offline schemas,
+  single-exchange calls, host-owned output control, hostile-peer/cancellation
+  tests and credential-free process/real PostgreSQL replay and fencing evidence.
+  This does not implement the effectful Worker API or an arbitrary-code sandbox;
+  RFC-0005 remains Draft and general Worker/service isolation remains gated.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,
