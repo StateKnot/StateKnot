@@ -1122,12 +1122,43 @@ impl McpClient {
         self.call_tool_round(tool, arguments, None, None).await
     }
 
+    /// Calls a discovered Tool with at most one HTTP exchange.
+    ///
+    /// Unlike [`Self::call_tool`], this never replays a rejected request for
+    /// protocol negotiation or an OAuth challenge. The caller owns recovery;
+    /// redirects and generic transport retries are also disabled. An MRTR
+    /// response is returned, not automatically resumed.
+    pub async fn call_tool_once(
+        &self,
+        tool: &McpTool,
+        arguments: Value,
+    ) -> Result<McpToolCallResponse, StatelessMcpClientError> {
+        let arguments = arguments
+            .as_object()
+            .cloned()
+            .ok_or(StatelessMcpClientError::InvalidToolArguments)?;
+        self.call_tool_round_policy(tool, arguments, None, None, false)
+            .await
+    }
+
     async fn call_tool_round(
         &self,
         tool: &McpTool,
         arguments: Map<String, Value>,
         input_responses: Option<Map<String, Value>>,
         request_state: Option<Box<str>>,
+    ) -> Result<McpToolCallResponse, StatelessMcpClientError> {
+        self.call_tool_round_policy(tool, arguments, input_responses, request_state, true)
+            .await
+    }
+
+    async fn call_tool_round_policy(
+        &self,
+        tool: &McpTool,
+        arguments: Map<String, Value>,
+        input_responses: Option<Map<String, Value>>,
+        request_state: Option<Box<str>>,
+        recover: bool,
     ) -> Result<McpToolCallResponse, StatelessMcpClientError> {
         if tool.binding_id != self.inner.binding_id {
             return Err(StatelessMcpClientError::ForeignToolBinding);
@@ -1145,9 +1176,25 @@ impl McpClient {
                 Value::String(request_state.to_owned()),
             );
         }
-        let exchange = self
-            .send_rpc("tools/call", Some(tool.name()), params, headers)
-            .await?;
+        let exchange = if recover {
+            self.send_rpc("tools/call", Some(tool.name()), params, headers)
+                .await?
+        } else {
+            let request = McpClientAuthorizationRequest {
+                method: "tools/call".into(),
+                name: Some(tool.name().into()),
+            };
+            let deadline = tokio::time::Instant::now() + self.inner.options.request_timeout();
+            match self
+                .send_rpc_once(deadline, &request, params, headers)
+                .await?
+            {
+                RpcAttempt::Exchange(exchange) => exchange,
+                RpcAttempt::Challenge(challenge) => {
+                    return Err(challenge_error(challenge.status()));
+                }
+            }
+        };
         let outcome = parse_tool_result(exchange.result, self.clone(), tool.clone(), arguments)?;
         Ok(McpToolCallResponse {
             outcome,

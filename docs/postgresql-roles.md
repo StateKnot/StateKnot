@@ -7,6 +7,10 @@
 `trusted-server-roles-v1` is an executable least-privilege deployment profile for
 the **trusted server-side** PostgreSQL 16/17 provider at schema 24. It separates
 migration, application runtime and fairness-reservation retention credentials.
+For effect-free remote computation, the separate
+[MCP compute Worker profile](mcp-compute-worker.md) transmits no database
+credentials and retains the Driver in the trusted host.
+
 It is not an untrusted-worker or tenant SQL security boundary: runtime still
 has cross-tenant reads and control-plane projection writes. Do not distribute
 any of these credentials to users, Tools, plugins or remote workers. RFC-0003's

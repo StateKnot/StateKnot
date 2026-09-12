@@ -16,6 +16,7 @@ security, or operational commitments.
 | [0002](0002-deterministic-graph-and-scheduler.md) | Draft | Deterministic graph execution and scheduling |
 | [0003](0003-postgresql-durability-recovery-and-migration.md) | Draft | PostgreSQL durability, recovery, and migration |
 | [0004](0004-durable-child-runs.md) | Draft | Isolated durable child runs and structured ownership |
+| [0005](0005-mcp-compute-worker-boundary.md) | Draft | Restricted MCP compute Worker without durable authority |
 
 ## When an RFC is required
 

@@ -48,6 +48,11 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 ## Current milestone
 
+The restricted [MCP compute Worker](docs/mcp-compute-worker.md)
+([中文](docs/mcp-compute-worker.zh-CN.md)) delegates pure calculations without
+database credentials; the trusted Driver retains all durable authority. This
+does not implement the general effectful Worker API or an arbitrary-code sandbox.
+
 The project is in the **architecture-contract and durable-runtime vertical-validation phase**.
 The unpublished core crate validates model, tool, agent admission/result,
 durable run-lifecycle, canonical journal-envelope, graph-checkpoint,

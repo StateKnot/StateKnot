@@ -15,6 +15,12 @@
 
 #![forbid(unsafe_code)]
 
+mod mcp_compute;
+pub use mcp_compute::{
+    McpComputeNode, McpComputeNodeBinding, McpComputeNodeBuildError, McpComputeOutput,
+    WorkerInputProjection, WorkerInputProjectionError, mcp_compute_tool_digest,
+};
+
 /// Integrity-checked S3-compatible artifact persistence and resolution.
 pub use stateknot_artifact_store as artifacts;
 /// Protocol-neutral domain, graph, journal, invocation, and lifecycle contracts.

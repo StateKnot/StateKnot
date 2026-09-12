@@ -10,6 +10,9 @@ Worker 或租户的 SQL 安全边界**：运行时仍能跨租户读取并更新
 用户、Tool、插件或远程 Worker 分发数据库凭证。RFC-0003 的 Worker 专用过程/服务
 边界和 RFC-0004 的完整子任务验收仍未完成。
 
+纯远端计算可以使用单独的 [MCP 计算 Worker](mcp-compute-worker.zh-CN.md)：
+不传数据库凭证，Driver 仍留在受信任宿主，不改变上述 SQL 角色边界。
+
 ## 三类账号的权限
 
 | 账号 | 允许 | 禁止 |
