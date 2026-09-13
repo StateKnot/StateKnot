@@ -5,6 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # Strict MCP remote Tool profile
 
+For writes requiring tenant- and argument-aware permission checks, use the
+[approved call authorization profile](mcp-call-authorization.md).
+
 `McpRemoteTool` is the first implemented MCP boundary in StateKnot. It adapts
 one remotely discovered MCP Tool to the protocol-neutral `ErasedTool` contract
 without allowing remote wire metadata to redefine local risk, schema, retry,

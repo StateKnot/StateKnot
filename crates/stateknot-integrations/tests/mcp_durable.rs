@@ -26,8 +26,10 @@ use stateknot_core::{
 use stateknot_integrations::{
     A2aAgentCapabilities, A2aAgentCard, A2aAgentCardEndpoint, A2aAgentCardTrust, A2aAgentInterface,
     A2aAgentSkill, A2aBinding, A2aClient, A2aClientInterfacePin, A2aClientOptions,
-    A2aClientSecurity, A2aRemoteAgent, A2aRemoteAgentDelivery, AnonymousMcpAuthorization,
-    McpHttpOptions, McpRemoteTool, McpServerIdentity, ProviderEndpoint, a2a_agent_card_digest,
+    A2aClientSecurity, A2aRemoteAgent, A2aRemoteAgentDelivery, AnonymousMcpAuthorization, ApiKey,
+    McpAuthorization, McpAuthorizationError, McpHttpOptions, McpRemoteTool, McpServerIdentity,
+    McpToolApproval, McpToolAuthorizationRequest, McpToolAuthorizer, ProviderEndpoint,
+    a2a_agent_card_digest, mcp_tool_descriptor_digest,
 };
 use stateknot_runtime::{
     DurableInvocationExecutor, DurableInvocationExecutorOptions, InvocationAttemptEventIds,
@@ -154,6 +156,10 @@ impl PausedLostResponseA2aServer {
 
 impl PausedLostResponseMcpServer {
     async fn start(input_schema: Value, output_schema: Value) -> Self {
+        Self::start_authorized(input_schema, output_schema, false).await
+    }
+
+    async fn start_authorized(input_schema: Value, output_schema: Value, approved: bool) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let endpoint = ProviderEndpoint::loopback_http(&format!("http://{address}/mcp/")).unwrap();
@@ -206,6 +212,20 @@ impl PausedLostResponseMcpServer {
                         }
                     }),
                     "tools/call" => {
+                        if approved {
+                            assert!(
+                                String::from_utf8_lossy(&request)
+                                    .contains("Bearer durable-attempt-scoped")
+                            );
+                            assert_eq!(
+                                message["params"],
+                                json!({"name":"write_once", "arguments":{"request":"apply-once"}, "_meta": {
+                                    "io.modelcontextprotocol/clientCapabilities": {},
+                                    "io.modelcontextprotocol/clientInfo": {"name":"stateknot", "version":env!("CARGO_PKG_VERSION")},
+                                    "io.modelcontextprotocol/protocolVersion":"2026-07-28", "progressToken":1
+                                }})
+                            );
+                        }
                         calls.fetch_add(1, Ordering::SeqCst);
                         call_sender.send(()).await.unwrap();
                         release.notified().await;
@@ -316,23 +336,116 @@ impl InvocationClock for FixedInvocationClock {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[allow(clippy::too_many_lines)]
 async fn mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch() {
+    Box::pin(qualify_mcp_write(false, false)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn mcp_approved_write_is_authorized_after_durable_start_and_reconciles_once() {
+    Box::pin(qualify_mcp_write(true, false)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn mcp_approved_denial_commits_without_remote_dispatch_or_repeat_authorization() {
+    Box::pin(qualify_mcp_write(true, true)).await;
+}
+
+struct DurablePolicy {
+    store: PostgresStore,
+    deny: bool,
+    calls: AtomicUsize,
+}
+
+impl McpToolAuthorizer for DurablePolicy {
+    fn resolve_startup(
+        &self,
+        _: &ToolDescriptor,
+    ) -> BoxFuture<'_, Result<McpAuthorization, McpAuthorizationError>> {
+        Box::pin(async { Ok(McpAuthorization::Anonymous) })
+    }
+
+    fn authorize_call<'a>(
+        &'a self,
+        request: McpToolAuthorizationRequest<'a>,
+    ) -> BoxFuture<'a, Result<McpAuthorization, McpAuthorizationError>> {
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            let context = request.context();
+            let invocation = self
+                .store
+                .load_tool_invocation(
+                    context.tenant_id(),
+                    context.run_id(),
+                    context.invocation_id(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(invocation.status(), ToolInvocationStatus::Executing);
+            assert_eq!(invocation.attempt_id(), Some(context.attempt_id()));
+            assert_eq!(
+                context.origin_event_id(),
+                Some(invocation.journal_head().event_id())
+            );
+            assert_eq!(invocation.intent().input(), request.input());
+            assert_eq!(invocation.intent().descriptor(), request.descriptor());
+            if self.deny {
+                Err(McpAuthorizationError::PermissionDenied)
+            } else {
+                Ok(McpAuthorization::Bearer(
+                    ApiKey::new("durable-attempt-scoped").unwrap(),
+                ))
+            }
+        })
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn qualify_mcp_write(approved: bool, deny: bool) {
     let Some(store) = test_store().await else {
         return;
     };
     let (schemas, input_schema, input_document, output_schema, output_document) = tool_schemas();
     let descriptor = write_descriptor(&input_schema, &output_schema);
-    let mut server = PausedLostResponseMcpServer::start(input_document, output_document).await;
-    let adapter = McpRemoteTool::connect(
-        descriptor.clone(),
-        "write_once",
-        server.endpoint.clone(),
-        McpServerIdentity::new("stateknot-durable-test-mcp", "1.0.0").unwrap(),
-        Arc::new(schemas.clone()),
-        Arc::new(AnonymousMcpAuthorization),
-        McpHttpOptions::default(),
-    )
-    .await
+    let pin = mcp_tool_descriptor_digest(&json!({
+        "name":"write_once", "description":"Applies exactly one test write.",
+        "inputSchema":input_document, "outputSchema":output_document,
+        "annotations":{"readOnlyHint":false,"destructiveHint":true}
+    }))
     .unwrap();
+    let policy = Arc::new(DurablePolicy {
+        store: store.clone(),
+        deny,
+        calls: AtomicUsize::new(0),
+    });
+    let mut server = if approved {
+        PausedLostResponseMcpServer::start_authorized(input_document, output_document, true).await
+    } else {
+        PausedLostResponseMcpServer::start(input_document, output_document).await
+    };
+    let adapter = if approved {
+        McpRemoteTool::connect_authorized(
+            descriptor.clone(),
+            "write_once",
+            server.endpoint.clone(),
+            McpServerIdentity::new("stateknot-durable-test-mcp", "1.0.0").unwrap(),
+            Arc::new(schemas.clone()),
+            McpToolApproval::new(pin, policy.clone()),
+            McpHttpOptions::default(),
+        )
+        .await
+        .unwrap()
+    } else {
+        McpRemoteTool::connect(
+            descriptor.clone(),
+            "write_once",
+            server.endpoint.clone(),
+            McpServerIdentity::new("stateknot-durable-test-mcp", "1.0.0").unwrap(),
+            Arc::new(schemas.clone()),
+            Arc::new(AnonymousMcpAuthorization),
+            McpHttpOptions::default(),
+        )
+        .await
+        .unwrap()
+    };
 
     let graph = graph();
     let tenant_id = TenantId::new(format!("mcp-durable-{}", RunId::generate())).unwrap();
@@ -398,6 +511,48 @@ async fn mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch(
         let handoff = handoff.clone();
         tokio::spawn(async move { executor.execute_tool(handoff).await })
     };
+
+    if deny {
+        let outcome = tokio::time::timeout(Duration::from_secs(5), executing_task)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            outcome,
+            ToolAttemptOutcome::Dispatched {
+                terminal: ToolAttemptTerminalKind::Error,
+                ..
+            }
+        ));
+        let failed = store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap();
+        assert_eq!(failed.status(), ToolInvocationStatus::Failed);
+        assert!(matches!(
+            executor.execute_tool(handoff).await.unwrap(),
+            ToolAttemptOutcome::Recovered { .. }
+        ));
+        let duplicate = store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap();
+        assert_eq!(
+            failed.head(),
+            duplicate.head(),
+            "duplicate must not append another ledger revision"
+        );
+        assert_eq!(policy.calls.load(Ordering::SeqCst), 1);
+        assert_eq!(server.tool_calls.load(Ordering::SeqCst), 0);
+        server.task.abort();
+        assert!(server.task.await.unwrap_err().is_cancelled());
+        println!(
+            "\nSTATEKNOT_MCP_AUTHORIZATION_EVIDENCE={{\"case\":\"denial\",\"durable_before_authorization\":true,\"calls\":0,\"policy_calls\":1,\"duplicate_ledger_unchanged\":true}}"
+        );
+        store.close().await;
+        return;
+    }
 
     tokio::time::timeout(Duration::from_secs(5), server.call_seen.recv())
         .await
@@ -483,6 +638,12 @@ async fn mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch(
     assert_eq!(server.tool_calls.load(Ordering::SeqCst), 1);
 
     server.task.await.unwrap();
+    if approved {
+        assert_eq!(policy.calls.load(Ordering::SeqCst), 1);
+        println!(
+            "\nSTATEKNOT_MCP_AUTHORIZATION_EVIDENCE={{\"case\":\"lost_response\",\"durable_before_authorization\":true,\"calls\":1,\"policy_calls\":1,\"reconciliation_idempotent\":true}}"
+        );
+    }
     store.close().await;
 }
 

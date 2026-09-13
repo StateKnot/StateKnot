@@ -18,6 +18,7 @@ mod anthropic;
 mod credential;
 mod http;
 mod mcp;
+mod mcp_authorization;
 mod mcp_client;
 mod mcp_oauth;
 mod mcp_server;
@@ -72,6 +73,10 @@ pub use mcp::{
     AnonymousMcpAuthorization, McpAuthorization, McpAuthorizationError, McpAuthorizationProvider,
     McpHttpOptions, McpHttpOptionsError, McpRemoteTool, McpRemoteToolBuildError, McpSchemaRegistry,
     McpServerIdentity, McpServerIdentityError, StaticMcpBearerAuthorization,
+};
+pub use mcp_authorization::{
+    McpToolApproval, McpToolAuthorizationRequest, McpToolAuthorizer, McpToolDigestError,
+    mcp_tool_descriptor_digest,
 };
 pub use mcp_client::{
     MCP_PROTOCOL_VERSION_2026_07_28, McpCachePolicy, McpClient, McpClientAuthorizationChallenge,

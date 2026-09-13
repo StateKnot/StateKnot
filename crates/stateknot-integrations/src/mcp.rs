@@ -27,7 +27,7 @@ use rmcp::{
         ClientJsonRpcMessage, Implementation, JsonRpcMessage, PaginatedRequestParams,
         ProtocolVersion, ServerJsonRpcMessage, Tool,
     },
-    service::RunningService,
+    service::{RunningService, RunningServiceCancellationToken},
     transport::{
         StreamableHttpClientTransport,
         common::client_side_sse::NeverRetry,
@@ -40,15 +40,17 @@ use rmcp::{
 use serde_json::Value;
 use sse_stream::Sse;
 use stateknot_core::{
-    BoundedJson, BoxFuture, DurationMillis, ErasedTool, Failure, FailureCategory, FailureCode,
-    FailureId, FailureMessage, FailureOrigin, GraphSchemaValidator, ModelSchemaRegistry,
-    RetryAdvice, ToolArtifacts, ToolContext, ToolDescriptor, ToolError, ToolErrorPhase,
-    ToolErrorProvenance, ToolExternalEffect, ToolInput, ToolResult, ToolRisk, ToolStopReason,
+    BoundedJson, BoxFuture, Digest, DurationMillis, ErasedTool, Failure, FailureCategory,
+    FailureCode, FailureId, FailureMessage, FailureOrigin, GraphSchemaValidator,
+    ModelSchemaRegistry, RetryAdvice, ToolArtifacts, ToolContext, ToolDescriptor, ToolError,
+    ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput, ToolResult, ToolRisk,
+    ToolStopReason,
 };
 use thiserror::Error;
 
 use crate::{
-    ApiKey, ProviderEndpoint, ProviderEndpointError, ProviderHttpOptions, http::build_client,
+    ApiKey, McpToolApproval, McpToolAuthorizationRequest, ProviderEndpoint, ProviderEndpointError,
+    ProviderHttpOptions, http::build_client, mcp_tool_descriptor_digest,
 };
 
 const MCP_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion::V_2026_07_28;
@@ -419,6 +421,18 @@ impl AuthorizationSlot {
 
 struct AuthorizationReset<'a>(&'a AuthorizationSlot);
 
+// A dropped/failed exchange may still be queued inside the SDK transport.
+// Retire an approved binding before another attempt can install credentials.
+struct ApprovedDispatchGuard(Option<RunningServiceCancellationToken>);
+
+impl Drop for ApprovedDispatchGuard {
+    fn drop(&mut self) {
+        if let Some(token) = self.0.take() {
+            token.cancel();
+        }
+    }
+}
+
 impl Drop for AuthorizationReset<'_> {
     fn drop(&mut self) {
         let _ = self.0.replace(McpAuthorization::Anonymous);
@@ -429,6 +443,7 @@ impl Drop for AuthorizationReset<'_> {
 struct StrictJsonHttpClient {
     client: reqwest::Client,
     authorization: AuthorizationSlot,
+    approved_tool: Option<(String, Digest)>,
     maximum_request_bytes: usize,
     maximum_response_bytes: usize,
 }
@@ -554,6 +569,9 @@ impl StreamableHttpClient for StrictJsonHttpClient {
         if !content_type_is_json {
             return Err(StreamableHttpError::UnexpectedContentType(None));
         }
+        if let Some((name, digest)) = &self.approved_tool {
+            verify_approved_catalog(name, *digest, &body)?;
+        }
         let parsed = serde_json::from_slice::<ServerJsonRpcMessage>(&body)?;
         if !status.is_success() && !matches!(parsed, JsonRpcMessage::Error(_)) {
             return Err(StreamableHttpError::UnexpectedServerResponse(
@@ -651,10 +669,54 @@ pub struct McpRemoteTool {
     descriptor: ToolDescriptor,
     remote_name: Box<str>,
     schemas: Arc<dyn McpSchemaRegistry>,
-    authorizations: Arc<dyn McpAuthorizationProvider>,
+    authorizations: AuthorizationSource,
+    endpoint: ProviderEndpoint,
     authorization_slot: AuthorizationSlot,
     call_gate: tokio::sync::Mutex<()>,
     service: RunningService<RoleClient, ClientInfo>,
+}
+
+enum AuthorizationSource {
+    ContextOnly(Arc<dyn McpAuthorizationProvider>),
+    Approved(McpToolApproval),
+}
+
+fn forbidden_approved_tool_extension(tool: &Value) -> bool {
+    fn has_header(value: &Value) -> bool {
+        match value {
+            Value::Object(fields) => {
+                fields.contains_key("x-mcp-header") || fields.values().any(has_header)
+            }
+            Value::Array(values) => values.iter().any(has_header),
+            _ => false,
+        }
+    }
+    tool.get("inputSchema").is_some_and(has_header)
+        || tool
+            .pointer("/execution/taskSupport")
+            .is_some_and(|value| value != "forbidden")
+}
+
+fn verify_approved_catalog(
+    name: &str,
+    digest: Digest,
+    body: &[u8],
+) -> Result<(), StreamableHttpError<StrictHttpError>> {
+    // Validate raw discovery before the SDK can discard extension fields.
+    let raw: Value = serde_json::from_slice(body)?;
+    if let Some(tools) = raw.pointer("/result/tools").and_then(Value::as_array) {
+        for tool in tools {
+            if tool.get("name").and_then(Value::as_str) == Some(name)
+                && (mcp_tool_descriptor_digest(tool).ok() != Some(digest)
+                    || forbidden_approved_tool_extension(tool))
+            {
+                return Err(StreamableHttpError::UnexpectedServerResponse(
+                    "MCP Tool does not match its approved execution profile".into(),
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 impl McpRemoteTool {
@@ -680,7 +742,61 @@ impl McpRemoteTool {
         authorizations: Arc<dyn McpAuthorizationProvider>,
         options: McpHttpOptions,
     ) -> Result<Self, McpRemoteToolBuildError> {
-        let remote_name = remote_name.into();
+        Self::connect_inner(
+            descriptor,
+            remote_name.into(),
+            endpoint,
+            expected_server,
+            schemas,
+            AuthorizationSource::ContextOnly(authorizations),
+            options,
+        )
+        .await
+    }
+
+    /// Connects a reviewed remote Tool with mandatory input-aware authorization.
+    ///
+    /// Verifies the complete raw descriptor pin, including unknown extensions,
+    /// and rejects input-to-header promotion and Task execution. Every call is
+    /// authorized after local schema validation and queue acquisition, before
+    /// installing credentials or dispatching. Use through the durable executor;
+    /// an absent durable origin event is rejected before policy evaluation.
+    ///
+    /// No remote fencing, exactly-once side effects, or external spend metering
+    /// is implied. An uncertain dispatched write still requires reconciliation.
+    /// Existing `connect` remains the explicit context-only compatibility API.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn connect_authorized(
+        descriptor: ToolDescriptor,
+        remote_name: impl Into<String>,
+        endpoint: ProviderEndpoint,
+        expected_server: McpServerIdentity,
+        schemas: Arc<dyn McpSchemaRegistry>,
+        approval: McpToolApproval,
+        options: McpHttpOptions,
+    ) -> Result<Self, McpRemoteToolBuildError> {
+        Self::connect_inner(
+            descriptor,
+            remote_name.into(),
+            endpoint,
+            expected_server,
+            schemas,
+            AuthorizationSource::Approved(approval),
+            options,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+    async fn connect_inner(
+        descriptor: ToolDescriptor,
+        remote_name: String,
+        endpoint: ProviderEndpoint,
+        expected_server: McpServerIdentity,
+        schemas: Arc<dyn McpSchemaRegistry>,
+        authorizations: AuthorizationSource,
+        options: McpHttpOptions,
+    ) -> Result<Self, McpRemoteToolBuildError> {
         validate_remote_tool_name(&remote_name)?;
         if descriptor.semantics().requires_idempotency_key() {
             return Err(McpRemoteToolBuildError::RequiredIdempotencyKeyUnsupported);
@@ -705,6 +821,12 @@ impl McpRemoteTool {
         let http_client = StrictJsonHttpClient {
             client,
             authorization: authorization_slot.clone(),
+            approved_tool: match &authorizations {
+                AuthorizationSource::Approved(approval) => {
+                    Some((remote_name.clone(), approval.digest))
+                }
+                AuthorizationSource::ContextOnly(_) => None,
+            },
             maximum_request_bytes: options.transport().maximum_request_bytes(),
             maximum_response_bytes: options.transport().maximum_response_bytes(),
         };
@@ -724,7 +846,12 @@ impl McpRemoteTool {
         let startup_deadline = tokio::time::Instant::now() + options.startup_timeout();
         let startup_authorization = startup_wait(
             startup_deadline,
-            authorizations.resolve_startup(&descriptor),
+            match &authorizations {
+                AuthorizationSource::ContextOnly(source) => source.resolve_startup(&descriptor),
+                AuthorizationSource::Approved(approval) => {
+                    approval.authorizer.resolve_startup(&descriptor)
+                }
+            },
         )
         .await??;
         authorization_slot
@@ -769,6 +896,7 @@ impl McpRemoteTool {
             remote_name: remote_name.into_boxed_str(),
             schemas,
             authorizations,
+            endpoint,
             authorization_slot: authorization_slot.clone(),
             call_gate: tokio::sync::Mutex::new(()),
             service,
@@ -898,7 +1026,40 @@ impl McpRemoteTool {
         let _call_guard = wait_for_tool(&context, self.call_gate.lock())
             .await
             .map_err(|reason| self.stop_before_dispatch(&context, reason))?;
-        let authorization = wait_for_tool(&context, self.authorizations.resolve_attempt(&context))
+        let authorization_future = match &self.authorizations {
+            AuthorizationSource::ContextOnly(source) => source.resolve_attempt(&context),
+            AuthorizationSource::Approved(approval) => {
+                if self.service.is_closed() {
+                    return Err(self.preparation_error(
+                        &context,
+                        FailureCategory::DependencyUnavailable,
+                        "authorization.binding_retired",
+                        "The approved MCP binding must be rebuilt before further calls.",
+                        RetryAdvice::Never,
+                    ));
+                }
+                if context.origin_event_id().is_none() {
+                    return Err(self.preparation_error(
+                        &context,
+                        FailureCategory::PermissionDenied,
+                        "authorization.durable_origin_required",
+                        "An approved MCP call requires a durable attempt origin.",
+                        RetryAdvice::Never,
+                    ));
+                }
+                approval
+                    .authorizer
+                    .authorize_call(McpToolAuthorizationRequest {
+                        context: &context,
+                        descriptor: &self.descriptor,
+                        input: &input,
+                        endpoint: &self.endpoint,
+                        remote_name: &self.remote_name,
+                        digest: approval.digest,
+                    })
+            }
+        };
+        let authorization = wait_for_tool(&context, authorization_future)
             .await
             .map_err(|reason| self.stop_before_dispatch(&context, reason))?
             .map_err(|error| match error {
@@ -940,6 +1101,10 @@ impl McpRemoteTool {
             .expect("ToolInput construction requires an object root");
         let params =
             CallToolRequestParams::new(self.remote_name.to_string()).with_arguments(arguments);
+        let mut dispatch_guard = ApprovedDispatchGuard(
+            matches!(self.authorizations, AuthorizationSource::Approved(_))
+                .then(|| self.service.cancellation_token()),
+        );
         let response = wait_for_tool(&context, self.service.call_tool_once(params))
             .await
             .map_err(|reason| self.stop_after_dispatch(&context, reason))?
@@ -999,6 +1164,7 @@ impl McpRemoteTool {
         result
             .validate_for(&context, &self.descriptor)
             .map_err(|_| self.invalid_result(&context))?;
+        dispatch_guard.0 = None;
         Ok(result)
     }
 

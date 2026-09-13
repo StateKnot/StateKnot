@@ -348,6 +348,12 @@ from the repository.
   tests and credential-free process/real PostgreSQL replay and fencing evidence.
   This does not implement the effectful Worker API or an arbitrary-code sandbox;
   RFC-0005 remains Draft and general Worker/service isolation remains gated.
+- [x] Implement [input-aware durable MCP write authorization](mcp-call-authorization.md):
+  reviewed complete raw descriptor pins, mandatory bounded tenant/argument policy,
+  credentials installed only after approval, interrupted-connection retirement,
+  and PostgreSQL 16/17 durable-denial/lost-response/idempotent-reconciliation evidence.
+  This does not implement external currency settlement, remote resource fencing,
+  authenticated reconciliation ingress or the general effectful Worker API.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,

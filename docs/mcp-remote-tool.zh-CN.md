@@ -5,6 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # 严格 MCP Remote Tool Profile
 
+需要按租户和实际参数逐次验权的写操作，请使用
+[参数级授权绑定](mcp-call-authorization.zh-CN.md)。
+
 `McpRemoteTool` 是 StateKnot 首个已经实现的 MCP 边界。它把一个远程发现的 MCP Tool 适配为协议无关的 `ErasedTool`，同时禁止远端 Wire Metadata 改写本地 Risk、Schema、Retry 与 Durability Semantics。
 
 这不代表完整 MCP 支持。当前实现是 MCP **Client-side Remote Tool Binding**：固定协议版本 `2026-07-28`，使用 Modern Discovery、Stateless Streamable HTTP 与 Complete JSON Response。
