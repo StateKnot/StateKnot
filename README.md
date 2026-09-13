@@ -48,6 +48,12 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 ## Current milestone
 
+The [input-aware MCP write binding](docs/mcp-call-authorization.md)
+([中文](docs/mcp-call-authorization.zh-CN.md)) pins complete raw Tool descriptors,
+authorizes exact arguments per durable attempt, and retires interrupted
+connections before credentials can be reused. Uncertain writes still require
+authoritative reconciliation; this is not exactly-once external execution.
+
 The restricted [MCP compute Worker](docs/mcp-compute-worker.md)
 ([中文](docs/mcp-compute-worker.zh-CN.md)) delegates pure calculations without
 database credentials; the trusted Driver retains all durable authority. This

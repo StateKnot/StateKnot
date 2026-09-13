@@ -3,6 +3,9 @@
 
 //! End-to-end contract tests for the strict MCP 2026-07-28 binding.
 
+#[path = "mcp_contract/authorization.rs"]
+mod authorization;
+
 use std::{sync::Arc, time::Instant};
 
 use serde_json::{Value, json};
@@ -31,12 +34,30 @@ const ATTEMPT_ID: &str = "01912345-6789-7abc-8def-0123456789af";
 struct TestMcpServer {
     endpoint: ProviderEndpoint,
     requests: mpsc::Receiver<Vec<u8>>,
+    task: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for TestMcpServer {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+fn remote_tool(input_schema: &Value, output_schema: &Value) -> Value {
+    json!({
+        "name": "echo",
+        "description": "Returns a pinned structured response.",
+        "inputSchema": input_schema,
+        "outputSchema": output_schema,
+        "annotations": {"readOnlyHint": false, "destructiveHint": true}
+    })
 }
 
 #[derive(Clone, Copy)]
 enum CallBehavior {
     StructuredSuccess,
     CloseWithoutResponse,
+    HoldWithoutResponse,
 }
 
 impl TestMcpServer {
@@ -56,11 +77,20 @@ impl TestMcpServer {
         call_behavior: CallBehavior,
         request_count: usize,
     ) -> Self {
+        Self::start_tool(
+            remote_tool(&input_schema, &output_schema),
+            call_behavior,
+            request_count,
+        )
+        .await
+    }
+
+    async fn start_tool(tool: Value, call_behavior: CallBehavior, request_count: usize) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let endpoint = ProviderEndpoint::loopback_http(&format!("http://{address}/mcp/")).unwrap();
         let (sender, requests) = mpsc::channel(request_count);
-        tokio::spawn(async move {
+        let task = tokio::spawn(async move {
             for _ in 0..request_count {
                 let (mut socket, _) = listener.accept().await.unwrap();
                 let request = read_request(&mut socket).await;
@@ -90,16 +120,7 @@ impl TestMcpServer {
                         "id": id,
                         "result": {
                             "resultType": "complete",
-                            "tools": [{
-                                "name": "echo",
-                                "description": "Returns a pinned structured response.",
-                                "inputSchema": input_schema,
-                                "outputSchema": output_schema,
-                                "annotations": {
-                                    "readOnlyHint": false,
-                                    "destructiveHint": true
-                                }
-                            }],
+                            "tools": [tool],
                             "ttlMs": 0,
                             "cacheScope": "private"
                         }
@@ -123,6 +144,11 @@ impl TestMcpServer {
                             socket.shutdown().await.unwrap();
                             continue;
                         }
+                        CallBehavior::HoldWithoutResponse => {
+                            sender.send(request).await.unwrap();
+                            std::future::pending::<()>().await;
+                            unreachable!("test server must be aborted by its owner");
+                        }
                     },
                     method => panic!("unexpected MCP method {method}"),
                 };
@@ -137,7 +163,11 @@ impl TestMcpServer {
                 sender.send(request).await.unwrap();
             }
         });
-        Self { endpoint, requests }
+        Self {
+            endpoint,
+            requests,
+            task,
+        }
     }
 }
 
@@ -271,6 +301,20 @@ fn write_descriptor(input: &SchemaReference, output: &SchemaReference) -> ToolDe
 }
 
 fn context(descriptor: &ToolDescriptor) -> ToolContext {
+    scoped_context(
+        descriptor,
+        "tenant-mcp-contract",
+        30_000,
+        CancellationSignal::never(),
+    )
+}
+
+fn scoped_context(
+    descriptor: &ToolDescriptor,
+    tenant: &str,
+    timeout: i64,
+    cancellation: CancellationSignal,
+) -> ToolContext {
     let fixture: Value = serde_json::from_str(include_str!(
         "../../stateknot-core/tests/fixtures/core-budget-v1.json"
     ))
@@ -279,7 +323,7 @@ fn context(descriptor: &ToolDescriptor) -> ToolContext {
         serde_json::from_value::<ResolvedBudget>(fixture["resolved"]["valid"][0].clone()).unwrap();
     let observed_at = "2029-12-31T23:59:59.000000Z".parse::<Timestamp>().unwrap();
     ToolContext::new(
-        TenantId::new("tenant-mcp-contract").unwrap(),
+        TenantId::new(tenant).unwrap(),
         RUN_ID.parse().unwrap(),
         THREAD_ID.parse().unwrap(),
         INVOCATION_ID.parse::<InvocationId>().unwrap(),
@@ -288,10 +332,10 @@ fn context(descriptor: &ToolDescriptor) -> ToolContext {
         resolved
             .remaining(&BudgetUsage::zero(), observed_at)
             .unwrap(),
-        DurationMillis::new(30_000).unwrap(),
+        DurationMillis::new(timeout).unwrap(),
         observed_at,
         Instant::now(),
-        CancellationSignal::never(),
+        cancellation,
     )
     .unwrap()
 }
@@ -370,7 +414,7 @@ async fn discovery_rejects_remote_schema_drift_before_registration() {
     let error = McpRemoteTool::connect(
         descriptor(&input_reference, &output_reference),
         "echo",
-        server.endpoint,
+        server.endpoint.clone(),
         McpServerIdentity::new("stateknot-test-mcp", "1.0.0").unwrap(),
         registry,
         Arc::new(AnonymousMcpAuthorization),
@@ -395,7 +439,7 @@ async fn lost_write_response_is_ambiguous_and_never_hidden_as_a_safe_retry() {
     let adapter = McpRemoteTool::connect(
         descriptor.clone(),
         "echo",
-        server.endpoint,
+        server.endpoint.clone(),
         McpServerIdentity::new("stateknot-test-mcp", "1.0.0").unwrap(),
         registry,
         Arc::new(AnonymousMcpAuthorization),

@@ -291,7 +291,22 @@ jobs:
         env:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
-        run: cargo test -p stateknot-integrations --test mcp_durable --locked -- --test-threads=1
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-integrations --test mcp_durable --locked -- \
+            --nocapture --test-threads=1 | tee mcp-authorization-qualification.log
+          test "$(grep -c '^STATEKNOT_MCP_AUTHORIZATION_EVIDENCE=' mcp-authorization-qualification.log)" = 2
+
+      - name: Upload MCP call authorization evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mcp-authorization-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            mcp-authorization-qualification.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Qualify trusted SQL role profile
         env:
