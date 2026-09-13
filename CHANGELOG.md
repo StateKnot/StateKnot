@@ -14,6 +14,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Authenticated inline MCP Tool result reconciliation with mandatory pre-lookup
+  subject/resource/evidence policy, closed request/receipt schemas, host-only
+  lease fencing, atomic authorization audit, indexed verified exact revisions
+  and lost-response receipt recovery. Real HTTP/PostgreSQL 16/17 qualification
+  covers tenant/attempt/result refusal, active leases, 24-way first/duplicate
+  submissions and fresh-service recovery. Includes RFC-0006 and bilingual
+  operations guidance. No migration or dependency version changes; this does
+  not expose general Worker execution or error/artifact reconciliation.
+
 - Executable PostgreSQL 16/17 schema-24 trusted-server role profile separating
   non-superuser migration ownership, column-scoped runtime writes and dedicated
   fairness-reservation retention. Includes atomic apply/read-only effective ACL

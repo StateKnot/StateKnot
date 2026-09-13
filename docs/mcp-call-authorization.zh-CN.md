@@ -74,8 +74,10 @@ Future 被丢弃、发送后超时、安全格式化和精确请求参数。Post
 `mcp-authorization-postgres-*` 证据保留两种结果以及精确源码、树、锁文件和环境信息，
 保存 30 天。
 
-不增加迁移或依赖。外部货币结算、远端资源 fencing、Provider exactly-once 副作用、
-已认证的外部协调入口及通用带副作用 Worker API 仍需独立实现与验收，本阶段不宣称完成。
+本授权绑定不增加迁移或依赖。外部货币结算、远端资源 fencing、Provider exactly-once
+副作用及通用带副作用 Worker API 仍需独立实现与验收。后续新增的
+[已认证内联成功结果协调 Tool](mcp-reconciliation.zh-CN.md) 已提供受限运维入口，
+不接受任意错误或 artifact；本发送侧授权能力不宣称完成上述验收项。
 
 协议依据：[MCP 工具规范](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx)
 及 [MCP 安全指导](https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices)。

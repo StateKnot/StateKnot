@@ -2840,6 +2840,8 @@ name = "stateknot"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "reqwest 0.12.28",
+ "serde",
  "serde_json",
  "serde_json_canonicalizer",
  "stateknot-artifact-store",

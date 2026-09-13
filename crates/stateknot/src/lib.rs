@@ -16,9 +16,14 @@
 #![forbid(unsafe_code)]
 
 mod mcp_compute;
+mod mcp_reconciliation;
 pub use mcp_compute::{
     McpComputeNode, McpComputeNodeBinding, McpComputeNodeBuildError, McpComputeOutput,
     WorkerInputProjection, WorkerInputProjectionError, mcp_compute_tool_digest,
+};
+pub use mcp_reconciliation::{
+    McpReconciliationAuthorizer, McpReconciliationError, McpReconciliationGrant,
+    McpReconciliationRequest, McpToolReconciler,
 };
 
 /// Integrity-checked S3-compatible artifact persistence and resolution.
