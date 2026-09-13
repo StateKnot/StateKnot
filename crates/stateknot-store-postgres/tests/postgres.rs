@@ -9862,6 +9862,14 @@ async fn tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable() {
             )
             .await
             .expect("each invocation history page must verify");
+        for record in page.records() {
+            let (event, exact) = store
+                .load_tool_invocation_revision(&tenant_id, run_id, invocation_id, record.revision())
+                .await
+                .expect("indexed immutable revision must agree with verified history");
+            assert_eq!(exact.head(), record.head());
+            assert_eq!(&event.head(), record.journal_head());
+        }
         statuses.extend(
             page.records()
                 .iter()
@@ -11302,6 +11310,25 @@ async fn invocation_reads_fail_closed_on_corrupt_canonical_bytes_and_anchors() {
             .await,
         Err(StoreError::CorruptData { .. })
     ));
+
+    for (tenant, run, invocation) in [
+        (&intent_tenant, intent_run, intent_id),
+        (&record_tenant, record_run, record_id),
+        (&anchor_tenant, anchor_run, anchor_id),
+        (&projection_tenant, projection_run, projection_id),
+    ] {
+        assert!(matches!(
+            store
+                .load_tool_invocation_revision(
+                    tenant,
+                    run,
+                    invocation,
+                    stateknot_core::ToolInvocationRevision::new(0).unwrap()
+                )
+                .await,
+            Err(StoreError::CorruptData { .. })
+        ));
+    }
 
     let (model_intent_tenant, model_intent_run, model_intent_id, _) = Box::pin(
         prepare_model_invocation_fixture(&store, "model-intent-corruption", 980),

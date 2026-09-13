@@ -98,9 +98,11 @@ reconciliation. `mcp-authorization-postgres-*` artifacts retain both evidence
 records plus exact source/tree/lock/environment information for 30 days.
 
 No migration or new dependency is required. External currency settlement,
-remote resource fencing, provider exactly-once effects, authenticated external
-reconciliation ingress and the general effectful Worker API remain separate
-release gates. This profile does not claim to complete them.
+remote resource fencing, provider exactly-once effects and the general effectful
+Worker API remain separate release gates. A later additive
+[authenticated inline-success reconciliation Tool](mcp-reconciliation.md) now
+provides the restricted operations ingress; it does not accept arbitrary errors
+or artifacts. This dispatch profile does not claim to complete those gates.
 
 Protocol references: [MCP Tool specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx)
 and [MCP security guidance](https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices).

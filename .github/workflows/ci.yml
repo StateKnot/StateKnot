@@ -308,6 +308,27 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Qualify authenticated MCP result reconciliation
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot --test mcp_reconciliation --locked -- \
+            --nocapture --test-threads=1 | tee mcp-reconciliation-qualification.log
+          test "$(grep -c '^STATEKNOT_MCP_RECONCILIATION_EVIDENCE=' mcp-reconciliation-qualification.log)" = 1
+
+      - name: Upload MCP result reconciliation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mcp-reconciliation-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            mcp-reconciliation-qualification.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Qualify trusted SQL role profile
         env:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"

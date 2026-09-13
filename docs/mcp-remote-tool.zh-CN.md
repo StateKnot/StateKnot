@@ -100,6 +100,9 @@ let outcome = executor.commit_tool_reconciliation(handoff).await?;
 
 带权威已知 External Effect 的 Error Evidence 会把 Ledger 解析为 `Failed`；Effect 仍为 `Unknown` 的证据会有意保留未决状态。该 API 是 Trusted Worker/Operations Boundary；HTTP 或 RPC Service 必须先授权 Evidence Submission，才能构造 Handoff。
 
+远端提交已认证的内联成功证据可使用受限的 [MCP 协调入口](mcp-reconciliation.zh-CN.md)。
+错误/artifact 证据仍只在现有可信宿主嵌入边界内处理。
+
 ## 当前明确拒绝
 
 - Stateful MCP Session 与 `Mcp-Session-Id`；

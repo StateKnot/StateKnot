@@ -144,6 +144,10 @@ to `Failed`. Evidence whose effect is still `Unknown` deliberately leaves it
 unresolved. This API is a trusted worker/operations boundary; an HTTP or RPC
 service must authorize evidence submission before constructing the handoff.
 
+For authenticated remote submission of inline successful evidence, use the
+restricted [MCP reconciliation ingress](mcp-reconciliation.md). Error/artifact
+evidence remains on the existing trusted embedding boundary.
+
 ## Deliberately rejected today
 
 - stateful MCP sessions and `Mcp-Session-Id`;

@@ -353,7 +353,14 @@ from the repository.
   credentials installed only after approval, interrupted-connection retirement,
   and PostgreSQL 16/17 durable-denial/lost-response/idempotent-reconciliation evidence.
   This does not implement external currency settlement, remote resource fencing,
-  authenticated reconciliation ingress or the general effectful Worker API.
+  or the general effectful Worker API.
+- [x] Implement restricted [authenticated MCP result reconciliation](mcp-reconciliation.md):
+  mandatory subject/resource/evidence policy before lookup, host-only fenced
+  Unknown-to-Committed transition and atomic audit, indexed verified receipt
+  recovery, real lost-HTTP-response and 24-way first/duplicate submission tests.
+  PostgreSQL 16/17 CI retains qualification evidence. Error/artifact evidence,
+  provider-specific external fencing and the general Worker API remain gated;
+  RFC-0006 remains Draft, not a release acceptance.
 - [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,

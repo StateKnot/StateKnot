@@ -5194,6 +5194,95 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
         Ok(invocation)
     }
 
+    /// Loads one exact immutable Tool revision and its verified journal event.
+    ///
+    /// This indexed lookup does not scan history. It checks the intent/base
+    /// checkpoint, local checksums, direct predecessor transition, projection
+    /// anchor and (when selected) current pointer in one repeatable-read snapshot.
+    /// It does not replace full-history verification or authorize a caller.
+    ///
+    /// # Errors
+    /// Returns not-found, corruption or database errors without mutating state.
+    pub async fn load_tool_invocation_revision(
+        &self,
+        tenant_id: &TenantId,
+        run_id: RunId,
+        invocation_id: InvocationId,
+        revision: ToolInvocationRevision,
+    ) -> Result<(JournalEvent, ToolInvocation), StoreError> {
+        let mut transaction = self.begin_repeatable_read("exact tool revision").await?;
+        let row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+            .bind(tenant_id.as_str())
+            .bind(*run_id.as_uuid())
+            .bind(*invocation_id.as_uuid())
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| StoreError::database("exact tool intent", source))?
+            .ok_or(StoreError::ToolInvocationNotFound)?;
+        let intent = decode_tool_invocation_intent(&row)?;
+        if intent.tenant_id() != tenant_id
+            || intent.run_id() != run_id
+            || intent.invocation_id() != invocation_id
+        {
+            return Err(StoreError::corrupt("exact tool invocation scope"));
+        }
+        let current = nonnegative_tool_invocation_revision(row.current_revision)?;
+        if revision > current {
+            return Err(StoreError::ToolInvocationNotFound);
+        }
+        verify_tool_invocation_base_checkpoint(&mut transaction, &intent).await?;
+        let stored = load_tool_invocation_revision_row(
+            &mut transaction,
+            tenant_id,
+            run_id,
+            invocation_id,
+            revision,
+        )
+        .await
+        .map_err(|error| match error {
+            StoreError::ToolInvocationNotFound => {
+                StoreError::corrupt("missing exact tool revision")
+            }
+            other => other,
+        })?;
+        let invocation = decode_tool_invocation_revision(stored, &intent)?;
+        if revision == current {
+            validate_tool_invocation_current_projection(&row, &invocation)?;
+        }
+        let mut verifier = if revision.get() == 0 {
+            ToolInvocationHistoryVerifier::new()
+        } else {
+            let previous = ToolInvocationRevision::new(revision.get() - 1)
+                .map_err(|_| StoreError::corrupt("exact tool predecessor"))?;
+            let stored = load_tool_invocation_revision_row(
+                &mut transaction,
+                tenant_id,
+                run_id,
+                invocation_id,
+                previous,
+            )
+            .await
+            .map_err(|error| match error {
+                StoreError::ToolInvocationNotFound => {
+                    StoreError::corrupt("missing exact tool predecessor")
+                }
+                other => other,
+            })?;
+            let previous = decode_tool_invocation_revision(stored, &intent)?;
+            verify_tool_invocation_anchor(&mut transaction, &previous).await?;
+            ToolInvocationHistoryVerifier::after(previous)
+        };
+        verifier
+            .verify_next(&invocation)
+            .map_err(|_| StoreError::corrupt("exact tool transition"))?;
+        let event = verify_tool_invocation_anchor(&mut transaction, &invocation).await?;
+        transaction
+            .commit()
+            .await
+            .map_err(|source| StoreError::database("exact tool revision commit", source))?;
+        Ok((event, invocation))
+    }
+
     /// Loads one bounded ascending page of immutable invocation revisions.
     ///
     /// The first page starts at revision zero. A continuation must pass the full
@@ -12947,7 +13036,7 @@ async fn ensure_no_unsettled_tool_invocations(
 async fn verify_tool_invocation_anchor(
     transaction: &mut Transaction<'_, Postgres>,
     invocation: &ToolInvocation,
-) -> Result<(), StoreError> {
+) -> Result<JournalEvent, StoreError> {
     let sequence = i64::try_from(invocation.journal_head().sequence().get())
         .map_err(|_| StoreError::corrupt("tool invocation journal sequence"))?;
     let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
@@ -12968,7 +13057,7 @@ async fn verify_tool_invocation_anchor(
     {
         return Err(StoreError::corrupt("tool invocation journal anchor"));
     }
-    Ok(())
+    Ok(event)
 }
 
 fn encode_model_invocation_intent(intent: &ModelInvocationIntent) -> Result<Vec<u8>, StoreError> {

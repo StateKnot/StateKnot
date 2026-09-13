@@ -48,6 +48,12 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 ## Current milestone
 
+The [authenticated result reconciliation Tool](docs/mcp-reconciliation.md)
+([中文](docs/mcp-reconciliation.zh-CN.md)) accepts authorized evidence for an exact
+Unknown attempt, atomically retains its audit and result, and recovers lost HTTP
+receipts without re-executing a write. It is a privileged operations surface,
+not a general Worker API or proof of external exactly-once effects.
+
 The [input-aware MCP write binding](docs/mcp-call-authorization.md)
 ([中文](docs/mcp-call-authorization.zh-CN.md)) pins complete raw Tool descriptors,
 authorizes exact arguments per durable attempt, and retires interrupted
