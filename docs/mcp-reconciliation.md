@@ -121,7 +121,8 @@ call a real business provider or prove that a particular external write occurred
 
 No migration or new third-party version is introduced. The additive exact
 revision getter verifies the direct predecessor and journal anchor, not full
-history. Error/artifact reconciliation, provider settlement/fencing, general
+history. Known-effect failures have a [separate authorized profile](mcp-error-reconciliation.md).
+Arbitrary error/artifact reconciliation, provider settlement/fencing, general
 Worker execution, infrastructure isolation and capacity/failover qualification
 remain separate gates. See [authorized writes](mcp-call-authorization.md) for
 the dispatch-side boundary.

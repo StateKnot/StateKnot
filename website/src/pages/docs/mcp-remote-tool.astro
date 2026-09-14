@@ -192,6 +192,36 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
     </p>
   </section>
 
+  <section aria-labelledby="mcp-error-reconciliation-title">
+    <h2 id="mcp-error-reconciliation-title">
+      Record a confirmed failure without resending the write
+    </h2>
+    <p>
+      The privileged <code>stateknot_reconcile_tool_error_v1</code> operations Tool
+      requires its own <code>stateknot:reconcile-error</code> scope and current resource/evidence
+      authorization. It accepts only confirmed <code>not_applied</code>
+      or <code>applied</code> effects for the exact original Unknown attempt and atomically
+      records Failed with an authorization audit. Unknown or partial effects remain
+      unresolved.
+    </p>
+    <p>
+      The host fixes <code>RetryAdvice::Never</code>. Not applied does not mean
+      execution never started, no charges, or safe retry. Lost responses recover
+      the same receipt from the identical request; success/failure races have
+      one winner. The existing success-result Tool and its scope remain
+      separate. This does not settle provider charges or complete production
+      acceptance.
+    </p>
+    <p>
+      Follow the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-error-reconciliation.md"
+        >failure reconciliation integration and incident guide</a
+      >
+      for host registration, closed request fields, evidence verification and PostgreSQL
+      16/17 qualification.
+    </p>
+  </section>
+
   <section aria-labelledby="mcp-exclusions-title">
     <h2 id="mcp-exclusions-title">Know what this profile rejects</h2>
     <ul>

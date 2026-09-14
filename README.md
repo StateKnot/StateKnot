@@ -48,6 +48,12 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 ## Current milestone
 
+The separately authorized [known-error reconciliation Tool](docs/mcp-error-reconciliation.md)
+([中文](docs/mcp-error-reconciliation.zh-CN.md)) resolves an exact Unknown attempt
+to Failed only with authoritative applied/not-applied evidence. The host fixes
+retry advice to Never; failure recording neither resends a write nor settles
+provider charges. It preserves the existing successful-result wire contract.
+
 The [authenticated result reconciliation Tool](docs/mcp-reconciliation.md)
 ([中文](docs/mcp-reconciliation.zh-CN.md)) accepts authorized evidence for an exact
 Unknown attempt, atomically retains its audit and result, and recovers lost HTTP

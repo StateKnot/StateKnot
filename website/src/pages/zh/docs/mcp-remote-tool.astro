@@ -183,6 +183,32 @@ match executor.commit_tool_reconciliation(reconciliation).await? {
     </p>
   </section>
 
+  <section aria-labelledby="mcp-error-reconciliation-title">
+    <h2 id="mcp-error-reconciliation-title">
+      补录已确认的失败，不重新发起写入
+    </h2>
+    <p>
+      运维工具 <code>stateknot_reconcile_tool_error_v1</code> 需要独立的
+      <code>stateknot:reconcile-error</code> 权限，以及当前资源和证据授权。 仅接受原始
+      Unknown 尝试“确认未生效”<code>not_applied</code> 或 “确认已生效”<code
+        >applied</code
+      > 的证据，将 Failed 记录与授权审计原子提交。 未知或部分生效仍须保留为未决状态。
+    </p>
+    <p>
+      宿主固定使用 <code>RetryAdvice::Never</code
+      >。未生效不等于从未执行、没有费用或可以安全重试。
+      回包丢失后，以完整相同请求恢复原回执；成功和失败提交竞争时，只允许一方成为最终事实。
+      原成功结果入口及其权限保持独立。这不代替 Provider
+      费用结算，也不代表完成生产发布验收。
+    </p>
+    <p>
+      查看<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-error-reconciliation.zh-CN.md"
+        >失败结果核对接入与故障处理指南</a
+      >， 了解宿主注册、请求字段、权威证据要求及 PostgreSQL 16/17 验证方法。
+    </p>
+  </section>
+
   <section aria-labelledby="mcp-exclusions-title">
     <h2 id="mcp-exclusions-title">明确当前拒绝项</h2>
     <ul>

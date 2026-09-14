@@ -8,6 +8,37 @@ const responsiveAuditWidths = [
   320, 360, 375, 414, 639, 640, 767, 768, 959, 960, 1279, 1280, 1440, 1920,
 ] as const;
 
+for (const locale of ["en", "zh"] as const) {
+  test(`${locale} explains independently authorized known-error reconciliation`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/mcp-remote-tool/`);
+    const section = page.locator(
+      'section[aria-labelledby="mcp-error-reconciliation-title"]',
+    );
+    for (const contract of [
+      "stateknot_reconcile_tool_error_v1",
+      "stateknot:reconcile-error",
+      "RetryAdvice::Never",
+      "not_applied",
+      "applied",
+    ]) {
+      await expect(section.getByText(contract, { exact: true })).toBeVisible();
+    }
+    await expect(section).toContainText(
+      locale === "zh"
+        ? "未知或部分生效仍须保留为未决状态"
+        : "Unknown or partial effects remain unresolved",
+    );
+    await expect(section.locator("a")).toHaveAttribute(
+      "href",
+      `https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-error-reconciliation${locale === "zh" ? ".zh-CN" : ""}.md`,
+    );
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
+}
+
 const localizedRoutePairs = [
   {
     en: "/",

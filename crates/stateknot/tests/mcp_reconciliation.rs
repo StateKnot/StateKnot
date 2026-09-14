@@ -25,6 +25,9 @@ use std::{
 };
 use tokio::sync::Notify;
 
+#[path = "mcp_reconciliation/error.rs"]
+mod error;
+
 fn capability(name: &str) -> CapabilityIdentity {
     CapabilityIdentity::new(
         PrincipalIdentity::new(
@@ -48,7 +51,12 @@ fn schemas() -> (JsonSchemaRegistry, SchemaReference, SchemaReference) {
     let output = json!({"$schema":"https://json-schema.org/draft/2020-12/schema", "$id":"https://schemas.example.test/reconcile-output/1.0.0",
         "type":"object", "additionalProperties":false,"properties":{"status":{"const":"applied"},"receipt_id":{"type":"string"}}, "required":["status"]});
     let mut builder = JsonSchemaRegistryBuilder::with_default_limits();
-    for schema in [&input, &output, &McpToolReconciler::audit_schema()] {
+    for schema in [
+        &input,
+        &output,
+        &McpToolReconciler::audit_schema(),
+        &McpToolErrorReconciler::audit_schema(),
+    ] {
         builder.register(reference(schema), schema.clone()).unwrap();
     }
     (
@@ -274,6 +282,16 @@ impl McpServerAuthenticator for Auth {
     ) -> BoxFuture<'_, Result<McpServerPrincipal, McpServerAuthenticationError>> {
         Box::pin(async move {
             let subject = match request.credential().expose_secret() {
+                "error-ops-a" | "error-ops-b" | "error-other-tenant" => {
+                    let subject = match request.credential().expose_secret() {
+                        "error-ops-a" => "issuer/ops-a",
+                        "error-ops-b" => "issuer/ops-b",
+                        _ => "issuer/other",
+                    };
+                    return Ok(
+                        McpServerPrincipal::new(subject, ["stateknot:reconcile-error"]).unwrap(),
+                    );
+                }
                 "ops-a" => "issuer/ops-a",
                 "ops-b" => "issuer/ops-b",
                 "ops-other-tenant" => "issuer/other",
@@ -300,26 +318,50 @@ impl McpReconciliationAuthorizer for Policy {
         principal: McpServerPrincipal,
         _request: McpReconciliationRequest,
     ) -> BoxFuture<'_, Result<McpReconciliationGrant, McpReconciliationError>> {
+        Box::pin(async move { self.grant(&principal) })
+    }
+}
+
+impl Policy {
+    fn grant(
+        &self,
+        principal: &McpServerPrincipal,
+    ) -> Result<McpReconciliationGrant, McpReconciliationError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        if self.mode.load(Ordering::SeqCst) == 1 {
+            return Err(McpReconciliationError::Denied);
+        }
+        let tenant = if principal.subject() == "issuer/other" {
+            TenantId::new("unrelated-tenant").unwrap()
+        } else {
+            self.tenant.clone()
+        };
+        let identity = PrincipalIdentity::new(
+            "https://issuer.example.test/operations".parse().unwrap(),
+            principal.subject().parse().unwrap(),
+        );
+        Ok(McpReconciliationGrant {
+            caller: AgentServiceCaller::new(tenant, identity),
+            policy: capability("result-attestation-policy"),
+            policy_digest: Digest::sha256(b"retained policy"),
+            decision_digest: Digest::sha256(b"retained fixture decision"),
+        })
+    }
+}
+
+impl McpErrorReconciliationAuthorizer for Policy {
+    fn authorize(
+        &self,
+        principal: McpServerPrincipal,
+        request: McpErrorReconciliationRequest,
+    ) -> BoxFuture<'_, Result<McpReconciliationGrant, McpReconciliationError>> {
         Box::pin(async move {
-            self.calls.fetch_add(1, Ordering::SeqCst);
-            if self.mode.load(Ordering::SeqCst) == 1 {
+            let grant = self.grant(&principal)?;
+            // Fixture-only evidence policy; production must verify retained provider evidence.
+            if request.failure_code.as_str() == "fixture.rejected_evidence" {
                 return Err(McpReconciliationError::Denied);
             }
-            let tenant = if principal.subject() == "issuer/other" {
-                TenantId::new("unrelated-tenant").unwrap()
-            } else {
-                self.tenant.clone()
-            };
-            let identity = PrincipalIdentity::new(
-                "https://issuer.example.test/operations".parse().unwrap(),
-                principal.subject().parse().unwrap(),
-            );
-            Ok(McpReconciliationGrant {
-                caller: AgentServiceCaller::new(tenant, identity),
-                policy: capability("result-attestation-policy"),
-                policy_digest: Digest::sha256(b"retained policy"),
-                decision_digest: Digest::sha256(b"retained fixture decision"),
-            })
+            Ok(grant)
         })
     }
 }
@@ -348,7 +390,13 @@ impl Server {
         registry
             .register(
                 McpToolReconciler::definition().unwrap(),
-                McpToolReconciler::new(store, schemas, policy).unwrap(),
+                McpToolReconciler::new(store.clone(), schemas.clone(), policy.clone()).unwrap(),
+            )
+            .unwrap();
+        registry
+            .register(
+                McpToolErrorReconciler::definition().unwrap(),
+                McpToolErrorReconciler::new(store, schemas, policy).unwrap(),
             )
             .unwrap();
         let handler = McpServerToolService::new(
@@ -401,6 +449,17 @@ impl Server {
 }
 
 async fn call(url: &str, token: &str, arguments: Value, lose: bool) -> Value {
+    call_tool(
+        url,
+        token,
+        "stateknot_reconcile_tool_result_v1",
+        arguments,
+        lose,
+    )
+    .await
+}
+
+async fn call_tool(url: &str, token: &str, tool: &str, arguments: Value, lose: bool) -> Value {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(20))
         .redirect(reqwest::redirect::Policy::none())
@@ -411,13 +470,13 @@ async fn call(url: &str, token: &str, arguments: Value, lose: bool) -> Value {
         .bearer_auth(token)
         .header("MCP-Protocol-Version", "2026-07-28")
         .header("MCP-Method", "tools/call")
-        .header("MCP-Name", "stateknot_reconcile_tool_result_v1")
+        .header("MCP-Name", tool)
         .header("Accept", "application/json, text/event-stream");
     if lose {
         request = request.header("x-fixture-withhold-receipt", "1");
     }
     let response = request.json(&json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{
-        "name":"stateknot_reconcile_tool_result_v1","arguments":arguments,"_meta":{
+        "name":tool,"arguments":arguments,"_meta":{
             "io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"operator","version":"1.0.0"},
             "io.modelcontextprotocol/clientCapabilities":{}
         }}})).send().await.unwrap();

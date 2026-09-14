@@ -14,6 +14,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Separately scoped known-effect MCP Tool error reconciliation: mandatory current
+  resource/evidence authorization, host-owned non-retryable failure provenance,
+  atomic Failed/audit persistence and exact lost-receipt recovery. Closed input
+  rejects uncertain/partial effects, retry authority and private error details.
+  PostgreSQL 16/17 qualification covers both effects, 24-way error and mixed
+  success/error races, revocation, startup schema drift and legacy v1 schema
+  compatibility. Includes RFC-0007, bilingual operations guides and website
+  guidance. No migration, dependency or protocol-version changes; not provider
+  settlement, automatic retry or a production-release acceptance.
+
 - Official website footer now displays the operator-confirmed ICP website filing
   `冀ICP备2026036754号-1` with the MIIT lookup link across both languages, including
   documentation and error pages; browser tests cover exact text, safe new-tab
@@ -26,7 +36,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   covers tenant/attempt/result refusal, active leases, 24-way first/duplicate
   submissions and fresh-service recovery. Includes RFC-0006 and bilingual
   operations guidance. No migration or dependency version changes; this does
-  not expose general Worker execution or error/artifact reconciliation.
+  not expose general Worker execution or artifact reconciliation; known errors
+  use the separate profile above.
 
 - Executable PostgreSQL 16/17 schema-24 trusted-server role profile separating
   non-superuser migration ownership, column-scoped runtime writes and dedicated
