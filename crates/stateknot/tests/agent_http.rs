@@ -335,7 +335,7 @@ async fn postgres_http_commit_loss_recovery_concurrency_and_cancellation() {
     );
     f.store.close().await;
     println!(
-        "STATEKNOT_AGENT_HTTP_EVIDENCE=24_concurrent_submissions_one_run;24_cancellation_races_one_commit;lost_submit_recovered;lost_cancel_recovered;no_inline_dispatch"
+        "\nSTATEKNOT_AGENT_HTTP_EVIDENCE=24_concurrent_submissions_one_run;24_cancellation_races_one_commit;lost_submit_recovered;lost_cancel_recovered;no_inline_dispatch"
     );
 }
 
