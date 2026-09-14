@@ -16,7 +16,8 @@ supported only after its implementation, tests, documentation, compatibility
 evidence, and release gates have all shipped.
 
 Current implementation note: the pre-alpha repository now contains
-`AgentServiceV1`, an authorization-first embedding facade, and
+`AgentServiceV1`, an authorization-first embedding facade, its opt-in
+authenticated bounded JSON `AgentHttpService` transport, and
 `McpRemoteTool`, one strict MCP `2026-07-28` stateless client-side Tool profile,
 plus a separate general stateless `McpClient` Tool surface and its interactive
 `McpOAuthAuthorization` provider, and a StateKnot-owned stateless MCP Server
@@ -42,7 +43,7 @@ extensions, stable SDK-tier API, a production durable A2A task/push backend,
 official A2A Client/live-peer recovery qualification, or A2A gRPC support has
 shipped.
 Their exact boundaries are documented in
-[AgentService v1](agent-service.md), the
+[AgentService v1](agent-service.md), [Agent HTTP v1](agent-http.md), the
 [strict MCP Remote Tool profile](mcp-remote-tool.md), the
 [general MCP Tool client](mcp-client.md), the
 [MCP OAuth client](mcp-oauth.md), the

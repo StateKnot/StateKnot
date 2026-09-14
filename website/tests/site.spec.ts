@@ -125,6 +125,12 @@ const localizedRoutePairs = [
     zhHeading: "通过一个服务边界暴露可恢复 Agent。",
   },
   {
+    en: "/docs/agent-http/",
+    zh: "/zh/docs/agent-http/",
+    enHeading: "Submit and recover Agents over authenticated HTTP.",
+    zhHeading: "通过认证 HTTP 提交与恢复 Agent。",
+  },
+  {
     en: "/docs/mcp-client/",
     zh: "/zh/docs/mcp-client/",
     enHeading: "Call a stateless MCP Tool safely.",
@@ -511,6 +517,7 @@ for (const route of [
   "/docs/invocations/",
   "/docs/provider-native-agent/",
   "/docs/agent-service/",
+  "/docs/agent-http/",
   "/docs/mcp-remote-tool/",
   "/docs/mcp-conformance/",
   "/docs/a2a-client/",
@@ -527,6 +534,7 @@ for (const route of [
   "/zh/docs/invocations/",
   "/zh/docs/provider-native-agent/",
   "/zh/docs/agent-service/",
+  "/zh/docs/agent-http/",
   "/zh/docs/mcp-remote-tool/",
   "/zh/docs/mcp-conformance/",
   "/zh/docs/a2a-client/",
@@ -627,6 +635,27 @@ test("AgentService tutorial keeps authorization, retry, and transport boundaries
     page.getByText("Authorization first", { exact: true }),
   ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(3);
+});
+
+test("Agent HTTP tutorial preserves authentication, recovery and deployment boundaries", async ({
+  page,
+}) => {
+  for (const [path, heading] of [
+    ["/docs/agent-http/", "Before exposing a production endpoint"],
+    ["/zh/docs/agent-http/", "对外上线前的配置清单"],
+  ] as const) {
+    await page.goto(path);
+    await expect(
+      page.getByRole("heading", { name: heading, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("POST /v1/agent-runs/lookup", { exact: true }),
+    ).toBeVisible();
+    await expect(page.locator("[data-copy-button]")).toHaveCount(1);
+    await expect(
+      page.locator("a[href$='/docs/rfcs/0008-agent-http-v1.md']"),
+    ).toHaveCount(1);
+  }
 });
 
 test("MCP tutorial states the strict profile and ambiguous write contract", async ({

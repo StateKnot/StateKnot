@@ -14,6 +14,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Authenticated Agent HTTP v1 JSON ingress over `AgentServiceV1`: durable
+  submit/read/key lookup, caller-retained two-phase cancellation, mandatory
+  credential and resource policy, exact Host/Origin rules, bounded duplicate-free
+  JSON, finite response/concurrency/deadline limits and cooperative shutdown.
+  PostgreSQL 16/17 HTTP qualification covers 24-way admission, lost submit/cancel
+  responses, authorization-before-storage, hostile input and overload. Includes
+  RFC-0008 and bilingual website tutorials. Existing migrations and dependency
+  versions are unchanged; no anonymous verifier, inline execution, SSE or stable
+  production release is claimed.
+
 - Separately scoped known-effect MCP Tool error reconciliation: mandatory current
   resource/evidence authorization, host-owned non-retryable failure provenance,
   atomic Failed/audit persistence and exact lost-receipt recovery. Closed input

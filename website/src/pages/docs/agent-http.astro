@@ -1,0 +1,194 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+import DocsLayout from "../../layouts/DocsLayout.astro";
+const code = `use std::sync::Arc;
+use stateknot::agent_http::{AgentHttpOptions, AgentHttpService};
+
+// service: AgentServiceV1 with exact deployments and resource policy.
+// verifier: your real AgentHttpAuthenticator, not a test token check.
+let options = AgentHttpOptions::new(["agents.example.com".to_owned()])?;
+let http = AgentHttpService::new(service, Arc::new(verifier), options);
+let router = http.router();
+// Mount behind TLS. Run Workers separately. Own and drain the listener.`;
+---
+
+<DocsLayout
+  title="Submit and recover Agents over authenticated HTTP."
+  description="Four bounded JSON operations over the durable Agent service, with verified identity, exact retries and two-phase cancellation."
+  section="Agent HTTP v1"
+  locale="en"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="http-boundary"
+  >
+    <h2 id="http-boundary">Implemented JSON profile, not a stable release</h2>
+    <p>
+      <code>AgentHttpService</code> adds a real HTTP router over <a
+        href="/docs/agent-service/">AgentService v1</a
+      >. It durably admits work but never executes a model, Tool or graph in the
+      request task. StateKnot remains pre-alpha; SSE and a complete managed
+      hosting service are separate work.
+    </p>
+  </aside>
+  <section aria-labelledby="http-wiring">
+    <h2 id="http-wiring">Bind verified identity and resource policy</h2>
+    <p>
+      A mandatory <code>AgentHttpAuthenticator</code> validates signature or introspection
+      evidence, issuer, audience, expiry and revocation. It maps a trusted tenant/principal
+      and independent <code>Submit</code>, <code>Read</code> and <code
+        >Cancel</code
+      > grants. There is no default verifier or anonymous mode.
+    </p>
+    <p>
+      The existing <code>AgentServiceAuthorizer</code> still authorizes the exact
+      Agent/request, Run or key digest before resource lookup. Never trust identity
+      fields in JSON, an unverified JWT or arbitrary forwarding headers. Client budgets
+      can only narrow host policy.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · host wiring</span><button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="http-code"
+          ><span data-copy-label aria-live="polite">Copy</span></button
+        >
+      </div>
+      <pre id="http-code" tabindex="0"><code>{code}</code></pre>
+    </div>
+  </section>
+  <section aria-labelledby="http-operations">
+    <h2 id="http-operations">Four operations, one durable service</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>POST /v1/agent-runs</dt><dd>
+          Serialize <code>AgentHttpSubmission</code>: submission_key, exact
+          versioned agent identity, and schema-bound request. 201 creates a Run;
+          200 recovers it.
+        </dd>
+      </div>
+      <div>
+        <dt>GET /v1/agent-runs/&#123;run_id&#125;</dt><dd>
+          No request body. 200 returns an integrity-verified public snapshot,
+          not private checkpoints or transcript.
+        </dd>
+      </div>
+      <div>
+        <dt>POST /v1/agent-runs/lookup</dt><dd>
+          Serialize <code>AgentHttpLookup</code> with submission_key. Keep the key
+          out of the URL and access logs.
+        </dd>
+      </div>
+      <div>
+        <dt>POST /v1/agent-runs/&#123;run_id&#125;/cancellation</dt><dd>
+          Serialize caller-retained <code>AgentCancellationIds</code> with event_id
+          and failure_id. 202 records the request; 200 recovers the exact pair.
+        </dd>
+      </div>
+    </dl>
+    <p>
+      Use a Bearer credential and JSON POST bodies. Accept must be absent, <code
+        >application/json</code
+      > or <code>*/*</code>. Rust wire types expose JSON Schema; unknown fields,
+      duplicate keys (including nested keys), query strings and noncanonical
+      paths are rejected.
+    </p>
+    <p>
+      Success returns <code
+        >AgentHttpRunResponse &#123; request_id, snapshot &#125;</code
+      >. A fresh request_id correlates this response; it is not an idempotency
+      key. <code>Active</code> does not prove a Worker is executing and may include
+      failure closure. <code>CancellationRequested</code> is not terminal cleanup.
+    </p>
+  </section>
+  <section aria-labelledby="http-retry">
+    <h2 id="http-retry">Recover a lost response without creating more work</h2>
+    <p>
+      Persist a high-entropy submission key and exact logical request before
+      sending. Persist both cancellation IDs before cancelling. On timeout,
+      disconnect, shutdown or an oversized response, the database may already
+      have committed.
+    </p>
+    <p>
+      Read by the original key/Run or retry the same content and identities with
+      bounded backoff. Changed submission content or a competing cancellation
+      pair is 409. Inspect durable state; do not generate a new key merely
+      because the response was lost. A recovered snapshot may have a newer
+      revision.
+    </p>
+  </section>
+  <section aria-labelledby="http-limits">
+    <h2 id="http-limits">Finite limits and payload-safe errors</h2>
+    <p>
+      Defaults: 256 KiB request, 2 MiB response, 64 concurrent requests per
+      shared instance and a 15-second cooperative deadline. Hard ceilings: 2 MiB
+      request, 8 MiB response, 1,024 concurrent requests and 60 seconds. JSON
+      also has structural bounds. Blocking host code cannot be preempted by an
+      async timeout.
+    </p>
+    <p>
+      400 rejects malformed input; 401/403 reject credential or policy; 404
+      follows authorization; 405/406/415 reject unsupported HTTP forms; 409
+      reports conflict; 413 rejects body size/read failures; 429 signals
+      capacity; 503 signals unavailable/deadline/shutdown; 500 signals
+      integrity/configuration or response limits.
+    </p>
+    <p>
+      Every response is private/no-store JSON with a correlation ID and
+      API-version header. Errors expose only a fixed <code>agent_http.*</code> code
+      and request_id, never raw token, SQL or provider messages. 429 and 503 include
+      <code>Retry-After: 1</code>.
+    </p>
+  </section>
+  <section aria-labelledby="http-operations-checklist">
+    <h2 id="http-operations-checklist">
+      Before exposing a production endpoint
+    </h2>
+    <ol>
+      <li>
+        Pin compatible source, lockfile, migrations, graphs and schemas. Run an
+        independently configured scheduler/Worker; submission alone does not
+        advance a Run.
+      </li>
+      <li>
+        Configure TLS and an exact Host allowlist, connection/header limits,
+        per-tenant quotas and replica-wide admission control. Forwarded headers
+        do not expand trust. Origin is denied by default; optional exact HTTPS
+        origins do not enable CORS.
+      </li>
+      <li>
+        Install real credential verification and exact resource policy. Exercise
+        expiry, revocation, wrong audience and tenant isolation. Never deploy
+        the tests’ static credentials.
+      </li>
+      <li>
+        Keep authorization, keys, input/output and raw paths out of logs.
+        Monitor bounded latency/error metrics and dependency readiness.
+      </li>
+      <li>
+        Stop accepting connections, call <code>http.shutdown()</code>, and bound
+        listener drain separately. Recover possibly committed requests with
+        original identities after replacement.
+      </li>
+    </ol>
+    <p>
+      Qualification covers actual HTTP + PostgreSQL 16/17, 24 concurrent
+      identical submissions, lost submit/cancel responses, no inline dispatch,
+      hostile input, authorization before an unavailable database, slow
+      requests, overload and shutdown. It does not qualify a live issuer, live
+      model, SSE service or an entire production deployment.
+    </p>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-http.md"
+        >Full wire and operations guide</a
+      > · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0008-agent-http-v1.md"
+        >RFC-0008</a
+      > · <a href="/docs/status/">Development status</a>
+    </p>
+  </section>
+</DocsLayout>

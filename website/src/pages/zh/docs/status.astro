@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "Agent HTTP v1 JSON 接入",
+    body: "强制凭据验证与资源授权，持久化提交、读取、按键找回和两阶段取消，有限资源上限与停机控制，并在 PostgreSQL 16/17 上验证真实 HTTP 响应丢失恢复。不内联执行，不包含 SSE，也不宣称稳定版。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "Core 领域合约",
     body: "有界 Canonical 类型，以及 Root Graph 编译校验和确定性 Route/Reducer/Successor Barrier Planning。",
   },
@@ -129,7 +135,7 @@ const capabilities = [
     state: "尚未发布",
     className: "status-planned",
     title: "稳定 Network Agent API",
-    body: "带版本的嵌入式 Facade 已经存在，但稳定 HTTP/gRPC/SSE API、已发布 Crate、兼容性承诺与生产支持声明仍不存在。",
+    body: "嵌入式服务与经过认证的有界 JSON HTTP 接入已经存在，但稳定 HTTP/SSE API、已发布 Crate、兼容性承诺与生产支持声明仍不存在。",
   },
   {
     state: "尚未发布",
@@ -141,7 +147,7 @@ const capabilities = [
     state: "尚未发布",
     className: "status-planned",
     title: "生产 Server 与运维",
-    body: "HTTP/SSE Role、认证、Policy、Observability、角色隔离、通用 Retention、Failover、Restore、OCI 交付与 Release Qualification 尚未完成。",
+    body: "完整 HTTP/SSE 角色部署、真实身份与策略验收、可观测性、角色隔离、通用保留策略、故障切换、恢复、OCI 交付与发布验收尚未完成。",
   },
 ];
 ---

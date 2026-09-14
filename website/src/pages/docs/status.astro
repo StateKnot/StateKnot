@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "Agent HTTP v1 JSON ingress",
+    body: "Mandatory credential verification and resource policy, durable submission/read/key lookup, two-phase cancellation, finite limits and shutdown, with real HTTP lost-response recovery on PostgreSQL 16/17. No inline dispatch, SSE or stable-release claim.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "Core domain contracts",
     body: "Bounded canonical types plus compiled root-graph validation and deterministic route/reducer/successor barrier planning.",
   },
@@ -129,7 +135,7 @@ const capabilities = [
     state: "Not shipped",
     className: "status-planned",
     title: "Stable network Agent API",
-    body: "The versioned embedding facade exists, but no stable HTTP/gRPC/SSE API, published crate, compatibility guarantee, or production support claim exists yet.",
+    body: "The embedding facade and bounded authenticated JSON HTTP profile exist, but no stable HTTP/SSE API, published crate, compatibility guarantee, or production support claim exists yet.",
   },
   {
     state: "Not shipped",
@@ -141,7 +147,7 @@ const capabilities = [
     state: "Not shipped",
     className: "status-planned",
     title: "Production server and operations",
-    body: "HTTP/SSE roles, authentication, policy, observability, role isolation, general retention, failover, restore, OCI delivery, and release qualification remain ahead.",
+    body: "Full HTTP/SSE role deployment, issuer/policy qualification, observability, role isolation, general retention, failover, restore, OCI delivery, and release qualification remain ahead.",
   },
 ];
 ---

@@ -132,6 +132,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "agent service api submit read cancel cancellation authorization idempotency ingress",
       },
       {
+        title: "Agent HTTP v1",
+        description:
+          "Submit, recover, read and cancel through authenticated bounded JSON HTTP.",
+        href: "/docs/agent-http/",
+        search:
+          "agent http bearer authentication submission lookup cancel retry recovery limits",
+      },
+      {
         title: "General MCP Tool client",
         description:
           "Discover and call bounded stateless MCP 2026-07-28 Tools with JSON/SSE, OAuth, custom headers, and mediated MRTR.",
@@ -353,6 +361,13 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/agent-service/",
         search:
           "agent service api 提交 读取 取消 authorization idempotency ingress",
+      },
+      {
+        title: "Agent HTTP v1",
+        description:
+          "通过经过认证、有资源上限的 JSON HTTP 接口提交、找回、读取与取消 Agent。",
+        href: "/docs/agent-http/",
+        search: "agent http bearer 认证 提交 查询 取消 重试 恢复 限流",
       },
       {
         title: "通用 MCP Tool Client",

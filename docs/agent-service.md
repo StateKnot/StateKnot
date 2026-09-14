@@ -10,6 +10,9 @@ Agent submission, integrity-verified reads, and two-phase cancellation. It is a
 library service over PostgreSQL and exact executable registries; it is not an
 HTTP, gRPC, or SSE server and it does not authenticate transport credentials.
 
+For the opt-in authenticated JSON transport over this service, see
+[Agent HTTP v1](agent-http.md). The embedding service remains transport-independent.
+
 StateKnot remains pre-alpha. This API has executable evidence but no stability,
 published-crate, or production-support guarantee yet.
 
