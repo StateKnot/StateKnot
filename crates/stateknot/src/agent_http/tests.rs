@@ -171,6 +171,10 @@ fn exact_versioned_routes_and_closed_wire_schemas() {
 #[test]
 fn error_mapping_separates_client_conflicts_from_host_integrity_errors() {
     assert_eq!(
+        store_error(StoreError::StaleLifecycleRevision),
+        HttpError::Conflict
+    );
+    assert_eq!(
         store_error(StoreError::AgentAdmissionRejected),
         HttpError::Conflict
     );

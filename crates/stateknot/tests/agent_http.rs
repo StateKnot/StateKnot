@@ -294,6 +294,40 @@ async fn postgres_http_commit_loss_recovery_concurrency_and_cancellation() {
         "conflict",
     )
     .await;
+    let raced = snapshot(
+        post(&server, "/v1/agent-runs", &f.submission())
+            .send()
+            .await
+            .unwrap(),
+        201,
+    )
+    .await;
+    let race_path = format!(
+        "/v1/agent-runs/{}/cancellation",
+        raced.provenance().run_id()
+    );
+    let mut cancellations = tokio::task::JoinSet::new();
+    for _ in 0..24 {
+        let ids = AgentCancellationIds::generate();
+        let request = post(&server, &race_path, &ids);
+        cancellations.spawn(async move { (ids, request.send().await.unwrap()) });
+    }
+    let mut winners = Vec::new();
+    while let Some(result) = cancellations.join_next().await {
+        let (ids, response) = result.unwrap();
+        if response.status().as_u16() == 202 {
+            winners.push(ids);
+            snapshot(response, 202).await;
+        } else {
+            error(response, 409, "conflict").await;
+        }
+    }
+    assert_eq!(winners.len(), 1);
+    snapshot(
+        post(&server, &race_path, &winners[0]).send().await.unwrap(),
+        200,
+    )
+    .await;
     assert_eq!(
         f.node_calls.load(Ordering::SeqCst),
         0,
@@ -301,7 +335,7 @@ async fn postgres_http_commit_loss_recovery_concurrency_and_cancellation() {
     );
     f.store.close().await;
     println!(
-        "STATEKNOT_AGENT_HTTP_EVIDENCE=24_concurrent_submissions_one_run;lost_submit_recovered;lost_cancel_recovered;no_inline_dispatch"
+        "STATEKNOT_AGENT_HTTP_EVIDENCE=24_concurrent_submissions_one_run;24_cancellation_races_one_commit;lost_submit_recovered;lost_cancel_recovered;no_inline_dispatch"
     );
 }
 

@@ -536,6 +536,7 @@ fn store_error(error: StoreError) -> HttpError {
         | StoreError::EventIdConflict
         | StoreError::ProjectionIntentConflict
         | StoreError::StaleJournalHead
+        | StoreError::StaleLifecycleRevision
         | StoreError::AgentAdmissionRejected
         | StoreError::RunFailureClosing
         | StoreError::RunQuarantined
