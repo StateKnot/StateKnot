@@ -45,6 +45,20 @@ and both language-specific error templates.
 
 ## Deployment
 
+### ICP filing
+
+The operator confirmed the approved website filing number on 2026-09-14:
+`冀ICP备2026036754号-1`. The shared `SiteFooter.astro` displays that exact number
+on English and Chinese home, documentation and error pages, linked to
+`https://beian.miit.gov.cn/`. Do not translate it, omit the website suffix, or
+substitute a guessed filing number. Browser tests verify the link and its safe
+new-tab attributes across localized routes and responsive layouts.
+
+This ICP identifier is not a public-security registration number. No separate
+registration or regulatory approval is implied by displaying it.
+
+### Release procedure
+
 The production origin is `https://stknot.com`; `www.stknot.com` and direct HTTP
 requests permanently redirect to it. Both DNS names must resolve to the server,
 and inbound TCP ports 80 and 443 must be allowed, before the one-time TLS
