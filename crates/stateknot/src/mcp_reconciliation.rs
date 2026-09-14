@@ -1,7 +1,13 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//! Authenticated MCP ingress for authoritative inline Tool result reconciliation.
+//! Authenticated MCP ingress for authoritative Tool outcome reconciliation.
+
+mod error;
+pub use error::{
+    McpErrorReconciliationAuthorizer, McpErrorReconciliationRequest, McpKnownToolEffect,
+    McpToolErrorReconciler,
+};
 
 use std::{fmt, sync::Arc, time::Duration};
 
@@ -10,7 +16,7 @@ use serde_json::{Value, json};
 use stateknot_core::{
     AttemptId, BoundedJson, BoxFuture, CapabilityIdentity, Digest, EventId, InvocationId,
     JournalAppend, JournalEvent, JournalEventIntent, JournalEventKind, JournalExpectation,
-    JournalPayload, RunFence, RunId, SchemaReference, ToolArtifacts, ToolInvocation,
+    JournalPayload, RunFence, RunId, SchemaReference, ToolArtifacts, ToolError, ToolInvocation,
     ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
     ToolResultProvenance,
 };
@@ -135,10 +141,51 @@ fn store_error(error: StoreError) -> McpReconciliationError {
 /// leave a lease until expiry; identical receipt recovery needs no new lease.
 #[derive(Clone)]
 pub struct McpToolReconciler {
+    backend: ReconciliationStore,
+    authorizer: Arc<dyn McpReconciliationAuthorizer>,
+}
+
+#[derive(Clone)]
+struct ReconciliationStore {
     store: PostgresStore,
     schemas: JsonSchemaRegistry,
-    authorizer: Arc<dyn McpReconciliationAuthorizer>,
     event_schema: SchemaReference,
+    event_kind: &'static str,
+}
+
+#[derive(Clone, Copy)]
+struct ReconciliationTarget {
+    event_id: EventId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+    attempt_id: AttemptId,
+    expected_revision: ToolInvocationRevision,
+    expected_digest: Digest,
+}
+
+enum ReconciledOutcome {
+    Result(ToolResult),
+    Error(ToolError),
+}
+
+impl ReconciledOutcome {
+    const fn status(&self) -> ToolInvocationStatus {
+        match self {
+            Self::Result(_) => ToolInvocationStatus::Committed,
+            Self::Error(_) => ToolInvocationStatus::Failed,
+        }
+    }
+
+    fn transition(&self) -> ToolInvocationTransition {
+        match self {
+            Self::Result(result) => ToolInvocationTransition::ReconcileResult {
+                result: result.clone(),
+            },
+            Self::Error(error) => ToolInvocationTransition::ReconcileError {
+                error: error.clone(),
+            },
+        }
+    }
 }
 
 impl McpToolReconciler {
@@ -149,24 +196,9 @@ impl McpToolReconciler {
         schemas: JsonSchemaRegistry,
         authorizer: Arc<dyn McpReconciliationAuthorizer>,
     ) -> Result<Self, McpReconciliationError> {
-        let document = Self::audit_schema();
-        let canonical = serde_json_canonicalizer::to_vec(&document)
-            .map_err(|_| McpReconciliationError::Invalid)?;
-        let event_schema = SchemaReference::new(
-            "https://stknot.com/schemas/runtime/mcp-tool-reconciliation/1.0.0"
-                .parse()
-                .map_err(|_| McpReconciliationError::Invalid)?,
-            stateknot_core::Version::new(1, 0, 0),
-            Digest::sha256(&canonical),
-        );
-        if schemas.canonical_bytes(&event_schema) != Some(canonical.as_slice()) {
-            return Err(McpReconciliationError::Invalid);
-        }
         Ok(Self {
-            store,
-            schemas,
+            backend: ReconciliationStore::new(store, schemas, &Self::audit_schema(), EVENT)?,
             authorizer,
-            event_schema,
         })
     }
 
@@ -215,22 +247,15 @@ impl McpToolReconciler {
         let request_digest = Digest::sha256(serde_json_canonicalizer::to_vec(&json!({
             "subject":principal.subject(), "tenant":tenant, "principal":grant.caller.principal(), "request":request
         })).map_err(|_| McpReconciliationError::Invalid)?);
-        let (_, expected) = self
-            .store
-            .load_tool_invocation_revision(
-                tenant,
-                request.run_id,
-                request.invocation_id,
-                request.expected_revision,
-            )
-            .await
-            .map_err(store_error)?;
-        if expected.digest() != request.expected_digest
-            || expected.attempt_id() != Some(request.attempt_id)
-            || expected.status() != ToolInvocationStatus::Unknown
-        {
-            return Err(McpReconciliationError::Conflict);
-        }
+        let target = ReconciliationTarget {
+            event_id: request.event_id,
+            run_id: request.run_id,
+            invocation_id: request.invocation_id,
+            attempt_id: request.attempt_id,
+            expected_revision: request.expected_revision,
+            expected_digest: request.expected_digest,
+        };
+        let expected = self.backend.load(&grant, &target).await?;
         let result = ToolResult::new(
             ToolResultProvenance::new(
                 request.invocation_id,
@@ -244,27 +269,105 @@ impl McpToolReconciler {
         expected
             .validate_reconciliation_result(&result)
             .map_err(|_| McpReconciliationError::Invalid)?;
-        self.schemas
+        self.backend
+            .schemas
             .validate_bounded(result.output_schema(), result.output())
             .map_err(|_| McpReconciliationError::Invalid)?;
+        self.backend
+            .apply(
+                &grant,
+                &target,
+                &expected,
+                ReconciledOutcome::Result(result),
+                request_digest,
+            )
+            .await
+    }
+}
+
+impl ReconciliationStore {
+    fn new(
+        store: PostgresStore,
+        schemas: JsonSchemaRegistry,
+        document: &Value,
+        event_kind: &'static str,
+    ) -> Result<Self, McpReconciliationError> {
+        let canonical = serde_json_canonicalizer::to_vec(document)
+            .map_err(|_| McpReconciliationError::Invalid)?;
+        let event_schema = SchemaReference::new(
+            document["$id"]
+                .as_str()
+                .ok_or(McpReconciliationError::Invalid)?
+                .parse()
+                .map_err(|_| McpReconciliationError::Invalid)?,
+            stateknot_core::Version::new(1, 0, 0),
+            Digest::sha256(&canonical),
+        );
+        if schemas.canonical_bytes(&event_schema) != Some(canonical.as_slice()) {
+            return Err(McpReconciliationError::Invalid);
+        }
+        Ok(Self {
+            store,
+            schemas,
+            event_schema,
+            event_kind,
+        })
+    }
+
+    async fn load(
+        &self,
+        grant: &McpReconciliationGrant,
+        target: &ReconciliationTarget,
+    ) -> Result<ToolInvocation, McpReconciliationError> {
+        let (_, expected) = self
+            .store
+            .load_tool_invocation_revision(
+                grant.caller.tenant_id(),
+                target.run_id,
+                target.invocation_id,
+                target.expected_revision,
+            )
+            .await
+            .map_err(store_error)?;
+        if expected.digest() != target.expected_digest
+            || expected.attempt_id() != Some(target.attempt_id)
+            || expected.status() != ToolInvocationStatus::Unknown
+        {
+            return Err(McpReconciliationError::Conflict);
+        }
+        Ok(expected)
+    }
+
+    async fn apply(
+        &self,
+        grant: &McpReconciliationGrant,
+        request: &ReconciliationTarget,
+        expected: &ToolInvocation,
+        outcome: ReconciledOutcome,
+        request_digest: Digest,
+    ) -> Result<Value, McpReconciliationError> {
         if let Some(receipt) = self
-            .recover(&grant, &request, &expected, request_digest)
+            .recover(grant, request, expected, outcome.status(), request_digest)
             .await?
         {
             return Ok(receipt);
         }
         let lease = self
             .store
-            .claim_lease(tenant, request.run_id, AttemptId::generate())
+            .claim_lease(
+                grant.caller.tenant_id(),
+                request.run_id,
+                AttemptId::generate(),
+            )
             .await
             .map_err(store_error)?;
         let result = self
             .commit(
                 lease.lease().fence(),
-                &grant,
-                &request,
-                &expected,
-                result,
+                grant,
+                request,
+                expected,
+                outcome,
                 request_digest,
             )
             .await;
@@ -277,8 +380,9 @@ impl McpToolReconciler {
     async fn recover(
         &self,
         grant: &McpReconciliationGrant,
-        request: &McpReconciliationRequest,
+        request: &ReconciliationTarget,
         expected: &ToolInvocation,
+        status: ToolInvocationStatus,
         request_digest: Digest,
     ) -> Result<Option<Value>, McpReconciliationError> {
         let next = request
@@ -297,11 +401,11 @@ impl McpToolReconciler {
         {
             Ok((event, invocation)) => {
                 if event.event_id() != request.event_id
-                    || event.payload().kind().as_str() != EVENT
+                    || event.payload().kind().as_str() != self.event_kind
                     || event.payload().schema() != &self.event_schema
                     || event.payload().data().as_value()["request_digest"] != json!(request_digest)
                     || invocation.previous() != Some(&expected.head())
-                    || invocation.status() != ToolInvocationStatus::Committed
+                    || invocation.status() != status
                 {
                     return Err(McpReconciliationError::Conflict);
                 }
@@ -317,14 +421,14 @@ impl McpToolReconciler {
         &self,
         fence: &RunFence,
         grant: &McpReconciliationGrant,
-        request: &McpReconciliationRequest,
+        request: &ReconciliationTarget,
         expected: &ToolInvocation,
-        result: ToolResult,
+        outcome: ReconciledOutcome,
         request_digest: Digest,
     ) -> Result<Value, McpReconciliationError> {
         // Recheck receipt after acquiring the lease: another submission may have won.
         if let Some(receipt) = self
-            .recover(grant, request, expected, request_digest)
+            .recover(grant, request, expected, outcome.status(), request_digest)
             .await?
         {
             return Ok(receipt);
@@ -338,7 +442,7 @@ impl McpToolReconciler {
             .map_err(|_| McpReconciliationError::Invalid)?;
         let payload = JournalPayload::new(
             self.event_schema.clone(),
-            JournalEventKind::new(EVENT).map_err(|_| McpReconciliationError::Invalid)?,
+            JournalEventKind::new(self.event_kind).map_err(|_| McpReconciliationError::Invalid)?,
             data,
         )
         .map_err(|_| McpReconciliationError::Invalid)?;
@@ -364,13 +468,7 @@ impl McpToolReconciler {
                 .map_err(|_| McpReconciliationError::Invalid)?;
             match self
                 .store
-                .advance_tool_invocation(
-                    append,
-                    &expected.head(),
-                    ToolInvocationTransition::ReconcileResult {
-                        result: result.clone(),
-                    },
-                )
+                .advance_tool_invocation(append, &expected.head(), outcome.transition())
                 .await
             {
                 Ok(outcome) => return Ok(receipt(outcome.event(), outcome.invocation())),

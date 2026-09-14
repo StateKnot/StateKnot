@@ -98,7 +98,8 @@ PostgreSQL 16/17 必跑 CI 覆盖真实 HTTP 认证、查库前授权、带 fenc
 测试不调用真实业务 Provider，也不证明某笔外部业务写入确已发生。
 
 没有数据库迁移或新增第三方版本。新增的精确版本读取验证直接前驱及日志锚点，不代替完整历史验证。
-错误/artifact 协调、Provider 结算/资源 fencing、通用 Worker 执行、基础设施隔离、容量及故障切换
+副作用已确认的失败使用[独立授权入口](mcp-error-reconciliation.zh-CN.md)。任意错误/artifact
+协调、Provider 结算/资源 fencing、通用 Worker 执行、基础设施隔离、容量及故障切换
 仍是独立验收项。写入发起侧参见[参数级 MCP 授权](mcp-call-authorization.zh-CN.md)。
 
 协议参考：[MCP Tools](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx)

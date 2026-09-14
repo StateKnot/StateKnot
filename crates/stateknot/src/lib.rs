@@ -22,8 +22,9 @@ pub use mcp_compute::{
     WorkerInputProjection, WorkerInputProjectionError, mcp_compute_tool_digest,
 };
 pub use mcp_reconciliation::{
+    McpErrorReconciliationAuthorizer, McpErrorReconciliationRequest, McpKnownToolEffect,
     McpReconciliationAuthorizer, McpReconciliationError, McpReconciliationGrant,
-    McpReconciliationRequest, McpToolReconciler,
+    McpReconciliationRequest, McpToolErrorReconciler, McpToolReconciler,
 };
 
 /// Integrity-checked S3-compatible artifact persistence and resolution.
