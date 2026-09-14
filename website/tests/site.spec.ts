@@ -49,7 +49,7 @@ const localizedRoutePairs = [
     en: "/docs/concepts/durability/",
     zh: "/zh/docs/concepts/durability/",
     enHeading: "Durability is evidence, not process memory.",
-    zhHeading: "持久执行依赖已保存的证据，而不是进程内存。",
+    zhHeading: "持久执行依赖记录，而非进程内存。",
   },
   {
     en: "/docs/concepts/graphs/",
