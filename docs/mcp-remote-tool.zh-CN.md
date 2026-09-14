@@ -23,7 +23,7 @@ SPDX-License-Identifier: Apache-2.0
 - 支持 Anonymous 或 Bearer Authorization，并提供 Attempt-scoped Secret Resolution 扩展 Trait；
 - Request/Response Body、Discovery Page、Discovered Tool、Startup/Shutdown 时间与并发调用全部有界；
 - Dispatch 前执行本地 Input Validation，响应后执行本地 Structured-output Validation；
-- 将读写不确定性映射到 StateKnot 的耐久 Tool Failure Model。
+- 将读写不确定性映射到 StateKnot 的持久执行中的 Tool Failure Model。
 
 Adapter 使用精确锁定的官方 MCP Rust SDK `3.2.0`，因此 StateKnot MSRV 为 Rust `1.88.0`。
 
@@ -56,7 +56,7 @@ TLS 按平台 Trust Store 验证配置 Endpoint。MCP Implementation Name/Versio
 
 ## Authorization 与 Secret
 
-`StaticMcpBearerAuthorization` 只适用于受控的单租户 Binding。多租户部署应实现 `McpAuthorizationProvider`，在 Startup 和每个已 Admission 的耐久 Attempt 中解析 Secret Handle。
+`StaticMcpBearerAuthorization` 只适用于受控的单租户 Binding。多租户部署应实现 `McpAuthorizationProvider`，在 Startup 和每个已 Admission 的持久化 Attempt 中解析 Secret Handle。
 
 Adapter 会：
 
@@ -82,9 +82,9 @@ Remote Tool Annotation 只是不可依赖的 Hint，不能覆盖本地 Descripto
 
 Runtime 必须先通过 Status Query、Provider Intrinsic Key、Compensation 或 Human Decision 完成 Reconciliation，之后才能再次写入。Adapter 不会把不确定 Write 伪装成安全 Retry。
 
-## 耐久 Reconciliation
+## 基于持久化记录的结果核对（Reconciliation）
 
-`ToolReconciliationHandoff::result` 与 `ToolReconciliationHandoff::error` 会把权威证据绑定到精确的耐久 `Unknown` Invocation 与 Physical Attempt。构造过程复用 Core 中同一套 Invocation、Tool Identity、Attempt、Output Schema、Result Limit、Artifact Ownership、Risk/Effect 与 Retry Safety 不变量。
+`ToolReconciliationHandoff::result` 与 `ToolReconciliationHandoff::error` 会把权威证据绑定到精确的持久化 `Unknown` Invocation 与 Physical Attempt。构造过程复用 Core 中同一套 Invocation、Tool Identity、Attempt、Output Schema、Result Limit、Artifact Ownership、Risk/Effect 与 Retry Safety 不变量。
 
 ```rust,ignore
 let handoff = ToolReconciliationHandoff::result(
@@ -110,7 +110,7 @@ let outcome = executor.commit_tool_reconciliation(handoff).await?;
 - Automatic Reconnect、Transparent Reinitialization 或 HTTP Retry；
 - MRTR、Tasks、Incomplete Result、Progress Forwarding 与 Artifact/Resource Materialization；
 - Image、Audio、Embedded-resource 与 Resource-link Result Block；
-- 要求 StateKnot Idempotency Key 的 Descriptor，因为 Generic MCP 没有可安全注入该耐久 Key 的标准字段；
+- 要求 StateKnot Idempotency Key 的 Descriptor，因为 Generic MCP 没有可安全注入该持久化 Key 的标准字段；
 - 通过这个 Client-side Binding 将 StateKnot 暴露为 MCP Server；应使用独立
   [MCP Server Profile](mcp-server.zh-CN.md)；
 - Roots、Prompts、Resources、Sampling、Elicitation、Logging 或 MCP Apps。

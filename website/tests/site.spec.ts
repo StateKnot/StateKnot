@@ -13,7 +13,7 @@ const localizedRoutePairs = [
     en: "/",
     zh: "/zh/",
     enHeading: "Durable agent orchestration, written for Rust.",
-    zhHeading: "为 Rust 而生的耐久 Agent 编排。",
+    zhHeading: "为 Rust 而生的可恢复 Agent 编排。",
   },
   {
     en: "/docs/",
@@ -37,19 +37,19 @@ const localizedRoutePairs = [
     en: "/docs/admission/",
     zh: "/zh/docs/admission/",
     enHeading: "Admit one Agent as an atomic durable fact.",
-    zhHeading: "将一个 Agent 原子接纳为耐久事实。",
+    zhHeading: "以原子事务提交 Agent 准入记录。",
   },
   {
     en: "/docs/runs/",
     zh: "/zh/docs/runs/",
     enHeading: "Submit once. Recover the same durable Agent run.",
-    zhHeading: "只提交一次，始终恢复同一个耐久 Agent Run。",
+    zhHeading: "重试提交，恢复同一个 Agent Run。",
   },
   {
     en: "/docs/concepts/durability/",
     zh: "/zh/docs/concepts/durability/",
     enHeading: "Durability is evidence, not process memory.",
-    zhHeading: "耐久执行依赖证据，而不是进程内存。",
+    zhHeading: "持久执行依赖已保存的证据，而不是进程内存。",
   },
   {
     en: "/docs/concepts/graphs/",
@@ -61,19 +61,19 @@ const localizedRoutePairs = [
     en: "/docs/graph-composition/",
     zh: "/zh/docs/graph-composition/",
     enHeading: "Compose durable subgraphs and bounded loops.",
-    zhHeading: "组合耐久子图与有界循环。",
+    zhHeading: "组合可恢复子图与有界循环。",
   },
   {
     en: "/docs/runtime/",
     zh: "/zh/docs/runtime/",
     enHeading: "Drive a Graph from durable evidence.",
-    zhHeading: "从耐久证据驱动 Graph。",
+    zhHeading: "依据持久化证据驱动 Graph。",
   },
   {
     en: "/docs/agent-loop/",
     zh: "/zh/docs/agent-loop/",
     enHeading: "Run one durable Agent scheduling quantum.",
-    zhHeading: "执行一个耐久 Agent 调度 Quantum。",
+    zhHeading: "执行一个可恢复 Agent 的调度单元。",
   },
   {
     en: "/docs/invocations/",
@@ -91,7 +91,7 @@ const localizedRoutePairs = [
     en: "/docs/agent-service/",
     zh: "/zh/docs/agent-service/",
     enHeading: "Expose durable Agents through one service boundary.",
-    zhHeading: "通过一个服务边界暴露耐久 Agent。",
+    zhHeading: "通过一个服务边界暴露可恢复 Agent。",
   },
   {
     en: "/docs/mcp-client/",
@@ -109,7 +109,7 @@ const localizedRoutePairs = [
     en: "/docs/mcp-remote-tool/",
     zh: "/zh/docs/mcp-remote-tool/",
     enHeading: "Bind one MCP Tool without weakening durability.",
-    zhHeading: "绑定一个 MCP Tool，不削弱耐久语义。",
+    zhHeading: "绑定一个 MCP Tool，不削弱持久执行语义。",
   },
   {
     en: "/docs/mcp-server/",
@@ -151,13 +151,13 @@ const localizedRoutePairs = [
     en: "/docs/fair-scheduling/",
     zh: "/zh/docs/fair-scheduling/",
     enHeading: "Schedule tenants from one durable order.",
-    zhHeading: "从一条耐久顺序调度租户。",
+    zhHeading: "依据持久化的全局顺序调度租户。",
   },
   {
     en: "/docs/postgresql/",
     zh: "/zh/docs/postgresql/",
     enHeading: "Operate the PostgreSQL durability provider.",
-    zhHeading: "运维 PostgreSQL 耐久化 Provider。",
+    zhHeading: "运维 PostgreSQL 持久化 Provider。",
   },
   {
     en: "/docs/status/",
@@ -770,6 +770,8 @@ for (const route of localizedRoutePairs) {
 
     await page.goto(route.zh);
     await expectIcpFiling(page);
+    // Check metadata, accessible labels and hidden search entries as well as body copy.
+    expect(await page.content()).not.toContain("耐久");
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       route.zhHeading,
@@ -824,6 +826,47 @@ test("Chinese command palette searches localized content", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/zh\/docs\/getting-started\/$/);
 });
+
+test("Chinese durability guide explains terminology without changing API names", async ({
+  page,
+}) => {
+  await page.goto("/zh/docs/concepts/durability/");
+  const terminology = page.locator(
+    'section[aria-labelledby="terminology-title"]',
+  );
+  await expect(terminology.locator("dt")).toHaveText([
+    "持久执行（Durable Execution）",
+    "可恢复（Recoverable）",
+    "持久化（Persistence）与持久性（Durability）",
+  ]);
+  await expect(terminology).toContainText(
+    "仅有持久化存储不等于流程能够正确恢复",
+  );
+  await expect(terminology.locator("code")).toHaveText([
+    "DurableGraphDriver",
+    "DurableAgentLoop",
+  ]);
+  await expect(page.locator("blockquote")).toContainText(
+    "数据库变更 Exactly-once 并不等于现实世界副作用 Exactly-once",
+  );
+});
+
+for (const query of ["持久执行", "可恢复", "持久化", "durable execution"]) {
+  test(`Chinese terminology search resolves ${query} to the concept guide`, async ({
+    page,
+  }) => {
+    await page.goto("/zh/docs/");
+    await page.keyboard.press("Control+K");
+    await page.locator("[data-command-input]").fill(query);
+    const result = page.locator(
+      '[data-command-result][href="/zh/docs/concepts/durability/"]',
+    );
+    await expect(result).toBeVisible();
+    await expect(result).toContainText("持久执行模型");
+    await result.click();
+    await expect(page).toHaveURL(/\/zh\/docs\/concepts\/durability\/$/);
+  });
+}
 
 test("command palette becomes a mobile sheet", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
@@ -1116,10 +1159,11 @@ test("Chinese 404 template preserves language and recovery action", async ({
 }) => {
   const response = await page.goto("/zh/404/");
   await expectIcpFiling(page);
+  expect(await page.content()).not.toContain("耐久");
   expect(response?.status()).toBe(200);
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   await expect(
-    page.getByRole("heading", { level: 1, name: "这条路径没有耐久后继。" }),
+    page.getByRole("heading", { level: 1, name: "找不到这个页面。" }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "返回首页" })).toHaveAttribute(
     "href",

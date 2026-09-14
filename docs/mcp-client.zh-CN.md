@@ -11,9 +11,9 @@ SPDX-License-Identifier: Apache-2.0
 
 `McpClient` 是 `stateknot-integrations` 中面向互操作性的 MCP Client。它与
 [`McpRemoteTool`](mcp-remote-tool.zh-CN.md) 明确分离；后者对已审核的
-Identity/Schema Pin 与耐久 Reconciliation 有更强约束，动态 Catalog 无法提供这些保证。
+Identity/Schema Pin 与基于持久化记录的结果核对（Reconciliation）有更强约束，动态 Catalog 无法提供这些保证。
 
-发现并调用普通远端 Tool 时使用 `McpClient`。当外部写操作属于耐久 Agent
+发现并调用普通远端 Tool 时使用 `McpClient`。当外部写操作属于可恢复 Agent
 Run，并且必须保存 Admission、Ambiguity 与 Reconciliation 证据时，使用
 `McpRemoteTool`。
 
@@ -138,7 +138,7 @@ PKCE、Token Refresh、Issuer Migration、Scope Step-up 与精确 Callback Valid
 Timeout、Connection Failure 或不确定 Tool Dispatch 后不会自动 Retry。Server 明确
 声明支持 `2026-07-28` 时，Protocol Version Negotiation 获得一次 Retry。Authorization
 Challenge 只有 Provider 显式批准后才获得 Replay，默认一次、硬上限三次，并使用新
-JSON-RPC ID。需要恢复保证的外部写操作必须进入 `McpRemoteTool` 与耐久 Invocation Executor。
+JSON-RPC ID。需要恢复保证的外部写操作必须进入 `McpRemoteTool` 与可恢复 Invocation Executor。
 
 ## 默认资源上限
 
@@ -174,7 +174,7 @@ bash conformance/mcp-client/run-2026-07-28.sh
 4. 把 Discovery 与 Tool Output 当作不可信输入；
 5. 把限制设为低于下游 Model、Proxy 与 Storage 的上限；
 6. 决定是否 Retry 前先分类 Tool Side Effect；
-7. 需要 Reconciliation 的写操作使用严格耐久 Binding；
+7. 需要 Reconciliation 的写操作使用严格持久执行 Binding；
 8. 监控 Rejected Tool、Protocol Failure、Timeout 与 Tool-level `isError`，但不记录 Credential 或敏感 Payload。
 
 固定官方证据覆盖 `2026-07-28` Requirement Set 中全部 32 个计分 Client 场景，

@@ -493,6 +493,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Chinese website and repository guides now distinguish durable execution
+  (`持久执行`), recovery capability (`可恢复`), persistence (`持久化`) and storage
+  durability (`持久性`) instead of the literal `耐久`. Includes natural page
+  headings, consistent navigation/search/metadata, a concept explanation and
+  browser regressions. Rust APIs, example code, URLs and capability gates are
+  unchanged.
+
 - PostgreSQL CI now serializes top-level tests that intentionally share one
   migrated schema, while preserving each scenario's internal multi-threaded
   concurrency pressure and eliminating unrelated Tokio-runtime starvation.

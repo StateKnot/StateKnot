@@ -3,7 +3,7 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 耐久共享状态子图与有界循环
+# 可恢复共享状态子图与有界循环
 
 [English](graph-composition.md)
 
@@ -22,7 +22,7 @@ cargo run -p stateknot-runtime --example durable_graph_composition --locked
 Reducer、两个节点的审核子图、最多三次循环、明确的成功/耗尽出口，以及封闭的可执行注册表。
 结果包含八个可执行节点，不调用数据库或模型服务。接纳运行时使用初始状态 `{"count":0}`，
 示例的决策节点在计数达到二时接受。实际执行时，将注册表和可信的累计用量证据提供者接入
-[耐久 Agent Loop](durable-agent-loop.zh-CN.md)。
+[可恢复 Agent Loop](durable-agent-loop.zh-CN.md)。
 [PostgreSQL 测试](../crates/stateknot-runtime/tests/postgres/graph_composition.rs)
 验证真实执行与恢复，没有内存执行后端作为替代。
 
@@ -58,12 +58,12 @@ let composition = GraphComposition::compile(parent, [call])?;
   `again` 进入下一轮，其他返回端口立即退出。
 - 最后一轮选择 `again` 时，执行对应的父图出口。这里必须放置真实的失败节点或明确的
   备用处理，耗尽不会隐式变成成功。外层循环可以重新进入调用位置，因此全图步数预算仍然必需。
-- 子图的每个工作节点都有自己的耐久 Start、Result 和 Barrier。状态在每个 Barrier 后
+- 子图的每个工作节点都有自己的持久化 Start、Result 和 Barrier。状态在每个 Barrier 后
   可见，不是等整个子图结束后才原子提交。父子图必须使用完全相同的 Input/State/Update/Output
   Schema Reference 和 Reducer Revision；没有私有子图状态，也没有隐式类型转换。
 - 并行仍采用原有 BSP 语义：稳定排序的归约、去重的下一 Ready Set，不增加异步跨步 Join
   累加器。同一调用位置、同一轮内部保持模板的节点排序；跨作用域顺序由展开后节点 ID 决定。
-- 子图 Wait 暂停整个所在 Run，并保留映射后的后继集合。耐久 Wait 被解析后从该集合继续，
+- 子图 Wait 暂停整个所在 Run，并保留映射后的后继集合。等待解除并持久化后从该集合继续，
   不重复已完成子节点。取消作用于整个所在 Run。
 - 已展开的无环图可以再次作为模板，实现静态嵌套；启动时展平，不引入递归运行时调用栈。
 
@@ -78,7 +78,7 @@ Route ID 同样隔离。通过 `source.route_id(&local_route_id)` 取得生成�
 Reducer 收到的也是组合后节点 ID；归约逻辑应与角色名称无关，或者显式绑定不可变 Source Map
 来查询源角色。
 
-向耐久调用代码原样传递真实 `GraphNodeContext`。不要伪造子 Checkpoint、将 Activation
+向可恢复调用代码原样传递真实 `GraphNodeContext`。不要伪造子 Checkpoint、将 Activation
 替换成模板身份、或重置根 Superstep。Invocation Binding 始终指向实际 Tenant/Run/
 Checkpoint/Activation，接管租约时也不改变逻辑身份。
 

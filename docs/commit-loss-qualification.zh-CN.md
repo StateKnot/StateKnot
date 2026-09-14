@@ -81,4 +81,4 @@ STATEKNOT_REQUIRE_POSTGRES_TESTS=1 cargo test -p stateknot-runtime \
 不证明真实 provider 副作用/费用恢复，不终止正在 COMMIT/WAL 刷盘的数据库服务端，
 也不代表故障切换/PITR/恢复，或所有 Admission/Join/到期/结算/最终关闭事务已验收。
 SQL 角色隔离、组合运行时进程故障矩阵及长历史容量/公平性/延迟仍需完成，才能开放
-完整耐久子任务生产配置。耐久账目仅记一次不等于外部副作用普遍“恰好一次”。
+完整可恢复子任务生产配置。持久化账目仅记一次不等于外部副作用普遍“恰好一次”。

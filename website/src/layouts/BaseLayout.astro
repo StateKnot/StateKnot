@@ -24,10 +24,10 @@ const inferredLocale = localeFromPath(Astro.url.pathname);
 const {
   locale = inferredLocale,
   title = inferredLocale === "zh-CN"
-    ? "StateKnot — 面向 Rust 的耐久 Agent 编排框架"
+    ? "StateKnot — 面向 Rust 的可恢复 Agent 编排框架"
     : "StateKnot — durable agent orchestration for Rust",
   description = inferredLocale === "zh-CN"
-    ? "StateKnot 是一个采用 Apache-2.0 协议、正在开发中的 Rust 框架，用于构建类型安全、耐久执行、协议原生的 Agent 系统。"
+    ? "StateKnot 是一个采用 Apache-2.0 协议、正在开发中的 Rust 框架，用于构建类型安全、持久执行、协议原生的 Agent 系统。"
     : "StateKnot is an Apache-2.0 Rust framework under development for typed, durable, protocol-native agent systems.",
   indexable = true,
 } = Astro.props;

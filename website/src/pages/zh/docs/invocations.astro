@@ -64,7 +64,7 @@ match executor.reconcile_tool(probe).await? {
 <DocsLayout
   title="每个 Model 与 Tool Attempt 最多 Dispatch 一次。"
   description="冻结精确 Provider、可信 Budget Admission、外部 I/O 前提交 Start、验证 Stream、保留 Tool 歧义，并在不重新 Dispatch 的前提下恢复 Terminal Write。"
-  section="耐久调用"
+  section="可恢复调用"
   locale="zh-CN"
 >
   <aside class="docs-callout" aria-labelledby="zh-invocation-boundary-title">
@@ -73,7 +73,7 @@ match executor.reconcile_tool(probe).await? {
       Provider-neutral Executor 及其 PostgreSQL Recovery Path
       已实现并通过测试。第一方 OpenAI Responses 与 Anthropic Messages Adapter
       已经接入；参见 <a href="/zh/docs/typed-agent/">强类型 Agent 教程</a>、<a
-        href="/zh/docs/admission/">耐久 Admission 指南</a
+        href="/zh/docs/admission/">持久化准入指南</a
       > 与 <a href="/zh/docs/runs/">Run/Result 指南</a>。已经实现的<a
         href="/zh/docs/provider-native-agent/"
         >预置 Provider-native Agent Graph</a
@@ -111,14 +111,14 @@ match executor.reconcile_tool(probe).await? {
         tabindex="0"><code>{startupCode}</code></pre>
     </div>
     <p>
-      Budget Provider 重新加载不可变 Run Provenance 与累计耐久 Usage。Executor
+      Budget Provider 重新加载不可变 Run Provenance 与累计持久化 Usage。Executor
       从不接受不可信调用者填写的 Remaining Capacity。
     </p>
   </section>
 
   <section aria-labelledby="zh-attempt-authority-title">
     <h2 id="zh-attempt-authority-title">
-      只有全新耐久 Start 才是 Dispatch Authority
+      只有全新持久化 Start 才是 Dispatch Authority
     </h2>
     <ol class="evidence-list">
       <li>
@@ -179,11 +179,11 @@ match executor.reconcile_tool(probe).await? {
   </section>
 
   <section aria-labelledby="zh-streaming-title">
-    <h2 id="zh-streaming-title">Streaming 必须有耐久 Sink</h2>
+    <h2 id="zh-streaming-title">Streaming 必须有持久化 Sink</h2>
     <p>
       Streaming Model Handoff 必须包含 <code>ModelEventSink</code>。Runtime
       校验并累积每一个语义 Event，等待 Sink 按序接受，并要求有效 Terminal Stream
-      Event。Sink 必须先按 <code>(attempt_id, sequence)</code> 耐久去重，再对外暴露数据。
+      Event。Sink 必须先按 <code>(attempt_id, sequence)</code> 基于持久化记录去重，再对外暴露数据。
     </p>
     <p>
       累积 Response 只有在独立 Terminal Ledger Commit 后才成为权威结果。Sequence
@@ -241,7 +241,7 @@ match executor.reconcile_tool(probe).await? {
       Capability。<code>reconcile_tool</code> 只针对原 Attempt 执行一次受 Deadline
       与 Cancellation 约束的 Probe。Result 或权威 Error 复用同一条原子 Commit Path；<code
         >Pending</code
-      > 不产生 Mutation，必须转换为耐久 Delayed Retry。
+      > 不产生 Mutation，必须转换为持久化 Delayed Retry。
     </p>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
@@ -314,8 +314,8 @@ match executor.reconcile_tool(probe).await? {
     <h2 id="zh-invocation-evidence-title">验证证据</h2>
     <p>
       PostgreSQL 16/17 Test 覆盖 Lease Takeover 后只提交一次 Terminal、无
-      Redispatch 与 Budget Re-evaluation；七个 Event 的有序耐久 Model Stream 与
-      Duplicate Suppression；以及 Timed-out Idempotent-write Tool
+      Redispatch 与 Budget Re-evaluation；七个 Event 的有序持久化 Model Stream
+      与 Duplicate Suppression；以及 Timed-out Idempotent-write Tool
       分别对账为经过校验的 Result 或权威 Error。组合式真实 PostgreSQL 与
       Loopback MCP Test 证明 Network 完成前已有 Durable State、Lost Response、<code
         >Unknown</code

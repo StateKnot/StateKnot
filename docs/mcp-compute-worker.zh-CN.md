@@ -17,7 +17,7 @@ Worker API 或生产发行版。完整边界见
 
 适合可重复执行的解析、归一化和纯业务计算。不允许模型调用、计费 API、
 写操作、读取可变外部状态、创建子 Run 或 MCP sampling。这些工作必须使用
-`DurableInvocationExecutor` 和已有模型/Tool 适配器保留耐久执行与计费证据。
+`DurableInvocationExecutor` 和已有模型/Tool 适配器保留持久执行与计费证据。
 
 宿主在启动时固定选择 `UpdateAndContinue` 或 `Terminal`。远端不能通过结果
 选择路由、等待、子任务、租约、身份、用量或 invocation binding。输出 Schema
@@ -110,4 +110,4 @@ cargo test -p stateknot --test mcp_compute --locked -- --nocapture
 pending-result 恢复前会终止并回收该进程。不得把此测试指向业务或生产数据库。
 
 通用带副作用 Worker/控制面 API、Worker 专用 SQL 权限、基础设施隔离认证仍是
-发行阻断项；本能力不关闭这些门槛，也不代表完整耐久子 Run 已通过验收。
+发行阻断项；本能力不关闭这些门槛，也不代表完整可恢复子 Run 已通过验收。

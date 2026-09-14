@@ -35,6 +35,20 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 Changes that affect behavior require tests. User-visible changes require
 documentation and an entry under `Unreleased` in `CHANGELOG.md`.
 
+## Chinese documentation terminology
+
+Translate technical meaning, not individual English adjectives. Across the
+website and repository guides, use `持久执行` for **Durable Execution**, `可恢复`
+when describing an Agent or Graph's recovery capability, `持久化` for saving
+state, logs, credentials or other records, and `持久性` for the storage guarantee.
+Do not use `耐久` as a translation of software durability. Preserve Rust API
+identifiers, code examples and published URLs so readers can find the source.
+
+The [Chinese execution concept guide](https://stknot.com/zh/docs/concepts/durability/)
+explains these distinctions. Persisting data alone does not guarantee correct
+execution recovery or exactly-once external effects. Wording changes must not
+broaden implementation status, recovery guarantees or production readiness.
+
 ## Commit sign-off
 
 StateKnot uses the [Developer Certificate of Origin 1.1](https://developercertificate.org/).

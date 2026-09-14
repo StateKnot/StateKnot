@@ -3,11 +3,11 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 耐久 Agent Run 与 Result
+# 可恢复 Agent Run 与 Result
 
 状态：已实现的 pre-alpha 集成契约。Crate 尚未发布，API 也还没有兼容性承诺。
 
-本文定义接纳、解析并读取一个耐久 Agent Run 的公开 Rust 边界，覆盖
+本文定义接纳、解析并读取一个可恢复 Agent Run 的公开 Rust 边界，覆盖
 `DurableAgentRuns`、Tenant-scoped Ingress Idempotency、PostgreSQL Migration
 16、安全 Run/Result Snapshot 与生产集成规则。认证、授权、HTTP Routing、限流和
 Ownership Check 仍由嵌入 StateKnot 的 Control Plane 负责。
@@ -17,7 +17,7 @@ Ownership Check 仍由嵌入 StateKnot 的 Control Plane 负责。
 ## 构建一份不可变 Runtime
 
 `DurableAgentRuns` 把 `PostgresStore` 与冻结的 `ExecutableGraphRegistry` 绑定。
-按照[耐久 Admission 契约](durable-agent-admission.zh-CN.md)注册全部
+按照[持久化准入契约](durable-agent-admission.zh-CN.md)注册全部
 Digest-pinned 应用 Schema 和标准 Schema，安装精确 Graph、Reducer、Node 闭包，
 冻结 Registry，再为 Tenant 把同一 Compiled Graph 注册到 PostgreSQL。
 
@@ -30,7 +30,7 @@ Input/Output Schema 绑定、Request Input、Authorization Evidence、Initial St
 Admission Event 与 Terminal Output。缺少精确 Executable 或 Schema 的 Deployment
 会 Fail Closed，不会返回未经验证的结果。
 
-## 使用耐久 Idempotency 提交
+## 使用持久化幂等记录提交
 
 面向用户的 Ingress 应使用 `submit`。`admit` 仍供能够在结果不明时保留完整 Request
 和全部生成 Identity 的内部调用方使用。
@@ -87,7 +87,7 @@ match runs.submit(&key, retry).await? {
 ```
 
 同一 Key 携带不同 Logical Content 会返回
-`StoreError::AgentSubmissionConflict`。一个耐久 Run 最多拥有一个 Submission Key；
+`StoreError::AgentSubmissionConflict`。一个持久化 Run 最多拥有一个 Submission Key；
 为同一保留 Admission 换另一个 Key 也会 Conflict。不同 Tenant 中相同 Raw Key 相互
 独立。Raw Key 不会持久化，也不会出现在 `Debug` 输出中。
 
@@ -139,7 +139,7 @@ Wire Shape，从而能区分旧版响应和已知尚未终止的 Run。
 Descriptor、Output Schema、累计 Usage、有限 Budget 与 Digest-pinned Output Schema。
 只有 Facade 返回结果后，应用才能把 `result.output()` 解码为生成的 Rust Output Type。
 
-Failed 与 Cancelled Outcome 只暴露 Public-safe `Failure`、耐久 Completion Time 与累计
+Failed 与 Cancelled Outcome 只暴露 Public-safe `Failure`、持久化 Completion Time 与累计
 Usage。Cancellation Failure 必须使用 `Cancelled` Category 和 `Never` Retry Advice；
 普通 Failure 不能使用 Cancellation Category。Failed/Cancelled Usage 不要求仍位于
 Budget 内——触发终止的原因本身可能就是 Budget 或 Deadline 耗尽。
@@ -181,6 +181,6 @@ Failed 与已确认 Cancelled Outcome；测试会按 Run 与 Key 重新加载，
 Provenance，并拒绝不可能、字段不完整或 Failure Kind 错配的 Public Wire Snapshot。
 
 当前仓库在每个受支持数据库版本包含 106 个 PostgreSQL Provider Scenario 与 36 个
-耐久 Runtime PostgreSQL Scenario。这些是实现事实，不代表生产支持声明；Release
+可恢复 Runtime PostgreSQL Scenario。这些是实现事实，不代表生产支持声明；Release
 Qualification、HTTP/SSE Service Role、已发布 Crate、通用 Retention 与兼容性保证仍在
 v1 之前完成。

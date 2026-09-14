@@ -13,7 +13,7 @@ Extension Badge。
 StateKnot 已实现三个相互独立的 MCP `2026-07-28` Boundary：
 
 - [`McpRemoteTool`](mcp-remote-tool.zh-CN.md)：带已审核 Server/Schema Pin 与
-  Reconciliation-first Ambiguous Write 的严格耐久 Binding；
+  Reconciliation-first Ambiguous Write 的严格持久执行 Binding；
 - [`McpClient`](mcp-client.zh-CN.md)：支持动态 Discovery、JSON/Request-scoped
   SSE、`x-mcp-header` 与 MRTR 的有界通用 Stateless Tool Client。
 - [`McpOAuthAuthorization`](mcp-oauth.zh-CN.md)：支持 Discovery、PKCE、Issuer
@@ -133,11 +133,11 @@ Authorization、Schema、Resource、Prompt、Completion 与 Result-limit Layer �
 HTTP Service Test 覆盖。这个区分可防止把 Fixture Result 误写成 Stable Application
 API Certification。
 
-## 为什么严格耐久 Profile 仍然独立
+## 为什么严格持久执行 Profile 仍然独立
 
 官方 `tools_call` Fixture 会故意发布一个没有 Output Schema 的 Tool，并返回没有
 `structuredContent` 的 Text；这对通用 Client 是合法的。`McpRemoteTool` 必须拒绝
-它，因为耐久 Binding 强制要求精确已审核 Input/Output Schema、固定 Server
+它，因为持久执行 Binding 强制要求精确已审核 Input/Output Schema、固定 Server
 Implementation、本地校验 Structured Output、Durable-before-dispatch State，以及
 Ambiguous Write 后的显式 Reconciliation。
 

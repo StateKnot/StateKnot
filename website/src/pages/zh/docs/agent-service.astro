@@ -32,7 +32,7 @@ let cancellation = service
 ---
 
 <DocsLayout
-  title="通过一个服务边界暴露耐久 Agent。"
+  title="通过一个服务边界暴露可恢复 Agent。"
   description="绑定精确 Agent Revision，在披露资源是否存在前授权，恢复幂等提交，读取已校验 Run，并请求两阶段取消。"
   section="AgentService v1"
   locale="zh-CN"
@@ -63,12 +63,12 @@ let cancellation = service
         <dt>授权优先</dt>
         <dd>
           强制 Authorizer 在 Submission、Read 与 Cancel 时先做决策，再披露
-          Deployment 或耐久目标是否存在。Caller 必须来自已验证 Token 或 mTLS
+          Deployment 或持久化目标是否存在。Caller 必须来自已验证 Token 或 mTLS
           Identity。
         </dd>
       </div>
       <div>
-        <dt>耐久 Ingress</dt>
+        <dt>持久化 Ingress</dt>
         <dd>
           Tenant-scoped Submission Key 会把 Lost ACK 收敛到原
           Run。逻辑内容变化是 Conflict，不会创建第二个 Run。
@@ -110,7 +110,7 @@ let cancellation = service
   </section>
 
   <section aria-labelledby="agent-service-calls-title">
-    <h2 id="agent-service-calls-title">按耐久 Identity 提交、读取与取消</h2>
+    <h2 id="agent-service-calls-title">按持久化 Identity 提交、读取与取消</h2>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
         <span>Rust · Version 1 操作</span>

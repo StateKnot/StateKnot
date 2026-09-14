@@ -3,15 +3,15 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 耐久 Agent Admission
+# Agent 持久化准入
 
-状态：已实现的 pre-alpha 集成契约。Crate 尚未发布；公开耐久 Run/Result Facade
+状态：已实现的 pre-alpha 集成契约。Crate 尚未发布；公开持久化 Run/Result Facade
 已经实现，但还没有兼容性承诺。
 
 本文定义把一个已经认证且通过 Schema 校验的 Agent Request 转换为
-Scheduler-visible 耐久工作的可信边界，覆盖 Core Admission Snapshot、
+Scheduler-visible 可恢复工作的可信边界，覆盖 Core Admission Snapshot、
 `DurableAgentAdmission` Runtime Facade、PostgreSQL Migration 15、精确重试与运维要求。
-耐久 Ingress-key Routing 与 Terminal Result Read 由单独的
+持久化 Ingress-key Routing 与 Terminal Result Read 由单独的
 [公开 Run/Result 契约](durable-agent-runs.zh-CN.md)定义。认证、Policy Evaluation 与
 预置 Provider-native Model/Tool Graph 仍不属于本 Admission 切片。
 
@@ -153,7 +153,7 @@ Set 或任一 Identity 会产生 Conflict。原 Digest-pinned Executable 与 Sch
 拒绝、Deadline 到期、Graph Drift 与注入的晚期失败都不会留下 Run、Admission、Event、
 Checkpoint 或 Scheduler Residue。
 
-## 耐久 Evidence 与敏感数据
+## 持久化证据与敏感数据
 
 Migration 15 创建 `stateknot.agent_admissions`。该表保存 Canonical Admission Bytes，
 以及可索引的 Agent、Graph、Policy、Digest、Event 与 Checkpoint 冗余锚点。Load 会在
@@ -194,19 +194,19 @@ Canonical Digest 重算、Wire Tamper、Size Bound 与脱敏诊断。PostgreSQL 
 进一步覆盖：
 
 - 跨越时间敏感边界后的精确 Commit 与 Retry 收敛；
-- Changed-intent Conflict 与完整耐久重校验；
+- Changed-intent Conflict 与对持久化记录的完整重校验；
 - 24 路同 Request Admission 只产生一次物理提交；
 - 无效 Initial State Rollback 且数据库零残留；
 - Migration 15 Upgrade、Index、Constraint 与 Tamper 检查；
 - Runtime Facade 在任何数据库写入前拒绝 Agent/Graph 与 Authorization Schema Drift。
 
-仓库目前会在每个支持的数据库版本上运行 106 个 PostgreSQL Provider Case 与 36 个耐久
+仓库目前会在每个支持的数据库版本上运行 106 个 PostgreSQL Provider Case 与 36 个可恢复
 Runtime Scenario。
 
 ## 下一条公开 Agent 边界
 
 Admission 与 `DurableAgentRuns` 现已提供原子 Ingress Idempotency 和完整重校验的公开
 Run/Result Read。Provider-native Graph、AgentService Embedding Boundary、Cancellation
-Mutation 与耐久 A2A Artifact Access 已在其上实现。Stable Network Transport、类型化
+Mutation 与已持久化 A2A Artifact 的访问已在其上实现。Stable Network Transport、类型化
 API Ergonomics 与 Release Qualification 仍未完成；在此之前，StateKnot 不会声明稳定
 或受生产支持的 Agent API。

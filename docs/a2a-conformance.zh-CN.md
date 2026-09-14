@@ -83,7 +83,7 @@ Runner 合约见 [`conformance/a2a-server/README.md`](../conformance/a2a-server/
 ## 声明边界
 
 通过此门禁只证明已实现的 Server Wire/Application Boundary。生产验证仍然需要
-耐久 Application `A2aTaskService`、Cross-replica Policy/Admission、
+可恢复 Application `A2aTaskService`、Cross-replica Policy/Admission、
 Transactional Push Outbox、Security/Failure Test、Stable API Review、Release
 Artifact 与 Operations Evidence。独立实现的
 [A2A Client Profile](a2a-client.zh-CN.md) 已有本地 HTTP+JSON/JSON-RPC Operation

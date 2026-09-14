@@ -3,12 +3,12 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 耐久 MCP 写调用的参数级授权
+# 可恢复 MCP 写调用的参数级授权
 
 [English](mcp-call-authorization.md)
 
 远端工具执行写操作时，使用 `McpRemoteTool::connect_authorized`。它复用
-[耐久 MCP 适配器](mcp-remote-tool.zh-CN.md)，增加完整工具描述固定和强制逐次授权。
+[可恢复 MCP 适配器](mcp-remote-tool.zh-CN.md)，增加完整工具描述固定和强制逐次授权。
 这是可部署的受限绑定，不是通用带副作用 Graph Worker API，也不意味着 StateKnot
 已发布生产版本。不能用 `McpComputeNode` 执行副作用。
 
@@ -37,7 +37,7 @@ RFC 8785 SHA-256，名称、描述、注解、Schema、元数据及扩展变化�
 
 ## 执行与恢复
 
-耐久执行器先提交物理调用开始记录，再执行授权。适配器要求存在来源事件，验证本地
+持久执行器先提交物理调用开始记录，再执行授权。适配器要求存在来源事件，验证本地
 绑定及参数，获取调用锁，然后在剩余截止时间内执行当前策略。只有批准的工具参数和
 MCP 凭据会发往远端，不会额外携带 Run/租户/fence、预算、日志、数据库凭据或策略对象。
 参数是显式数据释放边界：应用自行将秘密写入获批参数，仍然会发送该秘密。
@@ -48,7 +48,7 @@ MCP 凭据会发往远端，不会额外携带 Run/租户/fence、预算、日�
 
 发送后最多一次 `tools/call`，不通过重定向、重连、认证挑战或协议版本恢复重发。
 响应丢失或超时保持 `Unknown` 和 `ReconcileFirst`，不能仅凭 HTTP 状态判断未生效。
-重复提交同一个耐久 handoff 只返回已保存状态，不再次授权、调用或新增账本版本。
+重复提交同一个持久化 handoff 只返回已保存状态，不再次授权、调用或新增账本版本。
 权威结果通过现有带 fence、幂等的可信协调接口落账，不再次执行写操作；它不是供远端
 匿名提交证据的接口。
 

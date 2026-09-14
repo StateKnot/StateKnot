@@ -266,7 +266,7 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
           "强类型 agent builder schema openai responses anthropic messages adapter 教程",
       },
       {
-        title: "耐久 Admission",
+        title: "持久化准入",
         description:
           "原子提交已认证 Intent、数据库时间、首 Event 与初始 Checkpoint。",
         href: "/docs/admission/",
@@ -274,12 +274,12 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
           "agent admission 原子 幂等 重试 数据库 checkpoint policy 认证 接纳",
       },
       {
-        title: "耐久 Run 与 Result",
+        title: "可恢复 Run 与 Result",
         description:
-          "使用耐久 Ingress Key 提交、恢复原 Run，并读取经过验证的公开 Result。",
+          "使用持久化 Ingress Key 提交、恢复原 Run，并读取经过验证的公开 Result。",
         href: "/docs/runs/",
         search:
-          "agent run result 耐久 幂等 key submit 轮询 terminal snapshot 重试",
+          "agent run result 持久化 幂等 key submit 轮询 terminal snapshot 重试",
       },
     ],
   },
@@ -296,20 +296,22 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       },
       {
         title: "子图与循环",
-        description: "组合共享状态子图、有界循环与能够耐久恢复的显式返回路径。",
+        description:
+          "组合共享状态子图、有界循环与能够在中断后恢复的显式返回路径。",
         href: "/docs/graph-composition/",
         search:
           "graph subgraph composition loop 子图 循环 有界 轮次 返回 耗尽 共享 状态 恢复",
       },
       {
-        title: "耐久执行模型",
+        title: "持久执行模型",
         description:
           "理解 Journal、Checkpoint、Lease、Fence 与恢复证据如何协同。",
         href: "/docs/concepts/durability/",
-        search: "概念 耐久 journal checkpoint lease fence 恢复",
+        search:
+          "概念 持久执行 可恢复 持久化 持久性 durable execution durability persistence journal checkpoint lease fence 恢复",
       },
       {
-        title: "耐久 Graph Runtime",
+        title: "可恢复 Graph Runtime",
         description:
           "注册精确可执行代码、重放非初始状态，并在一个 Fence 下驱动确定性有界 Sibling Batch。",
         href: "/docs/runtime/",
@@ -317,17 +319,17 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
           "runtime graph driver 可执行 注册表 重放 租约 fence 崩溃 恢复 handoff 并行 sibling 确定性 batch",
       },
       {
-        title: "耐久 Agent Loop",
+        title: "可恢复 Agent Loop",
         description:
-          "提交 Lifecycle Handoff，并执行一个 Tenant-scoped 耐久调度 Quantum。",
+          "提交 Lifecycle Handoff，并执行一个 Tenant-scoped 可恢复调度 Quantum。",
         href: "/docs/agent-loop/",
         search:
           "agent loop lifecycle wait terminal failure evidence 租户 scheduler lost ack 调度",
       },
       {
-        title: "耐久调用执行",
+        title: "可恢复调用执行",
         description:
-          "通过耐久 Start、分阶段有序 Tool Coordination、Streaming 校验与 No-dispatch Terminal Recovery 执行精确 Model/Tool Attempt。",
+          "通过持久化 Start、分阶段有序 Tool Coordination、Streaming 校验与 No-dispatch Terminal Recovery 执行精确 Model/Tool Attempt。",
         href: "/docs/invocations/",
         search:
           "model tool provider registry invocation executor streaming budget terminal recovery lost ack 调用 执行",
@@ -335,7 +337,7 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "Provider-native Agent",
         description:
-          "编译并运维支持有界 Output Repair、有序 Parallel Read-only Tool 与 Write Barrier 的耐久多轮 Graph，并固定 Policy、Accounting 与 Cancellation Evidence。",
+          "编译并运维支持有界 Output Repair、有序 Parallel Read-only Tool 与 Write Barrier 的可恢复多轮 Graph，并固定 Policy、Accounting 与 Cancellation Evidence。",
         href: "/docs/provider-native-agent/",
         search:
           "provider native agent graph 多轮 structured output repair 修复 malformed tool parallel read only write barrier policy accounting cancellation recovery transcript 恢复",
@@ -347,8 +349,7 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
     pages: [
       {
         title: "AgentService v1",
-        description:
-          "通过带版本的嵌入式边界授权并暴露精确耐久 Agent Revision。",
+        description: "通过带版本的嵌入式边界授权并暴露精确版本的可恢复 Agent。",
         href: "/docs/agent-service/",
         search:
           "agent service api 提交 读取 取消 authorization idempotency ingress",
@@ -364,15 +365,15 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "MCP OAuth Client",
         description:
-          "将一个 MCP Resource 绑定到 Challenge-driven Discovery、PKCE、Issuer 校验、耐久 Credential 与有界 Replay。",
+          "将一个 MCP Resource 绑定到 Challenge-driven Discovery、PKCE、Issuer 校验、持久化 Credential 与有界 Replay。",
         href: "/docs/mcp-oauth/",
         search:
-          "mcp oauth authorization pkce protected resource metadata cimd dcr issuer scope token callback 耐久 credential",
+          "mcp oauth authorization pkce protected resource metadata cimd dcr issuer scope token callback 持久化 credential",
       },
       {
         title: "MCP Remote Tool",
         description:
-          "固定 Identity、Schema、耐久 Dispatch 与 Reconciliation，绑定严格 Stateless MCP 2026-07-28 Tool。",
+          "固定 Identity、Schema、可恢复 Dispatch 与 Reconciliation，绑定严格 Stateless MCP 2026-07-28 Tool。",
         href: "/docs/mcp-remote-tool/",
         search:
           "mcp remote tool 2026 07 28 stateless discovery schema authorization 不确定 写入 postgres 对账",
@@ -396,23 +397,23 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       {
         title: "A2A 1.0 Client",
         description:
-          "发现并固定一个 Agent，调用全部 11 个 Operation，并只依据已背书的远端保证对耐久 Unknown Send 执行 Reconciliation。",
+          "发现并固定一个 Agent，调用全部 11 个 Operation，并只依据已背书的远端保证对持久化 Unknown Send 执行 Reconciliation。",
         href: "/docs/a2a-client/",
         search:
-          "a2a 1.0 client remote agent 耐久 outbound discovery card interface pin jsonrpc http json sse unknown reconcile 客户端",
+          "a2a 1.0 client remote agent 持久化 outbound discovery card interface pin jsonrpc http json sse unknown reconcile 客户端",
       },
       {
-        title: "耐久 Artifact Storage",
+        title: "Artifact 持久化存储",
         description:
           "将 Terminal A2A Part 物化为不可变 PostgreSQL Metadata 与私有、经过完整性校验的 Object Bytes。",
         href: "/docs/artifacts/",
         search:
-          "artifact storage a2a task postgres s3 object 完整性 读取 multipart authorization 耐久",
+          "artifact storage a2a task postgres s3 object 完整性 读取 multipart authorization 持久化",
       },
       {
         title: "A2A 1.0 Server",
         description:
-          "通过 Identity-first Policy 与耐久 Service 合约暴露有界 HTTP+JSON 和 JSON-RPC/SSE。",
+          "通过 Identity-first Policy 与可恢复 Service 合约暴露有界 HTTP+JSON 和 JSON-RPC/SSE。",
         href: "/docs/a2a-server/",
         search:
           "a2a 1.0 server agent card task artifact streaming subscription push jsonrpc http json authorization 服务端",
@@ -440,7 +441,7 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
       },
       {
         title: "PostgreSQL Provider",
-        description: "配置、迁移、校验并测试已实现的耐久化 Provider。",
+        description: "配置、迁移、校验并测试已实现的持久化 Provider。",
         href: "/docs/postgresql/",
         search: "postgres postgresql provider 迁移 tls 连接池 恢复 运维",
       },
@@ -503,7 +504,7 @@ export const getCommandEntries = (locale: Locale): readonly CommandEntry[] => {
         : "What exists, what is active, and what remains planned.",
       href: localizePath("/#architecture", locale),
       search: isChinese
-        ? "架构图 合约 运行时 耐久"
+        ? "架构图 合约 运行时 持久化"
         : "architecture map contracts runtime durability",
     },
     {
@@ -541,7 +542,7 @@ export const getCommandEntries = (locale: Locale): readonly CommandEntry[] => {
       group: isChinese ? "仓库" : "Repository",
       title: "RFCs",
       description: isChinese
-        ? "架构与耐久执行合约草案。"
+        ? "架构与持久执行合约草案。"
         : "Draft architecture and durable execution contracts.",
       href: "https://github.com/StateKnot/StateKnot/tree/main/docs/rfcs",
       search: isChinese

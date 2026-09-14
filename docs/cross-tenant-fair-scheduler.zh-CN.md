@@ -3,13 +3,13 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 跨租户耐久公平调度
+# 基于持久化顺序的跨租户公平调度
 
 `DurableFairScheduler` 在现有 Tenant-isolated Scheduler Worker 上增加 Replica-safe 加权 Tenant Selection。它仍是未发布的 pre-alpha。实现提供精确的“预约次数”饥饿上界；它不承诺墙钟延迟，也不保证空队列或竞争队列一定成功取得工作。
 
 英文版见 [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md)。
 
-## 为什么顺序必须耐久
+## 为什么必须持久化调度顺序
 
 Scheduler Replica 重启或横向扩容后，进程内 Round-robin Cursor 会分叉。StateKnot 改为编译一个确定性的 Smooth Weighted Round Robin Cycle，并在 PostgreSQL 中把 Canonical Byte 永久绑定到显式 `SchedulerShardId`。
 
@@ -92,7 +92,7 @@ record_selection(
 
 即使所选 Tenant Queue 为空，或 Candidate 在 Lease Contention 中失败，该 Reservation 也会被消费。这保持全局顺序，并防止 Busy Tenant 抢占其他 Tenant 的 Share。仍有 Capacity 时，调用方应继续 Tick，而不是在同一 Reservation 内扫描另一个 Tenant。
 
-若要在下一次 Selection 前 Shutdown，就停止调用 `tick`。Reservation 一旦耐久，选中的 Tenant Tick 会返回正常关闭的 Cancelled/No-work/Work Outcome；Slot 不会回滚。
+若要在下一次 Selection 前 Shutdown，就停止调用 `tick`。Reservation 一旦持久化，选中的 Tenant Tick 会返回正常关闭的 Cancelled/No-work/Work Outcome；Slot 不会回滚。
 
 ## 精确 Starvation Boundary
 

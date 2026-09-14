@@ -48,11 +48,11 @@ let tools = tools.build();`;
     aria-labelledby="a2a-client-boundary-title"
   >
     <h2 id="a2a-client-boundary-title">
-      已实现 Client 与耐久 Adapter，API 仍处于 Pre-alpha
+      已实现 Client 与可恢复 Adapter，API 仍处于 Pre-alpha
     </h2>
     <p>
       <code>A2aClient</code> 实现全部 11 个 A2A 1.0 HTTP+JSON/JSON-RPC Operation 与两个
-      SSE Surface；<code>A2aRemoteAgent</code> 把一个已冻结 Skill 暴露为耐久 StateKnot
+      SSE Surface；<code>A2aRemoteAgent</code> 把一个已冻结 Skill 暴露为可恢复 StateKnot
       Tool。这是可执行实现证据，不是官方 Client TCK、Stable API、gRPC 或完整生产 Release
       声明；API-key/Basic/mTLS Auth Profile 也尚未实现。
     </p>
@@ -181,7 +181,7 @@ let tools = tools.build();`;
     <p>
       Adapter 显式设置 <code>returnImmediately: true</code>。返回 Task 只提交
       Message Submission
-      与耐久句柄，不代表远端已经进入终态。等待完成属于应用自有、独立授权的
+      与持久化句柄，不代表远端已经进入终态。等待完成属于应用自有、独立授权的
       <code>get_task</code> 或 <code>subscribe_to_task</code> Workflow。
     </p>
   </section>
@@ -215,8 +215,8 @@ let tools = tools.build();`;
     </div>
     <p>
       A2A 本身不要求接收端对 <code>messageId</code> 去重。只有 Operator 证明远端在
-      本地 Ledger Retention 与灾备窗口内都能耐久去重时，第二种 Mode 才安全。Lost Send
-      Response 不一定返回 Task ID。
+      本地 Ledger Retention 与灾备窗口内都能基于持久化记录去重时，第二种 Mode 才安全。Lost
+      Send Response 不一定返回 Task ID。
     </p>
   </section>
 
@@ -245,7 +245,7 @@ let tools = tools.build();`;
           </tr>
           <tr>
             <td><code>MessageIdReplay</code></td><td
-              >在完整 Recovery Window 内耐久去重 Message ID</td
+              >在完整 Recovery Window 内基于持久化记录去重 Message ID</td
             ><td>重放精确 Request Identity；只允许 Deduplicated Delivery</td>
           </tr>
         </tbody>
@@ -261,8 +261,8 @@ let tools = tools.build();`;
     </p>
     <p>
       Provider-native Agent 会原子提交权威 Evidence。Pending Probe 会变成后续
-      Lease 下的 耐久 <code>SafeAfter</code> Node Retry，原 Physical Attempt 与 Business-call
-      Count 保持不变。
+      Lease 下的 持久化 <code>SafeAfter</code> Node Retry，原 Physical Attempt 与
+      Business-call Count 保持不变。
     </p>
   </section>
 
@@ -298,7 +298,7 @@ let tools = tools.build();`;
       Discovery、Authorization、Error、Stream 与 Lost Response；还证明无需重发的
       Context/History Recovery、同 ID Payload Substitution 拒绝，以及显式 Dedup
       Attestation 下的精确 Replay。另一项 Provider-neutral 真实 PostgreSQL Test
-      证明 <code>Unknown → Pending → 耐久 Retry → Committed</code>，两次 Probe
+      证明 <code>Unknown → Pending → 持久化 Retry → Committed</code>，两次 Probe
       期间只有一次 Business Call。
     </p>
     <p>

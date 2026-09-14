@@ -3,7 +3,7 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# A2A 1.0 Client 与耐久 Remote-agent Profile
+# A2A 1.0 Client 与可恢复 Remote-agent Profile
 
 > 状态：已实现的 Pre-alpha Profile；Rust API 尚不稳定。<br>
 > Binding：HTTP+JSON 与 JSON-RPC 2.0，包含 SSE。<br>
@@ -19,7 +19,7 @@ SPDX-License-Identifier: Apache-2.0
   Recovery 决策权。
 
 直接的 Read/List/Stream 管理操作可以使用 Client；Graph 内的消息提交必须通过
-耐久 Adapter。若可恢复 Graph 直接调用 `send_message`，就会绕过
+可恢复 Adapter。若可恢复 Graph 直接调用 `send_message`，就会绕过
 Durable-before-dispatch Record，不属于生产支持的组合方式。
 
 ## 已实现的 Operation Surface
@@ -113,7 +113,7 @@ Anonymous Client 不会 Dispatch `GetExtendedAgentCard`。返回值会被限制�
 但只作为数据返回：它不会修改 Immutable Client、改变 Egress/Security Pin，或静默重绑
 Tool。要采用 Extended Card，必须先审核，再构造新的 Pinned Client/Binding。
 
-## 将 Remote Skill 绑定到耐久执行
+## 将 Remote Skill 绑定到持久执行
 
 Agent Card 提供 Media、Security 与描述性 Skill Metadata，但 A2A 1.0 既没有 Skill
 Argument JSON Schema，也没有在 Send Request 中路由到 Skill 的字段。因此：
@@ -167,10 +167,10 @@ A2A 1.0 不保证接收方对 `messageId` 去重。必须选择一个真实的�
 | Delivery | Message ID | 必需 Descriptor Semantics | Recovery Rule |
 | --- | --- | --- | --- |
 | `AtMostOnce` | `stateknot-attempt-{attempt_id}` | Non-idempotent Write + Unsupported | 不重复不确定的 Physical Attempt |
-| `MessageIdDeduplicated` | `stateknot-invocation-{idempotency_key}` | Idempotent Write + Required Key | 只有远端耐久去重已有运维证据时才安全 |
+| `MessageIdDeduplicated` | `stateknot-invocation-{idempotency_key}` | Idempotent Write + Required Key | 只有运维证据证明远端基于持久化记录去重时才安全 |
 
 `MessageIdDeduplicated` 是 Operator Assertion，不是从 Agent Card 推导的能力。远端
-必须在本地 Invocation-ledger Retention 与灾备窗口的完整周期内，耐久保存并去重该
+必须在本地 Invocation-ledger Retention 与灾备窗口的完整周期内，持久化保存并去重该
 ID。启用前需记录 Remote Key Scope、Conflict Behavior、Retention、Replica
 Consistency、Backup Behavior 与验证证据。
 
@@ -180,17 +180,17 @@ Consistency、Backup Behavior 与验证证据。
 | --- | --- | --- |
 | `Disabled` | 无 | 不执行 Provider I/O；留给已授权的人工 Reconciler |
 | `ContextTaskHistory` | Peer 在完整 Recovery Window 内保留 Client 提供的 Context ID，提供完整且稳定的 `ListTasks` Pagination，并在 Task History 中保留原始 User `messageId` | 最多查询 1–16 页、每页最多 100 个 Task、每个 Task 取 1–256 条 History；绝不重新 Send |
-| `MessageIdReplay` | Peer 在完整 Recovery/Retention Window 内对精确 `messageId` 做耐久去重 | 重放精确的原始 Request Identity；只允许与 `MessageIdDeduplicated` Delivery 一起启用 |
+| `MessageIdReplay` | Peer 在完整 Recovery/Retention Window 内基于持久化记录对精确 `messageId` 去重 | 重放精确的原始 Request Identity；只允许与 `MessageIdDeduplicated` Delivery 一起启用 |
 
 两个 Enabled Mode 都要求 Descriptor 声明 Status-query Support，并配置 1 ms–1 h
-的正数耐久 Poll Interval。`ContextTaskHistory` 会在首次 Message 上附加单向、不透明的
+的正数轮询间隔，并将延迟重试计划持久化。`ContextTaskHistory` 会在首次 Message 上附加单向、不透明的
 Context ID。Probe 只接受唯一匹配的 Task History，并要求其中的 Role、Context 与
 Payload 等于原始 Message（Server 只能补充该 Task 的 ID）；没有匹配返回 `Pending`，
 重复 Task ID、多个 Message Match、同 ID Payload Substitution、非法 Pagination 或扫描
 超过配置上限都会 Fail Closed。该 Context 不暴露原始 Tenant、Run、Thread、Invocation
 或 Attempt ID。
 
-耐久执行顺序如下：
+持久执行顺序如下：
 
 ```text
 PostgreSQL prepared/executing revision
@@ -204,7 +204,7 @@ PostgreSQL prepared/executing revision
 `bind_with_recovery` 路径只投影合法 Task Response，不声称远端 Task 已进入 A2A
 终态；等待仍由应用自有、独立授权的 `get_task` 或 `subscribe_to_task` 负责。
 
-`bind_with_durable_artifacts` 是明确的耐久完成 Profile，并且只接受 Task Response。
+`bind_with_durable_artifacts` 是明确的完成结果持久化 Profile，并且只接受 Task Response。
 非终态 Task 会返回 `Unknown`，同时携带绑定 Card/Interface/Endpoint 的
 `protocol.a2a.task` Recovery Handle。Provider 之后只会针对该精确 Task 发起直接授权的
 `GetTask`，绝不重发原始业务 Message。进入 `Completed` 后，每个有界 Terminal Part
@@ -213,7 +213,7 @@ PostgreSQL prepared/executing revision
 以及正数 Tool Artifact Capacity。Tool Output 只包含有界
 `{kind, task_id, context_id, state, artifact_count}` Projection；物化后的值位于
 `ToolArtifacts`。PostgreSQL 与 Object Storage 不变量见
-[耐久 Artifact Storage 指南](artifact-storage.zh-CN.md)。
+[Artifact 持久化存储指南](artifact-storage.zh-CN.md)。
 
 可能 Dispatch 前的 Cancellation/Deadline 是 `NotStarted`。Dispatch 可能开始之后，
 Timeout、Cancellation、Lost Connection、Invalid Response、HTTP Ambiguity 或非权威
@@ -225,7 +225,7 @@ Method/Operation/Content/Extension/Version Unsupported——才变成
 在 Provider-native Agent 路径上，Enabled Binding 会把 `Unknown` 转换为一次受当前
 Fence 与原 Physical Attempt Identity 约束的有界 Probe。权威 Result/Error Evidence
 会原子提交到现有 Invocation Ledger；`Pending` 不修改 Invocation Evidence，而是形成
-耐久 `SafeAfter` Node Retry。后续 Lease 再次 Probe；除非明确启用了经过证明的
+持久化 `SafeAfter` Node Retry。后续 Lease 再次 Probe；除非明确启用了经过证明的
 `MessageIdReplay`，否则绝不会重复 Business Send。未启用 Provider 的 Binding 继续
 保持人工 Fail-closed 路径。
 
@@ -292,10 +292,10 @@ Loopback Suite 在 HTTP+JSON 和 JSON-RPC 两种 Binding 上执行全部 11 个 
 Drift、严格 Error、Stream Bound、Lost Response、无需重发的 Context/History Recovery，
 以及经过证明的精确 Message Replay。PostgreSQL Evidence 证明 Request Dispatch 前已经
 存在 Executing Revision，Lost Response 会提交为 `Unknown`，普通 Recovery 不会发送
-第二条 Message。Provider-native Test 证明 `Unknown -> Pending ->` 耐久延迟 Retry
+第二条 Message。Provider-native Test 证明 `Unknown -> Pending ->` 持久化延迟 Retry
 `-> Committed`，期间只有一次 Business Call 和两次有界 Probe。
 
 这些是实现证据，不是官方 A2A Client 认证。冻结的官方 TCK 证据目前只适用于独立的
 [A2A Server Profile](a2a-server.zh-CN.md)。Stable API Review、Live-partner
-对两种 Recovery Attestation 的 Qualification、gRPC，以及生产耐久 Server-side
+对两种 Recovery Attestation 的 Qualification、gRPC，以及生产可恢复 Server-side
 Task/Push Store 仍是独立 Release Gate。

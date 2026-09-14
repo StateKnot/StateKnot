@@ -16,7 +16,7 @@ let composition = GraphComposition::compile(parent, [call])?;`;
 ---
 
 <DocsLayout
-  title="组合耐久子图与有界循环。"
+  title="组合可恢复子图与有界循环。"
   description="通过显式返回端口、隔离的节点身份、可恢复的循环和派发前上限检查，复用共享状态子图。"
   section="子图与循环"
 >
@@ -26,7 +26,7 @@ let composition = GraphComposition::compile(parent, [call])?;`;
   >
     <h2 id="composition-scope-title">已实现的共享状态边界</h2>
     <p>
-      静态子图、有限先执行后判断循环、提前返回、显式耗尽和静态嵌套，都会编译成普通耐久
+      静态子图、有限先执行后判断循环、提前返回、显式耗尽和静态嵌套，都会编译成普通的可恢复
       Graph 节点。每个子节点提交自己的
       Barrier，不是一次原子的子调用。私有子状态、独立子 Run、
       动态递归和独立子取消不属于这一 Profile。Crate 仍处于未发布的 pre-alpha，
@@ -88,14 +88,14 @@ let composition = GraphComposition::compile(parent, [call])?;`;
     </p>
     <p>
       状态在每个 Barrier 后可见。子图 Wait 暂停整个所在
-      Run，耐久解析后继续映射后的后继。 父子图共享精确的
+      Run；等待解除并持久化后，从映射后的后继继续。 父子图共享精确的
       Input/State/Update/Output Schema 和 Reducer 引用。 原有 BSP 排序及 Ready
       Set 去重规则继续适用，不新增异步跨步 Join。
     </p>
   </section>
 
   <section aria-labelledby="composition-bindings-title">
-    <h2 id="composition-bindings-title">保留真实的耐久执行身份</h2>
+    <h2 id="composition-bindings-title">保留真实的持久执行身份</h2>
     <p>
       只注册 <code>composition.graph()</code>。通过 <code
         >node_source(node_id)</code
@@ -105,7 +105,7 @@ let composition = GraphComposition::compile(parent, [call])?;`;
       的节点 ID，其逻辑应与角色名无关，或显式使用不可变 Source Map。
     </p>
     <p>
-      向耐久调用代码原样传递实际 <code>GraphNodeContext</code>，不要伪造子
+      向可恢复调用代码原样传递实际 <code>GraphNodeContext</code>，不要伪造子
       Checkpoint 或替换 Activation。SHA-256
       作用域身份固定父图/模板版本、调用位置、轮次、上限和返回
       绑定；规范序号保留同一实例内的源排序。在途运行排空前，必须保留旧可执行版本。
@@ -132,7 +132,7 @@ let composition = GraphComposition::compile(parent, [call])?;`;
       Wait/Resume。 阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/graph-composition.zh-CN.md"
         >完整契约与升级指南</a
-      >， 或继续查看<a href="/zh/docs/runtime/">耐久 Runtime 指南</a>。
+      >， 或继续查看<a href="/zh/docs/runtime/">可恢复 Runtime 指南</a>。
     </p>
   </section>
 </DocsLayout>

@@ -24,7 +24,7 @@ let request = agent.prepare_request(&input, request_budget_limits)?;`;
 
 <DocsLayout
   title="构建一个强类型 Agent 合约。"
-  description="生成、固定、注册并绑定强类型 Agent Schema；构造第一方 OpenAI Responses 与 Anthropic Messages Adapter；再明确跨越耐久执行边界。"
+  description="生成、固定、注册并绑定强类型 Agent Schema；构造第一方 OpenAI Responses 与 Anthropic Messages Adapter；再明确跨越持久执行边界。"
   section="强类型 Agent"
   locale="zh-CN"
 >
@@ -33,7 +33,7 @@ let request = agent.prepare_request(&input, request_budget_limits)?;`;
     <p>
       <code>AgentBuilder&lt;I, O&gt;</code>、类型化 Request/Result
       Codec，以及第一方 OpenAI Responses 与 Anthropic Messages Adapter
-      已经实现。它们尚未发布，也不会用 进程内 <code>run()</code> 绕过耐久 Admission、Attempt
+      已经实现。它们尚未发布，也不会用 进程内 <code>run()</code> 绕过持久化准入、Attempt
       Ledger、Graph Driver、 Lifecycle Evidence 或 Tenant Scheduling。
     </p>
   </aside>
@@ -96,7 +96,7 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
     <p>
       Binding 在离线启动期 Fail Closed。Agent、Tool 与 Provider Profile
       引用的每个 Schema 都必须已经存在于不可变 Registry；所选 Provider Profile
-      还必须接受所有 Model-visible Schema，请求才能进入耐久 Admission。
+      还必须接受所有 Model-visible Schema，请求才能进入持久化准入。
     </p>
   </section>
 
@@ -153,13 +153,13 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
         Streaming 是真实增量处理。有界 SSE Event 必须通过
         <code>ModelEventAccumulator</code>；截断、重复、重排或被替换的 Terminal
         Data 都不能成为 <code>Completed</code>。产生 Tool 的 Stream 尚不输出
-        Replay Evidence，因此耐久 Tool Loop 使用 Complete Response。
+        Replay Evidence，因此可恢复 Tool Loop 使用 Complete Response。
       </li>
     </ul>
   </section>
 
   <section aria-labelledby="typed-agent-durable-title">
-    <h2 id="typed-agent-durable-title">显式跨越耐久边界</h2>
+    <h2 id="typed-agent-durable-title">显式跨越持久执行边界</h2>
     <ol class="evidence-list">
       <li>
         <h3>认证并冻结</h3>
@@ -191,12 +191,13 @@ cargo run -p stateknot-integrations --example provider_adapters</code></pre>
     </ol>
     <p>
       原子 Admission 已实现；下一步请阅读<a href="/zh/docs/admission/"
-        >耐久 Admission 契约</a
-      >，随后使用已经实现的<a href="/zh/docs/runs/">耐久 Run/Result Boundary</a
+        >持久化准入契约</a
+      >，随后使用已经实现的<a href="/zh/docs/runs/"
+        >持久化 Run/Result Boundary</a
       >。已经实现的<a href="/zh/docs/provider-native-agent/"
         >Provider-native Agent Graph</a
-      > 现在会在<a href="/zh/docs/invocations/">耐久调用</a>与<a
-        href="/zh/docs/agent-loop/">耐久 Agent Loop</a
+      > 现在会在<a href="/zh/docs/invocations/">可恢复调用</a>与<a
+        href="/zh/docs/agent-loop/">可恢复 Agent Loop</a
       >之上组装 Transcript、Policy Evidence、Accounting 与 Cancellation
       Lifecycle。
     </p>

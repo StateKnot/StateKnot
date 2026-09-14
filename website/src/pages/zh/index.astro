@@ -27,9 +27,9 @@ const currentCut = [
     href: "/zh/docs/admission/",
   },
   {
-    surface: "耐久 Agent Run 与 Result",
+    surface: "可恢复 Agent Run 与 Result",
     state: "已实现切片",
-    evidence: "耐久 Ingress Key、Lost-ACK 收敛与经过验证的 Terminal Read",
+    evidence: "持久化 Ingress Key、Lost-ACK 收敛与经过验证的 Terminal Read",
     href: "/zh/docs/runs/",
   },
   {
@@ -39,19 +39,19 @@ const currentCut = [
     href: "/zh/docs/concepts/graphs/",
   },
   {
-    surface: "耐久 Graph Driver",
+    surface: "可恢复 Graph Driver",
     state: "已实现切片",
     evidence: "精确可执行闭包、非初始 Replay、续租与 Crash Takeover",
     href: "/zh/docs/runtime/",
   },
   {
-    surface: "耐久 Agent Loop",
+    surface: "可恢复 Agent Loop",
     state: "已实现切片",
     evidence: "原子 Success、Failure、Wait、Cancellation Commit",
     href: "/zh/docs/agent-loop/",
   },
   {
-    surface: "耐久 Model/Tool Attempt",
+    surface: "可恢复 Model/Tool Attempt",
     state: "已实现切片",
     evidence: "精确 Provider、Durable Start、有界 Probe 与原子 Evidence",
     href: "/zh/docs/invocations/",
@@ -95,7 +95,7 @@ const currentCut = [
   {
     surface: "MCP Remote Tool",
     state: "已实现切片",
-    evidence: "耐久 Dispatch、一次 Lost Write Call 与精确 Reconciliation",
+    evidence: "可恢复 Dispatch、一次 Lost Write Call 与精确 Reconciliation",
     href: "/zh/docs/mcp-remote-tool/",
   },
   {
@@ -107,11 +107,11 @@ const currentCut = [
   {
     surface: "A2A 1.0 Client 与 Remote Agent",
     state: "已实现切片",
-    evidence: "两种 Binding 的 11 个 Operation，加两种背书型耐久 Recovery",
+    evidence: "两种 Binding 的 11 个 Operation，加两种运维背书的故障恢复模式",
     href: "/zh/docs/a2a-client/",
   },
   {
-    surface: "耐久 A2A Artifact Storage",
+    surface: "A2A Artifact 持久化存储",
     state: "已实现切片",
     evidence: "直接 Task Poll、Migration 18 与私有、完整校验的 Object Bytes",
     href: "/zh/docs/artifacts/",
@@ -128,7 +128,7 @@ const roadmap = [
   {
     index: "01",
     state: "已实现",
-    title: "闭合耐久 Graph Loop",
+    title: "闭合可恢复 Graph Loop",
     body: "Lifecycle Handoff、Lost ACK、Exact-fence Cleanup 与一次 Tenant-scoped Scheduler Quantum 已具备实现和 PostgreSQL 证据。",
   },
   {
@@ -140,14 +140,14 @@ const roadmap = [
   {
     index: "03",
     state: "已实现",
-    title: "开放耐久 Agent Ingress 与读取",
+    title: "开放可恢复 Agent Ingress 与读取",
     body: "Tenant-scoped Idempotency、Fresh-ID Lost-ACK 收敛与完整重校验的公开 Run/Result Snapshot 已具备 PostgreSQL 证据。",
   },
   {
     index: "04",
     state: "已实现",
     title: "组装 Provider-native Agent Graph",
-    body: "一条可恢复多轮 Tool Path 现在已经组合 Transcript Reconstruction、耐久 Invocation、Pinned Policy 与 Accounting、Driver、Lifecycle 和精确 Cancellation。",
+    body: "一条可恢复多轮 Tool Path 现在已经组合 Transcript Reconstruction、可恢复 Invocation、Pinned Policy 与 Accounting、Driver、Lifecycle 和精确 Cancellation。",
   },
   {
     index: "05",
@@ -165,7 +165,7 @@ const roadmap = [
     index: "07",
     state: "已实现",
     title: "分离通用 MCP Tool Client",
-    body: "有界 Discovery、JSON/Request-scoped SSE、Custom Header、MRTR 与全部冻结计分非 OAuth Client 场景现已通过，且没有削弱严格耐久 Binding。",
+    body: "有界 Discovery、JSON/Request-scoped SSE、Custom Header、MRTR 与全部冻结计分非 OAuth Client 场景现已通过，且没有削弱严格持久执行 Binding。",
   },
   {
     index: "08",
@@ -188,13 +188,13 @@ const roadmap = [
   {
     index: "11",
     state: "已实现",
-    title: "构建耐久 A2A Client 边界",
+    title: "构建可恢复 A2A Client 边界",
     body: "全部 11 个 Operation 现已跨 HTTP+JSON 与 JSON-RPC/SSE 运行，并固定 Discovery/Interface 与有界 Security；Remote Agent 具备 PostgreSQL Unknown 证据，以及由运维方背书的 Context/History Query 与 Message-ID Replay。",
   },
   {
     index: "12",
     state: "已实现",
-    title: "使 Terminal A2A Artifact 耐久化",
+    title: "使 Terminal A2A Artifact 持久化",
     body: "已接纳 Task 现在通过直接、No-resend Polling 恢复；有界 Terminal Part 会收敛为不可变 PostgreSQL Metadata 与私有、Conditional Publication、完整校验的 Object Bytes。",
   },
   {
@@ -214,13 +214,13 @@ const roadmap = [
       <div class="hero-grid">
         <div class="hero-copy">
           <p class="hero-status">Pre-alpha · 尚无稳定公开 API</p>
-          <h1 id="hero-title">为 Rust 而生的耐久 Agent 编排。</h1>
+          <h1 id="hero-title">为 Rust 而生的可恢复 Agent 编排。</h1>
           <p class="hero-lede">
-            StateKnot 通过 PostgreSQL Crash Recovery、原子 Admission、耐久
+            StateKnot 通过 PostgreSQL Crash Recovery、原子 Admission、可恢复
             Model/Tool Attempt、Lifecycle Commit、公平调度、Ingress 与 Verified
             Result 运行类型化 Root Graph。已实现 OpenAI/Anthropic Adapter、
             Provider-native Graph、AgentService v1、MCP Client/OAuth/Remote
-            Tool/Server，以及带耐久 Terminal-task Artifact Storage 的 A2A 1.0
+            Tool/Server，以及带 Terminal-task Artifact 持久化存储的 A2A 1.0
             HTTP+JSON/JSON-RPC Client/Server。稳定 Network Agent API、A2A gRPC、
             MCP Tasks、高级 Graph 语义、Live-peer 与生产验证仍未完成。
           </p>
@@ -241,7 +241,7 @@ const roadmap = [
           <figcaption id="terminal-caption">仓库验证</figcaption>
           <pre
             tabindex="0"
-            aria-label="仓库验证：Workspace 测试、PostgreSQL 16 与 17 耐久 Graph Driver 集成测试、Apache-2.0 许可证、pre-alpha 状态"><code><span class="code-muted">$</span> <span aria-hidden="true" data-type-line data-text="cargo test --workspace --all-targets --all-features --locked">cargo test --workspace --all-targets --all-features --locked</span>
+            aria-label="仓库验证：Workspace 测试、PostgreSQL 16 与 17 可恢复 Graph Driver 集成测试、Apache-2.0 许可证、pre-alpha 状态"><code><span class="code-muted">$</span> <span aria-hidden="true" data-type-line data-text="cargo test --workspace --all-targets --all-features --locked">cargo test --workspace --all-targets --all-features --locked</span>
 
 <span class="code-muted">$</span> cargo test -p stateknot-runtime \
     --test postgres --locked

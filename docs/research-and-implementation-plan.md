@@ -27,7 +27,7 @@ SPDX-License-Identifier: Apache-2.0
 - 首发正式协议为 **MCP 2026-07-28 client/server** 与 **A2A 1.0 client/server**；协议版本必须协商、可测试、可独立升级。
 - AG-UI、MCP Apps、Agent Skills 放入第二优先级；A2UI、AGNTCY/SLIM、AP2 先保留扩展点并跟踪成熟度，不能把候选规范直接固化进核心模型。
 - 默认生产运行时采用 **PostgreSQL journal + checkpoint + lease/fencing + outbox**。内存实现只允许用于开发与测试。
-- Restate 可作为可插拔耐久执行后端；由于 Rust SDK 仍声明可能发生破坏性变更，不应成为框架的强制依赖。Temporal Rust SDK 仍处于预发布/公开预览，也不适合作为默认基座。
+- Restate 可作为可插拔持久执行后端；由于 Rust SDK 仍声明可能发生破坏性变更，不应成为框架的强制依赖。Temporal Rust SDK 仍处于预发布/公开预览，也不适合作为默认基座。
 - 对数据库内状态提供事务性一次提交；对外部工具副作用只承诺现实可实现的语义：**至少一次执行 + 幂等键 + 调用账本 + 可选补偿**。不宣传无法兑现的“所有工具 exactly-once”。
 - 安全、可观测性、评测、成本预算、人工审批、租户隔离和崩溃恢复都属于核心能力，不是后续插件。
 - 项目源代码、文档、示例与正式发布物统一采用 **Apache License 2.0（SPDX：`Apache-2.0`）**；第三方内容按其原许可证保留归属与 NOTICE，不以该许可证暗示项目隶属于 Apache Software Foundation。
@@ -83,12 +83,12 @@ SPDX-License-Identifier: Apache-2.0
 | [OpenAI Agents SDK](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/) | 少量核心原语、agent/tool/handoff/guardrail/tracing、易用的预置 loop | 供应商专有模型语义不能进入核心接口 |
 | [Google ADK](https://google.github.io/adk-docs/) | LLM/Sequential/Parallel/Loop Agent、session/state/memory/artifact、callback/plugin、A2A/MCP、eval/deploy | 与 Google 服务绑定的部署和 provider 假设 |
 | [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/) | Pregel 风格 workflow、superstep checkpoint、A2A/MCP/AG-UI，以及“跨边界才使用 A2A”的清晰原则 | 当前官方 SDK 不含 Rust；不依赖社区 Rust 移植作为核心 |
-| [AutoGen](https://github.com/microsoft/autogen) | event-driven core、team/swarm/selector/magentic 等多 Agent 协作模式 | 项目已进入 community-managed maintenance，新项目被官方引导至 Microsoft Agent Framework；其状态保存与实验性 graph 也不能作为耐久语义基线 |
+| [AutoGen](https://github.com/microsoft/autogen) | event-driven core、team/swarm/selector/magentic 等多 Agent 协作模式 | 项目已进入 community-managed maintenance，新项目被官方引导至 Microsoft Agent Framework；其状态保存与实验性 graph 也不能作为持久执行语义基线 |
 | [CrewAI](https://docs.crewai.com/en/concepts/flows) | role/process 的高层易用性、event-driven flow、分支/循环/HITL | “角色扮演”抽象不应替代明确的数据流、权限与执行保证 |
 | [LlamaIndex](https://docs.llamaindex.ai/en/stable/) | ingestion/retrieval/query、agents-as-tools、结构化输出，是 RAG 层的重要参考 | 不在 v1 复制其庞大 connector catalog |
 | [Mastra](https://mastra.ai/articles/ai-workflows) | TypeScript 下清晰的 chain/branch/parallel/suspend-resume、snapshot、OTel 与 eval 体验 | JS/TS 特有 API 形态和运行时假设 |
 
-综合判断：没有任何一个项目同时把 Rust 类型安全、耐久执行、A2A/MCP、生产治理和易用 API 做完整。因此项目有明确价值，但差异点不能只是“Rust 版 LangChain”。
+综合判断：没有任何一个项目同时把 Rust 类型安全、持久执行、A2A/MCP、生产治理和易用 API 做完整。因此项目有明确价值，但差异点不能只是“Rust 版 LangChain”。
 
 ### 3.2 Rust 原生生态
 
@@ -101,13 +101,13 @@ SPDX-License-Identifier: Apache-2.0
 | [a2a-rs](https://github.com/a2aproject/a2a-rs) | A2A 官方 Rust SDK，覆盖 client/server/JSON-RPC/REST/gRPC 等 | adapter 内优先采用并锁定版本，同时用官方 TCK 防回归 |
 | [MCP Rust SDK](https://github.com/modelcontextprotocol/rust-sdk) | 官方 SDK，已跟进 2026-07-28；Rust 支持仍标为 beta | adapter 内采用；禁止其 wire/domain 类型穿透公共 API；CI 跑官方 conformance suite |
 
-### 3.3 耐久执行引擎
+### 3.3 持久执行引擎
 
 | 方案 | 优点 | 风险/限制 | 决策 |
 |---|---|---|---|
 | 自有 PostgreSQL runtime | 无外部控制面依赖；可嵌入；事务、RLS、备份、观测和运维成熟；可精确实现 graph 语义 | 调度、租约、迁移和故障测试工作量大 | v1 默认生产基线 |
 | [Restate](https://docs.restate.dev/ai/patterns/durable-agents) | journal-based durable execution、signal、workflow/object、集群与生产部署能力较完整；有原生 Rust SDK | 增加独立运行时；Rust SDK 仍提示跨版本可能破坏；语义会约束框架 API | v1 预留 runtime SPI，后续提供正式 adapter |
-| [Temporal Rust SDK](https://github.com/temporalio/sdk-rust) | Temporal 生态与耐久 workflow 理念成熟 | Rust SDK 仍是 public preview / prerelease | 观察，达到稳定与 conformance 门槛后再做 adapter |
+| [Temporal Rust SDK](https://github.com/temporalio/sdk-rust) | Temporal 生态与持久执行 workflow 理念成熟 | Rust SDK 仍是 public preview / prerelease | 观察，达到稳定与 conformance 门槛后再做 adapter |
 | 纯内存 / SQLite | 本地开发方便 | 不支持真正的 HA、多 worker 与可靠恢复 | 仅 dev/test，文档中不得标为生产后端 |
 
 ## 4. 前沿协议地图与优先级
@@ -886,7 +886,7 @@ Fence 下隔离缺失或矛盾证据；v12 升级、Tenant Isolation、Corruptio
 均在 PG16/17 验证。
 新的未发布 `stateknot-runtime` crate 已实现离线且 Digest-pinned 的 JSON Schema 2020-12
 注册表、精确 Graph/Reducer/Node 可执行闭包、对所有已提交非初始 Checkpoint 的独立有界
-Replay，以及带 Fence 的耐久 Graph Driver。Driver 只在 Durable Start 新提交后执行 Node，
+Replay，以及带 Fence 的可恢复 Graph Driver。Driver 只在 Durable Start 新提交后执行 Node，
 不会把 `Idempotent` Start 当成执行授权；Node 启动前会刷新临近过期 Lease，长任务在
 数据库时间换算的单调到期 Watchdog 下持续续租并接收单调取消信号，完成记录绑定
 最新 Journal Head，Continue Barrier 自动提交，Wait/Terminal/Failure 则返回带 Lease 的类型化
@@ -899,13 +899,13 @@ Failure 只有在不存在 Same-fence In-flight Work 时才进入终态监督。
 绑定为有界 `DurableAgentLoop`，首个 Tenant-scoped Scheduler Tick 使用固定 Cutoff Keyset Page、
 稳定 Claim Attempt ID 与每 Tick 最多一个 Run 的策略。Lifecycle/Loop/Scheduler 与 Lost-ACK、
 Evidence Failure、Lease Release 场景现已在 PG16/17 验证。
-Provider-neutral Model/Tool Attempt Executor、精确不可变 Provider Registry、耐久 Stream Sink
+Provider-neutral Model/Tool Attempt Executor、精确不可变 Provider Registry、持久化 Stream Sink
 Boundary 与 Cross-tenant Weighted Fair Scheduler 现已补齐；Migration 14 提供 Lost-ACK-safe
 Global Reservation 与有界 Retention。第一批 OpenAI Responses/Anthropic Messages Unary/SSE
 Adapter 以及 Schema-pinned Typed Agent Contract 也已实现。Agent Admission Core、Migration
 15 的不可变 Admission Snapshot/原子初始化，以及 Runtime
 Validation Facade、Migration 16 的 Tenant-scoped Ingress Idempotency-key Mapping 与
-耐久 Run/Result Facade 也已完成并通过 PG16/17 验证。它仍不是完整 Agent Runtime：
+持久化 Run/Result Facade 也已完成并通过 PG16/17 验证。它仍不是完整 Agent Runtime：
 在预置 Graph 内组装已经实现的 Provider-native Transcript、Policy/Cancellation Service、协议专用 Outbox Adapter、
 Parallel Sibling、Loop/Subgraph、角色隔离、通用归档、Failover 与 Restore 仍按 RFC 门禁继续
 实现，RFC-0003 因此保持 Draft。
@@ -1147,11 +1147,11 @@ Route/Reducer/Successor/Wait/Terminal Barrier Planner、Completion-order
 Property/Fixture，以及离线 Exact Schema/Reducer/Node Executable Registry 已实现。
 Typed Wait/Terminal/Failure Lifecycle Coordinator、有界 Agent Loop 与首个 Tenant-scoped
 Stable-snapshot Scheduler Worker 也已实现。Replica-safe Smooth Weighted Cross-tenant
-Fairness、精确 Reservation-count Starvation Bound 与耐久 Reservation Retention 已实现并通过
+Fairness、精确 Reservation-count Starvation Bound 与持久化 Reservation Retention 已实现并通过
 PG16/17 验证。Port Schema Compatibility、Loop/Subgraph、Nested Namespace、Parallel
 Sibling Policy 与 Global Admission 仍未完成，阶段 2 尚未结束。
 
-### 阶段 3：PostgreSQL 耐久运行时（5–6 周）
+### 阶段 3：PostgreSQL 可恢复运行时（5–6 周）
 
 - journal/checkpoint/node attempts/tool ledger/interrupt/outbox；
 - lease/fencing、多 worker、恢复与版本迁移；
@@ -1164,16 +1164,16 @@ commit/load ledger、stable-snapshot unconsumed-result paging 及 atomic pending
 以及 tenant-level indexed runnable/due-timer/expired-interrupt discovery、durable wait
 registration/resolution/firing/abandonment 已完成并通过 PG16/17 验证；Tenant-scoped Graph
 Registry 注册/重载与 Claimed Recovery Pin Revalidation 已通过 Migration 13 完成；
-Executable Registry、独立 Noninitial Replay 与带 Lease Renewal/Cancellation 的耐久 Root
+Executable Registry、独立 Noninitial Replay 与带 Lease Renewal/Cancellation 的可恢复 Root
 Graph Driver 也已完成，Continue Barrier 可自动提交，Wait/Terminal/Failure 以精确 Lease-bound
 Handoff 交给生命周期层。Lifecycle 层已使用稳定 Event ID 原子提交 Wait、Success 与 Failure，
 并与 Driver 组成有界 Agent Loop；Tenant-scoped Scheduler 已能从固定 Snapshot 扫描、Claim 并
 执行一个 Run。Provider-neutral Model/Tool Attempt Executor、不可变 Exact-version Provider
-Registry、耐久 Streaming Sink Boundary，以及 Migration 14 的 Cross-tenant Weighted Fairness、
+Registry、持久化 Streaming Sink Boundary，以及 Migration 14 的 Cross-tenant Weighted Fairness、
 Lost-ACK Reservation 与有界 Retention 也已在 PG16/17 验证。第一批 OpenAI Responses 与
-Anthropic Messages Adapter、强类型 Agent Schema/Codec 和可编译无 I/O 示例现已完成；耐久
+Anthropic Messages Adapter、强类型 Agent Schema/Codec 和可编译无 I/O 示例现已完成；持久化
 Agent Admission Intent、Migration 15 的 Atomic Run/Event/Checkpoint Initialization 与
-Runtime Admission Facade、Migration 16 的 Ingress Idempotency-key Mapping 与耐久
+Runtime Admission Facade、Migration 16 的 Ingress Idempotency-key Mapping 与持久化
 Run/Result Facade 也已完成；在预置 Graph 内组装已经实现的 Provider-native Transcript、
 Parallel Sibling Policy、协议
 Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
@@ -1271,9 +1271,9 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 run/journal/checkpoint/tool/model-invocation/node-attempt、attempt-owned pending result、atomic
 barrier consumption、run-wide attempt claim、outbox、durable wait、quarantine、lease、pinned
 graph registry 与 migration/startup 语义落到 PostgreSQL 16/17；`stateknot-runtime` 则实现
-离线可执行闭包、完整 Checkpoint State/Noninitial Replay 验证、耐久 Root Graph Driver、
+离线可执行闭包、完整 Checkpoint State/Noninitial Replay 验证、可恢复 Root Graph Driver、
 Lifecycle Coordinator、有界 Agent Loop、Tenant-scoped Scheduler Worker、原子 Agent
-Admission Validation Facade 与耐久 Run/Result Facade；Migration 15 把认证 Intent、数据库
+Admission Validation Facade 与持久化 Run/Result Facade；Migration 15 把认证 Intent、数据库
 时钟、Active Lifecycle、首 Event 与初始 Checkpoint 绑定为一个可精确重试的事务，Migration
 16 再把 Tenant-scoped Ingress Key 与该 Admission 原子绑定。
 只有 RFC 获得接受且可编译 Contract Example、生命周期集成和发布门禁通过后，才会把这些

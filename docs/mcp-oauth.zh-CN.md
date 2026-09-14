@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 `McpOAuthAuthorization` 是 `McpClient` 的 Challenge-driven Authorization
 Provider。OAuth Metadata、Registration、PKCE State、Credential、Issuer
 Migration、Scope Upgrade 与 Browser Handoff 不会进入 MCP Request Metadata，也不会
-混入耐久 Agent State Model。
+混入 Agent 状态持久化模型。
 
 它不是通用 OAuth Library。一个 OAuth Manager 只绑定一个精确 MCP Resource；底层采用
 固定版本的官方 MCP Rust SDK Authorization Engine，StateKnot 自己负责有界 Challenge
@@ -43,7 +43,7 @@ Client Credentials、Private-key JWT、Enterprise Managed Authorization、DPoP�
 DPoP Nonce、Workload Identity Federation，以及发布后新增的 JSON Schema
 Preservation 场景尚未实现，也不做支持声明。
 
-## 使用耐久 Store 连接
+## 使用持久化 Store 连接
 
 Crate 尚未发布，请固定精确 StateKnot Revision。Host 必须持有 User-agent Integration
 与 Durable Store：
@@ -132,7 +132,7 @@ Origin 与 Path，再由 OAuth Session 校验 State、Code、PKCE 与 RFC 9207 I
 - Abandoned Authorization State 的 TTL Expiry 与一次性消费；
 - 绝不包含 Token、Code、Verifier、Callback Query 或 Authorization URL 的脱敏 Telemetry/Audit Event。
 
-不要把 In-memory Store 当作隐式生产耐久承诺。
+不要把 In-memory Store 当作隐式生产持久化承诺。
 
 ## Challenge 与 Retry Authority
 

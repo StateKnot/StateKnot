@@ -15,7 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 1. 总体结论
 
-方案的架构方向是成立的，已经覆盖 Agent loop、typed graph、耐久执行、MCP/A2A、安全、可观测性、评测与部署，明显超过概念性方案。
+方案的架构方向是成立的，已经覆盖 Agent loop、typed graph、持久执行、MCP/A2A、安全、可观测性、评测与部署，明显超过概念性方案。
 
 但它目前还不是一份可以直接宣布“生产级 v1 范围已冻结”的完整规格，原因有两类：
 

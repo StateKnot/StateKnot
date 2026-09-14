@@ -14,8 +14,8 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
-    title: "PostgreSQL 耐久化切片",
-    body: "PostgreSQL 16/17 迁移、Journal、Checkpoint、Lease、Ledger、Barrier、Wait、Outbox、Quarantine、延迟唤醒、Pinned Graph 与耐久 Fairness Reservation。",
+    title: "PostgreSQL 持久化切片",
+    body: "PostgreSQL 16/17 迁移、Journal、Checkpoint、Lease、Ledger、Barrier、Wait、Outbox、Quarantine、延迟唤醒、Pinned Graph 与持久化 Fairness Reservation。",
   },
   {
     state: "已实现",
@@ -26,25 +26,25 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
-    title: "耐久 Agent Run 与 Result",
-    body: "Tenant-scoped 耐久 Ingress Key、Fresh-candidate Retry 收敛、Conflict Detection、经过验证的公开 Lifecycle Snapshot 与 Success/Failure/Cancellation Outcome。",
+    title: "可恢复 Agent Run 与 Result",
+    body: "Tenant-scoped 持久化 Ingress Key、Fresh-candidate Retry 收敛、Conflict Detection、经过验证的公开 Lifecycle Snapshot 与 Success/Failure/Cancellation Outcome。",
   },
   {
     state: "已实现",
     className: "status-implemented",
-    title: "耐久 Graph Driver",
-    body: "离线可执行 Schema/Reducer/Node 闭包、完整 Checkpoint State 与有界非初始 Replay 验证、Durable-before-dispatch 执行、Canonical Journal-isolated Sibling Batch、Near-expiry Lease Refresh、单调 Renewal、耐久 Cancellation Polling、Continue Barrier 与类型化 Lifecycle Handoff。",
+    title: "可恢复 Graph Driver",
+    body: "离线可执行 Schema/Reducer/Node 闭包、完整 Checkpoint State 与有界非初始 Replay 验证、Durable-before-dispatch 执行、Canonical Journal-isolated Sibling Batch、Near-expiry Lease Refresh、单调 Renewal、持久化取消请求轮询、Continue Barrier 与类型化 Lifecycle Handoff。",
   },
   {
     state: "已实现",
     className: "status-implemented",
-    title: "Lifecycle 与耐久 Agent Loop",
+    title: "Lifecycle 与可恢复 Agent Loop",
     body: "原子 Wait/Success/Failure/Cancellation Handoff Commit、可信 Lifecycle Evidence 校验、精确 Lost-ACK Recovery、有界 Exact-fence Cleanup 与一次 Tenant-scoped Scheduler Quantum。",
   },
   {
     state: "已实现",
     className: "status-implemented",
-    title: "耐久 Model/Tool 执行",
+    title: "可恢复 Model/Tool 执行",
     body: "精确不可变 Provider Registry、可信 Budget Admission、Durable-before-dispatch Attempt、Unary 与 Durably-sunk Streaming Model、Tool Ambiguity、有界 Provider Reconciliation 和 No-dispatch Terminal Recovery。",
   },
   {
@@ -63,7 +63,7 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "Provider-native Agent Graph",
-    body: "Digest-pinned 预置多轮 Model/Tool Graph，支持串行或有界 Parallel Read-only Tool、串行 Write Barrier、Provider-native Transcript Recovery、有界耐久 Structured-output Repair、本地 Policy Evidence、精确 Accounting、不重复 Business Call 的 Unknown-to-Pending 自动 Reconciliation 与两阶段 Cancellation Confirmation。",
+    body: "Digest-pinned 预置多轮 Model/Tool Graph，支持串行或有界 Parallel Read-only Tool、串行 Write Barrier、Provider-native Transcript Recovery、有界可恢复 Structured-output Repair、本地 Policy Evidence、精确 Accounting、不重复 Business Call 的 Unknown-to-Pending 自动 Reconciliation 与两阶段 Cancellation Confirmation。",
   },
   {
     state: "已实现",
@@ -98,13 +98,13 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
-    title: "A2A 1.0 Client 与耐久 Remote Agent",
+    title: "A2A 1.0 Client 与可恢复 Remote Agent",
     body: "全部 11 个 HTTP+JSON/JSON-RPC Operation、两个有界 SSE Surface、精确 Card/Interface Pin、有界 Bearer/OAuth2/OpenID Security、本地 Schema、显式 Delivery Semantics，以及面向 PostgreSQL-backed Unknown Attempt、由运维方背书的 Context/History 或 Message-ID Recovery。",
   },
   {
     state: "已实现",
     className: "status-implemented",
-    title: "耐久 A2A Artifact Storage",
+    title: "A2A Artifact 持久化存储",
     body: "直接且 No-resend 地轮询已接纳 Task、Migration 18 不可变 PostgreSQL Registry、私有 S3-compatible Conditional Publication、Authorization-before-lookup，以及完整 Length/SHA-256 校验。",
   },
   {
@@ -148,7 +148,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：有界 MCP Client/Server 与 A2A 1.0 Client/Server Profile 已加入耐久 Provider-native Path；稳定 Network Agent API、A2A gRPC、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：有界 MCP Client/Server 与 A2A 1.0 Client/Server Profile 已加入可恢复 Provider-native Path；稳定 Network Agent API、A2A gRPC、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -194,11 +194,11 @@ const capabilities = [
       个冻结计分 Client 场景，其中包括全部 25 个 OAuth 场景：373 项计分
       Assertion Success、0 Failure。Server Profile 通过 全部 37 个计分 Server
       场景：114 Success、5 Skip、1 Info、0 Failure、0 Warning。A2A 1.0 Server
-      门禁另有 177 项官方 TCK Pass、88 项声明 Skip、0 Failure/Error/Xfail。耐久
-      A2A Client 现已增加 11-Operation、Dual-binding Loopback Matrix，以及真实
-      PostgreSQL Durable-before-dispatch/Unknown/ No-redispatch
-      证据，并加入有界、由运维方背书的 Context/History 与 Message-ID
-      Recovery。耐久 Terminal-task Recovery 现在能对两种 Binding
+      门禁另有 177 项官方 TCK Pass、88 项声明 Skip、0
+      Failure/Error/Xfail。可恢复 A2A Client 现已增加 11-Operation、Dual-binding
+      Loopback Matrix，以及真实 PostgreSQL Durable-before-dispatch/Unknown/
+      No-redispatch 证据，并加入有界、由运维方背书的 Context/History 与
+      Message-ID Recovery。可恢复 Terminal-task Recovery 现在能对两种 Binding
       直接轮询且不重发业务 Message；Migration 17→18、不可变
       Registry、Conditional Object Publication、Multipart
       Ingestion、Authorization-first Read 与完整 Digest 校验都具备可执行
@@ -212,10 +212,10 @@ const capabilities = [
     <h2 id="source-status-title">项目权威来源</h2>
     <ul>
       <li>
-        <a href="/zh/docs/admission/">耐久 Agent Admission 契约</a>
+        <a href="/zh/docs/admission/">Agent 持久化准入契约</a>
       </li>
       <li>
-        <a href="/zh/docs/runs/">耐久 Agent Run/Result 契约</a>
+        <a href="/zh/docs/runs/">可恢复 Agent Run/Result 契约</a>
       </li>
       <li>
         <a href="/zh/docs/typed-agent/"
@@ -223,15 +223,15 @@ const capabilities = [
         >
       </li>
       <li>
-        <a href="/zh/docs/runtime/">耐久 Graph Runtime 集成契约</a>
+        <a href="/zh/docs/runtime/">可恢复 Graph Runtime 集成契约</a>
       </li>
       <li>
         <a href="/zh/docs/agent-loop/"
-          >耐久 Agent Loop 与 Tenant Scheduler 契约</a
+          >可恢复 Agent Loop 与 Tenant Scheduler 契约</a
         >
       </li>
       <li>
-        <a href="/zh/docs/invocations/">耐久 Model/Tool 调用合约</a>
+        <a href="/zh/docs/invocations/">可恢复 Model/Tool 调用合约</a>
       </li>
       <li>
         <a href="/zh/docs/provider-native-agent/"
@@ -257,10 +257,10 @@ const capabilities = [
         <a href="/zh/docs/mcp-conformance/">MCP Conformance 证据与边界</a>
       </li>
       <li>
-        <a href="/zh/docs/a2a-client/">A2A 1.0 Client 与耐久 Remote Agent</a>
+        <a href="/zh/docs/a2a-client/">A2A 1.0 Client 与可恢复 Remote Agent</a>
       </li>
       <li>
-        <a href="/zh/docs/artifacts/">耐久 A2A Artifact Storage</a>
+        <a href="/zh/docs/artifacts/">A2A Artifact 持久化存储</a>
       </li>
       <li>
         <a href="/zh/docs/a2a-server/">A2A 1.0 Server Profile</a>

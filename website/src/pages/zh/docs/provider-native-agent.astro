@@ -28,7 +28,7 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
 
 <DocsLayout
   title="运行 Provider-native Model/Tool Graph。"
-  description="编译一套 Digest-pinned Agent 组合，从耐久证据执行有序、有界并行的 Model/Tool Turn，并在不伪造 Usage 的前提下确认 Cancellation。"
+  description="编译一套 Digest-pinned Agent 组合，从持久化证据执行有序、有界并行的 Model/Tool Turn，并在不伪造 Usage 的前提下确认 Cancellation。"
   section="Provider-native Agent"
   locale="zh-CN"
 >
@@ -39,9 +39,9 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
     <h2 id="provider-native-scope-title">已实现的 pre-alpha 边界</h2>
     <p>
       预置 Graph、本地 Policy 边界、精确 Invocation Accounting、多轮 Transcript
-      Assembly、耐久 Cancellation Observation 与 Lifecycle Confirmation
-      已实现。Crate 尚未发布；有界 Read-only Tool 并发已经实现，Parallel Write
-      保持串行，并且有界耐久 Structured-output Repair 已实现。<a
+      Assembly、持久化取消请求的观察与 Lifecycle Confirmation 已实现。Crate
+      尚未发布；有界 Read-only Tool 并发已经实现，Parallel Write
+      保持串行，并且有界可恢复 Structured-output Repair 已实现。<a
         href="/zh/docs/agent-service/">AgentService v1</a
       > 已通过嵌入式边界暴露该 Definition，<a href="/zh/docs/mcp-remote-tool/"
         >严格 MCP Remote Tool Profile</a
@@ -116,7 +116,7 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
   </section>
 
   <section aria-labelledby="provider-native-turn-title">
-    <h2 id="provider-native-turn-title">跟随一次耐久 Turn</h2>
+    <h2 id="provider-native-turn-title">跟随一次可恢复 Turn</h2>
     <ol class="evidence-list">
       <li>
         <h3>重建</h3>
@@ -129,7 +129,7 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
         <h3>先提交，再 Dispatch</h3>
         <p>
           Logical Invocation 与 Physical Attempt Start 在 Provider/Tool I/O
-          前耐久化。 幂等观察到的 Start 不授予 Dispatch 权限。
+          前持久化。 幂等观察到的 Start 不授予 Dispatch 权限。
         </p>
       </li>
       <li>
@@ -153,12 +153,14 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
       <code>Unknown</code>，绝不会作为普通 Business Call 重复执行。当 Descriptor
       与 Exact Provider 都启用 Reconciliation 时，Runtime 会针对原 Attempt
       执行一次有界 Probe；权威 Evidence 原子提交，<code>Pending</code> 则成为后续
-      Lease 下的耐久延迟 Retry。其他 Binding 继续阻塞，等待人工 Reconciliation。
+      Lease 下的持久化延迟 Retry。其他 Binding 继续阻塞，等待人工 Reconciliation。
     </p>
   </section>
 
   <section aria-labelledby="provider-native-repair-title">
-    <h2 id="provider-native-repair-title">从耐久证据修复 Structured Output</h2>
+    <h2 id="provider-native-repair-title">
+      从持久化证据修复 Structured Output
+    </h2>
     <p>
       将有限的 <code>max_output_repair_turns</code> 配置在总 Model-turn Ceiling 之下。已提交但不符合
       Schema 的 Response，或带精确 Usage、发生在 Response Phase 的 <code
@@ -220,13 +222,13 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
   </section>
 
   <section aria-labelledby="provider-native-cancel-title">
-    <h2 id="provider-native-cancel-title">把 Cancellation 视为两条耐久事实</h2>
+    <h2 id="provider-native-cancel-title">分别持久化取消请求与取消确认</h2>
     <dl class="docs-definition-list">
       <div>
         <dt>Request</dt>
         <dd>
           已认证 Control Plane Append 不可变 Cancellation Intent。Driver
-          轮询耐久状态、 停止新 Dispatch、发出 Cooperative
+          轮询持久化状态、 停止新 Dispatch、发出 Cooperative
           Cancellation，并执行有界 Grace Period。
         </dd>
       </div>
@@ -300,7 +302,7 @@ cargo test -p stateknot-runtime --test postgres provider_native --locked</code><
         Sibling Ordering 也已实现。
       </li>
       <li>
-        已实现 Model-native Structured Output 与有界耐久 Repair；
+        已实现 Model-native Structured Output 与有界可恢复 Repair；
         Tool-call-emulated Final Output 会被拒绝。
       </li>
       <li>

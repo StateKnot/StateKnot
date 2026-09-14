@@ -23,9 +23,9 @@ let outcome = admission.admit(request).await?;`;
 ---
 
 <DocsLayout
-  title="将一个 Agent 原子接纳为耐久事实。"
+  title="以原子事务提交 Agent 准入记录。"
   description="校验一个已经认证的 Agent Intent，并原子提交数据库时钟 Admission、首 Event、初始 Checkpoint、Active Lifecycle 与 Scheduler Visibility。"
-  section="耐久 Agent Admission"
+  section="Agent 持久化准入"
   locale="zh-CN"
 >
   <aside class="docs-callout" aria-labelledby="admission-boundary-title">
@@ -132,7 +132,7 @@ let outcome = admission.admit(request).await?;`;
         </p>
       </li>
       <li>
-        <h3>重查耐久事实</h3>
+        <h3>重查已提交的准入记录</h3>
         <p>
           PostgreSQL 独立校验 Graph Registration、Entry Node、Checkpoint
           Shape、数据库时间 Budget 可接纳性与全部不可变 Event/Checkpoint
@@ -162,10 +162,10 @@ let outcome = admission.admit(request).await?;`;
     <h2 id="evidence-title">验证证据</h2>
     <p>
       PostgreSQL 16/17 Matrix 目前在每个版本运行 106 个 Provider Case 与 36
-      个耐久 Runtime Scenario。Admission 覆盖 Migration 15、跨越时间边界后的精确
-      Retry、 Changed-intent 与 Tamper 拒绝、无效 State 零残留 Rollback、24
-      路收敛，以及 Runtime 在任何写入前拒绝 Agent/Graph 或 Authorization Schema
-      Drift。采用该未发布 Surface 前，请阅读<a
+      个可恢复 Runtime Scenario。Admission 覆盖 Migration
+      15、跨越时间边界后的精确 Retry、 Changed-intent 与 Tamper 拒绝、无效 State
+      零残留 Rollback、24 路收敛，以及 Runtime 在任何写入前拒绝 Agent/Graph 或
+      Authorization Schema Drift。采用该未发布 Surface 前，请阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-admission.zh-CN.md"
         >完整集成与 Rollout 契约</a
       >。

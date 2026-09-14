@@ -3,9 +3,9 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 耐久 Model/Tool 调用执行
+# 可恢复 Model/Tool 调用执行
 
-`stateknot-runtime` 现在包含耐久 Model/Tool Ledger 与外部 Adapter
+`stateknot-runtime` 现在包含 Model/Tool 持久化账本与外部 Adapter
 之间的 Provider-neutral 执行边界。它仍是未发布的 pre-alpha。本文件记录代码已经执行的集成与恢复合约。OpenAI Responses、Anthropic Messages、一个严格 MCP
 2026-07-28 Client-side Remote Tool 与一个严格 A2A 1.0 Remote Agent Profile
 已接入该合约；这不代表 Stable API、更广 Protocol Conformance 或 Live-provider/
@@ -20,14 +20,14 @@ Runtime 当前提供：
 - 启动阶段构建的不可变 `ModelProviderRegistry` 与
   `ToolProviderRegistry`，以精确的 Owner/Name/Version Capability Identity
   为键；
-- Dispatch 前同时校验耐久 Invocation、启动快照和当前 Object-safe Provider
+- Dispatch 前同时校验已持久化的 Invocation、启动快照和当前 Object-safe Provider
   的完整 Descriptor；
-- 可信 `InvocationBudgetProvider` 边界：从耐久 Run Provenance
+- 可信 `InvocationBudgetProvider` 边界：从持久化 Run Provenance
   解析有限剩余额度，不接受调用者自行填写的 Remaining Budget；
-- 成对的墙钟与单调时钟观测，分别用于耐久记账决策和活动 Deadline；
+- 成对的墙钟与单调时钟观测，分别用于基于持久化记录的记账决策和活动 Deadline；
 - 带稳定 Start/Terminal Event Identity 的 Durable-before-dispatch
   Model/Tool `StartAttempt` Commit；
-- Unary Model、语义 Streaming 校验与累积，以及必需的耐久 Stream Event Sink；
+- Unary Model、语义 Streaming 校验与累积，以及必需的持久化 Stream Event Sink；
 - Tool 执行，并对 Write Effect 的 Cancellation/Deadline 歧义做显式分类；
 - 针对精确 Unknown Tool Attempt 执行一次有界 Provider Reconciliation Probe，包含有限
   Deadline、Cooperative Cancellation、Poll Advice 校验与 Terminal Evidence 原子提交；
@@ -65,14 +65,14 @@ let executor = DurableInvocationExecutor::new(
 ```
 
 Alias、Model Family、可变 Endpoint Routing 和 Fallback Selection
-必须在 Invocation Intent 持久化前解析完成。恢复只接受耐久记录中的精确 Descriptor；缺失或变化的 Binding 会在外部 I/O 前 Fail Closed。
+必须在 Invocation Intent 持久化前解析完成。恢复只接受持久化记录中的精确 Descriptor；缺失或变化的 Binding 会在外部 I/O 前 Fail Closed。
 
 ## 执行一个物理 Attempt
 
 调用方需要保留一个 `ModelAttemptHandoff` 或 `ToolAttemptHandoff`，其中包含：
 
 - 精确且仍存活的 `RunFence`；
-- Prepared 或已被显式允许重试的耐久 Invocation Revision；
+- Prepared 或已被显式允许重试的已持久化的 Invocation Revision；
 - 新的 Run-wide 物理 `AttemptId`；
 - 分离且稳定的 Start/Terminal `EventId`；
 - Cooperative Cancellation Signal；
@@ -81,7 +81,7 @@ Alias、Model Family、可变 Endpoint Routing 和 Fallback Selection
 使用该 Handoff 调用一次 `execute_model` 或 `execute_tool`。Executor 会：
 
 1. 校验 Tenant/Run Scope 与可启动 Ledger State；
-2. 检查该物理 Attempt 是否已经推进耐久 Ledger；
+2. 检查该物理 Attempt 是否已经推进持久化 Ledger；
 3. 解析精确 Provider 与可信 Remaining Budget；
 4. 提交 `StartAttempt` 及其 Journal Event；
 5. 只有全新的 `Committed` 结果才获得 Dispatch 权限；
@@ -110,7 +110,7 @@ Terminal Recovery Evidence 的规则对这些不可序列化值进行脱敏。�
 
 Streaming Request 必须携带 `Arc<dyn ModelEventSink>`。Runtime
 按顺序验证并累积每一个语义 `ModelEvent`，等待 Sink 接受该精确 Event
-后才继续 Poll。Sink 实现必须先按 `(attempt_id, sequence)` 耐久去重，再向外部暴露 Event。
+后才继续 Poll。Sink 实现必须先按 `(attempt_id, sequence)` 基于持久化记录去重，再向外部暴露 Event。
 
 累积出的 `ModelResponse` 只有在独立的 Terminal Ledger Commit
 成功后才成为权威结果。缺少 Terminal Stream Event、Sequence 违规、无效 Provider Error、Sink Failure、Cancellation 或 Deadline 都会形成 Public-safe Model Error，不会形成成功 Response。
@@ -124,7 +124,7 @@ Read-only Tool 可以记录结果已知的 Cancellation 或 Deadline Failure。�
 - `ToolExternalEffect::Unknown`；
 - `RetryAdvice::ReconcileFirst`。
 
-耐久 Tool Ledger 保持 `Unknown`，直到应用自己的 Reconciliation
+Tool 持久化账本保持 `Unknown`，直到应用自己的 Reconciliation
 确认外部结果。Executor 不会因为本地 Future 被丢弃就再次调用 Tool。
 
 `ErasedTool` 可显式实现 `supports_reconciliation` 与 `reconcile`。如果不可变 Descriptor
@@ -139,7 +139,7 @@ Cancellation。Provider 只可返回：
 
 - `Result` 或 Known-effect `Error`：完成 Schema/Provenance 校验，并通过稳定 Audit Event
   原子提交；
-- `Pending`：不修改 Invocation，同时给出经过校验的 1 ms–1 h 延迟，交给耐久 Node
+- `Pending`：不修改 Invocation，同时给出经过校验的 1 ms–1 h 延迟，交给基于持久化计划的 Node
   Retry；
 - `ToolReconciliationProbeError`：Public-safe、不会递归 Reconcile，Retry Advice 只能是
   有界 `SafeAfter` 或 `Never`。
@@ -152,7 +152,7 @@ Cancellation。Provider 只可返回：
 
 Known Effect Evidence 会把 Invocation 解析为 `Failed`，成功证据会解析为 `Committed`，Effect 仍然未知的证据会有意保留 `Unknown`。Network Service 必须在这个 Trusted Worker/Operations API 前增加 Authorization 与 Evidence-source Policy。
 
-Provider SDK 的隐藏重试同样必须关闭，除非 Adapter 能证明它复用精确 Provider Request Identity，并满足耐久 Descriptor 声明的语义。StateKnot 本身不会隐藏一次外部重试。
+Provider SDK 的隐藏重试同样必须关闭，除非 Adapter 能证明它复用精确 Provider Request Identity，并满足持久化 Descriptor 声明的语义。StateKnot 本身不会隐藏一次外部重试。
 
 ## 不重复 Dispatch 的 Terminal Commit 恢复
 
@@ -172,12 +172,12 @@ match executor.execute_model(handoff).await {
 
 只能把该值传给 `commit_model_terminal` 或 `commit_tool_terminal`；两者都不会执行 Provider I/O。如果原 Lease 在外部调用期间过期，先取得同一 Tenant/Run 的当前 Live Fence，再调用 `rebind_fence`。Store 仍会做权威的 Live-fence 校验。
 
-Terminal Recovery Payload 含应用数据，因此有意不支持序列化或打印。只在可信进程内存中保留，并在有界 Lease Recovery Workflow 内立即重试。若进程在外部完成后、Terminal 持久化前崩溃，恢复从耐久 Executing Ledger 开始：Write Tool 必须 Reconcile；Model 是否可重新尝试由应用根据持久化 Retry Contract 决定。
+Terminal Recovery Payload 含应用数据，因此有意不支持序列化或打印。只在可信进程内存中保留，并在有界 Lease Recovery Workflow 内立即重试。若进程在外部完成后、Terminal 持久化前崩溃，恢复从持久化 Executing Ledger 开始：Write Tool 必须 Reconcile；Model 是否可重新尝试由应用根据持久化 Retry Contract 决定。
 
 ## Budget 与 Deadline 所有权
 
 `InvocationBudgetProvider::remaining` 必须重新加载已 Admission Run
-的不可变 Budget 和累计耐久 Usage，对精确 Invocation/Attempt 执行 Policy，并在给定可信时间返回有限 `BudgetRemaining`。Executor 在 Durable Start
+的不可变 Budget 和累计持久化 Usage，对精确 Invocation/Attempt 执行 Policy，并在给定可信时间返回有限 `BudgetRemaining`。Executor 在 Durable Start
 前检查 Model Attempt/Turn/Token/Byte Capacity，以及 Tool/Write-call Capacity。
 
 已启动 Attempt 的恢复发生在 Provider Lookup、Clock Access 和 Budget Evaluation
@@ -211,17 +211,17 @@ https://stknot.com/schemas/runtime/invocation-execution-event/1.0.0
 真实 PostgreSQL Integration Coverage 已证明：
 
 - Model Call 期间原 Fence 被取代后，Terminal Evidence 会被保留、Rebind 到新 Live Fence、只 Commit 一次，并且后续重试不重新计算 Budget、不重新 Dispatch；
-- 七个语义 Model Stream Event 按序到达耐久 Sink，累积为已提交 Response，Duplicate Recovery 不再产生 Event 或 Provider Call；
+- 七个语义 Model Stream Event 按序到达持久化 Sink，累积为已提交 Response，Duplicate Recovery 不再产生 Event 或 Provider Call；
 - Timed-out Idempotent-write Tool 记录 Ambiguous/Reconcile-first Outcome；Schema-invalid Reconciliation 被拒绝且不发生 Mutation；权威 Result 或 Known-effect Error Evidence 可提交；相同重试会收敛，且 Tool 不会被再次调用；
 - 严格 MCP Adapter 在真实 Loopback MCP Exchange 与 PostgreSQL 16/17 上通过同一套 Durable-before-dispatch 与 Reconciliation Proof；
 - 严格 A2A Adapter 在 PostgreSQL 16/17 上证明真实 Loopback Send 前已有 Executing
   Revision、Lost Response 会持久化为 `Unknown`，且 Recovery 不会重新 Dispatch 同一
   Invocation；
 - Provider-native Agent Run 会持久化 Unknown Tool Call、为 Pending Reconciliation
-  安排耐久延迟 Retry、在后续 Lease 下解析结果并继续 Model Turn；两次 Probe 期间只有
+  安排持久化延迟 Retry、在后续 Lease 下解析结果并继续 Model Turn；两次 Probe 期间只有
   一次 Business Call。
 
 该边界仍是 pre-alpha。第一方 OpenAI Responses/Anthropic Messages Adapter 与强类型 Agent
-Contract、原子 Admission，以及在预置 Provider-native Graph 内耐久组装 Transcript 已实现；
+Contract、原子 Admission，以及在预置 Provider-native Graph 内从持久化记录组装 Transcript 已实现；
 应用持久化 Model Stream Sink、Authorization-first Network Reconciliation Service、部署专用 Price Table 与 Artifact Evidence、Telemetry 与 Live-provider Qualification 尚未完成，因此还不能
 声称生产支持。
