@@ -40,9 +40,9 @@ let current = runs.load_by_key(&tenant_id, &key).await?;`;
 ---
 
 <DocsLayout
-  title="只提交一次，始终恢复同一个耐久 Agent Run。"
-  description="使用 Tenant-scoped 耐久 Idempotency，再按 Run ID 或 Submission Key 读取完整重校验的公开 Run/Result Snapshot。"
-  section="耐久 Agent Run"
+  title="重试提交，恢复同一个 Agent Run。"
+  description="使用租户隔离的持久化幂等记录，再按 Run ID 或 Submission Key 读取完整重校验的公开 Run/Result Snapshot。"
+  section="可恢复 Agent Run"
   locale="zh-CN"
 >
   <aside class="docs-callout" aria-labelledby="run-boundary-title">
@@ -88,7 +88,7 @@ let current = runs.load_by_key(&tenant_id, &key).await?;`;
     <p>
       默认 Key 包含 148 位随机量。外部 Key 必须由 <code>[A-Za-z0-9._~-]</code> 中的
       16–128 个字节组成，并提供至少 128 位不可预测性。PostgreSQL 只保存 Tenant-scoped
-      Digest；Raw Key 不进入耐久 Row，也不会出现在 <code>Debug</code> 中。
+      Digest；Raw Key 不进入持久化 Row，也不会出现在 <code>Debug</code> 中。
     </p>
   </section>
 
@@ -122,7 +122,7 @@ let current = runs.load_by_key(&tenant_id, &key).await?;`;
     </div>
     <p>
       Logical Content 变化会返回 Conflict；同一 Run 换第二个 Key 也会
-      Conflict。完成本地 Deployment 重校验后，耐久 Key Evidence
+      Conflict。完成本地 Deployment 重校验后，持久化 Key Evidence
       会先于新的数据库时钟与 Initial-checkpoint Admission Check；有效 Lost-ACK
       Retry 跨过原 Deadline 后仍只解析到 原 Run，缺少精确 Executable Code 时则
       Fail Closed。

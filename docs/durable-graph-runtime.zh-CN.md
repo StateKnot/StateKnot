@@ -3,7 +3,7 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 耐久 Graph Runtime
+# 可恢复 Graph Runtime
 
 状态：已有实现与验证支撑的预发布契约。API 尚未发布，仍可能调整；本文只描述当前真正
 实现并通过验证的边界，不代表已经达到生产发行标准。
@@ -89,7 +89,7 @@ Scheduler 先读取 Runnable Projection，选择 Run，分配稳定的 UUIDv7 `A
 会先发出协作取消，Node 不返回时再 Abort Task，随后释放精确 Fence，并保留已经持久化但未
 完成的 Attempt，交给更高 Fence 恢复。
 
-进程 Shutdown Signal 与耐久 Run Cancellation 是两条不同边界。Node Active 期间，Driver
+进程 Shutdown Signal 与已持久化的 Run 取消请求是两条不同边界。Node Active 期间，Driver
 会轮询 Run Projection；观察到 `cancellation_requested` 后停止新 Dispatch、向 Node 发出
 Cancellation、只等待配置的 Cooperative Grace Period，再返回精确 Lease-bound
 Cancellation Handoff 供 Lifecycle 确认。
@@ -153,7 +153,7 @@ Result 数量与字节、Start、Completion、Barrier、Renewal 和 Mutation Ret
 `GraphNodeExecutor::scheduling` 默认返回 `GraphNodeScheduling::Exclusive`，因此已有
 Executor 继续串行执行。只有当 `execute` 不追加 Run-scoped Journal/Invocation Ledger，
 并且语义结果不依赖 Sibling Start/Completion Timing 时，Binding 才能返回
-`JournalIsolated`。这是可信 Deployment Contract，不是性能 Hint。需要耐久 Invocation
+`JournalIsolated`。这是可信 Deployment Contract，不是性能 Hint。需要可恢复 Invocation
 Evidence 的外部工作必须使用专门的 Ordered Coordinator，例如 Provider-native Tool
 Pipeline，不能伪装成 Journal-isolated Sibling。
 
@@ -203,7 +203,7 @@ Provider Suite 会在每个数据库版本上独立运行。CI 把两套
 外部数据库测试都设为 Mandatory；数据库服务缺失时必须失败，不能静默跳过。
 
 后续 Typed Agent 里程碑已经提供第一批 OpenAI Responses 与 Anthropic Messages Adapter；
-原子 Admission、公开耐久 Run/Result Facade，以及带 Policy、精确 Accounting、Transcript
+原子 Admission、公开持久化 Run/Result Facade，以及带 Policy、精确 Accounting、Transcript
 Recovery 与 Cancellation Confirmation 的预置 Provider-native Graph 也已经实现。仍未完成的
 包括 Public Cancellation Transport、Side-effecting Sibling Batch、Loop/Subgraph、
 协议专用 Outbox Adapter、数据库角色隔离存储过程、归档保留、

@@ -5,20 +5,20 @@ SPDX-License-Identifier: Apache-2.0
 
 # AgentService v1
 
-`AgentServiceV1` 是已经实现、带版本的耐久 Agent 嵌入式服务边界，负责提交、完整性校验读取与两阶段取消。它是建立在 PostgreSQL 和精确可执行注册表之上的 Library Service；它不是 HTTP、gRPC 或 SSE Server，也不负责认证 Transport Credential。
+`AgentServiceV1` 是已经实现、带版本的可恢复 Agent 嵌入式服务边界，负责提交、完整性校验读取与两阶段取消。它是建立在 PostgreSQL 和精确可执行注册表之上的 Library Service；它不是 HTTP、gRPC 或 SSE Server，也不负责认证 Transport Credential。
 
 StateKnot 仍处于 pre-alpha。该 API 已有可执行证据，但尚无稳定性、Crate 发布或生产支持承诺。
 
 ## 已实现合约
 
 - 每个操作都接收由已验证 Credential 派生的 `AgentServiceCaller`；
-- 强制使用 `AgentServiceAuthorizer`；提交、读取与取消均先授权，再披露 Deployment 或耐久目标是否存在；
+- 强制使用 `AgentServiceAuthorizer`；提交、读取与取消均先授权，再披露 Deployment 或持久化目标是否存在；
 - `AgentServiceRegistryBuilder` 最多冻结 4,096 个精确 Agent Revision，并拒绝重复 Identity、Schema 不一致与 Deployment Drift；
 - 提交使用 Tenant-scoped `AgentSubmissionKey` 进入 `DurableAgentRuns`，不会在 Service Call 内联启动 Model 或 Tool；
 - Timeout 或 Lost ACK 后，以相同逻辑 Submission Key 与内容重试会恢复原 Run；内容变化会 Fail Closed 为 Conflict；
 - Run 与 Submission-key 查询返回经过完整重新校验的 Public Snapshot；
 - 取消会绑定调用方持久保留的两个 `AgentCancellationIds`，记录 PostgreSQL 权威时钟 Observation 与不可变 Policy Decision Digest，并返回 `Committed` 或 `Idempotent`；
-- 取消 Waiting Run 时，会在同一事务内 Abandon 所有未完成 Interrupt 与 Timer；Worker 随后依据耐久证据确认最终取消。
+- 取消 Waiting Run 时，会在同一事务内 Abandon 所有未完成 Interrupt 与 Timer；Worker 随后依据持久化证据确认最终取消。
 
 Service Control Event 刻意不保存 Caller Input、Principal 文本、Policy Payload、Secret 与 Failure Message。公开 Schema 位于 [`agent-service-control-event/1.0.0`](https://stknot.com/schemas/runtime/agent-service-control-event/1.0.0)。
 
@@ -75,7 +75,7 @@ let outcome = service
     .await?;
 ```
 
-提交在耐久 Admission 完成后返回。Scheduler 与 Agent Worker 必须在独立角色中 Claim 并执行 Run。取消也分成两个耐久阶段：Service 记录请求；只有当 Model Usage 与 External-effect Evidence 足够时，Agent Loop 才确认 Terminal Cancelled Outcome。
+提交在持久化准入完成后返回。Scheduler 与 Agent Worker 必须在独立角色中 Claim 并执行 Run。取消也分成两个持久化阶段：Service 记录请求；只有当 Model Usage 与 External-effect Evidence 足够时，Agent Loop 才确认 Terminal Cancelled Outcome。
 
 ## 重试规则
 
@@ -96,11 +96,11 @@ let outcome = service
 1. TLS 终止与 Token/mTLS 校验；
 2. 从已验证 Credential 派生 `TenantId` 和 `PrincipalIdentity`，不得信任 Request Body 中的 Identity Claim；
 3. 使用版本化 Policy 与可保留 Decision Evidence 实现 `AgentServiceAuthorizer`；
-4. 调用 Facade 前耐久保存 Submission 与 Cancellation Identity；
+4. 调用 Facade 前持久化保存 Submission 与 Cancellation Identity；
 5. Scheduler/Worker Role、Graceful Drain、Health/Readiness、Metrics、Tracing、Rate Limit 与 Overload Control；
 6. Public Error Mapping、Secret Redaction、Backup/Restore 与 Tenant Isolation 验证。
 
-不得把远程 Policy 调用放进数据库事务。如果 Policy 位于远端，应先在专用耐久 Ledger 中提交或加载有界 Decision Evidence，再由同步 Facade 消费该可信快照。
+不得把远程 Policy 调用放进数据库事务。如果 Policy 位于远端，应先在专用持久化 Ledger 中提交或加载有界 Decision Evidence，再由同步 Facade 消费该可信快照。
 
 ## 可执行证据
 

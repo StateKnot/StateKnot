@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # Provider-native Agent Graph
 
 本文是未发布 `stateknot-runtime` 中 `ProviderNativeAgentGraph` 的生产集成契约。
-该实现把强类型 Agent Descriptor、耐久 Invocation Ledger、可执行 Graph Registry、
+该实现把强类型 Agent Descriptor、Invocation 持久化账本、可执行 Graph Registry、
 Graph Driver、Lifecycle Coordinator 与 Agent Loop 组合成一套有界 Model/Tool 状态机。
 它仍处于 pre-alpha：API 尚不稳定、Crate 尚未发布，仓库也尚未声明生产支持。
 
@@ -18,7 +18,7 @@ cargo run -p stateknot-runtime --example provider_native_agent --locked
 
 它会真实构造支持 Tool 的 Descriptor、Digest-pinned 本地 Policy 与 Accounting
 合约、生成的 Checkpoint Schema、全部必需的标准 Runtime Schema 和初始状态；它明确
-不执行 Provider 或数据库 I/O。耐久执行由 PostgreSQL 16/17 真库测试单独验证。
+不执行 Provider 或数据库 I/O。持久执行由 PostgreSQL 16/17 真库测试单独验证。
 
 ## 已实现的执行子集
 
@@ -35,7 +35,7 @@ cargo run -p stateknot-runtime --example provider_native_agent --locked
 
 `ProviderNativeAgentGraph::compile` 会拒绝以 Tool Call 模拟最终输出、过大的调用上限、
 非法并发边界、与保留 Repair Instruction 冲突或没有预留 Repair Slot 的 Instruction Set，
-以及无法装入耐久 Superstep 范围的组合。它不会静默降级为更弱的行为。
+以及无法装入持久化 Superstep 范围的组合。它不会静默降级为更弱的行为。
 
 生成的 Graph 有两个稳定的可执行 Node：
 
@@ -79,7 +79,7 @@ Schema 和全部 Provider Compatibility Profile。随后 `register_executable` �
 `PostgresStore`、`DurableInvocationExecutor` 与不可变 Schema Snapshot 绑定起来。任何
 Digest-pinned 依赖缺失或冲突都会让启动失败。
 
-不要修改正在运行的 Registry。应构建完整的新 Deployment Snapshot，耐久注册其
+不要修改正在运行的 Registry。应构建完整的新 Deployment Snapshot，持久化注册其
 Compiled Graph，再让新 Run Admission 到这个精确 Graph Reference；存量 Run 继续解析
 自己已经固定的版本。
 
@@ -87,13 +87,13 @@ Compiled Graph，再让新 Run Admission 到这个精确 Graph Reference；存�
 
 `AgentToolPolicy` 在 Tool Prepare 前执行。它必须无副作用、在本地运行，并对精确
 Context 保持确定性；返回值包含不可变 Decision Evidence 的 Digest。Network Policy
-Engine 需要自己的耐久 Decision Ledger，不能隐藏在这个同步边界后面。
+Engine 需要自己的持久化 Decision Ledger，不能隐藏在这个同步边界后面。
 
 Action Digest 绑定已 Admission Agent、Admission Digest、已提交 Model Invocation、
 Proposal Position、Tool Identity 与 Canonical Arguments。获准的 Tool Plan 会同时保留
 Action Digest 与 Policy-evidence Digest；Recovery 会在任何 I/O 前重新校验两者。
 
-`AgentInvocationAccounting` 只对已经耐久化的 Terminal Ledger Evidence 计价，必须离线
+`AgentInvocationAccounting` 只对已经持久化的 Terminal Ledger Evidence 计价，必须离线
 且确定性。只有真正免费的 Invocation 才能返回 `Known(KnownCosts::empty())`。无法获得
 精确价格时返回 `Unpriced`；StateKnot 会保留 Usage Evidence，并在有限 Monetary Budget
 无法继续计算时阻止下一次调用。缺失价格绝不会被转换为零成本。
@@ -133,7 +133,7 @@ Validation、Budget Accounting 或 No-redispatch Recovery。进程在 Start 后�
 Persistence 前崩溃时继续 Fail Closed：StateKnot 不会猜测丢失的 Read Result，也不会盲目
 重复 Write。
 
-## 从耐久证据修复 Structured Output
+## 从持久化证据修复 Structured Output
 
 Output Repair 是显式、有界的 Model Self-loop，不是 Adapter 内部 Retry。
 `max_output_repair_turns` 表示一个 Run 最多可以额外消耗多少次付费 Model Turn；每次
@@ -173,7 +173,7 @@ Prepare 或 Dispatch Tool；该 Proposal 会消耗当前 Repair Turn。达到配
 `runtime.agent.output_repair_exhausted` 失败，Lifecycle Evidence 会精确报告已计费的
 Attempt 与 Turn。
 
-## 耐久 Dispatch 与 Recovery
+## 可恢复 Dispatch 与 Recovery
 
 每次外部 Attempt 都遵循同一条权限顺序：
 
@@ -193,21 +193,21 @@ Attempt，但不能改写已经提交的外部结果。
 Node Result，下一轮 Model 会收到失败结果，而不是虚构 Success。Write Tool 的 `Unknown`
 Outcome 绝不会作为普通 Business Call 自动 Retry。当不可变 Descriptor 与精确安装的
 Provider 都启用 Reconciliation 时，Tool Node 会针对原 Physical Attempt 执行一次有界
-Probe；权威 Evidence 原子提交，`Pending` 则转换为后续 Lease 下的耐久 `SafeAfter`
+Probe；权威 Evidence 原子提交，`Pending` 则转换为后续 Lease 下的持久化 `SafeAfter`
 Node Retry。否则 Run 会保持阻塞，等待显式人工 Reconciliation。
 
 每个 Tool Plan 都从已经持久化的不可变 Identity 确定性派生 Reconciliation Audit
 `EventId`，不增加 Checkpoint 字段或 State Schema Version；升级前已经 Admission 的 Graph
 Reference 因而保持完全相同的 Wire 与 Digest Compatibility。
 
-## 两阶段耐久 Cancellation
+## 两阶段持久化 Cancellation
 
 Cancellation Intent 与 Cancellation Completion 是两条不同事实。
 
 1. 已认证 Control-plane Service 使用不可变 Cancellation Failure 与 Audit Event 提交
    `RunTransition::RequestCancellation`。仓库当前尚未提供稳定公开 HTTP Cancellation
    Endpoint；授权与 Request Schema 属于嵌入服务边界。
-2. Node Active 时，Driver 轮询耐久 Run State，发出 Cooperative Cancellation，在配置的
+2. Node Active 时，Driver 轮询已持久化的 Run 状态，发出 Cooperative Cancellation，在配置的
    Grace Period 内等待，必要时 Abort 本地任务。观察到 Request 后不再 Dispatch 新
    Activation。
 3. Driver 返回精确 `GraphCancellationHandoff`，其中包含 Checkpoint、Journal Head、
@@ -231,7 +231,7 @@ Reconciliation 后可由 Scheduler 再次处理。
 
 ## 运维设置
 
-`DurableGraphDriverOptions::with_cancellation_timing` 控制耐久 Poll Interval 与
+`DurableGraphDriverOptions::with_cancellation_timing` 控制持久化取消状态的轮询间隔与
 Cooperative Grace。默认值分别是 250 ms 与 5 s；Polling 被限制在 10 ms–60 s，Grace 的
 硬上限为 5 min。应根据 Provider/Tool 实测行为设置，并让外部 Timeout 小于 Node
 Deadline，同时为 Terminal Lifecycle Transaction 保留足够 Lease Margin。
@@ -261,7 +261,7 @@ Runtime Integration Suite 在真实 PostgreSQL 16/17 上运行 Provider-native �
 - 已知失败 Tool 以正确顺序进入 Transcript，并绑定精确 Terminal Revision；
 - 两个 Read-only Call 真实重叠并乱序完成，后续 Write 形成 Barrier，下一轮 Model 仍按
   原始 Proposal 顺序读取 Transcript；
-- Unknown Tool Outcome 返回 `Pending` 后耐久延迟，在后续 Lease 下完成解析并继续下一轮
+- Unknown Tool Outcome 返回 `Pending` 后持久化延迟，在后续 Lease 下完成解析并继续下一轮
   Model；两次 Reconciliation Probe 期间只发生一次 Business Call；
 - 无效的已提交 JSON 会写入带全新 Invocation Identity 的有限 Repair Plan，并在新 Lease
   下恢复且不重复 Dispatch；
@@ -292,7 +292,7 @@ Reconciliation Qualification、Live-provider Drift Cassette、数据库 Role Sep
 Retention、Failover/Restore Qualification 或生产 Release。
 [`AgentServiceV1`](agent-service.zh-CN.md) 现在提供嵌入式 Service Boundary，
 [`McpRemoteTool`](mcp-remote-tool.zh-CN.md) 提供严格 Client-side Tool Profile，
-[`A2aRemoteAgent`](a2a-client.zh-CN.md) 提供耐久 Outbound Agent Tool Profile。独立
+[`A2aRemoteAgent`](a2a-client.zh-CN.md) 提供可恢复 Outbound Agent Tool Profile。独立
 [MCP Server Profile](mcp-server.zh-CN.md) 与 [A2A Server Profile](a2a-server.zh-CN.md)
 暴露自身 Application Boundary；它们都不扩大 Provider-native Graph 声明。这些能力
 仍需要独立版本化契约与可执行证据，不能从 Provider-native Graph 推断得出。

@@ -33,11 +33,49 @@ const evidenceSteps = [
 ---
 
 <DocsLayout
-  title="耐久执行依赖证据，而不是进程内存。"
+  title="持久执行依赖记录，而非进程内存。"
   description="StateKnot 将逻辑工作、物理所有权、外部效果与权威 Graph State 明确分离。"
-  section="耐久执行模型"
+  section="持久执行模型"
   locale="zh-CN"
 >
+  <section aria-labelledby="terminology-title">
+    <h2 id="terminology-title">持久执行、可恢复与持久化</h2>
+    <p>
+      本文将 Durable Execution
+      称为“持久执行”：进程中断后，运行时可以根据已经提交的
+      日志、检查点和调用记录恢复工作，而不必把整个流程从头执行。
+    </p>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>持久执行（Durable Execution）</dt>
+        <dd>
+          一套结合状态保存、重放校验和故障恢复的执行机制，不只是把数据写入数据库。
+        </dd>
+      </div>
+      <div>
+        <dt>可恢复（Recoverable）</dt>
+        <dd>
+          强调中断后根据已保存的证据继续处理的能力，例如可恢复 Agent 或可恢复
+          Graph。 是否可以重试外部调用，仍取决于调用记录和明确的重试契约。
+        </dd>
+      </div>
+      <div>
+        <dt>持久化（Persistence）与持久性（Durability）</dt>
+        <dd>
+          “持久化”指保存日志、状态、凭据等数据；“持久性”指已提交数据在约定故障范围内
+          不丢失的保证，取决于存储配置和恢复验证。仅有持久化存储不等于流程能够正确恢复。
+        </dd>
+      </div>
+    </dl>
+    <p>
+      Rust API 保留原名，例如 <code>DurableGraphDriver</code> 和
+      <code>DurableAgentLoop</code>，便于对照源码。这里的术语不扩大已实现能力，
+      也不代表框架已经完成生产验收；当前边界见<a href="/zh/docs/status/"
+        >实现状态</a
+      >。
+    </p>
+  </section>
+
   <section aria-labelledby="why-title">
     <h2 id="why-title">为什么需要这些边界</h2>
     <p>
@@ -99,7 +137,7 @@ const evidenceSteps = [
       原子释放到数据库时间驱动的索引化唤醒中，直接 Claim 也不能提前执行。
     </p>
     <p>
-      耐久 Driver 现已冻结可执行 Schema、Reducer 与
+      可恢复 Driver 现已冻结可执行 Schema、Reducer 与
       Node，独立重放每个已提交的非初始 Checkpoint，在 Node
       代码运行期间续租，提交 Continue Barrier，并返回类型化
       Wait/Terminal/Failure Handoff。接入 Worker Deployment 前请阅读<a

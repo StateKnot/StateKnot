@@ -63,26 +63,26 @@ const outcomes = [
   },
   {
     term: "CancellationRequested",
-    body: "已经观察到耐久 Run Cancellation。必须使用精确 Lease-bound Handoff 完成 Lifecycle Confirmation；DurableAgentLoop 会自动执行且不会虚构 Usage。",
+    body: "已经观察到已持久化的 Run 取消请求。必须使用精确 Lease-bound Handoff 完成 Lifecycle Confirmation；DurableAgentLoop 会自动执行且不会虚构 Usage。",
   },
   {
     term: "Cancelled",
-    body: "进程拥有的 Shutdown Signal 停止本地工作并释放精确 Fence；下一次 Claim 执行耐久恢复。",
+    body: "进程拥有的 Shutdown Signal 停止本地工作并释放精确 Fence；下一次 Claim 根据持久化记录恢复执行。",
   },
 ];
 ---
 
 <DocsLayout
-  title="从耐久证据驱动 Graph。"
-  description="冻结精确可执行绑定、验证非初始 Replay，并在不削弱 Crash Recovery 的前提下集成 StateKnot 带 Fence 的耐久 Graph Driver。"
-  section="耐久 Graph Runtime"
+  title="依据持久化证据驱动 Graph。"
+  description="冻结精确可执行绑定、验证非初始 Replay，并在不削弱 Crash Recovery 的前提下集成 StateKnot 带 Fence 的可恢复 Graph Driver。"
+  section="可恢复 Graph Runtime"
   locale="zh-CN"
 >
   <aside class="docs-callout" aria-labelledby="runtime-boundary-title">
     <h2 id="runtime-boundary-title">Driver 已实现，集成仍处于 Pre-alpha</h2>
     <p>
       Root Graph Driver 及其 Wait/Terminal/Failure/Cancellation Lifecycle
-      Coordinator 已实现，并在 PostgreSQL 16 与 17 完成验证，但尚未发布。耐久
+      Coordinator 已实现，并在 PostgreSQL 16 与 17 完成验证，但尚未发布。可恢复
       Model/Tool Attempt 与加权 Cross-tenant Selection
       已建立在这条路径上。第一批 OpenAI/Anthropic Adapter、强类型 Agent
       Contract、公开 Run/Result Facade 与 Provider-native 多轮 Agent Graph
@@ -174,7 +174,7 @@ const outcomes = [
       内裸写外部系统无法继承 Reconciliation 保证。
     </p>
     <p>
-      Process Shutdown Signal 与耐久 Run Cancellation 是不同边界。Node Active
+      Process Shutdown Signal 与已持久化的 Run 取消请求是不同边界。Node Active
       期间，Driver 会轮询 Run Projection；观察到 Cancellation Request 后停止新
       Dispatch、向 Node 发出 Signal、执行有界 Cooperative Grace
       Period，再返回精确 Lifecycle Handoff。
@@ -207,8 +207,8 @@ const outcomes = [
       Executor 默认保持 <code>Exclusive</code>。只有当执行过程不追加 Run Journal
       或 Invocation-ledger Fact，且 Result 不依赖 Sibling Timing 时，才能声明 <code
         >JournalIsolated</code
-      >。这是可信 Deployment Contract；外部 Model/Tool 工作必须进入有序耐久
-      Coordinator。
+      >。这是可信 Deployment Contract；外部 Model/Tool
+      工作必须进入有序、支持持久执行的 Coordinator。
     </p>
     <p>
       Driver 先按 Canonical <code>NodeId</code> 顺序串行提交全部 Fresh Start，再让
@@ -322,7 +322,7 @@ const outcomes = [
       <li>
         <h3>Cancellation</h3>
         <p>
-          Driver 把精确耐久 Intent 交给 Lifecycle。精确 Ledger Usage
+          Driver 把精确持久化 Intent 交给 Lifecycle。精确 Ledger Usage
           与数据库时间会成为一条 Terminal Confirmation；Evidence
           不可用时保留可恢复 Request。
         </p>
@@ -340,8 +340,8 @@ const outcomes = [
       反向完成但按 Canonical 顺序提交，以及 Higher Fence 接管 Orphaned Parallel
       Member；其余场景覆盖 Success/Wait/Failure/Cancellation Lifecycle
       原子提交、精确 Lost-ACK Recovery、Agent Loop Cleanup、Tenant 与加权
-      Scheduling、耐久 Model/Tool 执行、Streaming、 Provider-native 多轮
-      Recovery、精确 Cancellation、原子 Agent Admission 与耐久 Run/Result
+      Scheduling、可恢复 Model/Tool 执行、Streaming、 Provider-native 多轮
+      Recovery、精确 Cancellation、原子 Agent Admission 与持久化 Run/Result
       Read。每个数据库版本还会运行 106 个 Provider Case。部署这个 Pre-alpha
       Surface 前请阅读完整的<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-graph-runtime.zh-CN.md"

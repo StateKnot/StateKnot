@@ -4,7 +4,7 @@
 # 强类型 Agent 与第一方 Model Adapter
 
 本文只描述已经实现的 pre-alpha 边界。它刻意不是“一行 `run()`”教程：StateKnot
-不会让便利 API 绕过耐久 Admission、Attempt Ledger、Graph Driver、Lifecycle
+不会让便利 API 绕过持久化准入、Attempt Ledger、Graph Driver、Lifecycle
 Evidence 或 Tenant Scheduling。
 
 ## 已经实现的能力
@@ -18,7 +18,7 @@ Evidence 或 Tenant Scheduling。
   Builder；
 - 启动期 Binding：要求 Agent、Tool、Model Profile 引用的每一个 Schema 都存在于同一个
   不可变离线 Registry，并用固定的 Provider Profile 校验所有 Model-visible Schema；
-- `TypedAgent<I, O>::prepare_request`：在耐久 Admission 前完成有界 JSON
+- `TypedAgent<I, O>::prepare_request`：在持久化准入前完成有界 JSON
   序列化与本地 Input Schema 校验；
 - `TypedAgent<I, O>::decode_result`：在反序列化 `O` 前重新校验可信
   Provenance、Request Binding、完整 Budget/Accounting Evidence 与 Output Schema。
@@ -101,7 +101,7 @@ OpenAI 会先完整回放既往 `response.output`，再附加对应的 `function
 时还会请求加密 Reasoning 续接块。Anthropic 会完整回放 Assistant Content，随后紧接一个
 User Message，其中包含全部按序 `tool_result` Block。普通 `role=tool` Message 仍会被拒绝，
 因为它无法证明任一 Provider-native 顺序合约。产生 Tool 的 Streaming Attempt 暂时不会输出
-Replay Evidence；在 Streaming Event 合约能够携带精确续接快照前，耐久 Agent Tool Loop
+Replay Evidence；在 Streaming Event 合约能够携带精确续接快照前，可恢复 Agent Tool Loop
 必须使用 Complete Response。
 
 Streaming Adapter 不会先缓存完整响应，再伪装成 Chunk 重放。它们会增量解析有界 SSE；
@@ -110,7 +110,7 @@ Streaming Adapter 不会先缓存完整响应，再伪装成 Chunk 重放。它�
 流出的语义 Item 交叉校验。截断、重复、重排或替换的 Terminal Data 都不会发出
 `Completed`。
 
-## 耐久执行边界
+## 持久执行边界
 
 `TypedAgent` 是类型化合约与 Codec，不是进程内 Runner。受支持的路径仍然是：
 
@@ -125,12 +125,12 @@ Streaming Adapter 不会先缓存完整响应，再伪装成 Chunk 重放。它�
 6. 通过 `DurableAgentLoop` 驱动 Checkpoint 与 Lifecycle Handoff；
 7. 使用 `TypedAgent` 校验并解码 Terminal `AgentResult`。
 
-原子耐久 Admission 已经实现，详见
+原子持久化准入已经实现，详见
 [`durable-agent-admission.zh-CN.md`](durable-agent-admission.zh-CN.md)。
-`DurableAgentRuns` 也已经实现耐久 Ingress-key Mapping 与完整重校验的 Run/Result Read，
+`DurableAgentRuns` 也已经实现持久化 Ingress-key Mapping 与完整重校验的 Run/Result Read，
 详见 [`durable-agent-runs.zh-CN.md`](durable-agent-runs.zh-CN.md)。当前仍不会用临时
-In-memory `run()` 绕过耐久边界。已经实现的
-[`ProviderNativeAgentGraph`](provider-native-agent.zh-CN.md) 提供预置耐久 Model/Tool
+In-memory `run()` 绕过持久执行边界。已经实现的
+[`ProviderNativeAgentGraph`](provider-native-agent.zh-CN.md) 提供预置可恢复 Model/Tool
 组合；[`AgentServiceV1`](agent-service.zh-CN.md) 现在通过 Authorization-first
 嵌入式边界暴露精确版本 Submission、Verified Read 与 Cancellation。稳定 Network
 Transport 与 API Compatibility 仍未交付。
@@ -153,7 +153,7 @@ cargo test -p stateknot-runtime --test typed_agent
 Integrations Suite 现在也包含严格 MCP Remote Tool Contract；其较窄支持声明见
 [`mcp-remote-tool.zh-CN.md`](mcp-remote-tool.zh-CN.md)。
 
-Provider-native Runtime Suite 会另外在真实 PostgreSQL 16/17 上验证耐久 Transcript
+Provider-native Runtime Suite 会另外在真实 PostgreSQL 16/17 上验证持久化 Transcript
 Assembly、Policy Evidence、No-redispatch Recovery 与精确 Cancellation。Live-provider
 Qualification、Provider Drift Cassette 与稳定 Public Cancellation Service 仍是发布门禁。
 Adapter 与类型化 API 已经实现，但仍处于未发布的 pre-alpha。

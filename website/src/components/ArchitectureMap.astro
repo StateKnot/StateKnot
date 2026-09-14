@@ -13,7 +13,7 @@ const isChinese = locale === "zh-CN";
 const copy = isChinese
   ? {
       caption:
-        "StateKnot 架构从 Core 合约延伸到 Graph 执行、PostgreSQL 耐久化、协议 Adapter 与运维；每个节点都标明它在 pre-alpha 仓库中的实现状态。",
+        "StateKnot 架构从 Core 合约延伸到 Graph 执行、PostgreSQL 持久化、协议 Adapter 与运维；每个节点都标明它在 pre-alpha 仓库中的实现状态。",
       legend: "实现状态图例",
       implemented: "已实现切片",
       active: "开发中",
@@ -21,23 +21,23 @@ const copy = isChinese
       contracts: "Core 合约",
       typedDomain: "类型化领域模型",
       typedDomainDetail: "Capability、Content、Identity、Scope、Budget",
-      durableFacts: "耐久事实",
+      durableFacts: "持久化记录",
       durableFactsDetail:
         "Run、Admission、Submission Key、Journal、Checkpoint、Result",
       execution: "Graph 执行",
       barrier: "Barrier 合约",
       barrierDetail: "Canonical Graph、Reducer Planning、后继 Checkpoint",
-      runtime: "耐久 Agent Runtime",
+      runtime: "可恢复 Agent Runtime",
       runtimeDetail:
         "Provider-native Turn、Driver、Invocation、Lifecycle Cancellation 与 Crash Takeover",
-      postgres: "PostgreSQL 耐久化",
+      postgres: "PostgreSQL 持久化",
       persistence: "Fenced Persistence",
       persistenceDetail: "Lease、Attempt、Outbox、Interrupt、Timer",
       recovery: "恢复证据",
       recoveryDetail: "Pinned Graph、Quarantine、有界规划、Durable Start",
       protocols: "协议",
       mcpDetail:
-        "2026-07-28 通用 Tool/OAuth Client、严格耐久 Remote Tool 与有界 Server",
+        "2026-07-28 通用 Tool/OAuth Client、严格持久执行 Remote Tool 与有界 Server",
       a2aDetail: "REST 与 JSON-RPC Client/Server",
       operations: "运维",
       agentService: "AgentService v1",

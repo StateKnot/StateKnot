@@ -30,7 +30,7 @@ axum::serve(listener, server.router())
 
 <DocsLayout
   title="在不泄露 Wire Type 的前提下提供 A2A 1.0。"
-  description="通过有界 StateKnot 合约、Authorization-first Policy、显式 Admission 与耐久 Application Interface 暴露 HTTP+JSON 和 JSON-RPC/SSE。"
+  description="通过有界 StateKnot 合约、Authorization-first Policy、显式 Admission 与可恢复 Application Interface 暴露 HTTP+JSON 和 JSON-RPC/SSE。"
   section="A2A 1.0 Server"
   locale="zh-CN"
 >
@@ -41,7 +41,7 @@ axum::serve(listener, server.router())
     <h2 id="a2a-boundary-title">已实现 Server Profile，Pre-alpha API</h2>
     <p>
       已实现 A2A <code>1.0</code> HTTP+JSON 与 JSON-RPC 2.0，包括 SSE Send 和 Subscription
-      Stream。<a href="/zh/docs/a2a-client/">A2A Client</a> 独立记录；gRPC、内置耐久
+      Stream。<a href="/zh/docs/a2a-client/">A2A Client</a> 独立记录；gRPC、内置持久化
       Task Store 与 Stable Rust API 不在当前声明内。
     </p>
   </aside>
@@ -57,7 +57,7 @@ axum::serve(listener, server.router())
       <li>解码并校验有界 A2A Operation。</li>
       <li>在 Task/Push-config Lookup 前授权 Decoded Operation。</li>
       <li>执行调用方实现的 Replica-wide Quota Admission。</li>
-      <li>执行耐久 Service，并限制 Unary Response 或整个 Stream。</li>
+      <li>执行可恢复 Service，并限制 Unary Response 或整个 Stream。</li>
     </ol>
     <p>
       Agent Card Discovery 是唯一 Public Route，带完整 Cache Validator。若其
@@ -75,7 +75,8 @@ axum::serve(listener, server.router())
       <table>
         <thead>
           <tr
-            ><th>Surface</th><th>HTTP+JSON</th><th>JSON-RPC</th><th>耐久义务</th
+            ><th>Surface</th><th>HTTP+JSON</th><th>JSON-RPC</th><th
+              >持久执行要求</th
             ></tr
           >
         </thead>
@@ -92,7 +93,7 @@ axum::serve(listener, server.router())
           >
           <tr
             ><td>Cancel</td><td>是</td><td>是</td><td
-              >耐久 Intent 与 Race-safe Lifecycle Fence</td
+              >持久化 Intent 与 Race-safe Lifecycle Fence</td
             ></tr
           >
           <tr
@@ -141,13 +142,13 @@ axum::serve(listener, server.router())
   </section>
 
   <section aria-labelledby="a2a-durable-title">
-    <h2 id="a2a-durable-title">不能用进程内存替代耐久性</h2>
+    <h2 id="a2a-durable-title">进程内存不能提供持久性保证</h2>
     <p>
-      生产 Task Service 必须耐久去重 Message Identity、在一个 Tenant 内映射
-      Opaque Task ID、从 Stable Snapshot 分页、流式输出已提交 Journal Evidence、
-      提交 Cancellation Intent、加密 Push Credential、拒绝不安全 Destination，
-      并从 Transactional At-least-once Outbox 投递。仓库内的 In-memory Fixture
-      只服务于确定性 TCK Scenario。
+      生产 Task Service 必须基于持久化记录去重 Message Identity、在一个 Tenant
+      内映射 Opaque Task ID、从 Stable Snapshot 分页、流式输出已提交 Journal
+      Evidence、 提交 Cancellation Intent、加密 Push Credential、拒绝不安全
+      Destination， 并从 Transactional At-least-once Outbox 投递。仓库内的
+      In-memory Fixture 只服务于确定性 TCK Scenario。
     </p>
     <p>
       暴露流量或发布兼容性声明前，请阅读完整<a

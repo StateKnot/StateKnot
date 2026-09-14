@@ -18,7 +18,7 @@ StateKnot 可以暴露 A2A Server，但不会把官方 SDK 变成领域模型。
 
 这是可用于生产集成的 HTTP 边界，但不是完整的生产 Task Backend。
 应用必须通过显式 Trait 提供 Authentication、Authorization、Replica-wide
-Admission、耐久 Task Projection、Stream、Cancellation 与可靠 Push Delivery。
+Admission、持久化 Task Projection、Stream、Cancellation 与可靠 Push Delivery。
 
 ## Request Boundary
 
@@ -31,7 +31,7 @@ shutdown / Host / Origin / canonical path / Content-Type / body ceiling
   -> A2A Wire Decode 与有界 Contract Validation
   -> 基于 Decoded Operation 授权（先于 Task/Config Lookup）
   -> 调用方实现的 Replica-wide Quota Admission
-  -> 耐久 A2aTaskService Operation
+  -> 可恢复 A2aTaskService Operation
   -> 有界 Response 或有界 SSE Stream
 ```
 
@@ -49,10 +49,10 @@ Authentication 的路由。启动时，Card 声明的 Capability 和 Interface U
 | Capability | HTTP+JSON | JSON-RPC | Backend 要求 |
 | --- | --- | --- | --- |
 | Agent Card Discovery | 是 | 共享路由 | 不可变且已校验的 Snapshot |
-| Send Message | 是 | 是 | 耐久 Message Idempotency 与 Task Projection |
+| Send Message | 是 | 是 | 持久化 Message Idempotency 与 Task Projection |
 | Stream Message | SSE | SSE | 已提交的有序 Event |
 | Get/List Task | 是 | 是 | Tenant-scoped 稳定 Projection 与 Cursor |
-| Cancel Task | 是 | 是 | 耐久请求与 Race-safe Lifecycle Transition |
+| Cancel Task | 是 | 是 | 持久化请求与 Race-safe Lifecycle Transition |
 | Subscribe Task | SSE | SSE | 先 Snapshot，再输出已提交有序 Event |
 | Push Config CRUD | 是 | 是 | Secret 加密与 Authorization-first Lookup |
 | Extended Agent Card | 是 | 是 | 已认证、Caller-scoped Projection |
@@ -62,20 +62,20 @@ Lifecycle 组合、非 Canonical Route、不支持的 Version、超限 Value/Col
 非法 Media/URL 则 Fail Closed。REST Error 使用 AIP-193 结构与 Canonical HTTP
 Status；JSON-RPC Error 使用 A2A 定义的 Code Mapping。
 
-## 耐久 Service 合约
+## 可恢复 Service 合约
 
 `A2aTaskService` 刻意保持 Storage-neutral。生产实现必须满足：
 
 - Tenant 与 Subject 只能来自 `A2aRequestContext`；不能把 Body Tenant Override
   或 Agent Card Description 当作 Authority；
-- 使用耐久 Caller/Message Identity 去重；Lost ACK 后返回原始已提交 Result；
+- 使用持久化 Caller/Message Identity 去重；Lost ACK 后返回原始已提交 Result；
 - 把不透明 A2A Task/Context ID 映射到内部 Run，不泄露内部 ID，也不允许跨
   Tenant Lookup；
 - 基于 Stable Snapshot 分页，并把 Continuation Token 绑定到 Tenant、Filter、
   Ordering 与 Snapshot Boundary；
 - Stream 必须来自已提交 Journal/Outbox；Subscription 先发送 Snapshot，再发送
   新提交 Event；整个 Stream 生命周期都占用 Operation Permit；
-- 报告 Cancellation 前先提交 Intent，并在耐久 Lifecycle Fence 下解决
+- 报告 Cancellation 前先提交 Intent，并在持久执行 Lifecycle Fence 下解决
   Completion 与 Cancellation Race；
 - Push Credential 静态加密且不进入日志；Destination Policy 必须防 SSRF 与
   DNS Rebinding；使用 Transactional At-least-once Outbox、有限 Retry 与
@@ -83,7 +83,7 @@ Status；JSON-RPC Error 使用 A2A 定义的 Code Mapping。
 - 基础设施处于不确定状态时返回 `Unavailable`，除非权威读取证明已提交结果。
 
 仓库中的 TCK Fixture 刻意使用进程内内存与只允许 Loopback 的 Webhook。它只是
-Compatibility Test Input，不是此耐久合约的实现。
+Compatibility Test Input，不是此持久执行合约的实现。
 
 ## 组装 Server
 
@@ -167,7 +167,7 @@ Authority；除非外层可信组件已经替换 Request Authority，否则不�
 
 ## 不作出的声明
 
-- A2A Client 行为或耐久 Outbound-agent Invocation；它们属于独立的
+- A2A Client 行为或可恢复 Outbound-agent Invocation；它们属于独立的
   [A2A Client Profile](a2a-client.zh-CN.md)；
 - gRPC Transport；
 - 内置 Identity Provider、Policy Engine、数据库 Task Service 或 Push

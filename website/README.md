@@ -41,7 +41,10 @@ alternate deployment.
 The browser suite checks English/Chinese route parity, canonical and `hreflang`
 metadata, internal-link resolution, localized command search and copy feedback,
 WCAG automated checks, contrast, responsive behavior at 320/375/414/768 pixels,
-and both language-specific error templates.
+and both language-specific error templates. Chinese copy follows the
+[repository terminology policy](../CONTRIBUTING.md#chinese-documentation-terminology);
+the suite also checks terminology in rendered content, metadata and search,
+and verifies that localized searches still reach the execution concept guide.
 
 ## Deployment
 

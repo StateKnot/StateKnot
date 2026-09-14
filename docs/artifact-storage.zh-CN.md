@@ -3,7 +3,7 @@ Copyright 2026 StateKnot contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# 耐久 Artifact Storage 与 A2A Task 完成
+# Artifact 持久化存储与 A2A Task 完成
 
 > 状态：已实现的 Pre-alpha 切片；Rust API 尚不稳定。<br>
 > Metadata：PostgreSQL Migration 18。<br>
@@ -19,7 +19,7 @@ Artifact Part 交给 `StateKnotArtifactStore` 持久化，最终只返回有界�
 这是同一条证据链，而不是最终一致的便捷 API：
 
 ```text
-耐久 Executing Event
+持久化 Executing Event
   -> 一次 A2A Message Send
   -> 与 Endpoint 绑定的 Task Recovery Handle
   -> 直接 GetTask Poll（绝不通过重发业务 Message 轮询）
@@ -158,7 +158,7 @@ Lifecycle Rule。Runtime Cleanup 是 Best-effort；无法删除 Staging Data 时
 `staging_cleanup_failures()`，每次增长都应告警。
 
 **不要**对 `stateknot/artifacts/v1/` 应用盲目的按年龄删除规则：Final Object 可能
-已经完成耐久 Registration。若数据库在 Final Publish 后不可用，也可能留下未注册的
+已经完成持久化 Registration。若数据库在 Final Publish 后不可用，也可能留下未注册的
 确定性 Object；完全相同的 Retry 会验证并接管它。在通用 Retention 与 Registry-aware
 Orphan Collector 完成前，运维方必须盘点 Final Prefix，并在删除疑似 Orphan 前与
 PostgreSQL 对账。
