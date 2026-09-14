@@ -344,7 +344,7 @@ async fn known_errors_require_distinct_authority_and_recover_exact_lost_receipts
         assert!(known.recovery_handle().is_none());
         pending.abort();
         assert!(pending.await.unwrap_err().is_cancelled());
-        server.loss.release.notify_one();
+        server.loss.release();
         let recovered = submit(&server.url, "error-ops-a", args.clone(), false).await;
         assert_eq!(recovered["result"]["content"], json!([]));
         let receipt = recovered["result"]["structuredContent"].clone();

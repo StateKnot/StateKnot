@@ -371,6 +371,47 @@ struct Loss {
     committed: Notify,
     release: Notify,
 }
+impl Loss {
+    async fn hold(&self) {
+        let released = self.release.notified();
+        tokio::pin!(released);
+        // Register before advertising commit, so an immediate release cannot be lost.
+        released.as_mut().enable();
+        self.committed.notify_one();
+        released.await;
+    }
+
+    fn release(&self) {
+        // Releasing an already-disconnected request must not permit a future response.
+        self.release.notify_waiters();
+    }
+}
+
+#[tokio::test]
+async fn lost_receipt_gate_never_carries_release_into_another_request() {
+    let gate = Arc::new(Loss::default());
+    for _ in 0..16 {
+        let pending_gate = gate.clone();
+        let mut pending = tokio::spawn(async move { pending_gate.hold().await });
+        gate.committed.notified().await;
+        assert!(
+            tokio::time::timeout(Duration::from_millis(10), &mut pending)
+                .await
+                .is_err()
+        );
+        pending.abort();
+        assert!(pending.await.unwrap_err().is_cancelled());
+        gate.release();
+    }
+    let pending_gate = gate.clone();
+    let pending = tokio::spawn(async move { pending_gate.hold().await });
+    gate.committed.notified().await;
+    gate.release();
+    tokio::time::timeout(Duration::from_secs(1), pending)
+        .await
+        .unwrap()
+        .unwrap();
+}
 struct Server {
     url: String,
     task: tokio::task::JoinHandle<()>,
@@ -378,7 +419,7 @@ struct Server {
 }
 impl Drop for Server {
     fn drop(&mut self) {
-        self.loss.release.notify_waiters();
+        self.loss.release();
         self.task.abort();
     }
 }
@@ -431,8 +472,7 @@ impl Server {
                     let lose = request.headers().contains_key("x-fixture-withhold-receipt");
                     let response: Response = next.run(request).await;
                     if lose {
-                        gate.committed.notify_one();
-                        gate.release.notified().await;
+                        gate.hold().await;
                     }
                     response
                 }
@@ -599,7 +639,7 @@ async fn authenticated_reconciliation_is_atomic_fenced_and_recovers_a_lost_http_
     assert_eq!(committed.status(), ToolInvocationStatus::Committed);
     pending.abort();
     assert!(pending.await.unwrap_err().is_cancelled());
-    server.loss.release.notify_one();
+    server.loss.release();
     let recovered = call(&server.url, "ops-a", args.clone(), false).await;
     let receipt = recovered["result"]["structuredContent"].clone();
     assert_eq!(
