@@ -169,6 +169,18 @@ const localizedRoutePairs = [
 
 const contentRoutes = localizedRoutePairs.flatMap(({ en, zh }) => [en, zh]);
 
+const expectIcpFiling = async (page: Page): Promise<void> => {
+  const filing = page.locator("footer").getByRole("link", {
+    name: "冀ICP备2026036754号-1",
+    exact: true,
+  });
+  await expect(filing).toHaveCount(1);
+  await expect(filing).toBeVisible();
+  await expect(filing).toHaveAttribute("href", "https://beian.miit.gov.cn/");
+  await expect(filing).toHaveAttribute("target", "_blank");
+  await expect(filing).toHaveAttribute("rel", "noopener noreferrer");
+};
+
 const auditHorizontalLayout = async (page: Page): Promise<void> => {
   const dimensions = await page.evaluate(() => {
     const viewport = document.documentElement.clientWidth;
@@ -203,6 +215,7 @@ const auditHorizontalLayout = async (page: Page): Promise<void> => {
   });
 
   const overflowDetails = JSON.stringify(dimensions.offenders, null, 2);
+  await expectIcpFiling(page);
   expect(dimensions.body, overflowDetails).toBeLessThanOrEqual(
     dimensions.viewport,
   );
@@ -738,6 +751,7 @@ for (const route of localizedRoutePairs) {
     page,
   }) => {
     await page.goto(route.en);
+    await expectIcpFiling(page);
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       route.enHeading,
@@ -755,6 +769,7 @@ for (const route of localizedRoutePairs) {
     ).toHaveAttribute("href", new URL(route.zh, "https://stknot.com").href);
 
     await page.goto(route.zh);
+    await expectIcpFiling(page);
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       route.zhHeading,
@@ -1085,6 +1100,7 @@ test("copy action exposes clipboard failures and recovers", async ({
 
 test("404 page gives a recovery action", async ({ page }) => {
   const response = await page.goto("/route-that-does-not-exist");
+  await expectIcpFiling(page);
   expect(response?.status()).toBe(404);
   await expect(
     page.getByRole("heading", {
@@ -1099,6 +1115,7 @@ test("Chinese 404 template preserves language and recovery action", async ({
   page,
 }) => {
   const response = await page.goto("/zh/404/");
+  await expectIcpFiling(page);
   expect(response?.status()).toBe(200);
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   await expect(

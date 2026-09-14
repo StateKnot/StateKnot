@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Official website footer now displays the operator-confirmed ICP website filing
+  `冀ICP备2026036754号-1` with the MIIT lookup link across both languages, including
+  documentation and error pages; browser tests cover exact text, safe new-tab
+  attributes, route parity and responsive layouts.
+
 - Authenticated inline MCP Tool result reconciliation with mandatory pre-lookup
   subject/resource/evidence policy, closed request/receipt schemas, host-only
   lease fencing, atomic authorization audit, indexed verified exact revisions
