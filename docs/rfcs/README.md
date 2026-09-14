@@ -19,6 +19,7 @@ security, or operational commitments.
 | [0005](0005-mcp-compute-worker-boundary.md) | Draft | Restricted MCP compute Worker without durable authority |
 | [0006](0006-authenticated-tool-result-reconciliation.md) | Draft | Authenticated inline Tool result reconciliation and durable receipts |
 | [0007](0007-authenticated-known-error-reconciliation.md) | Draft | Separately authorized known-effect Tool failure evidence |
+| [0008](0008-agent-http-v1.md) | Draft | Authenticated bounded Agent HTTP v1 ingress and lost-response recovery |
 
 ## When an RFC is required
 

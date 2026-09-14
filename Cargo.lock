@@ -2840,7 +2840,9 @@ name = "stateknot"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "mime",
  "reqwest 0.12.28",
+ "schemars",
  "serde",
  "serde_json",
  "serde_json_canonicalizer",
@@ -2851,6 +2853,8 @@ dependencies = [
  "stateknot-store-postgres",
  "thiserror 2.0.20",
  "tokio",
+ "tokio-util",
+ "zeroize",
 ]
 
 [[package]]

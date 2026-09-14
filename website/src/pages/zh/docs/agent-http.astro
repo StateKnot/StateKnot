@@ -1,0 +1,172 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+const code = `use std::sync::Arc;
+use stateknot::agent_http::{AgentHttpOptions, AgentHttpService};
+
+// service：已绑定精确部署版本与资源授权策略的 AgentServiceV1。
+// verifier：接入真实身份系统的 AgentHttpAuthenticator，不能使用测试凭据。
+let options = AgentHttpOptions::new(["agents.example.com".to_owned()])?;
+let http = AgentHttpService::new(service, Arc::new(verifier), options);
+let router = http.router();
+// 在 TLS 入口后挂载；单独运行 Worker；由宿主启动和排空监听器。`;
+---
+
+<DocsLayout
+  title="通过认证 HTTP 提交与恢复 Agent。"
+  description="在持久化 Agent 服务之上提供四个有界 JSON 操作，覆盖可信身份、精确重试与两阶段取消。"
+  section="Agent HTTP v1"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="http-boundary"
+  >
+    <h2 id="http-boundary">JSON 接入已实现，尚非稳定版</h2>
+    <p>
+      <code>AgentHttpService</code> 在 <a href="/zh/docs/agent-service/"
+        >AgentService v1</a
+      > 之上提供真实 HTTP 路由。它把任务持久化入库，不会在请求处理期间执行模型、工具或
+      Graph。StateKnot 仍处于 pre-alpha；SSE 与完整托管服务尚需后续开发。
+    </p>
+  </aside>
+  <section aria-labelledby="http-wiring">
+    <h2 id="http-wiring">接入可信身份与资源授权</h2>
+    <p>
+      必须实现 <code>AgentHttpAuthenticator</code
+      >，验证签名或令牌内省证据、签发方、受众、有效期与吊销状态，再映射可信租户、主体，以及彼此独立的
+      <code>Submit</code>、<code>Read</code>、<code>Cancel</code> 权限。框架没有默认放行器，也没有匿名模式。
+    </p>
+    <p>
+      底层 <code>AgentServiceAuthorizer</code> 仍在查询资源前，检查精确 Agent/请求、Run
+      或提交键摘要的访问权限。请求 JSON、未验证的 JWT 和任意转发头不能决定身份。客户端预算只能收窄宿主策略。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 宿主接入</span><button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="http-code"
+          ><span data-copy-label aria-live="polite">复制</span></button
+        >
+      </div>
+      <pre id="http-code" tabindex="0"><code>{code}</code></pre>
+    </div>
+  </section>
+  <section aria-labelledby="http-operations">
+    <h2 id="http-operations">四个操作，共用持久化服务</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>POST /v1/agent-runs</dt><dd>
+          序列化 <code>AgentHttpSubmission</code>：submission_key、含版本的完整
+          agent 身份，以及绑定 Schema 的 request。201 表示新建；200 表示找回原
+          Run。
+        </dd>
+      </div>
+      <div>
+        <dt>GET /v1/agent-runs/&#123;run_id&#125;</dt><dd>
+          不带请求体。200
+          返回通过完整性校验的公开快照，不包含私有检查点和对话记录。
+        </dd>
+      </div>
+      <div>
+        <dt>POST /v1/agent-runs/lookup</dt><dd>
+          序列化带 submission_key 的 <code>AgentHttpLookup</code>。提交键不进入
+          URL，也不要记录到访问日志。
+        </dd>
+      </div>
+      <div>
+        <dt>POST /v1/agent-runs/&#123;run_id&#125;/cancellation</dt><dd>
+          序列化已保存的 <code>AgentCancellationIds</code>，包含 event_id 与
+          failure_id。202 表示请求已记录；200 表示找回同一对身份对应的请求。
+        </dd>
+      </div>
+    </dl>
+    <p>
+      请求使用 Bearer 凭据，POST 使用 JSON。Accept 只能省略、设为 <code
+        >application/json</code
+      > 或 <code>*/*</code>。Rust 类型可生成 JSON
+      Schema；未知字段、嵌套重复键、查询参数及非规范路径均会被拒绝。
+    </p>
+    <p>
+      成功响应为 <code
+        >AgentHttpRunResponse &#123; request_id, snapshot &#125;</code
+      >。request_id 只关联本次响应，不是幂等键。<code>Active</code> 不代表 Worker
+      此刻正在执行，也可能处于失败收尾阶段；<code>CancellationRequested</code> 不代表取消清理已经完成。
+    </p>
+  </section>
+  <section aria-labelledby="http-retry">
+    <h2 id="http-retry">响应丢失后找回任务，不重复创建</h2>
+    <p>
+      首次提交前，持久保存高熵提交键及完整逻辑请求；首次取消前，保存两个取消
+      ID。超时、断连、服务停机或响应超限，都不等于数据库事务已回滚。
+    </p>
+    <p>
+      通过原提交键或 Run
+      查询，或保留原内容和身份进行有界退避重试。相同键却更改提交内容，或者另换一对取消
+      ID，会返回
+      409。先核对持久化状态，不要因为没收到响应就生成新键。重试得到的快照可能已推进到更新版本。
+    </p>
+  </section>
+  <section aria-labelledby="http-limits">
+    <h2 id="http-limits">资源上限与不泄露载荷的错误</h2>
+    <p>
+      默认请求上限 256 KiB、响应上限 2 MiB、每个共享服务实例最多 64
+      个并发请求、协作式总超时 15 秒。硬上限分别为 2 MiB、8 MiB、1,024 个请求及
+      60 秒；JSON 还有结构深度等限制。异步超时不能抢占宿主中的阻塞代码。
+    </p>
+    <p>
+      400 表示格式错误；401/403 表示认证或策略拒绝；404
+      只在授权后表示目标不存在；405/406/415 表示不支持的 HTTP 形式；409
+      表示冲突；413 表示请求体超限或读取失败；429 表示容量已满；503
+      表示依赖不可用、超时或停机；500 表示完整性、配置或响应上限问题。
+    </p>
+    <p>
+      所有响应均为禁止缓存的私有 JSON，带关联 ID 和 API 版本头。错误只返回固定的 <code
+        >agent_http.*</code
+      > 代码与 request_id，不转发令牌、SQL 或提供商原始消息。429 与 503 附带 <code
+        >Retry-After: 1</code
+      >。
+    </p>
+  </section>
+  <section aria-labelledby="http-operations-checklist">
+    <h2 id="http-operations-checklist">对外上线前的配置清单</h2>
+    <ol>
+      <li>
+        固定兼容的源码、锁文件、数据库迁移、Graph 和 Schema。独立配置调度器与
+        Worker；仅提交任务不会推动 Run 执行。
+      </li>
+      <li>
+        配置 TLS、精确 Host
+        白名单、连接数及请求头上限、租户配额与跨副本流量控制。转发头不能扩大信任。默认拒绝
+        Origin；可选精确 HTTPS 来源不意味着开放 CORS。
+      </li>
+      <li>
+        接入真实凭据验证与精确资源策略，验证过期、吊销、错误受众及跨租户访问。不可部署测试中的静态凭据。
+      </li>
+      <li>
+        日志不记录认证头、提交键、输入输出和原始路径；监控有界延迟/错误指标及依赖就绪状态。
+      </li>
+      <li>
+        停止接收连接，调用 <code>http.shutdown()</code
+        >，并单独限制监听器排空时间。替换服务后，用原身份恢复可能已经提交的请求。
+      </li>
+    </ol>
+    <p>
+      验证覆盖真实 HTTP + PostgreSQL 16/17、24
+      路同键并发提交、提交/取消响应丢失恢复、无内联执行、恶意输入、数据库不可用前的授权拒绝、慢请求、过载与停机。这不等于已完成真实身份提供商、模型、SSE
+      或整套生产部署的验收。
+    </p>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-http.md"
+        >完整接口与运维说明（英文）</a
+      > · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0008-agent-http-v1.md"
+        >RFC-0008</a
+      > · <a href="/zh/docs/status/">开发状态</a>
+    </p>
+  </section>
+</DocsLayout>

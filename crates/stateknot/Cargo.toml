@@ -18,6 +18,9 @@ categories.workspace = true
 publish = false
 
 [dependencies]
+axum.workspace = true
+mime.workspace = true
+schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_json_canonicalizer.workspace = true
@@ -28,9 +31,10 @@ stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }
 stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
 thiserror.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
+zeroize.workspace = true
 
 [dev-dependencies]
-axum.workspace = true
 reqwest.workspace = true
 tokio = { workspace = true, features = ["io-util", "net", "process"] }
 

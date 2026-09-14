@@ -14,6 +14,11 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Implement the [Agent HTTP v1 JSON ingress](agent-http.md) over the durable
+  Agent service: mandatory credential verification, operation/resource policy,
+  bounded requests/responses/deadlines/concurrency, exact-key submit/lookup/read,
+  two-phase cancellation, PostgreSQL 16/17 HTTP lost-response recovery, and
+  cooperative shutdown. SSE and full host-role/release qualification remain open.
 - [x] Freeze the [v1 scope and explicit non-goals](v1-scope.md).
 - [x] Define the three [qualification scenarios](scenarios/README.md), shared
   reference environment, loads, failure matrices, and release thresholds.
@@ -361,7 +366,7 @@ from the repository.
   PostgreSQL 16/17 CI retains qualification evidence. Error/artifact evidence,
   provider-specific external fencing and the general Worker API remain gated;
   RFC-0006 remains Draft, not a release acceptance.
-- [ ] Complete same-run nested namespace semantics, stable HTTP/gRPC/SSE Agent transport,
+- [ ] Complete same-run nested namespace semantics, stable HTTP/SSE Agent transport,
   protocol-specific outbox adapters, broader MCP client extensions, the Tasks
   extension, A2A Client official/live-peer recovery-attestation qualification,
   A2A gRPC, untrusted-worker/service role isolation, general retention,

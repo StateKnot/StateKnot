@@ -220,6 +220,11 @@ outside this shared-state profile; see the [composition guide](docs/graph-compos
 boundary for tenant-scoped submission recovery, verified run/key reads, and
 caller-retained two-phase cancellation identities. Its control event records
 only public-safe admission/policy/decision digests and a stable failure ID.
+The opt-in [Agent HTTP v1 router](docs/agent-http.md) now exposes authenticated,
+bounded JSON submission/read/key lookup/cancellation over that service, with
+real HTTP lost-response recovery on PostgreSQL 16/17. Credential verification,
+resource policy, TLS and Worker deployment remain explicit host responsibilities;
+no anonymous verifier, inline execution, SSE or stable-release claim is included.
 `McpRemoteTool` now implements the first strict protocol adapter: MCP
 2026-07-28 modern stateless discovery, complete JSON responses, exact local
 schema and server-identity pins, attempt-scoped authorization, bounded
