@@ -14,6 +14,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Opt-in resumable Agent activity SSE with exact PostgreSQL journal cursors,
+  payload-free notifications, independently verified current snapshots (including
+  quarantine-only changes), repeated credential/resource authorization, separate
+  stream capacity, finite lifetime/queue/output limits and drop/shutdown cleanup.
+  Real HTTP/PostgreSQL 16/17 tests include fresh-process suffix recovery and
+  unpolled response backpressure. Includes RFC-0009 and bilingual tutorials.
+  No migration or dependency-version change; no token streaming, historical
+  snapshot reconstruction or stable production release claim.
+
 - Authenticated Agent HTTP v1 JSON ingress over `AgentServiceV1`: durable
   submit/read/key lookup, caller-retained two-phase cancellation, mandatory
   credential and resource policy, exact Host/Origin rules, bounded duplicate-free
@@ -21,7 +30,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   PostgreSQL 16/17 HTTP qualification covers 24-way admission, lost submit/cancel
   responses, authorization-before-storage, hostile input and overload. Includes
   RFC-0008 and bilingual website tutorials. Existing migrations and dependency
-  versions are unchanged; no anonymous verifier, inline execution, SSE or stable
+  versions are unchanged; no anonymous verifier, inline execution or stable
   production release is claimed.
 
 - Separately scoped known-effect MCP Tool error reconciliation: mandatory current

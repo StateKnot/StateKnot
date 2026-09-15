@@ -2840,6 +2840,8 @@ name = "stateknot"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "base64 0.22.1",
+ "futures-util",
  "mime",
  "reqwest 0.12.28",
  "schemars",
@@ -2854,6 +2856,7 @@ dependencies = [
  "thiserror 2.0.20",
  "tokio",
  "tokio-util",
+ "tower-service",
  "zeroize",
 ]
 

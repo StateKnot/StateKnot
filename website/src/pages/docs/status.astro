@@ -8,8 +8,14 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "Resumable Agent activity SSE",
+    body: "Opt-in authenticated activity notifications with exact PostgreSQL cursors, fresh-process suffix recovery, independent snapshots, repeated authorization, finite queue/lifetime limits and quarantine-only updates. Not token streaming or historical snapshot reconstruction.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "Agent HTTP v1 JSON ingress",
-    body: "Mandatory credential verification and resource policy, durable submission/read/key lookup, two-phase cancellation, finite limits and shutdown, with real HTTP lost-response recovery on PostgreSQL 16/17. No inline dispatch, SSE or stable-release claim.",
+    body: "Mandatory credential verification and resource policy, durable submission/read/key lookup, two-phase cancellation, finite limits and shutdown, with real HTTP lost-response recovery on PostgreSQL 16/17. No inline dispatch or stable-release claim.",
   },
   {
     state: "Implemented",

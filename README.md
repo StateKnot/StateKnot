@@ -224,7 +224,11 @@ The opt-in [Agent HTTP v1 router](docs/agent-http.md) now exposes authenticated,
 bounded JSON submission/read/key lookup/cancellation over that service, with
 real HTTP lost-response recovery on PostgreSQL 16/17. Credential verification,
 resource policy, TLS and Worker deployment remain explicit host responsibilities;
-no anonymous verifier, inline execution, SSE or stable-release claim is included.
+no anonymous verifier, inline execution or stable-release claim is included.
+The opt-in [activity SSE profile](docs/agent-events.md) adds exact PostgreSQL-backed
+reconnect cursors, public notifications and independently observed snapshots,
+with repeated authorization and finite connection/backpressure limits. It is not
+token streaming or full historical state reconstruction.
 `McpRemoteTool` now implements the first strict protocol adapter: MCP
 2026-07-28 modern stateless discovery, complete JSON responses, exact local
 schema and server-identity pins, attempt-scoped authorization, bounded

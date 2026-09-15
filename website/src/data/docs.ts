@@ -137,7 +137,7 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "Submit, recover, read and cancel through authenticated bounded JSON HTTP.",
         href: "/docs/agent-http/",
         search:
-          "agent http bearer authentication submission lookup cancel retry recovery limits",
+          "agent http bearer authentication submission lookup cancel retry recovery limits sse events cursor replay",
       },
       {
         title: "General MCP Tool client",
@@ -367,7 +367,8 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         description:
           "通过经过认证、有资源上限的 JSON HTTP 接口提交、找回、读取与取消 Agent。",
         href: "/docs/agent-http/",
-        search: "agent http bearer 认证 提交 查询 取消 重试 恢复 限流",
+        search:
+          "agent http bearer 认证 提交 查询 取消 重试 恢复 限流 sse 事件 游标 断线续传",
       },
       {
         title: "通用 MCP Tool Client",

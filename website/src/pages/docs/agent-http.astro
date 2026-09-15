@@ -28,8 +28,9 @@ let router = http.router();
       <code>AgentHttpService</code> adds a real HTTP router over <a
         href="/docs/agent-service/">AgentService v1</a
       >. It durably admits work but never executes a model, Tool or graph in the
-      request task. StateKnot remains pre-alpha; SSE and a complete managed
-      hosting service are separate work.
+      request task. StateKnot remains pre-alpha. Activity SSE is now opt-in;
+      complete managed hosting and stable release qualification remain separate
+      work.
     </p>
   </aside>
   <section aria-labelledby="http-wiring">
@@ -102,6 +103,69 @@ let router = http.router();
       >. A fresh request_id correlates this response; it is not an idempotency
       key. <code>Active</code> does not prove a Worker is executing and may include
       failure closure. <code>CancellationRequested</code> is not terminal cleanup.
+    </p>
+  </section>
+  <section aria-labelledby="http-sse">
+    <h2 id="http-sse">Replay activity after a disconnect</h2>
+    <p>
+      Enable <code>with_sse(AgentHttpSseOptions::default())</code> on the same authenticated
+      host. Connect to <code>GET /v1/agent-runs/&#123;run_id&#125;/events</code>
+      with Bearer authentication and <code>Accept: text/event-stream</code>.
+      Reconnect with the last completely processed <code>Last-Event-ID</code>.
+      Native EventSource cannot set this Authorization header; use an
+      authenticated streaming HTTP client. No credentials in URLs or anonymous
+      fallback.
+    </p>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>activity</dt><dd>
+          One public notification per retained journal entry. Its id is a
+          database-verified replay cursor; JSON contains only a decimal-string
+          sequence and recording time. No private payload, custom kind or
+          transcript.
+        </dd>
+      </div>
+      <div>
+        <dt>snapshot</dt><dd>
+          A current verified AgentHttpRunResponse, without an id. It does not
+          describe historical state at a cursor. Intermediate snapshots may
+          coalesce; quarantine-only changes are still detected.
+        </dd>
+      </div>
+      <div>
+        <dt>error / heartbeat</dt><dd>
+          Neither advances replay progress. Errors are best-effort, heartbeats
+          are comments, and EOF never proves task success.
+        </dd>
+      </div>
+    </dl>
+    <p>
+      Process an activity idempotently before saving its cursor. A new process
+      resumes strictly after that exact retained event. Malformed cursors are
+      400; changed, crossed or unavailable history returns <code
+        >agent_http.invalid_cursor</code
+      >
+      (409). Never silently reset progress. This is not token streaming, complete
+      historical state replay, or an exactly-once delivery guarantee.
+    </p>
+    <p>
+      Defaults: 16 stream producers, 60-second lifetime, 1-second
+      polling/heartbeats, 5-second queue wait, one queued bounded batch, 64 MiB
+      cumulative output. Streams use separate capacity from JSON requests.
+      Credentials and resource policy are rechecked each iteration; already
+      authorized buffered bytes cannot be recalled. Drop, queue timeout and
+      shutdown stop producer work. Configure socket limits and disable proxy
+      buffering/compression on this route.
+    </p>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-events.md"
+        >Full client recovery and production-host guide</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0009-agent-sse-replay.md"
+        >RFC-0009</a
+      >
     </p>
   </section>
   <section aria-labelledby="http-retry">
@@ -178,8 +242,10 @@ let router = http.router();
       Qualification covers actual HTTP + PostgreSQL 16/17, 24 concurrent
       identical submissions, lost submit/cancel responses, no inline dispatch,
       hostile input, authorization before an unavailable database, slow
-      requests, overload and shutdown. It does not qualify a live issuer, live
-      model, SSE service or an entire production deployment.
+      requests, overload and shutdown. SSE additionally covers new-process
+      replay, revoked access, quarantine-only changes and unpolled responses.
+      This does not qualify a live issuer, live model or an entire production
+      deployment.
     </p>
     <p>
       <a

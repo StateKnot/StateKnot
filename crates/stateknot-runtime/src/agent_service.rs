@@ -21,6 +21,9 @@ use stateknot_store_postgres::{
 };
 use thiserror::Error;
 
+mod activity;
+pub use activity::AgentRunActivityPage;
+
 use crate::{
     AgentRunAdmissionOutcome, AgentRunIds, AgentRunSnapshot, DurableAgentAdmissionError,
     DurableAgentAdmissionRequest, DurableAgentAdmissionRequestError, DurableAgentRuns,

@@ -1,10 +1,10 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//! Opt-in authenticated JSON HTTP v1 over the existing durable Agent service.
+//! Authenticated JSON HTTP v1 and opt-in activity SSE over the durable Agent service.
 //! No constructor starts a listener, scheduler or provider. TLS, credential
 //! verification, replica-wide ingress quotas and worker deployment are explicit
-//! host responsibilities. SSE and stable release acceptance are separate gates.
+//! host responsibilities. Activity SSE is opt-in; stable release acceptance is separate.
 //!
 //! ```
 //! use std::sync::Arc;
@@ -21,12 +21,14 @@
 
 mod auth;
 mod options;
+mod sse;
 mod wire;
 pub use auth::{
     AgentHttpAuthenticationError, AgentHttpAuthenticator, AgentHttpCredential, AgentHttpOperation,
     AgentHttpPrincipal,
 };
 pub use options::{AgentHttpOptions, AgentHttpOptionsError};
+pub use sse::{AgentHttpActivity, AgentHttpSseOptions};
 pub use wire::{AgentHttpLookup, AgentHttpRunResponse, AgentHttpSubmission};
 
 use axum::{
@@ -65,6 +67,7 @@ struct Inner {
     authenticator: Arc<dyn AgentHttpAuthenticator>,
     options: AgentHttpOptions,
     permits: Semaphore,
+    stream_permits: Arc<Semaphore>,
     shutdown: CancellationToken,
 }
 
@@ -82,13 +85,16 @@ impl AgentHttpService {
                 service,
                 authenticator,
                 permits: Semaphore::new(options.max_in_flight),
+                stream_permits: Arc::new(Semaphore::new(
+                    options.sse.as_ref().map_or(0, |sse| sse.max_streams),
+                )),
                 options,
                 shutdown: CancellationToken::new(),
             }),
         }
     }
 
-    /// Returns the exact v1 router. No cookies, redirects, CORS, public discovery or SSE.
+    /// Returns the exact v1 router. No cookies, redirects, CORS or public discovery.
     pub fn router(&self) -> Router {
         Router::new()
             .fallback(handle)
@@ -122,7 +128,7 @@ async fn handle(State(inner): State<Arc<Inner>>, request: Request) -> Response {
 
 #[allow(clippy::too_many_lines)] // Keep ingress validation order visible in one place.
 async fn execute(
-    inner: &Inner,
+    inner: &Arc<Inner>,
     request: Request,
     request_id: EventId,
 ) -> Result<Response, HttpError> {
@@ -137,21 +143,27 @@ async fn execute(
         return Err(HttpError::Unauthenticated);
     }
     let credential = AgentHttpCredential::new(value).map_err(|_| HttpError::Unauthenticated)?;
-    let principal =
-        inner
-            .authenticator
-            .authenticate(credential)
-            .await
-            .map_err(|error| match error {
-                AgentHttpAuthenticationError::Unauthenticated => HttpError::Unauthenticated,
-                AgentHttpAuthenticationError::Unavailable => HttpError::Unavailable,
-            })?;
+    let principal = inner
+        .authenticator
+        .authenticate(credential.clone())
+        .await
+        .map_err(|error| match error {
+            AgentHttpAuthenticationError::Unauthenticated => HttpError::Unauthenticated,
+            AgentHttpAuthenticationError::Unavailable => HttpError::Unavailable,
+        })?;
     // Authentication precedes path/body decoding and any resource existence lookup.
     let route = route(&parts.method, &parts.uri)?;
     if !principal.allows(route.operation()) {
         return Err(HttpError::Denied);
     }
-    validate_media(&parts.headers, &parts.method)?;
+    if matches!(route, Route::Events(_)) {
+        sse::validate_media(&parts.headers)?;
+    } else {
+        validate_media(&parts.headers, &parts.method)?;
+        if parts.headers.contains_key("last-event-id") {
+            return Err(HttpError::Invalid);
+        }
+    }
     if let Some(length) = single(&parts.headers, header::CONTENT_LENGTH.as_str())? {
         if length.is_empty() || !length.bytes().all(|b| b.is_ascii_digit()) {
             return Err(HttpError::Invalid);
@@ -167,6 +179,20 @@ async fn execute(
         .map_err(|_| HttpError::TooLarge)?;
     let caller = principal.caller().clone();
     let (status, snapshot) = match route {
+        Route::Events(run) => {
+            if !bytes.is_empty() {
+                return Err(HttpError::Invalid);
+            }
+            return sse::open(
+                inner.clone(),
+                caller,
+                credential,
+                run,
+                &parts.headers,
+                request_id,
+            )
+            .await;
+        }
         Route::Submit => {
             let input: AgentHttpSubmission = decode(&bytes, inner.options.max_request_bytes)?;
             let outcome = inner
@@ -233,12 +259,13 @@ enum Route {
     Lookup,
     Read(RunId),
     Cancel(RunId),
+    Events(RunId),
 }
 impl Route {
     const fn operation(&self) -> AgentHttpOperation {
         match self {
             Self::Submit => AgentHttpOperation::Submit,
-            Self::Read(_) | Self::Lookup => AgentHttpOperation::Read,
+            Self::Read(_) | Self::Lookup | Self::Events(_) => AgentHttpOperation::Read,
             Self::Cancel(_) => AgentHttpOperation::Cancel,
         }
     }
@@ -264,7 +291,11 @@ fn route(method: &Method, uri: &axum::http::Uri) -> Result<Route, HttpError> {
             )
         } else {
             (
-                Route::Read(rest.parse().map_err(|_| HttpError::Invalid)?),
+                if let Some(id) = rest.strip_suffix("/events") {
+                    Route::Events(id.parse().map_err(|_| HttpError::Invalid)?)
+                } else {
+                    Route::Read(rest.parse().map_err(|_| HttpError::Invalid)?)
+                },
                 Method::GET,
             )
         }
@@ -319,7 +350,7 @@ fn validate_media(headers: &HeaderMap, method: &Method) -> Result<(), HttpError>
         return Err(HttpError::Media);
     }
     if let Some(accept) = single(headers, header::ACCEPT.as_str())? {
-        // One explicit representation; no streaming or negotiation-dependent wire shapes.
+        // JSON operations have one explicit representation.
         if !matches!(accept, "application/json" | "*/*") {
             return Err(HttpError::Accept);
         }
@@ -442,10 +473,12 @@ enum HttpError {
     Unavailable,
     Internal,
     ResponseTooLarge,
+    Cursor,
 }
 
-fn failure(error: HttpError, request_id: EventId) -> Response {
-    let (status, code) = match error {
+fn error_status(error: HttpError) -> (StatusCode, &'static str) {
+    match error {
+        HttpError::Cursor => (StatusCode::CONFLICT, "invalid_cursor"),
         HttpError::Invalid => (StatusCode::BAD_REQUEST, "invalid_request"),
         HttpError::Unauthenticated => (StatusCode::UNAUTHORIZED, "unauthenticated"),
         HttpError::Denied => (StatusCode::FORBIDDEN, "denied"),
@@ -459,7 +492,11 @@ fn failure(error: HttpError, request_id: EventId) -> Response {
         HttpError::Unavailable => (StatusCode::SERVICE_UNAVAILABLE, "unavailable"),
         HttpError::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
         HttpError::ResponseTooLarge => (StatusCode::INTERNAL_SERVER_ERROR, "response_too_large"),
-    };
+    }
+}
+
+fn failure(error: HttpError, request_id: EventId) -> Response {
+    let (status, code) = error_status(error);
     let body = serde_json::to_vec(
         &json!({"error":{"code":format!("agent_http.{code}"),"request_id":request_id}}),
     )
@@ -529,6 +566,7 @@ mod tests;
 #[allow(clippy::needless_pass_by_value)]
 fn store_error(error: StoreError) -> HttpError {
     match error {
+        StoreError::InvalidJournalCursor => HttpError::Cursor,
         StoreError::RunNotFound
         | StoreError::AgentSubmissionNotFound
         | StoreError::AgentAdmissionNotFound => HttpError::NotFound,

@@ -27,6 +27,8 @@ use tokio::{net::TcpListener, sync::Notify, task::JoinHandle};
 #[path = "agent_http/fixture.rs"]
 mod fixture;
 use fixture::*;
+#[path = "agent_http/sse.rs"]
+mod sse;
 
 #[derive(Default)]
 struct LossGate {

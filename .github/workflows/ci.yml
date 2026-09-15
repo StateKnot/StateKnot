@@ -383,6 +383,7 @@ jobs:
           cargo test -p stateknot --test agent_http --locked -- \
             --nocapture --test-threads=1 | tee agent-http-qualification.log
           test "$(grep -c '^STATEKNOT_AGENT_HTTP_EVIDENCE=' agent-http-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_AGENT_SSE_EVIDENCE=' agent-http-qualification.log)" = 1
 
       - name: Upload Agent HTTP evidence
         if: always()

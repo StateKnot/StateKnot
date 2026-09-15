@@ -43,7 +43,9 @@ deployment/schema/budget policy; no client can widen its budget.
 All requests use `Authorization: Bearer <credential>`. POST requires
 `Content-Type: application/json` (optional `charset=utf-8`). Accept must be absent,
 `application/json`, or `*/*`. Compressed bodies, cookies as authentication, CORS
-preflight, SSE, query parameters and percent-encoded paths are not supported.
+preflight, query parameters and percent-encoded paths are not supported by these
+JSON operations. [Activity SSE](agent-events.md) is a separate opt-in GET profile
+with its own Accept requirement, cursor contract and connection limits.
 
 | Method and path | Closed JSON request | Success |
 | --- | --- | --- |
@@ -146,5 +148,7 @@ Host/header envelopes can reject before authentication; no resource lookup occur
 CI runs real HTTP + PostgreSQL 16/17 admission/cancellation response-loss recovery,
 24 concurrent identical submissions, authorization-before-storage, hostile JSON,
 slow body/auth timeout, overload, response limits and shutdown tests. The bounded
-profile ships without SSE, list/search APIs, bundled OIDC, live-provider acceptance,
-or a stable/public-crate release claim.
+JSON profile does not include list/search APIs, bundled OIDC, live-provider
+acceptance or a stable/public-crate release claim. The separately enabled
+[activity SSE profile](agent-events.md) adds qualified cursor recovery and finite
+stream lifecycle; it does not change the framework's release status.

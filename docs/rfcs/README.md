@@ -20,6 +20,7 @@ security, or operational commitments.
 | [0006](0006-authenticated-tool-result-reconciliation.md) | Draft | Authenticated inline Tool result reconciliation and durable receipts |
 | [0007](0007-authenticated-known-error-reconciliation.md) | Draft | Separately authorized known-effect Tool failure evidence |
 | [0008](0008-agent-http-v1.md) | Draft | Authenticated bounded Agent HTTP v1 ingress and lost-response recovery |
+| [0009](0009-agent-sse-replay.md) | Draft | Resumable public Agent activity SSE and bounded connection lifecycle |
 
 ## When an RFC is required
 

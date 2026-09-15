@@ -28,7 +28,7 @@ let router = http.router();
       <code>AgentHttpService</code> 在 <a href="/zh/docs/agent-service/"
         >AgentService v1</a
       > 之上提供真实 HTTP 路由。它把任务持久化入库，不会在请求处理期间执行模型、工具或
-      Graph。StateKnot 仍处于 pre-alpha；SSE 与完整托管服务尚需后续开发。
+      Graph。StateKnot 仍处于 pre-alpha；活动 SSE 现已支持显式启用，完整托管服务与稳定版验收仍需后续开发。
     </p>
   </aside>
   <section aria-labelledby="http-wiring">
@@ -97,6 +97,61 @@ let router = http.router();
       此刻正在执行，也可能处于失败收尾阶段；<code>CancellationRequested</code> 不代表取消清理已经完成。
     </p>
   </section>
+  <section aria-labelledby="http-sse">
+    <h2 id="http-sse">断线后按活动游标继续读取</h2>
+    <p>
+      在同一个认证宿主上启用 <code
+        >with_sse(AgentHttpSseOptions::default())</code
+      >， 使用 Bearer 凭据和 <code>Accept: text/event-stream</code> 连接
+      <code>GET /v1/agent-runs/&#123;run_id&#125;/events</code>。
+      重连时携带最后完整处理并保存的 <code>Last-Event-ID</code>。 原生
+      EventSource 不能设置这个认证头，应使用支持认证的流式 HTTP 客户端，
+      不能把凭据放进 URL 或改成匿名访问。
+    </p>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>activity</dt><dd>
+          每条保留日志对应一个公开通知。id 是经数据库核对的 续传游标，JSON
+          只有十进制字符串序号与记录时间，不暴露私有载荷、日志种类或对话。
+        </dd>
+      </div>
+      <div>
+        <dt>snapshot</dt><dd>
+          当前经过验证的 AgentHttpRunResponse，不带 id。
+          它不是游标位置上的历史状态，中间快照可能合并；仅隔离状态变化也会通知。
+        </dd>
+      </div>
+      <div>
+        <dt>error / heartbeat</dt><dd>
+          都不推进续传进度。错误帧只尽力发送，
+          心跳是注释；连接结束不能证明任务执行成功。
+        </dd>
+      </div>
+    </dl>
+    <p>
+      先幂等处理活动，再保存完整游标。更换进程后仍从该精确事件之后续传。
+      畸形编码返回 400；被篡改、跨范围或历史不可用的游标返回
+      <code>agent_http.invalid_cursor</code>（409），不能悄悄重置进度。 这不是
+      Token 流、完整历史状态重放，也不承诺 exactly-once 交付。
+    </p>
+    <p>
+      默认最多 16 个流生产任务、60 秒连接时限、1 秒轮询/心跳、5 秒队列等待、
+      单槽有界缓冲及每条连接累计 64 MiB 输出。事件流与 JSON 请求使用独立额度。
+      每轮重新验证凭据与资源权限；已授权并交给网络缓冲区的字节无法撤回。
+      丢弃响应、队列超时和停机都会停止生产任务。宿主还须限制 Socket
+      并关闭该路由的代理缓冲和压缩。
+    </p>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-events.zh-CN.md"
+        >完整客户端恢复与生产部署指南</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0009-agent-sse-replay.md"
+        >RFC-0009</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="http-retry">
     <h2 id="http-retry">响应丢失后找回任务，不重复创建</h2>
     <p>
@@ -124,11 +179,9 @@ let router = http.router();
       表示依赖不可用、超时或停机；500 表示完整性、配置或响应上限问题。
     </p>
     <p>
-      所有响应均为禁止缓存的私有 JSON，带关联 ID 和 API 版本头。错误只返回固定的 <code
-        >agent_http.*</code
-      > 代码与 request_id，不转发令牌、SQL 或提供商原始消息。429 与 503 附带 <code
-        >Retry-After: 1</code
-      >。
+      JSON 操作均返回禁止缓存的私有 JSON，带关联 ID 和 API
+      版本头。错误只返回固定的 <code>agent_http.*</code> 代码与 request_id，不转发令牌、SQL
+      或提供商原始消息。429 与 503 附带 <code>Retry-After: 1</code>。
     </p>
   </section>
   <section aria-labelledby="http-operations-checklist">
@@ -156,8 +209,9 @@ let router = http.router();
     </ol>
     <p>
       验证覆盖真实 HTTP + PostgreSQL 16/17、24
-      路同键并发提交、提交/取消响应丢失恢复、无内联执行、恶意输入、数据库不可用前的授权拒绝、慢请求、过载与停机。这不等于已完成真实身份提供商、模型、SSE
-      或整套生产部署的验收。
+      路同键并发提交、提交/取消响应丢失恢复、无内联执行、恶意输入、数据库不可用前的授权拒绝、慢请求、过载与停机。
+      SSE 另外覆盖新进程续传、撤权、仅隔离状态变化及完全不读取响应的情况。
+      这不等于已完成真实身份提供商、模型或整套生产部署的验收。
     </p>
     <p>
       <a

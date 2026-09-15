@@ -14,11 +14,16 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Add opt-in [resumable Agent activity SSE](agent-events.md): exact retained
+  journal cursors, payload-free activity notifications, independent current
+  snapshots, repeated authorization, finite lifetime/queue limits, and PostgreSQL
+  16/17 qualification including a fresh OS process recovering the exact suffix.
+  No token streaming, historical snapshot reconstruction or stable release claim.
 - [x] Implement the [Agent HTTP v1 JSON ingress](agent-http.md) over the durable
   Agent service: mandatory credential verification, operation/resource policy,
   bounded requests/responses/deadlines/concurrency, exact-key submit/lookup/read,
   two-phase cancellation, PostgreSQL 16/17 HTTP lost-response recovery, and
-  cooperative shutdown. SSE and full host-role/release qualification remain open.
+  cooperative shutdown. Full host-role/release qualification remains open.
 - [x] Freeze the [v1 scope and explicit non-goals](v1-scope.md).
 - [x] Define the three [qualification scenarios](scenarios/README.md), shared
   reference environment, loads, failure matrices, and release thresholds.

@@ -85,6 +85,7 @@ pub(super) struct Auth {
     caller: AgentServiceCaller,
     pub block: AtomicBool,
     pub entered: Notify,
+    pub revoked: AtomicBool,
 }
 impl AgentHttpAuthenticator for Auth {
     fn authenticate(
@@ -92,6 +93,9 @@ impl AgentHttpAuthenticator for Auth {
         credential: AgentHttpCredential,
     ) -> BoxFuture<'_, Result<AgentHttpPrincipal, AgentHttpAuthenticationError>> {
         Box::pin(async move {
+            if self.revoked.load(Ordering::SeqCst) {
+                return Err(AgentHttpAuthenticationError::Unauthenticated);
+            }
             if self.block.load(Ordering::SeqCst) {
                 self.entered.notify_one();
                 std::future::pending::<()>().await;
@@ -163,6 +167,9 @@ pub(super) struct Fixture {
 }
 impl Fixture {
     pub(super) async fn new() -> Option<Self> {
+        Self::for_tenant(TenantId::new(format!("http-{}", RunId::generate())).unwrap()).await
+    }
+    pub(super) async fn for_tenant(tenant: TenantId) -> Option<Self> {
         let url = match std::env::var("STATEKNOT_TEST_DATABASE_URL") {
             Ok(url) => url,
             Err(std::env::VarError::NotPresent)
@@ -202,7 +209,6 @@ impl Fixture {
             GraphExecutionLimits::new(Superstep::new(4).unwrap(), 1).unwrap(),
         )
         .unwrap();
-        let tenant = TenantId::new(format!("http-{}", RunId::generate())).unwrap();
         store
             .register_graph_definition(tenant.clone(), graph.clone())
             .await
@@ -293,6 +299,7 @@ impl Fixture {
             caller: caller.clone(),
             block: AtomicBool::new(false),
             entered: Notify::new(),
+            revoked: AtomicBool::new(false),
         });
         Some(Self {
             store,
