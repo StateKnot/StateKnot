@@ -14,6 +14,7 @@ pub struct AgentHttpOptions {
     pub(super) max_response_bytes: usize,
     pub(super) max_in_flight: usize,
     pub(super) deadline: Duration,
+    pub(super) sse: Option<super::AgentHttpSseOptions>,
 }
 
 impl AgentHttpOptions {
@@ -46,6 +47,7 @@ impl AgentHttpOptions {
             max_response_bytes: 2 * 1024 * 1024,
             max_in_flight: 64,
             deadline: Duration::from_secs(15),
+            sse: None,
         })
     }
 
@@ -114,6 +116,13 @@ impl AgentHttpOptions {
         }
         self.deadline = deadline;
         Ok(self)
+    }
+
+    /// Explicitly enables the bounded activity stream; disabled by default.
+    #[must_use]
+    pub fn with_sse(mut self, options: super::AgentHttpSseOptions) -> Self {
+        self.sse = Some(options);
+        self
     }
 }
 

@@ -117,6 +117,7 @@ requires its own real verifier, policy, credentials and rollout qualification.
 
 ## Unresolved questions
 
-SSE event cursor/replay semantics and full service-role readiness/health/drain
-qualification remain future RFC/release work. They are not silently included in
-this JSON profile. This draft does not authorize calling the full framework stable.
+[RFC-0009](0009-agent-sse-replay.md) separately extends this JSON profile with
+opt-in activity SSE and exact cursor recovery. Full service-role readiness,
+health/drain and release qualification remain open. Neither draft authorizes
+calling the full framework stable.

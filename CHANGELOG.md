@@ -14,6 +14,20 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Opt-in resumable Agent activity SSE with exact PostgreSQL journal cursors,
+  payload-free notifications, independently verified current snapshots (including
+  quarantine-only changes), repeated credential/resource authorization, separate
+  stream capacity, finite lifetime/queue/output limits and drop/shutdown cleanup.
+  Real HTTP/PostgreSQL 16/17 tests include fresh-process suffix recovery and
+  unpolled response backpressure. Includes RFC-0009 and bilingual tutorials.
+  No migration; no token streaming, historical
+  snapshot reconstruction or stable production release claim.
+
+- Updated locked Rustls from 0.23.43 to 0.23.45 for
+  [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html),
+  which concerns TLS 1.3 handshake encryption-level validation. The dependency
+  gate remains mandatory; no advisory exception was added.
+
 - Authenticated Agent HTTP v1 JSON ingress over `AgentServiceV1`: durable
   submit/read/key lookup, caller-retained two-phase cancellation, mandatory
   credential and resource policy, exact Host/Origin rules, bounded duplicate-free
@@ -21,7 +35,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   PostgreSQL 16/17 HTTP qualification covers 24-way admission, lost submit/cancel
   responses, authorization-before-storage, hostile input and overload. Includes
   RFC-0008 and bilingual website tutorials. Existing migrations and dependency
-  versions are unchanged; no anonymous verifier, inline execution, SSE or stable
+  versions are unchanged; no anonymous verifier, inline execution or stable
   production release is claimed.
 
 - Separately scoped known-effect MCP Tool error reconciliation: mandatory current

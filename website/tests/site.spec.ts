@@ -658,6 +658,32 @@ test("Agent HTTP tutorial preserves authentication, recovery and deployment boun
   }
 });
 
+for (const locale of ["en", "zh"] as const) {
+  test(`${locale} documents resumable activity without claiming historical snapshots`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/agent-http/`);
+    const section = page.locator('section[aria-labelledby="http-sse"]');
+    for (const contract of [
+      "activity",
+      "snapshot",
+      "Last-Event-ID",
+      "agent_http.invalid_cursor",
+    ])
+      await expect(section.getByText(contract, { exact: true })).toBeVisible();
+    await expect(section).toContainText(
+      locale === "zh"
+        ? "它不是游标位置上的历史状态"
+        : "It does not describe historical state at a cursor",
+    );
+    await expect(
+      section.locator("a[href$='0009-agent-sse-replay.md']"),
+    ).toHaveCount(1);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
+}
+
 test("MCP tutorial states the strict profile and ambiguous write contract", async ({
   page,
 }) => {

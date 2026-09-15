@@ -43,7 +43,8 @@ extensions, stable SDK-tier API, a production durable A2A task/push backend,
 official A2A Client/live-peer recovery qualification, or A2A gRPC support has
 shipped.
 Their exact boundaries are documented in
-[AgentService v1](agent-service.md), [Agent HTTP v1](agent-http.md), the
+[AgentService v1](agent-service.md), [Agent HTTP v1](agent-http.md),
+[resumable Agent activity SSE](agent-events.md), the
 [strict MCP Remote Tool profile](mcp-remote-tool.md), the
 [general MCP Tool client](mcp-client.md), the
 [MCP OAuth client](mcp-oauth.md), the
