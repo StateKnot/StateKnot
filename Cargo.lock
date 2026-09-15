@@ -2840,7 +2840,7 @@ name = "stateknot"
 version = "0.0.0"
 dependencies = [
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "futures-util",
  "mime",
  "reqwest 0.12.28",
@@ -2906,7 +2906,7 @@ dependencies = [
  "a2a-server-lf",
  "async-trait",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bytes",
  "chrono",
  "futures-core",
