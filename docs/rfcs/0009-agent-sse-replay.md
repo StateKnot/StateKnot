@@ -87,7 +87,8 @@ streams, replay lag and admission errors without Run/credential metric labels.
 
 ## Compatibility and alternatives
 
-Reuse pinned workspace dependencies, MSRV and public snapshot types. The API stays
+Reuse workspace dependencies, MSRV and public snapshot types. The rollout also
+updates locked Rustls to 0.23.45 for RUSTSEC-2026-0285; no advisory is ignored. The API stays
 pre-alpha. Polling only the latest revision loses intermediate notifications and
 quarantine-only changes. Returning raw journal records leaks private data. A new
 outbox duplicates an existing verified append-only notification source. Full

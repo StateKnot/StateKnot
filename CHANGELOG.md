@@ -20,8 +20,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   stream capacity, finite lifetime/queue/output limits and drop/shutdown cleanup.
   Real HTTP/PostgreSQL 16/17 tests include fresh-process suffix recovery and
   unpolled response backpressure. Includes RFC-0009 and bilingual tutorials.
-  No migration or dependency-version change; no token streaming, historical
+  No migration; no token streaming, historical
   snapshot reconstruction or stable production release claim.
+
+- Updated locked Rustls from 0.23.43 to 0.23.45 for
+  [RUSTSEC-2026-0285](https://rustsec.org/advisories/RUSTSEC-2026-0285.html),
+  which concerns TLS 1.3 handshake encryption-level validation. The dependency
+  gate remains mandatory; no advisory exception was added.
 
 - Authenticated Agent HTTP v1 JSON ingress over `AgentServiceV1`: durable
   submit/read/key lookup, caller-retained two-phase cancellation, mandatory
