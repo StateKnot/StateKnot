@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "独立 Agent 维护任务生命周期",
+    body: "按明确授权的租户轮询截止时间取消、子 Run 取消传播与结算、Join 发布及失败收敛。保留失败页游标，检查真实依赖，限制时限并回收停机任务；PostgreSQL 16/17 验证持久化效果及 SIGKILL 恢复。不自动清理历史数据，完整多角色容量验证仍待进行。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "独立持久执行 Worker 生命周期",
     body: "管理具体租户或公平调度器，提供固定槽位、实际依赖与宿主就绪检查、有限退避和期限，以及包含 Graph 节点的停机回收。PostgreSQL 16/17 验证新进程终态重放与公平序号连续性；维护任务及完整多角色生产部署验证仍独立进行。",
   },

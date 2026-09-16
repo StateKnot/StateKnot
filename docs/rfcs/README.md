@@ -25,6 +25,7 @@ security, or operational commitments.
 | [0011](0011-agent-http-introspection.md) | Draft | Online identity verification and tenant binding |
 | [0012](0012-agent-resource-policy.md) | Draft | Bounded declarative Agent resource policy |
 | [0013](0013-owned-agent-worker.md) | Draft | Owned durable scheduling Worker and joined task lifecycle |
+| [0014](0014-owned-agent-maintenance.md) | Draft | Owned Agent maintenance, bounded tenant sweeps and joined shutdown |
 
 ## When an RFC is required
 

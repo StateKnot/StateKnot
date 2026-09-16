@@ -17,6 +17,7 @@
 
 mod admission_schema;
 mod agent_deadlines;
+pub mod agent_maintenance;
 mod failure_close;
 pub use failure_close::{
     DurableRunFailureCloser, RunFailureCloseBuildError, RunFailureCloseItem,

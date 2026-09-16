@@ -115,6 +115,13 @@ let router = http.router();
       concurrency and joined shutdown. Ingress remains independent; submitting a Run
       does not start a Worker or maintenance jobs.
     </p>
+    <p>
+      Run the <a href="/docs/agent-loop/#owned-maintenance"
+        >owned maintenance role</a
+      >
+      separately for deadline cancellation, child settlement, Join publication and
+      failure closure, including when no execution Run is runnable.
+    </p>
   </section>
 
   <section aria-labelledby="http-resource-policy">

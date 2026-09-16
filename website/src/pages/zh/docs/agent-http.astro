@@ -98,6 +98,11 @@ let router = http.router();
       >， 管理具体租户或公平调度器、真实依赖就绪检查、固定并发和停机回收。 HTTP
       接入仍独立运行，提交 Run 不会自动启动 Worker 或维护任务。
     </p>
+    <p>
+      通过独立的<a href="/zh/docs/agent-loop/#owned-maintenance">维护角色</a
+      >驱动 截止时间取消、子 Run 结算、Join 发布与失败收敛；即使没有可执行的
+      Run，维护仍应运行。
+    </p>
   </section>
 
   <section aria-labelledby="http-resource-policy">
