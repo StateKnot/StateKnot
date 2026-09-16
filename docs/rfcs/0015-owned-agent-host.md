@@ -30,6 +30,8 @@ immediately, before asynchronous startup. `wait_ready` can be cancelled without
 losing ownership. `begin_shutdown` closes admission synchronously; `shutdown` and
 `wait(&mut self)` join cancellation-safely. Health contains actual role views and
 closed status/counters only, without retaining pools or executable registries.
+The shared ingress is claimed atomically during launch, before starting any role;
+duplicate ownership is rejected without stopping the original owner.
 
 Each role verifies its own real bound dependencies. The trusted application must
 qualify compatible database, tenant and registry configurations; a supervisor

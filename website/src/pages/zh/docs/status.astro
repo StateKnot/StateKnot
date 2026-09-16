@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "同进程 Agent 宿主生命周期",
+    body: "统一接管实际接入、Worker 和维护绑定，提供独占认领、有序启动、逐请求兄弟角色门禁及 HTTP → Worker → 维护停机回收。PostgreSQL 16/17 与真实 TLS 身份组合验证；受保护运维接口、跨进程滚动上线和实测容量 SLO 仍待完成。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "独立 Agent 维护任务生命周期",
     body: "按明确授权的租户轮询截止时间取消、子 Run 取消传播与结算、Join 发布及失败收敛。保留失败页游标，检查真实依赖，限制时限并回收停机任务；PostgreSQL 16/17 验证持久化效果及 SIGKILL 恢复。不自动清理历史数据，完整多角色容量验证仍待进行。",
   },

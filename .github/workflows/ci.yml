@@ -407,7 +407,7 @@ jobs:
         run: |
           set -o pipefail
           cargo test -p stateknot --test agent_worker --locked -- \
-            --nocapture --test-threads=1 | tee agent-worker-qualification.log
+            --nocapture --test-threads=1 --skip host:: | tee agent-worker-qualification.log
           test "$(grep -c '^STATEKNOT_WORKER_EXECUTION_EVIDENCE=' agent-worker-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_WORKER_RECOVERY_EVIDENCE=' agent-worker-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_WORKER_FAILSTOP_EVIDENCE=' agent-worker-qualification.log)" = 1
@@ -421,6 +421,29 @@ jobs:
           name: agent-worker-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
             agent-worker-qualification.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Qualify co-located Agent host
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot --test agent_worker --locked host:: -- \
+            --nocapture --test-threads=1 | tee agent-host-qualification.log
+          for marker in ADMISSION STARTUP FAILURE DRAIN DROP; do
+            test "$(grep -c "^STATEKNOT_HOST_${marker}_EVIDENCE=" agent-host-qualification.log)" = 1
+          done
+
+      - name: Upload co-located host evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-host-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            agent-host-qualification.log
             failure-close-process-environment.log
           if-no-files-found: error
           retention-days: 30
@@ -463,6 +486,7 @@ jobs:
           set -o pipefail
           bash conformance/agent-identity/run.sh | tee agent-identity-qualification.log
           test "$(grep -c '^STATEKNOT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_HOST_IDENTITY_EVIDENCE=' agent-identity-qualification.log)" = 1
 
       - name: Upload real identity qualification evidence
         if: always()

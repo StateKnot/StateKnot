@@ -14,6 +14,12 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Implement a [co-located Agent host](agent-host.md): concrete role ownership,
+  exclusive ingress claim, ordered startup, sibling readiness gates, fail-stop
+  supervision and ordered joined drain. PostgreSQL 16/17 and real TLS identity
+  composition qualification; protected operations endpoints and measured
+  cross-process rollout/capacity/recovery SLOs remain open.
+
 - [x] Implement an [owned Agent maintenance role](agent-maintenance.md): bounded
   explicit tenant rotation over deadline, child cancellation/settlement, Join and
   failure-close jobs, retained error-page cursors, actual readiness, joined drain

@@ -5,6 +5,7 @@
 //! Hosts separately operate ingress, reconcilers, credential/configuration
 //! distribution and an OS supervisor. No migrations or public routes are added.
 
+use crate::agent_maintenance::AgentMaintenanceHealth;
 use futures_util::FutureExt;
 use stateknot_core::{BoxFuture, CancellationObserver, CancellationSignal};
 use stateknot_runtime::TenantSchedulerOutcome;
@@ -114,6 +115,15 @@ impl AgentWorker {
         host: Arc<dyn AgentWorkerReadiness>,
         options: AgentWorkerOptions,
     ) -> Result<Self, AgentWorkerError> {
+        Self::start_supervised(binding, host, options, None).await
+    }
+
+    pub(crate) async fn start_supervised(
+        binding: AgentWorkerBinding,
+        host: Arc<dyn AgentWorkerReadiness>,
+        options: AgentWorkerOptions,
+        maintenance: Option<AgentMaintenanceHealth>,
+    ) -> Result<Self, AgentWorkerError> {
         if !probe(&binding, host.as_ref(), &options)
             .await
             .unwrap_or(false)
@@ -129,7 +139,7 @@ impl AgentWorker {
             health: health.clone(),
             stop: stop.clone(),
         };
-        let task = tokio::spawn(run(Arc::new(binding), host, options, guard));
+        let task = tokio::spawn(run(Arc::new(binding), host, options, guard, maintenance));
         Ok(Self {
             health,
             stop,
@@ -253,9 +263,16 @@ async fn slot(
     options: AgentWorkerOptions,
     health: AgentWorkerHealth,
     stop: CancellationToken,
+    maintenance: Option<AgentMaintenanceHealth>,
 ) {
     let signal = CancellationSignal::new(Signal(stop.clone()));
     while !stop.is_cancelled() {
+        if maintenance.as_ref().is_some_and(|health| {
+            health.status() != crate::agent_maintenance::AgentMaintenanceStatus::Ready
+        }) {
+            pause(options.idle_delay, &stop).await;
+            continue;
+        }
         let Some(active) = health.admit() else {
             pause(options.idle_delay, &stop).await;
             continue;
@@ -294,6 +311,7 @@ async fn run(
     host: Arc<dyn AgentWorkerReadiness>,
     options: AgentWorkerOptions,
     mut guard: RuntimeGuard,
+    maintenance: Option<AgentMaintenanceHealth>,
 ) -> AgentWorkerReport {
     guard.tasks.spawn(monitor(
         binding.clone(),
@@ -308,6 +326,7 @@ async fn run(
             options.clone(),
             guard.health.clone(),
             guard.stop.clone(),
+            maintenance.clone(),
         ));
     }
     tokio::select! {

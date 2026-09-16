@@ -124,6 +124,49 @@ let router = http.router();
     </p>
   </section>
 
+  <section aria-labelledby="agent-host">
+    <h2 id="agent-host">Own the three roles as one co-located host</h2>
+    <p>
+      <code>AgentHostBindings::new</code> consumes the actual ingress, Worker and
+      maintenance bindings. <code>AgentHostDependencies</code> requires their real
+      identity, policy and execution checks. <code>AgentHost::launch</code> claims
+      shared ingress exclusively and returns an owner before asynchronous startup;
+      <code>host.wait_ready().await</code> waits without losing ownership on cancellation.
+      The application must qualify compatible databases, registries and tenant scope.
+    </p>
+    <p>
+      Startup is maintenance → Worker → HTTP. Queued durable work may execute
+      during startup; later failure joins started roles but does not roll back
+      committed work. Every hosted HTTP request checks actual sibling freshness,
+      and Worker admission pauses while maintenance is unavailable. Already
+      admitted work may complete. Do not mount input router clones on a separate
+      listener.
+    </p>
+    <p>
+      <code>host.health()</code> is an internal payload-free view, not an anonymous
+      operations endpoint. A role's unexpected exit closes ingress and drains siblings.
+      <code>host.shutdown().await</code> joins in HTTP → Worker → maintenance order,
+      preserving maintenance during Worker cleanup. Drop initiates cleanup but does
+      not synchronously join it. The OS deadline must cover all role drain bounds
+      plus cooperative destruction; process shutdown is not durable user cancellation.
+    </p>
+    <p>
+      PostgreSQL 16/17 and real TLS Keycloak exercise composed recovery,
+      dependency gates, startup failures, role exits and joined cleanup.
+      Protected operations endpoints and measured deployment/capacity SLOs
+      remain separate work. Only the documentation website is deployed here, not
+      a fixture-backed Agent runtime.
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-host.md"
+        >Wiring and recovery guide</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0015-owned-agent-host.md"
+        >RFC-0015 (Draft)</a
+      >
+    </p>
+  </section>
+
   <section aria-labelledby="http-resource-policy">
     <h2 id="http-resource-policy">
       Real resource policy: exact grants and recoverable submission
