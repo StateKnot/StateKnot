@@ -11,6 +11,9 @@ Agents in the request task. A separately deployed scheduler/Worker advances Runs
 This is an implemented pre-alpha profile, not a stable API or a complete managed
 Agent hosting product. [RFC-0008](rfcs/0008-agent-http-v1.md) tracks the boundary.
 
+For an owned listener, dependency readiness and bounded graceful drain, use the
+[owned ingress runtime](agent-http-server.md). Router-only embedding remains available.
+
 ## Bind the host, not caller-supplied identity
 
 ```rust
@@ -137,8 +140,9 @@ Host/header envelopes can reject before authentication; no resource lookup occur
    cover compatible database schema and registry/policy dependencies. Track only
    bounded error codes, latency, 429/503 counts and opaque request IDs; redact
    Authorization, keys, inputs, outputs and raw paths from logs/traces.
-5. On drain, stop accepting connections and call `http.shutdown()`. Bound listener
-   graceful shutdown separately. In-flight requests can have committed already;
+5. With the owned server, await `server.shutdown()` for ordered bounded drain.
+   Router-only hosts must stop accepting, call `http.shutdown()` and bound their
+   own connection drain. In-flight requests can have committed already;
    recover by original identities after replacement. Never compensate blindly.
 6. Retain existing database records on binary rollback. Resume outstanding work
    only with compatible registry/runtime capabilities. RPO is that of the host's

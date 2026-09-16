@@ -21,6 +21,7 @@ security, or operational commitments.
 | [0007](0007-authenticated-known-error-reconciliation.md) | Draft | Separately authorized known-effect Tool failure evidence |
 | [0008](0008-agent-http-v1.md) | Draft | Authenticated bounded Agent HTTP v1 ingress and lost-response recovery |
 | [0009](0009-agent-sse-replay.md) | Draft | Resumable public Agent activity SSE and bounded connection lifecycle |
+| [0010](0010-owned-agent-http-server.md) | Draft | Owned HTTP ingress, dependency readiness and bounded graceful drain |
 
 ## When an RFC is required
 

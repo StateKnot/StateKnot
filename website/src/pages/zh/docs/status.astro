@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "HTTP 接入运行角色与优雅停机",
+    body: "接管本机监听器，校验实际 Schema、可执行注册表及强制宿主依赖就绪；证据失效时拒绝新业务，限制连接资源并回收优雅排空或强制关闭的任务。通过 PostgreSQL 16/17 故障测试，不自动启动 Worker、不暴露匿名健康入口、不宣称稳定版。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "Agent 活动 SSE 与断线续传",
     body: "显式启用的认证活动通知，精确 PostgreSQL 游标、新进程后缀恢复、独立状态快照、持续授权检查、有界队列和连接时限，以及仅隔离状态变化通知。不等于 Token 流或完整历史状态重建。",
   },

@@ -149,7 +149,8 @@ pub(super) async fn open(
     let first = observation.batch(&page)?;
     let (sender, receiver) = mpsc::channel(1);
     let expires = Instant::now() + options.lifetime;
-    let task = tokio::spawn(async move {
+    let tracker = inner.stream_tasks.clone();
+    let task = tracker.spawn(async move {
         let _permit = permit;
         let result = tokio::select! {
             biased;

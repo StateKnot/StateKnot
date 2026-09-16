@@ -152,6 +152,55 @@ let router = http.router();
       >
     </p>
   </section>
+  <section aria-labelledby="http-server">
+    <h2 id="http-server">管理就绪状态、连接与优雅停机</h2>
+    <p>
+      <code>AgentHttpServer::start</code> 接管只绑定本机回环地址的 HTTP/1 监听器，由同一网络命名空间内的代理负责公网
+      TLS。启动前校验实际使用的 PostgreSQL Schema、精确可执行注册表，并强制提供 <code
+        >AgentHttpReadiness</code
+      >，
+      检查请求真正使用的凭据验证与资源策略依赖。不会默认安装身份验证器，也不自动执行迁移、启动
+      Worker 或调度器。
+    </p>
+    <p>
+      默认每次检查完成后间隔 10 秒再检查，整个检查限时 5 秒，就绪证据有效期为 20
+      秒。 检查不重叠；依赖失败、超时或证据过期时，新业务请求返回
+      503，后续检查成功才重新接入。
+      就绪不等于获得授权，也不保证下一次请求一定成功；已接入的请求仍受原有授权和时限控制。
+    </p>
+    <p>
+      传输层默认最多 256 个连接、64 个请求头、32 KiB 解析缓冲、5
+      秒请求头读取时限和 300
+      秒连接绝对存活时限。超额连接直接关闭，不进入业务处理。JSON 与 SSE
+      各自的上限继续生效；TLS、代理限制及跨副本配额仍需部署方配置。
+    </p>
+    <p>
+      <code>server.health()</code> 只提供本地状态和活动连接数，应接入受保护的管理或进程监督界面；
+      不会在 Agent API 中添加匿名健康检查入口。依赖不可用时可以仍然存活，但不接收新业务。
+    </p>
+    <p>
+      <code>server.begin_shutdown()</code> 立即撤销就绪状态；等待 <code
+        >server.shutdown()</code
+      >
+      停止接收连接并允许已接入工作完成。默认排空 30 秒后，取消并回收剩余连接任务；SSE
+      可能需要这一强制关闭阶段。检查停机报告，并保留原提交键、取消身份及游标：连接关闭不代表事务回滚。
+      直接丢弃服务句柄会中止工作，但不等于已经等待优雅停机。阻塞式回调仍需进程监督器的外层强制退出期限；
+      共享数据库连接池由部署方管理，不会被服务擅自关闭。
+    </p>
+    <p>
+      PostgreSQL 16/17
+      实测覆盖就绪失效与恢复、启动失败、排空期间成功提交、慢请求体和 SSE
+      强制关闭、空闲连接及句柄释放、传输上限。真实身份与策略服务的角色集成和稳定版发布仍是后续门禁。
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-http-server.md"
+        >完整接线与运维指南</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0010-owned-agent-http-server.md"
+        >RFC-0010</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="http-retry">
     <h2 id="http-retry">响应丢失后找回任务，不重复创建</h2>
     <p>
@@ -203,8 +252,9 @@ let router = http.router();
         日志不记录认证头、提交键、输入输出和原始路径；监控有界延迟/错误指标及依赖就绪状态。
       </li>
       <li>
-        停止接收连接，调用 <code>http.shutdown()</code
-        >，并单独限制监听器排空时间。替换服务后，用原身份恢复可能已经提交的请求。
+        使用运行角色时等待 <code>server.shutdown()</code
+        >。仅嵌入路由的部署仍需调用
+        <code>http.shutdown()</code> 并自行限制连接排空时间。替换服务后，用原身份恢复可能已经提交的请求。
       </li>
     </ol>
     <p>

@@ -78,10 +78,11 @@ pub use agent_service::{
     AGENT_SERVICE_API_VERSION, AgentCancellationIds, AgentCancellationOutcome,
     AgentRunActivityPage, AgentServiceAuthorizationError, AgentServiceAuthorizer,
     AgentServiceBuildError, AgentServiceCaller, AgentServiceDeployment,
-    AgentServiceDeploymentError, AgentServiceError, AgentServiceRegistry,
-    AgentServiceRegistryBuilder, AgentServiceRegistryError, AgentServiceRunAuthorization,
-    AgentServiceRunGrant, AgentServiceRunOperation, AgentServiceRunTarget,
-    AgentServiceSubmissionAuthorization, AgentServiceSubmissionGrant, AgentServiceV1,
+    AgentServiceDeploymentError, AgentServiceError, AgentServiceReadinessError,
+    AgentServiceRegistry, AgentServiceRegistryBuilder, AgentServiceRegistryError,
+    AgentServiceRunAuthorization, AgentServiceRunGrant, AgentServiceRunOperation,
+    AgentServiceRunTarget, AgentServiceSubmissionAuthorization, AgentServiceSubmissionGrant,
+    AgentServiceV1,
 };
 pub use agent_typed::{
     AgentBuilder, AgentBuilderError, AgentSchemaRegistrationError, AgentSchemaRole, TypedAgent,

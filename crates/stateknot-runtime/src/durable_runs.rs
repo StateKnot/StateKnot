@@ -436,6 +436,10 @@ pub struct DurableAgentRuns {
 }
 
 impl DurableAgentRuns {
+    pub(crate) const fn executable_registry(&self) -> &ExecutableGraphRegistry {
+        &self.registry
+    }
+
     /// Binds the durability provider to one immutable executable deployment.
     ///
     /// # Errors
