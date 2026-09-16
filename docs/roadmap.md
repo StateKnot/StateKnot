@@ -14,6 +14,12 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Implement [online Agent HTTP identity](agent-identity.md): fixed HTTPS
+  introspection, exact claims, rotating secrets, expiring default-deny tenant
+  bindings and negative-canary readiness. Real Keycloak/PostgreSQL qualification
+  covers resource/cross-tenant refusal, rotation, revocation and SSE cleanup.
+  Resource policy remains mandatory; JWT/JWKS and full host acceptance are open.
+
 - [x] Implement an [owned HTTP ingress role](agent-http-server.md): actual
   schema/executable readiness plus mandatory host readiness, fresh fail-closed
   admission, owned bounded connections and deadline-driven joined drain.

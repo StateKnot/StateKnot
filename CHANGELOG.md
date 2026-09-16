@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Concrete bounded OAuth token introspection for Agent HTTP: verified HTTPS,
+  exact access-token claim/scope checks, secret rotation, default-deny expiring
+  tenant bindings with atomic CAS replacement, and real negative-canary readiness.
+  The existing resource authorizer remains mandatory. Includes pinned Keycloak
+  TLS/rotation/revocation/SSE qualification on PostgreSQL 16/17, RFC-0011 and
+  bilingual operations guides; no JWT/JWKS, schema change or stable release claim.
+
 - Owned loopback HTTP ingress runtime with mandatory actual store/schema,
   executable registry and host dependency readiness; single-flight probes,
   freshness-gated admission, explicit connection/header/lifetime ceilings,

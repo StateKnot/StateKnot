@@ -233,6 +233,12 @@ The [owned HTTP ingress runtime](docs/agent-http-server.md) additionally owns
 loopback connections, checks actual dependencies and bounds graceful drain.
 Identity/policy readiness remains mandatory host wiring; Workers and schedulers
 remain separate roles, not silently started by ingress.
+The concrete [online identity profile](docs/agent-identity.md) adds fixed-HTTPS
+OAuth introspection, exact claim/scope validation, rotating client secrets,
+expiring default-deny tenant bindings and negative-canary readiness. Real
+Keycloak TLS tests cover rotation, revocation and SSE closure; the separate
+resource authorizer remains mandatory. This does not implement JWT/JWKS or
+complete host-role release qualification.
 `McpRemoteTool` now implements the first strict protocol adapter: MCP
 2026-07-28 modern stateless discovery, complete JSON responses, exact local
 schema and server-identity pins, attempt-scoped authorization, bounded

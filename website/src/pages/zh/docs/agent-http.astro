@@ -34,7 +34,7 @@ let router = http.router();
   <section aria-labelledby="http-wiring">
     <h2 id="http-wiring">接入可信身份与资源授权</h2>
     <p>
-      必须实现 <code>AgentHttpAuthenticator</code
+      必须配置 <code>AgentHttpAuthenticator</code
       >，验证签名或令牌内省证据、签发方、受众、有效期与吊销状态，再映射可信租户、主体，以及彼此独立的
       <code>Submit</code>、<code>Read</code>、<code>Cancel</code> 权限。框架没有默认放行器，也没有匿名模式。
     </p>
@@ -54,6 +54,41 @@ let router = http.router();
       </div>
       <pre id="http-code" tabindex="0"><code>{code}</code></pre>
     </div>
+  </section>
+  <section aria-labelledby="http-identity">
+    <h2 id="http-identity">接入真实身份服务：在线令牌验证</h2>
+    <p>
+      <code>AgentHttpIntrospection</code> 可直接接入 OAuth 2.0 令牌内省端点， 使用固定
+      HTTPS 地址，严格核对签发方、受众、主体、有效期和操作 Scope。 已通过真实 Keycloak
+      26.7.3 TLS、密钥轮换和身份撤销测试；没有跳转、环境代理、 自动重试、令牌缓存或不安全
+      TLS 开关。这不等于 JWT/JWKS 本地验签或完整 OIDC。
+    </p>
+    <p>
+      <code>TenantPolicy</code> 只接受可信控制面提供的精确主体与租户绑定， 权限取令牌
+      Scope 与本地授权的交集。策略最多 1024 项，租期必须显式指定且不超过一小时； 使用带预期代数的
+      <code>replace</code> 原子更新，过期后拒绝放行。 租户绑定不是 Run 所有权，原有
+      <code>AgentServiceAuthorizer</code> 仍须逐资源授权。
+    </p>
+    <p>
+      用 <code>replace_client_secret</code> 安装密钥管理服务下发的新凭据。 就绪检查通过真实客户端认证发送随机无效令牌，要求返回
+      inactive； 它只验证端点和凭据可用，不能替代业务授权或资源策略就绪检查。 没有凭据重叠窗口的轮换会短暂返回
+      503，不能降级放行。
+    </p>
+    <p>
+      默认整次验证最多 3 秒、32 个并发请求、64 KiB 响应； 每次 HTTP 请求和 SSE
+      授权循环都在线验证，需规划身份服务容量。
+      已进入网络缓冲的字节无法撤回。测试身份服务和测试账号不会部署到官网。
+    </p>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-identity.zh-CN.md"
+        >完整接线、轮换与故障恢复指南</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0011-agent-http-introspection.md"
+        >RFC-0011（Draft）</a
+      >
+    </p>
   </section>
   <section aria-labelledby="http-operations">
     <h2 id="http-operations">四个操作，共用持久化服务</h2>

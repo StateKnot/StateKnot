@@ -402,3 +402,22 @@ jobs:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
         run: cargo test -p stateknot-artifact-store --test artifact_store --locked -- --test-threads=1
+
+      - name: Qualify real TLS identity, rotation, revocation and ingress
+        env:
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          bash conformance/agent-identity/run.sh | tee agent-identity-qualification.log
+          test "$(grep -c '^STATEKNOT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)" = 1
+
+      - name: Upload real identity qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-identity-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            agent-identity-qualification.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,52 @@
+{
+  "realm": "stateknot-qualification",
+  "enabled": true,
+  "sslRequired": "all",
+  "accessTokenLifespan": 300,
+  "clientScopes": [
+    {"name":"stateknot:submit","protocol":"openid-connect","attributes":{"include.in.token.scope":"true"}},
+    {"name":"stateknot:read","protocol":"openid-connect","attributes":{"include.in.token.scope":"true"}},
+    {"name":"stateknot:cancel","protocol":"openid-connect","attributes":{"include.in.token.scope":"true"}}
+  ],
+  "clients": [
+    {
+      "id":"stateknot-introspection-client",
+      "clientId":"stateknot-http",
+      "secret":"fixture-introspection-secret",
+      "publicClient":false,
+      "standardFlowEnabled":false,
+      "directAccessGrantsEnabled":false,
+      "serviceAccountsEnabled":false,
+      "protocol":"openid-connect"
+    },
+    {
+      "id":"stateknot-caller-client",
+      "clientId":"agent-caller",
+      "secret":"fixture-caller-secret",
+      "publicClient":false,
+      "standardFlowEnabled":false,
+      "directAccessGrantsEnabled":false,
+      "serviceAccountsEnabled":true,
+      "protocol":"openid-connect",
+      "defaultClientScopes":["stateknot:submit","stateknot:read","stateknot:cancel"],
+      "protocolMappers":[{
+        "name":"agent-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper",
+        "config":{"included.client.audience":"stateknot-http","access.token.claim":"true","introspection.token.claim":"true","id.token.claim":"false"}
+      }]
+    },
+    {
+      "id":"stateknot-admin-client",
+      "clientId":"fixture-admin",
+      "secret":"fixture-admin-secret",
+      "publicClient":false,
+      "standardFlowEnabled":false,
+      "directAccessGrantsEnabled":false,
+      "serviceAccountsEnabled":true,
+      "protocol":"openid-connect"
+    }
+  ],
+  "users":[
+    {"id":"4cd727b3-c1b7-4ae5-9731-b42d3fd566ca","username":"service-account-agent-caller","enabled":true,"serviceAccountClientId":"agent-caller"},
+    {"username":"service-account-fixture-admin","enabled":true,"serviceAccountClientId":"fixture-admin","clientRoles":{"realm-management":["manage-clients","view-clients","manage-users","view-users"]}}
+  ]
+}

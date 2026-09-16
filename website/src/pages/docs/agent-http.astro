@@ -61,6 +61,50 @@ let router = http.router();
       <pre id="http-code" tabindex="0"><code>{code}</code></pre>
     </div>
   </section>
+  <section aria-labelledby="http-identity">
+    <h2 id="http-identity">
+      Connect a real identity provider with online verification
+    </h2>
+    <p>
+      <code>AgentHttpIntrospection</code> connects to a fixed HTTPS OAuth 2.0 introspection
+      endpoint and strictly verifies issuer, audience, subject, lifetime and operation
+      scopes. Real Keycloak 26.7.3 TLS, secret rotation and revocation are qualified.
+      No redirects, environment proxies, retries, token cache or insecure TLS switch.
+      This is not JWT/JWKS local validation or complete OIDC.
+    </p>
+    <p>
+      <code>TenantPolicy</code> accepts exact principal-to-tenant bindings from the
+      trusted control plane, intersecting token scopes with local grants. At most
+      1024 bindings have an explicit lease of at most one hour;
+      <code>replace</code> atomically checks the expected generation. Expired policy
+      fails closed. A tenant binding is not Run ownership: the existing
+      <code>AgentServiceAuthorizer</code> must still authorize each resource.
+    </p>
+    <p>
+      Install secret-manager-delivered credentials with
+      <code>replace_client_secret</code>. Readiness sends a random invalid token
+      using real client authentication and requires an inactive response. It
+      proves endpoint/credential access, not business authorization or resource
+      policy health. Rotation without overlapping credentials creates a brief
+      503 window; never fall back to anonymous access.
+    </p>
+    <p>
+      Defaults are a 3-second total exchange, 32 concurrent requests and a 64
+      KiB response. Every HTTP request and SSE authorization cycle verifies
+      online; plan IdP capacity accordingly. Buffered bytes cannot be revoked.
+      Test identity services and accounts are never deployed with the website.
+    </p>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-identity.md"
+        >Complete wiring, rotation and recovery guide</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0011-agent-http-introspection.md"
+        >RFC-0011 (Draft)</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="http-operations">
     <h2 id="http-operations">Four operations, one durable service</h2>
     <dl class="docs-definition-list">
