@@ -34,7 +34,7 @@ a tenant binding is not permission to read every Run in that tenant.
 
 `AgentHttpIntrospection` implements `AgentHttpAuthenticator` and
 `AgentHttpReadiness`. Construction takes explicit endpoint/issuer/audience/client
-configuration, a bounded redacted client secret, and an `AgentHttpTenantPolicy`.
+configuration, a bounded redacted client secret, and an `introspection::TenantPolicy`.
 Custom trusted CA certificates may be supplied; insecure TLS is never an option.
 The host installs the same shared instance in HTTP authentication and composes
 its readiness check with the real resource-policy dependencies.
