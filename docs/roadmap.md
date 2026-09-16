@@ -14,6 +14,12 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Implement an [owned durable scheduling Worker](agent-worker.md): concrete
+  tenant/fair bindings, fixed slots, actual dependency readiness, finite pacing
+  and deadlines, joined graceful/forced shutdown including nested node futures,
+  and PostgreSQL 16/17 fresh-process terminal replay and fair-slot continuity.
+  Maintenance and complete identity/policy-backed host qualification stay separate.
+
 - [x] Implement [declarative Agent resource policy](agent-resource-policy.md):
   exact caller/Agent/schema/run selectors, explicit tenant-operator grants,
   digest-bound retained configuration, deterministic admission evidence,
@@ -33,8 +39,8 @@ from the repository.
   PostgreSQL 16/17 tests cover dependency loss/recovery, successful draining
   writes, slow/SSE/drop cleanup and transport ceilings. No inline Worker,
   public health route or complete managed-service/release claim.
-- [ ] Qualify a real identity/policy-backed host deployment, protected role-health
-  integration and independently operated Worker/scheduler lifecycle.
+- [ ] Qualify a real identity/policy-backed multi-role host deployment, protected
+  role-health integration, maintenance ownership and measured recovery/capacity.
 - [x] Add opt-in [resumable Agent activity SSE](agent-events.md): exact retained
   journal cursors, payload-free activity notifications, independent current
   snapshots, repeated authorization, finite lifetime/queue limits, and PostgreSQL

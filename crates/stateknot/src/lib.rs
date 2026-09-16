@@ -17,6 +17,8 @@
 
 /// Authenticated, bounded HTTP v1 ingress for durable Agent operations.
 pub mod agent_http;
+/// Independently owned, bounded durable scheduling Worker lifecycle.
+pub mod agent_worker;
 mod mcp_compute;
 mod mcp_reconciliation;
 pub use mcp_compute::{

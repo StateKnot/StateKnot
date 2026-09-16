@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Owned concrete tenant/fair scheduling Worker with fixed concurrency, actual
+  schema/registry/policy and mandatory host readiness, finite pacing and deadlines,
+  fail-stop drain and cancellation-safe joining of nested Graph node futures.
+  Includes PostgreSQL 16/17 fault and fresh-process recovery qualification,
+  RFC-0013 and bilingual operations guides. No migration or dependency-version
+  change, implicit maintenance jobs, public health endpoint or stable release claim.
+
 - Concrete offline default-deny Agent resource authorization with digest-pinned
   artifacts, exact selectors, explicit tenant operators, restrictive budgets,
   deterministic retained admission evidence, bounded freshness and atomic CAS

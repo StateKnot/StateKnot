@@ -90,6 +90,16 @@ let router = http.router();
       >
     </p>
   </section>
+  <section aria-labelledby="http-worker">
+    <h2 id="http-worker">单独运行执行角色</h2>
+    <p>
+      现在可使用独立的<a href="/zh/docs/agent-loop/#owned-worker"
+        >持久执行 Worker</a
+      >， 管理具体租户或公平调度器、真实依赖就绪检查、固定并发和停机回收。 HTTP
+      接入仍独立运行，提交 Run 不会自动启动 Worker 或维护任务。
+    </p>
+  </section>
+
   <section aria-labelledby="http-resource-policy">
     <h2 id="http-resource-policy">配置真实资源授权：精确权限与可恢复提交</h2>
     <p>

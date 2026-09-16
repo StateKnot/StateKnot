@@ -211,6 +211,44 @@ const outcomes = [
     </p>
   </section>
 
+  <section aria-labelledby="owned-worker">
+    <h2 id="owned-worker">Operate the Worker independently of HTTP ingress</h2>
+    <p>
+      <code>AgentWorkerBinding::tenant</code> and <code
+        >AgentWorkerBinding::fair</code
+      >
+      exclusively own a concrete scheduler. <code>AgentWorker::start</code> checks
+      its actual database schema, frozen registry and persisted fair policy, plus
+      mandatory <code>AgentWorkerReadiness</code> for real host dependencies. Fixed
+      slots bound concurrency; stale or failed readiness pauses new ticks. Periodic
+      checks never overlap. No Worker is started by HTTP admission.
+    </p>
+    <p>
+      Defaults are 4 slots, a 5-minute tick deadline and a 30-second drain.
+      <code>worker.begin_shutdown()</code> closes admission;
+      <code>worker.shutdown().await</code> joins ticks and nested Graph node futures,
+      forcing task cancellation after the graceful deadline. Cancelling
+      <code>worker.wait()</code> does not lose task ownership. Drop only requests
+      cleanup; non-yielding callbacks still require an OS supervisor deadline. Shutdown
+      is not durable Run cancellation and never proves rollback.
+    </p>
+    <p>
+      <code>worker.health()</code> exposes payload-free local state and counts, not
+      a public endpoint or durable billing. Hosts must separately operate timer, deadline,
+      child and failure-close maintenance. PostgreSQL 16/17 tests exercise failure
+      recovery, bounded concurrency, joined shutdown, fresh-process terminal replay
+      without repeating a node, and continuous fair-slot sequencing. Follow the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-worker.md"
+        >assembly and operations guide</a
+      >
+      and <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0013-owned-agent-worker.md"
+        >Draft RFC-0013</a
+      >. This is not complete multi-role production qualification or a stable
+      release.
+    </p>
+  </section>
+
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">Qualification evidence</h2>
     <p>

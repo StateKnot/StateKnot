@@ -105,6 +105,18 @@ let router = http.router();
       >
     </p>
   </section>
+  <section aria-labelledby="http-worker">
+    <h2 id="http-worker">Run execution separately</h2>
+    <p>
+      The owned <a href="/docs/agent-loop/#owned-worker"
+        >durable scheduling Worker</a
+      >
+      now manages concrete tenant/fair schedulers, real dependency readiness, fixed
+      concurrency and joined shutdown. Ingress remains independent; submitting a Run
+      does not start a Worker or maintenance jobs.
+    </p>
+  </section>
+
   <section aria-labelledby="http-resource-policy">
     <h2 id="http-resource-policy">
       Real resource policy: exact grants and recoverable submission

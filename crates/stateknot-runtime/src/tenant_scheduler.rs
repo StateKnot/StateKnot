@@ -227,6 +227,11 @@ pub struct DurableTenantScheduler {
 }
 
 impl DurableTenantScheduler {
+    /// Returns shared node-future completion accounting for this scheduler and clones.
+    pub fn execution_activity(&self) -> crate::GraphExecutionActivity {
+        self.agent_loop.execution_activity()
+    }
+
     /// Builds a tenant worker and its internally consistent durable loop.
     ///
     /// # Errors

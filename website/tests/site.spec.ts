@@ -9,6 +9,37 @@ const responsiveAuditWidths = [
 ] as const;
 
 for (const locale of ["en", "zh"] as const) {
+  test(`${locale} documents concrete owned Worker boundaries`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/agent-loop/`);
+    const section = page.locator('section[aria-labelledby="owned-worker"]');
+    for (const contract of [
+      "AgentWorkerBinding::tenant",
+      "AgentWorkerBinding::fair",
+      "AgentWorker::start",
+      "AgentWorkerReadiness",
+      "worker.shutdown().await",
+      "worker.health()",
+    ])
+      await expect(section.getByText(contract, { exact: true })).toBeVisible();
+    await expect(section).toContainText(
+      locale === "zh" ? "不代表事务回滚" : "never proves rollback",
+    );
+    await expect(
+      section.locator("a[href$='0013-owned-agent-worker.md']"),
+    ).toHaveCount(1);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+    await expect(
+      page.locator(
+        "a[href$='/docs/agent-worker" +
+          (locale === "zh" ? ".zh-CN" : "") +
+          ".md']",
+      ),
+    ).toHaveCount(1);
+  });
+
   test(`${locale} explains independently authorized known-error reconciliation`, async ({
     page,
   }) => {

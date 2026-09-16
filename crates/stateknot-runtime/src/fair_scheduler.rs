@@ -497,6 +497,25 @@ pub struct DurableFairScheduler {
 }
 
 impl DurableFairScheduler {
+    /// Returns shared node-future completion accounting for this scheduler and clones.
+    pub fn execution_activity(&self) -> crate::GraphExecutionActivity {
+        self.tenant_scheduler.execution_activity()
+    }
+
+    /// Verifies the persisted immutable policy without reserving a slot.
+    pub async fn check_readiness(&self) -> Result<(), FairSchedulerError> {
+        let stored = self
+            .store
+            .load_scheduler_fairness_policy(self.policy.shard_id())
+            .await
+            .map_err(|source| FairSchedulerError::Store { source })?;
+        if stored.registration() == &self.policy.registration() {
+            Ok(())
+        } else {
+            Err(FairSchedulerError::PolicyProjectionMismatch)
+        }
+    }
+
     /// Builds the tenant worker and registers the immutable global policy.
     ///
     /// # Errors

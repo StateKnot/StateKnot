@@ -52,6 +52,7 @@ struct Node {
     id: NodeId,
     schema: SchemaReference,
     calls: Arc<AtomicUsize>,
+    block: Arc<AtomicBool>,
 }
 impl GraphNodeExecutor for Node {
     fn graph(&self) -> &GraphReference {
@@ -66,17 +67,30 @@ impl GraphNodeExecutor for Node {
     ) -> BoxFuture<'_, Result<GraphNodeExecution, GraphNodeExecutionError>> {
         Box::pin(async move {
             self.calls.fetch_add(1, Ordering::SeqCst);
+            if self.block.load(Ordering::SeqCst) {
+                std::future::pending::<()>().await;
+            }
+            // Deterministic one-turn model fixture. Attribute its observed call
+            // and materialized JSON bytes to the durable node completion.
+            let output = bounded(json!({"value":1}));
+            let usage = BudgetUsage::builder()
+                .model_attempts(ExecutionCount::new(1))
+                .model_turns(ExecutionCount::new(1))
+                .input_bytes(ByteCount::new(
+                    u64::try_from(output.stats().compact_bytes()).unwrap(),
+                ))
+                .output_bytes(ByteCount::new(
+                    u64::try_from(output.stats().compact_bytes()).unwrap(),
+                ))
+                .build()
+                .unwrap();
             Ok(GraphNodeExecution::new(
                 NodeStateChange::Unchanged,
                 NodeControl::Terminal {
-                    output: NodeTerminalOutput::new(
-                        self.schema.clone(),
-                        bounded(json!({"value":1})),
-                    )
-                    .unwrap(),
+                    output: NodeTerminalOutput::new(self.schema.clone(), output).unwrap(),
                 },
                 NodeInvocationBindings::empty(),
-                BudgetUsage::zero(),
+                usage,
             ))
         })
     }
@@ -164,6 +178,8 @@ pub(super) struct Fixture {
     pub denied: Arc<AtomicBool>,
     pub policy_calls: Arc<AtomicUsize>,
     pub node_calls: Arc<AtomicUsize>,
+    #[allow(dead_code)] // Used by the independent Worker qualification target.
+    pub node_block: Arc<AtomicBool>,
     pub executable: ExecutableGraphRegistry,
     pub deployments: AgentServiceRegistry,
     pub policy: Arc<dyn AgentServiceAuthorizer>,
@@ -235,6 +251,8 @@ impl Fixture {
         let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
         schemas.register(schema.clone(), document).unwrap();
         register_standard_graph_driver_event_schema(&mut schemas).unwrap();
+        register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
+        register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
         register_standard_agent_admission_event_schema(&mut schemas).unwrap();
         register_standard_agent_service_control_event_schema(&mut schemas).unwrap();
         agent_policy::register_agent_policy_evidence_schema(&mut schemas).unwrap();
@@ -244,12 +262,14 @@ impl Fixture {
             .register_reducer(Arc::new(Reducer(graph.reducer().clone())))
             .unwrap();
         let node_calls = Arc::new(AtomicUsize::new(0));
+        let node_block = Arc::new(AtomicBool::new(false));
         registry
             .register_node(Arc::new(Node {
                 graph: graph.reference(),
                 id,
                 schema: schema.clone(),
                 calls: node_calls.clone(),
+                block: node_block.clone(),
             }))
             .unwrap();
         let raw: Value = serde_json::from_str(include_str!(
@@ -346,6 +366,7 @@ impl Fixture {
             denied,
             policy_calls,
             node_calls,
+            node_block,
             executable,
             deployments,
             policy,
