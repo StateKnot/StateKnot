@@ -66,12 +66,8 @@ impl Events {
     async fn next(&mut self, kind: &str) -> (Option<String>, Value) {
         tokio::time::timeout(Duration::from_secs(5), async {
             loop {
-                if let Some(end) = self.buffer.find("\n\n") {
-                    let frame = self.buffer.drain(..end + 2).collect::<String>();
+                if let Some(frame) = take_frame(&mut self.buffer, kind) {
                     assert!(!frame.contains("never-log"));
-                    if !frame.starts_with(&format!("event: {kind}\n")) {
-                        continue;
-                    }
                     let id = frame
                         .lines()
                         .find_map(|line| line.strip_prefix("id: "))
@@ -82,12 +78,9 @@ impl Events {
                         .unwrap();
                     return (id, serde_json::from_str(data).unwrap());
                 }
-                let chunk = self
-                    .response
-                    .chunk()
-                    .await
-                    .unwrap()
-                    .expect("stream ended before expected event");
+                let chunk = self.response.chunk().await.unwrap().unwrap_or_else(|| {
+                    panic!("stream ended waiting for {kind}; buffered: {}", self.buffer)
+                });
                 self.buffer.push_str(std::str::from_utf8(&chunk).unwrap());
                 assert!(self.buffer.len() <= 8_388_608);
             }
@@ -95,6 +88,51 @@ impl Events {
         .await
         .unwrap()
     }
+}
+
+// Snapshot and activity are independently observed. Retain unmatched complete
+// frames: a journal append can be seen before its newer lifecycle snapshot.
+fn take_frame(buffer: &mut String, kind: &str) -> Option<String> {
+    let prefix = format!("event: {kind}\n");
+    let mut offset = 0;
+    for frame in buffer.split_inclusive("\n\n") {
+        if !frame.ends_with("\n\n") {
+            break;
+        }
+        let end = offset + frame.len();
+        if frame.starts_with(&prefix) {
+            return Some(buffer.drain(offset..end).collect());
+        }
+        offset = end;
+    }
+    None
+}
+
+#[test]
+fn event_reader_preserves_activity_before_or_after_independent_snapshot() {
+    let activity = "event: activity\nid: exact-cursor\ndata: {\"sequence\":\"2\"}\n\n";
+    let snapshot = "event: snapshot\ndata: {\"status\":\"cancellation_requested\"}\n\n";
+    for mut buffer in [
+        format!("{activity}{snapshot}"),
+        format!("{snapshot}{activity}"),
+    ] {
+        assert_eq!(
+            take_frame(&mut buffer, "snapshot").as_deref(),
+            Some(snapshot)
+        );
+        assert_eq!(
+            take_frame(&mut buffer, "activity").as_deref(),
+            Some(activity)
+        );
+        assert!(buffer.is_empty());
+    }
+    let mut partial = snapshot.trim_end_matches('\n').to_owned();
+    assert!(take_frame(&mut partial, "snapshot").is_none());
+    partial.push_str("\n\n");
+    assert_eq!(
+        take_frame(&mut partial, "snapshot").as_deref(),
+        Some(snapshot)
+    );
 }
 async fn admit(f: &Fixture) -> RunId {
     let input = f.submission();

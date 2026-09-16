@@ -21,6 +21,7 @@
 
 mod auth;
 mod options;
+mod server;
 mod sse;
 mod wire;
 pub use auth::{
@@ -28,6 +29,10 @@ pub use auth::{
     AgentHttpPrincipal,
 };
 pub use options::{AgentHttpOptions, AgentHttpOptionsError};
+pub use server::{
+    AgentHttpDrainReport, AgentHttpReadiness, AgentHttpReadinessError, AgentHttpServer,
+    AgentHttpServerError, AgentHttpServerHealth, AgentHttpServerOptions, AgentHttpServerStatus,
+};
 pub use sse::{AgentHttpActivity, AgentHttpSseOptions};
 pub use wire::{AgentHttpLookup, AgentHttpRunResponse, AgentHttpSubmission};
 
@@ -49,10 +54,10 @@ use stateknot_runtime::{
 use stateknot_store_postgres::StoreError;
 use std::{
     io::{self, Write},
-    sync::Arc,
+    sync::{Arc, atomic::AtomicBool},
 };
 use tokio::sync::Semaphore;
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 const ROOT: &str = "/v1/agent-runs";
 
@@ -69,6 +74,8 @@ struct Inner {
     permits: Semaphore,
     stream_permits: Arc<Semaphore>,
     shutdown: CancellationToken,
+    server_claimed: AtomicBool,
+    stream_tasks: TaskTracker,
 }
 
 impl AgentHttpService {
@@ -90,6 +97,8 @@ impl AgentHttpService {
                 )),
                 options,
                 shutdown: CancellationToken::new(),
+                server_claimed: AtomicBool::new(false),
+                stream_tasks: TaskTracker::new(),
             }),
         }
     }

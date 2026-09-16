@@ -14,6 +14,14 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Implement an [owned HTTP ingress role](agent-http-server.md): actual
+  schema/executable readiness plus mandatory host readiness, fresh fail-closed
+  admission, owned bounded connections and deadline-driven joined drain.
+  PostgreSQL 16/17 tests cover dependency loss/recovery, successful draining
+  writes, slow/SSE/drop cleanup and transport ceilings. No inline Worker,
+  public health route or complete managed-service/release claim.
+- [ ] Qualify a real identity/policy-backed host deployment, protected role-health
+  integration and independently operated Worker/scheduler lifecycle.
 - [x] Add opt-in [resumable Agent activity SSE](agent-events.md): exact retained
   journal cursors, payload-free activity notifications, independent current
   snapshots, repeated authorization, finite lifetime/queue limits, and PostgreSQL

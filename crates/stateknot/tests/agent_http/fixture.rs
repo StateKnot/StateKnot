@@ -164,12 +164,18 @@ pub(super) struct Fixture {
     pub denied: Arc<AtomicBool>,
     pub policy_calls: Arc<AtomicUsize>,
     pub node_calls: Arc<AtomicUsize>,
+    pub executable: ExecutableGraphRegistry,
+    pub deployments: AgentServiceRegistry,
+    pub policy: Arc<dyn AgentServiceAuthorizer>,
 }
 impl Fixture {
     pub(super) async fn new() -> Option<Self> {
         Self::for_tenant(TenantId::new(format!("http-{}", RunId::generate())).unwrap()).await
     }
     pub(super) async fn for_tenant(tenant: TenantId) -> Option<Self> {
+        Self::for_graph(tenant, "http-graph").await
+    }
+    pub(super) async fn for_graph(tenant: TenantId, graph_name: &str) -> Option<Self> {
         let url = match std::env::var("STATEKNOT_TEST_DATABASE_URL") {
             Ok(url) => url,
             Err(std::env::VarError::NotPresent)
@@ -195,7 +201,7 @@ impl Fixture {
         );
         let id = NodeId::new("finish").unwrap();
         let graph = CompiledGraph::compile(
-            capability("http-graph"),
+            capability(graph_name),
             schema.clone(),
             schema.clone(),
             schema.clone(),
@@ -288,11 +294,13 @@ impl Fixture {
         deployments
             .register(Arc::new(Deployment { descriptor, graph }))
             .unwrap();
+        let executable = registry.build().unwrap();
+        let deployments = deployments.build();
         let service = AgentServiceV1::new(
             store.clone(),
-            registry.build().unwrap(),
-            deployments.build(),
-            policy,
+            executable.clone(),
+            deployments.clone(),
+            policy.clone(),
         )
         .unwrap();
         let auth = Arc::new(Auth {
@@ -311,6 +319,9 @@ impl Fixture {
             denied,
             policy_calls,
             node_calls,
+            executable,
+            deployments,
+            policy,
         })
     }
     pub(super) fn submission(&self) -> AgentHttpSubmission {

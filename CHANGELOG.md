@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Owned loopback HTTP ingress runtime with mandatory actual store/schema,
+  executable registry and host dependency readiness; single-flight probes,
+  freshness-gated admission, explicit connection/header/lifetime ceilings,
+  cancellation-safe joining and bounded graceful/forced drain. Includes real
+  PostgreSQL 16/17 lifecycle tests, RFC-0010 and bilingual operations guidance.
+  No migration, default verifier, inline Worker or stable release claim.
+
 - Opt-in resumable Agent activity SSE with exact PostgreSQL journal cursors,
   payload-free notifications, independently verified current snapshots (including
   quarantine-only changes), repeated credential/resource authorization, separate

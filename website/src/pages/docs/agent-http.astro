@@ -168,6 +168,60 @@ let router = http.router();
       >
     </p>
   </section>
+  <section aria-labelledby="http-server">
+    <h2 id="http-server">Own readiness, connections and graceful drain</h2>
+    <p>
+      <code>AgentHttpServer::start</code> owns a loopback-only HTTP/1 listener behind
+      a co-located TLS proxy. Startup verifies the actual PostgreSQL schema and exact
+      executable registry, plus a mandatory host-provided
+      <code>AgentHttpReadiness</code> check of the same credential-verifier and policy
+      dependencies used by requests. No placeholder verifier, migration, Worker or
+      scheduler starts implicitly.
+    </p>
+    <p>
+      Single-flight checks repeat every 10 seconds after completion, with a
+      5-second whole-check timeout and 20-second evidence freshness by default.
+      Failed, timed-out or stale readiness rejects new business requests with
+      503; a later successful check restores admission. This is not an
+      authorization grant or a guarantee that a future request succeeds. Already
+      admitted work retains its normal authorization and deadlines.
+    </p>
+    <p>
+      Transport defaults are 256 connections, 64 headers, a 32 KiB parser
+      buffer, 5-second header reads and a 300-second absolute connection
+      lifetime. Excess sockets close without a business response. JSON/SSE
+      limits remain separate. TLS, proxy limits and replica-wide quotas are
+      still deployment responsibilities.
+    </p>
+    <p>
+      <code>server.health()</code> exposes only local status and active connection
+      counts. Wire these to a protected admin or supervisor surface; there is no public
+      health exception in the Agent API. Unavailable is live but not ready.
+    </p>
+    <p>
+      <code>server.begin_shutdown()</code> closes readiness immediately. Await
+      <code>server.shutdown()</code> to stop accepting, finish admitted work, then
+      abort and join remaining connection tasks after the default 30-second drain.
+      SSE may require force-close. Inspect the drain report and preserve original
+      retry identities: closure never proves rollback. Dropping the handle aborts
+      work but does not await graceful drain. Blocking callbacks still require an
+      outer process-supervisor kill deadline; shared DB pools remain host-owned.
+    </p>
+    <p>
+      Real PostgreSQL 16/17 tests cover readiness loss/recovery, startup
+      failure, commit during drain, slow-body/SSE force-close, idle/drop cleanup
+      and transport ceilings. Real issuer/policy-backed role integration and
+      stable release qualification remain separate gates.
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-http-server.md"
+        >Complete wiring and operations guide</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0010-owned-agent-http-server.md"
+        >RFC-0010</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="http-retry">
     <h2 id="http-retry">Recover a lost response without creating more work</h2>
     <p>
@@ -233,9 +287,10 @@ let router = http.router();
         Monitor bounded latency/error metrics and dependency readiness.
       </li>
       <li>
-        Stop accepting connections, call <code>http.shutdown()</code>, and bound
-        listener drain separately. Recover possibly committed requests with
-        original identities after replacement.
+        Await <code>server.shutdown()</code> when using the owned role. Router-only
+        hosts still call <code>http.shutdown()</code> and bound their own connection
+        drain. Recover possibly committed requests with original identities after
+        replacement.
       </li>
     </ol>
     <p>
