@@ -239,6 +239,12 @@ expiring default-deny tenant bindings and negative-canary readiness. Real
 Keycloak TLS tests cover rotation, revocation and SSE closure; the separate
 resource authorizer remains mandatory. This does not implement JWT/JWKS or
 complete host-role release qualification.
+The [declarative resource policy](docs/agent-resource-policy.md) supplies an actual
+default-deny authorizer with exact caller/Agent/schema/run selectors, explicit
+tenant operators, restrictive budgets and deterministic retained admission
+evidence. Digest-pinned artifacts expire and refresh through local CAS; unrelated
+ACL changes preserve lost-response recovery. It does not infer run ownership or
+replace protected access auditing and full host-role qualification.
 `McpRemoteTool` now implements the first strict protocol adapter: MCP
 2026-07-28 modern stateless discovery, complete JSON responses, exact local
 schema and server-identity pins, attempt-scoped authorization, bounded

@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "Declarative Agent resource authorization",
+    body: "Exact tenant/identity/Agent/schema/run selectors, explicit tenant operators, restrictive budgets, digest-pinned policy artifacts and deterministic admission evidence. Expiring CAS refresh preserves recovery across unrelated ACL changes. Real PostgreSQL 16/17 and Keycloak qualification; no inferred ownership or durable read-audit ledger.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "Real identity integration and expiring tenant policy",
     body: "Fixed-HTTPS OAuth introspection, exact claims and permission intersection, rotating secrets, atomic default-deny tenant mappings and expiry. Real Keycloak qualifies rotation, revocation, cross-tenant refusal, readiness recovery and SSE cleanup; resource policy stays mandatory. JWT/JWKS and full production deployment remain open.",
   },

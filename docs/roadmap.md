@@ -14,6 +14,13 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Implement [declarative Agent resource policy](agent-resource-policy.md):
+  exact caller/Agent/schema/run selectors, explicit tenant-operator grants,
+  digest-bound retained configuration, deterministic admission evidence,
+  restrictive budgets and expiring CAS refresh. PostgreSQL 16/17 HTTP and real
+  Keycloak profiles exercise actual policy; automatic ownership, durable access
+  auditing and complete host-role/release qualification remain separate.
+
 - [x] Implement [online Agent HTTP identity](agent-identity.md): fixed HTTPS
   introspection, exact claims, rotating secrets, expiring default-deny tenant
   bindings and negative-canary readiness. Real Keycloak/PostgreSQL qualification

@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "声明式 Agent 资源授权",
+    body: "精确租户、身份、Agent、Schema 与运行选择器，显式租户运维权限、预算限制、固定摘要的策略文件及确定性 Admission 证据。支持有时效的原子更新，无关权限变化不破坏提交恢复。真实 PostgreSQL 16/17 与 Keycloak 验证；不推断所有权，也不新增读取审计账本。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "真实身份接入与过期租户策略",
     body: "固定 HTTPS OAuth 令牌内省、精确声明与权限交集、密钥轮换、默认拒绝的租户映射原子更新及过期检查。真实 Keycloak 验证轮换、撤销、跨租户拒绝、就绪恢复和 SSE 回收；资源授权仍强制，JWT/JWKS 与完整生产部署验收未完成。",
   },

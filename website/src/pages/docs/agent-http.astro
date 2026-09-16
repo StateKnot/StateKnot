@@ -105,6 +105,53 @@ let router = http.router();
       >
     </p>
   </section>
+  <section aria-labelledby="http-resource-policy">
+    <h2 id="http-resource-policy">
+      Real resource policy: exact grants and recoverable submission
+    </h2>
+    <p>
+      <code>runtime::agent_policy::AgentResourcePolicy</code> provides offline default-deny
+      authorization. Submission rules match tenant, issuer/subject, Agent revision
+      and input schema, with explicit scopes and restrictive budgets. Run reads, cancellation
+      and key lookup are separate permissions. Knowing a Run ID is not permission;
+      <code>TenantRuns</code>
+      is an explicitly privileged operator grant, never inferred ownership.
+    </p>
+    <p>
+      Build a <code>PolicyArtifact</code> from a <code>PolicyDocument</code>,
+      retaining its canonical bytes privately with a trusted digest before
+      activation. Limits are 1024 total rules and 256 KiB JSON; duplicate or
+      overlapping selectors fail closed. Call
+      <code>register_agent_policy_evidence_schema</code> before freezing the registry,
+      then pass the shared policy to <code>AgentServiceV1</code> and compose resource
+      and identity readiness.
+    </p>
+    <p>
+      Absolute expiration survives restart, and the local freshness lease is at
+      most one hour.
+      <code>replace</code> uses expected-generation CAS. Expiration returns 503; no
+      matching rule returns 403. SSE closes on subsequent authorization after revocation.
+      Admission retains selected-rule, request and budget evidence; unrelated ACL
+      changes preserve same-key recovery. If changing the applicable submission rule
+      produces 409, recover through a currently authorized key lookup instead of automatically
+      resubmitting under a new key.
+    </p>
+    <p>
+      Reads and denials are not automatically durably audited; cancellation
+      retains policy and decision hashes only. Hosts must retain protected audit
+      context as required. Real PostgreSQL 16/17 and Keycloak tests use this
+      implementation; automatic ownership storage and full production-release
+      acceptance remain separate.
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-resource-policy.md"
+        >Configuration, wiring and operations guide</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0012-agent-resource-policy.md"
+        >RFC-0012 (Draft)</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="http-operations">
     <h2 id="http-operations">Four operations, one durable service</h2>
     <dl class="docs-definition-list">

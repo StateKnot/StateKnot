@@ -167,6 +167,7 @@ pub(super) struct Fixture {
     pub executable: ExecutableGraphRegistry,
     pub deployments: AgentServiceRegistry,
     pub policy: Arc<dyn AgentServiceAuthorizer>,
+    pub resource_document: agent_policy::PolicyDocument,
 }
 impl Fixture {
     pub(super) async fn new() -> Option<Self> {
@@ -236,6 +237,7 @@ impl Fixture {
         register_standard_graph_driver_event_schema(&mut schemas).unwrap();
         register_standard_agent_admission_event_schema(&mut schemas).unwrap();
         register_standard_agent_service_control_event_schema(&mut schemas).unwrap();
+        agent_policy::register_agent_policy_evidence_schema(&mut schemas).unwrap();
         let mut registry = ExecutableGraphRegistryBuilder::new(schemas.build().unwrap());
         registry.register_graph(graph.clone()).unwrap();
         registry
@@ -288,6 +290,20 @@ impl Fixture {
         )
         .unwrap();
         let denied = Arc::new(AtomicBool::new(false));
+        let resource_document = agent_policy::PolicyDocument {
+            format_version: 1,
+            policy: capability("http-resource-policy"),
+            valid_until: "2099-01-01T00:00:00.000000Z".parse().unwrap(),
+            submissions: vec![agent_policy::SubmissionRule {
+                tenant: caller.tenant_id().clone(),
+                principal: principal.clone(),
+                agent: agent.clone(),
+                input_schema: schema.clone(),
+                granted_scopes: authority.granted_scopes().clone(),
+                budget_limits: budget.limits().clone(),
+            }],
+            runs: vec![],
+        };
         let policy_calls = Arc::new(AtomicUsize::new(0));
         let policy = Arc::new(Policy {
             caller: caller.clone(),
@@ -333,6 +349,7 @@ impl Fixture {
             executable,
             deployments,
             policy,
+            resource_document,
         })
     }
     pub(super) fn submission(&self) -> AgentHttpSubmission {

@@ -43,6 +43,12 @@ pub trait AgentHttpReadiness: Send + Sync {
 #[error("HTTP ingress host dependencies are unavailable")]
 pub struct AgentHttpReadinessError;
 
+impl AgentHttpReadiness for stateknot_runtime::agent_policy::AgentResourcePolicy {
+    fn check(&self) -> BoxFuture<'_, Result<(), AgentHttpReadinessError>> {
+        Box::pin(async move { self.check_readiness().map_err(|_| AgentHttpReadinessError) })
+    }
+}
+
 /// Closed startup/runtime errors for the owned HTTP role.
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]

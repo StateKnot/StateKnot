@@ -22,6 +22,7 @@ use stateknot_store_postgres::{
 use thiserror::Error;
 
 mod activity;
+pub mod policy;
 mod readiness;
 pub use activity::AgentRunActivityPage;
 pub use readiness::AgentServiceReadinessError;

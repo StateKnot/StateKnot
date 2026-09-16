@@ -31,6 +31,8 @@ use fixture::*;
 mod identity;
 #[path = "agent_http/server.rs"]
 mod owned_server;
+#[path = "agent_http/resource_policy.rs"]
+mod resource_policy;
 #[path = "agent_http/sse.rs"]
 mod sse;
 

@@ -90,6 +90,42 @@ let router = http.router();
       >
     </p>
   </section>
+  <section aria-labelledby="http-resource-policy">
+    <h2 id="http-resource-policy">配置真实资源授权：精确权限与可恢复提交</h2>
+    <p>
+      <code>runtime::agent_policy::AgentResourcePolicy</code> 提供离线、默认拒绝的资源授权。
+      提交规则精确匹配租户、签发方与主体、Agent 版本和输入 Schema，并附带 Scope 与预算限制。
+      Run 读取、取消以及提交键查找分别授权；知道 Run ID 不代表拥有权限。
+      <code>TenantRuns</code> 是明确授予的租户运维权限，不是自动所有权判断。
+    </p>
+    <p>
+      使用 <code>PolicyDocument</code> 构造 <code>PolicyArtifact</code
+      >，激活前私下保留规范化文件与可信摘要。 总计最多 1024 条规则、256 KiB
+      JSON；重复或重叠选择器直接拒绝。 冻结注册表前调用 <code
+        >register_agent_policy_evidence_schema</code
+      >， 再把共享策略传给 <code>AgentServiceV1</code
+      >，并将资源策略就绪与身份服务就绪组合检查。
+    </p>
+    <p>
+      策略绝对到期时间跨重启保留，本地新鲜度租期最多一小时；<code>replace</code> 通过预期代数原子更新。
+      过期返回 503，无授权规则返回 403；撤销后 SSE 在后续授权检查中关闭。 Admission
+      保留命中规则、请求摘要与预算证据；更新其他资源的权限不会破坏原键重试。 若修改实际命中的提交规则而返回
+      409，应在当前授权下按键找回，不自动换键重复提交。
+    </p>
+    <p>
+      读取与拒绝决策不自动写入持久审计账本，取消只保留策略与决策摘要；宿主须按要求保留受保护的审计上下文。
+      已接入真实 PostgreSQL 16/17 与 Keycloak
+      验证；不包含自动所有权存储，也不代表完整生产版本。
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-resource-policy.zh-CN.md"
+        >配置、接线与运维指南</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0012-agent-resource-policy.md"
+        >RFC-0012（Draft）</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="http-operations">
     <h2 id="http-operations">四个操作，共用持久化服务</h2>
     <dl class="docs-definition-list">

@@ -25,6 +25,8 @@ pub use failure_close::{
 };
 mod agent_loop;
 mod agent_service;
+/// Bounded declarative resource authorization, separate from identity verification.
+pub use agent_service::policy as agent_policy;
 mod agent_typed;
 mod cancellation_schema;
 mod child_join;
