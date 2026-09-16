@@ -58,7 +58,9 @@ not copies made inside HTTP/TLS libraries or the allocator.
 
 Active responses must contain exact configured `iss`, matching string/array
 `aud`, valid `sub`, integer future `exp`, integer `iat` not in the future and
-not after expiration, and Bearer `token_type`. Optional `nbf` must already be
+strictly before expiration, and Bearer `token_type`. Total token lifetime is
+bounded to one hour by default, configurable up to 24 hours in whole seconds.
+Optional `nbf` must already be
 valid. No positive clock-skew allowance extends token lifetime. Reject `cnf`
 because this profile cannot verify sender constraints. The provider must limit
 accepted Bearer token types to access tokens for this resource; the request's

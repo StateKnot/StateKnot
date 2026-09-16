@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "Real identity integration and expiring tenant policy",
+    body: "Fixed-HTTPS OAuth introspection, exact claims and permission intersection, rotating secrets, atomic default-deny tenant mappings and expiry. Real Keycloak qualifies rotation, revocation, cross-tenant refusal, readiness recovery and SSE cleanup; resource policy stays mandatory. JWT/JWKS and full production deployment remain open.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "Owned HTTP ingress lifecycle",
     body: "Loopback listener ownership, actual schema/executable and mandatory host readiness, fresh fail-closed admission, bounded connections and joined graceful/forced drain. Real PostgreSQL 16/17 fault tests; no implicit Worker, public health route or stable release claim.",
   },
@@ -159,7 +165,7 @@ const capabilities = [
     state: "Not shipped",
     className: "status-planned",
     title: "Production server and operations",
-    body: "Full HTTP/SSE role deployment, issuer/policy qualification, observability, role isolation, general retention, failover, restore, OCI delivery, and release qualification remain ahead.",
+    body: "Full HTTP/SSE role deployment, broader identity/resource-policy production qualification, observability, role isolation, general retention, failover, restore, OCI delivery, and release qualification remain ahead.",
   },
 ];
 ---

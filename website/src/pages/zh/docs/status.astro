@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "真实身份接入与过期租户策略",
+    body: "固定 HTTPS OAuth 令牌内省、精确声明与权限交集、密钥轮换、默认拒绝的租户映射原子更新及过期检查。真实 Keycloak 验证轮换、撤销、跨租户拒绝、就绪恢复和 SSE 回收；资源授权仍强制，JWT/JWKS 与完整生产部署验收未完成。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "HTTP 接入运行角色与优雅停机",
     body: "接管本机监听器，校验实际 Schema、可执行注册表及强制宿主依赖就绪；证据失效时拒绝新业务，限制连接资源并回收优雅排空或强制关闭的任务。通过 PostgreSQL 16/17 故障测试，不自动启动 Worker、不暴露匿名健康入口、不宣称稳定版。",
   },
@@ -159,7 +165,7 @@ const capabilities = [
     state: "尚未发布",
     className: "status-planned",
     title: "生产 Server 与运维",
-    body: "完整 HTTP/SSE 角色部署、真实身份与策略验收、可观测性、角色隔离、通用保留策略、故障切换、恢复、OCI 交付与发布验收尚未完成。",
+    body: "完整 HTTP/SSE 角色部署、更广身份与资源策略生产验收、可观测性、角色隔离、通用保留策略、故障切换、恢复、OCI 交付与发布验收尚未完成。",
   },
 ];
 ---

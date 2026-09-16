@@ -20,6 +20,8 @@
 //! ```
 
 mod auth;
+/// Online OAuth introspection and explicit, expiring tenant identity bindings.
+pub mod introspection;
 mod options;
 mod server;
 mod sse;

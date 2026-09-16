@@ -659,6 +659,27 @@ test("Agent HTTP tutorial preserves authentication, recovery and deployment boun
 });
 
 for (const locale of ["en", "zh"] as const) {
+  test(`${locale} documents real online identity without replacing resource policy`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/agent-http/`);
+    const section = page.locator('section[aria-labelledby="http-identity"]');
+    for (const contract of [
+      "AgentHttpIntrospection",
+      "TenantPolicy",
+      "replace_client_secret",
+      "AgentServiceAuthorizer",
+    ])
+      await expect(section.getByText(contract, { exact: true })).toBeVisible();
+    await expect(section).toContainText("JWT/JWKS");
+    await expect(section).toContainText("503");
+    await expect(
+      section.locator("a[href$='0011-agent-http-introspection.md']"),
+    ).toHaveCount(1);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
+
   test(`${locale} documents owned ingress readiness and bounded drain`, async ({
     page,
   }) => {

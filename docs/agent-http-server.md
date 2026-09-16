@@ -40,7 +40,10 @@ Implement `AgentHttpReadiness::check` against the **same** credential-verifier a
 policy dependencies used by requests: usable trust roots/key cache and freshness,
 issuer/audience configuration, installed policy snapshot or policy-service
 health, and bounded dependency timeouts. Do not use a fake tenant/token or an
-always-true placeholder. An immutable local policy can check its installed
+always-true placeholder. The [introspection profile](agent-identity.md) has an
+explicit negative-token protocol canary: it verifies client-authenticated IdP
+access, never grants a synthetic principal or replaces resource-policy readiness.
+An immutable local policy can check its installed
 snapshot without network I/O. Readiness never replaces request authorization.
 
 Before accepting, the runtime checks the actual `AgentServiceV1` pool's schema,

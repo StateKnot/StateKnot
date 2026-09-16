@@ -176,6 +176,18 @@ impl Fixture {
         Self::for_graph(tenant, "http-graph").await
     }
     pub(super) async fn for_graph(tenant: TenantId, graph_name: &str) -> Option<Self> {
+        Self::for_identity(
+            tenant,
+            graph_name,
+            capability("http-policy").owner().clone(),
+        )
+        .await
+    }
+    pub(super) async fn for_identity(
+        tenant: TenantId,
+        graph_name: &str,
+        principal: PrincipalIdentity,
+    ) -> Option<Self> {
         let url = match std::env::var("STATEKNOT_TEST_DATABASE_URL") {
             Ok(url) => url,
             Err(std::env::VarError::NotPresent)
@@ -249,7 +261,6 @@ impl Fixture {
             serde_json::to_value(capability("http-agent")).unwrap();
         let descriptor: AgentDescriptor = serde_json::from_value(descriptor).unwrap();
         let agent = descriptor.metadata().identity().clone();
-        let principal = capability("http-policy").owner().clone();
         let caller = AgentServiceCaller::new(tenant, principal.clone());
         let evidence = JournalPayload::new(
             schema.clone(),
