@@ -412,6 +412,7 @@ jobs:
           test "$(grep -c '^STATEKNOT_WORKER_RECOVERY_EVIDENCE=' agent-worker-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_WORKER_FAILSTOP_EVIDENCE=' agent-worker-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_WORKER_FAIR_EVIDENCE=' agent-worker-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_WORKER_MAINTENANCE_EVIDENCE=' agent-worker-qualification.log)" = 1
 
       - name: Upload owned Worker evidence
         if: always()
@@ -420,6 +421,31 @@ jobs:
           name: agent-worker-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
             agent-worker-qualification.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Qualify owned Agent maintenance
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-runtime --test postgres --locked \
+            child_admission::ownership::failure_close::maintenance:: -- \
+            --nocapture --test-threads=1 | tee agent-maintenance-qualification.log
+          test "$(grep -c '^STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE=' agent-maintenance-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE=' agent-maintenance-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE=' agent-maintenance-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE=' agent-maintenance-qualification.log)" = 1
+
+      - name: Upload owned maintenance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agent-maintenance-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            agent-maintenance-qualification.log
             failure-close-process-environment.log
           if-no-files-found: error
           retention-days: 30

@@ -14,6 +14,12 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Implement an [owned Agent maintenance role](agent-maintenance.md): bounded
+  explicit tenant rotation over deadline, child cancellation/settlement, Join and
+  failure-close jobs, retained error-page cursors, actual readiness, joined drain
+  and PostgreSQL 16/17 durable effects, failed-page and process-loss recovery.
+  Timer/interrupt business policy, retention and full host qualification remain separate.
+
 - [x] Implement an [owned durable scheduling Worker](agent-worker.md): concrete
   tenant/fair bindings, fixed slots, actual dependency readiness, finite pacing
   and deadlines, joined graceful/forced shutdown including nested node futures,
@@ -40,7 +46,7 @@ from the repository.
   writes, slow/SSE/drop cleanup and transport ceilings. No inline Worker,
   public health route or complete managed-service/release claim.
 - [ ] Qualify a real identity/policy-backed multi-role host deployment, protected
-  role-health integration, maintenance ownership and measured recovery/capacity.
+  role-health integration and measured recovery/capacity across owned roles.
 - [x] Add opt-in [resumable Agent activity SSE](agent-events.md): exact retained
   journal cursors, payload-free activity notifications, independent current
   snapshots, repeated authorization, finite lifetime/queue limits, and PostgreSQL

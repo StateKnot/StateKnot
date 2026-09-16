@@ -23,6 +23,77 @@ use tokio::{
 mod fixture;
 use fixture::Fixture;
 
+use stateknot::agent_maintenance::{
+    AgentMaintenance, AgentMaintenanceBinding, AgentMaintenanceJob,
+    AgentMaintenanceMutationOptions, AgentMaintenanceOptions, AgentMaintenanceReadiness,
+    AgentMaintenanceReadinessError,
+};
+
+impl AgentMaintenanceReadiness for Host {
+    fn check(&self) -> BoxFuture<'_, Result<(), AgentMaintenanceReadinessError>> {
+        Box::pin(async {
+            AgentWorkerReadiness::check(self)
+                .await
+                .map_err(|_| AgentMaintenanceReadinessError)
+        })
+    }
+}
+
+#[tokio::test]
+async fn postgres_worker_and_maintenance_have_independent_joined_lifecycles() {
+    let Some(f) = Fixture::new().await else {
+        return;
+    };
+    let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+    register_standard_agent_deadline_event_schema(&mut schemas).unwrap();
+    register_standard_child_reconciliation_event_schema(&mut schemas).unwrap();
+    register_standard_child_join_event_schema(&mut schemas).unwrap();
+    register_standard_run_failure_close_event_schema(&mut schemas).unwrap();
+    let maintenance = AgentMaintenanceBinding::new(
+        f.store.clone(),
+        schemas.build().unwrap(),
+        vec![f.caller.tenant_id().clone()],
+        AgentMaintenanceMutationOptions::default(),
+    )
+    .unwrap();
+    let mut role = AgentMaintenance::start(
+        maintenance,
+        Arc::new(Host::default()),
+        AgentMaintenanceOptions::default()
+            .with_pacing(Duration::from_millis(10), Duration::from_millis(20))
+            .unwrap(),
+    )
+    .await
+    .unwrap();
+    let mut worker = AgentWorker::start(
+        binding(&f, evidence(&f)),
+        Arc::new(Host::default()),
+        options(),
+    )
+    .await
+    .unwrap();
+    let first = admit(&f).await;
+    succeeded(&f, first).await;
+    until(|| {
+        AgentMaintenanceJob::ALL
+            .iter()
+            .all(|job| role.health().report().job(*job).completed_ticks > 0)
+    })
+    .await;
+    assert_eq!(role.shutdown().await.unwrap().failure, None);
+    let second = admit(&f).await;
+    succeeded(&f, second).await;
+    assert_ne!(first, second);
+    assert_eq!(worker.shutdown().await.unwrap().failure, None);
+    assert_eq!(worker.health().active_ticks(), 0);
+    assert_eq!(role.health().active_ticks(), 0);
+    assert!(f.store.observe_database_clock().await.is_ok());
+    f.store.close().await;
+    println!(
+        "\nSTATEKNOT_WORKER_MAINTENANCE_EVIDENCE={{\"concurrent_roles\":true,\"independent_shutdown\":true,\"execution_after_maintenance_stop\":true}}"
+    );
+}
+
 #[derive(Default)]
 struct Host {
     mode: AtomicUsize,

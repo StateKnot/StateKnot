@@ -49,13 +49,13 @@ fn deadline_request(
     )
     .unwrap()
 }
-async fn future_deadline(store: &PostgresStore, seconds: i64) -> Timestamp {
+pub(super) async fn future_deadline(store: &PostgresStore, seconds: i64) -> Timestamp {
     Timestamp::from_unix_micros(
         store.observe_database_clock().await.unwrap().unix_micros() + seconds * 1_000_000,
     )
     .unwrap()
 }
-async fn await_due(store: &PostgresStore, deadline: Timestamp) {
+pub(super) async fn await_due(store: &PostgresStore, deadline: Timestamp) {
     let now = store.observe_database_clock().await.unwrap();
     let delay = deadline
         .unix_micros()
@@ -68,7 +68,7 @@ async fn await_due(store: &PostgresStore, deadline: Timestamp) {
     .await;
     assert!(store.observe_database_clock().await.unwrap() >= deadline);
 }
-async fn admit_deadline(
+pub(super) async fn admit_deadline(
     store: &PostgresStore,
     fixture: &DriverFixture,
     tenant: TenantId,

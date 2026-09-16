@@ -19,6 +19,8 @@
 pub mod agent_http;
 /// Independently owned, bounded durable scheduling Worker lifecycle.
 pub mod agent_worker;
+/// Independently owned deadline, child, Join and failure-close maintenance.
+pub use stateknot_runtime::agent_maintenance;
 mod mcp_compute;
 mod mcp_reconciliation;
 pub use mcp_compute::{

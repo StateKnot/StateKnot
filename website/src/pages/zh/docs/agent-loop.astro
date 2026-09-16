@@ -247,14 +247,48 @@ const outcomes = [
     </p>
   </section>
 
+  <section aria-labelledby="owned-maintenance">
+    <h2 id="owned-maintenance">独立管理维护任务</h2>
+    <p>
+      <code>AgentMaintenanceBinding::new</code> 绑定 1–128 个明确授权且不重复的租户、
+      实际 Store 和四份冻结的审计 Schema。<code>AgentMaintenance::start</code> 强制要求
+      <code>AgentMaintenanceReadiness</code>。单个有界循环依次驱动截止时间取消、
+      子 Run 取消传播与结算、Join 发布、失败收敛，不在维护角色内执行模型或工具。
+    </p>
+    <p>
+      每个租户和任务独立保留游标，单条失败后继续扫描，整页坏数据不会堵住尾部。
+      扫描耗尽或新进程启动后重访失败工作；多个副本依赖既有事务和幂等机制。
+      默认正常间隔 250 ms、条目错误后 1 s、单 Tick 时限 30 s、排空时限 10 s。
+      就绪证据过期暂停新任务；候选发现错误、Panic 和 Tick 超时会停止并排空。
+    </p>
+    <p>
+      <code>role.health()</code> 只提供脱敏计数：Ready 不表示条目全部成功， 即使依赖就绪，条目错误增加也应告警。<code
+        >role.shutdown().await</code
+      >
+      等待内部任务退出；强制取消不代表事务回滚。Drop 仅发起清理，不关闭共享连接池，
+      不自动启动历史数据删除或 Timer 业务策略。
+    </p>
+    <p>
+      阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-maintenance.zh-CN.md"
+        >维护角色运维指南</a
+      >
+      与 <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0014-owned-agent-maintenance.md"
+        >Draft RFC-0014</a
+      >。 PostgreSQL 16/17 验证覆盖真实持久化效果、失败页续扫和 SIGKILL 恢复。
+      完整多角色部署及容量实测仍单独验收，API 仍为 Pre-alpha。
+    </p>
+  </section>
+
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证证据</h2>
     <p>
-      CI 在 PostgreSQL 16 与 17 上分别运行 36 个 Runtime Scenario 和 106 个
-      Provider Case。Runtime 覆盖 Lifecycle 原子性与精确 Lost-ACK
-      Replay、数据库时间 Wait Materialization、Agent Loop 成功与 Evidence
-      Failure、Tenant 与加权 Cross-tenant Scheduling、可恢复 Model/Tool Attempt
-      与 Streaming、Provider-native 多轮 Recovery、Noninitial Replay、Lease
+      CI 在 PostgreSQL 16 与 17 上分别运行 Runtime 和 Provider 资格测试。
+      Runtime 覆盖 Lifecycle 原子性与精确 Lost-ACK Replay、数据库时间 Wait
+      Materialization、Agent Loop 成功与 Evidence Failure、Tenant 与加权
+      Cross-tenant Scheduling、可恢复 Model/Tool Attempt 与
+      Streaming、Provider-native 多轮 Recovery、Noninitial Replay、Lease
       Renewal、 重复抑制、Quarantine、Higher-fence Takeover、精确 Cancellation
       与持久化 Run/Result Read。部署该 Pre-alpha Surface 前请阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.zh-CN.md"

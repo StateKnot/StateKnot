@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Owned Agent maintenance over concrete deadline, child cancellation/settlement,
+  Join publication and failure-close services: explicit bounded tenant rotation,
+  retained cursors past item errors, actual store plus mandatory host readiness,
+  fail-stop deadlines and joined shutdown. Includes PostgreSQL 16/17 durable
+  effects, failed-page and SIGKILL recovery qualification, RFC-0014 and bilingual
+  guides. No migration, dependency change, automatic retention or stable release claim.
+
 - Owned concrete tenant/fair scheduling Worker with fixed concurrency, actual
   schema/registry/policy and mandatory host readiness, finite pacing and deadlines,
   fail-stop drain and cancellation-safe joining of nested Graph node futures.

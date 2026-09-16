@@ -19,6 +19,9 @@ mod commit_loss;
 #[path = "role_profile.rs"]
 mod role_profile;
 
+#[path = "agent_maintenance.rs"]
+mod maintenance;
+
 struct Shutdown;
 impl stateknot_core::CancellationObserver for Shutdown {
     fn is_cancelled(&self) -> bool {

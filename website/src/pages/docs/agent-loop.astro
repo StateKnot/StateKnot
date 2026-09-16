@@ -249,17 +249,56 @@ const outcomes = [
     </p>
   </section>
 
+  <section aria-labelledby="owned-maintenance">
+    <h2 id="owned-maintenance">Own maintenance separately from execution</h2>
+    <p>
+      <code>AgentMaintenanceBinding::new</code> binds 1–128 explicitly authorized,
+      distinct tenants, the actual store and four frozen audit schemas.
+      <code>AgentMaintenance::start</code> requires <code
+        >AgentMaintenanceReadiness</code
+      >. One bounded loop rotates through deadline cancellation, child
+      cancellation and settlement, Join publication, and failure closure. No
+      model or tool executes inside this role.
+    </p>
+    <p>
+      Each tenant/job retains its cursor past individual errors, so a failed
+      page cannot starve its tail. Exhausted sweeps and fresh processes revisit
+      failed work. Two replicas rely on durable serialization and idempotency.
+      Defaults are 250 ms normal pacing, 1 s after item errors, a 30 s tick
+      deadline and a 10 s drain deadline. Stale readiness pauses new work;
+      discovery errors, panic and tick deadline fail-stop.
+    </p>
+    <p>
+      <code>role.health()</code> exposes payload-free counters: Ready does not mean
+      zero item failures. Protect diagnostics and alert on failures even when dependencies
+      are ready. <code>role.shutdown().await</code> joins owned work; forced cancellation
+      never proves transaction rollback. Drop only initiates cleanup. No pool closure,
+      automatic retention or timer business policy is added.
+    </p>
+    <p>
+      Read the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-maintenance.md"
+        >maintenance operations guide</a
+      >
+      and <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0014-owned-agent-maintenance.md"
+        >Draft RFC-0014</a
+      >. PostgreSQL 16/17 qualification includes actual effects, failed-page
+      progress and SIGKILL recovery. Full measured multi-role deployment remains
+      separate; the API remains pre-alpha.
+    </p>
+  </section>
+
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">Qualification evidence</h2>
     <p>
-      CI runs 36 runtime scenarios and 106 provider cases on both PostgreSQL 16
-      and 17. The runtime cases cover lifecycle atomicity and exact lost-ack
-      replay, database-time Wait materialization, Agent Loop success and
-      evidence failure, tenant and weighted cross-tenant scheduling, durable
-      model/tool attempts and streaming, noninitial replay, lease renewal,
-      duplicate suppression, quarantine, higher-fence takeover, provider-native
-      multi-turn recovery, exact cancellation, and durable run/result reads.
-      Read the <a
+      CI runs runtime and provider qualification on both PostgreSQL 16 and 17.
+      The runtime cases cover lifecycle atomicity and exact lost-ack replay,
+      database-time Wait materialization, Agent Loop success and evidence
+      failure, tenant and weighted cross-tenant scheduling, durable model/tool
+      attempts and streaming, noninitial replay, lease renewal, duplicate
+      suppression, quarantine, higher-fence takeover, provider-native multi-turn
+      recovery, exact cancellation, and durable run/result reads. Read the <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-loop.md"
         >complete integration and operations contract</a
       > before deploying this pre-alpha surface.
