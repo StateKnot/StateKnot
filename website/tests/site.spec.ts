@@ -659,6 +659,31 @@ test("Agent HTTP tutorial preserves authentication, recovery and deployment boun
 });
 
 for (const locale of ["en", "zh"] as const) {
+  test(`${locale} documents owned ingress readiness and bounded drain`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/agent-http/`);
+    const section = page.locator('section[aria-labelledby="http-server"]');
+    for (const contract of [
+      "AgentHttpServer::start",
+      "AgentHttpReadiness",
+      "server.health()",
+      "server.begin_shutdown()",
+      "server.shutdown()",
+    ])
+      await expect(section.getByText(contract, { exact: true })).toBeVisible();
+    await expect(section).toContainText(
+      locale === "zh"
+        ? "连接关闭不代表事务回滚"
+        : "closure never proves rollback",
+    );
+    await expect(
+      section.locator("a[href$='0010-owned-agent-http-server.md']"),
+    ).toHaveCount(1);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
+
   test(`${locale} documents resumable activity without claiming historical snapshots`, async ({
     page,
   }) => {

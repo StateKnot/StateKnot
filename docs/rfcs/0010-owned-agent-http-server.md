@@ -75,7 +75,8 @@ enabled. The service owns neither the Tokio runtime nor the shared DB pool.
 Drain ordering: readiness false, stop/drop listener, stop periodic probes,
 request graceful shutdown on every connection, allow admitted operations to
 finish until the configured deadline, then cancel the ingress service, abort
-remaining connection tasks and join them. SSE may finish voluntarily or be
+remaining connection tasks and join them, then wait for tracked SSE producer
+cleanup. SSE may finish voluntarily or be
 force-closed at the deadline. Completion reports forced connection count and
 connection errors; this is not proof of transaction rollback. Callers recover
 ambiguous mutations with original submission/cancellation IDs and SSE cursors.

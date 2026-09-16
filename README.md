@@ -229,6 +229,10 @@ The opt-in [activity SSE profile](docs/agent-events.md) adds exact PostgreSQL-ba
 reconnect cursors, public notifications and independently observed snapshots,
 with repeated authorization and finite connection/backpressure limits. It is not
 token streaming or full historical state reconstruction.
+The [owned HTTP ingress runtime](docs/agent-http-server.md) additionally owns
+loopback connections, checks actual dependencies and bounds graceful drain.
+Identity/policy readiness remains mandatory host wiring; Workers and schedulers
+remain separate roles, not silently started by ingress.
 `McpRemoteTool` now implements the first strict protocol adapter: MCP
 2026-07-28 modern stateless discovery, complete JSON responses, exact local
 schema and server-identity pins, attempt-scoped authorization, bounded

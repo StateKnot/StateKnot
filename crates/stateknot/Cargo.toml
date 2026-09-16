@@ -21,6 +21,8 @@ publish = false
 axum.workspace = true
 base64.workspace = true
 futures-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
 mime.workspace = true
 schemars.workspace = true
 serde.workspace = true
@@ -32,8 +34,8 @@ stateknot-integrations = { version = "=0.0.0", path = "../stateknot-integrations
 stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }
 stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
 thiserror.workspace = true
-tokio.workspace = true
-tokio-util.workspace = true
+tokio = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true, features = ["rt"] }
 zeroize.workspace = true
 
 [dev-dependencies]
