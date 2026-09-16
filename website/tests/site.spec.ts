@@ -9,6 +9,40 @@ const responsiveAuditWidths = [
 ] as const;
 
 for (const locale of ["en", "zh"] as const) {
+  test(`${locale} documents composed host ownership and ordered drain`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/agent-http/`);
+    const section = page.locator('section[aria-labelledby="agent-host"]');
+    for (const contract of [
+      "AgentHostBindings::new",
+      "AgentHostDependencies",
+      "AgentHost::launch",
+      "host.wait_ready().await",
+      "host.health()",
+      "host.shutdown().await",
+    ])
+      await expect(section.getByText(contract, { exact: true })).toBeVisible();
+    await expect(section).toContainText(
+      locale === "zh" ? "HTTP → Worker → 维护" : "HTTP → Worker → maintenance",
+    );
+    await expect(section).toContainText(
+      locale === "zh" ? "不是匿名运维接口" : "not an anonymous",
+    );
+    await expect(
+      section.locator("a[href$='0015-owned-agent-host.md']"),
+    ).toHaveCount(1);
+    await expect(
+      section.locator(
+        "a[href$='/docs/agent-host" +
+          (locale === "zh" ? ".zh-CN" : "") +
+          ".md']",
+      ),
+    ).toHaveCount(1);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
+
   test(`${locale} documents bounded maintenance ownership and recovery`, async ({
     page,
   }) => {

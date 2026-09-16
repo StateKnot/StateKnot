@@ -27,6 +27,8 @@ use tokio::{net::TcpListener, sync::Notify, task::JoinHandle};
 #[path = "agent_http/fixture.rs"]
 mod fixture;
 use fixture::*;
+#[path = "agent_http/execution_evidence.rs"]
+mod execution_evidence;
 #[path = "agent_http/identity.rs"]
 mod identity;
 #[path = "agent_http/server.rs"]

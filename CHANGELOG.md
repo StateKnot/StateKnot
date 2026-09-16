@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Concrete co-located Agent host owning actual HTTP, Worker and maintenance
+  bindings: exclusive ingress ownership, ordered startup, sibling readiness
+  gates, fail-stop supervision and HTTP → Worker → maintenance joined drain.
+  Includes PostgreSQL 16/17 lifecycle and real TLS identity/resource-policy
+  composition qualification, RFC-0015 and bilingual guides. No new dependency,
+  migration, public health route or stable production release claim.
+
 - Owned Agent maintenance over concrete deadline, child cancellation/settlement,
   Join publication and failure-close services: explicit bounded tenant rotation,
   retained cursors past item errors, actual store plus mandatory host readiness,

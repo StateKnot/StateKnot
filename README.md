@@ -48,6 +48,12 @@ recorded in the [v1 scope baseline](docs/v1-scope.md).
 
 ## Current milestone
 
+The [co-located Agent host](docs/agent-host.md)
+([中文](docs/agent-host.zh-CN.md)) owns authenticated ingress, execution and
+maintenance with ordered startup, sibling readiness gates and joined shutdown.
+Protected operations endpoints, deployment/capacity qualification and stable
+release acceptance remain separate; no test identity is deployed to the website.
+
 The separately authorized [known-error reconciliation Tool](docs/mcp-error-reconciliation.md)
 ([中文](docs/mcp-error-reconciliation.zh-CN.md)) resolves an exact Unknown attempt
 to Failed only with authoritative applied/not-applied evidence. The host fixes

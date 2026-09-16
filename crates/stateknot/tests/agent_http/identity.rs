@@ -161,9 +161,10 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
         identity: auth.clone(),
         resources: resources.clone(),
     });
-    let mut server = AgentHttpServer::start(listener, http, dependencies, server_options)
-        .await
-        .unwrap();
+    let mut server =
+        AgentHttpServer::start(listener, http, dependencies.clone(), server_options.clone())
+            .await
+            .unwrap();
     let health = server.health();
     let url = format!("http://{address}/v1/agent-runs");
     let submission = f.submission();
@@ -218,7 +219,7 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
     resources
         .replace(
             2,
-            agent_policy::PolicyArtifact::new(resource_doc).unwrap(),
+            agent_policy::PolicyArtifact::new(resource_doc.clone()).unwrap(),
             Duration::from_secs(300),
         )
         .unwrap();
@@ -367,7 +368,7 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
     policy
         .replace(
             4,
-            vec![binding(tenant, &issuer, &all)],
+            vec![binding(tenant.clone(), &issuer, &all)],
             Duration::from_millis(1),
         )
         .unwrap();
@@ -381,4 +382,203 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
     println!(
         "\nSTATEKNOT_IDENTITY_EVIDENCE={{\"provider\":\"keycloak-26.7.3\",\"verified_tls\":true,\"rotation\":true,\"revocation\":true,\"cross_tenant_denied\":true,\"resource_policy_required\":true,\"sse_closed\":true,\"readiness_recovered\":true,\"policy_expiry\":true,\"drained\":true}}"
     );
+
+    // Qualify the same actual TLS verifier/resource policy through the composed
+    // lifecycle as well. Re-enable only this disposable fixture's service account.
+    assert_eq!(
+        client
+            .put(format!("{admin_url}/users/{SUBJECT}"))
+            .bearer_auth(&admin)
+            .json(&json!({"enabled":true}))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        204
+    );
+    let token = access_token(&client, &issuer, "agent-caller", "fixture-caller-secret").await;
+    policy
+        .replace(
+            5,
+            vec![binding(tenant.clone(), &issuer, &all)],
+            Duration::from_secs(300),
+        )
+        .unwrap();
+    resources
+        .replace(
+            3,
+            agent_policy::PolicyArtifact::new(resource_doc.clone()).unwrap(),
+            Duration::from_secs(300),
+        )
+        .unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let http = AgentHttpService::new(
+        f.service.clone(),
+        auth.clone(),
+        AgentHttpOptions::loopback(address.port()).unwrap(),
+    );
+    let worker = stateknot::agent_worker::AgentWorkerBinding::tenant(
+        f.store.clone(),
+        f.executable.clone(),
+        super::execution_evidence::evidence(&f),
+        tenant.clone(),
+        stateknot::agent_worker::AgentWorkerExecutionOptions::default(),
+    )
+    .unwrap();
+    let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+    register_standard_agent_deadline_event_schema(&mut schemas).unwrap();
+    register_standard_child_reconciliation_event_schema(&mut schemas).unwrap();
+    register_standard_child_join_event_schema(&mut schemas).unwrap();
+    register_standard_run_failure_close_event_schema(&mut schemas).unwrap();
+    let maintenance = stateknot::agent_maintenance::AgentMaintenanceBinding::new(
+        f.store.clone(),
+        schemas.build().unwrap(),
+        vec![tenant],
+        stateknot::agent_maintenance::AgentMaintenanceMutationOptions::default(),
+    )
+    .unwrap();
+    let execution_dependencies = Arc::new(FixtureExecutionDependencies(resources.clone()));
+    let mut host = stateknot::agent_host::AgentHost::launch(
+        listener,
+        stateknot::agent_host::AgentHostBindings::new(http, worker, maintenance),
+        stateknot::agent_host::AgentHostDependencies {
+            http: dependencies,
+            worker: execution_dependencies.clone(),
+            maintenance: execution_dependencies,
+        },
+        stateknot::agent_host::AgentHostOptions {
+            http: server_options,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    tokio::time::timeout(Duration::from_secs(15), host.wait_ready())
+        .await
+        .unwrap()
+        .unwrap();
+    // The existing admitted Run is recovered from PostgreSQL, not re-created.
+    let url = format!("http://{address}/v1/agent-runs");
+    let recovered = snapshot(
+        client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&submission)
+            .send()
+            .await
+            .unwrap(),
+        200,
+    )
+    .await;
+    assert_eq!(
+        recovered.provenance().run_id(),
+        admitted.provenance().run_id()
+    );
+    let run_url = format!("{url}/{}", recovered.provenance().run_id());
+    tokio::time::timeout(Duration::from_secs(20), async {
+        loop {
+            let current = snapshot(
+                client
+                    .get(&run_url)
+                    .bearer_auth(&token)
+                    .send()
+                    .await
+                    .unwrap(),
+                200,
+            )
+            .await;
+            if current.status() == RunStatus::Succeeded {
+                break;
+            }
+            assert_eq!(current.status(), RunStatus::Active);
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(f.node_calls.load(Ordering::SeqCst), 1);
+    resources
+        .replace(
+            4,
+            agent_policy::PolicyArtifact::new(resource_doc.clone()).unwrap(),
+            Duration::from_millis(1),
+        )
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(10), async {
+        while host.health().status() == stateknot::agent_host::AgentHostStatus::Ready {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        client
+            .get(&run_url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        503
+    );
+    resources
+        .replace(
+            5,
+            agent_policy::PolicyArtifact::new(resource_doc).unwrap(),
+            Duration::from_secs(300),
+        )
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(20), host.wait_ready())
+        .await
+        .unwrap()
+        .unwrap();
+    snapshot(
+        client
+            .post(&url)
+            .bearer_auth(&token)
+            .json(&submission)
+            .send()
+            .await
+            .unwrap(),
+        200,
+    )
+    .await;
+    assert_eq!(f.node_calls.load(Ordering::SeqCst), 1);
+    let report = host.shutdown().await.unwrap();
+    assert_eq!(report.failure, None);
+    assert_eq!(host.health().http().unwrap().active_connections(), 0);
+    assert_eq!(host.health().worker().unwrap().active_ticks(), 0);
+    assert_eq!(host.health().worker().unwrap().active_nodes(), 0);
+    assert_eq!(host.health().maintenance().unwrap().active_ticks(), 0);
+    f.store.close().await;
+    println!(
+        "\nSTATEKNOT_HOST_IDENTITY_EVIDENCE={{\"verified_tls\":true,\"actual_resource_policy\":true,\"durable_queue_recovered\":true,\"terminal_result\":true,\"idempotent_no_repeat\":true,\"policy_loss_recovery\":true,\"joined\":true}}"
+    );
+}
+
+// Fixture execution uses one deterministic local model and persisted evidence;
+// there is no network model provider to fake. Check the actual resource policy.
+struct FixtureExecutionDependencies(Arc<agent_policy::AgentResourcePolicy>);
+impl stateknot::agent_worker::AgentWorkerReadiness for FixtureExecutionDependencies {
+    fn check(
+        &self,
+    ) -> BoxFuture<'_, Result<(), stateknot::agent_worker::AgentWorkerReadinessError>> {
+        Box::pin(async {
+            self.0
+                .check_readiness()
+                .map_err(|_| stateknot::agent_worker::AgentWorkerReadinessError)
+        })
+    }
+}
+impl stateknot::agent_maintenance::AgentMaintenanceReadiness for FixtureExecutionDependencies {
+    fn check(
+        &self,
+    ) -> BoxFuture<'_, Result<(), stateknot::agent_maintenance::AgentMaintenanceReadinessError>>
+    {
+        Box::pin(async {
+            self.0
+                .check_readiness()
+                .map_err(|_| stateknot::agent_maintenance::AgentMaintenanceReadinessError)
+        })
+    }
 }

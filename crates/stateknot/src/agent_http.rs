@@ -56,7 +56,10 @@ use stateknot_runtime::{
 use stateknot_store_postgres::StoreError;
 use std::{
     io::{self, Write},
-    sync::{Arc, atomic::AtomicBool},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 use tokio::sync::Semaphore;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
@@ -81,6 +84,19 @@ struct Inner {
 }
 
 impl AgentHttpService {
+    pub(crate) fn claim_server(&self) -> Result<(), AgentHttpServerError> {
+        if self.inner.shutdown.is_cancelled()
+            || self
+                .inner
+                .server_claimed
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                .is_err()
+        {
+            return Err(AgentHttpServerError::AlreadyClaimed);
+        }
+        Ok(())
+    }
+
     /// Binds a prevalidated service and mandatory credential verifier.
     /// Configure TLS and replica/tenant quotas outside this per-process boundary.
     #[must_use]

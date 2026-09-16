@@ -15,6 +15,8 @@
 
 #![forbid(unsafe_code)]
 
+/// Concrete ownership of co-located ingress, execution and maintenance roles.
+pub mod agent_host;
 /// Authenticated, bounded HTTP v1 ingress for durable Agent operations.
 pub mod agent_http;
 /// Independently owned, bounded durable scheduling Worker lifecycle.

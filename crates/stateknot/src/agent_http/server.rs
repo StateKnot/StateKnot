@@ -13,10 +13,7 @@ use hyper_util::{
     service::TowerToHyperService,
 };
 use stateknot_core::{BoxFuture, EventId};
-use std::{
-    net::SocketAddr,
-    sync::{Arc, atomic::Ordering},
-};
+use std::{net::SocketAddr, sync::Arc};
 use thiserror::Error;
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -126,20 +123,26 @@ impl AgentHttpServer {
         host: Arc<dyn AgentHttpReadiness>,
         options: AgentHttpServerOptions,
     ) -> Result<Self, AgentHttpServerError> {
+        Self::start_supervised(listener, http, host, options, None).await
+    }
+
+    pub(crate) async fn start_supervised(
+        listener: TcpListener,
+        http: AgentHttpService,
+        host: Arc<dyn AgentHttpReadiness>,
+        options: AgentHttpServerOptions,
+        supervisor: Option<crate::agent_host::AgentHostHealth>,
+    ) -> Result<Self, AgentHttpServerError> {
         let address = listener
             .local_addr()
             .map_err(|_| AgentHttpServerError::InvalidListener)?;
         if !address.ip().is_loopback() {
             return Err(AgentHttpServerError::InvalidListener);
         }
-        if http.inner.shutdown.is_cancelled()
-            || http
-                .inner
-                .server_claimed
-                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-                .is_err()
-        {
-            return Err(AgentHttpServerError::AlreadyClaimed);
+        // AgentHost claims synchronously before starting any role. Standalone
+        // ingress claims here; both paths share the same atomic ownership bit.
+        if supervisor.is_none() {
+            http.claim_server()?;
         }
         let health = AgentHttpServerHealth::new(options.freshness, http.inner.stream_tasks.clone());
         let guard = RuntimeGuard {
@@ -153,7 +156,14 @@ impl AgentHttpServer {
         }
         health.update(AgentHttpServerStatus::Ready);
         let stop = CancellationToken::new();
-        let task = tokio::spawn(run(listener, guard, host, options, stop.clone()));
+        let task = tokio::spawn(run(
+            listener,
+            guard,
+            host,
+            options,
+            stop.clone(),
+            supervisor,
+        ));
         Ok(Self {
             address,
             health,
@@ -262,6 +272,7 @@ async fn run(
     host: Arc<dyn AgentHttpReadiness>,
     options: AgentHttpServerOptions,
     stop: CancellationToken,
+    supervisor: Option<crate::agent_host::AgentHostHealth>,
 ) -> AgentHttpDrainReport {
     let gate = guard.health.clone();
     let router =
@@ -270,8 +281,13 @@ async fn run(
             .router()
             .layer(middleware::from_fn(move |request: Request, next: Next| {
                 let gate = gate.clone();
+                let supervisor = supervisor.clone();
                 async move {
-                    if gate.is_ready() {
+                    if gate.is_ready()
+                        && supervisor
+                            .as_ref()
+                            .is_none_or(crate::agent_host::AgentHostHealth::allows_ingress)
+                    {
                         next.run(request).await
                     } else {
                         failure(HttpError::Unavailable, EventId::generate())
