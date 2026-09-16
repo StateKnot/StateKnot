@@ -14,6 +14,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Concrete offline default-deny Agent resource authorization with digest-pinned
+  artifacts, exact selectors, explicit tenant operators, restrictive budgets,
+  deterministic retained admission evidence, bounded freshness and atomic CAS
+  replacement. Unrelated ACL refresh preserves lost-response submission recovery.
+  Includes PostgreSQL 16/17 HTTP/SSE and real Keycloak composition qualification,
+  RFC-0012 and bilingual guides. No migration, dependency change, automatic
+  ownership, durable read-decision ledger or stable production-release claim.
+
 - Concrete bounded OAuth token introspection for Agent HTTP: verified HTTPS,
   exact access-token claim/scope checks, secret rotation, default-deny expiring
   tenant bindings with atomic CAS replacement, and real negative-canary readiness.

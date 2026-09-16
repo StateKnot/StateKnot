@@ -5,6 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot documentation
 
+Latest service boundary guide: [Agent resource authorization](agent-resource-policy.md)
+([中文](agent-resource-policy.zh-CN.md)) — concrete default-deny policy,
+retained configuration, exact resource grants, freshness and recovery semantics.
+
 This directory contains the normative design inputs for StateKnot. Claims in
 the project README remain aspirational until backed by implementation,
 conformance output, and the release gates in these documents.

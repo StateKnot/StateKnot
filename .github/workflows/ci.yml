@@ -68,6 +68,8 @@ jobs:
             public/schemas/runtime/graph-lifecycle-event/1.0.0
           cmp ../crates/stateknot-runtime/schemas/agent-admission-event-1.0.0.json \
             public/schemas/runtime/agent-admission-event/1.0.0
+          cmp ../crates/stateknot-runtime/schemas/agent-policy-evidence-1.0.0.json \
+            public/schemas/runtime/agent-policy-evidence/1.0.0
           cmp ../crates/stateknot-runtime/schemas/agent-cancellation-event-1.0.0.json \
             public/schemas/runtime/agent-cancellation-event/1.0.0
           cmp ../crates/stateknot-runtime/schemas/invocation-execution-event-1.0.0.json \
@@ -385,6 +387,7 @@ jobs:
           test "$(grep -c '^STATEKNOT_AGENT_HTTP_EVIDENCE=' agent-http-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_AGENT_SSE_EVIDENCE=' agent-http-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_AGENT_SERVER_EVIDENCE=' agent-http-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_RESOURCE_POLICY_EVIDENCE=' agent-http-qualification.log)" = 1
 
       - name: Upload Agent HTTP evidence
         if: always()

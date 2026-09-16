@@ -30,6 +30,9 @@ CI runs the profile against both PostgreSQL versions and requires one exact
 cannot silently pass qualification. Environment artifacts pin Git source/tree,
 Cargo.lock and the PostgreSQL image; this script records the IdP image and tree.
 Local dirty-tree output is development feedback, not immutable release evidence.
+The service installs the concrete `AgentResourcePolicy`, including explicit
+tenant-operator permissions, and composes its readiness with real introspection.
+Resource refusal removes the actual run rule; no allow-all policy stub is used.
 
 For behavior, security boundaries and rollout see
 [the operator guide](../../docs/agent-identity.md) and

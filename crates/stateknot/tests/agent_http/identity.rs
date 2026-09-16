@@ -7,6 +7,19 @@ use stateknot::agent_http::introspection::{
 };
 
 const SUBJECT: &str = "4cd727b3-c1b7-4ae5-9731-b42d3fd566ca";
+struct Dependencies {
+    identity: Arc<AgentHttpIntrospection>,
+    resources: Arc<agent_policy::AgentResourcePolicy>,
+}
+impl AgentHttpReadiness for Dependencies {
+    fn check(&self) -> BoxFuture<'_, Result<(), AgentHttpReadinessError>> {
+        Box::pin(async move {
+            self.resources.check().await?;
+            self.identity.check().await?;
+            self.resources.check().await
+        })
+    }
+}
 fn secret(value: &str) -> ClientSecret {
     ClientSecret::new(value.to_owned()).unwrap()
 }
@@ -116,9 +129,18 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
         AgentHttpAuthenticationError::Unavailable
     );
 
-    let f = Fixture::for_identity(tenant.clone(), "identity-graph", principal)
+    let mut f = Fixture::for_identity(tenant.clone(), "identity-graph", principal)
         .await
         .expect("real PostgreSQL required");
+    let resource_doc = super::resource_policy::operator_document(&f);
+    let resources = Arc::new(
+        agent_policy::AgentResourcePolicy::new(
+            agent_policy::PolicyArtifact::new(resource_doc.clone()).unwrap(),
+            Duration::from_secs(300),
+        )
+        .unwrap(),
+    );
+    f.service = super::resource_policy::install(&f, resources.clone());
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     let http = AgentHttpService::new(
@@ -135,7 +157,11 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
             Duration::from_secs(10),
         )
         .unwrap();
-    let mut server = AgentHttpServer::start(listener, http, auth.clone(), server_options)
+    let dependencies = Arc::new(Dependencies {
+        identity: auth.clone(),
+        resources: resources.clone(),
+    });
+    let mut server = AgentHttpServer::start(listener, http, dependencies, server_options)
         .await
         .unwrap();
     let health = server.health();
@@ -170,7 +196,15 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
     );
 
     // Resource policy remains mandatory even after successful authentication.
-    f.denied.store(true, Ordering::SeqCst);
+    let mut denied = resource_doc.clone();
+    denied.runs.clear();
+    resources
+        .replace(
+            1,
+            agent_policy::PolicyArtifact::new(denied).unwrap(),
+            Duration::from_secs(300),
+        )
+        .unwrap();
     assert_eq!(
         client
             .get(&run_url)
@@ -181,7 +215,13 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
             .status(),
         403
     );
-    f.denied.store(false, Ordering::SeqCst);
+    resources
+        .replace(
+            2,
+            agent_policy::PolicyArtifact::new(resource_doc).unwrap(),
+            Duration::from_secs(300),
+        )
+        .unwrap();
     policy
         .replace(
             1,

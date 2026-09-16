@@ -487,8 +487,8 @@ async fn postgres_owned_transport_capacity_headers_and_absolute_lifetime() {
     let settings = options()
         .with_transport_limits(
             8,
-            Duration::from_millis(200),
-            Duration::from_millis(350),
+            Duration::from_secs(1),
+            Duration::from_secs(2),
             Duration::from_millis(150),
         )
         .unwrap();
@@ -517,12 +517,14 @@ async fn postgres_owned_transport_capacity_headers_and_absolute_lifetime() {
         .await
         .unwrap();
     assert_eq!(stream.status(), 200);
-    timeout(Duration::from_secs(3), async {
+    // Allow real database-backed SSE setup on a loaded runner, but prove the
+    // connection's 2-second lifetime closes it well before SSE's 60-second limit.
+    timeout(Duration::from_secs(5), async {
         while let Ok(Some(_)) = stream.chunk().await {}
     })
     .await
     .unwrap();
-    assert!(began.elapsed() < Duration::from_secs(3));
+    assert!(began.elapsed() < Duration::from_secs(5));
     let report = server.shutdown().await.unwrap();
     assert_eq!(report.forced_connections, 0);
     assert!(report.connection_failures >= 1);

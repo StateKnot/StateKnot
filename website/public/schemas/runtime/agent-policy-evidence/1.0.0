@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stknot.com/schemas/runtime/agent-policy-evidence/1.0.0",
+  "title": "StateKnot Agent resource policy admission evidence v1",
+  "type": "object",
+  "required": ["operation", "policy_digest", "request_digest"],
+  "properties": {
+    "operation": { "const": "submission_granted" },
+    "policy_digest": { "type": "string", "minLength": 71, "maxLength": 71, "pattern": "^sha256:[a-f0-9]{64}$" },
+    "request_digest": { "type": "string", "minLength": 71, "maxLength": 71, "pattern": "^sha256:[a-f0-9]{64}$" }
+  },
+  "additionalProperties": false
+}
