@@ -49,7 +49,10 @@ export STATEKNOT_TEST_IDENTITY_CA="${fixture_dir}/ca.crt"
 export STATEKNOT_REQUIRE_IDENTITY_TESTS=1
 export STATEKNOT_REQUIRE_POSTGRES_TESTS=1
 ready=0
-for _ in $(seq 1 90); do
+# The isolated JVM may build its development fixture under shared-runner load.
+# This is not the production verifier deadline (3 seconds by default).
+startup_deadline=$((SECONDS + 180))
+while (( SECONDS < startup_deadline )); do
   if curl --noproxy '*' --fail --silent --max-time 2 --cacert "${STATEKNOT_TEST_IDENTITY_CA}" \
     "${STATEKNOT_TEST_IDENTITY_ISSUER}/.well-known/openid-configuration" >/dev/null; then ready=1; break; fi
   sleep 1

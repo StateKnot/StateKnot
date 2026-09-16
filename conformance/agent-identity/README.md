@@ -17,6 +17,8 @@ STATEKNOT_TEST_DATABASE_URL=postgres://postgres:stateknot_test_password@127.0.0.
 The script owns a unique loopback-only container and temporary certificate
 directory. Its exit trap removes that container/anonymous volume and generated
 certificates/keys; database rows remain in the caller-provided test database.
+The disposable JVM has a 180-second startup budget (plus at most one bounded
+probe); the verifier's request deadline and all security assertions are unchanged.
 Keycloak 26.7.3 is pinned to multiarch OCI index
 `sha256:29be7252db0a106f1cd2ac17b9a56ff2668073da645638a38b9fc67deeb2d6c4`.
 The embedded realm's fixed service-account secrets are disposable test fixtures,
