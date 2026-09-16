@@ -5,7 +5,11 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot documentation
 
-Latest service boundary guide: [Agent resource authorization](agent-resource-policy.md)
+Latest execution guide: [Owned scheduling Worker](agent-worker.md)
+([中文](agent-worker.zh-CN.md)) — fixed concurrency, actual readiness, joined
+shutdown and fresh-process recovery, independent of HTTP ingress.
+
+Service boundary guide: [Agent resource authorization](agent-resource-policy.md)
 ([中文](agent-resource-policy.zh-CN.md)) — concrete default-deny policy,
 retained configuration, exact resource grants, freshness and recovery semantics.
 

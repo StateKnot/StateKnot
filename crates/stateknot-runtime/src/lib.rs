@@ -24,6 +24,8 @@ pub use failure_close::{
     register_standard_run_failure_close_event_schema, standard_run_failure_close_event_schema,
 };
 mod agent_loop;
+mod execution_activity;
+pub use execution_activity::GraphExecutionActivity;
 mod agent_service;
 /// Bounded declarative resource authorization, separate from identity verification.
 pub use agent_service::policy as agent_policy;

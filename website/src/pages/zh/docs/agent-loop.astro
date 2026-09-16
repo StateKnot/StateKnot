@@ -213,6 +213,40 @@ const outcomes = [
     </p>
   </section>
 
+  <section aria-labelledby="owned-worker">
+    <h2 id="owned-worker">让 Worker 独立于 HTTP 接入运行</h2>
+    <p>
+      <code>AgentWorkerBinding::tenant</code> 与 <code
+        >AgentWorkerBinding::fair</code
+      >
+      独占一个具体调度器。<code>AgentWorker::start</code> 校验实际数据库 Schema、
+      冻结注册表和已持久化的公平策略，并通过强制提供的
+      <code>AgentWorkerReadiness</code> 检查真实宿主依赖。固定槽位限制并发， 证据过期或检查失败则暂停新
+      Tick；周期检查不会重叠。HTTP 提交不会自动启动 Worker。
+    </p>
+    <p>
+      默认 4 个槽位，单次 Tick 期限 5 分钟，优雅排空期限 30 秒。
+      <code>worker.begin_shutdown()</code> 关闭接纳；
+      <code>worker.shutdown().await</code> 回收 Tick 及内部 Graph 节点 Future， 优雅期限耗尽后强制中止并等待退出。取消
+      <code>worker.wait()</code>
+      不会丢失任务所有权。Drop 只能发起回收，不让出执行权的回调仍须由操作系统管理器设置强杀期限。
+      停机不是持久 Run 取消，也不代表事务回滚。
+    </p>
+    <p>
+      <code>worker.health()</code> 提供不含请求内容的本地状态与计数，不是匿名入口或持久计费。
+      Timer、Deadline、子 Run 和失败收敛维护任务仍须独立运行。PostgreSQL 16/17 测试覆盖
+      故障恢复、固定并发、停机回收、新进程不重复节点的终态重放，以及公平调度序号连续性。
+      参阅<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-worker.zh-CN.md"
+        >组装与运维指南</a
+      >
+      和<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0013-owned-agent-worker.md"
+        >Draft RFC-0013</a
+      >。 这不等于完整多角色生产部署验证或稳定版本发布。
+    </p>
+  </section>
+
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">验证证据</h2>
     <p>

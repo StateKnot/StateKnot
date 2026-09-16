@@ -233,6 +233,11 @@ The [owned HTTP ingress runtime](docs/agent-http-server.md) additionally owns
 loopback connections, checks actual dependencies and bounds graceful drain.
 Identity/policy readiness remains mandatory host wiring; Workers and schedulers
 remain separate roles, not silently started by ingress.
+The [owned scheduling Worker](docs/agent-worker.md) ([中文](docs/agent-worker.zh-CN.md))
+manages concrete tenant/fair schedulers with fixed concurrency, actual readiness,
+finite deadlines and joined shutdown including nested Graph nodes. PostgreSQL
+16/17 tests cover fresh-process terminal replay and fair-slot continuity.
+Maintenance jobs and complete multi-role deployment qualification remain separate.
 The concrete [online identity profile](docs/agent-identity.md) adds fixed-HTTPS
 OAuth introspection, exact claim/scope validation, rotating client secrets,
 expiring default-deny tenant bindings and negative-canary readiness. Real

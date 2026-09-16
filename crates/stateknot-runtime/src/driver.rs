@@ -280,6 +280,7 @@ pub enum DurableGraphDriverOptionsError {
 /// Fenced durable graph execution service over one `PostgreSQL` provider pool.
 #[derive(Clone)]
 pub struct DurableGraphDriver {
+    activity: crate::GraphExecutionActivity,
     store: PostgresStore,
     registry: ExecutableGraphRegistry,
     journal_schema: stateknot_core::SchemaReference,
@@ -317,11 +318,17 @@ impl DurableGraphDriver {
             return Err(DurableGraphDriverBuildError::UnsafeLeaseRenewalCadence);
         }
         Ok(Self {
+            activity: crate::GraphExecutionActivity::default(),
             store,
             registry,
             journal_schema,
             options,
         })
+    }
+
+    /// Returns shared node-future completion accounting for this driver and clones.
+    pub fn execution_activity(&self) -> crate::GraphExecutionActivity {
+        self.activity.clone()
     }
 
     /// Returns the immutable execution policy.
@@ -925,7 +932,7 @@ impl DurableGraphDriver {
             let task_cancellation = cancellation.clone();
             let timeout = self.options.node_execution_timeout;
             cancellations.push(cancellation);
-            tasks.spawn(async move {
+            tasks.spawn(self.activity.track(async move {
                 let executing = AtomicBool::new(false);
                 let executing_marker = &executing;
                 // Wrap both the synchronous `execute` call and the returned
@@ -965,7 +972,7 @@ impl DurableGraphDriver {
                     }
                 };
                 (index, outcome)
-            });
+            }));
         }
 
         let fence = lease.lease.fence().clone();

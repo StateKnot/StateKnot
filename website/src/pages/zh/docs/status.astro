@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "独立持久执行 Worker 生命周期",
+    body: "管理具体租户或公平调度器，提供固定槽位、实际依赖与宿主就绪检查、有限退避和期限，以及包含 Graph 节点的停机回收。PostgreSQL 16/17 验证新进程终态重放与公平序号连续性；维护任务及完整多角色生产部署验证仍独立进行。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "声明式 Agent 资源授权",
     body: "精确租户、身份、Agent、Schema 与运行选择器，显式租户运维权限、预算限制、固定摘要的策略文件及确定性 Admission 证据。支持有时效的原子更新，无关权限变化不破坏提交恢复。真实 PostgreSQL 16/17 与 Keycloak 验证；不推断所有权，也不新增读取审计账本。",
   },

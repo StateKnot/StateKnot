@@ -100,6 +100,11 @@ pub struct DurableAgentLoop {
 }
 
 impl DurableAgentLoop {
+    /// Returns shared node-future completion accounting for this loop and clones.
+    pub fn execution_activity(&self) -> crate::GraphExecutionActivity {
+        self.driver.execution_activity()
+    }
+
     /// Builds a loop over one shared store and immutable deployment registry.
     ///
     /// Constructing both layers here prevents a caller from accidentally

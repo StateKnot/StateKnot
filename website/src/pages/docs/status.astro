@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "Independent durable scheduling Worker lifecycle",
+    body: "Concrete tenant/fair schedulers with fixed slots, actual and host dependency readiness, finite pacing and deadlines, and joined drain including nested Graph nodes. PostgreSQL 16/17 qualifies fresh-process terminal replay and fair-slot continuity. Maintenance jobs and full multi-role production qualification remain separate.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "Declarative Agent resource authorization",
     body: "Exact tenant/identity/Agent/schema/run selectors, explicit tenant operators, restrictive budgets, digest-pinned policy artifacts and deterministic admission evidence. Expiring CAS refresh preserves recovery across unrelated ACL changes. Real PostgreSQL 16/17 and Keycloak qualification; no inferred ownership or durable read-audit ledger.",
   },
