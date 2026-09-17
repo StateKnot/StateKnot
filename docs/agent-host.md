@@ -101,7 +101,8 @@ lockfile and image metadata. Run database qualifications serially after builds.
 
 Only static bilingual documentation is deployed to `stknot.com`. No fixture
 identity, default credentials or unqualified Agent runtime is deployed there.
-Authenticated operational endpoints, cross-process rolling deployment, measured
+[Authenticated read-only operations](agent-operations.md) use a separately owned
+listener and explicit expiring operator authority. Cross-process rolling deployment, measured
 capacity/recovery SLOs and remaining production release gates are still separate
 work. Roll back a host application only to a qualified compatible version and
 preserve durable state; this change adds no schema or dependency migration.

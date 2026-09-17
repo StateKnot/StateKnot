@@ -105,6 +105,44 @@ let router = http.router();
     </p>
   </section>
 
+  <section aria-labelledby="host-operations">
+    <h2 id="host-operations">通过独立授权的运维接口查看宿主</h2>
+    <p>
+      <code>AgentHostOperations::start</code> 独立接管 loopback 监听器，读取实际宿主健康视图。
+      每个请求必须同时满足真实身份验证、<code>InspectHost</code> 权限和有效的
+      <code>AgentHostOperationsPolicy</code>。业务 Read 权限不能替代运维授权。
+      令牌内省需显式配置 <code>with_host_inspection_scope</code>，同时检查令牌
+      scope 与可信租户授权。
+    </p>
+    <p>
+      仅支持 GET <code>/v1/host/status</code>、<code>/v1/host/live</code>、
+      <code>/v1/host/ready</code>。业务依赖故障或宿主停止后仍可授权查看状态；
+      身份服务或运维策略失效则拒绝访问。没有匿名探针、浏览器
+      Origin、请求体或管理写操作。
+    </p>
+    <p>
+      最多 128 个精确运维调用方，有效期不超过一小时，更新检查 generation
+      且不自动续期。 默认 16 连接/请求、5 秒请求/排空、3 秒读头、60
+      秒连接寿命。快照只输出固定标签和计数， 不含租户/Run ID
+      或凭据；累计计数用十进制字符串，读取不探测数据库。
+    </p>
+    <p>
+      先停止并等待业务宿主，按需查看最终状态，再等待 <code
+        >operations.shutdown().await</code
+      >。 取消等待不丢失所有权，强制排空也会等待连接销毁。PostgreSQL 16/17
+      与真实 TLS 身份测试覆盖 专属运维
+      scope、过期、撤销、上限与资源回收；这些验证不等于生产容量或恢复 SLO。
+      官网仍仅部署静态文档。
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-operations.zh-CN.md"
+        >接线、响应格式与运维指南</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0016-protected-agent-host-operations.md"
+        >RFC-0016（Draft）</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="agent-host">
     <h2 id="agent-host">统一管理同进程的三个角色</h2>
     <p>
@@ -128,7 +166,7 @@ let router = http.router();
     <p>
       PostgreSQL 16/17 与真实 TLS Keycloak
       验证组合恢复、依赖门禁、启动失败、角色退出及任务回收。
-      受保护运维接口与实测部署、容量 SLO 仍需后续完成。
+      受保护运维接口在上方独立授权，实测部署与容量 SLO 仍需后续完成。
       官网仅部署静态文档，不部署使用测试身份的 Agent 运行服务。
       <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-host.zh-CN.md"

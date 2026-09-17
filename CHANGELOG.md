@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Independently owned read-only host operations with explicit InspectHost
+  permission, opt-in introspection scope and a separate bounded expiring operator
+  ACL; sanitized lifecycle/counters, request/transport ceilings and joined drain.
+  PostgreSQL 16/17 and dedicated real TLS identity qualification, RFC-0016 and
+  bilingual guides. No schema/dependency change, administrative writes or runtime
+  deployment; downstream exhaustive operation matches must handle the new variant.
+
 - Concrete co-located Agent host owning actual HTTP, Worker and maintenance
   bindings: exclusive ingress ownership, ordered startup, sibling readiness
   gates, fail-stop supervision and HTTP → Worker → maintenance joined drain.

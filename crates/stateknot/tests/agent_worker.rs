@@ -119,6 +119,8 @@ use execution_evidence::{Evidence, evidence};
 
 #[path = "agent_worker/host.rs"]
 mod host;
+#[path = "agent_worker/operations.rs"]
+mod operations;
 fn options() -> AgentWorkerOptions {
     AgentWorkerOptions::default()
         .with_execution_limits(2, Duration::from_secs(20), Duration::from_secs(2))

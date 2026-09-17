@@ -2,21 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::{AgentHttpService, HttpError, failure};
+use crate::http_transport::{connection, count_failure};
 use axum::{
-    Router,
     extract::Request,
     middleware::{self, Next},
-};
-use hyper::server::conn::http1;
-use hyper_util::{
-    rt::{TokioIo, TokioTimer},
-    service::TowerToHyperService,
 };
 use stateknot_core::{BoxFuture, EventId};
 use std::{net::SocketAddr, sync::Arc};
 use thiserror::Error;
 use tokio::{
-    net::{TcpListener, TcpStream},
+    net::TcpListener,
     task::{JoinHandle, JoinSet},
     time::{Instant, sleep, timeout, timeout_at},
 };
@@ -341,46 +336,4 @@ async fn run(
     guard.http.inner.stream_tasks.close();
     guard.http.inner.stream_tasks.wait().await;
     report
-}
-
-fn count_failure(
-    result: Option<&Result<bool, tokio::task::JoinError>>,
-    report: &mut AgentHttpDrainReport,
-) {
-    if !matches!(result, Some(Ok(true))) {
-        report.connection_failures = report.connection_failures.saturating_add(1);
-    }
-}
-
-async fn connection(
-    socket: TcpStream,
-    router: Router,
-    drain: CancellationToken,
-    options: AgentHttpServerOptions,
-    _active: health::ConnectionGuard,
-) -> bool {
-    let mut builder = http1::Builder::new();
-    builder
-        .timer(TokioTimer::new())
-        .keep_alive(true)
-        .half_close(false)
-        .max_headers(64)
-        .max_buf_size(32 * 1024)
-        .header_read_timeout(options.header_timeout);
-    let connection =
-        builder.serve_connection(TokioIo::new(socket), TowerToHyperService::new(router));
-    tokio::pin!(connection);
-    let lifetime = sleep(options.connection_lifetime);
-    tokio::pin!(lifetime);
-    tokio::select! {
-        biased;
-        () = drain.cancelled() => connection.as_mut().graceful_shutdown(),
-        () = &mut lifetime => return false,
-        result = &mut connection => return result.is_ok(),
-    }
-    tokio::select! {
-        biased;
-        () = &mut lifetime => false,
-        result = &mut connection => result.is_ok(),
-    }
 }

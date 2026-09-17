@@ -25,6 +25,8 @@ use tokio::{net::TcpListener, task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
 
 mod health;
+/// Separately authorized read-only local host observations over owned HTTP.
+pub mod operations;
 use health::Phase;
 pub use health::{AgentHostHealth, AgentHostStatus};
 

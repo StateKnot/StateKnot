@@ -58,6 +58,8 @@ pub enum AgentHttpOperation {
     Read,
     /// Request cancellation; does not confirm terminal cleanup.
     Cancel,
+    /// Inspect sanitized host health; still requires separate operator policy.
+    InspectHost,
 }
 
 impl AgentHttpOperation {
@@ -66,6 +68,7 @@ impl AgentHttpOperation {
             Self::Submit => 1,
             Self::Read => 2,
             Self::Cancel => 4,
+            Self::InspectHost => 8,
         }
     }
 }

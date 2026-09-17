@@ -16,7 +16,7 @@ pub struct TenantBinding {
 }
 
 impl TenantBinding {
-    /// Binds one exact issuer/subject to one tenant and at most three operations.
+    /// Binds one exact issuer/subject to one tenant and at most four operations.
     /// No wildcard or token-supplied tenant is interpreted.
     #[must_use]
     pub fn new(
@@ -28,6 +28,7 @@ impl TenantBinding {
             AgentHttpOperation::Submit,
             AgentHttpOperation::Read,
             AgentHttpOperation::Cancel,
+            AgentHttpOperation::InspectHost,
         ]
         .into_iter()
         .filter(|op| operations.contains(op))
@@ -121,6 +122,7 @@ impl TenantPolicy {
         principal: &PrincipalIdentity,
         scopes: &[String],
         required: &[String; 3],
+        inspection_scope: Option<&str>,
     ) -> Result<AgentHttpPrincipal, AgentHttpAuthenticationError> {
         let current = self
             .0
@@ -143,7 +145,18 @@ impl TenantPolicy {
         .filter_map(|(op, scope)| {
             (binding.operations.contains(&op) && scopes.contains(scope)).then_some(op)
         });
-        Ok(AgentHttpPrincipal::new(binding.caller.clone(), operations))
+        let inspection = inspection_scope
+            .filter(|scope| {
+                binding
+                    .operations
+                    .contains(&AgentHttpOperation::InspectHost)
+                    && scopes.iter().any(|granted| granted == scope)
+            })
+            .map(|_| AgentHttpOperation::InspectHost);
+        Ok(AgentHttpPrincipal::new(
+            binding.caller.clone(),
+            operations.chain(inspection),
+        ))
     }
 
     fn snapshot(

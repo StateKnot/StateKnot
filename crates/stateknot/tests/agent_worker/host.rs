@@ -30,7 +30,7 @@ fn maintenance(f: &Fixture) -> AgentMaintenanceBinding {
     .unwrap()
 }
 
-fn limits() -> AgentHostOptions {
+pub(super) fn limits() -> AgentHostOptions {
     AgentHostOptions {
         http: AgentHttpServerOptions::default().with_transport_limits(16, Duration::from_secs(1), Duration::from_secs(60), Duration::from_millis(150)).unwrap()
             // Deliberately much slower than sibling probes: gate cannot depend on this interval.
@@ -56,10 +56,10 @@ fn limits() -> AgentHostOptions {
     }
 }
 
-fn checks() -> [Arc<Host>; 3] {
+pub(super) fn checks() -> [Arc<Host>; 3] {
     std::array::from_fn(|_| Arc::new(Host::default()))
 }
-async fn launch(
+pub(super) async fn launch(
     f: &Fixture,
     checks: &[Arc<Host>; 3],
     ev: Arc<Evidence>,
@@ -84,20 +84,20 @@ async fn launch(
         http,
     )
 }
-async fn ready(host: &AgentHost) {
+pub(super) async fn ready(host: &AgentHost) {
     timeout(Duration::from_secs(15), host.wait_ready())
         .await
         .unwrap()
         .unwrap();
 }
-fn client() -> reqwest::Client {
+pub(super) fn client() -> reqwest::Client {
     reqwest::Client::builder()
         .no_proxy()
         .timeout(Duration::from_secs(5))
         .build()
         .unwrap()
 }
-async fn submit(host: &AgentHost, f: &Fixture) -> reqwest::Response {
+pub(super) async fn submit(host: &AgentHost, f: &Fixture) -> reqwest::Response {
     client()
         .post(format!("http://{}/v1/agent-runs", host.local_addr()))
         .bearer_auth(fixture::TOKEN)
@@ -115,7 +115,7 @@ fn idle(health: &AgentHostHealth) -> bool {
             .is_none_or(|h| h.active_ticks() == 0 && h.active_nodes() == 0)
         && health.maintenance().is_none_or(|h| h.active_ticks() == 0)
 }
-async fn joined(host: &AgentHost, f: &Fixture) {
+pub(super) async fn joined(host: &AgentHost, f: &Fixture) {
     assert_eq!(host.health().status(), AgentHostStatus::Stopped);
     assert!(idle(&host.health()));
     assert!(TcpStream::connect(host.local_addr()).await.is_err());

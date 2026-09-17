@@ -7,6 +7,8 @@ use stateknot::agent_http::introspection::{
 };
 
 const SUBJECT: &str = "4cd727b3-c1b7-4ae5-9731-b42d3fd566ca";
+#[path = "identity/operations.rs"]
+mod operations;
 struct Dependencies {
     identity: Arc<AgentHttpIntrospection>,
     resources: Arc<agent_policy::AgentResourcePolicy>,
@@ -544,6 +546,7 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
     )
     .await;
     assert_eq!(f.node_calls.load(Ordering::SeqCst), 1);
+    operations::qualify(&mut host, &f, &client, &issuer, &rotated, &token, &auth).await;
     let report = host.shutdown().await.unwrap();
     assert_eq!(report.failure, None);
     assert_eq!(host.health().http().unwrap().active_connections(), 0);

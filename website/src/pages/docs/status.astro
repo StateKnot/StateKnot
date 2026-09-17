@@ -8,8 +8,14 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "Protected read-only host operations",
+    body: "Independent owned loopback listener, explicit InspectHost scope/permission and a separate expiring exact-caller policy. Sanitized status/counters remain observable during business outages; authentication, requests, connections and shutdown are bounded. PostgreSQL 16/17 and dedicated real TLS identity qualification; no anonymous probes, administrative writes or capacity/SLO claim.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "Co-located Agent host lifecycle",
-    body: "Owns actual ingress, Worker and maintenance bindings with exclusive ingress claim, ordered startup, per-request sibling readiness gates and HTTP → Worker → maintenance joined drain. PostgreSQL 16/17 and real TLS identity composition qualification; protected operations endpoints, cross-process rollout and measured capacity SLOs remain open.",
+    body: "Owns actual ingress, Worker and maintenance bindings with exclusive ingress claim, ordered startup, per-request sibling readiness gates and HTTP → Worker → maintenance joined drain. PostgreSQL 16/17 and real TLS identity composition qualification; cross-process rollout and measured capacity SLOs remain open.",
   },
   {
     state: "Implemented",

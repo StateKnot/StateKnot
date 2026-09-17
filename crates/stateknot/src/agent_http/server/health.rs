@@ -1,6 +1,7 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::http_transport::ConnectionGuard;
 use std::{
     sync::{
         Arc, Mutex,
@@ -97,8 +98,7 @@ impl AgentHttpServerHealth {
     }
 
     pub(super) fn connection(&self) -> ConnectionGuard {
-        self.active.fetch_add(1, Ordering::AcqRel);
-        ConnectionGuard(self.active.clone())
+        ConnectionGuard::new(self.active.clone())
     }
 
     pub(super) fn update(&self, status: AgentHttpServerStatus) {
@@ -115,14 +115,6 @@ impl AgentHttpServerHealth {
         }
         record.status = status;
         record.success = (status == AgentHttpServerStatus::Ready).then(Instant::now);
-    }
-}
-
-pub(super) struct ConnectionGuard(Arc<AtomicUsize>);
-
-impl Drop for ConnectionGuard {
-    fn drop(&mut self) {
-        self.0.fetch_sub(1, Ordering::AcqRel);
     }
 }
 

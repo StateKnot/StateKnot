@@ -48,6 +48,9 @@ fn token() -> AgentHttpCredential {
 
 #[test]
 fn configuration_and_secrets_fail_closed() {
+    for scope in ["", "read", "submit", "cancel", "bad scope", "bad\n"] {
+        assert!(options().with_host_inspection_scope(scope.into()).is_err());
+    }
     for endpoint in [
         "http://localhost/x",
         "https://id:secret@issuer.example.test/x",
@@ -97,12 +100,60 @@ fn configuration_and_secrets_fail_closed() {
 }
 
 #[test]
+fn host_inspection_requires_opt_in_scope_and_explicit_binding() {
+    let required = options().required_scopes;
+    for grant in [false, true] {
+        let ops = if grant {
+            vec![AgentHttpOperation::InspectHost]
+        } else {
+            vec![AgentHttpOperation::Read]
+        };
+        let policy = TenantPolicy::new(
+            vec![TenantBinding::new(
+                "tenant-one".parse().unwrap(),
+                identity(),
+                &ops,
+            )],
+            Duration::from_secs(30),
+        )
+        .unwrap();
+        for opt_in in [false, true] {
+            for token_scope in [false, true] {
+                let scopes = if token_scope {
+                    vec!["inspect".into()]
+                } else {
+                    vec!["read".into()]
+                };
+                let principal = policy
+                    .resolve(&identity(), &scopes, &required, opt_in.then_some("inspect"))
+                    .unwrap();
+                assert_eq!(
+                    principal.allows(AgentHttpOperation::InspectHost),
+                    grant && opt_in && token_scope
+                );
+                if grant {
+                    assert!(!principal.allows(AgentHttpOperation::Read));
+                }
+            }
+        }
+    }
+    assert_eq!(
+        options()
+            .with_host_inspection_scope("inspect".into())
+            .unwrap()
+            .host_inspection_scope
+            .as_deref(),
+        Some("inspect")
+    );
+}
+
+#[test]
 fn claims_are_exact_bounded_and_never_trust_tenant() {
     let mut good = active();
     good["tenant"] = json!("attacker-tenant");
     let (principal, scopes) = claims::verify(&good, &options()).unwrap();
     let mapped = policy()
-        .resolve(&principal, &scopes, &options().required_scopes)
+        .resolve(&principal, &scopes, &options().required_scopes, None)
         .unwrap();
     assert_eq!(mapped.caller().tenant_id().as_str(), "tenant-one");
     assert!(mapped.allows(AgentHttpOperation::Read));
@@ -165,7 +216,7 @@ async fn policy_replacement_is_atomic_default_deny_and_expires() {
     );
     assert!(
         policy
-            .resolve(&identity(), &scopes, &options().required_scopes)
+            .resolve(&identity(), &scopes, &options().required_scopes, None)
             .is_ok()
     );
     assert!(policy.replace(0, vec![], Duration::from_secs(1)).is_err());
@@ -175,7 +226,7 @@ async fn policy_replacement_is_atomic_default_deny_and_expires() {
     );
     assert_eq!(
         policy
-            .resolve(&identity(), &scopes, &options().required_scopes)
+            .resolve(&identity(), &scopes, &options().required_scopes, None)
             .unwrap_err(),
         AgentHttpAuthenticationError::Unauthenticated
     );
@@ -192,7 +243,7 @@ async fn policy_replacement_is_atomic_default_deny_and_expires() {
     );
     assert!(
         policy
-            .resolve(&identity(), &scopes, &options().required_scopes)
+            .resolve(&identity(), &scopes, &options().required_scopes, None)
             .is_err()
     );
     assert_eq!(
