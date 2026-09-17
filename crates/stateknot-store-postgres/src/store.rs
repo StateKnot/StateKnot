@@ -8,7 +8,9 @@ use std::{
     future::Future,
     io::Write,
     panic::{AssertUnwindSafe, catch_unwind},
+    pin::Pin,
     sync::LazyLock,
+    task::{Context, Poll},
     time::Duration,
 };
 
@@ -104,6 +106,74 @@ use crate::{
     WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
     WaitDiscoveryPageSize,
 };
+
+/// Drives an in-flight future to completion if its caller is cancelled.
+///
+/// `PostgreSQL` transaction startup is not cancellation-safe at the protocol
+/// boundary: the server can accept `BEGIN` before the client records that a
+/// transaction exists. Dropping that startup future can otherwise return a
+/// connection with a server-side transaction to the pool. Completing the
+/// future preserves ownership of the connection; dropping its output then
+/// follows `SQLx`'s normal transaction rollback path.
+struct CompleteOnDrop<F>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    future: Option<Pin<Box<F>>>,
+}
+
+impl<F> CompleteOnDrop<F>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    fn new(future: F) -> Self {
+        Self {
+            future: Some(Box::pin(future)),
+        }
+    }
+}
+
+impl<F> Future for CompleteOnDrop<F>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    type Output = F::Output;
+
+    fn poll(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.get_mut();
+        let result = this
+            .future
+            .as_mut()
+            .expect("complete-on-drop future polled after completion")
+            .as_mut()
+            .poll(context);
+        if result.is_ready() {
+            this.future = None;
+        }
+        result
+    }
+}
+
+impl<F> Drop for CompleteOnDrop<F>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    fn drop(&mut self) {
+        let Some(future) = self.future.take() else {
+            return;
+        };
+
+        // SQLx already requires an active runtime for the database operation.
+        // Dropping its join handle detaches the task on supported runtimes.
+        let _cleanup = sqlx_core::rt::spawn(async move {
+            drop(future.await);
+        });
+    }
+}
 
 static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
     migrations: Cow::Owned(vec![
@@ -9828,15 +9898,13 @@ RETURNING observation.observed_at
         &self,
         operation: &'static str,
     ) -> Result<Transaction<'_, Postgres>, StoreError> {
-        let mut transaction = self
-            .pool
-            .begin()
-            .await
-            .map_err(|source| StoreError::database(operation, source))?;
-        query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED, READ WRITE")
-            .execute(&mut *transaction)
-            .await
-            .map_err(|source| StoreError::database(operation, source))?;
+        let pool = self.pool.clone();
+        let mut transaction = CompleteOnDrop::new(async move {
+            pool.begin_with("BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED, READ WRITE")
+                .await
+        })
+        .await
+        .map_err(|source| StoreError::database(operation, source))?;
         apply_transaction_timeouts(&mut transaction, &self.options, operation).await?;
         query("SET LOCAL stateknot.failure_close_version = '1'")
             .execute(&mut *transaction)
@@ -9857,15 +9925,13 @@ RETURNING observation.observed_at
         &self,
         operation: &'static str,
     ) -> Result<Transaction<'_, Postgres>, StoreError> {
-        let mut transaction = self
-            .pool
-            .begin()
-            .await
-            .map_err(|source| StoreError::database(operation, source))?;
-        query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            .execute(&mut *transaction)
-            .await
-            .map_err(|source| StoreError::database(operation, source))?;
+        let pool = self.pool.clone();
+        let mut transaction = CompleteOnDrop::new(async move {
+            pool.begin_with("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+                .await
+        })
+        .await
+        .map_err(|source| StoreError::database(operation, source))?;
         apply_transaction_timeouts(&mut transaction, &self.options, operation).await?;
         Ok(transaction)
     }
@@ -19957,6 +20023,30 @@ fn is_invalid_pending_binding_constraint(error: &sqlx_core::Error) -> bool {
 mod tests {
     use super::*;
     use crate::{ConfigurationError, PostgresTransportSecurity};
+
+    #[tokio::test]
+    async fn complete_on_drop_finishes_an_in_flight_future_after_cancellation() {
+        let (started_sender, started_receiver) = tokio::sync::oneshot::channel();
+        let (release_sender, release_receiver) = tokio::sync::oneshot::channel();
+        let (completed_sender, completed_receiver) = tokio::sync::oneshot::channel();
+
+        let task = tokio::spawn(CompleteOnDrop::new(async move {
+            started_sender.send(()).expect("start observer is live");
+            release_receiver.await.expect("release signal is live");
+            completed_sender
+                .send(())
+                .expect("completion observer is live");
+        }));
+
+        started_receiver.await.expect("future started");
+        task.abort();
+        assert!(task.await.expect_err("task was cancelled").is_cancelled());
+        release_sender.send(()).expect("cleanup task is live");
+        tokio::time::timeout(Duration::from_secs(1), completed_receiver)
+            .await
+            .expect("cleanup completed before the deadline")
+            .expect("completion signal was delivered");
+    }
 
     #[test]
     fn store_debug_and_configuration_do_not_expose_urls() {

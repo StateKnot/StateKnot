@@ -407,7 +407,7 @@ jobs:
         run: |
           set -o pipefail
           cargo test -p stateknot --test agent_worker --locked -- \
-            --nocapture --test-threads=1 --skip host:: --skip operations:: | tee agent-worker-qualification.log
+            --nocapture --test-threads=1 --skip host:: --skip operations:: --skip qualification:: | tee agent-worker-qualification.log
           test "$(grep -c '^STATEKNOT_WORKER_EXECUTION_EVIDENCE=' agent-worker-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_WORKER_RECOVERY_EVIDENCE=' agent-worker-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_WORKER_FAILSTOP_EVIDENCE=' agent-worker-qualification.log)" = 1
@@ -468,6 +468,63 @@ jobs:
           path: |
             agent-operations-qualification.log
             failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Record reduced host qualification metadata
+        env:
+          STATEKNOT_QUALIFICATION_POSTGRES_IMAGE: ${{ matrix.image }}
+          STATEKNOT_QUALIFICATION_POSTGRES_MAJOR: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          source_tree="$(git rev-parse 'HEAD^{tree}')"
+          cargo_lock_sha256="$(sha256sum Cargo.lock | cut -d ' ' -f 1)"
+          dataset_sha256="$(sha256sum docs/scenarios/README.md | cut -d ' ' -f 1)"
+          configuration_sha256="$(printf '%s\n' \
+            'profile=ci_reduced' \
+            "postgres_image=${STATEKNOT_QUALIFICATION_POSTGRES_IMAGE}" \
+            'synchronous_commit=on' \
+            'topology=1,1,1,1' | sha256sum | cut -d ' ' -f 1)"
+          logical_cpus="$(nproc)"
+          cpu_model="$(lscpu | awk -F: '/Model name:/ { sub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+          test -n "$cpu_model"
+          memory_bytes="$(awk '/MemTotal:/ { print $2 * 1024 }' /proc/meminfo | cut -d . -f 1)"
+          kernel="$(uname -sr)"
+          {
+            echo "STATEKNOT_QUALIFICATION_SOURCE_COMMIT=${source_commit}"
+            echo "STATEKNOT_QUALIFICATION_SOURCE_TREE=${source_tree}"
+            echo "STATEKNOT_QUALIFICATION_CARGO_LOCK_SHA256=${cargo_lock_sha256}"
+            echo "STATEKNOT_QUALIFICATION_DATASET_SHA256=${dataset_sha256}"
+            echo "STATEKNOT_QUALIFICATION_CONFIGURATION_SHA256=${configuration_sha256}"
+            echo "STATEKNOT_QUALIFICATION_LOGICAL_CPUS=${logical_cpus}"
+            echo "STATEKNOT_QUALIFICATION_CPU_MODEL=${cpu_model}"
+            echo "STATEKNOT_QUALIFICATION_MEMORY_BYTES=${memory_bytes}"
+            echo "STATEKNOT_QUALIFICATION_KERNEL=${kernel}"
+            echo "STATEKNOT_QUALIFICATION_POSTGRES_MAJOR=${STATEKNOT_QUALIFICATION_POSTGRES_MAJOR}"
+          } | tee -a "$GITHUB_ENV" > reduced-host-qualification-environment.log
+          printf '%s\n' "postgres_image=${STATEKNOT_QUALIFICATION_POSTGRES_IMAGE}" \
+            >> reduced-host-qualification-environment.log
+
+      - name: Run reduced host capacity and recovery qualification
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot --test agent_worker --locked -- \
+            --exact qualification::postgres_reduced_host_qualification_emits_verified_non_release_evidence \
+            --nocapture --test-threads=1 | tee reduced-host-qualification.log
+          test "$(grep -c '^STATEKNOT_HOST_QUALIFICATION_REPORT=' reduced-host-qualification.log)" = 1
+
+      - name: Upload reduced host qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: reduced-host-qualification-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            reduced-host-qualification.log
+            reduced-host-qualification-environment.log
           if-no-files-found: error
           retention-days: 30
 

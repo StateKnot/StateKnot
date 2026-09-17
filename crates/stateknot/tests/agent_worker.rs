@@ -121,6 +121,8 @@ use execution_evidence::{Evidence, evidence};
 mod host;
 #[path = "agent_worker/operations.rs"]
 mod operations;
+#[path = "agent_worker/qualification.rs"]
+mod qualification;
 fn options() -> AgentWorkerOptions {
     AgentWorkerOptions::default()
         .with_execution_limits(2, Duration::from_secs(20), Duration::from_secs(2))

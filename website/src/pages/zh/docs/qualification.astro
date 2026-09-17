@@ -1,0 +1,126 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const runCode = `let plan = FaultPlan::ci_default();
+let run = QualificationRun::start(
+    QualificationProfile::CiReduced,
+    QualificationScenario::AgentHostControlPlaneV1,
+    QualificationWindow::ci_default(),
+    environment,
+    &plan,
+)?;
+
+run.begin_measurement()?;
+let operation = run.recorder().begin_operation()?;
+// 记录真实 Signal 与由外部完成检查的故障不变量。
+operation.finish(OperationOutcome::Completed)?;
+run.begin_drain()?;
+
+let report = run.finish()?;
+let envelope = report.to_integrity_envelope()?;`;
+---
+
+<DocsLayout
+  title="验证宿主，但不伪造 SLO。"
+  description="记录有界容量与恢复证据，计算封闭故障矩阵，并严格区分缩减 CI 结果和发布验证。"
+  section="宿主验证"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="zh-qualification-boundary">
+    <h2 id="zh-qualification-boundary">CI 证据不是发布结论</h2>
+    <p>
+      <code>CiReduced</code> 的 <code>release_qualified</code> 永远为
+      <code>false</code>。只有 <code>ReleaseCandidate</code> 才能检查参考拓扑、完整时间窗口和全部故障矩阵。SHA-256
+      完整性封装只能发现内容变化，不是签名或来源证明。
+    </p>
+  </aside>
+
+  <section aria-labelledby="zh-qualification-record">
+    <h2 id="zh-qualification-record">让记录器管理时间与记账</h2>
+    <p>
+      <code>QualificationRun</code> 使用单调时钟，只能依次经过 <code
+        >Warmup</code
+      >、<code>Measurement</code>、<code>Drain</code>
+      与 <code>Finished</code
+      >。测量阶段的操作守卫有明确上界；未记录结果就被丢弃会成为非预期失败，还有进行中工作时不能结束排空。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 缩减证据骨架</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-qualification-run-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-qualification-run-code"
+        tabindex="0"><code>{runCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="zh-qualification-report">
+    <h2 id="zh-qualification-report">缺失证据必须保持可见</h2>
+    <ul class="evidence-list">
+      <li>
+        <h3>绑定环境</h3>
+        <p>
+          记录
+          Commit、Tree、Lockfile、数据集与配置摘要，以及有界机器、PostgreSQL、
+          拓扑和数据库 RTT 信息。
+        </p>
+      </li>
+      <li>
+        <h3>保留完整延迟分布</h3>
+        <p>
+          准入提交、Runnable Claim、已连接 SSE 投递和重连均使用有界 HDR
+          Histogram，同时保留原始与修正后的样本数。
+        </p>
+      </li>
+      <li>
+        <h3>安全事实必须为零</h3>
+        <p>
+          已确认记录丢失、过期围栏写入被接受、跨租户披露和外部效果重复，在所有配置中都会失败。
+        </p>
+      </li>
+      <li>
+        <h3>不得捏造未测数据</h3>
+        <p>
+          缩减运行把未测量的饱和度或公平性写成 <code>null</code> 和
+          <code>informational_missing</code>；发布运行遇到相同缺失会失败。
+        </p>
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="zh-qualification-faults">
+    <h2 id="zh-qualification-faults">使用稳定且由外部控制的故障</h2>
+    <p>
+      v1 固定表示数据库不可用、宿主依赖就绪检查失效、工作进程丢失、滚动替换、
+      验证器不可用和运维策略过期。StateKnot 只记录注入、恢复与已检查不变量，
+      不持有基础设施凭据，也不自行执行故障操作。
+    </p>
+  </section>
+
+  <section aria-labelledby="zh-qualification-current-evidence">
+    <h2 id="zh-qualification-current-evidence">当前可执行证据</h2>
+    <p>
+      PostgreSQL 16/17 CI 使用真实 Agent Host 执行缩减配置：从 HTTP 准入到 Graph
+      终态、基于 Journal 的 Runnable-to-claim 时间、实时与重放 SSE、受保护运维
+      读取、依赖拒绝/恢复，以及旧宿主排空前替换宿主先就绪。它证明验证工具接线和
+      不变量，不证明生产容量。使用前请阅读完整<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/host-qualification.zh-CN.md"
+        >运维合约</a
+      >和 <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0017-host-qualification-harness.md"
+        >Draft RFC-0017</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

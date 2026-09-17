@@ -9,6 +9,7 @@ members = [
     "crates/stateknot-integrations",
     "crates/stateknot-runtime",
     "crates/stateknot-store-postgres",
+    "crates/stateknot-testkit",
 ]
 resolver = "3"
 
@@ -29,6 +30,7 @@ http-body-util = "0.1.5"
 hyper = { version = "1.11.1", default-features = false, features = ["server", "http1"] }
 hyper-util = { version = "0.1.20", default-features = false, features = ["tokio", "service"] }
 httpdate = "1.0.3"
+hdrhistogram = { version = "=7.6.0", default-features = false }
 language-tags = "0.3.2"
 mime = "0.3.17"
 object_store = { version = "=0.14.1", default-features = false, features = ["aws"] }

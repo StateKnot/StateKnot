@@ -40,6 +40,7 @@ tokio-util = { workspace = true, features = ["rt"] }
 zeroize.workspace = true
 
 [dev-dependencies]
+stateknot-testkit = { version = "=0.0.0", path = "../stateknot-testkit" }
 tower-service.workspace = true
 tokio = { workspace = true, features = ["io-util", "net", "process"] }
 

@@ -422,7 +422,12 @@ from the repository.
   A2A gRPC, untrusted-worker/service role isolation, general retention,
   failover, restore, and final stale-race gates.
 - [ ] Compile the four public contract examples against the proposed APIs.
-- [ ] Commit the benchmark harness and fault-injection matrix.
+- [x] Commit the [host qualification harness](host-qualification.md) and closed
+  fault-injection matrix: bounded HDR observations, checked correctness/security
+  counters, canonical integrity reports and a real PostgreSQL 16/17 reduced host
+  profile. The reduced profile cannot claim production SLOs; reference load,
+  complete fault execution, 24-hour soak, failover/restore and signed provenance
+  remain release-candidate gates under RFC-0017.
 
 ## M0 — Architecture contracts
 

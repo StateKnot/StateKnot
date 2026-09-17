@@ -232,6 +232,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         search:
           "postgres postgresql provider migration tls pool recovery operations",
       },
+      {
+        title: "Host qualification",
+        description:
+          "Record bounded capacity, recovery and fault evidence without turning CI into a production SLO claim.",
+        href: "/docs/qualification/",
+        search:
+          "host qualification benchmark capacity recovery fault injection hdr histogram report ci release slo evidence",
+      },
     ],
   },
   {
@@ -460,6 +468,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         description: "配置、迁移、校验并测试已实现的持久化 Provider。",
         href: "/docs/postgresql/",
         search: "postgres postgresql provider 迁移 tls 连接池 恢复 运维",
+      },
+      {
+        title: "宿主验证",
+        description:
+          "记录有界容量、恢复与故障证据，避免把 CI 结果误写成生产 SLO。",
+        href: "/docs/qualification/",
+        search:
+          "宿主 验证 benchmark 容量 恢复 故障 注入 hdr histogram 报告 ci 发布 slo 证据",
       },
     ],
   },

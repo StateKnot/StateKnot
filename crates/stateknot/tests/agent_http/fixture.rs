@@ -53,6 +53,7 @@ struct Node {
     schema: SchemaReference,
     calls: Arc<AtomicUsize>,
     block: Arc<AtomicBool>,
+    release: Arc<Notify>,
 }
 impl GraphNodeExecutor for Node {
     fn graph(&self) -> &GraphReference {
@@ -68,7 +69,7 @@ impl GraphNodeExecutor for Node {
         Box::pin(async move {
             self.calls.fetch_add(1, Ordering::SeqCst);
             if self.block.load(Ordering::SeqCst) {
-                std::future::pending::<()>().await;
+                self.release.notified().await;
             }
             // Deterministic one-turn model fixture. Attribute its observed call
             // and materialized JSON bytes to the durable node completion.
@@ -180,6 +181,8 @@ pub(super) struct Fixture {
     pub node_calls: Arc<AtomicUsize>,
     #[allow(dead_code)] // Used by the independent Worker qualification target.
     pub node_block: Arc<AtomicBool>,
+    #[allow(dead_code)] // Allows a real live-SSE qualification to release its node.
+    pub node_release: Arc<Notify>,
     pub executable: ExecutableGraphRegistry,
     pub deployments: AgentServiceRegistry,
     pub policy: Arc<dyn AgentServiceAuthorizer>,
@@ -263,6 +266,7 @@ impl Fixture {
             .unwrap();
         let node_calls = Arc::new(AtomicUsize::new(0));
         let node_block = Arc::new(AtomicBool::new(false));
+        let node_release = Arc::new(Notify::new());
         registry
             .register_node(Arc::new(Node {
                 graph: graph.reference(),
@@ -270,6 +274,7 @@ impl Fixture {
                 schema: schema.clone(),
                 calls: node_calls.clone(),
                 block: node_block.clone(),
+                release: node_release.clone(),
             }))
             .unwrap();
         let raw: Value = serde_json::from_str(include_str!(
@@ -367,6 +372,7 @@ impl Fixture {
             policy_calls,
             node_calls,
             node_block,
+            node_release,
             executable,
             deployments,
             policy,
