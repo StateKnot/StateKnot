@@ -9,7 +9,8 @@ cargo run -p stateknot-core --example first_agent --locked
 cargo run -p stateknot-core --example typed_tool --locked
 cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
-cargo test -p stateknot-core --test dependency_boundary --locked`;
+cargo test -p stateknot-core --test dependency_boundary --locked
+cargo test -p stateknot-core --test fixture_catalog --locked`;
 ---
 
 <DocsLayout
@@ -104,6 +105,22 @@ cargo test -p stateknot-core --test dependency_boundary --locked`;
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0001-core-domain-and-capability-model.md"
         >Draft RFC-0001</a
       >，核对仍未关闭的验收条件。
+    </p>
+  </section>
+
+  <section aria-labelledby="core-contract-fixtures">
+    <h2 id="core-contract-fixtures">封闭兼容性证据语料库</h2>
+    <p>
+      版本化目录对当前提交的全部 36 份 Core Fixture 文档建立封闭清单。每个条目以
+      SHA-256 固定文件的精确字节，从而保留刻意非 Canonical 的非法输入反例；带
+      Domain Separation 的 RFC 8785 根摘要绑定有序的路径、Schema 与 Digest
+      元数据。
+    </p>
+    <p>
+      CI 会拒绝缺失、未登记、变化、重复、不安全、过大或没有测试引用的
+      Fixture。每个条目都必须继续被可执行的 Rust 兼容性测试消费。这是 RFC-0001
+      第 2 项验证门禁的可审计基础，不代表类型级 Fixture 已完整覆盖；第 2
+      项仍保持开放。
     </p>
   </section>
 

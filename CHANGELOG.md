@@ -21,6 +21,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Closed, versioned catalog for all 36 committed `stateknot-core`
+  compatibility fixture documents. The gate strictly parses bounded JSON,
+  preserves deliberately non-canonical negative vectors through exact content
+  SHA-256 digests, binds the ordered metadata with a domain-separated RFC 8785
+  root, rejects inventory/path/schema drift, and requires an executable Rust
+  compatibility-test reference for every entry. No dependency or runtime API
+  changed; this is infrastructure toward RFC-0001 validation item 2, whose
+  exhaustive type-level fixture coverage remains open.
+
 - Four executable `stateknot-core` public contract examples for the first Agent,
   typed Tool registration, provider-neutral Model stream validation and explicit
   protocol mapping. A locked Cargo-metadata test fails on every unreviewed direct

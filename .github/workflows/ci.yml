@@ -101,6 +101,9 @@ jobs:
       - name: Compile public core contract examples
         run: cargo check -p stateknot-core --examples --locked
 
+      - name: Verify sealed Core compatibility fixture catalog
+        run: cargo test -p stateknot-core --test fixture_catalog --locked
+
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 

@@ -22,12 +22,27 @@ cargo run -p stateknot-core --example typed_tool --locked
 cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
+cargo test -p stateknot-core --test fixture_catalog --locked
 ```
 
 CI 包含单独命名的示例编译步骤。依赖边界集成测试还会读取锁定的 Cargo
 Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比较。新增、重命名直接
 依赖或加入 Target-specific 依赖，都会让门禁失败，直到 Core Runtime-neutrality
 审查被显式更新。
+
+## 封闭的兼容性 Fixture 语料库
+
+版本化的 `catalog-v1.json` 对当前提交的全部 36 份 Core 兼容性 Fixture
+文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
+RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
+RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
+
+集成门禁会拒绝未登记、缺失、乱序、重复、过大、包含重复键、路径越界、Schema
+冲突、内容变化或没有 Rust 测试引用的 Fixture。每份已登记文档仍必须被可执行的
+Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
+
+这让现有证据语料可审查且可检测篡改，但不代表 RFC-0001 的每个公共类型和持久化
+Envelope 都已经拥有 Fixture。第 2 项验证门禁仍须完成类型级覆盖审计并补齐缺口。
 
 ## 每个示例证明什么
 
@@ -47,6 +62,7 @@ Terminal Evidence。对应的已实现边界见[强类型 Agent 指南](typed-ag
 [持久化准入指南](durable-agent-admission.zh-CN.md)和
 [可恢复 Agent Loop 指南](durable-agent-loop.zh-CN.md)。
 
-通过这些证据只关闭 RFC-0001 的第 1 项验证门禁。Canonical Fixture 完整覆盖、
-Fuzzing、Compile-fail 隐私检查、历史迁移、场景映射与完整安全审查仍是验收条件。
-因此 StateKnot 仍处于 pre-alpha，RFC-0001 仍为 Draft。
+四个示例只关闭 RFC-0001 的第 1 项验证门禁。封闭 Fixture 目录只是第 2 项的
+证据基础，不代表已完成所需的类型级覆盖。Fuzzing、Compile-fail 隐私检查、历史
+迁移、场景映射与完整安全审查也仍是验收条件。因此 StateKnot 仍处于 pre-alpha，
+RFC-0001 仍为 Draft。
