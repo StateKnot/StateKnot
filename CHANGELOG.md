@@ -12,6 +12,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- PostgreSQL transaction startup now completes and rolls back after caller
+  cancellation, preventing a server-side transaction from returning to the pool
+  before `SQLx` records its transaction depth. Read and mutation transactions
+  also select their isolation and access modes in the initial `BEGIN` command.
+
 ### Added
 
 - Unpublished `stateknot-testkit` host qualification harness with recorder-owned
