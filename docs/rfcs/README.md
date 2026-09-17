@@ -28,6 +28,7 @@ security, or operational commitments.
 | [0014](0014-owned-agent-maintenance.md) | Draft | Owned Agent maintenance, bounded tenant sweeps and joined shutdown |
 | [0015](0015-owned-agent-host.md) | Draft | Owned co-located Agent host, admission gates and ordered role shutdown |
 | [0016](0016-protected-agent-host-operations.md) | Draft | Separately authorized read-only host operations and owned listener |
+| [0017](0017-host-qualification-harness.md) | Draft | Reproducible host capacity and recovery qualification evidence |
 
 ## When an RFC is required
 
