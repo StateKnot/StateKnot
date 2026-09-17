@@ -8,6 +8,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "有界宿主验证证据",
+    body: "尚未发布的 stateknot-testkit 管理单调计时阶段、有界 HDR 延迟分布、受检安全计数、封闭故障矩阵与规范化完整性封装。PostgreSQL 16/17 缩减配置走真实宿主准入、SSE、运维读取、依赖恢复和滚动替换，但始终不是发布证据；参考负载、浸泡测试、故障切换和来源证明仍待完成。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "受保护的只读宿主运维接口",
     body: "独立接管 loopback 监听器，强制 InspectHost scope/权限与独立的过期调用方策略。业务故障时仍可授权查看脱敏状态和计数，身份验证、请求、连接及停机均有界。PostgreSQL 16/17 与专属真实 TLS 身份验证；无匿名探针、管理写操作或容量/SLO 声明。",
   },

@@ -51,25 +51,35 @@ changes; it is not an identity, signature or supply-chain attestation.
 The intended API, made compilable with implementation, is:
 
 ```rust,ignore
-let environment = QualificationEnvironment::builder()
-    .source_commit(commit)?
-    .source_tree(tree)?
-    .cargo_lock_sha256(lock_sha256)?
-    .dataset_sha256(dataset_sha256)?
-    .topology(Topology::new(3, 3, 6)?)
-    .postgres(PostgresEnvironment::new(17, true, StandbyMode::Synchronous)?)
-    .machine(MachineEnvironment::new(8, 32 * GIB, "nvme")?)
-    .median_database_rtt(Duration::from_micros(1_500))?
-    .build()?;
+let source = SourceIdentity::new(commit, tree, lock, dataset, configuration)?;
+let application = MachineEnvironment::new(
+    8, 16 * GIB, cpu_model, "nvme", kernel, container_runtime,
+)?;
+let database = MachineEnvironment::new(
+    8, 32 * GIB, database_cpu_model, "nvme", database_kernel, database_runtime,
+)?;
+let environment = QualificationEnvironment::new(
+    source,
+    application,
+    database,
+    PostgresEnvironment::new(17, true, StandbyMode::Synchronous)?,
+    Topology::new(3, 3, 3, 6)?,
+    1_500,
+)?;
 
+let plan = FaultPlan::release_default();
 let run = QualificationRun::start(
     QualificationProfile::ReleaseCandidate,
+    QualificationScenario::AgentHostControlPlaneV1,
     QualificationWindow::release_default(),
     environment,
+    &plan,
 )?;
 run.begin_measurement()?;
-run.recorder().record_latency(LatencySignal::AdmissionCommit, elapsed)?;
-run.recorder().record_counter(QualificationCounter::Accepted, 1)?;
+let recorder = run.recorder();
+let operation = recorder.begin_operation()?;
+recorder.record_latency(LatencySignal::AdmissionCommit, elapsed, expected_interval)?;
+operation.finish(OperationOutcome::Completed)?;
 run.begin_drain()?;
 let report = run.finish()?;
 let envelope = report.to_integrity_envelope()?;
@@ -110,7 +120,9 @@ records lost, accepted stale writes, cross-tenant disclosures and duplicate
 external effects. All additions are checked. Saturation and noisy-neighbour
 fairness use integer basis points and microseconds, not floating-point equality.
 The report separately names unavailable evidence rather than converting absence
-to zero.
+to zero. Saturation and noisy-neighbour fairness may be explicitly unmeasured in
+`CiReduced`; their objectives become `informational_missing`. The same absence
+is mandatory failure in `ReleaseCandidate`.
 
 The shared objectives are evaluated against the documented scenario targets.
 Any lost acknowledged record, accepted stale write, cross-tenant disclosure or
@@ -122,9 +134,10 @@ reference environment. Release qualification also requires less than 70 percent
 saturation, unexpected errors below 0.1 percent and all shared latency signals.
 
 The fault matrix has stable identifiers and explicit planned, injected, recovered
-and invariant-check counts. Version one covers database unavailability, Worker
-loss, host rolling replacement, verifier unavailability and operations-policy
-expiry. A case is complete only when injection happened, recovery was observed
+and invariant-check counts. Version one covers database unavailability, host
+dependency-readiness loss, Worker loss, host rolling replacement, verifier
+unavailability and operations-policy expiry. A case is complete only when
+injection happened, recovery was observed
 and every declared invariant was checked. Extra free-form case names are refused.
 Fault callbacks remain outside the crate so the harness never receives production
 credentials or infrastructure authority.

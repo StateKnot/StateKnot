@@ -8,7 +8,7 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 
-struct Auth {
+pub(super) struct Auth {
     caller: AgentServiceCaller,
     mode: AtomicUsize,
     active: Arc<AtomicUsize>,
@@ -57,7 +57,7 @@ impl AgentHttpAuthenticator for Auth {
         })
     }
 }
-fn auth(f: &Fixture) -> Arc<Auth> {
+pub(super) fn auth(f: &Fixture) -> Arc<Auth> {
     Arc::new(Auth {
         caller: f.caller.clone(),
         mode: AtomicUsize::new(0),
@@ -66,7 +66,7 @@ fn auth(f: &Fixture) -> Arc<Auth> {
         release: Notify::new(),
     })
 }
-async fn start(
+pub(super) async fn start(
     host: &AgentHost,
     auth: Arc<Auth>,
     limits: impl FnOnce(AgentHostOperationsOptions) -> AgentHostOperationsOptions,
@@ -91,7 +91,7 @@ async fn start(
 fn url(ops: &AgentHostOperations, path: &str) -> String {
     format!("http://{}{path}", ops.local_addr())
 }
-async fn get(ops: &AgentHostOperations, path: &str, token: &str) -> reqwest::Response {
+pub(super) async fn get(ops: &AgentHostOperations, path: &str, token: &str) -> reqwest::Response {
     host::client()
         .get(url(ops, path))
         .bearer_auth(token)

@@ -14,6 +14,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Unpublished `stateknot-testkit` host qualification harness with recorder-owned
+  monotonic phases, bounded HDR latency distributions, checked operation/safety
+  counters, stable fault cases, deterministic integer objectives and canonical
+  SHA-256 integrity envelopes. A reduced real Agent host profile on PostgreSQL
+  16/17 covers HTTP-to-terminal execution, SSE delivery/reconnect, dependency
+  readiness loss/recovery, protected operations and rolling replacement. Reduced
+  results are always non-release evidence and may explicitly report unmeasured
+  release-only saturation/fairness; no production SLO, provenance signature,
+  runtime deployment, durable schema or business protocol changes.
+
 - Independently owned read-only host operations with explicit InspectHost
   permission, opt-in introspection scope and a separate bounded expiring operator
   ACL; sanitized lifecycle/counters, request/transport ceilings and joined drain.

@@ -54,8 +54,12 @@ maintenance with ordered startup, sibling readiness gates and joined shutdown.
 The separately authorized [read-only operations listener](docs/agent-operations.md)
 ([中文](docs/agent-operations.zh-CN.md)) exposes bounded sanitized health during
 business outages, with explicit inspection permission and an expiring operator
-policy. Deployment/capacity qualification and stable release acceptance remain
-separate; no test identity or Agent runtime is deployed to the website.
+policy. The [host qualification harness](docs/host-qualification.md)
+([中文](docs/host-qualification.zh-CN.md)) now emits bounded canonical capacity,
+recovery and fault evidence from real PostgreSQL 16/17 host paths. Its reduced
+CI profile is explicitly non-release evidence; reference deployment, load, soak,
+failover and stable release acceptance remain separate. No test identity or
+Agent runtime is deployed to the website.
 
 The separately authorized [known-error reconciliation Tool](docs/mcp-error-reconciliation.md)
 ([中文](docs/mcp-error-reconciliation.zh-CN.md)) resolves an exact Unknown attempt

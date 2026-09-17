@@ -1,0 +1,127 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const runCode = `let plan = FaultPlan::ci_default();
+let run = QualificationRun::start(
+    QualificationProfile::CiReduced,
+    QualificationScenario::AgentHostControlPlaneV1,
+    QualificationWindow::ci_default(),
+    environment,
+    &plan,
+)?;
+
+run.begin_measurement()?;
+let operation = run.recorder().begin_operation()?;
+// Record exact signals and externally checked fault invariants.
+operation.finish(OperationOutcome::Completed)?;
+run.begin_drain()?;
+
+let report = run.finish()?;
+let envelope = report.to_integrity_envelope()?;`;
+---
+
+<DocsLayout
+  title="Qualify a host without manufacturing an SLO."
+  description="Record bounded capacity and recovery evidence, evaluate a closed fault matrix, and keep reduced CI results separate from release qualification."
+  section="Host qualification"
+>
+  <aside class="docs-callout" aria-labelledby="qualification-boundary">
+    <h2 id="qualification-boundary">CI evidence is not a release claim</h2>
+    <p>
+      <code>CiReduced</code> always emits <code>release_qualified: false</code>.
+      Only <code>ReleaseCandidate</code> can pass the reference topology, full timing
+      windows and complete fault matrix. A SHA-256 envelope detects changes; it is
+      not a signature or provenance attestation.
+    </p>
+  </aside>
+
+  <section aria-labelledby="qualification-record">
+    <h2 id="qualification-record">Let the recorder own time and accounting</h2>
+    <p>
+      <code>QualificationRun</code> moves once through Warmup, Measurement, Drain
+      and Finished using a monotonic clock. Measured operation guards are bounded
+      and cannot disappear silently: abandoning one records an unexpected failure,
+      and drain refuses to finish while work remains.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · reduced evidence skeleton</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="qualification-run-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="qualification-run-code" tabindex="0"><code>{runCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="qualification-report">
+    <h2 id="qualification-report">Keep absence visible</h2>
+    <ul class="evidence-list">
+      <li>
+        <h3>Bind the environment</h3>
+        <p>
+          Record commit, tree, lockfile, dataset and configuration digests plus
+          bounded machine, PostgreSQL, topology and database-RTT facts.
+        </p>
+      </li>
+      <li>
+        <h3>Retain distributions</h3>
+        <p>
+          Admission, runnable claim, connected SSE delivery and reconnect use
+          bounded HDR histograms with observed and corrected sample counts.
+        </p>
+      </li>
+      <li>
+        <h3>Fail safety facts at zero</h3>
+        <p>
+          Lost acknowledged records, accepted stale writes, cross-tenant
+          disclosure and duplicate external effects fail every profile.
+        </p>
+      </li>
+      <li>
+        <h3>Never invent missing measurements</h3>
+        <p>
+          Reduced runs serialize unmeasured saturation or fairness as
+          <code>null</code> and <code>informational_missing</code>. Release runs
+          fail on the same absence.
+        </p>
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="qualification-faults">
+    <h2 id="qualification-faults">Use stable, externally controlled faults</h2>
+    <p>
+      Version one names database unavailability, host-dependency readiness loss,
+      Worker loss, rolling replacement, verifier unavailability and operations-
+      policy expiry. StateKnot records injection, recovery and checked
+      invariants; it never receives infrastructure credentials or performs the
+      fault itself.
+    </p>
+  </section>
+
+  <section aria-labelledby="qualification-current-evidence">
+    <h2 id="qualification-current-evidence">Current executable evidence</h2>
+    <p>
+      PostgreSQL 16 and 17 CI run a reduced real Agent host profile through HTTP
+      admission to terminal execution, journal-based runnable-claim timing, live
+      and replayed SSE, protected operations, dependency refusal/recovery and
+      replacement-before-drain. That proves the harness wiring and invariants,
+      not production capacity. Read the complete <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/host-qualification.md"
+        >operations contract</a
+      > and <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0017-host-qualification-harness.md"
+        >Draft RFC-0017</a
+      >.
+    </p>
+  </section>
+</DocsLayout>

@@ -9,6 +9,29 @@ const responsiveAuditWidths = [
 ] as const;
 
 for (const locale of ["en", "zh"] as const) {
+  test(`${locale} separates reduced host evidence from release qualification`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/qualification/`);
+    const boundary = page.locator(
+      `aside[aria-labelledby="${locale === "zh" ? "zh-" : ""}qualification-boundary"]`,
+    );
+    await expect(boundary).toContainText("CiReduced");
+    await expect(boundary).toContainText("release_qualified");
+    await expect(boundary).toContainText("false");
+    await expect(
+      page.getByText("informational_missing", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("QualificationRun", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.locator("a[href$='0017-host-qualification-harness.md']"),
+    ).toHaveCount(1);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
+
   test(`${locale} documents separately authorized read-only operations`, async ({
     page,
   }) => {
@@ -331,6 +354,12 @@ const localizedRoutePairs = [
     zh: "/zh/docs/postgresql/",
     enHeading: "Operate the PostgreSQL durability provider.",
     zhHeading: "运维 PostgreSQL 持久化 Provider。",
+  },
+  {
+    en: "/docs/qualification/",
+    zh: "/zh/docs/qualification/",
+    enHeading: "Qualify a host without manufacturing an SLO.",
+    zhHeading: "验证宿主，但不伪造 SLO。",
   },
   {
     en: "/docs/status/",
