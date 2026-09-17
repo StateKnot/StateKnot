@@ -27,6 +27,7 @@ security, or operational commitments.
 | [0013](0013-owned-agent-worker.md) | Draft | Owned durable scheduling Worker and joined task lifecycle |
 | [0014](0014-owned-agent-maintenance.md) | Draft | Owned Agent maintenance, bounded tenant sweeps and joined shutdown |
 | [0015](0015-owned-agent-host.md) | Draft | Owned co-located Agent host, admission gates and ordered role shutdown |
+| [0016](0016-protected-agent-host-operations.md) | Draft | Separately authorized read-only host operations and owned listener |
 
 ## When an RFC is required
 
