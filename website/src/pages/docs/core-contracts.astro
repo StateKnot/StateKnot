@@ -9,7 +9,8 @@ cargo run -p stateknot-core --example first_agent --locked
 cargo run -p stateknot-core --example typed_tool --locked
 cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
-cargo test -p stateknot-core --test dependency_boundary --locked`;
+cargo test -p stateknot-core --test dependency_boundary --locked
+cargo test -p stateknot-core --test fixture_catalog --locked`;
 ---
 
 <DocsLayout
@@ -108,6 +109,23 @@ cargo test -p stateknot-core --test dependency_boundary --locked`;
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0001-core-domain-and-capability-model.md"
         >draft RFC-0001</a
       > for the remaining acceptance gates.
+    </p>
+  </section>
+
+  <section aria-labelledby="core-contract-fixtures">
+    <h2 id="core-contract-fixtures">Seal the compatibility evidence corpus</h2>
+    <p>
+      A versioned catalog closes the inventory around all 36 committed Core
+      fixture documents. Each entry pins the exact file bytes with SHA-256,
+      retaining deliberately non-canonical negative vectors; a domain-separated
+      RFC 8785 root binds the ordered path, schema, and digest metadata.
+    </p>
+    <p>
+      CI rejects missing, unregistered, changed, duplicate, unsafe, oversized,
+      or unreferenced fixtures. Every entry must remain consumed by executable
+      Rust compatibility tests. This is auditable infrastructure toward RFC-0001
+      validation item 2, not proof of exhaustive type-level fixture coverage;
+      item 2 remains open.
     </p>
   </section>
 

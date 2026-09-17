@@ -742,6 +742,30 @@ test("core contracts expose executable evidence and the draft boundary", async (
   await expect(
     page.getByText("RFC-0001 remains Draft", { exact: false }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: "Seal the compatibility evidence corpus",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("all 36 committed Core", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("item 2 remains open", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(1);
+
+  await page.goto("/zh/docs/core-contracts/");
+  await expect(
+    page.getByRole("heading", { level: 2, name: "封闭兼容性证据语料库" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("全部 36 份 Core Fixture", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("第 2 项仍保持开放", { exact: false }),
+  ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(1);
 });
 

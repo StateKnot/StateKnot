@@ -1,0 +1,187 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/catalog/1.0.0",
+  "version": 1,
+  "entries": [
+    {
+      "path": "core-accounting-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-accounting/1.0.0",
+      "content_digest": "sha256:40369564f345185d0895a5737d4eeb1e512fb1ab22e2e76a4122d72730978a7b"
+    },
+    {
+      "path": "core-agent-runtime-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-agent-runtime/1.0.0",
+      "content_digest": "sha256:d3d867522ed2cd4e45a2779e1a20318b03b19ba88b0989168bf44c43efe6e9ba"
+    },
+    {
+      "path": "core-agent-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-agent/1.0.0",
+      "content_digest": "sha256:f0a821c5eea9457c5f6d94bd6650ec72b564c91152a18a90674c2f9c3a8b17ef"
+    },
+    {
+      "path": "core-artifact-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-artifact/1.0.0",
+      "content_digest": "sha256:83933297d10125809c5054e232c8c88e61843f73f76674e43dc82349e289b5f6"
+    },
+    {
+      "path": "core-authorization-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-authorization/1.0.0",
+      "content_digest": "sha256:598206a5459ba50720d052e187fcf43dfd69b3ae1793947495100a9c15593c5f"
+    },
+    {
+      "path": "core-barrier-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-barrier/1.0.0",
+      "content_digest": "sha256:9d38358c430e1f3a4def439ffadc18d699bec24dcdb7eff32d2f4b1c643ff88c"
+    },
+    {
+      "path": "core-budget-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-budget/1.0.0",
+      "content_digest": "sha256:e3db3c4b00cdcf835161adf01ab48cd176e239e4646cdeb5a63fa35243d73b15"
+    },
+    {
+      "path": "core-capability-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-capability/1.0.0",
+      "content_digest": "sha256:537e62167afaff4919ee8a4d027a673ed2b208859b6424acaed7e52fc99141d0"
+    },
+    {
+      "path": "core-checkpoint-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-checkpoint/1.0.0",
+      "content_digest": "sha256:4d6f7058329ae7a3cfa08fb1e23640b938fe9df5d718f630428e644c779eedc0"
+    },
+    {
+      "path": "core-content-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-content/1.0.0",
+      "content_digest": "sha256:7ad42f572b5d6786277d858862ddfda3723d60ae58c7fbb1b0f933c36baff3ac"
+    },
+    {
+      "path": "core-durable-wait-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-durable-wait/1.0.0",
+      "content_digest": "sha256:bdc03ec41cc04101470c580810865ec1e5833c21a98d023801559f887e4849ed"
+    },
+    {
+      "path": "core-extension-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-extension/1.0.0",
+      "content_digest": "sha256:8c02eea3667b36449e1115e8fc8387d72233cdde4005b8a976c8f6913f61842f"
+    },
+    {
+      "path": "core-failure-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-failure/1.0.0",
+      "content_digest": "sha256:2a6744b0d25f05d59b0c5966ba7c09a7d4513a3efbdf3f5e2b23d915419d0f7e"
+    },
+    {
+      "path": "core-graph-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-graph/1.0.0",
+      "content_digest": "sha256:15b437b4738ac918f406a284680343c6b93d4855523fdb4d2376018609c90847"
+    },
+    {
+      "path": "core-identity-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-identity/1.0.0",
+      "content_digest": "sha256:6104da3f27a5583012977dd35436c8c2ae2f836c98c74e4740d42bdf7a4d5edd"
+    },
+    {
+      "path": "core-journal-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-journal/1.0.0",
+      "content_digest": "sha256:866e9ef198a9b17257851796f7f05353512f3a4cdb446898b978806755642390"
+    },
+    {
+      "path": "core-json-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-json/1.0.0",
+      "content_digest": "sha256:72db24fe269dc50d70f2056e75ba49aa10db09de0bc66fa024bc6b8e5a1c9787"
+    },
+    {
+      "path": "core-message-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-message/1.0.0",
+      "content_digest": "sha256:96b660f46ebdd76d1f9937ecd339930b255c9cddf397a2c4c4cf5704ef4315f2"
+    },
+    {
+      "path": "core-model-capability-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-model-capability/1.0.0",
+      "content_digest": "sha256:a0992e8a5d88e31592bc3a961f2f02a937362af203ecf17a0f4f0a418c61d7db"
+    },
+    {
+      "path": "core-model-descriptor-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-model-descriptor/1.0.0",
+      "content_digest": "sha256:dcfa5624418765d445320656ebdece6fa333073e8336b9800a4080a629b84d03"
+    },
+    {
+      "path": "core-model-event-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-model-event/1.0.0",
+      "content_digest": "sha256:348d41ad3959653e476f7265abdcce6c4dbb1862d4b31694a64e379f29899c0a"
+    },
+    {
+      "path": "core-model-invocation-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-model-invocation/1.0.0",
+      "content_digest": "sha256:8f5a1a229f2f201e56d1e4979f25213c072c62c81b2d0da046f69fc0dd3d267c"
+    },
+    {
+      "path": "core-model-request-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-model-request/1.0.0",
+      "content_digest": "sha256:247fc77be79743e087e44371228fd40f73f614719730225637478a1218069a23"
+    },
+    {
+      "path": "core-model-response-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-model-response/1.0.0",
+      "content_digest": "sha256:7d25542be1e648fdca42b96537e934536ed3a3557b6ca25e17d41990b5548674"
+    },
+    {
+      "path": "core-model-runtime-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-model-runtime/1.0.0",
+      "content_digest": "sha256:26ef438063ecc5888c8975dc94717c41cc8e481054eb42e3e1e45945b209c4b8"
+    },
+    {
+      "path": "core-node-attempt-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-node-attempt/1.0.0",
+      "content_digest": "sha256:fa0c54dd0572e339656e6b67cb55d3123f9c6bf811ef73322864778027202e7c"
+    },
+    {
+      "path": "core-node-result-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-node-result/1.0.0",
+      "content_digest": "sha256:80e7896ad880bc4934d5a31c378e047893661d4fb2f7304befcc0ab6bfc1f51c"
+    },
+    {
+      "path": "core-outbox-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-outbox/1.0.0",
+      "content_digest": "sha256:d6014c6721b9943c1228c78328d6741dc353d44baa74bad2dcfdd4cee5de7f2e"
+    },
+    {
+      "path": "core-run-lifecycle-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-run-lifecycle/1.0.0",
+      "content_digest": "sha256:a098f6e54112cc5fe89673d0ed4c0912c73db1d9cfccf0dcf35dccf42189030b"
+    },
+    {
+      "path": "core-scalars-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-scalars/1.0.0",
+      "content_digest": "sha256:a41f8ef03dda7ef6931537e456cf1ae30d8bef6f319d44b568a06e45552987db"
+    },
+    {
+      "path": "core-schema-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-schema/1.0.0",
+      "content_digest": "sha256:d38c025aa7debd502e96fb84c1f81cf7516c462e4671368c6697ee7bc1aa0fc8"
+    },
+    {
+      "path": "core-time-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-time/1.0.0",
+      "content_digest": "sha256:3cdc443be68ed93acc31032014bb2ff4f48c3c20d2774fb4f34b8893ed85e5a5"
+    },
+    {
+      "path": "core-time-v2.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-time/2.0.0",
+      "content_digest": "sha256:c30b00aa87ca135f6c42c0b16e4387ed8c59b86cab88177559fdd4a8c087ea4d"
+    },
+    {
+      "path": "core-tool-invocation-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-tool-invocation/1.0.0",
+      "content_digest": "sha256:90e1637516feb59eb54a01742866d4a33b429aff6fded4f1b036d354ff1bd727"
+    },
+    {
+      "path": "core-tool-runtime-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-tool-runtime/1.0.0",
+      "content_digest": "sha256:9fe7bec77d7be6166d42a661430dfec083bef7fec0b5e20ab92bc8d3bed6d74c"
+    },
+    {
+      "path": "core-tool-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-tool/1.0.0",
+      "content_digest": "sha256:009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
+    }
+  ],
+  "root_digest": "sha256:d53ecfc2354a4b77562bde901520e82c8d06719d07a96efe36746ed158230fdd"
+}

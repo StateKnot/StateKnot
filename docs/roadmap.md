@@ -426,6 +426,11 @@ from the repository.
   and explicit protocol mapping. CI also locks the reviewed runtime-neutral
   direct dependency boundary. This closes only RFC-0001 validation item 1;
   the RFC remains Draft while its other acceptance gates are open.
+- [x] Seal the 36-file Core compatibility fixture corpus behind a versioned
+  closed catalog, exact content digests, a domain-separated RFC 8785 root,
+  strict bounded parsing and executable-test reference coverage. This makes the
+  current evidence tamper-evident but does not close RFC-0001 validation item 2;
+  exhaustive type-level fixture coverage remains open.
 - [x] Commit the [host qualification harness](host-qualification.md) and closed
   fault-injection matrix: bounded HDR observations, checked correctness/security
   counters, canonical integrity reports and a real PostgreSQL 16/17 reduced host
