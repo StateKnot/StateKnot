@@ -133,6 +133,7 @@ header ceilings and absolute lifetime. Existing fresh-process SSE and lost-respo
 tests remain mandatory. Each CI database artifact requires the
 `STATEKNOT_AGENT_SERVER_EVIDENCE` marker in addition to prior evidence markers.
 
-These controlled tests do not qualify a real issuer, proxy load, pool failover or
-entire production deployment. Next: real identity/policy-backed role integration
-and protected health wiring, followed by broader hosting/release qualification.
+These transport tests alone do not qualify proxy load, pool failover or an entire
+production deployment. See the separately qualified [identity](agent-identity.md),
+[composed host](agent-host.md) and [protected operations](agent-operations.md)
+profiles. Broader production hosting/capacity/release qualification remains open.

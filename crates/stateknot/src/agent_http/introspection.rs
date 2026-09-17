@@ -93,6 +93,7 @@ pub struct IntrospectionOptions {
     audience: String,
     client_id: String,
     required_scopes: [String; 3],
+    host_inspection_scope: Option<String>,
     deadline: Duration,
     max_in_flight: usize,
     max_token_lifetime: Duration,
@@ -142,11 +143,26 @@ impl IntrospectionOptions {
             audience,
             client_id,
             required_scopes,
+            host_inspection_scope: None,
             deadline: Duration::from_secs(3),
             max_in_flight: 32,
             max_token_lifetime: Duration::from_secs(3600),
             roots: Vec::new(),
         })
+    }
+
+    /// Explicitly enables a distinct host-inspection scope. The token and trusted
+    /// tenant binding must both grant it; a separate operations policy is required.
+    /// Rejects invalid scopes or reuse of a business scope. Disabled by default.
+    pub fn with_host_inspection_scope(
+        mut self,
+        scope: String,
+    ) -> Result<Self, IntrospectionConfigurationError> {
+        if !claims::valid_scope(&scope) || self.required_scopes.contains(&scope) {
+            return Err(IntrospectionConfigurationError);
+        }
+        self.host_inspection_scope = Some(scope);
+        Ok(self)
     }
 
     /// Configures finite deadline (at most 10 s), concurrent requests (1..=256),
@@ -351,8 +367,12 @@ impl AgentHttpAuthenticator for AgentHttpIntrospection {
             self.policy.check()?;
             let response = self.introspect(credential.expose_secret()).await?;
             let (principal, scopes) = claims::verify(&response, &self.options)?;
-            self.policy
-                .resolve(&principal, &scopes, &self.options.required_scopes)
+            self.policy.resolve(
+                &principal,
+                &scopes,
+                &self.options.required_scopes,
+                self.options.host_inspection_scope.as_deref(),
+            )
         })
     }
 }

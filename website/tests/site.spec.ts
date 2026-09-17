@@ -9,6 +9,43 @@ const responsiveAuditWidths = [
 ] as const;
 
 for (const locale of ["en", "zh"] as const) {
+  test(`${locale} documents separately authorized read-only operations`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/agent-http/`);
+    const section = page.locator('section[aria-labelledby="host-operations"]');
+    for (const contract of [
+      "AgentHostOperations::start",
+      "InspectHost",
+      "AgentHostOperationsPolicy",
+      "with_host_inspection_scope",
+      "/v1/host/status",
+      "/v1/host/live",
+      "/v1/host/ready",
+      "operations.shutdown().await",
+    ])
+      await expect(section.getByText(contract, { exact: true })).toBeVisible();
+    await expect(section).toContainText(
+      locale === "zh"
+        ? "业务 Read 权限不能替代运维授权"
+        : "Business Read permission is insufficient",
+    );
+    await expect(section).toContainText(
+      locale === "zh" ? "没有匿名探针" : "No anonymous probes",
+    );
+    await expect(
+      section.locator("a[href$='0016-protected-agent-host-operations.md']"),
+    ).toHaveCount(1);
+    await expect(
+      section.locator(
+        "a[href$='/docs/agent-operations" +
+          (locale === "zh" ? ".zh-CN" : "") +
+          ".md']",
+      ),
+    ).toHaveCount(1);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
   test(`${locale} documents composed host ownership and ordered drain`, async ({
     page,
   }) => {

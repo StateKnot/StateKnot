@@ -337,7 +337,7 @@ fn route(method: &Method, uri: &axum::http::Uri) -> Result<Route, HttpError> {
     Ok(route)
 }
 
-fn single<'a>(headers: &'a HeaderMap, name: &str) -> Result<Option<&'a str>, HttpError> {
+pub(crate) fn single<'a>(headers: &'a HeaderMap, name: &str) -> Result<Option<&'a str>, HttpError> {
     let mut values = headers.get_all(name).iter();
     let first = values.next();
     if values.next().is_some() {
@@ -348,7 +348,7 @@ fn single<'a>(headers: &'a HeaderMap, name: &str) -> Result<Option<&'a str>, Htt
         .transpose()
 }
 
-fn validate_origin_host(
+pub(crate) fn validate_origin_host(
     headers: &HeaderMap,
     uri: &axum::http::Uri,
     options: &AgentHttpOptions,
@@ -372,7 +372,7 @@ fn validate_origin_host(
     Ok(())
 }
 
-fn validate_media(headers: &HeaderMap, method: &Method) -> Result<(), HttpError> {
+pub(crate) fn validate_media(headers: &HeaderMap, method: &Method) -> Result<(), HttpError> {
     if headers.contains_key(header::CONTENT_ENCODING) {
         return Err(HttpError::Media);
     }
@@ -432,7 +432,7 @@ impl Write for LimitedWriter {
     }
 }
 
-fn encode(value: &impl Serialize, maximum: usize) -> Result<Vec<u8>, HttpError> {
+pub(crate) fn encode(value: &impl Serialize, maximum: usize) -> Result<Vec<u8>, HttpError> {
     let mut writer = LimitedWriter {
         bytes: Vec::new(),
         maximum,
@@ -457,7 +457,7 @@ fn success(
     Ok(response(status, request_id, body))
 }
 
-fn response(status: StatusCode, request_id: EventId, bytes: Vec<u8>) -> Response {
+pub(crate) fn response(status: StatusCode, request_id: EventId, bytes: Vec<u8>) -> Response {
     let mut response = Response::new(Body::from(bytes));
     *response.status_mut() = status;
     let headers = response.headers_mut();
@@ -486,7 +486,7 @@ fn response(status: StatusCode, request_id: EventId, bytes: Vec<u8>) -> Response
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum HttpError {
+pub(crate) enum HttpError {
     Invalid,
     Unauthenticated,
     Denied,
@@ -522,7 +522,7 @@ fn error_status(error: HttpError) -> (StatusCode, &'static str) {
     }
 }
 
-fn failure(error: HttpError, request_id: EventId) -> Response {
+pub(crate) fn failure(error: HttpError, request_id: EventId) -> Response {
     let (status, code) = error_status(error);
     let body = serde_json::to_vec(
         &json!({"error":{"code":format!("agent_http.{code}"),"request_id":request_id}}),

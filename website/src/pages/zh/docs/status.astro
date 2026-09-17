@@ -8,8 +8,14 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "受保护的只读宿主运维接口",
+    body: "独立接管 loopback 监听器，强制 InspectHost scope/权限与独立的过期调用方策略。业务故障时仍可授权查看脱敏状态和计数，身份验证、请求、连接及停机均有界。PostgreSQL 16/17 与专属真实 TLS 身份验证；无匿名探针、管理写操作或容量/SLO 声明。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "同进程 Agent 宿主生命周期",
-    body: "统一接管实际接入、Worker 和维护绑定，提供独占认领、有序启动、逐请求兄弟角色门禁及 HTTP → Worker → 维护停机回收。PostgreSQL 16/17 与真实 TLS 身份组合验证；受保护运维接口、跨进程滚动上线和实测容量 SLO 仍待完成。",
+    body: "统一接管实际接入、Worker 和维护绑定，提供独占认领、有序启动、逐请求兄弟角色门禁及 HTTP → Worker → 维护停机回收。PostgreSQL 16/17 与真实 TLS 身份组合验证；跨进程滚动上线和实测容量 SLO 仍待完成。",
   },
   {
     state: "已实现",

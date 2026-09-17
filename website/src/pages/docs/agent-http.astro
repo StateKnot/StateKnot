@@ -124,6 +124,51 @@ let router = http.router();
     </p>
   </section>
 
+  <section aria-labelledby="host-operations">
+    <h2 id="host-operations">
+      Inspect the host through separately authorized operations
+    </h2>
+    <p>
+      <code>AgentHostOperations::start</code> owns a separate loopback listener over
+      the actual host health view. Every request requires verified identity,
+      <code>InspectHost</code> and a fresh <code>AgentHostOperationsPolicy</code
+      >. Business Read permission is insufficient. Introspection requires
+      explicit
+      <code>with_host_inspection_scope</code>, the matching token scope and
+      trusted tenant grant.
+    </p>
+    <p>
+      Only GET <code>/v1/host/status</code>, <code>/v1/host/live</code> and
+      <code>/v1/host/ready</code> exist. Authorized status remains available during
+      business outages and after host shutdown; unavailable identity or operator policy
+      fails closed. No anonymous probes, browser Origin, request bodies or administrative
+      writes.
+    </p>
+    <p>
+      At most 128 exact operators have a lease up to one hour, with
+      generation-checked replacement and no automatic renewal. Defaults: 16
+      connections/requests, 5-second requests/drain, 3-second headers and
+      60-second connection lifetime. Snapshots contain only fixed labels and
+      counters, never tenant/Run IDs or credentials; cumulative counters are
+      decimal strings. Reads do not probe the database.
+    </p>
+    <p>
+      Stop and join the business host first, inspect its final state, then await
+      <code>operations.shutdown().await</code>. A cancelled wait retains
+      ownership; forced drain joins connections. PostgreSQL 16/17 and real TLS
+      identity tests cover dedicated ops scope, expiry, revocation, limits and
+      cleanup. These are qualification bounds, not production capacity or
+      recovery SLOs. The website deployment remains static documentation only.
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-operations.md"
+        >Wiring, wire format and operations guide</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0016-protected-agent-host-operations.md"
+        >RFC-0016 (Draft)</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="agent-host">
     <h2 id="agent-host">Own the three roles as one co-located host</h2>
     <p>
@@ -153,9 +198,9 @@ let router = http.router();
     <p>
       PostgreSQL 16/17 and real TLS Keycloak exercise composed recovery,
       dependency gates, startup failures, role exits and joined cleanup.
-      Protected operations endpoints and measured deployment/capacity SLOs
-      remain separate work. Only the documentation website is deployed here, not
-      a fixture-backed Agent runtime.
+      Protected operations are independently authorized above; measured
+      deployment/capacity SLOs remain separate work. Only the documentation
+      website is deployed here, not a fixture-backed Agent runtime.
       <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-host.md"
         >Wiring and recovery guide</a

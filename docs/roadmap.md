@@ -14,10 +14,16 @@ from the repository.
 
 ## Current M0 tracking
 
+- [x] Implement [protected read-only host operations](agent-operations.md):
+  independent owned loopback listener, explicit inspection scope/permission and
+  bounded expiring exact-caller ACL, sanitized local status/counters, bounded
+  authentication/transport and joined shutdown. PostgreSQL 16/17 and dedicated
+  real TLS identity qualification; no admin writes or production capacity claim.
+
 - [x] Implement a [co-located Agent host](agent-host.md): concrete role ownership,
   exclusive ingress claim, ordered startup, sibling readiness gates, fail-stop
   supervision and ordered joined drain. PostgreSQL 16/17 and real TLS identity
-  composition qualification; protected operations endpoints and measured
+  composition qualification; measured
   cross-process rollout/capacity/recovery SLOs remain open.
 
 - [x] Implement an [owned Agent maintenance role](agent-maintenance.md): bounded
@@ -51,8 +57,8 @@ from the repository.
   PostgreSQL 16/17 tests cover dependency loss/recovery, successful draining
   writes, slow/SSE/drop cleanup and transport ceilings. No inline Worker,
   public health route or complete managed-service/release claim.
-- [ ] Qualify a real identity/policy-backed multi-role host deployment, protected
-  role-health integration and measured recovery/capacity across owned roles.
+- [ ] Qualify a real identity/policy-backed multi-role production deployment and
+  measured recovery/capacity across owned roles, including protected operations.
 - [x] Add opt-in [resumable Agent activity SSE](agent-events.md): exact retained
   journal cursors, payload-free activity notifications, independent current
   snapshots, repeated authorization, finite lifetime/queue limits, and PostgreSQL

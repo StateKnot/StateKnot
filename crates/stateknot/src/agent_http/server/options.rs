@@ -7,10 +7,10 @@ use std::time::Duration;
 /// Validated finite bounds for the loopback HTTP/1 ingress runtime.
 #[derive(Clone, Debug)]
 pub struct AgentHttpServerOptions {
-    pub(super) max_connections: usize,
-    pub(super) header_timeout: Duration,
-    pub(super) connection_lifetime: Duration,
-    pub(super) drain_timeout: Duration,
+    pub(crate) max_connections: usize,
+    pub(crate) header_timeout: Duration,
+    pub(crate) connection_lifetime: Duration,
+    pub(crate) drain_timeout: Duration,
     pub(super) probe_interval: Duration,
     pub(super) probe_timeout: Duration,
     pub(super) freshness: Duration,
