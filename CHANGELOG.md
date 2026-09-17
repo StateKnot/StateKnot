@@ -21,6 +21,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Four executable `stateknot-core` public contract examples for the first Agent,
+  typed Tool registration, provider-neutral Model stream validation and explicit
+  protocol mapping. A locked Cargo-metadata test fails on every unreviewed direct
+  core dependency change, and CI compiles all four examples explicitly on MSRV.
+  Bilingual guides record the exact no-I/O boundary. This closes only RFC-0001
+  validation item 1; RFC-0001 remains Draft and no API-stability claim is added.
+
 - Unpublished `stateknot-testkit` host qualification harness with recorder-owned
   monotonic phases, bounded HDR latency distributions, checked operation/safety
   counters, stable fault cases, deterministic integer objectives and canonical

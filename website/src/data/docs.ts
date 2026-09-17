@@ -35,6 +35,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
         search: "getting started install rust cargo clone tutorial validate",
       },
       {
+        title: "Core contract examples",
+        description:
+          "Compile the first Agent, typed Tool, Model stream, and explicit protocol mapping without runtime dependencies.",
+        href: "/docs/core-contracts/",
+        search:
+          "core contracts examples first agent typed tool model stream protocol adapter dependency boundary msrv",
+      },
+      {
         title: "Typed Agent",
         description:
           "Generate and pin typed schemas, then bind the first-party OpenAI and Anthropic adapters.",
@@ -272,6 +280,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         description: "安装锁定的工具链，并在本地验证仓库。",
         href: "/docs/getting-started/",
         search: "快速开始 安装 rust cargo 克隆 教程 验证",
+      },
+      {
+        title: "Core 合约示例",
+        description:
+          "无需 Runtime 依赖，编译首个 Agent、类型化 Tool、Model Stream 与显式协议映射。",
+        href: "/docs/core-contracts/",
+        search:
+          "core 合约 示例 首个 agent 类型化 tool model stream 协议 adapter 依赖 边界 msrv",
       },
       {
         title: "强类型 Agent",

@@ -218,6 +218,12 @@ const localizedRoutePairs = [
     zhHeading: "在本地验证 StateKnot。",
   },
   {
+    en: "/docs/core-contracts/",
+    zh: "/zh/docs/core-contracts/",
+    enHeading: "Compile the public core contracts.",
+    zhHeading: "编译 Core 公共合约。",
+  },
+  {
     en: "/docs/typed-agent/",
     zh: "/zh/docs/typed-agent/",
     enHeading: "Build a typed Agent contract.",
@@ -674,6 +680,7 @@ for (const width of responsiveAuditWidths) {
 for (const route of [
   "/docs/",
   "/docs/getting-started/",
+  "/docs/core-contracts/",
   "/docs/typed-agent/",
   "/docs/admission/",
   "/docs/runs/",
@@ -691,6 +698,7 @@ for (const route of [
   "/docs/fair-scheduling/",
   "/zh/",
   "/zh/docs/getting-started/",
+  "/zh/docs/core-contracts/",
   "/zh/docs/typed-agent/",
   "/zh/docs/admission/",
   "/zh/docs/runs/",
@@ -715,6 +723,27 @@ for (const route of [
     });
   }
 }
+
+test("core contracts expose executable evidence and the draft boundary", async ({
+  page,
+}) => {
+  await page.goto("/docs/core-contracts/");
+  await expect(
+    page.getByText("Validation gate, not API stability"),
+  ).toBeVisible();
+  for (const example of [
+    "first_agent",
+    "typed_tool",
+    "model_stream",
+    "protocol_adapter",
+  ]) {
+    await expect(page.getByText(example, { exact: true })).toBeVisible();
+  }
+  await expect(
+    page.getByText("RFC-0001 remains Draft", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator("[data-copy-button]")).toHaveCount(1);
+});
 
 test("typed Agent tutorial keeps the durable execution boundary explicit", async ({
   page,
