@@ -421,7 +421,11 @@ from the repository.
   extension, A2A Client official/live-peer recovery-attestation qualification,
   A2A gRPC, untrusted-worker/service role isolation, general retention,
   failover, restore, and final stale-race gates.
-- [ ] Compile the four public contract examples against the proposed APIs.
+- [x] Compile the four [public core contract examples](core-contract-examples.md)
+  against the implemented APIs on MSRV: first Agent, typed Tool, Model stream,
+  and explicit protocol mapping. CI also locks the reviewed runtime-neutral
+  direct dependency boundary. This closes only RFC-0001 validation item 1;
+  the RFC remains Draft while its other acceptance gates are open.
 - [x] Commit the [host qualification harness](host-qualification.md) and closed
   fault-injection matrix: bounded HDR observations, checked correctness/security
   counters, canonical integrity reports and a real PostgreSQL 16/17 reduced host

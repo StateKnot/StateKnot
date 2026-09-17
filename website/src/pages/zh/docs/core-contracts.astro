@@ -1,0 +1,120 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const commands = `cargo check -p stateknot-core --examples --locked
+cargo run -p stateknot-core --example first_agent --locked
+cargo run -p stateknot-core --example typed_tool --locked
+cargo run -p stateknot-core --example model_stream --locked
+cargo run -p stateknot-core --example protocol_adapter --locked
+cargo test -p stateknot-core --test dependency_boundary --locked`;
+---
+
+<DocsLayout
+  title="编译 Core 公共合约。"
+  description="无需 Provider SDK、Tokio、数据库、HTTP Server 或协议 SDK，在 MSRV 上运行四个真实 stateknot-core 合约。"
+  section="Core 合约示例"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="core-contract-boundary">
+    <h2 id="core-contract-boundary">这是验证门禁，不是 API 稳定声明</h2>
+    <p>
+      这些示例关闭 Draft RFC-0001 的第 1 项验证门禁。StateKnot 仍处于
+      pre-alpha；其他 RFC 验收条件、Crate 发布和兼容性承诺仍未完成。RFC-0001
+      仍为 Draft。
+    </p>
+  </aside>
+
+  <section aria-labelledby="core-contract-run">
+    <h2 id="core-contract-run">运行全部四个合约</h2>
+    <p>
+      示例调用有界构造器与 Fail-closed 校验路径，不是伪代码。CI 会使用锁定的
+      MSRV 显式编译它们。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 离线 Core 证据</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-core-contract-commands"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-core-contract-commands"
+        tabindex="0"><code>{commands}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="core-contract-four">
+    <h2 id="core-contract-four">明确四个可编译边界</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>first_agent</dt>
+        <dd>
+          构造不可变 Agent/Model Descriptor、Schema-bound 有界输入、限制性
+          Request Limit 和完整有限的 Resolved Budget。不接纳 Run，也不访问
+          Provider。
+        </dd>
+      </div>
+      <div>
+        <dt>typed_tool</dt>
+        <dd>
+          生成、Canonicalize 并固定类型化 Schema Digest，由离线 Registry 校验，
+          最后交给 <code>ToolAdapter</code>。不执行 Tool Attempt 或外部副作用。
+        </dd>
+      </div>
+      <div>
+        <dt>model_stream</dt>
+        <dd>
+          有限 Streaming Request 与 Attempt Context 通过 Capability
+          校验；五个连续 Semantic Event 经 <code>ModelEventAccumulator</code> 形成一个有界
+          Response。 对象安全的 <code>Model::stream</code> 入口无需虚构 Provider 即可编译。
+        </dd>
+      </div>
+      <div>
+        <dt>protocol_adapter</dt>
+        <dd>
+          封闭的外部 Request 在本地获得可信 Schema
+          Identity，保留有限调用方上限， 并拒绝注入的 Tenant
+          Authority。它明确不是 HTTP、MCP 或 A2A Transport。
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="core-contract-dependencies">
+    <h2 id="core-contract-dependencies">锁定 Runtime-neutral 依赖边界</h2>
+    <p>
+      依赖测试读取锁定的 Cargo Metadata，把全部直接普通依赖与开发依赖和已审查
+      白名单比较。新增、重命名或 Target-specific 依赖都会使 CI 失败，直到边界
+      审查被显式更新。
+    </p>
+    <p>
+      该门禁阻止 Provider SDK、Async Executor、数据库、HTTP Server、协议 SDK 与
+      Telemetry Exporter 进入 <code>stateknot-core</code>。请阅读完整的<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/core-contract-examples.zh-CN.md"
+        >源码指南</a
+      >和 <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0001-core-domain-and-capability-model.md"
+        >Draft RFC-0001</a
+      >，核对仍未关闭的验收条件。
+    </p>
+  </section>
+
+  <section aria-labelledby="core-contract-next">
+    <h2 id="core-contract-next">显式跨越生产边界</h2>
+    <p>
+      真实宿主仍须认证并授权调用方，解析不可变的 Tenant-owned Descriptor 与
+      Schema， 提交<a href="/zh/docs/admission/">持久化准入记录</a>，通过 Ledger
+      执行外部 Attempt，在 Lease/Fence 下驱动 Checkpoint，并重新校验 Terminal
+      Evidence。 下一步阅读<a href="/zh/docs/typed-agent/">强类型 Agent 指南</a
+      >；Core 示例不会隐藏这些责任。
+    </p>
+  </section>
+</DocsLayout>

@@ -1,0 +1,126 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const commands = `cargo check -p stateknot-core --examples --locked
+cargo run -p stateknot-core --example first_agent --locked
+cargo run -p stateknot-core --example typed_tool --locked
+cargo run -p stateknot-core --example model_stream --locked
+cargo run -p stateknot-core --example protocol_adapter --locked
+cargo test -p stateknot-core --test dependency_boundary --locked`;
+---
+
+<DocsLayout
+  title="Compile the public core contracts."
+  description="Run four real stateknot-core contracts on MSRV without a provider SDK, Tokio, a database, an HTTP server, or a protocol SDK."
+  section="Core contract examples"
+>
+  <aside class="docs-callout" aria-labelledby="core-contract-boundary">
+    <h2 id="core-contract-boundary">Validation gate, not API stability</h2>
+    <p>
+      These examples close validation item 1 of draft RFC-0001. StateKnot
+      remains pre-alpha: the other RFC acceptance gates, crate publication, and
+      compatibility commitments remain open. RFC-0001 remains Draft.
+    </p>
+  </aside>
+
+  <section aria-labelledby="core-contract-run">
+    <h2 id="core-contract-run">Run all four contracts</h2>
+    <p>
+      The examples use bounded constructors and fail-closed validation paths,
+      not pseudocode. CI compiles them explicitly with the pinned MSRV.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · offline core evidence</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="core-contract-commands"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="core-contract-commands"
+        tabindex="0"><code>{commands}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="core-contract-four">
+    <h2 id="core-contract-four">Know exactly what compiles</h2>
+    <dl class="docs-definition-list">
+      <div>
+        <dt>first_agent</dt>
+        <dd>
+          Immutable Agent and Model descriptors, schema-bound bounded input,
+          restrictive request limits, and a complete finite resolved budget. No
+          Run is admitted and no provider is called.
+        </dd>
+      </div>
+      <div>
+        <dt>typed_tool</dt>
+        <dd>
+          Typed schemas are generated, canonicalized, digest-pinned, checked by
+          an offline registry, and accepted by <code>ToolAdapter</code>. No Tool
+          attempt or external effect occurs.
+        </dd>
+      </div>
+      <div>
+        <dt>model_stream</dt>
+        <dd>
+          A finite streaming request and attempt context pass capability checks;
+          five contiguous semantic events become one bounded response through
+          <code>ModelEventAccumulator</code>. The object-safe <code
+            >Model::stream</code
+          > entry compiles without inventing a provider.
+        </dd>
+      </div>
+      <div>
+        <dt>protocol_adapter</dt>
+        <dd>
+          A closed external request receives trusted schema identity locally,
+          retains a finite caller limit, and rejects injected tenant authority.
+          It is deliberately not an HTTP, MCP, or A2A transport.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="core-contract-dependencies">
+    <h2 id="core-contract-dependencies">Lock the runtime-neutral boundary</h2>
+    <p>
+      The dependency test reads locked Cargo metadata and compares every direct
+      normal and development dependency with the reviewed allowlist. A new,
+      renamed, or target-specific dependency fails CI until the boundary review
+      is updated explicitly.
+    </p>
+    <p>
+      This gate keeps provider SDKs, async executors, databases, HTTP servers,
+      protocol SDKs, and telemetry exporters out of <code>stateknot-core</code>.
+      Read the complete <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/core-contract-examples.md"
+        >source guide</a
+      > and <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0001-core-domain-and-capability-model.md"
+        >draft RFC-0001</a
+      > for the remaining acceptance gates.
+    </p>
+  </section>
+
+  <section aria-labelledby="core-contract-next">
+    <h2 id="core-contract-next">Cross the production boundary deliberately</h2>
+    <p>
+      A real host must still authenticate and authorize the caller, resolve
+      immutable tenant-owned descriptors and schemas, commit <a
+        href="/docs/admission/">durable admission</a
+      >, execute external attempts through the ledger, drive checkpoints under
+      lease and fencing, and revalidate terminal evidence. Continue with the <a
+        href="/docs/typed-agent/">typed Agent guide</a
+      >; none of those responsibilities are hidden in these core examples.
+    </p>
+  </section>
+</DocsLayout>

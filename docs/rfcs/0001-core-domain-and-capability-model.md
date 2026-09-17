@@ -1757,6 +1757,11 @@ Before this RFC can be accepted:
    cross-tenant IDs, extension smuggling, secret formatting, resource exhaustion,
    and ambiguous external outcomes.
 
+Validation item 1 is implemented by the four compiled
+[public core contract examples](../core-contract-examples.md), the explicit MSRV
+CI step, and the direct-dependency boundary test. Items 2 through 9 remain
+acceptance gates, so this RFC remains Draft and does not establish API stability.
+
 The rollout order is core value types and fixtures, typed tool adapter, model
 boundary, context/identity/budget integration, and only then graph/persistence/
 protocol adapters. No crate is published while contract fixtures or materially

@@ -36,6 +36,11 @@ failure-close recovery profile and its explicit exclusions.
 The companion [COMMIT-loss/fencing profile](commit-loss-qualification.md)
 ([中文](commit-loss-qualification.zh-CN.md)) covers source-registration request and
 response loss plus a retained old worker across real lease expiry and takeover.
+The four [public core contract examples](core-contract-examples.md)
+([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
+Model stream and explicit protocol mapping on MSRV while locking the reviewed
+runtime-neutral direct dependency boundary. They close only RFC-0001 validation
+item 1 and do not claim API stability or runtime execution.
 
 1. [v1 scope baseline](v1-scope.md) — the capabilities, guarantees, supported
    environment, and explicit exclusions that control implementation work.

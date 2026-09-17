@@ -362,6 +362,8 @@ See the [qualification scenarios](docs/scenarios/README.md), the
 [roadmap](docs/roadmap.md), the full
 [research and implementation plan](docs/research-and-implementation-plan.md),
 the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
+[public core contract examples](docs/core-contract-examples.md)
+([中文](docs/core-contract-examples.zh-CN.md)),
 [typed Agent and first-party adapters](docs/typed-agent.md),
 [durable Agent admission](docs/durable-agent-admission.md),
 [durable Agent runs and results](docs/durable-agent-runs.md),
