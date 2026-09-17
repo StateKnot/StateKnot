@@ -172,7 +172,7 @@ jobs:
 
       - name: Upload A2A conformance evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: a2a-1.0-conformance-${{ github.run_id }}
           path: conformance/a2a-server/results/
@@ -286,7 +286,7 @@ jobs:
 
       - name: Upload process-kill qualification evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: failure-close-process-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -307,7 +307,7 @@ jobs:
 
       - name: Upload MCP call authorization evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: mcp-authorization-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -330,7 +330,7 @@ jobs:
 
       - name: Upload MCP outcome reconciliation evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: mcp-reconciliation-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -352,7 +352,7 @@ jobs:
 
       - name: Upload trusted SQL role evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: trusted-role-profile-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -373,7 +373,7 @@ jobs:
 
       - name: Upload MCP compute Worker evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: mcp-compute-worker-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -397,7 +397,7 @@ jobs:
 
       - name: Upload Agent HTTP evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: agent-http-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -422,7 +422,7 @@ jobs:
 
       - name: Upload owned Worker evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: agent-worker-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -445,7 +445,7 @@ jobs:
 
       - name: Upload co-located host evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: agent-host-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -468,7 +468,7 @@ jobs:
 
       - name: Upload protected operations evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: agent-operations-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -525,7 +525,7 @@ jobs:
 
       - name: Upload reduced host qualification evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: reduced-host-qualification-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -550,7 +550,7 @@ jobs:
 
       - name: Upload owned maintenance evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: agent-maintenance-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
@@ -577,7 +577,7 @@ jobs:
 
       - name: Upload real identity qualification evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: agent-identity-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
