@@ -309,7 +309,15 @@ from the repository.
   lifetime-bound per-call execution permits, safe restart expiry, and
   adversarial loopback qualification. Keep dynamic manifests, remote directory
   reads, persisted approval/disk materialization, signatures, and automatic
-  Tool-runtime integration open as separate work.
+  discovery-to-Agent composition open as separate work.
+- [x] Integrate active MCP Skills with the ordinary Tool runtime through
+  `McpSkillBoundTool`: freeze exact owner/name/version plus a domain-separated
+  complete-descriptor digest, require an explicit Host-code exposure claim,
+  authorize execution and reconciliation separately against exact durable
+  correlation plus bounded schema-bound input, consume a non-cloneable
+  acting-window permit immediately before provider I/O, fail closed before raw
+  dispatch, and remain compatible with immutable `ToolProviderRegistry`
+  registration and the existing durable attempt ledger.
 - [x] Implement the A2A 1.0 Server profile with StateKnot-owned bounded Agent
   Card/message/task/artifact/push contracts, HTTP+JSON and JSON-RPC bindings,
   SSE send/subscription streams, authentication-before-parsing,

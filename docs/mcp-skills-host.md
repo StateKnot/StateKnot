@@ -10,8 +10,8 @@ SPDX-License-Identifier: Apache-2.0
 > Extension: Final SEP-2640, `io.modelcontextprotocol/skills`.<br>
 > Base protocol: MCP `2026-07-28`.<br>
 > Explicit boundary: dynamic manifests, remote directory reads, persisted
-> approval, disk materialization, signatures, and automatic Tool-runtime
-> integration are not implemented or claimed.
+> approval, disk materialization, signatures, and automatic discovery-to-Agent
+> composition are not implemented or claimed.
 
 StateKnot can discover and activate a remote static Agent Skill without turning
 its files or frontmatter into authority. The client validates the Final
@@ -52,10 +52,18 @@ and the [Agent Skills format](https://agentskills.io/specification).
    live server cannot add a file after approval.
 8. Treat a nested `SKILL.md` as a new activation. It must be listed by the
    parent and receives a separate, fresh policy decision.
-9. Ask policy before every exact Tool call. `allowed-tools` is shown as an
-   untrusted request, never converted into permission. The returned
-   non-constructible, non-cloneable permit borrows the active Skill and must be
-   consumed by the integrating executor.
+9. Bind an activated Skill to an exact owner/name/version Tool and the canonical
+   digest of its complete descriptor with `McpSkillBoundTool`. The Host must
+   explicitly declare whether the Tool can execute code in its environment.
+10. Ask policy immediately before every execution and reconciliation provider
+    call. The request distinguishes both operations and carries the exact Tool
+    identity, descriptor digest, Host-code exposure, origin, Manifest digest,
+    activation ID, tenant/run/invocation/attempt correlation, committed origin
+    event when present, and bounded schema-bound input. `allowed-tools` remains
+    untrusted comparison data.
+11. Register the guarded adapter—not the raw provider—in the ordinary immutable
+    `ToolProviderRegistryBuilder`. Durable attempt-start, terminal evidence,
+    retry, and reconciliation semantics therefore remain unchanged.
 
 ## Host construction
 
@@ -79,23 +87,33 @@ let catalog = host.list_skills().await?; // metadata only; no file prefetch
 let selected = catalog
     .find_uri("skill://incident-review/SKILL.md")
     .ok_or(AppError::SkillUnavailable)?;
-let active = host.activate(selected).await?; // fresh approval, then verification
+let active = Arc::new(host.activate(selected).await?); // approve, then verify
 
 // Preserve `file.identity()` beside its bytes in every model-visible message.
 let file = active.read_file("references/checklist.md").await?;
 model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
 
-// The Tool adapter must require and consume this exact permit.
-let permit = active.authorize_tool_call("ticket/create", false).await?;
-tool_executor.execute_with_skill_permit(permit, arguments).await?;
+// Freeze the exact provider under this activation before registry construction.
+let guarded = Arc::new(McpSkillBoundTool::new(
+    Arc::clone(&active),
+    ticket_create_tool, // Arc<dyn ErasedTool>
+    McpSkillHostCodeExecution::NotPossible,
+)?);
+tool_registry.register(guarded)?;
+
+// The ordinary durable executor now authorizes every call and recovery probe.
+let tools = tool_registry.build();
 ```
 
 The application policy is the user/policy interaction boundary. A production
 implementation should display the host-assigned origin, exact URI, manifest
-digest, file count/bytes, description, activation source, and requested Tools;
-bind the decision to those facts; log a public-safe audit result; and deny when
-its authority is unavailable. Never use a policy that approves solely by Skill
-name.
+digest, file count/bytes, description, activation source, requested Tool, exact
+registered Tool identity and descriptor digest, operation, and Host-code
+exposure, durable correlation, and exact arguments; bind the decision to those
+facts; log only public-safe evidence; and deny when its authority is
+unavailable. Never approve solely by Skill name or the `allowed-tools` string,
+and never log `McpSkillToolInvocation::input()` without application-level
+redaction.
 
 ## Cache and restart behavior
 
@@ -109,7 +127,10 @@ StateKnot does not write remote Skill bytes into filesystem Skill-discovery
 paths and does not persist approval. On restart the client binding, acting
 windows, permits, approvals, and memory cache all disappear. A later activation
 must discover and approve the current complete manifest again. This is a safe
-restart contract, not durable approval.
+restart contract, not durable approval. A worker may rebuild the same guarded
+Tool descriptor only after that fresh activation; already-started durable Tool
+attempts retain their normal recovery ledger, but reconciliation performs a
+new exact Skill policy check before provider I/O.
 
 ## Security boundary
 
@@ -121,9 +142,12 @@ restart contract, not durable approval.
 - The low-level `McpClient::read_skill_resource` result is untrusted. Only bytes
   returned through an activated Host have been checked against a retained
   approved manifest.
-- The execution permit is an enforcement primitive, not transparent Tool
-  dispatch. Tool adapters must require it by type and consume it for the exact
-  call. Existing Tool runtimes are not silently widened.
+- `McpSkillBoundTool` consumes the non-cloneable permit inside the ordinary
+  `ErasedTool` boundary. Authorization denial produces `NotStarted` evidence
+  for writes (or `NotApplicable` for reads) and never invokes the provider.
+- The adapter must replace the raw provider in the executable registry. Keeping
+  both bindings or dispatching the provider directly is a Host configuration
+  error outside the Skill authorization boundary.
 - Cross-server reuse fails because an entry is bound to one client instance.
   The application must assign a stable, unique origin label to that binding;
   self-reported server metadata never supplies it.
@@ -141,7 +165,9 @@ The loopback contract suite proves lazy listing, capability advertisement,
 bounded pagination, host-origin preservation, approval-before-read, exact
 digest/size/frontmatter reconciliation, immutable cache hits, manifest-only
 reads, local directory views, fresh nested consent, per-call Tool authorization,
-and failure closure for denial and content drift.
+exact descriptor/identity disclosure, separate execution/reconciliation
+approval, immutable-registry compatibility, denial before provider dispatch,
+and failure closure for content drift.
 
 ## Not claimed
 
@@ -150,5 +176,6 @@ and failure closure for denial and content drift.
   installation;
 - signature verification, provenance, marketplace trust, malware/content
   safety, or sandboxing;
-- automatic integration with every StateKnot Tool executor;
+- automatic Tool discovery, `allowed-tools` pattern interpretation, or dynamic
+  discovery-to-Agent composition;
 - stable Rust API, crates.io release, or official Skills-extension conformance.

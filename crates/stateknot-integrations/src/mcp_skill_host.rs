@@ -21,7 +21,7 @@ use std::{
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use serde_json::{Map, Value};
-use stateknot_core::{BoxFuture, Digest};
+use stateknot_core::{BoxFuture, CapabilityIdentity, Digest};
 use thiserror::Error;
 
 use crate::{
@@ -29,6 +29,7 @@ use crate::{
     mcp_server_skill::{
         parse_frontmatter, validate_frontmatter, validate_relative_path, validate_skill_uri,
     },
+    mcp_skill_tool::{McpSkillToolBinding, McpSkillToolInvocation, McpSkillToolOperation},
 };
 
 const MEBIBYTE: usize = 1024 * 1024;
@@ -828,13 +829,17 @@ impl McpSkillActivationRequest {
     }
 }
 
-/// Owned facts for one Tool call proposed during an active Skill window.
+/// Owned facts for one Tool operation proposed during an active Skill window.
 #[derive(Clone, Debug)]
 pub struct McpSkillToolAuthorizationRequest {
     identity: McpSkillIdentity,
     manifest_digest: Arc<str>,
     activation_id: u64,
     tool_name: Arc<str>,
+    tool_identity: Option<CapabilityIdentity>,
+    tool_descriptor_digest: Option<Digest>,
+    operation: McpSkillToolOperation,
+    invocation: Option<McpSkillToolInvocation>,
     host_code_execution: bool,
     requested_allowed_tools: Option<Arc<str>>,
 }
@@ -864,6 +869,35 @@ impl McpSkillToolAuthorizationRequest {
         &self.tool_name
     }
 
+    /// Returns the exact owner-qualified Tool version for a runtime-bound call.
+    ///
+    /// Name-only custom execution paths return `None`; policies may reject
+    /// those paths when an exact registry binding is required.
+    #[must_use]
+    pub const fn tool_identity(&self) -> Option<&CapabilityIdentity> {
+        self.tool_identity.as_ref()
+    }
+
+    /// Returns the canonical descriptor digest for a runtime-bound call.
+    #[must_use]
+    pub const fn tool_descriptor_digest(&self) -> Option<Digest> {
+        self.tool_descriptor_digest
+    }
+
+    /// Returns whether execution or recovery reconciliation was requested.
+    #[must_use]
+    pub const fn operation(&self) -> McpSkillToolOperation {
+        self.operation
+    }
+
+    /// Returns exact bounded invocation facts for a runtime-bound operation.
+    ///
+    /// Name-only custom execution paths return `None`.
+    #[must_use]
+    pub const fn invocation(&self) -> Option<&McpSkillToolInvocation> {
+        self.invocation.as_ref()
+    }
+
     /// Returns whether the Tool can execute code on the Host.
     #[must_use]
     pub const fn host_code_execution(&self) -> bool {
@@ -885,7 +919,7 @@ pub trait McpSkillHostPolicy: Send + Sync + 'static {
         request: McpSkillActivationRequest,
     ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>>;
 
-    /// Authorizes one exact Tool call without trusting `allowed-tools` as a grant.
+    /// Authorizes one exact Tool operation without trusting `allowed-tools` as a grant.
     fn authorize_tool_call(
         &self,
         request: McpSkillToolAuthorizationRequest,
@@ -1450,6 +1484,10 @@ impl McpActivatedSkill {
                 manifest_digest: self.entry.manifest_digest.clone(),
                 activation_id: self.activation_id,
                 tool_name: Arc::from(tool_name),
+                tool_identity: None,
+                tool_descriptor_digest: None,
+                operation: McpSkillToolOperation::Execute,
+                invocation: None,
                 host_code_execution,
                 requested_allowed_tools,
             })
@@ -1460,7 +1498,55 @@ impl McpActivatedSkill {
             manifest_digest: self.entry.manifest_digest.clone(),
             activation_id: self.activation_id,
             tool_name: Arc::from(tool_name),
+            tool_identity: None,
+            tool_descriptor_digest: None,
+            operation: McpSkillToolOperation::Execute,
+            invocation: None,
             host_code_execution,
+            activation: PhantomData,
+        })
+    }
+
+    pub(crate) async fn authorize_bound_tool_operation<'activation>(
+        &'activation self,
+        binding: &McpSkillToolBinding,
+        operation: McpSkillToolOperation,
+        invocation: &McpSkillToolInvocation,
+    ) -> Result<McpSkillExecutionPermit<'activation>, McpSkillHostError> {
+        let requested_allowed_tools = self
+            .entry
+            .frontmatter()
+            .get("allowed-tools")
+            .and_then(Value::as_str)
+            .map(Arc::from);
+        let tool_name = Arc::from(binding.tool_name());
+        self.host
+            .inner
+            .policy
+            .authorize_tool_call(McpSkillToolAuthorizationRequest {
+                identity: self.identity.clone(),
+                manifest_digest: self.entry.manifest_digest.clone(),
+                activation_id: self.activation_id,
+                tool_name: Arc::clone(&tool_name),
+                tool_identity: Some(binding.identity().clone()),
+                tool_descriptor_digest: Some(binding.descriptor_digest()),
+                operation,
+                invocation: Some(invocation.clone()),
+                host_code_execution: binding.host_code_execution(),
+                requested_allowed_tools,
+            })
+            .await
+            .map_err(map_tool_policy_error)?;
+        Ok(McpSkillExecutionPermit {
+            identity: self.identity.clone(),
+            manifest_digest: self.entry.manifest_digest.clone(),
+            activation_id: self.activation_id,
+            tool_name,
+            tool_identity: Some(binding.identity().clone()),
+            tool_descriptor_digest: Some(binding.descriptor_digest()),
+            operation,
+            invocation: Some(invocation.clone()),
+            host_code_execution: binding.host_code_execution(),
             activation: PhantomData,
         })
     }
@@ -1477,7 +1563,7 @@ impl fmt::Debug for McpActivatedSkill {
     }
 }
 
-/// Non-constructible proof of explicit policy approval for one exact Tool call.
+/// Non-constructible proof of explicit policy approval for one exact Tool operation.
 #[derive(Debug)]
 #[must_use = "the permit must be consumed by the exact approved Tool execution"]
 pub struct McpSkillExecutionPermit<'activation> {
@@ -1485,6 +1571,10 @@ pub struct McpSkillExecutionPermit<'activation> {
     manifest_digest: Arc<str>,
     activation_id: u64,
     tool_name: Arc<str>,
+    tool_identity: Option<CapabilityIdentity>,
+    tool_descriptor_digest: Option<Digest>,
+    operation: McpSkillToolOperation,
+    invocation: Option<McpSkillToolInvocation>,
     host_code_execution: bool,
     activation: PhantomData<&'activation McpActivatedSkill>,
 }
@@ -1512,6 +1602,30 @@ impl McpSkillExecutionPermit<'_> {
     #[must_use]
     pub fn tool_name(&self) -> &str {
         &self.tool_name
+    }
+
+    /// Returns the exact runtime Tool identity when this permit is registry-bound.
+    #[must_use]
+    pub const fn tool_identity(&self) -> Option<&CapabilityIdentity> {
+        self.tool_identity.as_ref()
+    }
+
+    /// Returns the exact runtime descriptor digest when registry-bound.
+    #[must_use]
+    pub const fn tool_descriptor_digest(&self) -> Option<Digest> {
+        self.tool_descriptor_digest
+    }
+
+    /// Returns the approved execution or reconciliation operation.
+    #[must_use]
+    pub const fn operation(&self) -> McpSkillToolOperation {
+        self.operation
+    }
+
+    /// Returns exact bounded invocation facts when this permit is registry-bound.
+    #[must_use]
+    pub const fn invocation(&self) -> Option<&McpSkillToolInvocation> {
+        self.invocation.as_ref()
     }
 
     /// Returns whether Host code execution was disclosed and approved.

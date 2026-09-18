@@ -21,6 +21,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- MCP Skills Tool-runtime binding through `McpSkillBoundTool`. The adapter
+  freezes an exact owner/name/version and domain-separated complete descriptor
+  digest, requires explicit Host-code exposure classification, requests fresh
+  policy approval separately for execution and reconciliation with exact
+  durable correlation and bounded schema-bound input, consumes the
+  acting-window permit immediately before provider I/O, maps denial to
+  pre-dispatch effect evidence, and registers in the existing immutable Tool
+  registry so the durable attempt ledger remains authoritative.
+
 - Final SEP-2640 MCP Skills static Client and Host Profile with explicit
   capability opt-in, complete bounded manifest/frontmatter validation,
   host-assigned origin identity, approval before lazy verified reads, exact
@@ -29,8 +38,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   lifetime-bound per-call execution permits. Loopback adversarial tests cover
   denial-before-read, digest and frontmatter drift, cache behavior, metadata,
   nested activation and ordinary-client non-advertisement. Dynamic manifests,
-  persisted approval, disk materialization, signatures and automatic Tool
-  runtime integration remain explicitly unclaimed.
+  persisted approval, disk materialization, signatures and automatic
+  discovery-to-Agent composition remain explicitly unclaimed.
 
 - Final SEP-2640 MCP Skills static Server Profile with explicit
   `io.modelcontextprotocol/skills` negotiation, immutable startup catalogs,
