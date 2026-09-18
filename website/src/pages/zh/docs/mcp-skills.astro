@@ -27,25 +27,55 @@ let app = McpServerApplicationBuilder::new(options)
     .with_skills(skills.build()?, skill_authorization)?
     .build()?;`;
 
+const clientCode = `let client = McpClient::connect(
+    endpoint,
+    McpClientIdentity::new("orders-agent", env!("CARGO_PKG_VERSION"))?,
+    authorization,
+    McpClientOptions::for_skills(),
+).await?;
+
+let host = McpSkillHost::new(
+    client,
+    McpSkillOrigin::new("production/orders-mcp")?,
+    Arc::new(application_skill_policy),
+    McpSkillHostOptions::default(),
+)?;
+
+let catalog = host.list_skills().await?;
+let selected = catalog.find_uri("skill://code-review/SKILL.md")
+    .ok_or(AppError::SkillUnavailable)?;
+let active = host.activate(selected).await?;
+
+let file = active.read_file("references/checklist.md").await?;
+model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
+
+let permit = active.authorize_tool_call("ticket/create", false).await?;
+tool_executor.execute_with_skill_permit(permit, arguments).await?;`;
+
 const verifyCode = `cargo test -p stateknot-integrations mcp_server_skill --locked
-cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
+cargo test -p stateknot-integrations --test mcp_skills_server --locked
+cargo test -p stateknot-integrations mcp_skill_host --locked
+cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
 ---
 
 <DocsLayout
-  title="通过 MCP 发布受完整 Manifest 约束的 Agent Skill。"
-  description="配置 Final SEP-2640 静态 Server Profile，以不可变字节、精确 Digest、有界 Discovery 与先授权后披露为边界。"
-  section="MCP Skills Server Profile"
+  title="通过 MCP 发布并激活受完整 Manifest 约束的 Agent Skill。"
+  description="使用 Final SEP-2640 静态 Server 与 Client/Host Profile，以不可变 Manifest、Origin-scoped 审批、延迟校验读取与显式执行门禁为边界。"
+  section="MCP Skills Profile"
   locale="zh-CN"
 >
   <aside
     class="docs-callout docs-callout--boundary"
     aria-labelledby="mcp-skills-boundary-title"
   >
-    <h2 id="mcp-skills-boundary-title">已实现 Server Profile，Pre-alpha API</h2>
+    <h2 id="mcp-skills-boundary-title">
+      已实现静态 Server 与 Client/Host Profile，Pre-alpha API
+    </h2>
     <p>
       StateKnot 现已在 MCP <code>2026-07-28</code> 上提供 Final SEP-2640
-      <code>io.modelcontextprotocol/skills</code> Extension。当前声明仅覆盖 Server；
-      Client Verification、Host Approval、隔离 Cache、Activation 与执行门禁仍未完成。
+      <code>io.modelcontextprotocol/skills</code> Extension。Server 发布不可变的完整
+      Manifest；独立 Client/Host 使用 Host 分配的 Origin 与全新 Policy 审批完成校验
+      和激活。Dynamic Manifest、持久化审批、磁盘安装、Signature 与 Tool Runtime 自动集成不在当前声明内。
     </p>
   </aside>
 
@@ -59,7 +89,7 @@ cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
     <div
       class="docs-table-wrap"
       tabindex="0"
-      aria-label="MCP Skills Server 保证"
+      aria-label="MCP Skills Profile 保证"
     >
       <table>
         <thead><tr><th>边界</th><th>保证</th></tr></thead>
@@ -89,9 +119,47 @@ cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
               Ceiling。</td
             ></tr
           >
+          <tr
+            ><td>Host</td><td
+              >Origin + URI 身份、先审批后读取、Digest/Size/Frontmatter
+              精确校验与 Manifest-only 延迟访问。</td
+            ></tr
+          >
+          <tr
+            ><td>Execution</td><td
+              >Nested Skill 全新审批，以及每个精确 Tool Call 使用不可
+              Clone、绑定 Acting Window 的 Permit。</td
+            ></tr
+          >
         </tbody>
       </table>
     </div>
+  </section>
+
+  <section aria-labelledby="mcp-skills-client-title">
+    <h2 id="mcp-skills-client-title">通过 Verification-first Host 激活</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-mcp-skills-client-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-mcp-skills-client-code"
+        tabindex="0"><code>{clientCode}</code></pre>
+    </div>
+    <p>
+      Listing 不会预取 Skill 文件。请在 Model-visible Context
+      中保留每个已校验文件的 Origin Identity，并让 Tool Adapter
+      强制要求且消费精确 Permit。Frontmatter
+      <code>allowed-tools</code> 只是等待 Policy 审核的请求，永远不会自动授权。
+    </p>
   </section>
 
   <section aria-labelledby="mcp-skills-validation-title">
@@ -129,7 +197,7 @@ cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
   </section>
 
   <section aria-labelledby="mcp-skills-proof-title">
-    <h2 id="mcp-skills-proof-title">复现 Server 证据</h2>
+    <h2 id="mcp-skills-proof-title">复现两个 Profile 的门禁</h2>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
         <span>Console</span>
@@ -150,7 +218,10 @@ cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
       完整实现与不声明边界见
       <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-skills-server.zh-CN.md"
-        >源码指南</a
+        >Server 指南</a
+      >和<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-skills-host.zh-CN.md"
+        >Client/Host 指南</a
       >。
     </p>
   </section>

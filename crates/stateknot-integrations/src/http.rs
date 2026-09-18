@@ -151,13 +151,13 @@ impl ProviderHttpOptions {
     /// Absolute request body ceiling.
     pub const HARD_MAXIMUM_REQUEST_BYTES: usize = 32 * MEBIBYTE;
     /// Absolute complete-response body ceiling.
-    pub const HARD_MAXIMUM_RESPONSE_BYTES: usize = 2 * MEBIBYTE;
+    pub const HARD_MAXIMUM_RESPONSE_BYTES: usize = 128 * MEBIBYTE;
     /// Absolute SSE line ceiling.
-    pub const HARD_MAXIMUM_SSE_LINE_BYTES: usize = 2 * MEBIBYTE;
+    pub const HARD_MAXIMUM_SSE_LINE_BYTES: usize = 128 * MEBIBYTE;
     /// Absolute SSE event ceiling.
-    pub const HARD_MAXIMUM_SSE_EVENT_BYTES: usize = 2 * MEBIBYTE;
+    pub const HARD_MAXIMUM_SSE_EVENT_BYTES: usize = 128 * MEBIBYTE;
     /// Absolute total streaming body ceiling.
-    pub const HARD_MAXIMUM_SSE_TOTAL_BYTES: usize = 72 * MEBIBYTE;
+    pub const HARD_MAXIMUM_SSE_TOTAL_BYTES: usize = 256 * MEBIBYTE;
 
     /// Constructs an explicit bounded transport policy.
     ///

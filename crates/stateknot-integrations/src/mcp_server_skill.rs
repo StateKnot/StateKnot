@@ -1201,7 +1201,9 @@ fn parse_get_params(request: &CustomRequest) -> Result<SkillGetParams, ErrorData
     Ok(params)
 }
 
-fn parse_frontmatter(document: &str) -> Result<Map<String, Value>, McpServerSkillDefinitionError> {
+pub(crate) fn parse_frontmatter(
+    document: &str,
+) -> Result<Map<String, Value>, McpServerSkillDefinitionError> {
     let bytes = document.as_bytes();
     let Some(first_end) = bytes.iter().position(|byte| *byte == b'\n') else {
         return Err(McpServerSkillDefinitionError::InvalidFrontmatter);
@@ -1389,7 +1391,7 @@ impl<'de> Visitor<'de> for BoundedUniqueJsonValueVisitor {
     }
 }
 
-fn validate_frontmatter(
+pub(crate) fn validate_frontmatter(
     frontmatter: &Map<String, Value>,
 ) -> Result<(), McpServerSkillDefinitionError> {
     let name = frontmatter
@@ -1442,7 +1444,7 @@ fn valid_skill_name(name: &str) -> bool {
             .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
 }
 
-fn validate_skill_uri(uri: &str) -> Result<String, McpServerSkillDefinitionError> {
+pub(crate) fn validate_skill_uri(uri: &str) -> Result<String, McpServerSkillDefinitionError> {
     validate_absolute_uri(uri)?;
     let parsed = uri
         .parse::<http::Uri>()
@@ -1491,7 +1493,7 @@ fn validate_absolute_uri(uri: &str) -> Result<(), McpServerSkillDefinitionError>
     Ok(())
 }
 
-fn validate_relative_path(path: &str) -> Result<(), McpServerSkillFileError> {
+pub(crate) fn validate_relative_path(path: &str) -> Result<(), McpServerSkillFileError> {
     if path.is_empty()
         || path.len() > MAX_RELATIVE_PATH_BYTES
         || path.starts_with('/')

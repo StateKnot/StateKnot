@@ -23,8 +23,11 @@ StateKnot implements distinct MCP `2026-07-28` boundaries:
   immutable Tools, Resources, Resource Templates, Prompts, optional Completion,
   and MRTR behind a strict stateless HTTP transport.
 - the [MCP Skills server profile](mcp-skills-server.md), a Final SEP-2640 static
-  server surface with complete manifest-bound file delivery. It is not a Skills
-  client, host activation, or official extension-conformance claim.
+  server surface with complete manifest-bound file delivery;
+- the separate [MCP Skills client and Host profile](mcp-skills-host.md), with
+  strict static-manifest validation, origin-scoped approval, lazy verified
+  reads, fresh nested consent, and explicit execution permits. Neither Skills
+  profile is an official extension-conformance claim.
 
 The general client and OAuth provider pass all **32 scored client scenarios**
 in the frozen official `2026-07-28` requirement set, including all 25 OAuth
@@ -34,9 +37,9 @@ Server profiles, not an authorization-server, Tasks or other extension,
 stable-API, SDK-tier, or complete-framework conformance claim.
 
 The frozen official runner predates the Final Skills extension inventory and
-does not score it. StateKnot gates the Skills server profile with separate
-application-layer HTTP and adversarial tests and reports it separately instead
-of adding it to the 37-scenario Server score.
+does not score it. StateKnot gates the Skills server and client/Host profiles
+with separate application-layer HTTP and adversarial tests and reports them
+separately instead of adding either to the official Client or Server score.
 
 ## Frozen evaluation input
 
@@ -144,6 +147,7 @@ headers, credentials, and per-request metadata:
 cargo test -p stateknot-integrations --test mcp_client_contract --locked
 cargo test -p stateknot-integrations mcp_server_ --locked
 cargo test -p stateknot-integrations --test mcp_skills_server --locked
+cargo test -p stateknot-integrations --test mcp_skills_host --locked
 ```
 
 The official Server fixture deliberately mirrors the runner's application

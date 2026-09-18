@@ -8,8 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 > Status: implemented pre-alpha **server** profile; public API is not stable.<br>
 > Extension: Final SEP-2640, `io.modelcontextprotocol/skills`.<br>
 > Base protocol: MCP `2026-07-28`.<br>
-> Explicit boundary: Skill client verification, host approval, isolated caching,
-> activation, and execution gates are not implemented or claimed.
+> Companion: the separate [static client and Host profile](mcp-skills-host.md)
+> verifies and activates Skills without widening this server claim.
 
 StateKnot can publish static Agent Skills through the Final MCP Skills
 extension. This is not a generic file-server shortcut. The server freezes the
@@ -83,7 +83,9 @@ canonical scope set, surface, and offset.
 
 Digests establish consistency with the server's own manifest; they do not
 establish authorship or trust. A consuming host must still treat the Skill as
-untrusted input.
+untrusted input. StateKnot's separate [client and Host profile](mcp-skills-host.md)
+implements that verification and approval boundary for complete static
+manifests.
 
 ## Construction outline
 
@@ -129,9 +131,7 @@ bounded alias expansion, and public-cache refusal.
 
 ## Not claimed
 
-- MCP Skills client discovery, retrieval, or digest verification;
-- host-side origin labels, content-bound user approval, isolated immutable
-  caches, activation, nested-Skill consent, or execution permission gates;
-- dynamic manifests or directory reads;
+- dynamic manifests or directory reads on this server surface;
+- any claim that server delivery alone makes content trusted or executable;
 - signatures, provenance, marketplace trust, or content safety;
 - stable Rust API, crates.io release, or complete-framework conformance.

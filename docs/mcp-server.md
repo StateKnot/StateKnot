@@ -92,10 +92,9 @@ TTL and public/private cache scope.
 
 An optional immutable Skill catalog advertises the Final SEP-2640
 `io.modelcontextprotocol/skills` extension and exposes `skills/list`,
-`skills/get`, and exact manifest-bound file reads. This is a server-only
-profile. Client verification, host approval, isolated caching, activation, and
-execution gates remain separate work; see the
-[exact Skills claim boundary](mcp-skills-server.md).
+`skills/get`, and exact manifest-bound file reads. Its claim remains separate
+from the consuming [static client and Host profile](mcp-skills-host.md); see the
+[server claim boundary](mcp-skills-server.md).
 
 ### Prompts and Completion
 
@@ -204,6 +203,6 @@ rules in [MCP conformance status](mcp-conformance.md).
 - deprecated stateful sessions or the legacy `initialize` flow;
 - a bundled OAuth authorization server or identity provider;
 - dynamic catalog mutation or list-changed notifications;
-- MCP Skills client/host activation, MCP Apps, or other extensions;
+- dynamic MCP Skills manifests, MCP Apps, or other extensions;
 - a stable Rust API, crates.io release, or SDK-tier certification;
 - production qualification of the complete StateKnot framework.

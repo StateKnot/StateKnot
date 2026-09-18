@@ -27,6 +27,7 @@ mod mcp_server_prompt;
 mod mcp_server_resource;
 mod mcp_server_skill;
 mod mcp_server_tool;
+mod mcp_skill_host;
 mod openai;
 mod sse;
 
@@ -151,5 +152,15 @@ pub use mcp_server_tool::{
     McpServerToolRegistryError, McpServerToolRegistryLimits, McpServerToolRegistryLimitsError,
     McpServerToolResult, McpServerToolResultError, McpServerToolService,
     McpServerToolServiceBuildError,
+};
+pub use mcp_skill_host::{
+    DenyMcpSkillHostPolicy, MCP_SKILL_MAXIMUM_BYTES, MCP_SKILL_MAXIMUM_FILES,
+    MCP_SKILL_MAXIMUM_FRONTMATTER_BYTES, MCP_SKILL_WIRE_RESPONSE_BYTES, McpActivatedSkill,
+    McpSkillActivationRequest, McpSkillActivationSource, McpSkillCapabilities, McpSkillCatalog,
+    McpSkillClientError, McpSkillDirectoryEntry, McpSkillEntry, McpSkillExecutionPermit,
+    McpSkillHost, McpSkillHostError, McpSkillHostOptions, McpSkillHostOptionsError,
+    McpSkillHostPolicy, McpSkillHostPolicyError, McpSkillIdentity, McpSkillOrigin,
+    McpSkillOriginError, McpSkillPage, McpSkillResource, McpSkillResourceContent,
+    McpSkillToolAuthorizationRequest, McpVerifiedSkillFile,
 };
 pub use openai::OpenAiResponsesModel;

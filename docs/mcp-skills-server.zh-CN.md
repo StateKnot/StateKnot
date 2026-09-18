@@ -8,8 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 > 状态：已实现的 pre-alpha **服务端** Profile；Public API 尚不稳定。<br>
 > Extension：Final SEP-2640，`io.modelcontextprotocol/skills`。<br>
 > 基础协议：MCP `2026-07-28`。<br>
-> 明确边界：Skill Client 校验、Host 审批、隔离缓存、激活与执行门禁尚未实现，
-> 也不做支持声明。
+> 配套能力：独立的[静态 Client 与 Host Profile](mcp-skills-host.zh-CN.md)负责校验和
+> 激活 Skill，不扩大本 Server 声明。
 
 StateKnot 现在可以通过 Final MCP Skills Extension 发布静态 Agent Skill。这不是把
 `SKILL.md` 当普通文件暴露的简化方案。Server 会在启动时冻结完整 Skill，从实际返回
@@ -71,7 +71,9 @@ Cache Metadata。Authorization Policy 默认只能使用 Private Cache；只有�
 冻结的 Catalog Digest、Principal Subject、Canonical Scope Set、Surface 与 Offset。
 
 Digest 只能证明返回内容与同一 Server 发布的 Manifest 一致，不能证明作者身份或内容
-可信。消费方 Host 仍必须把 Skill 视为不可信输入。
+可信。消费方 Host 仍必须把 Skill 视为不可信输入。StateKnot 独立的
+[Client 与 Host Profile](mcp-skills-host.zh-CN.md)为完整静态 Manifest 实现了该校验与
+审批边界。
 
 ## 构建轮廓
 
@@ -116,9 +118,7 @@ YAML 重复键、有界 Alias 展开与 Public Cache 拒绝。
 
 ## 不做声明的能力
 
-- MCP Skills Client Discovery、Retrieval 或 Digest Verification；
-- Host 侧 Origin Label、与内容绑定的用户审批、隔离且不可变的 Cache、Activation、
-  Nested Skill Consent 或执行权限门禁；
-- Dynamic Manifest 或 Directory Read；
+- 本 Server Surface 的 Dynamic Manifest 或 Directory Read；
+- 任何“Server 能交付内容就意味着内容可信或可执行”的声明；
 - Signature、Provenance、Marketplace Trust 或 Content Safety；
 - Stable Rust API、crates.io Release 或完整框架 Conformance。

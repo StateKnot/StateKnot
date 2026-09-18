@@ -158,8 +158,8 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
-    title: "MCP Skills server profile",
-    body: "Final SEP-2640 static Skill discovery and reads over MCP 2026-07-28, backed by one immutable registry, exact raw-byte SHA-256 manifests, bounded pagination, canonical paths, aggregate limits, and authorization before existence disclosure. This is a pre-alpha server-only claim.",
+    title: "MCP Skills profiles",
+    body: "Final SEP-2640 static Server and Client/Host profiles: immutable exact-byte manifests and authorization-first disclosure on the server; explicit opt-in, bounded validation, host-assigned origin, approval-before-read, verified lazy access, isolated memory cache, fresh nested consent, and lifetime-bound per-call execution permits on the Host.",
   },
   {
     state: "Implemented",
@@ -201,7 +201,7 @@ const capabilities = [
     state: "Not shipped",
     className: "status-planned",
     title: "MCP client extensions and A2A qualification",
-    body: "MCP Skills client/host verification, approval, isolated cache, activation and execution gates; MCP Tasks and other client extensions; stable SDK-tier evidence; A2A Client live-peer/conformance and recovery-attestation qualification; and A2A gRPC remain unshipped.",
+    body: "Dynamic MCP Skills manifests, persisted approval/disk materialization and automatic Tool-runtime integration; MCP Tasks and other client extensions; stable SDK-tier evidence; A2A Client live-peer/conformance and recovery-attestation qualification; and A2A gRPC remain unshipped.",
   },
   {
     state: "Not shipped",
@@ -214,7 +214,7 @@ const capabilities = [
 
 <DocsLayout
   title="Read implementation status before API shape."
-  description="StateKnot is pre-alpha: bounded MCP Client/Server, MCP Skills server, and A2A 1.0 Client/Server profiles join the durable provider-native path; Skills client/host gates, stable network Agent APIs, A2A gRPC, MCP Tasks, advanced graph semantics, and production qualification remain unfinished."
+  description="StateKnot is pre-alpha: bounded MCP Client/Server, static MCP Skills Server and Client/Host, and A2A 1.0 Client/Server profiles join the durable provider-native path; dynamic Skills, stable network Agent APIs, A2A gRPC, MCP Tasks, advanced graph semantics, and production qualification remain unfinished."
   section="Implementation status"
 >
   <section aria-labelledby="status-matrix-title">
@@ -268,8 +268,8 @@ const capabilities = [
       publication, multipart ingestion, authorization-first reads, and full
       digest verification all have executable PostgreSQL and object-store
       evidence. Official Client/live-peer and recovery-attestation
-      qualification, MCP Skills client/host verification and activation, MCP
-      Tasks, and other client extensions remain separate gates.
+      qualification, dynamic/persisted MCP Skills, MCP Tasks, and other client
+      extensions remain separate gates.
     </p>
   </section>
 
@@ -319,7 +319,7 @@ const capabilities = [
         <a href="/docs/mcp-server/">MCP Server profile</a>
       </li>
       <li>
-        <a href="/docs/mcp-skills/">MCP Skills server profile</a>
+        <a href="/docs/mcp-skills/">MCP Skills profiles</a>
       </li>
       <li>
         <a href="/docs/mcp-conformance/">MCP conformance evidence and limits</a>

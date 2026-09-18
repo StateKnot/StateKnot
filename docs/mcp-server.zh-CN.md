@@ -84,8 +84,8 @@ Binary Content 会校验 MIME、Base64、Item Count 和 Aggregate Bytes。每个
 
 可选的不可变 Skill Catalog 会声明 Final SEP-2640
 `io.modelcontextprotocol/skills` Extension，并暴露 `skills/list`、`skills/get` 与受
-完整 Manifest 约束的精确文件读取。这只是 Server Profile。Client Verification、
-Host Approval、隔离 Cache、Activation 与执行门禁仍是独立工作；精确边界见
+完整 Manifest 约束的精确文件读取。其声明与消费端的
+[静态 Client 与 Host Profile](mcp-skills-host.zh-CN.md)保持分离；Server 精确边界见
 [MCP Skills Server Profile](mcp-skills-server.zh-CN.md)。
 
 ### Prompts 与 Completion
@@ -185,6 +185,6 @@ Inventory 与 Claim Rule 见 [MCP Conformance 状态](mcp-conformance.zh-CN.md)�
 - Deprecated Stateful Session 或 Legacy `initialize` Flow；
 - 内置 OAuth Authorization Server 或 Identity Provider；
 - Dynamic Catalog Mutation 或 List-changed Notification；
-- MCP Skills Client/Host Activation、MCP Apps 或其他 Extension；
+- Dynamic MCP Skills Manifest、MCP Apps 或其他 Extension；
 - Stable Rust API、crates.io Release 或 SDK-tier Certification；
 - 整个 StateKnot Framework 的 Production Qualification。
