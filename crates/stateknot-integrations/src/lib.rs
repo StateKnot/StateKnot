@@ -28,6 +28,7 @@ mod mcp_server_resource;
 mod mcp_server_skill;
 mod mcp_server_tool;
 mod mcp_skill_host;
+mod mcp_skill_tool;
 mod openai;
 mod sse;
 
@@ -162,5 +163,9 @@ pub use mcp_skill_host::{
     McpSkillHostPolicy, McpSkillHostPolicyError, McpSkillIdentity, McpSkillOrigin,
     McpSkillOriginError, McpSkillPage, McpSkillResource, McpSkillResourceContent,
     McpSkillToolAuthorizationRequest, McpVerifiedSkillFile,
+};
+pub use mcp_skill_tool::{
+    McpSkillBoundTool, McpSkillBoundToolBuildError, McpSkillHostCodeExecution, McpSkillToolBinding,
+    McpSkillToolInvocation, McpSkillToolOperation,
 };
 pub use openai::OpenAiResponsesModel;

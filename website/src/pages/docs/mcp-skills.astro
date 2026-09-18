@@ -44,13 +44,18 @@ let host = McpSkillHost::new(
 let catalog = host.list_skills().await?;
 let selected = catalog.find_uri("skill://code-review/SKILL.md")
     .ok_or(AppError::SkillUnavailable)?;
-let active = host.activate(selected).await?;
+let active = Arc::new(host.activate(selected).await?);
 
 let file = active.read_file("references/checklist.md").await?;
 model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
 
-let permit = active.authorize_tool_call("ticket/create", false).await?;
-tool_executor.execute_with_skill_permit(permit, arguments).await?;`;
+let guarded = Arc::new(McpSkillBoundTool::new(
+    Arc::clone(&active),
+    ticket_create_tool,
+    McpSkillHostCodeExecution::NotPossible,
+)?);
+tool_registry.register(guarded)?;
+let tools = tool_registry.build();`;
 
 const verifyCode = `cargo test -p stateknot-integrations mcp_server_skill --locked
 cargo test -p stateknot-integrations --test mcp_skills_server --locked
@@ -77,7 +82,7 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       manifests; the separate Client/Host verifies and activates them with
       host-assigned origin and fresh policy approval. Dynamic manifests,
       persisted approval, disk installation, signatures, and automatic
-      Tool-runtime integration remain outside this claim.
+      discovery-to-Agent composition remain outside this claim.
     </p>
   </aside>
 
@@ -133,8 +138,10 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
           >
           <tr
             ><td>Execution</td><td
-              >Fresh nested consent and a non-cloneable, acting-window-bound
-              permit for every exact Tool call.</td
+              >Exact owner/version/descriptor binding plus a fresh,
+              acting-window-bound policy permit before every execution and
+              recovery probe, with exact durable correlation and bounded
+              schema-bound input.</td
             ></tr
           >
         </tbody>
@@ -164,9 +171,10 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
     </div>
     <p>
       Listing never prefetches Skill files. Preserve each verified file's origin
-      identity in model-visible context, and make the Tool adapter require and
-      consume the exact permit. Frontmatter <code>allowed-tools</code>
-      is a request for policy review, never an authorization grant.
+      identity in model-visible context. Register <code>McpSkillBoundTool</code>
+      instead of the raw provider so the ordinary durable Tool runtime enforces an
+      exact policy decision before execution and reconciliation. Frontmatter
+      <code>allowed-tools</code> is review input, never an authorization grant.
     </p>
   </section>
 

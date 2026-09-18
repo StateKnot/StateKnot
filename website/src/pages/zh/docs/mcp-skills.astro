@@ -44,13 +44,18 @@ let host = McpSkillHost::new(
 let catalog = host.list_skills().await?;
 let selected = catalog.find_uri("skill://code-review/SKILL.md")
     .ok_or(AppError::SkillUnavailable)?;
-let active = host.activate(selected).await?;
+let active = Arc::new(host.activate(selected).await?);
 
 let file = active.read_file("references/checklist.md").await?;
 model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
 
-let permit = active.authorize_tool_call("ticket/create", false).await?;
-tool_executor.execute_with_skill_permit(permit, arguments).await?;`;
+let guarded = Arc::new(McpSkillBoundTool::new(
+    Arc::clone(&active),
+    ticket_create_tool,
+    McpSkillHostCodeExecution::NotPossible,
+)?);
+tool_registry.register(guarded)?;
+let tools = tool_registry.build();`;
 
 const verifyCode = `cargo test -p stateknot-integrations mcp_server_skill --locked
 cargo test -p stateknot-integrations --test mcp_skills_server --locked
@@ -75,7 +80,8 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       StateKnot 现已在 MCP <code>2026-07-28</code> 上提供 Final SEP-2640
       <code>io.modelcontextprotocol/skills</code> Extension。Server 发布不可变的完整
       Manifest；独立 Client/Host 使用 Host 分配的 Origin 与全新 Policy 审批完成校验
-      和激活。Dynamic Manifest、持久化审批、磁盘安装、Signature 与 Tool Runtime 自动集成不在当前声明内。
+      和激活。Dynamic Manifest、持久化审批、磁盘安装、Signature 与自动 Discovery-to-Agent
+      组合不在当前声明内。
     </p>
   </aside>
 
@@ -127,8 +133,9 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
           >
           <tr
             ><td>Execution</td><td
-              >Nested Skill 全新审批，以及每个精确 Tool Call 使用不可
-              Clone、绑定 Acting Window 的 Permit。</td
+              >精确绑定 Owner/Version/完整 Descriptor，并在每次执行与恢复核对前
+              获取绑定 Acting Window、精确持久执行关联与有界 Schema-bound Input
+              的全新 Policy Permit。</td
             ></tr
           >
         </tbody>
@@ -156,9 +163,10 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
     </div>
     <p>
       Listing 不会预取 Skill 文件。请在 Model-visible Context
-      中保留每个已校验文件的 Origin Identity，并让 Tool Adapter
-      强制要求且消费精确 Permit。Frontmatter
-      <code>allowed-tools</code> 只是等待 Policy 审核的请求，永远不会自动授权。
+      中保留每个已校验文件的 Origin Identity。请注册
+      <code>McpSkillBoundTool</code> 而不是 Raw Provider，使普通持久 Tool Runtime
+      在执行与恢复核对前强制执行精确 Policy Decision。Frontmatter
+      <code>allowed-tools</code> 只是 Policy 的对照输入，永远不会自动授权。
     </p>
   </section>
 

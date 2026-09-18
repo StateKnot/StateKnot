@@ -119,7 +119,8 @@ that RFC-0001 validation item 2 already has exhaustive type coverage.
 19. [MCP Skills client and Host profile](mcp-skills-host.md) — explicit extension
     opt-in, strict static-manifest validation, host-assigned origin, approval
     before lazy verified reads, isolated memory caching, fresh nested consent,
-    and per-call execution permits. A
+    per-call execution permits, and exact-version guarded Tool-runtime adapters
+    for execution and recovery. A
     [Simplified Chinese edition](mcp-skills-host.zh-CN.md) is maintained
     alongside it.
 20. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,

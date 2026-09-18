@@ -3,16 +3,31 @@
 
 //! End-to-end security contract for the static MCP Skills client and Host.
 
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::Instant,
+};
 
 use serde_json::{Value, json};
-use stateknot_core::{BoxFuture, Digest};
-use stateknot_integrations::{
-    AnonymousMcpAuthorization, MCP_SKILLS_EXTENSION_ID, McpClient, McpClientIdentity,
-    McpClientOptions, McpSkillActivationRequest, McpSkillActivationSource, McpSkillHost,
-    McpSkillHostError, McpSkillHostOptions, McpSkillHostPolicy, McpSkillHostPolicyError,
-    McpSkillOrigin, McpSkillToolAuthorizationRequest, ProviderEndpoint,
+use stateknot_core::{
+    AttemptId, BoundedJson, BoxFuture, BudgetUsage, CancellationSignal, CapabilityIdentity, Digest,
+    DurationMillis, ErasedTool, EventId, FailureCategory, InvocationId, ResolvedBudget, RunId,
+    TenantId, ThreadId, Timestamp, ToolArtifacts, ToolContext, ToolDescriptor, ToolError,
+    ToolExternalEffect, ToolInput, ToolReconciliationContext, ToolReconciliationObservation,
+    ToolReconciliationProbeError, ToolResult,
 };
+use stateknot_integrations::{
+    AnonymousMcpAuthorization, MCP_SKILLS_EXTENSION_ID, McpActivatedSkill, McpClient,
+    McpClientIdentity, McpClientOptions, McpSkillActivationRequest, McpSkillActivationSource,
+    McpSkillBoundTool, McpSkillHost, McpSkillHostCodeExecution, McpSkillHostError,
+    McpSkillHostOptions, McpSkillHostPolicy, McpSkillHostPolicyError, McpSkillOrigin,
+    McpSkillToolAuthorizationRequest, McpSkillToolInvocation, McpSkillToolOperation,
+    ProviderEndpoint,
+};
+use stateknot_runtime::ToolProviderRegistryBuilder;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,
@@ -26,6 +41,11 @@ const ROOT_SKILL: &[u8] = b"---\nname: root-skill\ndescription: Root skill.\nall
 const REFERENCE: &[u8] = b"# Checklist\n\nVerify before deployment.\n";
 const NESTED_SKILL: &[u8] =
     b"---\nname: child\ndescription: Child skill.\n---\nPerform the nested check.\n";
+const RUN_ID: &str = "01912345-6789-7abc-8def-0123456789ab";
+const THREAD_ID: &str = "01912345-6789-7abc-8def-0123456789ac";
+const INVOCATION_ID: &str = "01912345-6789-7abc-8def-0123456789ad";
+const ATTEMPT_ID: &str = "01912345-6789-7abc-8def-0123456789ae";
+const ORIGIN_EVENT_ID: &str = "01912345-6789-7abc-8def-0123456789af";
 
 #[derive(Debug)]
 struct CapturedRequest {
@@ -204,7 +224,17 @@ struct RecordingPolicy {
     tool_calls: Mutex<Vec<RecordedToolCall>>,
 }
 
-type RecordedToolCall = (String, String, bool, Option<String>);
+#[derive(Debug)]
+struct RecordedToolCall {
+    skill_uri: String,
+    tool_name: String,
+    tool_identity: Option<CapabilityIdentity>,
+    descriptor_digest: Option<Digest>,
+    operation: McpSkillToolOperation,
+    invocation: Option<McpSkillToolInvocation>,
+    host_code_execution: bool,
+    requested_allowed_tools: Option<String>,
+}
 
 impl McpSkillHostPolicy for RecordingPolicy {
     fn approve_activation(
@@ -223,12 +253,16 @@ impl McpSkillHostPolicy for RecordingPolicy {
         &self,
         request: McpSkillToolAuthorizationRequest,
     ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
-        self.tool_calls.lock().unwrap().push((
-            request.identity().uri().to_owned(),
-            request.tool_name().to_owned(),
-            request.host_code_execution(),
-            request.requested_allowed_tools().map(str::to_owned),
-        ));
+        self.tool_calls.lock().unwrap().push(RecordedToolCall {
+            skill_uri: request.identity().uri().to_owned(),
+            tool_name: request.tool_name().to_owned(),
+            tool_identity: request.tool_identity().cloned(),
+            descriptor_digest: request.tool_descriptor_digest(),
+            operation: request.operation(),
+            invocation: request.invocation().cloned(),
+            host_code_execution: request.host_code_execution(),
+            requested_allowed_tools: request.requested_allowed_tools().map(str::to_owned),
+        });
         Box::pin(async { Ok(()) })
     }
 }
@@ -251,6 +285,145 @@ impl McpSkillHostPolicy for DenyActivation {
     }
 }
 
+struct DenyToolExecution;
+
+impl McpSkillHostPolicy for DenyToolExecution {
+    fn approve_activation(
+        &self,
+        _request: McpSkillActivationRequest,
+    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+        Box::pin(async { Ok(()) })
+    }
+
+    fn authorize_tool_call(
+        &self,
+        _request: McpSkillToolAuthorizationRequest,
+    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+        Box::pin(async { Err(McpSkillHostPolicyError::Denied) })
+    }
+}
+
+struct CountingTool {
+    descriptor: ToolDescriptor,
+    calls: AtomicUsize,
+    reconciliations: AtomicUsize,
+}
+
+impl CountingTool {
+    fn new(descriptor: ToolDescriptor) -> Self {
+        Self {
+            descriptor,
+            calls: AtomicUsize::new(0),
+            reconciliations: AtomicUsize::new(0),
+        }
+    }
+}
+
+impl ErasedTool for CountingTool {
+    fn descriptor(&self) -> &ToolDescriptor {
+        &self.descriptor
+    }
+
+    fn supports_reconciliation(&self) -> bool {
+        true
+    }
+
+    fn call(
+        &self,
+        context: ToolContext,
+        _input: ToolInput,
+    ) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let result = ToolResult::for_invocation(
+            &context,
+            &self.descriptor,
+            BoundedJson::try_from_value(json!({"status": "ok"})).unwrap(),
+            ToolArtifacts::empty(),
+        );
+        Box::pin(async move { Ok(result) })
+    }
+
+    fn reconcile(
+        &self,
+        _context: ToolReconciliationContext,
+        _input: ToolInput,
+    ) -> BoxFuture<'_, Result<ToolReconciliationObservation, ToolReconciliationProbeError>> {
+        self.reconciliations.fetch_add(1, Ordering::SeqCst);
+        Box::pin(async {
+            Ok(
+                ToolReconciliationObservation::pending(DurationMillis::new(1_000).unwrap())
+                    .unwrap(),
+            )
+        })
+    }
+}
+
+fn tool_descriptor() -> ToolDescriptor {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-tool-v1.json"
+    ))
+    .unwrap();
+    let mut descriptor = fixture["descriptors"]["valid"][0].clone();
+    descriptor["metadata"]["identity"]["capability"]["name"] = json!("deploy");
+    serde_json::from_value(descriptor).unwrap()
+}
+
+fn resolved_budget() -> ResolvedBudget {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-budget-v1.json"
+    ))
+    .unwrap();
+    serde_json::from_value(fixture["resolved"]["valid"][0].clone()).unwrap()
+}
+
+fn tool_context(descriptor: &ToolDescriptor) -> ToolContext {
+    let observed_at = "2029-12-31T23:59:59.000000Z".parse::<Timestamp>().unwrap();
+    ToolContext::new(
+        TenantId::new("tenant-mcp-skills").unwrap(),
+        RUN_ID.parse::<RunId>().unwrap(),
+        THREAD_ID.parse::<ThreadId>().unwrap(),
+        INVOCATION_ID.parse::<InvocationId>().unwrap(),
+        ATTEMPT_ID.parse::<AttemptId>().unwrap(),
+        descriptor,
+        resolved_budget()
+            .remaining(&BudgetUsage::zero(), observed_at)
+            .unwrap(),
+        DurationMillis::new(30_000).unwrap(),
+        observed_at,
+        Instant::now(),
+        CancellationSignal::never(),
+    )
+    .unwrap()
+    .with_durable_origin_event(ORIGIN_EVENT_ID.parse::<EventId>().unwrap())
+}
+
+fn reconciliation_context(descriptor: &ToolDescriptor) -> ToolReconciliationContext {
+    let observed_at = "2029-12-31T23:59:59.000000Z".parse::<Timestamp>().unwrap();
+    ToolReconciliationContext::new(
+        TenantId::new("tenant-mcp-skills").unwrap(),
+        RUN_ID.parse::<RunId>().unwrap(),
+        THREAD_ID.parse::<ThreadId>().unwrap(),
+        INVOCATION_ID.parse::<InvocationId>().unwrap(),
+        ATTEMPT_ID.parse::<AttemptId>().unwrap(),
+        descriptor,
+        DurationMillis::new(30_000).unwrap(),
+        observed_at,
+        Instant::now(),
+        "2030-01-01T00:00:00.000000Z".parse().unwrap(),
+        CancellationSignal::never(),
+    )
+    .unwrap()
+    .with_durable_recovery(ORIGIN_EVENT_ID.parse::<EventId>().unwrap(), None)
+}
+
+fn tool_input(descriptor: &ToolDescriptor) -> ToolInput {
+    ToolInput::new(
+        descriptor.input_schema().clone(),
+        BoundedJson::try_from_value(json!({"amount_minor": 42})).unwrap(),
+    )
+    .unwrap()
+}
+
 fn host(client: McpClient, policy: Arc<dyn McpSkillHostPolicy>) -> McpSkillHost {
     McpSkillHost::new(
         client,
@@ -259,6 +432,91 @@ fn host(client: McpClient, policy: Arc<dyn McpSkillHostPolicy>) -> McpSkillHost 
         McpSkillHostOptions::default(),
     )
     .unwrap()
+}
+
+async fn exercise_bound_tool(
+    active: Arc<McpActivatedSkill>,
+) -> (ToolDescriptor, Arc<McpSkillBoundTool>) {
+    let descriptor = tool_descriptor();
+    let provider = Arc::new(CountingTool::new(descriptor.clone()));
+    let guarded = Arc::new(
+        McpSkillBoundTool::new(
+            active,
+            Arc::clone(&provider) as Arc<dyn ErasedTool>,
+            McpSkillHostCodeExecution::Possible,
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        guarded.binding().identity(),
+        descriptor.metadata().identity()
+    );
+    let mut registry = ToolProviderRegistryBuilder::new();
+    registry
+        .register(Arc::clone(&guarded) as Arc<dyn ErasedTool>)
+        .unwrap();
+    let installed = registry.build().resolve(&descriptor).unwrap();
+    installed
+        .call(tool_context(&descriptor), tool_input(&descriptor))
+        .await
+        .unwrap();
+    installed
+        .reconcile(reconciliation_context(&descriptor), tool_input(&descriptor))
+        .await
+        .unwrap();
+    assert_eq!(provider.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(provider.reconciliations.load(Ordering::SeqCst), 1);
+    (descriptor, guarded)
+}
+
+fn assert_tool_policy_calls(
+    policy: &RecordingPolicy,
+    descriptor: &ToolDescriptor,
+    guarded: &McpSkillBoundTool,
+) {
+    let tool_calls = policy.tool_calls.lock().unwrap();
+    assert_eq!(tool_calls.len(), 3);
+    assert_eq!(tool_calls[0].skill_uri, ROOT_URI);
+    assert_eq!(tool_calls[0].tool_name, "deploy");
+    assert!(tool_calls[0].tool_identity.is_none());
+    assert!(tool_calls[0].descriptor_digest.is_none());
+    assert_eq!(tool_calls[0].operation, McpSkillToolOperation::Execute);
+    assert!(tool_calls[0].invocation.is_none());
+    assert!(tool_calls[0].host_code_execution);
+    assert_eq!(
+        tool_calls[0].requested_allowed_tools.as_deref(),
+        Some("deploy")
+    );
+    for (recorded, operation) in tool_calls[1..].iter().zip([
+        McpSkillToolOperation::Execute,
+        McpSkillToolOperation::Reconcile,
+    ]) {
+        assert_eq!(recorded.skill_uri, ROOT_URI);
+        assert_eq!(recorded.tool_name, "deploy");
+        assert_eq!(
+            recorded.tool_identity.as_ref(),
+            Some(descriptor.metadata().identity())
+        );
+        assert_eq!(
+            recorded.descriptor_digest,
+            Some(guarded.binding().descriptor_digest())
+        );
+        assert_eq!(recorded.operation, operation);
+        let invocation = recorded.invocation.as_ref().unwrap();
+        assert_eq!(invocation.tenant_id().to_string(), "tenant-mcp-skills");
+        assert_eq!(invocation.run_id().to_string(), RUN_ID);
+        assert_eq!(invocation.thread_id().to_string(), THREAD_ID);
+        assert_eq!(invocation.invocation_id().to_string(), INVOCATION_ID);
+        assert_eq!(invocation.attempt_id().to_string(), ATTEMPT_ID);
+        assert_eq!(
+            invocation.origin_event_id().unwrap().to_string(),
+            ORIGIN_EVENT_ID
+        );
+        assert!(!invocation.has_recovery_handle());
+        assert_eq!(invocation.input(), &tool_input(descriptor));
+        assert!(recorded.host_code_execution);
+        assert_eq!(recorded.requested_allowed_tools.as_deref(), Some("deploy"));
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -312,8 +570,16 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
     let permit = active.authorize_tool_call("deploy", true).await.unwrap();
     assert_eq!(permit.identity(), active.identity());
     assert_eq!(permit.tool_name(), "deploy");
+    assert!(permit.tool_identity().is_none());
+    assert!(permit.tool_descriptor_digest().is_none());
+    assert_eq!(permit.operation(), McpSkillToolOperation::Execute);
+    assert!(permit.invocation().is_none());
     assert!(permit.host_code_execution());
     assert_eq!(permit.manifest_digest(), active.entry().manifest_digest());
+    drop(permit);
+
+    let active = Arc::new(active);
+    let (descriptor, guarded) = exercise_bound_tool(Arc::clone(&active)).await;
 
     let nested = active
         .activate_nested("nested/child/SKILL.md")
@@ -331,15 +597,7 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
             McpSkillActivationSource::Nested(parent) if parent.uri() == ROOT_URI
         ));
     }
-    assert_eq!(
-        policy.tool_calls.lock().unwrap().as_slice(),
-        &[(
-            ROOT_URI.to_owned(),
-            "deploy".to_owned(),
-            true,
-            Some("deploy".to_owned())
-        )]
-    );
+    assert_tool_policy_calls(&policy, &descriptor, &guarded);
 
     let requests = server.await.unwrap();
     let methods = requests
@@ -385,6 +643,38 @@ async fn denial_happens_before_any_skill_file_read() {
     let requests = server.await.unwrap();
     assert_eq!(requests.len(), 2);
     assert_eq!(requests[1].body["method"], "skills/get");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn bound_tool_denial_fails_before_provider_execution() {
+    let (endpoint, server) = start_server(vec![
+        discovery(),
+        get_result(&root_entry()),
+        text_resource(ROOT_URI, ROOT_SKILL),
+    ])
+    .await;
+    let skill_host = host(
+        connect(endpoint, McpClientOptions::for_skills()).await,
+        Arc::new(DenyToolExecution),
+    );
+    let active = Arc::new(skill_host.activate_uri(ROOT_URI).await.unwrap());
+    let descriptor = tool_descriptor();
+    let provider = Arc::new(CountingTool::new(descriptor.clone()));
+    let guarded = McpSkillBoundTool::new(
+        active,
+        Arc::clone(&provider) as Arc<dyn ErasedTool>,
+        McpSkillHostCodeExecution::NotPossible,
+    )
+    .unwrap();
+
+    let error = guarded
+        .call(tool_context(&descriptor), tool_input(&descriptor))
+        .await
+        .unwrap_err();
+    assert_eq!(error.failure().category(), FailureCategory::PolicyDenied);
+    assert_eq!(error.external_effect(), ToolExternalEffect::NotStarted);
+    assert_eq!(provider.calls.load(Ordering::SeqCst), 0);
+    assert_eq!(server.await.unwrap().len(), 3);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
