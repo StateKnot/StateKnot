@@ -107,6 +107,13 @@ const currentCut = [
     href: "/docs/mcp-server/",
   },
   {
+    surface: "MCP Skills server profile",
+    state: "Implemented slice",
+    evidence:
+      "Final SEP-2640 static manifests, exact bytes, policy-first reads",
+    href: "/docs/mcp-skills/",
+  },
+  {
     surface: "A2A 1.0 Client and remote agent",
     state: "Implemented slice",
     evidence: "Eleven operations plus two attested durable recovery strategies",
@@ -185,23 +192,29 @@ const roadmap = [
   {
     index: "10",
     state: "Implemented",
+    title: "Publish static Skills over MCP",
+    body: "Final SEP-2640 discovery and reads now share one immutable, size-bounded registry with exact raw-byte digests, canonical paths, private cursors, scoped cache rules, and authorization before disclosure. Client and host execution gates remain separate.",
+  },
+  {
+    index: "11",
+    state: "Implemented",
     title: "Build the A2A 1.0 Server profile",
     body: "Bounded Agent Cards, messages, tasks, artifacts, streaming, cancellation, subscriptions, and push configuration now serve HTTP+JSON and JSON-RPC/SSE behind strict policy; 177 official TCK cases pass.",
   },
   {
-    index: "11",
+    index: "12",
     state: "Implemented",
     title: "Build the durable A2A Client boundary",
     body: "All eleven operations now run across HTTP+JSON and JSON-RPC/SSE with exact discovery/interface pins and bounded security; the Remote Agent adds PostgreSQL Unknown evidence plus operator-attested context/history lookup and message-ID replay.",
   },
   {
-    index: "12",
+    index: "13",
     state: "Implemented",
     title: "Make terminal A2A artifacts durable",
     body: "Accepted tasks now recover through direct no-resend polling, while bounded terminal parts converge on immutable PostgreSQL metadata and private, conditionally published, fully verified object bytes.",
   },
   {
-    index: "13",
+    index: "14",
     state: "Next",
     title: "Publish qualification evidence",
     body: "Run the frozen scenarios under load and failure, then publish compatibility, performance, and recovery evidence before support claims.",
@@ -221,15 +234,15 @@ const roadmap = [
             Durable agent orchestration, written for Rust.
           </h1>
           <p class="hero-lede">
-            StateKnot runs typed root Graphs through PostgreSQL crash recovery,
-            atomic admission, durable model/tool attempts, lifecycle commits,
-            fair scheduling, ingress, and verified results. Implemented surfaces
-            include OpenAI/Anthropic adapters, a provider-native graph,
-            AgentService v1, MCP client/OAuth/Remote Tool/Server profiles, and
-            A2A 1.0 HTTP+JSON/JSON-RPC Client/Server with durable terminal-task
-            Artifact storage. Stable network Agent APIs, A2A gRPC, MCP Tasks,
-            advanced graph semantics, live-peer and production qualification
-            remain open.
+            StateKnot runs typed root Graphs with PostgreSQL recovery, atomic
+            admission, durable model/tool attempts, lifecycle commits, fair
+            scheduling, ingress, and verified results. Implemented:
+            OpenAI/Anthropic adapters, a provider-native graph, AgentService v1,
+            MCP client/OAuth/Remote Tool/Server plus a Final SEP-2640 static
+            Skills server, and A2A 1.0 HTTP+JSON/JSON-RPC Client/Server with
+            durable artifacts. Skills client/host gates, stable Agent APIs, A2A
+            gRPC, MCP Tasks, advanced graphs, live-peer and production
+            qualification remain open.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -375,8 +388,8 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
           TCK passes with zero failures; the Client now adds an eleven-operation
           dual-binding matrix, real PostgreSQL Unknown/no-redispatch proof, and
           bounded operator-attested recovery. Live-peer and recovery-attestation
-          qualification, MCP Tasks, and broader extensions remain independent
-          gates.
+          qualification, MCP Skills client/host verification and activation, MCP
+          Tasks, and other client extensions remain independent gates.
         </p>
       </div>
 

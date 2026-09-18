@@ -1,0 +1,157 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const buildCode = `let skill = McpServerSkillDefinition::new(
+    "skill://code-review/SKILL.md",
+    [
+        McpServerSkillFile::text(
+            "SKILL.md",
+            "text/markdown",
+            include_str!("skills/code-review/SKILL.md"),
+        )?,
+        McpServerSkillFile::text(
+            "references/checklist.md",
+            "text/markdown",
+            include_str!("skills/code-review/references/checklist.md"),
+        )?,
+    ],
+)?;
+
+let mut skills = McpServerSkillCatalogBuilder::default();
+skills.register(skill)?;
+
+let app = McpServerApplicationBuilder::new(options)
+    .with_skills(skills.build()?, skill_authorization)?
+    .build()?;`;
+
+const verifyCode = `cargo test -p stateknot-integrations mcp_server_skill --locked
+cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
+---
+
+<DocsLayout
+  title="通过 MCP 发布受完整 Manifest 约束的 Agent Skill。"
+  description="配置 Final SEP-2640 静态 Server Profile，以不可变字节、精确 Digest、有界 Discovery 与先授权后披露为边界。"
+  section="MCP Skills Server Profile"
+  locale="zh-CN"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-skills-boundary-title"
+  >
+    <h2 id="mcp-skills-boundary-title">已实现 Server Profile，Pre-alpha API</h2>
+    <p>
+      StateKnot 现已在 MCP <code>2026-07-28</code> 上提供 Final SEP-2640
+      <code>io.modelcontextprotocol/skills</code> Extension。当前声明仅覆盖 Server；
+      Client Verification、Host Approval、隔离 Cache、Activation 与执行门禁仍未完成。
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-skills-wire-title">
+    <h2 id="mcp-skills-wire-title">所有响应共享同一份不可变快照</h2>
+    <p>
+      Server 在启动时冻结每个 <code>SKILL.md</code> 与 Supporting File。
+      <code>skills/list</code>、<code>skills/get</code> 和
+      <code>resources/read</code> 使用相同字节，因此 Manifest 不会与后续返回内容发生漂移。
+    </p>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="MCP Skills Server 保证"
+    >
+      <table>
+        <thead><tr><th>边界</th><th>保证</th></tr></thead>
+        <tbody>
+          <tr
+            ><td>Discovery</td><td>有界分页、确定顺序、TTL 与 Cache Scope。</td
+            ></tr
+          >
+          <tr
+            ><td>Manifest</td><td
+              >每个文件恰好出现一次，携带原始字节 SHA-256 与 Size。</td
+            ></tr
+          >
+          <tr
+            ><td>Read</td><td
+              >从保留的不可变快照返回 Text 或 Base64 Content。</td
+            ></tr
+          >
+          <tr
+            ><td>Policy</td><td
+              >Authentication、精确 Scope 与动态 Authorization 早于存在性披露。</td
+            ></tr
+          >
+          <tr
+            ><td>Limit</td><td
+              >单个 Skill 最多 512 文件与 16 MiB，并有 Aggregate Catalog
+              Ceiling。</td
+            ></tr
+          >
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="mcp-skills-validation-title">
+    <h2 id="mcp-skills-validation-title">在启动阶段拒绝歧义与危险 Package</h2>
+    <p>
+      Registry 会拒绝任意层级的 YAML 重复 Key、非法 Agent Skills Field、超过物化
+      Value 预算的 Alias 展开、Name/URI 不一致、Traversal 与非规范 Path、重叠
+      Resource URI、不完整 Package 和超限 Catalog。未知 Frontmatter Field
+      会被保留为 Data，但不会成为 Authority。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-skills-build-title">
+    <h2 id="mcp-skills-build-title">构建静态 Server Surface</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-mcp-skills-build-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-mcp-skills-build-code"
+        tabindex="0"><code>{buildCode}</code></pre>
+    </div>
+    <p>
+      请让 Skill Byte 来自经过审查的部署输入，不要在 Request Path 中重建
+      Registry。
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-skills-proof-title">
+    <h2 id="mcp-skills-proof-title">复现 Server 证据</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Console</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-mcp-skills-verify-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-mcp-skills-verify-code"
+        tabindex="0"><code>{verifyCode}</code></pre>
+    </div>
+    <p>
+      完整实现与不声明边界见
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-skills-server.zh-CN.md"
+        >源码指南</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

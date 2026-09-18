@@ -25,6 +25,7 @@ mod mcp_server;
 mod mcp_server_app;
 mod mcp_server_prompt;
 mod mcp_server_resource;
+mod mcp_server_skill;
 mod mcp_server_tool;
 mod openai;
 mod sse;
@@ -128,6 +129,14 @@ pub use mcp_server_resource::{
     McpServerResourceReader, McpServerResourceReaderError, McpServerResourceResult,
     McpServerResourceResultError, McpServerResourceService, McpServerResourceServiceBuildError,
     McpServerResourceTemplateDefinition,
+};
+pub use mcp_server_skill::{
+    AllowMcpServerSkillAuthorization, MCP_SKILLS_EXTENSION_ID, McpServerSkillAuthorization,
+    McpServerSkillAuthorizationError, McpServerSkillAuthorizationRequest, McpServerSkillCatalog,
+    McpServerSkillCatalogBuilder, McpServerSkillCatalogError, McpServerSkillCatalogLimits,
+    McpServerSkillCatalogLimitsError, McpServerSkillDefinition, McpServerSkillDefinitionError,
+    McpServerSkillFile, McpServerSkillFileError, McpServerSkillOperation, McpServerSkillService,
+    McpServerSkillServiceBuildError,
 };
 pub use mcp_server_tool::{
     AllowMcpServerToolAuthorization, McpServerApplicationOptions, McpServerApplicationOptionsError,

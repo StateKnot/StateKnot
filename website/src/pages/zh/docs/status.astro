@@ -158,6 +158,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "MCP Skills Server Profile",
+    body: "在 MCP 2026-07-28 上提供 Final SEP-2640 静态 Skill Discovery 与 Read；使用同一份不可变 Registry、精确原始字节 SHA-256 Manifest、有界分页、规范 Path、聚合上限，并在披露资源是否存在前执行 Authorization。当前仅声明 Pre-alpha Server 能力。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "A2A 1.0 Client 与可恢复 Remote Agent",
     body: "全部 11 个 HTTP+JSON/JSON-RPC Operation、两个有界 SSE Surface、精确 Card/Interface Pin、有界 Bearer/OAuth2/OpenID Security、本地 Schema、显式 Delivery Semantics，以及面向 PostgreSQL-backed Unknown Attempt、由运维方背书的 Context/History 或 Message-ID Recovery。",
   },
@@ -194,8 +200,8 @@ const capabilities = [
   {
     state: "尚未发布",
     className: "status-planned",
-    title: "MCP Extension 与 A2A Qualification",
-    body: "MCP Tasks 与更广 Client Extension、Stable SDK-tier 证据、A2A Client Live-peer/Conformance 与 Recovery-attestation Qualification，以及 A2A gRPC 尚未交付。",
+    title: "MCP Client Extension 与 A2A Qualification",
+    body: "MCP Skills Client/Host Verification、Approval、隔离 Cache、Activation 与执行门禁，MCP Tasks 和其他 Client Extension，Stable SDK-tier 证据，A2A Client Live-peer/Conformance 与 Recovery-attestation Qualification，以及 A2A gRPC 尚未交付。",
   },
   {
     state: "尚未发布",
@@ -208,7 +214,7 @@ const capabilities = [
 
 <DocsLayout
   title="判断 API 形态前，先看实现状态。"
-  description="StateKnot 仍处于 pre-alpha：有界 MCP Client/Server 与 A2A 1.0 Client/Server Profile 已加入可恢复 Provider-native Path；稳定 Network Agent API、A2A gRPC、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
+  description="StateKnot 仍处于 pre-alpha：有界 MCP Client/Server、MCP Skills Server 与 A2A 1.0 Client/Server Profile 已加入可恢复 Provider-native Path；Skills Client/Host 门禁、稳定 Network Agent API、A2A gRPC、MCP Tasks、高级 Graph 语义与生产验证仍未完成。"
   section="实现状态"
   locale="zh-CN"
 >
@@ -263,8 +269,8 @@ const capabilities = [
       Registry、Conditional Object Publication、Multipart
       Ingestion、Authorization-first Read 与完整 Digest 校验都具备可执行
       PostgreSQL/Object-store 证据。官方 Client/Live-peer 与
-      Recovery-attestation Qualification、MCP Tasks 和更广 Extension
-      仍是独立门禁。
+      Recovery-attestation Qualification、MCP Skills Client/Host Verification 与
+      Activation、MCP Tasks 和其他 Client Extension 仍是独立门禁。
     </p>
   </section>
 
@@ -312,6 +318,9 @@ const capabilities = [
       </li>
       <li>
         <a href="/zh/docs/mcp-server/">MCP Server Profile</a>
+      </li>
+      <li>
+        <a href="/zh/docs/mcp-skills/">MCP Skills Server Profile</a>
       </li>
       <li>
         <a href="/zh/docs/mcp-conformance/">MCP Conformance 证据与边界</a>

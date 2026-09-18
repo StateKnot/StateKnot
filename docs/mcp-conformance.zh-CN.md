@@ -10,7 +10,7 @@ Extension Badge。
 
 ## 当前声明
 
-StateKnot 已实现三个相互独立的 MCP `2026-07-28` Boundary：
+StateKnot 已实现相互独立的 MCP `2026-07-28` Boundary：
 
 - [`McpRemoteTool`](mcp-remote-tool.zh-CN.md)：带已审核 Server/Schema Pin 与
   Reconciliation-first Ambiguous Write 的严格持久执行 Binding；
@@ -22,12 +22,19 @@ StateKnot 已实现三个相互独立的 MCP `2026-07-28` Boundary：
 - [MCP Server Profile](mcp-server.zh-CN.md)：在严格 Stateless HTTP Transport 后提供
   Immutable Tools、Resources、Resource Templates、Prompts、Optional Completion 与
   MRTR 的 StateKnot-owned Application。
+- [MCP Skills Server Profile](mcp-skills-server.zh-CN.md)：Final SEP-2640 静态服务端
+  Surface，以完整 Manifest 约束文件返回；它不代表 Skills Client、Host Activation
+  或官方 Extension Conformance 声明。
 
 通用 Client 与 OAuth Provider 通过冻结官方 `2026-07-28` Requirement Set 中全部
 **32 个计分 Client 场景**，其中包括全部 25 个 OAuth 场景。严格 Server Transport
 通过全部 **37 个计分 Server 场景**。这些是已实现 pre-alpha Client/Server Profile
 的证据声明，不是 Authorization Server、Tasks/其他 Extension、Stable API、SDK-tier
 或完整 Framework Conformance 声明。
+
+冻结的官方 Runner 早于 Final Skills Extension Inventory，因此不会对 Skills 计分。
+StateKnot 使用独立的 Application-layer HTTP 与攻击面测试门禁该 Server Profile，并
+单独报告结果，不把它加入 37 个 Server Scenario 的分数。
 
 ## 冻结的评估输入
 
@@ -124,6 +131,7 @@ Baseline。独立 HTTP/SSE Contract 还会验证分片 Request-scoped SSE、Noti
 ```console
 cargo test -p stateknot-integrations --test mcp_client_contract --locked
 cargo test -p stateknot-integrations mcp_server_ --locked
+cargo test -p stateknot-integrations --test mcp_skills_server --locked
 ```
 
 官方 Server Fixture 为匹配 Runner 的 Application Name 与 Payload 而设计，并使用生产

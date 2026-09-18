@@ -296,6 +296,15 @@ from the repository.
   scoped catalogs. Require all 37 scored official Server scenarios in CI:
   114 assertions pass, five capability checks skip, one SSE check is
   informational, and zero fail or warn. Keep Tasks explicitly unclaimed.
+- [x] Implement the Final SEP-2640 [MCP Skills server profile](mcp-skills-server.md):
+  immutable complete manifests over the exact served bytes, bounded recursive
+  duplicate-free frontmatter parsing, deterministic pagination, direct lookup,
+  authorization-before-disclosure, scope-bound private cursors and exact
+  `resources/read` digest/size reconciliation. Keep this claim server-only.
+- [ ] Implement the MCP Skills client and host boundary: manifest and
+  frontmatter verification, origin-preserving content-bound approval, isolated
+  immutable on-demand cache, activation, nested-Skill consent, execution gates,
+  restart behavior and adversarial qualification.
 - [x] Implement the A2A 1.0 Server profile with StateKnot-owned bounded Agent
   Card/message/task/artifact/push contracts, HTTP+JSON and JSON-RPC bindings,
   SSE send/subscription streams, authentication-before-parsing,

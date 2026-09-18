@@ -9,11 +9,11 @@ use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     model::{
         CallToolRequestParams, CallToolResponse, CompleteRequestParams, CompleteResult,
-        DiscoverResult, ErrorCode, GetPromptRequestParams, GetPromptResponse, Implementation,
-        ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult, ListToolsResult,
-        PaginatedRequestParams, PromptsCapability, ProtocolVersion, ReadResourceRequestParams,
-        ReadResourceResponse, ResourcesCapability, ServerCapabilities, ServerInfo, Tool,
-        ToolsCapability,
+        CustomRequest, CustomResult, DiscoverResult, ErrorCode, GetPromptRequestParams,
+        GetPromptResponse, Implementation, ListPromptsResult, ListResourceTemplatesResult,
+        ListResourcesResult, ListToolsResult, PaginatedRequestParams, PromptsCapability,
+        ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse, ResourcesCapability,
+        ServerCapabilities, ServerInfo, Tool, ToolsCapability,
     },
     service::RequestContext,
 };
@@ -24,8 +24,9 @@ use crate::{
     McpServerPromptCatalog, McpServerPromptRenderer, McpServerPromptService,
     McpServerPromptServiceBuildError, McpServerResourceAuthorization, McpServerResourceCatalog,
     McpServerResourceReader, McpServerResourceService, McpServerResourceServiceBuildError,
-    McpServerToolAuthorization, McpServerToolRegistry, McpServerToolService,
-    McpServerToolServiceBuildError,
+    McpServerSkillAuthorization, McpServerSkillCatalog, McpServerSkillService,
+    McpServerSkillServiceBuildError, McpServerToolAuthorization, McpServerToolRegistry,
+    McpServerToolService, McpServerToolServiceBuildError,
 };
 
 /// Startup-only builder for a composite MCP application.
@@ -33,6 +34,7 @@ pub struct McpServerApplicationBuilder {
     options: McpServerApplicationOptions,
     tools: Option<McpServerToolService>,
     resources: Option<McpServerResourceService>,
+    skills: Option<McpServerSkillService>,
     prompts: Option<McpServerPromptService>,
     completion: Option<Arc<dyn McpServerCompletionProvider>>,
 }
@@ -45,6 +47,7 @@ impl McpServerApplicationBuilder {
             options,
             tools: None,
             resources: None,
+            skills: None,
             prompts: None,
             completion: None,
         }
@@ -90,6 +93,25 @@ impl McpServerApplicationBuilder {
         Ok(self)
     }
 
+    /// Adds an immutable SEP-2640 Skill registry and decoded authorization.
+    pub fn with_skills<A>(
+        mut self,
+        catalog: McpServerSkillCatalog,
+        authorization: A,
+    ) -> Result<Self, McpServerApplicationBuildError>
+    where
+        A: McpServerSkillAuthorization,
+    {
+        if self.skills.is_some() {
+            return Err(McpServerApplicationBuildError::DuplicateSkills);
+        }
+        self.skills = Some(
+            McpServerSkillService::new(catalog, self.options.clone(), authorization)
+                .map_err(McpServerApplicationBuildError::SkillService)?,
+        );
+        Ok(self)
+    }
+
     /// Adds immutable Prompt metadata, a renderer, and decoded authorization.
     pub fn with_prompts<R, A>(
         mut self,
@@ -128,8 +150,19 @@ impl McpServerApplicationBuilder {
 
     /// Freezes a non-empty application.
     pub fn build(mut self) -> Result<McpServerApplication, McpServerApplicationBuildError> {
-        if self.tools.is_none() && self.resources.is_none() && self.prompts.is_none() {
+        if self.tools.is_none()
+            && self.resources.is_none()
+            && self.skills.is_none()
+            && self.prompts.is_none()
+        {
             return Err(McpServerApplicationBuildError::Empty);
+        }
+        if let (Some(resources), Some(skills)) = (&self.resources, &self.skills)
+            && skills
+                .resource_uris()
+                .any(|uri| resources.contains_resource(uri))
+        {
+            return Err(McpServerApplicationBuildError::ConflictingResourceUri);
         }
         if let Some(completion) = self.completion {
             let prompts = self
@@ -142,6 +175,7 @@ impl McpServerApplicationBuilder {
             options: self.options,
             tools: self.tools,
             resources: self.resources,
+            skills: self.skills,
             prompts: self.prompts,
         })
     }
@@ -154,6 +188,7 @@ impl fmt::Debug for McpServerApplicationBuilder {
             .field("options", &self.options)
             .field("tools", &self.tools.is_some())
             .field("resources", &self.resources.is_some())
+            .field("skills", &self.skills.is_some())
             .field("prompts", &self.prompts.is_some())
             .field("completion", &self.completion.is_some())
             .finish_non_exhaustive()
@@ -173,6 +208,9 @@ pub enum McpServerApplicationBuildError {
     /// Resource surface was configured twice.
     #[error("MCP resource surface is already configured")]
     DuplicateResources,
+    /// Skill surface was configured twice.
+    #[error("MCP Skill surface is already configured")]
+    DuplicateSkills,
     /// Prompt surface was configured twice.
     #[error("MCP prompt surface is already configured")]
     DuplicatePrompts,
@@ -182,12 +220,18 @@ pub enum McpServerApplicationBuildError {
     /// This profile binds Completion through the Prompt service.
     #[error("MCP completion requires a configured prompt surface")]
     CompletionRequiresPrompts,
+    /// A generic Resource and Skill file claimed the same exact URI.
+    #[error("MCP Resource and Skill catalogs contain the same URI")]
+    ConflictingResourceUri,
     /// Tool service policy was inconsistent.
     #[error("invalid MCP tool service: {0}")]
     ToolService(McpServerToolServiceBuildError),
     /// Resource service policy was inconsistent.
     #[error("invalid MCP resource service: {0}")]
     ResourceService(McpServerResourceServiceBuildError),
+    /// Skill service policy was inconsistent.
+    #[error("invalid MCP Skill service: {0}")]
+    SkillService(McpServerSkillServiceBuildError),
     /// Prompt service policy was inconsistent.
     #[error("invalid MCP prompt service: {0}")]
     PromptService(McpServerPromptServiceBuildError),
@@ -199,6 +243,7 @@ pub struct McpServerApplication {
     options: McpServerApplicationOptions,
     tools: Option<McpServerToolService>,
     resources: Option<McpServerResourceService>,
+    skills: Option<McpServerSkillService>,
     prompts: Option<McpServerPromptService>,
 }
 
@@ -212,7 +257,13 @@ impl McpServerApplication {
     /// Returns whether the Resource surface is configured.
     #[must_use]
     pub const fn has_resources(&self) -> bool {
-        self.resources.is_some()
+        self.resources.is_some() || self.skills.is_some()
+    }
+
+    /// Returns whether the SEP-2640 Skill extension is configured.
+    #[must_use]
+    pub const fn has_skills(&self) -> bool {
+        self.skills.is_some()
     }
 
     /// Returns whether the Prompt surface is configured.
@@ -234,8 +285,11 @@ impl McpServerApplication {
         if self.tools.is_some() {
             capabilities.tools = Some(ToolsCapability::default());
         }
-        if self.resources.is_some() {
+        if self.resources.is_some() || self.skills.is_some() {
             capabilities.resources = Some(ResourcesCapability::default());
+        }
+        if self.skills.is_some() {
+            capabilities.extensions = McpServerSkillService::capabilities().extensions;
         }
         if self.prompts.is_some() {
             capabilities.prompts = Some(PromptsCapability::default());
@@ -254,6 +308,7 @@ impl fmt::Debug for McpServerApplication {
             .field("options", &self.options)
             .field("tools", &self.has_tools())
             .field("resources", &self.has_resources())
+            .field("skills", &self.has_skills())
             .field("prompts", &self.has_prompts())
             .field("completion", &self.has_completion())
             .finish_non_exhaustive()
@@ -315,15 +370,29 @@ impl ServerHandler for McpServerApplication {
         ServerHandler::call_tool(service, request, context).await
     }
 
+    async fn on_custom_request(
+        &self,
+        request: CustomRequest,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CustomResult, ErrorData> {
+        let Some(service) = &self.skills else {
+            return Err(method_not_found_owned(request.method));
+        };
+        service.dispatch_custom(request, context).await
+    }
+
     async fn list_resources(
         &self,
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, ErrorData> {
-        let Some(service) = &self.resources else {
-            return Err(method_not_found("resources/list"));
-        };
-        ServerHandler::list_resources(service, request, context).await
+        if let Some(service) = &self.resources {
+            return ServerHandler::list_resources(service, request, context).await;
+        }
+        if let Some(service) = &self.skills {
+            return ServerHandler::list_resources(service, request, context).await;
+        }
+        Err(method_not_found("resources/list"))
     }
 
     async fn list_resource_templates(
@@ -331,10 +400,13 @@ impl ServerHandler for McpServerApplication {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, ErrorData> {
-        let Some(service) = &self.resources else {
-            return Err(method_not_found("resources/templates/list"));
-        };
-        ServerHandler::list_resource_templates(service, request, context).await
+        if let Some(service) = &self.resources {
+            return ServerHandler::list_resource_templates(service, request, context).await;
+        }
+        if let Some(service) = &self.skills {
+            return ServerHandler::list_resource_templates(service, request, context).await;
+        }
+        Err(method_not_found("resources/templates/list"))
     }
 
     async fn read_resource(
@@ -342,10 +414,18 @@ impl ServerHandler for McpServerApplication {
         request: ReadResourceRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
-        let Some(service) = &self.resources else {
-            return Err(method_not_found("resources/read"));
-        };
-        ServerHandler::read_resource(service, request, context).await
+        if let Some(service) = &self.skills
+            && service.contains_resource(&request.uri)
+        {
+            return service.dispatch_read(request, context).await;
+        }
+        if let Some(service) = &self.resources {
+            return ServerHandler::read_resource(service, request, context).await;
+        }
+        if let Some(service) = &self.skills {
+            return service.dispatch_read(request, context).await;
+        }
+        Err(method_not_found("resources/read"))
     }
 
     async fn list_prompts(
@@ -386,6 +466,10 @@ fn method_not_found(method: &'static str) -> ErrorData {
     ErrorData::new(ErrorCode::METHOD_NOT_FOUND, method, None)
 }
 
+fn method_not_found_owned(method: String) -> ErrorData {
+    ErrorData::new(ErrorCode::METHOD_NOT_FOUND, method, None)
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
@@ -399,16 +483,18 @@ mod tests {
     use super::*;
     use crate::{
         AllowMcpServerPromptAuthorization, AllowMcpServerResourceAuthorization,
-        AllowMcpServerToolAuthorization, McpServerAuthentication, McpServerCacheScope,
-        McpServerContent, McpServerHttpOptions, McpServerHttpService,
-        McpServerPromptCatalogBuilder, McpServerPromptContext, McpServerPromptDefinition,
-        McpServerPromptMessage, McpServerPromptOutcome, McpServerPromptRender,
-        McpServerPromptRendererError, McpServerPromptResult, McpServerPromptRole,
-        McpServerResourceCatalogBuilder, McpServerResourceContent, McpServerResourceContext,
-        McpServerResourceDefinition, McpServerResourceOutcome, McpServerResourceRead,
-        McpServerResourceReaderError, McpServerResourceResult, McpServerToolCall,
-        McpServerToolContext, McpServerToolDefinition, McpServerToolHandlerError,
-        McpServerToolOutcome, McpServerToolRegistryBuilder, McpServerToolResult,
+        AllowMcpServerSkillAuthorization, AllowMcpServerToolAuthorization, MCP_SKILLS_EXTENSION_ID,
+        McpServerAuthentication, McpServerCacheScope, McpServerContent, McpServerHttpOptions,
+        McpServerHttpService, McpServerPromptCatalogBuilder, McpServerPromptContext,
+        McpServerPromptDefinition, McpServerPromptMessage, McpServerPromptOutcome,
+        McpServerPromptRender, McpServerPromptRendererError, McpServerPromptResult,
+        McpServerPromptRole, McpServerResourceCatalogBuilder, McpServerResourceContent,
+        McpServerResourceContext, McpServerResourceDefinition, McpServerResourceOutcome,
+        McpServerResourceRead, McpServerResourceReaderError, McpServerResourceResult,
+        McpServerSkillCatalogBuilder, McpServerSkillDefinition, McpServerSkillFile,
+        McpServerToolCall, McpServerToolContext, McpServerToolDefinition,
+        McpServerToolHandlerError, McpServerToolOutcome, McpServerToolRegistryBuilder,
+        McpServerToolResult,
     };
 
     #[derive(Clone, Copy)]
@@ -499,6 +585,21 @@ mod tests {
         prompts
             .register(McpServerPromptDefinition::new("test_prompt").unwrap())
             .unwrap();
+        let mut skills = McpServerSkillCatalogBuilder::default();
+        skills
+            .register(
+                McpServerSkillDefinition::new(
+                    "skill://test-skill/SKILL.md",
+                    [McpServerSkillFile::text(
+                        "SKILL.md",
+                        "text/markdown",
+                        "---\nname: test-skill\ndescription: Composite application test Skill.\n---\n",
+                    )
+                    .unwrap()],
+                )
+                .unwrap(),
+            )
+            .unwrap();
         let options = McpServerApplicationOptions::new(
             "stateknot-composite-test",
             "0.0.0",
@@ -515,6 +616,8 @@ mod tests {
                 TestReader,
                 AllowMcpServerResourceAuthorization,
             )
+            .unwrap()
+            .with_skills(skills.build().unwrap(), AllowMcpServerSkillAuthorization)
             .unwrap()
             .with_prompts(
                 prompts.build().unwrap(),
@@ -538,7 +641,9 @@ mod tests {
             json!({
                 "io.modelcontextprotocol/protocolVersion": "2026-07-28",
                 "io.modelcontextprotocol/clientInfo": { "name": "test", "version": "0" },
-                "io.modelcontextprotocol/clientCapabilities": {}
+                "io.modelcontextprotocol/clientCapabilities": {
+                    "extensions": { (MCP_SKILLS_EXTENSION_ID): {} }
+                }
             }),
         );
         let body = serde_json::to_vec(&json!({
@@ -572,5 +677,28 @@ mod tests {
         assert!(value.pointer("/result/capabilities/resources").is_some());
         assert!(value.pointer("/result/capabilities/prompts").is_some());
         assert!(value.pointer("/result/capabilities/completions").is_none());
+        assert_eq!(
+            value.pointer("/result/capabilities/extensions/io.modelcontextprotocol~1skills"),
+            Some(&json!({}))
+        );
+    }
+
+    #[tokio::test]
+    async fn composite_dispatches_the_skills_extension() {
+        let mut service = application();
+        let response = service
+            .call(request(
+                "skills/get",
+                json!({ "uri": "skill://test-skill/SKILL.md" }),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let value: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(
+            value.pointer("/result/skill/frontmatter/name"),
+            Some(&json!("test-skill"))
+        );
     }
 }

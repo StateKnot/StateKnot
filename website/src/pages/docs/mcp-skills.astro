@@ -1,0 +1,167 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const buildCode = `let skill = McpServerSkillDefinition::new(
+    "skill://code-review/SKILL.md",
+    [
+        McpServerSkillFile::text(
+            "SKILL.md",
+            "text/markdown",
+            include_str!("skills/code-review/SKILL.md"),
+        )?,
+        McpServerSkillFile::text(
+            "references/checklist.md",
+            "text/markdown",
+            include_str!("skills/code-review/references/checklist.md"),
+        )?,
+    ],
+)?;
+
+let mut skills = McpServerSkillCatalogBuilder::default();
+skills.register(skill)?;
+
+let app = McpServerApplicationBuilder::new(options)
+    .with_skills(skills.build()?, skill_authorization)?
+    .build()?;`;
+
+const verifyCode = `cargo test -p stateknot-integrations mcp_server_skill --locked
+cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
+---
+
+<DocsLayout
+  title="Publish manifest-bound Agent Skills over MCP."
+  description="Configure the Final SEP-2640 static server profile with immutable bytes, exact digests, bounded discovery, and authorization before disclosure."
+  section="MCP Skills server profile"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="mcp-skills-boundary-title"
+  >
+    <h2 id="mcp-skills-boundary-title">
+      Implemented server profile, pre-alpha API
+    </h2>
+    <p>
+      StateKnot now serves the Final SEP-2640
+      <code>io.modelcontextprotocol/skills</code> extension on MCP
+      <code>2026-07-28</code>. This claim covers the server only. Client
+      verification, host approval, isolated caching, activation, and execution
+      gates remain open.
+    </p>
+  </aside>
+
+  <section aria-labelledby="mcp-skills-wire-title">
+    <h2 id="mcp-skills-wire-title">
+      One immutable snapshot drives every response
+    </h2>
+    <p>
+      The server freezes each <code>SKILL.md</code> and supporting file at startup.
+      <code>skills/list</code>, <code>skills/get</code>, and
+      <code>resources/read</code> use those same bytes, so a manifest cannot drift
+      away from the content returned later.
+    </p>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="MCP Skills server guarantees"
+    >
+      <table>
+        <thead><tr><th>Boundary</th><th>Guarantee</th></tr></thead>
+        <tbody>
+          <tr
+            ><td>Discovery</td><td
+              >Bounded pagination, deterministic order, TTL and cache scope.</td
+            ></tr
+          >
+          <tr
+            ><td>Manifest</td><td
+              >Every file appears once with exact raw-byte SHA-256 and size.</td
+            ></tr
+          >
+          <tr
+            ><td>Reads</td><td
+              >Text or Base64 content from the retained immutable snapshot.</td
+            ></tr
+          >
+          <tr
+            ><td>Policy</td><td
+              >Authentication, exact scopes and dynamic authorization before
+              disclosure.</td
+            ></tr
+          >
+          <tr
+            ><td>Limits</td><td
+              >512 files and 16 MiB per Skill, plus aggregate catalog ceilings.</td
+            ></tr
+          >
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="mcp-skills-validation-title">
+    <h2 id="mcp-skills-validation-title">
+      Reject ambiguous or unsafe packages at startup
+    </h2>
+    <p>
+      The registry rejects duplicate YAML keys at any depth, malformed Agent
+      Skills fields, alias expansion beyond the materialized-value budget,
+      name/URI mismatch, traversal and non-canonical paths, overlapping resource
+      URIs, incomplete packages, and oversized catalogs. Unknown frontmatter
+      fields remain data and are preserved without becoming authority.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-skills-build-title">
+    <h2 id="mcp-skills-build-title">Build the static server surface</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-skills-build-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-skills-build-code"
+        tabindex="0"><code>{buildCode}</code></pre>
+    </div>
+    <p>
+      Keep the bytes in reviewed deployment inputs. Do not rebuild Skill
+      registries on the request path.
+    </p>
+  </section>
+
+  <section aria-labelledby="mcp-skills-proof-title">
+    <h2 id="mcp-skills-proof-title">Reproduce the server evidence</h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Console</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-skills-verify-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-skills-verify-code"
+        tabindex="0"><code>{verifyCode}</code></pre>
+    </div>
+    <p>
+      Read the complete implementation and non-claim boundary in the
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-skills-server.md"
+        >source guide</a
+      >.
+    </p>
+  </section>
+</DocsLayout>

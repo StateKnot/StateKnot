@@ -180,6 +180,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "mcp server tool resource template prompt completion mrtr authentication authorization conformance",
       },
       {
+        title: "MCP Skills server",
+        description:
+          "Serve Final SEP-2640 static Skills with immutable manifests, exact digests, and authorization before disclosure.",
+        href: "/docs/mcp-skills/",
+        search:
+          "mcp skills sep 2640 server skill manifest digest authorization resources read",
+      },
+      {
         title: "MCP conformance status",
         description:
           "See the frozen official runner inventory, implemented evidence, and exact boundary of current MCP claims.",
@@ -425,6 +433,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/mcp-server/",
         search:
           "mcp server tool resource template prompt completion mrtr authentication authorization conformance 服务端",
+      },
+      {
+        title: "MCP Skills Server",
+        description:
+          "通过不可变 Manifest、精确 Digest 与先授权后披露提供 Final SEP-2640 静态 Skill。",
+        href: "/docs/mcp-skills/",
+        search:
+          "mcp skills sep 2640 server skill manifest digest authorization resources read 服务端 技能",
       },
       {
         title: "MCP Conformance 状态",

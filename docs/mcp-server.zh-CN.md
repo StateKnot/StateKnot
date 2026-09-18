@@ -12,8 +12,9 @@ SPDX-License-Identifier: Apache-2.0
 
 StateKnot 现已提供由自身类型定义的 MCP Server Application Layer，覆盖 Tools、
 Resources、Resource Templates、Prompts、Completion，以及 Tool/Resource/Prompt 的
-多轮请求（MRTR）。官方 Rust SDK 只作为私有 Wire Adapter，其领域类型不会成为
-StateKnot Public API 的组成部分。
+多轮请求（MRTR），并可组合独立的 [MCP Skills Server Profile](mcp-skills-server.zh-CN.md)。
+官方 Rust SDK 只作为私有 Wire Adapter，其领域类型不会成为 StateKnot Public API
+的组成部分。
 
 该 Server 仍属于 pre-alpha。此实现不等于整个框架已经 Production-ready，也不代表
 Rust API 已稳定、已经内置 OAuth Authorization Server，或已经支持 Tasks Extension。
@@ -79,6 +80,14 @@ Protocol Error。
 Binary Content 会校验 MIME、Base64、Item Count 和 Aggregate Bytes。每个 Result 都
 携带显式 TTL 与 Public/Private Cache Scope。
 
+### Skills Extension
+
+可选的不可变 Skill Catalog 会声明 Final SEP-2640
+`io.modelcontextprotocol/skills` Extension，并暴露 `skills/list`、`skills/get` 与受
+完整 Manifest 约束的精确文件读取。这只是 Server Profile。Client Verification、
+Host Approval、隔离 Cache、Activation 与执行门禁仍是独立工作；精确边界见
+[MCP Skills Server Profile](mcp-skills-server.zh-CN.md)。
+
 ### Prompts 与 Completion
 
 Prompt Catalog 校验 Name、唯一且有界的 Argument、Required Field、Scope、排序与
@@ -130,6 +139,7 @@ let options = McpServerApplicationOptions::new(
 let app = McpServerApplicationBuilder::new(options)
     .with_tools(tool_registry, tool_authorization)?
     .with_resources(resource_catalog, resource_reader, resource_authorization)?
+    .with_skills(skill_catalog, skill_authorization)?
     .with_prompts(prompt_catalog, prompt_renderer, prompt_authorization)?
     .with_completion_provider(completion_provider)?
     .build()?;
@@ -175,6 +185,6 @@ Inventory 与 Claim Rule 见 [MCP Conformance 状态](mcp-conformance.zh-CN.md)�
 - Deprecated Stateful Session 或 Legacy `initialize` Flow；
 - 内置 OAuth Authorization Server 或 Identity Provider；
 - Dynamic Catalog Mutation 或 List-changed Notification；
-- MCP Apps 或其他 Extension；
+- MCP Skills Client/Host Activation、MCP Apps 或其他 Extension；
 - Stable Rust API、crates.io Release 或 SDK-tier Certification；
 - 整个 StateKnot Framework 的 Production Qualification。

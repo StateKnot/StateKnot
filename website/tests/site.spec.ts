@@ -9,6 +9,36 @@ const responsiveAuditWidths = [
 ] as const;
 
 for (const locale of ["en", "zh"] as const) {
+  test(`${locale} documents the MCP Skills server-only boundary`, async ({
+    page,
+  }) => {
+    const prefix = locale === "zh" ? "/zh" : "";
+    await page.goto(`${prefix}/docs/mcp-skills/`);
+    const boundary = page.locator(
+      'aside[aria-labelledby="mcp-skills-boundary-title"]',
+    );
+    await expect(boundary).toContainText("io.modelcontextprotocol/skills");
+    await expect(boundary).toContainText("2026-07-28");
+    await expect(boundary).toContainText(
+      locale === "zh"
+        ? "当前声明仅覆盖 Server"
+        : "This claim covers the server only",
+    );
+    await expect(boundary).toContainText(
+      locale === "zh" ? "Client Verification" : "Client verification",
+    );
+    await expect(page.getByText("skills/list", { exact: true })).toBeVisible();
+    await expect(page.getByText("skills/get", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("resources/read", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.locator(`.docs-nav--desktop a[href="${prefix}/docs/mcp-skills/"]`),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
+
   test(`${locale} separates reduced host evidence from release qualification`, async ({
     page,
   }) => {
@@ -320,6 +350,12 @@ const localizedRoutePairs = [
     zhHeading: "在不削弱 Policy 的前提下暴露有界 MCP Server。",
   },
   {
+    en: "/docs/mcp-skills/",
+    zh: "/zh/docs/mcp-skills/",
+    enHeading: "Publish manifest-bound Agent Skills over MCP.",
+    zhHeading: "通过 MCP 发布受完整 Manifest 约束的 Agent Skill。",
+  },
+  {
     en: "/docs/mcp-conformance/",
     zh: "/zh/docs/mcp-conformance/",
     enHeading: "MCP conformance claims stop at the evidence.",
@@ -474,6 +510,11 @@ test("homepage exposes honest implementation status and semantic structure", asy
   ).toBeVisible();
   await expect(
     page.locator(".spec-list").getByText("MCP Server profile", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".spec-list")
+      .getByText("MCP Skills server profile", { exact: true }),
   ).toBeVisible();
   await expect(
     page.locator(".spec-list").getByText("AgentService v1", { exact: true }),

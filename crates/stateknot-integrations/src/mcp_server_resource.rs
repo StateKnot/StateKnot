@@ -1011,6 +1011,10 @@ impl McpServerResourceService {
         })
     }
 
+    pub(crate) fn contains_resource(&self, uri: &str) -> bool {
+        self.catalog.get(uri).is_some()
+    }
+
     fn scope_tag(&self, principal: &McpServerPrincipal) -> String {
         if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
             return "public".to_owned();
