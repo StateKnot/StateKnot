@@ -27,28 +27,57 @@ let app = McpServerApplicationBuilder::new(options)
     .with_skills(skills.build()?, skill_authorization)?
     .build()?;`;
 
+const clientCode = `let client = McpClient::connect(
+    endpoint,
+    McpClientIdentity::new("orders-agent", env!("CARGO_PKG_VERSION"))?,
+    authorization,
+    McpClientOptions::for_skills(),
+).await?;
+
+let host = McpSkillHost::new(
+    client,
+    McpSkillOrigin::new("production/orders-mcp")?,
+    Arc::new(application_skill_policy),
+    McpSkillHostOptions::default(),
+)?;
+
+let catalog = host.list_skills().await?;
+let selected = catalog.find_uri("skill://code-review/SKILL.md")
+    .ok_or(AppError::SkillUnavailable)?;
+let active = host.activate(selected).await?;
+
+let file = active.read_file("references/checklist.md").await?;
+model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
+
+let permit = active.authorize_tool_call("ticket/create", false).await?;
+tool_executor.execute_with_skill_permit(permit, arguments).await?;`;
+
 const verifyCode = `cargo test -p stateknot-integrations mcp_server_skill --locked
-cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
+cargo test -p stateknot-integrations --test mcp_skills_server --locked
+cargo test -p stateknot-integrations mcp_skill_host --locked
+cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
 ---
 
 <DocsLayout
-  title="Publish manifest-bound Agent Skills over MCP."
-  description="Configure the Final SEP-2640 static server profile with immutable bytes, exact digests, bounded discovery, and authorization before disclosure."
-  section="MCP Skills server profile"
+  title="Publish and activate manifest-bound Agent Skills over MCP."
+  description="Use the Final SEP-2640 static Server and Client/Host profiles with immutable manifests, origin-scoped approval, lazy verified reads, and explicit execution gates."
+  section="MCP Skills profiles"
 >
   <aside
     class="docs-callout docs-callout--boundary"
     aria-labelledby="mcp-skills-boundary-title"
   >
     <h2 id="mcp-skills-boundary-title">
-      Implemented server profile, pre-alpha API
+      Implemented static Server and Client/Host profiles, pre-alpha API
     </h2>
     <p>
       StateKnot now serves the Final SEP-2640
       <code>io.modelcontextprotocol/skills</code> extension on MCP
-      <code>2026-07-28</code>. This claim covers the server only. Client
-      verification, host approval, isolated caching, activation, and execution
-      gates remain open.
+      <code>2026-07-28</code>. The Server publishes immutable complete
+      manifests; the separate Client/Host verifies and activates them with
+      host-assigned origin and fresh policy approval. Dynamic manifests,
+      persisted approval, disk installation, signatures, and automatic
+      Tool-runtime integration remain outside this claim.
     </p>
   </aside>
 
@@ -65,7 +94,7 @@ cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
     <div
       class="docs-table-wrap"
       tabindex="0"
-      aria-label="MCP Skills server guarantees"
+      aria-label="MCP Skills profile guarantees"
     >
       <table>
         <thead><tr><th>Boundary</th><th>Guarantee</th></tr></thead>
@@ -96,9 +125,49 @@ cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
               >512 files and 16 MiB per Skill, plus aggregate catalog ceilings.</td
             ></tr
           >
+          <tr
+            ><td>Host</td><td
+              >Origin + URI identity, approval before reads, exact digest/size/
+              frontmatter verification, and manifest-only lazy access.</td
+            ></tr
+          >
+          <tr
+            ><td>Execution</td><td
+              >Fresh nested consent and a non-cloneable, acting-window-bound
+              permit for every exact Tool call.</td
+            ></tr
+          >
         </tbody>
       </table>
     </div>
+  </section>
+
+  <section aria-labelledby="mcp-skills-client-title">
+    <h2 id="mcp-skills-client-title">
+      Activate through the verification-first Host
+    </h2>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="mcp-skills-client-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="mcp-skills-client-code"
+        tabindex="0"><code>{clientCode}</code></pre>
+    </div>
+    <p>
+      Listing never prefetches Skill files. Preserve each verified file's origin
+      identity in model-visible context, and make the Tool adapter require and
+      consume the exact permit. Frontmatter <code>allowed-tools</code>
+      is a request for policy review, never an authorization grant.
+    </p>
   </section>
 
   <section aria-labelledby="mcp-skills-validation-title">
@@ -139,7 +208,7 @@ cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
   </section>
 
   <section aria-labelledby="mcp-skills-proof-title">
-    <h2 id="mcp-skills-proof-title">Reproduce the server evidence</h2>
+    <h2 id="mcp-skills-proof-title">Reproduce both profile gates</h2>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">
         <span>Console</span>
@@ -157,10 +226,13 @@ cargo test -p stateknot-integrations --test mcp_skills_server --locked`;
         tabindex="0"><code>{verifyCode}</code></pre>
     </div>
     <p>
-      Read the complete implementation and non-claim boundary in the
+      Read the complete implementation and non-claim boundaries in the
       <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-skills-server.md"
-        >source guide</a
+        >Server guide</a
+      > and <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/mcp-skills-host.md"
+        >Client/Host guide</a
       >.
     </p>
   </section>

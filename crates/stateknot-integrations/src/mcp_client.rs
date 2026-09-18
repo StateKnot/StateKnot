@@ -58,6 +58,8 @@ const MAX_REMOTE_ERROR_MESSAGE_BYTES: usize = 4096;
 const MAX_WWW_AUTHENTICATE_VALUES: usize = 16;
 const MAX_WWW_AUTHENTICATE_VALUE_BYTES: usize = 16 * 1024;
 const MAX_WWW_AUTHENTICATE_TOTAL_BYTES: usize = 64 * 1024;
+const MEBIBYTE: usize = 1024 * 1024;
+const MCP_SKILL_WIRE_RESPONSE_BYTES: usize = 104 * MEBIBYTE;
 
 static NEXT_CLIENT_BINDING_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -146,6 +148,7 @@ fn validate_identity_component(value: &str) -> Result<(), McpClientIdentityError
 pub struct McpClientOptions {
     transport: ProviderHttpOptions,
     request_timeout: Duration,
+    skills_enabled: bool,
     maximum_authorization_retries: usize,
     maximum_concurrent_requests: usize,
     maximum_catalog_pages: usize,
@@ -200,6 +203,7 @@ impl McpClientOptions {
         Ok(Self {
             transport,
             request_timeout,
+            skills_enabled: false,
             maximum_authorization_retries: 1,
             maximum_concurrent_requests,
             maximum_catalog_pages,
@@ -219,6 +223,13 @@ impl McpClientOptions {
     #[must_use]
     pub const fn request_timeout(self) -> Duration {
         self.request_timeout
+    }
+
+    /// Returns whether this client explicitly opted into the MCP Skills
+    /// extension and its larger bounded transport profile.
+    #[must_use]
+    pub const fn skills_enabled(self) -> bool {
+        self.skills_enabled
     }
 
     /// Returns the maximum OAuth challenge recoveries for one logical request.
@@ -261,10 +272,47 @@ impl McpClientOptions {
         self.maximum_catalog_tools
     }
 
+    /// Returns the shared bounded catalog-entry ceiling used by Skills.
+    #[must_use]
+    pub const fn maximum_skill_catalog_entries(self) -> usize {
+        self.maximum_catalog_tools
+    }
+
     /// Returns the request-scoped notification ceiling.
     #[must_use]
     pub const fn maximum_notifications_per_response(self) -> usize {
         self.maximum_notifications_per_response
+    }
+
+    /// Returns a bounded transport profile capable of carrying every static
+    /// MCP Skill file up to the SEP-2640 16 MiB raw-byte support floor.
+    ///
+    /// JSON string escaping can expand one raw UTF-8 byte to six wire bytes,
+    /// so the complete-response and SSE ceilings are intentionally larger
+    /// than the content limit. Concurrency remains low to bound aggregate
+    /// memory exposure.
+    #[must_use]
+    pub fn for_skills() -> Self {
+        let transport = ProviderHttpOptions::new(
+            Duration::from_secs(10),
+            Duration::from_secs(90),
+            16 * MEBIBYTE,
+            MCP_SKILL_WIRE_RESPONSE_BYTES,
+            MCP_SKILL_WIRE_RESPONSE_BYTES,
+            MCP_SKILL_WIRE_RESPONSE_BYTES,
+            128 * MEBIBYTE,
+        )
+        .expect("the MCP Skills transport profile is within hard limits");
+        Self {
+            transport,
+            request_timeout: Duration::from_secs(60),
+            skills_enabled: true,
+            maximum_authorization_retries: 1,
+            maximum_concurrent_requests: 2,
+            maximum_catalog_pages: 16,
+            maximum_catalog_tools: 1024,
+            maximum_notifications_per_response: 1024,
+        }
     }
 }
 
@@ -273,6 +321,7 @@ impl Default for McpClientOptions {
         Self {
             transport: ProviderHttpOptions::default(),
             request_timeout: Duration::from_secs(30),
+            skills_enabled: false,
             maximum_authorization_retries: 1,
             maximum_concurrent_requests: 16,
             maximum_catalog_pages: 16,
@@ -403,6 +452,13 @@ pub struct McpCachePolicy {
 }
 
 impl McpCachePolicy {
+    pub(crate) fn required(ttl_ms: u64, scope: Box<str>) -> Self {
+        Self {
+            ttl_ms: Some(ttl_ms),
+            scope: Some(scope),
+        }
+    }
+
     /// Returns the advertised freshness lifetime in milliseconds.
     #[must_use]
     pub const fn ttl_ms(&self) -> Option<u64> {
@@ -444,6 +500,24 @@ impl McpClientServer {
     #[must_use]
     pub fn supports_tools(&self) -> bool {
         self.capabilities.contains_key("tools")
+    }
+
+    /// Returns whether discovery advertised the base Resources capability.
+    #[must_use]
+    pub fn supports_resources(&self) -> bool {
+        self.capabilities
+            .get("resources")
+            .is_some_and(Value::is_object)
+    }
+
+    /// Returns the untrusted Skills extension capability object when present.
+    #[must_use]
+    pub fn skills_extension(&self) -> Option<&Map<String, Value>> {
+        self.capabilities
+            .get("extensions")
+            .and_then(Value::as_object)
+            .and_then(|extensions| extensions.get(crate::MCP_SKILLS_EXTENSION_ID))
+            .and_then(Value::as_object)
     }
 
     /// Returns the self-reported server implementation name.
@@ -1340,11 +1414,37 @@ impl McpClient {
                 "version": self.inner.identity.version(),
             }),
         );
-        metadata.insert(
-            MCP_META_CLIENT_CAPABILITIES.to_owned(),
-            Value::Object(Map::new()),
-        );
+        let client_capabilities = if self.inner.options.skills_enabled() {
+            json!({
+                "extensions": {
+                    (crate::MCP_SKILLS_EXTENSION_ID): {}
+                }
+            })
+        } else {
+            Value::Object(Map::new())
+        };
+        metadata.insert(MCP_META_CLIENT_CAPABILITIES.to_owned(), client_capabilities);
         metadata
+    }
+
+    pub(crate) async fn send_extension_rpc(
+        &self,
+        method: &str,
+        name: Option<&str>,
+        params: Map<String, Value>,
+    ) -> Result<Value, StatelessMcpClientError> {
+        Ok(self
+            .send_rpc(method, name, params, Vec::new())
+            .await?
+            .result)
+    }
+
+    pub(crate) fn binding_id(&self) -> u64 {
+        self.inner.binding_id
+    }
+
+    pub(crate) fn options(&self) -> McpClientOptions {
+        self.inner.options
     }
 
     async fn consume_response(

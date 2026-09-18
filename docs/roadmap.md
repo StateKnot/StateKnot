@@ -300,11 +300,16 @@ from the repository.
   immutable complete manifests over the exact served bytes, bounded recursive
   duplicate-free frontmatter parsing, deterministic pagination, direct lookup,
   authorization-before-disclosure, scope-bound private cursors and exact
-  `resources/read` digest/size reconciliation. Keep this claim server-only.
-- [ ] Implement the MCP Skills client and host boundary: manifest and
-  frontmatter verification, origin-preserving content-bound approval, isolated
-  immutable on-demand cache, activation, nested-Skill consent, execution gates,
-  restart behavior and adversarial qualification.
+  `resources/read` digest/size reconciliation. Keep the server claim separate.
+- [x] Implement the Final SEP-2640 static
+  [MCP Skills client and Host profile](mcp-skills-host.md): explicit capability
+  opt-in, complete bounded manifest/frontmatter validation, host-assigned
+  origin, approval-before-read, exact content verification, isolated immutable
+  on-demand memory cache, acting-window entry retention, fresh nested consent,
+  lifetime-bound per-call execution permits, safe restart expiry, and
+  adversarial loopback qualification. Keep dynamic manifests, remote directory
+  reads, persisted approval/disk materialization, signatures, and automatic
+  Tool-runtime integration open as separate work.
 - [x] Implement the A2A 1.0 Server profile with StateKnot-owned bounded Agent
   Card/message/task/artifact/push contracts, HTTP+JSON and JSON-RPC bindings,
   SSE send/subscription streams, authentication-before-parsing,

@@ -21,15 +21,24 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Final SEP-2640 MCP Skills static Client and Host Profile with explicit
+  capability opt-in, complete bounded manifest/frontmatter validation,
+  host-assigned origin identity, approval before lazy verified reads, exact
+  URI/size/SHA-256 reconciliation, immutable process-local cache isolation,
+  acting-window entry retention, fresh nested-Skill consent, and non-cloneable
+  lifetime-bound per-call execution permits. Loopback adversarial tests cover
+  denial-before-read, digest and frontmatter drift, cache behavior, metadata,
+  nested activation and ordinary-client non-advertisement. Dynamic manifests,
+  persisted approval, disk materialization, signatures and automatic Tool
+  runtime integration remain explicitly unclaimed.
+
 - Final SEP-2640 MCP Skills static Server Profile with explicit
   `io.modelcontextprotocol/skills` negotiation, immutable startup catalogs,
   bounded duplicate-free Agent Skills frontmatter, complete exact-byte
   SHA-256/size manifests, paginated `skills/list`, direct `skills/get`,
   manifest-bound `resources/read`, scope and dynamic authorization filtering,
   private cursor binding, URI/path collision refusal, and end-to-end HTTP
-  attack-surface tests. This is a pre-alpha server-only claim; client/host
-  verification, approval, isolated caching, activation and execution gates
-  remain open.
+  attack-surface tests. This remains a separate pre-alpha server claim.
 
 - Closed, versioned catalog for all 36 committed `stateknot-core`
   compatibility fixture documents. The gate strictly parses bounded JSON,

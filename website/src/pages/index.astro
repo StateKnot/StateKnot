@@ -107,10 +107,10 @@ const currentCut = [
     href: "/docs/mcp-server/",
   },
   {
-    surface: "MCP Skills server profile",
+    surface: "MCP Skills profiles",
     state: "Implemented slice",
     evidence:
-      "Final SEP-2640 static manifests, exact bytes, policy-first reads",
+      "Static Server plus origin-scoped, verification-first Client/Host",
     href: "/docs/mcp-skills/",
   },
   {
@@ -238,11 +238,11 @@ const roadmap = [
             admission, durable model/tool attempts, lifecycle commits, fair
             scheduling, ingress, and verified results. Implemented:
             OpenAI/Anthropic adapters, a provider-native graph, AgentService v1,
-            MCP client/OAuth/Remote Tool/Server plus a Final SEP-2640 static
-            Skills server, and A2A 1.0 HTTP+JSON/JSON-RPC Client/Server with
-            durable artifacts. Skills client/host gates, stable Agent APIs, A2A
-            gRPC, MCP Tasks, advanced graphs, live-peer and production
-            qualification remain open.
+            MCP client/OAuth/Remote Tool/Server plus Final SEP-2640 static
+            Skills Server and verification-first Client/Host profiles, and A2A
+            1.0 HTTP+JSON/JSON-RPC Client/Server with durable artifacts. Dynamic
+            Skills, stable Agent APIs, A2A gRPC, MCP Tasks, advanced graphs,
+            live-peer and production qualification remain open.
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/docs/"
@@ -388,8 +388,8 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
           TCK passes with zero failures; the Client now adds an eleven-operation
           dual-binding matrix, real PostgreSQL Unknown/no-redispatch proof, and
           bounded operator-attested recovery. Live-peer and recovery-attestation
-          qualification, MCP Skills client/host verification and activation, MCP
-          Tasks, and other client extensions remain independent gates.
+          qualification, dynamic/persisted MCP Skills, MCP Tasks, and other
+          client extensions remain independent gates.
         </p>
       </div>
 

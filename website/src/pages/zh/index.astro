@@ -105,9 +105,9 @@ const currentCut = [
     href: "/zh/docs/mcp-server/",
   },
   {
-    surface: "MCP Skills Server Profile",
+    surface: "MCP Skills Profile",
     state: "已实现切片",
-    evidence: "Final SEP-2640 静态 Manifest、精确字节与 Policy-first Read",
+    evidence: "静态 Server 加 Origin-scoped、Verification-first Client/Host",
     href: "/zh/docs/mcp-skills/",
   },
   {
@@ -232,10 +232,11 @@ const roadmap = [
             Model/Tool Attempt、Lifecycle Commit、公平调度、Ingress 与 Verified
             Result 运行类型化 Root Graph。已实现 OpenAI/Anthropic Adapter、
             Provider-native Graph、AgentService v1、MCP Client/OAuth/Remote
-            Tool/Server、Final SEP-2640 静态 Skills Server，以及带 Terminal-task
-            Artifact 持久化存储的 A2A 1.0 HTTP+JSON/JSON-RPC Client/Server。
-            Skills Client/Host 门禁、稳定 Network Agent API、A2A gRPC、MCP
-            Tasks、高级 Graph 语义、Live-peer 与生产验证仍未完成。
+            Tool/Server、Final SEP-2640 静态 Skills Server 与 Verification-first
+            Client/Host Profile，以及带 Terminal-task Artifact 持久化存储的 A2A
+            1.0 HTTP+JSON/JSON-RPC Client/Server。Dynamic/Persisted Skills、稳定
+            Network Agent API、A2A gRPC、MCP Tasks、高级 Graph 语义、Live-peer
+            与生产验证仍未完成。
           </p>
           <div class="hero-actions">
             <a class="button button--primary affordance" href="/zh/docs/"
@@ -378,9 +379,8 @@ cargo test --workspace --all-targets --all-features --locked</code></pre>
           177 项官方 TCK Pass 且 0 Failure；Client 现已增加 11-Operation
           Dual-binding Matrix 与真实 PostgreSQL Unknown/No-redispatch
           证明，并加入有界、由运维方背书的 Recovery。Live-peer 与
-          Recovery-attestation Qualification、MCP Skills Client/Host
-          Verification 与 Activation、MCP Tasks 和其他 Client Extension
-          仍是独立门禁。
+          Recovery-attestation Qualification、Dynamic/Persisted MCP Skills、 MCP
+          Tasks 和其他 Client Extension 仍是独立门禁。
         </p>
       </div>
 

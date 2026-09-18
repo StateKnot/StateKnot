@@ -293,6 +293,15 @@ gates add 32 successes. The conformance fixture validates the production
 transport; StateKnot's registry and policy layer has separate real-HTTP tests.
 MCP Tasks, broader client extensions, stable API/SDK-tier claims, and complete
 framework production qualification remain unimplemented.
+The Final SEP-2640 MCP Skills extension now has separate static Server and
+Client/Host profiles. The Server freezes complete manifests over exact served
+bytes and authorizes before disclosure. The consuming Host explicitly opts in,
+validates bounded complete manifests, assigns origin independently of server
+metadata, obtains fresh approval before lazy reads, verifies exact size and
+SHA-256, isolates immutable memory cache entries, requires fresh nested-Skill
+consent, and issues lifetime-bound per-call execution permits. Dynamic
+manifests, persisted approval, disk installation, signatures, automatic Tool
+runtime integration, and official extension conformance remain unclaimed.
 The new A2A 1.0 Server profile keeps official SDK wire types private behind
 bounded StateKnot-owned Agent Card, message, task, artifact, stream, and push
 contracts. Its HTTP+JSON and JSON-RPC/SSE boundary enforces exact Host/Origin/
@@ -374,6 +383,8 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [general stateless MCP Tool client](docs/mcp-client.md),
 [MCP OAuth client authorization](docs/mcp-oauth.md),
 [MCP Server profile](docs/mcp-server.md),
+[MCP Skills Server profile](docs/mcp-skills-server.md),
+[MCP Skills Client and Host profile](docs/mcp-skills-host.md),
 [MCP conformance status](docs/mcp-conformance.md),
 [A2A 1.0 Client and durable remote-agent profile](docs/a2a-client.md),
 [durable artifact storage](docs/artifact-storage.md),
