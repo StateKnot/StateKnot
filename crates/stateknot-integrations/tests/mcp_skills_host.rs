@@ -154,7 +154,7 @@ fn nested_entry() -> Value {
     })
 }
 
-fn list_result(skills: Vec<Value>, next_cursor: Option<&str>) -> Value {
+fn list_result(skills: &[Value], next_cursor: Option<&str>) -> Value {
     let mut value = json!({
         "resultType": "complete",
         "skills": skills,
@@ -167,7 +167,7 @@ fn list_result(skills: Vec<Value>, next_cursor: Option<&str>) -> Value {
     value
 }
 
-fn get_result(skill: Value) -> Value {
+fn get_result(skill: &Value) -> Value {
     json!({
         "resultType": "complete",
         "skill": skill,
@@ -201,8 +201,10 @@ async fn connect(endpoint: ProviderEndpoint, options: McpClientOptions) -> McpCl
 #[derive(Default)]
 struct RecordingPolicy {
     activations: Mutex<Vec<(String, McpSkillActivationSource, String)>>,
-    tool_calls: Mutex<Vec<(String, String, bool, Option<String>)>>,
+    tool_calls: Mutex<Vec<RecordedToolCall>>,
 }
+
+type RecordedToolCall = (String, String, bool, Option<String>);
 
 impl McpSkillHostPolicy for RecordingPolicy {
     fn approve_activation(
@@ -263,11 +265,11 @@ fn host(client: McpClient, policy: Arc<dyn McpSkillHostPolicy>) -> McpSkillHost 
 async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized() {
     let (endpoint, server) = start_server(vec![
         discovery(),
-        list_result(vec![root_entry()], Some("page-2")),
-        list_result(vec![nested_entry()], None),
+        list_result(&[root_entry()], Some("page-2")),
+        list_result(&[nested_entry()], None),
         text_resource(ROOT_URI, ROOT_SKILL),
         text_resource(REFERENCE_URI, REFERENCE),
-        get_result(nested_entry()),
+        get_result(&nested_entry()),
         text_resource(NESTED_URI, NESTED_SKILL),
     ])
     .await;
@@ -285,10 +287,8 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
         .unwrap();
     assert_eq!(active.identity().origin().as_str(), "production-docs");
     assert_eq!(active.instructions().identity(), active.identity());
-    assert_eq!(
-        active.instructions().text(),
-        Some(std::str::from_utf8(ROOT_SKILL).unwrap())
-    );
+    let root_text = str::from_utf8(ROOT_SKILL).unwrap();
+    assert_eq!(active.instructions().text(), Some(root_text));
 
     let root_children = active.list_directory("").unwrap();
     assert_eq!(root_children.len(), 3);
@@ -322,14 +322,15 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
     assert_eq!(nested.identity().uri(), NESTED_URI);
     assert_eq!(nested.instructions().bytes(), NESTED_SKILL);
 
-    let activations = policy.activations.lock().unwrap();
-    assert_eq!(activations.len(), 2);
-    assert!(matches!(activations[0].1, McpSkillActivationSource::Direct));
-    assert!(matches!(
-        &activations[1].1,
-        McpSkillActivationSource::Nested(parent) if parent.uri() == ROOT_URI
-    ));
-    drop(activations);
+    {
+        let activations = policy.activations.lock().unwrap();
+        assert_eq!(activations.len(), 2);
+        assert!(matches!(activations[0].1, McpSkillActivationSource::Direct));
+        assert!(matches!(
+            &activations[1].1,
+            McpSkillActivationSource::Nested(parent) if parent.uri() == ROOT_URI
+        ));
+    }
     assert_eq!(
         policy.tool_calls.lock().unwrap().as_slice(),
         &[(
@@ -372,7 +373,7 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn denial_happens_before_any_skill_file_read() {
-    let (endpoint, server) = start_server(vec![discovery(), get_result(root_entry())]).await;
+    let (endpoint, server) = start_server(vec![discovery(), get_result(&root_entry())]).await;
     let skill_host = host(
         connect(endpoint, McpClientOptions::for_skills()).await,
         Arc::new(DenyActivation),
@@ -390,7 +391,7 @@ async fn denial_happens_before_any_skill_file_read() {
 async fn resource_digest_mismatch_fails_closed() {
     let (endpoint, server) = start_server(vec![
         discovery(),
-        get_result(root_entry()),
+        get_result(&root_entry()),
         text_resource(ROOT_URI, b"tampered"),
     ])
     .await;
@@ -412,7 +413,7 @@ async fn verified_skill_document_must_match_advertised_frontmatter() {
     entry["resources"][0] = resource(ROOT_URI, changed);
     let (endpoint, server) = start_server(vec![
         discovery(),
-        get_result(entry),
+        get_result(&entry),
         text_resource(ROOT_URI, changed),
     ])
     .await;

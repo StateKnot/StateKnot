@@ -46,7 +46,7 @@ const RESOURCE_READ_METHOD: &str = "resources/read";
 pub const MCP_SKILL_MAXIMUM_BYTES: usize = 16 * MEBIBYTE;
 /// File-count support floor required by Final SEP-2640.
 pub const MCP_SKILL_MAXIMUM_FILES: usize = 512;
-/// StateKnot's bounded JSON representation ceiling for advertised frontmatter.
+/// `StateKnot`'s bounded JSON representation ceiling for advertised frontmatter.
 pub const MCP_SKILL_MAXIMUM_FRONTMATTER_BYTES: usize = 64 * 1024;
 /// Bounded JSON/SSE envelope needed for worst-case escaping of a 16 MiB text file.
 pub const MCP_SKILL_WIRE_RESPONSE_BYTES: usize = 104 * MEBIBYTE;
@@ -149,7 +149,7 @@ impl McpSkillEntry {
         self.total_bytes
     }
 
-    /// Returns StateKnot's deterministic binding digest for approval records.
+    /// Returns `StateKnot`'s deterministic binding digest for approval records.
     ///
     /// This is not a signature or a trust anchor.
     #[must_use]
@@ -409,7 +409,7 @@ impl McpClient {
             .as_object()
             .ok_or(McpSkillClientError::InvalidLookup)?;
         validate_complete(object, McpSkillClientError::InvalidLookup)?;
-        parse_required_cache(object).map_err(|_| McpSkillClientError::InvalidLookup)?;
+        parse_required_cache(object).map_err(|()| McpSkillClientError::InvalidLookup)?;
         let entry = parse_skill_entry(
             object
                 .get("skill")
@@ -453,7 +453,7 @@ fn parse_skill_page(
         .as_object()
         .ok_or(McpSkillClientError::InvalidCatalog)?;
     validate_complete(object, McpSkillClientError::InvalidCatalog)?;
-    let cache = parse_required_cache(object).map_err(|_| McpSkillClientError::InvalidCatalog)?;
+    let cache = parse_required_cache(object).map_err(|()| McpSkillClientError::InvalidCatalog)?;
     let entries = object
         .get("skills")
         .and_then(Value::as_array)
