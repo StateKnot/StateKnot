@@ -111,34 +111,39 @@ that RFC-0001 validation item 2 already has exhaustive type coverage.
     Completion and MRTR, operations, and exact Server evidence. A
     [Simplified Chinese edition](mcp-server.zh-CN.md) is maintained alongside
     it.
-18. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
+18. [MCP Skills server profile](mcp-skills-server.md) — Final SEP-2640
+    negotiation, immutable complete manifests, exact content digests,
+    authorization-first discovery and resource reads, with an explicit
+    server-only claim boundary. A [Simplified Chinese edition](mcp-skills-server.zh-CN.md)
+    is maintained alongside it.
+19. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
     all 32 scored Client and 37 scored Server scenarios, CI reproduction,
     explicitly unscored extensions, and the stable-API/Tasks claim boundary. A
     [Simplified Chinese edition](mcp-conformance.zh-CN.md) is maintained
     alongside it.
-19. [A2A 1.0 Client and durable remote-agent profile](a2a-client.md) — strict
+20. [A2A 1.0 Client and durable remote-agent profile](a2a-client.md) — strict
     discovery, all HTTP+JSON/JSON-RPC/SSE operations, attempt-scoped
     authorization, exact delivery semantics, PostgreSQL-backed ambiguous-write
     recovery, operator-attested context/history or deduplicated replay,
     provider-native durable polling, and production deployment gates. A
     [Simplified Chinese edition](a2a-client.zh-CN.md) is maintained alongside it.
-20. [A2A 1.0 Server profile](a2a-server.md) — bounded StateKnot-owned contracts,
+21. [A2A 1.0 Server profile](a2a-server.md) — bounded StateKnot-owned contracts,
     strict HTTP+JSON/JSON-RPC/SSE boundary, authorization-first dispatch,
     durable backend obligations, and production deployment gates. A
     [Simplified Chinese edition](a2a-server.zh-CN.md) is maintained alongside it.
-21. [A2A 1.0 conformance status](a2a-conformance.md) — exact official TCK
+22. [A2A 1.0 conformance status](a2a-conformance.md) — exact official TCK
     commit/archive identity, audited harness patch, 177 passing cases, explicit
     skips, CI reproduction, and the server-only claim boundary. A
     [Simplified Chinese edition](a2a-conformance.zh-CN.md) is maintained
     alongside it.
-22. [Durable artifact storage and A2A task completion](artifact-storage.md) —
+23. [Durable artifact storage and A2A task completion](artifact-storage.md) —
     direct no-resend task polling, migration 18's immutable registry, private
     conditional object publication, authorization-first resolution, complete
     integrity verification, and production operations. A
     [Simplified Chinese edition](artifact-storage.zh-CN.md) is maintained
     alongside it.
 
-23. [Shared-state subgraphs and bounded loops](graph-composition.md) — scoped
+24. [Shared-state subgraphs and bounded loops](graph-composition.md) — scoped
     static composition, explicit loop exhaustion, pre-dispatch step limits,
     executable registration, PostgreSQL recovery, and upgrade obligations. A
     [Simplified Chinese edition](graph-composition.zh-CN.md) is maintained

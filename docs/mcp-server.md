@@ -13,8 +13,9 @@ SPDX-License-Identifier: Apache-2.0
 
 StateKnot now has a StateKnot-owned MCP server application layer for Tools,
 Resources, Resource Templates, Prompts, Completion, and multi-round tool,
-resource, or prompt requests (MRTR). The official Rust SDK remains a private
-wire adapter; its domain types are not part of StateKnot's public API.
+resource, or prompt requests (MRTR). It can also compose the separate
+[MCP Skills server profile](mcp-skills-server.md). The official Rust SDK remains
+a private wire adapter; its domain types are not part of StateKnot's public API.
 
 The server is still pre-alpha. This implementation does not make the whole
 framework production-ready, stabilize the Rust API, implement an OAuth
@@ -87,6 +88,15 @@ authorized before existence is disclosed. Text and binary contents have MIME,
 Base64, item-count, and aggregate-byte checks. Every result carries an explicit
 TTL and public/private cache scope.
 
+### Skills extension
+
+An optional immutable Skill catalog advertises the Final SEP-2640
+`io.modelcontextprotocol/skills` extension and exposes `skills/list`,
+`skills/get`, and exact manifest-bound file reads. This is a server-only
+profile. Client verification, host approval, isolated caching, activation, and
+execution gates remain separate work; see the
+[exact Skills claim boundary](mcp-skills-server.md).
+
 ### Prompts and Completion
 
 The Prompt catalog validates names, unique bounded arguments, required fields,
@@ -144,6 +154,7 @@ let options = McpServerApplicationOptions::new(
 let app = McpServerApplicationBuilder::new(options)
     .with_tools(tool_registry, tool_authorization)?
     .with_resources(resource_catalog, resource_reader, resource_authorization)?
+    .with_skills(skill_catalog, skill_authorization)?
     .with_prompts(prompt_catalog, prompt_renderer, prompt_authorization)?
     .with_completion_provider(completion_provider)?
     .build()?;
@@ -193,6 +204,6 @@ rules in [MCP conformance status](mcp-conformance.md).
 - deprecated stateful sessions or the legacy `initialize` flow;
 - a bundled OAuth authorization server or identity provider;
 - dynamic catalog mutation or list-changed notifications;
-- MCP Apps or other extensions;
+- MCP Skills client/host activation, MCP Apps, or other extensions;
 - a stable Rust API, crates.io release, or SDK-tier certification;
 - production qualification of the complete StateKnot framework.

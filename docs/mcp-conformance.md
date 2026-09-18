@@ -10,7 +10,7 @@ not a complete-framework, stable-API, or extension badge.
 
 ## Current claim
 
-StateKnot implements three distinct MCP `2026-07-28` boundaries:
+StateKnot implements distinct MCP `2026-07-28` boundaries:
 
 - [`McpRemoteTool`](mcp-remote-tool.md), a strict durable binding with reviewed
   server/schema pins and reconciliation-first ambiguous writes;
@@ -22,6 +22,9 @@ StateKnot implements three distinct MCP `2026-07-28` boundaries:
 - the [MCP Server profile](mcp-server.md), a StateKnot-owned application for
   immutable Tools, Resources, Resource Templates, Prompts, optional Completion,
   and MRTR behind a strict stateless HTTP transport.
+- the [MCP Skills server profile](mcp-skills-server.md), a Final SEP-2640 static
+  server surface with complete manifest-bound file delivery. It is not a Skills
+  client, host activation, or official extension-conformance claim.
 
 The general client and OAuth provider pass all **32 scored client scenarios**
 in the frozen official `2026-07-28` requirement set, including all 25 OAuth
@@ -29,6 +32,11 @@ scenarios. The strict Server transport passes all **37 scored server
 scenarios**. These are evidence claims for the implemented pre-alpha Client and
 Server profiles, not an authorization-server, Tasks or other extension,
 stable-API, SDK-tier, or complete-framework conformance claim.
+
+The frozen official runner predates the Final Skills extension inventory and
+does not score it. StateKnot gates the Skills server profile with separate
+application-layer HTTP and adversarial tests and reports it separately instead
+of adding it to the 37-scenario Server score.
 
 ## Frozen evaluation input
 
@@ -135,6 +143,7 @@ headers, credentials, and per-request metadata:
 ```console
 cargo test -p stateknot-integrations --test mcp_client_contract --locked
 cargo test -p stateknot-integrations mcp_server_ --locked
+cargo test -p stateknot-integrations --test mcp_skills_server --locked
 ```
 
 The official Server fixture deliberately mirrors the runner's application
