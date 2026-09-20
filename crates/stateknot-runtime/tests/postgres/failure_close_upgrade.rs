@@ -43,10 +43,16 @@ async fn failure_close_populated_v23_upgrade_preserves_history_and_rejects_catal
         .connect(&url)
         .await
         .unwrap();
-    for sql in include_str!(
-        "../../../stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
-    )
-    .split(';')
+    for sql in [
+        include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
+        ),
+        include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
+        ),
+    ]
+    .into_iter()
+    .flat_map(|sql| sql.split(';'))
     .filter(|sql| !sql.trim().is_empty())
     {
         query(sql).execute(&pool).await.unwrap();

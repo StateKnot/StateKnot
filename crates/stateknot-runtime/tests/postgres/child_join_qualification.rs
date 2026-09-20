@@ -468,6 +468,9 @@ async fn child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_
         .unwrap();
     for sql in [
         include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
+        ),
+        include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
         ),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"),

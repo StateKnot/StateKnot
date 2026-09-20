@@ -45,6 +45,9 @@ async fn deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_pro
         .unwrap();
     for fixture in [
         include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
+        ),
+        include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
         ),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"),
