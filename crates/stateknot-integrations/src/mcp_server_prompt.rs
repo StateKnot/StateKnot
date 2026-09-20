@@ -16,7 +16,7 @@ use rmcp::{
         CompleteRequestParams, CompleteResult, CompletionInfo, DiscoverResult,
         GetPromptRequestParams, GetPromptResponse, GetPromptResult, Implementation,
         ListPromptsResult, PaginatedRequestParams, Prompt, PromptArgument, PromptMessage,
-        PromptsCapability, ProtocolVersion, Reference, Role, ServerCapabilities, ServerInfo,
+        PromptsCapability, ProtocolVersion, Reference, Role, ServerCapabilities, ServerConfig,
     },
     service::RequestContext,
 };
@@ -1192,13 +1192,13 @@ impl ServerHandler for McpServerPromptService {
         Cow::Borrowed(&[ProtocolVersion::V_2026_07_28])
     }
 
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         let mut capabilities = ServerCapabilities::default();
         capabilities.prompts = Some(PromptsCapability::default());
         if self.completion.is_some() {
             capabilities.completions = Some(Map::new());
         }
-        let mut info = ServerInfo::new(capabilities).with_server_info(Implementation::new(
+        let mut info = ServerConfig::new(capabilities).with_server_info(Implementation::new(
             self.options.server_name.to_string(),
             self.options.server_version.to_string(),
         ));

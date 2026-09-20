@@ -278,7 +278,7 @@ handling. `McpOAuthAuthorization` adds challenge-driven protected-resource and
 authorization-server discovery, pre-registration/CIMD/DCR, PKCE, issuer and
 callback validation, scope upgrade, refresh, bounded replay, and caller-owned
 durable stores. The pinned official runner gate covers all 32 scored client
-scenarios, including all 25 OAuth scenarios: 373 scored assertions succeed,
+scenarios, including all 25 OAuth scenarios: 371 scored assertions succeed,
 zero fail, and 11 capability/method checks outside the advertised Tool surface
 are explicitly skipped. Seven explicitly not-scored extensions remain reported
 and unclaimed.

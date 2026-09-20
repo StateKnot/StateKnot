@@ -285,7 +285,7 @@ from the repository.
   offline access, scope step-up, issuer migration, redacted errors, and
   caller-owned durable credential/state stores. Require the complete frozen
   client requirement set in CI: all 32 scored scenarios, including all 25
-  OAuth scenarios, pass with 373 scored assertions and zero failures. Report
+  OAuth scenarios, pass with 371 scored assertions and zero failures. Report
   but do not claim the seven explicitly not-scored extensions.
 - [x] Implement the MCP 2026-07-28 Server transport and StateKnot-owned
   application profile for immutable Tools, Resources, Resource Templates,

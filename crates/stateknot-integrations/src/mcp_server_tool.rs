@@ -21,7 +21,7 @@ use rmcp::{
         ContentBlock, DiscoverResult, ElicitationCapability, Implementation, InputRequest,
         InputRequiredResult, ListToolsResult, PaginatedRequestParams, ProgressNotificationParam,
         ProtocolVersion, RequestStateCodec, RootsCapabilities, SamplingCapability, SealOptions,
-        ServerCapabilities, ServerInfo, Tool, ToolAnnotations,
+        ServerCapabilities, ServerConfig, Tool, ToolAnnotations,
     },
     service::{Peer, RequestContext},
 };
@@ -1891,8 +1891,8 @@ impl ServerHandler for McpServerToolService {
         Cow::Borrowed(&[ProtocolVersion::V_2026_07_28])
     }
 
-    fn get_info(&self) -> ServerInfo {
-        let mut info = ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+    fn get_info(&self) -> ServerConfig {
+        let mut info = ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(Implementation::new(
                 self.options.server_name.to_string(),
                 self.options.server_version.to_string(),

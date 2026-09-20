@@ -23,7 +23,7 @@ use reqwest::{StatusCode, header};
 use rmcp::{
     ClientLifecycleMode, ClientServiceExt, RoleClient,
     model::{
-        CallToolRequestParams, CallToolResponse, ClientCapabilities, ClientInfo,
+        CallToolRequestParams, CallToolResponse, ClientCapabilities, ClientConfig,
         ClientJsonRpcMessage, Implementation, JsonRpcMessage, PaginatedRequestParams,
         ProtocolVersion, ServerJsonRpcMessage, Tool,
     },
@@ -673,7 +673,7 @@ pub struct McpRemoteTool {
     endpoint: ProviderEndpoint,
     authorization_slot: AuthorizationSlot,
     call_gate: tokio::sync::Mutex<()>,
-    service: RunningService<RoleClient, ClientInfo>,
+    service: RunningService<RoleClient, ClientConfig>,
 }
 
 enum AuthorizationSource {
@@ -859,7 +859,7 @@ impl McpRemoteTool {
             .map_err(|_| McpRemoteToolBuildError::AuthorizationState)?;
         let _authorization_reset = AuthorizationReset(&authorization_slot);
 
-        let client_info = ClientInfo::new(
+        let client_info = ClientConfig::new(
             ClientCapabilities::default(),
             Implementation::new("stateknot", env!("CARGO_PKG_VERSION")),
         )
@@ -1205,7 +1205,7 @@ impl fmt::Debug for McpRemoteTool {
 }
 
 async fn verify_remote_binding(
-    service: &RunningService<RoleClient, ClientInfo>,
+    service: &RunningService<RoleClient, ClientConfig>,
     deadline: tokio::time::Instant,
     expected_server: &McpServerIdentity,
     remote_name: &str,

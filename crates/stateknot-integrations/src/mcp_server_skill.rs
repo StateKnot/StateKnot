@@ -24,7 +24,7 @@ use rmcp::{
         CustomRequest, CustomResult, DiscoverResult, ExtensionCapabilities, Implementation,
         ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParams, ProtocolVersion,
         ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult, Resource,
-        ResourceContents, ResourcesCapability, ServerCapabilities, ServerInfo,
+        ResourceContents, ResourcesCapability, ServerCapabilities, ServerConfig,
     },
     service::RequestContext,
 };
@@ -1089,11 +1089,12 @@ impl ServerHandler for McpServerSkillService {
         Cow::Borrowed(&[ProtocolVersion::V_2026_07_28])
     }
 
-    fn get_info(&self) -> ServerInfo {
-        let mut info = ServerInfo::new(Self::capabilities()).with_server_info(Implementation::new(
-            self.options.server_name.to_string(),
-            self.options.server_version.to_string(),
-        ));
+    fn get_info(&self) -> ServerConfig {
+        let mut info =
+            ServerConfig::new(Self::capabilities()).with_server_info(Implementation::new(
+                self.options.server_name.to_string(),
+                self.options.server_version.to_string(),
+            ));
         if let Some(instructions) = &self.options.instructions {
             info = info.with_instructions(instructions.to_string());
         }

@@ -43,20 +43,20 @@ separately instead of adding either to the official Client or Server score.
 
 ## Frozen evaluation input
 
-The evidence was produced on 2026-09-02 with:
+The evidence was produced on 2026-09-20 with:
 
 - npm package `@modelcontextprotocol/conformance@0.2.0-alpha.11`;
 - npm integrity
   `sha512-imPK9tx5gQsL6ZKQq4MrsyDYfSaIwpRmX6+ogjbeAXs9LGvxkBxWcY7KcS7TvwaBk/ZiVWl6b/naF4q83UwDRA==`;
 - source `gitHead` `c321dd32035556e6769d3724a8ee97d87c3faaac`;
 - protocol and frozen requirement revision `2026-07-28`;
-- Rust `1.88.0` and Node.js `24.19.0`;
+- Rust `1.88.0`, `rmcp 3.4.0`, and Node.js `24.19.0`;
 - no expected-failures file.
 
 The package and full transitive dependency graph are exact in
 `conformance/mcp-client/package-lock.json`. The observed platform manifest is
 committed at
-`conformance/mcp-client/evidence/2026-09-02-macos-arm64.json`.
+`conformance/mcp-client/evidence/2026-09-20-macos-arm64.json`.
 
 The authoritative inventory is:
 
@@ -72,9 +72,14 @@ set contains seven non-OAuth scenarios and 25 OAuth scenarios.
 | Official client inventory | Scenarios | Success | Skipped | Failure |
 | --- | ---: | ---: | ---: | ---: |
 | Required non-OAuth | 7 | 45 | 11 | 0 |
-| Required OAuth | 25 | 328 | 0 | 0 |
-| **Required total** | **32** | **373** | **11** | **0** |
+| Required OAuth | 25 | 326 | 0 | 0 |
+| **Required total** | **32** | **371** | **11** | **0** |
 | Explicitly not scored | 7 | 33 | 6 | 17 |
+
+Compared with the earlier `rmcp 3.3.0` evidence, `rmcp 3.4.0` performs one
+fewer redundant protected-resource metadata check in each of `metadata-var1`
+and `metadata-var2`. The scored scenario inventory and pass rate are unchanged;
+the exact successful-check count is therefore 371 rather than 373.
 
 The three metadata skips are optional Roots, Sampling, and Elicitation
 capability declarations that StateKnot does not advertise. The eight standard

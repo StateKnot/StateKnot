@@ -13,7 +13,7 @@ use rmcp::{
         GetPromptResponse, Implementation, ListPromptsResult, ListResourceTemplatesResult,
         ListResourcesResult, ListToolsResult, PaginatedRequestParams, PromptsCapability,
         ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse, ResourcesCapability,
-        ServerCapabilities, ServerInfo, Tool, ToolsCapability,
+        ServerCapabilities, ServerConfig, Tool, ToolsCapability,
     },
     service::RequestContext,
 };
@@ -320,11 +320,12 @@ impl ServerHandler for McpServerApplication {
         Cow::Borrowed(&[ProtocolVersion::V_2026_07_28])
     }
 
-    fn get_info(&self) -> ServerInfo {
-        let mut info = ServerInfo::new(self.capabilities()).with_server_info(Implementation::new(
-            self.options.server_name.to_string(),
-            self.options.server_version.to_string(),
-        ));
+    fn get_info(&self) -> ServerConfig {
+        let mut info =
+            ServerConfig::new(self.capabilities()).with_server_info(Implementation::new(
+                self.options.server_name.to_string(),
+                self.options.server_version.to_string(),
+            ));
         if let Some(instructions) = &self.options.instructions {
             info = info.with_instructions(instructions.to_string());
         }

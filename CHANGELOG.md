@@ -24,6 +24,20 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   before `SQLx` records its transaction depth. Read and mutation transactions
   also select their isolation and access modes in the initial `BEGIN` command.
 
+### Changed
+
+- Upgraded the official Rust MCP SDK from `rmcp 3.3.0` to `3.4.0` and migrated
+  every client/server handler to the non-deprecated `ClientConfig` and
+  `ServerConfig` contracts. The frozen MCP 2026-07-28 client gate remains green
+  for all 32 scored scenarios; corrected protected-resource metadata probing in
+  the SDK removes two redundant successes, so the refreshed evidence records
+  371 scored assertions with zero failures instead of 373.
+
+- Upgraded `object_store` to 0.14.2 and refreshed the website toolchain to Astro
+  7.3.3, Prettier 3.9.7 and `@types/node` 24.13.5. Locked dependency audits,
+  cross-platform Rust tests and the complete website verification suite remain
+  mandatory merge gates.
+
 ### Added
 
 - Durable MCP Skill activation approvals and acting windows. Activation now

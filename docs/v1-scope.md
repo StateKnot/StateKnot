@@ -23,7 +23,7 @@ plus a separate general stateless `McpClient` Tool surface and its interactive
 `McpOAuthAuthorization` provider, and a StateKnot-owned stateless MCP Server
 application for Tools, Resources, Resource Templates, Prompts, optional
 Completion, and MRTR. The frozen official requirement gates pass all 32 scored
-Client scenarios, including all 25 OAuth scenarios, with 373 assertions and
+Client scenarios, including all 25 OAuth scenarios, with 371 assertions and
 zero failures, plus all 37 scored Server scenarios with 114 successes, five
 skips, one informational check, and zero failures or warnings. It also contains
 a StateKnot-owned A2A `1.0` Server profile for Agent Cards, messages, tasks,

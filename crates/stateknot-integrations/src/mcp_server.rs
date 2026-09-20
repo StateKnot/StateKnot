@@ -1019,7 +1019,7 @@ mod tests {
     use http_body_util::BodyExt as _;
     use rmcp::{
         ErrorData,
-        model::{DiscoverResult, Implementation, ServerCapabilities, ServerInfo},
+        model::{DiscoverResult, Implementation, ServerCapabilities, ServerConfig},
     };
     use serde_json::json;
 
@@ -1035,8 +1035,8 @@ mod tests {
             Cow::Borrowed(&[ProtocolVersion::V_2026_07_28])
         }
 
-        fn get_info(&self) -> ServerInfo {
-            ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+        fn get_info(&self) -> ServerConfig {
+            ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
                 .with_server_info(Implementation::new("stateknot-test", "0.0.0"))
         }
 

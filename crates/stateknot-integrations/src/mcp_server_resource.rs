@@ -12,7 +12,7 @@ use rmcp::{
         DiscoverResult, Implementation, ListResourceTemplatesResult, ListResourcesResult,
         PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse,
         ReadResourceResult, Resource, ResourceContents, ResourceTemplate, ResourcesCapability,
-        ServerCapabilities, ServerInfo,
+        ServerCapabilities, ServerConfig,
     },
     service::RequestContext,
 };
@@ -1193,10 +1193,10 @@ impl ServerHandler for McpServerResourceService {
         Cow::Borrowed(&[ProtocolVersion::V_2026_07_28])
     }
 
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         let mut capabilities = ServerCapabilities::default();
         capabilities.resources = Some(ResourcesCapability::default());
-        let mut info = ServerInfo::new(capabilities).with_server_info(Implementation::new(
+        let mut info = ServerConfig::new(capabilities).with_server_info(Implementation::new(
             self.options.server_name.to_string(),
             self.options.server_version.to_string(),
         ));

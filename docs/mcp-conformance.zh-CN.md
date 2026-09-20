@@ -41,19 +41,19 @@ Client/Host Profile，并与官方 Client/Server Scenario 分开报告，不把�
 
 ## 冻结的评估输入
 
-证据于 2026-09-02 使用以下输入生成：
+证据于 2026-09-20 使用以下输入生成：
 
 - npm Package：`@modelcontextprotocol/conformance@0.2.0-alpha.11`；
 - npm Integrity：
   `sha512-imPK9tx5gQsL6ZKQq4MrsyDYfSaIwpRmX6+ogjbeAXs9LGvxkBxWcY7KcS7TvwaBk/ZiVWl6b/naF4q83UwDRA==`；
 - Source `gitHead`：`c321dd32035556e6769d3724a8ee97d87c3faaac`；
 - Protocol 与冻结 Requirement Revision：`2026-07-28`；
-- Rust `1.88.0`、Node.js `24.19.0`；
+- Rust `1.88.0`、`rmcp 3.4.0`、Node.js `24.19.0`；
 - 不使用 Expected-failures File。
 
 Package 与完整 Transitive Dependency Graph 精确固定在
 `conformance/mcp-client/package-lock.json`。Observed Platform Manifest 位于
-`conformance/mcp-client/evidence/2026-09-02-macos-arm64.json`。
+`conformance/mcp-client/evidence/2026-09-20-macos-arm64.json`。
 
 权威清单命令为：
 
@@ -69,9 +69,13 @@ npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.11 list --requirements 2
 | 官方 Client 清单 | 场景 | Success | Skipped | Failure |
 | --- | ---: | ---: | ---: | ---: |
 | 必需非 OAuth | 7 | 45 | 11 | 0 |
-| 必需 OAuth | 25 | 328 | 0 | 0 |
-| **必需合计** | **32** | **373** | **11** | **0** |
+| 必需 OAuth | 25 | 326 | 0 | 0 |
+| **必需合计** | **32** | **371** | **11** | **0** |
 | 官方明确不计分 | 7 | 33 | 6 | 17 |
+
+与此前的 `rmcp 3.3.0` 证据相比，`rmcp 3.4.0` 在 `metadata-var1` 与
+`metadata-var2` 中分别减少了一次重复的 Protected Resource Metadata 检查。计分
+场景清单和通过率都没有变化，因此精确 Success 数由 373 调整为 371。
 
 3 个 Metadata Skip 是 StateKnot 没有声明的 Optional Roots、Sampling 与
 Elicitation Capability。8 个 Standard Header Skip 属于本 Tool Client Surface
