@@ -37,14 +37,17 @@ const clientCode = `let client = McpClient::connect(
 let host = McpSkillHost::new(
     client,
     McpSkillOrigin::new("production/orders-mcp")?,
+    SkillActivationScope::new(tenant_id, run_id, thread_id),
     Arc::new(application_skill_policy),
+    Arc::new(postgres_store.clone()),
     McpSkillHostOptions::default(),
 )?;
 
 let catalog = host.list_skills().await?;
 let selected = catalog.find_uri("skill://code-review/SKILL.md")
     .ok_or(AppError::SkillUnavailable)?;
-let active = Arc::new(host.activate(selected).await?);
+let activation = McpSkillActivationAttempt::generate();
+let active = Arc::new(host.activate(selected, activation).await?);
 
 let file = active.read_file("references/checklist.md").await?;
 model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
@@ -61,7 +64,9 @@ let tools = tool_registry.build();`;
 const verifyCode = `cargo test -p stateknot-integrations mcp_server_skill --locked
 cargo test -p stateknot-integrations --test mcp_skills_server --locked
 cargo test -p stateknot-integrations mcp_skill_host --locked
-cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
+cargo test -p stateknot-integrations --test mcp_skills_host --locked
+cargo test -p stateknot-store-postgres --test postgres --locked \
+  tool_authorization_receipts_are_exact_immutable_and_page_verifiable`;
 ---
 
 <DocsLayout
@@ -81,7 +86,8 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       StateKnot 现已在 MCP <code>2026-07-28</code> 上提供 Final SEP-2640
       <code>io.modelcontextprotocol/skills</code> Extension。Server 发布不可变的完整
       Manifest；独立 Client/Host 使用 Host 分配的 Origin 与全新 Policy 审批完成校验
-      和激活。Dynamic Manifest、持久化 Activation Approval／Acting Window、磁盘安装、Signature
+      和激活。Activation Approval 与数据库时钟 Acting Window 已通过 PostgreSQL Schema
+      26 持久化，并支持精确重启恢复与不可变撤销。Dynamic Manifest、磁盘安装、Signature
       与自动 Discovery-to-Agent 组合不在当前声明内。
     </p>
   </aside>
@@ -129,15 +135,17 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
           <tr
             ><td>Host</td><td
               >Origin + URI 身份、先审批后读取、Digest/Size/Frontmatter
-              精确校验与 Manifest-only 延迟访问。</td
+              精确校验、持久化 Scoped Acting Window、精确恢复、不可变撤销与
+              Manifest-only 延迟访问。</td
             ></tr
           >
           <tr
             ><td>Execution</td><td
               >精确绑定 Owner/Version/完整 Descriptor，并在每次执行与恢复核对前
               获取绑定 Acting Window、精确持久执行关联与有界 Schema-bound Input
-              的全新 Policy Permit；不含 Payload 的不可变 Receipt 必须先于
-              Provider I/O 落库。</td
+              的全新 Policy Permit；每个新的不含 Payload Receipt 都会在 Provider
+              I/O 前与撤销串行化并校验有效
+              Window；后续撤销不会追回已经提交的授权。</td
             ></tr
           >
         </tbody>
@@ -169,8 +177,9 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       <code>McpSkillBoundTool</code> 而不是 Raw Provider，使普通持久 Tool Runtime
       在执行与恢复核对前强制执行精确 Policy Decision。Frontmatter
       <code>allowed-tools</code> 只是 Policy 的对照输入，永远不会自动授权。 Policy
-      还必须返回固定版本的 Grant Evidence；强制 Durable Receipt Sink 无法提交时，
-      会在 Dispatch 前失败关闭。
+      必须返回固定版本的 Activation 与逐次 Operation Grant Evidence；Window Store
+      或 Durable Receipt Sink 不可用，或 Evidence 已过期、撤销、越界时，都会在 Dispatch
+      前失败关闭。
     </p>
   </section>
 

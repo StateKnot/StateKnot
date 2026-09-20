@@ -45,6 +45,9 @@ async fn failure_close_populated_v23_upgrade_preserves_history_and_rejects_catal
         .unwrap();
     for sql in [
         include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
+        ),
+        include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
         ),
         include_str!(

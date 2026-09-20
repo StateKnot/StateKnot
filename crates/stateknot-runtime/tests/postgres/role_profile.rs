@@ -354,6 +354,54 @@ async fn node_completion_race(store: &PostgresStore) {
     assert_eq!(committed, 1);
 }
 
+async fn skill_acting_window_authorization(store: &PostgresStore) {
+    let value = started(store, "role-skill-acting-window").await;
+    let provenance = value.fixture.parent.admission().intent().provenance();
+    let tenant_id = provenance.tenant_id().clone();
+    let approval = SkillActivationApproval::new(
+        SkillActivationApprovalId::generate(),
+        SkillActivationScope::new(
+            tenant_id.clone(),
+            provenance.run_id(),
+            provenance.thread_id(),
+        ),
+        SkillAuthorizationSubject::new(
+            "mcp",
+            "role-profile-test",
+            "skill://role-profile/SKILL.md",
+            Digest::sha256(b"role profile exact Skill manifest"),
+        )
+        .unwrap(),
+        SkillActivationSource::Direct,
+        capability("role-skill-activation-policy"),
+        Digest::sha256(b"role profile activation policy artifact"),
+        Digest::sha256(b"role profile activation decision evidence"),
+        SkillActingWindowDuration::new(DurationMillis::new(60_000).unwrap()).unwrap(),
+    )
+    .unwrap();
+    let request = SkillActingWindowOpenRequest::new(SkillActingWindowId::generate(), approval);
+    let window = store
+        .open_skill_acting_window(request.clone())
+        .await
+        .unwrap();
+    assert_eq!(
+        store.open_skill_acting_window(request).await.unwrap(),
+        window
+    );
+    store
+        .assert_skill_acting_window_active(&window)
+        .await
+        .unwrap();
+    store
+        .revoke_skill_acting_window(&window, SkillActingWindowRevocationReason::Administrative)
+        .await
+        .unwrap();
+    assert!(matches!(
+        store.assert_skill_acting_window_active(&window).await,
+        Err(StoreError::SkillActingWindowInactive)
+    ));
+}
+
 async fn isolated_retention(fixture: &Fixture, runtime: &PostgresStore) {
     let retention = PostgresStore::connect(&fixture.retention_url, options())
         .await
@@ -431,6 +479,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     Box::pin(crate::qualify_agent_service_with_store(&store)).await;
     Box::pin(crate::qualify_provider_native_with_store(&store)).await;
     node_completion_race(&store).await;
+    skill_acting_window_authorization(&store).await;
     isolated_retention(&fixture, &store).await;
     let snapshot = "SELECT jsonb_agg(jsonb_build_array(tenant_id,run_id,journal_sequence,journal_digest) ORDER BY tenant_id,run_id) FROM stateknot.runs";
     let before: Value = query_scalar(snapshot)
@@ -453,12 +502,13 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     println!(
         "\nSTATEKNOT_ROLE_PROFILE_EVIDENCE={}",
         json!({
-            "profile":"trusted-server-roles-v1","schema":25,"postgres":version,
+            "profile":"trusted-server-roles-v1","schema":26,"postgres":version,
             "separate_login_connections":true,"owner_is_non_superuser":true,
             "effective_acl_audit":true,"privilege_rejections":true,"drift_rejected":true,
         "runtime_failure_close":true,"join_checkpoint_recovery":true,
         "agent_service_submission":true,"provider_native_recovery":true,
         "concurrent_submission_and_completion":24,
+        "skill_acting_window_authorization":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"

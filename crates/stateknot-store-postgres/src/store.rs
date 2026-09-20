@@ -87,6 +87,9 @@ pub use tool_authorization_receipts::{
     ToolAuthorizationReceiptPageSize,
 };
 
+#[path = "skill_activation_windows.rs"]
+mod skill_activation_windows;
+
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
     ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
@@ -366,6 +369,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             MigrationType::Simple,
             Cow::Borrowed(include_str!(
                 "../migrations/0025_tool_authorization_receipts.sql"
+            )),
+            false,
+        ),
+        Migration::new(
+            26,
+            Cow::Borrowed("Skill activation windows"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0026_skill_activation_windows.sql"
             )),
             false,
         ),

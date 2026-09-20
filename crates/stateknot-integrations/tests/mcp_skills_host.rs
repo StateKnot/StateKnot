@@ -4,6 +4,7 @@
 //! End-to-end security contract for the static MCP Skills client and Host.
 
 use std::{
+    collections::HashMap,
     sync::{
         Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
@@ -15,19 +16,24 @@ use serde_json::{Value, json};
 use stateknot_core::{
     AttemptId, BoundedJson, BoxFuture, BudgetUsage, CancellationSignal, CapabilityIdentity, Digest,
     DurationMillis, ErasedTool, EventId, FailureCategory, InvocationId, ResolvedBudget, RunId,
-    TenantId, ThreadId, Timestamp, ToolArtifacts, ToolAuthorizationOperation,
-    ToolAuthorizationReceipt, ToolAuthorizationReceiptSink, ToolAuthorizationReceiptSinkError,
+    SkillActingWindow, SkillActingWindowDuration, SkillActingWindowId,
+    SkillActingWindowOpenRequest, SkillActingWindowRevocation, SkillActingWindowRevocationReason,
+    SkillActivationSource as DurableSkillActivationSource, SkillActivationStore,
+    SkillActivationStoreError, SkillActivationStoreFailure, TenantId, ThreadId, Timestamp,
+    ToolArtifacts, ToolAuthorizationOperation, ToolAuthorizationReceipt,
+    ToolAuthorizationReceiptSink, ToolAuthorizationReceiptSinkError,
     ToolAuthorizationReceiptSinkFailure, ToolContext, ToolDescriptor, ToolError,
     ToolExternalEffect, ToolInput, ToolReconciliationContext, ToolReconciliationObservation,
     ToolReconciliationProbeError, ToolResult,
 };
 use stateknot_integrations::{
     AnonymousMcpAuthorization, MCP_SKILLS_EXTENSION_ID, McpActivatedSkill, McpClient,
-    McpClientIdentity, McpClientOptions, McpSkillActivationRequest, McpSkillActivationSource,
-    McpSkillBoundTool, McpSkillHost, McpSkillHostCodeExecution, McpSkillHostError,
-    McpSkillHostOptions, McpSkillHostPolicy, McpSkillHostPolicyError, McpSkillOrigin,
-    McpSkillToolAuthorizationGrant, McpSkillToolAuthorizationRequest, McpSkillToolInvocation,
-    McpSkillToolOperation, ProviderEndpoint,
+    McpClientIdentity, McpClientOptions, McpSkillActivationAttempt, McpSkillActivationGrant,
+    McpSkillActivationRequest, McpSkillActivationSource, McpSkillBoundTool, McpSkillHost,
+    McpSkillHostCodeExecution, McpSkillHostError, McpSkillHostOptions, McpSkillHostPolicy,
+    McpSkillHostPolicyError, McpSkillOrigin, McpSkillToolAuthorizationGrant,
+    McpSkillToolAuthorizationRequest, McpSkillToolInvocation, McpSkillToolOperation,
+    ProviderEndpoint,
 };
 use stateknot_runtime::ToolProviderRegistryBuilder;
 use tokio::{
@@ -246,6 +252,149 @@ fn authorization_grant() -> McpSkillToolAuthorizationGrant {
     )
 }
 
+fn activation_grant() -> McpSkillActivationGrant {
+    McpSkillActivationGrant::new(
+        tool_descriptor().metadata().identity().clone(),
+        Digest::sha256(b"MCP Skill activation policy artifact v1"),
+        Digest::sha256(b"exact activation decision evidence"),
+        SkillActingWindowDuration::new(DurationMillis::new(60_000).unwrap()).unwrap(),
+    )
+}
+
+#[derive(Default)]
+struct MemoryActivationStore {
+    windows: Mutex<
+        HashMap<SkillActingWindowId, (SkillActingWindow, Option<SkillActingWindowRevocation>)>,
+    >,
+}
+
+impl MemoryActivationStore {
+    fn failure(failure: SkillActivationStoreFailure) -> SkillActivationStoreError {
+        SkillActivationStoreError::new(failure, std::io::Error::other("private test store"))
+    }
+}
+
+impl SkillActivationStore for MemoryActivationStore {
+    fn open(
+        &self,
+        request: SkillActingWindowOpenRequest,
+    ) -> BoxFuture<'_, Result<SkillActingWindow, SkillActivationStoreError>> {
+        let result = (|| {
+            let mut windows = self.windows.lock().unwrap();
+            if let Some((existing, revoked)) = windows.get(&request.window_id()) {
+                if revoked.is_some() {
+                    return Err(Self::failure(SkillActivationStoreFailure::Inactive));
+                }
+                return (existing.approval() == request.approval())
+                    .then(|| existing.clone())
+                    .ok_or_else(|| Self::failure(SkillActivationStoreFailure::Rejected));
+            }
+            if let DurableSkillActivationSource::Nested { parent_window_id } =
+                request.approval().source()
+            {
+                let Some((parent, revoked)) = windows.get(parent_window_id) else {
+                    return Err(Self::failure(SkillActivationStoreFailure::NotFound));
+                };
+                if revoked.is_some() || parent.approval().scope() != request.approval().scope() {
+                    return Err(Self::failure(SkillActivationStoreFailure::Inactive));
+                }
+            }
+            let opened_at: Timestamp = "2026-09-20T12:00:00.000000Z".parse().unwrap();
+            let expires_at = Timestamp::from_unix_micros(
+                opened_at.unix_micros()
+                    + request.approval().requested_duration().duration().as_i64() * 1_000,
+            )
+            .unwrap();
+            let window = SkillActingWindow::new(
+                request.window_id(),
+                request.approval().clone(),
+                opened_at,
+                expires_at,
+            )
+            .unwrap();
+            windows.insert(request.window_id(), (window.clone(), None));
+            Ok(window)
+        })();
+        Box::pin(async move { result })
+    }
+
+    fn load_active(
+        &self,
+        _tenant_id: TenantId,
+        window_id: SkillActingWindowId,
+    ) -> BoxFuture<'_, Result<SkillActingWindow, SkillActivationStoreError>> {
+        let result = self
+            .windows
+            .lock()
+            .unwrap()
+            .get(&window_id)
+            .cloned()
+            .ok_or_else(|| Self::failure(SkillActivationStoreFailure::NotFound))
+            .and_then(|(window, revoked)| {
+                if revoked.is_some() {
+                    Err(Self::failure(SkillActivationStoreFailure::Inactive))
+                } else {
+                    Ok(window)
+                }
+            });
+        Box::pin(async move { result })
+    }
+
+    fn assert_active(
+        &self,
+        window: SkillActingWindow,
+    ) -> BoxFuture<'_, Result<(), SkillActivationStoreError>> {
+        let result = self
+            .windows
+            .lock()
+            .unwrap()
+            .get(&window.window_id())
+            .cloned()
+            .ok_or_else(|| Self::failure(SkillActivationStoreFailure::NotFound))
+            .and_then(|(stored, revoked)| {
+                if stored != window {
+                    Err(Self::failure(SkillActivationStoreFailure::Rejected))
+                } else if revoked.is_some() {
+                    Err(Self::failure(SkillActivationStoreFailure::Inactive))
+                } else {
+                    Ok(())
+                }
+            });
+        Box::pin(async move { result })
+    }
+
+    fn revoke(
+        &self,
+        window: SkillActingWindow,
+        reason: SkillActingWindowRevocationReason,
+    ) -> BoxFuture<'_, Result<SkillActingWindowRevocation, SkillActivationStoreError>> {
+        let result = (|| {
+            let mut windows = self.windows.lock().unwrap();
+            let Some((stored, revoked)) = windows.get_mut(&window.window_id()) else {
+                return Err(Self::failure(SkillActivationStoreFailure::NotFound));
+            };
+            if stored != &window {
+                return Err(Self::failure(SkillActivationStoreFailure::Rejected));
+            }
+            if let Some(existing) = revoked {
+                return (existing.reason() == reason)
+                    .then(|| existing.clone())
+                    .ok_or_else(|| Self::failure(SkillActivationStoreFailure::Rejected));
+            }
+            let evidence = SkillActingWindowRevocation::new(
+                window.approval().scope().tenant_id().clone(),
+                window.window_id(),
+                reason,
+                "2026-09-20T12:00:01.000000Z".parse().unwrap(),
+            )
+            .unwrap();
+            *revoked = Some(evidence.clone());
+            Ok(evidence)
+        })();
+        Box::pin(async move { result })
+    }
+}
+
 #[derive(Default)]
 struct RecordingReceiptSink {
     receipts: Mutex<Vec<ToolAuthorizationReceipt>>,
@@ -283,13 +432,13 @@ impl McpSkillHostPolicy for RecordingPolicy {
     fn approve_activation(
         &self,
         request: McpSkillActivationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+    ) -> BoxFuture<'_, Result<McpSkillActivationGrant, McpSkillHostPolicyError>> {
         self.activations.lock().unwrap().push((
             request.identity().origin().as_str().to_owned(),
             request.source().clone(),
             request.entry().manifest_digest().to_owned(),
         ));
-        Box::pin(async { Ok(()) })
+        Box::pin(async { Ok(activation_grant()) })
     }
 
     fn authorize_tool_call(
@@ -316,7 +465,7 @@ impl McpSkillHostPolicy for DenyActivation {
     fn approve_activation(
         &self,
         _request: McpSkillActivationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+    ) -> BoxFuture<'_, Result<McpSkillActivationGrant, McpSkillHostPolicyError>> {
         Box::pin(async { Err(McpSkillHostPolicyError::Denied) })
     }
 
@@ -334,8 +483,8 @@ impl McpSkillHostPolicy for DenyToolExecution {
     fn approve_activation(
         &self,
         _request: McpSkillActivationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
-        Box::pin(async { Ok(()) })
+    ) -> BoxFuture<'_, Result<McpSkillActivationGrant, McpSkillHostPolicyError>> {
+        Box::pin(async { Ok(activation_grant()) })
     }
 
     fn authorize_tool_call(
@@ -488,10 +637,24 @@ fn tool_input(descriptor: &ToolDescriptor) -> ToolInput {
 }
 
 fn host(client: McpClient, policy: Arc<dyn McpSkillHostPolicy>) -> McpSkillHost {
+    host_with_store(client, policy, Arc::new(MemoryActivationStore::default()))
+}
+
+fn host_with_store(
+    client: McpClient,
+    policy: Arc<dyn McpSkillHostPolicy>,
+    activation_store: Arc<dyn SkillActivationStore>,
+) -> McpSkillHost {
     McpSkillHost::new(
         client,
         McpSkillOrigin::new("production-docs").unwrap(),
+        stateknot_core::SkillActivationScope::new(
+            TenantId::new("tenant-mcp-skills").unwrap(),
+            RUN_ID.parse().unwrap(),
+            THREAD_ID.parse().unwrap(),
+        ),
         policy,
+        activation_store,
         McpSkillHostOptions::default(),
     )
     .unwrap()
@@ -554,6 +717,10 @@ async fn exercise_bound_tool(
         );
         assert_eq!(receipt.tool(), descriptor.metadata().identity());
         assert_eq!(receipt.policy(), authorization_grant().policy());
+        assert_eq!(
+            receipt.authorization_window_id(),
+            Some(guarded.skill().acting_window().window_id())
+        );
         let wire = serde_json::to_string(receipt).unwrap();
         assert!(!wire.contains("amount_minor"));
         assert!(!wire.contains("exact policy decision evidence"));
@@ -613,6 +780,7 @@ fn assert_tool_policy_calls(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[allow(clippy::too_many_lines)]
 async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized() {
     let (endpoint, server) = start_server(vec![
         discovery(),
@@ -633,7 +801,10 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
     let catalog = skill_host.list_skills().await.unwrap();
     assert_eq!(catalog.skills().len(), 2);
     let active = skill_host
-        .activate(catalog.find_uri(ROOT_URI).unwrap())
+        .activate(
+            catalog.find_uri(ROOT_URI).unwrap(),
+            McpSkillActivationAttempt::generate(),
+        )
         .await
         .unwrap();
     assert_eq!(active.identity().origin().as_str(), "production-docs");
@@ -675,7 +846,10 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
     let (descriptor, guarded) = exercise_bound_tool(Arc::clone(&active)).await;
 
     let nested = active
-        .activate_nested("nested/child/SKILL.md")
+        .activate_nested(
+            "nested/child/SKILL.md",
+            McpSkillActivationAttempt::generate(),
+        )
         .await
         .unwrap();
     assert_eq!(nested.identity().uri(), NESTED_URI);
@@ -687,7 +861,8 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
         assert!(matches!(activations[0].1, McpSkillActivationSource::Direct));
         assert!(matches!(
             &activations[1].1,
-            McpSkillActivationSource::Nested(parent) if parent.uri() == ROOT_URI
+            McpSkillActivationSource::Nested { identity, parent_window_id }
+                if identity.uri() == ROOT_URI && *parent_window_id == active.acting_window().window_id()
         ));
     }
     assert_tool_policy_calls(&policy, &descriptor, &guarded);
@@ -723,6 +898,58 @@ async fn static_host_is_lazy_content_bound_origin_scoped_and_freshly_authorized(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn durable_window_resumes_after_host_restart_and_revocation_fails_closed() {
+    let (endpoint, server) = start_server(vec![
+        discovery(),
+        get_result(&root_entry()),
+        text_resource(ROOT_URI, ROOT_SKILL),
+        text_resource(ROOT_URI, ROOT_SKILL),
+    ])
+    .await;
+    let client = connect(endpoint, McpClientOptions::for_skills()).await;
+    let policy = Arc::new(RecordingPolicy::default());
+    let store = Arc::new(MemoryActivationStore::default());
+    let first_host = host_with_store(
+        client.clone(),
+        policy.clone(),
+        Arc::clone(&store) as Arc<dyn SkillActivationStore>,
+    );
+    let active = first_host
+        .activate_uri(ROOT_URI, McpSkillActivationAttempt::generate())
+        .await
+        .unwrap();
+    let entry = active.entry().clone();
+    let window_id = active.acting_window().window_id();
+    drop(active);
+
+    let restarted_host = host_with_store(
+        client,
+        policy,
+        Arc::clone(&store) as Arc<dyn SkillActivationStore>,
+    );
+    let resumed = restarted_host.resume(&entry, window_id).await.unwrap();
+    assert_eq!(resumed.acting_window().window_id(), window_id);
+    let first_revocation = resumed
+        .revoke(SkillActingWindowRevocationReason::User)
+        .await
+        .unwrap();
+    let retry_revocation = resumed
+        .revoke(SkillActingWindowRevocationReason::User)
+        .await
+        .unwrap();
+    assert_eq!(first_revocation, retry_revocation);
+    assert!(matches!(
+        resumed.authorize_tool_call("deploy", true).await,
+        Err(McpSkillHostError::ActingWindowInactive)
+    ));
+    assert!(matches!(
+        restarted_host.resume(&entry, window_id).await,
+        Err(McpSkillHostError::ActingWindowInactive)
+    ));
+    assert_eq!(server.await.unwrap().len(), 4);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn denial_happens_before_any_skill_file_read() {
     let (endpoint, server) = start_server(vec![discovery(), get_result(&root_entry())]).await;
     let skill_host = host(
@@ -730,7 +957,9 @@ async fn denial_happens_before_any_skill_file_read() {
         Arc::new(DenyActivation),
     );
     assert!(matches!(
-        skill_host.activate_uri(ROOT_URI).await,
+        skill_host
+            .activate_uri(ROOT_URI, McpSkillActivationAttempt::generate())
+            .await,
         Err(McpSkillHostError::ActivationDenied)
     ));
     let requests = server.await.unwrap();
@@ -750,7 +979,12 @@ async fn bound_tool_denial_fails_before_provider_execution() {
         connect(endpoint, McpClientOptions::for_skills()).await,
         Arc::new(DenyToolExecution),
     );
-    let active = Arc::new(skill_host.activate_uri(ROOT_URI).await.unwrap());
+    let active = Arc::new(
+        skill_host
+            .activate_uri(ROOT_URI, McpSkillActivationAttempt::generate())
+            .await
+            .unwrap(),
+    );
     let descriptor = tool_descriptor();
     let provider = Arc::new(CountingTool::new(descriptor.clone()));
     let guarded = McpSkillBoundTool::new(
@@ -783,7 +1017,12 @@ async fn bound_tool_requires_durable_receipt_before_provider_execution() {
         connect(endpoint, McpClientOptions::for_skills()).await,
         Arc::new(RecordingPolicy::default()),
     );
-    let active = Arc::new(skill_host.activate_uri(ROOT_URI).await.unwrap());
+    let active = Arc::new(
+        skill_host
+            .activate_uri(ROOT_URI, McpSkillActivationAttempt::generate())
+            .await
+            .unwrap(),
+    );
     let descriptor = tool_descriptor();
     let provider = Arc::new(CountingTool::new(descriptor.clone()));
     let guarded = McpSkillBoundTool::new(
@@ -825,7 +1064,9 @@ async fn resource_digest_mismatch_fails_closed() {
         Arc::new(RecordingPolicy::default()),
     );
     assert!(matches!(
-        skill_host.activate_uri(ROOT_URI).await,
+        skill_host
+            .activate_uri(ROOT_URI, McpSkillActivationAttempt::generate())
+            .await,
         Err(McpSkillHostError::ResourceVerificationFailed)
     ));
     assert_eq!(server.await.unwrap().len(), 3);
@@ -847,7 +1088,9 @@ async fn verified_skill_document_must_match_advertised_frontmatter() {
         Arc::new(RecordingPolicy::default()),
     );
     assert!(matches!(
-        skill_host.activate_uri(ROOT_URI).await,
+        skill_host
+            .activate_uri(ROOT_URI, McpSkillActivationAttempt::generate())
+            .await,
         Err(McpSkillHostError::FrontmatterVerificationFailed)
     ));
     assert_eq!(server.await.unwrap().len(), 3);
@@ -861,7 +1104,13 @@ async fn ordinary_client_does_not_advertise_or_host_skills() {
         McpSkillHost::new(
             client,
             McpSkillOrigin::new("production-docs").unwrap(),
+            stateknot_core::SkillActivationScope::new(
+                TenantId::new("tenant-mcp-skills").unwrap(),
+                RUN_ID.parse().unwrap(),
+                THREAD_ID.parse().unwrap(),
+            ),
             Arc::new(DenyActivation),
+            Arc::new(MemoryActivationStore::default()),
             McpSkillHostOptions::default()
         ),
         Err(McpSkillHostError::TransportProfileTooSmall)

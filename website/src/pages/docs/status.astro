@@ -159,7 +159,7 @@ const capabilities = [
     state: "Implemented",
     className: "status-implemented",
     title: "MCP Skills profiles",
-    body: "Final SEP-2640 static Server and Client/Host profiles: immutable exact-byte manifests, authorization-first disclosure, bounded verification and origin-scoped activation. Exact-version Tool adapters now require version-pinned grant evidence and commit payload-redacted schema-25 authorization receipts before execution or recovery provider I/O while preserving the ordinary durable attempt ledger.",
+    body: "Final SEP-2640 static Server and Client/Host profiles: immutable exact-byte manifests, authorization-first disclosure and bounded verification. Schema 26 persists exact run-scoped activation approvals and database-clock acting windows with retry-stable IDs, restart resume, nested parent locking and immutable revocation. Exact-version Tool adapters serialize fresh payload-redacted receipt commits against revocation before provider I/O; later revocation does not recall an authorization already committed.",
   },
   {
     state: "Implemented",
@@ -201,7 +201,7 @@ const capabilities = [
     state: "Not shipped",
     className: "status-planned",
     title: "MCP client extensions and A2A qualification",
-    body: "Dynamic MCP Skills manifests, persisted activation approval/acting windows, disk materialization and automatic discovery-to-Agent composition; MCP Tasks and other client extensions; stable SDK-tier evidence; A2A Client live-peer/conformance and recovery-attestation qualification; and A2A gRPC remain unshipped. Per-operation Skill Tool authorization receipts are implemented separately.",
+    body: "Dynamic MCP Skills manifests, Skill-byte disk materialization and automatic discovery-to-Agent composition; MCP Tasks and other client extensions; stable SDK-tier evidence; A2A Client live-peer/conformance and recovery-attestation qualification; and A2A gRPC remain unshipped. Activation/window metadata and per-operation authorization receipts are durable.",
   },
   {
     state: "Not shipped",
@@ -268,8 +268,8 @@ const capabilities = [
       publication, multipart ingestion, authorization-first reads, and full
       digest verification all have executable PostgreSQL and object-store
       evidence. Official Client/live-peer and recovery-attestation
-      qualification, dynamic/persisted MCP Skills, MCP Tasks, and other client
-      extensions remain separate gates.
+      qualification, dynamic MCP Skills, Skill-byte materialization, MCP Tasks,
+      and other client extensions remain separate gates.
     </p>
   </section>
 

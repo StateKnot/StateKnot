@@ -306,9 +306,9 @@ from the repository.
   opt-in, complete bounded manifest/frontmatter validation, host-assigned
   origin, approval-before-read, exact content verification, isolated immutable
   on-demand memory cache, acting-window entry retention, fresh nested consent,
-  lifetime-bound per-call execution permits, safe restart expiry, and
+  lifetime-bound per-call execution permits, fail-closed restart expiry, and
   adversarial loopback qualification. Keep dynamic manifests, remote directory
-  reads, persisted activation approval/acting windows, disk materialization, signatures, and automatic
+  reads, disk materialization, signatures, and automatic
   discovery-to-Agent composition open as separate work.
 - [x] Integrate active MCP Skills with the ordinary Tool runtime through
   `McpSkillBoundTool`: freeze exact owner/name/version plus a domain-separated
@@ -324,7 +324,18 @@ from the repository.
   digests, store only payload-redacted canonical bytes in immutable PostgreSQL
   schema 25, support exact idempotent load and bounded audit pagination, and
   fail closed before dispatch when durable evidence is unavailable or rejected.
-  Keep activation approval and acting-window persistence as separate open work.
+  The receipt remains authorization evidence rather than dispatch evidence.
+- [x] Persist MCP Skill activation approvals and acting windows: bind exact
+  tenant/run/thread, origin, URI, complete Manifest digest, direct/nested source,
+  version-pinned policy evidence and a one-second-to-24-hour lifetime; require
+  caller-retained retry IDs, database-clock immutable PostgreSQL schema 26,
+  exact restart resume, parent-window locking, immutable idempotent revocation,
+  and transaction-level active-window advisory serialization between fresh Tool
+  receipt commits and revocation before provider I/O, without granting
+  immutable-row updates. Later revocation cannot recall an already committed
+  authorization.
+  Remote Skill bytes remain process-local and are re-fetched and verified on
+  resume; disk installation and signature/provenance trust remain open.
 - [x] Implement the A2A 1.0 Server profile with StateKnot-owned bounded Agent
   Card/message/task/artifact/push contracts, HTTP+JSON and JSON-RPC bindings,
   SSE send/subscription streams, authentication-before-parsing,
@@ -421,7 +432,7 @@ from the repository.
   a retained old worker after real lease expiry/higher-epoch takeover. Other pre-/in-commit kills,
   arbitrary uncertain direct-effect recovery and full-profile/process-kill/role/
   capacity qualification remain gated; the RFC remains Draft.
-- [x] Ship the schema-25 [trusted-server SQL role profile](postgresql-roles.md):
+- [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):
   non-superuser migration ownership, runtime column grants and separate reservation
   retention credentials; effective ACL/default/membership audit, rollback, real
   role-separated durable recovery and concurrent submission/completion evidence.

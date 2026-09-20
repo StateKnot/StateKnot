@@ -21,6 +21,17 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Durable MCP Skill activation approvals and acting windows. Activation now
+  binds exact tenant/run/thread scope, host origin, URI, complete Manifest,
+  direct/nested source and version-pinned policy evidence to caller-retained
+  idempotency IDs and a bounded lifetime. PostgreSQL schema 26 commits immutable
+  approval/window rows at database time, supports exact restart resume, records
+  immutable idempotent revocation, validates nested parent authority, and
+  serializes fresh per-operation receipt commits against revocation before
+  provider I/O. A receipt committed first remains authorized and idempotent;
+  revocation ordered first blocks a new receipt. Remote Skill bytes remain
+  process-local and are reverified.
+
 - Durable per-operation MCP Skill Tool authorization receipts. Policy now
   returns version-pinned grant identity plus policy/decision digests;
   `McpSkillBoundTool` requires a durable sink and commits payload-redacted
@@ -48,7 +59,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   lifetime-bound per-call execution permits. Loopback adversarial tests cover
   denial-before-read, digest and frontmatter drift, cache behavior, metadata,
   nested activation and ordinary-client non-advertisement. Dynamic manifests,
-  persisted activation approval/acting windows, disk materialization, signatures and automatic
+  disk materialization, signatures and automatic
   discovery-to-Agent composition remain explicitly unclaimed.
 
 - Final SEP-2640 MCP Skills static Server Profile with explicit
@@ -184,7 +195,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   not expose general Worker execution or artifact reconciliation; known errors
   use the separate profile above.
 
-- Executable PostgreSQL 16/17 schema-25 trusted-server role profile separating
+- Executable PostgreSQL 16/17 schema-26 trusted-server role profile separating
   non-superuser migration ownership, column-scoped runtime writes and dedicated
   fairness-reservation retention. Includes atomic apply/read-only effective ACL
   audit, drift/default/membership/forbidden-SQL checks, actual role-separated
@@ -193,7 +204,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   Run/advisory serialization, so append-only grants actually work. Bilingual
   deployment/rotation/incident guidance defines the trusted-account boundary;
   untrusted-worker SQL/service isolation and full failure-matrix qualification
-  remain gated. Schema 25 adds the immutable Tool authorization receipt ledger;
+  remain gated. Schema 25 added the immutable Tool authorization receipt ledger;
   no dependency or lockfile change is required.
 
 - Failure-close source COMMIT-loss and expired-fence qualification: a bounded,

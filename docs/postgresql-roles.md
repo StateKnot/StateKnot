@@ -5,7 +5,7 @@
 [简体中文](postgresql-roles.zh-CN.md)
 
 `trusted-server-roles-v1` is an executable least-privilege deployment profile for
-the **trusted server-side** PostgreSQL 16/17 provider at schema 25. It separates
+the **trusted server-side** PostgreSQL 16/17 provider at schema 26. It separates
 migration, application runtime and fairness-reservation retention credentials.
 For effect-free remote computation, the separate
 [MCP compute Worker profile](mcp-compute-worker.md) transmits no database

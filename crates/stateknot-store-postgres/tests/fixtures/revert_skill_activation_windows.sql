@@ -1,0 +1,13 @@
+DROP TRIGGER skill_acting_window_revocations_immutable ON stateknot.skill_acting_window_revocations;
+DROP TRIGGER skill_acting_windows_immutable ON stateknot.skill_acting_windows;
+DROP TRIGGER skill_activation_approvals_immutable ON stateknot.skill_activation_approvals;
+DROP FUNCTION stateknot.reject_skill_authorization_mutation();
+DROP INDEX stateknot.tool_authorization_receipts_window_history;
+ALTER TABLE stateknot.tool_authorization_receipts DROP CONSTRAINT tool_authorization_receipts_window_uuid_v7;
+ALTER TABLE stateknot.tool_authorization_receipts DROP CONSTRAINT tool_authorization_receipts_window_fk;
+ALTER TABLE stateknot.tool_authorization_receipts DROP COLUMN authorization_window_id;
+DROP TABLE stateknot.skill_acting_window_revocations;
+ALTER TABLE stateknot.skill_activation_approvals DROP CONSTRAINT skill_activation_approvals_parent_window_fk;
+DROP TABLE stateknot.skill_acting_windows;
+DROP TABLE stateknot.skill_activation_approvals;
+DELETE FROM _sqlx_migrations WHERE version=26;

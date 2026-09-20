@@ -33,6 +33,7 @@ SELECT
     subject_digest,
     policy_digest,
     decision_digest,
+    authorization_window_id,
     receipt_digest,
     has_recovery_handle,
     authorized_at,
@@ -81,6 +82,7 @@ SELECT
     subject_digest,
     policy_digest,
     decision_digest,
+    authorization_window_id,
     receipt_digest,
     has_recovery_handle,
     authorized_at,
@@ -222,6 +224,8 @@ impl PostgresStore {
             return Ok(ToolAuthorizationReceiptOutcome::Idempotent);
         }
 
+        super::skill_activation_windows::validate_receipt_window(&mut transaction, &receipt)
+            .await?;
         let boundary =
             query_as::<_, ToolAuthorizationBoundaryRow>(SELECT_INVOCATION_AUTHORIZATION_BOUNDARY)
                 .bind(provenance.tenant_id().as_str())
@@ -249,13 +253,14 @@ INSERT INTO stateknot.tool_authorization_receipts (
     subject_digest,
     policy_digest,
     decision_digest,
+    authorization_window_id,
     receipt_digest,
     has_recovery_handle,
     authorized_at,
     receipt_bytes
 )
 VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
 )
 ON CONFLICT (tenant_id, receipt_id) DO NOTHING
 ",
@@ -273,6 +278,7 @@ ON CONFLICT (tenant_id, receipt_id) DO NOTHING
         .bind(receipt.subject_digest().as_bytes())
         .bind(receipt.policy_digest().as_bytes())
         .bind(receipt.decision_digest().as_bytes())
+        .bind(receipt.authorization_window_id().map(|id| *id.as_uuid()))
         .bind(receipt.receipt_digest().as_bytes())
         .bind(receipt.has_recovery_handle())
         .bind(to_database_time(receipt.authorized_at())?)
@@ -561,6 +567,7 @@ fn decode_receipt(
             != receipt.policy_digest()
         || decode_digest(&row.decision_digest, "Tool authorization decision digest")?
             != receipt.decision_digest()
+        || row.authorization_window_id != receipt.authorization_window_id().map(|id| *id.as_uuid())
         || decode_digest(&row.receipt_digest, "Tool authorization receipt digest")?
             != receipt.receipt_digest()
         || decode_digest(
@@ -590,6 +597,7 @@ const fn operation_text(operation: ToolAuthorizationOperation) -> Option<&'stati
 fn map_receipt_insert_error(source: sqlx_core::Error) -> StoreError {
     if has_database_constraint(&source, "tool_authorization_receipts_run_thread_fk")
         || has_database_constraint(&source, "tool_authorization_receipts_attempt_event_fk")
+        || has_database_constraint(&source, "tool_authorization_receipts_window_fk")
     {
         StoreError::ToolAuthorizationReceiptNotFound
     } else if has_database_constraint(&source, "tool_authorization_receipts_ids_are_uuid_v7")
@@ -597,6 +605,7 @@ fn map_receipt_insert_error(source: sqlx_core::Error) -> StoreError {
         || has_database_constraint(&source, "tool_authorization_receipts_digest_lengths")
         || has_database_constraint(&source, "tool_authorization_receipts_bytes_bounded")
         || has_database_constraint(&source, "tool_authorization_receipts_clock_valid")
+        || has_database_constraint(&source, "tool_authorization_receipts_window_uuid_v7")
     {
         StoreError::InvalidToolAuthorizationReceipt
     } else {
@@ -638,6 +647,7 @@ struct ToolAuthorizationReceiptRow {
     subject_digest: Vec<u8>,
     policy_digest: Vec<u8>,
     decision_digest: Vec<u8>,
+    authorization_window_id: Option<Uuid>,
     receipt_digest: Vec<u8>,
     has_recovery_handle: bool,
     authorized_at: DateTime<Utc>,
@@ -662,6 +672,7 @@ impl<'row> FromRow<'row, PgRow> for ToolAuthorizationReceiptRow {
             subject_digest: row.try_get("subject_digest")?,
             policy_digest: row.try_get("policy_digest")?,
             decision_digest: row.try_get("decision_digest")?,
+            authorization_window_id: row.try_get("authorization_window_id")?,
             receipt_digest: row.try_get("receipt_digest")?,
             has_recovery_handle: row.try_get("has_recovery_handle")?,
             authorized_at: row.try_get("authorized_at")?,

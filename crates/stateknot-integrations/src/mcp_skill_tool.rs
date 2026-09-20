@@ -11,7 +11,6 @@
 
 use std::{fmt, sync::Arc};
 
-use serde::Serialize;
 use stateknot_core::{
     AttemptId, AuthorizationReceiptId, CapabilityIdentity, Digest, DurationMillis, ErasedTool,
     EventId, Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
@@ -25,8 +24,6 @@ use stateknot_core::{
 use thiserror::Error;
 
 use crate::{McpActivatedSkill, McpSkillExecutionPermit, McpSkillHostError};
-
-const SKILL_SUBJECT_DOMAIN: &[u8] = b"stateknot.mcp-skill-tool-subject.v1\0";
 
 /// Provider operation covered by one Skill policy decision.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -415,7 +412,7 @@ async fn persist_authorization_receipt(
     let origin_event_id = invocation
         .origin_event_id()
         .ok_or(GateFailure::MissingDurableOrigin)?;
-    let subject_digest = skill_subject_digest(permit, binding)?;
+    let subject_digest = permit.acting_window().approval().subject().subject_digest();
     let input_digest = ToolAuthorizationReceipt::digest_input(invocation.input())
         .map_err(|_| GateFailure::ReceiptEncoding)?;
     let grant = permit.grant();
@@ -444,46 +441,9 @@ async fn persist_authorization_receipt(
         authorized_at,
         invocation.has_recovery_handle(),
     )
+    .and_then(|receipt| receipt.with_authorization_window(permit.acting_window().window_id()))
     .map_err(|_| GateFailure::ReceiptEncoding)?;
     sink.record(receipt).await.map_err(GateFailure::ReceiptSink)
-}
-
-fn skill_subject_digest(
-    permit: &McpSkillExecutionPermit<'_>,
-    binding: &McpSkillToolBinding,
-) -> Result<Digest, GateFailure> {
-    #[derive(Serialize)]
-    struct Subject<'a> {
-        origin: &'a str,
-        skill_uri: &'a str,
-        manifest_digest: &'a str,
-        activation_id: u64,
-        tool_name: &'a str,
-        tool_identity: &'a CapabilityIdentity,
-        descriptor_digest: Digest,
-        host_code_execution: bool,
-    }
-
-    let canonical = serde_json_canonicalizer::to_vec(&Subject {
-        origin: permit.identity().origin().as_str(),
-        skill_uri: permit.identity().uri(),
-        manifest_digest: permit.manifest_digest(),
-        activation_id: permit.activation_id(),
-        tool_name: binding.tool_name(),
-        tool_identity: binding.identity(),
-        descriptor_digest: binding.descriptor_digest(),
-        host_code_execution: binding.host_code_execution(),
-    })
-    .map_err(|_| GateFailure::ReceiptEncoding)?;
-    let mut preimage = Vec::with_capacity(SKILL_SUBJECT_DOMAIN.len() + 8 + canonical.len());
-    preimage.extend_from_slice(SKILL_SUBJECT_DOMAIN);
-    preimage.extend_from_slice(
-        &u64::try_from(canonical.len())
-            .expect("Skill authorization subject length fits u64")
-            .to_be_bytes(),
-    );
-    preimage.extend_from_slice(&canonical);
-    Ok(Digest::sha256(preimage))
 }
 
 #[derive(Debug, Error)]

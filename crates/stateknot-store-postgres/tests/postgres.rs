@@ -43,12 +43,15 @@ use stateknot_core::{
     PendingNodeResultIntent, PrincipalIdentity, QuarantineId, ReadyNodeRecoveryPlanner, ReadyNodes,
     RecoveryNodeKind, RetentionClass, RetryAdvice, RunCancellationRequest, RunFailure, RunId,
     RunInterruptKind, RunStatus, RunTimerKind, RunTransition, SchedulerReservationId,
-    SchedulerShardId, SchemaId, SchemaReference, Scope, ScopeSet, SecurityLabel, SubjectId,
-    Superstep, TenantId, ThreadId, TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp,
-    ToolArtifacts, ToolAuthorizationOperation, ToolAuthorizationProvenance,
-    ToolAuthorizationReceipt, ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance,
-    ToolExternalEffect, ToolInput, ToolInvocation, ToolInvocationIntent, ToolInvocationStatus,
-    ToolInvocationTransition, ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
+    SchedulerShardId, SchemaId, SchemaReference, Scope, ScopeSet, SecurityLabel,
+    SkillActingWindowDuration, SkillActingWindowOpenRequest, SkillActingWindowRevocationReason,
+    SkillActivationApproval, SkillActivationApprovalId, SkillActivationScope,
+    SkillActivationSource, SkillAuthorizationSubject, SubjectId, Superstep, TenantId, ThreadId,
+    TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts,
+    ToolAuthorizationOperation, ToolAuthorizationProvenance, ToolAuthorizationReceipt,
+    ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput,
+    ToolInvocation, ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition,
+    ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
@@ -385,6 +388,7 @@ async fn remove_artifact_registry(pool: &PgPool) {
 
 async fn remove_child_run_cancellation(pool: &PgPool) {
     for sql in [
+        include_str!("fixtures/revert_skill_activation_windows.sql"),
         include_str!("fixtures/revert_tool_authorization_receipts.sql"),
         include_str!("fixtures/revert_run_failure_closes.sql"),
         include_str!("fixtures/revert_agent_deadlines.sql"),
@@ -3895,6 +3899,22 @@ fn tool_authorization_receipt(
     receipt_id: AuthorizationReceiptId,
     decision_evidence: &[u8],
 ) -> ToolAuthorizationReceipt {
+    tool_authorization_receipt_for_subject(
+        outcome,
+        thread_id,
+        receipt_id,
+        decision_evidence,
+        Digest::sha256(b"MCP Skill subject fixture"),
+    )
+}
+
+fn tool_authorization_receipt_for_subject(
+    outcome: &ToolInvocationCommitOutcome,
+    thread_id: ThreadId,
+    receipt_id: AuthorizationReceiptId,
+    decision_evidence: &[u8],
+    subject_digest: Digest,
+) -> ToolAuthorizationReceipt {
     let invocation = outcome.invocation();
     let descriptor = invocation.intent().descriptor();
     ToolAuthorizationReceipt::new(
@@ -3911,12 +3931,37 @@ fn tool_authorization_receipt(
         descriptor.metadata().identity().clone(),
         ToolAuthorizationReceipt::digest_descriptor(descriptor).unwrap(),
         ToolAuthorizationReceipt::digest_input(invocation.intent().input()).unwrap(),
-        Digest::sha256(b"MCP Skill subject fixture"),
+        subject_digest,
         descriptor.metadata().identity().clone(),
         Digest::sha256(b"policy artifact fixture"),
         Digest::sha256(decision_evidence),
         outcome.event().recorded_at(),
         false,
+    )
+    .unwrap()
+}
+
+fn skill_activation_approval(
+    tenant_id: TenantId,
+    run_id: RunId,
+    thread_id: ThreadId,
+    policy: CapabilityIdentity,
+) -> SkillActivationApproval {
+    SkillActivationApproval::new(
+        SkillActivationApprovalId::generate(),
+        SkillActivationScope::new(tenant_id, run_id, thread_id),
+        SkillAuthorizationSubject::new(
+            "mcp",
+            "production-test",
+            "skill://receipt-test/SKILL.md",
+            Digest::sha256(b"complete static manifest"),
+        )
+        .unwrap(),
+        SkillActivationSource::Direct,
+        policy,
+        Digest::sha256(b"activation policy artifact"),
+        Digest::sha256(b"activation decision evidence"),
+        SkillActingWindowDuration::new(DurationMillis::new(60_000).unwrap()).unwrap(),
     )
     .unwrap()
 }
@@ -4080,6 +4125,85 @@ async fn tool_authorization_receipts_are_exact_immutable_and_page_verifiable() {
     ids.insert(final_page.records()[0].receipt().receipt_id());
     assert_eq!(ids, BTreeSet::from([receipt_id, second.receipt_id()]));
 
+    let approval = skill_activation_approval(
+        tenant_id.clone(),
+        run_id,
+        thread_id,
+        receipt.policy().clone(),
+    );
+    let open = SkillActingWindowOpenRequest::new(
+        stateknot_core::SkillActingWindowId::generate(),
+        approval.clone(),
+    );
+    let window = store.open_skill_acting_window(open.clone()).await.unwrap();
+    assert_eq!(window.approval(), &approval);
+    assert_eq!(store.open_skill_acting_window(open).await.unwrap(), window);
+    assert!(matches!(
+        store
+            .open_skill_acting_window(SkillActingWindowOpenRequest::new(
+                stateknot_core::SkillActingWindowId::generate(),
+                approval.clone(),
+            ))
+            .await,
+        Err(StoreError::SkillActivationConflict)
+    ));
+    assert_eq!(
+        store
+            .load_active_skill_acting_window(&tenant_id, window.window_id())
+            .await
+            .unwrap(),
+        window
+    );
+    let window_receipt = tool_authorization_receipt_for_subject(
+        &executing,
+        thread_id,
+        AuthorizationReceiptId::generate(),
+        b"window decision evidence",
+        approval.subject().subject_digest(),
+    )
+    .with_authorization_window(window.window_id())
+    .unwrap();
+    assert_eq!(
+        store
+            .record_tool_authorization_receipt(window_receipt.clone())
+            .await
+            .unwrap(),
+        ToolAuthorizationReceiptOutcome::Recorded
+    );
+    let revocation = store
+        .revoke_skill_acting_window(&window, SkillActingWindowRevocationReason::Policy)
+        .await
+        .unwrap();
+    assert_eq!(revocation.window_id(), window.window_id());
+    assert!(matches!(
+        store
+            .load_active_skill_acting_window(&tenant_id, window.window_id())
+            .await,
+        Err(StoreError::SkillActingWindowInactive)
+    ));
+    assert_eq!(
+        store
+            .record_tool_authorization_receipt(window_receipt.clone())
+            .await
+            .unwrap(),
+        ToolAuthorizationReceiptOutcome::Idempotent
+    );
+    let rejected_after_revoke = tool_authorization_receipt_for_subject(
+        &executing,
+        thread_id,
+        AuthorizationReceiptId::generate(),
+        b"after revocation",
+        approval.subject().subject_digest(),
+    )
+    .with_authorization_window(window.window_id())
+    .unwrap();
+    assert!(matches!(
+        store
+            .record_tool_authorization_receipt(rejected_after_revoke)
+            .await,
+        Err(StoreError::SkillActingWindowInactive)
+    ));
+
     let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
     let administration = PgPoolOptions::new()
         .max_connections(1)
@@ -4094,6 +4218,28 @@ async fn tool_authorization_receipts_are_exact_immutable_and_page_verifiable() {
         .bind(tenant_id.as_str())
         .bind(*receipt_id.as_uuid())
         .bind(Digest::sha256(b"mutation").as_bytes())
+        .execute(&administration)
+        .await
+        .is_err()
+    );
+    assert!(
+        query(
+            "UPDATE stateknot.skill_acting_windows SET expires_at=clock_timestamp() \
+             WHERE tenant_id=$1 AND window_id=$2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*window.window_id().as_uuid())
+        .execute(&administration)
+        .await
+        .is_err()
+    );
+    assert!(
+        query(
+            "DELETE FROM stateknot.skill_acting_window_revocations \
+             WHERE tenant_id=$1 AND window_id=$2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*window.window_id().as_uuid())
         .execute(&administration)
         .await
         .is_err()

@@ -9,8 +9,8 @@ SPDX-License-Identifier: Apache-2.0
 > 尚不稳定。<br>
 > Extension：Final SEP-2640，`io.modelcontextprotocol/skills`。<br>
 > 基础协议：MCP `2026-07-28`。<br>
-> 明确边界：Dynamic Manifest、远端 Directory Read、持久化 Activation Approval／
-> Acting Window、磁盘物化、签名与自动 Discovery-to-Agent 组合尚未实现，也不做支持声明。
+> 明确边界：Dynamic Manifest、远端 Directory Read、磁盘物化、签名与自动
+> Discovery-to-Agent 组合尚未实现，也不做支持声明。
 
 StateKnot 可以发现并激活远端静态 Agent Skill，同时不把文件或 Frontmatter 变成权限。
 Client 先校验 Final SEP-2640 Wire Contract；Host 再分配本地 Origin，要求应用 Policy
@@ -34,14 +34,16 @@ Size 与 SHA-256，并在完整 Acting Window 内保留已批准的 Entry。
 4. Skill 身份是 `(Host 分配的 Origin, 精确 Skill URI)`；Name 与 Server 自报信息
    永远不能充当身份。
 5. `McpSkillHostPolicy::approve_activation` 会在读取任何 Skill 文件之前收到精确
-   Entry、完整 Manifest Binding Digest、Origin、Source、Description 与不可信的
-   `allowed-tools` 请求；只有新的审批成功后才继续。
+   Entry、完整 Manifest Binding Digest、持久 Run Scope、由调用方保留的审批/窗口
+   ID、Origin、Source、Description 与不可信的 `allowed-tools` 请求；Policy 返回
+   固定版本证据与 1 秒到 24 小时之间的严格有界窗口时长。
 6. 从同一个 MCP Client 延迟读取 `SKILL.md`，校验 URI、Byte Size 与 Digest，解析
    严格且无重复 Key 的 Frontmatter，并要求它与已审批 Entry 逐字段一致。
-7. `McpActivatedSkill` 在 Acting Window 内持续持有 Entry。文件读取只能命中这份
-   完整 Manifest；Directory View 在本地推导，因此 Server 不能在审批后添加文件。
-8. Nested `SKILL.md` 属于新的 Activation：它必须先列在 Parent Manifest 中，并且
-   需要一次独立的新审批。
+7. 内容校验通过后，通过 `SkillActivationStore` 原子提交精确 Approval 与 Acting
+   Window。PostgreSQL Schema 26 使用数据库时钟、不可变 Approval/Window Row、首个
+   不可变 Revocation Event 与精确重试 ID。远端读取前后都会复核窗口状态。
+8. Nested `SKILL.md` 属于新的 Activation：它必须先列在 Parent Manifest 中；提交
+   新审批时会锁定并证明同一 Run Scope 内的 Parent Window 仍然有效。
 9. 使用 `McpSkillBoundTool` 把已激活 Skill 绑定到精确的 Tool Owner/Name/Version
    与完整 Descriptor 的规范 Digest；Host 必须显式声明该 Tool 是否可能在本机执行代码。
 10. 每次执行与恢复核对 Provider Call 前都重新经过 Policy。请求会区分两种 Operation，
@@ -51,9 +53,13 @@ Size 与 SHA-256，并在完整 Acting Window 内保留已批准的 Entry。
 11. Policy 必须返回精确的 Owner/Name/Version Policy Identity、不可变 Policy
     Artifact Digest 与 Decision Evidence Digest。任何 Provider I/O 前，都必须通过
     强制配置的 Durable Sink 写入不含 Payload 的 `ToolAuthorizationReceipt`。Schema 25
-    把不可变凭证绑定到精确 Tenant/Run/Thread/Invocation/Attempt/Origin Event、Tool
+    引入不可变凭证，Schema 26 再把它绑定到有效 Window 与精确
+    Tenant/Run/Thread/Invocation/Attempt/Origin Event、Tool
     Descriptor、Input Digest、Operation、Policy 与数据库提交时间。Sink 不可用时在
     Dispatch 前返回可安全延迟重试的失败；证据被拒绝或越界则失败关闭且不重试。
+    Schema 26 还会在与撤销相同的事务级 Advisory Lock 下，把每个新 Receipt 绑定到
+    未过期、未撤销的精确 Window，且无需授予不可变 Row 更新权限。先排序的撤销会拒绝
+    新 Receipt；先提交的 Receipt 仍保持幂等和已授权，但不构成 Dispatch 或外部副作用证据。
 12. 向普通不可变 `ToolProviderRegistryBuilder` 注册 Guarded Adapter，而不是原始
     Provider；持久执行的 Attempt-start、Terminal Evidence、Retry 与 Reconciliation
     语义保持不变。
@@ -72,7 +78,9 @@ let client = McpClient::connect(
 let host = McpSkillHost::new(
     client,
     McpSkillOrigin::new("production/orders-mcp")?,
+    SkillActivationScope::new(tenant_id, run_id, thread_id),
     Arc::new(application_skill_policy),
+    Arc::new(postgres_store.clone()), // Approval/Window Authority
     McpSkillHostOptions::default(),
 )?;
 
@@ -80,7 +88,8 @@ let catalog = host.list_skills().await?; // 只取 Metadata，不预取文件
 let selected = catalog
     .find_uri("skill://incident-review/SKILL.md")
     .ok_or(AppError::SkillUnavailable)?;
-let active = Arc::new(host.activate(selected).await?); // 新审批，然后校验内容
+let activation = McpSkillActivationAttempt::generate(); // 跨重试保留
+let active = Arc::new(host.activate(selected, activation).await?);
 
 // 所有 Model-visible Message 都要把 identity 与 bytes 一起保留。
 let file = active.read_file("references/checklist.md").await?;
@@ -97,32 +106,39 @@ tool_registry.register(guarded)?;
 
 // 普通持久执行器现在会对每次调用和恢复核对执行授权。
 let tools = tool_registry.build();
+
+// 重启后的 Host 只能恢复这份仍有效的精确内容绑定。
+let restored = host.resume(selected, activation.window_id()).await?;
+restored.revoke(SkillActingWindowRevocationReason::User).await?;
 ```
 
 应用 Policy 是用户/策略交互边界。生产实现应展示 Host 分配的 Origin、精确 URI、
 Manifest Digest、文件数与 Byte 数、Description、Activation Source、请求的 Tool、
 精确 Registered Tool Identity 与 Descriptor Digest、Operation 和 Host-code Exposure；
 同时展示持久执行关联与精确参数；把决定绑定到这些事实，只记录不泄露敏感信息的
-Audit Evidence，返回固定版本的 `McpSkillToolAuthorizationGrant`，并在 Policy
-Authority 不可用时拒绝。禁止只按 Skill Name 或
+Audit Evidence；Activation 返回固定版本的 `McpSkillActivationGrant`，每次 Tool
+Operation 返回 `McpSkillToolAuthorizationGrant`，并在 Policy Authority 不可用时
+拒绝。禁止只按 Skill Name 或
 `allowed-tools` 字符串自动批准，也禁止在没有应用层脱敏的情况下记录
 `McpSkillToolInvocation::input()`。
 
-## Cache 与重启行为
+## Cache、重启与撤销行为
 
 已校验文件可以进入私有且不可变的进程内存 Cache；Key 精确绑定 Client Binding、Host
 分配的 Origin、Resource URI 与 Digest，并强制 Entry/Byte Ceiling。Cache 满时会跳过
 写入，不会通过驱逐或降低校验强度来腾出空间。Cache 中的 `Arc<[u8]>` 不可变，因此
 命中时仍沿用首次校验的精确结果。
 
-StateKnot 不会把远端 Skill Byte 写入文件系统 Skill Discovery Path，也不会持久化
-Activation Approval 或 Acting Window；但会在 Provider I/O 前把每次成功的 Bound Tool
-授权保存为不可变且不含 Payload 的凭证。重启后 Client Binding、Acting Window、Permit、
-Activation Approval 与 Memory Cache 全部
-失效；后续 Activation 必须重新发现并审批当前完整 Manifest。这是安全的重启合约，
-不是持久化审批。Worker 只能在全新 Activation 后重建相同的 Guarded Tool Descriptor；
-已经开始的持久 Tool Attempt 仍保留常规 Recovery Ledger，但 Reconciliation 会在
-Provider I/O 前再次执行精确的 Skill Policy 检查。
+StateKnot 不会把远端 Skill Byte 写入文件系统 Skill Discovery Path。Approval Evidence
+与 Acting Window Authority 会持久化，但已校验文件仍只存在于隔离的进程 Cache。重启后，
+调用方从相同 Client Binding 解析 Entry，并用保留的 Window ID 调用 `resume`。恢复要求
+Tenant/Run/Thread、Origin、URI 与 Manifest Digest 完全相同，重新拉取并校验
+`SKILL.md`，最后再次检查窗口；已过期或已撤销的 Window 无法恢复。
+
+撤销是不可变的首个事件；同 Reason 的精确重试会收敛，不同 Reason 的冲突重试会失败。
+敏感文件读取会在远端 I/O 前后检查窗口。Bound Tool 在 Policy 前检查；新的 Receipt
+提交会与撤销串行化，并拒绝已经过期或撤销的 Window。后续撤销不会追回更早提交的授权；
+已提交 Receipt 仍只证明授权，而不证明 Dispatch 或外部副作用。
 
 ## 安全边界
 
@@ -161,8 +177,8 @@ Immutable Registry 兼容、Denial 早于 Provider Dispatch、Receipt 先落库�
 ## 不做声明的能力
 
 - Dynamic Manifest 或 `resources/directory/read`；
-- 持久化 Activation Approval、持久化 Acting Window、Disk Cache 或文件系统 Skill
-  安装（逐次 Tool Authorization Receipt 已持久化，属于更窄的合约）；
+- Disk Cache 或文件系统 Skill 安装（Approval/Window Metadata 与逐次 Tool Receipt
+  已持久化；远端文件 Byte 不会持久化）；
 - Signature Verification、Provenance、Marketplace Trust、恶意内容检测或 Sandbox；
 - Tool 自动发现、`allowed-tools` Pattern 解释或动态 Discovery-to-Agent 组合；
 - Stable Rust API、crates.io Release 或官方 Skills Extension Conformance。

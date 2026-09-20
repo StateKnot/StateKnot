@@ -1,13 +1,13 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//! Verification-first client and ephemeral Host lifecycle for static MCP Skills.
+//! Verification-first client and durable Host authority for static MCP Skills.
 //!
 //! This profile deliberately declines dynamic manifests. It never materializes
 //! remote files into filesystem Skill discovery paths, fetches only on demand,
-//! and obtains fresh content-bound approval for every activation. The retained
-//! entry remains attached to the activation until the acting-window object is
-//! dropped.
+//! and obtains content-bound approval before activation. Approval/window
+//! metadata is mandatory durable authority; remote file bytes remain verified
+//! on demand in a bounded private process cache.
 
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -21,7 +21,13 @@ use std::{
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use serde_json::{Map, Value};
-use stateknot_core::{BoxFuture, CapabilityIdentity, Digest};
+use stateknot_core::{
+    BoxFuture, CapabilityIdentity, Digest, SkillActingWindow, SkillActingWindowDuration,
+    SkillActingWindowId, SkillActingWindowOpenRequest, SkillActingWindowRevocation,
+    SkillActingWindowRevocationReason, SkillActivationApproval, SkillActivationApprovalId,
+    SkillActivationScope, SkillActivationSource, SkillActivationStore, SkillActivationStoreFailure,
+    SkillAuthorizationSubject,
+};
 use thiserror::Error;
 
 use crate::{
@@ -789,7 +795,54 @@ pub enum McpSkillActivationSource {
     /// User or host selected a top-level Skill directly.
     Direct,
     /// An active Skill requested one of its manifest-listed nested Skills.
-    Nested(McpSkillIdentity),
+    Nested {
+        /// Collision-safe identity of the parent Skill.
+        identity: McpSkillIdentity,
+        /// Durable authority window of the parent Skill.
+        parent_window_id: SkillActingWindowId,
+    },
+}
+
+/// Caller-retained idempotency identities for one activation attempt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct McpSkillActivationAttempt {
+    approval_id: SkillActivationApprovalId,
+    window_id: SkillActingWindowId,
+}
+
+impl McpSkillActivationAttempt {
+    /// Generates fresh `UUIDv7` identities which callers retain across retries.
+    #[must_use]
+    pub fn generate() -> Self {
+        Self {
+            approval_id: SkillActivationApprovalId::generate(),
+            window_id: SkillActingWindowId::generate(),
+        }
+    }
+
+    /// Constructs an explicit retry-stable activation attempt.
+    #[must_use]
+    pub const fn new(
+        approval_id: SkillActivationApprovalId,
+        window_id: SkillActingWindowId,
+    ) -> Self {
+        Self {
+            approval_id,
+            window_id,
+        }
+    }
+
+    /// Returns the immutable approval identity.
+    #[must_use]
+    pub const fn approval_id(self) -> SkillActivationApprovalId {
+        self.approval_id
+    }
+
+    /// Returns the durable acting-window identity.
+    #[must_use]
+    pub const fn window_id(self) -> SkillActingWindowId {
+        self.window_id
+    }
 }
 
 /// Owned, content-bound facts presented before a Skill is fetched or activated.
@@ -798,6 +851,8 @@ pub struct McpSkillActivationRequest {
     identity: McpSkillIdentity,
     source: McpSkillActivationSource,
     entry: McpSkillEntry,
+    scope: SkillActivationScope,
+    attempt: McpSkillActivationAttempt,
 }
 
 impl McpSkillActivationRequest {
@@ -819,6 +874,18 @@ impl McpSkillActivationRequest {
         &self.entry
     }
 
+    /// Returns the exact durable run scope receiving authority.
+    #[must_use]
+    pub fn scope(&self) -> &SkillActivationScope {
+        &self.scope
+    }
+
+    /// Returns the caller-retained idempotency identities.
+    #[must_use]
+    pub const fn attempt(&self) -> McpSkillActivationAttempt {
+        self.attempt
+    }
+
     /// Returns the untrusted `allowed-tools` request, without granting it.
     #[must_use]
     pub fn requested_allowed_tools(&self) -> Option<&str> {
@@ -835,6 +902,7 @@ pub struct McpSkillToolAuthorizationRequest {
     identity: McpSkillIdentity,
     manifest_digest: Arc<str>,
     activation_id: u64,
+    acting_window_id: SkillActingWindowId,
     tool_name: Arc<str>,
     tool_identity: Option<CapabilityIdentity>,
     tool_descriptor_digest: Option<Digest>,
@@ -861,6 +929,12 @@ impl McpSkillToolAuthorizationRequest {
     #[must_use]
     pub const fn activation_id(&self) -> u64 {
         self.activation_id
+    }
+
+    /// Returns the durable authority window for this operation.
+    #[must_use]
+    pub const fn acting_window_id(&self) -> SkillActingWindowId {
+        self.acting_window_id
     }
 
     /// Returns the exact proposed host Tool name.
@@ -917,13 +991,64 @@ pub trait McpSkillHostPolicy: Send + Sync + 'static {
     fn approve_activation(
         &self,
         request: McpSkillActivationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>>;
+    ) -> BoxFuture<'_, Result<McpSkillActivationGrant, McpSkillHostPolicyError>>;
 
     /// Authorizes one exact Tool operation without trusting `allowed-tools` as a grant.
     fn authorize_tool_call(
         &self,
         request: McpSkillToolAuthorizationRequest,
     ) -> BoxFuture<'_, Result<McpSkillToolAuthorizationGrant, McpSkillHostPolicyError>>;
+}
+
+/// Exact policy evidence and bounded authority lifetime for an activation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct McpSkillActivationGrant {
+    policy: CapabilityIdentity,
+    policy_digest: Digest,
+    decision_digest: Digest,
+    duration: SkillActingWindowDuration,
+}
+
+impl McpSkillActivationGrant {
+    /// Constructs a version-pinned activation grant.
+    #[must_use]
+    pub const fn new(
+        policy: CapabilityIdentity,
+        policy_digest: Digest,
+        decision_digest: Digest,
+        duration: SkillActingWindowDuration,
+    ) -> Self {
+        Self {
+            policy,
+            policy_digest,
+            decision_digest,
+            duration,
+        }
+    }
+
+    /// Returns the policy implementation identity.
+    #[must_use]
+    pub const fn policy(&self) -> &CapabilityIdentity {
+        &self.policy
+    }
+
+    /// Returns the immutable policy artifact binding.
+    #[must_use]
+    pub const fn policy_digest(&self) -> Digest {
+        self.policy_digest
+    }
+
+    /// Returns the private decision-evidence binding.
+    #[must_use]
+    pub const fn decision_digest(&self) -> Digest {
+        self.decision_digest
+    }
+
+    /// Returns the approved bounded lifetime.
+    #[must_use]
+    pub const fn duration(&self) -> SkillActingWindowDuration {
+        self.duration
+    }
 }
 
 /// Exact policy evidence retained by a successful Skill Tool authorization.
@@ -979,7 +1104,7 @@ impl McpSkillHostPolicy for DenyMcpSkillHostPolicy {
     fn approve_activation(
         &self,
         _request: McpSkillActivationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+    ) -> BoxFuture<'_, Result<McpSkillActivationGrant, McpSkillHostPolicyError>> {
         Box::pin(async { Err(McpSkillHostPolicyError::Denied) })
     }
 
@@ -1087,7 +1212,9 @@ struct MemoryCache {
 struct McpSkillHostInner {
     client: McpClient,
     origin: McpSkillOrigin,
+    scope: SkillActivationScope,
     policy: Arc<dyn McpSkillHostPolicy>,
+    activation_store: Arc<dyn SkillActivationStore>,
     options: McpSkillHostOptions,
     cache: Mutex<MemoryCache>,
     next_activation_id: AtomicU64,
@@ -1105,7 +1232,9 @@ impl McpSkillHost {
     pub fn new(
         client: McpClient,
         origin: McpSkillOrigin,
+        scope: SkillActivationScope,
         policy: Arc<dyn McpSkillHostPolicy>,
+        activation_store: Arc<dyn SkillActivationStore>,
         options: McpSkillHostOptions,
     ) -> Result<Self, McpSkillHostError> {
         let transport = client.options().transport();
@@ -1121,7 +1250,9 @@ impl McpSkillHost {
             inner: Arc::new(McpSkillHostInner {
                 client,
                 origin,
+                scope,
                 policy,
+                activation_store,
                 options,
                 cache: Mutex::new(MemoryCache::default()),
                 next_activation_id: AtomicU64::new(1),
@@ -1133,6 +1264,12 @@ impl McpSkillHost {
     #[must_use]
     pub fn origin(&self) -> &McpSkillOrigin {
         &self.inner.origin
+    }
+
+    /// Returns the exact durable run scope receiving Skill authority.
+    #[must_use]
+    pub fn scope(&self) -> &SkillActivationScope {
+        &self.inner.scope
     }
 
     /// Lists entries without fetching any Skill files.
@@ -1155,9 +1292,13 @@ impl McpSkillHost {
     }
 
     /// Resolves, approves, verifies, and activates one exact URI.
-    pub async fn activate_uri(&self, uri: &str) -> Result<McpActivatedSkill, McpSkillHostError> {
+    pub async fn activate_uri(
+        &self,
+        uri: &str,
+        attempt: McpSkillActivationAttempt,
+    ) -> Result<McpActivatedSkill, McpSkillHostError> {
         let entry = self.get_skill(uri).await?;
-        self.activate_entry(entry, McpSkillActivationSource::Direct)
+        self.activate_entry(entry, McpSkillActivationSource::Direct, attempt)
             .await
     }
 
@@ -1165,8 +1306,9 @@ impl McpSkillHost {
     pub async fn activate(
         &self,
         entry: &McpSkillEntry,
+        attempt: McpSkillActivationAttempt,
     ) -> Result<McpActivatedSkill, McpSkillHostError> {
-        self.activate_entry(entry.clone(), McpSkillActivationSource::Direct)
+        self.activate_entry(entry.clone(), McpSkillActivationSource::Direct, attempt)
             .await
     }
 
@@ -1174,27 +1316,95 @@ impl McpSkillHost {
         &self,
         entry: McpSkillEntry,
         source: McpSkillActivationSource,
+        attempt: McpSkillActivationAttempt,
     ) -> Result<McpActivatedSkill, McpSkillHostError> {
         let identity = self.identity(&entry)?;
-        self.inner
+        let grant = self
+            .inner
             .policy
             .approve_activation(McpSkillActivationRequest {
                 identity: identity.clone(),
-                source,
+                source: source.clone(),
                 entry: entry.clone(),
+                scope: self.inner.scope.clone(),
+                attempt,
             })
             .await
             .map_err(map_activation_policy_error)?;
-        let instructions = self
-            .verified_file(&identity, &entry, entry.skill_document())
-            .await?;
-        let text = std::str::from_utf8(instructions.bytes())
-            .map_err(|_| McpSkillHostError::SkillDocumentNotUtf8)?;
-        let frontmatter = parse_frontmatter(text)
-            .map_err(|_| McpSkillHostError::FrontmatterVerificationFailed)?;
-        if &frontmatter != entry.frontmatter() {
-            return Err(McpSkillHostError::FrontmatterVerificationFailed);
+        let instructions = self.verify_instructions(&identity, &entry).await?;
+        let subject = Self::authorization_subject(&identity, &entry)?;
+        let durable_source = match source {
+            McpSkillActivationSource::Direct => SkillActivationSource::Direct,
+            McpSkillActivationSource::Nested {
+                parent_window_id, ..
+            } => SkillActivationSource::Nested { parent_window_id },
+        };
+        let approval = SkillActivationApproval::new(
+            attempt.approval_id(),
+            self.inner.scope.clone(),
+            subject,
+            durable_source,
+            grant.policy().clone(),
+            grant.policy_digest(),
+            grant.decision_digest(),
+            grant.duration(),
+        )
+        .map_err(|_| McpSkillHostError::ActivationEvidenceInvalid)?;
+        let window = self
+            .inner
+            .activation_store
+            .open(SkillActingWindowOpenRequest::new(
+                attempt.window_id(),
+                approval.clone(),
+            ))
+            .await
+            .map_err(map_activation_store_error)?;
+        if window.window_id() != attempt.window_id() || window.approval() != &approval {
+            return Err(McpSkillHostError::ActivationStoreRejected);
         }
+        self.inner
+            .activation_store
+            .assert_active(window.clone())
+            .await
+            .map_err(map_activation_store_error)?;
+        self.finish_activation(identity, entry, instructions, window)
+    }
+
+    /// Restores one exact, unexpired, unrevoked acting window after restart.
+    pub async fn resume(
+        &self,
+        entry: &McpSkillEntry,
+        window_id: SkillActingWindowId,
+    ) -> Result<McpActivatedSkill, McpSkillHostError> {
+        self.require_local_entry(entry)?;
+        let window = self
+            .inner
+            .activation_store
+            .load_active(self.inner.scope.tenant_id().clone(), window_id)
+            .await
+            .map_err(map_activation_store_error)?;
+        let identity = self.identity(entry)?;
+        let subject = Self::authorization_subject(&identity, entry)?;
+        if window.approval().scope() != &self.inner.scope || window.approval().subject() != &subject
+        {
+            return Err(McpSkillHostError::ActivationStoreRejected);
+        }
+        let instructions = self.verify_instructions(&identity, entry).await?;
+        self.inner
+            .activation_store
+            .assert_active(window.clone())
+            .await
+            .map_err(map_activation_store_error)?;
+        self.finish_activation(identity, entry.clone(), instructions, window)
+    }
+
+    fn finish_activation(
+        &self,
+        identity: McpSkillIdentity,
+        entry: McpSkillEntry,
+        instructions: McpVerifiedSkillFile,
+        window: SkillActingWindow,
+    ) -> Result<McpActivatedSkill, McpSkillHostError> {
         let activation_id = allocate_monotonic_id(&self.inner.next_activation_id)
             .ok_or(McpSkillHostError::ActivationIdExhausted)?;
         Ok(McpActivatedSkill {
@@ -1203,7 +1413,43 @@ impl McpSkillHost {
             entry,
             instructions,
             activation_id,
+            window,
         })
+    }
+
+    async fn verify_instructions(
+        &self,
+        identity: &McpSkillIdentity,
+        entry: &McpSkillEntry,
+    ) -> Result<McpVerifiedSkillFile, McpSkillHostError> {
+        let instructions = self
+            .verified_file(identity, entry, entry.skill_document())
+            .await?;
+        let text = std::str::from_utf8(instructions.bytes())
+            .map_err(|_| McpSkillHostError::SkillDocumentNotUtf8)?;
+        let frontmatter = parse_frontmatter(text)
+            .map_err(|_| McpSkillHostError::FrontmatterVerificationFailed)?;
+        if &frontmatter != entry.frontmatter() {
+            return Err(McpSkillHostError::FrontmatterVerificationFailed);
+        }
+        Ok(instructions)
+    }
+
+    fn authorization_subject(
+        identity: &McpSkillIdentity,
+        entry: &McpSkillEntry,
+    ) -> Result<SkillAuthorizationSubject, McpSkillHostError> {
+        let manifest_digest = entry
+            .manifest_digest()
+            .parse()
+            .map_err(|_| McpSkillHostError::ActivationEvidenceInvalid)?;
+        SkillAuthorizationSubject::new(
+            "mcp",
+            identity.origin().as_str(),
+            identity.uri(),
+            manifest_digest,
+        )
+        .map_err(|_| McpSkillHostError::ActivationEvidenceInvalid)
     }
 
     async fn verified_file(
@@ -1282,9 +1528,11 @@ impl fmt::Debug for McpSkillHost {
         formatter
             .debug_struct("McpSkillHost")
             .field("origin", &self.inner.origin)
+            .field("scope", &self.inner.scope)
             .field("client", &self.inner.client)
             .field("options", &self.inner.options)
             .field("policy", &"[POLICY]")
+            .field("activation_store", &"[DURABLE STORE]")
             .finish_non_exhaustive()
     }
 }
@@ -1387,13 +1635,14 @@ impl McpSkillDirectoryEntry {
     }
 }
 
-/// Acting-window handle retaining the exact approved entry until drop.
+/// Acting-window handle retaining exact durable authority and verified content.
 pub struct McpActivatedSkill {
     host: McpSkillHost,
     identity: McpSkillIdentity,
     entry: McpSkillEntry,
     instructions: McpVerifiedSkillFile,
     activation_id: u64,
+    window: SkillActingWindow,
 }
 
 impl McpActivatedSkill {
@@ -1415,20 +1664,30 @@ impl McpActivatedSkill {
         &self.instructions
     }
 
+    /// Returns the exact durable approval and authority window.
+    #[must_use]
+    pub const fn acting_window(&self) -> &SkillActingWindow {
+        &self.window
+    }
+
     /// Lazily reads one manifest-listed file from the same originating server.
     pub async fn read_file(
         &self,
         relative_path: &str,
     ) -> Result<McpVerifiedSkillFile, McpSkillHostError> {
+        self.assert_active().await?;
         validate_relative_path(relative_path)
             .map_err(|_| McpSkillHostError::InvalidRelativePath)?;
         let resource = self
             .entry
             .resource_by_path(relative_path)
             .ok_or(McpSkillHostError::ResourceOutsideHeldManifest)?;
-        self.host
+        let file = self
+            .host
             .verified_file(&self.identity, &self.entry, resource)
-            .await
+            .await?;
+        self.assert_active().await?;
+        Ok(file)
     }
 
     /// Lists direct children from the held Manifest without a live directory read.
@@ -1481,7 +1740,9 @@ impl McpActivatedSkill {
     pub async fn activate_nested(
         &self,
         relative_skill_document: &str,
+        attempt: McpSkillActivationAttempt,
     ) -> Result<McpActivatedSkill, McpSkillHostError> {
+        self.assert_active().await?;
         validate_relative_path(relative_skill_document)
             .map_err(|_| McpSkillHostError::InvalidRelativePath)?;
         if relative_skill_document == SKILL_DOCUMENT
@@ -1497,9 +1758,35 @@ impl McpActivatedSkill {
         self.host
             .activate_entry(
                 nested,
-                McpSkillActivationSource::Nested(self.identity.clone()),
+                McpSkillActivationSource::Nested {
+                    identity: self.identity.clone(),
+                    parent_window_id: self.window.window_id(),
+                },
+                attempt,
             )
             .await
+    }
+
+    /// Permanently revokes this authority window with immutable evidence.
+    pub async fn revoke(
+        &self,
+        reason: SkillActingWindowRevocationReason,
+    ) -> Result<SkillActingWindowRevocation, McpSkillHostError> {
+        self.host
+            .inner
+            .activation_store
+            .revoke(self.window.clone(), reason)
+            .await
+            .map_err(map_activation_store_error)
+    }
+
+    async fn assert_active(&self) -> Result<(), McpSkillHostError> {
+        self.host
+            .inner
+            .activation_store
+            .assert_active(self.window.clone())
+            .await
+            .map_err(map_activation_store_error)
     }
 
     /// Obtains an explicit permit for one exact Tool call during this window.
@@ -1508,6 +1795,7 @@ impl McpActivatedSkill {
         tool_name: &str,
         host_code_execution: bool,
     ) -> Result<McpSkillExecutionPermit<'activation>, McpSkillHostError> {
+        self.assert_active().await?;
         if tool_name.is_empty()
             || tool_name.len() > MAX_TOOL_NAME_BYTES
             || tool_name.trim() != tool_name
@@ -1529,6 +1817,7 @@ impl McpActivatedSkill {
                 identity: self.identity.clone(),
                 manifest_digest: self.entry.manifest_digest.clone(),
                 activation_id: self.activation_id,
+                acting_window_id: self.window.window_id(),
                 tool_name: Arc::from(tool_name),
                 tool_identity: None,
                 tool_descriptor_digest: None,
@@ -1539,10 +1828,12 @@ impl McpActivatedSkill {
             })
             .await
             .map_err(map_tool_policy_error)?;
+        self.assert_active().await?;
         Ok(McpSkillExecutionPermit {
             identity: self.identity.clone(),
             manifest_digest: self.entry.manifest_digest.clone(),
             activation_id: self.activation_id,
+            acting_window: self.window.clone(),
             tool_name: Arc::from(tool_name),
             tool_identity: None,
             tool_descriptor_digest: None,
@@ -1560,6 +1851,7 @@ impl McpActivatedSkill {
         operation: McpSkillToolOperation,
         invocation: &McpSkillToolInvocation,
     ) -> Result<McpSkillExecutionPermit<'activation>, McpSkillHostError> {
+        self.assert_active().await?;
         let requested_allowed_tools = self
             .entry
             .frontmatter()
@@ -1575,6 +1867,7 @@ impl McpActivatedSkill {
                 identity: self.identity.clone(),
                 manifest_digest: self.entry.manifest_digest.clone(),
                 activation_id: self.activation_id,
+                acting_window_id: self.window.window_id(),
                 tool_name: Arc::clone(&tool_name),
                 tool_identity: Some(binding.identity().clone()),
                 tool_descriptor_digest: Some(binding.descriptor_digest()),
@@ -1589,6 +1882,7 @@ impl McpActivatedSkill {
             identity: self.identity.clone(),
             manifest_digest: self.entry.manifest_digest.clone(),
             activation_id: self.activation_id,
+            acting_window: self.window.clone(),
             tool_name,
             tool_identity: Some(binding.identity().clone()),
             tool_descriptor_digest: Some(binding.descriptor_digest()),
@@ -1608,6 +1902,7 @@ impl fmt::Debug for McpActivatedSkill {
             .field("identity", &self.identity)
             .field("manifest_digest", &self.entry.manifest_digest)
             .field("activation_id", &self.activation_id)
+            .field("acting_window", &self.window)
             .finish_non_exhaustive()
     }
 }
@@ -1619,6 +1914,7 @@ pub struct McpSkillExecutionPermit<'activation> {
     identity: McpSkillIdentity,
     manifest_digest: Arc<str>,
     activation_id: u64,
+    acting_window: SkillActingWindow,
     tool_name: Arc<str>,
     tool_identity: Option<CapabilityIdentity>,
     tool_descriptor_digest: Option<Digest>,
@@ -1646,6 +1942,12 @@ impl McpSkillExecutionPermit<'_> {
     #[must_use]
     pub const fn activation_id(&self) -> u64 {
         self.activation_id
+    }
+
+    /// Returns the durable window which must remain active at receipt commit.
+    #[must_use]
+    pub const fn acting_window(&self) -> &SkillActingWindow {
+        &self.acting_window
     }
 
     /// Returns the exact approved Tool name.
@@ -1740,6 +2042,21 @@ pub enum McpSkillHostError {
     /// A unique process-local activation ID could not be allocated.
     #[error("MCP Skill activation identifier space is exhausted")]
     ActivationIdExhausted,
+    /// Activation evidence could not be constructed from validated inputs.
+    #[error("MCP Skill activation evidence is invalid")]
+    ActivationEvidenceInvalid,
+    /// Durable activation storage was temporarily unavailable.
+    #[error("MCP Skill activation store is unavailable")]
+    ActivationStoreUnavailable,
+    /// The durable acting window did not exist.
+    #[error("MCP Skill acting window was not found")]
+    ActingWindowNotFound,
+    /// The durable acting window expired or was revoked.
+    #[error("MCP Skill acting window is inactive")]
+    ActingWindowInactive,
+    /// Durable activation evidence conflicted with the requested activation.
+    #[error("MCP Skill activation store rejected the evidence")]
+    ActivationStoreRejected,
 }
 
 fn verify_resource(
@@ -1766,6 +2083,19 @@ fn map_tool_policy_error(error: McpSkillHostPolicyError) -> McpSkillHostError {
     match error {
         McpSkillHostPolicyError::Denied => McpSkillHostError::ToolCallDenied,
         McpSkillHostPolicyError::Unavailable => McpSkillHostError::PolicyUnavailable,
+    }
+}
+
+fn map_activation_store_error(
+    error: stateknot_core::SkillActivationStoreError,
+) -> McpSkillHostError {
+    let failure = error.failure();
+    drop(error);
+    match failure {
+        SkillActivationStoreFailure::Unavailable => McpSkillHostError::ActivationStoreUnavailable,
+        SkillActivationStoreFailure::NotFound => McpSkillHostError::ActingWindowNotFound,
+        SkillActivationStoreFailure::Inactive => McpSkillHostError::ActingWindowInactive,
+        _ => McpSkillHostError::ActivationStoreRejected,
     }
 }
 

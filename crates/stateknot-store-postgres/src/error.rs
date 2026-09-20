@@ -360,6 +360,18 @@ pub enum StoreError {
     /// A receipt audit cursor crossed scope or did not match immutable storage.
     #[error("Tool authorization receipt cursor is invalid")]
     InvalidToolAuthorizationReceiptCursor,
+    /// Skill activation approval or acting-window evidence crossed its durable scope.
+    #[error("Skill activation evidence is invalid for the durable run boundary")]
+    InvalidSkillActivation,
+    /// No exact Skill acting window exists in the tenant boundary.
+    #[error("Skill acting window was not found in the tenant boundary")]
+    SkillActingWindowNotFound,
+    /// A Skill approval or window identity was reused with different evidence.
+    #[error("Skill activation identity conflicts with durable evidence")]
+    SkillActivationConflict,
+    /// The exact acting window expired or has an immutable revocation.
+    #[error("Skill acting window is inactive")]
+    SkillActingWindowInactive,
     /// A stable invocation ID was reused with a different immutable intent.
     #[error("tool invocation identity conflicts with a committed intent")]
     ToolInvocationIdConflict,
