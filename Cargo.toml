@@ -33,7 +33,7 @@ httpdate = "1.0.3"
 hdrhistogram = { version = "=7.6.0", default-features = false }
 language-tags = "0.3.2"
 mime = "0.3.17"
-object_store = { version = "=0.14.1", default-features = false, features = ["aws"] }
+object_store = { version = "=0.14.2", default-features = false, features = ["aws"] }
 jsonschema = { version = "=0.56.0", default-features = false }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 reqwest = { version = "=0.12.28", default-features = false, features = [
