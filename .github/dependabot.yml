@@ -30,3 +30,9 @@ updates:
       - dependency-name: "@types/node"
         update-types:
           - "version-update:semver-major"
+      # prettier-plugin-astro 1.x deliberately changes formatting across most
+      # Astro sources. Keep format migrations as reviewed maintenance work
+      # instead of mixing them into automated dependency PRs.
+      - dependency-name: "prettier-plugin-astro"
+        update-types:
+          - "version-update:semver-major"
