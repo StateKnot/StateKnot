@@ -299,10 +299,15 @@ bytes and authorizes before disclosure. The consuming Host explicitly opts in,
 validates bounded complete manifests, assigns origin independently of server
 metadata, obtains fresh approval before lazy reads, verifies exact size and
 SHA-256, isolates immutable memory cache entries, requires fresh nested-Skill
-consent, and issues lifetime-bound per-call execution permits. Dynamic
-manifests, persisted activation approval/acting windows, disk installation, signatures, automatic
-discovery-to-Agent composition, and official extension conformance remain
-unclaimed. An activated Skill can now guard an exact registered Tool through
+consent, and persists exact run-scoped activation approvals plus database-clock
+acting windows in PostgreSQL schema 26. Caller-retained retry IDs, exact restart
+resume, nested parent locking, immutable revocation, and active-window
+serialization at fresh per-operation receipt commit fail closed before provider
+I/O. Revocation blocks later authorization commits but does not recall one that
+already committed. Dynamic
+manifests, disk installation, signatures, automatic discovery-to-Agent
+composition, and official extension conformance remain unclaimed. An activated
+Skill can guard an exact registered Tool through
 `McpSkillBoundTool`: the adapter binds the full descriptor, requires separate
 execution/reconciliation approval, and stays inside the ordinary durable Tool
 attempt ledger rather than creating a second dispatcher.

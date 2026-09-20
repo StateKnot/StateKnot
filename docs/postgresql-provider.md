@@ -143,7 +143,7 @@ let store = PostgresStore::connect(&runtime_url, options).await?;
 The migration role needs database `CONNECT`/`CREATE` and permission to create
 `public._sqlx_migrations` and the owned `stateknot` schema. It need not be a
 superuser. The executable [trusted-server role profile](postgresql-roles.md)
-([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema-25 table/column
+([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema-26 table/column
 allowlist, transactional apply, effective-privilege audit and separate
 reservation-retention credential. It grants no runtime DDL, DELETE or immutable
 evidence UPDATE, including node starts and submission mappings. Follow that

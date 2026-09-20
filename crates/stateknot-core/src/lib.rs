@@ -56,6 +56,7 @@ mod recovery;
 mod run;
 mod schema;
 mod scope;
+mod skill_authorization;
 mod time;
 mod tool;
 mod tool_authorization;
@@ -154,7 +155,8 @@ pub use ids::{
     AgentSubmissionKey, AgentSubmissionKeyError, ArtifactId, AttemptId, AuthorizationReceiptId,
     CheckpointId, DeliveryId, DestinationId, EventId, FailureId, GeneratedIdError, InterruptId,
     InvocationId, MessageId, QuarantineId, RunId, SchedulerReservationId, SchedulerShardId,
-    SchedulerShardIdError, TenantId, TenantIdError, ThreadId, TimerId,
+    SchedulerShardIdError, SkillActingWindowId, SkillActivationApprovalId, TenantId, TenantIdError,
+    ThreadId, TimerId,
 };
 pub use journal::{
     JournalAppend, JournalAppendError, JournalAuthorityError, JournalChainError,
@@ -247,6 +249,13 @@ pub use run::{
 };
 pub use schema::{SchemaId, SchemaIdError, SchemaReference};
 pub use scope::{Scope, ScopeError, ScopeSet, ScopeSetError};
+pub use skill_authorization::{
+    SkillActingWindow, SkillActingWindowDuration, SkillActingWindowError,
+    SkillActingWindowOpenRequest, SkillActingWindowRevocation, SkillActingWindowRevocationReason,
+    SkillActivationApproval, SkillActivationScope, SkillActivationSource, SkillActivationStore,
+    SkillActivationStoreError, SkillActivationStoreFailure, SkillAuthorizationSubject,
+    SkillAuthorizationSubjectError,
+};
 pub use time::{DurationMillis, DurationMillisError, Timestamp, TimestampError};
 pub use tool::{
     ToolCancellationSupport, ToolDescriptor, ToolDescriptorError, ToolExecutionLimits,

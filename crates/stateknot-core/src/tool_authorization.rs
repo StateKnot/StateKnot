@@ -11,10 +11,12 @@ use thiserror::Error;
 
 use crate::{
     AttemptId, AuthorizationReceiptId, BoxFuture, CapabilityIdentity, Digest, EventId,
-    InvocationId, RunId, TenantId, ThreadId, Timestamp, ToolDescriptor, ToolInput,
+    InvocationId, RunId, SkillActingWindowId, TenantId, ThreadId, Timestamp, ToolDescriptor,
+    ToolInput,
 };
 
 const RECEIPT_DIGEST_DOMAIN: &[u8] = b"stateknot.tool-authorization-receipt.v1\0";
+const WINDOW_RECEIPT_DIGEST_DOMAIN: &[u8] = b"stateknot.tool-authorization-receipt.v2\0";
 const DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"stateknot.tool-authorization-descriptor.v1\0";
 const INPUT_DIGEST_DOMAIN: &[u8] = b"stateknot.tool-authorization-input.v1\0";
 
@@ -125,6 +127,8 @@ pub struct ToolAuthorizationReceipt {
     policy: CapabilityIdentity,
     policy_digest: Digest,
     decision_digest: Digest,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    authorization_window_id: Option<SkillActingWindowId>,
     authorized_at: Timestamp,
     has_recovery_handle: bool,
     receipt_digest: Digest,
@@ -187,6 +191,7 @@ impl ToolAuthorizationReceipt {
             policy,
             policy_digest,
             decision_digest,
+            authorization_window_id: None,
             authorized_at,
             has_recovery_handle,
             receipt_digest: Digest::sha256(b""),
@@ -255,6 +260,27 @@ impl ToolAuthorizationReceipt {
         self.decision_digest
     }
 
+    /// Binds this operation to a durable Skill acting window when applicable.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ToolAuthorizationReceiptError::Encoding`] if canonical
+    /// encoding unexpectedly fails.
+    pub fn with_authorization_window(
+        mut self,
+        window_id: SkillActingWindowId,
+    ) -> Result<Self, ToolAuthorizationReceiptError> {
+        self.authorization_window_id = Some(window_id);
+        self.receipt_digest = self.compute_digest()?;
+        Ok(self)
+    }
+
+    /// Returns the durable Skill authority window required at receipt commit.
+    #[must_use]
+    pub const fn authorization_window_id(&self) -> Option<SkillActingWindowId> {
+        self.authorization_window_id
+    }
+
     /// Returns the trusted runtime observation at authorization.
     #[must_use]
     pub const fn authorized_at(&self) -> Timestamp {
@@ -275,7 +301,7 @@ impl ToolAuthorizationReceipt {
 
     fn compute_digest(&self) -> Result<Digest, ToolAuthorizationReceiptError> {
         #[derive(Serialize)]
-        struct Preimage<'a> {
+        struct LegacyPreimage<'a> {
             receipt_id: AuthorizationReceiptId,
             provenance: &'a ToolAuthorizationProvenance,
             operation: ToolAuthorizationOperation,
@@ -290,7 +316,14 @@ impl ToolAuthorizationReceipt {
             has_recovery_handle: bool,
         }
 
-        let canonical = serde_json_canonicalizer::to_vec(&Preimage {
+        #[derive(Serialize)]
+        struct WindowPreimage<'a> {
+            #[serde(flatten)]
+            legacy: LegacyPreimage<'a>,
+            authorization_window_id: SkillActingWindowId,
+        }
+
+        let legacy = LegacyPreimage {
             receipt_id: self.receipt_id,
             provenance: &self.provenance,
             operation: self.operation,
@@ -303,17 +336,18 @@ impl ToolAuthorizationReceipt {
             decision_digest: self.decision_digest,
             authorized_at: self.authorized_at,
             has_recovery_handle: self.has_recovery_handle,
-        })
-        .map_err(|_| ToolAuthorizationReceiptError::Encoding)?;
-        let mut bytes = Vec::with_capacity(RECEIPT_DIGEST_DOMAIN.len() + 8 + canonical.len());
-        bytes.extend_from_slice(RECEIPT_DIGEST_DOMAIN);
-        bytes.extend_from_slice(
-            &u64::try_from(canonical.len())
-                .expect("authorization receipt length fits u64")
-                .to_be_bytes(),
-        );
-        bytes.extend_from_slice(&canonical);
-        Ok(Digest::sha256(bytes))
+        };
+        let Some(authorization_window_id) = self.authorization_window_id else {
+            return digest_canonical(RECEIPT_DIGEST_DOMAIN, &legacy);
+        };
+
+        digest_canonical(
+            WINDOW_RECEIPT_DIGEST_DOMAIN,
+            &WindowPreimage {
+                legacy,
+                authorization_window_id,
+            },
+        )
     }
 }
 
@@ -348,6 +382,7 @@ impl fmt::Debug for ToolAuthorizationReceipt {
             .field("policy", &self.policy)
             .field("policy_digest", &self.policy_digest)
             .field("decision_digest", &self.decision_digest)
+            .field("authorization_window_id", &self.authorization_window_id)
             .field("authorized_at", &self.authorized_at)
             .field("has_recovery_handle", &self.has_recovery_handle)
             .field("receipt_digest", &self.receipt_digest)
@@ -373,13 +408,15 @@ impl<'de> Deserialize<'de> for ToolAuthorizationReceipt {
             policy: CapabilityIdentity,
             policy_digest: Digest,
             decision_digest: Digest,
+            #[serde(default)]
+            authorization_window_id: Option<SkillActingWindowId>,
             authorized_at: Timestamp,
             has_recovery_handle: bool,
             receipt_digest: Digest,
         }
 
         let wire = Wire::deserialize(deserializer)?;
-        let receipt = Self::new(
+        let mut receipt = Self::new(
             wire.receipt_id,
             wire.provenance,
             wire.operation,
@@ -394,6 +431,11 @@ impl<'de> Deserialize<'de> for ToolAuthorizationReceipt {
             wire.has_recovery_handle,
         )
         .map_err(de::Error::custom)?;
+        if let Some(window_id) = wire.authorization_window_id {
+            receipt = receipt
+                .with_authorization_window(window_id)
+                .map_err(de::Error::custom)?;
+        }
         if receipt.receipt_digest != wire.receipt_digest {
             return Err(de::Error::custom(
                 ToolAuthorizationReceiptError::DigestMismatch,
@@ -570,9 +612,27 @@ mod tests {
     fn receipt_round_trips_and_rejects_field_or_digest_tampering() {
         let receipt = receipt();
         let value = to_value(&receipt).unwrap();
+        assert!(value.get("authorization_window_id").is_none());
+        assert_eq!(
+            receipt.receipt_digest(),
+            "sha256:6ce59977d983802b7724acfdd213e4315c79e895bbb59869a485007920f9d780"
+                .parse()
+                .unwrap()
+        );
         assert_eq!(
             from_value::<ToolAuthorizationReceipt>(value.clone()).unwrap(),
             receipt
+        );
+
+        let windowed = receipt
+            .clone()
+            .with_authorization_window("018f1f65-45d3-7a2e-8a19-4de38b783465".parse().unwrap())
+            .unwrap();
+        assert_ne!(windowed.receipt_digest(), receipt.receipt_digest());
+        assert!(
+            to_value(&windowed).unwrap()["authorization_window_id"]
+                .as_str()
+                .is_some()
         );
 
         let mut changed_input = value.clone();

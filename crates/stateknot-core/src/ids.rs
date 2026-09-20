@@ -829,6 +829,14 @@ define_generated_id!(
     "A tenant-scoped durable authorization receipt identifier."
 );
 define_generated_id!(
+    SkillActivationApprovalId,
+    "A tenant-scoped durable Skill activation approval identifier."
+);
+define_generated_id!(
+    SkillActingWindowId,
+    "A tenant-scoped durable Skill acting-window identifier."
+);
+define_generated_id!(
     InvocationId,
     "A tenant-scoped external invocation identifier."
 );
@@ -992,6 +1000,9 @@ mod tests {
         assert_id!(FailureId);
         assert_id!(MessageId);
         assert_id!(ArtifactId);
+        assert_id!(AuthorizationReceiptId);
+        assert_id!(SkillActivationApprovalId);
+        assert_id!(SkillActingWindowId);
         assert_id!(InvocationId);
         assert_id!(InterruptId);
         assert_id!(TimerId);
@@ -1000,6 +1011,7 @@ mod tests {
         assert_id!(CheckpointId);
         assert_id!(QuarantineId);
         assert_id!(AttemptId);
+        assert_id!(SchedulerReservationId);
     }
 
     #[test]

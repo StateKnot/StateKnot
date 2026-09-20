@@ -4,7 +4,7 @@
 
 [English](postgresql-roles.md)
 
-`trusted-server-roles-v1` 是适用于 PostgreSQL 16/17、Schema 25 的可执行最小权限
+`trusted-server-roles-v1` 是适用于 PostgreSQL 16/17、Schema 26 的可执行最小权限
 部署配置，分离迁移、服务端运行时和公平调度预留记录清理账号。它**不构成不可信
 Worker 或租户的 SQL 安全边界**：运行时仍能跨租户读取并更新控制面投影。不得向
 用户、Tool、插件或远程 Worker 分发数据库凭证。RFC-0003 的 Worker 专用过程/服务
@@ -79,7 +79,7 @@ PGSERVICE=stateknot_migration psql -X --no-password \
 
 - 新表、函数不会自动得到运行时授权；已有表新增列会继承表级 SELECT/INSERT，但
   不会自动得到 UPDATE。新迁移必须配套审核版本化白名单，再依次
-  迁移、应用、审计、功能冒烟，最后启动应用。本脚本检查 Schema 25，迁移校验和
+  迁移、应用、审计、功能冒烟，最后启动应用。本脚本检查 Schema 26，迁移校验和
   由固定版本的 provider 验证。
 - 重复应用幂等，并在已有持久化历史的数据上验证。只读审计只报告漂移，修复必须显式
   应用；其他 Schema 的异常创建权限会让操作回滚，不会被广泛撤销。

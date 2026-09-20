@@ -37,14 +37,17 @@ const clientCode = `let client = McpClient::connect(
 let host = McpSkillHost::new(
     client,
     McpSkillOrigin::new("production/orders-mcp")?,
+    SkillActivationScope::new(tenant_id, run_id, thread_id),
     Arc::new(application_skill_policy),
+    Arc::new(postgres_store.clone()),
     McpSkillHostOptions::default(),
 )?;
 
 let catalog = host.list_skills().await?;
 let selected = catalog.find_uri("skill://code-review/SKILL.md")
     .ok_or(AppError::SkillUnavailable)?;
-let active = Arc::new(host.activate(selected).await?);
+let activation = McpSkillActivationAttempt::generate();
+let active = Arc::new(host.activate(selected, activation).await?);
 
 let file = active.read_file("references/checklist.md").await?;
 model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
@@ -61,7 +64,9 @@ let tools = tool_registry.build();`;
 const verifyCode = `cargo test -p stateknot-integrations mcp_server_skill --locked
 cargo test -p stateknot-integrations --test mcp_skills_server --locked
 cargo test -p stateknot-integrations mcp_skill_host --locked
-cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
+cargo test -p stateknot-integrations --test mcp_skills_host --locked
+cargo test -p stateknot-store-postgres --test postgres --locked \
+  tool_authorization_receipts_are_exact_immutable_and_page_verifiable`;
 ---
 
 <DocsLayout
@@ -81,10 +86,11 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       <code>io.modelcontextprotocol/skills</code> extension on MCP
       <code>2026-07-28</code>. The Server publishes immutable complete
       manifests; the separate Client/Host verifies and activates them with
-      host-assigned origin and fresh policy approval. Dynamic manifests,
-      persisted activation approval/acting windows, disk installation,
-      signatures, and automatic discovery-to-Agent composition remain outside
-      this claim.
+      host-assigned origin and fresh policy approval. Activation approvals and
+      database-clock acting windows persist in PostgreSQL schema 26 with exact
+      restart resume and immutable revocation. Dynamic manifests, disk
+      installation, signatures, and automatic discovery-to-Agent composition
+      remain outside this claim.
     </p>
   </aside>
 
@@ -135,7 +141,9 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
           <tr
             ><td>Host</td><td
               >Origin + URI identity, approval before reads, exact digest/size/
-              frontmatter verification, and manifest-only lazy access.</td
+              frontmatter verification, durable scoped acting windows, exact
+              restart resume, immutable revocation, and manifest-only lazy
+              access.</td
             ></tr
           >
           <tr
@@ -143,8 +151,10 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
               >Exact owner/version/descriptor binding plus a fresh,
               acting-window-bound policy permit before every execution and
               recovery probe, with exact durable correlation and bounded
-              schema-bound input. A payload-redacted immutable receipt must
-              commit before provider I/O.</td
+              schema-bound input. Each fresh payload-redacted receipt serializes
+              with revocation and validates its active window before provider
+              I/O; later revocation does not recall an authorization already
+              committed.</td
             ></tr
           >
         </tbody>
@@ -178,8 +188,9 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       instead of the raw provider so the ordinary durable Tool runtime enforces an
       exact policy decision before execution and reconciliation. Frontmatter
       <code>allowed-tools</code> is review input, never an authorization grant. Policy
-      returns version-pinned grant evidence, and the required durable receipt sink
-      fails closed before dispatch if that evidence cannot commit.
+      returns version-pinned activation and per-operation grant evidence. The durable
+      window store and receipt sink fail closed before dispatch when evidence is expired,
+      revoked, crossed, or unavailable.
     </p>
   </section>
 
