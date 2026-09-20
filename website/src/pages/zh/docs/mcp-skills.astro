@@ -52,6 +52,7 @@ model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
 let guarded = Arc::new(McpSkillBoundTool::new(
     Arc::clone(&active),
     ticket_create_tool,
+    Arc::new(postgres_store.clone()),
     McpSkillHostCodeExecution::NotPossible,
 )?);
 tool_registry.register(guarded)?;
@@ -80,8 +81,8 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       StateKnot 现已在 MCP <code>2026-07-28</code> 上提供 Final SEP-2640
       <code>io.modelcontextprotocol/skills</code> Extension。Server 发布不可变的完整
       Manifest；独立 Client/Host 使用 Host 分配的 Origin 与全新 Policy 审批完成校验
-      和激活。Dynamic Manifest、持久化审批、磁盘安装、Signature 与自动 Discovery-to-Agent
-      组合不在当前声明内。
+      和激活。Dynamic Manifest、持久化 Activation Approval／Acting Window、磁盘安装、Signature
+      与自动 Discovery-to-Agent 组合不在当前声明内。
     </p>
   </aside>
 
@@ -135,7 +136,8 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
             ><td>Execution</td><td
               >精确绑定 Owner/Version/完整 Descriptor，并在每次执行与恢复核对前
               获取绑定 Acting Window、精确持久执行关联与有界 Schema-bound Input
-              的全新 Policy Permit。</td
+              的全新 Policy Permit；不含 Payload 的不可变 Receipt 必须先于
+              Provider I/O 落库。</td
             ></tr
           >
         </tbody>
@@ -166,7 +168,9 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       中保留每个已校验文件的 Origin Identity。请注册
       <code>McpSkillBoundTool</code> 而不是 Raw Provider，使普通持久 Tool Runtime
       在执行与恢复核对前强制执行精确 Policy Decision。Frontmatter
-      <code>allowed-tools</code> 只是 Policy 的对照输入，永远不会自动授权。
+      <code>allowed-tools</code> 只是 Policy 的对照输入，永远不会自动授权。 Policy
+      还必须返回固定版本的 Grant Evidence；强制 Durable Receipt Sink 无法提交时，
+      会在 Dispatch 前失败关闭。
     </p>
   </section>
 

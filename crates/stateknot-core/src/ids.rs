@@ -825,6 +825,10 @@ define_generated_id!(FailureId, "A tenant-scoped failure occurrence identifier."
 define_generated_id!(MessageId, "A tenant-scoped durable message identifier.");
 define_generated_id!(ArtifactId, "A tenant-scoped artifact identifier.");
 define_generated_id!(
+    AuthorizationReceiptId,
+    "A tenant-scoped durable authorization receipt identifier."
+);
+define_generated_id!(
     InvocationId,
     "A tenant-scoped external invocation identifier."
 );

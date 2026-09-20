@@ -345,6 +345,21 @@ pub enum StoreError {
     /// No logical tool invocation exists in the supplied tenant/run boundary.
     #[error("tool invocation was not found in the tenant-scoped run")]
     ToolInvocationNotFound,
+    /// Receipt provenance or descriptor/input binding crossed its durable boundary.
+    #[error("Tool authorization receipt is invalid for the durable invocation boundary")]
+    InvalidToolAuthorizationReceipt,
+    /// No exact receipt or referenced durable invocation boundary exists.
+    #[error("Tool authorization receipt was not found in the tenant boundary")]
+    ToolAuthorizationReceiptNotFound,
+    /// A receipt identity was reused with different immutable canonical bytes.
+    #[error("Tool authorization receipt identity conflicts with durable evidence")]
+    ToolAuthorizationReceiptConflict,
+    /// A receipt audit page size was zero or exceeded its decoded-memory bound.
+    #[error("Tool authorization receipt page size is invalid")]
+    InvalidToolAuthorizationReceiptPageSize,
+    /// A receipt audit cursor crossed scope or did not match immutable storage.
+    #[error("Tool authorization receipt cursor is invalid")]
+    InvalidToolAuthorizationReceiptCursor,
     /// A stable invocation ID was reused with a different immutable intent.
     #[error("tool invocation identity conflicts with a committed intent")]
     ToolInvocationIdConflict,

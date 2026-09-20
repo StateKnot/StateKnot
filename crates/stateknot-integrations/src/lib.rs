@@ -162,7 +162,7 @@ pub use mcp_skill_host::{
     McpSkillHost, McpSkillHostError, McpSkillHostOptions, McpSkillHostOptionsError,
     McpSkillHostPolicy, McpSkillHostPolicyError, McpSkillIdentity, McpSkillOrigin,
     McpSkillOriginError, McpSkillPage, McpSkillResource, McpSkillResourceContent,
-    McpSkillToolAuthorizationRequest, McpVerifiedSkillFile,
+    McpSkillToolAuthorizationGrant, McpSkillToolAuthorizationRequest, McpVerifiedSkillFile,
 };
 pub use mcp_skill_tool::{
     McpSkillBoundTool, McpSkillBoundToolBuildError, McpSkillHostCodeExecution, McpSkillToolBinding,

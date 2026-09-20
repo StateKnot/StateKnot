@@ -52,6 +52,7 @@ model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
 let guarded = Arc::new(McpSkillBoundTool::new(
     Arc::clone(&active),
     ticket_create_tool,
+    Arc::new(postgres_store.clone()),
     McpSkillHostCodeExecution::NotPossible,
 )?);
 tool_registry.register(guarded)?;
@@ -81,8 +82,9 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       <code>2026-07-28</code>. The Server publishes immutable complete
       manifests; the separate Client/Host verifies and activates them with
       host-assigned origin and fresh policy approval. Dynamic manifests,
-      persisted approval, disk installation, signatures, and automatic
-      discovery-to-Agent composition remain outside this claim.
+      persisted activation approval/acting windows, disk installation,
+      signatures, and automatic discovery-to-Agent composition remain outside
+      this claim.
     </p>
   </aside>
 
@@ -141,7 +143,8 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
               >Exact owner/version/descriptor binding plus a fresh,
               acting-window-bound policy permit before every execution and
               recovery probe, with exact durable correlation and bounded
-              schema-bound input.</td
+              schema-bound input. A payload-redacted immutable receipt must
+              commit before provider I/O.</td
             ></tr
           >
         </tbody>
@@ -174,7 +177,9 @@ cargo test -p stateknot-integrations --test mcp_skills_host --locked`;
       identity in model-visible context. Register <code>McpSkillBoundTool</code>
       instead of the raw provider so the ordinary durable Tool runtime enforces an
       exact policy decision before execution and reconciliation. Frontmatter
-      <code>allowed-tools</code> is review input, never an authorization grant.
+      <code>allowed-tools</code> is review input, never an authorization grant. Policy
+      returns version-pinned grant evidence, and the required durable receipt sink
+      fails closed before dispatch if that evidence cannot commit.
     </p>
   </section>
 

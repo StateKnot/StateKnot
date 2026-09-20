@@ -11,18 +11,22 @@
 
 use std::{fmt, sync::Arc};
 
+use serde::Serialize;
 use stateknot_core::{
-    AttemptId, CapabilityIdentity, Digest, ErasedTool, EventId, Failure, FailureCategory,
-    FailureCode, FailureId, FailureMessage, FailureOrigin, InvocationId, RetryAdvice, RunId,
-    TenantId, ThreadId, ToolContext, ToolDescriptor, ToolError, ToolErrorPhase,
-    ToolErrorProvenance, ToolExternalEffect, ToolInput, ToolReconciliationContext,
-    ToolReconciliationObservation, ToolReconciliationProbeError, ToolResult, ToolRisk,
+    AttemptId, AuthorizationReceiptId, CapabilityIdentity, Digest, DurationMillis, ErasedTool,
+    EventId, Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
+    InvocationId, RetryAdvice, RunId, TenantId, ThreadId, Timestamp, ToolAuthorizationOperation,
+    ToolAuthorizationProvenance, ToolAuthorizationReceipt, ToolAuthorizationReceiptSink,
+    ToolAuthorizationReceiptSinkError, ToolAuthorizationReceiptSinkFailure, ToolContext,
+    ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput,
+    ToolReconciliationContext, ToolReconciliationObservation, ToolReconciliationProbeError,
+    ToolResult, ToolRisk,
 };
 use thiserror::Error;
 
 use crate::{McpActivatedSkill, McpSkillExecutionPermit, McpSkillHostError};
 
-const TOOL_DESCRIPTOR_DOMAIN: &[u8] = b"stateknot.mcp-skill-tool-descriptor.v1\0";
+const SKILL_SUBJECT_DOMAIN: &[u8] = b"stateknot.mcp-skill-tool-subject.v1\0";
 
 /// Provider operation covered by one Skill policy decision.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -162,20 +166,11 @@ impl McpSkillToolBinding {
         descriptor: &ToolDescriptor,
         host_code_execution: McpSkillHostCodeExecution,
     ) -> Result<Self, McpSkillBoundToolBuildError> {
-        let canonical = serde_json_canonicalizer::to_vec(descriptor)
-            .map_err(|_| McpSkillBoundToolBuildError::DescriptorEncoding)?;
-        let mut preimage = Vec::with_capacity(TOOL_DESCRIPTOR_DOMAIN.len() + 8 + canonical.len());
-        preimage.extend_from_slice(TOOL_DESCRIPTOR_DOMAIN);
-        preimage.extend_from_slice(
-            &u64::try_from(canonical.len())
-                .expect("descriptor length fits u64")
-                .to_be_bytes(),
-        );
-        preimage.extend_from_slice(&canonical);
         Ok(Self {
             tool_name: Arc::from(descriptor.metadata().identity().name().as_str()),
             identity: descriptor.metadata().identity().clone(),
-            descriptor_digest: Digest::sha256(preimage),
+            descriptor_digest: ToolAuthorizationReceipt::digest_descriptor(descriptor)
+                .map_err(|_| McpSkillBoundToolBuildError::DescriptorEncoding)?,
             host_code_execution: host_code_execution.is_possible(),
         })
     }
@@ -216,6 +211,7 @@ pub struct McpSkillBoundTool {
     provider: Arc<dyn ErasedTool>,
     descriptor: ToolDescriptor,
     binding: McpSkillToolBinding,
+    receipt_sink: Arc<dyn ToolAuthorizationReceiptSink>,
 }
 
 impl McpSkillBoundTool {
@@ -227,6 +223,7 @@ impl McpSkillBoundTool {
     pub fn new(
         skill: Arc<McpActivatedSkill>,
         provider: Arc<dyn ErasedTool>,
+        receipt_sink: Arc<dyn ToolAuthorizationReceiptSink>,
         host_code_execution: McpSkillHostCodeExecution,
     ) -> Result<Self, McpSkillBoundToolBuildError> {
         let descriptor = provider.descriptor().clone();
@@ -236,6 +233,7 @@ impl McpSkillBoundTool {
             provider,
             descriptor,
             binding,
+            receipt_sink,
         })
     }
 
@@ -318,6 +316,15 @@ impl ErasedTool for McpSkillBoundTool {
                     GateFailure::PermitMismatch,
                 ));
             }
+            persist_authorization_receipt(
+                self.receipt_sink.as_ref(),
+                &permit,
+                &self.binding,
+                &invocation,
+                context.observed_at(),
+            )
+            .await
+            .map_err(|failure| tool_gate_error(&context, &self.descriptor, failure))?;
             dispatch_call(permit, Arc::clone(&self.provider), context, input).await
         })
     }
@@ -352,6 +359,15 @@ impl ErasedTool for McpSkillBoundTool {
             ) {
                 return Err(reconciliation_gate_error(GateFailure::PermitMismatch));
             }
+            persist_authorization_receipt(
+                self.receipt_sink.as_ref(),
+                &permit,
+                &self.binding,
+                &invocation,
+                context.observed_at(),
+            )
+            .await
+            .map_err(reconciliation_gate_error)?;
             dispatch_reconciliation(permit, Arc::clone(&self.provider), context, input).await
         })
     }
@@ -389,6 +405,87 @@ fn permit_matches(
         && permit.host_code_execution() == binding.host_code_execution()
 }
 
+async fn persist_authorization_receipt(
+    sink: &dyn ToolAuthorizationReceiptSink,
+    permit: &McpSkillExecutionPermit<'_>,
+    binding: &McpSkillToolBinding,
+    invocation: &McpSkillToolInvocation,
+    authorized_at: Timestamp,
+) -> Result<(), GateFailure> {
+    let origin_event_id = invocation
+        .origin_event_id()
+        .ok_or(GateFailure::MissingDurableOrigin)?;
+    let subject_digest = skill_subject_digest(permit, binding)?;
+    let input_digest = ToolAuthorizationReceipt::digest_input(invocation.input())
+        .map_err(|_| GateFailure::ReceiptEncoding)?;
+    let grant = permit.grant();
+    let operation = match permit.operation() {
+        McpSkillToolOperation::Execute => ToolAuthorizationOperation::Execute,
+        McpSkillToolOperation::Reconcile => ToolAuthorizationOperation::Reconcile,
+    };
+    let receipt = ToolAuthorizationReceipt::new(
+        AuthorizationReceiptId::generate(),
+        ToolAuthorizationProvenance::new(
+            invocation.tenant_id().clone(),
+            invocation.run_id(),
+            invocation.thread_id(),
+            invocation.invocation_id(),
+            invocation.attempt_id(),
+            origin_event_id,
+        ),
+        operation,
+        binding.identity().clone(),
+        binding.descriptor_digest(),
+        input_digest,
+        subject_digest,
+        grant.policy().clone(),
+        grant.policy_digest(),
+        grant.decision_digest(),
+        authorized_at,
+        invocation.has_recovery_handle(),
+    )
+    .map_err(|_| GateFailure::ReceiptEncoding)?;
+    sink.record(receipt).await.map_err(GateFailure::ReceiptSink)
+}
+
+fn skill_subject_digest(
+    permit: &McpSkillExecutionPermit<'_>,
+    binding: &McpSkillToolBinding,
+) -> Result<Digest, GateFailure> {
+    #[derive(Serialize)]
+    struct Subject<'a> {
+        origin: &'a str,
+        skill_uri: &'a str,
+        manifest_digest: &'a str,
+        activation_id: u64,
+        tool_name: &'a str,
+        tool_identity: &'a CapabilityIdentity,
+        descriptor_digest: Digest,
+        host_code_execution: bool,
+    }
+
+    let canonical = serde_json_canonicalizer::to_vec(&Subject {
+        origin: permit.identity().origin().as_str(),
+        skill_uri: permit.identity().uri(),
+        manifest_digest: permit.manifest_digest(),
+        activation_id: permit.activation_id(),
+        tool_name: binding.tool_name(),
+        tool_identity: binding.identity(),
+        descriptor_digest: binding.descriptor_digest(),
+        host_code_execution: binding.host_code_execution(),
+    })
+    .map_err(|_| GateFailure::ReceiptEncoding)?;
+    let mut preimage = Vec::with_capacity(SKILL_SUBJECT_DOMAIN.len() + 8 + canonical.len());
+    preimage.extend_from_slice(SKILL_SUBJECT_DOMAIN);
+    preimage.extend_from_slice(
+        &u64::try_from(canonical.len())
+            .expect("Skill authorization subject length fits u64")
+            .to_be_bytes(),
+    );
+    preimage.extend_from_slice(&canonical);
+    Ok(Digest::sha256(preimage))
+}
+
 #[derive(Debug, Error)]
 enum GateFailure {
     #[error("active MCP Skill policy rejected the exact Tool operation")]
@@ -397,6 +494,12 @@ enum GateFailure {
     DescriptorDrift,
     #[error("MCP Skill execution permit does not match the bound Tool operation")]
     PermitMismatch,
+    #[error("durable Tool origin event is missing")]
+    MissingDurableOrigin,
+    #[error("MCP Skill Tool authorization receipt cannot be encoded")]
+    ReceiptEncoding,
+    #[error("MCP Skill Tool authorization receipt was not durably accepted")]
+    ReceiptSink(#[source] ToolAuthorizationReceiptSinkError),
 }
 
 fn gate_failure_shape(failure: &GateFailure) -> (FailureCategory, &'static str, &'static str) {
@@ -421,11 +524,45 @@ fn gate_failure_shape(failure: &GateFailure) -> (FailureCategory, &'static str, 
             "stateknot.mcp_skill_tool.descriptor_drift",
             "The installed Tool descriptor differs from its Skill binding.",
         ),
+        GateFailure::MissingDurableOrigin => (
+            FailureCategory::DataCorruption,
+            "stateknot.mcp_skill_tool.origin_missing",
+            "The Tool operation has no durable origin event for authorization evidence.",
+        ),
+        GateFailure::ReceiptEncoding => (
+            FailureCategory::Internal,
+            "stateknot.mcp_skill_tool.receipt_encoding",
+            "The Tool authorization evidence could not be encoded.",
+        ),
+        GateFailure::ReceiptSink(error)
+            if error.failure() == ToolAuthorizationReceiptSinkFailure::Unavailable =>
+        {
+            (
+                FailureCategory::DependencyUnavailable,
+                "stateknot.mcp_skill_tool.receipt_unavailable",
+                "The Tool authorization evidence could not be made durable.",
+            )
+        }
+        GateFailure::ReceiptSink(_) => (
+            FailureCategory::DataCorruption,
+            "stateknot.mcp_skill_tool.receipt_rejected",
+            "The durable store rejected the Tool authorization evidence.",
+        ),
     }
 }
 
 fn common_failure(failure: GateFailure) -> Failure {
     let (category, code, message) = gate_failure_shape(&failure);
+    let retry = match &failure {
+        GateFailure::ReceiptSink(error)
+            if error.failure() == ToolAuthorizationReceiptSinkFailure::Unavailable =>
+        {
+            RetryAdvice::SafeAfter {
+                delay: DurationMillis::new(250).expect("positive constant"),
+            }
+        }
+        _ => RetryAdvice::Never,
+    };
     Failure::new(
         FailureId::generate(),
         category,
@@ -433,7 +570,7 @@ fn common_failure(failure: GateFailure) -> Failure {
         FailureOrigin::new("stateknot.mcp_skill_tool")
             .expect("static Skill Tool failure origin is valid"),
         FailureMessage::new(message).expect("static Skill Tool failure message is valid"),
-        RetryAdvice::Never,
+        retry,
     )
     .expect("static Skill Tool failure semantics are coherent")
     .with_private_source(failure)

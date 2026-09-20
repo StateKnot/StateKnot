@@ -80,6 +80,13 @@ pub use child_cancellation::{
     ChildCancellationRecord,
 };
 
+#[path = "tool_authorization_receipts.rs"]
+mod tool_authorization_receipts;
+pub use tool_authorization_receipts::{
+    StoredToolAuthorizationReceipt, ToolAuthorizationReceiptOutcome, ToolAuthorizationReceiptPage,
+    ToolAuthorizationReceiptPageSize,
+};
+
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
     ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
@@ -353,6 +360,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0024_run_failure_closes.sql")),
             false,
         ),
+        Migration::new(
+            25,
+            Cow::Borrowed("Tool authorization receipts"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0025_tool_authorization_receipts.sql"
+            )),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -561,6 +577,8 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
    AND to_regclass('stateknot.run_checkpoints') IS NOT NULL
    AND to_regclass('stateknot.tool_invocations') IS NOT NULL
    AND to_regclass('stateknot.tool_invocation_revisions') IS NOT NULL
+   AND to_regclass('stateknot.tool_authorization_receipts') IS NOT NULL
+   AND to_regclass('stateknot.tool_authorization_receipts_invocation_history') IS NOT NULL
    AND to_regclass('stateknot.run_attempt_claims') IS NOT NULL
    AND to_regclass('stateknot.model_invocations') IS NOT NULL
    AND to_regclass('stateknot.model_invocation_revisions') IS NOT NULL
@@ -592,6 +610,37 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
    AND to_regclass('stateknot.scheduler_fairness_reservations_retention') IS NOT NULL
    AND lower(pg_get_indexdef(to_regclass('stateknot.runs_scheduler_ready')))
        LIKE '%checkpoint_id is not null%'
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.runs')
+         AND conname = 'runs_exact_thread_unique'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.tool_invocation_revisions')
+         AND conname = 'tool_invocation_revisions_attempt_event_unique'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.tool_authorization_receipts')
+         AND conname = 'tool_authorization_receipts_run_thread_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_constraint
+       WHERE conrelid = to_regclass('stateknot.tool_authorization_receipts')
+         AND conname = 'tool_authorization_receipts_attempt_event_fk'
+         AND convalidated
+   )
+   AND EXISTS (
+       SELECT 1 FROM pg_catalog.pg_trigger
+       WHERE tgrelid = to_regclass('stateknot.tool_authorization_receipts')
+         AND tgname = 'tool_authorization_receipts_immutable'
+         AND tgenabled <> 'D'
+         AND NOT tgisinternal
+   )
    AND EXISTS (
        SELECT 1 FROM pg_catalog.pg_constraint
        WHERE conrelid = to_regclass('stateknot.artifacts')

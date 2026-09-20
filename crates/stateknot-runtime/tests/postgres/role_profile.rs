@@ -162,8 +162,10 @@ async fn privilege_rejections(fixture: &Fixture) {
             "UPDATE public._sqlx_migrations SET checksum=checksum WHERE false",
             "UPDATE stateknot.run_events SET payload_bytes=payload_bytes WHERE false",
             "UPDATE stateknot.run_checkpoints SET checkpoint_digest=checkpoint_digest WHERE false",
+            "UPDATE stateknot.tool_authorization_receipts SET receipt_bytes=receipt_bytes WHERE false",
             "UPDATE stateknot.runs SET tenant_id=tenant_id WHERE false",
             "DELETE FROM stateknot.run_events WHERE false",
+            "DELETE FROM stateknot.tool_authorization_receipts WHERE false",
             "TRUNCATE stateknot.run_events",
             "ALTER TABLE stateknot.runs DISABLE TRIGGER ALL",
             "CREATE TABLE stateknot.unexpected (id integer)",
@@ -451,7 +453,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     println!(
         "\nSTATEKNOT_ROLE_PROFILE_EVIDENCE={}",
         json!({
-            "profile":"trusted-server-roles-v1","schema":24,"postgres":version,
+            "profile":"trusted-server-roles-v1","schema":25,"postgres":version,
             "separate_login_connections":true,"owner_is_non_superuser":true,
             "effective_acl_audit":true,"privilege_rejections":true,"drift_rejected":true,
         "runtime_failure_close":true,"join_checkpoint_recovery":true,
