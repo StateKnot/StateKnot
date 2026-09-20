@@ -25,29 +25,30 @@ use stateknot_core::{
     AgentAdmission, AgentAdmissionAuthority, AgentAdmissionBudgetLayer, AgentAdmissionIntent,
     AgentDescriptor, AgentRequest, AgentResultProvenance, AgentSubmissionKey, ArtifactId,
     ArtifactIdentity, ArtifactModality, ArtifactName, ArtifactParents, ArtifactPresentation,
-    ArtifactProvenance, ArtifactRef, ArtifactRepresentation, AttemptId, BoundedJson, BudgetLimits,
-    BudgetUsage, ByteCount, CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint,
-    CheckpointBarrier, CheckpointHead, CheckpointId, CheckpointState, CheckpointWrite,
-    CompiledGraph, ContentMetadata, ContentSource, DeliveryId, DestinationId, Digest,
-    DurationMillis, EventId, Failure, FailureCategory, FailureCode, FailureId, FailureMessage,
-    FailureOrigin, GraphExecutionLimits, GraphNamespace, GraphNode, GraphReducer,
-    GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference, GraphRoutes,
-    GraphSchemaValidationError, GraphSchemaValidator, InterruptId, InterruptRequestIntent,
-    InterruptResolutionIntent, InterruptResolver, InvocationId, IssuerId, JournalAppend,
-    JournalEventIntent, JournalEventKind, JournalExpectation, JournalHead, JournalPayload,
-    JournalSequence, ModelDescriptor, ModelError, ModelErrorPhase, ModelErrorProvenance,
-    ModelInvocationIntent, ModelInvocationStatus, ModelInvocationTransition, ModelRequest,
-    ModelResponse, NodeActivation, NodeAttemptStatus, NodeControl, NodeDispatchReason, NodeId,
-    NodeInvocationBinding, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
-    OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead, PendingNodeResultIntent,
-    PrincipalIdentity, QuarantineId, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind,
-    RetentionClass, RetryAdvice, RunCancellationRequest, RunFailure, RunId, RunInterruptKind,
-    RunStatus, RunTimerKind, RunTransition, SchedulerReservationId, SchedulerShardId, SchemaId,
-    SchemaReference, Scope, ScopeSet, SecurityLabel, SubjectId, Superstep, TenantId, ThreadId,
-    TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp, ToolArtifacts, ToolDescriptor,
-    ToolError, ToolErrorPhase, ToolErrorProvenance, ToolExternalEffect, ToolInput, ToolInvocation,
-    ToolInvocationIntent, ToolInvocationStatus, ToolInvocationTransition, ToolResult,
-    ToolResultProvenance, Version, WaitRegistrationIntent,
+    ArtifactProvenance, ArtifactRef, ArtifactRepresentation, AttemptId, AuthorizationReceiptId,
+    BoundedJson, BudgetLimits, BudgetUsage, ByteCount, CapabilityIdentity, CapabilityName,
+    CapabilityReference, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
+    CheckpointState, CheckpointWrite, CompiledGraph, ContentMetadata, ContentSource, DeliveryId,
+    DestinationId, Digest, DurationMillis, EventId, Failure, FailureCategory, FailureCode,
+    FailureId, FailureMessage, FailureOrigin, GraphExecutionLimits, GraphNamespace, GraphNode,
+    GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference, GraphReference,
+    GraphRoutes, GraphSchemaValidationError, GraphSchemaValidator, InterruptId,
+    InterruptRequestIntent, InterruptResolutionIntent, InterruptResolver, InvocationId, IssuerId,
+    JournalAppend, JournalEventIntent, JournalEventKind, JournalExpectation, JournalHead,
+    JournalPayload, JournalSequence, ModelDescriptor, ModelError, ModelErrorPhase,
+    ModelErrorProvenance, ModelInvocationIntent, ModelInvocationStatus, ModelInvocationTransition,
+    ModelRequest, ModelResponse, NodeActivation, NodeAttemptStatus, NodeControl,
+    NodeDispatchReason, NodeId, NodeInvocationBinding, NodeInvocationBindings, NodeStateChange,
+    NodeStateUpdate, OutboxDeliveryIntent, OutboxDestinationRef, PendingNodeResultHead,
+    PendingNodeResultIntent, PrincipalIdentity, QuarantineId, ReadyNodeRecoveryPlanner, ReadyNodes,
+    RecoveryNodeKind, RetentionClass, RetryAdvice, RunCancellationRequest, RunFailure, RunId,
+    RunInterruptKind, RunStatus, RunTimerKind, RunTransition, SchedulerReservationId,
+    SchedulerShardId, SchemaId, SchemaReference, Scope, ScopeSet, SecurityLabel, SubjectId,
+    Superstep, TenantId, ThreadId, TimerFiringIntent, TimerId, TimerRegistrationIntent, Timestamp,
+    ToolArtifacts, ToolAuthorizationOperation, ToolAuthorizationProvenance,
+    ToolAuthorizationReceipt, ToolDescriptor, ToolError, ToolErrorPhase, ToolErrorProvenance,
+    ToolExternalEffect, ToolInput, ToolInvocation, ToolInvocationIntent, ToolInvocationStatus,
+    ToolInvocationTransition, ToolResult, ToolResultProvenance, Version, WaitRegistrationIntent,
 };
 use stateknot_store_postgres::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
@@ -63,9 +64,10 @@ use stateknot_store_postgres::{
     RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
     RunQuarantineRequest, RunnableRunPageSize, SchedulerFairnessPolicyRegistration,
     SchedulerFairnessPolicyRegistrationOutcome, SchedulerFairnessRetentionPolicy, StoreError,
-    StoredAgentAdmission, TimerFiringCommitOutcome, ToolInvocationCommitOutcome,
-    ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
-    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
+    StoredAgentAdmission, TimerFiringCommitOutcome, ToolAuthorizationReceiptOutcome,
+    ToolAuthorizationReceiptPageSize, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
+    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
+    WaitDiscoveryPageSize,
 };
 use uuid::Uuid;
 
@@ -3884,6 +3886,238 @@ async fn prepare_tool_invocation_fixture(
         .await
         .unwrap();
     (tenant_id, run_id, invocation_id, prepared)
+}
+
+fn tool_authorization_receipt(
+    outcome: &ToolInvocationCommitOutcome,
+    thread_id: ThreadId,
+    receipt_id: AuthorizationReceiptId,
+    decision_evidence: &[u8],
+) -> ToolAuthorizationReceipt {
+    let invocation = outcome.invocation();
+    let descriptor = invocation.intent().descriptor();
+    ToolAuthorizationReceipt::new(
+        receipt_id,
+        ToolAuthorizationProvenance::new(
+            invocation.intent().tenant_id().clone(),
+            invocation.intent().run_id(),
+            thread_id,
+            invocation.intent().invocation_id(),
+            invocation.attempt_id().unwrap(),
+            outcome.event().event_id(),
+        ),
+        ToolAuthorizationOperation::Execute,
+        descriptor.metadata().identity().clone(),
+        ToolAuthorizationReceipt::digest_descriptor(descriptor).unwrap(),
+        ToolAuthorizationReceipt::digest_input(invocation.intent().input()).unwrap(),
+        Digest::sha256(b"MCP Skill subject fixture"),
+        descriptor.metadata().identity().clone(),
+        Digest::sha256(b"policy artifact fixture"),
+        Digest::sha256(decision_evidence),
+        outcome.event().recorded_at(),
+        false,
+    )
+    .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn tool_authorization_receipts_are_exact_immutable_and_page_verifiable() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let (tenant_id, run_id, invocation_id, prepared) =
+        prepare_tool_invocation_fixture(&store, "tool-authorization", 785).await;
+    let lease = store
+        .supersede_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let executing = store
+        .advance_tool_invocation(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                EventId::generate(),
+                JournalExpectation::exact(prepared.event().head()),
+                lease.fence().clone(),
+                787,
+            ),
+            &prepared.invocation().head(),
+            ToolInvocationTransition::StartAttempt {
+                attempt_id: AttemptId::generate(),
+            },
+        )
+        .await
+        .unwrap();
+    let thread_id = store
+        .load_run(&tenant_id, run_id)
+        .await
+        .unwrap()
+        .lifecycle()
+        .provenance()
+        .thread_id();
+    let receipt_id = AuthorizationReceiptId::generate();
+    let receipt =
+        tool_authorization_receipt(&executing, thread_id, receipt_id, b"decision evidence one");
+
+    let tasks = (0..12)
+        .map(|_| {
+            let store = store.clone();
+            let receipt = receipt.clone();
+            tokio::spawn(async move { store.record_tool_authorization_receipt(receipt).await })
+        })
+        .collect::<Vec<_>>();
+    let mut recorded = 0;
+    let mut idempotent = 0;
+    for task in tasks {
+        match task.await.unwrap().unwrap() {
+            ToolAuthorizationReceiptOutcome::Recorded => recorded += 1,
+            ToolAuthorizationReceiptOutcome::Idempotent => idempotent += 1,
+            _ => unreachable!("closed test outcome"),
+        }
+    }
+    assert_eq!((recorded, idempotent), (1, 11));
+
+    let stored = store
+        .load_tool_authorization_receipt(&tenant_id, receipt_id)
+        .await
+        .unwrap();
+    assert_eq!(stored.receipt(), &receipt);
+    assert!(stored.recorded_at() >= receipt.authorized_at());
+    assert!(matches!(
+        store
+            .load_tool_authorization_receipt(&tenant("other"), receipt_id)
+            .await,
+        Err(StoreError::ToolAuthorizationReceiptNotFound)
+    ));
+
+    let conflicting = tool_authorization_receipt(
+        &executing,
+        thread_id,
+        receipt_id,
+        b"different decision evidence",
+    );
+    assert!(matches!(
+        store.record_tool_authorization_receipt(conflicting).await,
+        Err(StoreError::ToolAuthorizationReceiptConflict)
+    ));
+    let crossed_thread = ToolAuthorizationReceipt::new(
+        AuthorizationReceiptId::generate(),
+        ToolAuthorizationProvenance::new(
+            tenant_id.clone(),
+            run_id,
+            ThreadId::generate(),
+            invocation_id,
+            executing.invocation().attempt_id().unwrap(),
+            executing.event().event_id(),
+        ),
+        ToolAuthorizationOperation::Execute,
+        receipt.tool().clone(),
+        receipt.descriptor_digest(),
+        receipt.input_digest(),
+        receipt.subject_digest(),
+        receipt.policy().clone(),
+        receipt.policy_digest(),
+        receipt.decision_digest(),
+        receipt.authorized_at(),
+        false,
+    )
+    .unwrap();
+    assert!(matches!(
+        store
+            .record_tool_authorization_receipt(crossed_thread)
+            .await,
+        Err(StoreError::InvalidToolAuthorizationReceipt)
+    ));
+
+    let second = tool_authorization_receipt(
+        &executing,
+        thread_id,
+        AuthorizationReceiptId::generate(),
+        b"decision evidence two",
+    );
+    // One durable Tool attempt can reach provider I/O more than once only via
+    // independently authorized calls. Do not collapse those decisions by the
+    // attempt/event provenance: receipt identity is the write idempotency key.
+    assert_eq!(
+        store
+            .record_tool_authorization_receipt(second.clone())
+            .await
+            .unwrap(),
+        ToolAuthorizationReceiptOutcome::Recorded
+    );
+    let first_page = store
+        .load_tool_authorization_receipt_page(
+            &tenant_id,
+            run_id,
+            invocation_id,
+            None,
+            ToolAuthorizationReceiptPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(first_page.records().len(), 1);
+    assert!(first_page.has_more());
+    let cursor = first_page.next_cursor().unwrap();
+    let final_page = store
+        .load_tool_authorization_receipt_page(
+            &tenant_id,
+            run_id,
+            invocation_id,
+            Some(&cursor),
+            ToolAuthorizationReceiptPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(final_page.records().len(), 1);
+    assert!(!final_page.has_more());
+    let mut ids = BTreeSet::new();
+    ids.insert(first_page.records()[0].receipt().receipt_id());
+    ids.insert(final_page.records()[0].receipt().receipt_id());
+    assert_eq!(ids, BTreeSet::from([receipt_id, second.receipt_id()]));
+
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let administration = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url)
+        .await
+        .unwrap();
+    assert!(
+        query(
+            "UPDATE stateknot.tool_authorization_receipts \
+             SET decision_digest = $3 WHERE tenant_id = $1 AND receipt_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*receipt_id.as_uuid())
+        .bind(Digest::sha256(b"mutation").as_bytes())
+        .execute(&administration)
+        .await
+        .is_err()
+    );
+    assert!(
+        query(
+            "DELETE FROM stateknot.tool_authorization_receipts \
+             WHERE tenant_id = $1 AND receipt_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*receipt_id.as_uuid())
+        .execute(&administration)
+        .await
+        .is_err()
+    );
+    administration.close().await;
+    assert_eq!(
+        store
+            .load_tool_authorization_receipt(&tenant_id, receipt_id)
+            .await
+            .unwrap()
+            .receipt(),
+        &receipt
+    );
+    store.close().await;
 }
 
 async fn prepare_model_invocation_fixture(

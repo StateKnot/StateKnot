@@ -923,7 +923,52 @@ pub trait McpSkillHostPolicy: Send + Sync + 'static {
     fn authorize_tool_call(
         &self,
         request: McpSkillToolAuthorizationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>>;
+    ) -> BoxFuture<'_, Result<McpSkillToolAuthorizationGrant, McpSkillHostPolicyError>>;
+}
+
+/// Exact policy evidence retained by a successful Skill Tool authorization.
+///
+/// The decision digest binds private policy inputs without placing them in the
+/// permit or durable authorization receipt.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct McpSkillToolAuthorizationGrant {
+    policy: CapabilityIdentity,
+    policy_digest: Digest,
+    decision_digest: Digest,
+}
+
+impl McpSkillToolAuthorizationGrant {
+    /// Constructs exact immutable policy evidence for one decision.
+    #[must_use]
+    pub const fn new(
+        policy: CapabilityIdentity,
+        policy_digest: Digest,
+        decision_digest: Digest,
+    ) -> Self {
+        Self {
+            policy,
+            policy_digest,
+            decision_digest,
+        }
+    }
+
+    /// Returns the owner-qualified, version-pinned policy implementation.
+    #[must_use]
+    pub const fn policy(&self) -> &CapabilityIdentity {
+        &self.policy
+    }
+
+    /// Returns the immutable policy artifact binding.
+    #[must_use]
+    pub const fn policy_digest(&self) -> Digest {
+        self.policy_digest
+    }
+
+    /// Returns the policy-supplied exact decision evidence binding.
+    #[must_use]
+    pub const fn decision_digest(&self) -> Digest {
+        self.decision_digest
+    }
 }
 
 /// Safe default denying all remote Skill activation and execution.
@@ -941,7 +986,7 @@ impl McpSkillHostPolicy for DenyMcpSkillHostPolicy {
     fn authorize_tool_call(
         &self,
         _request: McpSkillToolAuthorizationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+    ) -> BoxFuture<'_, Result<McpSkillToolAuthorizationGrant, McpSkillHostPolicyError>> {
         Box::pin(async { Err(McpSkillHostPolicyError::Denied) })
     }
 }
@@ -1476,7 +1521,8 @@ impl McpActivatedSkill {
             .get("allowed-tools")
             .and_then(Value::as_str)
             .map(Arc::from);
-        self.host
+        let grant = self
+            .host
             .inner
             .policy
             .authorize_tool_call(McpSkillToolAuthorizationRequest {
@@ -1503,6 +1549,7 @@ impl McpActivatedSkill {
             operation: McpSkillToolOperation::Execute,
             invocation: None,
             host_code_execution,
+            grant,
             activation: PhantomData,
         })
     }
@@ -1520,7 +1567,8 @@ impl McpActivatedSkill {
             .and_then(Value::as_str)
             .map(Arc::from);
         let tool_name = Arc::from(binding.tool_name());
-        self.host
+        let grant = self
+            .host
             .inner
             .policy
             .authorize_tool_call(McpSkillToolAuthorizationRequest {
@@ -1547,6 +1595,7 @@ impl McpActivatedSkill {
             operation,
             invocation: Some(invocation.clone()),
             host_code_execution: binding.host_code_execution(),
+            grant,
             activation: PhantomData,
         })
     }
@@ -1576,6 +1625,7 @@ pub struct McpSkillExecutionPermit<'activation> {
     operation: McpSkillToolOperation,
     invocation: Option<McpSkillToolInvocation>,
     host_code_execution: bool,
+    grant: McpSkillToolAuthorizationGrant,
     activation: PhantomData<&'activation McpActivatedSkill>,
 }
 
@@ -1632,6 +1682,12 @@ impl McpSkillExecutionPermit<'_> {
     #[must_use]
     pub const fn host_code_execution(&self) -> bool {
         self.host_code_execution
+    }
+
+    /// Returns the exact policy evidence authorizing this operation.
+    #[must_use]
+    pub const fn grant(&self) -> &McpSkillToolAuthorizationGrant {
+        &self.grant
     }
 }
 

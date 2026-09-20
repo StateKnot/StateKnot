@@ -58,6 +58,7 @@ mod schema;
 mod scope;
 mod time;
 mod tool;
+mod tool_authorization;
 mod tool_invocation;
 mod tool_runtime;
 mod version;
@@ -150,10 +151,10 @@ pub use graph_composition::{
 };
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
-    AgentSubmissionKey, AgentSubmissionKeyError, ArtifactId, AttemptId, CheckpointId, DeliveryId,
-    DestinationId, EventId, FailureId, GeneratedIdError, InterruptId, InvocationId, MessageId,
-    QuarantineId, RunId, SchedulerReservationId, SchedulerShardId, SchedulerShardIdError, TenantId,
-    TenantIdError, ThreadId, TimerId,
+    AgentSubmissionKey, AgentSubmissionKeyError, ArtifactId, AttemptId, AuthorizationReceiptId,
+    CheckpointId, DeliveryId, DestinationId, EventId, FailureId, GeneratedIdError, InterruptId,
+    InvocationId, MessageId, QuarantineId, RunId, SchedulerReservationId, SchedulerShardId,
+    SchedulerShardIdError, TenantId, TenantIdError, ThreadId, TimerId,
 };
 pub use journal::{
     JournalAppend, JournalAppendError, JournalAuthorityError, JournalChainError,
@@ -251,6 +252,11 @@ pub use tool::{
     ToolCancellationSupport, ToolDescriptor, ToolDescriptorError, ToolExecutionLimits,
     ToolExecutionLimitsError, ToolExecutionSemantics, ToolExecutionSemanticsError, ToolIdempotency,
     ToolInvocationCapabilities, ToolResourceAccess, ToolResourceRequirements, ToolRisk,
+};
+pub use tool_authorization::{
+    ToolAuthorizationOperation, ToolAuthorizationProvenance, ToolAuthorizationReceipt,
+    ToolAuthorizationReceiptError, ToolAuthorizationReceiptSink, ToolAuthorizationReceiptSinkError,
+    ToolAuthorizationReceiptSinkFailure,
 };
 pub use tool_invocation::{
     GraphNamespace, GraphNamespaceError, NodeActivation, NodeActivationError, ToolArtifactBinding,

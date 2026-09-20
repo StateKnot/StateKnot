@@ -4,7 +4,7 @@
 
 [English](postgresql-roles.md)
 
-`trusted-server-roles-v1` 是适用于 PostgreSQL 16/17、Schema 24 的可执行最小权限
+`trusted-server-roles-v1` 是适用于 PostgreSQL 16/17、Schema 25 的可执行最小权限
 部署配置，分离迁移、服务端运行时和公平调度预留记录清理账号。它**不构成不可信
 Worker 或租户的 SQL 安全边界**：运行时仍能跨租户读取并更新控制面投影。不得向
 用户、Tool、插件或远程 Worker 分发数据库凭证。RFC-0003 的 Worker 专用过程/服务
@@ -18,7 +18,7 @@ Worker 或租户的 SQL 安全边界**：运行时仍能跨租户读取并更新
 | 账号 | 允许 | 禁止 |
 |---|---|---|
 | 迁移所有者 | 拥有专用数据库、Schema、表和 invoker 函数；显式迁移及权限配置/审计 | 在本配置中使用超级用户、角色管理、复制或绕过 RLS；凭证进入运行时进程 |
-| 运行时 | CONNECT、Schema USAGE、读取迁移元数据；精确 40 张框架表的 SELECT/INSERT；仅指定投影列的 UPDATE；UUID 校验函数执行 | DDL、临时对象、DELETE/TRUNCATE、修改不可变证据或身份列、修改迁移元数据、转授权、切换所有者、禁用触发器 |
+| 运行时 | CONNECT、Schema USAGE、读取迁移元数据；精确 41 张框架表的 SELECT/INSERT；仅指定投影列的 UPDATE；UUID 校验函数执行 | DDL、临时对象、DELETE/TRUNCATE、修改不可变证据或身份列、修改迁移元数据、转授权、切换所有者、禁用触发器 |
 | 清理 | 读取迁移元数据；预留记录表的 SELECT/DELETE；仅该表 `reservation_id` 列的 UPDATE | 运行时写入、读取或修改日志/Checkpoint、修改调度策略或游标、DDL、迁移 |
 
 清理账号是**受信任的破坏性维护账号**。PostgreSQL 的 `FOR UPDATE SKIP LOCKED`
@@ -79,7 +79,7 @@ PGSERVICE=stateknot_migration psql -X --no-password \
 
 - 新表、函数不会自动得到运行时授权；已有表新增列会继承表级 SELECT/INSERT，但
   不会自动得到 UPDATE。新迁移必须配套审核版本化白名单，再依次
-  迁移、应用、审计、功能冒烟，最后启动应用。本脚本检查 Schema 24，迁移校验和
+  迁移、应用、审计、功能冒烟，最后启动应用。本脚本检查 Schema 25，迁移校验和
   由固定版本的 provider 验证。
 - 重复应用幂等，并在已有持久化历史的数据上验证。只读审计只报告漂移，修复必须显式
   应用；其他 Schema 的异常创建权限会让操作回滚，不会被广泛撤销。

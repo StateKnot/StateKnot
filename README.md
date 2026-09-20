@@ -300,7 +300,7 @@ validates bounded complete manifests, assigns origin independently of server
 metadata, obtains fresh approval before lazy reads, verifies exact size and
 SHA-256, isolates immutable memory cache entries, requires fresh nested-Skill
 consent, and issues lifetime-bound per-call execution permits. Dynamic
-manifests, persisted approval, disk installation, signatures, automatic
+manifests, persisted activation approval/acting windows, disk installation, signatures, automatic
 discovery-to-Agent composition, and official extension conformance remain
 unclaimed. An activated Skill can now guard an exact registered Tool through
 `McpSkillBoundTool`: the adapter binds the full descriptor, requires separate

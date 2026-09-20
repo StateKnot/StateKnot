@@ -308,7 +308,7 @@ from the repository.
   on-demand memory cache, acting-window entry retention, fresh nested consent,
   lifetime-bound per-call execution permits, safe restart expiry, and
   adversarial loopback qualification. Keep dynamic manifests, remote directory
-  reads, persisted approval/disk materialization, signatures, and automatic
+  reads, persisted activation approval/acting windows, disk materialization, signatures, and automatic
   discovery-to-Agent composition open as separate work.
 - [x] Integrate active MCP Skills with the ordinary Tool runtime through
   `McpSkillBoundTool`: freeze exact owner/name/version plus a domain-separated
@@ -318,6 +318,13 @@ from the repository.
   acting-window permit immediately before provider I/O, fail closed before raw
   dispatch, and remain compatible with immutable `ToolProviderRegistry`
   registration and the existing durable attempt ledger.
+- [x] Persist exact per-operation MCP Skill Tool authorization receipts before
+  provider I/O: require version-pinned policy grant evidence, bind tenant/run/
+  thread/invocation/attempt/origin event plus descriptor/input/Skill subject
+  digests, store only payload-redacted canonical bytes in immutable PostgreSQL
+  schema 25, support exact idempotent load and bounded audit pagination, and
+  fail closed before dispatch when durable evidence is unavailable or rejected.
+  Keep activation approval and acting-window persistence as separate open work.
 - [x] Implement the A2A 1.0 Server profile with StateKnot-owned bounded Agent
   Card/message/task/artifact/push contracts, HTTP+JSON and JSON-RPC bindings,
   SSE send/subscription streams, authentication-before-parsing,
@@ -414,7 +421,7 @@ from the repository.
   a retained old worker after real lease expiry/higher-epoch takeover. Other pre-/in-commit kills,
   arbitrary uncertain direct-effect recovery and full-profile/process-kill/role/
   capacity qualification remain gated; the RFC remains Draft.
-- [x] Ship the schema-24 [trusted-server SQL role profile](postgresql-roles.md):
+- [x] Ship the schema-25 [trusted-server SQL role profile](postgresql-roles.md):
   non-superuser migration ownership, runtime column grants and separate reservation
   retention credentials; effective ACL/default/membership audit, rollback, real
   role-separated durable recovery and concurrent submission/completion evidence.

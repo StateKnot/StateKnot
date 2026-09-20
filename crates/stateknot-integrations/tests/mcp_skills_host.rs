@@ -15,7 +15,9 @@ use serde_json::{Value, json};
 use stateknot_core::{
     AttemptId, BoundedJson, BoxFuture, BudgetUsage, CancellationSignal, CapabilityIdentity, Digest,
     DurationMillis, ErasedTool, EventId, FailureCategory, InvocationId, ResolvedBudget, RunId,
-    TenantId, ThreadId, Timestamp, ToolArtifacts, ToolContext, ToolDescriptor, ToolError,
+    TenantId, ThreadId, Timestamp, ToolArtifacts, ToolAuthorizationOperation,
+    ToolAuthorizationReceipt, ToolAuthorizationReceiptSink, ToolAuthorizationReceiptSinkError,
+    ToolAuthorizationReceiptSinkFailure, ToolContext, ToolDescriptor, ToolError,
     ToolExternalEffect, ToolInput, ToolReconciliationContext, ToolReconciliationObservation,
     ToolReconciliationProbeError, ToolResult,
 };
@@ -24,8 +26,8 @@ use stateknot_integrations::{
     McpClientIdentity, McpClientOptions, McpSkillActivationRequest, McpSkillActivationSource,
     McpSkillBoundTool, McpSkillHost, McpSkillHostCodeExecution, McpSkillHostError,
     McpSkillHostOptions, McpSkillHostPolicy, McpSkillHostPolicyError, McpSkillOrigin,
-    McpSkillToolAuthorizationRequest, McpSkillToolInvocation, McpSkillToolOperation,
-    ProviderEndpoint,
+    McpSkillToolAuthorizationGrant, McpSkillToolAuthorizationRequest, McpSkillToolInvocation,
+    McpSkillToolOperation, ProviderEndpoint,
 };
 use stateknot_runtime::ToolProviderRegistryBuilder;
 use tokio::{
@@ -236,6 +238,47 @@ struct RecordedToolCall {
     requested_allowed_tools: Option<String>,
 }
 
+fn authorization_grant() -> McpSkillToolAuthorizationGrant {
+    McpSkillToolAuthorizationGrant::new(
+        tool_descriptor().metadata().identity().clone(),
+        Digest::sha256(b"MCP Skill policy artifact v1"),
+        Digest::sha256(b"exact policy decision evidence"),
+    )
+}
+
+#[derive(Default)]
+struct RecordingReceiptSink {
+    receipts: Mutex<Vec<ToolAuthorizationReceipt>>,
+    durable_count: Arc<AtomicUsize>,
+}
+
+impl ToolAuthorizationReceiptSink for RecordingReceiptSink {
+    fn record(
+        &self,
+        receipt: ToolAuthorizationReceipt,
+    ) -> BoxFuture<'_, Result<(), ToolAuthorizationReceiptSinkError>> {
+        self.receipts.lock().unwrap().push(receipt);
+        self.durable_count.fetch_add(1, Ordering::SeqCst);
+        Box::pin(async { Ok(()) })
+    }
+}
+
+struct UnavailableReceiptSink;
+
+impl ToolAuthorizationReceiptSink for UnavailableReceiptSink {
+    fn record(
+        &self,
+        _receipt: ToolAuthorizationReceipt,
+    ) -> BoxFuture<'_, Result<(), ToolAuthorizationReceiptSinkError>> {
+        Box::pin(async {
+            Err(ToolAuthorizationReceiptSinkError::new(
+                ToolAuthorizationReceiptSinkFailure::Unavailable,
+                std::io::Error::other("private test database outage"),
+            ))
+        })
+    }
+}
+
 impl McpSkillHostPolicy for RecordingPolicy {
     fn approve_activation(
         &self,
@@ -252,7 +295,7 @@ impl McpSkillHostPolicy for RecordingPolicy {
     fn authorize_tool_call(
         &self,
         request: McpSkillToolAuthorizationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+    ) -> BoxFuture<'_, Result<McpSkillToolAuthorizationGrant, McpSkillHostPolicyError>> {
         self.tool_calls.lock().unwrap().push(RecordedToolCall {
             skill_uri: request.identity().uri().to_owned(),
             tool_name: request.tool_name().to_owned(),
@@ -263,7 +306,7 @@ impl McpSkillHostPolicy for RecordingPolicy {
             host_code_execution: request.host_code_execution(),
             requested_allowed_tools: request.requested_allowed_tools().map(str::to_owned),
         });
-        Box::pin(async { Ok(()) })
+        Box::pin(async { Ok(authorization_grant()) })
     }
 }
 
@@ -280,7 +323,7 @@ impl McpSkillHostPolicy for DenyActivation {
     fn authorize_tool_call(
         &self,
         _request: McpSkillToolAuthorizationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+    ) -> BoxFuture<'_, Result<McpSkillToolAuthorizationGrant, McpSkillHostPolicyError>> {
         Box::pin(async { Err(McpSkillHostPolicyError::Denied) })
     }
 }
@@ -298,7 +341,7 @@ impl McpSkillHostPolicy for DenyToolExecution {
     fn authorize_tool_call(
         &self,
         _request: McpSkillToolAuthorizationRequest,
-    ) -> BoxFuture<'_, Result<(), McpSkillHostPolicyError>> {
+    ) -> BoxFuture<'_, Result<McpSkillToolAuthorizationGrant, McpSkillHostPolicyError>> {
         Box::pin(async { Err(McpSkillHostPolicyError::Denied) })
     }
 }
@@ -307,6 +350,7 @@ struct CountingTool {
     descriptor: ToolDescriptor,
     calls: AtomicUsize,
     reconciliations: AtomicUsize,
+    durable_receipts: Option<Arc<AtomicUsize>>,
 }
 
 impl CountingTool {
@@ -315,6 +359,19 @@ impl CountingTool {
             descriptor,
             calls: AtomicUsize::new(0),
             reconciliations: AtomicUsize::new(0),
+            durable_receipts: None,
+        }
+    }
+
+    fn with_receipt_observation(
+        descriptor: ToolDescriptor,
+        durable_receipts: Arc<AtomicUsize>,
+    ) -> Self {
+        Self {
+            descriptor,
+            calls: AtomicUsize::new(0),
+            reconciliations: AtomicUsize::new(0),
+            durable_receipts: Some(durable_receipts),
         }
     }
 }
@@ -333,6 +390,9 @@ impl ErasedTool for CountingTool {
         context: ToolContext,
         _input: ToolInput,
     ) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
+        if let Some(receipts) = &self.durable_receipts {
+            assert_eq!(receipts.load(Ordering::SeqCst), 1);
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let result = ToolResult::for_invocation(
             &context,
@@ -348,6 +408,9 @@ impl ErasedTool for CountingTool {
         _context: ToolReconciliationContext,
         _input: ToolInput,
     ) -> BoxFuture<'_, Result<ToolReconciliationObservation, ToolReconciliationProbeError>> {
+        if let Some(receipts) = &self.durable_receipts {
+            assert_eq!(receipts.load(Ordering::SeqCst), 2);
+        }
         self.reconciliations.fetch_add(1, Ordering::SeqCst);
         Box::pin(async {
             Ok(
@@ -438,11 +501,16 @@ async fn exercise_bound_tool(
     active: Arc<McpActivatedSkill>,
 ) -> (ToolDescriptor, Arc<McpSkillBoundTool>) {
     let descriptor = tool_descriptor();
-    let provider = Arc::new(CountingTool::new(descriptor.clone()));
+    let receipt_sink = Arc::new(RecordingReceiptSink::default());
+    let provider = Arc::new(CountingTool::with_receipt_observation(
+        descriptor.clone(),
+        Arc::clone(&receipt_sink.durable_count),
+    ));
     let guarded = Arc::new(
         McpSkillBoundTool::new(
             active,
             Arc::clone(&provider) as Arc<dyn ErasedTool>,
+            Arc::clone(&receipt_sink) as Arc<dyn ToolAuthorizationReceiptSink>,
             McpSkillHostCodeExecution::Possible,
         )
         .unwrap(),
@@ -466,6 +534,31 @@ async fn exercise_bound_tool(
         .unwrap();
     assert_eq!(provider.calls.load(Ordering::SeqCst), 1);
     assert_eq!(provider.reconciliations.load(Ordering::SeqCst), 1);
+    let receipts = receipt_sink.receipts.lock().unwrap();
+    assert_eq!(receipts.len(), 2);
+    assert_eq!(receipts[0].operation(), ToolAuthorizationOperation::Execute);
+    assert_eq!(
+        receipts[1].operation(),
+        ToolAuthorizationOperation::Reconcile
+    );
+    assert!(!receipts[0].has_recovery_handle());
+    assert!(!receipts[1].has_recovery_handle());
+    for receipt in receipts.iter() {
+        assert_eq!(
+            receipt.provenance().tenant_id().as_str(),
+            "tenant-mcp-skills"
+        );
+        assert_eq!(
+            receipt.provenance().origin_event_id().to_string(),
+            ORIGIN_EVENT_ID
+        );
+        assert_eq!(receipt.tool(), descriptor.metadata().identity());
+        assert_eq!(receipt.policy(), authorization_grant().policy());
+        let wire = serde_json::to_string(receipt).unwrap();
+        assert!(!wire.contains("amount_minor"));
+        assert!(!wire.contains("exact policy decision evidence"));
+    }
+    drop(receipts);
     (descriptor, guarded)
 }
 
@@ -663,6 +756,7 @@ async fn bound_tool_denial_fails_before_provider_execution() {
     let guarded = McpSkillBoundTool::new(
         active,
         Arc::clone(&provider) as Arc<dyn ErasedTool>,
+        Arc::new(RecordingReceiptSink::default()) as Arc<dyn ToolAuthorizationReceiptSink>,
         McpSkillHostCodeExecution::NotPossible,
     )
     .unwrap();
@@ -674,6 +768,47 @@ async fn bound_tool_denial_fails_before_provider_execution() {
     assert_eq!(error.failure().category(), FailureCategory::PolicyDenied);
     assert_eq!(error.external_effect(), ToolExternalEffect::NotStarted);
     assert_eq!(provider.calls.load(Ordering::SeqCst), 0);
+    assert_eq!(server.await.unwrap().len(), 3);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn bound_tool_requires_durable_receipt_before_provider_execution() {
+    let (endpoint, server) = start_server(vec![
+        discovery(),
+        get_result(&root_entry()),
+        text_resource(ROOT_URI, ROOT_SKILL),
+    ])
+    .await;
+    let skill_host = host(
+        connect(endpoint, McpClientOptions::for_skills()).await,
+        Arc::new(RecordingPolicy::default()),
+    );
+    let active = Arc::new(skill_host.activate_uri(ROOT_URI).await.unwrap());
+    let descriptor = tool_descriptor();
+    let provider = Arc::new(CountingTool::new(descriptor.clone()));
+    let guarded = McpSkillBoundTool::new(
+        active,
+        Arc::clone(&provider) as Arc<dyn ErasedTool>,
+        Arc::new(UnavailableReceiptSink) as Arc<dyn ToolAuthorizationReceiptSink>,
+        McpSkillHostCodeExecution::NotPossible,
+    )
+    .unwrap();
+
+    let error = guarded
+        .call(tool_context(&descriptor), tool_input(&descriptor))
+        .await
+        .unwrap_err();
+    assert_eq!(
+        error.failure().category(),
+        FailureCategory::DependencyUnavailable
+    );
+    assert_eq!(
+        error.failure().retry_advice().safe_after_delay(),
+        Some(DurationMillis::new(250).unwrap())
+    );
+    assert_eq!(error.external_effect(), ToolExternalEffect::NotStarted);
+    assert_eq!(provider.calls.load(Ordering::SeqCst), 0);
+    assert!(!error.to_string().contains("private test database outage"));
     assert_eq!(server.await.unwrap().len(), 3);
 }
 

@@ -10,8 +10,8 @@ SPDX-License-Identifier: Apache-2.0
 > Extension: Final SEP-2640, `io.modelcontextprotocol/skills`.<br>
 > Base protocol: MCP `2026-07-28`.<br>
 > Explicit boundary: dynamic manifests, remote directory reads, persisted
-> approval, disk materialization, signatures, and automatic discovery-to-Agent
-> composition are not implemented or claimed.
+> activation approval/acting windows, disk materialization, signatures, and
+> automatic discovery-to-Agent composition are not implemented or claimed.
 
 StateKnot can discover and activate a remote static Agent Skill without turning
 its files or frontmatter into authority. The client validates the Final
@@ -61,7 +61,15 @@ and the [Agent Skills format](https://agentskills.io/specification).
     activation ID, tenant/run/invocation/attempt correlation, committed origin
     event when present, and bounded schema-bound input. `allowed-tools` remains
     untrusted comparison data.
-11. Register the guarded adapter—not the raw provider—in the ordinary immutable
+11. Require policy to return an exact owner/name/version policy identity,
+    immutable policy-artifact digest, and decision-evidence digest. Before any
+    provider I/O, write a payload-redacted `ToolAuthorizationReceipt` through
+    the mandatory durable sink. Schema 25 binds that immutable receipt to the
+    exact tenant/run/thread/invocation/attempt/origin event, Tool descriptor,
+    input digest, operation, policy, and database commit time. An unavailable
+    sink fails before dispatch with a safe delayed retry; rejected or crossed
+    evidence fails closed and is never retried.
+12. Register the guarded adapter—not the raw provider—in the ordinary immutable
     `ToolProviderRegistryBuilder`. Durable attempt-start, terminal evidence,
     retry, and reconciliation semantics therefore remain unchanged.
 
@@ -97,6 +105,7 @@ model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
 let guarded = Arc::new(McpSkillBoundTool::new(
     Arc::clone(&active),
     ticket_create_tool, // Arc<dyn ErasedTool>
+    Arc::new(postgres_store.clone()), // mandatory durable receipt sink
     McpSkillHostCodeExecution::NotPossible,
 )?);
 tool_registry.register(guarded)?;
@@ -110,8 +119,9 @@ implementation should display the host-assigned origin, exact URI, manifest
 digest, file count/bytes, description, activation source, requested Tool, exact
 registered Tool identity and descriptor digest, operation, and Host-code
 exposure, durable correlation, and exact arguments; bind the decision to those
-facts; log only public-safe evidence; and deny when its authority is
-unavailable. Never approve solely by Skill name or the `allowed-tools` string,
+facts; log only public-safe evidence; return a version-pinned
+`McpSkillToolAuthorizationGrant`; and deny when its authority is unavailable.
+Never approve solely by Skill name or the `allowed-tools` string,
 and never log `McpSkillToolInvocation::input()` without application-level
 redaction.
 
@@ -124,8 +134,10 @@ of evicting or weakening verification. Cached `Arc<[u8]>` values cannot be
 mutated, so a cache hit retains the original verification result.
 
 StateKnot does not write remote Skill bytes into filesystem Skill-discovery
-paths and does not persist approval. On restart the client binding, acting
-windows, permits, approvals, and memory cache all disappear. A later activation
+paths and does not persist activation approval or the acting window. It does
+persist each successful bound Tool authorization as an immutable,
+payload-redacted receipt before provider I/O. On restart the client binding,
+acting windows, permits, activation approvals, and memory cache all disappear. A later activation
 must discover and approve the current complete manifest again. This is a safe
 restart contract, not durable approval. A worker may rebuild the same guarded
 Tool descriptor only after that fresh activation; already-started durable Tool
@@ -145,6 +157,9 @@ new exact Skill policy check before provider I/O.
 - `McpSkillBoundTool` consumes the non-cloneable permit inside the ordinary
   `ErasedTool` boundary. Authorization denial produces `NotStarted` evidence
   for writes (or `NotApplicable` for reads) and never invokes the provider.
+- A durable receipt proves the exact authorization decision only. It does not
+  prove provider dispatch or an external effect; terminal Tool evidence and
+  reconciliation remain authoritative for outcome.
 - The adapter must replace the raw provider in the executable registry. Keeping
   both bindings or dispatching the provider directly is a Host configuration
   error outside the Skill authorization boundary.
@@ -159,6 +174,8 @@ new exact Skill policy check before provider I/O.
 ```console
 cargo test -p stateknot-integrations mcp_skill_host --locked
 cargo test -p stateknot-integrations --test mcp_skills_host --locked
+cargo test -p stateknot-store-postgres --test postgres --locked \
+  tool_authorization_receipts_are_exact_immutable_and_page_verifiable
 ```
 
 The loopback contract suite proves lazy listing, capability advertisement,
@@ -167,13 +184,15 @@ digest/size/frontmatter reconciliation, immutable cache hits, manifest-only
 reads, local directory views, fresh nested consent, per-call Tool authorization,
 exact descriptor/identity disclosure, separate execution/reconciliation
 approval, immutable-registry compatibility, denial before provider dispatch,
-and failure closure for content drift.
+durable-receipt-before-provider ordering, unavailable-sink retry evidence,
+receipt idempotency/immutability/pagination, and failure closure for content drift.
 
 ## Not claimed
 
 - dynamic manifests or `resources/directory/read`;
-- persisted approvals, durable acting windows, disk caches, or filesystem Skill
-  installation;
+- persisted activation approvals, durable acting windows, disk caches, or
+  filesystem Skill installation (per-operation Tool authorization receipts are
+  durable and are a narrower contract);
 - signature verification, provenance, marketplace trust, malware/content
   safety, or sandboxing;
 - automatic Tool discovery, `allowed-tools` pattern interpretation, or dynamic

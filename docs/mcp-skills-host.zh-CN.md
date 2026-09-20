@@ -9,8 +9,8 @@ SPDX-License-Identifier: Apache-2.0
 > 尚不稳定。<br>
 > Extension：Final SEP-2640，`io.modelcontextprotocol/skills`。<br>
 > 基础协议：MCP `2026-07-28`。<br>
-> 明确边界：Dynamic Manifest、远端 Directory Read、持久化审批、磁盘物化、签名与
-> 自动 Discovery-to-Agent 组合尚未实现，也不做支持声明。
+> 明确边界：Dynamic Manifest、远端 Directory Read、持久化 Activation Approval／
+> Acting Window、磁盘物化、签名与自动 Discovery-to-Agent 组合尚未实现，也不做支持声明。
 
 StateKnot 可以发现并激活远端静态 Agent Skill，同时不把文件或 Frontmatter 变成权限。
 Client 先校验 Final SEP-2640 Wire Contract；Host 再分配本地 Origin，要求应用 Policy
@@ -48,7 +48,13 @@ Size 与 SHA-256，并在完整 Acting Window 内保留已批准的 Entry。
     并携带精确 Tool Identity、Descriptor Digest、Host-code Exposure、Origin、Manifest
     Digest、Activation ID、Tenant/Run/Invocation/Attempt 关联、存在时的已提交 Origin
     Event，以及有界且绑定 Schema 的 Input。`allowed-tools` 只是不可信的对照数据。
-11. 向普通不可变 `ToolProviderRegistryBuilder` 注册 Guarded Adapter，而不是原始
+11. Policy 必须返回精确的 Owner/Name/Version Policy Identity、不可变 Policy
+    Artifact Digest 与 Decision Evidence Digest。任何 Provider I/O 前，都必须通过
+    强制配置的 Durable Sink 写入不含 Payload 的 `ToolAuthorizationReceipt`。Schema 25
+    把不可变凭证绑定到精确 Tenant/Run/Thread/Invocation/Attempt/Origin Event、Tool
+    Descriptor、Input Digest、Operation、Policy 与数据库提交时间。Sink 不可用时在
+    Dispatch 前返回可安全延迟重试的失败；证据被拒绝或越界则失败关闭且不重试。
+12. 向普通不可变 `ToolProviderRegistryBuilder` 注册 Guarded Adapter，而不是原始
     Provider；持久执行的 Attempt-start、Terminal Evidence、Retry 与 Reconciliation
     语义保持不变。
 
@@ -84,6 +90,7 @@ model_context.push_untrusted_skill_file(file.identity(), file.bytes())?;
 let guarded = Arc::new(McpSkillBoundTool::new(
     Arc::clone(&active),
     ticket_create_tool, // Arc<dyn ErasedTool>
+    Arc::new(postgres_store.clone()), // 强制 Durable Receipt Sink
     McpSkillHostCodeExecution::NotPossible,
 )?);
 tool_registry.register(guarded)?;
@@ -96,7 +103,8 @@ let tools = tool_registry.build();
 Manifest Digest、文件数与 Byte 数、Description、Activation Source、请求的 Tool、
 精确 Registered Tool Identity 与 Descriptor Digest、Operation 和 Host-code Exposure；
 同时展示持久执行关联与精确参数；把决定绑定到这些事实，只记录不泄露敏感信息的
-Audit Evidence，并在 Policy Authority 不可用时拒绝。禁止只按 Skill Name 或
+Audit Evidence，返回固定版本的 `McpSkillToolAuthorizationGrant`，并在 Policy
+Authority 不可用时拒绝。禁止只按 Skill Name 或
 `allowed-tools` 字符串自动批准，也禁止在没有应用层脱敏的情况下记录
 `McpSkillToolInvocation::input()`。
 
@@ -108,7 +116,9 @@ Audit Evidence，并在 Policy Authority 不可用时拒绝。禁止只按 Skill
 命中时仍沿用首次校验的精确结果。
 
 StateKnot 不会把远端 Skill Byte 写入文件系统 Skill Discovery Path，也不会持久化
-审批。重启后 Client Binding、Acting Window、Permit、Approval 与 Memory Cache 全部
+Activation Approval 或 Acting Window；但会在 Provider I/O 前把每次成功的 Bound Tool
+授权保存为不可变且不含 Payload 的凭证。重启后 Client Binding、Acting Window、Permit、
+Activation Approval 与 Memory Cache 全部
 失效；后续 Activation 必须重新发现并审批当前完整 Manifest。这是安全的重启合约，
 不是持久化审批。Worker 只能在全新 Activation 后重建相同的 Guarded Tool Descriptor；
 已经开始的持久 Tool Attempt 仍保留常规 Recovery Ledger，但 Reconciliation 会在
@@ -124,6 +134,8 @@ Provider I/O 前再次执行精确的 Skill Policy 检查。
 - `McpSkillBoundTool` 会在普通 `ErasedTool` Boundary 内消费不可 Clone 的 Permit。
   Authorization Denial 对 Write 生成 `NotStarted` Evidence（Read 为 `NotApplicable`），
   且绝不会调用底层 Provider。
+- Durable Receipt 只证明精确授权决定，不证明 Provider 已 Dispatch 或外部副作用已经
+  发生；结果仍以 Terminal Tool Evidence 与 Reconciliation 为准。
 - Executable Registry 必须只注册 Guarded Adapter，不能同时保留 Raw Provider；绕过
   Adapter 直接 Dispatch 属于 Skill Authorization Boundary 之外的 Host 配置错误。
 - Entry 绑定到一个 Client Instance，因此跨 Server 复用会失败关闭。应用必须为该
@@ -135,18 +147,22 @@ Provider I/O 前再次执行精确的 Skill Policy 检查。
 ```console
 cargo test -p stateknot-integrations mcp_skill_host --locked
 cargo test -p stateknot-integrations --test mcp_skills_host --locked
+cargo test -p stateknot-store-postgres --test postgres --locked \
+  tool_authorization_receipts_are_exact_immutable_and_page_verifiable
 ```
 
 Loopback Contract Suite 覆盖 Lazy Listing、Capability 声明、有界 Pagination、Host
 Origin 保留、先审批后读取、Digest/Size/Frontmatter 精确对账、不可变 Cache Hit、
 Manifest-only Read、本地 Directory View、Nested Skill 新审批、Per-call Tool
 Authorization、精确 Descriptor/Identity Disclosure、Execution/Reconciliation 分开审批、
-Immutable Registry 兼容、Denial 早于 Provider Dispatch，以及内容漂移时的失败关闭。
+Immutable Registry 兼容、Denial 早于 Provider Dispatch、Receipt 先落库后调用、Sink
+不可用的重试证据、凭证的幂等/不可变/分页校验，以及内容漂移时的失败关闭。
 
 ## 不做声明的能力
 
 - Dynamic Manifest 或 `resources/directory/read`；
-- 持久化审批、持久化 Acting Window、Disk Cache 或文件系统 Skill 安装；
+- 持久化 Activation Approval、持久化 Acting Window、Disk Cache 或文件系统 Skill
+  安装（逐次 Tool Authorization Receipt 已持久化，属于更窄的合约）；
 - Signature Verification、Provenance、Marketplace Trust、恶意内容检测或 Sandbox；
 - Tool 自动发现、`allowed-tools` Pattern 解释或动态 Discovery-to-Agent 组合；
 - Stable Rust API、crates.io Release 或官方 Skills Extension Conformance。
