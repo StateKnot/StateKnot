@@ -18,7 +18,7 @@ a2a = { package = "a2a-lf", version = "=0.3.0" }
 a2a-server = { package = "a2a-server-lf", version = "=0.4.3", default-features = false }
 async-trait = "0.1.89"
 axum = { version = "0.8.4", default-features = false, features = ["http1", "json", "tokio"] }
-base64 = "0.22.1"
+base64 = "0.23.1"
 bytes = "1.12.1"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 fluent-uri = { version = "0.4.1", default-features = false, features = ["alloc"] }
@@ -34,14 +34,14 @@ hdrhistogram = { version = "=7.6.0", default-features = false }
 language-tags = "0.3.2"
 mime = "0.3.17"
 object_store = { version = "=0.14.1", default-features = false, features = ["aws"] }
-jsonschema = { version = "=0.52.1", default-features = false }
+jsonschema = { version = "=0.56.0", default-features = false }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 reqwest = { version = "=0.12.28", default-features = false, features = [
     "json",
     "rustls-tls-native-roots",
     "stream",
 ] }
-rmcp = { version = "=3.2.0", default-features = false, features = [
+rmcp = { version = "=3.3.0", default-features = false, features = [
     "auth",
     "client",
     "elicitation",
@@ -78,7 +78,7 @@ tokio = { version = "1.53.1", default-features = false, features = [
 ] }
 tokio-util = "0.7.19"
 tower-service = "0.3.3"
-uuid = { version = "1.26.0", features = ["v7"] }
+uuid = { version = "1.26.1", features = ["v7"] }
 zeroize = "1.8.2"
 
 [workspace.package]
