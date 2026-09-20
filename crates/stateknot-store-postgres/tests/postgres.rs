@@ -385,6 +385,7 @@ async fn remove_artifact_registry(pool: &PgPool) {
 
 async fn remove_child_run_cancellation(pool: &PgPool) {
     for sql in [
+        include_str!("fixtures/revert_tool_authorization_receipts.sql"),
         include_str!("fixtures/revert_run_failure_closes.sql"),
         include_str!("fixtures/revert_agent_deadlines.sql"),
         include_str!("fixtures/revert_child_joins.sql"),
@@ -14616,7 +14617,9 @@ async fn delayed_retry_that_becomes_due_keeps_ownership_for_replanning() {
         FailureOrigin::new("graph.integration").unwrap(),
         FailureMessage::new("The retry becomes due before scheduler projection commits.").unwrap(),
         RetryAdvice::SafeAfter {
-            delay: DurationMillis::new(250).unwrap(),
+            // Leave enough wall-clock margin for loaded CI runners to observe
+            // the pre-deadline Deferred state deterministically.
+            delay: DurationMillis::new(2_000).unwrap(),
         },
     )
     .unwrap()
@@ -14654,7 +14657,7 @@ async fn delayed_retry_that_becomes_due_keeps_ownership_for_replanning() {
     let deferred_plan = recovery.plan_ready_nodes().await.unwrap();
     assert_eq!(deferred_plan.nodes()[0].kind(), RecoveryNodeKind::Deferred);
     let not_before = deferred_plan.earliest_deferred_at().unwrap();
-    tokio::time::sleep(Duration::from_millis(350)).await;
+    tokio::time::sleep(Duration::from_millis(2_100)).await;
     assert_eq!(
         store
             .schedule_delayed_retry_wakeup(&deferred_plan)
