@@ -948,7 +948,7 @@ Challenge-driven Protected-resource/Authorization-server Discovery、
 Pre-registration/CIMD/DCR、PKCE、Issuer/Callback Binding、Token Endpoint
 Authentication、Refresh、Offline Access、Scope Step-up、Issuer Migration、有界
 Replay 与调用方 Durable Store Boundary。固定官方 Runner 的全部 32 个计分 Client
-场景在 CI 中强制执行，其中包括全部 25 个 OAuth 场景：373 项计分 Assertion 成功、
+场景在 CI 中强制执行，其中包括全部 25 个 OAuth 场景：371 项计分 Assertion 成功、
 0 失败，11 项 Surface 外检查明确 Skip；7 个官方明确不计分 Extension 单独报告且不做
 声明。
 

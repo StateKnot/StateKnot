@@ -1041,7 +1041,7 @@ test("general MCP Tool client documents MRTR, limits, and official evidence", as
     }),
   ).toBeVisible();
   await expect(
-    page.getByText("373 scored assertions succeed", { exact: false }),
+    page.getByText("371 scored assertions succeed", { exact: false }),
   ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(2);
 });

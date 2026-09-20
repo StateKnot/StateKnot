@@ -178,6 +178,6 @@ bash conformance/mcp-client/run-2026-07-28.sh
 8. 监控 Rejected Tool、Protocol Failure、Timeout 与 Tool-level `isError`，但不记录 Credential 或敏感 Payload。
 
 固定官方证据覆盖 `2026-07-28` Requirement Set 中全部 32 个计分 Client 场景，
-包括全部 25 个计分 OAuth 场景：373 项计分 Assertion Success、0 Failure；11 项
+包括全部 25 个计分 OAuth 场景：371 项计分 Assertion Success、0 Failure；11 项
 Optional 或未实现方法检查被跳过。7 个官方明确不计分的 Extension 单独报告，且不进入
 StateKnot 的 Client、Server、Extension 或 SDK-tier 声明。

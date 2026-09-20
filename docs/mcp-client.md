@@ -210,7 +210,7 @@ Before deployment:
 
 The pinned official evidence covers all 32 scored client scenarios in the
 frozen `2026-07-28` requirement set, including all 25 scored OAuth scenarios:
-373 scored assertions succeeded and none failed. Eleven optional or
+371 scored assertions succeeded and none failed. Eleven optional or
 unimplemented-method checks were skipped. Seven explicitly not-scored
 extensions are reported separately and remain outside StateKnot's client,
 server, extension, and SDK-tier claims.

@@ -148,7 +148,7 @@ v1 范围基线包括 PostgreSQL 持久化执行、OpenAI 兼容模型与 Anthro
   预注册/CIMD/DCR、PKCE、issuer 与 callback 校验、scope 升级、refresh、有界
   replay 和调用方自有持久化 Store。
 - 固定版本的官方 Client Runner 覆盖全部 32 个计分场景（含全部 25 个 OAuth
-  场景）：373 条断言通过、0 失败；11 项超出已声明 Tool 面的能力/方法检查明确
+  场景）：371 条断言通过、0 失败；11 项超出已声明 Tool 面的能力/方法检查明确
   跳过。另有 7 项不计分扩展仅报告、不声明支持。
 - StateKnot 自有 MCP Server 应用层组合不可变且有界的 Tools、Resources、
   Resource Templates、Prompts 和可选 Completion，并置于生产级无状态 HTTP
