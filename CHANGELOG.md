@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Skill activation evidence now fails closed while decoding: direct activation
+  sources reject an injected parent-window field, and acting-window durations
+  enforce the documented one-second through 24-hour bound during both Serde
+  deserialization and JSON Schema validation.
+
 - PostgreSQL transaction startup now completes and rolls back after caller
   cancellation, preventing a server-side transaction from returning to the pool
   before `SQLx` records its transaction depth. Read and mutation transactions
@@ -70,14 +75,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   private cursor binding, URI/path collision refusal, and end-to-end HTTP
   attack-surface tests. This remains a separate pre-alpha server claim.
 
-- Closed, versioned catalog for all 36 committed `stateknot-core`
+- Closed, versioned catalog for all 38 committed `stateknot-core`
   compatibility fixture documents. The gate strictly parses bounded JSON,
   preserves deliberately non-canonical negative vectors through exact content
   SHA-256 digests, binds the ordered metadata with a domain-separated RFC 8785
   root, rejects inventory/path/schema drift, and requires an executable Rust
-  compatibility-test reference for every entry. No dependency or runtime API
-  changed; this is infrastructure toward RFC-0001 validation item 2, whose
-  exhaustive type-level fixture coverage remains open.
+  compatibility-test reference for every entry. Complete Tool authorization
+  receipts and Skill approval/open/window/revocation records now freeze full
+  wire forms, retained and canonical-wire digests, payload redaction, closed
+  schemas, and fail-closed tamper vectors. This advances RFC-0001 validation
+  item 2; exhaustive type-level fixture coverage remains open.
 
 - Four executable `stateknot-core` public contract examples for the first Agent,
   typed Tool registration, provider-neutral Model stream validation and explicit

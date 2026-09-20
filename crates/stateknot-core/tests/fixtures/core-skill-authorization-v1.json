@@ -1,0 +1,203 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-skill-authorization/1.0.0",
+  "scopes": {
+    "valid": [
+      {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783451",
+        "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783452"
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783451"
+      },
+      {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783451",
+        "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783452",
+        "global": true
+      },
+      null
+    ]
+  },
+  "subjects": {
+    "valid": [
+      {
+        "protocol": "mcp",
+        "origin": "production",
+        "uri": "skill://review/SKILL.md",
+        "manifest_digest": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f"
+      }
+    ],
+    "invalid": [
+      {
+        "protocol": "MCP",
+        "origin": "production",
+        "uri": "skill://review/SKILL.md",
+        "manifest_digest": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f"
+      },
+      {
+        "protocol": "mcp",
+        "origin": " production",
+        "uri": "skill://review/SKILL.md",
+        "manifest_digest": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f"
+      },
+      {
+        "protocol": "mcp",
+        "origin": "production",
+        "uri": "",
+        "manifest_digest": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f"
+      },
+      {
+        "protocol": "mcp",
+        "origin": "production",
+        "uri": "skill://review/SKILL.md",
+        "manifest_digest": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f",
+        "trusted": true
+      },
+      null
+    ]
+  },
+  "sources": {
+    "valid": [
+      { "kind": "direct" },
+      {
+        "kind": "nested",
+        "parent_window_id": "018f1f65-45d3-7a2e-8a19-4de38b783454"
+      }
+    ],
+    "invalid": [
+      {},
+      { "kind": "automatic" },
+      { "kind": "nested" },
+      {
+        "kind": "direct",
+        "parent_window_id": "018f1f65-45d3-7a2e-8a19-4de38b783454"
+      },
+      null
+    ]
+  },
+  "durations": {
+    "valid": ["1000", "60000", "86400000"],
+    "invalid": ["999", "86400001", "060000", 60000, null]
+  },
+  "revocation_reasons": {
+    "valid": ["user", "policy", "compromised", "superseded", "administrative"],
+    "invalid": ["expired", "Policy", "", 1, null]
+  },
+  "records": {
+    "approval": {
+      "approval_id": "018f1f65-45d3-7a2e-8a19-4de38b783450",
+      "scope": {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783451",
+        "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783452"
+      },
+      "subject": {
+        "protocol": "mcp",
+        "origin": "production",
+        "uri": "skill://review/SKILL.md",
+        "manifest_digest": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f"
+      },
+      "source": { "kind": "direct" },
+      "policy": {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "policy"
+        },
+        "capability": {
+          "name": "skill-activation",
+          "version": "1.0.0"
+        }
+      },
+      "policy_digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812",
+      "decision_digest": "sha256:86ae35d58a6aa3b5742df94ef9d7162219f0106a911ae1954c1f0604aaec805d",
+      "requested_duration": "60000",
+      "approval_digest": "sha256:eb85006b7a82aff0b1b525f61ecd5a17895f14b3fdcf5707a79af3c14a58f922"
+    },
+    "open_request": {
+      "window_id": "018f1f65-45d3-7a2e-8a19-4de38b783453",
+      "approval": {
+        "approval_id": "018f1f65-45d3-7a2e-8a19-4de38b783450",
+        "scope": {
+          "tenant_id": "tenant-a",
+          "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783451",
+          "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783452"
+        },
+        "subject": {
+          "protocol": "mcp",
+          "origin": "production",
+          "uri": "skill://review/SKILL.md",
+          "manifest_digest": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f"
+        },
+        "source": { "kind": "direct" },
+        "policy": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "policy"
+          },
+          "capability": {
+            "name": "skill-activation",
+            "version": "1.0.0"
+          }
+        },
+        "policy_digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812",
+        "decision_digest": "sha256:86ae35d58a6aa3b5742df94ef9d7162219f0106a911ae1954c1f0604aaec805d",
+        "requested_duration": "60000",
+        "approval_digest": "sha256:eb85006b7a82aff0b1b525f61ecd5a17895f14b3fdcf5707a79af3c14a58f922"
+      }
+    },
+    "window": {
+      "window_id": "018f1f65-45d3-7a2e-8a19-4de38b783453",
+      "approval": {
+        "approval_id": "018f1f65-45d3-7a2e-8a19-4de38b783450",
+        "scope": {
+          "tenant_id": "tenant-a",
+          "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783451",
+          "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783452"
+        },
+        "subject": {
+          "protocol": "mcp",
+          "origin": "production",
+          "uri": "skill://review/SKILL.md",
+          "manifest_digest": "sha256:05b3abf2579a5eb66403cd78be557fd860633a1fe2103c7642030defe32c657f"
+        },
+        "source": { "kind": "direct" },
+        "policy": {
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "policy"
+          },
+          "capability": {
+            "name": "skill-activation",
+            "version": "1.0.0"
+          }
+        },
+        "policy_digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812",
+        "decision_digest": "sha256:86ae35d58a6aa3b5742df94ef9d7162219f0106a911ae1954c1f0604aaec805d",
+        "requested_duration": "60000",
+        "approval_digest": "sha256:eb85006b7a82aff0b1b525f61ecd5a17895f14b3fdcf5707a79af3c14a58f922"
+      },
+      "opened_at": "2026-09-20T12:00:00.000000Z",
+      "expires_at": "2026-09-20T12:01:00.000000Z",
+      "window_digest": "sha256:c991c174b124092615faf7003d4fd43dba75abb4109dd44f780732e122b5cad8"
+    },
+    "revocation": {
+      "tenant_id": "tenant-a",
+      "window_id": "018f1f65-45d3-7a2e-8a19-4de38b783453",
+      "reason": "policy",
+      "revoked_at": "2026-09-20T12:00:30.000000Z",
+      "revocation_digest": "sha256:d28120e7f0b2d8bbb198ddbb77e2e3f413f4733d5a1d0a405abe9d5d0987ebbd"
+    }
+  },
+  "expected": {
+    "subject": "sha256:a5027db84a657be7c86d6bc5cf934e1a73a599b5f98ea840805dda84a5b42b5a",
+    "approval_canonical_wire": "sha256:160f193dfaab0e75fbaae70fbedbf8358bc6269c6598cf9ba4c5ac253fa04b4b",
+    "open_request_canonical_wire": "sha256:087cea36e854521fe181fba085221cbd32a25271a52d20bba42cbb5382cf54cf",
+    "window_canonical_wire": "sha256:89539dfa562896526dc199c533f1ba296d739c82e9da5dafe4ba6a44aa6feebe",
+    "revocation_canonical_wire": "sha256:68fe5e7f4bbbd4479bc368ce02f00f1219543e89bf5e32e4b49e9b18410a7802"
+  }
+}

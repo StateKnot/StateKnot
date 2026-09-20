@@ -1762,13 +1762,17 @@ Validation item 1 is implemented by the four compiled
 CI step, and the direct-dependency boundary test. Items 2 through 9 remain
 acceptance gates, so this RFC remains Draft and does not establish API stability.
 
-The current 36-file compatibility fixture corpus is now a closed, versioned
+The current 38-file compatibility fixture corpus is now a closed, versioned
 catalog: exact content digests retain deliberately non-canonical negative
 vectors, while a domain-separated RFC 8785 catalog root binds ordered path,
 schema, and digest metadata. CI rejects inventory drift and requires every
 catalogued document to remain referenced by executable Rust compatibility tests.
-This establishes auditable evidence infrastructure for item 2; it does not yet
-prove exhaustive type-level fixture coverage, so item 2 remains open.
+Complete Tool authorization receipts and Skill activation approval/open/window/
+revocation evidence are now covered, including retained and canonical-wire
+digests, strict bounds, payload redaction, schema closure, and tamper rejection.
+This establishes auditable evidence infrastructure and closes those type-family
+gaps for item 2; it does not yet prove exhaustive type-level fixture coverage,
+so item 2 remains open.
 
 The rollout order is core value types and fixtures, typed tool adapter, model
 boundary, context/identity/budget integration, and only then graph/persistence/

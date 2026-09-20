@@ -33,11 +33,17 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 36 currently
+The versioned `catalog-v1.json` closes the inventory around all 38 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
 and content-digest records through a domain-separated RFC 8785 preimage.
+
+The authorization slice freezes complete Tool receipts both with and without a
+Skill acting-window binding, plus complete Skill approval, open-request,
+acting-window, and revocation records. Executable vectors verify every retained
+digest, payload redaction, closed schemas, strict source/duration decoding, and
+fail-closed behavior after identity, input, expiry, reason, or digest tampering.
 
 The integration gate rejects an unregistered, missing, reordered, duplicate,
 oversized, duplicate-key, path-escaping, schema-conflicting, changed, or
