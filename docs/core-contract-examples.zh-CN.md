@@ -32,10 +32,16 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 36 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 38 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
+
+授权部分现已固定两种完整 Tool Receipt（绑定与未绑定 Skill Acting Window），
+以及完整的 Skill Approval、Open Request、Acting Window 与 Revocation 记录。
+可执行向量会校验每个保留摘要、Payload Redaction、封闭 Schema、严格的 Source /
+Duration 解码，并验证 Identity、Input、Expiry、Reason 或 Digest 被篡改后必须
+Fail Closed。
 
 集成门禁会拒绝未登记、缺失、乱序、重复、过大、包含重复键、路径越界、Schema
 冲突、内容变化或没有 Rust 测试引用的 Fixture。每份已登记文档仍必须被可执行的

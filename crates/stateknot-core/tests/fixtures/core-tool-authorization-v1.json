@@ -1,0 +1,126 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-tool-authorization/1.0.0",
+  "operations": {
+    "valid": ["execute", "reconcile"],
+    "invalid": ["Execute", "dispatch", "", 1, null]
+  },
+  "provenance": {
+    "valid": [
+      {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783460",
+        "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783461",
+        "invocation_id": "018f1f65-45d3-7a2e-8a19-4de38b783462",
+        "attempt_id": "018f1f65-45d3-7a2e-8a19-4de38b783463",
+        "origin_event_id": "018f1f65-45d3-7a2e-8a19-4de38b783464"
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783460",
+        "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783461",
+        "invocation_id": "018f1f65-45d3-7a2e-8a19-4de38b783462",
+        "attempt_id": "018f1f65-45d3-7a2e-8a19-4de38b783463"
+      },
+      {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783460",
+        "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783461",
+        "invocation_id": "018f1f65-45d3-7a2e-8a19-4de38b783462",
+        "attempt_id": "018f1f65-45d3-7a2e-8a19-4de38b783463",
+        "origin_event_id": "018f1f65-45d3-7a2e-8a19-4de38b783464",
+        "trusted": true
+      },
+      null
+    ]
+  },
+  "receipts": {
+    "without_window": {
+      "receipt_id": "018f1f65-45d3-7a2e-8a19-4de38b78345f",
+      "provenance": {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783460",
+        "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783461",
+        "invocation_id": "018f1f65-45d3-7a2e-8a19-4de38b783462",
+        "attempt_id": "018f1f65-45d3-7a2e-8a19-4de38b783463",
+        "origin_event_id": "018f1f65-45d3-7a2e-8a19-4de38b783464"
+      },
+      "operation": "execute",
+      "tool": {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "tool-registry"
+        },
+        "capability": {
+          "name": "filesystem.read",
+          "version": "2.1.0"
+        }
+      },
+      "descriptor_digest": "sha256:d4076985183cd3c8eee65d368e7fcc64fccd2bcacf7c46cc081e156f9e69687a",
+      "input_digest": "sha256:5086045c124270f75604072c527e2d92636280ffdab759f0991a5925b6676116",
+      "subject_digest": "sha256:d42e0a2b32a54cf5d394dbe8f82702633ccd8e9c25a80ce5cd521fdc0ad1f1eb",
+      "policy": {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "policy-registry"
+        },
+        "capability": {
+          "name": "skill-tool-policy",
+          "version": "3.0.4"
+        }
+      },
+      "policy_digest": "sha256:1c122c364ffab148fd84474ea2e8fca676eb868e4738b5a61010736865bf669f",
+      "decision_digest": "sha256:5db3f0469b7be8065469d6f21eb385b4b4714ebd656c560f41ef6dff49bef089",
+      "authorized_at": "2026-09-20T12:34:56.123456Z",
+      "has_recovery_handle": true,
+      "receipt_digest": "sha256:6ce59977d983802b7724acfdd213e4315c79e895bbb59869a485007920f9d780"
+    },
+    "with_window": {
+      "receipt_id": "018f1f65-45d3-7a2e-8a19-4de38b78345f",
+      "provenance": {
+        "tenant_id": "tenant-a",
+        "run_id": "018f1f65-45d3-7a2e-8a19-4de38b783460",
+        "thread_id": "018f1f65-45d3-7a2e-8a19-4de38b783461",
+        "invocation_id": "018f1f65-45d3-7a2e-8a19-4de38b783462",
+        "attempt_id": "018f1f65-45d3-7a2e-8a19-4de38b783463",
+        "origin_event_id": "018f1f65-45d3-7a2e-8a19-4de38b783464"
+      },
+      "operation": "execute",
+      "tool": {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "tool-registry"
+        },
+        "capability": {
+          "name": "filesystem.read",
+          "version": "2.1.0"
+        }
+      },
+      "descriptor_digest": "sha256:d4076985183cd3c8eee65d368e7fcc64fccd2bcacf7c46cc081e156f9e69687a",
+      "input_digest": "sha256:5086045c124270f75604072c527e2d92636280ffdab759f0991a5925b6676116",
+      "subject_digest": "sha256:d42e0a2b32a54cf5d394dbe8f82702633ccd8e9c25a80ce5cd521fdc0ad1f1eb",
+      "policy": {
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "policy-registry"
+        },
+        "capability": {
+          "name": "skill-tool-policy",
+          "version": "3.0.4"
+        }
+      },
+      "policy_digest": "sha256:1c122c364ffab148fd84474ea2e8fca676eb868e4738b5a61010736865bf669f",
+      "decision_digest": "sha256:5db3f0469b7be8065469d6f21eb385b4b4714ebd656c560f41ef6dff49bef089",
+      "authorization_window_id": "018f1f65-45d3-7a2e-8a19-4de38b783465",
+      "authorized_at": "2026-09-20T12:34:56.123456Z",
+      "has_recovery_handle": true,
+      "receipt_digest": "sha256:8a05a8e61535c9f4d749fae05651cf0a8c39fb3a19b23c11184628bb35f7e3d5"
+    }
+  },
+  "expected": {
+    "without_window_canonical_wire": "sha256:1569b5c99b82c8a519c9b51ac8dc10b3d0ccce02ce0220c557c3b63b950fa726",
+    "with_window_canonical_wire": "sha256:a698efb1c9b9323da9d995579736bdc10ba1384273d9aba299194232bad5b593"
+  }
+}

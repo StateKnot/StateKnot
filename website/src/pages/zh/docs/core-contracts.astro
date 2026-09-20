@@ -111,10 +111,16 @@ cargo test -p stateknot-core --test fixture_catalog --locked`;
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">封闭兼容性证据语料库</h2>
     <p>
-      版本化目录对当前提交的全部 36 份 Core Fixture 文档建立封闭清单。每个条目以
+      版本化目录对当前提交的全部 38 份 Core Fixture 文档建立封闭清单。每个条目以
       SHA-256 固定文件的精确字节，从而保留刻意非 Canonical 的非法输入反例；带
       Domain Separation 的 RFC 8785 根摘要绑定有序的路径、Schema 与 Digest
       元数据。
+    </p>
+    <p>
+      完整的 Tool 授权 Receipt，以及 Skill Approval、Open Request、Acting Window
+      与 Revocation 记录，现已连同各自的保留摘要和 Canonical Wire 摘要一起固定。
+      可执行向量会验证 Payload Redaction、严格的 Source / Duration 解码、Schema
+      封闭性与篡改拒绝。
     </p>
     <p>
       CI 会拒绝缺失、未登记、变化、重复、不安全、过大或没有测试引用的

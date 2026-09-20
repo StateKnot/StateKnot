@@ -5,7 +5,7 @@
 
 use std::{error::Error as StdError, fmt, sync::Arc};
 
-use schemars::JsonSchema;
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use thiserror::Error;
 
@@ -18,6 +18,8 @@ const APPROVAL_DIGEST_DOMAIN: &[u8] = b"stateknot.skill-activation-approval.v1\0
 const WINDOW_DIGEST_DOMAIN: &[u8] = b"stateknot.skill-acting-window.v1\0";
 const REVOCATION_DIGEST_DOMAIN: &[u8] = b"stateknot.skill-acting-window-revocation.v1\0";
 const SUBJECT_DIGEST_DOMAIN: &[u8] = b"stateknot.skill-authorization-subject.v1\0";
+const ACTING_WINDOW_DURATION_PATTERN: &str =
+    "^(?:[1-9][0-9]{3,6}|[1-7][0-9]{7}|8[0-5][0-9]{6}|86[0-3][0-9]{5}|86400000)$";
 const MAX_PROTOCOL_BYTES: usize = 32;
 const MAX_ORIGIN_BYTES: usize = 128;
 const MAX_URI_BYTES: usize = 4096;
@@ -188,7 +190,7 @@ fn validate_label(
 }
 
 /// Why the exact Skill received fresh activation approval.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case", tag = "kind", deny_unknown_fields)]
 #[non_exhaustive]
 pub enum SkillActivationSource {
@@ -201,8 +203,40 @@ pub enum SkillActivationSource {
     },
 }
 
+impl<'de> Deserialize<'de> for SkillActivationSource {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "snake_case")]
+        enum Kind {
+            Direct,
+            Nested,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Wire {
+            kind: Kind,
+            #[serde(default)]
+            parent_window_id: Option<SkillActingWindowId>,
+        }
+
+        let wire = Wire::deserialize(deserializer)?;
+        match (wire.kind, wire.parent_window_id) {
+            (Kind::Direct, None) => Ok(Self::Direct),
+            (Kind::Nested, Some(parent_window_id)) => Ok(Self::Nested { parent_window_id }),
+            (Kind::Direct, Some(_)) => Err(de::Error::custom(
+                "direct Skill activation source cannot contain a parent window",
+            )),
+            (Kind::Nested, None) => Err(de::Error::missing_field("parent_window_id")),
+        }
+    }
+}
+
 /// Strict requested lifetime for an acting window.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct SkillActingWindowDuration(DurationMillis);
 
@@ -224,6 +258,39 @@ impl SkillActingWindowDuration {
     #[must_use]
     pub const fn duration(self) -> DurationMillis {
         self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for SkillActingWindowDuration {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let duration = DurationMillis::deserialize(deserializer)?;
+        Self::new(duration).map_err(de::Error::custom)
+    }
+}
+
+impl JsonSchema for SkillActingWindowDuration {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "SkillActingWindowDuration".into()
+    }
+
+    fn schema_id() -> std::borrow::Cow<'static, str> {
+        concat!(module_path!(), "::SkillActingWindowDuration").into()
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 8,
+            "pattern": ACTING_WINDOW_DURATION_PATTERN
+        })
+    }
+
+    fn inline_schema() -> bool {
+        true
     }
 }
 

@@ -41,9 +41,11 @@ The four [public core contract examples](core-contract-examples.md)
 Model stream and explicit protocol mapping on MSRV while locking the reviewed
 runtime-neutral direct dependency boundary. They close only RFC-0001 validation
 item 1 and do not claim API stability or runtime execution. The same guide
-documents the closed 36-file compatibility fixture catalog, whose exact content
-digests and RFC 8785 root make current evidence drift fail CI without claiming
-that RFC-0001 validation item 2 already has exhaustive type coverage.
+documents the closed 38-file compatibility fixture catalog, whose exact content
+digests and RFC 8785 root make current evidence drift fail CI. The corpus now
+includes complete Tool authorization receipts and Skill approval, open-request,
+acting-window, and revocation evidence without claiming that RFC-0001 validation
+item 2 already has exhaustive type coverage.
 
 1. [v1 scope baseline](v1-scope.md) — the capabilities, guarantees, supported
    environment, and explicit exclusions that control implementation work.

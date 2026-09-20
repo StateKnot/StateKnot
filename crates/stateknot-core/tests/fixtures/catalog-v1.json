@@ -158,6 +158,11 @@
       "content_digest": "sha256:d38c025aa7debd502e96fb84c1f81cf7516c462e4671368c6697ee7bc1aa0fc8"
     },
     {
+      "path": "core-skill-authorization-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-skill-authorization/1.0.0",
+      "content_digest": "sha256:f51a140c8d53cd18e2de0191418c504a28e324a0f155f7ee8f27023b47bc0537"
+    },
+    {
       "path": "core-time-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-time/1.0.0",
       "content_digest": "sha256:3cdc443be68ed93acc31032014bb2ff4f48c3c20d2774fb4f34b8893ed85e5a5"
@@ -166,6 +171,11 @@
       "path": "core-time-v2.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-time/2.0.0",
       "content_digest": "sha256:c30b00aa87ca135f6c42c0b16e4387ed8c59b86cab88177559fdd4a8c087ea4d"
+    },
+    {
+      "path": "core-tool-authorization-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-tool-authorization/1.0.0",
+      "content_digest": "sha256:9d89ac35ed5741b3a4596a31b4fa5904d75ab60ef682833e7fb3d3fa4603e45a"
     },
     {
       "path": "core-tool-invocation-v1.json",
@@ -183,5 +193,5 @@
       "content_digest": "sha256:009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
     }
   ],
-  "root_digest": "sha256:d53ecfc2354a4b77562bde901520e82c8d06719d07a96efe36746ed158230fdd"
+  "root_digest": "sha256:8d7d0ea409eeb8308909386a5067da989aaba0c41684d673ca9ee918d0af938d"
 }

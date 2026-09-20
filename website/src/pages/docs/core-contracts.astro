@@ -115,10 +115,16 @@ cargo test -p stateknot-core --test fixture_catalog --locked`;
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">Seal the compatibility evidence corpus</h2>
     <p>
-      A versioned catalog closes the inventory around all 36 committed Core
+      A versioned catalog closes the inventory around all 38 committed Core
       fixture documents. Each entry pins the exact file bytes with SHA-256,
       retaining deliberately non-canonical negative vectors; a domain-separated
       RFC 8785 root binds the ordered path, schema, and digest metadata.
+    </p>
+    <p>
+      Complete Tool authorization receipts and Skill approval, open-request,
+      acting-window, and revocation records are now frozen with their retained
+      and canonical-wire digests. Executable vectors verify payload redaction,
+      strict source and duration decoding, schema closure, and tamper rejection.
     </p>
     <p>
       CI rejects missing, unregistered, changed, duplicate, unsafe, oversized,
