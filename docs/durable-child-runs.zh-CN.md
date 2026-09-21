@@ -408,5 +408,8 @@ Run 内的嵌套命名空间。
 到期取消、显式 Join 执行/发布/恢复、取消请求持久化与结算已实现。新增的
 [成功 Join 进程丢失配置](child-join-process-qualification.zh-CN.md)使用 PostgreSQL-only
 重建验证从 Admission 到终态重放的八个已提交边界，并验证保留旧 Worker 在更高 Epoch
-恢复前被 Fence 拒绝。Deadline Cancel-and-join 与 Join 事务进行中的切断仍未覆盖，因此
-不代表完整子 Run 服务可用；草案不会作为完整已实现能力发布到官网状态页。
+恢复前被 Fence 拒绝。新增的
+[Deadline Cancel-and-join 配置](deadline-join-process-qualification.zh-CN.md)验证从到期到
+父取消终态重放的九个已提交边界，包括父子继承 Deadline 与首个取消原因保留。Join/
+Deadline 事务进行中的切断仍未覆盖，因此不代表完整子 Run 服务可用；草案不会作为完整
+已实现能力发布到官网状态页。

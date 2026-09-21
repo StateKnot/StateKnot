@@ -90,3 +90,8 @@ cargo test -p stateknot-runtime --test postgres --locked deadline_ -- --test-thr
 放弃、挂起 Join 取消/队列回滚/进程重启/子用量累计、17 项分页越过错误、租户游标约束、
 关闭与隔离、首个取消原因/终态保留、已有 v22 数据升级、索引可用性和篡改/禁用守卫拒绝。
 这些使用确定性执行器和可信测试用量，不是在线模型或生产容量测试。
+
+配套的 [Deadline Cancel-and-join 进程丢失配置](deadline-join-process-qualification.zh-CN.md)
+在 PostgreSQL 16、17 上新增九个新进程已提交边界，验证父子继承 Deadline 竞态、子取消
+幂等投递、真实 Agent Loop 清理、只结算一次、更高 Epoch 拒绝旧 Worker 和终态重放。
+COMMIT 进行中切断、Provider 副作用、Failover 与容量仍是独立门禁。

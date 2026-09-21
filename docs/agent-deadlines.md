@@ -122,3 +122,10 @@ sealed Join cancellation/queue rollback/restart/child-inclusive accounting,
 preservation of first reasons and terminal outcomes, populated v22 upgrade,
 index access and altered/disabled guard rejection. These are deterministic
 executors and trusted fixture accounting, not live-provider or capacity tests.
+
+The companion [deadline cancel-and-join process-loss profile](deadline-join-process-qualification.md)
+adds nine fresh-process committed boundaries on PostgreSQL 16 and 17. It proves
+the inherited parent/child deadline race, idempotent child delivery, real Agent
+Loop cleanup, once-only settlement, higher-epoch stale-worker rejection and
+terminal replay. In-COMMIT cuts, provider effects, failover and capacity remain
+separate gates.
