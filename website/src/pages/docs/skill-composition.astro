@@ -1,0 +1,109 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  title="Compose skills from durable primitives."
+  description="Choose capability bundles, shared-state subgraphs, durable child runs, or guarded MCP Skills without creating a second execution engine."
+  section="Skill composition"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="skill-composition-boundary-title"
+  >
+    <h2 id="skill-composition-boundary-title">
+      A Skill is a bundle, not new authority
+    </h2>
+    <p>
+      Compose versioned instructions, Tools, graphs, policies and configuration
+      into one immutable Agent deployment. StateKnot deliberately keeps durable
+      state, budgets, authorization and recovery on the existing audited paths.
+      MCP Skill text and <code>allowed-tools</code> remain untrusted inputs.
+    </p>
+  </aside>
+
+  <section aria-labelledby="skill-composition-choice-title">
+    <h2 id="skill-composition-choice-title">
+      Choose the smallest durable boundary
+    </h2>
+    <div
+      class="docs-table-wrap"
+      tabindex="0"
+      aria-label="Skill composition choices"
+    >
+      <table>
+        <thead><tr><th>Need</th><th>Primitive</th><th>Boundary</th></tr></thead>
+        <tbody>
+          <tr
+            ><td>Instructions plus independent Tools</td><td
+              >Capability bundle</td
+            ><td>No separate runtime state</td></tr
+          >
+          <tr
+            ><td>Fixed multi-step shared-state flow</td><td
+              >Shared-state subgraph</td
+            ><td>One durable barrier per node</td></tr
+          >
+          <tr
+            ><td>Isolated long-running work</td><td>Durable child run</td><td
+              >Independent lifecycle and budget</td
+            ></tr
+          >
+          <tr
+            ><td>Remote static package</td><td>MCP Skill activation</td><td
+              >Verified untrusted content and guarded execution</td
+            ></tr
+          >
+        </tbody>
+      </table>
+    </div>
+    <p>
+      A Tool collection does not need a graph. Use a subgraph only when control
+      flow itself must recover deterministically. Use a child run when state,
+      ownership, deadline, budget or cancellation must be isolated.
+    </p>
+  </section>
+
+  <section aria-labelledby="skill-composition-resolution-title">
+    <h2 id="skill-composition-resolution-title">
+      Resolve everything before admission
+    </h2>
+    <p>
+      Pin exact module versions, reject cycles and collisions, topologically
+      order dependencies and freeze one deployment snapshot. Prompt slots keep
+      unique instruction identities, provenance and trust labels. Never merge
+      remote Skill bytes into privileged system instructions. New configuration
+      creates a new Agent version; old executables stay installed until their
+      runs drain.
+    </p>
+    <p>
+      Compile limits into existing Agent budgets, Tool execution limits, graph
+      step bounds, child-run budgets and MCP acting windows. Conflicts choose
+      the most restrictive compatible value or fail startup—composition never
+      silently widens authority or resources.
+    </p>
+  </section>
+
+  <section aria-labelledby="skill-composition-mcp-title">
+    <h2 id="skill-composition-mcp-title">Keep MCP activation explicit</h2>
+    <p>
+      MCP catalog discovery never mutates an Agent. Each direct or nested remote
+      Skill receives explicit policy approval, verified lazy reads, a durable
+      acting window and per-operation permits. Execution still passes through
+      the ordinary Tool registry and attempt ledger. Dynamic manifests,
+      native-code hot loading and automatic discovery-to-Agent composition are
+      not claimed.
+    </p>
+    <p>
+      Read the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/skill-composition.md"
+        >complete design and JiaClaw example</a
+      >, then use <a href="/docs/mcp-skills/">MCP Skills</a> or
+      <a href="/docs/graph-composition/">subgraphs and loops</a> for the selected
+      boundary.
+    </p>
+  </section>
+</DocsLayout>

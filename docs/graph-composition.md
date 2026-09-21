@@ -160,3 +160,7 @@ static composition must not be advertised as implementing them.
 The scope distinction is informed by [LangGraph subgraph communication](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
 and [Temporal child workflow lifecycles](https://docs.temporal.io/child-workflows).
 StateKnot's lowering and persistence semantics above are its own contract.
+
+For deciding whether a capability needs a Tool collection, a shared-state
+subgraph, or an independently durable child run, use the
+[Skill composition guide](skill-composition.md).

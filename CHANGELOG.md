@@ -40,6 +40,19 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Production `ToolSchemaRegistry` support on the offline JSON Schema registry,
+  typed Rust schema generation/pinning, and a compiled local Tool registration
+  example. Bilingual guides now cover local/MCP/A2A provider coexistence and a
+  production Skill-composition model built from immutable capabilities,
+  shared-state subgraphs, durable child runs and guarded MCP Skills.
+
+- Production-safe PostgreSQL startup configuration with a URL-redacting
+  `PostgresStoreConfig` builder, closed environment-variable parsing, distinct
+  production migration/runtime credentials, explicit bounded development
+  defaults, optional auto-migration through a short-lived migration pool, and
+  bilingual deployment guidance. Existing explicit migration and connection
+  APIs remain available.
+
 - Durable MCP Skill activation approvals and acting windows. Activation now
   binds exact tenant/run/thread scope, host origin, URI, complete Manifest,
   direct/nested source and version-pinned policy evidence to caller-retained

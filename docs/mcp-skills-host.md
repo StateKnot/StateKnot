@@ -221,3 +221,6 @@ receipt idempotency/immutability/pagination, and failure closure for content dri
 - automatic Tool discovery, `allowed-tools` pattern interpretation, or dynamic
   discovery-to-Agent composition;
 - stable Rust API, crates.io release, or official Skills-extension conformance.
+
+For application-level dependency, prompt, state and activation design across
+local and remote modules, use the [Skill composition guide](skill-composition.md).

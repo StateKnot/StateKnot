@@ -129,6 +129,12 @@ provider so a caller can safely retry an uncertain whole-transaction outcome.
 
 ## Deployment sequence
 
+For environment-driven applications and an explicit local-development profile,
+see [PostgreSQL startup configuration](postgresql-configuration.md)
+([简体中文](postgresql-configuration.zh-CN.md)). That guide retains this role
+separation by default and rejects production auto-migration without a distinct
+migration URL.
+
 Use separate migration and runtime credentials. Migration is an explicit
 deployment action and closes its temporary pool before returning:
 

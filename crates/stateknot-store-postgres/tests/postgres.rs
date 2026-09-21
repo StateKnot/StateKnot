@@ -63,14 +63,14 @@ use stateknot_store_postgres::{
     ModelInvocationHistoryPageSize, NodeAttemptCommitOutcome, NodeAttemptHistoryPageSize,
     OutboxAttemptHistoryPageSize, OutboxClaimOutcome, OutboxCompletionOutcome,
     OutboxDestinationRegistrationOutcome, OutboxEnqueueOutcome, PendingNodeResultCommitOutcome,
-    PendingNodeResultPageSize, PostgresStore, PostgresStoreOptions, PostgresTransportSecurity,
-    RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
-    RunQuarantineRequest, RunnableRunPageSize, SchedulerFairnessPolicyRegistration,
-    SchedulerFairnessPolicyRegistrationOutcome, SchedulerFairnessRetentionPolicy, StoreError,
-    StoredAgentAdmission, TimerFiringCommitOutcome, ToolAuthorizationReceiptOutcome,
-    ToolAuthorizationReceiptPageSize, ToolInvocationCommitOutcome, ToolInvocationHistoryPageSize,
-    WaitAbandonmentCommitOutcome, WaitAbandonmentReason, WaitCheckpointCommitOutcome,
-    WaitDiscoveryPageSize,
+    PendingNodeResultPageSize, PostgresStore, PostgresStoreConfig, PostgresStoreOptions,
+    PostgresTransportSecurity, RunProjection, RunQuarantineCause, RunQuarantineCommitOutcome,
+    RunQuarantineComponent, RunQuarantineRequest, RunnableRunPageSize,
+    SchedulerFairnessPolicyRegistration, SchedulerFairnessPolicyRegistrationOutcome,
+    SchedulerFairnessRetentionPolicy, StoreError, StoredAgentAdmission, TimerFiringCommitOutcome,
+    ToolAuthorizationReceiptOutcome, ToolAuthorizationReceiptPageSize, ToolInvocationCommitOutcome,
+    ToolInvocationHistoryPageSize, WaitAbandonmentCommitOutcome, WaitAbandonmentReason,
+    WaitCheckpointCommitOutcome, WaitDiscoveryPageSize,
 };
 use uuid::Uuid;
 
@@ -119,6 +119,34 @@ fn test_options(lease_duration: Duration) -> PostgresStoreOptions {
         .with_pool_size(1, 48)
         .with_transaction_timeouts(Duration::from_secs(5), Duration::from_secs(20))
         .with_lease_timing(lease_duration, Duration::from_secs(5 * 60))
+}
+
+#[tokio::test]
+async fn complete_development_config_migrates_connects_and_health_checks() {
+    let database_url = match std::env::var(DATABASE_URL_ENV) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
+            panic!("mandatory PostgreSQL test URL is missing")
+        }
+        Err(std::env::VarError::NotPresent) => return,
+        Err(std::env::VarError::NotUnicode(_)) => {
+            panic!("PostgreSQL test URL must be valid Unicode")
+        }
+    };
+    let config = PostgresStoreConfig::builder(database_url)
+        .with_development_defaults()
+        .with_options(test_options(Duration::from_secs(30)))
+        .build()
+        .expect("development configuration must validate");
+
+    let store = PostgresStore::connect_config(config)
+        .await
+        .expect("development configuration must migrate and connect");
+    store
+        .health_check()
+        .await
+        .expect("configured store must be healthy");
+    store.close().await;
 }
 
 async fn remove_transactional_outbox(pool: &PgPool) {

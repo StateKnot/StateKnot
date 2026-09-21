@@ -6,10 +6,12 @@
 use std::{collections::HashMap, sync::Arc};
 
 use jsonschema::{Draft, Registry, Validator};
+use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde_json::Value;
 use stateknot_core::{
     BoundedJson, Digest, GraphSchemaValidationError, GraphSchemaValidator, ModelSchemaRegistry,
-    SchemaReference,
+    SchemaId, SchemaReference, ToolSchemaRegistry, ToolSchemaRole, ToolSchemaValidationError,
+    Version,
 };
 use thiserror::Error;
 
@@ -279,6 +281,37 @@ impl JsonSchemaRegistryBuilder {
         Ok(())
     }
 
+    /// Generates, pins, and registers the JSON Schema for one Rust type.
+    ///
+    /// The generated document receives the supplied canonical `$id`; its
+    /// version and RFC 8785 digest are then frozen in the returned reference.
+    /// Use that reference in the corresponding tool descriptor. At
+    /// [`stateknot_core::ToolAdapter`] construction, the frozen registry proves
+    /// that the currently compiled Rust type still matches these exact bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`JsonSchemaRegistryError`] when generation cannot be encoded or
+    /// when the resulting document violates any ordinary registry invariant.
+    pub fn register_rust_type<T: JsonSchema>(
+        &mut self,
+        id: SchemaId,
+        version: Version,
+    ) -> Result<SchemaReference, JsonSchemaRegistryError> {
+        let generated = SchemaGenerator::default().into_root_schema_for::<T>();
+        let mut document = serde_json::to_value(generated)
+            .map_err(|_| JsonSchemaRegistryError::GeneratedSchemaSerialization)?;
+        let object = document
+            .as_object_mut()
+            .ok_or(JsonSchemaRegistryError::SchemaRootNotObject)?;
+        object.insert("$id".to_owned(), Value::String(id.as_str().to_owned()));
+        let canonical = serde_json_canonicalizer::to_vec(&document)
+            .map_err(|_| JsonSchemaRegistryError::Canonicalization)?;
+        let reference = SchemaReference::new(id, version, Digest::sha256(canonical));
+        self.register(reference.clone(), document)?;
+        Ok(reference)
+    }
+
     /// Freezes all resources and eagerly compiles offline validators.
     ///
     /// # Errors
@@ -450,6 +483,61 @@ impl ModelSchemaRegistry for JsonSchemaRegistry {
     }
 }
 
+impl ToolSchemaRegistry for JsonSchemaRegistry {
+    fn validate_type_schema(
+        &self,
+        reference: &SchemaReference,
+        role: ToolSchemaRole,
+        generated: &Schema,
+    ) -> Result<(), ToolSchemaValidationError> {
+        let mut document = serde_json::to_value(generated).map_err(tool_schema_error)?;
+        let object = document
+            .as_object_mut()
+            .ok_or_else(|| tool_schema_message("generated tool schema is not an object"))?;
+        if matches!(role, ToolSchemaRole::Input)
+            && object.get("type").and_then(Value::as_str) != Some("object")
+        {
+            return Err(tool_schema_message(
+                "generated tool input schema must have an object root",
+            ));
+        }
+        object.insert(
+            "$id".to_owned(),
+            Value::String(reference.id().as_str().to_owned()),
+        );
+        let canonical = serde_json_canonicalizer::to_vec(&document).map_err(tool_schema_error)?;
+        let installed = self
+            .canonical_bytes(reference)
+            .ok_or_else(|| tool_schema_message("tool schema reference is not installed"))?;
+        if installed != canonical {
+            return Err(tool_schema_message(
+                "generated Rust schema differs from the installed tool contract",
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_instance(
+        &self,
+        reference: &SchemaReference,
+        _role: ToolSchemaRole,
+        value: &BoundedJson,
+    ) -> Result<(), ToolSchemaValidationError> {
+        self.validate_bounded(reference, value)
+            .map_err(tool_schema_error)
+    }
+}
+
+fn tool_schema_error(
+    source: impl std::error::Error + Send + Sync + 'static,
+) -> ToolSchemaValidationError {
+    ToolSchemaValidationError::new(source)
+}
+
+fn tool_schema_message(message: &'static str) -> ToolSchemaValidationError {
+    ToolSchemaValidationError::new(std::io::Error::other(message))
+}
+
 /// Startup-time failure while constructing an offline schema registry.
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
@@ -500,6 +588,9 @@ pub enum JsonSchemaRegistryError {
     /// RFC 8785 serialization unexpectedly failed.
     #[error("schema canonicalization failed")]
     Canonicalization,
+    /// A generated Rust schema could not be represented as JSON.
+    #[error("generated Rust schema serialization failed")]
+    GeneratedSchemaSerialization,
     /// Canonical bytes exceeded the configured single-resource limit.
     #[error("canonical schema is {actual} bytes; maximum is {maximum}")]
     SchemaTooLarge {
@@ -540,6 +631,8 @@ pub enum JsonSchemaRegistryError {
 
 #[cfg(test)]
 mod tests {
+    use schemars::{JsonSchema, SchemaGenerator};
+    use serde::{Deserialize, Serialize};
     use serde_json::json;
     use stateknot_core::{SchemaId, Version};
 
@@ -730,6 +823,78 @@ mod tests {
                 maximum: 1,
                 actual: 2
             })
+        );
+    }
+
+    #[derive(Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
+    #[allow(dead_code)]
+    struct LookupInput {
+        incident_id: String,
+    }
+
+    #[derive(JsonSchema, Serialize)]
+    #[serde(deny_unknown_fields)]
+    struct LookupOutput {
+        found: bool,
+    }
+
+    #[test]
+    fn rust_type_registration_drives_exact_tool_validation() {
+        let mut builder = JsonSchemaRegistryBuilder::default();
+        let input = builder
+            .register_rust_type::<LookupInput>(
+                "https://schemas.example.com/tools/lookup/input/1.0.0"
+                    .parse()
+                    .unwrap(),
+                Version::new(1, 0, 0),
+            )
+            .unwrap();
+        let output = builder
+            .register_rust_type::<LookupOutput>(
+                "https://schemas.example.com/tools/lookup/output/1.0.0"
+                    .parse()
+                    .unwrap(),
+                Version::new(1, 0, 0),
+            )
+            .unwrap();
+        let registry = builder.build().unwrap();
+
+        registry
+            .validate_type_schema(
+                &input,
+                ToolSchemaRole::Input,
+                &SchemaGenerator::default().into_root_schema_for::<LookupInput>(),
+            )
+            .unwrap();
+        registry
+            .validate_type_schema(
+                &output,
+                ToolSchemaRole::Output,
+                &SchemaGenerator::default().into_root_schema_for::<LookupOutput>(),
+            )
+            .unwrap();
+
+        let valid = BoundedJson::try_from_value(json!({"incident_id": "INC-42"})).unwrap();
+        let invalid = BoundedJson::try_from_value(json!({"unexpected": true})).unwrap();
+        assert!(
+            registry
+                .validate_instance(&input, ToolSchemaRole::Input, &valid)
+                .is_ok()
+        );
+        assert!(
+            registry
+                .validate_instance(&input, ToolSchemaRole::Input, &invalid)
+                .is_err()
+        );
+        assert!(
+            registry
+                .validate_type_schema(
+                    &input,
+                    ToolSchemaRole::Input,
+                    &SchemaGenerator::default().into_root_schema_for::<LookupOutput>(),
+                )
+                .is_err()
         );
     }
 }

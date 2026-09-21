@@ -182,3 +182,6 @@ Immutable Registry 兼容、Denial 早于 Provider Dispatch、Receipt 先落库�
 - Signature Verification、Provenance、Marketplace Trust、恶意内容检测或 Sandbox；
 - Tool 自动发现、`allowed-tools` Pattern 解释或动态 Discovery-to-Agent 组合；
 - Stable Rust API、crates.io Release 或官方 Skills Extension Conformance。
+
+本地与远端 Module 的依赖、Prompt、状态和激活设计见
+[Skill 组合指南](skill-composition.zh-CN.md)。

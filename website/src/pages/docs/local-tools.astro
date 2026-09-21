@@ -1,0 +1,118 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const command =
+  "cargo run -p stateknot-runtime --example local_tool_registration --locked";
+const code = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+let input = schemas.register_rust_type::<IncidentLookup>(input_id, VERSION)?;
+let output = schemas.register_rust_type::<IncidentSummary>(output_id, VERSION)?;
+let schemas = schemas.build()?;
+
+let adapter = ToolAdapter::new(
+    IncidentLookupTool { descriptor: descriptor.clone() },
+    schemas,
+)?;
+let mut providers = ToolProviderRegistryBuilder::new();
+providers.register(Arc::new(adapter))?;
+let providers = providers.build();
+
+let agent_tools = AgentTools::try_new([descriptor.clone()])?;
+assert_eq!(providers.resolve(&descriptor)?.descriptor(), &descriptor);`;
+---
+
+<DocsLayout
+  title="Register local Rust tools without bypassing durability."
+  description="Generate digest-pinned schemas, adapt typed Rust code, freeze an exact provider snapshot, and let the durable executor own dispatch and recovery."
+  section="Local Rust Tools"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="local-tools-boundary-title"
+  >
+    <h2 id="local-tools-boundary-title">
+      One implementation, one exact revision
+    </h2>
+    <p>
+      A local Tool is application code behind the same immutable descriptor,
+      schema, policy and attempt ledger used by remote providers. The Worker
+      freezes the executable at startup. It does not call application code until
+      the attempt start is durable.
+    </p>
+  </aside>
+
+  <section aria-labelledby="local-tools-example-title">
+    <h2 id="local-tools-example-title">Run the production registry path</h2>
+    <p>
+      The checked-in example generates and pins both Rust schemas, constructs a
+      typed adapter, freezes the provider registry and proves that the
+      Agent-visible descriptor resolves exactly. It performs no Tool call or
+      external I/O.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · offline startup verification</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="local-tool-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="local-tool-command" tabindex="0"><code>{command}</code></pre>
+    </div>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head"><span>Rust · startup snapshot</span></div>
+      <pre tabindex="0"><code>{code}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="local-tools-contract-title">
+    <h2 id="local-tools-contract-title">
+      Close the typed contract before admission
+    </h2>
+    <p>
+      Implement <code>Tool</code> with object-root <code>Input</code> and bounded
+      <code>Output</code> types. Use <code>serde(deny_unknown_fields)</code> and accurate
+      effect, idempotency, cancellation, reconciliation and resource-limit declarations.
+      <code>register_rust_type</code> adds the canonical schema ID, computes its RFC
+      8785 SHA-256 digest and installs an offline validator.
+      <code>ToolAdapter</code> rejects any generated-schema drift at startup.
+    </p>
+    <p>
+      One <code>call</code> is one physical attempt. Do not hide retries or describe
+      an ambiguous write as unapplied. Secrets belong in the implementation's client
+      configuration, never descriptors, events, errors or model-visible output.
+    </p>
+  </section>
+
+  <section aria-labelledby="local-tools-durable-title">
+    <h2 id="local-tools-durable-title">Let durable evidence own execution</h2>
+    <p>
+      <code>DurableInvocationExecutor</code> validates policy and budget, commits
+      the start, resolves the exact frozen descriptor, performs one provider call,
+      then fences terminal evidence. Missing revisions and byte-different descriptors
+      fail before I/O. Unknown effects enter reconciliation; they do not become automatic
+      duplicate writes.
+    </p>
+    <p>
+      Local <code>ToolAdapter</code>, <code>McpRemoteTool</code>,
+      <code>McpSkillBoundTool</code> and <code>A2aRemoteAgent</code> can coexist in
+      the same registry. Exact identity collisions fail startup—there is no local,
+      remote or discovery precedence. Keep every old executable revision until its
+      in-flight runs drain.
+    </p>
+    <p>
+      Read the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/local-tools.md"
+        >complete registration and operations guide</a
+      > or continue to <a href="/docs/invocations/"
+        >durable invocation execution</a
+      >.
+    </p>
+  </section>
+</DocsLayout>

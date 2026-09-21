@@ -7,6 +7,27 @@ use thiserror::Error;
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum ConfigurationError {
+    /// A required environment variable was absent.
+    #[error("required PostgreSQL environment variable {name} is missing")]
+    MissingEnvironmentVariable {
+        /// Stable environment variable name; never a secret value.
+        name: &'static str,
+    },
+    /// An environment variable was non-Unicode or used an unsupported value.
+    #[error("PostgreSQL environment variable {name} is invalid")]
+    InvalidEnvironmentVariable {
+        /// Stable environment variable name; never a secret value.
+        name: &'static str,
+    },
+    /// A required connection URL was empty.
+    #[error("PostgreSQL connection URL must not be empty")]
+    EmptyDatabaseUrl,
+    /// Production auto-migration omitted a dedicated credential.
+    #[error("production auto-migration requires STATEKNOT_MIGRATION_DATABASE_URL")]
+    MigrationDatabaseUrlRequired,
+    /// Production migration and runtime credentials were exactly the same URL.
+    #[error("production migration and runtime PostgreSQL URLs must be distinct")]
+    SharedProductionMigrationCredential,
     /// The connection URL could not be parsed. The URL is intentionally omitted.
     #[error("PostgreSQL connection URL is invalid")]
     InvalidDatabaseUrl,

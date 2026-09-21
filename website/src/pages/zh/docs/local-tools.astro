@@ -1,0 +1,107 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const command =
+  "cargo run -p stateknot-runtime --example local_tool_registration --locked";
+const code = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+let input = schemas.register_rust_type::<IncidentLookup>(input_id, VERSION)?;
+let output = schemas.register_rust_type::<IncidentSummary>(output_id, VERSION)?;
+let schemas = schemas.build()?;
+
+let adapter = ToolAdapter::new(
+    IncidentLookupTool { descriptor: descriptor.clone() },
+    schemas,
+)?;
+let mut providers = ToolProviderRegistryBuilder::new();
+providers.register(Arc::new(adapter))?;
+let providers = providers.build();
+
+let agent_tools = AgentTools::try_new([descriptor.clone()])?;
+assert_eq!(providers.resolve(&descriptor)?.descriptor(), &descriptor);`;
+---
+
+<DocsLayout
+  title="注册本地 Rust Tool，但不绕过持久执行边界。"
+  description="生成 Digest-pinned Schema、适配强类型 Rust 代码、冻结精确 Provider 快照，并由持久执行器负责派发与恢复。"
+  section="本地 Rust Tool"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="local-tools-boundary-title"
+  >
+    <h2 id="local-tools-boundary-title">一个实现对应一个精确版本</h2>
+    <p>
+      本地 Tool 是运行在不可变 Descriptor、Schema、Policy 与 Attempt Ledger
+      之后的应用代码，与远端 Provider 使用同一边界。Worker
+      在启动时冻结可执行实现； Attempt Start 持久化之前，不会调用应用代码。
+    </p>
+  </aside>
+
+  <section aria-labelledby="local-tools-example-title">
+    <h2 id="local-tools-example-title">运行生产 Registry 路径</h2>
+    <p>
+      仓库中的示例会生成并固定两份 Rust Schema、构造强类型 Adapter、冻结
+      Provider Registry，并证明 Agent 可见 Descriptor 能被精确解析。它不会调用
+      Tool，也不会 执行外部 I/O。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 离线启动校验</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="local-tool-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="local-tool-command" tabindex="0"><code>{command}</code></pre>
+    </div>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head"><span>Rust · 启动快照</span></div>
+      <pre tabindex="0"><code>{code}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="local-tools-contract-title">
+    <h2 id="local-tools-contract-title">在准入前封闭强类型契约</h2>
+    <p>
+      使用对象根 <code>Input</code> 与有边界的 <code>Output</code> 类型实现
+      <code>Tool</code>。使用 <code>serde(deny_unknown_fields)</code
+      >，并准确声明 副作用、幂等性、取消、对账与资源上限。<code
+        >register_rust_type</code
+      > 会加入规范 Schema ID、计算 RFC 8785 SHA-256 Digest，并安装离线 Validator；
+      <code>ToolAdapter</code> 会在启动时拒绝任何生成 Schema 漂移。
+    </p>
+    <p>
+      一次 <code>call</code> 只执行一次物理尝试。不能隐藏重试，也不能把结果不确定的写入
+      描述为未执行。Secret 只能存在于实现持有的 Client 配置中，不能进入 Descriptor、
+      Event、Error 或模型可见输出。
+    </p>
+  </section>
+
+  <section aria-labelledby="local-tools-durable-title">
+    <h2 id="local-tools-durable-title">让持久化证据控制执行</h2>
+    <p>
+      <code>DurableInvocationExecutor</code> 校验策略与预算、提交 Start、解析冻结的精确
+      Descriptor、执行一次 Provider Call，最后通过 Fence 提交终态证据。缺失版本或字节
+      不同的 Descriptor 会在 I/O 前失败。未知副作用进入对账流程，不会自动变成重复写入。
+    </p>
+    <p>
+      本地 <code>ToolAdapter</code>、<code>McpRemoteTool</code>、
+      <code>McpSkillBoundTool</code> 与 <code>A2aRemoteAgent</code> 可以存在于同一
+      Registry。精确身份冲突会导致启动失败，不存在本地、远端或 Discovery 优先级。
+      在途 Run 排空前必须保留旧的可执行版本。
+    </p>
+    <p>
+      阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/local-tools.zh-CN.md"
+        >完整注册与运维指南</a
+      >，或继续查看<a href="/zh/docs/invocations/">可恢复调用执行</a>。
+    </p>
+  </section>
+</DocsLayout>

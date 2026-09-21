@@ -1,0 +1,98 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+---
+
+<DocsLayout
+  title="用持久执行原语组合 Skill。"
+  description="在能力包、共享状态子图、持久子 Run 与受保护 MCP Skill 之间选择，不创建第二套执行引擎。"
+  section="Skill 组合"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="skill-composition-boundary-title"
+  >
+    <h2 id="skill-composition-boundary-title">
+      Skill 是能力包，不是新的权限来源
+    </h2>
+    <p>
+      将版本化 Instruction、Tool、Graph、Policy 与配置组合成一个不可变 Agent
+      部署。 StateKnot 让持久状态、预算、授权和恢复继续使用已有的审计路径。MCP
+      Skill 文本和
+      <code>allowed-tools</code> 始终是不可信输入。
+    </p>
+  </aside>
+
+  <section aria-labelledby="skill-composition-choice-title">
+    <h2 id="skill-composition-choice-title">选择最小且可执行的持久边界</h2>
+    <div class="docs-table-wrap" tabindex="0" aria-label="Skill 组合方式">
+      <table>
+        <thead><tr><th>需求</th><th>原语</th><th>边界</th></tr></thead>
+        <tbody>
+          <tr
+            ><td>Instruction 加独立 Tool</td><td>能力包</td><td
+              >没有独立运行状态</td
+            ></tr
+          >
+          <tr
+            ><td>固定的共享状态多步流程</td><td>共享状态子图</td><td
+              >每个 Node 独立提交 Barrier</td
+            ></tr
+          >
+          <tr
+            ><td>隔离的长时间工作</td><td>持久子 Run</td><td
+              >独立生命周期与预算</td
+            ></tr
+          >
+          <tr
+            ><td>远端静态包</td><td>MCP Skill Activation</td><td
+              >已验证不可信内容与受保护执行</td
+            ></tr
+          >
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Tool 集合不需要
+      Graph。只有控制流本身必须确定性恢复时才使用子图；当状态、所有权、
+      截止时间、预算或取消需要隔离时，使用 Child Run。
+    </p>
+  </section>
+
+  <section aria-labelledby="skill-composition-resolution-title">
+    <h2 id="skill-composition-resolution-title">在准入前完成全部解析</h2>
+    <p>
+      固定精确 Module
+      版本、拒绝依赖环与身份冲突、拓扑排序依赖，然后冻结一个部署快照。 Prompt
+      Slot 保留唯一 Instruction 身份、来源和 Trust Label。不能把远端 Skill 字节
+      合并到高权限 System Instruction。新配置产生新的 Agent 版本；旧 Run
+      排空前继续保留 旧可执行版本。
+    </p>
+    <p>
+      Module 限制应编译进 Agent Budget、Tool 执行上限、Graph Step 上限、Child
+      Run Budget 与 MCP Acting
+      Window。冲突时取兼容限制中最严格的值，或启动失败；组合过程
+      不能静默扩大权限或资源。
+    </p>
+  </section>
+
+  <section aria-labelledby="skill-composition-mcp-title">
+    <h2 id="skill-composition-mcp-title">保持 MCP 激活流程显式可审计</h2>
+    <p>
+      MCP Catalog Discovery 不会修改 Agent。每个直接或嵌套远端 Skill
+      都要经过明确策略 审批、按需验证读取、持久 Acting Window 与逐操作
+      Permit。实际执行仍通过普通 Tool Registry 与 Attempt Ledger。当前不声明动态
+      Manifest、Native Code 热加载或从发现 结果自动组合 Agent。
+    </p>
+    <p>
+      阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/skill-composition.zh-CN.md"
+        >完整设计与 JiaClaw 示例</a
+      >，再按所选边界使用<a href="/zh/docs/mcp-skills/">MCP Skills</a>或<a
+        href="/zh/docs/graph-composition/">子图与循环</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

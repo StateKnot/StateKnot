@@ -56,6 +56,47 @@ store.health_check().await?;</code></pre>
     </p>
   </section>
 
+  <section aria-labelledby="configuration-title">
+    <h2 id="configuration-title">Use one validated startup configuration</h2>
+    <p>
+      <code>PostgresStoreConfig</code> provides a closed environment contract and
+      a production-safe builder. Production keeps verified TLS and disables implicit
+      migration by default. Enabling production auto-migration requires a distinct
+      <code>STATEKNOT_MIGRATION_DATABASE_URL</code>; connection URLs are
+      redacted from errors and <code>Debug</code> output.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · environment configuration</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="postgres-environment-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="postgres-environment-code"
+        tabindex="0"><code>use stateknot_store_postgres::&#123;PostgresStore, PostgresStoreConfig&#125;;
+
+let config = PostgresStoreConfig::from_env()?;
+let store = PostgresStore::connect_config(config).await?;</code></pre>
+    </div>
+    <p>
+      Required: <code>DATABASE_URL</code>. Optional closed booleans: <code
+        >STATEKNOT_AUTO_MIGRATE</code
+      > and <code>STATEKNOT_DEV_MODE</code>. Production migration uses a
+      separately privileged URL. For a trusted local database only, <code
+        >STATEKNOT_DEV_MODE=true</code
+      > enables migrations, disables TLS, and caps the pool at four connections; the
+      equivalent explicit helper is <code
+        >PostgresStore::connect_development(...)</code
+      >.
+    </p>
+  </section>
+
   <section aria-labelledby="defaults-title">
     <h2 id="defaults-title">Secure and bounded defaults</h2>
     <dl class="docs-definition-list">
