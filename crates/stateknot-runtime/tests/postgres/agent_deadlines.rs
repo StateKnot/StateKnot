@@ -11,6 +11,9 @@ use stateknot_store_postgres::AgentDeadlineCancellationOutcome;
 #[path = "agent_deadline_upgrade.rs"]
 mod upgrade;
 
+#[path = "agent_deadline_process.rs"]
+mod process;
+
 fn deadline_worker(store: &PostgresStore) -> DurableAgentDeadlineReconciler {
     let mut builder = JsonSchemaRegistryBuilder::new(JsonSchemaRegistryLimits::default());
     register_standard_agent_deadline_event_schema(&mut builder).unwrap();

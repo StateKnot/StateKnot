@@ -543,6 +543,9 @@ provider recovery, role isolation and measured recovery/capacity. The settled-di
 publication and cancellation delivery/settlement are implemented above. The
 [successful Join process-loss profile](child-join-process-qualification.md)
 now proves eight committed admission-through-replay boundaries with PostgreSQL-only
-reconstruction and retained stale-worker fencing. Deadline cancel-and-join and
-pre-/in-commit Join cuts remain open. The website must not advertise the full
+reconstruction and retained stale-worker fencing. The
+[deadline cancel-and-join profile](deadline-join-process-qualification.md) now
+proves nine committed expiry-through-terminal-replay boundaries, including
+inherited parent/child deadlines and first-reason preservation. Pre-/in-commit
+Join/deadline cuts remain open. The website must not advertise the full
 capability until those gates pass.

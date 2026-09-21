@@ -433,10 +433,12 @@ from the repository.
   successful Join path now has an eight-boundary
   [process-loss profile](child-join-process-qualification.md) covering atomic
   admission through unique parent consumption and terminal replay, including
-  retained-old-worker rejection before higher-epoch recovery. Deadline-driven
-  cancel-and-join, other pre-/in-commit kills, arbitrary uncertain direct-effect
-  recovery and full-profile/role/capacity qualification remain gated; the RFC
-  remains Draft.
+  retained-old-worker rejection before higher-epoch recovery. The nine-boundary
+  [deadline cancel-and-join profile](deadline-join-process-qualification.md)
+  additionally proves inherited parent/child expiry, idempotent child delivery,
+  real cleanup loops, once-only settlement, higher-epoch fencing and replay.
+  Other pre-/in-commit kills, arbitrary uncertain direct-effect recovery and
+  full-profile/role/capacity qualification remain gated; the RFC remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):
   non-superuser migration ownership, runtime column grants and separate reservation
   retention credentials; effective ACL/default/membership audit, rollback, real

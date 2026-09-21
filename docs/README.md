@@ -40,6 +40,10 @@ The [successful Child Join process-loss profile](child-join-process-qualificatio
 ([中文](child-join-process-qualification.zh-CN.md)) verifies eight committed
 admission/Join/terminal/settlement/publication/takeover/resume/replay boundaries,
 including a retained old worker rejected before higher-epoch recovery continues.
+The [deadline cancel-and-join process-loss profile](deadline-join-process-qualification.md)
+([中文](deadline-join-process-qualification.zh-CN.md)) adds nine committed
+deadline/cancellation/settlement/cleanup boundaries and preserves the child's
+first deadline reason when parent propagation arrives later.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed
@@ -189,6 +193,11 @@ item 2 already has exhaustive type coverage.
     retained stale-worker fencing and explicit remaining gates. A
     [Simplified Chinese edition](child-join-process-qualification.zh-CN.md) is
     maintained alongside it.
+31. [Deadline cancel-and-join process-loss qualification](deadline-join-process-qualification.md) —
+    nine fresh-process committed boundaries, inherited-deadline convergence,
+    idempotent delivery, child-inclusive cancellation accounting and exact stale
+    fencing. A [Simplified Chinese edition](deadline-join-process-qualification.zh-CN.md)
+    is maintained alongside it.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
 the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),

@@ -62,11 +62,12 @@ credentials, Agent input or child output payload.
 
 ## Boundaries still open
 
-This profile cuts only after known successful commits. It does not interrupt
-admission, Join, settlement, publication or result-consumption transactions
-while COMMIT is in flight. It also does not qualify deadline-triggered
-cancel-and-join across process loss, unknown provider effects or pricing,
+This profile cuts only after known successful commits. The companion
+[deadline cancel-and-join profile](deadline-join-process-qualification.md)
+qualifies the cancellation branch. Neither profile interrupts admission, Join,
+deadline, cancellation, settlement, publication or result-consumption
+transactions while COMMIT is in flight. Unknown provider effects or pricing,
 database failover/PITR/restore, untrusted-worker SQL isolation, retained-history
-capacity, latency or soak. Those gates remain explicit in RFC-0004 and must pass
-before the general durable-child capability can be advertised as production
-ready.
+capacity, latency and soak also remain open. Those gates stay explicit in
+RFC-0004 and must pass before the general durable-child capability is advertised
+as production ready.

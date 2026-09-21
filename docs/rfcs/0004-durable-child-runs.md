@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication, database-clock deadlines and settled-direct failure close implemented; full-profile qualification remains gated
+- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication, database-clock deadlines, settled-direct failure close, and committed-boundary successful/deadline process-loss profiles implemented; full-profile qualification remains gated
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -345,6 +345,10 @@ root-only data. Preserve all static-composition and root-run regression tests.
   publication/takeover/resume/replay boundaries. Every recovery process rebuilds
   from PostgreSQL and a retained original worker is rejected before the resumed
   parent may continue.
+  The [deadline cancel-and-join profile](../deadline-join-process-qualification.md)
+  separately qualifies nine post-commit expiry/cancellation/settlement/cleanup
+  boundaries, including both inherited deadline candidates, first-reason
+  preservation and old-epoch lease-renewal rejection.
   Other transaction boundaries, database-server faults and provider effects
   remain separate gates; this does not qualify the entire runtime matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17

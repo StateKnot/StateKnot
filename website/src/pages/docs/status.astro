@@ -195,7 +195,7 @@ const capabilities = [
     state: "Active work",
     className: "status-active",
     title: "Advanced execution and service boundary",
-    body: "Isolated child ownership/admission, cumulative reservations, Join suspension/publication/unique consumption, cancellation, deadlines and failure closure are implemented. PostgreSQL 16/17 CI now force-kills fresh processes at eight successful Join boundaries and rejects a retained stale worker before higher-epoch recovery. Deadline cancel-and-join process loss, in-COMMIT cuts, provider effects, same-run nested namespaces, stable network transport and full capacity qualification remain active work.",
+    body: "Isolated child ownership/admission, cumulative reservations, Join suspension/publication/unique consumption, cancellation, deadlines and failure closure are implemented. PostgreSQL 16/17 CI force-kills fresh processes at eight successful Join boundaries and nine deadline cancel-and-join boundaries, including inherited parent/child expiry, first-reason preservation and stale-worker rejection after higher-epoch recovery. In-COMMIT cuts, provider effects, same-run nested namespaces, stable network transport and full capacity qualification remain active work.",
   },
   {
     state: "Not shipped",

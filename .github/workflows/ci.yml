@@ -311,6 +311,19 @@ jobs:
           # is not a passing qualification profile.
           test "$(grep -c '^STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE=' child-join-process-qualification.log)" = 8
 
+      - name: Qualify deadline cancel-and-join process-loss boundaries
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-runtime --test postgres --locked -- \
+            --exact child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker \
+            --nocapture --test-threads=1 | tee deadline-join-process-qualification.log
+          # Both inherited-deadline candidates and every committed recovery
+          # boundary are mandatory; a partial matrix fails closed.
+          test "$(grep -c '^STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE=' deadline-join-process-qualification.log)" = 9
+
       - name: Upload child-join process qualification evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -318,6 +331,17 @@ jobs:
           name: child-join-process-postgres-${{ matrix.version }}-${{ github.run_id }}
           path: |
             child-join-process-qualification.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload deadline cancel-and-join qualification evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deadline-join-process-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            deadline-join-process-qualification.log
             failure-close-process-environment.log
           if-no-files-found: error
           retention-days: 30
