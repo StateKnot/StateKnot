@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Host capacity and recovery qualification
 
-`stateknot-testkit` is an unpublished, runtime-neutral evidence component for
+`stateknot-testkit` is a public-alpha, runtime-neutral evidence component for
 StateKnot host qualification. It owns measurement timing, bounds every recorded
 value, evaluates a closed objective set and emits deterministic JSON protected by
 a SHA-256 integrity digest. It does not provision infrastructure, inject faults,

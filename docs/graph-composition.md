@@ -10,8 +10,9 @@ SPDX-License-Identifier: Apache-2.0
 `SharedStateSubgraph`, `GraphSubgraphCall`, and `GraphComposition` implement
 static shared-state composition. They compile into an ordinary `CompiledGraph`
 and execute through `DurableGraphDriver` / `DurableAgentLoop` with PostgreSQL.
-This is an implemented, unpublished pre-alpha contract, not a claim that all
-child-workflow or framework production-qualification gates are complete.
+This is an implemented contract in the exact `0.1.0-alpha.1` public preview,
+not a claim that all child-workflow or framework production-qualification
+gates are complete.
 
 ## Run the checked-in example
 

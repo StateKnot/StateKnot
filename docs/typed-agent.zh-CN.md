@@ -155,5 +155,5 @@ Integrations Suite 现在也包含严格 MCP Remote Tool Contract；其较窄支
 
 Provider-native Runtime Suite 会另外在真实 PostgreSQL 16/17 上验证持久化 Transcript
 Assembly、Policy Evidence、No-redispatch Recovery 与精确 Cancellation。Live-provider
-Qualification、Provider Drift Cassette 与稳定 Public Cancellation Service 仍是发布门禁。
-Adapter 与类型化 API 已经实现，但仍处于未发布的 pre-alpha。
+Qualification、Provider Drift Cassette 与稳定 Public Cancellation Service 仍是生产发布门禁。
+Adapter 与类型化 API 已在精确版本 `0.1.0-alpha.1` 公共预览中实现，但仍不稳定。

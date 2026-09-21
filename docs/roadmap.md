@@ -78,10 +78,10 @@ from the repository.
 - [ ] Accept RFC-0004 for MCP/A2A identity and security mapping.
 - [x] Validate the first protocol-neutral run lifecycle, interrupt/timer wait,
   cancellation-race, terminal-outcome, schema, property, and wire contracts in
-  the unpublished `stateknot-core` crate.
+  `stateknot-core` (now available in the exact public-preview release).
 - [x] Validate RFC 8785 payload bytes, journal append identity/head/hash-chain,
   lease renewal, fencing epoch, stale-attempt, schema, property, and wire
-  contracts in the unpublished `stateknot-core` crate.
+  contracts in `stateknot-core` (now available in the exact public-preview release).
 - [x] Implement the first PostgreSQL 16/17 run/journal/lease slice with exact
   migration startup checks, atomic locked transitions, lost-ack idempotency,
   database-level worker predicates, injected rollback validation, and a

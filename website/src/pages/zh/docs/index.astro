@@ -6,6 +6,12 @@ import DocsLayout from "../../../layouts/DocsLayout.astro";
 
 const paths = [
   {
+    title: "安装公共 Alpha",
+    body: "精确固定 0.1.0-alpha.1，并在采用前阅读兼容性、MSRV、持久化数据与发布契约。",
+    href: "/zh/docs/versioning/",
+    link: "阅读发布策略",
+  },
+  {
     title: "验证仓库",
     body: "安装项目锁定的 Rust 工具链，执行与 CI 相同的格式、Lint、测试和文档门禁。",
     href: "/zh/docs/getting-started/",
@@ -137,14 +143,14 @@ const paths = [
   <aside class="docs-callout" aria-labelledby="docs-boundary-title">
     <h2 id="docs-boundary-title">从真实边界开始</h2>
     <p>
-      StateKnot 还没有稳定的公开 Model/Tool Agent API。目前可以编译确定性
-      Graph、冻结可执行部署、重放非初始 Checkpoint，并在 PostgreSQL 上通过原子
-      Lifecycle Commit 运行 Tenant-scoped 可恢复 Graph Loop。Provider-neutral
-      可恢复 Model/Tool Attempt、加权 Cross-tenant Selection、强类型 Agent
-      合约，以及首批 OpenAI Responses 与 Anthropic Messages Adapter
-      也已实现。Agent 原子持久化准入把这些合约绑定到 Scheduler-visible
-      Work；持久化 Ingress Key 与公开 Run/Result Facade 会恢复 Lost ACK 并校验
-      Terminal Read。已经实现的<a href="/zh/docs/provider-native-agent/"
+      StateKnot 还没有稳定的公开 Model/Tool Agent API。产品 Crate 已随精确版本
+      <code>0.1.0-alpha.1</code> 公共预览发布。目前可以编译确定性 Graph、冻结可执行部署、重放非初始
+      Checkpoint，并在 PostgreSQL 上通过原子 Lifecycle Commit 运行 Tenant-scoped 可恢复
+      Graph Loop。Provider-neutral 可恢复 Model/Tool Attempt、加权 Cross-tenant Selection、强类型
+      Agent 合约，以及首批 OpenAI Responses 与 Anthropic Messages Adapter 也已实现。Agent
+      原子持久化准入把这些合约绑定到 Scheduler-visible Work；持久化 Ingress Key 与公开
+      Run/Result Facade 会恢复 Lost ACK 并校验 Terminal Read。已经实现的<a
+        href="/zh/docs/provider-native-agent/"
         >预置 Provider-native Agent Graph</a
       > 现在还提供可恢复多轮 Tool、有界有序 Read-only 并发、串行 Write Barrier、Policy、
       Accounting 与精确 Cancellation。<a href="/zh/docs/agent-service/"
@@ -301,10 +307,11 @@ const paths = [
   </section>
 
   <section aria-labelledby="api-reference-title">
-    <h2 id="api-reference-title">Pre-alpha 阶段的 API 文档</h2>
+    <h2 id="api-reference-title">公共 Alpha API 文档</h2>
     <p>
-      Crate 尚未发布，因此 docs.rs
-      还不是权威来源。请从正在审查的精确代码版本生成 API 文档：
+      docs.rs 提供精确版本 <a href="https://docs.rs/stateknot/0.1.0-alpha.1/"
+        ><code>stateknot 0.1.0-alpha.1</code> 文档</a
+      >。审查尚未发布的变更时，请从对应的精确代码版本生成 API 文档：
     </p>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">

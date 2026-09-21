@@ -9,6 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
 [![CI](https://github.com/StateKnot/StateKnot/actions/workflows/ci.yml/badge.svg)](https://github.com/StateKnot/StateKnot/actions/workflows/ci.yml)
 [![Supply chain](https://github.com/StateKnot/StateKnot/actions/workflows/supply-chain.yml/badge.svg)](https://github.com/StateKnot/StateKnot/actions/workflows/supply-chain.yml)
+[![crates.io](https://img.shields.io/crates/v/stateknot.svg)](https://crates.io/crates/stateknot)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **Durable agent orchestration for Rust.**
@@ -21,9 +22,9 @@ durable, observable, and protocol-native agent systems. It is designed as a
 Rust-native runtime rather than a line-by-line port of a Python agent framework.
 
 > [!IMPORTANT]
-> StateKnot is currently **pre-alpha**. The repository contains the reviewed
-> architecture baseline and project infrastructure, but no production release
-> or stable public API yet. Do not use it in production at this stage.
+> StateKnot is currently **pre-alpha**. Public `0.1.0-alpha.1` crates are
+> available for evaluation, but they are not a stable API or a production
+> support claim. Pin the exact prerelease and do not use it in production yet.
 
 ## Direction
 
@@ -47,6 +48,23 @@ The v1 scope baseline targets PostgreSQL-backed execution, OpenAI-compatible and
 Anthropic model adapters, MCP client/server support, and A2A REST/JSON-RPC
 client/server support. Its supported surface and explicit exclusions are
 recorded in the [v1 scope baseline](docs/v1-scope.md).
+
+## Install the public alpha
+
+StateKnot requires Rust 1.88 and Edition 2024. Pin the complete prerelease;
+alpha identifiers may contain breaking changes:
+
+```toml
+[dependencies]
+stateknot = "=0.1.0-alpha.1"
+```
+
+Lower-level consumers can depend on the same exact versions of
+`stateknot-core`, `stateknot-store-postgres`, `stateknot-runtime`, and
+`stateknot-integrations`, plus `stateknot-artifact-store` and the qualification
+`stateknot-testkit`. Do not mix StateKnot product versions. See the
+[versioning and release policy](docs/versioning-and-releases.md) and the
+[in-process Agent guide](docs/in-process-agent.md).
 
 ## Current milestone
 
@@ -87,7 +105,7 @@ database credentials; the trusted Driver retains all durable authority. This
 does not implement the general effectful Worker API or an arbitrary-code sandbox.
 
 The project is in the **architecture-contract and durable-runtime vertical-validation phase**.
-The unpublished core crate validates model, tool, agent admission/result,
+The public-alpha core crate validates model, tool, agent admission/result,
 durable run-lifecycle, canonical journal-envelope, graph-checkpoint,
 tool- and model-invocation state machines, immutable pending node results,
 physical node-attempt recovery, fixed-fence at-least-once outbox contracts, and
@@ -168,7 +186,7 @@ compiled-graph registry. Registration is idempotent only for identical bytes;
 claimed recovery reloads and recompiles the exact checkpoint-pinned definition,
 checks its redundant identity/digest projections, and quarantines missing or
 contradictory evidence under the live fence.
-The new unpublished `stateknot-runtime` crate now freezes an offline,
+The public-alpha `stateknot-runtime` crate now freezes an offline,
 digest-pinned JSON Schema 2020-12 registry, exact graph/reducer/node executable
 bindings, independent bounded replay of every committed noninitial checkpoint,
 and a fenced durable Graph Driver. The Driver durably starts a physical node
@@ -414,7 +432,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 ## Repository layout
 
 ```text
-crates/stateknot/        Unpublished facade crate used to validate the workspace
+crates/stateknot/        Public prerelease facade crate
 crates/stateknot-core/   Validated domain, run, journal, checkpoint, invocation, and ownership contracts
 crates/stateknot-artifact-store/  Private object publication, immutable artifact registration, and authorized verified reads
 crates/stateknot-integrations/  OpenAI/Anthropic adapters plus bounded MCP and A2A protocol profiles

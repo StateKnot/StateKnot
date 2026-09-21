@@ -172,5 +172,6 @@ see [`mcp-remote-tool.md`](mcp-remote-tool.md) for its narrower support claim.
 The provider-native runtime suite separately verifies durable transcript
 assembly, policy evidence, no-redispatch recovery, and exact cancellation on
 real PostgreSQL 16/17. Live-provider qualification, provider drift cassettes,
-and a stable public cancellation service remain release gates. These adapters
-and typed APIs are implemented but still pre-alpha and unpublished.
+and a stable public cancellation service remain production-release gates. These
+adapters and typed APIs are implemented in the exact `0.1.0-alpha.1` public
+preview but remain unstable.

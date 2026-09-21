@@ -15,7 +15,11 @@ documentation = "https://docs.rs/stateknot-integrations"
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+publish = ["crates-io"]
+
+[package.metadata.docs.rs]
+targets = []
+rustdoc-args = ["-Dwarnings"]
 
 [dependencies]
 a2a.workspace = true
@@ -41,7 +45,7 @@ serde_json_canonicalizer.workspace = true
 serde_yaml_ng.workspace = true
 sha2.workspace = true
 sse-stream.workspace = true
-stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
+stateknot-core = { version = "=0.1.0-alpha.1", path = "../stateknot-core" }
 thiserror.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true
@@ -49,8 +53,8 @@ tower-service.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]
-stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }
-stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
+stateknot-runtime = { version = "=0.1.0-alpha.1", path = "../stateknot-runtime" }
+stateknot-store-postgres = { version = "=0.1.0-alpha.1", path = "../stateknot-store-postgres" }
 tokio = { workspace = true, features = ["io-util", "net"] }
 
 [lints]

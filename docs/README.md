@@ -175,6 +175,11 @@ item 2 already has exhaustive type coverage.
     enforceable budgets and immutable activation. A
     [Simplified Chinese edition](skill-composition.zh-CN.md) is maintained
     alongside it.
+29. [Versioning and release policy](versioning-and-releases.md) — published
+    package boundaries, prerelease/SemVer/MSRV promises, durable-data upgrade
+    rules, crates.io gates, and Trusted Publishing. A
+    [Simplified Chinese edition](versioning-and-releases.zh-CN.md) is maintained
+    alongside it.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),
 the [deterministic graph and scheduler contract](rfcs/0002-deterministic-graph-and-scheduler.md),

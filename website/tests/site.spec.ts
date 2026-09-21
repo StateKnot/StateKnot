@@ -426,6 +426,12 @@ const localizedRoutePairs = [
     zhHeading: "验证宿主，但不伪造 SLO。",
   },
   {
+    en: "/docs/versioning/",
+    zh: "/zh/docs/versioning/",
+    enHeading: "Adopt the public alpha without guessing compatibility.",
+    zhHeading: "采用公共 Alpha，不猜测兼容性。",
+  },
+  {
     en: "/docs/status/",
     zh: "/zh/docs/status/",
     enHeading: "Read implementation status before API shape.",
@@ -759,6 +765,7 @@ for (const route of [
   "/docs/a2a-server/",
   "/docs/a2a-conformance/",
   "/docs/fair-scheduling/",
+  "/docs/versioning/",
   "/zh/",
   "/zh/docs/getting-started/",
   "/zh/docs/core-contracts/",
@@ -777,6 +784,7 @@ for (const route of [
   "/zh/docs/a2a-server/",
   "/zh/docs/a2a-conformance/",
   "/zh/docs/fair-scheduling/",
+  "/zh/docs/versioning/",
 ] as const) {
   for (const width of [320, 375, 414, 768] as const) {
     test(`${route} is responsive at ${width}px`, async ({ page }) => {

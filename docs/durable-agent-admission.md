@@ -5,9 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable Agent admission
 
-Status: implemented pre-alpha integration contract. The crates remain
-unpublished; the public durable run/result facade is implemented but has no
-compatibility promise yet.
+Status: implemented public-preview integration contract. The exact
+`0.1.0-alpha.1` crates expose the durable run/result facade; compatibility is
+governed by the pre-release rules in the
+[versioning policy](versioning-and-releases.md).
 
 This document defines the trusted boundary that turns one authenticated,
 schema-valid Agent request into scheduler-visible durable work. It covers the

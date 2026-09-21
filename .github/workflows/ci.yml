@@ -118,6 +118,20 @@ jobs:
       - name: Validate workspace metadata
         run: cargo metadata --format-version 1 --locked --no-deps
 
+  release-packages:
+    name: Release packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.88.0 --profile minimal
+
+      - name: Verify crates.io source lists and bootstrap archives
+        run: ./scripts/verify-release.sh 0.1.0-alpha.1
+
   mcp-conformance:
     name: MCP Conformance
     runs-on: ubuntu-latest

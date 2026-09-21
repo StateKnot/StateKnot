@@ -29,8 +29,8 @@ let composition = GraphComposition::compile(parent, [call])?;`;
       静态子图、有限先执行后判断循环、提前返回、显式耗尽和静态嵌套，都会编译成普通的可恢复
       Graph 节点。每个子节点提交自己的
       Barrier，不是一次原子的子调用。私有子状态、独立子 Run、
-      动态递归和独立子取消不属于这一 Profile。Crate 仍处于未发布的 pre-alpha，
-      完整生产资格验证尚未完成。
+      动态递归和独立子取消不属于这一 Profile。精确版本
+      <code>0.1.0-alpha.1</code> 公共预览仍处于 pre-alpha，完整生产资格验证尚未完成。
     </p>
   </aside>
 

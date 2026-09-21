@@ -9,8 +9,8 @@ SPDX-License-Identifier: Apache-2.0
 
 `SharedStateSubgraph`、`GraphSubgraphCall` 和 `GraphComposition` 实现静态共享状态组合。
 编译结果是普通 `CompiledGraph`，通过 PostgreSQL-backed `DurableGraphDriver` /
-`DurableAgentLoop` 执行。这是已实现但尚未发布的 pre-alpha 契约，不代表独立子工作流
-或整个框架的生产资格验证已经完成。
+`DurableAgentLoop` 执行。这是精确版本 `0.1.0-alpha.1` 公共预览中已实现的契约，
+不代表独立子工作流或整个框架的生产资格验证已经完成。
 
 ## 运行仓库示例
 

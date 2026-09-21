@@ -286,6 +286,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
     label: "Project",
     pages: [
       {
+        title: "Versioning and releases",
+        description:
+          "Pin the public alpha exactly and understand compatibility, MSRV, durable-data, and release gates.",
+        href: "/docs/versioning/",
+        search:
+          "version release semver alpha crates.io docs.rs msrv compatibility changelog migration upgrade",
+      },
+      {
         title: "Implementation status",
         description:
           "See what is implemented, in progress, and deliberately not claimed.",
@@ -562,6 +570,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
   {
     label: "项目",
     pages: [
+      {
+        title: "版本与发布",
+        description:
+          "精确固定公共 Alpha，并理解兼容性、MSRV、持久化数据与发布门禁。",
+        href: "/docs/versioning/",
+        search:
+          "版本 发布 semver alpha crates.io docs.rs msrv 兼容 变更日志 migration 升级",
+      },
       {
         title: "实现状态",
         description: "区分已经实现、正在开发和明确尚未支持的能力。",

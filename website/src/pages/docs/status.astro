@@ -9,7 +9,7 @@ const capabilities = [
     state: "Implemented",
     className: "status-implemented",
     title: "Bounded host qualification evidence",
-    body: "The unpublished stateknot-testkit owns monotonic phases, bounded HDR distributions, checked safety counters, a closed fault matrix and canonical integrity envelopes. A reduced PostgreSQL 16/17 profile exercises real host admission, SSE, operations, dependency recovery and rolling replacement, but is always non-release evidence; reference load, soak, failover and provenance remain open.",
+    body: "The public-alpha stateknot-testkit owns monotonic phases, bounded HDR distributions, checked safety counters, a closed fault matrix and canonical integrity envelopes. A reduced PostgreSQL 16/17 profile exercises real host admission, SSE, operations, dependency recovery and rolling replacement, but is always non-release evidence; reference load, soak, failover and provenance remain open.",
   },
   {
     state: "Implemented",
@@ -201,7 +201,7 @@ const capabilities = [
     state: "Not shipped",
     className: "status-planned",
     title: "Stable network Agent API",
-    body: "The embedding facade and bounded authenticated JSON HTTP profile exist, but no stable HTTP/SSE API, published crate, compatibility guarantee, or production support claim exists yet.",
+    body: "The embedding facade and bounded authenticated JSON HTTP profile are available in the exact 0.1.0-alpha.1 public preview, but no stable HTTP/SSE API or production support claim exists yet. Preview compatibility follows the published versioning policy.",
   },
   {
     state: "Not shipped",
@@ -245,11 +245,13 @@ const capabilities = [
   <section aria-labelledby="claim-title">
     <h2 id="claim-title">What “implemented” means</h2>
     <p>
-      Code and executable tests exist in the repository. It does not mean the
-      API is stable, the crate is published, operational release gates pass, or
-      compatibility support has started. A v1 capability is supported only when
-      implementation, tests, documentation, compatibility evidence, and release
-      gates ship together.
+      Code and executable tests exist in the repository. Product crates are
+      available as the exact <code>0.1.0-alpha.1</code> public preview, but that does
+      not mean an API is stable, operational production gates pass, or production
+      support has started. A v1 capability is supported only when implementation,
+      tests, documentation, compatibility evidence, and release gates ship together.
+      Read the <a href="/docs/versioning/">versioning and release policy</a> before
+      depending on the preview.
     </p>
   </section>
 

@@ -15,7 +15,11 @@ documentation = "https://docs.rs/stateknot-core"
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+publish = ["crates-io"]
+
+[package.metadata.docs.rs]
+targets = []
+rustdoc-args = ["-Dwarnings"]
 
 [dependencies]
 chrono.workspace = true

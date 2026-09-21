@@ -138,8 +138,8 @@ the payload still belongs to the application retention and privacy policy.
 
 ## Construction outline
 
-The complete executable example remains in crate tests while the crate is
-unpublished. The production construction sequence is:
+The complete executable example remains in crate tests. The production-shaped
+construction sequence exposed by the exact `0.1.0-alpha.1` public preview is:
 
 ```rust,ignore
 let options = McpServerApplicationOptions::new(

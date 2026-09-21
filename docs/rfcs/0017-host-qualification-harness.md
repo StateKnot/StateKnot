@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Summary
 
-Add the unpublished `stateknot-testkit` crate for bounded measurement, a closed
+Add the public-alpha `stateknot-testkit` crate for bounded measurement, a closed
 fault matrix, objective evaluation and tamper-evident canonical reports. It makes
 host capacity and recovery evidence reproducible without turning a laptop or CI
 smoke result into a production service-level claim. This remains an experimental
@@ -195,7 +195,7 @@ advance production readiness.
 
 ## Compatibility
 
-Rust 1.88 remains the MSRV. The new unpublished crate adds pinned
+Rust 1.88 remains the MSRV. The new public-alpha crate adds pinned
 `hdrhistogram` 7.6 with default features disabled; it has no runtime dependency
 edge. Existing public crates, wire protocols, database migrations and Cargo
 features are unchanged. Report schema evolution requires an RFC and a new version;

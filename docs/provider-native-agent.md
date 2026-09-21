@@ -5,12 +5,13 @@ SPDX-License-Identifier: Apache-2.0
 
 # Provider-native Agent graph
 
-This document is the production integration contract for the unpublished
-`ProviderNativeAgentGraph` in `stateknot-runtime`. The implementation composes
+This document is the production-shaped integration contract for
+`ProviderNativeAgentGraph` in the exact `stateknot-runtime` `0.1.0-alpha.1`
+public preview. The implementation composes
 the typed Agent descriptor, durable invocation ledgers, executable Graph
 registry, Graph Driver, lifecycle coordinator, and Agent Loop into one bounded
-model/tool state machine. It remains pre-alpha: the API is not stable, the
-crate is not published, and the repository does not yet claim production
+model/tool state machine. It remains pre-alpha: the API is not stable, exact
+version pinning is required, and the repository does not yet claim production
 support.
 
 The compiled no-I/O example is the shortest honest starting point:

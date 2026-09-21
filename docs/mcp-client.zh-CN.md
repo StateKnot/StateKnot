@@ -38,7 +38,11 @@ Credential 仍只是 Transport Credential，不代表 OAuth Flow。
 
 ## 连接、发现与调用
 
-Crate 尚未发布。外部使用者目前必须固定精确 Git Revision，或直接在本 Workspace 中使用。
+请使用精确的公共预览 Crate 版本。预发布兼容性规则要求固定完整版本：
+
+```toml
+stateknot-integrations = "=0.1.0-alpha.1"
+```
 
 ```rust
 use std::sync::Arc;

@@ -1,0 +1,107 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const installCode = `[dependencies]
+stateknot = "=0.1.0-alpha.1"`;
+---
+
+<DocsLayout
+  title="Adopt the public alpha without guessing compatibility."
+  description="StateKnot publishes one lockstep preview set with exact pins, explicit Semantic Versioning rules, forward-only durable-data upgrades, and reproducible release gates."
+  section="Versioning and releases"
+>
+  <aside class="docs-callout" aria-labelledby="versioning-boundary">
+    <h2 id="versioning-boundary">Public preview is not a production claim</h2>
+    <p>
+      <code>0.1.0-alpha.1</code> is consumable from crates.io and documented on docs.rs,
+      but its Rust APIs may change between explicit prerelease versions. Pin the complete
+      version and evaluate the production qualification gaps on the <a
+        href="/docs/status/">implementation status page</a
+      >.
+    </p>
+  </aside>
+
+  <section aria-labelledby="versioning-install">
+    <h2 id="versioning-install">Pin one exact release set</h2>
+    <p>
+      The facade, Core, PostgreSQL store, Runtime, integrations, artifact store,
+      and qualification Testkit share one version. Mixing StateKnot product
+      versions is unsupported because durable schemas, registries, and recovery
+      semantics are qualified together.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Cargo.toml</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="versioning-install-code"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre
+        id="versioning-install-code"
+        tabindex="0"><code>{installCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="versioning-contract">
+    <h2 id="versioning-contract">Know what can change</h2>
+    <ul class="evidence-list">
+      <li>
+        <h3>Prerelease</h3>
+        <p>
+          Breaking API changes may occur between Alpha identifiers. Every
+          preview requires an explicit exact pin and a reviewed changelog.
+        </p>
+      </li>
+      <li>
+        <h3>Stable version lines</h3>
+        <p>
+          Incompatible changes bump the compatibility component required by
+          Cargo Semantic Versioning. Deprecation precedes removal unless safety
+          or correctness requires an immediate break.
+        </p>
+      </li>
+      <li>
+        <h3>MSRV</h3>
+        <p>
+          The current minimum supported Rust version is <code>1.88.0</code> with Edition
+          2024. A future MSRV increase is treated as incompatible for supported consumers.
+        </p>
+      </li>
+      <li>
+        <h3>Durable data</h3>
+        <p>
+          PostgreSQL migrations are forward-only. Versioned schemas, Graph and
+          Agent identities, and MCP/A2A profiles retain independent explicit
+          versions and fail closed on incompatible drift.
+        </p>
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="versioning-release">
+    <h2 id="versioning-release">Release from immutable evidence</h2>
+    <p>
+      A release must come from a <code>main</code>-reachable immutable tag, pass
+      the cross-platform, PostgreSQL 16/17, protocol, documentation, dependency,
+      and website gates, and rebuild from the packaged crate sources.
+      Publication runs in dependency order, then downloads and SHA-256 compares
+      every archive. Read the complete <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/versioning-and-releases.md"
+        >normative policy</a
+      >, <a href="https://github.com/StateKnot/StateKnot/blob/main/CHANGELOG.md"
+        >changelog</a
+      >, and <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/RELEASING.md"
+        >operator runbook</a
+      >.
+    </p>
+  </section>
+</DocsLayout>

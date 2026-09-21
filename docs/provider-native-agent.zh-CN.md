@@ -5,10 +5,11 @@ SPDX-License-Identifier: Apache-2.0
 
 # Provider-native Agent Graph
 
-本文是未发布 `stateknot-runtime` 中 `ProviderNativeAgentGraph` 的生产集成契约。
+本文是精确版本 `stateknot-runtime = 0.1.0-alpha.1` 公共预览中
+`ProviderNativeAgentGraph` 的 Production-shaped 集成契约。
 该实现把强类型 Agent Descriptor、Invocation 持久化账本、可执行 Graph Registry、
 Graph Driver、Lifecycle Coordinator 与 Agent Loop 组合成一套有界 Model/Tool 状态机。
-它仍处于 pre-alpha：API 尚不稳定、Crate 尚未发布，仓库也尚未声明生产支持。
+它仍处于 pre-alpha：API 尚不稳定、必须固定精确版本，仓库也尚未声明生产支持。
 
 最短且诚实的入口是已经编译验证的 No-I/O 示例：
 

@@ -6,7 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 # Cross-tenant durable fair scheduling
 
 `DurableFairScheduler` layers replica-safe weighted tenant selection over the
-existing tenant-isolated scheduler worker. It is pre-alpha and unpublished.
+existing tenant-isolated scheduler worker. It is available in the exact
+`0.1.0-alpha.1` public preview.
 The implementation provides an exact reservation-count starvation bound; it
 does not promise wall-clock latency or successful work for an idle or contended
 tenant queue.

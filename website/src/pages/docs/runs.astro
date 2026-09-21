@@ -49,7 +49,8 @@ let current = runs.load_by_key(&tenant_id, &key).await?;`;
     <p>
       <code>DurableAgentRuns</code>, <code>AgentSubmissionKey</code>, and
       PostgreSQL migration 16 are implemented. They close ingress lost-ACK
-      recovery and public terminal reads. Crates remain unpublished, and the
+      recovery and public terminal reads in the exact <code>0.1.0-alpha.1</code>
+      public preview. The
       <a href="/docs/provider-native-agent/"
         >prebuilt provider-native multi-turn graph</a
       > now consumes this facade. <a href="/docs/agent-service/"
@@ -196,7 +197,7 @@ let current = runs.load_by_key(&tenant_id, &key).await?;`;
       public facade. Read the <a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-runs.md"
         >complete integration contract</a
-      > before adopting this unpublished API.
+      > before adopting this public-preview API.
     </p>
   </section>
 </DocsLayout>

@@ -15,7 +15,11 @@ documentation.workspace = true
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+publish = ["crates-io"]
+
+[package.metadata.docs.rs]
+targets = []
+rustdoc-args = ["-Dwarnings"]
 
 [dependencies]
 axum.workspace = true
@@ -29,18 +33,18 @@ schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_json_canonicalizer.workspace = true
-stateknot-artifact-store = { version = "=0.0.0", path = "../stateknot-artifact-store" }
-stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
-stateknot-integrations = { version = "=0.0.0", path = "../stateknot-integrations" }
-stateknot-runtime = { version = "=0.0.0", path = "../stateknot-runtime" }
-stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
+stateknot-artifact-store = { version = "=0.1.0-alpha.1", path = "../stateknot-artifact-store" }
+stateknot-core = { version = "=0.1.0-alpha.1", path = "../stateknot-core" }
+stateknot-integrations = { version = "=0.1.0-alpha.1", path = "../stateknot-integrations" }
+stateknot-runtime = { version = "=0.1.0-alpha.1", path = "../stateknot-runtime" }
+stateknot-store-postgres = { version = "=0.1.0-alpha.1", path = "../stateknot-store-postgres" }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["net"] }
 tokio-util = { workspace = true, features = ["rt"] }
 zeroize.workspace = true
 
 [dev-dependencies]
-stateknot-testkit = { version = "=0.0.0", path = "../stateknot-testkit" }
+stateknot-testkit = { version = "=0.1.0-alpha.1", path = "../stateknot-testkit" }
 tower-service.workspace = true
 tokio = { workspace = true, features = ["io-util", "net", "process"] }
 

@@ -1,0 +1,102 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const installCode = `[dependencies]
+stateknot = "=0.1.0-alpha.1"`;
+---
+
+<DocsLayout
+  title="采用公共 Alpha，不猜测兼容性。"
+  description="StateKnot 以统一版本发布整套预览包，要求精确固定，并明确规定语义化版本、持久化数据升级与可复现发布门禁。"
+  section="版本与发布"
+  locale="zh-CN"
+>
+  <aside class="docs-callout" aria-labelledby="zh-versioning-boundary">
+    <h2 id="zh-versioning-boundary">公共预览不等于生产承诺</h2>
+    <p>
+      <code>0.1.0-alpha.1</code> 可从 crates.io 使用，并由 docs.rs 提供文档， 但 Rust
+      API 仍可能在不同预发布标识之间变化。请固定完整版本，并在<a
+        href="/zh/docs/status/">实现状态页面</a
+      >评估尚未完成的生产验证。
+    </p>
+  </aside>
+
+  <section aria-labelledby="zh-versioning-install">
+    <h2 id="zh-versioning-install">精确固定同一套版本</h2>
+    <p>
+      Facade、Core、PostgreSQL Store、Runtime、Integrations、Artifact Store
+      与资格 Testkit 使用统一版本。持久化 Schema、Registry
+      与恢复语义按整套版本完成验证， 因此不支持混用不同 StateKnot 产品版本。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Cargo.toml</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-versioning-install-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-versioning-install-code"
+        tabindex="0"><code>{installCode}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="zh-versioning-contract">
+    <h2 id="zh-versioning-contract">明确哪些内容可能变化</h2>
+    <ul class="evidence-list">
+      <li>
+        <h3>预发布版本</h3>
+        <p>
+          不同 Alpha 标识之间可能包含破坏性 API
+          变更。每个预览版都要求显式精确固定， 并提供经过评审的 Changelog。
+        </p>
+      </li>
+      <li>
+        <h3>稳定版本线</h3>
+        <p>
+          不兼容变更按 Cargo
+          语义化版本规则提升兼容性版本。除非安全性或正确性要求立即
+          破坏兼容，移除公共 API 前必须先弃用。
+        </p>
+      </li>
+      <li>
+        <h3>MSRV</h3>
+        <p>
+          当前最低支持 Rust 版本为 <code>1.88.0</code>，使用 Edition 2024。
+          后续提升 MSRV 对受支持使用者按不兼容变更处理。
+        </p>
+      </li>
+      <li>
+        <h3>持久化数据</h3>
+        <p>
+          PostgreSQL Migration 只向前。带版本的 Schema、Graph/Agent Identity 与
+          MCP/A2A Profile 保留各自显式版本，遇到不兼容漂移时失败关闭。
+        </p>
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="zh-versioning-release">
+    <h2 id="zh-versioning-release">从不可变证据发布</h2>
+    <p>
+      Release 必须来自 <code>main</code> 可达的不可变 Tag，通过跨平台、PostgreSQL
+      16/17、协议、文档、依赖与网站门禁，并从打包后的 Crate Source 重新构建。 发布按依赖顺序执行，随后下载每个
+      Archive 并逐一比对 SHA-256。请阅读完整<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/versioning-and-releases.zh-CN.md"
+        >规范策略</a
+      >、<a href="https://github.com/StateKnot/StateKnot/blob/main/CHANGELOG.md"
+        >变更日志</a
+      >与<a href="https://github.com/StateKnot/StateKnot/blob/main/RELEASING.md"
+        >发布运维手册</a
+      >。
+    </p>
+  </section>
+</DocsLayout>

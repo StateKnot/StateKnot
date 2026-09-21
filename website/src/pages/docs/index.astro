@@ -6,6 +6,12 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 
 const paths = [
   {
+    title: "Install the public alpha",
+    body: "Pin 0.1.0-alpha.1 exactly, then review the compatibility, MSRV, durable-data, and release contract before adopting it.",
+    href: "/docs/versioning/",
+    link: "Read the release policy",
+  },
+  {
     title: "Validate the repository",
     body: "Install the pinned Rust toolchain and run the same formatting, lint, test, and documentation gates used by CI.",
     href: "/docs/getting-started/",
@@ -136,16 +142,16 @@ const paths = [
   <aside class="docs-callout" aria-labelledby="docs-boundary-title">
     <h2 id="docs-boundary-title">The honest starting point</h2>
     <p>
-      StateKnot does not yet expose a stable public model/tool Agent API. Today
-      you can compile a deterministic Graph, freeze its executable deployment,
-      replay noninitial checkpoints, and run a tenant-scoped durable Graph loop
-      through atomic lifecycle commits on PostgreSQL. Provider-neutral durable
-      model/tool attempts, weighted cross-tenant selection, a typed Agent
-      contract, and the first OpenAI Responses and Anthropic Messages adapters
-      are also implemented. Atomic durable Agent admission binds those contracts
-      to scheduler-visible work, while durable ingress keys and the public
-      run/result facade recover lost acknowledgements and verify terminal reads.
-      The <a href="/docs/provider-native-agent/"
+      StateKnot does not yet expose a stable public model/tool Agent API. Its
+      product crates are available as the exact <code>0.1.0-alpha.1</code>
+      public preview. Today you can compile a deterministic Graph, freeze its executable
+      deployment, replay noninitial checkpoints, and run a tenant-scoped durable Graph
+      loop through atomic lifecycle commits on PostgreSQL. Provider-neutral durable
+      model/tool attempts, weighted cross-tenant selection, a typed Agent contract,
+      and the first OpenAI Responses and Anthropic Messages adapters are also implemented.
+      Atomic durable Agent admission binds those contracts to scheduler-visible work,
+      while durable ingress keys and the public run/result facade recover lost acknowledgements
+      and verify terminal reads. The <a href="/docs/provider-native-agent/"
         >prebuilt provider-native Agent graph</a
       > now adds recovered multi-turn Tools, bounded ordered read-only concurrency,
       serialized write barriers, policy, accounting, and exact cancellation.
@@ -310,10 +316,13 @@ const paths = [
   </section>
 
   <section aria-labelledby="api-reference-title">
-    <h2 id="api-reference-title">API reference during pre-alpha</h2>
+    <h2 id="api-reference-title">Public Alpha API reference</h2>
     <p>
-      The crates are unpublished, so docs.rs is not yet authoritative. Generate
-      reference documentation from the exact checkout you are reviewing:
+      docs.rs publishes the exact <a
+        href="https://docs.rs/stateknot/0.1.0-alpha.1/"
+        ><code>stateknot 0.1.0-alpha.1</code> reference</a
+      >. When reviewing a change that has not been released, generate
+      documentation from that exact checkout:
     </p>
     <div class="docs-code" data-code-block>
       <div class="docs-code-head">

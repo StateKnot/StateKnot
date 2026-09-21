@@ -12,6 +12,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+No changes yet.
+
+## [0.1.0-alpha.1] - 2026-09-21
+
+This is the first public, lockstep crates.io preview. Breaking changes may occur
+between alpha identifiers; consumers must pin the exact version. The supported
+MSRV is Rust 1.88.0. See the
+[versioning and release policy](docs/versioning-and-releases.md).
+
 ### Fixed
 
 - Skill activation evidence now fails closed while decoding: direct activation
@@ -39,6 +48,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   mandatory merge gates.
 
 ### Added
+
+- A lockstep public Alpha release boundary for seven product crates, exact
+  prerelease dependency pins, an explicit Semantic Versioning/MSRV/durable-data
+  policy, bilingual adoption documentation, and resumable release automation.
+  The protected OIDC publisher packages in dependency order, byte-compares
+  registry downloads, and compiles a registry-only external consumer.
 
 - A typed, HTTP-free `InProcessAgentRuntime` convenience path that owns and
   fail-stop supervises the real durable Worker and maintenance roles. It keeps
@@ -127,7 +142,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   Bilingual guides record the exact no-I/O boundary. This closes only RFC-0001
   validation item 1; RFC-0001 remains Draft and no API-stability claim is added.
 
-- Unpublished `stateknot-testkit` host qualification harness with recorder-owned
+- Public-alpha `stateknot-testkit` host qualification harness with recorder-owned
   monotonic phases, bounded HDR latency distributions, checked operation/safety
   counters, stable fault cases, deterministic integer objectives and canonical
   SHA-256 integrity envelopes. A reduced real Agent host profile on PostgreSQL
@@ -432,7 +447,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 - A strict public-safe invocation execution event schema plus bilingual
   production integration guides for durable invocation execution and
   cross-tenant fair scheduling.
-- New unpublished `stateknot-runtime` crate with immutable, digest-pinned,
+- New pre-publication `stateknot-runtime` crate with immutable, digest-pinned,
   offline JSON Schema 2020-12 validation and a startup-frozen executable graph
   registry that requires complete graph/reducer/node/schema closure and rejects
   conflicting or orphan code bindings.
@@ -589,7 +604,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   bounded supersteps, stable node identities, deterministic ready sets,
   graph/state-schema pins, exact parent and journal heads, RFC 8785 state, and
   domain-separated state/intent/checkpoint integrity.
-- Initial unpublished `stateknot-store-postgres` slice for PostgreSQL 16/17,
+- Initial pre-publication `stateknot-store-postgres` slice for PostgreSQL 16/17,
   with exact checksum-pinned migration verification, strict runtime startup,
   secure TLS defaults, bounded pools/transactions, tenant-scoped admission,
   canonical journal persistence, locked pure lifecycle transitions, atomic

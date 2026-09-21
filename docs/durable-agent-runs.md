@@ -5,8 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable Agent runs and results
 
-Status: implemented pre-alpha integration contract. The crates are unpublished
-and the API is not yet covered by a compatibility promise.
+Status: implemented public-preview integration contract. The exact
+`0.1.0-alpha.1` crates expose this API; compatibility is governed by the
+pre-release rules in the [versioning policy](versioning-and-releases.md).
 
 This document defines the public Rust boundary for admitting, resolving, and
 reading one durable Agent run. It covers `DurableAgentRuns`, tenant-scoped

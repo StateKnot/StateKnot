@@ -39,11 +39,12 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
     <p>
       The prebuilt graph, local policy boundary, exact invocation accounting,
       multi-turn transcript assembly, durable cancellation observation, and
-      lifecycle confirmation are implemented. The crate remains unpublished;
-      bounded read-only Tool concurrency is implemented, while parallel writes
-      remain serialized and bounded durable structured-output repair is
-      implemented. <a href="/docs/agent-service/">AgentService v1</a> now exposes
-      this definition through an embedding boundary, and the <a
+      lifecycle confirmation are implemented in the exact
+      <code>0.1.0-alpha.1</code> public preview. Bounded read-only Tool concurrency
+      is implemented, while parallel writes remain serialized and bounded durable
+      structured-output repair is implemented. <a href="/docs/agent-service/"
+        >AgentService v1</a
+      > now exposes this definition through an embedding boundary, and the <a
         href="/docs/mcp-remote-tool/">strict MCP Remote Tool profile</a
       > plus <a href="/docs/a2a-client/">A2A Remote Agent profile</a> supply client-side
       Tool adapters. Stable network transport, broader protocol extensions, and production

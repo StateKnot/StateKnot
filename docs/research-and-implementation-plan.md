@@ -884,7 +884,7 @@ Reducer，并解析 Continue/Route/Wait/Terminal 生成现有 Atomic Barrier Int
 注册只对相同 Canonical Bytes 幂等，Recovery 会重新编译 Checkpoint-pinned Definition 并在 Live
 Fence 下隔离缺失或矛盾证据；v12 升级、Tenant Isolation、Corruption/Conflict 与 24 路注册竞态
 均在 PG16/17 验证。
-新的未发布 `stateknot-runtime` crate 已实现离线且 Digest-pinned 的 JSON Schema 2020-12
+现已公共预览发布的 `stateknot-runtime` Crate 已实现离线且 Digest-pinned 的 JSON Schema 2020-12
 注册表、精确 Graph/Reducer/Node 可执行闭包、对所有已提交非初始 Checkpoint 的独立有界
 Replay，以及带 Fence 的可恢复 Graph Driver。Driver 只在 Durable Start 新提交后执行 Node，
 不会把 `Idempotent` Start 当成执行授权；Node 启动前会刷新临近过期 Lease，长任务在
@@ -1258,7 +1258,7 @@ Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成，�
 
 ## 21. 当前 M0 交付物
 
-仓库治理、CI、不发布的 facade crate、v1 scope baseline 与三个 Golden
+仓库治理、CI、公共预览 facade crate、v1 scope baseline 与三个 Golden
 Scenario 已经建立。下一步完成并评审四份 RFC：
 
 1. `RFC-0001 Core Domain and Capability Model`（Draft）；
@@ -1266,7 +1266,7 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 3. `RFC-0003 PostgreSQL Durability, Recovery and Migration`（Draft）；
 4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
 
-当前按第一条纵向链路已创建三个未发布验证边界：`stateknot-core` 用于验证 RFC-0001
+当前按第一条纵向链路已创建三个公共预览验证边界：`stateknot-core` 用于验证 RFC-0001
 领域类型以及 RFC-0002/0003 的值契约；`stateknot-store-postgres` 已把
 run/journal/checkpoint/tool/model-invocation/node-attempt、attempt-owned pending result、atomic
 barrier consumption、run-wide attempt claim、outbox、durable wait、quarantine、lease、pinned

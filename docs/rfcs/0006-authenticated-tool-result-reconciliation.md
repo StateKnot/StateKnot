@@ -80,7 +80,8 @@ versions and evidence as long as unresolved invocations/receipts are retained.
 Only existing workspace dependency edges change (serde and test reqwest). No
 package version, MSRV, existing wire schema or existing reconciler behavior is
 changed. The versioned MCP Tool and audit schema provide an explicit boundary
-for future incompatible semantics. This remains an unpublished, Draft contract.
+for future incompatible semantics. This remains a Draft contract exposed by the
+exact public-preview release, not an accepted stable contract.
 
 ## Security and operations
 

@@ -9,6 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
 [![CI](https://github.com/StateKnot/StateKnot/actions/workflows/ci.yml/badge.svg)](https://github.com/StateKnot/StateKnot/actions/workflows/ci.yml)
 [![Supply chain](https://github.com/StateKnot/StateKnot/actions/workflows/supply-chain.yml/badge.svg)](https://github.com/StateKnot/StateKnot/actions/workflows/supply-chain.yml)
+[![crates.io](https://img.shields.io/crates/v/stateknot.svg)](https://crates.io/crates/stateknot)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **面向 Rust 的持久化 Agent 编排框架。**
@@ -21,9 +22,8 @@ StateKnot 是一个正在开发的开源 Rust 框架，用于构建类型安全�
 Python Agent 框架进行逐行移植。
 
 > [!IMPORTANT]
-> StateKnot 当前处于 **pre-alpha** 阶段。仓库已包含经过评审的架构基线、
-> 项目基础设施以及持续扩展的纵向实现，但尚未发布生产版本或稳定公共 API。
-> 现阶段请勿用于生产环境。
+> StateKnot 当前处于 **pre-alpha** 阶段。公共 `0.1.0-alpha.1` crate 可用于评估，
+> 但不代表稳定 API 或生产支持。请精确固定预发布版本，现阶段不要用于生产环境。
 
 ## 设计方向
 
@@ -44,6 +44,23 @@ v1 范围基线包括 PostgreSQL 持久化执行、OpenAI 兼容模型与 Anthro
 适配器、MCP Client/Server，以及 A2A REST/JSON-RPC Client/Server。具体支持面
 和明确排除项记录在 [v1 范围基线](docs/v1-scope.md) 中。
 
+## 安装公共 Alpha
+
+StateKnot 要求 Rust 1.88 与 Edition 2024。Alpha 标识之间允许破坏性变更，必须
+精确固定完整版本：
+
+```toml
+[dependencies]
+stateknot = "=0.1.0-alpha.1"
+```
+
+底层使用者也可以依赖完全相同版本的 `stateknot-core`、
+`stateknot-store-postgres`、`stateknot-runtime` 与 `stateknot-integrations`。
+`stateknot-artifact-store` 与资格验证用 `stateknot-testkit` 也使用同一精确版本。
+不要混用不同 StateKnot 产品版本。
+详见[版本与发布策略](docs/versioning-and-releases.zh-CN.md)
+和[进程内 Agent 指南](docs/in-process-agent.zh-CN.md)。
+
 ## 当前里程碑
 
 项目目前处于**架构契约与持久化运行时纵向验证阶段**。以下能力已经进入仓库并
@@ -62,7 +79,7 @@ v1 范围基线包括 PostgreSQL 持久化执行、OpenAI 兼容模型与 Anthro
 
 ### 持久化核心与 Graph Runtime
 
-- 未发布的核心 crate 已覆盖模型、Tool、Agent 准入与结果、运行生命周期、
+- 公共 Alpha 核心 crate 已覆盖模型、Tool、Agent 准入与结果、运行生命周期、
   规范事件信封、Graph 检查点、Tool/模型调用状态机、不可变待提交节点结果、
   物理节点尝试恢复、固定 fence 的至少一次 Outbox，以及带完整性绑定的中断
   和定时器记录。
@@ -90,7 +107,7 @@ v1 范围基线包括 PostgreSQL 持久化执行、OpenAI 兼容模型与 Anthro
 - 核心能够将有界声明式 Graph 编译为规范 JSON 和精确 SHA-256 身份，在准入前
   拒绝非法拓扑，并从完整结果集确定性地产生 barrier 意图。不可变 Graph 注册表
   按租户保存编译定义；恢复时会重新编译并核对检查点固定的身份与摘要。
-- 未发布的 `stateknot-runtime` crate 提供离线、摘要固定的 JSON Schema 2020-12
+- 公共 Alpha `stateknot-runtime` crate 提供离线、摘要固定的 JSON Schema 2020-12
   注册表，精确的 Graph/Reducer/Node 可执行绑定，所有非初始已提交检查点的独立
   有界重放，以及带 fence 的持久化 Graph Driver。
 - Driver 在启动节点代码前持久化物理尝试，不会从幂等观察到的启动重复派发；
@@ -251,7 +268,7 @@ v1 范围基线包括 PostgreSQL 持久化执行、OpenAI 兼容模型与 Anthro
 ## 仓库结构
 
 ```text
-crates/stateknot/        用于验证 workspace 的未发布门面 crate
+crates/stateknot/        公共预发布门面 crate
 crates/stateknot-core/   已验证的领域、运行、日志、检查点、调用和所有权契约
 crates/stateknot-artifact-store/  私有对象发布、不可变 Artifact 注册和授权验证读取
 crates/stateknot-integrations/  OpenAI/Anthropic 适配器及有界 MCP、A2A 协议配置

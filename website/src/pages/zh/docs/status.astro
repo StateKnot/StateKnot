@@ -9,7 +9,7 @@ const capabilities = [
     state: "已实现",
     className: "status-implemented",
     title: "有界宿主验证证据",
-    body: "尚未发布的 stateknot-testkit 管理单调计时阶段、有界 HDR 延迟分布、受检安全计数、封闭故障矩阵与规范化完整性封装。PostgreSQL 16/17 缩减配置走真实宿主准入、SSE、运维读取、依赖恢复和滚动替换，但始终不是发布证据；参考负载、浸泡测试、故障切换和来源证明仍待完成。",
+    body: "公共 Alpha stateknot-testkit 管理单调计时阶段、有界 HDR 延迟分布、受检安全计数、封闭故障矩阵与规范化完整性封装。PostgreSQL 16/17 缩减配置走真实宿主准入、SSE、运维读取、依赖恢复和滚动替换，但始终不是发布证据；参考负载、浸泡测试、故障切换和来源证明仍待完成。",
   },
   {
     state: "已实现",
@@ -201,7 +201,7 @@ const capabilities = [
     state: "尚未发布",
     className: "status-planned",
     title: "稳定 Network Agent API",
-    body: "嵌入式服务与经过认证的有界 JSON HTTP 接入已经存在，但稳定 HTTP/SSE API、已发布 Crate、兼容性承诺与生产支持声明仍不存在。",
+    body: "嵌入式服务与经过认证的有界 JSON HTTP 接入已随精确版本 0.1.0-alpha.1 公共预览发布，但稳定 HTTP/SSE API 与生产支持声明仍不存在；预览兼容性遵循已发布的版本策略。",
   },
   {
     state: "尚未发布",
@@ -250,9 +250,11 @@ const capabilities = [
   <section aria-labelledby="claim-title">
     <h2 id="claim-title">“已实现”的准确含义</h2>
     <p>
-      仓库中存在代码与可执行测试。它不代表 API 稳定、Crate
-      已发布、运维发布门禁通过或兼容性支持已经开始。一个 v1
-      能力只有在实现、测试、文档、兼容性证据与发布门禁同时交付后才算正式支持。
+      仓库中存在代码与可执行测试。产品 Crate 已随精确版本 <code
+        >0.1.0-alpha.1</code
+      > 公共预览发布，但这不代表 API 稳定、生产运维门禁通过或生产支持已经开始。一个
+      v1 能力只有在实现、测试、文档、兼容性证据与发布门禁同时交付后才算正式支持。
+      依赖预览版本前请先阅读<a href="/zh/docs/versioning/">版本与发布策略</a>。
     </p>
   </section>
 

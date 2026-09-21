@@ -6,7 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 # 可恢复 Model/Tool 调用执行
 
 `stateknot-runtime` 现在包含 Model/Tool 持久化账本与外部 Adapter
-之间的 Provider-neutral 执行边界。它仍是未发布的 pre-alpha。本文件记录代码已经执行的集成与恢复合约。OpenAI Responses、Anthropic Messages、一个严格 MCP
+之间的 Provider-neutral 执行边界，已随精确版本 `0.1.0-alpha.1` 公共预览发布。
+本文件记录代码已经执行的集成与恢复合约。OpenAI Responses、Anthropic Messages、一个严格 MCP
 2026-07-28 Client-side Remote Tool 与一个严格 A2A 1.0 Remote Agent Profile
 已接入该合约；这不代表 Stable API、更广 Protocol Conformance 或 Live-provider/
 Partner Qualification 已完成。

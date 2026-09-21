@@ -7,8 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 
 `stateknot-store-postgres` is the first implementation slice of draft
 [RFC-0003](rfcs/0003-postgresql-durability-recovery-and-migration.md). It is
-pre-alpha and unpublished. This guide records the operational contract already
-enforced by code and the remaining blockers that prevent a production release.
+available in the exact `0.1.0-alpha.1` public preview. This guide records the
+operational contract already enforced by code and the remaining blockers that
+prevent a production release.
 
 ## Implemented boundary
 
@@ -410,7 +411,7 @@ concurrent executor and must be treated as in flight. If that executor is gone,
 allow lease expiry/supersession and recover the unfinished start under a higher
 fence. Never invoke node code before a fresh `Committed` handoff.
 
-The unpublished `stateknot-runtime` crate now resolves an exact startup-frozen
+The public-preview `stateknot-runtime` crate now resolves an exact startup-frozen
 schema/reducer/node executable closure, independently validates every committed
 noninitial checkpoint, and drives the root recovery loop. It commits a physical
 node start before calling node code, never launches after an `Idempotent` start,
