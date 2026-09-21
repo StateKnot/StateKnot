@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication, database-clock deadlines, settled-direct failure close, and committed-boundary successful/deadline process-loss profiles implemented; full-profile qualification remains gated
+- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication, database-clock deadlines, settled-direct failure close, committed-boundary successful/deadline process-loss profiles, and Join/deadline ambiguous-COMMIT qualification implemented; full-profile qualification remains gated
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -349,8 +349,12 @@ root-only data. Preserve all static-composition and root-run regression tests.
   separately qualifies nine post-commit expiry/cancellation/settlement/cleanup
   boundaries, including both inherited deadline candidates, first-reason
   preservation and old-epoch lease-renewal rejection.
-  Other transaction boundaries, database-server faults and provider effects
-  remain separate gates; this does not qualify the entire runtime matrix.
+  The [Join/deadline COMMIT-loss profile](../join-deadline-commit-loss-qualification.md)
+  adds six client-fault cells for Join registration/publication and deadline
+  cancellation: unforwarded COMMIT rollback plus withheld-response idempotent
+  recovery. Admission, delivery, settlement, finalization and consumption
+  transactions, database-server faults and provider effects remain separate
+  gates; this does not qualify the entire runtime matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
   rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,
   unpriced-prefix pagination and populated-upgrade tests; these do not measure

@@ -18,6 +18,9 @@ mod deadlines;
 #[path = "failure_close.rs"]
 mod failure_close;
 
+#[path = "transaction_commit_loss.rs"]
+mod transaction_commit_loss;
+
 use super::*;
 use sqlx_core::{query::query, query_scalar::query_scalar};
 use stateknot_core::{AgentAdmission, JournalHead, NodeAttemptStartHead, RunFailure};

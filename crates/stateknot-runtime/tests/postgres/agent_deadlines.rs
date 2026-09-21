@@ -121,7 +121,7 @@ pub(super) async fn admit_deadline(
     .stored()
     .clone()
 }
-async fn request_expiry(
+pub(super) async fn request_expiry(
     store: &PostgresStore,
     tenant: &TenantId,
     run: RunId,
@@ -377,7 +377,11 @@ async fn deadline_abandons_real_waits_atomically_without_firing_the_timer() {
     store.close().await;
 }
 
-async fn started_deadline(store: &PostgresStore, name: &str, deadline: Timestamp) -> Started {
+pub(super) async fn started_deadline(
+    store: &PostgresStore,
+    name: &str,
+    deadline: Timestamp,
+) -> Started {
     let child_driver = driver_fixture();
     let child = durable_admission_request(
         &child_driver,

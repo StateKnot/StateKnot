@@ -546,6 +546,9 @@ now proves eight committed admission-through-replay boundaries with PostgreSQL-o
 reconstruction and retained stale-worker fencing. The
 [deadline cancel-and-join profile](deadline-join-process-qualification.md) now
 proves nine committed expiry-through-terminal-replay boundaries, including
-inherited parent/child deadlines and first-reason preservation. Pre-/in-commit
-Join/deadline cuts remain open. The website must not advertise the full
-capability until those gates pass.
+inherited parent/child deadlines and first-reason preservation. The
+[Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
+additionally qualifies six client-fault cells across registration, publication
+and deadline cancellation. In-flight COMMIT cuts for admission, cancellation
+delivery, settlement, finalization and result consumption remain open. The
+website must not advertise the full capability until those gates pass.

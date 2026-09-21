@@ -44,6 +44,11 @@ The [deadline cancel-and-join process-loss profile](deadline-join-process-qualif
 ([中文](deadline-join-process-qualification.zh-CN.md)) adds nine committed
 deadline/cancellation/settlement/cleanup boundaries and preserves the child's
 first deadline reason when parent propagation arrives later.
+The [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
+([中文](join-deadline-commit-loss-qualification.zh-CN.md)) adds a six-cell
+client-fault matrix for Join registration, Join publication and deadline
+cancellation, covering both an unforwarded COMMIT and a committed response that
+never reaches the worker.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed

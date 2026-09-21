@@ -3,7 +3,7 @@
 
 use super::*;
 use crate::{
-    commit_proxy::{CommitProxy, Cut, loopback_target},
+    commit_proxy::{CommitProxy, Cut, TransactionTarget, loopback_target},
     process_harness::{INPUT_ENV, TestProcess, parent_control, publish_ready, ready_and_park},
 };
 use sqlx_core::connection::ConnectOptions;
@@ -364,7 +364,7 @@ async fn failure_close_commit_loss_and_fence_takeover_are_recoverable() {
             ),
         };
         let before = Box::pin(unsealed_snapshot(&store, &scenario)).await;
-        let mut proxy = CommitProxy::start(&connection, cut).await;
+        let mut proxy = CommitProxy::start(&connection, cut, TransactionTarget::FailureClose).await;
         let mut worker = TestProcess::spawn(
             WORKER,
             &json!({"role": "cut", "scenario": scenario, "proxy_port": proxy.port()}),

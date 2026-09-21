@@ -437,8 +437,12 @@ from the repository.
   [deadline cancel-and-join profile](deadline-join-process-qualification.md)
   additionally proves inherited parent/child expiry, idempotent child delivery,
   real cleanup loops, once-only settlement, higher-epoch fencing and replay.
-  Other pre-/in-commit kills, arbitrary uncertain direct-effect recovery and
-  full-profile/role/capacity qualification remain gated; the RFC remains Draft.
+  The six-cell [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
+  now covers unforwarded COMMIT rollback and withheld-response recovery for Join
+  registration/publication and deadline cancellation. In-flight admission,
+  delivery, settlement, finalization and consumption transactions, arbitrary
+  uncertain direct-effect recovery and full-profile/capacity qualification
+  remain gated; the RFC remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):
   non-superuser migration ownership, runtime column grants and separate reservation
   retention credentials; effective ACL/default/membership audit, rollback, real
