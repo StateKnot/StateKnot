@@ -94,7 +94,7 @@ impl GraphNodeExecutor for JoinExecutor {
     }
 }
 
-fn registry(
+pub(super) fn registry(
     store: &PostgresStore,
     fixture: &PreparationFixture,
     intent: &ChildRunAdmissionIntent,

@@ -11,6 +11,9 @@ mod qualification;
 #[path = "child_join_driver.rs"]
 mod driver;
 
+#[path = "child_join_process.rs"]
+mod process;
+
 async fn setup_join(store: &PostgresStore, name: &str) -> (Started, ChildRunJoinRequest, RunId) {
     let mut value = started(store, name).await;
     let spawned = spawn(store, &value).await.unwrap();

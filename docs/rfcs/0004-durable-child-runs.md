@@ -340,6 +340,11 @@ root-only data. Preserve all static-composition and root-run regression tests.
   The companion [source COMMIT-loss profile](../commit-loss-qualification.md)
   now qualifies an unforwarded COMMIT, withheld acknowledgement and a retained
   old worker rejected after database-clock expiry and higher-epoch takeover.
+  The [successful Join process-loss profile](../child-join-process-qualification.md)
+  separately qualifies eight post-commit admission/Join/terminal/settlement/
+  publication/takeover/resume/replay boundaries. Every recovery process rebuilds
+  from PostgreSQL and a retained original worker is rejected before the resumed
+  parent may continue.
   Other transaction boundaries, database-server faults and provider effects
   remain separate gates; this does not qualify the entire runtime matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17

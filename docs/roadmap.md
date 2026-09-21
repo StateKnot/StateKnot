@@ -429,9 +429,14 @@ from the repository.
   [qualification profile](process-kill-qualification.md). Source registration now
   also has [COMMIT-loss/fencing qualification](commit-loss-qualification.md):
   unforwarded COMMIT rollback, withheld acknowledgement recovery and rejection of
-  a retained old worker after real lease expiry/higher-epoch takeover. Other pre-/in-commit kills,
-  arbitrary uncertain direct-effect recovery and full-profile/process-kill/role/
-  capacity qualification remain gated; the RFC remains Draft.
+  a retained old worker after real lease expiry/higher-epoch takeover. The
+  successful Join path now has an eight-boundary
+  [process-loss profile](child-join-process-qualification.md) covering atomic
+  admission through unique parent consumption and terminal replay, including
+  retained-old-worker rejection before higher-epoch recovery. Deadline-driven
+  cancel-and-join, other pre-/in-commit kills, arbitrary uncertain direct-effect
+  recovery and full-profile/role/capacity qualification remain gated; the RFC
+  remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):
   non-superuser migration ownership, runtime column grants and separate reservation
   retention credentials; effective ACL/default/membership audit, rollback, real
