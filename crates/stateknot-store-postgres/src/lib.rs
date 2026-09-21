@@ -50,7 +50,11 @@ mod error;
 mod model;
 mod store;
 
-pub use config::{PostgresStoreOptions, PostgresTransportSecurity};
+pub use config::{
+    AUTO_MIGRATE_ENV, DATABASE_URL_ENV, DEV_MODE_ENV, MIGRATION_DATABASE_URL_ENV,
+    PostgresConfigurationProfile, PostgresStoreConfig, PostgresStoreConfigBuilder,
+    PostgresStoreOptions, PostgresTransportSecurity,
+};
 pub use error::{ConfigurationError, StoreError};
 pub use model::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,

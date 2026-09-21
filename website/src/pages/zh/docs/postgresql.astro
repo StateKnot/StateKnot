@@ -54,6 +54,44 @@ store.health_check().await?;</code></pre>
     </p>
   </section>
 
+  <section aria-labelledby="configuration-title">
+    <h2 id="configuration-title">使用统一、已校验的启动配置</h2>
+    <p>
+      <code>PostgresStoreConfig</code> 提供封闭的环境变量契约和生产安全的 Builder。生产环境默认保持
+      TLS 完整验证并禁止隐式迁移；启用生产自动迁移时， 必须提供独立的 <code
+        >STATEKNOT_MIGRATION_DATABASE_URL</code
+      >。错误和
+      <code>Debug</code> 输出都会对连接 URL 脱敏。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · 环境变量配置</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="zh-postgres-environment-code"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre
+        id="zh-postgres-environment-code"
+        tabindex="0"><code>use stateknot_store_postgres::&#123;PostgresStore, PostgresStoreConfig&#125;;
+
+let config = PostgresStoreConfig::from_env()?;
+let store = PostgresStore::connect_config(config).await?;</code></pre>
+    </div>
+    <p>
+      <code>DATABASE_URL</code> 为必填项；<code>STATEKNOT_AUTO_MIGRATE</code> 与
+      <code>STATEKNOT_DEV_MODE</code> 是可选的封闭布尔值。生产迁移使用独立权限 URL。仅在可信本地数据库上，<code
+        >STATEKNOT_DEV_MODE=true</code
+      > 才会启用迁移、 关闭 TLS 并把连接池限制为四个连接；等价的显式入口是 <code
+        >PostgresStore::connect_development(...)</code
+      >。
+    </p>
+  </section>
+
   <section aria-labelledby="defaults-title">
     <h2 id="defaults-title">安全且有界的默认值</h2>
     <dl class="docs-definition-list">

@@ -94,7 +94,7 @@ use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
     ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
     BarrierCommitOutcome, CheckpointCommitOutcome, CheckpointLineagePage,
-    CheckpointLineagePageSize, CheckpointPointer, CorruptionQuarantineContext,
+    CheckpointLineagePageSize, CheckpointPointer, ConfigurationError, CorruptionQuarantineContext,
     DelayedRetryScheduleOutcome, DueTimerPage, DueTimerPageCursor, ExpiredInterruptPage,
     ExpiredInterruptPageCursor, GraphDefinitionRegistrationOutcome, GraphReplayLimits,
     GraphReplayReport, InterruptResolutionCommitOutcome, JournalPage, JournalPageSize,
@@ -3122,6 +3122,53 @@ impl PostgresStore {
             return Err(error);
         }
         Ok(store)
+    }
+
+    /// Connects from a validated complete configuration and optionally runs
+    /// migrations first through its dedicated migration URL.
+    ///
+    /// Production auto-migration is accepted only when the configuration was
+    /// built with a distinct migration URL. The explicit development profile
+    /// may use its single local URL for both operations.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for migration, configuration, connection,
+    /// server-version, or schema-verification failure.
+    pub async fn connect_config(config: crate::PostgresStoreConfig) -> Result<Self, StoreError> {
+        let (runtime_url, migration_url, options, auto_migrate) = config.into_parts();
+        if auto_migrate {
+            let migration_url = migration_url
+                .as_deref()
+                .ok_or(ConfigurationError::MigrationDatabaseUrlRequired)?;
+            Self::migrate_database(migration_url, options.clone()).await?;
+        }
+        Self::connect(&runtime_url, options).await
+    }
+
+    /// Reads [`crate::PostgresStoreConfig`] from the process environment and
+    /// connects with that exact validated policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for environment, migration, connection, or schema
+    /// failure.
+    pub async fn connect_from_env() -> Result<Self, StoreError> {
+        Self::connect_config(crate::PostgresStoreConfig::from_env()?).await
+    }
+
+    /// Migrates and connects to an explicitly local development database.
+    ///
+    /// This convenience disables transport security and reuses the same URL
+    /// for migrations. It must never be used across an untrusted network or as
+    /// a production deployment shortcut.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StoreError`] for invalid configuration, migration, connection,
+    /// server-version, or schema-verification failure.
+    pub async fn connect_development(database_url: &str) -> Result<Self, StoreError> {
+        Self::connect_config(crate::PostgresStoreConfig::development(database_url)?).await
     }
 
     /// Applies embedded, ordered, checksum-pinned migrations using a dedicated pool.

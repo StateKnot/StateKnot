@@ -61,6 +61,10 @@ item 2 already has exhaustive type coverage.
    reviewed, accepted, and superseded.
 7. [PostgreSQL provider operations](postgresql-provider.md) — the implemented
    durability slice, deployment boundary, validation, and explicit blockers.
+   The [startup configuration guide](postgresql-configuration.md)
+   ([简体中文](postgresql-configuration.zh-CN.md)) defines the production-safe
+   environment contract, role-separated auto-migration, builder API and explicit
+   local-development profile.
 8. [Durable Graph runtime](durable-graph-runtime.md) — production integration
    contract for executable registration, noninitial replay, fenced driving,
    canonical bounded sibling batches, lifecycle handoffs, and crash recovery.
@@ -152,10 +156,19 @@ item 2 already has exhaustive type coverage.
     [Simplified Chinese edition](artifact-storage.zh-CN.md) is maintained
     alongside it.
 
-24. [Shared-state subgraphs and bounded loops](graph-composition.md) — scoped
+25. [Shared-state subgraphs and bounded loops](graph-composition.md) — scoped
     static composition, explicit loop exhaustion, pre-dispatch step limits,
     executable registration, PostgreSQL recovery, and upgrade obligations. A
     [Simplified Chinese edition](graph-composition.zh-CN.md) is maintained
+    alongside it.
+26. [Register local Rust Tools](local-tools.md) — production schema generation,
+    typed adapters, exact executable registration, durable invocation and mixed
+    local/MCP/A2A provider rules. A
+    [Simplified Chinese edition](local-tools.zh-CN.md) is maintained alongside it.
+27. [Skill composition and lifecycle](skill-composition.md) — capability
+    bundles, prompt provenance, dependency resolution, state boundaries,
+    enforceable budgets and immutable activation. A
+    [Simplified Chinese edition](skill-composition.zh-CN.md) is maintained
     alongside it.
 
 Current drafts include the [core domain contract](rfcs/0001-core-domain-and-capability-model.md),

@@ -294,6 +294,12 @@ const localizedRoutePairs = [
     zhHeading: "组合可恢复子图与有界循环。",
   },
   {
+    en: "/docs/skill-composition/",
+    zh: "/zh/docs/skill-composition/",
+    enHeading: "Compose skills from durable primitives.",
+    zhHeading: "用持久执行原语组合 Skill。",
+  },
+  {
     en: "/docs/runtime/",
     zh: "/zh/docs/runtime/",
     enHeading: "Drive a Graph from durable evidence.",
@@ -322,6 +328,12 @@ const localizedRoutePairs = [
     zh: "/zh/docs/agent-service/",
     enHeading: "Expose durable Agents through one service boundary.",
     zhHeading: "通过一个服务边界暴露可恢复 Agent。",
+  },
+  {
+    en: "/docs/local-tools/",
+    zh: "/zh/docs/local-tools/",
+    enHeading: "Register local Rust tools without bypassing durability.",
+    zhHeading: "注册本地 Rust Tool，但不绕过持久执行边界。",
   },
   {
     en: "/docs/agent-http/",
@@ -1307,6 +1319,74 @@ test("documentation navigation adapts without losing current-page state", async 
   await expect(
     page.locator('.docs-nav--desktop [aria-current="page"]'),
   ).toHaveText("PostgreSQL provider");
+});
+
+test("PostgreSQL configuration guidance is production-safe in both locales", async ({
+  page,
+}) => {
+  await page.goto("/docs/postgresql/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Use one validated startup configuration",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("STATEKNOT_MIGRATION_DATABASE_URL"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("PostgresStore::connect_development"),
+  ).toBeVisible();
+
+  await page.goto("/zh/docs/postgresql/");
+  await expect(
+    page.getByRole("heading", { name: "使用统一、已校验的启动配置" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("STATEKNOT_MIGRATION_DATABASE_URL"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("PostgresStore::connect_development"),
+  ).toBeVisible();
+});
+
+test("local Tool and Skill composition guides preserve durable boundaries", async ({
+  page,
+}) => {
+  await page.goto("/docs/local-tools/");
+  await expect(
+    page.getByRole("heading", { name: "Run the production registry path" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("register_rust_type", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("DurableInvocationExecutor", { exact: true }),
+  ).toBeVisible();
+
+  await page.goto("/zh/docs/local-tools/");
+  await expect(
+    page.getByRole("heading", { name: "运行生产 Registry 路径" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("register_rust_type", { exact: true }),
+  ).toBeVisible();
+
+  await page.goto("/docs/skill-composition/");
+  await expect(
+    page.getByRole("heading", { name: "Choose the smallest durable boundary" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Capability bundle", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Durable child run", { exact: true }),
+  ).toBeVisible();
+
+  await page.goto("/zh/docs/skill-composition/");
+  await expect(
+    page.getByRole("heading", { name: "选择最小且可执行的持久边界" }),
+  ).toBeVisible();
+  await expect(page.getByText("持久子 Run", { exact: true })).toBeVisible();
 });
 
 test("every localized internal link resolves", async ({ page, request }) => {

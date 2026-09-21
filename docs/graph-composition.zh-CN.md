@@ -124,3 +124,6 @@ Core 测试覆盖确定性身份、冻结摘要、源节点排序、静态嵌套
 范围划分参考了 [LangGraph 子图通信](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
 和 [Temporal 子工作流生命周期](https://docs.temporal.io/child-workflows)；上述编译与持久化语义
 属于 StateKnot 自身的契约。
+
+若需要判断一项能力应使用 Tool 集合、共享状态子图还是独立持久子 Run，请参考
+[Skill 组合指南](skill-composition.zh-CN.md)。

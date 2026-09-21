@@ -88,6 +88,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "graph subgraph composition loop bounded iteration return exhaustion shared state recovery",
       },
       {
+        title: "Skill composition",
+        description:
+          "Choose capability bundles, shared-state subgraphs, durable child runs, and guarded MCP Skills without creating a second runtime.",
+        href: "/docs/skill-composition/",
+        search:
+          "skill composition capability bundle dependency prompt state subgraph child run activation budget mcp",
+      },
+      {
         title: "Durability model",
         description:
           "Learn how journal, checkpoint, lease, fence, and recovery evidence fit together.",
@@ -131,6 +139,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
   {
     label: "Integrate",
     pages: [
+      {
+        title: "Local Rust Tools",
+        description:
+          "Generate digest-pinned schemas, register typed local code, and preserve the durable invocation boundary.",
+        href: "/docs/local-tools/",
+        search:
+          "local rust tool register typed adapter schema provider registry durable invocation example",
+      },
       {
         title: "AgentService v1",
         description:
@@ -343,6 +359,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
           "graph subgraph composition loop 子图 循环 有界 轮次 返回 耗尽 共享 状态 恢复",
       },
       {
+        title: "Skill 组合",
+        description:
+          "在能力包、共享状态子图、持久子 Run 与受保护 MCP Skill 之间选择，不创建第二套 Runtime。",
+        href: "/docs/skill-composition/",
+        search:
+          "skill 组合 能力包 依赖 prompt 状态 子图 child run 激活 预算 mcp",
+      },
+      {
         title: "持久执行模型",
         description:
           "理解 Journal、Checkpoint、Lease、Fence 与恢复证据如何协同。",
@@ -387,6 +411,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
   {
     label: "集成",
     pages: [
+      {
+        title: "本地 Rust Tool",
+        description:
+          "生成 Digest-pinned Schema、注册强类型本地代码，并保留持久执行边界。",
+        href: "/docs/local-tools/",
+        search:
+          "本地 rust tool 注册 强类型 adapter schema provider registry 持久 调用 示例",
+      },
       {
         title: "AgentService v1",
         description: "通过带版本的嵌入式边界授权并暴露精确版本的可恢复 Agent。",
