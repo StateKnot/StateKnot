@@ -86,86 +86,91 @@ item 2 already has exhaustive type coverage.
     Messages unary/SSE bindings, compiled examples, and the explicit durable
     execution boundary. A [Simplified Chinese edition](typed-agent.zh-CN.md) is
     maintained alongside it.
-12. [Durable Agent admission](durable-agent-admission.md) — immutable
+12. [In-process typed Agent execution](in-process-agent.md) — HTTP-free ownership
+    of the real durable Worker and maintenance roles, caller-retained submission
+    keys, bounded waits, exact terminal decoding, recovery, and the migration
+    path to `AgentHost`. A [Simplified Chinese edition](in-process-agent.zh-CN.md)
+    is maintained alongside it.
+13. [Durable Agent admission](durable-agent-admission.md) — immutable
     authenticated intent, database-clock commit, atomic run/event/checkpoint
     initialization, exact retry, migration, and sensitive-data operations. A
     [Simplified Chinese edition](durable-agent-admission.zh-CN.md) is maintained
     alongside it.
-13. [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md) —
+14. [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md) —
     immutable weighted policy, replica-safe global reservations, explicit
     starvation bounds, retention, rollout, and operations. A
     [Simplified Chinese edition](cross-tenant-fair-scheduler.zh-CN.md) is
     maintained alongside it.
-14. [Provider-native Agent graph](provider-native-agent.md) — digest-pinned
+15. [Provider-native Agent graph](provider-native-agent.md) — digest-pinned
     model/tool composition, bounded parallel read-only waves with serialized
     writes, ordered transcript recovery, local policy, exact accounting,
     two-phase cancellation, operations, and PostgreSQL evidence. A [Simplified
     Chinese edition](provider-native-agent.zh-CN.md) is maintained alongside it.
-15. [General stateless MCP Tool client](mcp-client.md) — bounded dynamic Tool
+16. [General stateless MCP Tool client](mcp-client.md) — bounded dynamic Tool
     discovery/calls, JSON and request-scoped SSE, custom headers, MRTR, security
     boundaries, OAuth challenge integration, and pinned official conformance
     evidence. A
     [Simplified Chinese edition](mcp-client.zh-CN.md) is maintained alongside
     it.
-16. [MCP OAuth client authorization](mcp-oauth.md) — challenge-driven metadata
+17. [MCP OAuth client authorization](mcp-oauth.md) — challenge-driven metadata
     discovery, registration, PKCE, issuer/callback validation, bounded replay,
     durable store requirements, operations, and all 25 scored OAuth scenarios.
     A [Simplified Chinese edition](mcp-oauth.zh-CN.md) is maintained alongside
     it.
-17. [MCP Server profile](mcp-server.md) — strict stateless HTTP, immutable
+18. [MCP Server profile](mcp-server.md) — strict stateless HTTP, immutable
     Tools/Resources/Prompts catalogs, authorization-first dispatch, bounded
     Completion and MRTR, operations, and exact Server evidence. A
     [Simplified Chinese edition](mcp-server.zh-CN.md) is maintained alongside
     it.
-18. [MCP Skills server profile](mcp-skills-server.md) — Final SEP-2640
+19. [MCP Skills server profile](mcp-skills-server.md) — Final SEP-2640
     negotiation, immutable complete manifests, exact content digests,
     authorization-first discovery and resource reads, with an explicit
     server claim boundary. A [Simplified Chinese edition](mcp-skills-server.zh-CN.md)
     is maintained alongside it.
-19. [MCP Skills client and Host profile](mcp-skills-host.md) — explicit extension
+20. [MCP Skills client and Host profile](mcp-skills-host.md) — explicit extension
     opt-in, strict static-manifest validation, host-assigned origin, approval
     before lazy verified reads, isolated memory caching, fresh nested consent,
     per-call execution permits, and exact-version guarded Tool-runtime adapters
     for execution and recovery. A
     [Simplified Chinese edition](mcp-skills-host.zh-CN.md) is maintained
     alongside it.
-20. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
+21. [MCP conformance status](mcp-conformance.md) — exact frozen runner identity,
     all 32 scored Client and 37 scored Server scenarios, CI reproduction,
     explicitly unscored extensions, and the stable-API/Tasks claim boundary. A
     [Simplified Chinese edition](mcp-conformance.zh-CN.md) is maintained
     alongside it.
-21. [A2A 1.0 Client and durable remote-agent profile](a2a-client.md) — strict
+22. [A2A 1.0 Client and durable remote-agent profile](a2a-client.md) — strict
     discovery, all HTTP+JSON/JSON-RPC/SSE operations, attempt-scoped
     authorization, exact delivery semantics, PostgreSQL-backed ambiguous-write
     recovery, operator-attested context/history or deduplicated replay,
     provider-native durable polling, and production deployment gates. A
     [Simplified Chinese edition](a2a-client.zh-CN.md) is maintained alongside it.
-22. [A2A 1.0 Server profile](a2a-server.md) — bounded StateKnot-owned contracts,
+23. [A2A 1.0 Server profile](a2a-server.md) — bounded StateKnot-owned contracts,
     strict HTTP+JSON/JSON-RPC/SSE boundary, authorization-first dispatch,
     durable backend obligations, and production deployment gates. A
     [Simplified Chinese edition](a2a-server.zh-CN.md) is maintained alongside it.
-23. [A2A 1.0 conformance status](a2a-conformance.md) — exact official TCK
+24. [A2A 1.0 conformance status](a2a-conformance.md) — exact official TCK
     commit/archive identity, audited harness patch, 177 passing cases, explicit
     skips, CI reproduction, and the server-only claim boundary. A
     [Simplified Chinese edition](a2a-conformance.zh-CN.md) is maintained
     alongside it.
-24. [Durable artifact storage and A2A task completion](artifact-storage.md) —
+25. [Durable artifact storage and A2A task completion](artifact-storage.md) —
     direct no-resend task polling, migration 18's immutable registry, private
     conditional object publication, authorization-first resolution, complete
     integrity verification, and production operations. A
     [Simplified Chinese edition](artifact-storage.zh-CN.md) is maintained
     alongside it.
 
-25. [Shared-state subgraphs and bounded loops](graph-composition.md) — scoped
+26. [Shared-state subgraphs and bounded loops](graph-composition.md) — scoped
     static composition, explicit loop exhaustion, pre-dispatch step limits,
     executable registration, PostgreSQL recovery, and upgrade obligations. A
     [Simplified Chinese edition](graph-composition.zh-CN.md) is maintained
     alongside it.
-26. [Register local Rust Tools](local-tools.md) — production schema generation,
+27. [Register local Rust Tools](local-tools.md) — production schema generation,
     typed adapters, exact executable registration, durable invocation and mixed
     local/MCP/A2A provider rules. A
     [Simplified Chinese edition](local-tools.zh-CN.md) is maintained alongside it.
-27. [Skill composition and lifecycle](skill-composition.md) — capability
+28. [Skill composition and lifecycle](skill-composition.md) — capability
     bundles, prompt provenance, dependency resolution, state boundaries,
     enforceable budgets and immutable activation. A
     [Simplified Chinese edition](skill-composition.zh-CN.md) is maintained

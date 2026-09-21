@@ -1,0 +1,96 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../../layouts/DocsLayout.astro";
+
+const command = "cargo check -p stateknot --example in_process_agent --locked";
+const code = `let agent = runtime
+    .agent(codec, authenticated_caller)?
+    .with_options(InProcessAgentRunOptions::new(
+        Duration::from_millis(50),
+        Duration::from_secs(30),
+    )?);
+
+let outcome = agent.run(InProcessAgentRequest::new(
+    caller_retained_key,
+    ChatRequest { message },
+    BudgetLimits::empty(),
+)).await?;`;
+---
+
+<DocsLayout
+  title="不启 HTTP，也能运行可恢复的强类型 Agent。"
+  description="用一次有界 run 调用完成提交与解码，同时保留 PostgreSQL 准入、鉴权、幂等恢复、真实 Worker 与 Maintenance。"
+  section="进程内 Agent"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="in-process-boundary-title"
+  >
+    <h2 id="in-process-boundary-title">简化所有权，不削弱持久执行语义</h2>
+    <p>
+      <code>InProcessAgentRuntime</code> 省略的是网络 Listener，而不是可恢复 Runtime。它拥有真实
+      Tenant Worker 与全部 Maintenance Job，强制执行实际 Readiness Check，并与 <code
+        >AgentHost</code
+      > 使用相同的冻结 Registry、 Authorizer、PostgreSQL Row、Fence 与 Lifecycle Evidence。
+    </p>
+  </aside>
+
+  <section aria-labelledby="in-process-run-title">
+    <h2 id="in-process-run-title">一次调用完成提交、等待与强类型解码</h2>
+    <p>
+      Submission Key 由调用方保存。Key 和内容完全相同的重试会恢复原 Run；同 Key
+      不同内容会失败关闭。只有终态 Provenance、完整记账和固定 Output Schema
+      全部通过后，才会返回强类型结果。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head"><span>Rust · 可恢复强类型 Run</span></div>
+      <pre tabindex="0"><code>{code}</code></pre>
+    </div>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · 编译完整示例</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="in-process-command"
+        >
+          <span data-copy-label aria-live="polite">复制</span>
+        </button>
+      </div>
+      <pre id="in-process-command" tabindex="0"><code>{command}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="in-process-outcome-title">
+    <h2 id="in-process-outcome-title">保留所有可恢复的非终态信息</h2>
+    <p>
+      成功结果包含强类型 Output 与终态
+      Snapshot；失败、取消与隔离状态也保留完整的 Public Durable
+      Snapshot。等待超时只返回 <code>Pending</code>，绝不会取消 Run。Future 被
+      Drop、响应丢失或进程替换后，都应使用同一 Key 与内容恢复。
+    </p>
+    <p>
+      关闭过程显式且可 Join：先排空 Worker，再关闭 Maintenance。直接 Drop 只能
+      发起清理；应用应始终等待 <code>shutdown</code> 并检查两个 Role Report。
+    </p>
+  </section>
+
+  <section aria-labelledby="in-process-migration-title">
+    <h2 id="in-process-migration-title">不改写数据，迁移到 AgentHost</h2>
+    <p>
+      生产 Ingress 复用相同 Agent Descriptor、Registry、Caller Identity、
+      Submission Key 与 PostgreSQL 状态。停止本地新提交并 Join 进程内角色后，把
+      已保存 Key 与请求发给认证 Agent HTTP v1；生产 Worker 会依据持久化证据恢复
+      所有非终态 Run。
+    </p>
+    <p>
+      阅读<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/in-process-agent.zh-CN.md"
+        >完整执行与迁移指南</a
+      >，或继续查看<a href="/zh/docs/agent-http/">Agent HTTP v1</a>。
+    </p>
+  </section>
+</DocsLayout>

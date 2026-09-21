@@ -2,7 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::*;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 pub(super) const TOKEN: &str = "http-only-fixture-token";
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Deserialize, Serialize)]
+pub(super) struct ValuePayload {
+    pub value: i64,
+}
 pub(super) fn bounded(value: Value) -> BoundedJson {
     BoundedJson::try_from_value(value).unwrap()
 }
@@ -174,6 +180,8 @@ pub(super) struct Fixture {
     pub service: AgentServiceV1,
     pub caller: AgentServiceCaller,
     pub schema: SchemaReference,
+    #[allow(dead_code)] // Used by the in-process Agent qualification target.
+    pub typed: TypedAgent<ValuePayload, ValuePayload>,
     agent: CapabilityIdentity,
     pub auth: Arc<Auth>,
     pub denied: Arc<AtomicBool>,
@@ -225,19 +233,68 @@ impl Fixture {
             .await
             .unwrap();
         let store = PostgresStore::connect(&url, options).await.unwrap();
-        let document = json!({"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://stknot.com/schemas/tests/agent-http-value/1.0.0","type":"object","properties":{"value":{"type":"integer"}},"required":["value"],"additionalProperties":false});
-        let schema = SchemaReference::new(
-            document["$id"].as_str().unwrap().parse().unwrap(),
+        let profile_document = json!({
+            "$schema":"https://json-schema.org/draft/2020-12/schema",
+            "$id":"https://stknot.com/schemas/tests/agent-http-provider-profile/1.0.0",
+            "type":"object"
+        });
+        let profile = SchemaReference::new(
+            profile_document["$id"].as_str().unwrap().parse().unwrap(),
             Version::new(1, 0, 0),
-            Digest::sha256(serde_json_canonicalizer::to_vec(&document).unwrap()),
+            Digest::sha256(serde_json_canonicalizer::to_vec(&profile_document).unwrap()),
         );
+        let mut raw: Value = serde_json::from_str(include_str!(
+            "../../../stateknot-core/tests/fixtures/core-agent-v1.json"
+        ))
+        .unwrap();
+        raw["descriptors"]["valid"][0]["metadata"]["identity"] =
+            serde_json::to_value(capability("http-agent")).unwrap();
+        let source: AgentDescriptor =
+            serde_json::from_value(raw["descriptors"]["valid"][0].clone()).unwrap();
+        let text = ModelModalities::try_new([ModelModality::Text]).unwrap();
+        let capabilities = ModelCapabilities::new(
+            text.clone(),
+            text,
+            true,
+            ModelToolCapabilities::unsupported(),
+            ModelStructuredOutputCapabilities::json_schema(profile.clone()),
+            false,
+            ModelTokenLimits::unknown(),
+        )
+        .unwrap();
+        let model = ModelDescriptor::new(source.model().metadata().clone(), capabilities).unwrap();
+        let execution = AgentExecutionConfig::new(
+            AgentStructuredOutputStrategy::ModelNative,
+            ExecutionCount::new(4),
+            ExecutionCount::new(1),
+            ExecutionCount::ZERO,
+            AgentToolConcurrency::sequential(),
+        )
+        .unwrap();
+        let definition = AgentBuilder::<ValuePayload, ValuePayload>::new(
+            source.metadata().clone(),
+            "https://stknot.com/schemas/tests/agent-http-input/1.0.0"
+                .parse()
+                .unwrap(),
+            "https://stknot.com/schemas/tests/agent-http-output/1.0.0"
+                .parse()
+                .unwrap(),
+            model,
+            source.instructions().clone(),
+            execution,
+        )
+        .build()
+        .unwrap();
+        let descriptor = definition.descriptor().clone();
+        let schema = descriptor.input_schema().clone();
+        let output_schema = descriptor.output_schema().clone();
         let id = NodeId::new("finish").unwrap();
         let graph = CompiledGraph::compile(
             capability(graph_name),
             schema.clone(),
             schema.clone(),
-            schema.clone(),
-            schema.clone(),
+            output_schema.clone(),
+            output_schema.clone(),
             GraphReducerReference::new(
                 capability("http-reducer"),
                 Digest::sha256(b"http-reducer-v1"),
@@ -252,14 +309,17 @@ impl Fixture {
             .await
             .unwrap();
         let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
-        schemas.register(schema.clone(), document).unwrap();
+        schemas.register(profile, profile_document).unwrap();
+        let mut schemas = definition.register_schemas(schemas).unwrap();
         register_standard_graph_driver_event_schema(&mut schemas).unwrap();
         register_standard_graph_lifecycle_event_schema(&mut schemas).unwrap();
         register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
         register_standard_agent_admission_event_schema(&mut schemas).unwrap();
         register_standard_agent_service_control_event_schema(&mut schemas).unwrap();
         agent_policy::register_agent_policy_evidence_schema(&mut schemas).unwrap();
-        let mut registry = ExecutableGraphRegistryBuilder::new(schemas.build().unwrap());
+        let schemas = Arc::new(schemas.build().unwrap());
+        let typed = definition.bind(schemas.clone()).unwrap();
+        let mut registry = ExecutableGraphRegistryBuilder::new(schemas.as_ref().clone());
         registry.register_graph(graph.clone()).unwrap();
         registry
             .register_reducer(Arc::new(Reducer(graph.reducer().clone())))
@@ -271,22 +331,12 @@ impl Fixture {
             .register_node(Arc::new(Node {
                 graph: graph.reference(),
                 id,
-                schema: schema.clone(),
+                schema: output_schema.clone(),
                 calls: node_calls.clone(),
                 block: node_block.clone(),
                 release: node_release.clone(),
             }))
             .unwrap();
-        let raw: Value = serde_json::from_str(include_str!(
-            "../../../stateknot-core/tests/fixtures/core-agent-v1.json"
-        ))
-        .unwrap();
-        let mut descriptor = raw["descriptors"]["valid"][0].clone();
-        descriptor["input_schema"] = serde_json::to_value(&schema).unwrap();
-        descriptor["output_schema"] = serde_json::to_value(&schema).unwrap();
-        descriptor["metadata"]["identity"] =
-            serde_json::to_value(capability("http-agent")).unwrap();
-        let descriptor: AgentDescriptor = serde_json::from_value(descriptor).unwrap();
         let agent = descriptor.metadata().identity().clone();
         let caller = AgentServiceCaller::new(tenant, principal.clone());
         let evidence = JournalPayload::new(
@@ -366,6 +416,7 @@ impl Fixture {
             service,
             caller,
             schema,
+            typed,
             agent,
             auth,
             denied,

@@ -26,6 +26,12 @@ const capabilities = [
   {
     state: "已实现",
     className: "status-implemented",
+    title: "无 HTTP 的强类型 Agent Runner",
+    body: "通过一次有界强类型 Run 调用使用真实可恢复 Service、Tenant Worker 与 Maintenance。调用方持有 Submission Key，强制 PostgreSQL 准入、鉴权、超时不取消、同 Key 恢复、终态 Provenance/Accounting 校验、兄弟角色 Fail-stop 监督和 Join 关闭；生产网络服务继续迁移到 AgentHost。",
+  },
+  {
+    state: "已实现",
+    className: "status-implemented",
     title: "独立 Agent 维护任务生命周期",
     body: "按明确授权的租户轮询截止时间取消、子 Run 取消传播与结算、Join 发布及失败收敛。保留失败页游标，检查真实依赖，限制时限并回收停机任务；PostgreSQL 16/17 验证持久化效果及 SIGKILL 恢复。不自动清理历史数据，完整多角色容量验证仍待进行。",
   },

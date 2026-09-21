@@ -51,6 +51,14 @@ const englishDocumentationSections: readonly DocumentationSection[] = [
           "typed agent builder schema openai responses anthropic messages adapter tutorial",
       },
       {
+        title: "In-process Agent",
+        description:
+          "Run a typed Agent without HTTP while preserving PostgreSQL durability, authorization, recovery, and owned roles.",
+        href: "/docs/in-process-agent/",
+        search:
+          "in process agent typed run simple api postgres durable idempotency timeout resume worker maintenance migration",
+      },
+      {
         title: "Durable admission",
         description:
           "Atomically commit authenticated intent, database time, the first event, and the initial checkpoint.",
@@ -320,6 +328,14 @@ const chineseDocumentationSections: readonly DocumentationSection[] = [
         href: "/docs/typed-agent/",
         search:
           "强类型 agent builder schema openai responses anthropic messages adapter 教程",
+      },
+      {
+        title: "进程内 Agent",
+        description:
+          "无需 HTTP 运行强类型 Agent，同时保留 PostgreSQL 持久化、鉴权、恢复与自持有角色。",
+        href: "/docs/in-process-agent/",
+        search:
+          "进程内 agent 强类型 run 简化 api postgres 持久化 幂等 超时 恢复 worker maintenance 迁移",
       },
       {
         title: "持久化准入",

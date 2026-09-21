@@ -300,6 +300,12 @@ const localizedRoutePairs = [
     zhHeading: "用持久执行原语组合 Skill。",
   },
   {
+    en: "/docs/in-process-agent/",
+    zh: "/zh/docs/in-process-agent/",
+    enHeading: "Run a typed Agent without HTTP.",
+    zhHeading: "不启 HTTP，也能运行可恢复的强类型 Agent。",
+  },
+  {
     en: "/docs/runtime/",
     zh: "/zh/docs/runtime/",
     enHeading: "Drive a Graph from durable evidence.",
@@ -1387,6 +1393,32 @@ test("local Tool and Skill composition guides preserve durable boundaries", asyn
     page.getByRole("heading", { name: "选择最小且可执行的持久边界" }),
   ).toBeVisible();
   await expect(page.getByText("持久子 Run", { exact: true })).toBeVisible();
+});
+
+test("in-process Agent guide preserves recovery and migration boundaries", async ({
+  page,
+}) => {
+  await page.goto("/docs/in-process-agent/");
+  await expect(
+    page.getByRole("heading", { name: "Submit, wait, and decode in one call" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("InProcessAgentRuntime", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("caller_retained_key", { exact: false }),
+  ).toBeVisible();
+
+  await page.goto("/zh/docs/in-process-agent/");
+  await expect(
+    page.getByRole("heading", {
+      name: "一次调用完成提交、等待与强类型解码",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Pending", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("article").getByRole("link", { name: "Agent HTTP v1" }),
+  ).toBeVisible();
 });
 
 test("every localized internal link resolves", async ({ page, request }) => {

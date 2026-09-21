@@ -26,6 +26,12 @@ const capabilities = [
   {
     state: "Implemented",
     className: "status-implemented",
+    title: "HTTP-free typed Agent runner",
+    body: "One bounded typed run call over the real durable service, tenant Worker and maintenance roles. Caller-retained submission keys, PostgreSQL admission, authorization, timeout-without-cancellation, same-key recovery, terminal provenance/accounting validation, fail-stop sibling supervision and joined shutdown remain mandatory. AgentHost is the production network-service migration path.",
+  },
+  {
+    state: "Implemented",
+    className: "status-implemented",
     title: "Independent Agent maintenance lifecycle",
     body: "Explicit tenant rotation over deadline cancellation, child cancellation/settlement, Join publication and failure closure. Retained failed-page cursors, actual readiness, finite deadlines and joined shutdown; PostgreSQL 16/17 durable effects and SIGKILL recovery. No automatic retention or full multi-role capacity qualification.",
   },
