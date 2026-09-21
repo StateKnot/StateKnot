@@ -172,12 +172,12 @@ The compiler emits canonical descriptor bytes and their SHA-256 digest. Runtime
 registries load executable node/reducer implementations only after matching the
 exact owner, name, version, kind, schemas, and definition digest.
 
-The unpublished core currently implements the bounded root-graph subset of this
+The public-preview core currently implements the bounded root-graph subset of this
 contract: owner-qualified schema/reducer pins, canonical node and route ordering,
 exact definition hashing, missing/duplicate/unreachable-node rejection,
 wait-or-terminal reachability, graph-specific parallelism and superstep limits,
 and hard node/route/two-MiB descriptor ceilings. Frozen wire fixtures and
-completion-order property tests cover that subset. The unpublished runtime now
+completion-order property tests cover that subset. The public-preview runtime now
 freezes the exact schema/reducer/node implementation closure at startup. Schema
 compatibility across ports, enforceable cycle analysis, nested subgraphs, and
 reserved identities remain acceptance work; the partial compiler and registry
@@ -447,7 +447,7 @@ Committed external results are read from their ledgers. An external write with
 an unknown outcome remains blocked for reconciliation rather than becoming an
 ordinary retry.
 
-The PostgreSQL slice and unpublished runtime now implement step 1's exact
+The PostgreSQL slice and public-preview runtime now implement step 1's exact
 tenant-scoped pinned graph reload, steps 3/4 for the trusted checkpoint/journal
 boundary and independent bounded noninitial replay, 6, 8, and the root-ready-set
 portion of 9. Startup freezes an exact schema/reducer/node executable closure.

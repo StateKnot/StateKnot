@@ -5,7 +5,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # 可恢复 Agent Run 与 Result
 
-状态：已实现的 pre-alpha 集成契约。Crate 尚未发布，API 也还没有兼容性承诺。
+状态：已实现的公共预览集成契约。精确版本 `0.1.0-alpha.1` Crate 已公开该 API；
+兼容性以[版本策略](versioning-and-releases.zh-CN.md)中的预发布规则为准。
 
 本文定义接纳、解析并读取一个可恢复 Agent Run 的公开 Rust 边界，覆盖
 `DurableAgentRuns`、Tenant-scoped Ingress Idempotency、PostgreSQL Migration

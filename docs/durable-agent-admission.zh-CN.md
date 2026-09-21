@@ -5,8 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # Agent 持久化准入
 
-状态：已实现的 pre-alpha 集成契约。Crate 尚未发布；公开持久化 Run/Result Facade
-已经实现，但还没有兼容性承诺。
+状态：已实现的公共预览集成契约。精确版本 `0.1.0-alpha.1` Crate 已公开持久化
+Run/Result Facade；兼容性以[版本策略](versioning-and-releases.zh-CN.md)中的
+预发布规则为准。
 
 本文定义把一个已经认证且通过 Schema 校验的 Agent Request 转换为
 Scheduler-visible 可恢复工作的可信边界，覆盖 Core Admission Snapshot、

@@ -15,7 +15,11 @@ documentation = "https://docs.rs/stateknot-runtime"
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+publish = ["crates-io"]
+
+[package.metadata.docs.rs]
+targets = []
+rustdoc-args = ["-Dwarnings"]
 
 [dependencies]
 futures-core.workspace = true
@@ -25,8 +29,8 @@ schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_json_canonicalizer.workspace = true
-stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
-stateknot-store-postgres = { version = "=0.0.0", path = "../stateknot-store-postgres" }
+stateknot-core = { version = "=0.1.0-alpha.1", path = "../stateknot-core" }
+stateknot-store-postgres = { version = "=0.1.0-alpha.1", path = "../stateknot-store-postgres" }
 thiserror.workspace = true
 tokio.workspace = true
 tokio-util = { workspace = true, features = ["rt"] }

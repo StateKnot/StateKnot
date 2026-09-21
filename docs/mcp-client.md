@@ -51,8 +51,12 @@ credentials, not an OAuth flow.
 
 ## Connect, discover, and call
 
-The crate is unpublished. Consumers must currently pin an exact repository
-revision or work inside this workspace.
+Use the exact public-preview crate version. Pre-release compatibility rules
+require an exact pin:
+
+```toml
+stateknot-integrations = "=0.1.0-alpha.1"
+```
 
 ```rust
 use std::sync::Arc;

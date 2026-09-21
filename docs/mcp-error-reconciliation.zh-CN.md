@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
 `McpToolErrorReconciler` 为精确的 Unknown 写入尝试补录权威失败证据，不再次调用 Provider。
 仅接受“确认未生效”或“确认已生效”，随后提交 Failed 记录。
-这是尚未发布的 pre-alpha 受限实现，不代表框架已通过生产发布验收。
+这是精确版本 `0.1.0-alpha.1` 公共预览中的受限实现，不代表框架已通过生产发布验收。
 原有[成功结果核对入口](mcp-reconciliation.zh-CN.md)保持独立，协议不变。
 
 ## 先判断证据是否适用

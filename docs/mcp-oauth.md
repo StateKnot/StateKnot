@@ -50,8 +50,12 @@ preservation scenario are not implemented or claimed.
 
 ## Connect with durable stores
 
-The crate is unpublished. Pin an exact StateKnot revision. The host must own the
-user-agent integration and durable stores:
+Pin the exact public-preview crate version. The host must own the user-agent
+integration and durable stores:
+
+```toml
+stateknot-integrations = "=0.1.0-alpha.1"
+```
 
 ```rust
 use std::sync::Arc;

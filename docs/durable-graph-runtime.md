@@ -5,9 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable Graph runtime
 
-Status: implementation-backed pre-release contract. The APIs are unpublished
-and may still change. This document describes the boundary that is implemented
-and qualified today; it is not a production-release claim.
+Status: implementation-backed public-preview contract. The APIs are available
+in the exact `0.1.0-alpha.1` release and may still change. This document
+describes the boundary that is implemented and qualified today; it is not a
+production-release claim.
 
 [简体中文](durable-graph-runtime.zh-CN.md)
 

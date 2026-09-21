@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Agent 宿主容量与恢复验证
 
-`stateknot-testkit` 是尚未发布的 StateKnot 宿主验证组件。它不依赖具体异步
+`stateknot-testkit` 是公共 Alpha 的 StateKnot 宿主验证组件。它不依赖具体异步
 Runtime，负责测量阶段、输入上界、封闭目标计算，并输出带 SHA-256 完整性摘要的
 确定性 JSON。它不负责创建基础设施、执行故障注入、签署来源证明，也不会把 CI
 冒烟测试包装成生产 SLO。

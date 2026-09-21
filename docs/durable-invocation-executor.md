@@ -6,9 +6,9 @@ SPDX-License-Identifier: Apache-2.0
 # Durable model and tool invocation execution
 
 `stateknot-runtime` now contains the provider-neutral execution boundary between
-durable model/tool ledgers and external adapters. It is pre-alpha and
-unpublished. This document is the integration and recovery contract already
-enforced by code. OpenAI Responses, Anthropic Messages, one strict MCP
+durable model/tool ledgers and external adapters. It is available in the exact
+`0.1.0-alpha.1` public preview. This document is the integration and recovery
+contract already enforced by code. OpenAI Responses, Anthropic Messages, one strict MCP
 2026-07-28 client-side Remote Tool, and one strict A2A 1.0 Remote Agent profile
 now bind to this contract; that does not imply stable APIs, broader protocol
 conformance, or live-provider/partner qualification.

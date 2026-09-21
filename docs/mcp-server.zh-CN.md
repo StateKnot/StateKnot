@@ -125,7 +125,8 @@ Invalid、Expired、Tampered 或 Cross-operation State 会收敛到同一个 Pub
 
 ## 构建轮廓
 
-Crate 尚未发布，因此完整可执行 Example 目前保留在 Crate Test 中。生产构建顺序为：
+完整可执行 Example 目前保留在 Crate Test 中。精确版本 `0.1.0-alpha.1` 公共预览
+暴露的 Production-shaped 构建顺序为：
 
 ```rust,ignore
 let options = McpServerApplicationOptions::new(

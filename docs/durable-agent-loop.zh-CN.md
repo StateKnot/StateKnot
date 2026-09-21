@@ -5,8 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # 可恢复 Agent Loop 与租户调度器
 
-状态：已有实现与验证支撑的预发布契约。API 尚未发布且仍可能调整。本文描述仓库中已经存在的
-Production-shaped 保证，不代表 StateKnot 已经达到生产发行标准。
+状态：已有实现与验证支撑的公共预览契约。API 已随精确版本 `0.1.0-alpha.1` 发布，
+仍可能调整。本文描述仓库中已经存在的 Production-shaped 保证，不代表 StateKnot
+已经达到生产发行标准。
 
 [English](durable-agent-loop.md)
 

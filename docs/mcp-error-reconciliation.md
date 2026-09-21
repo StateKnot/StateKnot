@@ -10,7 +10,8 @@ SPDX-License-Identifier: Apache-2.0
 `McpToolErrorReconciler` records authoritative failure evidence for an exact
 Unknown write attempt without calling its provider again. It accepts only
 confirmed `not_applied` or `applied` effects and commits a Failed revision.
-This is a restricted, unpublished pre-alpha profile, not production acceptance.
+This is a restricted profile in the exact `0.1.0-alpha.1` public preview, not
+production acceptance.
 The [successful-result Tool](mcp-reconciliation.md) remains separate and unchanged.
 
 ## Decide whether the evidence fits

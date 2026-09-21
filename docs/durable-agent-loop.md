@@ -5,9 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable Agent Loop and tenant scheduler
 
-Status: implementation-backed pre-release contract. The API is unpublished and
-may still change. This document describes the production-shaped guarantees that
-exist in the repository; it is not a production-release claim.
+Status: implementation-backed public-preview contract. The API is available in
+the exact `0.1.0-alpha.1` release and may still change. This document describes
+the production-shaped guarantees that exist in the repository; it is not a
+production-release claim.
 
 [简体中文](durable-agent-loop.zh-CN.md)
 

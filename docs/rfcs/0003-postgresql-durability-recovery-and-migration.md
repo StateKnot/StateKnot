@@ -807,7 +807,7 @@ explicit unknown outcome otherwise.
 
 ### Current implementation evidence
 
-The unpublished `stateknot-store-postgres` crate implements the first
+The public-preview `stateknot-store-postgres` crate implements the first
 run/journal/checkpoint/invocation/node-attempt/outbox/durable-wait/quarantine/lease
 subset of this RFC rather than a separate transitional backend. Ten exact migrations
 create tenant-scoped `runs`, `run_events`, immutable `run_checkpoints`,
@@ -940,7 +940,7 @@ PostgreSQL 16/17. Migration 13 proves immutable tenant-scoped compiled-graph
 registration, identical-byte idempotency, version conflict, exact v12 upgrade,
 canonical-byte/projection corruption rejection, tenant isolation, checkpoint-pin
 revalidation with fenced quarantine, and a 24-way conflicting registration race
-on both database versions. The unpublished runtime now adds an offline exact
+on both database versions. The public-preview runtime now adds an offline exact
 schema/reducer/node executable closure, bounded noninitial replay, and a fenced
 root Graph Driver with durable-before-dispatch starts, pre-launch lease refresh,
 monotonic expiry enforcement, lease renewal, Continue barrier commits, and

@@ -45,8 +45,11 @@ Preservation 场景尚未实现，也不做支持声明。
 
 ## 使用持久化 Store 连接
 
-Crate 尚未发布，请固定精确 StateKnot Revision。Host 必须持有 User-agent Integration
-与 Durable Store：
+请固定精确公共预览版本。Host 必须持有 User-agent Integration 与 Durable Store：
+
+```toml
+stateknot-integrations = "=0.1.0-alpha.1"
+```
 
 ```rust
 use std::sync::Arc;

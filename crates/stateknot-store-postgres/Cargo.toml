@@ -15,7 +15,11 @@ documentation = "https://docs.rs/stateknot-store-postgres"
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish = false
+publish = ["crates-io"]
+
+[package.metadata.docs.rs]
+targets = []
+rustdoc-args = ["-Dwarnings"]
 
 [dependencies]
 chrono.workspace = true
@@ -24,7 +28,7 @@ serde_json.workspace = true
 serde_json_canonicalizer.workspace = true
 sqlx-core.workspace = true
 sqlx-postgres.workspace = true
-stateknot-core = { version = "=0.0.0", path = "../stateknot-core" }
+stateknot-core = { version = "=0.1.0-alpha.1", path = "../stateknot-core" }
 thiserror.workspace = true
 uuid.workspace = true
 

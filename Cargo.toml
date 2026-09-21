@@ -82,13 +82,13 @@ uuid = { version = "1.26.1", features = ["v7"] }
 zeroize = "1.8.2"
 
 [workspace.package]
-version = "0.0.0"
+version = "0.1.0-alpha.1"
 edition = "2024"
 rust-version = "1.88"
 authors = ["StateKnot contributors"]
 license = "Apache-2.0"
 repository = "https://github.com/StateKnot/StateKnot"
-homepage = "https://github.com/StateKnot/StateKnot"
+homepage = "https://stknot.com"
 documentation = "https://docs.rs/stateknot"
 readme = "README.md"
 keywords = ["agent", "ai", "workflow", "mcp", "a2a"]

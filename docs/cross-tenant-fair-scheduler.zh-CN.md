@@ -5,7 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # 基于持久化顺序的跨租户公平调度
 
-`DurableFairScheduler` 在现有 Tenant-isolated Scheduler Worker 上增加 Replica-safe 加权 Tenant Selection。它仍是未发布的 pre-alpha。实现提供精确的“预约次数”饥饿上界；它不承诺墙钟延迟，也不保证空队列或竞争队列一定成功取得工作。
+`DurableFairScheduler` 在现有 Tenant-isolated Scheduler Worker 上增加 Replica-safe
+加权 Tenant Selection，已随精确版本 `0.1.0-alpha.1` 公共预览发布。实现提供精确的
+“预约次数”饥饿上界；它不承诺墙钟延迟，也不保证空队列或竞争队列一定成功取得工作。
 
 英文版见 [Cross-tenant durable fair scheduling](cross-tenant-fair-scheduler.md)。
 

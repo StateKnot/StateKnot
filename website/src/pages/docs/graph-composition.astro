@@ -30,8 +30,9 @@ let composition = GraphComposition::compile(parent, [call])?;`;
       exhaustion, and static nesting compile into ordinary durable Graph nodes.
       Each child node commits its own barrier; this is not an atomic child call.
       Private child state, independent child runs, dynamic recursion, and
-      independent child cancellation are outside this profile. The crates remain
-      unpublished pre-alpha; complete production qualification remains ahead.
+      independent child cancellation are outside this profile. The exact
+      <code>0.1.0-alpha.1</code> public preview remains pre-alpha; complete production
+      qualification remains ahead.
     </p>
   </aside>
 
