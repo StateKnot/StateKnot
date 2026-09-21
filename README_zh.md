@@ -128,6 +128,10 @@ v1 范围基线包括 PostgreSQL 持久化执行、OpenAI 兼容模型与 Anthro
 - [HTTP Server](docs/agent-http-server.md) 管理 loopback 连接、真实依赖检查和有界
   优雅关闭；[Scheduling Worker](docs/agent-worker.zh-CN.md) 以固定并发管理租户与
   公平调度器，提供真实就绪状态、有限期限和包括嵌套 Graph 节点的完整关闭。
+- [进程内强类型 Agent Runtime](docs/in-process-agent.zh-CN.md) 在不开放 HTTP 的
+  前提下拥有真实 Worker 与 Maintenance；有界 `run` API 保留鉴权、PostgreSQL
+  准入、调用方持有的幂等 Key、终态证据校验与同 Key 恢复，生产网络服务继续迁移到
+  `AgentHost`。
 - [在线身份配置](docs/agent-identity.md) 支持固定 HTTPS OAuth introspection、
   精确 claim/scope 校验、轮换客户端密钥、带有效期且默认拒绝的租户绑定和负向
   canary 就绪检查。JWT/JWKS 不在当前实现范围。
@@ -229,6 +233,7 @@ v1 范围基线包括 PostgreSQL 持久化执行、OpenAI 兼容模型与 Anthro
 - [PostgreSQL Provider 运维指南](docs/postgresql-provider.md)
 - [公共核心契约示例](docs/core-contract-examples.zh-CN.md)
 - [类型化 Agent 与一等适配器](docs/typed-agent.zh-CN.md)
+- [进程内强类型 Agent 执行](docs/in-process-agent.zh-CN.md)
 - [持久化 Agent 准入](docs/durable-agent-admission.zh-CN.md)
 - [持久化 Agent 运行与结果](docs/durable-agent-runs.zh-CN.md)
 - [Provider 原生 Agent Graph](docs/provider-native-agent.zh-CN.md)

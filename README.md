@@ -253,6 +253,11 @@ manages concrete tenant/fair schedulers with fixed concurrency, actual readiness
 finite deadlines and joined shutdown including nested Graph nodes. PostgreSQL
 16/17 tests cover fresh-process terminal replay and fair-slot continuity.
 Maintenance jobs and complete multi-role deployment qualification remain separate.
+The [in-process typed Agent runtime](docs/in-process-agent.md) owns that real
+Worker plus maintenance without opening HTTP. Its bounded `run` API preserves
+authorization, PostgreSQL admission, caller-retained idempotency keys, terminal
+evidence validation and same-key recovery; `AgentHost` remains the production
+network-service migration path.
 The concrete [online identity profile](docs/agent-identity.md) adds fixed-HTTPS
 OAuth introspection, exact claim/scope validation, rotating client secrets,
 expiring default-deny tenant bindings and negative-canary readiness. Real
@@ -385,6 +390,7 @@ the [PostgreSQL provider operations guide](docs/postgresql-provider.md), and the
 [public core contract examples](docs/core-contract-examples.md)
 ([中文](docs/core-contract-examples.zh-CN.md)),
 [typed Agent and first-party adapters](docs/typed-agent.md),
+[in-process typed Agent execution](docs/in-process-agent.md),
 [durable Agent admission](docs/durable-agent-admission.md),
 [durable Agent runs and results](docs/durable-agent-runs.md),
 [provider-native Agent graph](docs/provider-native-agent.md),

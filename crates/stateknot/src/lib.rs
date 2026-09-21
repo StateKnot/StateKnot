@@ -22,6 +22,8 @@ pub mod agent_http;
 /// Independently owned, bounded durable scheduling Worker lifecycle.
 pub mod agent_worker;
 mod http_transport;
+/// Strongly typed in-process execution over the durable service and owned roles.
+pub mod in_process_agent;
 /// Independently owned deadline, child, Join and failure-close maintenance.
 pub use stateknot_runtime::agent_maintenance;
 mod mcp_compute;

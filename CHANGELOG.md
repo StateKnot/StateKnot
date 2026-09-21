@@ -40,6 +40,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A typed, HTTP-free `InProcessAgentRuntime` convenience path that owns and
+  fail-stop supervises the real durable Worker and maintenance roles. It keeps
+  PostgreSQL admission, authorization, caller-retained idempotency keys,
+  bounded polling, terminal provenance/accounting validation, explicit joined
+  shutdown, and same-key recovery after timeout or process replacement. A
+  compiled example and bilingual production migration guide are included.
+
 - Production `ToolSchemaRegistry` support on the offline JSON Schema registry,
   typed Rust schema generation/pinning, and a compiled local Tool registration
   example. Bilingual guides now cover local/MCP/A2A provider coexistence and a

@@ -1,0 +1,108 @@
+---
+// Copyright 2026 StateKnot contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import DocsLayout from "../../layouts/DocsLayout.astro";
+
+const command = "cargo check -p stateknot --example in_process_agent --locked";
+const code = `let agent = runtime
+    .agent(codec, authenticated_caller)?
+    .with_options(InProcessAgentRunOptions::new(
+        Duration::from_millis(50),
+        Duration::from_secs(30),
+    )?);
+
+let outcome = agent.run(InProcessAgentRequest::new(
+    caller_retained_key,
+    ChatRequest { message },
+    BudgetLimits::empty(),
+)).await?;`;
+---
+
+<DocsLayout
+  title="Run a typed Agent without HTTP."
+  description="Use one bounded run call while retaining PostgreSQL admission, authorization, idempotent recovery, the durable Worker, and maintenance."
+  section="In-process Agent"
+>
+  <aside
+    class="docs-callout docs-callout--boundary"
+    aria-labelledby="in-process-boundary-title"
+  >
+    <h2 id="in-process-boundary-title">
+      Simpler ownership, unchanged durability
+    </h2>
+    <p>
+      <code>InProcessAgentRuntime</code> removes the network listener—not the durable
+      runtime. It owns the real tenant Worker and all maintenance jobs, requires actual
+      readiness checks, and uses the same frozen registries, authorizer, PostgreSQL
+      rows, fences, and lifecycle evidence as
+      <code>AgentHost</code>.
+    </p>
+  </aside>
+
+  <section aria-labelledby="in-process-run-title">
+    <h2 id="in-process-run-title">Submit, wait, and decode in one call</h2>
+    <p>
+      The caller keeps the submission key. An exact retry recovers the same Run;
+      different content under that key fails closed. Typed output is returned
+      only after terminal provenance, complete accounting, and the pinned output
+      schema validate.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Rust · recoverable typed run</span>
+      </div>
+      <pre tabindex="0"><code>{code}</code></pre>
+    </div>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head">
+        <span>Shell · compile the complete example</span>
+        <button
+          class="copy-button affordance"
+          type="button"
+          data-copy-button
+          data-copy-target="in-process-command"
+        >
+          <span data-copy-label aria-live="polite">Copy</span>
+        </button>
+      </div>
+      <pre id="in-process-command" tabindex="0"><code>{command}</code></pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="in-process-outcome-title">
+    <h2 id="in-process-outcome-title">Keep nonterminal state recoverable</h2>
+    <p>
+      A successful run returns typed output plus its terminal snapshot. Failure,
+      cancellation, and quarantine retain the complete public durable snapshot.
+      A wait timeout returns <code>Pending</code> and never cancels the Run. Retry
+      with the same key and content after a dropped future, lost acknowledgement,
+      or replacement process.
+    </p>
+    <p>
+      Shutdown is explicit and joined: Worker drains before maintenance.
+      Dropping the owner only initiates cleanup, so applications should always
+      await
+      <code>shutdown</code> and inspect both role reports.
+    </p>
+  </section>
+
+  <section aria-labelledby="in-process-migration-title">
+    <h2 id="in-process-migration-title">
+      Move to AgentHost without rewriting data
+    </h2>
+    <p>
+      Production ingress uses the same Agent descriptors, registries, caller
+      identities, submission keys, and PostgreSQL state. Stop local submission,
+      join the in-process roles, then send the retained key and request through
+      authenticated Agent HTTP v1. The production Worker resumes every
+      nonterminal Run from durable evidence.
+    </p>
+    <p>
+      Read the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/in-process-agent.md"
+        >complete execution and migration guide</a
+      > or continue to <a href="/docs/agent-http/">Agent HTTP v1</a>.
+    </p>
+  </section>
+</DocsLayout>
