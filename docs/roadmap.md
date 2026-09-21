@@ -439,8 +439,11 @@ from the repository.
   real cleanup loops, once-only settlement, higher-epoch fencing and replay.
   The six-cell [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
   now covers unforwarded COMMIT rollback and withheld-response recovery for Join
-  registration/publication and deadline cancellation. In-flight admission,
-  delivery, settlement, finalization and consumption transactions, arbitrary
+  registration/publication and deadline cancellation. The two-cell
+  [child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
+  additionally proves atomic rollback and original-identity recovery for child
+  creation, ownership, initial checkpoint, parent audit and budget reservation.
+  In-flight delivery, settlement, finalization and consumption transactions, arbitrary
   uncertain direct-effect recovery and full-profile/capacity qualification
   remain gated; the RFC remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):

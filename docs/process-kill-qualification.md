@@ -86,8 +86,10 @@ they do not turn this profile into ambiguous-commit qualification. The separate
 [source COMMIT-loss/fencing profile](commit-loss-qualification.md) now verifies
 a held COMMIT, withheld commit response and retained-old-worker expiry/takeover.
 The [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
-also covers registration, publication and deadline cancellation. Remaining gates
-include other pre-/in-commit boundaries, real provider effects and pricing recovery,
+also covers registration, publication and deadline cancellation. The
+[child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
+covers atomic child creation, ownership, initial checkpoint, parent audit and
+reservation. Remaining gates include other pre-/in-commit boundaries, real provider effects and pricing recovery,
 SQL role isolation,
 failover/PITR/restore, retained-history capacity, fairness and latency. Do not
 remove the RFC Draft status or advertise complete-profile support from this test.

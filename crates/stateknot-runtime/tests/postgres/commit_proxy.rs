@@ -27,6 +27,7 @@ const MAX_FRAME: u32 = 4 * 1024 * 1024;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum TransactionTarget {
     FailureClose,
+    ChildAdmission,
     ChildJoinRegistration,
     ChildJoinPublication,
     AgentDeadlineCancellation,
@@ -36,6 +37,7 @@ impl TransactionTarget {
     const fn parse_prefix(self) -> &'static [u8] {
         match self {
             Self::FailureClose => b"INSERT INTO stateknot.run_failure_closes ",
+            Self::ChildAdmission => b"INSERT INTO stateknot.child_run_ownership ",
             Self::ChildJoinRegistration => b"INSERT INTO stateknot.child_run_joins ",
             Self::ChildJoinPublication => b"INSERT INTO stateknot.child_run_join_bindings ",
             Self::AgentDeadlineCancellation => b"SELECT agent_deadline_at FROM stateknot.runs ",
@@ -265,6 +267,7 @@ async fn commit_proxy_rejects_truncated_oversized_and_malformed_frames() {
     assert_eq!(parse_query(b"name\0SELECT 1\0\0\0").unwrap(), b"SELECT 1");
     for target in [
         TransactionTarget::FailureClose,
+        TransactionTarget::ChildAdmission,
         TransactionTarget::ChildJoinRegistration,
         TransactionTarget::ChildJoinPublication,
         TransactionTarget::AgentDeadlineCancellation,

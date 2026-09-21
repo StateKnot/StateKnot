@@ -549,6 +549,10 @@ proves nine committed expiry-through-terminal-replay boundaries, including
 inherited parent/child deadlines and first-reason preservation. The
 [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
 additionally qualifies six client-fault cells across registration, publication
-and deadline cancellation. In-flight COMMIT cuts for admission, cancellation
-delivery, settlement, finalization and result consumption remain open. The
+and deadline cancellation. The
+[child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
+adds both unforwarded-COMMIT rollback and committed-response-loss recovery for
+atomic child creation, ownership, initial checkpoint, parent audit and budget
+reservation. In-flight COMMIT cuts for cancellation delivery, settlement,
+finalization and result consumption remain open. The
 website must not advertise the full capability until those gates pass.
