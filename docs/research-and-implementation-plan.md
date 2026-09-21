@@ -1148,8 +1148,9 @@ Property/Fixture，以及离线 Exact Schema/Reducer/Node Executable Registry �
 Typed Wait/Terminal/Failure Lifecycle Coordinator、有界 Agent Loop 与首个 Tenant-scoped
 Stable-snapshot Scheduler Worker 也已实现。Replica-safe Smooth Weighted Cross-tenant
 Fairness、精确 Reservation-count Starvation Bound 与持久化 Reservation Retention 已实现并通过
-PG16/17 验证。Port Schema Compatibility、Loop/Subgraph、Nested Namespace、Parallel
-Sibling Policy 与 Global Admission 仍未完成，阶段 2 尚未结束。
+PG16/17 验证。静态 Shared-state Subgraph、有限 Loop 展开与 `JournalIsolated` Parallel
+Sibling Policy 也已实现并通过真实 PostgreSQL 恢复验证。Port Schema Compatibility、
+Same-run Nested Namespace 与 Global Admission 仍未完成，阶段 2 尚未结束。
 
 ### 阶段 3：PostgreSQL 可恢复运行时（5–6 周）
 
@@ -1175,8 +1176,10 @@ Anthropic Messages Adapter、强类型 Agent Schema/Codec 和可编译无 I/O �
 Agent Admission Intent、Migration 15 的 Atomic Run/Event/Checkpoint Initialization 与
 Runtime Admission Facade、Migration 16 的 Ingress Idempotency-key Mapping 与持久化
 Run/Result Facade 也已完成；在预置 Graph 内组装已经实现的 Provider-native Transcript、
-Parallel Sibling Policy、协议
-Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成，不能据此提前宣称阶段完成。
+Parallel Sibling Policy、协议 Dispatch Adapter，以及阶段 3 的其余运维与故障门禁仍未完成。
+成功 Child Join 已增加八阶段真实进程丢失配置与保留旧 Fence 拒绝证据，但 Deadline
+Cancel-and-join、事务进行中切断、Failover/Restore 和容量门禁仍独立开放，不能据此提前
+宣称阶段完成。
 
 ### 阶段 4：协议正式支持（4–5 周）
 

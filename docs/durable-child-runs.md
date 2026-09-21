@@ -540,5 +540,9 @@ tests do not establish atomic child execution or budget settlement.
 Before enabling the full durable-child profile, qualify combined process-kill,
 provider recovery, role isolation and measured recovery/capacity. The settled-direct
 [failure-close path](failure-close.md), deadline cancellation, opt-in Join execution,
-publication and cancellation delivery/settlement are implemented above. The website must not
-advertise the full capability until those gates pass.
+publication and cancellation delivery/settlement are implemented above. The
+[successful Join process-loss profile](child-join-process-qualification.md)
+now proves eight committed admission-through-replay boundaries with PostgreSQL-only
+reconstruction and retained stale-worker fencing. Deadline cancel-and-join and
+pre-/in-commit Join cuts remain open. The website must not advertise the full
+capability until those gates pass.
