@@ -24,7 +24,24 @@ use tokio::{
 };
 
 const MAX_FRAME: u32 = 4 * 1024 * 1024;
-const TARGET: &[u8] = b"INSERT INTO stateknot.run_failure_closes ";
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum TransactionTarget {
+    FailureClose,
+    ChildJoinRegistration,
+    ChildJoinPublication,
+    AgentDeadlineCancellation,
+}
+
+impl TransactionTarget {
+    const fn parse_prefix(self) -> &'static [u8] {
+        match self {
+            Self::FailureClose => b"INSERT INTO stateknot.run_failure_closes ",
+            Self::ChildJoinRegistration => b"INSERT INTO stateknot.child_run_joins ",
+            Self::ChildJoinPublication => b"INSERT INTO stateknot.child_run_join_bindings ",
+            Self::AgentDeadlineCancellation => b"SELECT agent_deadline_at FROM stateknot.runs ",
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum Cut {
@@ -41,7 +58,11 @@ pub(super) struct CommitProxy {
 
 impl CommitProxy {
     #[allow(clippy::too_many_lines)]
-    pub(super) async fn start(options: &PgConnectOptions, cut: Cut) -> Self {
+    pub(super) async fn start(
+        options: &PgConnectOptions,
+        cut: Cut,
+        target: TransactionTarget,
+    ) -> Self {
         let backend = loopback_target(options);
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
         let port = listener.local_addr().unwrap().port();
@@ -78,7 +99,7 @@ impl CommitProxy {
                     let frame = read_frame(&mut frontend_read).await?;
                     if frame.tag == b'P' {
                         let query = parse_query(&frame.body)?;
-                        armed |= query.starts_with(TARGET);
+                        armed |= query.starts_with(target.parse_prefix());
                     }
                     if armed && frame.tag == b'Q' && frame.body == b"COMMIT\0" {
                         if cut == Cut::BeforeCommit {
@@ -242,6 +263,14 @@ async fn commit_proxy_rejects_truncated_oversized_and_malformed_frames() {
     assert!(parse_query(b"unterminated").is_err());
     assert!(parse_query(b"name\0query\0").is_err());
     assert_eq!(parse_query(b"name\0SELECT 1\0\0\0").unwrap(), b"SELECT 1");
+    for target in [
+        TransactionTarget::FailureClose,
+        TransactionTarget::ChildJoinRegistration,
+        TransactionTarget::ChildJoinPublication,
+        TransactionTarget::AgentDeadlineCancellation,
+    ] {
+        assert!(!target.parse_prefix().is_empty());
+    }
     let remote = PgConnectOptions::new().host("192.0.2.1");
     assert!(std::panic::catch_unwind(|| loopback_target(&remote)).is_err());
 }

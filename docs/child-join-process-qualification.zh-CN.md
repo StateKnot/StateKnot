@@ -57,8 +57,11 @@ STATEKNOT_REQUIRE_POSTGRES_TESTS=1 cargo test -p stateknot-runtime \
 
 本配置只在已知提交成功后切断进程；配套的
 [Deadline Cancel-and-join 配置](deadline-join-process-qualification.zh-CN.md)
-验证取消分支。两者都不会在 Admission、Join、Deadline、取消、Settlement、Publication
-或结果消费事务的 COMMIT 进行中终止客户端。未知 Provider 效果或计价、数据库
+验证取消分支。独立的
+[Join/Deadline COMMIT 丢失配置](join-deadline-commit-loss-qualification.zh-CN.md)
+现已在 COMMIT 未转发和已提交响应被扣留时切断 Join 注册、Join 发布和 Deadline 取消。
+Admission、取消投递、Settlement、终态收口和结果消费事务的 COMMIT 进行中故障仍未验证。
+未知 Provider 效果或计价、数据库
 Failover/PITR/Restore、不受信 Worker SQL 隔离、保留历史容量、延迟和 Soak 也仍未覆盖。
 RFC-0004 继续明确保留这些门禁；它们通过之前，不能把通用 Durable Child 能力宣传为
 生产就绪。

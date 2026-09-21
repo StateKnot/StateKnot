@@ -127,5 +127,8 @@ The companion [deadline cancel-and-join process-loss profile](deadline-join-proc
 adds nine fresh-process committed boundaries on PostgreSQL 16 and 17. It proves
 the inherited parent/child deadline race, idempotent child delivery, real Agent
 Loop cleanup, once-only settlement, higher-epoch stale-worker rejection and
-terminal replay. In-COMMIT cuts, provider effects, failover and capacity remain
-separate gates.
+terminal replay. The separate [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
+qualifies both an unforwarded COMMIT and a withheld committed response for the
+deadline cancellation transaction, including atomic first-reason, lifecycle,
+audit and child-queue recovery. Other cancellation/settlement/finalization
+transactions, provider effects, failover and capacity remain separate gates.

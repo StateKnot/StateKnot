@@ -14,7 +14,10 @@ mod driver;
 #[path = "child_join_process.rs"]
 mod process;
 
-async fn setup_join(store: &PostgresStore, name: &str) -> (Started, ChildRunJoinRequest, RunId) {
+pub(super) async fn setup_join(
+    store: &PostgresStore,
+    name: &str,
+) -> (Started, ChildRunJoinRequest, RunId) {
     let mut value = started(store, name).await;
     let spawned = spawn(store, &value).await.unwrap();
     let child = spawned
@@ -28,7 +31,10 @@ async fn setup_join(store: &PostgresStore, name: &str) -> (Started, ChildRunJoin
     let request = ChildRunJoinRequest::new([value.intent.key().clone()]).unwrap();
     (value, request, child)
 }
-async fn publish_append(store: &PostgresStore, request: &ChildRunJoinRequest) -> JournalAppend {
+pub(super) async fn publish_append(
+    store: &PostgresStore,
+    request: &ChildRunJoinRequest,
+) -> JournalAppend {
     let a = request.activation();
     let run = store.load_run(a.tenant_id(), a.run_id()).await.unwrap();
     JournalAppend::new(
@@ -43,7 +49,7 @@ async fn publish_append(store: &PostgresStore, request: &ChildRunJoinRequest) ->
     )
     .unwrap()
 }
-async fn settle(store: &PostgresStore, value: &Started, child: RunId) {
+pub(super) async fn settle(store: &PostgresStore, value: &Started, child: RunId) {
     fail(
         store,
         value.intent.key().tenant_id(),

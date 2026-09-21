@@ -94,4 +94,7 @@ cargo test -p stateknot-runtime --test postgres --locked deadline_ -- --test-thr
 配套的 [Deadline Cancel-and-join 进程丢失配置](deadline-join-process-qualification.zh-CN.md)
 在 PostgreSQL 16、17 上新增九个新进程已提交边界，验证父子继承 Deadline 竞态、子取消
 幂等投递、真实 Agent Loop 清理、只结算一次、更高 Epoch 拒绝旧 Worker 和终态重放。
-COMMIT 进行中切断、Provider 副作用、Failover 与容量仍是独立门禁。
+独立的 [Join/Deadline COMMIT 丢失配置](join-deadline-commit-loss-qualification.zh-CN.md)
+验证 Deadline 取消事务的 COMMIT 未转发和已提交响应被扣留，并原子恢复首个原因、生命周期、
+审计事件与子取消队列。其他取消/结算/终态事务、Provider 副作用、Failover 与容量仍是
+独立门禁。

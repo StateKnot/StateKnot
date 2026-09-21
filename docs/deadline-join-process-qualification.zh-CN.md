@@ -57,6 +57,9 @@ STATEKNOT_REQUIRE_POSTGRES_TESTS=1 cargo test -p stateknot-runtime \
 ## 仍未覆盖的边界
 
 本配置只在已知事务成功提交后终止进程，不会在 Deadline、取消、结算或终态事务的
-COMMIT 进行中切断。它也不验证不确定 Provider 副作用/计价、数据库 Failover、
+COMMIT 进行中切断。独立的
+[Join/Deadline COMMIT 丢失配置](join-deadline-commit-loss-qualification.zh-CN.md)
+现已覆盖 Deadline 取消事务；取消投递、结算和终态收口仍未覆盖。它也不验证不确定
+Provider 副作用/计价、数据库 Failover、
 PITR/恢复、不可信 Worker SQL 隔离、历史保留容量、延迟或 Soak。RFC-0004 继续明确
 保留这些门禁；通过之前不能把通用可恢复子 Run 宣称为生产就绪。
