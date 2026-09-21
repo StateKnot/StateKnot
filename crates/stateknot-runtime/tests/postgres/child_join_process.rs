@@ -90,13 +90,18 @@ async fn register_join(store: &PostgresStore, key: &ChildRunKey) {
         .load_run(key.tenant_id(), key.parent_run_id())
         .await
         .unwrap();
-    let append = worker_append(
-        key.tenant_id().clone(),
-        key.parent_run_id(),
-        EventId::generate(),
-        run.journal_head().unwrap().clone(),
-        attempt.start().fence().clone(),
-    );
+    let append = JournalAppend::new(
+        JournalExpectation::exact(run.journal_head().unwrap().clone()),
+        JournalEventIntent::worker(
+            key.tenant_id().clone(),
+            key.parent_run_id(),
+            EventId::generate(),
+            attempt.start().fence().clone(),
+            payload("child-join-registered"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
     store
         .register_child_join(request, &attempt.start().head(), append)
         .await
