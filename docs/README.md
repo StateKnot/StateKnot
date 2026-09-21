@@ -49,6 +49,10 @@ The [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.
 client-fault matrix for Join registration, Join publication and deadline
 cancellation, covering both an unforwarded COMMIT and a committed response that
 never reaches the worker.
+The [child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
+([中文](child-admission-commit-loss-qualification.zh-CN.md)) separately proves
+all-or-nothing rollback and original-identity recovery for atomic child creation,
+ownership, initial checkpoint, parent audit and cumulative budget reservation.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed

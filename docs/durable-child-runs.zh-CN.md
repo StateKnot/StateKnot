@@ -412,6 +412,9 @@ Run 内的嵌套命名空间。
 [Deadline Cancel-and-join 配置](deadline-join-process-qualification.zh-CN.md)验证从到期到
 父取消终态重放的九个已提交边界，包括父子继承 Deadline 与首个取消原因保留。Join/
 Deadline 的 [COMMIT 丢失配置](join-deadline-commit-loss-qualification.zh-CN.md)进一步验证
-注册、发布、Deadline 取消三类事务的六格客户端故障矩阵。子准入、取消投递、结算、终态
-收口和结果消费的 COMMIT 进行中切断仍未覆盖，因此不代表完整子 Run 服务可用；草案不会
+注册、发布、Deadline 取消三类事务的六格客户端故障矩阵。独立的
+[子 Agent 准入 COMMIT 丢失配置](child-admission-commit-loss-qualification.zh-CN.md)验证子 Run
+创建、归属、初始检查点、父审计与预算预留在未转发 COMMIT 时整体回滚，并在已提交响应
+丢失时恢复原始身份。取消投递、结算、终态收口和结果消费的 COMMIT 进行中切断仍未覆盖，
+因此不代表完整子 Run 服务可用；草案不会
 作为完整已实现能力发布到官网状态页。

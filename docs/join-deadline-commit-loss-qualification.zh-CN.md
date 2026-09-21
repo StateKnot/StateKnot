@@ -26,7 +26,7 @@
 ## 测试插桩边界
 
 测试专用代理只接受一个明文 PostgreSQL 3.0 会话，目标必须是 `localhost` 或字面量回环
-地址。事务目标来自四项封闭枚举；本配置使用 Join 注册、Join 发布和 Deadline 投影校验
+地址。事务目标来自五项封闭枚举；本配置使用 Join 注册、Join 发布和 Deadline 投影校验
 的精确 Parse 前缀。代理命中目标语句后，只切断下一条精确的简单查询 `COMMIT`。
 
 启动、认证和 Bind Frame 会被转发但绝不记录。Frame 大小有上限，部分读取不会丢失状态；
@@ -56,8 +56,9 @@ Source/Tree 身份、Lockfile 摘要、Rust 工具链、PostgreSQL 镜像、内�
 
 ## 仍未覆盖的门禁
 
-这是客户端进程故障配置，不是 PostgreSQL Server/WAL 故障测试。它没有在子准入、取消
-投递、结算、终态收口或 Join 结果消费的 COMMIT 进行中切断，也不验证不确定 Provider
+这是客户端进程故障配置，不是 PostgreSQL Server/WAL 故障测试。独立的
+[子 Agent 准入 COMMIT 丢失配置](child-admission-commit-loss-qualification.zh-CN.md)已覆盖子准入。
+本配置没有在取消投递、结算、终态收口或 Join 结果消费的 COMMIT 进行中切断，也不验证不确定 Provider
 副作用/计价、Failover、PITR/恢复、不可信 Worker SQL 隔离、同 Run 嵌套命名空间、
 历史保留容量、延迟或 Soak。因此 RFC-0004 仍为 Draft，完整可恢复子 Run 能力仍不能宣称
 生产就绪。

@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0004: Isolated durable child runs
 
-- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication, database-clock deadlines, settled-direct failure close, committed-boundary successful/deadline process-loss profiles, and Join/deadline ambiguous-COMMIT qualification implemented; full-profile qualification remains gated
+- Status: Draft — contracts, PostgreSQL ownership/accounting/cancellation/Join, opt-in Graph Driver suspend/resume, bounded publication, database-clock deadlines, settled-direct failure close, committed-boundary successful/deadline process-loss profiles, and child-admission plus Join/deadline ambiguous-COMMIT qualification implemented; full-profile qualification remains gated
 - Authors: StateKnot contributors
 - Created: 2026-09-07
 - Tracking issue: [#24](https://github.com/StateKnot/StateKnot/issues/24)
@@ -352,7 +352,11 @@ root-only data. Preserve all static-composition and root-run regression tests.
   The [Join/deadline COMMIT-loss profile](../join-deadline-commit-loss-qualification.md)
   adds six client-fault cells for Join registration/publication and deadline
   cancellation: unforwarded COMMIT rollback plus withheld-response idempotent
-  recovery. Admission, delivery, settlement, finalization and consumption
+  recovery. The
+  [child-admission COMMIT-loss profile](../child-admission-commit-loss-qualification.md)
+  separately proves rollback and original-identity recovery for child creation,
+  ownership, initial checkpoint, parent audit and cumulative reservation.
+  Delivery, settlement, finalization and consumption
   transactions, database-server faults and provider effects remain separate
   gates; this does not qualify the entire runtime matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17

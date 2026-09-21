@@ -33,7 +33,7 @@ be delivered by the production child reconciler.
 
 The test-only proxy accepts exactly one plaintext PostgreSQL protocol 3.0 session
 and only a literal loopback target or `localhost`. Its transaction target is one
-of four closed enum values; this profile uses the exact Parse prefixes for Join
+of five closed enum values; this profile uses the exact Parse prefixes for Join
 registration, Join publication and deadline projection verification. It arms on
 the target statement and cuts only the next exact simple-query `COMMIT`.
 
@@ -69,8 +69,11 @@ credentials, Agent inputs and child outputs are not emitted.
 ## Gates still open
 
 This is a client-process fault profile, not a PostgreSQL server/WAL failure test.
-It does not cut child admission, cancellation delivery, settlement, terminal
-finalization or Join result consumption while COMMIT is in flight. It does not
+The companion
+[child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
+covers child admission. This profile does not cut cancellation delivery,
+settlement, terminal finalization or Join result consumption while COMMIT is in
+flight. It does not
 qualify unknown provider effects/prices, failover, PITR/restore, untrusted-worker
 SQL isolation, same-run nested namespaces, retained-history capacity, latency or
 soak. RFC-0004 therefore remains Draft and the complete durable-child profile is

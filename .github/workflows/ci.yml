@@ -311,6 +311,30 @@ jobs:
           # both the unforwarded-COMMIT and withheld-response cut.
           test "$(grep -c '^STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE=' join-deadline-commit-loss.log)" = 6
 
+      - name: Qualify child-admission COMMIT loss
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-runtime --test postgres --locked -- \
+            --exact child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable \
+            --nocapture --test-threads=1 | tee child-admission-commit-loss.log
+          # Atomic admission requires both an unforwarded COMMIT rollback and
+          # committed-response-loss recovery from a separate process.
+          test "$(grep -c '^STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE=' child-admission-commit-loss.log)" = 2
+
+      - name: Upload child-admission COMMIT-loss evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: child-admission-commit-loss-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            child-admission-commit-loss.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload Join and deadline COMMIT-loss evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
