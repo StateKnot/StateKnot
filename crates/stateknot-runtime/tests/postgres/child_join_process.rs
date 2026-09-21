@@ -71,7 +71,7 @@ async fn physical_attempt(
         .load_node_attempt_history_page(
             activation,
             None,
-            NodeAttemptHistoryPageSize::new(8).unwrap(),
+            NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX).unwrap(),
         )
         .await
         .unwrap();
@@ -345,7 +345,7 @@ async fn snapshot(store: &PostgresStore, key: &ChildRunKey, stage: usize) -> Sna
         .load_node_attempt_history_page(
             key.parent(),
             None,
-            NodeAttemptHistoryPageSize::new(8).unwrap(),
+            NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX).unwrap(),
         )
         .await
         .unwrap();
