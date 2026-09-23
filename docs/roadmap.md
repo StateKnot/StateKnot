@@ -443,7 +443,10 @@ from the repository.
   [child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
   additionally proves atomic rollback and original-identity recovery for child
   creation, ownership, initial checkpoint, parent audit and budget reservation.
-  In-flight delivery, settlement, finalization and consumption transactions, arbitrary
+  The two-cell [child-cancellation delivery COMMIT-loss profile](child-cancellation-commit-loss-qualification.md)
+  now proves exact rollback and original-receipt recovery across cancellation,
+  real Wait abandonment, queue consumption and downstream settlement.
+  In-flight settlement, finalization and consumption transactions, arbitrary
   uncertain direct-effect recovery and full-profile/capacity qualification
   remain gated; the RFC remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):

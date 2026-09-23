@@ -28,6 +28,7 @@ const MAX_FRAME: u32 = 4 * 1024 * 1024;
 pub(super) enum TransactionTarget {
     FailureClose,
     ChildAdmission,
+    ChildCancellationDelivery,
     ChildJoinRegistration,
     ChildJoinPublication,
     AgentDeadlineCancellation,
@@ -38,6 +39,9 @@ impl TransactionTarget {
         match self {
             Self::FailureClose => b"INSERT INTO stateknot.run_failure_closes ",
             Self::ChildAdmission => b"INSERT INTO stateknot.child_run_ownership ",
+            Self::ChildCancellationDelivery => {
+                b"INSERT INTO stateknot.child_run_cancellation_receipts "
+            }
             Self::ChildJoinRegistration => b"INSERT INTO stateknot.child_run_joins ",
             Self::ChildJoinPublication => b"INSERT INTO stateknot.child_run_join_bindings ",
             Self::AgentDeadlineCancellation => b"SELECT agent_deadline_at FROM stateknot.runs ",

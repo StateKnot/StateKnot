@@ -53,6 +53,10 @@ The [child-admission COMMIT-loss profile](child-admission-commit-loss-qualificat
 ([中文](child-admission-commit-loss-qualification.zh-CN.md)) separately proves
 all-or-nothing rollback and original-identity recovery for atomic child creation,
 ownership, initial checkpoint, parent audit and cumulative budget reservation.
+The [child-cancellation delivery COMMIT-loss profile](child-cancellation-commit-loss-qualification.md)
+([中文](child-cancellation-commit-loss-qualification.zh-CN.md)) adds exact rollback
+and original-receipt recovery for cancellation, real Wait abandonment, scheduler
+re-entry and the durable delivery queue.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed

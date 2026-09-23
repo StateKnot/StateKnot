@@ -553,6 +553,9 @@ and deadline cancellation. The
 [child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
 adds both unforwarded-COMMIT rollback and committed-response-loss recovery for
 atomic child creation, ownership, initial checkpoint, parent audit and budget
-reservation. In-flight COMMIT cuts for cancellation delivery, settlement,
-finalization and result consumption remain open. The
+reservation. The
+[child-cancellation delivery COMMIT-loss profile](child-cancellation-commit-loss-qualification.md)
+adds the same two cuts for cancellation propagation, real Wait abandonment,
+immutable receipt recovery and downstream settlement. In-flight COMMIT cuts for
+settlement, finalization and result consumption remain open. The
 website must not advertise the full capability until those gates pass.
