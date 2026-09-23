@@ -441,6 +441,22 @@ const localizedRoutePairs = [
 
 const contentRoutes = localizedRoutePairs.flatMap(({ en, zh }) => [en, zh]);
 
+test("bilingual status distinguishes parent finalization from the remaining Join gate", async ({
+  page,
+}) => {
+  await page.goto("/docs/status/");
+  await expect(page.locator("main")).toContainText(
+    "four separate two-cell matrices",
+  );
+  await expect(page.locator("main")).toContainText(
+    "Join-result consumption cuts",
+  );
+
+  await page.goto("/zh/docs/status/");
+  await expect(page.locator("main")).toContainText("四个独立两格矩阵");
+  await expect(page.locator("main")).toContainText("Join 结果消费切断");
+});
+
 const expectIcpFiling = async (page: Page): Promise<void> => {
   const filing = page.locator("footer").getByRole("link", {
     name: "冀ICP备2026036754号-1",

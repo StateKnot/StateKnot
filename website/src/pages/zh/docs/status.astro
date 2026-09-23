@@ -195,7 +195,7 @@ const capabilities = [
     state: "开发中",
     className: "status-active",
     title: "高级执行与 Service Boundary",
-    body: "已实现独立子归属/准入、累计预算预留、Join 挂起/发布/唯一消费、取消、Deadline 与失败关闭。PostgreSQL 16/17 CI 在成功 Join 的八个边界及 Deadline Cancel-and-join 的九个边界强制终止新进程；六格歧义 COMMIT 矩阵验证 Join 注册/发布和 Deadline 取消，三个独立两格矩阵分别验证子准入原子性、含真实 Wait 清理的取消投递，以及可恢复原始事件并完成精确父级记账的子结算。父级终态收口/Join 结果消费切断、Provider 效果、同 Run 嵌套命名空间、稳定网络传输及完整容量验证仍在开发中。",
+    body: "已实现独立子归属/准入、累计预算预留、Join 挂起/发布/唯一消费、取消、Deadline 与失败关闭。PostgreSQL 16/17 CI 在成功 Join 的八个边界及 Deadline Cancel-and-join 的九个边界强制终止新进程；六格歧义 COMMIT 矩阵验证 Join 注册/发布和 Deadline 取消，四个独立两格矩阵分别验证子准入原子性、含真实 Wait 清理的取消投递、可恢复原始事件的子结算，以及按直接与子级用量精确记账的父 Run 终态收口。Join 结果消费切断、Provider 效果、同 Run 嵌套命名空间、稳定网络传输及完整容量验证仍在开发中。",
   },
   {
     state: "尚未发布",

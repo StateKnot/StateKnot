@@ -59,6 +59,7 @@ Source/Tree 身份、Lockfile 摘要、Rust 工具链、PostgreSQL 镜像、内�
 这是客户端进程故障配置，不是 PostgreSQL Server/WAL 故障测试。独立的
 [子 Agent 取消投递配置](child-cancellation-commit-loss-qualification.zh-CN.md)现已覆盖取消投递；
 独立的 [子 Run 结算配置](child-settlement-commit-loss-qualification.zh-CN.md)现已覆盖结算。
-父级终态收口或 Join 结果消费的 COMMIT 进行中切断仍未覆盖，也不验证不确定 Provider 副作用/计价、
+独立的 [父 Run 终态收口配置](parent-finalization-commit-loss-qualification.zh-CN.md)现已覆盖收口。
+Join 结果消费的 COMMIT 进行中切断仍未覆盖，也不验证不确定 Provider 副作用/计价、
 Failover、PITR/恢复、不可信 Worker SQL 隔离、同 Run 嵌套命名空间、历史保留容量、延迟
 或 Soak。因此 RFC-0004 仍为 Draft，完整可恢复子 Run 能力仍不能宣称生产就绪。

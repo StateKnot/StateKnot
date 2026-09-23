@@ -559,6 +559,7 @@ adds the same two cuts for cancellation propagation, real Wait abandonment,
 immutable receipt recovery and downstream settlement. The
 [child-settlement COMMIT-loss profile](child-settlement-commit-loss-qualification.md)
 adds atomic terminal accounting, original-event recovery and subsequent parent
-closure. In-flight COMMIT cuts for parent finalization and Join-result
-consumption remain open. The
+closure. The [parent-finalization COMMIT-loss profile](parent-finalization-commit-loss-qualification.md)
+adds exact parent terminal accounting, original-event recovery and once-only
+close completion. In-flight COMMIT cuts for Join-result consumption remain open. The
 website must not advertise the full capability until those gates pass.

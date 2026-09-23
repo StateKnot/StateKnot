@@ -449,7 +449,10 @@ from the repository.
   The two-cell [child-settlement COMMIT-loss profile](child-settlement-commit-loss-qualification.md)
   proves atomic budget conversion, immutable terminal anchoring, notification
   removal, original-event recovery and subsequent parent closure.
-  In-flight finalization and Join-result consumption transactions, arbitrary
+  The two-cell [parent-finalization COMMIT-loss profile](parent-finalization-commit-loss-qualification.md)
+  now proves atomic terminal failure, exact direct-plus-child accounting and
+  once-only completion after an ambiguous COMMIT. In-flight Join-result
+  consumption transactions, arbitrary
   uncertain direct-effect recovery and full-profile/capacity qualification
   remain gated; the RFC remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):
