@@ -1267,7 +1267,8 @@ Scenario 已经建立。下一步完成并评审四份 RFC：
 1. `RFC-0001 Core Domain and Capability Model`（Draft）；
 2. `RFC-0002 Graph Execution and Deterministic Reduction`；
 3. `RFC-0003 PostgreSQL Durability, Recovery and Migration`（Draft）；
-4. `RFC-0004 MCP/A2A Mapping, Identity and Security Boundaries`。
+4. `MCP/A2A Mapping, Identity and Security Boundaries`（待独立编号；现有
+   RFC-0004 实际定义可恢复子 Run）。
 
 当前按第一条纵向链路已创建三个公共预览验证边界：`stateknot-core` 用于验证 RFC-0001
 领域类型以及 RFC-0002/0003 的值契约；`stateknot-store-postgres` 已把

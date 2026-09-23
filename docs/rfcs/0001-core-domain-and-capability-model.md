@@ -62,7 +62,8 @@ pre-designing excluded v1 features.
   the protocol-neutral run lifecycle needed by all of those layers;
 - SQL schema, transactions, leases, outbox, checkpoint layout, and recovery,
   which belong to RFC-0003;
-- MCP and A2A wire mappings or OAuth flows, which belong to RFC-0004;
+- MCP and A2A wire mappings or OAuth flows, which require a separate
+  protocol/security RFC; RFC-0004 instead defines durable child runs;
 - a built-in RAG, vector store, prompt-template language, workflow DSL, or
   arbitrary metadata-driven plugin system;
 - a universal least-common-denominator provider API that hides supported
@@ -1670,8 +1671,8 @@ store must ensure:
 - tenant and principal are required arguments for resource-bearing operations;
 - untrusted content cannot become an instruction, tool definition, capability,
   extension policy, or credential reference through deserialization alone;
-- URLs are represented as untrusted references and fetched only through the
-  RFC-0004 egress boundary;
+- URLs are represented as untrusted references and fetched only through a
+  separately reviewed protocol/security egress boundary;
 - capability schemas and descriptors have provenance and version pins to resist
   tool-definition and protocol supply-chain substitution.
 

@@ -12,6 +12,40 @@ The roadmap is evidence-driven. Dates may be estimated in planning discussions,
 but a milestone exits only when its acceptance evidence is committed or linked
 from the repository.
 
+## Production completion order
+
+This is the execution order for the remaining v1 work, not a production claim.
+The [v1 scope](v1-scope.md) defines what must ship; the three
+[qualification scenarios](scenarios/README.md) define the release thresholds.
+Do not replace a missing release result with a reduced CI result or a passing
+protocol conformance suite.
+
+1. **Contract and developer-path cleanup.** Correct the RFC/security mapping,
+   use one source for bilingual public status, shorten the README, and provide
+   a runnable first Agent using real PostgreSQL and explicit authorization.
+   Review schema-registration boilerplate at the next versioned public API
+   change; do not silently replace published error types in the existing
+   preview. Exit when the English and Chinese entry paths agree and the
+   durable example executes in CI without bypassing authorization.
+2. **Complete the scoped runtime and service.** Implement general durable-data
+   retention and artifact garbage collection, OpenTelemetry and audit export,
+   the scoped JWT/JWKS identity profile, a durable A2A task/push backend, and
+   the Linux OCI `api`, `worker`, `scheduler`, and `all-in-one` roles. Exit only
+   with tenant-isolation, restart, failure and upgrade tests for each boundary.
+3. **Qualify the production topology.** Exercise real identity and policy across
+   separate roles, synchronous-standby failover, PostgreSQL/object-store backup
+   consistency, restore, N-1/N-2 upgrades, and the complete fault matrix. Record
+   measured RPO/RTO and reference-load results as versioned evidence.
+4. **Cut a release candidate.** Pass all three scenarios and their latency,
+   isolation and durability thresholds, the 24-hour soak, security review,
+   signed/SBOM-backed distribution checks, and two distinct production pilots.
+   Accept the controlling RFCs and publish the support and compatibility policy
+   before changing the public production-readiness claim.
+
+Ponytail cleanup may reduce duplicated code and documents, but must not remove
+trust-boundary validation, durable error handling, release evidence or required
+bilingual content.
+
 ## Current M0 tracking
 
 - [x] Implement [protected read-only host operations](agent-operations.md):
@@ -75,7 +109,9 @@ from the repository.
 - [ ] Accept RFC-0001 for the core domain and capability model.
 - [ ] Accept RFC-0002 for deterministic graph and scheduler semantics.
 - [ ] Accept RFC-0003 for PostgreSQL durability, recovery, and migration.
-- [ ] Accept RFC-0004 for MCP/A2A identity and security mapping.
+- [ ] Accept a separate RFC for MCP/A2A identity and security mapping; existing
+  RFC-0004 defines durable child runs, not this security boundary.
+- [ ] Resolve RFC-0004's durable child-run design and qualification separately.
 - [x] Validate the first protocol-neutral run lifecycle, interrupt/timer wait,
   cancellation-race, terminal-outcome, schema, property, and wire contracts in
   `stateknot-core` (now available in the exact public-preview release).

@@ -445,6 +445,10 @@ test("bilingual status includes qualified Join consumption without claiming full
   page,
 }) => {
   await page.goto("/docs/status/");
+  const englishStates = await page
+    .locator(".status-item .status-badge")
+    .evaluateAll((badges) => badges.map((badge) => badge.className));
+  expect(englishStates.length).toBeGreaterThan(0);
   await expect(page.locator("main")).toContainText(
     "five separate two-cell matrices",
   );
@@ -459,6 +463,10 @@ test("bilingual status includes qualified Join consumption without claiming full
   );
 
   await page.goto("/zh/docs/status/");
+  const chineseStates = await page
+    .locator(".status-item .status-badge")
+    .evaluateAll((badges) => badges.map((badge) => badge.className));
+  expect(chineseStates).toEqual(englishStates);
   await expect(page.locator("main")).toContainText("五个独立两格矩阵");
   await expect(page.locator("main")).toContainText("Join 结果原子消费");
   await expect(page.locator("main")).toContainText(
