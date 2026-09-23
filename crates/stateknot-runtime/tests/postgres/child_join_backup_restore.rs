@@ -18,7 +18,7 @@ const CONTAINER_ENV: &str = "STATEKNOT_TEST_POSTGRES_CONTAINER";
 const REQUIRE_ENV: &str = "STATEKNOT_REQUIRE_BACKUP_RESTORE_TESTS";
 
 #[derive(Debug, PartialEq)]
-struct Snapshot {
+pub(super) struct Snapshot {
     parent: Value,
     child: Value,
     ownership: Value,
@@ -40,7 +40,11 @@ async fn journal(store: &PostgresStore, tenant: &TenantId, run: RunId) -> Journa
     page
 }
 
-async fn snapshot(store: &PostgresStore, key: &ChildRunKey, attempt_id: AttemptId) -> Snapshot {
+pub(super) async fn snapshot(
+    store: &PostgresStore,
+    key: &ChildRunKey,
+    attempt_id: AttemptId,
+) -> Snapshot {
     let owned = store.load_child_run(key).await.unwrap();
     let child_id = owned.child().admission().intent().provenance().run_id();
     let parent = store
@@ -192,43 +196,11 @@ async fn drop_database(pool: &sqlx_postgres::PgPool, name: &str) {
         .unwrap();
 }
 
-#[tokio::test]
-#[allow(clippy::too_many_lines)]
-async fn consumed_child_join_survives_isolated_backup_restore() {
-    let _guard = DATABASE_TEST_MUTEX.lock().await;
-    let Some(container) = require_container() else {
-        return;
-    };
-    let base: PgConnectOptions = std::env::var(DATABASE_URL_ENV)
-        .expect("backup/restore qualification requires PostgreSQL")
-        .parse()
-        .unwrap();
-    let _ = loopback_target(&base);
-    let pool = sql_pool().await;
-    let version: String = query_scalar("SHOW server_version")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    let identity = uuid::Uuid::now_v7().simple().to_string();
-    let source_name = format!("stateknot_restore_source_{identity}");
-    let target_name = format!("stateknot_restore_target_{identity}");
-    create_database(&pool, &source_name).await;
-    create_database(&pool, &target_name).await;
-    let source_url = database_url(&base, &source_name);
-    let target_url = database_url(&base, &target_name);
-    let options = PostgresStoreOptions::default()
-        .with_transport_security(PostgresTransportSecurity::Disabled)
-        .with_pool_size(1, 8)
-        .with_acquire_timeout(Duration::from_secs(30))
-        .with_transaction_timeouts(Duration::from_secs(5), Duration::from_secs(20))
-        .with_lease_timing(Duration::from_secs(5 * 60), Duration::from_secs(5 * 60));
-    PostgresStore::migrate_database(&source_url, options.clone())
-        .await
-        .unwrap();
-    let source = PostgresStore::connect(&source_url, options.clone())
-        .await
-        .unwrap();
-    let (value, request, child_id) = setup_join(&source, "backup-restore-child-join").await;
+pub(super) async fn prepare_consumed_join(
+    source: &PostgresStore,
+    name: &str,
+) -> (ChildRunKey, AttemptId) {
+    let (value, request, child_id) = setup_join(source, name).await;
     let key = value.intent.key().clone();
     let activation = request.activation();
     source
@@ -239,9 +211,9 @@ async fn consumed_child_join_survives_isolated_backup_restore() {
         )
         .await
         .unwrap();
-    settle(&source, &value, child_id).await;
+    settle(source, &value, child_id).await;
     let published = source
-        .publish_child_join(&request, publish_append(&source, &request).await)
+        .publish_child_join(&request, publish_append(source, &request).await)
         .await
         .unwrap();
     let fence = source
@@ -300,24 +272,11 @@ async fn consumed_child_join_survives_isolated_backup_restore() {
         )
         .await
         .unwrap();
-    let before = Box::pin(snapshot(&source, &key, attempt.start().attempt_id())).await;
-    assert!(!before.join["consumed"].is_null());
-    assert!(!before.result.is_null());
-    source.close().await;
+    (key, attempt.start().attempt_id())
+}
 
-    let archive = dump(&container, &source_name);
-    let archive_digest = Digest::sha256(&archive);
-    restore(&container, &target_name, &archive);
-    let restored = PostgresStore::connect(&target_url, options).await.unwrap();
-    let after = Box::pin(snapshot(&restored, &key, attempt.start().attempt_id())).await;
-    assert_eq!(after, before, "restored durable Join evidence changed");
-    assert!(matches!(
-        restored
-            .load_run(&tenant("unrelated-restore-tenant"), key.parent_run_id())
-            .await,
-        Err(StoreError::RunNotFound)
-    ));
-    let owned = restored.load_child_run(&key).await.unwrap();
+pub(super) async fn replay_consumed_join(restored: &PostgresStore, key: &ChildRunKey) {
+    let owned = restored.load_child_run(key).await.unwrap();
     let rebuilt = declared_parent(&driver_fixture(), owned.intent().child().descriptor());
     let run = restored
         .load_run(key.tenant_id(), key.parent_run_id())
@@ -351,6 +310,64 @@ async fn consumed_child_join_survives_isolated_backup_restore() {
             .get()
             > 0
     );
+}
+
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn consumed_child_join_survives_isolated_backup_restore() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(container) = require_container() else {
+        return;
+    };
+    let base: PgConnectOptions = std::env::var(DATABASE_URL_ENV)
+        .expect("backup/restore qualification requires PostgreSQL")
+        .parse()
+        .unwrap();
+    let _ = loopback_target(&base);
+    let pool = sql_pool().await;
+    let version: String = query_scalar("SHOW server_version")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let identity = uuid::Uuid::now_v7().simple().to_string();
+    let source_name = format!("stateknot_restore_source_{identity}");
+    let target_name = format!("stateknot_restore_target_{identity}");
+    create_database(&pool, &source_name).await;
+    create_database(&pool, &target_name).await;
+    let source_url = database_url(&base, &source_name);
+    let target_url = database_url(&base, &target_name);
+    let options = PostgresStoreOptions::default()
+        .with_transport_security(PostgresTransportSecurity::Disabled)
+        .with_pool_size(1, 8)
+        .with_acquire_timeout(Duration::from_secs(30))
+        .with_transaction_timeouts(Duration::from_secs(5), Duration::from_secs(20))
+        .with_lease_timing(Duration::from_secs(5 * 60), Duration::from_secs(5 * 60));
+    PostgresStore::migrate_database(&source_url, options.clone())
+        .await
+        .unwrap();
+    let source = PostgresStore::connect(&source_url, options.clone())
+        .await
+        .unwrap();
+    let (key, attempt_id) =
+        Box::pin(prepare_consumed_join(&source, "backup-restore-child-join")).await;
+    let before = Box::pin(snapshot(&source, &key, attempt_id)).await;
+    assert!(!before.join["consumed"].is_null());
+    assert!(!before.result.is_null());
+    source.close().await;
+
+    let archive = dump(&container, &source_name);
+    let archive_digest = Digest::sha256(&archive);
+    restore(&container, &target_name, &archive);
+    let restored = PostgresStore::connect(&target_url, options).await.unwrap();
+    let after = Box::pin(snapshot(&restored, &key, attempt_id)).await;
+    assert_eq!(after, before, "restored durable Join evidence changed");
+    assert!(matches!(
+        restored
+            .load_run(&tenant("unrelated-restore-tenant"), key.parent_run_id())
+            .await,
+        Err(StoreError::RunNotFound)
+    ));
+    Box::pin(replay_consumed_join(&restored, &key)).await;
     restored.close().await;
     drop_database(&pool, &target_name).await;
     drop_database(&pool, &source_name).await;

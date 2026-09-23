@@ -452,17 +452,19 @@ test("bilingual status includes qualified Join consumption without claiming full
     "atomic Join-result consumption with non-initial graph replay",
   );
   await expect(page.locator("main")).toContainText(
-    "isolated pg_dump/pg_restore drill",
+    "logical pg_dump/pg_restore and physical base-backup/WAL named-PITR drills",
   );
-  await expect(page.locator("main")).toContainText("PITR, failover");
+  await expect(page.locator("main")).toContainText(
+    "Full disaster recovery, failover",
+  );
 
   await page.goto("/zh/docs/status/");
   await expect(page.locator("main")).toContainText("五个独立两格矩阵");
   await expect(page.locator("main")).toContainText("Join 结果原子消费");
   await expect(page.locator("main")).toContainText(
-    "隔离的 pg_dump/pg_restore 演练",
+    "pg_dump/pg_restore 逻辑恢复与物理基础备份/WAL 命名恢复点演练",
   );
-  await expect(page.locator("main")).toContainText("PITR、故障切换");
+  await expect(page.locator("main")).toContainText("完整灾备、故障切换");
 });
 
 const expectIcpFiling = async (page: Page): Promise<void> => {
@@ -1378,7 +1380,10 @@ test("PostgreSQL configuration guidance is production-safe in both locales", asy
     "separate isolated pg_dump/pg_restore drill",
   );
   await expect(page.locator("main")).toContainText(
-    "does not qualify PITR or standby failover",
+    "physical pg_basebackup plus archived-WAL drill",
+  );
+  await expect(page.locator("main")).toContainText(
+    "Neither qualifies full disaster recovery",
   );
 
   await page.goto("/zh/docs/postgresql/");
@@ -1395,7 +1400,10 @@ test("PostgreSQL configuration guidance is production-safe in both locales", asy
     "独立的 pg_dump/pg_restore 演练",
   );
   await expect(page.locator("main")).toContainText(
-    "不等于 PITR 或同步备库故障切换验收",
+    "物理 pg_basebackup 加 WAL 归档演练",
+  );
+  await expect(page.locator("main")).toContainText(
+    "不等于完整灾备或同步备库故障切换验收",
   );
 });
 

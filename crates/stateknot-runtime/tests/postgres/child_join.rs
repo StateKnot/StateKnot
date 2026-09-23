@@ -20,6 +20,9 @@ mod consumption_commit_loss;
 #[path = "child_join_backup_restore.rs"]
 mod backup_restore;
 
+#[path = "child_join_pitr.rs"]
+mod pitr;
+
 pub(super) async fn setup_join(
     store: &PostgresStore,
     name: &str,

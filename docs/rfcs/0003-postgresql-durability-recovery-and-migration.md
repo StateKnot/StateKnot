@@ -743,6 +743,13 @@ all journal heads, checkpoint/blob digests, tenant references, runnable states,
 and object availability validate before traffic. Backup existence alone is not
 recovery evidence.
 
+Partial executable evidence: the
+[child-Join named-PITR drill](../child-join-pitr-qualification.md) restores one
+consumed Join from a verified physical base backup plus archived WAL, rejects a
+post-target write and resumes the parent graph. It does not validate the full
+record/object/key set or the reference environment and cannot establish the
+release recovery objectives below.
+
 The qualification objectives remain those in the long-running scenario:
 acknowledged database facts RPO 0, runnable recovery within 60 seconds after
 database service restoration at reference load, and API/scheduler RTO within

@@ -258,13 +258,13 @@ let store = PostgresStore::connect_config(config).await?;</code></pre>
       Authorization-first Lookup、Multipart Ingestion 与完整 Digest 校验。
     </p>
     <p>
-      独立的 <code>pg_dump</code>/<code>pg_restore</code> 演练验证已消费子 Join 的完整快照与图恢复执行；它不等于
-      PITR 或同步备库故障切换验收。
+      独立的 <code>pg_dump</code>/<code>pg_restore</code> 演练验证已消费子 Join 的完整快照与图恢复执行；另有物理
+      <code>pg_basebackup</code> 加 WAL 归档演练，在命名恢复点恢复同一路径并排除之后的写入。两者都不等于完整灾备或同步备库故障切换验收。
     </p>
     <p>
-      正式生产发布仍需要角色隔离、通用 Retention/GC、Failover/PITR
-      恢复演练、Stale-race 验证、Role-separated Service Deployment 与
-      Live-workload Qualification。
+      正式生产发布仍需要角色隔离、通用
+      Retention/GC、参考规模的故障切换与恢复演练、Stale-race
+      验证、Role-separated Service Deployment 与 Live-workload Qualification。
     </p>
   </section>
 </DocsLayout>

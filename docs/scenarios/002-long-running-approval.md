@@ -130,8 +130,11 @@ an actual retained old worker rejected after real lease expiry/new-epoch takeove
 It remains partial evidence, not the full transaction/10,000-race/failover matrix.
 The [isolated child-Join logical restore drill](../child-join-backup-restore-qualification.md)
 adds a real PostgreSQL 16/17 `pg_dump`/`pg_restore` round trip with exact durable
-snapshot comparison and resumed graph execution. It does not meet the required
-PITR, object-store, reference-load or RPO/RTO acceptance criteria.
+snapshot comparison and resumed graph execution. The
+[physical named-PITR drill](../child-join-pitr-qualification.md) additionally
+uses `pg_basebackup`/archived WAL to promote at a named restore point and proves
+post-target writes absent. Neither meets this scenario's object-store,
+reference-load, standby-failover or RPO/RTO acceptance criteria.
 
 - model-based tests for the run, interrupt, lease, invocation, and outbox state
   machines;

@@ -369,9 +369,11 @@ root-only data. Preserve all static-composition and root-run regression tests.
   covers atomic result/attempt/Join consumption, original-event recovery and
   non-initial checkpoint replay. The
   [isolated logical restore drill](../child-join-backup-restore-qualification.md)
-  checks a real `pg_dump`/`pg_restore` round trip for that path, but not PITR,
-  standby failover or object-store alignment. Database-server faults and provider effects remain separate
-  gates; this does not qualify the entire runtime matrix.
+  checks a real `pg_dump`/`pg_restore` round trip for that path. The separate
+  [physical named-PITR drill](../child-join-pitr-qualification.md) checks
+  base-backup/WAL recovery at a named restore point. Standby failover,
+  object-store alignment, full recovery scale and provider effects remain
+  separate gates; this does not qualify the entire runtime matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
   rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,
   unpriced-prefix pagination and populated-upgrade tests; these do not measure
