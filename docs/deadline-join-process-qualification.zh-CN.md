@@ -64,7 +64,8 @@ COMMIT 进行中切断。独立的
 Wait 清理；独立的
 [子 Run 结算配置](child-settlement-commit-loss-qualification.zh-CN.md)现已覆盖结算。
 独立的 [父 Run 终态收口配置](parent-finalization-commit-loss-qualification.zh-CN.md)
-现已覆盖收口；Join 结果消费仍未覆盖。它也不验证不确定
+现已覆盖收口；[Join 结果消费配置](child-join-consumption-commit-loss-qualification.zh-CN.md)
+现已覆盖对应歧义 COMMIT 切断。它也不验证不确定
 Provider 副作用/计价、数据库 Failover、
 PITR/恢复、不可信 Worker SQL 隔离、历史保留容量、延迟或 Soak。RFC-0004 继续明确
 保留这些门禁；通过之前不能把通用可恢复子 Run 宣称为生产就绪。

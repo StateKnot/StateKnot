@@ -75,8 +75,9 @@ now covers cancellation propagation and real Wait cleanup. The
 [child-settlement profile](child-settlement-commit-loss-qualification.md)
 covers accounting settlement. The separate
 [parent-finalization profile](parent-finalization-commit-loss-qualification.md)
-now covers terminal closure. Join-result consumption remains unqualified while
-COMMIT is in flight. Unknown provider effects or pricing,
+now covers terminal closure. The separate
+[Join-result consumption profile](child-join-consumption-commit-loss-qualification.md)
+now covers its in-flight COMMIT cuts. Unknown provider effects or pricing,
 database failover/PITR/restore, untrusted-worker SQL isolation, retained-history
 capacity, latency and soak also remain open. Those gates stay explicit in
 RFC-0004 and must pass before the general durable-child capability is advertised

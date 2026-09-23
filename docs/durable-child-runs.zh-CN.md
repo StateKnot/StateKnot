@@ -421,6 +421,8 @@ Deadline 的 [COMMIT 丢失配置](join-deadline-commit-loss-qualification.zh-CN
 [子 Run 结算 COMMIT 丢失配置](child-settlement-commit-loss-qualification.zh-CN.md)
 验证终态记账的原子性、原始事件恢复以及后续父级收口。独立的
 [父 Run 终态收口 COMMIT 丢失配置](parent-finalization-commit-loss-qualification.zh-CN.md)
-验证精确父级终态记账、原始事件恢复和唯一收口。Join 结果消费的 COMMIT 进行中切断
-仍未覆盖，因此不代表完整子 Run 服务可用；草案不会
+验证精确父级终态记账、原始事件恢复和唯一收口。新增的
+[子 Run Join 结果消费 COMMIT 丢失验收](child-join-consumption-commit-loss-qualification.zh-CN.md)
+验证结果、节点尝试与 Join 消费的原子性、原始事件恢复及非初始检查点重放。
+数据库服务端故障、Provider 效果、容量和服务门禁仍未覆盖，因此不代表完整子 Run 服务可用；草案不会
 作为完整已实现能力发布到官网状态页。
