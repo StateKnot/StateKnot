@@ -284,12 +284,14 @@ let store = PostgresStore::connect_config(config).await?;</code></pre>
     </p>
     <p>
       A separate isolated <code>pg_dump</code>/<code>pg_restore</code> drill verifies
-      a consumed child-Join snapshot and resumed graph execution. It does not qualify
-      PITR or standby failover.
+      a consumed child-Join snapshot and resumed graph execution. A physical
+      <code>pg_basebackup</code> plus archived-WAL drill restores the same path at
+      a named restore point and excludes a later write. Neither qualifies full disaster
+      recovery or standby failover.
     </p>
     <p>
       Production release still requires role isolation, general retention and
-      garbage collection, failover and point-in-time restore exercises,
+      garbage collection, reference-scale failover and recovery exercises,
       stale-race qualification, role-separated service deployment, and live
       workload qualification.
     </p>

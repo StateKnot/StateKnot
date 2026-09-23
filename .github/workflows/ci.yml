@@ -132,6 +132,64 @@ jobs:
       - name: Verify crates.io source lists and bootstrap archives
         run: ./scripts/verify-release.sh 0.1.0-alpha.1
 
+  postgres-pitr:
+    name: PostgreSQL PITR (${{ matrix.version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: "16"
+            image: postgres@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54
+          - version: "17"
+            image: postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.88.0 --profile minimal
+
+      - name: Record PITR qualification environment
+        env:
+          STATEKNOT_PITR_POSTGRES_IMAGE: ${{ matrix.image }}
+        run: |
+          {
+            git rev-parse HEAD
+            git rev-parse 'HEAD^{tree}'
+            sha256sum Cargo.lock
+            rustc -Vv
+            docker version --format '{{.Server.Version}}'
+            uname -a
+            lscpu
+            free -b
+            df -T .
+            printenv STATEKNOT_PITR_POSTGRES_IMAGE
+          } | tee child-join-pitr-environment.log
+
+      - name: Qualify physical base backup and named WAL recovery
+        env:
+          STATEKNOT_REQUIRE_PITR_TESTS: "1"
+          STATEKNOT_PITR_POSTGRES_IMAGE: ${{ matrix.image }}
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-runtime --test postgres --locked -- \
+            --exact child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery \
+            --nocapture --test-threads=1 | tee child-join-pitr.log
+          test "$(grep -c '^STATEKNOT_CHILD_JOIN_PITR_EVIDENCE=' child-join-pitr.log)" = 1
+
+      - name: Upload physical PITR evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: child-join-pitr-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            child-join-pitr.log
+            child-join-pitr-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
   mcp-conformance:
     name: MCP Conformance
     runs-on: ubuntu-latest

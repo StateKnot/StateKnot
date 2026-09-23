@@ -71,8 +71,11 @@ Join consumption with the physical node result and completion, original-event
 recovery, and non-initial graph replay after both ambiguous COMMIT cuts.
 The [child-Join logical backup/restore profile](child-join-backup-restore-qualification.md)
 ([中文](child-join-backup-restore-qualification.zh-CN.md)) verifies a real isolated
-`pg_dump`/`pg_restore` round trip and exact durable replay without claiming
-PITR, failover or complete production disaster recovery.
+`pg_dump`/`pg_restore` round trip and exact durable replay. The separate
+[physical named-PITR profile](child-join-pitr-qualification.md)
+([中文](child-join-pitr-qualification.zh-CN.md)) verifies a base backup, WAL
+archive, restore-point promotion and exclusion of post-target writes for that
+same path. Neither qualifies failover, RPO/RTO or complete production recovery.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed

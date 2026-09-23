@@ -455,7 +455,11 @@ from the repository.
   [Join-result consumption profile](child-join-consumption-commit-loss-qualification.md)
   adds atomic result/attempt/Join consumption and non-initial graph replay.
   The [isolated logical restore profile](child-join-backup-restore-qualification.md)
-  checks one real `pg_dump`/`pg_restore` recovery path without qualifying PITR.
+  checks one real `pg_dump`/`pg_restore` recovery path. The separate
+  [physical named-PITR profile](child-join-pitr-qualification.md) checks a
+  `pg_basebackup`/WAL archive and named restore-point recovery for that same
+  consumed child Join, excluding a later write. It does not qualify the full
+  disaster-recovery profile, standby failover, RPO/RTO or reference scale.
   Arbitrary uncertain direct-effect recovery and full-profile/capacity qualification
   remain gated; the RFC remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):
