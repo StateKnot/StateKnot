@@ -62,7 +62,7 @@ STATEKNOT_REQUIRE_POSTGRES_TESTS=1 cargo test -p stateknot-runtime \
 
 这是客户端进程故障配置，不是 PostgreSQL Server/WAL 故障测试。独立的
 [父 Run 终态收口配置](parent-finalization-commit-loss-qualification.zh-CN.md)现已覆盖收口；
-Join 结果消费仍缺少同等级的 COMMIT 进行中切断。不确定 Provider 副作用/计价、
+[Join 结果消费配置](child-join-consumption-commit-loss-qualification.zh-CN.md)现已覆盖对应切断。不确定 Provider 副作用/计价、
 Failover、PITR/恢复、不可信 Worker SQL 隔离、同 Run 嵌套命名空间、历史保留容量、
 延迟和 Soak 也仍未验收。因此 RFC-0004 继续保持 Draft，完整可恢复子 Run 能力
 不能宣称生产就绪。

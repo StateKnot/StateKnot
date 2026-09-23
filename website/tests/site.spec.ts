@@ -441,20 +441,20 @@ const localizedRoutePairs = [
 
 const contentRoutes = localizedRoutePairs.flatMap(({ en, zh }) => [en, zh]);
 
-test("bilingual status distinguishes parent finalization from the remaining Join gate", async ({
+test("bilingual status includes qualified Join consumption without claiming full readiness", async ({
   page,
 }) => {
   await page.goto("/docs/status/");
   await expect(page.locator("main")).toContainText(
-    "four separate two-cell matrices",
+    "five separate two-cell matrices",
   );
   await expect(page.locator("main")).toContainText(
-    "Join-result consumption cuts",
+    "atomic Join-result consumption with non-initial graph replay",
   );
 
   await page.goto("/zh/docs/status/");
-  await expect(page.locator("main")).toContainText("四个独立两格矩阵");
-  await expect(page.locator("main")).toContainText("Join 结果消费切断");
+  await expect(page.locator("main")).toContainText("五个独立两格矩阵");
+  await expect(page.locator("main")).toContainText("Join 结果原子消费");
 });
 
 const expectIcpFiling = async (page: Page): Promise<void> => {

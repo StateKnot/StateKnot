@@ -77,8 +77,9 @@ covers cancellation propagation plus real Wait cleanup, and the
 [child-settlement profile](child-settlement-commit-loss-qualification.md)
 covers accounting settlement. The separate
 [parent-finalization profile](parent-finalization-commit-loss-qualification.md)
-now covers terminal closure. Join-result consumption remains uncut while
-COMMIT is in flight.
+now covers terminal closure. The separate
+[Join-result consumption profile](child-join-consumption-commit-loss-qualification.md)
+now covers its in-flight COMMIT cuts.
 It does not
 qualify unknown provider effects/prices, failover, PITR/restore, untrusted-worker
 SQL isolation, same-run nested namespaces, retained-history capacity, latency or

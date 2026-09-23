@@ -33,6 +33,7 @@ pub(super) enum TransactionTarget {
     ChildSettlement,
     ChildJoinRegistration,
     ChildJoinPublication,
+    ChildJoinConsumption,
     AgentDeadlineCancellation,
 }
 
@@ -48,6 +49,7 @@ impl TransactionTarget {
             Self::ChildSettlement => b"INSERT INTO stateknot.child_run_settlements ",
             Self::ChildJoinRegistration => b"INSERT INTO stateknot.child_run_joins ",
             Self::ChildJoinPublication => b"INSERT INTO stateknot.child_run_join_bindings ",
+            Self::ChildJoinConsumption => b"\nINSERT INTO stateknot.pending_node_results (",
             Self::AgentDeadlineCancellation => b"SELECT agent_deadline_at FROM stateknot.runs ",
         }
     }
@@ -281,6 +283,7 @@ async fn commit_proxy_rejects_truncated_oversized_and_malformed_frames() {
         TransactionTarget::ChildSettlement,
         TransactionTarget::ChildJoinRegistration,
         TransactionTarget::ChildJoinPublication,
+        TransactionTarget::ChildJoinConsumption,
         TransactionTarget::AgentDeadlineCancellation,
     ] {
         assert!(!target.parse_prefix().is_empty());

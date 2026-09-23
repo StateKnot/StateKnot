@@ -73,8 +73,9 @@ now cuts cancellation delivery; the
 [child-settlement profile](child-settlement-commit-loss-qualification.md)
 cuts accounting settlement. The separate
 [parent-finalization profile](parent-finalization-commit-loss-qualification.md)
-now cuts terminal closure; Join-result consumption remains uncut while COMMIT
-is in flight. It does not qualify unknown
+now cuts terminal closure; the separate
+[Join-result consumption profile](child-join-consumption-commit-loss-qualification.md)
+now covers its in-flight COMMIT cuts. It does not qualify unknown
 provider effects/prices, failover, PITR/restore, untrusted-worker SQL isolation,
 same-run nested namespaces, retained-history capacity, latency or soak. RFC-0004
 therefore remains Draft and the complete durable-child profile is not advertised

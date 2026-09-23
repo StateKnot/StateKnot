@@ -65,6 +65,10 @@ The [parent-finalization COMMIT-loss profile](parent-finalization-commit-loss-qu
 ([中文](parent-finalization-commit-loss-qualification.zh-CN.md)) separately proves
 atomic terminal failure, exact direct-plus-child accounting, original-event
 recovery and once-only close completion across both ambiguous COMMIT cuts.
+The [child-Join consumption COMMIT-loss profile](child-join-consumption-commit-loss-qualification.md)
+([中文](child-join-consumption-commit-loss-qualification.zh-CN.md)) proves atomic
+Join consumption with the physical node result and completion, original-event
+recovery, and non-initial graph replay after both ambiguous COMMIT cuts.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed

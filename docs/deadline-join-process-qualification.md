@@ -72,7 +72,9 @@ covers propagation plus real Wait cleanup. The
 [child-settlement profile](child-settlement-commit-loss-qualification.md)
 now covers accounting settlement. The separate
 [parent-finalization profile](parent-finalization-commit-loss-qualification.md)
-now covers terminal closure; Join-result consumption remains open.
+now covers terminal closure; the separate
+[Join-result consumption profile](child-join-consumption-commit-loss-qualification.md)
+now covers its ambiguous COMMIT cuts.
 It does not qualify unknown
 provider effects or pricing,
 database failover/PITR/restore, untrusted-worker SQL isolation, retained-history

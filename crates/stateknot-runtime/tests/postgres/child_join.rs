@@ -14,6 +14,9 @@ mod driver;
 #[path = "child_join_process.rs"]
 mod process;
 
+#[path = "child_join_consumption_commit_loss.rs"]
+mod consumption_commit_loss;
+
 pub(super) async fn setup_join(
     store: &PostgresStore,
     name: &str,

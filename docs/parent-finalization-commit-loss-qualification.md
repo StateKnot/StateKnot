@@ -64,7 +64,8 @@ Agent inputs/outputs are never evidence fields.
 ## Gates still open
 
 This is a client-process fault profile, not a PostgreSQL server/WAL fault test.
-Join-result consumption still lacks an equivalent in-flight COMMIT cut. Unknown
+The [child-Join consumption profile](child-join-consumption-commit-loss-qualification.md)
+now covers the separate in-flight COMMIT cut. Unknown
 provider effects/prices, failover, PITR/restore, untrusted-worker SQL isolation,
 same-run nested namespaces, retained-history capacity, latency and soak remain
 unqualified. RFC-0004 stays Draft; this does not advertise the complete durable

@@ -77,8 +77,9 @@ This is a client-process fault profile, not a PostgreSQL server/WAL fault test.
 The separate [child-settlement profile](child-settlement-commit-loss-qualification.md)
 now cuts accounting settlement. The separate
 [parent-finalization profile](parent-finalization-commit-loss-qualification.md)
-now cuts terminal closure. Join-result consumption still lacks an equivalent
-in-flight COMMIT cut. Unknown provider
+now cuts terminal closure. The separate
+[Join-result consumption profile](child-join-consumption-commit-loss-qualification.md)
+now covers its in-flight COMMIT cuts. Unknown provider
 effects/prices, failover,
 PITR/restore, untrusted-worker SQL isolation, same-run nested namespaces,
 retained-history capacity, latency and soak also remain unqualified. RFC-0004

@@ -76,8 +76,9 @@ inputs and outputs are never evidence fields.
 
 This is a client-process fault profile, not a PostgreSQL server/WAL fault test.
 The separate [parent-finalization profile](parent-finalization-commit-loss-qualification.md)
-now covers terminal closure. Join-result consumption still lacks equivalent
-in-flight COMMIT cuts. Unknown provider effects/prices, failover, PITR/restore,
+now covers terminal closure. The separate
+[Join-result consumption profile](child-join-consumption-commit-loss-qualification.md)
+now covers its in-flight COMMIT cuts. Unknown provider effects/prices, failover, PITR/restore,
 untrusted-worker SQL isolation, same-run nested namespaces, retained-history
 capacity, latency and soak remain unqualified. RFC-0004 therefore stays Draft;
 the complete durable-child profile is not advertised as production ready.

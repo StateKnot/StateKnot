@@ -52,7 +52,8 @@ STATEKNOT_REQUIRE_POSTGRES_TESTS=1 cargo test -p stateknot-runtime \
 
 ## 仍未覆盖的门禁
 
-这是客户端进程故障验收，不是 PostgreSQL Server/WAL 故障测试。Join 结果消费仍缺
-同等级的 COMMIT 进行中切断。不确定 Provider 副作用/计价、Failover、PITR/恢复、
+这是客户端进程故障验收，不是 PostgreSQL Server/WAL 故障测试。单独的
+[Join 结果消费验收](child-join-consumption-commit-loss-qualification.zh-CN.md)
+现已覆盖相应 COMMIT 切断。不确定 Provider 副作用/计价、Failover、PITR/恢复、
 不可信 Worker SQL 隔离、同 Run 嵌套命名空间、历史保留容量、延迟和 Soak 仍未验收。
 RFC-0004 继续保持 Draft，不能宣称完整可恢复子 Run 能力已生产就绪。
