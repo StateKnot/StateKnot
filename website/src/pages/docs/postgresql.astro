@@ -266,22 +266,26 @@ let store = PostgresStore::connect_config(config).await?;</code></pre>
   <section aria-labelledby="qualification-title">
     <h2 id="qualification-title">Qualification and current limits</h2>
     <p>
-      CI runs the mandatory integration suite independently against PostgreSQL
-      16 and 17: 106 provider cases, 36 durable Runtime scenarios, plus the
-      seven-case artifact-store suite per version. The suite covers migrations,
-      lost acknowledgements, fencing, corruption rejection, concurrency,
-      rollback injection, outbox recovery, durable waits, quarantine, immutable
-      graph registration/recovery, ready-node planning, delayed-retry
-      scheduling, lifecycle commits, durable model/tool execution, fairness
-      reservations and retention, canonical parallel sibling commits, ordered
-      read-only Tool waves with write barriers, atomic Agent admission, durable
-      ingress-key/run-result verification, and weighted cross-tenant Agent Loop
-      execution. Model binding evidence adds populated migration 18→19,
-      committed-only constraint refusal, exact failed-revision recovery, and
-      successor-barrier release. Artifact evidence adds populated migration
+      CI runs the mandatory provider, Runtime and artifact-store integration
+      suites independently against PostgreSQL 16 and 17. The suites cover
+      migrations, lost acknowledgements, fencing, corruption rejection,
+      concurrency, rollback injection, outbox recovery, durable waits,
+      quarantine, immutable graph registration/recovery, ready-node planning,
+      delayed-retry scheduling, lifecycle commits, durable model/tool execution,
+      fairness reservations and retention, canonical parallel sibling commits,
+      ordered read-only Tool waves with write barriers, atomic Agent admission,
+      durable ingress-key/run-result verification, and weighted cross-tenant
+      Agent Loop execution. Model binding evidence adds populated migration
+      18→19, committed-only constraint refusal, exact failed-revision recovery,
+      and successor-barrier release. Artifact evidence adds populated migration
       17→18, schema refusal, immutable registration, private object publication,
       authorization-first lookup, multipart ingestion, and complete digest
       verification.
+    </p>
+    <p>
+      A separate isolated <code>pg_dump</code>/<code>pg_restore</code> drill verifies
+      a consumed child-Join snapshot and resumed graph execution. It does not qualify
+      PITR or standby failover.
     </p>
     <p>
       Production release still requires role isolation, general retention and

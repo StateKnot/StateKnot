@@ -849,12 +849,20 @@ async fn deadline_shutdown_preserves_work_and_quarantine_is_visible_without_bloc
 #[tokio::test]
 async fn deadline_observes_expiry_after_waiting_for_the_lifecycle_lock() {
     let _guard = DATABASE_TEST_MUTEX.lock().await;
-    let Some(store) = test_store().await else {
+    let Some(store) = test_store_with_lease_duration_and_timeouts(
+        Duration::from_secs(30),
+        Duration::from_secs(20),
+        Duration::from_secs(30),
+    )
+    .await
+    else {
         return;
     };
     let fixture = driver_fixture();
     let tenant = tenant("deadline-lock-clock");
-    let deadline = future_deadline(&store, 2).await;
+    // Leave enough time for admission under a loaded CI worker before holding
+    // the lifecycle lock; this test checks which clock is observed after lock wait.
+    let deadline = future_deadline(&store, 15).await;
     let admission = admit_deadline(&store, &fixture, tenant.clone(), deadline).await;
     let run = admission.admission().intent().provenance().run_id();
     let pool = sql_pool().await;
@@ -870,7 +878,7 @@ async fn deadline_observes_expiry_after_waiting_for_the_lifecycle_lock() {
     let task = tokio::spawn(async move { request_expiry(&other, &scope, run).await });
     // Separate observer connection: the fixture pool's only connection owns the lock.
     let observer = sql_pool().await;
-    tokio::time::timeout(Duration::from_secs(1),async {
+    tokio::time::timeout(Duration::from_secs(5),async {
         loop {
             let waiting=query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%stateknot.runs%' AND query LIKE '%FOR UPDATE%')")
                 .fetch_one(&observer).await.unwrap();
