@@ -73,8 +73,10 @@ The companion
 [child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
 covers child admission, and the
 [child-cancellation delivery profile](child-cancellation-commit-loss-qualification.md)
-covers cancellation propagation plus real Wait cleanup. Settlement, terminal
-finalization and Join-result consumption remain uncut while COMMIT is in flight.
+covers cancellation propagation plus real Wait cleanup, and the
+[child-settlement profile](child-settlement-commit-loss-qualification.md)
+covers accounting settlement. Parent terminal finalization and Join-result
+consumption remain uncut while COMMIT is in flight.
 It does not
 qualify unknown provider effects/prices, failover, PITR/restore, untrusted-worker
 SQL isolation, same-run nested namespaces, retained-history capacity, latency or

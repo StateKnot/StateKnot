@@ -446,7 +446,10 @@ from the repository.
   The two-cell [child-cancellation delivery COMMIT-loss profile](child-cancellation-commit-loss-qualification.md)
   now proves exact rollback and original-receipt recovery across cancellation,
   real Wait abandonment, queue consumption and downstream settlement.
-  In-flight settlement, finalization and consumption transactions, arbitrary
+  The two-cell [child-settlement COMMIT-loss profile](child-settlement-commit-loss-qualification.md)
+  proves atomic budget conversion, immutable terminal anchoring, notification
+  removal, original-event recovery and subsequent parent closure.
+  In-flight finalization and Join-result consumption transactions, arbitrary
   uncertain direct-effect recovery and full-profile/capacity qualification
   remain gated; the RFC remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):

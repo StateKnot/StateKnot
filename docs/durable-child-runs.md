@@ -556,6 +556,9 @@ atomic child creation, ownership, initial checkpoint, parent audit and budget
 reservation. The
 [child-cancellation delivery COMMIT-loss profile](child-cancellation-commit-loss-qualification.md)
 adds the same two cuts for cancellation propagation, real Wait abandonment,
-immutable receipt recovery and downstream settlement. In-flight COMMIT cuts for
-settlement, finalization and result consumption remain open. The
+immutable receipt recovery and downstream settlement. The
+[child-settlement COMMIT-loss profile](child-settlement-commit-loss-qualification.md)
+adds atomic terminal accounting, original-event recovery and subsequent parent
+closure. In-flight COMMIT cuts for parent finalization and Join-result
+consumption remain open. The
 website must not advertise the full capability until those gates pass.
