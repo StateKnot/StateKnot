@@ -70,7 +70,9 @@ now covers the deadline cancellation transaction, and the
 [child-cancellation delivery profile](child-cancellation-commit-loss-qualification.md)
 covers propagation plus real Wait cleanup. The
 [child-settlement profile](child-settlement-commit-loss-qualification.md)
-now covers accounting settlement; parent terminal finalization remains open.
+now covers accounting settlement. The separate
+[parent-finalization profile](parent-finalization-commit-loss-qualification.md)
+now covers terminal closure; Join-result consumption remains open.
 It does not qualify unknown
 provider effects or pricing,
 database failover/PITR/restore, untrusted-worker SQL isolation, retained-history

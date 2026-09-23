@@ -75,7 +75,8 @@ inputs and outputs are never evidence fields.
 ## Gates still open
 
 This is a client-process fault profile, not a PostgreSQL server/WAL fault test.
-Parent terminal finalization and Join-result consumption still lack equivalent
+The separate [parent-finalization profile](parent-finalization-commit-loss-qualification.md)
+now covers terminal closure. Join-result consumption still lacks equivalent
 in-flight COMMIT cuts. Unknown provider effects/prices, failover, PITR/restore,
 untrusted-worker SQL isolation, same-run nested namespaces, retained-history
 capacity, latency and soak remain unqualified. RFC-0004 therefore stays Draft;

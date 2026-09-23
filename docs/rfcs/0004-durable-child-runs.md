@@ -361,8 +361,11 @@ root-only data. Preserve all static-composition and root-run regression tests.
   abandonment, queue consumption and downstream settlement. The
   [child-settlement COMMIT-loss profile](../child-settlement-commit-loss-qualification.md)
   adds atomic accounting, immutable terminal anchoring, original-event recovery
-  and subsequent parent closure. Parent finalization and Join-result consumption
-  transactions, database-server faults and provider effects remain separate
+  and subsequent parent closure. The
+  [parent-finalization COMMIT-loss profile](../parent-finalization-commit-loss-qualification.md)
+  adds atomic final Failed state, exact direct-plus-child usage, original-event
+  recovery and once-only close completion. Join-result consumption transactions,
+  database-server faults and provider effects remain separate
   gates; this does not qualify the entire runtime matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
   rollback, duplicate delivery, spawn/cancel race, nested propagation/accounting,

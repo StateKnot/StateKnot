@@ -113,7 +113,11 @@ real owned-process termination at six committed drain/replay boundaries, with
 exact journal, lifecycle and accounting verification. This is not pre-/in-commit
 or live-provider qualification. A separate [COMMIT-loss/fencing profile](commit-loss-qualification.md)
 adds source-registration request/response cuts and an expired old worker rejected
-after higher-epoch takeover. The whole child execution profile still requires combined process-kill and
+after higher-epoch takeover. The separate
+[parent-finalization COMMIT-loss profile](parent-finalization-commit-loss-qualification.md)
+now proves atomic Failed projection, exact direct-plus-child terminal usage,
+original-event recovery and once-only completion under both client-side cuts.
+The whole child execution profile still requires combined process-kill and
 failover/restore drills, provider effect/usage recovery qualification, SQL role
 isolation, and measured full-sweep latency/capacity under retained history.
 

@@ -16,6 +16,9 @@ mod process;
 #[path = "failure_close_commit_loss.rs"]
 mod commit_loss;
 
+#[path = "failure_close_completion_commit_loss.rs"]
+mod completion_commit_loss;
+
 #[path = "role_profile.rs"]
 mod role_profile;
 

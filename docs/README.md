@@ -61,6 +61,10 @@ The [child-settlement COMMIT-loss profile](child-settlement-commit-loss-qualific
 ([中文](child-settlement-commit-loss-qualification.zh-CN.md)) proves atomic
 terminal accounting, notification removal, original-event recovery and
 subsequent parent closure after both ambiguous COMMIT cuts.
+The [parent-finalization COMMIT-loss profile](parent-finalization-commit-loss-qualification.md)
+([中文](parent-finalization-commit-loss-qualification.zh-CN.md)) separately proves
+atomic terminal failure, exact direct-plus-child accounting, original-event
+recovery and once-only close completion across both ambiguous COMMIT cuts.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed
