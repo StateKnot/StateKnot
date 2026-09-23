@@ -451,10 +451,18 @@ test("bilingual status includes qualified Join consumption without claiming full
   await expect(page.locator("main")).toContainText(
     "atomic Join-result consumption with non-initial graph replay",
   );
+  await expect(page.locator("main")).toContainText(
+    "isolated pg_dump/pg_restore drill",
+  );
+  await expect(page.locator("main")).toContainText("PITR, failover");
 
   await page.goto("/zh/docs/status/");
   await expect(page.locator("main")).toContainText("五个独立两格矩阵");
   await expect(page.locator("main")).toContainText("Join 结果原子消费");
+  await expect(page.locator("main")).toContainText(
+    "隔离的 pg_dump/pg_restore 演练",
+  );
+  await expect(page.locator("main")).toContainText("PITR、故障切换");
 });
 
 const expectIcpFiling = async (page: Page): Promise<void> => {
@@ -1366,6 +1374,12 @@ test("PostgreSQL configuration guidance is production-safe in both locales", asy
   await expect(
     page.getByText("PostgresStore::connect_development"),
   ).toBeVisible();
+  await expect(page.locator("main")).toContainText(
+    "separate isolated pg_dump/pg_restore drill",
+  );
+  await expect(page.locator("main")).toContainText(
+    "does not qualify PITR or standby failover",
+  );
 
   await page.goto("/zh/docs/postgresql/");
   await expect(
@@ -1377,6 +1391,12 @@ test("PostgreSQL configuration guidance is production-safe in both locales", asy
   await expect(
     page.getByText("PostgresStore::connect_development"),
   ).toBeVisible();
+  await expect(page.locator("main")).toContainText(
+    "独立的 pg_dump/pg_restore 演练",
+  );
+  await expect(page.locator("main")).toContainText(
+    "不等于 PITR 或同步备库故障切换验收",
+  );
 });
 
 test("local Tool and Skill composition guides preserve durable boundaries", async ({

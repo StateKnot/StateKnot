@@ -161,11 +161,11 @@ let outcome = admission.admit(request).await?;`;
   <section aria-labelledby="evidence-title">
     <h2 id="evidence-title">验证证据</h2>
     <p>
-      PostgreSQL 16/17 Matrix 目前在每个版本运行 106 个 Provider Case 与 36
-      个可恢复 Runtime Scenario。Admission 覆盖 Migration
-      15、跨越时间边界后的精确 Retry、 Changed-intent 与 Tamper 拒绝、无效 State
-      零残留 Rollback、24 路收敛，以及 Runtime 在任何写入前拒绝 Agent/Graph 或
-      Authorization Schema Drift。采用该精确版本公共预览 Surface 前，请阅读<a
+      PostgreSQL 16/17 Matrix 会运行强制的 Provider 与可恢复 Runtime 集成测试。
+      Admission 覆盖 Migration 15、跨越时间边界后的精确 Retry、 Changed-intent
+      与 Tamper 拒绝、无效 State 零残留 Rollback、24 路收敛，以及 Runtime
+      在任何写入前拒绝 Agent/Graph 或 Authorization Schema
+      Drift。采用该精确版本公共预览 Surface 前，请阅读<a
         href="https://github.com/StateKnot/StateKnot/blob/main/docs/durable-agent-admission.zh-CN.md"
         >完整集成与 Rollout 契约</a
       >。

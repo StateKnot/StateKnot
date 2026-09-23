@@ -851,6 +851,7 @@ struct OrderedParallelTool {
     active: Arc<AtomicUsize>,
     maximum_active: Arc<AtomicUsize>,
     write_overlap: Arc<AtomicBool>,
+    first_read_pair: Arc<tokio::sync::Barrier>,
     write: bool,
 }
 
@@ -868,6 +869,7 @@ impl ErasedTool for OrderedParallelTool {
         let active = Arc::clone(&self.active);
         let maximum_active = Arc::clone(&self.maximum_active);
         let write_overlap = Arc::clone(&self.write_overlap);
+        let first_read_pair = Arc::clone(&self.first_read_pair);
         let descriptor = self.descriptor.clone();
         let write = self.write;
         let ordinal = input.value().as_value()["ordinal"].as_u64().unwrap();
@@ -876,6 +878,13 @@ impl ErasedTool for OrderedParallelTool {
             maximum_active.fetch_max(now_active, Ordering::SeqCst);
             if write && now_active != 1 {
                 write_overlap.store(true, Ordering::SeqCst);
+            }
+            // Prove actual concurrent dispatch without assuming that 160 ms of
+            // wall time outlasts database scheduling on a loaded CI runner.
+            if ordinal <= 1 {
+                tokio::time::timeout(Duration::from_secs(8), first_read_pair.wait())
+                    .await
+                    .expect("both first read-only calls must overlap");
             }
             let delay = match ordinal {
                 0 => Duration::from_millis(160),
@@ -1735,6 +1744,7 @@ fn provider_native_parallel_fixture(store: PostgresStore) -> ProviderNativeParal
     let active = Arc::new(AtomicUsize::new(0));
     let maximum_active_tools = Arc::new(AtomicUsize::new(0));
     let write_overlap = Arc::new(AtomicBool::new(false));
+    let first_read_pair = Arc::new(tokio::sync::Barrier::new(2));
     let transcript_order = Arc::new(tokio::sync::Mutex::new(Vec::new()));
     let mut models = ModelProviderRegistryBuilder::new();
     models
@@ -1756,6 +1766,7 @@ fn provider_native_parallel_fixture(store: PostgresStore) -> ProviderNativeParal
                 active: Arc::clone(&active),
                 maximum_active: Arc::clone(&maximum_active_tools),
                 write_overlap: Arc::clone(&write_overlap),
+                first_read_pair: Arc::clone(&first_read_pair),
                 write,
             }))
             .unwrap();
@@ -2563,7 +2574,7 @@ async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposa
     .unwrap();
 
     let drive_result = tokio::time::timeout(
-        Duration::from_secs(10),
+        Duration::from_secs(20),
         driver.drive(lease.fence().clone(), CancellationSignal::never()),
     )
     .await
@@ -6343,6 +6354,19 @@ async fn test_store() -> Option<PostgresStore> {
 }
 
 async fn test_store_with_lease_duration(lease_duration: Duration) -> Option<PostgresStore> {
+    test_store_with_lease_duration_and_timeouts(
+        lease_duration,
+        Duration::from_secs(5),
+        Duration::from_secs(20),
+    )
+    .await
+}
+
+async fn test_store_with_lease_duration_and_timeouts(
+    lease_duration: Duration,
+    lock_timeout: Duration,
+    statement_timeout: Duration,
+) -> Option<PostgresStore> {
     let database_url = match std::env::var(DATABASE_URL_ENV) {
         Ok(value) => value,
         Err(std::env::VarError::NotPresent) if std::env::var_os(REQUIRE_DATABASE_ENV).is_some() => {
@@ -6357,7 +6381,7 @@ async fn test_store_with_lease_duration(lease_duration: Duration) -> Option<Post
         .with_transport_security(PostgresTransportSecurity::Disabled)
         .with_pool_size(1, 8)
         .with_acquire_timeout(Duration::from_secs(30))
-        .with_transaction_timeouts(Duration::from_secs(5), Duration::from_secs(20))
+        .with_transaction_timeouts(lock_timeout, statement_timeout)
         .with_lease_timing(lease_duration, Duration::from_secs(5 * 60));
     PostgresStore::migrate_database(&database_url, options.clone())
         .await

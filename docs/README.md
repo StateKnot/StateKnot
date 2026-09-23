@@ -69,6 +69,10 @@ The [child-Join consumption COMMIT-loss profile](child-join-consumption-commit-l
 ([中文](child-join-consumption-commit-loss-qualification.zh-CN.md)) proves atomic
 Join consumption with the physical node result and completion, original-event
 recovery, and non-initial graph replay after both ambiguous COMMIT cuts.
+The [child-Join logical backup/restore profile](child-join-backup-restore-qualification.md)
+([中文](child-join-backup-restore-qualification.zh-CN.md)) verifies a real isolated
+`pg_dump`/`pg_restore` round trip and exact durable replay without claiming
+PITR, failover or complete production disaster recovery.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed

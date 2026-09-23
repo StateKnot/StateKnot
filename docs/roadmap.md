@@ -451,9 +451,12 @@ from the repository.
   removal, original-event recovery and subsequent parent closure.
   The two-cell [parent-finalization COMMIT-loss profile](parent-finalization-commit-loss-qualification.md)
   now proves atomic terminal failure, exact direct-plus-child accounting and
-  once-only completion after an ambiguous COMMIT. In-flight Join-result
-  consumption transactions, arbitrary
-  uncertain direct-effect recovery and full-profile/capacity qualification
+  once-only completion after an ambiguous COMMIT. The two-cell
+  [Join-result consumption profile](child-join-consumption-commit-loss-qualification.md)
+  adds atomic result/attempt/Join consumption and non-initial graph replay.
+  The [isolated logical restore profile](child-join-backup-restore-qualification.md)
+  checks one real `pg_dump`/`pg_restore` recovery path without qualifying PITR.
+  Arbitrary uncertain direct-effect recovery and full-profile/capacity qualification
   remain gated; the RFC remains Draft.
 - [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):
   non-superuser migration ownership, runtime column grants and separate reservation
