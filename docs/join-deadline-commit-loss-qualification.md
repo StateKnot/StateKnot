@@ -71,9 +71,11 @@ credentials, Agent inputs and child outputs are not emitted.
 This is a client-process fault profile, not a PostgreSQL server/WAL failure test.
 The companion
 [child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
-covers child admission. This profile does not cut cancellation delivery,
-settlement, terminal finalization or Join result consumption while COMMIT is in
-flight. It does not
+covers child admission, and the
+[child-cancellation delivery profile](child-cancellation-commit-loss-qualification.md)
+covers cancellation propagation plus real Wait cleanup. Settlement, terminal
+finalization and Join-result consumption remain uncut while COMMIT is in flight.
+It does not
 qualify unknown provider effects/prices, failover, PITR/restore, untrusted-worker
 SQL isolation, same-run nested namespaces, retained-history capacity, latency or
 soak. RFC-0004 therefore remains Draft and the complete durable-child profile is

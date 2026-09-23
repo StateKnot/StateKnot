@@ -335,6 +335,30 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Qualify child-cancellation delivery COMMIT loss
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: |
+          set -o pipefail
+          cargo test -p stateknot-runtime --test postgres --locked -- \
+            --exact child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable \
+            --nocapture --test-threads=1 | tee child-cancellation-commit-loss.log
+          # Delivery must prove both full rollback and original receipt recovery,
+          # including atomic cleanup of the real outstanding wait set.
+          test "$(grep -c '^STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE=' child-cancellation-commit-loss.log)" = 2
+
+      - name: Upload child-cancellation COMMIT-loss evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: child-cancellation-commit-loss-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            child-cancellation-commit-loss.log
+            failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload Join and deadline COMMIT-loss evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

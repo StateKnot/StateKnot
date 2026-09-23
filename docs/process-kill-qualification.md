@@ -89,7 +89,10 @@ The [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.
 also covers registration, publication and deadline cancellation. The
 [child-admission COMMIT-loss profile](child-admission-commit-loss-qualification.md)
 covers atomic child creation, ownership, initial checkpoint, parent audit and
-reservation. Remaining gates include other pre-/in-commit boundaries, real provider effects and pricing recovery,
+reservation. The [child-cancellation delivery COMMIT-loss profile](child-cancellation-commit-loss-qualification.md)
+covers request propagation, real Wait abandonment, immutable receipt recovery
+and downstream settlement. Remaining gates include settlement/finalization/
+consumption pre-/in-commit boundaries, real provider effects and pricing recovery,
 SQL role isolation,
 failover/PITR/restore, retained-history capacity, fairness and latency. Do not
 remove the RFC Draft status or advertise complete-profile support from this test.

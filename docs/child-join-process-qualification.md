@@ -67,9 +67,13 @@ This profile cuts only after known successful commits. The companion
 qualifies the cancellation branch. The separate
 [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
 now cuts Join registration, Join publication and deadline cancellation at an
-unforwarded COMMIT and a withheld committed response. Admission, cancellation
-delivery, settlement, finalization and result-consumption transactions remain
-unqualified while COMMIT is in flight. Unknown provider effects or pricing,
+unforwarded COMMIT and a withheld committed response. The
+[child-admission profile](child-admission-commit-loss-qualification.md) covers
+admission separately, and the
+[child-cancellation delivery profile](child-cancellation-commit-loss-qualification.md)
+now covers cancellation propagation and real Wait cleanup. Settlement,
+finalization and result-consumption transactions remain unqualified while COMMIT
+is in flight. Unknown provider effects or pricing,
 database failover/PITR/restore, untrusted-worker SQL isolation, retained-history
 capacity, latency and soak also remain open. Those gates stay explicit in
 RFC-0004 and must pass before the general durable-child capability is advertised

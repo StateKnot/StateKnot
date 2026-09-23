@@ -68,8 +68,9 @@ inputs and child outputs are not emitted.
 ## Gates still open
 
 This is a client-process fault profile, not a PostgreSQL server/WAL fault test.
-It does not cut cancellation delivery, settlement, terminal finalization or Join
-result consumption while COMMIT is in flight. It does not qualify unknown
+The separate [child-cancellation delivery profile](child-cancellation-commit-loss-qualification.md)
+now cuts cancellation delivery. Settlement, terminal finalization and Join-result
+consumption remain uncut while COMMIT is in flight. It does not qualify unknown
 provider effects/prices, failover, PITR/restore, untrusted-worker SQL isolation,
 same-run nested namespaces, retained-history capacity, latency or soak. RFC-0004
 therefore remains Draft and the complete durable-child profile is not advertised

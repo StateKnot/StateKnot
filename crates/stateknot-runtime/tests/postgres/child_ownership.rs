@@ -24,6 +24,9 @@ mod transaction_commit_loss;
 #[path = "child_admission_commit_loss.rs"]
 mod child_admission_commit_loss;
 
+#[path = "child_cancellation_commit_loss.rs"]
+mod child_cancellation_commit_loss;
+
 use super::*;
 use sqlx_core::{query::query, query_scalar::query_scalar};
 use stateknot_core::{AgentAdmission, JournalHead, NodeAttemptStartHead, RunFailure};

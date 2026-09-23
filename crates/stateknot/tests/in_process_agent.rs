@@ -143,6 +143,13 @@ async fn postgres_typed_run_is_idempotent_and_resumes_after_wait_timeout() {
             ..
         }
     ));
+    timeout(Duration::from_secs(5), async {
+        while f.node_calls.load(Ordering::SeqCst) == calls {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("the preserved run must remain dispatchable after caller timeout");
     assert_eq!(f.node_calls.load(Ordering::SeqCst), calls + 1);
     f.node_block.store(false, Ordering::SeqCst);
     f.node_release.notify_waiters();

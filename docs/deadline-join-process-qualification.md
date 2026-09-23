@@ -66,8 +66,10 @@ URL, credential, Agent input or child output payload.
 This profile terminates processes only after known successful commits. It does
 not itself cut transactions while COMMIT is in flight. The separate
 [Join/deadline COMMIT-loss profile](join-deadline-commit-loss-qualification.md)
-now covers the deadline cancellation transaction, while cancellation delivery,
-settlement and terminal finalization remain open. It does not qualify unknown
+now covers the deadline cancellation transaction, and the
+[child-cancellation delivery profile](child-cancellation-commit-loss-qualification.md)
+covers propagation plus real Wait cleanup. Settlement and terminal finalization
+remain open. It does not qualify unknown
 provider effects or pricing,
 database failover/PITR/restore, untrusted-worker SQL isolation, retained-history
 capacity, latency or soak. Those gates remain explicit in RFC-0004 and must pass

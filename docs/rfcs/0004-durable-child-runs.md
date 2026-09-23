@@ -356,7 +356,10 @@ root-only data. Preserve all static-composition and root-run regression tests.
   [child-admission COMMIT-loss profile](../child-admission-commit-loss-qualification.md)
   separately proves rollback and original-identity recovery for child creation,
   ownership, initial checkpoint, parent audit and cumulative reservation.
-  Delivery, settlement, finalization and consumption
+  The [child-cancellation delivery COMMIT-loss profile](../child-cancellation-commit-loss-qualification.md)
+  adds rollback and original-receipt recovery for cancellation, real Wait
+  abandonment, queue consumption and downstream settlement. Settlement,
+  finalization and consumption
   transactions, database-server faults and provider effects remain separate
   gates; this does not qualify the entire runtime matrix.
 - Measured recovery/capacity thresholds. Cancellation now has PostgreSQL 16/17
