@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 
 > M0 处理进度：[`v1-scope.md`](v1-scope.md) 已解决 v1 范围与 RAG 边界，
 > [`scenarios/`](scenarios/README.md) 已固定三个场景、参考环境、负载、故障模型与首组性能/恢复阈值。
-> Scheduler、storage lifecycle、schema migration、authentication/policy 和公共 API 仍必须由 RFC-0001 至 RFC-0004 关闭，不能因场景文档完成而视为已解决。
+> Scheduler、storage lifecycle、schema migration、authentication/policy 和公共 API 仍需由相应 RFC 与验收证据关闭，不能因场景文档完成而视为已解决。RFC-0004 已用于可恢复子 Run；MCP/A2A 身份与安全映射仍需独立 RFC。
 
 ## 1. 总体结论
 
