@@ -57,6 +57,10 @@ The [child-cancellation delivery COMMIT-loss profile](child-cancellation-commit-
 ([中文](child-cancellation-commit-loss-qualification.zh-CN.md)) adds exact rollback
 and original-receipt recovery for cancellation, real Wait abandonment, scheduler
 re-entry and the durable delivery queue.
+The [child-settlement COMMIT-loss profile](child-settlement-commit-loss-qualification.md)
+([中文](child-settlement-commit-loss-qualification.zh-CN.md)) proves atomic
+terminal accounting, notification removal, original-event recovery and
+subsequent parent closure after both ambiguous COMMIT cuts.
 The four [public core contract examples](core-contract-examples.md)
 ([中文](core-contract-examples.zh-CN.md)) compile the first Agent, typed Tool,
 Model stream and explicit protocol mapping on MSRV while locking the reviewed

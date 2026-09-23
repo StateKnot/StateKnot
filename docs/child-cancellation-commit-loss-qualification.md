@@ -74,8 +74,10 @@ inputs and outputs are never evidence fields.
 ## Gates still open
 
 This is a client-process fault profile, not a PostgreSQL server/WAL fault test.
-Child settlement, terminal finalization and Join-result consumption still lack
-equivalent in-flight COMMIT cuts. Unknown provider effects/prices, failover,
+The separate [child-settlement profile](child-settlement-commit-loss-qualification.md)
+now cuts accounting settlement. Parent terminal finalization and Join-result
+consumption still lack equivalent in-flight COMMIT cuts. Unknown provider
+effects/prices, failover,
 PITR/restore, untrusted-worker SQL isolation, same-run nested namespaces,
 retained-history capacity, latency and soak also remain unqualified. RFC-0004
 therefore remains Draft and the complete durable-child profile is not advertised

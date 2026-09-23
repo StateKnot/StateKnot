@@ -61,7 +61,9 @@ COMMIT 进行中切断。独立的
 [Join/Deadline COMMIT 丢失配置](join-deadline-commit-loss-qualification.zh-CN.md)
 现已覆盖 Deadline 取消事务；独立的
 [子 Agent 取消投递配置](child-cancellation-commit-loss-qualification.zh-CN.md)覆盖取消传播与真实
-Wait 清理。结算和终态收口仍未覆盖。它也不验证不确定
+Wait 清理；独立的
+[子 Run 结算配置](child-settlement-commit-loss-qualification.zh-CN.md)现已覆盖结算。
+父级终态收口仍未覆盖。它也不验证不确定
 Provider 副作用/计价、数据库 Failover、
 PITR/恢复、不可信 Worker SQL 隔离、历史保留容量、延迟或 Soak。RFC-0004 继续明确
 保留这些门禁；通过之前不能把通用可恢复子 Run 宣称为生产就绪。

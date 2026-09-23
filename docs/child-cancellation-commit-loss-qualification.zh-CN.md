@@ -60,7 +60,9 @@ Source/Tree 身份、Lockfile 摘要、工具链、PostgreSQL 镜像、内核和
 
 ## 仍未覆盖的门禁
 
-这是客户端进程故障配置，不是 PostgreSQL Server/WAL 故障测试。子结算、终态收口与 Join
-结果消费仍缺少同等级的 COMMIT 进行中切断。不确定 Provider 副作用/计价、Failover、
+这是客户端进程故障配置，不是 PostgreSQL Server/WAL 故障测试。独立的
+[子 Run 结算配置](child-settlement-commit-loss-qualification.zh-CN.md)现已覆盖结算。
+父级终态收口和 Join 结果消费仍缺少同等级的 COMMIT 进行中切断。
+不确定 Provider 副作用/计价、Failover、
 PITR/恢复、不可信 Worker SQL 隔离、同 Run 嵌套命名空间、历史保留容量、延迟和 Soak
 也仍未验收。因此 RFC-0004 继续保持 Draft，完整可恢复子 Run 能力不能宣称生产就绪。

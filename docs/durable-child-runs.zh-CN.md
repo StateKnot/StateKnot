@@ -417,7 +417,8 @@ Deadline 的 [COMMIT 丢失配置](join-deadline-commit-loss-qualification.zh-CN
 创建、归属、初始检查点、父审计与预算预留在未转发 COMMIT 时整体回滚，并在已提交响应
 丢失时恢复原始身份。新增的
 [子 Agent 取消投递 COMMIT 丢失配置](child-cancellation-commit-loss-qualification.zh-CN.md)
-以同样两种切断验证取消传播、真实 Wait 废止、不可变 Receipt 恢复与后续结算。结算、终态
-收口和结果消费的 COMMIT 进行中切断仍未覆盖，
-因此不代表完整子 Run 服务可用；草案不会
+以同样两种切断验证取消传播、真实 Wait 废止、不可变 Receipt 恢复与后续结算。新增的
+[子 Run 结算 COMMIT 丢失配置](child-settlement-commit-loss-qualification.zh-CN.md)
+验证终态记账的原子性、原始事件恢复以及后续父级收口。父级终态收口和 Join 结果消费的
+COMMIT 进行中切断仍未覆盖，因此不代表完整子 Run 服务可用；草案不会
 作为完整已实现能力发布到官网状态页。

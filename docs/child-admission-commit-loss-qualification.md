@@ -69,7 +69,9 @@ inputs and child outputs are not emitted.
 
 This is a client-process fault profile, not a PostgreSQL server/WAL fault test.
 The separate [child-cancellation delivery profile](child-cancellation-commit-loss-qualification.md)
-now cuts cancellation delivery. Settlement, terminal finalization and Join-result
+now cuts cancellation delivery; the
+[child-settlement profile](child-settlement-commit-loss-qualification.md)
+cuts accounting settlement. Parent terminal finalization and Join-result
 consumption remain uncut while COMMIT is in flight. It does not qualify unknown
 provider effects/prices, failover, PITR/restore, untrusted-worker SQL isolation,
 same-run nested namespaces, retained-history capacity, latency or soak. RFC-0004

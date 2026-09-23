@@ -71,9 +71,10 @@ unforwarded COMMIT and a withheld committed response. The
 [child-admission profile](child-admission-commit-loss-qualification.md) covers
 admission separately, and the
 [child-cancellation delivery profile](child-cancellation-commit-loss-qualification.md)
-now covers cancellation propagation and real Wait cleanup. Settlement,
-finalization and result-consumption transactions remain unqualified while COMMIT
-is in flight. Unknown provider effects or pricing,
+now covers cancellation propagation and real Wait cleanup. The
+[child-settlement profile](child-settlement-commit-loss-qualification.md)
+covers accounting settlement. Parent finalization and Join-result consumption
+remain unqualified while COMMIT is in flight. Unknown provider effects or pricing,
 database failover/PITR/restore, untrusted-worker SQL isolation, retained-history
 capacity, latency and soak also remain open. Those gates stay explicit in
 RFC-0004 and must pass before the general durable-child capability is advertised
