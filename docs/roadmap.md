@@ -29,6 +29,9 @@ protocol conformance suite.
    change; do not silently replace published error types in the existing
    preview. Exit when the English and Chinese entry paths agree and the
    durable example executes in CI without bypassing authorization.
+   The real OpenAI-compatible HTTP adapter / PostgreSQL 16-17 / exact-key
+   policy / digest-pinned token-pricing qualification now covers that execution
+   path, but a standalone operator-configured runnable example is still open.
 2. **Complete the scoped runtime and service.** Implement general durable-data
    retention and artifact garbage collection, OpenTelemetry and audit export,
    the scoped JWT/JWKS identity profile, a durable A2A task/push backend, and

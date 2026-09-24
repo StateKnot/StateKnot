@@ -43,6 +43,7 @@ mod invocation_executor;
 mod invocation_schema;
 mod lifecycle;
 mod lifecycle_schema;
+mod model_token_accounting;
 mod provider_native_agent;
 mod provider_registry;
 mod registry;
@@ -160,6 +161,7 @@ pub use lifecycle::{
     GraphLifecycleError, GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider,
     GraphTerminalEvidence, GraphTerminalEvidenceContext,
 };
+pub use model_token_accounting::{ModelTokenAccounting, ModelTokenRateCard};
 pub use provider_native_agent::{
     AgentInvocationAccounting, AgentInvocationAccountingReference, AgentInvocationCharge,
     AgentToolPolicy, AgentToolPolicyContext, AgentToolPolicyDecision, AgentToolPolicyError,
