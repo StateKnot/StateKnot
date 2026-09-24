@@ -5,6 +5,9 @@
 #![allow(clippy::wildcard_imports, clippy::too_many_lines)]
 
 use serde_json::{Value, json};
+use stateknot::runtime::agent_policy::{
+    AgentResourcePolicy, PolicyArtifact, RunAccessTarget, RunPermission, RunRule,
+};
 use stateknot::{
     agent_http::*,
     agent_maintenance::{
@@ -71,6 +74,93 @@ fn runtime_options() -> InProcessAgentRuntimeOptions {
 
 fn request(key: AgentSubmissionKey, value: i64) -> InProcessAgentRequest<ValuePayload> {
     InProcessAgentRequest::new(key, ValuePayload { value }, BudgetLimits::empty())
+}
+
+#[tokio::test]
+async fn postgres_typed_run_accepts_exact_submission_key_read_without_tenant_wide_access() {
+    let Some(f) = Fixture::new().await else {
+        return;
+    };
+    let key = AgentSubmissionKey::new(format!("typed-key-only-{}", EventId::generate())).unwrap();
+    let mut document = f.resource_document.clone();
+    document.runs.push(RunRule {
+        tenant: f.caller.tenant_id().clone(),
+        principal: f.caller.principal().clone(),
+        operation: RunPermission::Read,
+        target: RunAccessTarget::Submission(key.digest_for(f.caller.tenant_id())),
+    });
+    let policy = Arc::new(
+        AgentResourcePolicy::new(
+            PolicyArtifact::new(document).unwrap(),
+            Duration::from_secs(60),
+        )
+        .unwrap(),
+    );
+    let service = AgentServiceV1::new(
+        f.store.clone(),
+        f.executable.clone(),
+        f.deployments.clone(),
+        policy.clone(),
+    )
+    .unwrap();
+    let binding = InProcessAgentBinding::tenant(
+        f.store.clone(),
+        f.executable.clone(),
+        f.deployments.clone(),
+        policy,
+        evidence(&f),
+        f.caller.tenant_id().clone(),
+        AgentWorkerExecutionOptions::default(),
+        AgentMaintenanceMutationOptions::default(),
+    )
+    .unwrap();
+    let dependencies = InProcessAgentDependencies {
+        worker: Arc::new(Host),
+        maintenance: Arc::new(Host),
+    };
+    let mut runtime = InProcessAgentRuntime::start(binding, dependencies, runtime_options())
+        .await
+        .unwrap();
+    let agent = runtime.agent(f.typed.clone(), f.caller.clone()).unwrap();
+    let first = agent.run(request(key.clone(), 7)).await.unwrap();
+    let InProcessAgentRun::Succeeded { snapshot, .. } = first else {
+        panic!("exact-key authorized run must succeed");
+    };
+    let run_id = snapshot.provenance().run_id();
+    assert!(matches!(
+        service.load(f.caller.clone(), run_id).await,
+        Err(AgentServiceError::Authorization(
+            AgentServiceAuthorizationError::Denied
+        ))
+    ));
+    assert_eq!(
+        service
+            .load_by_key(f.caller.clone(), &key)
+            .await
+            .unwrap()
+            .provenance()
+            .run_id(),
+        run_id,
+    );
+    let other_key =
+        AgentSubmissionKey::new(format!("typed-ungranted-{}", EventId::generate())).unwrap();
+    assert!(matches!(
+        service.load_by_key(f.caller.clone(), &other_key).await,
+        Err(AgentServiceError::Authorization(
+            AgentServiceAuthorizationError::Denied
+        ))
+    ));
+    let repeated = agent.run(request(key, 7)).await.unwrap();
+    assert!(matches!(
+        repeated,
+        InProcessAgentRun::Succeeded { snapshot, .. }
+            if snapshot.provenance().run_id() == run_id
+    ));
+    drop(agent);
+    let report = runtime.shutdown().await.unwrap();
+    assert!(report.failure.is_none());
+    assert!(report.worker.unwrap().is_ok());
+    assert!(report.maintenance.unwrap().is_ok());
 }
 
 #[tokio::test]

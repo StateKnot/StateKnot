@@ -12,7 +12,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-No changes yet.
+### Changed
+
+- `InProcessAgent::run` now performs its post-admission and polling reads through
+  the caller-retained submission key, with an exact Run-ID consistency check.
+  Deployments using this convenience path must grant `Read` on that submission
+  key; a Run-ID-only read grant no longer suffices. This avoids requiring a
+  tenant-wide read grant for a one-request typed Agent run.
 
 ## [0.1.0-alpha.1] - 2026-09-21
 
