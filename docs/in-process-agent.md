@@ -71,6 +71,13 @@ original run; reusing it for different content fails with a conflict. StateKnot
 does not generate a hidden key because a caller could not recover a lost
 acknowledgement without it.
 
+The in-process runner performs a fresh authorized lookup by that exact
+submission key after admission and on every poll. A concrete resource policy
+can therefore grant `RunPermission::Read` for
+`RunAccessTarget::Submission(key.digest_for(&tenant))` without granting
+`TenantRuns` or Run-ID-wide reads. The returned Run ID is checked against the
+admission result; submission authorization alone never implies read access.
+
 `run` returns the full durable state:
 
 | Outcome | Meaning | Caller action |

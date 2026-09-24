@@ -66,6 +66,12 @@ where
 配合字节等价的内容会返回原 Run；同 Key 不同内容会得到 Conflict。StateKnot
 不会偷偷生成 Key，否则调用方在响应丢失后无法恢复原请求。
 
+进程内 Runner 在准入后和每次轮询时，都会按这个精确 Submission Key 重新鉴权读取。
+因此资源策略可以只授予
+`RunPermission::Read` + `RunAccessTarget::Submission(key.digest_for(&tenant))`，
+无需授予 `TenantRuns` 或整个 Run ID 的读取权限。返回的 Run ID 仍与准入结果
+逐次比对；提交授权本身不会隐含读取授权。
+
 `run` 不会把可恢复状态压扁成一个 `O`：
 
 | 结果 | 含义 | 调用方动作 |

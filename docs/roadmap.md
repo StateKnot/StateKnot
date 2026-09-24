@@ -22,7 +22,9 @@ protocol conformance suite.
 
 1. **Contract and developer-path cleanup.** Correct the RFC/security mapping,
    use one source for bilingual public status, shorten the README, and provide
-   a runnable first Agent using real PostgreSQL and explicit authorization.
+   a runnable first Agent using real PostgreSQL, explicit authorization, and
+   model calls whose invocation and usage are durably evidenced. Never
+   synthesize a model turn merely to satisfy terminal validation.
    Review schema-registration boilerplate at the next versioned public API
    change; do not silently replace published error types in the existing
    preview. Exit when the English and Chinese entry paths agree and the

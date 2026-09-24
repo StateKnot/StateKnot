@@ -636,9 +636,10 @@ where
     I: Serialize,
     O: DeserializeOwned,
 {
-    /// Submits durably, polls authorized snapshots, and returns a typed terminal
-    /// result or a resumable nonterminal observation. Cancelling this future
-    /// does not cancel the durable run.
+    /// Submits durably, polls snapshots authorized for the exact submission
+    /// key, and returns a typed terminal result or a resumable nonterminal
+    /// observation. Submission permission alone does not grant these reads.
+    /// Cancelling this future does not cancel the durable run.
     ///
     /// # Errors
     ///
@@ -670,8 +671,11 @@ where
         let mut snapshot = self
             .runtime
             .service
-            .load(self.caller.clone(), run_id)
+            .load_by_key(self.caller.clone(), &request.key)
             .await?;
+        if snapshot.provenance().run_id() != run_id {
+            return Err(InProcessAgentRunError::AdmissionMismatch);
+        }
         let deadline = Instant::now() + self.options.wait_timeout;
         loop {
             if snapshot.is_quarantined() {
@@ -705,8 +709,11 @@ where
             snapshot = self
                 .runtime
                 .service
-                .load(self.caller.clone(), run_id)
+                .load_by_key(self.caller.clone(), &request.key)
                 .await?;
+            if snapshot.provenance().run_id() != run_id {
+                return Err(InProcessAgentRunError::AdmissionMismatch);
+            }
         }
     }
 
