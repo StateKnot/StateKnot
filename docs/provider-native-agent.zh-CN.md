@@ -84,6 +84,18 @@ Digest-pinned 依赖缺失或冲突都会让启动失败。
 Compiled Graph，再让新 Run Admission 到这个精确 Graph Reference；存量 Run 继续解析
 自己已经固定的版本。
 
+串行 Tool 执行时，应将
+`ProviderNativeAgentBudgetProvider::new(definition.clone(), store.clone())`
+绑定为 `DurableInvocationExecutor` 的预算来源。每次外部调用开始前，它会读取精确的
+已准入预算和当前 Checkpoint，核对已准备的 Invocation 与固定版本 Graph Plan，并从
+已提交的 Model/Tool 账本恢复累计直接用量。账本事实缺失或结果不确定时会保守拒绝，
+绝不当作零用量。PostgreSQL 集成验证了第二轮 Model 调用确实扣除了第一轮的额度。
+
+这个预算提供器明确拒绝可能并行启动多个 Tool 的 Graph。那种部署需要原子、持久的
+额度预留，防止并发调用读取并复用同一份剩余额度。现有并行执行测试使用的仍是仅供
+测试的静态预算来源，不能视为并行模式的生产预算装配证明。串行 Tool 和纯 Model
+Agent 不受此限制。
+
 ## Policy 与 Accounting 是执行依赖
 
 `AgentToolPolicy` 在 Tool Prepare 前执行。它必须无副作用、在本地运行，并对精确

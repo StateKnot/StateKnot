@@ -96,6 +96,22 @@ Do not mutate a live registry. Build a complete new deployment snapshot,
 register its compiled graph durably, then admit new runs against that exact
 graph reference. Existing runs continue to resolve their pinned version.
 
+For sequential Tool execution, bind
+`ProviderNativeAgentBudgetProvider::new(definition.clone(), store.clone())`
+as the `DurableInvocationExecutor` budget source. Before each external start it
+loads the exact admitted budget and current checkpoint, verifies the prepared
+invocation against the pinned graph plan, and reconstructs cumulative DIRECT
+usage from committed model/tool ledgers. A missing or uncertain ledger fact
+fails closed; it is never treated as zero usage. PostgreSQL qualification proves
+that the second model turn sees the first turn's spent capacity.
+
+This provider deliberately rejects a graph that can dispatch multiple Tools
+in parallel. Such a deployment needs an atomic, durable capacity reservation
+source that prevents simultaneous calls from sharing the same available
+budget. The existing parallel execution tests use a test-only static budget
+source; they do not qualify a production budget composition. This restriction
+does not affect sequential Tools or a model-only Agent.
+
 ## Policy and accounting are execution dependencies
 
 `AgentToolPolicy` is invoked before tool preparation. It is side-effect-free,
