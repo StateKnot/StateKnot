@@ -294,6 +294,10 @@ bilingual content.
   policy, deterministic exact accounting, no-redispatch terminal recovery,
   known failed-Tool continuation, durable cancellation observation, exact-usage
   confirmation, lost-ACK replay, and PostgreSQL 16/17 evidence.
+- [x] Add a sequential provider-native invocation budget source that validates
+  the admitted graph plan and derives each next attempt's remaining capacity
+  from PostgreSQL-backed model/tool usage. Parallel Tool budget reservation and
+  the first real-provider runnable Agent remain open.
 - [x] Implement `AgentServiceV1` as an exact-version, authorization-first
   embedding boundary for tenant-scoped submission recovery, verified run/key
   reads, and caller-retained two-phase cancellation. Missing deployment/run/key

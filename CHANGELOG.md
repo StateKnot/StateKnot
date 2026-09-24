@@ -12,6 +12,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- A provider-native invocation budget source for sequential Tool graphs. It
+  verifies the admitted plan and reconstructs spent model/tool capacity from
+  durable PostgreSQL evidence before external dispatch; parallel Tool graphs
+  are rejected until atomic capacity reservation is available.
+
 ### Changed
 
 - `InProcessAgent::run` now performs its post-admission and polling reads through

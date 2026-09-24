@@ -477,7 +477,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     Box::pin(runtime_failure_close(&store)).await;
     Box::pin(super::super::join::qualify_join_with_store(&store)).await;
     Box::pin(crate::qualify_agent_service_with_store(&store)).await;
-    Box::pin(crate::qualify_provider_native_with_store(&store)).await;
+    Box::pin(crate::qualify_provider_native_with_store(&store, false)).await;
     node_completion_race(&store).await;
     skill_acting_window_authorization(&store).await;
     isolated_retention(&fixture, &store).await;

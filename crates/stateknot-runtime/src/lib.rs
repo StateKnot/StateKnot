@@ -164,10 +164,12 @@ pub use provider_native_agent::{
     AgentInvocationAccounting, AgentInvocationAccountingReference, AgentInvocationCharge,
     AgentToolPolicy, AgentToolPolicyContext, AgentToolPolicyDecision, AgentToolPolicyError,
     AgentToolPolicyReference, PROVIDER_NATIVE_MODEL_NODE_ID, PROVIDER_NATIVE_TOOLS_NODE_ID,
-    PROVIDER_NATIVE_TOOLS_ROUTE_ID, ProviderNativeAgentGraph, ProviderNativeAgentGraphBuildError,
-    ProviderNativeAgentLifecycleEvidence, ProviderNativeAgentPhase,
-    ProviderNativeAgentRegistrationError, ProviderNativeAgentState, ProviderNativeAgentStateError,
-    ProviderNativeCompletedTurn, ProviderNativeModelPlan, ProviderNativeToolPlan,
+    PROVIDER_NATIVE_TOOLS_ROUTE_ID, ProviderNativeAgentBudgetBuildError,
+    ProviderNativeAgentBudgetProvider, ProviderNativeAgentGraph,
+    ProviderNativeAgentGraphBuildError, ProviderNativeAgentLifecycleEvidence,
+    ProviderNativeAgentPhase, ProviderNativeAgentRegistrationError, ProviderNativeAgentState,
+    ProviderNativeAgentStateError, ProviderNativeCompletedTurn, ProviderNativeModelPlan,
+    ProviderNativeToolPlan,
 };
 pub use provider_registry::{
     ModelProviderRegistry, ModelProviderRegistryBuilder, ModelProviderRegistryError,

@@ -16,12 +16,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use stateknot_core::{
     AgentArtifacts, AgentDescriptor, AgentInstructions, AgentStructuredOutputStrategy,
-    AgentToolConcurrency, AttemptId, BoundedJson, BoxFuture, BudgetUsage, ByteCount,
-    CapabilityIdentity, Checkpoint, CheckpointState, CompiledGraph, ContentMetadata, ContentPart,
-    ContentSource, ContentTrust, Digest, DurationMillis, EventId, ExecutionCount, Failure,
-    FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin, GraphCompileError,
-    GraphExecutionLimits, GraphNode, GraphReducer, GraphReducerError, GraphReducerInput,
-    GraphReducerReference, GraphReference, GraphRoute, GraphRoutes, Instruction,
+    AgentToolConcurrency, AttemptId, BoundedJson, BoxFuture, BudgetRemaining, BudgetUsage,
+    ByteCount, CapabilityIdentity, Checkpoint, CheckpointState, CompiledGraph, ContentMetadata,
+    ContentPart, ContentSource, ContentTrust, Digest, DurationMillis, EventId, ExecutionCount,
+    Failure, FailureCategory, FailureCode, FailureId, FailureMessage, FailureOrigin,
+    GraphCompileError, GraphExecutionLimits, GraphNode, GraphReducer, GraphReducerError,
+    GraphReducerInput, GraphReducerReference, GraphReference, GraphRoute, GraphRoutes, Instruction,
     InstructionIdentity, InstructionName, InstructionProvenance, InvocationId, JournalAppend,
     JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload, JsonContent,
     KnownCosts, Message, MessageId, MessageParts, MessageProducer, MessageProvenance, MessageRole,
@@ -43,10 +43,11 @@ use crate::{
     GraphFailureEvidenceContext, GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider,
     GraphNodeContext, GraphNodeExecution, GraphNodeExecutionError, GraphNodeExecutor,
     GraphTerminalEvidence, GraphTerminalEvidenceContext, InvocationAttemptEventIds,
-    JsonSchemaRegistry, JsonSchemaRegistryBuilder, JsonSchemaRegistryError, ModelAttemptHandoff,
-    ModelAttemptOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptStartOutcome,
-    ToolReconciliationAttemptExecutionError, ToolReconciliationAttemptHandoff,
-    ToolReconciliationAttemptOutcome, ToolTerminalCommitHandoff,
+    InvocationBoundaryKind, InvocationBudgetContext, InvocationBudgetProvider,
+    InvocationBudgetProviderError, JsonSchemaRegistry, JsonSchemaRegistryBuilder,
+    JsonSchemaRegistryError, ModelAttemptHandoff, ModelAttemptOutcome, ToolAttemptHandoff,
+    ToolAttemptOutcome, ToolAttemptStartOutcome, ToolReconciliationAttemptExecutionError,
+    ToolReconciliationAttemptHandoff, ToolReconciliationAttemptOutcome, ToolTerminalCommitHandoff,
     standard_invocation_execution_event_schema,
 };
 
@@ -791,6 +792,177 @@ impl fmt::Debug for ProviderNativeAgentGraph {
             .field("contract_digest", &self.contract_digest)
             .finish_non_exhaustive()
     }
+}
+
+/// Recovers a provider-native run's remaining DIRECT budget from its admitted
+/// snapshot and immutable invocation ledgers before an external attempt starts.
+///
+/// This implementation currently supports sequential Tool dispatch. Parallel
+/// read-only waves need atomic capacity reservation across simultaneous starts;
+/// using this provider with such a graph is rejected at construction time.
+#[derive(Clone)]
+pub struct ProviderNativeAgentBudgetProvider {
+    definition: Arc<ProviderNativeAgentGraph>,
+    store: PostgresStore,
+}
+
+impl ProviderNativeAgentBudgetProvider {
+    /// Binds an immutable native graph to its durable admission and invocation
+    /// store. Parallel Tool dispatch is rejected instead of sharing an
+    /// unreserved remaining-budget observation between concurrent calls.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the graph can dispatch multiple Tools concurrently.
+    pub fn new(
+        definition: ProviderNativeAgentGraph,
+        store: PostgresStore,
+    ) -> Result<Self, ProviderNativeAgentBudgetBuildError> {
+        if definition
+            .descriptor
+            .execution()
+            .tool_concurrency()
+            .maximum()
+            > ExecutionCount::new(1)
+            && definition.descriptor.execution().max_tool_calls_per_turn() > ExecutionCount::new(1)
+        {
+            return Err(ProviderNativeAgentBudgetBuildError::ParallelTools);
+        }
+        Ok(Self {
+            definition: Arc::new(definition),
+            store,
+        })
+    }
+
+    async fn remaining_inner(
+        &self,
+        context: InvocationBudgetContext,
+    ) -> Result<BudgetRemaining, ProviderNativeAgentBudgetError> {
+        let provenance = context.provenance();
+        let stored = self
+            .store
+            .load_agent_admission(provenance.tenant_id(), provenance.run_id())
+            .await?;
+        if stored.admission().intent().provenance() != provenance
+            || validate_admission(&stored, &self.definition).is_err()
+        {
+            return Err(ProviderNativeAgentBudgetError::InvalidContext);
+        }
+        let checkpoint = self
+            .store
+            .load_current_checkpoint(provenance.tenant_id(), provenance.run_id())
+            .await?
+            .ok_or(ProviderNativeAgentBudgetError::InvalidContext)?;
+        if stored
+            .run()
+            .checkpoint()
+            .is_none_or(|pointer| pointer.checkpoint_id() != checkpoint.checkpoint_id())
+        {
+            return Err(ProviderNativeAgentBudgetError::InvalidContext);
+        }
+        let state = self
+            .definition
+            .restore_state(checkpoint.state())
+            .map_err(|_| ProviderNativeAgentBudgetError::InvalidContext)?;
+        let planned = match (context.boundary(), state.phase()) {
+            (InvocationBoundaryKind::Model, ProviderNativeAgentPhase::Model { plan }) => {
+                let record = self
+                    .store
+                    .load_model_invocation(
+                        provenance.tenant_id(),
+                        provenance.run_id(),
+                        context.invocation_id(),
+                    )
+                    .await?;
+                plan.invocation_id() == context.invocation_id()
+                    && plan.attempt_id() == context.attempt_id()
+                    && record.intent().intent_digest() == context.intent_digest()
+                    && record.intent().descriptor() == self.definition.descriptor.model()
+                    && record.intent().activation().base_checkpoint() == &checkpoint.head()
+                    && record.intent().activation().node_id() == &self.definition.model_node_id
+                    && matches!(record.state(), ModelInvocationState::Prepared)
+            }
+            (InvocationBoundaryKind::Tool, ProviderNativeAgentPhase::Tools { plans, .. }) => {
+                let record = self
+                    .store
+                    .load_tool_invocation(
+                        provenance.tenant_id(),
+                        provenance.run_id(),
+                        context.invocation_id(),
+                    )
+                    .await?;
+                plans.iter().any(|plan| {
+                    plan.invocation_id() == context.invocation_id()
+                        && plan.attempt_id() == context.attempt_id()
+                }) && record.intent().intent_digest() == context.intent_digest()
+                    && self
+                        .definition
+                        .descriptor
+                        .tools()
+                        .iter()
+                        .any(|tool| tool == record.intent().descriptor())
+                    && record.intent().activation().base_checkpoint() == &checkpoint.head()
+                    && record.intent().activation().node_id() == &self.definition.tools_node_id
+                    && matches!(record.state(), ToolInvocationState::Prepared)
+            }
+            _ => false,
+        };
+        if !planned {
+            return Err(ProviderNativeAgentBudgetError::InvalidContext);
+        }
+        let usage = recover_failure_usage(&self.store, &self.definition, &checkpoint, &state)
+            .await
+            .map_err(ProviderNativeAgentBudgetError::Evidence)?;
+        stored
+            .admission()
+            .intent()
+            .budget()
+            .remaining(&usage, context.observed_at())
+            .map_err(ProviderNativeAgentBudgetError::Evaluation)
+    }
+}
+
+impl InvocationBudgetProvider for ProviderNativeAgentBudgetProvider {
+    fn remaining(
+        &self,
+        context: InvocationBudgetContext,
+    ) -> BoxFuture<'_, Result<BudgetRemaining, InvocationBudgetProviderError>> {
+        Box::pin(async move {
+            self.remaining_inner(context)
+                .await
+                .map_err(InvocationBudgetProviderError::new)
+        })
+    }
+}
+
+impl fmt::Debug for ProviderNativeAgentBudgetProvider {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ProviderNativeAgentBudgetProvider")
+            .field("graph", &self.definition.graph.reference())
+            .finish_non_exhaustive()
+    }
+}
+
+/// Unsupported budget-provider composition.
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[non_exhaustive]
+pub enum ProviderNativeAgentBudgetBuildError {
+    /// Simultaneous read-only Tool calls need a durable capacity reservation.
+    #[error("provider-native budget provider requires sequential Tool dispatch")]
+    ParallelTools,
+}
+
+#[derive(Debug, Error)]
+enum ProviderNativeAgentBudgetError {
+    #[error("durable budget evidence could not be loaded: {0}")]
+    Store(#[from] StoreError),
+    #[error("invocation does not match the current admitted graph plan")]
+    InvalidContext,
+    #[error("durable usage evidence is unavailable: {0}")]
+    Evidence(GraphLifecycleEvidenceError),
+    #[error("remaining budget could not be evaluated: {0}")]
+    Evaluation(stateknot_core::BudgetEvaluationError),
 }
 
 /// Read-only lifecycle evidence recovery for one compiled provider-native

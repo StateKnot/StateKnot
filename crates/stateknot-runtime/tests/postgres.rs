@@ -81,7 +81,8 @@ use stateknot_runtime::{
     InvocationClock, InvocationClockError, InvocationClockObservation, JsonSchemaRegistry,
     JsonSchemaRegistryBuilder, JsonSchemaRegistryLimits, ModelAttemptExecutionError,
     ModelAttemptHandoff, ModelAttemptOutcome, ModelAttemptTerminalKind, ModelEventSink,
-    ModelEventSinkError, ModelProviderRegistryBuilder, ProviderNativeAgentGraph,
+    ModelEventSinkError, ModelProviderRegistryBuilder, ProviderNativeAgentBudgetBuildError,
+    ProviderNativeAgentBudgetProvider, ProviderNativeAgentGraph,
     ProviderNativeAgentLifecycleEvidence, ProviderNativeAgentPhase, TenantFairnessWeight,
     TenantSchedulerOutcome, ToolAttemptHandoff, ToolAttemptOutcome, ToolAttemptTerminalKind,
     ToolProviderRegistryBuilder, ToolReconciliationAttemptHandoff,
@@ -506,6 +507,7 @@ struct ProviderNativeScriptedModel {
     output_schema: SchemaReference,
     calls: Arc<AtomicUsize>,
     transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
+    remaining_model_turns: Arc<tokio::sync::Mutex<Vec<u64>>>,
     failed_outcomes: Arc<AtomicUsize>,
 }
 
@@ -525,9 +527,14 @@ impl Model for ProviderNativeScriptedModel {
         let tool = self.tool.clone();
         let output_schema = self.output_schema.clone();
         let transcript_lengths = Arc::clone(&self.transcript_lengths);
+        let remaining_model_turns = Arc::clone(&self.remaining_model_turns);
         let failed_outcomes = Arc::clone(&self.failed_outcomes);
         Box::pin(async move {
             transcript_lengths.lock().await.push(transcript_len);
+            remaining_model_turns
+                .lock()
+                .await
+                .push(context.budget().model_turns().get());
             let provenance = ModelResponseProvenance::new(
                 context.attempt_id(),
                 descriptor.metadata().identity().clone(),
@@ -1165,6 +1172,7 @@ struct ProviderNativeFixture {
     tool_probes: Arc<AtomicUsize>,
     policy_calls: Arc<AtomicUsize>,
     transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
+    remaining_model_turns: Arc<tokio::sync::Mutex<Vec<u64>>>,
     failed_outcomes: Arc<AtomicUsize>,
     input_schema: SchemaReference,
     policy_pause: Option<Arc<PolicyPause>>,
@@ -1269,6 +1277,31 @@ fn provider_native_fixture_with(
     reconcile_tool: bool,
     policy_pause: Option<Arc<PolicyPause>>,
 ) -> ProviderNativeFixture {
+    provider_native_fixture_with_budget(
+        store,
+        fail_policy_once,
+        fail_tool,
+        reconcile_tool,
+        policy_pause,
+        NativeBudgetMode::StaticFixture,
+    )
+}
+
+#[derive(Clone, Copy)]
+enum NativeBudgetMode {
+    StaticFixture,
+    Durable,
+}
+
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+fn provider_native_fixture_with_budget(
+    store: PostgresStore,
+    fail_policy_once: bool,
+    fail_tool: bool,
+    reconcile_tool: bool,
+    policy_pause: Option<Arc<PolicyPause>>,
+    budget_mode: NativeBudgetMode,
+) -> ProviderNativeFixture {
     let (input_schema, input_document) = schema("provider-native-input");
     let (output_schema, output_document) = schema("provider-native-output");
     let (tool_input_schema, tool_input_document) = schema("provider-native-tool-input");
@@ -1326,6 +1359,7 @@ fn provider_native_fixture_with(
     let tool_probes = Arc::new(AtomicUsize::new(0));
     let policy_calls = Arc::new(AtomicUsize::new(0));
     let transcript_lengths = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    let remaining_model_turns = Arc::new(tokio::sync::Mutex::new(Vec::new()));
     let failed_outcomes = Arc::new(AtomicUsize::new(0));
     let policy = Arc::new(FailOnceAgentToolPolicy {
         reference: AgentToolPolicyReference::new(
@@ -1382,6 +1416,7 @@ fn provider_native_fixture_with(
             output_schema,
             calls: Arc::clone(&model_calls),
             transcript_lengths: Arc::clone(&transcript_lengths),
+            remaining_model_turns: Arc::clone(&remaining_model_turns),
             failed_outcomes: Arc::clone(&failed_outcomes),
         }))
         .unwrap();
@@ -1404,14 +1439,22 @@ fn provider_native_fixture_with(
             }))
             .unwrap();
     }
+    let budget: Arc<dyn InvocationBudgetProvider> =
+        if matches!(budget_mode, NativeBudgetMode::Durable) {
+            Arc::new(
+                ProviderNativeAgentBudgetProvider::new(definition.clone(), store.clone()).unwrap(),
+            )
+        } else {
+            Arc::new(StaticInvocationBudget {
+                resolved: invocation_budget(),
+            })
+        };
     let invocation_executor = DurableInvocationExecutor::with_clock(
         store.clone(),
         schemas.clone(),
         models.build(),
         tools.build(),
-        Arc::new(StaticInvocationBudget {
-            resolved: invocation_budget(),
-        }),
+        budget,
         Arc::new(FixedInvocationClock {
             observed_at: "2029-01-01T00:00:00.000000Z".parse().unwrap(),
         }),
@@ -1430,6 +1473,7 @@ fn provider_native_fixture_with(
         tool_probes,
         policy_calls,
         transcript_lengths,
+        remaining_model_turns,
         failed_outcomes,
         input_schema,
         policy_pause,
@@ -2543,6 +2587,10 @@ async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposa
         return;
     };
     let fixture = provider_native_parallel_fixture(store.clone());
+    assert!(matches!(
+        ProviderNativeAgentBudgetProvider::new(fixture.definition.clone(), store.clone()),
+        Err(ProviderNativeAgentBudgetBuildError::ParallelTools)
+    ));
     let tenant_id = tenant("runtime-provider-native-parallel-tools");
     let ids = AgentRunIds::generate();
     let run_id = ids.run_id();
@@ -3441,15 +3489,40 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
     let Some(store) = test_store().await else {
         return;
     };
-    qualify_provider_native_with_store(&store).await;
+    qualify_provider_native_with_store(&store, false).await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn provider_native_budget_recovers_prior_model_and_tool_usage_from_postgres() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    qualify_provider_native_with_store(&store, true).await;
     store.close().await;
 }
 
 #[allow(clippy::too_many_lines)]
-async fn qualify_provider_native_with_store(store: &PostgresStore) {
+async fn qualify_provider_native_with_store(store: &PostgresStore, durable_budget: bool) {
     let store = store.clone();
-    let fixture = provider_native_fixture(store.clone());
-    let tenant_id = tenant("runtime-provider-native-agent");
+    let fixture = if durable_budget {
+        provider_native_fixture_with_budget(
+            store.clone(),
+            true,
+            false,
+            false,
+            None,
+            NativeBudgetMode::Durable,
+        )
+    } else {
+        provider_native_fixture(store.clone())
+    };
+    let tenant_id = tenant(if durable_budget {
+        "runtime-provider-native-budget"
+    } else {
+        "runtime-provider-native-agent"
+    });
     let ids = AgentRunIds::generate();
     let run_id = ids.run_id();
     assert!(matches!(
@@ -3545,6 +3618,9 @@ async fn qualify_provider_native_with_store(store: &PostgresStore) {
     assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
     assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 2);
     assert_eq!(*fixture.transcript_lengths.lock().await, vec![0, 1]);
+    if durable_budget {
+        assert_eq!(*fixture.remaining_model_turns.lock().await, vec![12, 11]);
+    }
 
     let lifecycle = DurableGraphLifecycle::new(
         store.clone(),
