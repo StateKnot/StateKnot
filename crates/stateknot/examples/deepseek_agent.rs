@@ -446,8 +446,7 @@ mod tests {
             .await
             .unwrap();
         let mut value: serde_json::Value =
-            serde_json::from_str(include_str!("deepseek_agent.config.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("deepseek_agent.config.json")).unwrap();
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let now = i64::try_from(now.as_micros()).unwrap();
         value["tenant"] = json!(format!("deepseek-example-{}", RunId::generate()));
