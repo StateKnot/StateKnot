@@ -83,20 +83,26 @@ half-installed input/output pair.
 
 ## Provider contract
 
-| Boundary | OpenAI Responses | Anthropic Messages |
-| --- | --- | --- |
-| Complete response | Implemented | Implemented |
-| True incremental SSE | Implemented | Implemented |
-| Text input/output | Implemented | Implemented |
-| JSON Schema output | Implemented | Implemented |
-| Function/tool proposals | Implemented | Implemented |
-| Local argument/output validation | Implemented | Implemented |
-| Provider-native unary tool continuation | Implemented | Implemented |
-| Generic JSON mode | Implemented | Rejected: stable schema-constrained output is required |
-| Readable reasoning summaries | Implemented when declared by the binding | Not advertised by this adapter version |
-| Legacy `role=tool` messages | Rejected before I/O | Rejected before I/O |
-| Artifact/multimodal input | Rejected before I/O | Rejected before I/O |
-| Request extensions | Rejected before I/O | Rejected before I/O |
+| Boundary | OpenAI Responses | DeepSeek Responses | Anthropic Messages |
+| --- | --- | --- | --- |
+| Complete response | Implemented | Implemented | Implemented |
+| True incremental SSE | Implemented | Not advertised | Implemented |
+| Text input/output | Implemented | Implemented | Implemented |
+| JSON Schema output | Implemented | Implemented | Implemented |
+| Function/tool proposals | Implemented | Not advertised | Implemented |
+| Local argument/output validation | Implemented | Output validation implemented | Implemented |
+| Provider-native unary tool continuation | Implemented | Not advertised | Implemented |
+| Generic JSON mode | Implemented | Implemented | Rejected: stable schema-constrained output is required |
+| Readable reasoning summaries | Implemented when declared by the binding | Not advertised | Not advertised by this adapter version |
+| Legacy `role=tool` messages | Rejected before I/O | Rejected before I/O | Rejected before I/O |
+| Artifact/multimodal input | Rejected before I/O | Rejected before I/O | Rejected before I/O |
+| Request extensions | Rejected before I/O | Rejected before I/O | Rejected before I/O |
+
+`DeepSeekResponsesModel` is available in this checkout but not in the already
+published `0.1.0-alpha.1` crate. It uses the stateless official Responses API,
+accepts its `phase=final_answer` message field, and rejects unqualified
+streaming/tool/reasoning-summary capabilities at binding time. See the
+[runnable PostgreSQL example](in-process-agent.md#run-the-deepseek-backed-first-agent).
 
 `ModelTranscript` is the lossless continuation contract. Each turn binds one
 normalized `ModelResponse`, its exact bounded provider replay fragment, and one

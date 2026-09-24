@@ -5,6 +5,8 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 
 const command = "cargo check -p stateknot --example in_process_agent --locked";
+const deepseekCommand =
+  "cargo run -p stateknot --example deepseek_agent --locked -- /private/path/deepseek-agent.json";
 const code = `let agent = runtime
     .agent(codec, authenticated_caller)?
     .with_options(InProcessAgentRunOptions::new(
@@ -68,6 +70,31 @@ let outcome = agent.run(InProcessAgentRequest::new(
       </div>
       <pre id="in-process-command" tabindex="0"><code>{command}</code></pre>
     </div>
+  </section>
+
+  <section aria-labelledby="in-process-deepseek-title">
+    <h2 id="in-process-deepseek-title">Run a real DeepSeek-backed Agent</h2>
+    <p>
+      The <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot/examples/deepseek_agent.rs"
+        >runnable example</a
+      > uses DeepSeek Responses, generated JSON Schemas, PostgreSQL, exact-key authorization,
+      durable model invocation, token accounting, and owned Worker and maintenance
+      roles. It does not put credentials in the config. Inject
+      <code>DATABASE_URL</code> and <code>DEEPSEEK_API_KEY</code> through your secret
+      manager; retain the same config and submission key for recovery.
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head"><span>Shell · execute the Agent</span></div>
+      <pre tabindex="0"><code>{deepseekCommand}</code></pre>
+    </div>
+    <p>
+      See the <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/in-process-agent.md#run-the-deepseek-backed-first-agent"
+        >setup and recovery guide</a
+      > for the config schema, PostgreSQL role/TLS boundary, and current limits. The
+      project is still pre-release, not production-certified.
+    </p>
   </section>
 
   <section aria-labelledby="in-process-outcome-title">

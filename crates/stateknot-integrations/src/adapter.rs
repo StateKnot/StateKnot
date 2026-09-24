@@ -31,6 +31,7 @@ use crate::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ProviderKind {
     OpenAi,
+    DeepSeek,
     Anthropic,
 }
 
@@ -38,13 +39,14 @@ impl ProviderKind {
     const fn origin(self) -> &'static str {
         match self {
             Self::OpenAi => "provider.openai",
+            Self::DeepSeek => "provider.deepseek",
             Self::Anthropic => "provider.anthropic",
         }
     }
 
     const fn path(self) -> &'static str {
         match self {
-            Self::OpenAi => "responses",
+            Self::OpenAi | Self::DeepSeek => "responses",
             Self::Anthropic => "messages",
         }
     }
@@ -581,6 +583,9 @@ pub enum ModelAdapterBuildError {
     /// The current Anthropic adapter does not expose readable reasoning summaries.
     #[error("Anthropic reasoning summaries are not supported by this adapter version")]
     AnthropicReasoningSummariesUnsupported,
+    /// `DeepSeek` streaming, tool replay and reasoning summaries are not qualified yet.
+    #[error("DeepSeek binding does not support streaming, tool calls or reasoning summaries")]
+    DeepSeekUnqualifiedCapability,
     /// Secure client construction failed.
     #[error("provider HTTP client construction failed")]
     HttpClient,

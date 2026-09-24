@@ -9,7 +9,8 @@ use std::{sync::Arc, time::Duration};
 use serde_json::{Value, json};
 use stateknot_core::*;
 use stateknot_integrations::{
-    ApiKey, OpenAiResponsesModel, ProviderEndpoint, ProviderHttpOptions, StaticApiKey,
+    ApiKey, DeepSeekResponsesModel, OpenAiResponsesModel, ProviderEndpoint, ProviderHttpOptions,
+    StaticApiKey,
 };
 use stateknot_runtime::agent_policy::{
     AgentResourcePolicy, PolicyArtifact, PolicyDocument, RunAccessTarget, RunPermission, RunRule,
@@ -61,7 +62,7 @@ impl AgentToolPolicy for NoTools {
     }
 }
 
-async fn loopback_provider() -> (ProviderEndpoint, oneshot::Receiver<Vec<u8>>) {
+async fn loopback_provider(deepseek: bool) -> (ProviderEndpoint, oneshot::Receiver<Vec<u8>>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     let endpoint = ProviderEndpoint::loopback_http(&format!("http://{address}/v1/")).unwrap();
@@ -90,7 +91,7 @@ async fn loopback_provider() -> (ProviderEndpoint, oneshot::Receiver<Vec<u8>>) {
                 }
             }
         }
-        let body = serde_json::to_vec(&json!({
+        let mut response = json!({
             "id": "resp_durable_01",
             "model": "provider-model-v1",
             "status": "completed",
@@ -108,7 +109,11 @@ async fn loopback_provider() -> (ProviderEndpoint, oneshot::Receiver<Vec<u8>>) {
                 "output_tokens_details": {"reasoning_tokens": 1},
                 "total_tokens": 13
             }
-        })).unwrap();
+        });
+        if deepseek {
+            response["output"][0]["phase"] = json!("final_answer");
+        }
+        let body = serde_json::to_vec(&response).unwrap();
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             body.len()
@@ -123,6 +128,15 @@ async fn loopback_provider() -> (ProviderEndpoint, oneshot::Receiver<Vec<u8>>) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn openai_http_response_is_durably_priced_and_terminal_on_postgres() {
+    Box::pin(qualify_provider_native(false)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn deepseek_http_response_is_durably_priced_and_terminal_on_postgres() {
+    Box::pin(qualify_provider_native(true)).await;
+}
+
+async fn qualify_provider_native(deepseek: bool) {
     let url = match std::env::var("STATEKNOT_TEST_DATABASE_URL") {
         Ok(url) => url,
         Err(_) if std::env::var_os("STATEKNOT_REQUIRE_POSTGRES_TESTS").is_none() => return,
@@ -164,7 +178,7 @@ async fn openai_http_response_is_durably_priced_and_terminal_on_postgres() {
         ModelCapabilities::new(
             modalities.clone(),
             modalities,
-            true,
+            !deepseek,
             ModelToolCapabilities::unsupported(),
             ModelStructuredOutputCapabilities::json_schema(profile.clone()),
             false,
@@ -244,19 +258,36 @@ async fn openai_http_response_is_durably_priced_and_terminal_on_postgres() {
     stateknot_runtime::agent_policy::register_agent_policy_evidence_schema(&mut schemas).unwrap();
     register_standard_invocation_execution_event_schema(&mut schemas).unwrap();
     let schemas = schemas.build().unwrap();
-    let (endpoint, captured) = loopback_provider().await;
-    let adapter = OpenAiResponsesModel::new(
-        model,
-        ModelProviderModelId::new("provider-model-v1").unwrap(),
-        "tenant/model-output".parse().unwrap(),
-        Arc::new(schemas.clone()),
-        Arc::new(StaticApiKey::new(ApiKey::new("test-only-key").unwrap())),
-        endpoint,
-        ProviderHttpOptions::default(),
-    )
-    .unwrap();
+    let (endpoint, captured) = loopback_provider(deepseek).await;
+    let adapter: Arc<dyn Model> = if deepseek {
+        Arc::new(
+            DeepSeekResponsesModel::new(
+                model,
+                ModelProviderModelId::new("provider-model-v1").unwrap(),
+                "tenant/model-output".parse().unwrap(),
+                Arc::new(schemas.clone()),
+                Arc::new(StaticApiKey::new(ApiKey::new("test-only-key").unwrap())),
+                endpoint,
+                ProviderHttpOptions::default(),
+            )
+            .unwrap(),
+        )
+    } else {
+        Arc::new(
+            OpenAiResponsesModel::new(
+                model,
+                ModelProviderModelId::new("provider-model-v1").unwrap(),
+                "tenant/model-output".parse().unwrap(),
+                Arc::new(schemas.clone()),
+                Arc::new(StaticApiKey::new(ApiKey::new("test-only-key").unwrap())),
+                endpoint,
+                ProviderHttpOptions::default(),
+            )
+            .unwrap(),
+        )
+    };
     let mut models = ModelProviderRegistryBuilder::new();
-    models.register(Arc::new(adapter)).unwrap();
+    models.register(adapter).unwrap();
     let executor = DurableInvocationExecutor::new(
         store.clone(),
         schemas.clone(),

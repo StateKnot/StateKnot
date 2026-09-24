@@ -322,6 +322,12 @@ jobs:
           STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
         run: cargo test -p stateknot-integrations --test provider_native_postgres --locked -- --test-threads=1
 
+      - name: Execute recoverable DeepSeek Agent example against PostgreSQL
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+        run: cargo test -p stateknot --example deepseek_agent --locked -- --test-threads=1
+
       - name: Record process-kill qualification environment
         env:
           STATEKNOT_QUALIFICATION_POSTGRES_IMAGE: ${{ matrix.image }}

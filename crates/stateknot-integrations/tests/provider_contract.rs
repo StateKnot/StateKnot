@@ -23,8 +23,8 @@ use stateknot_core::{
     ToolDescriptor, ToolResult, ToolResultProvenance, Version,
 };
 use stateknot_integrations::{
-    AnthropicMessagesModel, ApiKey, ApiKeyProvider, ApiKeyResolutionError, OpenAiResponsesModel,
-    ProviderEndpoint, ProviderHttpOptions, StaticApiKey,
+    AnthropicMessagesModel, ApiKey, ApiKeyProvider, ApiKeyResolutionError, DeepSeekResponsesModel,
+    OpenAiResponsesModel, ProviderEndpoint, ProviderHttpOptions, StaticApiKey,
 };
 use stateknot_runtime::{JsonSchemaRegistry, JsonSchemaRegistryBuilder};
 use tokio::{
@@ -534,6 +534,94 @@ async fn openai_unary_maps_request_response_and_redacts_secrets() {
     assert_eq!(body["truncation"], "disabled");
     assert_eq!(body["stream"], false);
     assert_eq!(body["input"][0]["role"], "user");
+}
+
+#[tokio::test]
+async fn deepseek_responses_accepts_only_qualified_final_answer_phase() {
+    let mut payload = openai_response();
+    payload["output"] = json!([
+        {
+            "type": "reasoning", "id": "reasoning_01", "status": "completed",
+            "content": [{"type": "reasoning_text", "text": "private reasoning"}],
+            "summary": [], "encrypted_content": "opaque-replay-token"
+        },
+        {
+            "type": "message", "id": "msg_test_01", "status": "completed",
+            "role": "assistant", "phase": "final_answer",
+            "content": [{"type": "output_text", "text": "hello", "annotations": [], "logprobs": []}]
+        }
+    ]);
+    let server = TestServer::one(
+        vec![serde_json::to_vec(&payload).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let model = DeepSeekResponsesModel::new(
+        descriptor(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    let response = model
+        .invoke(context(), request(ModelResponseMode::Complete, true))
+        .await
+        .unwrap();
+    assert_eq!(response.usage().input_tokens().get(), 10);
+    assert_eq!(response.usage().cached_input_tokens().unwrap().get(), 2);
+    assert_eq!(response.usage().reasoning_tokens().unwrap().get(), 0);
+    let captured = String::from_utf8(server.request.await.unwrap()).unwrap();
+    assert!(captured.starts_with("POST /v1/responses HTTP/1.1"));
+
+    payload["output"][1]["phase"] = json!("analysis");
+    let server = TestServer::one(
+        vec![serde_json::to_vec(&payload).unwrap()],
+        "application/json",
+        200,
+    )
+    .await;
+    let model = DeepSeekResponsesModel::new(
+        descriptor(false),
+        ModelProviderModelId::new(MODEL_ID).unwrap(),
+        output_label(),
+        schema_registry(),
+        credentials(),
+        server.endpoint,
+        ProviderHttpOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        model
+            .invoke(context(), request(ModelResponseMode::Complete, true))
+            .await
+            .is_err()
+    );
+    let _ = server.request.await.unwrap();
+}
+
+#[test]
+fn deepseek_binding_rejects_unqualified_streaming_and_tool_capabilities() {
+    let endpoint = ProviderEndpoint::loopback_http("http://127.0.0.1:1/v1/").unwrap();
+    for descriptor in [descriptor(true), descriptor_with_tools(false)] {
+        let error = DeepSeekResponsesModel::new(
+            descriptor,
+            ModelProviderModelId::new(MODEL_ID).unwrap(),
+            output_label(),
+            schema_registry(),
+            credentials(),
+            endpoint.clone(),
+            ProviderHttpOptions::default(),
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            stateknot_integrations::ModelAdapterBuildError::DeepSeekUnqualifiedCapability
+        );
+    }
 }
 
 #[tokio::test]

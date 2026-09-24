@@ -39,7 +39,8 @@ stateknot = "=0.1.0-alpha.1"
 cargo run -p stateknot-core --example first_agent --locked
 ```
 
-该示例**不会**执行持久化 Run，也不会调用模型。真正的无 HTTP 运行请看
+该示例**不会**执行持久化 Run，也不会调用模型。真正的无 HTTP 运行可使用
+[DeepSeek/PostgreSQL Agent 示例](docs/in-process-agent.zh-CN.md)，或继续阅读
 [进程内 Agent 指南](docs/in-process-agent.zh-CN.md)：需要经过验证的
 PostgreSQL 部署、显式授权、Worker 和维护角色。网络服务请看
 [Agent Host](docs/agent-host.zh-CN.md) 与
@@ -47,10 +48,11 @@ PostgreSQL 部署、显式授权、Worker 和维护角色。网络服务请看
 
 ## 已实现能力与未完成门槛
 
-当前预览包含已验证的核心契约、可恢复 Graph/Agent 运行时、PostgreSQL
-事件日志与栅栏恢复、OpenAI Responses 和 Anthropic Messages 适配器、
+当前检出代码包含已验证的核心契约、可恢复 Graph/Agent 运行时、PostgreSQL
+事件日志与栅栏恢复、OpenAI/DeepSeek Responses 和 Anthropic Messages 适配器、
 有界 MCP Client/Server 与静态 MCP Skills 配置，以及 A2A 1.0
 Client/Server 配置。准确实现范围和限制见[状态页](https://stknot.com/zh/docs/status/)。
+DeepSeek 绑定尚未包含在此前发布的 `0.1.0-alpha.1` crate 中。
 
 **生产完整性尚未达成。** 通用数据保留与垃圾回收、完整身份与策略验收、
 持久化 A2A Task/Push 服务、可观测性、OCI 角色交付、多角色故障切换、

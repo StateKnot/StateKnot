@@ -99,6 +99,55 @@ The complete checked example is
 cargo check -p stateknot --example in_process_agent --locked
 ```
 
+## Run the DeepSeek-backed first Agent
+
+[`deepseek_agent.rs`](../crates/stateknot/examples/deepseek_agent.rs) is an
+operator-configured executable, not a synthetic turn. It binds the actual
+DeepSeek Responses API, generated and pinned input/output schemas, a one-turn
+provider-native graph, offline token-rate accounting, exact-key submission/read
+policy, PostgreSQL, and owned Worker/maintenance roles. A successful typed
+answer is emitted only after the real model invocation and terminal evidence
+commit. Its
+[configuration example](../crates/stateknot/examples/deepseek_agent.config.json)
+contains no credential or database URL.
+
+1. Copy the configuration to a private file. Replace the caller/owner identities,
+   question, unique retained `submission_key`, future `deadline` and
+   `policy_valid_until`, and the rate card with an operator-reviewed price
+   snapshot. Keep the *same* file and key for lost-ack recovery. Never commit a
+   credential or a production request artifact.
+2. Prepare PostgreSQL 16/17 with separate migration/runtime roles and verified
+   TLS as described in [PostgreSQL configuration](postgresql-configuration.md).
+   Set `DATABASE_URL` through the deployment secret manager. For an isolated
+   local database only, `STATEKNOT_DEV_MODE=true` explicitly enables the
+   insecure loopback development profile and migrations.
+3. Inject `DEEPSEEK_API_KEY` through the process secret manager, then run:
+
+   ```bash
+   cargo run -p stateknot --example deepseek_agent --locked -- /private/path/deepseek-agent.json
+   ```
+
+The executable never migrates production schemas implicitly, broadens a
+submission-key grant to a Run-ID or tenant-wide read, or retries the provider
+behind the durable invocation ledger. A second invocation with the identical
+file/key recovers the original result; changed content under that key is a
+conflict. On timeout the run remains durable and the process exits nonzero;
+retry with the retained file after restoring dependencies. This bounded example
+does not expose an HTTP listener, tools, streaming, a stable release, or a
+production service-level promise.
+
+The official [DeepSeek Responses API guide](https://api-docs.deepseek.com/guides/responses_api/)
+documents stateless `/responses`, JSON Schema format, and usage. The example
+restricts the endpoint to `https://api.deepseek.com/` and the advertised model
+to `deepseek-flash`. The sample price rates are a conservative peak-rate
+accounting ceiling as of its publication, **not an invoice**; DeepSeek also
+offers off-peak rates and may revise prices. Verify current
+[model/pricing terms](https://api-docs.deepseek.com/quick_start/pricing/) before
+use and retain every rate-card revision required for durable replay. Rotate any
+API key disclosed in a chat or other non-secret channel. The provider's
+`deepseek-flash` alias is not an immutable backend revision; qualify alias and
+price changes separately before applying this pattern to production traffic.
+
 ## Move to the production service without rewriting the Agent
 
 The in-process path and `AgentHost` use the same descriptors, schema digests,

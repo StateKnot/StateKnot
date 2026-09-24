@@ -42,7 +42,9 @@ cargo run -p stateknot-core --example first_agent --locked
 ```
 
 This example does **not** execute a durable run or call a provider. For actual
-HTTP-free execution, follow the [in-process Agent guide](docs/in-process-agent.md);
+HTTP-free execution, run the
+[DeepSeek/PostgreSQL Agent example](docs/in-process-agent.md#run-the-deepseek-backed-first-agent)
+or follow the [in-process Agent guide](docs/in-process-agent.md);
 it requires a qualified PostgreSQL deployment, explicit authorization, Worker
 and maintenance roles. For network hosting, see [Agent Host](docs/agent-host.md)
 and [authenticated HTTP ingress](docs/agent-http.md). No sample silently
@@ -50,11 +52,12 @@ installs an allow-all policy or an in-memory durability substitute.
 
 ## What exists, and what remains
 
-The current preview includes validated core contracts, a durable Graph/Agent
-runtime, PostgreSQL journaling and fenced recovery, OpenAI Responses and
+The current checkout includes validated core contracts, a durable Graph/Agent
+runtime, PostgreSQL journaling and fenced recovery, OpenAI/DeepSeek Responses and
 Anthropic Messages adapters, bounded MCP Client/Server and static MCP Skills
 profiles, and A2A 1.0 Client/Server profiles. The exact implemented slices and
 their limits are listed on the [status page](https://stknot.com/docs/status/).
+The DeepSeek binding is not in the previously published `0.1.0-alpha.1` crate.
 
 **Production completion is still open.** General retention and garbage
 collection, full identity and policy qualification, durable A2A task/push
