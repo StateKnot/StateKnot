@@ -92,6 +92,43 @@ where
 cargo check -p stateknot --example in_process_agent --locked
 ```
 
+## 运行接入 DeepSeek 的第一个 Agent
+
+[`deepseek_agent.rs`](../crates/stateknot/examples/deepseek_agent.rs) 是可由运维配置、
+可直接运行的示例，不会伪造模型回合。它组合了真实 DeepSeek Responses API、
+固定摘要的输入/输出 Schema、单回合 Provider-native Graph、离线 Token 费率记账、
+精确 Submission Key 的提交/读取策略、PostgreSQL，以及自持有的 Worker 和
+Maintenance。只有真实模型调用及终态证据提交后，才会输出强类型答案。
+[配置示例](../crates/stateknot/examples/deepseek_agent.config.json)不含密钥或数据库 URL。
+
+1. 将配置复制到私有文件，并替换 Agent Owner/Caller 身份、问题、唯一且自行保存的
+   `submission_key`、未来的 `deadline` 与 `policy_valid_until`，以及经运维核实的
+   费率快照。响应丢失后必须使用同一文件和 Key 恢复。不要提交凭据或生产请求配置。
+2. 按照 [PostgreSQL 配置](postgresql-configuration.zh-CN.md)准备 PostgreSQL
+   16/17 的独立 Migration/Runtime 角色和已验证 TLS，通过密钥管理系统注入
+   `DATABASE_URL`。仅隔离的本地数据库可显式设置 `STATEKNOT_DEV_MODE=true`
+   启用不安全的 Loopback 开发模式及迁移。
+3. 由进程密钥管理系统注入 `DEEPSEEK_API_KEY`，运行：
+
+   ```bash
+   cargo run -p stateknot --example deepseek_agent --locked -- /private/path/deepseek-agent.json
+   ```
+
+程序不会在生产环境隐式迁移数据库、把精确 Key 的读取授权放大成 Run ID/全租户读取，
+也不会绕过持久化调用账本私自重试 Provider。同文件、同 Key 的再次执行会恢复原结果；
+同 Key 不同内容会发生冲突。等待超时时 Run 仍然持久存在，进程以非零状态退出；
+依赖恢复后应使用保存的原文件重试。这个有界示例不提供 HTTP Listener、工具调用、
+流式输出、稳定版承诺或生产服务 SLO。
+
+DeepSeek 官方 [Responses API 指南](https://api-docs.deepseek.com/zh-cn/guides/responses_api/)
+说明了无状态 `/responses`、JSON Schema 输出与用量字段。示例把 Endpoint 固定为
+`https://api.deepseek.com/`，模型固定为 `deepseek-flash`。示例费率采用发布时的
+高峰价作为保守预算上界，**不是实际账单**；DeepSeek 也有低谷价，价格可能调整。
+使用前请核对最新[模型与价格](https://api-docs.deepseek.com/quick_start/pricing/)，
+并保留持久化重放仍需使用的全部费率版本。聊天等非密钥渠道中披露过的 API Key 应轮换。
+`deepseek-flash` 是 Provider 别名，不是不可变的底层模型版本；用于生产流量前，
+还需单独验证别名指向和价格变更。
+
 ## 不重写 Agent，迁移到生产服务
 
 进程内路径与 `AgentHost` 使用同一套 Descriptor、Schema Digest、Graph、

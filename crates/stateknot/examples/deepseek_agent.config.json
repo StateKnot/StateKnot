@@ -1,0 +1,38 @@
+{
+  "tenant": "deepseek-example",
+  "agent_owner": {"issuer": "https://stknot.com", "subject": "deepseek-agent-owner"},
+  "caller": {"issuer": "https://stknot.com", "subject": "deepseek-agent-caller"},
+  "submission_key": "replace-with-your-retained-unique-key",
+  "question": "Return the single word OK in the answer field.",
+  "policy_valid_until": "2026-10-01T00:00:00.000000Z",
+  "budget_limits": {
+    "deadline": "2026-09-30T00:00:00.000000Z",
+    "graph_depth": "4",
+    "graph_steps": "16",
+    "model_attempts": "1",
+    "model_turns": "1",
+    "input_tokens": "4096",
+    "cached_input_tokens": "4096",
+    "reasoning_tokens": "2048",
+    "output_tokens": "512",
+    "tool_calls": "0",
+    "write_calls": "0",
+    "remote_agent_delegations": "0",
+    "retries": "0",
+    "concurrent_branches": "1",
+    "fan_out": "1",
+    "input_bytes": "65536",
+    "output_bytes": "65536",
+    "event_bytes": "262144",
+    "checkpoint_bytes": "262144",
+    "artifact_bytes": "0",
+    "costs": [{"currency": "USD", "micro_units": "100000"}]
+  },
+  "provider_model_id": "deepseek-flash",
+  "rate_card": {
+    "currency": "USD",
+    "input_per_million": 300000,
+    "cached_input_per_million": 6000,
+    "output_per_million": 1200000
+  }
+}

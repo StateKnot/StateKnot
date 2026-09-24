@@ -75,20 +75,25 @@ let request = agent.prepare_request(&input, request_budget_limits)?;
 
 ## Provider 合约
 
-| 边界 | OpenAI Responses | Anthropic Messages |
-| --- | --- | --- |
-| 完整响应 | 已实现 | 已实现 |
-| 真正增量 SSE | 已实现 | 已实现 |
-| 文本输入/输出 | 已实现 | 已实现 |
-| JSON Schema 输出 | 已实现 | 已实现 |
-| Function/Tool Proposal | 已实现 | 已实现 |
-| 本地参数/输出校验 | 已实现 | 已实现 |
-| Provider-native Unary Tool 续接 | 已实现 | 已实现 |
-| Generic JSON Mode | 已实现 | 拒绝：稳定合约要求 Schema-constrained Output |
-| 可读 Reasoning Summary | Binding 显式声明时可用 | 当前 Adapter 不声明 |
-| 旧式 `role=tool` Message | I/O 前拒绝 | I/O 前拒绝 |
-| Artifact/多模态输入 | I/O 前拒绝 | I/O 前拒绝 |
-| Request Extension | I/O 前拒绝 | I/O 前拒绝 |
+| 边界 | OpenAI Responses | DeepSeek Responses | Anthropic Messages |
+| --- | --- | --- | --- |
+| 完整响应 | 已实现 | 已实现 | 已实现 |
+| 真正增量 SSE | 已实现 | 不声明 | 已实现 |
+| 文本输入/输出 | 已实现 | 已实现 | 已实现 |
+| JSON Schema 输出 | 已实现 | 已实现 | 已实现 |
+| Function/Tool Proposal | 已实现 | 不声明 | 已实现 |
+| 本地参数/输出校验 | 已实现 | 已实现输出校验 | 已实现 |
+| Provider-native Unary Tool 续接 | 已实现 | 不声明 | 已实现 |
+| Generic JSON Mode | 已实现 | 已实现 | 拒绝：稳定合约要求 Schema-constrained Output |
+| 可读 Reasoning Summary | Binding 显式声明时可用 | 不声明 | 当前 Adapter 不声明 |
+| 旧式 `role=tool` Message | I/O 前拒绝 | I/O 前拒绝 | I/O 前拒绝 |
+| Artifact/多模态输入 | I/O 前拒绝 | I/O 前拒绝 | I/O 前拒绝 |
+| Request Extension | I/O 前拒绝 | I/O 前拒绝 | I/O 前拒绝 |
+
+`DeepSeekResponsesModel` 已在当前检出代码中实现，但不包含在先前发布的
+`0.1.0-alpha.1` crate 中。它使用官方无状态 Responses API，接受 DeepSeek 的
+`phase=final_answer` 消息字段，并在绑定时拒绝未经验证的流式、工具及推理摘要能力。
+可参考[真实 PostgreSQL 可运行示例](in-process-agent.zh-CN.md)。
 
 `ModelTranscript` 是无损续接合约。每个 Turn 会把一个规范化 `ModelResponse`、精确且有界的
 Provider Replay Fragment，以及按 Provider 顺序与每个 Proposal 一一对应的已提交

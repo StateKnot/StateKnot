@@ -1468,6 +1468,14 @@ test("in-process Agent guide preserves recovery and migration boundaries", async
   await expect(
     page.getByText("caller_retained_key", { exact: false }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Run a real DeepSeek-backed Agent" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("cargo run -p stateknot --example deepseek_agent", {
+      exact: false,
+    }),
+  ).toBeVisible();
 
   await page.goto("/zh/docs/in-process-agent/");
   await expect(
@@ -1476,6 +1484,9 @@ test("in-process Agent guide preserves recovery and migration boundaries", async
     }),
   ).toBeVisible();
   await expect(page.getByText("Pending", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "运行真实接入 DeepSeek 的 Agent" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("article").getByRole("link", { name: "Agent HTTP v1" }),
   ).toBeVisible();

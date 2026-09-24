@@ -56,6 +56,29 @@ impl OpenAiResponsesModel {
         endpoint: ProviderEndpoint,
         options: ProviderHttpOptions,
     ) -> Result<Self, ModelAdapterBuildError> {
+        Self::new_with_kind(
+            descriptor,
+            model_id,
+            output_label,
+            schemas,
+            credentials,
+            endpoint,
+            options,
+            ProviderKind::OpenAi,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn new_with_kind(
+        descriptor: ModelDescriptor,
+        model_id: ModelProviderModelId,
+        output_label: SecurityLabel,
+        schemas: Arc<dyn ModelSchemaRegistry>,
+        credentials: Arc<dyn ApiKeyProvider>,
+        endpoint: ProviderEndpoint,
+        options: ProviderHttpOptions,
+        kind: ProviderKind,
+    ) -> Result<Self, ModelAdapterBuildError> {
         Ok(Self {
             core: AdapterCore::new(
                 descriptor,
@@ -65,7 +88,7 @@ impl OpenAiResponsesModel {
                 credentials,
                 endpoint,
                 options,
-                ProviderKind::OpenAi,
+                kind,
             )?,
         })
     }
@@ -152,6 +175,82 @@ impl OpenAiResponsesModel {
             provider_request_id,
             ModelErrorPhase::Response,
         )
+    }
+}
+
+/// `DeepSeek`'s stateless Responses API binding for text and structured output.
+///
+/// The endpoint is normally `https://api.deepseek.com/`; the same bounded,
+/// no-retry transport and durable attempt contract as [`OpenAiResponsesModel`]
+/// applies. Tool calling is not advertised by this binding until its replay
+/// semantics are qualified separately. `DeepSeek`'s extra message `phase` field
+/// is accepted only for a final answer.
+#[derive(Clone)]
+pub struct DeepSeekResponsesModel(OpenAiResponsesModel);
+
+impl DeepSeekResponsesModel {
+    /// Constructs an exact `DeepSeek` model binding.
+    ///
+    /// # Errors
+    ///
+    /// Rejects capabilities not qualified for `DeepSeek` or an unsafe endpoint.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        descriptor: ModelDescriptor,
+        model_id: ModelProviderModelId,
+        output_label: SecurityLabel,
+        schemas: Arc<dyn ModelSchemaRegistry>,
+        credentials: Arc<dyn ApiKeyProvider>,
+        endpoint: ProviderEndpoint,
+        options: ProviderHttpOptions,
+    ) -> Result<Self, ModelAdapterBuildError> {
+        if descriptor.capabilities().supports_streaming()
+            || descriptor.capabilities().tools().schema_profile().is_some()
+            || descriptor.capabilities().supports_reasoning_summaries()
+        {
+            return Err(ModelAdapterBuildError::DeepSeekUnqualifiedCapability);
+        }
+        Ok(Self(OpenAiResponsesModel::new_with_kind(
+            descriptor,
+            model_id,
+            output_label,
+            schemas,
+            credentials,
+            endpoint,
+            options,
+            ProviderKind::DeepSeek,
+        )?))
+    }
+}
+
+impl fmt::Debug for DeepSeekResponsesModel {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DeepSeekResponsesModel")
+            .field("binding", &self.0.core)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Model for DeepSeekResponsesModel {
+    fn descriptor(&self) -> &ModelDescriptor {
+        self.0.descriptor()
+    }
+
+    fn invoke(
+        &self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxFuture<'_, Result<ModelResponse, ModelError>> {
+        self.0.invoke(context, request)
+    }
+
+    fn stream(
+        &self,
+        context: ModelContext,
+        request: ModelRequest,
+    ) -> BoxStream<'_, Result<stateknot_core::ModelEvent, ModelError>> {
+        self.0.stream(context, request)
     }
 }
 
@@ -1324,7 +1423,16 @@ fn parse_message_item(
     output: &mut Vec<ModelOutputItem>,
     refusal: &mut bool,
 ) -> Option<()> {
-    if !has_only_keys(item, &["id", "type", "role", "status", "content"])
+    if !has_only_keys(
+        item,
+        if core.kind == ProviderKind::DeepSeek {
+            &["id", "type", "role", "status", "content", "phase"]
+        } else {
+            &["id", "type", "role", "status", "content"]
+        },
+    ) || item
+        .get("phase")
+        .is_some_and(|phase| phase.as_str() != Some("final_answer"))
         || item.get("id")?.as_str()?.is_empty()
         || item.get("role")?.as_str()? != "assistant"
         || item.get("status").and_then(Value::as_str) != Some("completed")

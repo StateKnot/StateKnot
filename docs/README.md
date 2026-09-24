@@ -129,8 +129,9 @@ item 2 already has exhaustive type coverage.
 12. [In-process typed Agent execution](in-process-agent.md) — HTTP-free ownership
     of the real durable Worker and maintenance roles, caller-retained submission
     keys, bounded waits, exact terminal decoding, recovery, and the migration
-    path to `AgentHost`. A [Simplified Chinese edition](in-process-agent.zh-CN.md)
-    is maintained alongside it.
+    path to `AgentHost`, including a runnable DeepSeek/PostgreSQL example. A
+    [Simplified Chinese edition](in-process-agent.zh-CN.md) is maintained
+    alongside it.
 13. [Durable Agent admission](durable-agent-admission.md) — immutable
     authenticated intent, database-clock commit, atomic run/event/checkpoint
     initialization, exact retry, migration, and sensitive-data operations. A

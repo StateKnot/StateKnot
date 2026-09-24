@@ -169,4 +169,4 @@ pub use mcp_skill_tool::{
     McpSkillBoundTool, McpSkillBoundToolBuildError, McpSkillHostCodeExecution, McpSkillToolBinding,
     McpSkillToolInvocation, McpSkillToolOperation,
 };
-pub use openai::OpenAiResponsesModel;
+pub use openai::{DeepSeekResponsesModel, OpenAiResponsesModel};

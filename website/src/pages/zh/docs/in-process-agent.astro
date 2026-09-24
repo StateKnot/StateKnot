@@ -5,6 +5,8 @@
 import DocsLayout from "../../../layouts/DocsLayout.astro";
 
 const command = "cargo check -p stateknot --example in_process_agent --locked";
+const deepseekCommand =
+  "cargo run -p stateknot --example deepseek_agent --locked -- /private/path/deepseek-agent.json";
 const code = `let agent = runtime
     .agent(codec, authenticated_caller)?
     .with_options(InProcessAgentRunOptions::new(
@@ -62,6 +64,31 @@ let outcome = agent.run(InProcessAgentRequest::new(
       </div>
       <pre id="in-process-command" tabindex="0"><code>{command}</code></pre>
     </div>
+  </section>
+
+  <section aria-labelledby="in-process-deepseek-title">
+    <h2 id="in-process-deepseek-title">运行真实接入 DeepSeek 的 Agent</h2>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot/examples/deepseek_agent.rs"
+        >可执行示例</a
+      >将 DeepSeek Responses、自动生成的 JSON Schema、PostgreSQL、精确 Key
+      鉴权、持久化模型调用、Token 记账及自持有的 Worker/Maintenance
+      连成完整链路。 配置文件不含密钥；通过密钥管理系统注入 <code
+        >DATABASE_URL</code
+      > 和
+      <code>DEEPSEEK_API_KEY</code>，并保存同一配置和 Submission Key 以备恢复。
+    </p>
+    <div class="docs-code" data-code-block>
+      <div class="docs-code-head"><span>Shell · 运行 Agent</span></div>
+      <pre tabindex="0"><code>{deepseekCommand}</code></pre>
+    </div>
+    <p>
+      配置格式、PostgreSQL 角色/TLS 边界及当前限制见<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/in-process-agent.zh-CN.md"
+        >完整使用与恢复指南</a
+      >。项目仍为预发布状态，不宣称已通过生产发行验收。
+    </p>
   </section>
 
   <section aria-labelledby="in-process-outcome-title">
