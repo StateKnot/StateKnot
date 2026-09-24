@@ -115,6 +115,22 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
     </p>
   </section>
 
+  <section aria-labelledby="provider-native-pricing-title">
+    <h2 id="provider-native-pricing-title">根据真实模型证据计价</h2>
+    <p>
+      <code>ModelTokenAccounting</code> 将部署方核实的费率快照和 Provider 报告的 Model
+      ID 固定到精确的 Model Binding 与 Graph 版本。它依据持久化用量账本，对已提交或失败的模型
+      Attempt 计价；缺少用量或必需的缓存 Token 明细时返回
+      <code>Unpriced</code>，绝不会当作免费。Provider 价格会变化，StateKnot
+      不内置费率。<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-integrations/tests/provider_native_postgres.rs"
+        >真实 HTTP 与 PostgreSQL 验证</a
+      >覆盖 Adapter、Invocation Ledger、终态费用、精确 Submission Key 读取授权，
+      以及 PostgreSQL 16/17 上的重复提交幂等。测试费率和密钥只是夹具；由部署方
+      配置的独立可运行 Agent 示例仍在开发中。
+    </p>
+  </section>
+
   <section aria-labelledby="provider-native-turn-title">
     <h2 id="provider-native-turn-title">跟随一次可恢复 Turn</h2>
     <ol class="evidence-list">

@@ -118,6 +118,23 @@ const parallelToolCode = `let execution = AgentExecutionConfig::new(
     </p>
   </section>
 
+  <section aria-labelledby="provider-native-pricing-title">
+    <h2 id="provider-native-pricing-title">Price real model evidence</h2>
+    <p>
+      <code>ModelTokenAccounting</code> pins an operator-verified rate card and provider-reported
+      model ID to one exact model binding and graph version. It prices committed or
+      failed model attempts from the durable usage ledger; missing usage or a required
+      cached token breakdown is <code>Unpriced</code>, never free. Rates are not
+      bundled with StateKnot because provider tariffs change. The <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/crates/stateknot-integrations/tests/provider_native_postgres.rs"
+        >real HTTP and PostgreSQL qualification</a
+      > verifies the adapter, invocation ledger, terminal cost, exact-key read authorization,
+      and idempotent resubmission on PostgreSQL 16/17. Its rates and credentials are
+      test fixtures; the standalone operator-configured runnable Agent example is
+      still in progress.
+    </p>
+  </section>
+
   <section aria-labelledby="provider-native-turn-title">
     <h2 id="provider-native-turn-title">Follow one durable turn</h2>
     <ol class="evidence-list">

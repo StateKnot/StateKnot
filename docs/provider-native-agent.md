@@ -131,6 +131,36 @@ known; StateKnot preserves the usage evidence and stops before another call
 when a finite monetary budget cannot be evaluated. Missing price data is never
 converted to zero cost.
 
+For a single model binding whose provider bills uncached input, cached input,
+and inclusive output (including reasoning) at fixed token rates,
+`ModelTokenAccounting` now provides a digest-pinned implementation. The operator
+must pin the owner-qualified model binding, the provider-reported model ID, and
+a verified `ModelTokenRateCard` in currency micro-units per million tokens for
+the exact model contract; the library does not embed prices that can
+go stale. It prices committed responses and failed attempts with complete usage,
+rounding the total charge upward once to the nearest micro-unit as a conservative
+budget charge, not a claim about the provider's final invoice. Missing cached
+usage when cached and ordinary input have different rates, absent/mismatched
+provider model ID, missing usage on a failed attempt, arithmetic overflow,
+and any Tool invocation are `Unpriced`.
+Providers with other billable categories require a different accounting
+implementation, not an invented zero or approximate bill.
+The descriptor must also declare provider-verified finite context, input, and
+output token ceilings: a request built from an unknown model capacity is
+rejected before dispatch. A rate-card change or model-capability change needs
+a new graph version and retained deployment snapshot.
+
+The real-HTTP/real-PostgreSQL qualification is
+[`provider_native_postgres.rs`](../crates/stateknot-integrations/tests/provider_native_postgres.rs).
+It executes a first-party OpenAI Responses adapter against a loopback provider,
+commits its actual response and token usage to the model invocation ledger,
+checks the resulting terminal cost, and proves exact submission-key read access,
+run-ID denial, and idempotent resubmission on PostgreSQL 16 and 17. Its model
+ID, key, tariff, and response are test fixtures, not deployable provider
+configuration or a claim about current provider prices. A public runnable
+deployment example with operator-supplied real credentials and retained policy
+configuration remains open in the [roadmap](roadmap.md).
+
 ## Ordered parallel Tool waves
 
 `AgentToolConcurrency::sequential()` retains one-at-a-time execution.

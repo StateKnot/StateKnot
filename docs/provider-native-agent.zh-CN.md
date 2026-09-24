@@ -111,6 +111,30 @@ Action Digest 与 Policy-evidence Digest；Recovery 会在任何 I/O 前重新�
 精确价格时返回 `Unpriced`；StateKnot 会保留 Usage Evidence，并在有限 Monetary Budget
 无法继续计算时阻止下一次调用。缺失价格绝不会被转换为零成本。
 
+如果某个固定 Model Binding 的计费项是普通输入、缓存输入，以及包含推理 Token
+的全部输出，`ModelTokenAccounting` 提供了将价格快照固定到 Graph Digest 的实现。
+部署方必须固定带 Owner 的 Model Binding、Provider 报告的 Model ID，并为精确的
+模型合同提供经核实的 `ModelTokenRateCard`，单位是每百万
+Token 的货币微单位；库不会内置可能过期的价格。对已提交 Response 或带完整用量
+的失败 Attempt，计价会把各项合并后向上取整至一个微单位，作为保守预算扣减，
+不等同于 Provider 最终账单。缓存与普通输入费率
+不同时缺少缓存用量、缺失或不匹配 Provider Model ID、失败时缺少用量、算术溢出，
+以及任何 Tool 调用，都会返回
+`Unpriced`。计费类别不同的 Provider 必须实现对应的 Accounting，不能虚构零费用
+或近似账单。
+Descriptor 还必须声明经 Provider 核实的有限 Context、Input 和 Output Token
+上限；容量未知的 Model 无法构造可安全派发的请求，会在 Dispatch 前被拒绝。
+费率或 Model Capability 变化都需要新 Graph Version，并保留旧 Deployment Snapshot。
+
+真实 HTTP 与真实 PostgreSQL 的验证见
+[`provider_native_postgres.rs`](../crates/stateknot-integrations/tests/provider_native_postgres.rs)。
+它让第一方 OpenAI Responses Adapter 请求本地回环 Provider，将实际 Response 和
+Token Usage 提交到 Model Invocation Ledger，核对最终费用，并在 PostgreSQL 16/17
+验证精确 Submission Key 读取、Run ID 越权拒绝和重复提交幂等。测试中的 Model ID、
+密钥、费率和 Response 都只是夹具，不是可部署配置，也不代表当前 Provider 价格。
+由部署方提供真实凭据和可留存 Policy 配置的公开可运行示例仍列在
+[路线图](roadmap.md)中。
+
 ## 有序 Parallel Tool Wave
 
 `AgentToolConcurrency::sequential()` 保持逐个执行；
