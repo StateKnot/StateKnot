@@ -68,7 +68,7 @@ sqlx-postgres = { version = "=0.8.6", default-features = false, features = [
     "migrate",
     "uuid",
 ] }
-sse-stream = "0.2.4"
+sse-stream = "0.3.0"
 thiserror = "2.0.20"
 tokio = { version = "1.53.1", default-features = false, features = [
     "macros",
