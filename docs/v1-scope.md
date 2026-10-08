@@ -56,6 +56,13 @@ Their exact boundaries are documented in
 
 ## Product statement
 
+The current source also implements the scoped
+[local JWT/JWKS identity profile](agent-jwt-jwks.md): RFC 9068 RS256 access
+tokens, trusted operator-provisioned finite key snapshots, atomic rotation,
+shared expiring tenant bindings and independent resource authorization.
+Authenticated key delivery/refresh remains a host deployment responsibility;
+the profile does not imply discovery or per-token online revocation.
+
 StateKnot v1 is a Rust-native library and deployable runtime for typed,
 durable, observable, and policy-enforced agent execution. It provides a direct
 agent API for common tool-calling loops and a deterministic graph API for

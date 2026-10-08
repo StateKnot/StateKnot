@@ -1009,6 +1009,33 @@ for (const locale of ["en", "zh"] as const) {
     await auditHorizontalLayout(page);
   });
 
+  test(`${locale} documents local JWT key rotation and resource authorization`, async ({
+    page,
+  }) => {
+    await page.goto(`${locale === "zh" ? "/zh" : ""}/docs/agent-http/`);
+    const section = page.locator('section[aria-labelledby="http-jwt"]');
+    for (const contract of [
+      "AgentHttpJwtJwks",
+      "JwtJwksOptions",
+      "TenantPolicy",
+      "AgentServiceAuthorizer",
+      "replace_jwks",
+      "at+jwt",
+    ])
+      await expect(section.getByText(contract, { exact: true })).toBeVisible();
+    await expect(section).toContainText("503");
+    await expect(
+      section.locator("a[href$='0018-agent-http-jwt-jwks.md']"),
+    ).toHaveCount(1);
+    await expect(
+      section.locator(
+        `a[href$='agent-jwt-jwks${locale === "zh" ? ".zh-CN" : ""}.md']`,
+      ),
+    ).toHaveCount(1);
+    await page.setViewportSize({ width: 320, height: 800 });
+    await auditHorizontalLayout(page);
+  });
+
   test(`${locale} documents owned ingress readiness and bounded drain`, async ({
     page,
   }) => {

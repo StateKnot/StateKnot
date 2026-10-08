@@ -5,6 +5,11 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot documentation
 
+Production completion plan and session handoff:
+[R0–R7 milestones, 2026-10-08](production-milestones-2026-10-08.zh-CN.md)
+(简体中文) — current branch and validation state, ordered deliverables, production
+exit criteria, and a ready-to-use request for the next development session.
+
 Latest execution guide: [Owned scheduling Worker](agent-worker.md)
 ([中文](agent-worker.zh-CN.md)) — fixed concurrency, actual readiness, joined
 shutdown and fresh-process recovery, independent of HTTP ingress.
@@ -12,6 +17,10 @@ shutdown and fresh-process recovery, independent of HTTP ingress.
 Service boundary guide: [Agent resource authorization](agent-resource-policy.md)
 ([中文](agent-resource-policy.zh-CN.md)) — concrete default-deny policy,
 retained configuration, exact resource grants, freshness and recovery semantics.
+
+Local identity guide: [JWT access tokens and JWKS](agent-jwt-jwks.md)
+([中文](agent-jwt-jwks.zh-CN.md)) — exact RFC 9068/RS256 verification,
+trusted key provisioning, rotation, finite freshness and separate resource policy.
 
 This directory contains the normative design inputs for StateKnot. Claims in
 the project README remain aspirational until backed by implementation,

@@ -692,6 +692,7 @@ jobs:
           test "$(grep -c '^STATEKNOT_AGENT_SSE_EVIDENCE=' agent-http-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_AGENT_SERVER_EVIDENCE=' agent-http-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_RESOURCE_POLICY_EVIDENCE=' agent-http-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_JWT_JWKS_EVIDENCE=' agent-http-qualification.log)" = 1
 
       - name: Upload Agent HTTP evidence
         if: always()
@@ -882,6 +883,7 @@ jobs:
           set -o pipefail
           bash conformance/agent-identity/run.sh | tee agent-identity-qualification.log
           test "$(grep -c '^STATEKNOT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_JWT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_HOST_IDENTITY_EVIDENCE=' agent-identity-qualification.log)" = 1
           test "$(grep -c '^STATEKNOT_OPERATIONS_IDENTITY_EVIDENCE=' agent-identity-qualification.log)" = 1
 

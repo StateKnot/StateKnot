@@ -31,6 +31,8 @@ use fixture::*;
 mod execution_evidence;
 #[path = "agent_http/identity.rs"]
 mod identity;
+#[path = "agent_http/jwt_jwks_identity.rs"]
+mod jwt_jwks_identity;
 #[path = "agent_http/server.rs"]
 mod owned_server;
 #[path = "agent_http/resource_policy.rs"]

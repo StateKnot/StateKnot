@@ -90,6 +90,39 @@ let router = http.router();
       >
     </p>
   </section>
+  <section aria-labelledby="http-jwt">
+    <h2 id="http-jwt">使用 JWT/JWKS 在本地验证访问令牌</h2>
+    <p>
+      <code>AgentHttpJwtJwks</code> 使用可信控制面分发的公钥，验证 RS256
+      <code>at+jwt</code> 访问令牌。通过 <code>JwtJwksOptions</code>
+      指定精确签发方、资源受众和操作 Scope。通过签名的身份仍须满足
+      <code>TenantPolicy</code> 与独立 <code>AgentServiceAuthorizer</code>
+      授权。此功能位于当前源码。
+    </p>
+    <p>
+      最多提供 16 把公钥、16 KiB 数据，显式有效时间最长一小时。
+      <code>replace_jwks</code> 完整验证集合，并核对预期版本后原子发布。 必须从重新验证的可信来源刷新，公钥过期返回
+      503；移除密钥会拒绝 后续验证，并关闭使用它的 SSE 事件流。令牌默认总生命周期为
+      15 分钟， 不通过时钟偏差延长有效期。
+    </p>
+    <p>
+      本地验证不需要每个请求访问身份服务，部署方负责可信公钥分发和及时刷新。
+      需要即时观察服务端逐令牌撤销时，使用在线 introspection。
+      本地就绪检查验证公钥与策略的新鲜度，仍需组合实际资源策略和数据库依赖。
+      PostgreSQL 16/17 测试覆盖跨租户与资源拒绝、轮换、SSE 关闭、
+      过期恢复及新验证器下的准入重放。
+    </p>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-jwt-jwks.zh-CN.md"
+        >完整 JWT 接入与公钥轮换指南</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0018-agent-http-jwt-jwks.md"
+        >RFC-0018（Accepted）</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="http-worker">
     <h2 id="http-worker">单独运行执行角色</h2>
     <p>

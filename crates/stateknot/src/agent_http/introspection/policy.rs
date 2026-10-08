@@ -106,7 +106,7 @@ impl TenantPolicy {
             .map_err(|_| IntrospectionConfigurationError)
     }
 
-    pub(super) fn check(&self) -> Result<(), AgentHttpAuthenticationError> {
+    pub(crate) fn check(&self) -> Result<(), AgentHttpAuthenticationError> {
         let current = self
             .0
             .read()
@@ -117,7 +117,7 @@ impl TenantPolicy {
         Ok(())
     }
 
-    pub(super) fn resolve(
+    pub(crate) fn resolve(
         &self,
         principal: &PrincipalIdentity,
         scopes: &[String],
