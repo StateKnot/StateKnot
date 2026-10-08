@@ -8,6 +8,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # rmcp 3.5 exposes sse-stream 0.2 types in StreamableHttpClient.
+      # Review newer sse-stream releases together with a compatible rmcp upgrade.
+      - dependency-name: sse-stream
+        versions: [">=0.3.0"]
 
   - package-ecosystem: github-actions
     directory: "/"
