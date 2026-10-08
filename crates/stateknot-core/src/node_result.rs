@@ -469,6 +469,7 @@ where
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NodeStateChange {
     /// The activation intentionally emitted no state update.
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
     Unchanged,
     /// The activation emitted one schema-validated typed update.
     Update {
@@ -916,6 +917,7 @@ pub enum NodeWaitsError {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NodeControl {
     /// Follow the node's unconditional compiled edges.
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
     Continue,
     /// Select one declared conditional route.
     Route {

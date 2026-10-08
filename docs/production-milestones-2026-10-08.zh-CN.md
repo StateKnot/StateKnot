@@ -122,7 +122,9 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 启动 pin 修正见 [RFC-0019](rfcs/0019-typed-tool-schema-directions.md)。SDK OAuth
 存储记录仍限于受信加密凭据后端。C2/C3 的值类型增量已映射 38 个公开类型的
 正/负规范往返，补齐全部 18 种 UUIDv7 标识符、31 个有界属性模型和可复现 CI
-种子；完整映射见中英 Core guide。复合类型 fixture/property/fuzz、历史迁移、
+种子；另有 67 个执行/持久化类型的 104 个完整 wire 映射及负向 reader 验证，
+原有八个构造族保留旧摘要断言。完整映射见中英 Core guide。剩余复合类型
+fixture/property/fuzz、历史迁移、
 嵌套 namespace、协议安全 RFC 与 stdio 生命周期继续开放。
 
 ### 交付任务

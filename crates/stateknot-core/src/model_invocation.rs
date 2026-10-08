@@ -426,10 +426,17 @@ impl<'de> Deserialize<'de> for ModelInvocationState {
         #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
         #[allow(clippy::large_enum_variant)]
         enum Wire {
+            #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
             Prepared,
-            Executing { attempt_id: AttemptId },
-            Committed { response: ModelResponse },
-            Failed { error: ModelError },
+            Executing {
+                attempt_id: AttemptId,
+            },
+            Committed {
+                response: ModelResponse,
+            },
+            Failed {
+                error: ModelError,
+            },
         }
 
         Ok(match Wire::deserialize(deserializer)? {

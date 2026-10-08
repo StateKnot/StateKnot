@@ -307,3 +307,41 @@ fn durable_wait_schema_objects_are_closed_and_variants_are_explicit() {
     let registration = to_value(schema_for!(WaitRegistrationIntent)).unwrap();
     assert!(registration.get("oneOf").is_some());
 }
+
+#[test]
+fn complete_wire_fixture_matches_original_constructors() {
+    let actual = {
+        let (request, _, record) = interrupt_history();
+        let (timer, _, timer_record) = timer_history();
+        let r = request.intent();
+        let t = timer.intent();
+        let waits = stateknot_core::NodeWaits::try_new([
+            stateknot_core::NodeWait::interrupt(
+                r.interrupt_id(),
+                r.kind(),
+                r.request_payload().clone(),
+                r.action_digest(),
+                r.required_principal().cloned(),
+                r.required_scopes().clone(),
+                r.expires_at(),
+            ),
+            stateknot_core::NodeWait::timer(t.timer_id(), t.kind(), t.due_at()),
+        ])
+        .unwrap();
+        let output = stateknot_core::NodeTerminalOutput::new(
+            r.request_payload().schema().clone(),
+            BoundedJson::try_from_value(json!({"approved": true})).unwrap(),
+        )
+        .unwrap();
+        json!({
+         "interrupt": record, "timer": timer_record,
+         "pending_interrupt": InterruptRecord::unresolved(request.clone()), "pending_timer": DurableTimerRecord::pending(timer.clone()),
+         "registrations": [WaitRegistrationIntent::interrupt(r.clone()), WaitRegistrationIntent::timer(t.clone())],
+         "waits": [stateknot_core::DurableWait::Interrupt { request: Box::new(request) }, stateknot_core::DurableWait::Timer { timer: Box::new(timer) }],
+         "controls": [stateknot_core::NodeControl::Continue, stateknot_core::NodeControl::Route { route_id: stateknot_core::RouteId::new("approved").unwrap() }, stateknot_core::NodeControl::Wait { waits }, stateknot_core::NodeControl::Terminal { output }],
+        })
+    };
+    let frozen: Value =
+        serde_json::from_str(include_str!("fixtures/core-execution-wires-v1.json")).unwrap();
+    assert_eq!(actual, frozen["durable_wait"]);
+}

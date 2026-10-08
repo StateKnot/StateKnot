@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Complete execution wire fixtures and typed canonical readers for 67 Core
+  types, with closed-object, duplicate-key, checked-digest and identity-collection
+  rejection evidence. Eight existing constructor suites retain their earlier
+  digest expectations and now compare complete wires with the frozen document.
+
 - A synchronized 100-appender PostgreSQL journal qualification profile that
   verifies a concurrent lifecycle transition, exact event/intent identities,
   contiguous digest-linked history, projected head and lost-ack retries during
@@ -53,6 +58,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   tenant-wide read grant for a one-request typed Agent run.
 
 ### Fixed
+
+- Empty internally tagged Core variants now reject extra fields instead of
+  silently discarding them in Serde. This closes node control/state, prepared
+  invocation, journal source/expectation and pending-Run readers while preserving
+  valid wire bytes, public Rust variants and generated JSON Schema pins.
 
 - Typed Tool adapters now generate input schemas for deserialization and output
   schemas for serialization, explicitly using JSON Schema 2020-12. Directional

@@ -534,6 +534,7 @@ impl JournalPayloadError {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum JournalEventSource {
     /// Trusted API, scheduler, recovery, or migration control path.
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
     ControlPlane,
     /// Physical worker attempt holding a run lease.
     Worker {
@@ -879,6 +880,7 @@ impl JournalHead {
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum JournalExpectation {
     /// The run journal must not contain any event.
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
     Empty,
     /// The current durable head must exactly match every supplied field.
     Exact {

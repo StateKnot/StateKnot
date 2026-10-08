@@ -24,6 +24,7 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
+cargo test -p stateknot-core --test canonical_execution_wires --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
@@ -37,7 +38,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 39 currently
+The versioned `catalog-v1.json` closes the inventory around all 40 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -98,6 +99,52 @@ This closes the listed value-family gaps. Content, descriptors, errors, composit
 durable envelopes, their nested identifiers and historical migration fixtures
 still require the complete R1 type audit; C2/C3 and RFC-0001 remain open. These
 tests do not establish production capacity, a fuzz qualification or a new release.
+
+### Complete execution wire coverage
+
+[`canonical_execution_wires.rs`](../crates/stateknot-core/tests/canonical_execution_wires.rs)
+provides a typed matrix for 67 more public types: 62 closed objects/tagged
+variants and five identity collections. Its explicit JSON pointers map 104
+positive vectors in `core-execution-wires-v1.json` to the actual public readers.
+Every vector preserves its wire value, RFC 8785 bytes and digest on canonical
+round-trip. Object vectors reject wrong shapes, unknown authority fields and
+raw duplicate keys; 32 explicitly selected checked digest fields also reject
+substitution and omission. Collection vectors reject wrong shapes and duplicate
+identities, and freeze whether an empty batch is allowed.
+
+| Public types | Complete fixture family |
+| --- | --- |
+| `CompiledGraph`, `GraphExecutionLimits`, `GraphNode`, `GraphReducerReference`, `GraphRoute`, `GraphRoutes`, `ReadyNodes` | `graph` |
+| `CheckpointHead`, `CheckpointState`, `CheckpointWrite`, `GraphReference`, `CheckpointBarrier`, `BarrierResultHeads` | `barrier` |
+| `NodeActivation`, `RunFence`, `JournalHead`, `NodeAttempt`, `NodeAttemptStart`, `NodeAttemptStartHead`, `NodeAttemptCompletion`, `NodeAttemptOutcome` | `node_attempt`, `node_result` |
+| `NodeControl`, `NodeStateChange`, `NodeStateUpdate`, `NodeTerminalOutput`, `NodeWait`, `NodeWaits`, `NodeInvocationBinding`, `NodeInvocationBindings`, `PendingNodeResult`, `PendingNodeResultHead`, `PendingNodeResultIntent` | `node_result`, `durable_wait`, `model_invocation` |
+| `DeliveryFence`, `OutboxDestinationRef`, `OutboxDelivery`, `OutboxDeliveryIntent`, `OutboxDeliveryHead`, `OutboxAttempt`, `OutboxAttemptStart`, `OutboxAttemptStartHead`, `OutboxAttemptCompletion`, `OutboxAttemptOutcome` | `outbox` |
+| `InterruptRecord`, `InterruptRequest`, `InterruptRequestHead`, `InterruptRequestIntent`, `InterruptResolution`, `InterruptResolutionIntent`, `InterruptResolver`, `DurableTimer`, `DurableTimerHead`, `DurableTimerRecord`, `TimerFiring`, `TimerFiringIntent`, `TimerRegistrationIntent`, `WaitRegistrationIntent`, `DurableWait` | `durable_wait` |
+| `ModelInvocation`, `ModelInvocationIntent`, `ModelInvocationHead`, `ModelInvocationState`, `ModelInvocationTransition` | `model_invocation` |
+| `ToolInvocation`, `ToolInvocationIntent`, `ToolInvocationHead`, `ToolInvocationState`, `ToolInvocationTransition` | `tool_invocation` |
+
+Empty tagged unit variants now reject additional fields through a shared
+closed-object reader. This repairs the declared fail-closed contract for node
+control/state changes, prepared model/tool states, journal source/expectation
+and the pending Run state. Valid wire bytes, Rust variants and generated schema
+pins remain unchanged. Previously swallowed extra fields are invalid input;
+this change does not rewrite persisted records or bless them as historical
+compatibility vectors. Strict RetryAdvice decoding remains a regression control.
+
+The eight original family suites compare their constructors and complete
+histories with this new document while retaining their earlier frozen digest
+checks. Those 39 earlier documents retain their exact bytes. The vectors include
+unfinished/succeeded/failed node and outbox attempts, unresolved/resolved
+interrupts, unfired/fired timers, all four node control alternatives, both
+model/tool bindings, and model retry and committed-tool histories.
+
+A reference-only digest cannot always be verified from that type alone: schema
+pins, external destination snapshots and some invocation heads need trusted
+registry/history context. The matrix only demands local checksum rejection for
+the explicitly selected fields; it preserves the existing context-bound
+integrity and dispatch tests. This is current-source fixture evidence, not an
+N-1/N-2 migration corpus or a production load result. Remaining public families,
+variant combinations and the complete C2/C3 audit stay open.
 
 ## What each example proves
 

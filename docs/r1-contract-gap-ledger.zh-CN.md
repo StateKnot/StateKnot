@@ -20,7 +20,7 @@ RFC-0001 至 RFC-0004 继续保持 Draft。
 | 编号 | 已有证据 | 仍需交付 | 阶段 |
 | --- | --- | --- | --- |
 | C1 | 四个公开契约示例、MSRV CI、`dependency_boundary` 检查；原 RFC 已记录本项完成 | 后续修改继续保留这三个门禁 | R1 回归 |
-| C2 | 39 个 fixture 的封闭目录、内容摘要和 catalog root；38 个公开值类型逐型正/负规范往返；全部 18 个宏生成 UUIDv7 类型有闭合源码清单门禁；Tool/Skill 授权证据等类型族已覆盖 | 表中标量/身份类型已补齐；继续完成内容、descriptor、错误、复合 envelope 与嵌套标识符的完整类型映射；文件数量不能代替覆盖率 | R1 |
+| C2 | 40 个 fixture 的封闭目录、内容摘要和 catalog root；38 个公开值类型逐型正/负规范往返；全部 18 个宏生成 UUIDv7 类型有闭合源码清单门禁；另有 67 个执行/持久化类型的 104 个完整正向 wire 映射、错误形状/重复键/未知字段及 32 个摘要字段替换/遗漏拒绝，八个原有构造族保留旧摘要与完整 wire 对照；Tool/Skill 授权证据等类型族已覆盖 | 表中标量/身份类型已补齐；继续完成内容、descriptor、错误、复合 envelope 与嵌套标识符的完整类型映射；文件数量不能代替覆盖率 | R1 |
 | C3 | 中英 Core guide 已映射五类要求；新增 31 个属性测试，每个 256 个有界样例，固定种子 CI 和普通随机运行；budget、reservation、scope、extension 等既有 proptest 保留 | 已补齐标量构造/精度、Unicode 规范顺序、三方委托交集和扩展边界；继续对复合类型及嵌套 JSON 限制完成全量审计和补漏 | R1 |
 | C4 | 严格 JSON、schema 和恶意输入的确定性测试 | 可复现、有界 fuzz 入口与保留语料，覆盖未知字段、深层结构、超大值和恶意 Unicode | R1 |
 | C5 | 18 个第一方临时 context/key/credential/carrier 的序列化拒绝及构造对照；typed Tool 输入/输出缺少 JsonSchema 的完整编译失败实现；真实离线注册表拒绝非法 schema、非对象输入、缺失/替换 pin 及变化后的 descriptor，拒绝路径检查零应用调用 | 本轮补齐当前列举类型与 typed adapter 的证据；方向性 schema 修正属于 RFC-0019 已接受的限定源码契约，新增类型继续纳入同样门禁；自定义 Serde 正确性仍须审查，SDK OAuth store records 只允许受信加密存储 | R1 回归 |
@@ -38,7 +38,7 @@ RFC-0001 至 RFC-0004 继续保持 Draft。
 
 | 编号 | 已有证据 | 仍需交付 | 阶段 |
 | --- | --- | --- | --- |
-| G1 | graph/checkpoint/barrier/node-attempt/node-result 的 schema 与 canonical fixture | 对照公开标量和完整性类型补齐闭合 schema 与 fixture 映射 | R1 |
+| G1 | graph/checkpoint/barrier/node-attempt/node-result 的 schema 与 canonical fixture；新增完整 wire 对照与逐型 reader，覆盖节点四种 control、等待、终结和 model/tool 绑定 | 对照公开标量和完整性类型补齐闭合 schema 与 fixture 映射 | R1 |
 | G2 | graph insertion/completion order 的 proptest、稳定排序与 barrier 测试 | 状态、route、checkpoint bytes、digest 的逐项模型测试覆盖 | R1 |
 | G3 | 顺序、条件、并行、等待、取消、静态共享状态组合及多条真实数据库路径 | 有界循环和同 Run 嵌套激活命名空间的完整恢复路径；现有 flatten/root namespace 不替代嵌套执行 | R1 |
 | G4 | 多组 commit-loss 与 post-commit OS-kill 专项 | pending result、journal、checkpoint、lifecycle、outbox 的每个写入边界完整矩阵及组合故障 | R1 矩阵；R6 完整验证 |

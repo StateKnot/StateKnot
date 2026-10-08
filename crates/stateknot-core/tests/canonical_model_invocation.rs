@@ -334,3 +334,14 @@ fn model_invocation_schema_objects_remain_closed() {
         );
     }
 }
+
+#[test]
+fn complete_wire_fixture_matches_original_constructors() {
+    let actual = {
+        let (_, records) = history();
+        json!({"records": records, "node_binding": stateknot_core::NodeInvocationBinding::from_model(records.last().unwrap()).unwrap()})
+    };
+    let frozen: Value =
+        serde_json::from_str(include_str!("fixtures/core-execution-wires-v1.json")).unwrap();
+    assert_eq!(actual, frozen["model_invocation"]);
+}

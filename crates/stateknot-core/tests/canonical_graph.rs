@@ -156,3 +156,11 @@ fn canonical_graph_schema_is_closed() {
         Some(&Value::Bool(false))
     );
 }
+
+#[test]
+fn complete_wire_fixture_matches_original_constructors() {
+    let actual = json!({"graph": graph()});
+    let frozen: Value =
+        serde_json::from_str(include_str!("fixtures/core-execution-wires-v1.json")).unwrap();
+    assert_eq!(actual, frozen["graph"]);
+}
