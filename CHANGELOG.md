@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A synchronized 100-appender PostgreSQL journal qualification profile that
+  verifies a concurrent lifecycle transition, exact event/intent identities,
+  contiguous digest-linked history, projected head and lost-ack retries during
+  and after contention. Retry count, joined execution and task ownership are
+  bounded; substituted lifecycle projections fail without changing history.
+
 - Typed positive/negative canonical fixtures for 38 Core value types, including
   every generated UUIDv7 identity and bounded tenant, scheduler and submission
   identifiers. Thirty-one bounded property models verify constructor/Serde

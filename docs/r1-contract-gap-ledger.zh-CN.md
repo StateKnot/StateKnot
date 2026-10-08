@@ -63,7 +63,7 @@ blob checkpoint 若引入须另立 RFC，并先依赖 R2 的 Artifact 生命周�
 | P1 | core canonical、strict Serde、bounded schema、redacted diagnostics 与部分 proptest | 完整类型映射和随机状态验证，复用 C2/C3/C4 的交付 | R1 |
 | P2 | PostgreSQL 16/17 append/renewal/expiry/revocation/fencing 测试 | 10,000 forced stale-worker trials，接受的过期写入为 0 | R6 |
 | P3 | 多组业务事务的 COMMIT 请求/响应丢失及 post-commit kill profile | 每个 insert/projection/head/commit/ack 的完整故障矩阵 | R1 矩阵；R6 完整验证 |
-| P4 | `concurrent_appenders_converge_to_one_contiguous_history` 已有 100 个 appender 的同 Run 连续历史验证；多个 24 路 idempotency/registration/admission 测试 | 补齐同步起跑、有限重试、投影 head 和全部 event identity 对照，保留 PostgreSQL 16/17 的实际执行证据 | R1 |
+| P4 | 100 个同步 appender 的真实 PostgreSQL 16/17 专项已通过：固定 intent/projection、1,024 次重试上限、60 秒并发 join 期限、完整事件身份和前序摘要链、最终 head、真实 Pending → Active 投影、竞争中/后的原请求重放及 projection 替换拒绝；中英 PostgreSQL 配置 guide 提供强制复现命令 | 本项有界 Journal 并发条件已补齐，保留完整 CI 回归；48-connection fixture pool 及本机执行不能替代 R6 参考拓扑、fencing、failover 和 soak | R1 回归；R6 独立验收 |
 | P5 | 同 ID lost-ack 重放和真实 lease takeover | primary failover 后同 ID 收敛以及同步复制确认边界 | R6 |
 | P6 | payload/intent/event/predecessor/checkpoint/graph corruption 隔离测试 | 完整 blob 与跨存储恢复组合；新增执行路径继续先校验再派发 | R1；R6 |
 | P7 | 从非空旧 schema 向前迁移、catalog 校验和新 schema 拒绝的专项 | 支持窗口内 N-1/N-2、backfill 中断及明确 rollback window | R1 契约；R6 升级 |

@@ -103,3 +103,36 @@ embedded migration version/checksum and every required schema object.
 - close `PostgresStore` during joined shutdown so the pool cannot outlive the
   process role that owns it.
 
+## Concurrent journal qualification
+
+Run the same mandatory profile against separate disposable PostgreSQL 16 and
+17 databases. The test applies migrations, so use dedicated test databases:
+
+```console
+STATEKNOT_TEST_DATABASE_URL=postgres://postgres:test-password@127.0.0.1:5432/stateknot_test \
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-store-postgres --test postgres \
+  concurrent_appenders_converge_to_one_contiguous_history --locked -- --exact
+```
+
+The profile synchronizes 100 application appenders on one Run. It freezes each
+event intent and lifecycle projection before contention; one writer commits
+Pending → Active while the other 99 preserve the current lifecycle. Every
+writer has at most 1,024 exact-head retries, and the joined concurrent phase has
+a 60-second test bound. The test owns its tasks through `JoinSet`, which aborts
+unfinished tasks on failure.
+
+Assertions match all 100 returned records to their stored event IDs, original
+intents, tenant/Run, contiguous sequences and complete predecessor digest chain.
+The projected Run head must equal the final event, and its complete lifecycle
+must equal the independently computed Active state. Original requests are
+retried during contention and after all commits; all return the identical event
+without appending again. Substituting the Start event's projection fails with
+`ProjectionIntentConflict`, and the final history and lifecycle remain unchanged.
+
+This supplies the bounded RFC-0003 P4 journal concurrency evidence. The test
+uses the bounded 48-connection fixture pool; 100 concurrent application
+appenders do not mean 100 concurrent locked database transactions. It does not
+qualify reference-topology throughput, fencing trials, failover or soak; those
+remain R6 requirements. Missing test database configuration is a hard failure
+when `STATEKNOT_REQUIRE_POSTGRES_TESTS=1`.

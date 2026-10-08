@@ -992,6 +992,17 @@ Before RFC acceptance:
   validation on the reference dataset;
 - scenario latency, memory, recovery, and 24-hour soak thresholds pass.
 
+The 100-appender condition is now exercised by a synchronized real PostgreSQL
+16/17 profile. Each immutable event/projection pair is retried under contention
+and after all commits; exact returned/stored identities, contiguous sequences,
+the predecessor digest chain, final Run head and a concurrent Pending → Active
+projection are verified. A substituted projection fails without changing the
+history. Application concurrency, retry count, joined duration and task ownership
+are bounded; the 48-connection fixture pool and local/CI execution do not prove
+reference-topology capacity. Reproduction and scope are documented in the
+[PostgreSQL configuration guide](../postgresql-configuration.md#concurrent-journal-qualification).
+The other acceptance gates remain open, and this RFC remains Draft.
+
 Rollout proceeds from deterministic single-process integration tests, to local
 PostgreSQL fault tests, to a multi-replica staging cluster, then controlled
 production pilots. No in-memory backend may be used to substantiate a
