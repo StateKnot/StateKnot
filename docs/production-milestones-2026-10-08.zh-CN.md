@@ -120,8 +120,10 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 临时 context/key/credential/carrier 的序列化拒绝与正向对照、typed Tool 输入/输出
 缺少 JsonSchema 的编译拒绝及真实 schema/descriptor 注册拒绝。方向性 Serde 输出的
 启动 pin 修正见 [RFC-0019](rfcs/0019-typed-tool-schema-directions.md)。SDK OAuth
-存储记录仍限于受信加密凭据后端。公开类型 fixture/property/fuzz、历史迁移、嵌套
-namespace、协议安全 RFC 与 stdio 生命周期继续开放。
+存储记录仍限于受信加密凭据后端。C2/C3 的值类型增量已映射 38 个公开类型的
+正/负规范往返，补齐全部 18 种 UUIDv7 标识符、31 个有界属性模型和可复现 CI
+种子；完整映射见中英 Core guide。复合类型 fixture/property/fuzz、历史迁移、
+嵌套 namespace、协议安全 RFC 与 stdio 生命周期继续开放。
 
 ### 交付任务
 

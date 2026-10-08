@@ -24,6 +24,7 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
 ```
@@ -36,7 +37,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 38 currently
+The versioned `catalog-v1.json` closes the inventory around all 39 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -57,6 +58,46 @@ This makes the existing evidence corpus reviewable and tamper-evident. It does
 not prove that every RFC-0001 public value and durable envelope already has a
 fixture. Validation item 2 remains open until that type-level coverage audit and
 the missing fixtures are complete.
+
+### Value-level fixture and property coverage
+
+[`canonical_values.rs`](../crates/stateknot-core/tests/canonical_values.rs) maps
+38 public value types to positive and negative frozen vectors. Each positive
+vector is decoded, serialized without changing its wire value, canonicalized,
+and decoded again from the same RFC 8785 bytes; the digest must remain identical.
+The tests use the actual public types, including all 18 macro-generated UUIDv7
+identifiers. A source inventory guard fails if a generated identifier is added
+without the corresponding typed fixture and property test.
+
+| Public types | Frozen fixture section |
+| --- | --- |
+| `RunId`, `ThreadId`, `EventId`, `FailureId`, `MessageId`, `ArtifactId`, `AuthorizationReceiptId`, `SkillActivationApprovalId`, `SkillActingWindowId`, `InvocationId`, `InterruptId`, `TimerId`, `DeliveryId`, `DestinationId`, `CheckpointId`, `QuarantineId`, `AttemptId`, `SchedulerReservationId` | `core-identifiers-v1.json`: `uuid_v7` |
+| `TenantId`, `SchedulerShardId`, `AgentSubmissionKey` | `core-identifiers-v1.json`: `tenants`, `shards`, `submission_keys` |
+| `Version`, `Digest` | `core-scalars-v1.json`: `versions`, `digests` |
+| `Timestamp`, `DurationMillis` | `core-time-v2.json`: `timestamps`, `durations_millis` |
+| `TokenCount`, `ByteCount`, `ExecutionCount`, `CurrencyCode`, `Money` | `core-accounting-v1.json`: `counts`, `currencies`, `money` |
+| `IssuerId`, `SubjectId`, `PrincipalIdentity` | `core-identity-v1.json`: `issuers`, `subjects`, `principal_identities` |
+| `SchemaId`, `SchemaReference` | `core-schema-v1.json`: `ids`, `references` |
+| `CapabilityName`, `Scope`, `ScopeSet` | `core-authorization-v1.json`: `capability_names`, `scopes`, `scope_sets` |
+
+[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs)
+supplies independent models for the following RFC-0001 item 3 requirements.
+Together with the 18 identifier properties, these 31 property tests each run
+256 bounded generated cases. CI runs a fixed seed for reproduction; the full
+workspace tests also execute the ordinary random-seed run.
+
+| Requirement | Executable model and retained coverage |
+| --- | --- |
+| Constructor bounds | Identity ASCII/length grammars agree with constructors and Serde; UUID bits retain exact identity and reject every other version and variant class; versions/digests retain all integer/byte values; timestamps retain their full range and reject out-of-range values; durations reject numeric wire forms, overflow and precision loss; currencies require uppercase ASCII. Schema IDs require normalized HTTPS, while issuer identity deliberately preserves exact case. Existing content, descriptor and invocation-limit properties remain in their Core modules. |
+| Canonicalization stability | Every listed value preserves wire bytes and digest through canonical decoding. Arbitrary Unicode object keys match an independent UTF-16 sort model, with a fixed supplementary-plane/private-use counterexample to Rust string ordering. Existing JSON, graph, checkpoint, barrier and recovery-order properties remain required. |
+| Budget arithmetic | All three count types and Money match checked `u64` addition, subtraction and multiplication; cross-currency operations fail. Duration arithmetic matches nonnegative `i64`. Existing `budget.rs`, `budget_reservation_tests.rs` and `child_run_budget_tests.rs` retain narrowing, high-water, reservation-order and repeated-settlement models. |
+| Delegation intersection | Caller, grant and policy scopes match the three-way bit-set intersection, remain associative and cannot widen any participant. The existing two-party commutativity/idempotence model remains required. |
+| Extension limits | Complete-map bytes, per-key bytes and entry count accept the exact boundary and reject a one-unit narrowing; duplicate entries fail. The existing insertion-order/accounting property and deterministic nested-JSON hard-limit tests remain required. |
+
+This closes the listed value-family gaps. Content, descriptors, errors, composite
+durable envelopes, their nested identifiers and historical migration fixtures
+still require the complete R1 type audit; C2/C3 and RFC-0001 remain open. These
+tests do not establish production capacity, a fuzz qualification or a new release.
 
 ## What each example proves
 

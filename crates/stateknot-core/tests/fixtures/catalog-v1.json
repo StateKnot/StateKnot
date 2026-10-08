@@ -73,6 +73,11 @@
       "content_digest": "sha256:15b437b4738ac918f406a284680343c6b93d4855523fdb4d2376018609c90847"
     },
     {
+      "path": "core-identifiers-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-identifiers/1.0.0",
+      "content_digest": "sha256:a0d2858126794a4a31ac7fddd2367b7fdd70474f7aadb5c4a067083e31eba0ca"
+    },
+    {
       "path": "core-identity-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-identity/1.0.0",
       "content_digest": "sha256:6104da3f27a5583012977dd35436c8c2ae2f836c98c74e4740d42bdf7a4d5edd"
@@ -193,5 +198,5 @@
       "content_digest": "sha256:009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
     }
   ],
-  "root_digest": "sha256:8d7d0ea409eeb8308909386a5067da989aaba0c41684d673ca9ee918d0af938d"
+  "root_digest": "sha256:73e8523480ffb24b48a82d2f21d6991b7a43dfed300b4d3f5f26b8a89b357902"
 }

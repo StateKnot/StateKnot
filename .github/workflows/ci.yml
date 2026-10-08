@@ -104,6 +104,11 @@ jobs:
       - name: Verify sealed Core compatibility fixture catalog
         run: cargo test -p stateknot-core --test fixture_catalog --locked
 
+      - name: Verify typed Core value fixtures and reproducible property models
+        env:
+          PROPTEST_RNG_SEED: "20261008"
+        run: cargo test -p stateknot-core --test canonical_values --test value_properties --locked
+
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 

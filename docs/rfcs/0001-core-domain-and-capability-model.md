@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 - Status: Draft
 - Authors: StateKnot contributors
 - Created: 2026-08-28
-- Tracking issue: Not yet created
+- Tracking issue: [#149](https://github.com/StateKnot/StateKnot/issues/149) (validation items 2–4)
 - Supersedes: None
 - Superseded by: None
 
@@ -1763,7 +1763,7 @@ Validation item 1 is implemented by the four compiled
 CI step, and the direct-dependency boundary test. Items 2 through 9 remain
 acceptance gates, so this RFC remains Draft and does not establish API stability.
 
-The current 38-file compatibility fixture corpus is now a closed, versioned
+The current 39-file compatibility fixture corpus is now a closed, versioned
 catalog: exact content digests retain deliberately non-canonical negative
 vectors, while a domain-separated RFC 8785 catalog root binds ordered path,
 schema, and digest metadata. CI rejects inventory drift and requires every
@@ -1774,6 +1774,15 @@ digests, strict bounds, payload redaction, schema closure, and tamper rejection.
 This establishes auditable evidence infrastructure and closes those type-family
 gaps for item 2; it does not yet prove exhaustive type-level fixture coverage,
 so item 2 remains open.
+
+The [Core contract guide](../core-contract-examples.md#value-level-fixture-and-property-coverage)
+now maps 38 public value types to direct positive/negative canonical round trips,
+including all 18 macro-generated UUIDv7 types with an inventory drift guard.
+Thirty-one bounded property models cover identity/Serde grammar agreement,
+precision, checked arithmetic, Unicode UTF-16 canonical ordering, three-way
+delegation intersection and exact extension limits. CI runs a reproducible seed
+and retains the ordinary random workspace run. Composite/nested value coverage
+and its complete type audit remain open for items 2 and 3.
 
 The current C5 evidence guards four execution/cancellation contexts,
 `ToolIdempotencyKey`, all five first-party zeroizing credential wrappers and

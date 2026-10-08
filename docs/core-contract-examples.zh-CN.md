@@ -24,6 +24,7 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
 ```
@@ -35,7 +36,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 38 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 39 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -52,6 +53,42 @@ Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 
 这让现有证据语料可审查且可检测篡改，但不代表 RFC-0001 的每个公共类型和持久化
 Envelope 都已经拥有 Fixture。第 2 项验证门禁仍须完成类型级覆盖审计并补齐缺口。
+
+### 值类型的 Fixture 与属性测试映射
+
+[`canonical_values.rs`](../crates/stateknot-core/tests/canonical_values.rs)
+将 38 个公开值类型映射到固定的正向和负向向量。每个正向值经过解码、保持原值的
+序列化、RFC 8785 规范化，再从相同规范字节解码，摘要必须保持一致。测试使用真实
+公开类型，覆盖全部 18 种宏生成的 UUIDv7 标识符。源码清单门禁会拒绝新增标识符
+却没有接入类型化 Fixture 和属性测试的变更。
+
+| 公开类型 | 固定 Fixture 分区 |
+| --- | --- |
+| `RunId`、`ThreadId`、`EventId`、`FailureId`、`MessageId`、`ArtifactId`、`AuthorizationReceiptId`、`SkillActivationApprovalId`、`SkillActingWindowId`、`InvocationId`、`InterruptId`、`TimerId`、`DeliveryId`、`DestinationId`、`CheckpointId`、`QuarantineId`、`AttemptId`、`SchedulerReservationId` | `core-identifiers-v1.json`：`uuid_v7` |
+| `TenantId`、`SchedulerShardId`、`AgentSubmissionKey` | `core-identifiers-v1.json`：`tenants`、`shards`、`submission_keys` |
+| `Version`、`Digest` | `core-scalars-v1.json`：`versions`、`digests` |
+| `Timestamp`、`DurationMillis` | `core-time-v2.json`：`timestamps`、`durations_millis` |
+| `TokenCount`、`ByteCount`、`ExecutionCount`、`CurrencyCode`、`Money` | `core-accounting-v1.json`：`counts`、`currencies`、`money` |
+| `IssuerId`、`SubjectId`、`PrincipalIdentity` | `core-identity-v1.json`：`issuers`、`subjects`、`principal_identities` |
+| `SchemaId`、`SchemaReference` | `core-schema-v1.json`：`ids`、`references` |
+| `CapabilityName`、`Scope`、`ScopeSet` | `core-authorization-v1.json`：`capability_names`、`scopes`、`scope_sets` |
+
+[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs)
+提供 RFC-0001 第 3 项要求的独立模型。加上 18 个标识符属性，共 31 个属性测试，
+每个运行 256 个有界生成样例。CI 固定种子便于复现，完整工作区测试同时保留普通
+随机种子运行。
+
+| 要求 | 可执行模型与保留的既有覆盖 |
+| --- | --- |
+| 构造边界 | 身份的 ASCII/长度文法与构造和 Serde 一致；UUID 保留全部身份位，拒绝其他所有版本和 variant 类别；版本/摘要保留完整整数和字节值；时间覆盖完整范围并拒绝越界；时长拒绝数字格式、溢出和精度丢失；币种要求大写 ASCII。Schema ID 要求规范 HTTPS，issuer 身份刻意保留精确大小写。Core 各模块已有的内容、descriptor 和调用限制属性继续执行。 |
+| 规范化稳定性 | 表中每个类型经过规范解码后保持 wire 值和摘要。任意 Unicode 对象键与独立 UTF-16 排序模型一致，固定补充平面/私用区反例防止误用 Rust 字符串顺序。现有 JSON、Graph、Checkpoint、barrier 和恢复顺序属性继续执行。 |
+| 预算算术 | 三种 count 和 Money 的加、减、乘与 checked `u64` 一致；跨币种运算失败。时长算术与非负 `i64` 一致。`budget.rs`、`budget_reservation_tests.rs` 和 `child_run_budget_tests.rs` 保留限制收窄、峰值、reservation 顺序及结算去重模型。 |
+| 委托交集 | caller、grant、policy scope 与三方位集合交集一致，满足结合律且不能扩大任何参与方权限。已有两方交换律和幂等模型继续执行。 |
+| 扩展限制 | 完整 map 字节、单 key 字节和条目数接受精确边界，拒绝收窄一个单位；重复条目失败。既有插入顺序/字节会计属性及嵌套 JSON 硬限制的确定性测试继续执行。 |
+
+本轮补齐表中值类型的缺口。内容、descriptor、错误、复合持久化 envelope、其中
+嵌套标识符及历史迁移 Fixture 仍须完成 R1 全量类型审计；C2/C3 和 RFC-0001
+保持开放。这些测试不构成生产容量、fuzz 资格验证或新版本发布。
 
 ## 每个示例证明什么
 
