@@ -141,3 +141,14 @@ fn invocation_schema_objects_remain_closed() {
         );
     }
 }
+
+#[test]
+fn complete_wire_fixture_matches_original_constructors() {
+    let actual = {
+        let fixture = load_fixture();
+        serde_json::json!({"records": fixture.records.iter().map(|fragment| complete_record(&fixture.intent, fragment)).collect::<Vec<_>>()})
+    };
+    let frozen: Value =
+        serde_json::from_str(include_str!("fixtures/core-execution-wires-v1.json")).unwrap();
+    assert_eq!(actual, frozen["tool_invocation"]);
+}

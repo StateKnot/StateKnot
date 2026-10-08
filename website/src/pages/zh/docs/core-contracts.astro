@@ -10,7 +10,9 @@ cargo run -p stateknot-core --example typed_tool --locked
 cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
-cargo test -p stateknot-core --test fixture_catalog --locked`;
+cargo test -p stateknot-core --test fixture_catalog --locked
+cargo test -p stateknot-core --test canonical_execution_wires --locked
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked`;
 ---
 
 <DocsLayout
@@ -111,7 +113,7 @@ cargo test -p stateknot-core --test fixture_catalog --locked`;
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">封闭兼容性证据语料库</h2>
     <p>
-      版本化目录对当前提交的全部 38 份 Core Fixture 文档建立封闭清单。每个条目以
+      版本化目录对当前提交的全部 40 份 Core Fixture 文档建立封闭清单。每个条目以
       SHA-256 固定文件的精确字节，从而保留刻意非 Canonical 的非法输入反例；带
       Domain Separation 的 RFC 8785 根摘要绑定有序的路径、Schema 与 Digest
       元数据。
@@ -127,6 +129,12 @@ cargo test -p stateknot-core --test fixture_catalog --locked`;
       Fixture。每个条目都必须继续被可执行的 Rust 兼容性测试消费。这是 RFC-0001
       第 2 项验证门禁的可审计基础，不代表类型级 Fixture 已完整覆盖；第 2
       项仍保持开放。
+    </p>
+    <p>
+      逐型 reader 已映射 38 个值类型和 67 个执行类型的正向与负向证据。完整的
+      Graph、Checkpoint、invocation、Outbox 和 wait wire 保留原有构造器摘要。
+      无字段的带标签变体拒绝额外字段和数组形式，有效 wire 字节及七个生成的
+      schema pin 保持一致。31 个有界属性模型也以固定 CI 种子运行。
     </p>
   </section>
 

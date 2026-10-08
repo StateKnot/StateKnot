@@ -24,6 +24,7 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
+cargo test -p stateknot-core --test canonical_execution_wires --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
@@ -36,7 +37,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 39 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 40 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -89,6 +90,42 @@ Envelope 都已经拥有 Fixture。第 2 项验证门禁仍须完成类型级覆
 本轮补齐表中值类型的缺口。内容、descriptor、错误、复合持久化 envelope、其中
 嵌套标识符及历史迁移 Fixture 仍须完成 R1 全量类型审计；C2/C3 和 RFC-0001
 保持开放。这些测试不构成生产容量、fuzz 资格验证或新版本发布。
+
+### 完整执行 wire 的类型映射
+
+[`canonical_execution_wires.rs`](../crates/stateknot-core/tests/canonical_execution_wires.rs)
+为另外 67 个公开类型提供逐型映射：62 个封闭对象/带标签的变体及五种身份集合。
+显式 JSON pointer 将 `core-execution-wires-v1.json` 中的 104 个正向向量交给真实
+公开 reader。每个向量在规范往返后保留 wire 值、RFC 8785 字节和摘要。对象向量
+拒绝错误形状、未知授权字段及原始重复键；32 个显式选择的本地可验证摘要字段
+额外拒绝替换和遗漏。集合拒绝错误形状、重复身份，并固定空集合是否允许。
+
+| 公开类型 | 完整 fixture 类型族 |
+| --- | --- |
+| `CompiledGraph`, `GraphExecutionLimits`, `GraphNode`, `GraphReducerReference`, `GraphRoute`, `GraphRoutes`, `ReadyNodes` | `graph` |
+| `CheckpointHead`, `CheckpointState`, `CheckpointWrite`, `GraphReference`, `CheckpointBarrier`, `BarrierResultHeads` | `barrier` |
+| `NodeActivation`, `RunFence`, `JournalHead`, `NodeAttempt`, `NodeAttemptStart`, `NodeAttemptStartHead`, `NodeAttemptCompletion`, `NodeAttemptOutcome` | `node_attempt`, `node_result` |
+| `NodeControl`, `NodeStateChange`, `NodeStateUpdate`, `NodeTerminalOutput`, `NodeWait`, `NodeWaits`, `NodeInvocationBinding`, `NodeInvocationBindings`, `PendingNodeResult`, `PendingNodeResultHead`, `PendingNodeResultIntent` | `node_result`, `durable_wait`, `model_invocation` |
+| `DeliveryFence`, `OutboxDestinationRef`, `OutboxDelivery`, `OutboxDeliveryIntent`, `OutboxDeliveryHead`, `OutboxAttempt`, `OutboxAttemptStart`, `OutboxAttemptStartHead`, `OutboxAttemptCompletion`, `OutboxAttemptOutcome` | `outbox` |
+| `InterruptRecord`, `InterruptRequest`, `InterruptRequestHead`, `InterruptRequestIntent`, `InterruptResolution`, `InterruptResolutionIntent`, `InterruptResolver`, `DurableTimer`, `DurableTimerHead`, `DurableTimerRecord`, `TimerFiring`, `TimerFiringIntent`, `TimerRegistrationIntent`, `WaitRegistrationIntent`, `DurableWait` | `durable_wait` |
+| `ModelInvocation`, `ModelInvocationIntent`, `ModelInvocationHead`, `ModelInvocationState`, `ModelInvocationTransition` | `model_invocation` |
+| `ToolInvocation`, `ToolInvocationIntent`, `ToolInvocationHead`, `ToolInvocationState`, `ToolInvocationTransition` | `tool_invocation` |
+
+无字段的带标签变体现通过共享封闭对象 reader 拒绝额外字段，修复节点
+control/state change、prepared model/tool state、Journal source/expectation
+及 Pending Run state 的既定默认拒绝契约。有效 wire 字节、Rust 变体和生成的
+schema pin 保持一致。此前被吞掉的字段属于非法输入；本次不重写已存记录，
+也不将这类输入视作历史兼容向量。已严格解码的 RetryAdvice 保留为回归对照。
+
+原有八个类型族测试将构造器和完整历史逐值对照到新文档，同时保留先前冻结的
+摘要断言。先前 39 份文档的字节保持一致。新向量包含未完成/成功/失败的节点与
+Outbox attempt、未解决/已解决的 interrupt、未触发/已触发的 timer、四种节点
+control、model/tool 两种绑定、模型重试及已提交工具调用历史。
+
+仅含引用的摘要不一定能在该类型内部独立验证：schema pin、外部目的地快照和
+部分 invocation head 需要可信注册表或完整历史。矩阵只对显式选择的字段要求
+本地 checksum 拒绝，并继续保留上下文相关的完整性和派发测试。本项是当前源码的
+fixture 证据；N-1/N-2 迁移、剩余类型族/变体组合及完整 C2/C3 审计继续开放。
 
 ## 每个示例证明什么
 

@@ -10,7 +10,9 @@ cargo run -p stateknot-core --example typed_tool --locked
 cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
-cargo test -p stateknot-core --test fixture_catalog --locked`;
+cargo test -p stateknot-core --test fixture_catalog --locked
+cargo test -p stateknot-core --test canonical_execution_wires --locked
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked`;
 ---
 
 <DocsLayout
@@ -115,7 +117,7 @@ cargo test -p stateknot-core --test fixture_catalog --locked`;
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">Seal the compatibility evidence corpus</h2>
     <p>
-      A versioned catalog closes the inventory around all 38 committed Core
+      A versioned catalog closes the inventory around all 40 committed Core
       fixture documents. Each entry pins the exact file bytes with SHA-256,
       retaining deliberately non-canonical negative vectors; a domain-separated
       RFC 8785 root binds the ordered path, schema, and digest metadata.
@@ -125,6 +127,14 @@ cargo test -p stateknot-core --test fixture_catalog --locked`;
       acting-window, and revocation records are now frozen with their retained
       and canonical-wire digests. Executable vectors verify payload redaction,
       strict source and duration decoding, schema closure, and tamper rejection.
+    </p>
+    <p>
+      Typed readers now map 38 value types and 67 execution types to positive
+      and negative evidence. Complete graph, checkpoint, invocation, outbox and
+      wait wires retain the earlier constructor digests. Empty tagged variants
+      reject additional fields and sequence forms while valid wire bytes and
+      seven generated schema pins remain unchanged. Thirty-one bounded property
+      models also run with a reproducible CI seed.
     </p>
     <p>
       CI rejects missing, unregistered, changed, duplicate, unsafe, oversized,

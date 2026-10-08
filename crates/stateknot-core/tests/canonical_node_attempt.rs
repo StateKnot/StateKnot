@@ -260,3 +260,16 @@ fn node_attempt_schema_objects_remain_closed() {
     let outcome = to_value(schema_for!(NodeAttemptOutcome)).unwrap();
     assert!(outcome.get("oneOf").is_some());
 }
+
+#[test]
+fn complete_wire_fixture_matches_original_constructors() {
+    let actual = {
+        let start = start();
+        let success = success_completion(&start);
+        let failure = failure_completion(&start);
+        json!({"start_head": start.head(), "attempts": [NodeAttempt::restore(start.clone(), None).unwrap(), NodeAttempt::restore(start.clone(), Some(success)).unwrap(), NodeAttempt::restore(start, Some(failure)).unwrap()]})
+    };
+    let frozen: Value =
+        serde_json::from_str(include_str!("fixtures/core-execution-wires-v1.json")).unwrap();
+    assert_eq!(actual, frozen["node_attempt"]);
+}

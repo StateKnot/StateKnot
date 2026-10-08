@@ -792,11 +792,20 @@ impl<'de> Deserialize<'de> for ToolInvocationState {
         #[derive(Deserialize)]
         #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
         enum Wire {
+            #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
             Prepared,
-            Executing { attempt_id: AttemptId },
-            Committed { result: ToolResult },
-            Failed { error: ToolError },
-            Unknown { error: ToolError },
+            Executing {
+                attempt_id: AttemptId,
+            },
+            Committed {
+                result: ToolResult,
+            },
+            Failed {
+                error: ToolError,
+            },
+            Unknown {
+                error: ToolError,
+            },
         }
 
         Ok(match Wire::deserialize(deserializer)? {

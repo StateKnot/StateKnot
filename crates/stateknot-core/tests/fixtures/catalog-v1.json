@@ -58,6 +58,11 @@
       "content_digest": "sha256:bdc03ec41cc04101470c580810865ec1e5833c21a98d023801559f887e4849ed"
     },
     {
+      "path": "core-execution-wires-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-execution-wires/1.0.0",
+      "content_digest": "sha256:26ecedf0f98bcec4efba0b3baf900782747f64a1fc508a03f301f5be1198dc9f"
+    },
+    {
       "path": "core-extension-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-extension/1.0.0",
       "content_digest": "sha256:8c02eea3667b36449e1115e8fc8387d72233cdde4005b8a976c8f6913f61842f"
@@ -198,5 +203,5 @@
       "content_digest": "sha256:009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
     }
   ],
-  "root_digest": "sha256:73e8523480ffb24b48a82d2f21d6991b7a43dfed300b4d3f5f26b8a89b357902"
+  "root_digest": "sha256:5780aa15e2771f409156d378a4d18c3a46bc215ded279d65275c6ccc4401b3b2"
 }

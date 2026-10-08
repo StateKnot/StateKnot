@@ -152,3 +152,11 @@ fn checkpoint_barrier_schemas_are_closed_and_bounded() {
     assert_eq!(results["maxItems"], BarrierResultHeads::MAX_LEN);
     assert_eq!(results["uniqueItems"], true);
 }
+
+#[test]
+fn complete_wire_fixture_matches_original_constructors() {
+    let actual = json!({"barrier": constructed_barrier()});
+    let frozen: Value =
+        serde_json::from_str(include_str!("fixtures/core-execution-wires-v1.json")).unwrap();
+    assert_eq!(actual, frozen["barrier"]);
+}

@@ -193,3 +193,11 @@ fn pending_result_schema_objects_remain_closed() {
         );
     }
 }
+
+#[test]
+fn complete_wire_fixture_matches_original_constructors() {
+    let actual = json!({"result": constructed_result(), "head": constructed_result().head()});
+    let frozen: Value =
+        serde_json::from_str(include_str!("fixtures/core-execution-wires-v1.json")).unwrap();
+    assert_eq!(actual, frozen["node_result"]);
+}

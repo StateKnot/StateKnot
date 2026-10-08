@@ -980,6 +980,7 @@ pub enum RunCancellationError {
 #[derive(Clone, Deserialize, JsonSchema, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 enum RunState {
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
     Pending,
     Active {
         activated_at: Timestamp,

@@ -16,6 +16,36 @@ use thiserror::Error;
 const KIBIBYTE: usize = 1024;
 const MEBIBYTE: usize = KIBIBYTE * KIBIBYTE;
 
+// Serde's internally tagged unit visitor discards extra map entries even with
+// deny_unknown_fields. Require an empty map for the tag's remaining content;
+// derived empty structs also accept sequences, which are not this JSON wire.
+pub(crate) fn deserialize_empty_object<'de, D>(deserializer: D) -> Result<(), D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct EmptyObject;
+
+    impl<'de> Visitor<'de> for EmptyObject {
+        type Value = ();
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("an empty tagged JSON object")
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<(), A::Error>
+        where
+            A: MapAccess<'de>,
+        {
+            if let Some(key) = map.next_key::<String>()? {
+                return Err(de::Error::unknown_field(&key, &[]));
+            }
+            Ok(())
+        }
+    }
+
+    deserializer.deserialize_map(EmptyObject)
+}
+
 /// A configurable dimension of the bounded JSON contract.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]

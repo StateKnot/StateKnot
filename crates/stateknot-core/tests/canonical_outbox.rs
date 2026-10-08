@@ -250,3 +250,22 @@ fn outbox_schema_objects_remain_closed_and_attempts_are_bounded() {
     let outcome = to_value(schema_for!(OutboxAttemptOutcome)).unwrap();
     assert!(outcome.get("oneOf").is_some());
 }
+
+#[test]
+fn complete_wire_fixture_matches_original_constructors() {
+    let actual = {
+        let delivery = delivery();
+        let start = start(&delivery);
+        let acknowledgement = OutboxAttemptCompletion::acknowledge(
+            &start,
+            Some(Digest::sha256(b"canonical-a2a-acknowledgement")),
+            timestamp(2_000_000),
+        )
+        .unwrap();
+        let failure = failure_completion(&start);
+        json!({"delivery": delivery, "delivery_head": delivery.head(), "start_head": start.head(), "attempts": [OutboxAttempt::restore(start.clone(), None).unwrap(), OutboxAttempt::restore(start.clone(), Some(acknowledgement)).unwrap(), OutboxAttempt::restore(start, Some(failure)).unwrap()]})
+    };
+    let frozen: Value =
+        serde_json::from_str(include_str!("fixtures/core-execution-wires-v1.json")).unwrap();
+    assert_eq!(actual, frozen["outbox"]);
+}
