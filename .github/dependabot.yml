@@ -8,6 +8,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      patch-updates:
+        patterns: ["*"]
+        update-types: ["patch"]
     ignore:
       # rmcp 3.5 exposes sse-stream 0.2 types in StreamableHttpClient.
       # Review newer sse-stream releases together with a compatible rmcp upgrade.
@@ -19,12 +23,20 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      patch-updates:
+        patterns: ["*"]
+        update-types: ["patch"]
 
   - package-ecosystem: npm
     directory: "/website"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      patch-updates:
+        patterns: ["*"]
+        update-types: ["patch"]
     ignore:
       # Astro's type checker must explicitly support the selected TypeScript
       # major before the website toolchain is upgraded.
