@@ -30,6 +30,7 @@ security, or operational commitments.
 | [0016](0016-protected-agent-host-operations.md) | Draft | Separately authorized read-only host operations and owned listener |
 | [0017](0017-host-qualification-harness.md) | Draft | Reproducible host capacity and recovery qualification evidence |
 | [0018](0018-agent-http-jwt-jwks.md) | Accepted | Local RFC 9068 access-token verification with operator-managed JWKS |
+| [0019](0019-typed-tool-schema-directions.md) | Accepted | Directional typed Tool schema generation and output registration |
 
 ## When an RFC is required
 

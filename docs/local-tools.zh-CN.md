@@ -79,22 +79,28 @@ let input = schemas.register_rust_type::<IncidentLookup>(
     "https://schemas.example.com/tools/lookup/input/1.0.0".parse()?,
     Version::new(1, 0, 0),
 )?;
-let output = schemas.register_rust_type::<IncidentSummary>(
+let output = schemas.register_rust_output_type::<IncidentSummary>(
     "https://schemas.example.com/tools/lookup/output/1.0.0".parse()?,
     Version::new(1, 0, 0),
 )?;
 let schemas = schemas.build()?;
 ```
 
-`register_rust_type` 写入规范 `$id`、计算 RFC 8785 SHA-256 Digest、返回完整
-`SchemaReference`，并注册离线 JSON Schema 2020-12 Validator。
+`register_rust_type` 按反序列化规则生成输入契约，`register_rust_output_type` 按序列化
+规则生成输出契约。两者均写入规范 `$id`、计算 RFC 8785 SHA-256 Digest、返回完整
+`SchemaReference`，并注册离线 JSON Schema 2020-12 Validator。方向性 Serde 重命名、
+跳过字段、默认值和可选输出必须体现在对应的 Schema 中。
 `ToolAdapter::new` 会重新生成 Rust Schema，并要求其规范字节完全相等。过期
 Descriptor、变化后的 Rust 类型、缺失的本地资源、未解析 `$ref` 或 Digest 漂移都会
 在进程快照构建阶段失败，不会等到 Run 派发后才暴露。
 
 这些 Schema URI 和版本应被当作已经发布的接口。若源码重构后生成的 Schema 字节完全
 一致，可以保留版本；只要 Wire Shape 或行为发生变化，就应发布新的 Schema 与 Tool
-版本。
+版本。现有输入注册的规范契约保持不变。如果旧输出通过输入生成器固定，且实际序列化
+Schema 不同，启动校验现在会拒绝旧 pin；必须采用新的输出 Schema 和 Tool 版本，并为
+已准入工作保留旧可执行版本。不能重写持久 Descriptor，也不能用不同字节复用不可变
+Schema URI。限定修正见 [RFC-0019](rfcs/0019-typed-tool-schema-directions.md)；已发布
+alpha.1 包不包含这个源码增量。
 
 ## 准确声明副作用和资源上限
 

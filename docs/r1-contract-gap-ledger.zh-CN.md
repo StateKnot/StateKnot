@@ -21,7 +21,7 @@ RFC-0001 至 RFC-0004 继续保持 Draft。
 | C2 | 38 个 fixture 的封闭目录、内容摘要和 catalog root；Tool/Skill 授权证据等类型族已覆盖 | 建立公开可序列化类型到正/负规范 fixture 的完整映射，逐项补齐缺口；文件数量不能代替覆盖率 | R1 |
 | C3 | budget、reservation、scope、extension、canonical JSON 等已有 proptest | 核对构造边界、规范化、预算算术、委托交集和扩展限制的要求到测试映射，补齐缺口 | R1 |
 | C4 | 严格 JSON、schema 和恶意输入的确定性测试 | 可复现、有界 fuzz 入口与保留语料，覆盖未知字段、深层结构、超大值和恶意 Unicode | R1 |
-| C5 | 已加入四个 core context/cancellation 类型及 Agent HTTP credential 的序列化编译失败测试与正向对照；工具注册有运行时 schema/descriptor 校验 | 补齐其余 credential 家族、缺少 JsonSchema 的 typed Tool 编译失败及 invalid schema/descriptor 注册拒绝的逐项证据 | R1 |
+| C5 | 18 个第一方临时 context/key/credential/carrier 的序列化拒绝及构造对照；typed Tool 输入/输出缺少 JsonSchema 的完整编译失败实现；真实离线注册表拒绝非法 schema、非对象输入、缺失/替换 pin 及变化后的 descriptor，拒绝路径检查零应用调用 | 本轮补齐当前列举类型与 typed adapter 的证据；方向性 schema 修正属于 RFC-0019 已接受的限定源码契约，新增类型继续纳入同样门禁；自定义 Serde 正确性仍须审查，SDK OAuth store records 只允许受信加密存储 | R1 回归 |
 | C6 | 当前格式的负向 fixture 和显式版本检查 | 支持窗口内 N-1/N-2 的真实历史 fixture、向前迁移、新版本拒绝与损坏拒绝；不能生成虚假的历史版本 | R1 契约；R6 升级 |
 | C7 | `dependency_boundary` 检查限定 core 的直接依赖；core 无 Tokio/provider/数据库依赖 | 保留传递依赖审查和最终不可变版本的依赖政策证据 | R1；R7 最终复核 |
 | C8 | 三个 GS 场景的规范文本、多个缩减 runtime/Host fixture | 逐值映射场景需要的身份、预算、消息、结果、恢复和审计值；完整场景运行另有门禁 | R1 映射；R6 运行 |
@@ -108,7 +108,7 @@ MCP stdio 验收必须包括启动失败、握手阻塞、版本不匹配、畸�
 
 ## 执行与关闭规则
 
-R1 首先补齐 C2/C3/C5 和 G3 的证据/语义，独立协议安全 RFC 与 stdio RFC 随后进入
+R1 首先补齐 C2/C3 和 G3 的证据/语义，并保留 C5 注册/隐私回归，独立协议安全 RFC 与 stdio RFC 随后进入
 实现评审。每个增量保留 DCO、必要回归、支持范围及中英文采用文档。
 新增公开/持久化契约须先按 RFC 流程收口，不能通过修改本清单降低退出条件。
 

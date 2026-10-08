@@ -8,6 +8,19 @@ use thiserror::Error;
 use zeroize::Zeroizing;
 
 /// A validated provider credential whose storage is zeroized on final drop.
+///
+/// ```
+/// use stateknot_integrations::{ApiKey, StaticApiKey};
+/// let key = ApiKey::new("fixture-api-key").unwrap();
+/// assert_eq!(format!("{key:?}"), "ApiKey([REDACTED])");
+/// let provider = StaticApiKey::new(key);
+/// assert_eq!(format!("{provider:?}"), "StaticApiKey([REDACTED])");
+/// ```
+///
+/// ```compile_fail,E0277
+/// fn durable_record<T: serde::Serialize>() {}
+/// durable_record::<stateknot_integrations::ApiKey>();
+/// ```
 #[derive(Clone)]
 pub struct ApiKey(Zeroizing<String>);
 
@@ -108,6 +121,11 @@ pub trait ApiKeyProvider: Send + Sync + 'static {
 }
 
 /// Immutable in-memory credential provider for controlled deployments.
+///
+/// ```compile_fail,E0277
+/// fn durable_record<T: serde::Serialize>() {}
+/// durable_record::<stateknot_integrations::StaticApiKey>();
+/// ```
 #[derive(Clone)]
 pub struct StaticApiKey {
     key: Arc<ApiKey>,

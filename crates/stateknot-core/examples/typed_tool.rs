@@ -9,7 +9,7 @@ mod support;
 
 use std::{error::Error, io};
 
-use schemars::{JsonSchema, Schema, SchemaGenerator};
+use schemars::{JsonSchema, Schema, generate::SchemaSettings};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use stateknot_core::{
     BoundedJson, CanonicalJson, SchemaReference, Tool, ToolAdapter, ToolContext, ToolError,
@@ -120,17 +120,23 @@ fn schema_error(message: &'static str) -> ToolSchemaValidationError {
 
 fn schema_reference<T: JsonSchema>(
     name: &str,
+    settings: SchemaSettings,
 ) -> Result<(SchemaReference, Schema), Box<dyn Error>> {
-    let generated = SchemaGenerator::default().into_root_schema_for::<T>();
+    let generated = settings.into_generator().into_root_schema_for::<T>();
     let bounded = BoundedJson::try_from_value(serde_json::to_value(&generated)?)?;
     let digest = CanonicalJson::new(&bounded)?.digest();
     Ok((support::schema_with_digest(name, digest), generated))
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (input_reference, input_schema) = schema_reference::<IncidentLookup>("incident-lookup")?;
-    let (output_reference, output_schema) =
-        schema_reference::<IncidentSummary>("incident-summary")?;
+    let (input_reference, input_schema) = schema_reference::<IncidentLookup>(
+        "incident-lookup",
+        SchemaSettings::draft2020_12().for_deserialize(),
+    )?;
+    let (output_reference, output_schema) = schema_reference::<IncidentSummary>(
+        "incident-summary",
+        SchemaSettings::draft2020_12().for_serialize(),
+    )?;
     let descriptor = support::tool_descriptor(input_reference.clone(), output_reference.clone())?;
     let registry = OfflineRegistry {
         input_reference,

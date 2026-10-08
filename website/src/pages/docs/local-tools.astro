@@ -8,7 +8,7 @@ const command =
   "cargo run -p stateknot-runtime --example local_tool_registration --locked";
 const code = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 let input = schemas.register_rust_type::<IncidentLookup>(input_id, VERSION)?;
-let output = schemas.register_rust_type::<IncidentSummary>(output_id, VERSION)?;
+let output = schemas.register_rust_output_type::<IncidentSummary>(output_id, VERSION)?;
 let schemas = schemas.build()?;
 
 let adapter = ToolAdapter::new(
@@ -79,9 +79,17 @@ assert_eq!(providers.resolve(&descriptor)?.descriptor(), &descriptor);`;
       Implement <code>Tool</code> with object-root <code>Input</code> and bounded
       <code>Output</code> types. Use <code>serde(deny_unknown_fields)</code> and accurate
       effect, idempotency, cancellation, reconciliation and resource-limit declarations.
-      <code>register_rust_type</code> adds the canonical schema ID, computes its RFC
-      8785 SHA-256 digest and installs an offline validator.
+      <code>register_rust_type</code> generates the deserialization contract for input;
+      <code>register_rust_output_type</code> generates the serialization contract
+      for output. Both add the canonical schema ID, compute its RFC 8785 SHA-256 digest
+      and install an offline validator.
       <code>ToolAdapter</code> rejects any generated-schema drift at startup.
+    </p>
+    <p>
+      This output helper follows current source and is absent from the published
+      alpha.1 package. If an old output pin differs from the actual
+      serialization schema, introduce new schema and Tool versions. Retain the
+      old executable for admitted work; never rewrite an immutable pin.
     </p>
     <p>
       One <code>call</code> is one physical attempt. Do not hide retries or describe

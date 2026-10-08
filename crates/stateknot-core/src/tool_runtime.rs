@@ -10,7 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
+use schemars::{JsonSchema, Schema, SchemaGenerator, generate::SchemaSettings, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de, de::DeserializeOwned};
 use thiserror::Error;
 
@@ -29,6 +29,19 @@ use crate::{
 /// contains no tenant name, tool arguments, credential, or user-provided
 /// secret. The value is deliberately not serializable as a general payload;
 /// durable invocation records persist the underlying invocation identifier.
+///
+/// ```
+/// use stateknot_core::{InvocationId, ToolIdempotencyKey};
+/// let invocation: InvocationId = "01912345-6789-7abc-8def-0123456789ad".parse().unwrap();
+/// let key = ToolIdempotencyKey::from_invocation_id(invocation);
+/// assert_eq!(key.invocation_id(), invocation);
+/// assert_eq!(format!("{key:?}"), "ToolIdempotencyKey([REDACTED])");
+/// ```
+///
+/// ```compile_fail,E0277
+/// fn durable_record<T: serde::Serialize>() {}
+/// durable_record::<stateknot_core::ToolIdempotencyKey>();
+/// ```
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ToolIdempotencyKey(InvocationId);
 
@@ -3143,6 +3156,66 @@ pub trait ToolSchemaRegistry: Send + Sync + 'static {
 /// [`AttemptId`]; every actual external exchange requires a separately admitted
 /// and budgeted attempt, with the same logical [`InvocationId`] and idempotency
 /// key when applicable.
+///
+/// Both associated types must supply their JSON Schema. These complete Tool
+/// implementations fail solely because one boundary omits `JsonSchema`:
+///
+/// ```compile_fail,E0277
+/// use stateknot_core::{BoxFuture, Tool, ToolContext, ToolDescriptor, ToolError, ToolOutput};
+/// #[derive(serde::Deserialize)]
+/// struct Input { value: String }
+/// struct Example(ToolDescriptor);
+/// impl Tool for Example {
+///     type Input = Input;
+///     type Output = String;
+///     fn descriptor(&self) -> &ToolDescriptor { &self.0 }
+///     fn call(&self, _: ToolContext, _: Input)
+///         -> BoxFuture<'_, Result<ToolOutput<String>, ToolError>> {
+///         Box::pin(std::future::pending())
+///     }
+/// }
+/// ```
+///
+/// ```compile_fail,E0277
+/// use stateknot_core::{BoxFuture, Tool, ToolContext, ToolDescriptor, ToolError, ToolOutput};
+/// #[derive(serde::Deserialize, schemars::JsonSchema)]
+/// struct Input { value: String }
+/// #[derive(serde::Serialize)]
+/// struct Output { value: String }
+/// struct Example(ToolDescriptor);
+/// impl Tool for Example {
+///     type Input = Input;
+///     type Output = Output;
+///     fn descriptor(&self) -> &ToolDescriptor { &self.0 }
+///     fn call(&self, _: ToolContext, _: Input)
+///         -> BoxFuture<'_, Result<ToolOutput<Output>, ToolError>> {
+///         Box::pin(std::future::pending())
+///     }
+/// }
+/// ```
+///
+/// Adding the missing schema derives makes the same public boundary compile.
+/// This control also checks every import and method in the rejection examples:
+///
+/// ```
+/// use stateknot_core::{BoxFuture, Tool, ToolContext, ToolDescriptor, ToolError, ToolOutput};
+/// #[derive(serde::Deserialize, schemars::JsonSchema)]
+/// struct Input { value: String }
+/// #[derive(serde::Serialize, schemars::JsonSchema)]
+/// struct Output { value: String }
+/// struct Example(ToolDescriptor);
+/// impl Tool for Example {
+///     type Input = Input;
+///     type Output = Output;
+///     fn descriptor(&self) -> &ToolDescriptor { &self.0 }
+///     fn call(&self, _: ToolContext, input: Input)
+///         -> BoxFuture<'_, Result<ToolOutput<Output>, ToolError>> {
+///         Box::pin(async move { Ok(ToolOutput::inline(Output { value: input.value })) })
+///     }
+/// }
+/// fn accepts_tool<T: Tool>() {}
+/// accepts_tool::<Example>();
+/// ```
 pub trait Tool: Send + Sync + 'static {
     /// Typed object-root arguments.
     type Input: DeserializeOwned + JsonSchema + Send + 'static;
@@ -3379,13 +3452,21 @@ where
 {
     /// Validates generated type schemas and freezes the descriptor snapshot.
     ///
+    /// Input generation follows Serde deserialization; output generation follows
+    /// Serde serialization. Both explicitly use JSON Schema 2020-12. A directional
+    /// rename or skipped field therefore cannot silently change the executable
+    /// wire contract after registration.
+    ///
     /// # Errors
     ///
     /// Returns [`ToolAdapterBuildError`] unless both generated Rust type schemas
     /// match their digest-pinned local registry contracts.
     pub fn new(tool: T, registry: R) -> Result<Self, ToolAdapterBuildError> {
         let descriptor = tool.descriptor().clone();
-        let input_schema = SchemaGenerator::default().into_root_schema_for::<T::Input>();
+        let input_schema = SchemaSettings::draft2020_12()
+            .for_deserialize()
+            .into_generator()
+            .into_root_schema_for::<T::Input>();
         registry
             .validate_type_schema(
                 descriptor.input_schema(),
@@ -3396,7 +3477,10 @@ where
                 role: ToolSchemaRole::Input,
                 source,
             })?;
-        let output_schema = SchemaGenerator::default().into_root_schema_for::<T::Output>();
+        let output_schema = SchemaSettings::draft2020_12()
+            .for_serialize()
+            .into_generator()
+            .into_root_schema_for::<T::Output>();
         registry
             .validate_type_schema(
                 descriptor.output_schema(),

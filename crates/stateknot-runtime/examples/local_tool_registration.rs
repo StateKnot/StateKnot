@@ -118,7 +118,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "https://schemas.example.com/tools/lookup-incident/input/1.0.0".parse::<SchemaId>()?,
         VERSION,
     )?;
-    let output = schema_builder.register_rust_type::<IncidentSummary>(
+    let output = schema_builder.register_rust_output_type::<IncidentSummary>(
         "https://schemas.example.com/tools/lookup-incident/output/1.0.0".parse::<SchemaId>()?,
         VERSION,
     )?;

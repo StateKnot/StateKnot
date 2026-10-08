@@ -1453,6 +1453,9 @@ test("local Tool and Skill composition guides preserve durable boundaries", asyn
     page.getByText("register_rust_type", { exact: true }),
   ).toBeVisible();
   await expect(
+    page.getByText("register_rust_output_type", { exact: true }),
+  ).toBeVisible();
+  await expect(
     page.getByText("DurableInvocationExecutor", { exact: true }),
   ).toBeVisible();
 
@@ -1462,6 +1465,9 @@ test("local Tool and Skill composition guides preserve durable boundaries", asyn
   ).toBeVisible();
   await expect(
     page.getByText("register_rust_type", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("register_rust_output_type", { exact: true }),
   ).toBeVisible();
 
   await page.goto("/docs/skill-composition/");

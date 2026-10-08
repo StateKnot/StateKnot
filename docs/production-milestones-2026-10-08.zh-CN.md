@@ -116,9 +116,12 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 ## R1 核心契约与开发者接入
 
 状态：进行中。RFC-0001 至 RFC-0004 的每条验收项、已有证据和后续阶段依赖已经
-记录在 [R1 缺口清单](r1-contract-gap-ledger.zh-CN.md)。第一个增量补齐四个 core
-执行/取消类型及 Agent HTTP credential 的编译期序列化拒绝回归和正向对照；剩余
-credential、typed Tool 注册、嵌套 namespace、协议安全 RFC 与 stdio 生命周期继续开放。
+记录在 [R1 缺口清单](r1-contract-gap-ledger.zh-CN.md)。当前 C5 增量覆盖 18 个第一方
+临时 context/key/credential/carrier 的序列化拒绝与正向对照、typed Tool 输入/输出
+缺少 JsonSchema 的编译拒绝及真实 schema/descriptor 注册拒绝。方向性 Serde 输出的
+启动 pin 修正见 [RFC-0019](rfcs/0019-typed-tool-schema-directions.md)。SDK OAuth
+存储记录仍限于受信加密凭据后端。公开类型 fixture/property/fuzz、历史迁移、嵌套
+namespace、协议安全 RFC 与 stdio 生命周期继续开放。
 
 ### 交付任务
 

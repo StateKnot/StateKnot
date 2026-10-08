@@ -24,7 +24,8 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
-cargo test -p stateknot-core -p stateknot --doc --locked
+cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
+cargo test -p stateknot-runtime --test tool_registration --locked
 ```
 
 CI has a named example-compilation step. The dependency-boundary integration
@@ -78,13 +79,31 @@ The Agent HTTP credential documentation separately checks that
 serialization bound. Removing an import or accidentally adding a serialization
 implementation therefore cannot leave the evidence green.
 
-CI now has an explicit workspace Rustdoc-test step on Rust 1.88; `--all-targets`
-tests and `cargo doc` alone do not execute these examples. The checks add no
-dependency or execution API. They cover five specific ephemeral
-types, not every credential family or every typed-Tool registration constraint.
-RFC-0001 validation item 5 remains open for its remaining schema/descriptor and
-credential coverage. See the [R1 acceptance ledger](r1-contract-gap-ledger.zh-CN.md)
-(简体中文) for the complete cross-stage gaps.
+The remaining guards cover `ToolIdempotencyKey`, all five first-party zeroizing
+credential wrappers (`AgentHttpCredential`, `ClientSecret`, `ApiKey`, `A2aSecret`,
+`McpServerBearerCredential`), and their static provider, MCP authorization, OAuth
+registration and A2A security/push carriers. Construction controls exercise the
+public imports and redacted Debug. The SDK's `McpOAuthStoredCredentials` and
+`McpOAuthStoredAuthorizationState` intentionally remain serializable for
+caller-owned encrypted storage; they must never enter ordinary run state or
+audit payloads. See the [OAuth storage boundary](mcp-oauth.md).
+
+Two complete Tool compile-fail implementations omit `JsonSchema` on input and
+output separately; a successful implementation restores both derives. The
+[production registry tests](../crates/stateknot-runtime/tests/tool_registration.rs)
+exercise real directional Serde output, invalid meta-schema, non-object input,
+missing/substituted pins and changed descriptors. Rejected dispatch paths assert
+zero application calls. The adapter now generates the actual deserialization
+input and serialization output contracts; the additive output registration
+helper and compatibility rules are documented in
+[RFC-0019](rfcs/0019-typed-tool-schema-directions.md) and the
+[local Tool guide](local-tools.md).
+
+CI has an explicit workspace Rustdoc-test step on Rust 1.88; `--all-targets`
+tests and `cargo doc` alone do not execute these examples. These scoped checks
+provide C5 evidence for the current listed types and typed adapter; they do not
+prove arbitrary custom Serde implementations or complete every RFC acceptance
+item. See the [R1 acceptance ledger](r1-contract-gap-ledger.zh-CN.md) (简体中文).
 
 ## Production integration boundary
 
@@ -99,6 +118,5 @@ boundaries.
 
 Passing the four examples closes only RFC-0001 validation item 1. The sealed
 fixture catalog is infrastructure toward item 2, not completion of its required
-type-level coverage. Fuzzing, the remaining compile-fail/registration coverage,
-historical migrations, scenario mapping, and the complete security review also
+type-level coverage. Fuzzing, historical migrations, scenario mapping, and the complete security review also
 remain acceptance gates. StateKnot remains a preview and RFC-0001 remains Draft.

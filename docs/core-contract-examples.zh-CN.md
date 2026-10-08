@@ -24,7 +24,8 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
-cargo test -p stateknot-core -p stateknot --doc --locked
+cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
+cargo test -p stateknot-runtime --test tool_registration --locked
 ```
 
 CI 包含单独命名的示例编译步骤。依赖边界集成测试还会读取锁定的 Cargo
@@ -69,10 +70,24 @@ Core 的 Rustdoc 分别检查 `CancellationSignal`、`ModelContext`、`ToolConte
 约束。Agent HTTP 凭据文档另行验证 `AgentHttpCredential` 可构造且 Debug 脱敏，
 并拒绝其序列化约束。删除导入或误加序列化实现均不能让这组证据继续通过。
 
-CI 新增 Rust 1.88 全工作区 Rustdoc 测试步骤；`--all-targets` 测试与 `cargo doc`
-不会执行这些示例。没有新依赖或执行 API。覆盖范围
-是五个具体临时类型，不是全部凭据家族或 Tool 注册约束。RFC-0001 第 5 项仍须补齐
-剩余 Schema/Descriptor 和凭据证据。完整跨阶段缺口见
+其余回归覆盖 `ToolIdempotencyKey`、全部五个第一方 zeroizing 凭据包装类型
+（`AgentHttpCredential`、`ClientSecret`、`ApiKey`、`A2aSecret`、
+`McpServerBearerCredential`），以及静态 Provider、MCP 授权、OAuth 注册和 A2A
+安全/push 凭据载体。构造对照执行公共导入和 Debug 脱敏。SDK 的
+`McpOAuthStoredCredentials` 与 `McpOAuthStoredAuthorizationState` 仍允许序列化，
+用于调用方拥有的加密存储；不能进入普通 Run 状态或审计 Payload。见
+[OAuth 存储边界](mcp-oauth.zh-CN.md)。
+
+两个完整 Tool 编译失败实现分别缺少输入和输出的 `JsonSchema`；正向实现补齐两个
+derive。[生产注册表测试](../crates/stateknot-runtime/tests/tool_registration.rs)
+验证实际方向性 Serde 输出、非法 meta-schema、非对象输入、缺失/替换 pin 和变化后的
+Descriptor。拒绝派发路径断言应用调用次数为零。适配器按反序列化生成输入契约，按
+序列化生成输出契约；新增输出注册入口及兼容性规则见
+[RFC-0019](rfcs/0019-typed-tool-schema-directions.md) 和[本地 Tool 指南](local-tools.zh-CN.md)。
+
+CI 包含 Rust 1.88 全工作区 Rustdoc 测试；`--all-targets` 测试与 `cargo doc` 不会
+执行这些示例。这些限定检查提供当前已列出类型和 typed adapter 的 C5 证据，不能
+证明任意自定义 Serde 实现，也不能关闭整个 RFC。跨阶段缺口见
 [R1 验收清单](r1-contract-gap-ledger.zh-CN.md)。
 
 ## 生产集成边界
@@ -85,6 +100,5 @@ Terminal Evidence。对应的已实现边界见[强类型 Agent 指南](typed-ag
 [可恢复 Agent Loop 指南](durable-agent-loop.zh-CN.md)。
 
 四个示例只关闭 RFC-0001 的第 1 项验证门禁。封闭 Fixture 目录只是第 2 项的
-证据基础，不代表已完成所需的类型级覆盖。Fuzzing、剩余 Compile-fail/注册检查、
-历史迁移、场景映射与完整安全审查也仍是验收条件。StateKnot 仍是预览版，
+证据基础，不代表已完成所需的类型级覆盖。Fuzzing、历史迁移、场景映射与完整安全审查也仍是验收条件。StateKnot 仍是预览版，
 RFC-0001 仍为 Draft。
