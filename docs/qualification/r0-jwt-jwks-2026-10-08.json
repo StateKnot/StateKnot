@@ -1,0 +1,407 @@
+{
+  "copyright": "2026 StateKnot contributors",
+  "license": "Apache-2.0",
+  "milestone": "R0",
+  "completed_on": "2026-10-08",
+  "source_commit": "8c57db8cbff754428a2e876b98f7c2b6c3ef8edd",
+  "source_tree": "749076df3286eff6e120686d72de070c736fb757",
+  "merged_main_commit": "5f156b94516d2eb9ed96e2a648e0a13e66debc14",
+  "pull_request": "https://github.com/StateKnot/StateKnot/pull/146",
+  "rfc": {
+    "number": 18,
+    "status": "Accepted",
+    "scope": "local RFC 9068 RS256 access tokens with operator-managed trusted JWKS"
+  },
+  "ci": {
+    "run": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919",
+    "dependency_policy": "https://github.com/StateKnot/StateKnot/actions/runs/37731350923",
+    "checks": [
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081575",
+        "name": "Test (macos-latest)",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081594",
+        "name": "A2A 1.0 Conformance",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081339",
+        "name": "Release packages",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081589",
+        "name": "Website",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081587",
+        "name": "PostgreSQL PITR (16)",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081357",
+        "name": "PostgreSQL PITR (17)",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081179",
+        "name": "MCP Conformance",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081510",
+        "name": "Quality",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081477",
+        "name": "Test (ubuntu-latest)",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081554",
+        "name": "Test (windows-latest)",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081481",
+        "name": "PostgreSQL (16)",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350919/job/113161081433",
+        "name": "PostgreSQL (17)",
+        "state": "SUCCESS"
+      },
+      {
+        "link": "https://github.com/StateKnot/StateKnot/actions/runs/37731350923/job/113160935606",
+        "name": "Dependency policy",
+        "state": "SUCCESS"
+      }
+    ],
+    "identity_evidence": [
+      {
+        "postgresql_major": 16,
+        "markers": {
+          "STATEKNOT_JWT_JWKS_EVIDENCE": {
+            "profile": "rfc9068-rs256-local-jwks",
+            "real_signature": true,
+            "key_rotation": true,
+            "cross_tenant_denied": true,
+            "resource_policy_required": true,
+            "sse_closed": true,
+            "key_expiry_recovered": true,
+            "fresh_verifier_replay": true,
+            "drained": true
+          },
+          "STATEKNOT_JWT_IDENTITY_EVIDENCE": {
+            "provider": "keycloak-26.7.3",
+            "verified_tls": true,
+            "rfc9068": true,
+            "algorithm": "RS256",
+            "operator_provisioned_jwks": true,
+            "trusted_tenant": true,
+            "exact_key_replay": true,
+            "empty_key_revocation": true,
+            "drained": true
+          }
+        }
+      },
+      {
+        "postgresql_major": 17,
+        "markers": {
+          "STATEKNOT_JWT_JWKS_EVIDENCE": {
+            "profile": "rfc9068-rs256-local-jwks",
+            "real_signature": true,
+            "key_rotation": true,
+            "cross_tenant_denied": true,
+            "resource_policy_required": true,
+            "sse_closed": true,
+            "key_expiry_recovered": true,
+            "fresh_verifier_replay": true,
+            "drained": true
+          },
+          "STATEKNOT_JWT_IDENTITY_EVIDENCE": {
+            "provider": "keycloak-26.7.3",
+            "verified_tls": true,
+            "rfc9068": true,
+            "algorithm": "RS256",
+            "operator_provisioned_jwks": true,
+            "trusted_tenant": true,
+            "exact_key_replay": true,
+            "empty_key_revocation": true,
+            "drained": true
+          }
+        }
+      }
+    ],
+    "retained_artifacts": [
+      {
+        "id": 11530326431,
+        "name": "agent-http-postgres-16-37731350919",
+        "digest": "sha256:e0cf8c3b4d885591891f302fbc2d67b570006ad75c537bf835c9ac92d262b013",
+        "archive_download_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/artifacts/11530326431/zip",
+        "expires_at": "2026-11-07T05:26:16Z"
+      }
+    ]
+  },
+  "local": {
+    "rust": "1.88.0",
+    "jwt_unit_tests_passed": 11,
+    "agent_http_each_postgres": {
+      "passed": 19,
+      "ignored": 1,
+      "ignored_reason": "subprocess-only SSE restart fixture"
+    },
+    "real_tls_keycloak_tests_each_postgres": 2,
+    "keycloak_image": "quay.io/keycloak/keycloak@sha256:29be7252db0a106f1cd2ac17b9a56ff2668073da645638a38b9fc67deeb2d6c4",
+    "postgres_images": {
+      "16": "postgres@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54",
+      "17": "postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675"
+    },
+    "passed": [
+      "format",
+      "workspace_all_targets_all_features_clippy_warnings_denied",
+      "rustdoc_warnings_denied",
+      "dependency_policy_without_new_advisory_exceptions"
+    ],
+    "logs": [
+      {
+        "path": "agent-http-pg16.log",
+        "bytes": 2936,
+        "sha256": "49457f6a2120daec689b4778df4fb2892812cdffde54fa5cb70775b62a70c8c2"
+      },
+      {
+        "path": "agent-http-pg17.log",
+        "bytes": 2836,
+        "sha256": "4275a5dbd96a3116aa56ee3fe9f9f07af3c99b63e66f26bb4953467a187273b0"
+      },
+      {
+        "path": "clippy.log",
+        "bytes": 650,
+        "sha256": "691429e86ed4497fc8c64d9e4d1a5edeea2d9f7629606772d8b18e5d1ffa2264"
+      },
+      {
+        "path": "dependency-policy.log",
+        "bytes": 194842,
+        "sha256": "5a6faef228296f30d5013ae3adfc0d4d5a6c379855281c57fe3826b73f01b336"
+      },
+      {
+        "path": "format.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "identity-pg16.log",
+        "bytes": 1877,
+        "sha256": "7a6b9a6ff239da9bfb4fc0dad0ccbac8b69fcff93411de0f76c7000056c6d828"
+      },
+      {
+        "path": "identity-pg17.log",
+        "bytes": 1875,
+        "sha256": "6c7774dcb96622bdb99e6cdc1574d5183043fb703f768646204e2ac0862146c9"
+      },
+      {
+        "path": "jwt-unit.log",
+        "bytes": 3442,
+        "sha256": "3a0fdc5d54137aad54aeb0c3a35fb4371fcf184d3cfa7bb9bb0502f4ca14ad6c"
+      },
+      {
+        "path": "rustdoc.log",
+        "bytes": 999,
+        "sha256": "c53a7770ece20e32011b3fcaf4d550d585740af03bf1905bbf3afa82f2133311"
+      }
+    ]
+  },
+  "dependencies": {
+    "consolidating_pull_requests": [
+      141,
+      145
+    ],
+    "source_pull_requests": [
+      {
+        "number": 125,
+        "title": "chore(deps): bump sse-stream from 0.2.6 to 0.3.0",
+        "url": "https://github.com/StateKnot/StateKnot/pull/125",
+        "closed_at": "2026-10-08T04:14:47Z",
+        "merged": false,
+        "disposition": "closed_incompatible_sse_type_generation_retained_exact_0.2.6"
+      },
+      {
+        "number": 127,
+        "title": "chore(deps): bump astral-sh/setup-uv from 10.1.0 to 10.2.0",
+        "url": "https://github.com/StateKnot/StateKnot/pull/127",
+        "closed_at": "2026-10-08T04:15:54Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 129,
+        "title": "chore(deps-dev): bump fast-uri from 3.1.6 to 3.1.8 in /website",
+        "url": "https://github.com/StateKnot/StateKnot/pull/129",
+        "closed_at": "2026-10-08T04:15:57Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 130,
+        "title": "chore(deps): bump fast-uri from 3.1.6 to 3.1.8 in /conformance/mcp-client",
+        "url": "https://github.com/StateKnot/StateKnot/pull/130",
+        "closed_at": "2026-10-08T04:16:00Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 131,
+        "title": "chore(deps): bump undici from 8.10.0 to 8.11.2 in /website",
+        "url": "https://github.com/StateKnot/StateKnot/pull/131",
+        "closed_at": "2026-10-08T04:16:03Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 132,
+        "title": "chore(deps): bump undici from 7.29.0 to 7.30.0 in /conformance/mcp-client",
+        "url": "https://github.com/StateKnot/StateKnot/pull/132",
+        "closed_at": "2026-10-08T04:16:06Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 133,
+        "title": "chore(deps): bump astro from 7.3.3 to 7.3.5 in /website",
+        "url": "https://github.com/StateKnot/StateKnot/pull/133",
+        "closed_at": "2026-10-08T04:16:09Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 134,
+        "title": "chore(deps-dev): bump @types/node from 24.13.5 to 24.19.0 in /website",
+        "url": "https://github.com/StateKnot/StateKnot/pull/134",
+        "closed_at": "2026-10-08T04:15:58Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 135,
+        "title": "chore(deps-dev): bump prettier from 3.9.7 to 3.9.9 in /website",
+        "url": "https://github.com/StateKnot/StateKnot/pull/135",
+        "closed_at": "2026-10-08T04:16:13Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 136,
+        "title": "chore(deps): bump jsonschema from 0.56.0 to 0.58.2",
+        "url": "https://github.com/StateKnot/StateKnot/pull/136",
+        "closed_at": "2026-10-08T04:16:11Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 137,
+        "title": "chore(deps): bump rmcp from 3.4.0 to 3.5.0",
+        "url": "https://github.com/StateKnot/StateKnot/pull/137",
+        "closed_at": "2026-10-08T04:16:17Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 138,
+        "title": "chore(deps): bump thiserror from 2.0.20 to 2.0.21",
+        "url": "https://github.com/StateKnot/StateKnot/pull/138",
+        "closed_at": "2026-10-08T04:16:20Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 139,
+        "title": "chore(deps): bump hyper-util from 0.1.20 to 0.1.21",
+        "url": "https://github.com/StateKnot/StateKnot/pull/139",
+        "closed_at": "2026-10-08T04:16:23Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_141"
+      },
+      {
+        "number": 142,
+        "title": "chore(deps-dev): bump @types/node from 24.19.0 to 24.19.1 in /website",
+        "url": "https://github.com/StateKnot/StateKnot/pull/142",
+        "closed_at": "2026-10-08T04:27:12Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_145"
+      },
+      {
+        "number": 143,
+        "title": "chore(deps): bump jsonschema from 0.58.2 to 0.58.5",
+        "url": "https://github.com/StateKnot/StateKnot/pull/143",
+        "closed_at": "2026-10-08T04:27:26Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_145"
+      },
+      {
+        "number": 144,
+        "title": "chore(deps): bump tokio from 1.53.1 to 1.53.2",
+        "url": "https://github.com/StateKnot/StateKnot/pull/144",
+        "closed_at": "2026-10-08T04:27:41Z",
+        "merged": false,
+        "disposition": "closed_superseded_by_145"
+      }
+    ],
+    "jwt_dependency_decision": "reuse aws-lc-rs 1.18.1; remove draft jsonwebtoken/rsa chain rather than ignore RUSTSEC-2023-0071"
+  },
+  "website": {
+    "verified_at": "2026-10-08T05:34:50.394625+00:00",
+    "source_commit": "5f156b94516d2eb9ed96e2a648e0a13e66debc14",
+    "source_tree": "749076df3286eff6e120686d72de070c736fb757",
+    "release_id": "5f156b94516d",
+    "remote_current": "/var/www/stateknot/releases/5f156b94516d",
+    "healthz": "stateknot-ok",
+    "verified_public_tls": true,
+    "http_redirects_to_https": true,
+    "pages": [
+      {
+        "url": "https://stknot.com/docs/agent-http/",
+        "http_status": 200,
+        "sha256": "d59e2dfbcdb04e7d7412cc6530edb724f2415c95d7630fd7cb8ab372d9551d91",
+        "matches_build_bytes": true,
+        "jwks_present": true
+      },
+      {
+        "url": "https://stknot.com/zh/docs/agent-http/",
+        "http_status": 200,
+        "sha256": "be311e47ac3233404eeae9f42575bb474f4903754516d3815d6f34b9efd9dfa5",
+        "matches_build_bytes": true,
+        "jwks_present": true
+      },
+      {
+        "url": "https://stknot.com/docs/status/",
+        "http_status": 200,
+        "sha256": "97428332beb6627653112ed9bfa723fb0451e96d2b13d84961e29d185674a389",
+        "matches_build_bytes": true,
+        "jwks_present": true
+      },
+      {
+        "url": "https://stknot.com/zh/docs/status/",
+        "http_status": 200,
+        "sha256": "39c24cef27b4dbbeff24ba82c9a2f08e374cf0d53861dcdd1745f91c6c4b3d82",
+        "matches_build_bytes": true,
+        "jwks_present": true
+      }
+    ]
+  },
+  "publication": {
+    "crates_io_version": "0.1.0-alpha.1",
+    "new_crates_published": false,
+    "jwt_jwks_in_published_alpha_1": false
+  },
+  "limits": [
+    "No automatic issuer discovery or authenticated fleet-wide JWKS refresh",
+    "No immediate per-token revocation or replay denylist",
+    "No full R6 topology, capacity, failover, upgrade or soak qualification",
+    "No R7 independent release security review or production-pilot evidence"
+  ]
+}

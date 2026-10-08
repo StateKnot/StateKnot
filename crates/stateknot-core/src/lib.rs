@@ -10,6 +10,55 @@
 //! Agent admission values freeze authenticated authority, deterministic finite
 //! budgets, executable graph identity, and a database-clock commit without
 //! depending on any storage implementation.
+//!
+//! # Execution handles stay out of durable records
+//!
+//! Execution contexts and cancellation handles are ephemeral capabilities.
+//! Persist validated domain records such as [`BudgetUsage`] instead. This
+//! positive control also checks the public imports used by the compile-fail
+//! privacy examples below.
+//!
+//! ```
+//! use stateknot_core::{BudgetUsage, CancellationSignal, ModelContext,
+//!     ToolContext, ToolReconciliationContext};
+//!
+//! fn execution_handle<T: Clone>() {}
+//! execution_handle::<CancellationSignal>();
+//! execution_handle::<ModelContext>();
+//! execution_handle::<ToolContext>();
+//! execution_handle::<ToolReconciliationContext>();
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<BudgetUsage>();
+//! ```
+//!
+//! A cancellation observer cannot be embedded in serialized application state.
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_core::CancellationSignal>();
+//! ```
+//!
+//! A model context cannot persist its live deadline or cancellation authority.
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_core::ModelContext>();
+//! ```
+//!
+//! A tool context cannot be promoted into a durable execution credential.
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_core::ToolContext>();
+//! ```
+//!
+//! Reconciliation uses a fresh authorized context for the original attempt;
+//! persisting that context cannot substitute for reauthorization after restart.
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_core::ToolReconciliationContext>();
+//! ```
 
 #![forbid(unsafe_code)]
 

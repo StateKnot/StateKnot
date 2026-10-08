@@ -9,6 +9,21 @@ use zeroize::Zeroizing;
 
 /// Bounded RFC 6750 bearer value, redacted in Debug and zeroized on drop.
 /// The HTTP stack's original header storage is outside this wrapper's ownership.
+///
+/// The wrapper may be borrowed for immediate verification, but cannot be
+/// serialized into journal, checkpoint, or diagnostic payloads.
+///
+/// ```
+/// use stateknot::agent_http::AgentHttpCredential;
+/// let credential = AgentHttpCredential::new("fixture-bearer").unwrap();
+/// assert_eq!(credential.expose_secret(), "fixture-bearer");
+/// assert_eq!(format!("{credential:?}"), "AgentHttpCredential([REDACTED])");
+/// ```
+///
+/// ```compile_fail,E0277
+/// fn durable_record<T: serde::Serialize>() {}
+/// durable_record::<stateknot::agent_http::AgentHttpCredential>();
+/// ```
 #[derive(Clone)]
 pub struct AgentHttpCredential(Zeroizing<String>);
 

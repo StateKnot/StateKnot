@@ -14,6 +14,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Compile-time regression evidence that execution contexts, cancellation
+  handles and Agent HTTP credentials cannot enter Serde durable records.
+  This preserves existing boundaries without changing the public API.
+
 - A local RFC 9068 RS256 Agent HTTP authenticator backed by AWS-LC, bounded
   operator-provisioned JWKS, atomic generation-checked key rotation, expiring
   shared tenant policy and separate resource authorization. PostgreSQL 16/17

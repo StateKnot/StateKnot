@@ -110,6 +110,9 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --all-targets --all-features --locked
 
+      - name: Verify executable documentation and compile-fail privacy contracts
+        run: cargo test --workspace --all-features --doc --locked
+
       - name: Build documentation
         env:
           RUSTDOCFLAGS: -D warnings

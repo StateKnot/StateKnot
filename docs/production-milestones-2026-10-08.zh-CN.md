@@ -33,12 +33,12 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 | --- | --- |
 | 仓库 | `https://github.com/StateKnot/StateKnot` |
 | 当前工作目录 | `/Users/jiawy/Documents/RustAgentFramework` |
-| 已核对的 main | `4e3c9e9194db524886ca795e5e2394be071ea202`，2026-10-08 合并依赖与安全补丁 #141/#145 |
-| 当前本地分支 | `codex/r0-jwt-jwks` |
-| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 验证中的修复保留在当前分支 |
+| R0 验收的 main | `5f156b94516d2eb9ed96e2a648e0a13e66debc14`，2026-10-08 合并 JWT/JWKS #146；此前 #141/#145 已合并 |
+| 当前开发分支 | `codex/r1-contract-evidence` |
+| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；当前补齐 R1 编译期与验收映射证据 |
 | 已发布 crate 版本 | `0.1.0-alpha.1`，预览版；源码新增能力不都包含在该发布包中 |
-| 官网 | `https://stknot.com`，中英双语文档 |
-| 开放 PR | 16 个依赖升级 PR 已由 #141/#145 收口，当前开放 PR 为 0；后续以 GitHub 实时状态为准 |
+| 官网 | `https://stknot.com`，中英双语文档；R0 release `5f156b94516d` 的四个关键页面已核对构建字节 |
+| 依赖 PR | 16 个依赖升级 PR 已由 #141/#145 收口；#146 已合并，后续以 GitHub 实时状态为准 |
 | 新用户需求 | [Issue 140 本地 MCP stdio](https://github.com/StateKnot/StateKnot/issues/140)，来自 JiaClaw 接入需求 |
 
 ### 已合并的能力基础
@@ -52,23 +52,21 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 
 上述能力各自仍有范围限制。尤其 A2A Server 的现有符合性 fixture 使用进程内状态，不能作为生产持久化任务与 push 后端。
 
-### 未合并的 JWT/JWKS 工作
+### 已完成的 R0 JWT/JWKS 工作
 
 主要入口为 `crates/stateknot/src/agent_http/jwt_jwks.rs`，安全测试位于其 `jwt_jwks/tests.rs` 子模块，数据库组合测试位于 `crates/stateknot/tests/agent_http/jwt_jwks_identity.rs`。
 
 当前实现限定为 RFC 9068 RS256 access token 和受信运维方提供的 JWKS：固定 issuer/audience、严格有界解析、有限公钥有效期、原子轮换、受限签名任务、共享默认拒绝的租户映射和独立资源授权。公钥来源认证与刷新由部署方负责；自动发现、任意 issuer 信任和逐 token 在线撤销不属于这一实现的支持声明。
 
-交接时已完成的专项验证：
+最终提交 `8c57db8cbff754428a2e876b98f7c2b6c3ef8edd` 通过 13 项 CI 后由 #146
+合并，合并后的 main 保留同一 tree。Rust 1.88 的 11 个 JWT 专项、本地 PostgreSQL
+16/17 各 19 个 Agent HTTP 测试、两套真实 TLS Keycloak 验证、全工作区 Clippy、
+Rustdoc、协议符合性、发布源包与官网门禁通过。RFC-0018 已接受限定源码契约。
 
-- Rust 1.88 编译检查和 9 个 JWT/JWKS 单元安全测试。
-- PostgreSQL 16 与 17 的 JWT HTTP/SSE 组合测试，覆盖公钥移除、有效期、租户拒绝、独立授权、SSE 关闭和新验证器持久化重放。
-- Agent HTTP 集成测试编译和代码格式化。
-
-仍待完成：最新修改后的 Clippy、全工作区回归、Rustdoc、发布源包检查、网站完整验证、RFC-0018 评审和 GitHub CI。上一轮完整 Agent HTTP 回归的最终结果未保留，接手后须重新运行，不将其记为通过。
-
-R0 契约评审已将草稿的 JWT/RustCrypto RSA 依赖链替换为已有的 `aws-lc-rs` 1.18.1；没有添加 advisory 例外，依赖政策通过。该实现没有新增数据库迁移。真实 Keycloak 测试新增独立 RFC 9068 客户端配置，最终回归与 CI 证据仍须保留。
-
-上一阶段的两个一次性 PostgreSQL 测试容器已清理。重新验证时创建隔离测试数据库，不能沿用旧容器名或旧会话 ID 假定服务仍存在。
+评审将草稿的 JWT/RustCrypto RSA 依赖链替换为已有 `aws-lc-rs` 1.18.1，没有新增
+advisory 例外或数据库迁移。一次性 PostgreSQL/Keycloak 容器已经清理。
+完整来源、依赖处置、测试边界、CI 和官网结果见
+[R0 验收记录](qualification/r0-jwt-jwks-2026-10-08.zh-CN.md)及其机器可读证据清单。
 
 ## 里程碑总览
 
@@ -87,7 +85,8 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 
 ## R0 当前工作与仓库维护收尾
 
-状态：进行中。先完成本阶段，再继续扩展框架功能。
+状态：已完成（2026-10-08）。[验收记录](qualification/r0-jwt-jwks-2026-10-08.zh-CN.md)
+绑定不可变提交、全部 13 项门禁、依赖处置和官网部署；未发布新 crate，未关闭 R6/R7。
 
 ### 交付任务
 
@@ -115,6 +114,11 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 - 本轮 R0 收口不自动发布 crate，也不改变框架整体生产支持声明。
 
 ## R1 核心契约与开发者接入
+
+状态：进行中。RFC-0001 至 RFC-0004 的每条验收项、已有证据和后续阶段依赖已经
+记录在 [R1 缺口清单](r1-contract-gap-ledger.zh-CN.md)。第一个增量补齐四个 core
+执行/取消类型及 Agent HTTP credential 的编译期序列化拒绝回归和正向对照；剩余
+credential、typed Tool 注册、嵌套 namespace、协议安全 RFC 与 stdio 生命周期继续开放。
 
 ### 交付任务
 
@@ -263,16 +267,17 @@ v1 继续延后内置 RAG/向量库、time-travel/fork、多持久化后端、�
 ## 新会话启动步骤
 
 1. 读取本文件、实际生效的 `AGENTS.md`、规范依据和当前工作区 diff，确认代码尚处于哪一阶段。
-2. 核对 `git status --short --branch`、main revision、开放 PR 和 Issue 140。当前存在未提交工作，先保留并检查，再决定提交与同步顺序；禁止用 reset 或 checkout 覆盖现有修改。
-3. 从 R0 的 JWT 全面验证开始。旧测试容器已清理，为 PostgreSQL 16/17 重建隔离环境；复用 `.github/workflows/ci.yml` 的测试与证据检查。
-4. 完成当前 PR 和必要维护后再推进 R1。正常推进不需要在每个小步骤重新请求授权；每个阶段更新验收证据再进入下一阶段。
+2. 核对 `git status --short --branch`、main revision、开放 PR 和 Issue 140。若存在未提交工作，先保留并检查，再决定提交与同步顺序；禁止用 reset 或 checkout 覆盖现有修改。
+3. R0 已有不可变来源和验收记录，从尚未关闭的 R1 缺口继续。受新修改影响的回归重新执行；无需把旧 R0 全面测试当作未完成工作重做。
+4. 完成当前 PR 和必要维护后再推进依赖它的增量。正常推进不需要在每个小步骤重新请求授权；每个阶段更新验收证据再进入下一阶段。
 
-R0 的基础 Rust 检查如下，均从仓库根目录执行：
+后续修改的基础 Rust 检查如下，均从仓库根目录执行：
 
 ```sh
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo test --workspace --all-targets --all-features --locked
+cargo test --workspace --all-features --doc --locked
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
 ./scripts/verify-release.sh 0.1.0-alpha.1
 ```
@@ -295,4 +300,4 @@ npm run verify
 
 ### 可复制到新会话的执行请求
 
-> 请先完整读取 `docs/production-milestones-2026-10-08.zh-CN.md`，按 R0 至 R7 接续维护 StateKnot。要求所有实现以生产可用为目标，并按 Ponytail 原则复用现有组件、控制复杂度。先核对当前分支和未提交 JWT/JWKS 工作，保留现有修改，完成 R0 的验证、评审、依赖 PR 处理、合并及中英文官网同步，再逐阶段推进。每阶段必须有真实验收证据；跳过的测试、缩减 CI、未执行的生产试点不能算通过。凭据不得写入仓库或日志；需要额外基础设施或外部协调时说明具体资源缺口。
+> 请先完整读取 `docs/production-milestones-2026-10-08.zh-CN.md`，按 R0 至 R7 接续维护 StateKnot。要求所有实现以生产可用为目标，并按 Ponytail 原则复用现有组件、控制复杂度。先核对当前分支、未提交工作与 R0 验收记录，保留现有修改，从 R1 缺口清单的首个开放边界继续开发。R0 的 JWT/JWKS、依赖处理、合并和中英文官网同步已完成，不要把旧交接状态重新当作未完成工作。每阶段必须有真实验收证据；跳过的测试、缩减 CI、未执行的生产试点不能算通过。凭据不得写入仓库或日志；需要额外基础设施或外部协调时说明具体资源缺口。

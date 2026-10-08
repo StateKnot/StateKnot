@@ -5,9 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Core 公共合约示例
 
-状态：已经实现的 pre-alpha 证据，对应
+状态：已经实现的源码证据，对应
 [RFC-0001](rfcs/0001-core-domain-and-capability-model.md) 的第 1 项验证门禁。
-RFC 仍为 Draft，公共 API 尚未稳定或发布。
+RFC 仍为 Draft，公共 API 尚未稳定。已发布 `0.1.0-alpha.1` 仍是预览版；
+本指南跟踪当前源码证据，不表示所有增量已包含在发布包中。
 
 四个 `stateknot-core` 示例无需 Model Provider SDK、Tokio、数据库、HTTP Server
 或协议 SDK 即可编译和运行。它们调用真实的有界构造器与 Fail-closed 校验路径，
@@ -23,6 +24,7 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
+cargo test -p stateknot-core -p stateknot --doc --locked
 ```
 
 CI 包含单独命名的示例编译步骤。依赖边界集成测试还会读取锁定的 Cargo
@@ -59,6 +61,20 @@ Envelope 都已经拥有 Fixture。第 2 项验证门禁仍须完成类型级覆
 | [`model_stream`](../crates/stateknot-core/examples/model_stream.rs) | 构造有限 Streaming Request 与 Attempt Context，检查 Model Capability，再把连续的 Started → Output → Completed Event 校验为有界 `ModelResponse`；同时编译对象安全的 `Model::stream` 入口。 | 不提供 Provider、Executor、Transport、Credential 或持久化 Attempt Ledger。 |
 | [`protocol_adapter`](../crates/stateknot-core/examples/protocol_adapter.rs) | 解析封闭的外部 Request，在本地分配可信 Schema Identity，限制调用方指定的输出字节，解析 Agent 合约，并拒绝注入的 Authority Field。 | 它不是 HTTP、MCP 或 A2A Transport，也不会创建持久化 Admission。 |
 
+## 编译期隐私回归
+
+Core 的 Rustdoc 分别检查 `CancellationSignal`、`ModelContext`、`ToolContext`
+和 `ToolReconciliationContext` 不能满足 `serde::Serialize`。正向对照验证四个
+公共类型与现有 Clone 合约，同时证明持久化 `BudgetUsage` 可满足相同的 Serde
+约束。Agent HTTP 凭据文档另行验证 `AgentHttpCredential` 可构造且 Debug 脱敏，
+并拒绝其序列化约束。删除导入或误加序列化实现均不能让这组证据继续通过。
+
+CI 新增 Rust 1.88 全工作区 Rustdoc 测试步骤；`--all-targets` 测试与 `cargo doc`
+不会执行这些示例。没有新依赖或执行 API。覆盖范围
+是五个具体临时类型，不是全部凭据家族或 Tool 注册约束。RFC-0001 第 5 项仍须补齐
+剩余 Schema/Descriptor 和凭据证据。完整跨阶段缺口见
+[R1 验收清单](r1-contract-gap-ledger.zh-CN.md)。
+
 ## 生产集成边界
 
 这些示例刻意停在 Core 合约构造层。生产宿主仍须认证并授权调用方，解析不可变的
@@ -69,6 +85,6 @@ Terminal Evidence。对应的已实现边界见[强类型 Agent 指南](typed-ag
 [可恢复 Agent Loop 指南](durable-agent-loop.zh-CN.md)。
 
 四个示例只关闭 RFC-0001 的第 1 项验证门禁。封闭 Fixture 目录只是第 2 项的
-证据基础，不代表已完成所需的类型级覆盖。Fuzzing、Compile-fail 隐私检查、历史
-迁移、场景映射与完整安全审查也仍是验收条件。因此 StateKnot 仍处于 pre-alpha，
+证据基础，不代表已完成所需的类型级覆盖。Fuzzing、剩余 Compile-fail/注册检查、
+历史迁移、场景映射与完整安全审查也仍是验收条件。StateKnot 仍是预览版，
 RFC-0001 仍为 Draft。
