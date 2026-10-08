@@ -105,6 +105,44 @@ let router = http.router();
       >
     </p>
   </section>
+  <section aria-labelledby="http-jwt">
+    <h2 id="http-jwt">Verify access tokens locally with JWT/JWKS</h2>
+    <p>
+      <code>AgentHttpJwtJwks</code> verifies RS256 <code>at+jwt</code> access tokens
+      using public keys delivered by your trusted control plane. Configure
+      <code>JwtJwksOptions</code> with an exact issuer, resource audience and operation
+      scopes. Signed identity still requires <code>TenantPolicy</code>
+      and the independent <code>AgentServiceAuthorizer</code>. This profile is
+      available in the current source checkout.
+    </p>
+    <p>
+      Provision at most 16 public keys and 16 KiB, with an explicit lease of at
+      most one hour. <code>replace_jwks</code> validates the whole set and checks
+      the expected generation before publication. Refresh from a newly verified source;
+      key expiry returns 503. Removed keys fail subsequent verification and close
+      their SSE streams. JWT lifetime defaults to 15 minutes, with no expiry-extending
+      clock skew.
+    </p>
+    <p>
+      Local verification avoids a per-request IdP exchange. Your deployment owns
+      authenticated key distribution and timely refresh. Use online
+      introspection when per-token provider revocation must be observed
+      immediately. Readiness checks local key and policy freshness; compose it
+      with actual resource and database dependencies. PostgreSQL 16/17 tests
+      cover tenant and resource refusal, rotation, SSE closure, expiry and
+      fresh-verifier admission recovery.
+    </p>
+    <p>
+      <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/agent-jwt-jwks.md"
+        >Local JWT wiring and key-rotation guide</a
+      >
+      · <a
+        href="https://github.com/StateKnot/StateKnot/blob/main/docs/rfcs/0018-agent-http-jwt-jwks.md"
+        >RFC-0018 (Accepted)</a
+      >
+    </p>
+  </section>
   <section aria-labelledby="http-worker">
     <h2 id="http-worker">Run execution separately</h2>
     <p>

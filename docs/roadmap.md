@@ -56,6 +56,14 @@ bilingual content.
 
 ## Current M0 tracking
 
+- [x] Implement the scoped [local JWT/JWKS identity profile](agent-jwt-jwks.md):
+  RFC 9068 RS256 access tokens, operator-provisioned finite public-key snapshots,
+  exact claims, bounded signature jobs, generation-checked key rotation, shared
+  default-deny tenant mappings and independent resource policy. Real PostgreSQL
+  16/17 HTTP/SSE tests cover key removal, expiry, restart and admission replay.
+  Issuer key delivery and refresh remain explicit deployment responsibilities;
+  Independent release security review and complete multi-role qualification remain open.
+
 - [x] Implement [protected read-only host operations](agent-operations.md):
   independent owned loopback listener, explicit inspection scope/permission and
   bounded expiring exact-caller ACL, sanitized local status/counters, bounded
@@ -91,7 +99,8 @@ bilingual content.
   introspection, exact claims, rotating secrets, expiring default-deny tenant
   bindings and negative-canary readiness. Real Keycloak/PostgreSQL qualification
   covers resource/cross-tenant refusal, rotation, revocation and SSE cleanup.
-  Resource policy remains mandatory; JWT/JWKS and full host acceptance are open.
+  Resource policy remains mandatory; the separate local JWT/JWKS profile is
+  implemented while full host acceptance remains open.
 
 - [x] Implement an [owned HTTP ingress role](agent-http-server.md): actual
   schema/executable readiness plus mandatory host readiness, fresh fail-closed

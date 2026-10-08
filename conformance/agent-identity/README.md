@@ -34,6 +34,16 @@ The service installs the concrete `AgentResourcePolicy`, including explicit
 tenant-operator permissions, and composes its readiness with real introspection.
 Resource refusal removes the actual run rule; no allow-all policy stub is used.
 
+The same isolated issuer also qualifies the local JWT/JWKS profile using a
+separate service-account client. It explicitly enables
+`access.token.header.type.rfc9068=true`, RS256, a `client_id` claim mapper and
+the resource audience. The TLS-pinned fixture host obtains the fixed issuer's
+JWKS and filters it to RS256 signing keys before provisioning the verifier.
+`STATEKNOT_JWT_IDENTITY_EVIDENCE` must appear exactly once in both PostgreSQL
+CI jobs. The test proves issuer-produced signatures, trusted tenant/scope
+mapping, durable same-key admission replay, empty-key revocation and joined
+shutdown. It does not qualify arbitrary OIDC providers or production key refresh.
+
 For behavior, security boundaries and rollout see
 [the operator guide](../../docs/agent-identity.md) and
 [中文指南](../../docs/agent-identity.zh-CN.md).

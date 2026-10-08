@@ -52,7 +52,8 @@ PostgreSQL 部署、显式授权、Worker 和维护角色。网络服务请看
 事件日志与栅栏恢复、OpenAI/DeepSeek Responses 和 Anthropic Messages 适配器、
 有界 MCP Client/Server 与静态 MCP Skills 配置，以及 A2A 1.0
 Client/Server 配置。准确实现范围和限制见[状态页](https://stknot.com/zh/docs/status/)。
-DeepSeek 绑定尚未包含在此前发布的 `0.1.0-alpha.1` crate 中。
+DeepSeek 绑定与[本地 JWT/JWKS 接入](docs/agent-jwt-jwks.zh-CN.md)属于当前源码能力，
+尚未包含在已发布的 `0.1.0-alpha.1` crate 中。
 
 **生产完整性尚未达成。** 通用数据保留与垃圾回收、完整身份与策略验收、
 持久化 A2A Task/Push 服务、可观测性、OCI 角色交付、多角色故障切换、

@@ -29,6 +29,7 @@ security, or operational commitments.
 | [0015](0015-owned-agent-host.md) | Draft | Owned co-located Agent host, admission gates and ordered role shutdown |
 | [0016](0016-protected-agent-host-operations.md) | Draft | Separately authorized read-only host operations and owned listener |
 | [0017](0017-host-qualification-harness.md) | Draft | Reproducible host capacity and recovery qualification evidence |
+| [0018](0018-agent-http-jwt-jwks.md) | Accepted | Local RFC 9068 access-token verification with operator-managed JWKS |
 
 ## When an RFC is required
 

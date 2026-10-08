@@ -11,6 +11,9 @@ OAuth 2.0 令牌内省端点的验证器，已使用 Keycloak 26.7.3 和真实 T
 pre-alpha 接入能力，不是完整 OIDC、JWT/JWKS 本地验签、登录服务或稳定生产发行版。
 [English](agent-identity.md)
 
+需要在本地使用运营方可信分发的公钥验证访问令牌时，参考独立的
+[JWT/JWKS 接入指南](agent-jwt-jwks.zh-CN.md)。
+
 ## 身份可信边界与资源授权
 
 显式配置 HTTPS 内省端点、精确签发方、资源受众、机密客户端 ID，以及提交、读取、

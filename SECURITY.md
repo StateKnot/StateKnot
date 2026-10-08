@@ -13,8 +13,9 @@ support commitment.
 
 | Version | Supported |
 |---|---|
-| `main` / `0.0.0` | Best effort during pre-alpha |
-| Released versions | None yet |
+| `main` | Best-effort fixes during pre-alpha |
+| `0.1.0-alpha.1` | Evaluation preview; fixes land on `main`, with no backport commitment |
+| Production releases | None yet |
 
 A supported-version and backport policy will be published before the first
 release intended for production evaluation.

@@ -6,7 +6,7 @@ use serde_json::Value;
 use stateknot_core::PrincipalIdentity;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub(super) fn valid_scope(value: &str) -> bool {
+pub(crate) fn valid_scope(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 128
         && value

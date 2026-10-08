@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A local RFC 9068 RS256 Agent HTTP authenticator backed by AWS-LC, bounded
+  operator-provisioned JWKS, atomic generation-checked key rotation, expiring
+  shared tenant policy and separate resource authorization. PostgreSQL 16/17
+  HTTP/SSE and real TLS Keycloak qualification cover its declared boundaries;
+  trusted key delivery and refresh remain host deployment responsibilities.
+
 - A provider-native invocation budget source for sequential Tool graphs. It
   verifies the admitted plan and reconstructs spent model/tool capacity from
   durable PostgreSQL evidence before external dispatch; parallel Tool graphs

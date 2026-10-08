@@ -64,3 +64,7 @@ git rev-parse HEAD 'HEAD^{tree}'
 cargo test -p stateknot --test agent_http --locked -- \
   --exact identity::keycloak_tls_authentication_rotation_revocation_and_owned_ingress \
   --nocapture --test-threads=1
+
+cargo test -p stateknot --test agent_http --locked -- \
+  --exact jwt_jwks_identity::keycloak_tls_rfc9068_jwks_and_durable_admission \
+  --nocapture --test-threads=1

@@ -57,7 +57,8 @@ runtime, PostgreSQL journaling and fenced recovery, OpenAI/DeepSeek Responses an
 Anthropic Messages adapters, bounded MCP Client/Server and static MCP Skills
 profiles, and A2A 1.0 Client/Server profiles. The exact implemented slices and
 their limits are listed on the [status page](https://stknot.com/docs/status/).
-The DeepSeek binding is not in the previously published `0.1.0-alpha.1` crate.
+The DeepSeek binding and [local JWT/JWKS profile](docs/agent-jwt-jwks.md) are
+source-checkout capabilities absent from the published `0.1.0-alpha.1` crate.
 
 **Production completion is still open.** General retention and garbage
 collection, full identity and policy qualification, durable A2A task/push

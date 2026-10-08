@@ -96,9 +96,21 @@ const statusEntries = [
       "zh-CN": "真实身份接入与过期租户策略",
     },
     body: {
-      en: "Fixed-HTTPS OAuth introspection, exact claims and permission intersection, rotating secrets, atomic default-deny tenant mappings and expiry. Real Keycloak qualifies rotation, revocation, cross-tenant refusal, readiness recovery and SSE cleanup; resource policy stays mandatory. JWT/JWKS and full production deployment remain open.",
+      en: "Fixed-HTTPS OAuth introspection, exact claims and permission intersection, rotating secrets, atomic default-deny tenant mappings and expiry. Real Keycloak qualifies rotation, revocation, cross-tenant refusal, readiness recovery and SSE cleanup; resource policy stays mandatory. Full production deployment remains open.",
       "zh-CN":
-        "固定 HTTPS OAuth 令牌内省、精确声明与权限交集、密钥轮换、默认拒绝的租户映射原子更新及过期检查。真实 Keycloak 验证轮换、撤销、跨租户拒绝、就绪恢复和 SSE 回收；资源授权仍强制，JWT/JWKS 与完整生产部署验收未完成。",
+        "固定 HTTPS OAuth 令牌内省、精确声明与权限交集、密钥轮换、默认拒绝的租户映射原子更新及过期检查。真实 Keycloak 验证轮换、撤销、跨租户拒绝、就绪恢复和 SSE 回收；资源授权仍强制，完整生产部署验收未完成。",
+    },
+  },
+  {
+    status: "implemented",
+    title: {
+      en: "Local JWT access-token verification · source checkout",
+      "zh-CN": "本地 JWT 访问令牌验证 · 当前源码",
+    },
+    body: {
+      en: "RFC 9068 at+jwt/RS256 verification with trusted operator-provisioned JWKS, expiring CAS key rotation, bounded blocking signature jobs and exact claims. Shared tenant policy and independent resource authorization stay mandatory. PostgreSQL 16/17 qualifies key removal, SSE closure, expiry and fresh-verifier admission replay; authenticated key delivery remains a deployment responsibility.",
+      "zh-CN":
+        "按 RFC 9068 验证 at+jwt/RS256，使用运营方可信分发的 JWKS，支持有期限的 CAS 公钥轮换、有界签名任务及精确字段检查。共用租户策略并强制独立资源授权。PostgreSQL 16/17 验证密钥移除、SSE 关闭、过期恢复与新验证器准入重放；可信公钥分发由部署方负责。",
     },
   },
   {

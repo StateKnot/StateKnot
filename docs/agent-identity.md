@@ -11,6 +11,9 @@ verified TLS. It implements `AgentHttpAuthenticator` and `AgentHttpReadiness`.
 This is a bounded pre-alpha integration profile, not full OIDC, JWT/JWKS local
 validation, a login service or a stable production release. [中文](agent-identity.zh-CN.md)
 
+For local access-token verification with trusted operator-provisioned keys,
+use the separate [JWT/JWKS profile](agent-jwt-jwks.md).
+
 ## Trust and authorization
 
 Configure the HTTPS introspection endpoint, exact issuer, resource audience,

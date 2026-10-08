@@ -30,7 +30,7 @@
 //! // AgentServiceAuthorizer is still mandatory for every resource operation.
 //! ```
 
-mod claims;
+pub(crate) mod claims;
 mod policy;
 pub use policy::{TenantBinding, TenantPolicy};
 
