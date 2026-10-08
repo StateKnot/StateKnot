@@ -5,9 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Public core contract examples
 
-Status: implemented pre-alpha evidence for validation gate 1 of
+Status: implemented source evidence for validation gate 1 of
 [RFC-0001](rfcs/0001-core-domain-and-capability-model.md). The RFC remains
-Draft and the public API is not stable or published.
+Draft and the public API is not stable. The published `0.1.0-alpha.1` remains a
+preview; this guide tracks current source evidence rather than release contents.
 
 The four `stateknot-core` examples compile and run without a model-provider SDK,
 Tokio, a database, an HTTP server, or a protocol SDK. They exercise the real
@@ -23,6 +24,7 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
+cargo test -p stateknot-core -p stateknot --doc --locked
 ```
 
 CI has a named example-compilation step. The dependency-boundary integration
@@ -64,6 +66,26 @@ the missing fixtures are complete.
 | [`model_stream`](../crates/stateknot-core/examples/model_stream.rs) | Builds a finite streaming request and attempt context, checks model capabilities, then validates a contiguous Started → Output → Completed event sequence into a bounded `ModelResponse`. It also compiles the object-safe `Model::stream` entry. | It supplies no provider, executor, transport, credential, or durable attempt ledger. |
 | [`protocol_adapter`](../crates/stateknot-core/examples/protocol_adapter.rs) | Parses a closed external request, assigns trusted schema identity locally, bounds caller-selected output bytes, resolves the Agent contract, and rejects injected authority fields. | It is not an HTTP, MCP, or A2A transport and creates no durable admission. |
 
+## Compile-time privacy regression
+
+The Core crate documentation has separate compile-fail checks for
+`CancellationSignal`, `ModelContext`, `ToolContext`, and
+`ToolReconciliationContext`: none may satisfy `serde::Serialize`. A passing
+control checks all four public type names and their existing `Clone` contract,
+and proves that a durable `BudgetUsage` record does satisfy the same Serde bound.
+The Agent HTTP credential documentation separately checks that
+`AgentHttpCredential` can be constructed and redacts Debug, while rejecting the
+serialization bound. Removing an import or accidentally adding a serialization
+implementation therefore cannot leave the evidence green.
+
+CI now has an explicit workspace Rustdoc-test step on Rust 1.88; `--all-targets`
+tests and `cargo doc` alone do not execute these examples. The checks add no
+dependency or execution API. They cover five specific ephemeral
+types, not every credential family or every typed-Tool registration constraint.
+RFC-0001 validation item 5 remains open for its remaining schema/descriptor and
+credential coverage. See the [R1 acceptance ledger](r1-contract-gap-ledger.zh-CN.md)
+(简体中文) for the complete cross-stage gaps.
+
 ## Production integration boundary
 
 These examples deliberately stop at core contract construction. A production
@@ -77,6 +99,6 @@ boundaries.
 
 Passing the four examples closes only RFC-0001 validation item 1. The sealed
 fixture catalog is infrastructure toward item 2, not completion of its required
-type-level coverage. Fuzzing, compile-fail privacy checks, historical migrations,
-scenario mapping, and the complete security review also remain acceptance gates.
-StateKnot therefore remains pre-alpha and RFC-0001 remains Draft.
+type-level coverage. Fuzzing, the remaining compile-fail/registration coverage,
+historical migrations, scenario mapping, and the complete security review also
+remain acceptance gates. StateKnot remains a preview and RFC-0001 remains Draft.

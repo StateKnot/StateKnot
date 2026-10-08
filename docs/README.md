@@ -10,6 +10,11 @@ Production completion plan and session handoff:
 (简体中文) — current branch and validation state, ordered deliverables, production
 exit criteria, and a ready-to-use request for the next development session.
 
+Completed source increment: [R0 qualification](qualification/r0-jwt-jwks-2026-10-08.zh-CN.md)
+(简体中文), with immutable CI and bilingual deployment evidence. Current contract
+work is tracked item by item in the [R1 acceptance ledger](r1-contract-gap-ledger.zh-CN.md)
+(简体中文); RFC-0001 through RFC-0004 remain Draft.
+
 Latest execution guide: [Owned scheduling Worker](agent-worker.md)
 ([中文](agent-worker.zh-CN.md)) — fixed concurrency, actual readiness, joined
 shutdown and fresh-process recovery, independent of HTTP ingress.

@@ -1,0 +1,117 @@
+<!--
+Copyright 2026 StateKnot contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
+# R1 核心契约验收缺口清单
+
+核对日期：2026-10-08。基线为 R0 JWT/JWKS 的已验证源码
+`8c57db8cbff754428a2e876b98f7c2b6c3ef8edd`。
+本清单逐条对应 RFC 的验收项，记录已有证据、仍需实现或验证的边界及负责阶段。
+“已有证据”表示限定路径存在可执行验证，不表示对应完整条目或 RFC 已验收。
+RFC-0001 至 RFC-0004 继续保持 Draft。
+
+## RFC-0001：公开核心类型
+
+编号对应 [RFC-0001 Validation and rollout](rfcs/0001-core-domain-and-capability-model.md#validation-and-rollout)。
+
+| 编号 | 已有证据 | 仍需交付 | 阶段 |
+| --- | --- | --- | --- |
+| C1 | 四个公开契约示例、MSRV CI、`dependency_boundary` 检查；原 RFC 已记录本项完成 | 后续修改继续保留这三个门禁 | R1 回归 |
+| C2 | 38 个 fixture 的封闭目录、内容摘要和 catalog root；Tool/Skill 授权证据等类型族已覆盖 | 建立公开可序列化类型到正/负规范 fixture 的完整映射，逐项补齐缺口；文件数量不能代替覆盖率 | R1 |
+| C3 | budget、reservation、scope、extension、canonical JSON 等已有 proptest | 核对构造边界、规范化、预算算术、委托交集和扩展限制的要求到测试映射，补齐缺口 | R1 |
+| C4 | 严格 JSON、schema 和恶意输入的确定性测试 | 可复现、有界 fuzz 入口与保留语料，覆盖未知字段、深层结构、超大值和恶意 Unicode | R1 |
+| C5 | 已加入四个 core context/cancellation 类型及 Agent HTTP credential 的序列化编译失败测试与正向对照；工具注册有运行时 schema/descriptor 校验 | 补齐其余 credential 家族、缺少 JsonSchema 的 typed Tool 编译失败及 invalid schema/descriptor 注册拒绝的逐项证据 | R1 |
+| C6 | 当前格式的负向 fixture 和显式版本检查 | 支持窗口内 N-1/N-2 的真实历史 fixture、向前迁移、新版本拒绝与损坏拒绝；不能生成虚假的历史版本 | R1 契约；R6 升级 |
+| C7 | `dependency_boundary` 检查限定 core 的直接依赖；core 无 Tokio/provider/数据库依赖 | 保留传递依赖审查和最终不可变版本的依赖政策证据 | R1；R7 最终复核 |
+| C8 | 三个 GS 场景的规范文本、多个缩减 runtime/Host fixture | 逐值映射场景需要的身份、预算、消息、结果、恢复和审计值；完整场景运行另有门禁 | R1 映射；R6 运行 |
+| C9 | 脱敏诊断、跨租户、descriptor 替换、授权和未知结果等分散安全测试 | 按原 RFC 七类威胁整理审查记录并补漏；最终独立安全评审属于 R7 | R1；R7 |
+
+规范化/schema 的实现依赖选择仍需 GS-001 事件率下的测量，归 R6。
+现有预览发布不构成稳定 API 承诺；不能以完成 C1 或目录检查接受整个 RFC。
+
+## RFC-0002：确定性 Graph 与调度
+
+编号按 [RFC-0002 的十一条验收项](rfcs/0002-deterministic-graph-and-scheduler.md#validation-and-rollout)排列。
+
+| 编号 | 已有证据 | 仍需交付 | 阶段 |
+| --- | --- | --- | --- |
+| G1 | graph/checkpoint/barrier/node-attempt/node-result 的 schema 与 canonical fixture | 对照公开标量和完整性类型补齐闭合 schema 与 fixture 映射 | R1 |
+| G2 | graph insertion/completion order 的 proptest、稳定排序与 barrier 测试 | 状态、route、checkpoint bytes、digest 的逐项模型测试覆盖 | R1 |
+| G3 | 顺序、条件、并行、等待、取消、静态共享状态组合及多条真实数据库路径 | 有界循环和同 Run 嵌套激活命名空间的完整恢复路径；现有 flatten/root namespace 不替代嵌套执行 | R1 |
+| G4 | 多组 commit-loss 与 post-commit OS-kill 专项 | pending result、journal、checkpoint、lifecycle、outbox 的每个写入边界完整矩阵及组合故障 | R1 矩阵；R6 完整验证 |
+| G5 | ready-node 恢复、不可变成功结果复用、exact-key runtime/Agent 重放 | 将重试与 sibling 结果复用结合到所有新增组合路径，确保不重复已提交 model/tool 调用 | R1 |
+| G6 | logical-result 冲突、compiled graph/schema pin、corruption quarantine | 新增 namespace 与组合路径保持同样的拒绝和隔离语义 | R1 |
+| G7 | 限定次数的 stale-fence/race 测试 | 10,000 次强制租约竞态，旧 Worker 写入成功数为 0 | R6 |
+| G8 | 持久化 wait 和索引化就绪发现 | 100,000 挂起任务，无逐任务常驻 task/polling，额外 scheduler 内存不超过规范阈值 | R6 |
+| G9 | 加权调度实现、缩减 Host 测量工具 | 参考拓扑下公平性、饥饿界限、排队、恢复和过载报告 | R6 |
+| G10 | 独立逻辑 restore 与物理 named-PITR drill | 同步 standby failover、完整参考数据集恢复和完整性检查 | R6 |
+| G11 | populated migration、部分 checkpoint 恢复与拒绝测试 | 支持窗口内历史 graph/checkpoint fixture、升级中断和 rollback-limit 验证 | R1 契约；R6 升级 |
+
+剩余语义决策：typed builder、reducer 注册/版本、非 root namespace grammar 与
+shared-state declaration 属于 R1；参考负载下调度策略和阈值属于 R6。
+blob checkpoint 若引入须另立 RFC，并先依赖 R2 的 Artifact 生命周期。
+
+## RFC-0003：PostgreSQL 持久化
+
+编号按 [RFC-0003 Before RFC acceptance](rfcs/0003-postgresql-durability-recovery-and-migration.md#validation-and-rollout)的十条排列。
+
+| 编号 | 已有证据 | 仍需交付 | 阶段 |
+| --- | --- | --- | --- |
+| P1 | core canonical、strict Serde、bounded schema、redacted diagnostics 与部分 proptest | 完整类型映射和随机状态验证，复用 C2/C3/C4 的交付 | R1 |
+| P2 | PostgreSQL 16/17 append/renewal/expiry/revocation/fencing 测试 | 10,000 forced stale-worker trials，接受的过期写入为 0 | R6 |
+| P3 | 多组业务事务的 COMMIT 请求/响应丢失及 post-commit kill profile | 每个 insert/projection/head/commit/ack 的完整故障矩阵 | R1 矩阵；R6 完整验证 |
+| P4 | 多个 24 路并发 idempotency/registration/admission 测试 | 至少 100 个并发 appenders 的同 Run 连续历史、投影和 event identity 验证 | R1 |
+| P5 | 同 ID lost-ack 重放和真实 lease takeover | primary failover 后同 ID 收敛以及同步复制确认边界 | R6 |
+| P6 | payload/intent/event/predecessor/checkpoint/graph corruption 隔离测试 | 完整 blob 与跨存储恢复组合；新增执行路径继续先校验再派发 | R1；R6 |
+| P7 | 从非空旧 schema 向前迁移、catalog 校验和新 schema 拒绝的专项 | 支持窗口内 N-1/N-2、backfill 中断及明确 rollback window | R1 契约；R6 升级 |
+| P8 | journal/checkpoint 的完整性基础 | archive/compaction 的可信 boundary、法律保留、可续跑 GC 和清理测试 | R2 |
+| P9 | named-PITR 的限定 child-Join 数据集恢复 | 参考数据集、运行状态校验及 PostgreSQL/对象存储一致恢复 | R6，依赖 R2 |
+| P10 | `CiReduced` Host harness | 三场景完整延迟、内存、恢复和 24 小时曲线 | R6 |
+
+已有 trusted-server SQL role profile 不允许把 runtime 数据库凭据交给不可信 Worker。
+Worker-only SQL/service 权限边界仍需 R1 决策及 R5 部署验证。
+索引、分区、checkpoint 频率和 timeout 默认值必须由已提交测量决定。
+
+## RFC-0004：子 Run
+
+编号对应 [RFC-0004 五层交付](rfcs/0004-durable-child-runs.md#validation-and-rollout)；
+所有已实现层仍受其 acceptance blockers 约束。
+
+| 编号 | 已有证据 | 仍需交付 | 阶段 |
+| --- | --- | --- | --- |
+| D1 | identity/declaration/accounting 的边界、摘要、篡改和 canonical 测试 | 完整公开类型映射，跨层 identity/authority/unknown usage 对照 | R1 |
+| D2 | 原子 admission/ownership/reservation、lost-ack、stale fence、populated upgrade | 与剩余完整 profile 语义结合的资格验证；不能只测独立 API | R1 |
+| D3 | terminal binding、Join/wakeup、cancel queue、failure close 和 settlement 多项 real-store 验证 | 任意 uncertain direct effect、parent direct + child usage、各 parent close 路径的组合矩阵 | R1 契约；R6 完整验证 |
+| D4 | opt-in spawn/Join、registry recreation、独立 child lease/schema 和 executable examples | 新 namespace/ownership 和 uncertain effect 下的全流程恢复 | R1 |
+| D5 | PostgreSQL 16/17 与多组源码 CI/中英教程 | 完整 profile 验收后才允许 capability enablement；真实角色部署和容量报告 | R5/R6；R7 发布 |
+
+逐条保留五类 blockers：Worker-only 权限边界、完整 failure-close/provider-effect
+资格验证、parent direct/unknown usage 会计、Join/deadline/takeover 组合进程故障、
+测量后的恢复/容量阈值。现有 post-commit、COMMIT-loss、logical restore 和 named-PITR
+profile 的限定证据继续有效，但不能合并成未经执行的完整矩阵结论。
+
+## R1 其他必需交付
+
+| 边界 | 当前证据/限制 | 下一步验收 |
+| --- | --- | --- |
+| 不确定外部副作用 | Tool 的 `Unknown + ReconcileFirst`、MCP 授权 result/known-error reconciliation 和 A2A exact-task 查询路径已实现；不自动重复 uncertain business send | 补齐 provider effect 与子任务会计/终结组合；授权处置、不可证明结果保留 Unknown，重启后相同决定 |
+| MCP/A2A 安全映射 | 现有两协议 guide、scope/resource 授权、租户上下文、URL/credential 约束和协议测试分散存在 | 独立 RFC，明确 ingress/egress、routing tenant 与本地 tenant、凭据 audience、descriptor/Agent Card 信任及恢复授权；RFC-0004 不能替代 |
+| Issue 140 MCP stdio | 当前 `McpClient` 只实现 stateless Streamable HTTP；没有 stdio 支持声明 | 先固定 profile 与进程所有权 RFC，再复用 bounded parser/schema/tool 授权；实现 explicit executable/literal argv/env allowlist、握手与帧限制、request correlation 和完整后代回收 |
+| 外部消费者 | crate 已发布 alpha.1，但后续源码功能不能用该包声明 | exact revision/version pin 的独立消费者，实际发现和调用；不自动安装 MCP 程序；平台只按执行证据声明 |
+
+MCP stdio 验收必须包括启动失败、握手阻塞、版本不匹配、畸形/超大帧、stdout
+非协议输出、stderr 洪泛、交错通知、重复/未知 response ID、caller drop、取消、
+超时、server 退出、显式 shutdown 和子孙进程持有 pipe 的情况。
+进程组杀死父进程并不自动证明已释放所有后代；必须根据实际支持的平台验证
+完整生命周期机制。清理完成前不能发布该能力或关闭 Issue 140。
+
+## 执行与关闭规则
+
+R1 首先补齐 C2/C3/C5 和 G3 的证据/语义，独立协议安全 RFC 与 stdio RFC 随后进入
+实现评审。每个增量保留 DCO、必要回归、支持范围及中英文采用文档。
+新增公开/持久化契约须先按 RFC 流程收口，不能通过修改本清单降低退出条件。
+
+R2/R5/R6/R7 项有明确后续阶段，但仍是原 RFC 的整体验收门禁。R1 关闭表示
+本阶段剩余语义与接入交付已完成，并不表示已有整套生产容量、稳定 API 或发布
+认证；完整 RFC 接受和最终生产声明仍须等待所有相关证据。

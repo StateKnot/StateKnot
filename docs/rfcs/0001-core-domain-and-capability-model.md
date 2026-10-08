@@ -1775,10 +1775,21 @@ This establishes auditable evidence infrastructure and closes those type-family
 gaps for item 2; it does not yet prove exhaustive type-level fixture coverage,
 so item 2 remains open.
 
+The current compile-fail privacy increment verifies that `CancellationSignal`,
+`ModelContext`, `ToolContext`, `ToolReconciliationContext`, and the facade's
+`AgentHttpCredential` cannot satisfy `serde::Serialize`. Passing controls check
+the exact public imports, cloneable contexts, serializable durable record and
+redacted credential construction. An explicit workspace Rustdoc-test step now
+executes these on MSRV CI, with no new dependency. They cover those five types only; item 5 remains
+open for the remaining credential families and typed-tool schema/descriptor
+registration evidence. The [R1 acceptance ledger](../r1-contract-gap-ledger.zh-CN.md)
+records every acceptance item and its cross-stage dependencies.
+
 The rollout order is core value types and fixtures, typed tool adapter, model
 boundary, context/identity/budget integration, and only then graph/persistence/
-protocol adapters. No crate is published while contract fixtures or materially
-changing questions remain unresolved.
+protocol adapters. No stable crate is published while contract fixtures or
+materially changing questions remain unresolved; published alpha previews do
+not establish API stability.
 
 ## Unresolved questions
 
