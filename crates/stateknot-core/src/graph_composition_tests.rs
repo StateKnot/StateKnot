@@ -691,3 +691,20 @@ fn generated_identity_contract_is_frozen() {
         "sha256:25eefd8354f87f670e2534fb8672069cd4d3bcf5b91ad605e6f2dd3d8c905e17"
     );
 }
+
+#[test]
+fn complete_contract_wire_fixture_matches_constructors() {
+    let composition = bounded(2);
+    let actual = serde_json::to_value(
+        composition
+            .node_sources()
+            .map(|(id, source)| (id.clone(), source.clone()))
+            .collect::<BTreeMap<_, _>>(),
+    )
+    .unwrap();
+    let frozen: serde_json::Value = serde_json::from_str(include_str!(
+        "../tests/fixtures/core-admission-transcript-wires-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(actual, frozen["composition"]);
+}

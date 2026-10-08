@@ -24,6 +24,7 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
+cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
@@ -55,10 +56,10 @@ oversized, duplicate-key, path-escaping, schema-conflicting, changed, or
 unreferenced fixture. Every catalogued document must still be consumed by an
 executable Rust compatibility test; a digest alone is not test coverage.
 
-This makes the existing evidence corpus reviewable and tamper-evident. It does
-not prove that every RFC-0001 public value and durable envelope already has a
-fixture. Validation item 2 remains open until that type-level coverage audit and
-the missing fixtures are complete.
+This makes the existing evidence corpus reviewable and tamper-evident. It
+now includes the typed root-export audit below. The catalog count itself is
+not a coverage metric; variant combinations, property/fuzz and historical
+qualification remain separate gates.
 
 ### Value-level fixture and property coverage
 
@@ -95,9 +96,9 @@ workspace tests also execute the ordinary random-seed run.
 | Delegation intersection | Caller, grant and policy scopes match the three-way bit-set intersection, remain associative and cannot widen any participant. The existing two-party commutativity/idempotence model remains required. |
 | Extension limits | Complete-map bytes, per-key bytes and entry count accept the exact boundary and reject a one-unit narrowing; duplicate entries fail. The existing insertion-order/accounting property and deterministic nested-JSON hard-limit tests remain required. |
 
-This closes the listed value-family gaps. Content, descriptors, errors, composite
-durable envelopes, their nested identifiers and historical migration fixtures
-still require the complete R1 type audit; C2/C3 and RFC-0001 remain open. These
+The value-family evidence remains required. The root-export inventory below
+adds every current serializable public type; variant combinations, nested
+properties and historical migrations remain open acceptance work. These
 tests do not establish production capacity, a fuzz qualification or a new release.
 
 ### Complete execution wire coverage
@@ -145,6 +146,35 @@ the explicitly selected fields; it preserves the existing context-bound
 integrity and dispatch tests. This is current-source fixture evidence, not an
 N-1/N-2 migration corpus or a production load result. Remaining public families,
 variant combinations and the complete C2/C3 audit stay open.
+
+### Closed public type and schema inventory
+
+[`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
+checks all 570 named root exports against a
+[machine-readable inventory](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json):
+555 types, 11 traits and four constants. The compiler verifies 307 types with
+`Serialize` and `DeserializeOwned`, two output-only types, and 246 reviewed
+Rust-only instantiations without `Serialize` or `DeserializeOwned`. Each reader has an explicit fixture
+file/JSON pointer, a canonical wire digest and a generated JSON Schema digest;
+`BudgetRemaining` supplies the 308th schema pin. The 312-test matrix rejects
+unsupported scalar/collection shapes, unknown fields on 181 closed object
+vectors, and raw duplicate known keys. Bounded JSON and extension maps retain
+open-key semantics. New exports, missing typed evidence, and accidental Serde
+implementations fail CI until explicitly reviewed.
+
+`core-admission-transcript-wires-v1.json` supplies complete admission, reservation,
+child accounting/Join, provider replay/tool outcome, Run lifecycle and composition
+source wires. Six existing constructor families reproduce the complete values;
+the previous 40 documents retain their exact bytes. `BudgetRemaining` and
+`GraphNodeSource` remain output-only: their producers are checked, and compilation
+rejects adding an owned reader without review. Generic Rust-only guards use the
+explicit representative instantiations recorded in the manifest; they do not
+prove the absence of every possible future conditional generic implementation.
+
+This closes the current root-type inventory gap. Selected vectors are not an
+exhaustive enumeration of variant combinations or historical versions. C2
+variant review, C3 nested/property auditing, C4 bounded fuzzing and C6 actual
+N-1/N-2 qualification remain separate acceptance work; RFC-0001 remains Draft.
 
 ## What each example proves
 

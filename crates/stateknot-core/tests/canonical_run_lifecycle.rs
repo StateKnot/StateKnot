@@ -238,3 +238,22 @@ fn run_lifecycle_schemas_publish_closed_objects_and_wait_bounds() {
     let transition_schema = to_value(schemars::schema_for!(RunTransition)).unwrap();
     assert!(transition_schema["oneOf"].is_array());
 }
+
+#[test]
+fn complete_contract_wire_fixture_matches_constructors() {
+    let fixture = load_fixture();
+    let active = RunLifecycle::admitted(
+        from_value(fixture.provenance).unwrap(),
+        "2030-01-01T00:00:00.000000Z".parse().unwrap(),
+    )
+    .apply(RunTransition::Start {
+        started_at: "2030-01-01T00:00:01.000000Z".parse().unwrap(),
+    })
+    .unwrap();
+    let actual = json!({"lifecycle":active,"transition":RunTransition::Start {started_at:"2030-01-01T00:00:01.000000Z".parse().unwrap()}});
+    let frozen: serde_json::Value = serde_json::from_str(include_str!(
+        "fixtures/core-admission-transcript-wires-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(actual, frozen["lifecycle"]);
+}

@@ -951,4 +951,14 @@ mod tests {
         assert!(!debug.contains("allow"));
         assert!(debug.contains("intent_digest"));
     }
+    #[test]
+    fn complete_contract_wire_fixture_matches_constructors() {
+        let admission = AgentAdmission::commit(intent(), BEFORE_DEADLINE.parse().unwrap()).unwrap();
+        let actual = serde_json::to_value(admission).unwrap();
+        let frozen: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/core-admission-transcript-wires-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(actual, frozen["admission"]);
+    }
 }

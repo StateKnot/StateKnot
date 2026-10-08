@@ -24,6 +24,7 @@ cargo run -p stateknot-core --example model_stream --locked
 cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
+cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
@@ -37,7 +38,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 40 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 42 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -52,8 +53,8 @@ Fail Closed。
 冲突、内容变化或没有 Rust 测试引用的 Fixture。每份已登记文档仍必须被可执行的
 Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 
-这让现有证据语料可审查且可检测篡改，但不代表 RFC-0001 的每个公共类型和持久化
-Envelope 都已经拥有 Fixture。第 2 项验证门禁仍须完成类型级覆盖审计并补齐缺口。
+这让现有证据语料可审查且可检测篡改。下方清单已补齐当前根导出类型的逐型基准，
+目录数量本身不是覆盖率；变体组合、属性/fuzz 和历史验收仍有独立门禁。
 
 ### 值类型的 Fixture 与属性测试映射
 
@@ -87,9 +88,8 @@ Envelope 都已经拥有 Fixture。第 2 项验证门禁仍须完成类型级覆
 | 委托交集 | caller、grant、policy scope 与三方位集合交集一致，满足结合律且不能扩大任何参与方权限。已有两方交换律和幂等模型继续执行。 |
 | 扩展限制 | 完整 map 字节、单 key 字节和条目数接受精确边界，拒绝收窄一个单位；重复条目失败。既有插入顺序/字节会计属性及嵌套 JSON 硬限制的确定性测试继续执行。 |
 
-本轮补齐表中值类型的缺口。内容、descriptor、错误、复合持久化 envelope、其中
-嵌套标识符及历史迁移 Fixture 仍须完成 R1 全量类型审计；C2/C3 和 RFC-0001
-保持开放。这些测试不构成生产容量、fuzz 资格验证或新版本发布。
+本轮值类型证据继续保留。下面的根导出清单补齐全部当前公开序列化类型的
+基准映射；剩余变体组合、嵌套属性及历史迁移验收继续开放。这些测试不构成生产容量、fuzz 资格验证或新版本发布。
 
 ### 完整执行 wire 的类型映射
 
@@ -126,6 +126,31 @@ control、model/tool 两种绑定、模型重试及已提交工具调用历史�
 部分 invocation head 需要可信注册表或完整历史。矩阵只对显式选择的字段要求
 本地 checksum 拒绝，并继续保留上下文相关的完整性和派发测试。本项是当前源码的
 fixture 证据；N-1/N-2 迁移、剩余类型族/变体组合及完整 C2/C3 审计继续开放。
+
+### 封闭的公开类型与 schema 清单
+
+[`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
+将全部 570 个根导出项与
+[机器可读清单](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json)
+逐一比较：555 个类型、11 个 trait、四个常量。编译器核对 307 个同时支持
+`Serialize` 与 `DeserializeOwned` 的类型、两个仅支持输出的类型，以及
+246 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
+fixture 文件/JSON pointer、规范 wire 摘要和生成的 JSON Schema 摘要；
+`BudgetRemaining` 提供第 308 个 schema pin。312 项矩阵检查拒绝不匹配的
+标量/集合形状、181 个封闭对象向量的未知字段及原始重复已知键。
+Bounded JSON 与扩展 map 保留开放 key 语义。新增导出、缺少逐型证据和意外
+引入的 Serde 实现会使 CI 失败，直至完成明确审查。
+
+`core-admission-transcript-wires-v1.json` 补齐准入、reservation、子 Run
+会计/Join、provider replay/tool outcome、Run 生命周期和组合 source 的
+完整 wire。六个原有构造族逐值复现完整载荷；先前 40 份文档保留精确字节。
+`BudgetRemaining` 与 `GraphNodeSource` 保持仅输出：生产者被实际检查，
+未经审查加入 owned reader 会导致编译失败。泛型 Rust 类型的拒绝门禁采用
+清单中明确记录的代表实例，不证明所有未来条件泛型实现都无法序列化。
+
+当前根导出类型清单缺口已补齐。所选向量不是全部变体组合或历史版本枚举。
+C2 变体审查、C3 嵌套/属性审计、C4 有界 fuzz 和 C6 真实 N-1/N-2 验收仍需
+分别完成；RFC-0001 保持 Draft。
 
 ## 每个示例证明什么
 

@@ -800,3 +800,41 @@ proptest! {
         prop_assert_eq!(settled.accounted_usage().unwrap().input_tokens(), TokenCount::new(tokens));
     }
 }
+
+#[test]
+fn complete_contract_wire_fixture_matches_constructors() {
+    use crate::{ChildRunJoinBinding, ChildRunJoinRequest};
+    let (mut value, graph) = policy_fixture(true);
+    with_fraction(&mut value, 2);
+    let intent = value.intent().unwrap();
+    let initial = account(&value, &graph);
+    let reserved = initial.reserve(&intent, &graph, now()).unwrap();
+    let terminal = settlement(&value, BudgetUsage::zero());
+    let settled = reserved.settle(&value.key, terminal.clone()).unwrap();
+    let binding = ChildRunJoinBinding::new(
+        ChildRunJoinRequest::new([value.key.clone()]).unwrap(),
+        [terminal],
+    )
+    .unwrap();
+    let published = JournalHead::new(
+        value.key.tenant_id().clone(),
+        value.key.parent_run_id(),
+        JournalSequence::new(10).unwrap(),
+        "01912345-6789-7abc-8def-0123456789a5".parse().unwrap(),
+        now(),
+        Digest::sha256("publication"),
+    );
+    let actual = json!({
+        "parent": value.parent,
+        "intent": intent,
+        "graph": graph,
+        "accounts": [initial, reserved, settled],
+        "join": binding,
+        "join_head": binding.head(published).unwrap()
+    });
+    let frozen: serde_json::Value = serde_json::from_str(include_str!(
+        "../tests/fixtures/core-admission-transcript-wires-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(actual, frozen["children"]);
+}

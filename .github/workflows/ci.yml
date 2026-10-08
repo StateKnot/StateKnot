@@ -104,6 +104,9 @@ jobs:
       - name: Verify sealed Core compatibility fixture catalog
         run: cargo test -p stateknot-core --test fixture_catalog --locked
 
+      - name: Verify closed Core public type and schema inventory
+        run: cargo test -p stateknot-core --test public_type_inventory --locked
+
       - name: Verify typed durable Core execution wires
         run: cargo test -p stateknot-core --test canonical_execution_wires --locked
 
