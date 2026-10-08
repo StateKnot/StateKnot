@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::*;
+use aws_lc_rs::{
+    rand::SystemRandom,
+    rsa::KeySize,
+    signature::{KeyPair, RSA_PKCS1_SHA256, RsaKeyPair, RsaPublicKeyComponents},
+};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
-use rand::{SeedableRng as _, rngs::StdRng};
-use rsa::{RsaPrivateKey, pkcs1::EncodeRsaPrivateKey as _, traits::PublicKeyParts as _};
 use stateknot::agent_http::{
     introspection::{TenantBinding, TenantPolicy},
     jwt_jwks::{AgentHttpJwtJwks, JwtJwksOptions},
