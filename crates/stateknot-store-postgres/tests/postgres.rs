@@ -9242,57 +9242,162 @@ async fn leases_fence_late_workers_and_preserve_lost_ack_retries() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[allow(clippy::too_many_lines)]
 async fn concurrent_appenders_converge_to_one_contiguous_history() {
+    const APPENDERS: usize = 100;
+    const MAX_ATTEMPTS: usize = 1_024;
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
         return;
     };
     let tenant_id = tenant("concurrency");
     let run_id = RunId::generate();
-    store
+    let admitted = store
         .admit_run(provenance(tenant_id.clone(), run_id))
         .await
         .unwrap();
 
-    let mut tasks = Vec::new();
-    for index in 0..100_u64 {
+    let start_transition = RunTransition::Start {
+        started_at: Timestamp::from_unix_micros(
+            admitted.lifecycle().admitted_at().unix_micros() + 1,
+        )
+        .unwrap(),
+    };
+    let active = admitted
+        .lifecycle()
+        .clone()
+        .apply(start_transition.clone())
+        .unwrap();
+    let start_event_id = EventId::generate();
+    let start = Arc::new(tokio::sync::Barrier::new(APPENDERS));
+    let mut tasks = tokio::task::JoinSet::new();
+    let mut expected = std::collections::BTreeMap::new();
+    for index in 0..APPENDERS {
+        let intent = control_append(
+            tenant_id.clone(),
+            run_id,
+            if index == 0 {
+                start_event_id
+            } else {
+                EventId::generate()
+            },
+            JournalExpectation::empty(),
+            u64::try_from(index).unwrap(),
+        )
+        .intent()
+        .clone();
+        assert!(expected.insert(intent.event_id(), intent.clone()).is_none());
+        let projection = if index == 0 {
+            RunProjection::transition(admitted.lifecycle().revision(), start_transition.clone())
+        } else {
+            RunProjection::unchanged()
+        };
         let store = store.clone();
         let tenant_id = tenant_id.clone();
-        tasks.push(tokio::spawn(async move {
-            let event_id = EventId::generate();
-            loop {
+        let start = start.clone();
+        tasks.spawn(async move {
+            start.wait().await;
+            for _ in 0..MAX_ATTEMPTS {
                 let run = store.load_run(&tenant_id, run_id).await.unwrap();
                 let expectation = run
                     .journal_head()
                     .map_or_else(JournalExpectation::empty, |head| {
                         JournalExpectation::exact(head.clone())
                     });
-                let append =
-                    control_append(tenant_id.clone(), run_id, event_id, expectation, index);
+                let append = JournalAppend::new(expectation, intent.clone()).unwrap();
                 match store
-                    .append_control_plane(append, RunProjection::unchanged())
+                    .append_control_plane(append.clone(), projection.clone())
                     .await
                 {
-                    Ok(outcome) => return outcome.event().sequence(),
+                    Ok(outcome) => {
+                        assert!(matches!(outcome, AppendOutcome::Committed(_)));
+                        let retry = store
+                            .append_control_plane(append.clone(), projection.clone())
+                            .await
+                            .expect("lost acknowledgement retry must converge during contention");
+                        assert!(matches!(retry, AppendOutcome::Idempotent(_)));
+                        assert_eq!(retry.event(), outcome.event());
+                        return (append, projection, outcome.event().clone());
+                    }
                     Err(StoreError::StaleJournalHead) => tokio::task::yield_now().await,
                     Err(error) => panic!("unexpected concurrent append failure: {error}"),
                 }
             }
-        }));
+            panic!("appender exhausted the bounded exact-head retry budget");
+        });
     }
-    for task in tasks {
-        task.await.expect("appender task must not panic");
-    }
+    let committed = tokio::time::timeout(Duration::from_secs(60), async {
+        let mut committed = std::collections::BTreeMap::new();
+        while let Some(result) = tasks.join_next().await {
+            let (append, projection, event) = result.expect("appender task must not panic");
+            assert!(
+                committed
+                    .insert(event.event_id(), (append, projection, event))
+                    .is_none()
+            );
+        }
+        committed
+    })
+    .await
+    .expect("all 100 synchronized appenders must finish within the test bound");
+    assert_eq!(committed.len(), APPENDERS);
 
     let page = store
         .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(128).unwrap())
         .await
         .expect("complete concurrent history must validate");
-    assert_eq!(page.events().len(), 100);
+    assert_eq!(page.events().len(), APPENDERS);
     assert!(!page.has_more());
+    let mut previous_digest = None;
+    let mut seen = BTreeSet::new();
     for (index, event) in page.events().iter().enumerate() {
         assert_eq!(event.sequence().get(), u64::try_from(index).unwrap() + 1);
+        assert_eq!(event.previous_digest(), previous_digest);
+        assert_eq!(event.tenant_id(), &tenant_id);
+        assert_eq!(event.run_id(), run_id);
+        assert!(seen.insert(event.event_id()));
+        assert!(event.matches_intent(&expected[&event.event_id()]));
+        assert_eq!(event, &committed[&event.event_id()].2);
+        previous_digest = Some(event.digest());
     }
+    assert_eq!(seen, expected.keys().copied().collect());
+    let stored = store.load_run(&tenant_id, run_id).await.unwrap();
+    let head = page.events().last().unwrap().head();
+    assert_eq!(stored.journal_head(), Some(&head));
+    assert_eq!(
+        serde_json::to_value(stored.lifecycle()).unwrap(),
+        serde_json::to_value(&active).unwrap()
+    );
+
+    for (append, projection, event) in committed.values() {
+        let retry = store
+            .append_control_plane(append.clone(), projection.clone())
+            .await
+            .expect("original append must remain idempotent after every later commit");
+        assert!(matches!(retry, AppendOutcome::Idempotent(_)));
+        assert_eq!(retry.event(), event);
+    }
+    assert!(matches!(
+        store
+            .append_control_plane(
+                committed[&start_event_id].0.clone(),
+                RunProjection::unchanged(),
+            )
+            .await,
+        Err(StoreError::ProjectionIntentConflict)
+    ));
+    let unchanged = store
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(128).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(unchanged.events(), page.events());
+    assert!(!unchanged.has_more());
+    let stored = store.load_run(&tenant_id, run_id).await.unwrap();
+    assert_eq!(stored.journal_head(), Some(&head));
+    assert_eq!(
+        serde_json::to_value(stored.lifecycle()).unwrap(),
+        serde_json::to_value(&active).unwrap()
+    );
     store.close().await;
 }
 

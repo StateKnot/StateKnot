@@ -93,3 +93,30 @@ let store = PostgresStore::connect_development(
 - 不要通过通用序列化器输出配置；StateKnot 只提供脱敏 `Debug`，且没有 URL Getter；
 - Joined Shutdown 时关闭 `PostgresStore`，避免连接池超过所属进程角色的生命周期。
 
+## 并发 Journal 资格验证
+
+在 PostgreSQL 16 和 17 的独立一次性测试数据库上分别执行同一个强制 profile。
+测试会应用迁移，因此须使用专用测试数据库：
+
+```console
+STATEKNOT_TEST_DATABASE_URL=postgres://postgres:test-password@127.0.0.1:5432/stateknot_test \
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+cargo test -p stateknot-store-postgres --test postgres \
+  concurrent_appenders_converge_to_one_contiguous_history --locked -- --exact
+```
+
+Profile 让同一 Run 的 100 个应用 appender 同步开始，在竞争前固定每个事件 intent
+及 lifecycle projection。其中一个写入者提交 Pending → Active，另外 99 个保留
+当前 lifecycle。每个写入者最多重试 1,024 次 exact head，整个并发 join 阶段的
+测试期限为 60 秒。`JoinSet` 拥有所有测试 task，失败时会中止未完成的 task。
+
+断言逐一对照 100 条返回记录与存储中的 event ID、原始 intent、tenant/Run、连续
+sequence 及完整前序摘要链。Run 的投影 head 必须等于最后事件，完整 lifecycle
+必须等于独立计算的 Active 状态。竞争期间及全部提交后分别重放原请求，均须返回
+同一事件且不追加记录。替换 Start 事件的 projection 必须返回
+`ProjectionIntentConflict`，最终历史与 lifecycle 保持一致。
+
+这提供 RFC-0003 P4 的有界 Journal 并发证据。测试使用最多 48 个连接的 fixture
+pool；100 个并发应用 appender 不等于 100 个同时持有锁的数据库事务。参考拓扑
+吞吐、fencing 竞态、failover 和 soak 仍归 R6 验收。设置
+`STATEKNOT_REQUIRE_POSTGRES_TESTS=1` 后，缺少测试数据库配置会直接失败。
