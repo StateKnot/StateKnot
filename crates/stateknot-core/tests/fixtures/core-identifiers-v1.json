@@ -1,0 +1,98 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-identifiers/1.0.0",
+  "tenants": {
+    "valid": [
+      "acme",
+      "Acme",
+      "tenant:prod_1-east",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "invalid": [
+      "",
+      ".",
+      "..",
+      "a/b",
+      "a b",
+      "a\\b",
+      "a\n",
+      "租户",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      42,
+      null,
+      true,
+      {},
+      []
+    ]
+  },
+  "shards": {
+    "valid": [
+      "acme",
+      "Acme",
+      "tenant:prod_1-east",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "invalid": [
+      "",
+      ".",
+      "..",
+      "a/b",
+      "a b",
+      "a\\b",
+      "a\n",
+      "租户",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      42,
+      null,
+      true,
+      {},
+      []
+    ]
+  },
+  "submission_keys": {
+    "valid": [
+      "0123456789abcdef",
+      "request.v1_~safe-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "invalid": [
+      "",
+      "xxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "0123456789abcde:",
+      "0123456789abcde/",
+      "0123456789abcde ",
+      "0123456789abcde\n",
+      "请求0123456789abcdef",
+      42,
+      null,
+      true,
+      {},
+      []
+    ]
+  },
+  "uuid_v7": {
+    "valid": [
+      "00000000-0000-7000-8000-000000000000",
+      "01890f3e-7c00-7abc-8def-0123456789ab",
+      "ffffffff-ffff-7fff-bfff-ffffffffffff"
+    ],
+    "invalid": [
+      "",
+      "not-a-uuid",
+      "01890F3E-7C00-7ABC-8DEF-0123456789AB",
+      "01890f3e7c007abc8def0123456789ab",
+      "{01890f3e-7c00-7abc-8def-0123456789ab}",
+      "urn:uuid:01890f3e-7c00-7abc-8def-0123456789ab",
+      "550e8400-e29b-41d4-a716-446655440000",
+      "00000000-0000-0000-0000-000000000000",
+      "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "01890f3e-7c00-7abc-0def-0123456789ab",
+      "01890f3e-7c00-7abc-cdef-0123456789ab",
+      "01890f3e-7c00-7abc-8def-0123456789az",
+      42,
+      null,
+      true,
+      {},
+      []
+    ]
+  }
+}

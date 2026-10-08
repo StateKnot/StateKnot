@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Typed positive/negative canonical fixtures for 38 Core value types, including
+  every generated UUIDv7 identity and bounded tenant, scheduler and submission
+  identifiers. Thirty-one bounded property models verify constructor/Serde
+  agreement, precision, checked arithmetic, UTF-16 canonical ordering, scope
+  narrowing and exact extension limits, with a reproducible CI seed.
+
 - An explicit `register_rust_output_type` startup helper for pinned Serde
   serialization schemas, plus compile-fail Tool schema and credential guards.
 

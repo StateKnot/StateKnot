@@ -10,6 +10,8 @@ SPDX-License-Identifier: Apache-2.0
 本清单逐条对应 RFC 的验收项，记录已有证据、仍需实现或验证的边界及负责阶段。
 “已有证据”表示限定路径存在可执行验证，不表示对应完整条目或 RFC 已验收。
 RFC-0001 至 RFC-0004 继续保持 Draft。
+公开类型 fixture/property/fuzz 的具体补齐工作由
+[#149](https://github.com/StateKnot/StateKnot/issues/149) 跟踪。
 
 ## RFC-0001：公开核心类型
 
@@ -18,8 +20,8 @@ RFC-0001 至 RFC-0004 继续保持 Draft。
 | 编号 | 已有证据 | 仍需交付 | 阶段 |
 | --- | --- | --- | --- |
 | C1 | 四个公开契约示例、MSRV CI、`dependency_boundary` 检查；原 RFC 已记录本项完成 | 后续修改继续保留这三个门禁 | R1 回归 |
-| C2 | 38 个 fixture 的封闭目录、内容摘要和 catalog root；Tool/Skill 授权证据等类型族已覆盖 | 建立公开可序列化类型到正/负规范 fixture 的完整映射，逐项补齐缺口；文件数量不能代替覆盖率 | R1 |
-| C3 | budget、reservation、scope、extension、canonical JSON 等已有 proptest | 核对构造边界、规范化、预算算术、委托交集和扩展限制的要求到测试映射，补齐缺口 | R1 |
+| C2 | 39 个 fixture 的封闭目录、内容摘要和 catalog root；38 个公开值类型逐型正/负规范往返；全部 18 个宏生成 UUIDv7 类型有闭合源码清单门禁；Tool/Skill 授权证据等类型族已覆盖 | 表中标量/身份类型已补齐；继续完成内容、descriptor、错误、复合 envelope 与嵌套标识符的完整类型映射；文件数量不能代替覆盖率 | R1 |
+| C3 | 中英 Core guide 已映射五类要求；新增 31 个属性测试，每个 256 个有界样例，固定种子 CI 和普通随机运行；budget、reservation、scope、extension 等既有 proptest 保留 | 已补齐标量构造/精度、Unicode 规范顺序、三方委托交集和扩展边界；继续对复合类型及嵌套 JSON 限制完成全量审计和补漏 | R1 |
 | C4 | 严格 JSON、schema 和恶意输入的确定性测试 | 可复现、有界 fuzz 入口与保留语料，覆盖未知字段、深层结构、超大值和恶意 Unicode | R1 |
 | C5 | 18 个第一方临时 context/key/credential/carrier 的序列化拒绝及构造对照；typed Tool 输入/输出缺少 JsonSchema 的完整编译失败实现；真实离线注册表拒绝非法 schema、非对象输入、缺失/替换 pin 及变化后的 descriptor，拒绝路径检查零应用调用 | 本轮补齐当前列举类型与 typed adapter 的证据；方向性 schema 修正属于 RFC-0019 已接受的限定源码契约，新增类型继续纳入同样门禁；自定义 Serde 正确性仍须审查，SDK OAuth store records 只允许受信加密存储 | R1 回归 |
 | C6 | 当前格式的负向 fixture 和显式版本检查 | 支持窗口内 N-1/N-2 的真实历史 fixture、向前迁移、新版本拒绝与损坏拒绝；不能生成虚假的历史版本 | R1 契约；R6 升级 |
@@ -61,7 +63,7 @@ blob checkpoint 若引入须另立 RFC，并先依赖 R2 的 Artifact 生命周�
 | P1 | core canonical、strict Serde、bounded schema、redacted diagnostics 与部分 proptest | 完整类型映射和随机状态验证，复用 C2/C3/C4 的交付 | R1 |
 | P2 | PostgreSQL 16/17 append/renewal/expiry/revocation/fencing 测试 | 10,000 forced stale-worker trials，接受的过期写入为 0 | R6 |
 | P3 | 多组业务事务的 COMMIT 请求/响应丢失及 post-commit kill profile | 每个 insert/projection/head/commit/ack 的完整故障矩阵 | R1 矩阵；R6 完整验证 |
-| P4 | 多个 24 路并发 idempotency/registration/admission 测试 | 至少 100 个并发 appenders 的同 Run 连续历史、投影和 event identity 验证 | R1 |
+| P4 | `concurrent_appenders_converge_to_one_contiguous_history` 已有 100 个 appender 的同 Run 连续历史验证；多个 24 路 idempotency/registration/admission 测试 | 补齐同步起跑、有限重试、投影 head 和全部 event identity 对照，保留 PostgreSQL 16/17 的实际执行证据 | R1 |
 | P5 | 同 ID lost-ack 重放和真实 lease takeover | primary failover 后同 ID 收敛以及同步复制确认边界 | R6 |
 | P6 | payload/intent/event/predecessor/checkpoint/graph corruption 隔离测试 | 完整 blob 与跨存储恢复组合；新增执行路径继续先校验再派发 | R1；R6 |
 | P7 | 从非空旧 schema 向前迁移、catalog 校验和新 schema 拒绝的专项 | 支持窗口内 N-1/N-2、backfill 中断及明确 rollback window | R1 契约；R6 升级 |
