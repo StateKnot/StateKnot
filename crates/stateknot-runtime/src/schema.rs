@@ -6,7 +6,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use jsonschema::{Draft, Registry, Validator};
-use schemars::{JsonSchema, Schema, SchemaGenerator};
+use schemars::{JsonSchema, Schema, generate::SchemaSettings};
 use serde_json::Value;
 use stateknot_core::{
     BoundedJson, Digest, GraphSchemaValidationError, GraphSchemaValidator, ModelSchemaRegistry,
@@ -281,11 +281,13 @@ impl JsonSchemaRegistryBuilder {
         Ok(())
     }
 
-    /// Generates, pins, and registers the JSON Schema for one Rust type.
+    /// Generates, pins, and registers the deserialization schema for one Rust type.
     ///
     /// The generated document receives the supplied canonical `$id`; its
     /// version and RFC 8785 digest are then frozen in the returned reference.
-    /// Use that reference in the corresponding tool descriptor. At
+    /// Use this for a tool input; use [`Self::register_rust_output_type`] for
+    /// an output. Serde renaming, defaults and skipped fields can give one type
+    /// different input and output schemas. At
     /// [`stateknot_core::ToolAdapter`] construction, the frozen registry proves
     /// that the currently compiled Rust type still matches these exact bytes.
     ///
@@ -298,7 +300,43 @@ impl JsonSchemaRegistryBuilder {
         id: SchemaId,
         version: Version,
     ) -> Result<SchemaReference, JsonSchemaRegistryError> {
-        let generated = SchemaGenerator::default().into_root_schema_for::<T>();
+        self.register_generated_type::<T>(
+            id,
+            version,
+            SchemaSettings::draft2020_12().for_deserialize(),
+        )
+    }
+
+    /// Generates, pins, and registers the serialization schema for a Rust output.
+    ///
+    /// This honors output-specific Serde rules, including `skip_serializing`,
+    /// `skip_serializing_if` and directional field renaming. The returned
+    /// reference is subject to the same offline, canonical digest and resource
+    /// checks as [`Self::register_rust_type`]. Tool adapter construction requires
+    /// exact equality with this serialization contract before any dispatch.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`JsonSchemaRegistryError`] for generation or registry failures.
+    pub fn register_rust_output_type<T: JsonSchema + serde::Serialize>(
+        &mut self,
+        id: SchemaId,
+        version: Version,
+    ) -> Result<SchemaReference, JsonSchemaRegistryError> {
+        self.register_generated_type::<T>(
+            id,
+            version,
+            SchemaSettings::draft2020_12().for_serialize(),
+        )
+    }
+
+    fn register_generated_type<T: JsonSchema>(
+        &mut self,
+        id: SchemaId,
+        version: Version,
+        settings: SchemaSettings,
+    ) -> Result<SchemaReference, JsonSchemaRegistryError> {
+        let generated = settings.into_generator().into_root_schema_for::<T>();
         let mut document = serde_json::to_value(generated)
             .map_err(|_| JsonSchemaRegistryError::GeneratedSchemaSerialization)?;
         let object = document
@@ -851,7 +889,7 @@ mod tests {
             )
             .unwrap();
         let output = builder
-            .register_rust_type::<LookupOutput>(
+            .register_rust_output_type::<LookupOutput>(
                 "https://schemas.example.com/tools/lookup/output/1.0.0"
                     .parse()
                     .unwrap(),
@@ -871,7 +909,10 @@ mod tests {
             .validate_type_schema(
                 &output,
                 ToolSchemaRole::Output,
-                &SchemaGenerator::default().into_root_schema_for::<LookupOutput>(),
+                &SchemaSettings::draft2020_12()
+                    .for_serialize()
+                    .into_generator()
+                    .into_root_schema_for::<LookupOutput>(),
             )
             .unwrap();
 

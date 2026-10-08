@@ -60,6 +60,17 @@ pub struct IntrospectionConfigurationError;
 
 /// Bounded, redacted, zeroized owned confidential-client secret.
 /// HTTP/TLS library copies are outside this wrapper's ownership.
+///
+/// ```
+/// use stateknot::agent_http::introspection::ClientSecret;
+/// let secret = ClientSecret::new("fixture-client-secret".into()).unwrap();
+/// assert_eq!(format!("{secret:?}"), "ClientSecret([REDACTED])");
+/// ```
+///
+/// ```compile_fail,E0277
+/// fn durable_record<T: serde::Serialize>() {}
+/// durable_record::<stateknot::agent_http::introspection::ClientSecret>();
+/// ```
 #[derive(Clone)]
 pub struct ClientSecret(Zeroizing<String>);
 

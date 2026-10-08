@@ -54,6 +54,18 @@ type McpHttpResponse = Response<BoxBody<Bytes, Infallible>>;
 /// The value is zeroized on final drop and its `Debug` representation is
 /// always redacted. An authenticator must call [`Self::expose_secret`] only for
 /// verification and must not retain, log, or return the plaintext value.
+///
+/// ```
+/// use stateknot_integrations::McpServerBearerCredential;
+/// let credential = McpServerBearerCredential::new("fixture-bearer").unwrap();
+/// assert_eq!(credential.expose_secret(), "fixture-bearer");
+/// assert_eq!(format!("{credential:?}"), "McpServerBearerCredential([REDACTED])");
+/// ```
+///
+/// ```compile_fail,E0277
+/// fn durable_record<T: serde::Serialize>() {}
+/// durable_record::<stateknot_integrations::McpServerBearerCredential>();
+/// ```
 #[derive(Clone)]
 pub struct McpServerBearerCredential(Zeroizing<String>);
 

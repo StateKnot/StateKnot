@@ -8,7 +8,7 @@ const command =
   "cargo run -p stateknot-runtime --example local_tool_registration --locked";
 const code = `let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
 let input = schemas.register_rust_type::<IncidentLookup>(input_id, VERSION)?;
-let output = schemas.register_rust_type::<IncidentSummary>(output_id, VERSION)?;
+let output = schemas.register_rust_output_type::<IncidentSummary>(output_id, VERSION)?;
 let schemas = schemas.build()?;
 
 let adapter = ToolAdapter::new(
@@ -74,8 +74,15 @@ assert_eq!(providers.resolve(&descriptor)?.descriptor(), &descriptor);`;
       <code>Tool</code>。使用 <code>serde(deny_unknown_fields)</code
       >，并准确声明 副作用、幂等性、取消、对账与资源上限。<code
         >register_rust_type</code
-      > 会加入规范 Schema ID、计算 RFC 8785 SHA-256 Digest，并安装离线 Validator；
+      > 按反序列化生成输入契约，<code>register_rust_output_type</code>
+      按序列化生成输出契约。两者均加入规范 Schema ID、计算 RFC 8785 SHA-256 Digest，并安装离线
+      Validator；
       <code>ToolAdapter</code> 会在启动时拒绝任何生成 Schema 漂移。
+    </p>
+    <p>
+      输出注册入口跟踪当前源码，已发布 alpha.1 包尚未包含。如果旧输出 pin
+      与实际序列化 Schema 不同，必须采用新的 Schema 和 Tool 版本，并为已准入工作
+      保留旧可执行版本；不能重写不可变 pin。
     </p>
     <p>
       一次 <code>call</code> 只执行一次物理尝试。不能隐藏重试，也不能把结果不确定的写入

@@ -6,6 +6,79 @@
 //! Provider wire models remain private to this crate. Each model attempt makes
 //! exactly one upstream HTTP exchange: redirects and client retries are
 //! disabled so the durable runtime remains the only retry authority.
+//!
+//! Credential carriers stay outside general-purpose durable Serde records.
+//! The positive control constructs each guarded carrier through its public API:
+//!
+//! ```
+//! use std::sync::Arc;
+//! use stateknot_integrations::{
+//!     A2aClientSecurity, A2aPushAuthentication, A2aPushConfig, A2aSecret, ApiKey,
+//!     McpAuthorization, McpOAuthRegistration, StaticA2aBearerToken,
+//!     StaticMcpBearerAuthorization,
+//! };
+//! let secret = "fixture-credential";
+//! let key = || ApiKey::new(secret).unwrap();
+//! let mcp = McpAuthorization::Bearer(key());
+//! let mcp_provider = StaticMcpBearerAuthorization::new(key());
+//! let a2a_provider = StaticA2aBearerToken::new(key());
+//! let security = A2aClientSecurity::bearer("bearer", Arc::new(a2a_provider.clone())).unwrap();
+//! let oauth = McpOAuthRegistration::pre_registered("fixture-client", Some(key())).unwrap();
+//! let push_auth = A2aPushAuthentication::new("Bearer", Some(A2aSecret::new(secret).unwrap())).unwrap();
+//! let push = A2aPushConfig::new("https://push.example.com/callback").unwrap()
+//!     .with_token(A2aSecret::new(secret).unwrap()).with_authentication(push_auth.clone());
+//! for debug in [format!("{mcp:?}"), format!("{mcp_provider:?}"),
+//!     format!("{a2a_provider:?}"), format!("{security:?}"), format!("{oauth:?}"),
+//!     format!("{push_auth:?}"), format!("{push:?}")] {
+//!     assert!(!debug.contains(secret));
+//! }
+//! ```
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_integrations::McpAuthorization>();
+//! ```
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_integrations::StaticMcpBearerAuthorization>();
+//! ```
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_integrations::StaticA2aBearerToken>();
+//! ```
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_integrations::A2aClientSecurity>();
+//! ```
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_integrations::McpOAuthRegistration>();
+//! ```
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_integrations::A2aPushAuthentication>();
+//! ```
+//!
+//! ```compile_fail,E0277
+//! fn durable_record<T: serde::Serialize>() {}
+//! durable_record::<stateknot_integrations::A2aPushConfig>();
+//! ```
+//!
+//! The upstream SDK's OAuth store records deliberately support Serde so a
+//! credential backend can encrypt and persist them. They must not enter ordinary
+//! run state, diagnostics or audit payloads; see the credential-store contract.
+//!
+//! ```
+//! use stateknot_integrations::{McpOAuthStoredAuthorizationState, McpOAuthStoredCredentials};
+//! fn credential_store_record<T: serde::Serialize + serde::de::DeserializeOwned>() {}
+//! credential_store_record::<McpOAuthStoredAuthorizationState>();
+//! credential_store_record::<McpOAuthStoredCredentials>();
+//! ```
 
 #![forbid(unsafe_code)]
 

@@ -84,16 +84,19 @@ let input = schemas.register_rust_type::<IncidentLookup>(
     "https://schemas.example.com/tools/lookup/input/1.0.0".parse()?,
     Version::new(1, 0, 0),
 )?;
-let output = schemas.register_rust_type::<IncidentSummary>(
+let output = schemas.register_rust_output_type::<IncidentSummary>(
     "https://schemas.example.com/tools/lookup/output/1.0.0".parse()?,
     Version::new(1, 0, 0),
 )?;
 let schemas = schemas.build()?;
 ```
 
-`register_rust_type` inserts the canonical `$id`, computes the RFC 8785
-SHA-256 digest, returns the complete `SchemaReference`, and registers an offline
-JSON Schema 2020-12 validator. `ToolAdapter::new` later regenerates the Rust
+`register_rust_type` generates the deserialization contract for input;
+`register_rust_output_type` generates the serialization contract for output.
+Both insert the canonical `$id`, compute the RFC 8785 SHA-256 digest, return the
+complete `SchemaReference`, and register an offline JSON Schema 2020-12 validator.
+Directional Serde renaming, skipped fields, defaults and optional outputs must
+be reflected in the correct profile. `ToolAdapter::new` later regenerates the Rust
 schema and requires exact canonical equality. A stale descriptor, changed Rust
 type, missing local resource, unresolved `$ref`, or digest mismatch fails while
 building the process snapshot, before any run can dispatch.
@@ -101,6 +104,13 @@ building the process snapshot, before any run can dispatch.
 Treat these schema URIs and versions as released interfaces. A compatible
 source refactor that produces identical schema bytes can retain the version.
 Any wire-shape or behavior change receives new schema and Tool versions.
+Existing input registrations retain their canonical contract. If an output was
+pinned with the old input generator and its actual serialization schema differs,
+startup now rejects that pin: introduce new output schema and Tool versions and
+retain the old executable revision for already admitted work. Never rewrite a
+durable descriptor or reuse an immutable schema URI with different bytes. See
+[RFC-0019](rfcs/0019-typed-tool-schema-directions.md) for the scoped correction;
+the published alpha.1 package does not contain this source increment.
 
 ## Describe effects and resource ceilings accurately
 

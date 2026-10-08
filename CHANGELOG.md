@@ -14,6 +14,9 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- An explicit `register_rust_output_type` startup helper for pinned Serde
+  serialization schemas, plus compile-fail Tool schema and credential guards.
+
 - Compile-time regression evidence that execution contexts, cancellation
   handles and Agent HTTP credentials cannot enter Serde durable records.
   This preserves existing boundaries without changing the public API.
@@ -36,6 +39,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   Deployments using this convenience path must grant `Read` on that submission
   key; a Run-ID-only read grant no longer suffices. This avoids requiring a
   tenant-wide read grant for a one-request typed Agent run.
+
+### Fixed
+
+- Typed Tool adapters now generate input schemas for deserialization and output
+  schemas for serialization, explicitly using JSON Schema 2020-12. Directional
+  field names, skipped fields and optional output therefore participate in the
+  correct startup pin. Incompatible existing output pins fail before dispatch
+  and require new schema/Tool versions; admitted pins are never rewritten.
 
 ## [0.1.0-alpha.1] - 2026-09-21
 

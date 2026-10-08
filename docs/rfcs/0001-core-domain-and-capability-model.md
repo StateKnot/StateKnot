@@ -1775,15 +1775,26 @@ This establishes auditable evidence infrastructure and closes those type-family
 gaps for item 2; it does not yet prove exhaustive type-level fixture coverage,
 so item 2 remains open.
 
-The current compile-fail privacy increment verifies that `CancellationSignal`,
-`ModelContext`, `ToolContext`, `ToolReconciliationContext`, and the facade's
-`AgentHttpCredential` cannot satisfy `serde::Serialize`. Passing controls check
-the exact public imports, cloneable contexts, serializable durable record and
-redacted credential construction. An explicit workspace Rustdoc-test step now
-executes these on MSRV CI, with no new dependency. They cover those five types only; item 5 remains
-open for the remaining credential families and typed-tool schema/descriptor
-registration evidence. The [R1 acceptance ledger](../r1-contract-gap-ledger.zh-CN.md)
-records every acceptance item and its cross-stage dependencies.
+The current C5 evidence guards four execution/cancellation contexts,
+`ToolIdempotencyKey`, all five first-party zeroizing credential wrappers and
+eight concrete credential carriers against general-purpose Serde serialization.
+Positive controls construct public credentials and verify redacted Debug. The
+SDK OAuth credential/PKCE storage records intentionally retain Serde for trusted
+encrypted storage and are explicitly excluded from ordinary durable run records.
+Two complete Tool compile-fail implementations separately omit input/output
+`JsonSchema`, with a passing implementation that restores both derives.
+
+The production registry tests additionally reject invalid generated schemas,
+non-object inputs, missing or substituted schema pins and descriptor replacement
+before application dispatch. The directional schema correction and additive
+output registration helper are specified separately in
+[RFC-0019](0019-typed-tool-schema-directions.md). These concrete tests supply C5
+evidence for current types and the typed adapter; arbitrary custom Serde code
+still requires author review and runtime output validation. The explicit MSRV
+workspace Rustdoc-test step executes every compile-fail control. Other items
+remain acceptance gates, and this RFC remains Draft. The
+[R1 acceptance ledger](../r1-contract-gap-ledger.zh-CN.md) records their
+cross-stage dependencies.
 
 The rollout order is core value types and fixtures, typed tool adapter, model
 boundary, context/identity/budget integration, and only then graph/persistence/

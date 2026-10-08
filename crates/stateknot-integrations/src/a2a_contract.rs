@@ -208,6 +208,20 @@ fn validate_url(field: &'static str, value: &str) -> Result<(), A2aContractError
 }
 
 /// Secret A2A material that is zeroized and never formatted in plaintext.
+///
+/// ```
+/// use stateknot_integrations::{A2aPushAuthentication, A2aSecret};
+/// let secret = A2aSecret::new("fixture-push-secret").unwrap();
+/// assert_eq!(secret.expose_secret(), "fixture-push-secret");
+/// assert_eq!(format!("{secret:?}"), "A2aSecret([REDACTED])");
+/// let authentication = A2aPushAuthentication::new("Bearer", Some(secret)).unwrap();
+/// assert!(!format!("{authentication:?}").contains("fixture-push-secret"));
+/// ```
+///
+/// ```compile_fail,E0277
+/// fn durable_record<T: serde::Serialize>() {}
+/// durable_record::<stateknot_integrations::A2aSecret>();
+/// ```
 #[derive(Clone, PartialEq)]
 pub struct A2aSecret(Zeroizing<String>);
 
