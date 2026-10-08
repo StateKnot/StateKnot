@@ -124,10 +124,11 @@ fn tool(
         calls: Arc::clone(calls),
         output: |input| {
             assert!(input.local.is_empty());
+            let optional = (input.value == "with-optional").then(|| "optional".to_owned());
             DirectionalOutput {
                 value: input.value,
                 local: "private-local-field".into(),
-                optional: None,
+                optional,
             }
         },
     }
@@ -174,6 +175,28 @@ async fn directional_schemas_register_and_dispatch_the_actual_serde_wire_shape()
     let result = provider.call(context.clone(), input).await.unwrap();
     result.validate_for(&context, &descriptor).unwrap();
     assert_eq!(result.output().as_value(), &json!({"outgoing": "value"}));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn conditional_optional_output_is_valid_when_present() {
+    let (schemas, descriptor) = registry();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let adapter = ToolAdapter::new(tool(descriptor.clone(), &calls), schemas).unwrap();
+    let input = ToolInput::new(
+        descriptor.input_schema().clone(),
+        BoundedJson::try_from_value(json!({"incoming": "with-optional"})).unwrap(),
+    )
+    .unwrap();
+    let context = context(&descriptor);
+    let result = stateknot_core::ErasedTool::call(&adapter, context.clone(), input)
+        .await
+        .unwrap();
+    result.validate_for(&context, &descriptor).unwrap();
+    assert_eq!(
+        result.output().as_value(),
+        &json!({"outgoing": "with-optional", "optional": "optional"})
+    );
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
 
@@ -253,7 +276,7 @@ fn missing_or_substituted_descriptor_schema_is_rejected_before_dispatch() {
     ] {
         match ToolAdapter::new(tool(descriptor(input, output), &calls), schemas.clone()) {
             Err(ToolAdapterBuildError::SchemaContract { role: rejected, .. }) => {
-                assert_eq!(rejected, role)
+                assert_eq!(rejected, role);
             }
             _ => panic!("substituted schema registered"),
         }
