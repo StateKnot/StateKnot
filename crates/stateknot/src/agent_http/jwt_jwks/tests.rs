@@ -344,6 +344,7 @@ fn keysets_reject_private_weak_ambiguous_or_excessive_keys() {
         ("n", json!(URL_SAFE_NO_PAD.encode([0xff; 128]))),
         ("n", json!(URL_SAFE_NO_PAD.encode([0xff; 513]))),
         ("n", json!(URL_SAFE_NO_PAD.encode([0; 256]))),
+        ("n", json!(URL_SAFE_NO_PAD.encode([0xfe; 256]))),
         ("d", json!(null)),
         ("p", json!("private")),
         ("oth", json!([])),
@@ -465,4 +466,86 @@ fn concurrent_key_replacement_has_one_cas_winner() {
     });
     assert_eq!(outcomes.into_iter().filter(|won| *won).count(), 1);
     assert_eq!(verifier.generation().unwrap(), 2);
+}
+
+#[tokio::test]
+async fn poisoned_key_snapshot_fails_closed_without_exposing_key_material() {
+    let verifier = Arc::new(verifier());
+    let poisoned = verifier.clone();
+    assert!(
+        std::thread::spawn(move || {
+            let _snapshot = poisoned.keys.write().unwrap();
+            panic!("test-only poisoned snapshot");
+        })
+        .join()
+        .is_err()
+    );
+    assert_eq!(
+        verifier.authenticate(token(0)).await.unwrap_err(),
+        AgentHttpAuthenticationError::Unavailable
+    );
+    assert!(verifier.check().await.is_err());
+    assert!(verifier.generation().is_err());
+    assert!(
+        verifier
+            .replace_jwks(1, &jwks(&[1]), Duration::from_secs(300))
+            .is_err()
+    );
+}
+
+#[test]
+fn cancelled_authentication_retains_capacity_until_blocking_job_is_released() {
+    let verifier = Arc::new(
+        AgentHttpJwtJwks::new(
+            options()
+                .with_limits(Duration::from_secs(900), Duration::from_secs(3), 1)
+                .unwrap(),
+            &jwks(&[0]),
+            Duration::from_secs(300),
+            policy(),
+        )
+        .unwrap(),
+    );
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()
+        .unwrap();
+    let (release, gate) = std::sync::mpsc::channel();
+    let (started, entered) = std::sync::mpsc::channel();
+    let blocker = runtime.spawn_blocking(move || {
+        started.send(()).unwrap();
+        // A finite fallback keeps a failing test from hanging runtime shutdown.
+        let _ = gate.recv_timeout(Duration::from_secs(5));
+    });
+    entered.recv_timeout(Duration::from_secs(1)).unwrap();
+    runtime.block_on(async {
+        let identity = verifier.clone();
+        let credential = token(0);
+        let caller = tokio::spawn(async move { identity.authenticate(credential).await });
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while verifier.permits.available_permits() != 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        caller.abort();
+        assert!(caller.await.unwrap_err().is_cancelled());
+        assert_eq!(verifier.permits.available_permits(), 0);
+        assert_eq!(
+            verifier.authenticate(token(0)).await.unwrap_err(),
+            AgentHttpAuthenticationError::Unavailable
+        );
+        release.send(()).unwrap();
+        blocker.await.unwrap();
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while verifier.permits.available_permits() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        verifier.authenticate(token(0)).await.unwrap();
+    });
 }
