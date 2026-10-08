@@ -292,3 +292,16 @@ proptest! {
         }
     }
 }
+
+#[test]
+fn complete_contract_wire_fixture_matches_constructors() {
+    let actual = json!({
+        "reservation": reservation(37),
+        "remaining": budget(100).remaining(&BudgetUsage::zero(), now()).unwrap()
+    });
+    let frozen: serde_json::Value = serde_json::from_str(include_str!(
+        "../tests/fixtures/core-admission-transcript-wires-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(actual, frozen["capacity"]);
+}

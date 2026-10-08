@@ -1047,4 +1047,73 @@ mod tests {
 
         assert!(!format!("{replay:?}").contains("must-not-appear-in-debug"));
     }
+    #[test]
+    fn complete_contract_wire_fixture_matches_constructors() {
+        use crate::{ToolInvocationLimit, ToolRecoveryHandle};
+        let models: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/core-model-response-v1.json"
+        ))
+        .unwrap();
+        let tools: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/core-tool-runtime-v1.json"))
+                .unwrap();
+        let result: ToolResult =
+            serde_json::from_value(tools["results"]["valid"][0].clone()).unwrap();
+        let error: ToolError = serde_json::from_value(tools["errors"]["valid"][0].clone()).unwrap();
+        let replay = ModelProviderReplay::new(
+            ModelProviderReplayFormat::new("provider.responses.output.v1").unwrap(),
+            BoundedJson::try_from(json!([{
+                "type": "function_call",
+                "call_id": "call_01JABCDEF",
+                "name": "payments.capture",
+                "arguments": "{\"amount_minor\":4200,\"currency\":\"USD\"}"
+            }]))
+            .unwrap(),
+        )
+        .unwrap();
+        let mut response_wire = models["responses"]["valid"][1].clone();
+        response_wire["provenance"]["attempt_id"] = json!("01912345-6789-7abc-8def-0123456789fa");
+        let response = serde_json::from_value::<ModelResponse>(response_wire)
+            .unwrap()
+            .with_provider_replay(replay.clone())
+            .unwrap();
+        let call_id = response
+            .tool_calls()
+            .next()
+            .unwrap()
+            .provider_call_id()
+            .unwrap()
+            .clone();
+        let success = ModelToolOutcome::succeeded(call_id.clone(), result);
+        let failure = ModelToolOutcome::failed(call_id, &error);
+        let turn = ModelTranscriptTurn::new(response.clone(), [success.clone()]).unwrap();
+        let failed_turn = ModelTranscriptTurn::new(response, [failure.clone()]).unwrap();
+        let recovery_handle = ToolRecoveryHandle::new(
+            "provider.recovery".parse().unwrap(),
+            Digest::sha256("endpoint"),
+            "operation_42",
+        )
+        .unwrap();
+        let actual = json!({
+            "replay": replay,
+            "failure": ModelToolFailure::from_tool_error(&error),
+            "outcomes": [success, failure],
+            "transcripts": [
+                ModelTranscript::try_new([turn.clone()]).unwrap(),
+                ModelTranscript::try_new([failed_turn.clone()]).unwrap()
+            ],
+            "turns": [turn, failed_turn],
+            "recovery_handle": recovery_handle,
+            "limits": [
+                ToolInvocationLimit::Timeout, ToolInvocationLimit::MaxConcurrency,
+                ToolInvocationLimit::MaxInputBytes, ToolInvocationLimit::MaxInlineResultBytes,
+                ToolInvocationLimit::MaxArtifacts, ToolInvocationLimit::MaxTotalArtifactBytes
+            ]
+        });
+        let frozen: serde_json::Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/core-admission-transcript-wires-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(actual, frozen["transcript"]);
+    }
 }

@@ -1,0 +1,2770 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-admission-transcript-wires/1.0.0",
+  "admission": {
+    "admitted_at": "2029-12-31T23:59:59.000000Z",
+    "digest": "sha256:912e66ac145070b6363af01641db91acf6ad536494f4f322f08ce6c6f35138af",
+    "intent": {
+      "authority": {
+        "evidence": {
+          "data": {
+            "decision": "allow"
+          },
+          "kind": "agent-admission-granted",
+          "schema": {
+            "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66",
+            "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+            "version": "1.0.0"
+          }
+        },
+        "granted_scopes": [],
+        "policy": {
+          "capability": {
+            "name": "orders.fulfillment",
+            "version": "1.4.0"
+          },
+          "owner": {
+            "issuer": "https://issuer.example.com/stateknot",
+            "subject": "workflow-registry"
+          }
+        },
+        "policy_digest": "sha256:1c122c364ffab148fd84474ea2e8fca676eb868e4738b5a61010736865bf669f",
+        "principal": {
+          "issuer": "https://issuer.example.com/stateknot",
+          "subject": "workflow-registry"
+        }
+      },
+      "budget": {
+        "artifact_bytes": "104857600",
+        "cached_input_tokens": "500000",
+        "checkpoint_bytes": "10485760",
+        "concurrent_branches": "16",
+        "costs": [
+          {
+            "currency": "CNY",
+            "micro_units": "7000000"
+          },
+          {
+            "currency": "USD",
+            "micro_units": "1000000"
+          }
+        ],
+        "deadline": "2030-01-01T00:00:00.000000Z",
+        "event_bytes": "20971520",
+        "fan_out": "32",
+        "graph_depth": "32",
+        "graph_steps": "1000",
+        "input_bytes": "10485760",
+        "input_tokens": "1000000",
+        "model_attempts": "50",
+        "model_turns": "12",
+        "output_bytes": "4096",
+        "output_tokens": "100000",
+        "reasoning_tokens": "25000",
+        "remote_agent_delegations": "10",
+        "retries": "25",
+        "tool_calls": "24",
+        "write_calls": "1"
+      },
+      "budget_layers": [
+        {
+          "decision_digest": "sha256:61bb78c616bd8c0c95431db44a1e4bc730526cad078244742a41f338fcb1748a",
+          "limits": {
+            "artifact_bytes": "104857600",
+            "cached_input_tokens": "500000",
+            "checkpoint_bytes": "10485760",
+            "concurrent_branches": "16",
+            "costs": [
+              {
+                "currency": "CNY",
+                "micro_units": "7000000"
+              },
+              {
+                "currency": "USD",
+                "micro_units": "1000000"
+              }
+            ],
+            "deadline": "2030-01-01T00:00:00.000000Z",
+            "event_bytes": "20971520",
+            "fan_out": "32",
+            "graph_depth": "32",
+            "graph_steps": "1000",
+            "input_bytes": "10485760",
+            "input_tokens": "1000000",
+            "model_attempts": "50",
+            "model_turns": "40",
+            "output_bytes": "10485760",
+            "output_tokens": "100000",
+            "reasoning_tokens": "25000",
+            "remote_agent_delegations": "10",
+            "retries": "25",
+            "tool_calls": "100",
+            "write_calls": "20"
+          },
+          "source": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          }
+        }
+      ],
+      "descriptor": {
+        "budget_limits": {
+          "model_turns": "12",
+          "tool_calls": "24",
+          "write_calls": "1"
+        },
+        "execution": {
+          "max_model_turns": "12",
+          "max_output_repair_turns": "2",
+          "max_tool_calls_per_turn": "4",
+          "structured_output": "model_native",
+          "tool_concurrency": {
+            "mode": "sequential"
+          }
+        },
+        "input_schema": {
+          "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+          "id": "https://schemas.example.com/incident-request/1.0.0",
+          "version": "1.0.0"
+        },
+        "instructions": [
+          {
+            "content": {
+              "content": {
+                "metadata": {
+                  "redaction": "not_applied",
+                  "security_label": "internal",
+                  "source": "application",
+                  "trust": "application_controlled"
+                },
+                "text": "never-log-this-instruction"
+              },
+              "type": "text"
+            },
+            "content_digest": "sha256:5c2483e4df0fbc70f554aba4c4dff7fb69c38c7746e086dba29d9f54b06a52f1",
+            "identity": {
+              "name": "incident.base",
+              "version": "1.0.0"
+            },
+            "provenance": {
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "instruction-owner"
+              }
+            }
+          }
+        ],
+        "metadata": {
+          "description": "never-log-this-instruction",
+          "extensions": {},
+          "identity": {
+            "capability": {
+              "name": "agents.incident",
+              "version": "1.0.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "agent-owner"
+            }
+          },
+          "kind": "agent",
+          "lifecycle": {
+            "status": "active"
+          },
+          "required_scopes": []
+        },
+        "model": {
+          "capabilities": {
+            "input_modalities": [
+              "text"
+            ],
+            "output_modalities": [
+              "text"
+            ],
+            "reasoning_summaries": false,
+            "streaming": true,
+            "structured_output": {
+              "level": "json_schema",
+              "schema_profile": {
+                "digest": "sha256:a0f922a715001985eddf0d617edc9bb26b64be3323770e0d385404e622a07db0",
+                "id": "https://schemas.example.com/model-output-profile/1.0.0",
+                "version": "1.0.0"
+              }
+            },
+            "token_limits": {
+              "max_context_tokens": "128000",
+              "max_input_tokens": "120000",
+              "max_output_tokens": "16384"
+            },
+            "tools": {
+              "choices": [
+                "auto"
+              ],
+              "max_calls_per_response": "4",
+              "max_definitions": "8",
+              "schema_profile": {
+                "digest": "sha256:96921d2d2ee50209de4e045ccd295bc6802c9c2777020ac05c7b7a44ecfb951f",
+                "id": "https://schemas.example.com/model-tool-profile/1.0.0",
+                "version": "1.0.0"
+              },
+              "strict_arguments": true
+            }
+          },
+          "metadata": {
+            "description": "Pinned model binding",
+            "extensions": {},
+            "identity": {
+              "capability": {
+                "name": "models.primary",
+                "version": "1.0.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "model-owner"
+              }
+            },
+            "kind": "model",
+            "lifecycle": {
+              "status": "active"
+            },
+            "required_scopes": []
+          }
+        },
+        "output_schema": {
+          "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+          "id": "https://schemas.example.com/incident-report/1.0.0",
+          "version": "1.0.0"
+        },
+        "tools": [
+          {
+            "input_schema": {
+              "digest": "sha256:dc6417707d2c53db6363aa6687c30b1fe2a891bc99e0814e0c77c653098dd5dd",
+              "id": "https://schemas.example.com/tools.lookup-input/1.0.0",
+              "version": "1.0.0"
+            },
+            "invocation": {
+              "cancellation": "cooperative",
+              "max_progress_events": "32"
+            },
+            "limits": {
+              "max_artifacts": "4",
+              "max_concurrency": "16",
+              "max_inline_result_bytes": "262144",
+              "max_input_bytes": "65536",
+              "max_total_artifact_bytes": "26214400",
+              "timeout": "30000"
+            },
+            "metadata": {
+              "description": "Read-only test tool",
+              "extensions": {},
+              "identity": {
+                "capability": {
+                  "name": "tools.lookup",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "tool-owner"
+                }
+              },
+              "kind": "tool",
+              "lifecycle": {
+                "status": "active"
+              },
+              "required_scopes": []
+            },
+            "output_schema": {
+              "digest": "sha256:b4b149fe40b3cd4735e555b8f6c8a9d148ddc60dea5644b93ac1ab90a1cc5893",
+              "id": "https://schemas.example.com/tools.lookup-output/1.0.0",
+              "version": "1.0.0"
+            },
+            "resources": {
+              "credentials": false,
+              "dynamic_code": false,
+              "filesystem": "none",
+              "network": "none"
+            },
+            "semantics": {
+              "compensation": false,
+              "idempotency": "not_applicable",
+              "risk": "read_only",
+              "status_query": false
+            }
+          }
+        ]
+      },
+      "graph": {
+        "definition_digest": "sha256:2d996e7daac5b294a0fed7e4168049872f0cab52c51d4c8468d90bea2bf69f45",
+        "identity": {
+          "capability": {
+            "name": "orders.fulfillment",
+            "version": "1.4.0"
+          },
+          "owner": {
+            "issuer": "https://issuer.example.com/stateknot",
+            "subject": "workflow-registry"
+          }
+        },
+        "state_schema": {
+          "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+          "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+          "version": "1.0.0"
+        }
+      },
+      "intent_digest": "sha256:7e5dff5d4aa9c88b1b3fb2de26fe743c29cb9918c3294187760e9b3cba3d19a1",
+      "provenance": {
+        "agent": {
+          "capability": {
+            "name": "agents.incident",
+            "version": "1.0.0"
+          },
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "agent-owner"
+          }
+        },
+        "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "tenant_id": "tenant-production",
+        "thread_id": "01912345-6789-7abc-8def-0123456789af"
+      },
+      "request": {
+        "budget_limits": {
+          "deadline": "2030-01-01T00:00:00.000000Z",
+          "input_bytes": "10485760",
+          "output_bytes": "4096"
+        },
+        "input": {
+          "incident_id": "INC-42",
+          "question": "Summarize the evidence"
+        },
+        "input_schema": {
+          "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+          "id": "https://schemas.example.com/incident-request/1.0.0",
+          "version": "1.0.0"
+        }
+      }
+    }
+  },
+  "capacity": {
+    "remaining": {
+      "artifact_bytes": "100",
+      "cached_input_tokens": "100",
+      "checkpoint_bytes": "100",
+      "concurrent_branches": "100",
+      "costs": [
+        {
+          "currency": "USD",
+          "micro_units": "100"
+        }
+      ],
+      "deadline": "2030-01-01T00:00:00.000000Z",
+      "event_bytes": "100",
+      "fan_out": "100",
+      "graph_depth": "100",
+      "graph_steps": "100",
+      "input_bytes": "100",
+      "input_tokens": "100",
+      "model_attempts": "100",
+      "model_turns": "100",
+      "output_bytes": "100",
+      "output_tokens": "100",
+      "reasoning_tokens": "100",
+      "remote_agent_delegations": "100",
+      "retries": "100",
+      "tool_calls": "100",
+      "write_calls": "100"
+    },
+    "reservation": {
+      "amount": {
+        "artifact_bytes": "37",
+        "cached_input_tokens": "37",
+        "checkpoint_bytes": "37",
+        "concurrent_branches": "0",
+        "event_bytes": "37",
+        "fan_out": "0",
+        "graph_depth": "0",
+        "graph_steps": "37",
+        "input_bytes": "37",
+        "input_tokens": "37",
+        "known_costs": [
+          {
+            "currency": "USD",
+            "micro_units": "37"
+          }
+        ],
+        "model_attempts": "37",
+        "model_turns": "37",
+        "output_bytes": "37",
+        "output_tokens": "37",
+        "reasoning_tokens": "37",
+        "remote_agent_delegations": "37",
+        "retries": "37",
+        "tool_calls": "37",
+        "unpriced_cost_events": "0",
+        "write_calls": "37"
+      }
+    }
+  },
+  "children": {
+    "accounts": [
+      {
+        "budget": {
+          "artifact_bytes": "104857600",
+          "cached_input_tokens": "500000",
+          "checkpoint_bytes": "10485760",
+          "concurrent_branches": "16",
+          "costs": [
+            {
+              "currency": "CNY",
+              "micro_units": "7000000"
+            },
+            {
+              "currency": "USD",
+              "micro_units": "1000000"
+            }
+          ],
+          "deadline": "2031-01-01T00:00:00.000000Z",
+          "event_bytes": "20971520",
+          "fan_out": "32",
+          "graph_depth": "32",
+          "graph_steps": "1000",
+          "input_bytes": "10485760",
+          "input_tokens": "1000000",
+          "model_attempts": "50",
+          "model_turns": "12",
+          "output_bytes": "4096",
+          "output_tokens": "100000",
+          "reasoning_tokens": "25000",
+          "remote_agent_delegations": "10",
+          "retries": "25",
+          "tool_calls": "24",
+          "write_calls": "1"
+        },
+        "children": [],
+        "digest": "sha256:2fc105ff022b1dd295f7f7972c84d23cfb6494c7b1ada430bdcffc430782c01f",
+        "direct_head": {
+          "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+          "event_id": "01912345-6789-7abc-8def-0123456789c1",
+          "recorded_at": "2030-01-01T00:00:01.000000Z",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "sequence": "1",
+          "tenant_id": "tenant-production"
+        },
+        "direct_usage": {
+          "artifact_bytes": "0",
+          "cached_input_tokens": "0",
+          "checkpoint_bytes": "0",
+          "concurrent_branches": "0",
+          "event_bytes": "0",
+          "fan_out": "0",
+          "graph_depth": "0",
+          "graph_steps": "0",
+          "input_bytes": "0",
+          "input_tokens": "0",
+          "known_costs": [],
+          "model_attempts": "0",
+          "model_turns": "0",
+          "output_bytes": "0",
+          "output_tokens": "0",
+          "reasoning_tokens": "0",
+          "remote_agent_delegations": "0",
+          "retries": "0",
+          "tool_calls": "0",
+          "unpriced_cost_events": "0",
+          "write_calls": "0"
+        },
+        "graph": {
+          "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+          "identity": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          },
+          "state_schema": {
+            "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+            "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+            "version": "1.0.0"
+          }
+        },
+        "maximum_children": 8,
+        "parent": {
+          "agent": {
+            "capability": {
+              "name": "agents.incident",
+              "version": "1.0.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "agent-owner"
+            }
+          },
+          "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "tenant_id": "tenant-production",
+          "thread_id": "01912345-6789-7abc-8def-0123456789af"
+        },
+        "parent_admission_digest": "sha256:2fd48a5bc586b0298e78d0e687217f79d0f1588f70cde3b50f36df59c9ca1d25",
+        "parent_admitted_at": "2030-01-01T00:00:00.000000Z",
+        "version": 1
+      },
+      {
+        "budget": {
+          "artifact_bytes": "104857600",
+          "cached_input_tokens": "500000",
+          "checkpoint_bytes": "10485760",
+          "concurrent_branches": "16",
+          "costs": [
+            {
+              "currency": "CNY",
+              "micro_units": "7000000"
+            },
+            {
+              "currency": "USD",
+              "micro_units": "1000000"
+            }
+          ],
+          "deadline": "2031-01-01T00:00:00.000000Z",
+          "event_bytes": "20971520",
+          "fan_out": "32",
+          "graph_depth": "32",
+          "graph_steps": "1000",
+          "input_bytes": "10485760",
+          "input_tokens": "1000000",
+          "model_attempts": "50",
+          "model_turns": "12",
+          "output_bytes": "4096",
+          "output_tokens": "100000",
+          "reasoning_tokens": "25000",
+          "remote_agent_delegations": "10",
+          "retries": "25",
+          "tool_calls": "24",
+          "write_calls": "1"
+        },
+        "children": [
+          {
+            "child": {
+              "agent": {
+                "capability": {
+                  "name": "agents.incident",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "agent-owner"
+                }
+              },
+              "invocation_id": "01912345-6789-7abc-8def-0123456789f3",
+              "run_id": "01912345-6789-7abc-8def-0123456789f1",
+              "tenant_id": "tenant-production",
+              "thread_id": "01912345-6789-7abc-8def-0123456789f2"
+            },
+            "intent_digest": "sha256:08741f9ed870eced56f04d50f62563620158c0b4caf91143024d91de8aa46936",
+            "key": {
+              "digest": "sha256:d22e0c776c7b6bb8292a6314c3a14e2b20f79e47b151173d67545a786b364b8d",
+              "parent": {
+                "base_checkpoint": {
+                  "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+                  "digest": "sha256:607542e0db0cdd2c2c10c48b99c8e3aefb6f7b737bf9bb21141ad6e26eb4ef6f",
+                  "graph": {
+                    "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+                    "identity": {
+                      "capability": {
+                        "name": "orders.fulfillment",
+                        "version": "1.4.0"
+                      },
+                      "owner": {
+                        "issuer": "https://issuer.example.com/stateknot",
+                        "subject": "workflow-registry"
+                      }
+                    },
+                    "state_schema": {
+                      "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+                      "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+                      "version": "1.0.0"
+                    }
+                  },
+                  "journal_head": {
+                    "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+                    "event_id": "01912345-6789-7abc-8def-0123456789c1",
+                    "recorded_at": "2030-01-01T00:00:01.000000Z",
+                    "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                    "sequence": "1",
+                    "tenant_id": "tenant-production"
+                  },
+                  "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                  "superstep": "0",
+                  "tenant_id": "tenant-production"
+                },
+                "graph_namespace": "",
+                "input_digest": "sha256:8f065f30f3f4a3e8a8bc7ed4d4648ce087b26ac5929932641ad9ea58f529ed18",
+                "node_id": "authorize"
+              },
+              "slot": "analysis"
+            },
+            "reservation": {
+              "amount": {
+                "artifact_bytes": "52428800",
+                "cached_input_tokens": "250000",
+                "checkpoint_bytes": "5242880",
+                "concurrent_branches": "0",
+                "event_bytes": "10485760",
+                "fan_out": "0",
+                "graph_depth": "0",
+                "graph_steps": "500",
+                "input_bytes": "5242880",
+                "input_tokens": "500000",
+                "known_costs": [
+                  {
+                    "currency": "CNY",
+                    "micro_units": "3500000"
+                  },
+                  {
+                    "currency": "USD",
+                    "micro_units": "500000"
+                  }
+                ],
+                "model_attempts": "25",
+                "model_turns": "6",
+                "output_bytes": "2048",
+                "output_tokens": "50000",
+                "reasoning_tokens": "12500",
+                "remote_agent_delegations": "5",
+                "retries": "12",
+                "tool_calls": "12",
+                "unpriced_cost_events": "0",
+                "write_calls": "0"
+              }
+            },
+            "settlement": null,
+            "spawn_digest": "sha256:6f1a17796b83a8277068a5d5c9560e9a1379b7cc3e75f7b22f11d7e57681bc5a"
+          }
+        ],
+        "digest": "sha256:9c0fcb945f6438a42f53c9b3ed2b453f03cd3684766dbc87dfbcbf4efa6e1177",
+        "direct_head": {
+          "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+          "event_id": "01912345-6789-7abc-8def-0123456789c1",
+          "recorded_at": "2030-01-01T00:00:01.000000Z",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "sequence": "1",
+          "tenant_id": "tenant-production"
+        },
+        "direct_usage": {
+          "artifact_bytes": "0",
+          "cached_input_tokens": "0",
+          "checkpoint_bytes": "0",
+          "concurrent_branches": "0",
+          "event_bytes": "0",
+          "fan_out": "0",
+          "graph_depth": "0",
+          "graph_steps": "0",
+          "input_bytes": "0",
+          "input_tokens": "0",
+          "known_costs": [],
+          "model_attempts": "0",
+          "model_turns": "0",
+          "output_bytes": "0",
+          "output_tokens": "0",
+          "reasoning_tokens": "0",
+          "remote_agent_delegations": "0",
+          "retries": "0",
+          "tool_calls": "0",
+          "unpriced_cost_events": "0",
+          "write_calls": "0"
+        },
+        "graph": {
+          "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+          "identity": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          },
+          "state_schema": {
+            "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+            "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+            "version": "1.0.0"
+          }
+        },
+        "maximum_children": 8,
+        "parent": {
+          "agent": {
+            "capability": {
+              "name": "agents.incident",
+              "version": "1.0.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "agent-owner"
+            }
+          },
+          "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "tenant_id": "tenant-production",
+          "thread_id": "01912345-6789-7abc-8def-0123456789af"
+        },
+        "parent_admission_digest": "sha256:2fd48a5bc586b0298e78d0e687217f79d0f1588f70cde3b50f36df59c9ca1d25",
+        "parent_admitted_at": "2030-01-01T00:00:00.000000Z",
+        "version": 1
+      },
+      {
+        "budget": {
+          "artifact_bytes": "104857600",
+          "cached_input_tokens": "500000",
+          "checkpoint_bytes": "10485760",
+          "concurrent_branches": "16",
+          "costs": [
+            {
+              "currency": "CNY",
+              "micro_units": "7000000"
+            },
+            {
+              "currency": "USD",
+              "micro_units": "1000000"
+            }
+          ],
+          "deadline": "2031-01-01T00:00:00.000000Z",
+          "event_bytes": "20971520",
+          "fan_out": "32",
+          "graph_depth": "32",
+          "graph_steps": "1000",
+          "input_bytes": "10485760",
+          "input_tokens": "1000000",
+          "model_attempts": "50",
+          "model_turns": "12",
+          "output_bytes": "4096",
+          "output_tokens": "100000",
+          "reasoning_tokens": "25000",
+          "remote_agent_delegations": "10",
+          "retries": "25",
+          "tool_calls": "24",
+          "write_calls": "1"
+        },
+        "children": [
+          {
+            "child": {
+              "agent": {
+                "capability": {
+                  "name": "agents.incident",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "agent-owner"
+                }
+              },
+              "invocation_id": "01912345-6789-7abc-8def-0123456789f3",
+              "run_id": "01912345-6789-7abc-8def-0123456789f1",
+              "tenant_id": "tenant-production",
+              "thread_id": "01912345-6789-7abc-8def-0123456789f2"
+            },
+            "intent_digest": "sha256:08741f9ed870eced56f04d50f62563620158c0b4caf91143024d91de8aa46936",
+            "key": {
+              "digest": "sha256:d22e0c776c7b6bb8292a6314c3a14e2b20f79e47b151173d67545a786b364b8d",
+              "parent": {
+                "base_checkpoint": {
+                  "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+                  "digest": "sha256:607542e0db0cdd2c2c10c48b99c8e3aefb6f7b737bf9bb21141ad6e26eb4ef6f",
+                  "graph": {
+                    "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+                    "identity": {
+                      "capability": {
+                        "name": "orders.fulfillment",
+                        "version": "1.4.0"
+                      },
+                      "owner": {
+                        "issuer": "https://issuer.example.com/stateknot",
+                        "subject": "workflow-registry"
+                      }
+                    },
+                    "state_schema": {
+                      "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+                      "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+                      "version": "1.0.0"
+                    }
+                  },
+                  "journal_head": {
+                    "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+                    "event_id": "01912345-6789-7abc-8def-0123456789c1",
+                    "recorded_at": "2030-01-01T00:00:01.000000Z",
+                    "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                    "sequence": "1",
+                    "tenant_id": "tenant-production"
+                  },
+                  "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                  "superstep": "0",
+                  "tenant_id": "tenant-production"
+                },
+                "graph_namespace": "",
+                "input_digest": "sha256:8f065f30f3f4a3e8a8bc7ed4d4648ce087b26ac5929932641ad9ea58f529ed18",
+                "node_id": "authorize"
+              },
+              "slot": "analysis"
+            },
+            "reservation": {
+              "amount": {
+                "artifact_bytes": "52428800",
+                "cached_input_tokens": "250000",
+                "checkpoint_bytes": "5242880",
+                "concurrent_branches": "0",
+                "event_bytes": "10485760",
+                "fan_out": "0",
+                "graph_depth": "0",
+                "graph_steps": "500",
+                "input_bytes": "5242880",
+                "input_tokens": "500000",
+                "known_costs": [
+                  {
+                    "currency": "CNY",
+                    "micro_units": "3500000"
+                  },
+                  {
+                    "currency": "USD",
+                    "micro_units": "500000"
+                  }
+                ],
+                "model_attempts": "25",
+                "model_turns": "6",
+                "output_bytes": "2048",
+                "output_tokens": "50000",
+                "reasoning_tokens": "12500",
+                "remote_agent_delegations": "5",
+                "retries": "12",
+                "tool_calls": "12",
+                "unpriced_cost_events": "0",
+                "write_calls": "0"
+              }
+            },
+            "settlement": {
+              "admission_digest": "sha256:ceb14626f1e4b72cc66bdb6a929dc0c2f60f3ea434726b6932685acc03393580",
+              "admitted_at": "2030-01-01T00:00:00.000000Z",
+              "child": {
+                "agent": {
+                  "capability": {
+                    "name": "agents.incident",
+                    "version": "1.0.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/tenant",
+                    "subject": "agent-owner"
+                  }
+                },
+                "invocation_id": "01912345-6789-7abc-8def-0123456789f3",
+                "run_id": "01912345-6789-7abc-8def-0123456789f1",
+                "tenant_id": "tenant-production",
+                "thread_id": "01912345-6789-7abc-8def-0123456789f2"
+              },
+              "intent_digest": "sha256:08741f9ed870eced56f04d50f62563620158c0b4caf91143024d91de8aa46936",
+              "outcome_digest": "sha256:2f6ac4197832501a0d4deb6206a6e18289424a44b7c5838df86843fe1ef41d5a",
+              "status": "failed",
+              "terminal": {
+                "digest": "sha256:4e686af7bdcc5ae005a247624fd8c7283257c2514f6b3ad2ff5d4cb6d95196e6",
+                "event_id": "01912345-6789-7abc-8def-0123456789a1",
+                "recorded_at": "2030-01-01T00:00:02.000000Z",
+                "run_id": "01912345-6789-7abc-8def-0123456789f1",
+                "sequence": "3",
+                "tenant_id": "tenant-production"
+              },
+              "usage": {
+                "artifact_bytes": "0",
+                "cached_input_tokens": "0",
+                "checkpoint_bytes": "0",
+                "concurrent_branches": "0",
+                "event_bytes": "0",
+                "fan_out": "0",
+                "graph_depth": "0",
+                "graph_steps": "0",
+                "input_bytes": "0",
+                "input_tokens": "0",
+                "known_costs": [],
+                "model_attempts": "0",
+                "model_turns": "0",
+                "output_bytes": "0",
+                "output_tokens": "0",
+                "reasoning_tokens": "0",
+                "remote_agent_delegations": "0",
+                "retries": "0",
+                "tool_calls": "0",
+                "unpriced_cost_events": "0",
+                "write_calls": "0"
+              }
+            },
+            "spawn_digest": "sha256:6f1a17796b83a8277068a5d5c9560e9a1379b7cc3e75f7b22f11d7e57681bc5a"
+          }
+        ],
+        "digest": "sha256:f2d247130cbf14af6befe25739dd86dfca7ffb48bbcc4a11ed0b91c3dbb1562b",
+        "direct_head": {
+          "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+          "event_id": "01912345-6789-7abc-8def-0123456789c1",
+          "recorded_at": "2030-01-01T00:00:01.000000Z",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "sequence": "1",
+          "tenant_id": "tenant-production"
+        },
+        "direct_usage": {
+          "artifact_bytes": "0",
+          "cached_input_tokens": "0",
+          "checkpoint_bytes": "0",
+          "concurrent_branches": "0",
+          "event_bytes": "0",
+          "fan_out": "0",
+          "graph_depth": "0",
+          "graph_steps": "0",
+          "input_bytes": "0",
+          "input_tokens": "0",
+          "known_costs": [],
+          "model_attempts": "0",
+          "model_turns": "0",
+          "output_bytes": "0",
+          "output_tokens": "0",
+          "reasoning_tokens": "0",
+          "remote_agent_delegations": "0",
+          "retries": "0",
+          "tool_calls": "0",
+          "unpriced_cost_events": "0",
+          "write_calls": "0"
+        },
+        "graph": {
+          "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+          "identity": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          },
+          "state_schema": {
+            "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+            "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+            "version": "1.0.0"
+          }
+        },
+        "maximum_children": 8,
+        "parent": {
+          "agent": {
+            "capability": {
+              "name": "agents.incident",
+              "version": "1.0.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "agent-owner"
+            }
+          },
+          "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "tenant_id": "tenant-production",
+          "thread_id": "01912345-6789-7abc-8def-0123456789af"
+        },
+        "parent_admission_digest": "sha256:2fd48a5bc586b0298e78d0e687217f79d0f1588f70cde3b50f36df59c9ca1d25",
+        "parent_admitted_at": "2030-01-01T00:00:00.000000Z",
+        "version": 1
+      }
+    ],
+    "graph": {
+      "child_runs": {
+        "declarations": [
+          {
+            "agent": {
+              "definition_digest": "sha256:3258d63505036aabfa25c745e554afa1e185d85a1585ff94e87b0a96db9c6172",
+              "identity": {
+                "capability": {
+                  "name": "agents.incident",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "agent-owner"
+                }
+              }
+            },
+            "graph": {
+              "definition_digest": "sha256:9d08a71c76e409695ddddb09e5602836161041734ada02f6f878f8f6a8c5268b",
+              "identity": {
+                "capability": {
+                  "name": "child.graph",
+                  "version": "1.4.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/stateknot",
+                  "subject": "workflow-registry"
+                }
+              },
+              "state_schema": {
+                "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+                "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+                "version": "1.0.0"
+              }
+            },
+            "input_schema": {
+              "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+              "id": "https://schemas.example.com/incident-request/1.0.0",
+              "version": "1.0.0"
+            },
+            "node_id": "authorize",
+            "output_schema": {
+              "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+              "id": "https://schemas.example.com/incident-report/1.0.0",
+              "version": "1.0.0"
+            },
+            "slot": "analysis"
+          }
+        ],
+        "limits": {
+          "maximum_active_descendants": 4,
+          "maximum_children_per_run": 8,
+          "maximum_descendant_depth": 1
+        },
+        "version": 1
+      },
+      "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+      "entry_nodes": [
+        "authorize"
+      ],
+      "identity": {
+        "capability": {
+          "name": "orders.fulfillment",
+          "version": "1.4.0"
+        },
+        "owner": {
+          "issuer": "https://issuer.example.com/stateknot",
+          "subject": "workflow-registry"
+        }
+      },
+      "input_schema": {
+        "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+        "id": "https://schemas.example.com/incident-request/1.0.0",
+        "version": "1.0.0"
+      },
+      "limits": {
+        "maximum_parallelism": 1,
+        "maximum_supersteps": "10"
+      },
+      "nodes": [
+        {
+          "node_id": "authorize",
+          "routes": [],
+          "terminal": true
+        }
+      ],
+      "output_schema": {
+        "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+        "id": "https://schemas.example.com/incident-report/1.0.0",
+        "version": "1.0.0"
+      },
+      "reducer": {
+        "definition_digest": "sha256:48a8a4db55d82c9068ff1adf8ac312c9de26fa9c3d6d17dcb45425c04b15d33f",
+        "identity": {
+          "capability": {
+            "name": "orders.fulfillment",
+            "version": "1.4.0"
+          },
+          "owner": {
+            "issuer": "https://issuer.example.com/stateknot",
+            "subject": "workflow-registry"
+          }
+        }
+      },
+      "state_schema": {
+        "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+        "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+        "version": "1.0.0"
+      },
+      "update_schema": {
+        "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+        "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+        "version": "1.0.0"
+      }
+    },
+    "intent": {
+      "child": {
+        "authority": {
+          "evidence": {
+            "data": {
+              "decision": "allow",
+              "private": "do-not-log-policy"
+            },
+            "kind": "agent-admission-granted",
+            "schema": {
+              "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66",
+              "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+              "version": "1.0.0"
+            }
+          },
+          "granted_scopes": [],
+          "policy": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          },
+          "policy_digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812",
+          "principal": {
+            "issuer": "https://issuer.example.com/stateknot",
+            "subject": "workflow-registry"
+          }
+        },
+        "budget": {
+          "artifact_bytes": "52428800",
+          "cached_input_tokens": "250000",
+          "checkpoint_bytes": "5242880",
+          "concurrent_branches": "16",
+          "costs": [
+            {
+              "currency": "CNY",
+              "micro_units": "3500000"
+            },
+            {
+              "currency": "USD",
+              "micro_units": "500000"
+            }
+          ],
+          "deadline": "2031-01-01T00:00:00.000000Z",
+          "event_bytes": "10485760",
+          "fan_out": "32",
+          "graph_depth": "32",
+          "graph_steps": "500",
+          "input_bytes": "5242880",
+          "input_tokens": "500000",
+          "model_attempts": "25",
+          "model_turns": "6",
+          "output_bytes": "2048",
+          "output_tokens": "50000",
+          "reasoning_tokens": "12500",
+          "remote_agent_delegations": "5",
+          "retries": "12",
+          "tool_calls": "12",
+          "write_calls": "0"
+        },
+        "budget_layers": [
+          {
+            "decision_digest": "sha256:fc02e1120f1d337fc5fb3f74a73f2ca2d7126a9ce9a4ded4bf339c6aff29768f",
+            "limits": {
+              "artifact_bytes": "104857600",
+              "cached_input_tokens": "500000",
+              "checkpoint_bytes": "10485760",
+              "concurrent_branches": "16",
+              "costs": [
+                {
+                  "currency": "CNY",
+                  "micro_units": "7000000"
+                },
+                {
+                  "currency": "USD",
+                  "micro_units": "1000000"
+                }
+              ],
+              "deadline": "2031-01-01T00:00:00.000000Z",
+              "event_bytes": "20971520",
+              "fan_out": "32",
+              "graph_depth": "32",
+              "graph_steps": "1000",
+              "input_bytes": "10485760",
+              "input_tokens": "1000000",
+              "model_attempts": "50",
+              "model_turns": "40",
+              "output_bytes": "10485760",
+              "output_tokens": "100000",
+              "reasoning_tokens": "25000",
+              "remote_agent_delegations": "10",
+              "retries": "25",
+              "tool_calls": "100",
+              "write_calls": "20"
+            },
+            "source": {
+              "capability": {
+                "name": "orders.fulfillment",
+                "version": "1.4.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/stateknot",
+                "subject": "workflow-registry"
+              }
+            }
+          }
+        ],
+        "descriptor": {
+          "budget_limits": {
+            "model_turns": "12",
+            "tool_calls": "24",
+            "write_calls": "1"
+          },
+          "execution": {
+            "max_model_turns": "12",
+            "max_output_repair_turns": "2",
+            "max_tool_calls_per_turn": "4",
+            "structured_output": "model_native",
+            "tool_concurrency": {
+              "mode": "sequential"
+            }
+          },
+          "input_schema": {
+            "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+            "id": "https://schemas.example.com/incident-request/1.0.0",
+            "version": "1.0.0"
+          },
+          "instructions": [
+            {
+              "content": {
+                "content": {
+                  "metadata": {
+                    "redaction": "not_applied",
+                    "security_label": "internal",
+                    "source": "application",
+                    "trust": "application_controlled"
+                  },
+                  "text": "never-log-this-instruction"
+                },
+                "type": "text"
+              },
+              "content_digest": "sha256:5c2483e4df0fbc70f554aba4c4dff7fb69c38c7746e086dba29d9f54b06a52f1",
+              "identity": {
+                "name": "incident.base",
+                "version": "1.0.0"
+              },
+              "provenance": {
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "instruction-owner"
+                }
+              }
+            }
+          ],
+          "metadata": {
+            "description": "never-log-this-instruction",
+            "extensions": {},
+            "identity": {
+              "capability": {
+                "name": "agents.incident",
+                "version": "1.0.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "agent-owner"
+              }
+            },
+            "kind": "agent",
+            "lifecycle": {
+              "status": "active"
+            },
+            "required_scopes": []
+          },
+          "model": {
+            "capabilities": {
+              "input_modalities": [
+                "text"
+              ],
+              "output_modalities": [
+                "text"
+              ],
+              "reasoning_summaries": false,
+              "streaming": true,
+              "structured_output": {
+                "level": "json_schema",
+                "schema_profile": {
+                  "digest": "sha256:a0f922a715001985eddf0d617edc9bb26b64be3323770e0d385404e622a07db0",
+                  "id": "https://schemas.example.com/model-output-profile/1.0.0",
+                  "version": "1.0.0"
+                }
+              },
+              "token_limits": {
+                "max_context_tokens": "128000",
+                "max_input_tokens": "120000",
+                "max_output_tokens": "16384"
+              },
+              "tools": {
+                "choices": [
+                  "auto"
+                ],
+                "max_calls_per_response": "4",
+                "max_definitions": "8",
+                "schema_profile": {
+                  "digest": "sha256:96921d2d2ee50209de4e045ccd295bc6802c9c2777020ac05c7b7a44ecfb951f",
+                  "id": "https://schemas.example.com/model-tool-profile/1.0.0",
+                  "version": "1.0.0"
+                },
+                "strict_arguments": true
+              }
+            },
+            "metadata": {
+              "description": "Pinned model binding",
+              "extensions": {},
+              "identity": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-owner"
+                }
+              },
+              "kind": "model",
+              "lifecycle": {
+                "status": "active"
+              },
+              "required_scopes": []
+            }
+          },
+          "output_schema": {
+            "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+            "id": "https://schemas.example.com/incident-report/1.0.0",
+            "version": "1.0.0"
+          },
+          "tools": [
+            {
+              "input_schema": {
+                "digest": "sha256:dc6417707d2c53db6363aa6687c30b1fe2a891bc99e0814e0c77c653098dd5dd",
+                "id": "https://schemas.example.com/tools.lookup-input/1.0.0",
+                "version": "1.0.0"
+              },
+              "invocation": {
+                "cancellation": "cooperative",
+                "max_progress_events": "32"
+              },
+              "limits": {
+                "max_artifacts": "4",
+                "max_concurrency": "16",
+                "max_inline_result_bytes": "262144",
+                "max_input_bytes": "65536",
+                "max_total_artifact_bytes": "26214400",
+                "timeout": "30000"
+              },
+              "metadata": {
+                "description": "Read-only test tool",
+                "extensions": {},
+                "identity": {
+                  "capability": {
+                    "name": "tools.lookup",
+                    "version": "1.0.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/tenant",
+                    "subject": "tool-owner"
+                  }
+                },
+                "kind": "tool",
+                "lifecycle": {
+                  "status": "active"
+                },
+                "required_scopes": []
+              },
+              "output_schema": {
+                "digest": "sha256:b4b149fe40b3cd4735e555b8f6c8a9d148ddc60dea5644b93ac1ab90a1cc5893",
+                "id": "https://schemas.example.com/tools.lookup-output/1.0.0",
+                "version": "1.0.0"
+              },
+              "resources": {
+                "credentials": false,
+                "dynamic_code": false,
+                "filesystem": "none",
+                "network": "none"
+              },
+              "semantics": {
+                "compensation": false,
+                "idempotency": "not_applicable",
+                "risk": "read_only",
+                "status_query": false
+              }
+            }
+          ]
+        },
+        "graph": {
+          "definition_digest": "sha256:9d08a71c76e409695ddddb09e5602836161041734ada02f6f878f8f6a8c5268b",
+          "identity": {
+            "capability": {
+              "name": "child.graph",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          },
+          "state_schema": {
+            "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+            "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+            "version": "1.0.0"
+          }
+        },
+        "intent_digest": "sha256:08741f9ed870eced56f04d50f62563620158c0b4caf91143024d91de8aa46936",
+        "provenance": {
+          "agent": {
+            "capability": {
+              "name": "agents.incident",
+              "version": "1.0.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "agent-owner"
+            }
+          },
+          "invocation_id": "01912345-6789-7abc-8def-0123456789f3",
+          "run_id": "01912345-6789-7abc-8def-0123456789f1",
+          "tenant_id": "tenant-production",
+          "thread_id": "01912345-6789-7abc-8def-0123456789f2"
+        },
+        "request": {
+          "budget_limits": {
+            "artifact_bytes": "52428800",
+            "cached_input_tokens": "250000",
+            "checkpoint_bytes": "5242880",
+            "concurrent_branches": "16",
+            "costs": [
+              {
+                "currency": "CNY",
+                "micro_units": "3500000"
+              },
+              {
+                "currency": "USD",
+                "micro_units": "500000"
+              }
+            ],
+            "deadline": "2031-01-01T00:00:00.000000Z",
+            "event_bytes": "10485760",
+            "fan_out": "32",
+            "graph_depth": "32",
+            "graph_steps": "500",
+            "input_bytes": "5242880",
+            "input_tokens": "500000",
+            "model_attempts": "25",
+            "model_turns": "6",
+            "output_bytes": "2048",
+            "output_tokens": "50000",
+            "reasoning_tokens": "12500",
+            "remote_agent_delegations": "5",
+            "retries": "12",
+            "tool_calls": "12",
+            "write_calls": "0"
+          },
+          "input": {
+            "incident_id": "INC-42",
+            "question": "Summarize the evidence"
+          },
+          "input_schema": {
+            "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+            "id": "https://schemas.example.com/incident-request/1.0.0",
+            "version": "1.0.0"
+          }
+        }
+      },
+      "child_graph": {
+        "definition_digest": "sha256:9d08a71c76e409695ddddb09e5602836161041734ada02f6f878f8f6a8c5268b",
+        "entry_nodes": [
+          "work"
+        ],
+        "identity": {
+          "capability": {
+            "name": "child.graph",
+            "version": "1.4.0"
+          },
+          "owner": {
+            "issuer": "https://issuer.example.com/stateknot",
+            "subject": "workflow-registry"
+          }
+        },
+        "input_schema": {
+          "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+          "id": "https://schemas.example.com/incident-request/1.0.0",
+          "version": "1.0.0"
+        },
+        "limits": {
+          "maximum_parallelism": 1,
+          "maximum_supersteps": "10"
+        },
+        "nodes": [
+          {
+            "node_id": "work",
+            "routes": [],
+            "terminal": true
+          }
+        ],
+        "output_schema": {
+          "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+          "id": "https://schemas.example.com/incident-report/1.0.0",
+          "version": "1.0.0"
+        },
+        "reducer": {
+          "definition_digest": "sha256:48a8a4db55d82c9068ff1adf8ac312c9de26fa9c3d6d17dcb45425c04b15d33f",
+          "identity": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          }
+        },
+        "state_schema": {
+          "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+          "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+          "version": "1.0.0"
+        },
+        "update_schema": {
+          "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+          "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+          "version": "1.0.0"
+        }
+      },
+      "initial_state": {
+        "data": {
+          "private": "do-not-log-state"
+        },
+        "digest": "sha256:5ef15df652f4fe60a3d1cb84f5451d3220fe27fb151baee41530eda411417db1",
+        "schema": {
+          "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+          "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+          "version": "1.0.0"
+        }
+      },
+      "key": {
+        "digest": "sha256:d22e0c776c7b6bb8292a6314c3a14e2b20f79e47b151173d67545a786b364b8d",
+        "parent": {
+          "base_checkpoint": {
+            "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+            "digest": "sha256:607542e0db0cdd2c2c10c48b99c8e3aefb6f7b737bf9bb21141ad6e26eb4ef6f",
+            "graph": {
+              "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+              "identity": {
+                "capability": {
+                  "name": "orders.fulfillment",
+                  "version": "1.4.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/stateknot",
+                  "subject": "workflow-registry"
+                }
+              },
+              "state_schema": {
+                "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+                "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+                "version": "1.0.0"
+              }
+            },
+            "journal_head": {
+              "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+              "event_id": "01912345-6789-7abc-8def-0123456789c1",
+              "recorded_at": "2030-01-01T00:00:01.000000Z",
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "sequence": "1",
+              "tenant_id": "tenant-production"
+            },
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "superstep": "0",
+            "tenant_id": "tenant-production"
+          },
+          "graph_namespace": "",
+          "input_digest": "sha256:8f065f30f3f4a3e8a8bc7ed4d4648ce087b26ac5929932641ad9ea58f529ed18",
+          "node_id": "authorize"
+        },
+        "slot": "analysis"
+      },
+      "parent_admission_digest": "sha256:2fd48a5bc586b0298e78d0e687217f79d0f1588f70cde3b50f36df59c9ca1d25",
+      "spawn_digest": "sha256:6f1a17796b83a8277068a5d5c9560e9a1379b7cc3e75f7b22f11d7e57681bc5a"
+    },
+    "join": {
+      "digest": "sha256:a0031c3c7efb0f251a2e48587b224610d70a179bcb37a9d3fca69f04cc99d2a5",
+      "request": {
+        "activation_digest": "sha256:964b02719cf0727d05f1f9025204ffe9d0446ddd4a55f189dba49559f28179d5",
+        "digest": "sha256:e12b24da672d0663b080c8e1136afdc7a689f29c7fe0650c189bca74481f3b8a",
+        "keys": [
+          {
+            "digest": "sha256:d22e0c776c7b6bb8292a6314c3a14e2b20f79e47b151173d67545a786b364b8d",
+            "parent": {
+              "base_checkpoint": {
+                "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+                "digest": "sha256:607542e0db0cdd2c2c10c48b99c8e3aefb6f7b737bf9bb21141ad6e26eb4ef6f",
+                "graph": {
+                  "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+                  "identity": {
+                    "capability": {
+                      "name": "orders.fulfillment",
+                      "version": "1.4.0"
+                    },
+                    "owner": {
+                      "issuer": "https://issuer.example.com/stateknot",
+                      "subject": "workflow-registry"
+                    }
+                  },
+                  "state_schema": {
+                    "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+                    "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+                    "version": "1.0.0"
+                  }
+                },
+                "journal_head": {
+                  "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+                  "event_id": "01912345-6789-7abc-8def-0123456789c1",
+                  "recorded_at": "2030-01-01T00:00:01.000000Z",
+                  "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                  "sequence": "1",
+                  "tenant_id": "tenant-production"
+                },
+                "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                "superstep": "0",
+                "tenant_id": "tenant-production"
+              },
+              "graph_namespace": "",
+              "input_digest": "sha256:8f065f30f3f4a3e8a8bc7ed4d4648ce087b26ac5929932641ad9ea58f529ed18",
+              "node_id": "authorize"
+            },
+            "slot": "analysis"
+          }
+        ],
+        "version": 1
+      },
+      "terminals": [
+        {
+          "admission_digest": "sha256:ceb14626f1e4b72cc66bdb6a929dc0c2f60f3ea434726b6932685acc03393580",
+          "admitted_at": "2030-01-01T00:00:00.000000Z",
+          "child": {
+            "agent": {
+              "capability": {
+                "name": "agents.incident",
+                "version": "1.0.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "agent-owner"
+              }
+            },
+            "invocation_id": "01912345-6789-7abc-8def-0123456789f3",
+            "run_id": "01912345-6789-7abc-8def-0123456789f1",
+            "tenant_id": "tenant-production",
+            "thread_id": "01912345-6789-7abc-8def-0123456789f2"
+          },
+          "intent_digest": "sha256:08741f9ed870eced56f04d50f62563620158c0b4caf91143024d91de8aa46936",
+          "outcome_digest": "sha256:2f6ac4197832501a0d4deb6206a6e18289424a44b7c5838df86843fe1ef41d5a",
+          "status": "failed",
+          "terminal": {
+            "digest": "sha256:4e686af7bdcc5ae005a247624fd8c7283257c2514f6b3ad2ff5d4cb6d95196e6",
+            "event_id": "01912345-6789-7abc-8def-0123456789a1",
+            "recorded_at": "2030-01-01T00:00:02.000000Z",
+            "run_id": "01912345-6789-7abc-8def-0123456789f1",
+            "sequence": "3",
+            "tenant_id": "tenant-production"
+          },
+          "usage": {
+            "artifact_bytes": "0",
+            "cached_input_tokens": "0",
+            "checkpoint_bytes": "0",
+            "concurrent_branches": "0",
+            "event_bytes": "0",
+            "fan_out": "0",
+            "graph_depth": "0",
+            "graph_steps": "0",
+            "input_bytes": "0",
+            "input_tokens": "0",
+            "known_costs": [],
+            "model_attempts": "0",
+            "model_turns": "0",
+            "output_bytes": "0",
+            "output_tokens": "0",
+            "reasoning_tokens": "0",
+            "remote_agent_delegations": "0",
+            "retries": "0",
+            "tool_calls": "0",
+            "unpriced_cost_events": "0",
+            "write_calls": "0"
+          }
+        }
+      ]
+    },
+    "join_head": {
+      "activation": {
+        "base_checkpoint": {
+          "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+          "digest": "sha256:607542e0db0cdd2c2c10c48b99c8e3aefb6f7b737bf9bb21141ad6e26eb4ef6f",
+          "graph": {
+            "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+            "identity": {
+              "capability": {
+                "name": "orders.fulfillment",
+                "version": "1.4.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/stateknot",
+                "subject": "workflow-registry"
+              }
+            },
+            "state_schema": {
+              "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+              "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+              "version": "1.0.0"
+            }
+          },
+          "journal_head": {
+            "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+            "event_id": "01912345-6789-7abc-8def-0123456789c1",
+            "recorded_at": "2030-01-01T00:00:01.000000Z",
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "sequence": "1",
+            "tenant_id": "tenant-production"
+          },
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "superstep": "0",
+          "tenant_id": "tenant-production"
+        },
+        "graph_namespace": "",
+        "input_digest": "sha256:8f065f30f3f4a3e8a8bc7ed4d4648ce087b26ac5929932641ad9ea58f529ed18",
+        "node_id": "authorize"
+      },
+      "binding_digest": "sha256:a0031c3c7efb0f251a2e48587b224610d70a179bcb37a9d3fca69f04cc99d2a5",
+      "journal_head": {
+        "digest": "sha256:3f662004cb4676be8aa8eae1a6a2328aeb693df48ceebb81f492e6b34872f4e7",
+        "event_id": "01912345-6789-7abc-8def-0123456789a5",
+        "recorded_at": "2030-01-01T00:00:02.000000Z",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "sequence": "10",
+        "tenant_id": "tenant-production"
+      },
+      "request_digest": "sha256:e12b24da672d0663b080c8e1136afdc7a689f29c7fe0650c189bca74481f3b8a"
+    },
+    "parent": {
+      "admitted_at": "2030-01-01T00:00:00.000000Z",
+      "digest": "sha256:2fd48a5bc586b0298e78d0e687217f79d0f1588f70cde3b50f36df59c9ca1d25",
+      "intent": {
+        "authority": {
+          "evidence": {
+            "data": {
+              "decision": "allow",
+              "private": "do-not-log-policy"
+            },
+            "kind": "agent-admission-granted",
+            "schema": {
+              "digest": "sha256:6446c8bdcb4fee020a94b06ba0495788d62a634cbbf11dd9bb62618f231d1b66",
+              "id": "https://stateknot.github.io/schema/run-event/1.0.0",
+              "version": "1.0.0"
+            }
+          },
+          "granted_scopes": [],
+          "policy": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          },
+          "policy_digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812",
+          "principal": {
+            "issuer": "https://issuer.example.com/stateknot",
+            "subject": "workflow-registry"
+          }
+        },
+        "budget": {
+          "artifact_bytes": "104857600",
+          "cached_input_tokens": "500000",
+          "checkpoint_bytes": "10485760",
+          "concurrent_branches": "16",
+          "costs": [
+            {
+              "currency": "CNY",
+              "micro_units": "7000000"
+            },
+            {
+              "currency": "USD",
+              "micro_units": "1000000"
+            }
+          ],
+          "deadline": "2031-01-01T00:00:00.000000Z",
+          "event_bytes": "20971520",
+          "fan_out": "32",
+          "graph_depth": "32",
+          "graph_steps": "1000",
+          "input_bytes": "10485760",
+          "input_tokens": "1000000",
+          "model_attempts": "50",
+          "model_turns": "12",
+          "output_bytes": "4096",
+          "output_tokens": "100000",
+          "reasoning_tokens": "25000",
+          "remote_agent_delegations": "10",
+          "retries": "25",
+          "tool_calls": "24",
+          "write_calls": "1"
+        },
+        "budget_layers": [
+          {
+            "decision_digest": "sha256:fc02e1120f1d337fc5fb3f74a73f2ca2d7126a9ce9a4ded4bf339c6aff29768f",
+            "limits": {
+              "artifact_bytes": "104857600",
+              "cached_input_tokens": "500000",
+              "checkpoint_bytes": "10485760",
+              "concurrent_branches": "16",
+              "costs": [
+                {
+                  "currency": "CNY",
+                  "micro_units": "7000000"
+                },
+                {
+                  "currency": "USD",
+                  "micro_units": "1000000"
+                }
+              ],
+              "deadline": "2031-01-01T00:00:00.000000Z",
+              "event_bytes": "20971520",
+              "fan_out": "32",
+              "graph_depth": "32",
+              "graph_steps": "1000",
+              "input_bytes": "10485760",
+              "input_tokens": "1000000",
+              "model_attempts": "50",
+              "model_turns": "40",
+              "output_bytes": "10485760",
+              "output_tokens": "100000",
+              "reasoning_tokens": "25000",
+              "remote_agent_delegations": "10",
+              "retries": "25",
+              "tool_calls": "100",
+              "write_calls": "20"
+            },
+            "source": {
+              "capability": {
+                "name": "orders.fulfillment",
+                "version": "1.4.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/stateknot",
+                "subject": "workflow-registry"
+              }
+            }
+          }
+        ],
+        "descriptor": {
+          "budget_limits": {
+            "model_turns": "12",
+            "tool_calls": "24",
+            "write_calls": "1"
+          },
+          "execution": {
+            "max_model_turns": "12",
+            "max_output_repair_turns": "2",
+            "max_tool_calls_per_turn": "4",
+            "structured_output": "model_native",
+            "tool_concurrency": {
+              "mode": "sequential"
+            }
+          },
+          "input_schema": {
+            "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+            "id": "https://schemas.example.com/incident-request/1.0.0",
+            "version": "1.0.0"
+          },
+          "instructions": [
+            {
+              "content": {
+                "content": {
+                  "metadata": {
+                    "redaction": "not_applied",
+                    "security_label": "internal",
+                    "source": "application",
+                    "trust": "application_controlled"
+                  },
+                  "text": "never-log-this-instruction"
+                },
+                "type": "text"
+              },
+              "content_digest": "sha256:5c2483e4df0fbc70f554aba4c4dff7fb69c38c7746e086dba29d9f54b06a52f1",
+              "identity": {
+                "name": "incident.base",
+                "version": "1.0.0"
+              },
+              "provenance": {
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "instruction-owner"
+                }
+              }
+            }
+          ],
+          "metadata": {
+            "description": "never-log-this-instruction",
+            "extensions": {},
+            "identity": {
+              "capability": {
+                "name": "agents.incident",
+                "version": "1.0.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "agent-owner"
+              }
+            },
+            "kind": "agent",
+            "lifecycle": {
+              "status": "active"
+            },
+            "required_scopes": []
+          },
+          "model": {
+            "capabilities": {
+              "input_modalities": [
+                "text"
+              ],
+              "output_modalities": [
+                "text"
+              ],
+              "reasoning_summaries": false,
+              "streaming": true,
+              "structured_output": {
+                "level": "json_schema",
+                "schema_profile": {
+                  "digest": "sha256:a0f922a715001985eddf0d617edc9bb26b64be3323770e0d385404e622a07db0",
+                  "id": "https://schemas.example.com/model-output-profile/1.0.0",
+                  "version": "1.0.0"
+                }
+              },
+              "token_limits": {
+                "max_context_tokens": "128000",
+                "max_input_tokens": "120000",
+                "max_output_tokens": "16384"
+              },
+              "tools": {
+                "choices": [
+                  "auto"
+                ],
+                "max_calls_per_response": "4",
+                "max_definitions": "8",
+                "schema_profile": {
+                  "digest": "sha256:96921d2d2ee50209de4e045ccd295bc6802c9c2777020ac05c7b7a44ecfb951f",
+                  "id": "https://schemas.example.com/model-tool-profile/1.0.0",
+                  "version": "1.0.0"
+                },
+                "strict_arguments": true
+              }
+            },
+            "metadata": {
+              "description": "Pinned model binding",
+              "extensions": {},
+              "identity": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-owner"
+                }
+              },
+              "kind": "model",
+              "lifecycle": {
+                "status": "active"
+              },
+              "required_scopes": []
+            }
+          },
+          "output_schema": {
+            "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+            "id": "https://schemas.example.com/incident-report/1.0.0",
+            "version": "1.0.0"
+          },
+          "tools": [
+            {
+              "input_schema": {
+                "digest": "sha256:dc6417707d2c53db6363aa6687c30b1fe2a891bc99e0814e0c77c653098dd5dd",
+                "id": "https://schemas.example.com/tools.lookup-input/1.0.0",
+                "version": "1.0.0"
+              },
+              "invocation": {
+                "cancellation": "cooperative",
+                "max_progress_events": "32"
+              },
+              "limits": {
+                "max_artifacts": "4",
+                "max_concurrency": "16",
+                "max_inline_result_bytes": "262144",
+                "max_input_bytes": "65536",
+                "max_total_artifact_bytes": "26214400",
+                "timeout": "30000"
+              },
+              "metadata": {
+                "description": "Read-only test tool",
+                "extensions": {},
+                "identity": {
+                  "capability": {
+                    "name": "tools.lookup",
+                    "version": "1.0.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/tenant",
+                    "subject": "tool-owner"
+                  }
+                },
+                "kind": "tool",
+                "lifecycle": {
+                  "status": "active"
+                },
+                "required_scopes": []
+              },
+              "output_schema": {
+                "digest": "sha256:b4b149fe40b3cd4735e555b8f6c8a9d148ddc60dea5644b93ac1ab90a1cc5893",
+                "id": "https://schemas.example.com/tools.lookup-output/1.0.0",
+                "version": "1.0.0"
+              },
+              "resources": {
+                "credentials": false,
+                "dynamic_code": false,
+                "filesystem": "none",
+                "network": "none"
+              },
+              "semantics": {
+                "compensation": false,
+                "idempotency": "not_applicable",
+                "risk": "read_only",
+                "status_query": false
+              }
+            }
+          ]
+        },
+        "graph": {
+          "definition_digest": "sha256:990796c3f462cf2dfecb841aa0c5e688e19571b938f77f4800afd54f61a2298b",
+          "identity": {
+            "capability": {
+              "name": "orders.fulfillment",
+              "version": "1.4.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/stateknot",
+              "subject": "workflow-registry"
+            }
+          },
+          "state_schema": {
+            "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+            "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+            "version": "1.0.0"
+          }
+        },
+        "intent_digest": "sha256:5a9521d360a9b7eb77dbbfa2b51662e7ee75f5baf24799c1ef178fd62a9950f8",
+        "provenance": {
+          "agent": {
+            "capability": {
+              "name": "agents.incident",
+              "version": "1.0.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "agent-owner"
+            }
+          },
+          "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+          "run_id": "01912345-6789-7abc-8def-0123456789ae",
+          "tenant_id": "tenant-production",
+          "thread_id": "01912345-6789-7abc-8def-0123456789af"
+        },
+        "request": {
+          "budget_limits": {
+            "deadline": "2031-01-01T00:00:00.000000Z",
+            "input_bytes": "10485760",
+            "output_bytes": "4096"
+          },
+          "input": {
+            "incident_id": "INC-42",
+            "question": "Summarize the evidence"
+          },
+          "input_schema": {
+            "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+            "id": "https://schemas.example.com/incident-request/1.0.0",
+            "version": "1.0.0"
+          }
+        }
+      }
+    }
+  },
+  "transcript": {
+    "failure": {
+      "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+      "category": "invalid_input",
+      "code": "tool.input_invalid",
+      "external_effect": "not_started",
+      "failure_id": "01912345-6789-7abc-8def-0123456789b1",
+      "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+      "message": "Tool input does not satisfy its registered schema.",
+      "retry_advice": {
+        "kind": "never"
+      },
+      "tool": {
+        "capability": {
+          "name": "payments.capture",
+          "version": "2.1.0"
+        },
+        "owner": {
+          "issuer": "https://issuer.example.com/tenant",
+          "subject": "registry-owner"
+        }
+      }
+    },
+    "limits": [
+      "timeout",
+      "max_concurrency",
+      "max_input_bytes",
+      "max_inline_result_bytes",
+      "max_artifacts",
+      "max_total_artifact_bytes"
+    ],
+    "outcomes": [
+      {
+        "provider_call_id": "call_01JABCDEF",
+        "result": {
+          "artifacts": [],
+          "output": {
+            "accepted": true,
+            "transaction_id": "txn_42"
+          },
+          "output_schema": {
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+            "version": "1.0.0"
+          },
+          "provenance": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+            "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+            "tool": {
+              "capability": {
+                "name": "payments.capture",
+                "version": "2.1.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "registry-owner"
+              }
+            }
+          }
+        },
+        "status": "succeeded"
+      },
+      {
+        "error": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "category": "invalid_input",
+          "code": "tool.input_invalid",
+          "external_effect": "not_started",
+          "failure_id": "01912345-6789-7abc-8def-0123456789b1",
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+          "message": "Tool input does not satisfy its registered schema.",
+          "retry_advice": {
+            "kind": "never"
+          },
+          "tool": {
+            "capability": {
+              "name": "payments.capture",
+              "version": "2.1.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "registry-owner"
+            }
+          }
+        },
+        "provider_call_id": "call_01JABCDEF",
+        "status": "failed"
+      }
+    ],
+    "recovery_handle": {
+      "binding": "sha256:b6bf7bc8d96f3ea9d132c83b3da8e7760e420138485657372db4d6a981d3fd9e",
+      "namespace": "provider.recovery",
+      "opaque_id": "operation_42"
+    },
+    "replay": {
+      "digest": "sha256:134e19918786cbaaf2fcaaa05274bb0f1fa3b4174a78d7ac048f38bb4971dfc2",
+      "format": "provider.responses.output.v1",
+      "payload": [
+        {
+          "arguments": "{\"amount_minor\":4200,\"currency\":\"USD\"}",
+          "call_id": "call_01JABCDEF",
+          "name": "payments.capture",
+          "type": "function_call"
+        }
+      ]
+    },
+    "turns": [
+      {
+        "outcomes": [
+          {
+            "provider_call_id": "call_01JABCDEF",
+            "result": {
+              "artifacts": [],
+              "output": {
+                "accepted": true,
+                "transaction_id": "txn_42"
+              },
+              "output_schema": {
+                "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+                "version": "1.0.0"
+              },
+              "provenance": {
+                "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+                "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+                "tool": {
+                  "capability": {
+                    "name": "payments.capture",
+                    "version": "2.1.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/tenant",
+                    "subject": "registry-owner"
+                  }
+                }
+              }
+            },
+            "status": "succeeded"
+          }
+        ],
+        "response": {
+          "extensions": {},
+          "finish_reason": "tool_calls",
+          "output": [
+            {
+              "content": {
+                "content": {
+                  "metadata": {
+                    "redaction": "not_applied",
+                    "security_label": "internal/model-output",
+                    "source": "model",
+                    "trust": "untrusted"
+                  },
+                  "text": "Approval is required before capture."
+                },
+                "type": "text"
+              },
+              "type": "content"
+            },
+            {
+              "content": {
+                "arguments": {
+                  "amount_minor": 4200,
+                  "currency": "USD"
+                },
+                "extensions": {},
+                "provider_call_id": "call_01JABCDEF",
+                "tool": {
+                  "capability": {
+                    "name": "payments.capture",
+                    "version": "2.1.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/tenant",
+                    "subject": "registry-owner"
+                  }
+                }
+              },
+              "type": "tool_call"
+            }
+          ],
+          "provenance": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789fa",
+            "model": {
+              "capability": {
+                "name": "models.primary",
+                "version": "1.0.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "model-registry"
+              }
+            }
+          },
+          "provider_replay": {
+            "digest": "sha256:134e19918786cbaaf2fcaaa05274bb0f1fa3b4174a78d7ac048f38bb4971dfc2",
+            "format": "provider.responses.output.v1",
+            "payload": [
+              {
+                "arguments": "{\"amount_minor\":4200,\"currency\":\"USD\"}",
+                "call_id": "call_01JABCDEF",
+                "name": "payments.capture",
+                "type": "function_call"
+              }
+            ]
+          },
+          "usage": {
+            "input_tokens": "80",
+            "output_tokens": "16"
+          }
+        }
+      },
+      {
+        "outcomes": [
+          {
+            "error": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "category": "invalid_input",
+              "code": "tool.input_invalid",
+              "external_effect": "not_started",
+              "failure_id": "01912345-6789-7abc-8def-0123456789b1",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "message": "Tool input does not satisfy its registered schema.",
+              "retry_advice": {
+                "kind": "never"
+              },
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            },
+            "provider_call_id": "call_01JABCDEF",
+            "status": "failed"
+          }
+        ],
+        "response": {
+          "extensions": {},
+          "finish_reason": "tool_calls",
+          "output": [
+            {
+              "content": {
+                "content": {
+                  "metadata": {
+                    "redaction": "not_applied",
+                    "security_label": "internal/model-output",
+                    "source": "model",
+                    "trust": "untrusted"
+                  },
+                  "text": "Approval is required before capture."
+                },
+                "type": "text"
+              },
+              "type": "content"
+            },
+            {
+              "content": {
+                "arguments": {
+                  "amount_minor": 4200,
+                  "currency": "USD"
+                },
+                "extensions": {},
+                "provider_call_id": "call_01JABCDEF",
+                "tool": {
+                  "capability": {
+                    "name": "payments.capture",
+                    "version": "2.1.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/tenant",
+                    "subject": "registry-owner"
+                  }
+                }
+              },
+              "type": "tool_call"
+            }
+          ],
+          "provenance": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789fa",
+            "model": {
+              "capability": {
+                "name": "models.primary",
+                "version": "1.0.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "model-registry"
+              }
+            }
+          },
+          "provider_replay": {
+            "digest": "sha256:134e19918786cbaaf2fcaaa05274bb0f1fa3b4174a78d7ac048f38bb4971dfc2",
+            "format": "provider.responses.output.v1",
+            "payload": [
+              {
+                "arguments": "{\"amount_minor\":4200,\"currency\":\"USD\"}",
+                "call_id": "call_01JABCDEF",
+                "name": "payments.capture",
+                "type": "function_call"
+              }
+            ]
+          },
+          "usage": {
+            "input_tokens": "80",
+            "output_tokens": "16"
+          }
+        }
+      }
+    ],
+    "transcripts": [
+      [
+        {
+          "outcomes": [
+            {
+              "provider_call_id": "call_01JABCDEF",
+              "result": {
+                "artifacts": [],
+                "output": {
+                  "accepted": true,
+                  "transaction_id": "txn_42"
+                },
+                "output_schema": {
+                  "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+                  "version": "1.0.0"
+                },
+                "provenance": {
+                  "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+                  "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+                  "tool": {
+                    "capability": {
+                      "name": "payments.capture",
+                      "version": "2.1.0"
+                    },
+                    "owner": {
+                      "issuer": "https://issuer.example.com/tenant",
+                      "subject": "registry-owner"
+                    }
+                  }
+                }
+              },
+              "status": "succeeded"
+            }
+          ],
+          "response": {
+            "extensions": {},
+            "finish_reason": "tool_calls",
+            "output": [
+              {
+                "content": {
+                  "content": {
+                    "metadata": {
+                      "redaction": "not_applied",
+                      "security_label": "internal/model-output",
+                      "source": "model",
+                      "trust": "untrusted"
+                    },
+                    "text": "Approval is required before capture."
+                  },
+                  "type": "text"
+                },
+                "type": "content"
+              },
+              {
+                "content": {
+                  "arguments": {
+                    "amount_minor": 4200,
+                    "currency": "USD"
+                  },
+                  "extensions": {},
+                  "provider_call_id": "call_01JABCDEF",
+                  "tool": {
+                    "capability": {
+                      "name": "payments.capture",
+                      "version": "2.1.0"
+                    },
+                    "owner": {
+                      "issuer": "https://issuer.example.com/tenant",
+                      "subject": "registry-owner"
+                    }
+                  }
+                },
+                "type": "tool_call"
+              }
+            ],
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789fa",
+              "model": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-registry"
+                }
+              }
+            },
+            "provider_replay": {
+              "digest": "sha256:134e19918786cbaaf2fcaaa05274bb0f1fa3b4174a78d7ac048f38bb4971dfc2",
+              "format": "provider.responses.output.v1",
+              "payload": [
+                {
+                  "arguments": "{\"amount_minor\":4200,\"currency\":\"USD\"}",
+                  "call_id": "call_01JABCDEF",
+                  "name": "payments.capture",
+                  "type": "function_call"
+                }
+              ]
+            },
+            "usage": {
+              "input_tokens": "80",
+              "output_tokens": "16"
+            }
+          }
+        }
+      ],
+      [
+        {
+          "outcomes": [
+            {
+              "error": {
+                "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+                "category": "invalid_input",
+                "code": "tool.input_invalid",
+                "external_effect": "not_started",
+                "failure_id": "01912345-6789-7abc-8def-0123456789b1",
+                "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+                "message": "Tool input does not satisfy its registered schema.",
+                "retry_advice": {
+                  "kind": "never"
+                },
+                "tool": {
+                  "capability": {
+                    "name": "payments.capture",
+                    "version": "2.1.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/tenant",
+                    "subject": "registry-owner"
+                  }
+                }
+              },
+              "provider_call_id": "call_01JABCDEF",
+              "status": "failed"
+            }
+          ],
+          "response": {
+            "extensions": {},
+            "finish_reason": "tool_calls",
+            "output": [
+              {
+                "content": {
+                  "content": {
+                    "metadata": {
+                      "redaction": "not_applied",
+                      "security_label": "internal/model-output",
+                      "source": "model",
+                      "trust": "untrusted"
+                    },
+                    "text": "Approval is required before capture."
+                  },
+                  "type": "text"
+                },
+                "type": "content"
+              },
+              {
+                "content": {
+                  "arguments": {
+                    "amount_minor": 4200,
+                    "currency": "USD"
+                  },
+                  "extensions": {},
+                  "provider_call_id": "call_01JABCDEF",
+                  "tool": {
+                    "capability": {
+                      "name": "payments.capture",
+                      "version": "2.1.0"
+                    },
+                    "owner": {
+                      "issuer": "https://issuer.example.com/tenant",
+                      "subject": "registry-owner"
+                    }
+                  }
+                },
+                "type": "tool_call"
+              }
+            ],
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789fa",
+              "model": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-registry"
+                }
+              }
+            },
+            "provider_replay": {
+              "digest": "sha256:134e19918786cbaaf2fcaaa05274bb0f1fa3b4174a78d7ac048f38bb4971dfc2",
+              "format": "provider.responses.output.v1",
+              "payload": [
+                {
+                  "arguments": "{\"amount_minor\":4200,\"currency\":\"USD\"}",
+                  "call_id": "call_01JABCDEF",
+                  "name": "payments.capture",
+                  "type": "function_call"
+                }
+              ]
+            },
+            "usage": {
+              "input_tokens": "80",
+              "output_tokens": "16"
+            }
+          }
+        }
+      ]
+    ]
+  },
+  "composition": {
+    "skc-472a805a0afd7495afb0d6c3e47ba1d5403fbc8cc7443a2cbcc5d1ed2b5b0186-0001": {
+      "call_site": "review",
+      "graph": {
+        "definition_digest": "sha256:985059beeaf19ab2e2456f594f99a89d78cf353f905f54acd7eefeedad6922de",
+        "identity": {
+          "capability": {
+            "name": "body",
+            "version": "1.0.0"
+          },
+          "owner": {
+            "issuer": "https://example.com",
+            "subject": "composition"
+          }
+        },
+        "state_schema": {
+          "digest": "sha256:4ba69735ca53765ed6a709edb56c6ea236b7193a3b29a6b390c346f0f4340e4e",
+          "id": "https://example.com/schemas/state",
+          "version": "1.0.0"
+        }
+      },
+      "iteration": 0,
+      "node_id": "decide",
+      "routes": {
+        "accept": "skr-6894cd53b39986fe7b1c20e92536d434d4a737d1ff15b8eae951e65775e6e5c3",
+        "retry": "skr-dd517288729df4801aa0768ef371d48b50de1c91ae9ac5c28a518da96346e4f9"
+      }
+    },
+    "skc-472a805a0afd7495afb0d6c3e47ba1d5403fbc8cc7443a2cbcc5d1ed2b5b0186-0003": {
+      "call_site": "review",
+      "graph": {
+        "definition_digest": "sha256:985059beeaf19ab2e2456f594f99a89d78cf353f905f54acd7eefeedad6922de",
+        "identity": {
+          "capability": {
+            "name": "body",
+            "version": "1.0.0"
+          },
+          "owner": {
+            "issuer": "https://example.com",
+            "subject": "composition"
+          }
+        },
+        "state_schema": {
+          "digest": "sha256:4ba69735ca53765ed6a709edb56c6ea236b7193a3b29a6b390c346f0f4340e4e",
+          "id": "https://example.com/schemas/state",
+          "version": "1.0.0"
+        }
+      },
+      "iteration": 0,
+      "node_id": "work"
+    },
+    "skc-c87da691aa8fe66a7a804f75bb8f5d5f0dd02fac6a9c8a1d197e489db6ca99a8-0001": {
+      "call_site": "review",
+      "graph": {
+        "definition_digest": "sha256:985059beeaf19ab2e2456f594f99a89d78cf353f905f54acd7eefeedad6922de",
+        "identity": {
+          "capability": {
+            "name": "body",
+            "version": "1.0.0"
+          },
+          "owner": {
+            "issuer": "https://example.com",
+            "subject": "composition"
+          }
+        },
+        "state_schema": {
+          "digest": "sha256:4ba69735ca53765ed6a709edb56c6ea236b7193a3b29a6b390c346f0f4340e4e",
+          "id": "https://example.com/schemas/state",
+          "version": "1.0.0"
+        }
+      },
+      "iteration": 1,
+      "node_id": "decide",
+      "routes": {
+        "accept": "skr-f21af282c42b69494c9c130dce85dedb4c29b24c5560bf0cceed3a587e99ceff",
+        "retry": "skr-cd632f9ae234c14aaa24f7e4ab6f5f29f7868233c4dfbe25f589136c834c496a"
+      }
+    },
+    "skc-c87da691aa8fe66a7a804f75bb8f5d5f0dd02fac6a9c8a1d197e489db6ca99a8-0003": {
+      "call_site": "review",
+      "graph": {
+        "definition_digest": "sha256:985059beeaf19ab2e2456f594f99a89d78cf353f905f54acd7eefeedad6922de",
+        "identity": {
+          "capability": {
+            "name": "body",
+            "version": "1.0.0"
+          },
+          "owner": {
+            "issuer": "https://example.com",
+            "subject": "composition"
+          }
+        },
+        "state_schema": {
+          "digest": "sha256:4ba69735ca53765ed6a709edb56c6ea236b7193a3b29a6b390c346f0f4340e4e",
+          "id": "https://example.com/schemas/state",
+          "version": "1.0.0"
+        }
+      },
+      "iteration": 1,
+      "node_id": "work"
+    }
+  },
+  "lifecycle": {
+    "lifecycle": {
+      "admitted_at": "2030-01-01T00:00:00.000000Z",
+      "provenance": {
+        "agent": {
+          "capability": {
+            "name": "agents.incident",
+            "version": "1.0.0"
+          },
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "agent-owner"
+          }
+        },
+        "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+        "run_id": "01912345-6789-7abc-8def-0123456789ae",
+        "tenant_id": "tenant-production",
+        "thread_id": "01912345-6789-7abc-8def-0123456789af"
+      },
+      "revision": "1",
+      "state": {
+        "activated_at": "2030-01-01T00:00:01.000000Z",
+        "kind": "active"
+      }
+    },
+    "transition": {
+      "kind": "start",
+      "started_at": "2030-01-01T00:00:01.000000Z"
+    }
+  },
+  "public_tags": {
+    "ModelInvocationStatus": "prepared",
+    "ModelInvocationTransitionKind": "start_attempt",
+    "ModelUsageField": "input_tokens",
+    "NodeAttemptStatus": "succeeded",
+    "NodeControlKind": "continue",
+    "NodeInvocationBindingKind": "tool",
+    "OutboxAttemptStatus": "acknowledged",
+    "OutboxDeliveryStatus": "pending",
+    "ToolInvocationStatus": "prepared",
+    "ToolInvocationTransitionKind": "start_attempt"
+  }
+}

@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A compiler-checked closed Core root-export inventory covering 555 types,
+  307 typed reader/writer wires and 308 generated schema pins. Two output-only
+  types retain their producer boundaries; 246 reviewed Rust-only instantiations
+  reject accidental serialization. Complete admission, child accounting/Join
+  and model continuation wires are reproduced by their existing constructors.
+
 - Complete execution wire fixtures and typed canonical readers for 67 Core
   types, with closed-object, duplicate-key, checked-digest and identity-collection
   rejection evidence. Eight existing constructor suites retain their earlier

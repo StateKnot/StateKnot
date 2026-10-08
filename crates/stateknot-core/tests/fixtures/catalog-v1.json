@@ -8,6 +8,11 @@
       "content_digest": "sha256:40369564f345185d0895a5737d4eeb1e512fb1ab22e2e76a4122d72730978a7b"
     },
     {
+      "path": "core-admission-transcript-wires-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-admission-transcript-wires/1.0.0",
+      "content_digest": "sha256:b32bd472677d9a7f1344296d073b782ea31c45dcbae1bdf38936512d95fb3dce"
+    },
+    {
       "path": "core-agent-runtime-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-agent-runtime/1.0.0",
       "content_digest": "sha256:d3d867522ed2cd4e45a2779e1a20318b03b19ba88b0989168bf44c43efe6e9ba"
@@ -153,6 +158,11 @@
       "content_digest": "sha256:d6014c6721b9943c1228c78328d6741dc353d44baa74bad2dcfdd4cee5de7f2e"
     },
     {
+      "path": "core-public-type-inventory-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-public-type-inventory/1.0.0",
+      "content_digest": "sha256:c46cd6eca553e292ee0b32817d628387ee46c6299e91d62d294220723ca3639a"
+    },
+    {
       "path": "core-run-lifecycle-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-run-lifecycle/1.0.0",
       "content_digest": "sha256:a098f6e54112cc5fe89673d0ed4c0912c73db1d9cfccf0dcf35dccf42189030b"
@@ -203,5 +213,5 @@
       "content_digest": "sha256:009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
     }
   ],
-  "root_digest": "sha256:5780aa15e2771f409156d378a4d18c3a46bc215ded279d65275c6ccc4401b3b2"
+  "root_digest": "sha256:805b07785d4ba1614a12ce5ef07b61dce38cb3a71e986daf5ee6efe021692ac0"
 }
