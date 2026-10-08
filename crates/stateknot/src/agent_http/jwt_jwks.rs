@@ -357,7 +357,12 @@ fn parse_jwks(jwks: &[u8]) -> Result<BTreeMap<String, ParsedPublicKey>, JwtJwksC
         let e = URL_SAFE_NO_PAD
             .decode(exponent)
             .map_err(|_| JwtJwksConfigurationError)?;
-        if !(256..=512).contains(&n.len()) || n[0] & 0x80 == 0 || e != [1, 0, 1] {
+        if !(256..=512).contains(&n.len()) || n[0] == 0 || e != [1, 0, 1] {
+            return Err(JwtJwksConfigurationError);
+        }
+        let bits = n.len() * 8
+            - usize::try_from(n[0].leading_zeros()).map_err(|_| JwtJwksConfigurationError)?;
+        if !(2048..=4096).contains(&bits) {
             return Err(JwtJwksConfigurationError);
         }
         let der = RsaPublicKeyComponents { n, e }
