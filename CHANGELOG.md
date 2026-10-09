@@ -44,6 +44,19 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   frame intent wire/schema, current-source constructors and independent checksum
   model cover the new data boundary; transactional execution remains pending.
 
+- Experimental graph call entry/return preparation verifies exact declared
+  callers, target pins and checkpoint positions, copies isolated state, and
+  converts only a matching terminal child plan into the fixed-route parent
+  update. Existing data/wire/schema types are reused; no persistence or dispatch
+  authority is inferred from preparation.
+
+- PostgreSQL migration 27 scopes checkpoint positions and parent/activation/
+  ownership/Join references, fixes root pointers with generated empty namespaces,
+  and makes root queries/decoding explicit. Exact installed catalog checks cover
+  columns, constraints and indexes. Nonempty source-schema 26→27 and typed scope
+  FK checks run on PostgreSQL 16/17; compound frame transactions and nested
+  execution remain Draft. The trusted-server role profile requires schema 27.
+
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
   references and canonical checksum preimages verify the actual root barrier.

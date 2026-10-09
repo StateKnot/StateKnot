@@ -497,12 +497,17 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
+    let schema_version: i64 = query_scalar("SELECT max(version) FROM public._sqlx_migrations")
+        .fetch_one(&fixture.owner)
+        .await
+        .unwrap();
+    assert_eq!(schema_version, 27);
     store.close().await;
     fixture.cleanup().await;
     println!(
         "\nSTATEKNOT_ROLE_PROFILE_EVIDENCE={}",
         json!({
-            "profile":"trusted-server-roles-v1","schema":26,"postgres":version,
+            "profile":"trusted-server-roles-v1","schema":schema_version,"postgres":version,
             "separate_login_connections":true,"owner_is_non_superuser":true,
             "effective_acl_audit":true,"privilege_rejections":true,"drift_rejected":true,
         "runtime_failure_close":true,"join_checkpoint_recovery":true,

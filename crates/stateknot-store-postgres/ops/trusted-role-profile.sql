@@ -1,6 +1,6 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
--- Schema-26 trusted-server ACL profile. Apply and audit share one allowlist.
+-- Schema-27 trusted-server ACL profile. Apply and audit share one allowlist.
 -- Execute in one transaction with search_path=pg_catalog (see .psql wrapper).
 DO $profile$
 DECLARE
@@ -89,14 +89,14 @@ BEGIN
         END IF;
     END LOOP;
     IF (SELECT array_agg(version ORDER BY version) FROM public._sqlx_migrations WHERE success)
-       IS DISTINCT FROM ARRAY(SELECT generate_series(1,26)::bigint)
-       OR (SELECT count(*) FROM public._sqlx_migrations) <> 26 THEN
-        RAISE EXCEPTION 'profile requires exact schema version 26';
+       IS DISTINCT FROM ARRAY(SELECT generate_series(1,27)::bigint)
+       OR (SELECT count(*) FROM public._sqlx_migrations) <> 27 THEN
+        RAISE EXCEPTION 'profile requires exact schema version 27';
     END IF;
     SELECT array_agg(relname::text ORDER BY relname COLLATE "C") INTO actual_tables
       FROM pg_class WHERE relnamespace='stateknot'::regnamespace AND relkind IN ('r','p','v','m','f','S');
     IF actual_tables IS DISTINCT FROM tables THEN
-        RAISE EXCEPTION 'profile table inventory does not match schema 26';
+        RAISE EXCEPTION 'profile table inventory does not match schema 27';
     END IF;
     IF EXISTS (SELECT FROM pg_class WHERE relnamespace='stateknot'::regnamespace AND relowner<>owner_id)
        OR EXISTS (SELECT FROM pg_proc WHERE pronamespace='stateknot'::regnamespace AND (proowner<>owner_id OR prosecdef)) THEN

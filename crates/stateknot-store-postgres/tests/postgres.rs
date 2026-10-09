@@ -5,6 +5,8 @@
 
 #[path = "postgres/child_upgrade.rs"]
 mod child_upgrade;
+#[path = "postgres/frame_scope.rs"]
+mod frame_scope;
 
 use std::{
     borrow::Cow,
@@ -416,6 +418,7 @@ async fn remove_artifact_registry(pool: &PgPool) {
 
 async fn remove_child_run_cancellation(pool: &PgPool) {
     for sql in [
+        include_str!("fixtures/revert_scoped_checkpoints.sql"),
         include_str!("fixtures/revert_skill_activation_windows.sql"),
         include_str!("fixtures/revert_tool_authorization_receipts.sql"),
         include_str!("fixtures/revert_run_failure_closes.sql"),

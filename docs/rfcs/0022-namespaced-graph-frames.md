@@ -140,6 +140,32 @@ results. Four recovery checks, five barrier checks and a 256-case independent
 sum/canonical-preimage model cover these pure paths. Actual entry, return, waits,
 SQL authority and fault qualification are still required.
 
+`GraphFrameCall::prepare_root_entry` and `prepare_frame_entry` now check the
+exact pinned declaration, target, parent graph/local position and serial ready
+caller, then derive the logical frame and copy its state into a separate initial
+checkpoint intent. Repeating preparation with another candidate checkpoint ID
+preserves the logical frame. Root/scoped return preparation requires the exact
+caller/frame and child barrier base plus a validated terminal plan; the child
+output becomes a parent update with only the declared return route. Parent state
+does not change during preparation. Eleven real-constructor call checks include
+these boundaries, rejected substitutions and continued-child rejection. These
+methods return existing data types and add no wire/schema profile or dispatch
+authority; the complete compound store transaction remains required.
+
+Migration 27 implements scoped relational keys without rewriting old root
+canonical checkpoint bytes. Same-scope predecessor FKs additionally bind frame
+identity, activation/result/invocation/ownership/Join references include their
+namespace, and generated empty-namespace columns fix Run and Agent root
+pointers. Existing root queries explicitly select the empty namespace and root
+decoding rejects non-null frame columns. Exact catalog verification covers all
+21 new constraints, eight columns and seven unique indexes; existing Join
+catalog evidence changes only for its two added FKs. PostgreSQL 16/17 tests use
+real constructor bytes and journal anchors to check nonempty source-schema
+26→27 preservation, separate local position zero, crossed parent/attempt/root
+references and catalog drift. Their manually inserted scoped rows establish
+relational guards, not frame admission, compound journal authority, nested
+execution or true historical N-1/N-2 compatibility.
+
 ## Detailed semantics
 
 ### Logical identity and scope

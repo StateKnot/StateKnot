@@ -153,8 +153,14 @@ checkpoint 派生。六个实验性 reader、三个 Rust-only 错误类型及 sc
 `CompiledGraph` 与 `ChildRunAdmissionIntent` 的两个 schema profile 显式更新，
 其余原有 pin、根图 wire 与定义摘要保持一致。scoped recovery/屏障共享既有有界 history、schema/reducer/control 校验，
 根屏障继续拒绝非根结果；四项恢复、五项屏障检查与一个独立 256 样例模型
-覆盖这一纯规划路径。完整 registry/driver 执行路径、
-SQL、迁移与故障矩阵仍未交付；当前草稿没有嵌套执行支持。
+覆盖这一纯规划路径。调用/返回准备新增精确 caller/target/base、隔离快照、
+terminal output 与固定 route 校验，调用 profile 共十一项构造器检查。
+迁移 27 实现 scoped position/parent/frame identity 与 activation/Join 外键、
+生成式根指针及显式根查询，21 项新约束、8 列和 7 个唯一索引进入精确 catalog。
+PostgreSQL 16/17 的非空源码 schema 26→27 与 scope 外键检查已执行；
+其手工 scoped 行仅证明关系约束，不证明帧准入或复合 journal 事务。
+完整 registry/driver、入栈/返回/等待事务及故障矩阵仍未交付；当前草稿没有
+嵌套执行支持，也没有真实历史 N-1/N-2 兼容性结论。
 后续 fuzz 时间戳反例已保留，数字校验先于算术；全部 ASCII 非数字位置、
 固定长度 Unicode 与嵌套 reader 有确定性回归。最终提交继续以完整 CI 验收。
 

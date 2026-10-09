@@ -48,9 +48,12 @@ pub(crate) fn child() -> CompiledGraph {
     .unwrap()
 }
 pub(crate) fn parent(parallelism: u16) -> CompiledGraph {
+    parent_named("parent", parallelism)
+}
+pub(crate) fn parent_named(name: &str, parallelism: u16) -> CompiledGraph {
     let schema = schema();
     CompiledGraph::compile(
-        identity("parent"),
+        identity(name),
         schema.clone(),
         schema.clone(),
         schema.clone(),

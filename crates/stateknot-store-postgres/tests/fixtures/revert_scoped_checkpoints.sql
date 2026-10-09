@@ -1,0 +1,34 @@
+-- Copyright 2026 StateKnot contributors
+-- SPDX-License-Identifier: Apache-2.0
+-- Test-only removal on isolated root fixtures before source-schema upgrades.
+ALTER TABLE stateknot.child_run_joins DROP CONSTRAINT child_run_joins_scoped_attempt_fk;
+ALTER TABLE stateknot.child_run_ownership DROP CONSTRAINT child_run_ownership_scoped_attempt_fk;
+ALTER TABLE stateknot.node_attempts DROP CONSTRAINT node_attempts_scoped_node_origin_unique;
+ALTER TABLE stateknot.node_attempts DROP CONSTRAINT node_attempts_scoped_origin_unique;
+ALTER TABLE stateknot.child_run_joins DROP CONSTRAINT child_run_joins_scoped_checkpoint_fk;
+ALTER TABLE stateknot.child_run_ownership DROP CONSTRAINT child_run_ownership_scoped_checkpoint_fk;
+ALTER TABLE stateknot.child_run_ownership DROP COLUMN parent_graph_namespace;
+ALTER TABLE stateknot.pending_node_result_consumptions DROP CONSTRAINT pending_node_result_consumptions_scoped_successor_fk;
+ALTER TABLE stateknot.node_attempts DROP CONSTRAINT node_attempts_scoped_checkpoint_fk;
+ALTER TABLE stateknot.pending_node_results DROP CONSTRAINT pending_node_results_scoped_checkpoint_fk;
+ALTER TABLE stateknot.model_invocations DROP CONSTRAINT model_invocations_scoped_checkpoint_fk;
+ALTER TABLE stateknot.tool_invocations DROP CONSTRAINT tool_invocations_scoped_checkpoint_fk;
+ALTER TABLE stateknot.agent_admissions DROP CONSTRAINT agent_admissions_root_checkpoint_fk;
+ALTER TABLE stateknot.agent_admissions DROP COLUMN checkpoint_graph_namespace;
+ALTER TABLE stateknot.runs DROP CONSTRAINT runs_root_checkpoint_fk;
+ALTER TABLE stateknot.runs DROP COLUMN checkpoint_graph_namespace;
+ALTER TABLE stateknot.run_checkpoints DROP CONSTRAINT run_checkpoints_frame_parent_identity_fk;
+ALTER TABLE stateknot.run_checkpoints DROP CONSTRAINT run_checkpoints_frame_parent_identity_unique;
+ALTER TABLE stateknot.run_checkpoints DROP CONSTRAINT run_checkpoints_scoped_parent_fk;
+ALTER TABLE stateknot.run_checkpoints DROP CONSTRAINT run_checkpoints_scoped_anchor_unique;
+ALTER TABLE stateknot.run_checkpoints DROP CONSTRAINT run_checkpoints_scoped_identity_unique;
+ALTER TABLE stateknot.run_checkpoints DROP CONSTRAINT run_checkpoints_scoped_id_unique;
+ALTER TABLE stateknot.run_checkpoints DROP CONSTRAINT run_checkpoints_scoped_position_unique;
+ALTER TABLE stateknot.run_checkpoints DROP CONSTRAINT run_checkpoints_frame_shape;
+ALTER TABLE stateknot.run_checkpoints DROP COLUMN frame_checkpoint_head_checksum;
+ALTER TABLE stateknot.run_checkpoints DROP COLUMN frame_checkpoint_head_bytes;
+ALTER TABLE stateknot.run_checkpoints DROP COLUMN frame_checkpoint_digest;
+ALTER TABLE stateknot.run_checkpoints DROP COLUMN frame_identity_digest;
+ALTER TABLE stateknot.run_checkpoints DROP COLUMN graph_namespace;
+ALTER TABLE stateknot.run_checkpoints ADD CONSTRAINT run_checkpoints_superstep_unique UNIQUE (tenant_id, run_id, superstep);
+DELETE FROM _sqlx_migrations WHERE version = 27;

@@ -8,7 +8,12 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, de};
 use thiserror::Error;
 
-use crate::{CompiledGraph, GraphFrameIdentity, GraphReference, NodeId, RouteId, SchemaReference};
+use crate::{
+    Checkpoint, CheckpointId, CheckpointWrite, CompiledGraph, GraphFrameBarrierPlan,
+    GraphFrameCheckpoint, GraphFrameError, GraphFrameIdentity, GraphReference, NodeActivation,
+    NodeControl, NodeId, NodeInvocationBindings, NodeStateChange, NodeStateUpdate,
+    PendingNodeResultIntent, RouteId, SchemaReference, Superstep,
+};
 
 /// One framework-owned, isolated-state call site with a fixed return route.
 ///
@@ -109,6 +114,181 @@ impl GraphFrameCall {
             return Err(GraphFrameCompileError::TargetPinMismatch);
         }
         Ok(())
+    }
+
+    /// Prepares an isolated initial snapshot for an exact declared root call.
+    ///
+    /// This verifies data only. The store must reload the authenticated root,
+    /// admitted closure and inherited bounds, and validate the active leaf and
+    /// fence before atomically committing the framework start and frame entry.
+    /// No application callback runs and no durable authority is returned.
+    ///
+    /// # Errors
+    /// Rejects a substituted declaration/target/base, a non-ready caller,
+    /// exhausted graph steps or invalid bounded frame/checkpoint construction.
+    pub fn prepare_root_entry(
+        &self,
+        parent_graph: &CompiledGraph,
+        parent: &Checkpoint,
+        target: &CompiledGraph,
+        checkpoint_id: CheckpointId,
+    ) -> Result<(GraphFrameIdentity, CheckpointWrite), GraphFrameCompileError> {
+        self.validate_entry(parent_graph, parent, target)?;
+        let origin = NodeActivation::for_ready_root(parent, self.node_id.clone())
+            .map_err(|_| GraphFrameCompileError::CallerNotReady)?;
+        self.prepare_snapshot(origin, parent, target, checkpoint_id)
+    }
+
+    /// Prepares an isolated snapshot from an exact declared scoped caller.
+    ///
+    /// Preserves the verified parent namespace and copies only its validated
+    /// immutable state. Ancestor state and local positions remain independent.
+    /// The returned data does not grant another budget or authorize dispatch.
+    ///
+    /// # Errors
+    /// Rejects declaration/base/target drift, non-ready callers, exhausted graph
+    /// steps and an eighth frame before creating its snapshot.
+    pub fn prepare_frame_entry(
+        &self,
+        parent_graph: &CompiledGraph,
+        parent: &GraphFrameCheckpoint,
+        target: &CompiledGraph,
+        checkpoint_id: CheckpointId,
+    ) -> Result<(GraphFrameIdentity, CheckpointWrite), GraphFrameCompileError> {
+        self.validate_entry(parent_graph, parent.checkpoint(), target)?;
+        let origin = parent
+            .activation(self.node_id.clone())
+            .map_err(|source| GraphFrameCompileError::FrameData { source })?;
+        self.prepare_snapshot(origin, parent.checkpoint(), target, checkpoint_id)
+    }
+
+    /// Prepares the fixed-route parent result from a verified terminal child plan.
+    ///
+    /// Parent state remains immutable. The store must atomically verify and
+    /// commit the complete child barrier, frame settlement, parent attempt and
+    /// pending result under the current fence and active-leaf projection. This
+    /// data alone cannot authorize return or prove ownership is discharged.
+    ///
+    /// # Errors
+    /// Rejects caller/declaration/target drift, another child frame or barrier,
+    /// and any non-terminal plan before constructing a parent result.
+    pub fn prepare_root_return(
+        &self,
+        parent_graph: &CompiledGraph,
+        parent: &Checkpoint,
+        target: &CompiledGraph,
+        child: &GraphFrameCheckpoint,
+        terminal: &GraphFrameBarrierPlan,
+    ) -> Result<PendingNodeResultIntent, GraphFrameCompileError> {
+        self.validate_entry(parent_graph, parent, target)?;
+        let origin = NodeActivation::for_ready_root(parent, self.node_id.clone())
+            .map_err(|_| GraphFrameCompileError::CallerNotReady)?;
+        self.prepare_return(origin, child, terminal)
+    }
+
+    /// Prepares the parent result for a caller suspended in an exact outer frame.
+    ///
+    /// Preserves that parent's scoped activation; the verified child output is
+    /// its update and the declaration supplies its only route. Actual return
+    /// still requires the same atomic store checks as root return.
+    ///
+    /// # Errors
+    /// Rejects invalid caller/declaration/target data, crossed scopes, a changed
+    /// child base or any plan that has not reached a terminal barrier.
+    pub fn prepare_frame_return(
+        &self,
+        parent_graph: &CompiledGraph,
+        parent: &GraphFrameCheckpoint,
+        target: &CompiledGraph,
+        child: &GraphFrameCheckpoint,
+        terminal: &GraphFrameBarrierPlan,
+    ) -> Result<PendingNodeResultIntent, GraphFrameCompileError> {
+        self.validate_entry(parent_graph, parent.checkpoint(), target)?;
+        let origin = parent
+            .activation(self.node_id.clone())
+            .map_err(|source| GraphFrameCompileError::FrameData { source })?;
+        self.prepare_return(origin, child, terminal)
+    }
+
+    fn prepare_return(
+        &self,
+        origin: NodeActivation,
+        child: &GraphFrameCheckpoint,
+        terminal: &GraphFrameBarrierPlan,
+    ) -> Result<PendingNodeResultIntent, GraphFrameCompileError> {
+        let expected =
+            GraphFrameIdentity::new(origin.clone(), self.slot.clone(), self.target.clone())
+                .map_err(|source| GraphFrameCompileError::FrameData { source })?;
+        if child.frame() != &expected || terminal.barrier().base_checkpoint() != &child.head() {
+            return Err(GraphFrameCompileError::ReturnFrameMismatch);
+        }
+        let output = terminal
+            .disposition()
+            .terminal_output()
+            .filter(|output| output.schema() == &self.output_schema)
+            .ok_or(GraphFrameCompileError::ChildNotTerminal)?;
+        let update = NodeStateUpdate::new(output.schema().clone(), output.data().clone())
+            .map_err(|source| GraphFrameCompileError::ReturnUpdate { source })?;
+        PendingNodeResultIntent::new(
+            origin,
+            NodeStateChange::Update { update },
+            NodeControl::Route {
+                route_id: self.return_route.clone(),
+            },
+            NodeInvocationBindings::empty(),
+        )
+        .map_err(|source| GraphFrameCompileError::ReturnResult { source })
+    }
+
+    fn validate_entry(
+        &self,
+        parent_graph: &CompiledGraph,
+        parent: &Checkpoint,
+        target: &CompiledGraph,
+    ) -> Result<(), GraphFrameCompileError> {
+        if parent_graph
+            .frame_calls()
+            .and_then(|policy| policy.call(&self.node_id))
+            != Some(self)
+        {
+            return Err(GraphFrameCompileError::UndeclaredCaller);
+        }
+        self.validate_target(target)?;
+        if parent.graph() != &parent_graph.reference()
+            || (parent.superstep() == Superstep::INITIAL
+                && parent.ready_nodes() != parent_graph.entry_nodes())
+            || parent.superstep().get() >= parent_graph.limits().maximum_supersteps().get()
+        {
+            return Err(GraphFrameCompileError::ParentCheckpointMismatch);
+        }
+        if parent.ready_nodes().len() != 1 || !parent.ready_nodes().contains(&self.node_id) {
+            return Err(GraphFrameCompileError::CallerNotReady);
+        }
+        Ok(())
+    }
+
+    fn prepare_snapshot(
+        &self,
+        origin: NodeActivation,
+        parent: &Checkpoint,
+        target: &CompiledGraph,
+        checkpoint_id: CheckpointId,
+    ) -> Result<(GraphFrameIdentity, CheckpointWrite), GraphFrameCompileError> {
+        if checkpoint_id == parent.checkpoint_id() {
+            return Err(GraphFrameCompileError::ParentCheckpointMismatch);
+        }
+        let frame = GraphFrameIdentity::new(origin, self.slot.clone(), self.target.clone())
+            .map_err(|source| GraphFrameCompileError::FrameData { source })?;
+        let snapshot = CheckpointWrite::initial(
+            parent.tenant_id().clone(),
+            parent.run_id(),
+            checkpoint_id,
+            target.reference(),
+            parent.state().clone(),
+            target.entry_nodes().clone(),
+        )
+        .map_err(|source| GraphFrameCompileError::InitialCheckpoint { source })?;
+        Ok((frame, snapshot))
     }
 }
 impl<'de> Deserialize<'de> for GraphFrameCall {
@@ -323,6 +503,49 @@ fn bounded_calls<'de, D: Deserializer<'de>>(
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum GraphFrameCompileError {
+    /// Child scope or terminal barrier did not match the suspended caller.
+    #[error("frame return does not match the exact caller and child checkpoint")]
+    ReturnFrameMismatch,
+    /// The actual child plan had no exact schema-pinned terminal output.
+    #[error("frame return requires an exact schema-pinned terminal child plan")]
+    ChildNotTerminal,
+    /// Constructing the output's parent update failed.
+    #[error("frame return update is invalid: {source}")]
+    ReturnUpdate {
+        /// Public-safe bounded update failure.
+        #[source]
+        source: crate::NodeStateUpdateError,
+    },
+    /// Constructing the fixed-route parent result failed.
+    #[error("frame return result is invalid: {source}")]
+    ReturnResult {
+        /// Public-safe result intent failure.
+        #[source]
+        source: crate::PendingNodeResultIntentError,
+    },
+    /// The exact call was not present in the pinned parent definition.
+    #[error("frame caller is not declared by the pinned parent graph")]
+    UndeclaredCaller,
+    /// The full parent checkpoint crossed graph/entry/step identity or reused an ID.
+    #[error("frame caller checkpoint does not match its pinned graph or local position")]
+    ParentCheckpointMismatch,
+    /// The serial caller was not the exact complete ready set.
+    #[error("frame caller is not the exact serial ready activation")]
+    CallerNotReady,
+    /// Scoped identity or activation derivation failed.
+    #[error("frame entry scope is invalid: {source}")]
+    FrameData {
+        /// Exact public-safe data failure.
+        #[source]
+        source: GraphFrameError,
+    },
+    /// Preparing the isolated initial snapshot failed.
+    #[error("frame initial checkpoint is invalid: {source}")]
+    InitialCheckpoint {
+        /// Exact public-safe checkpoint construction failure.
+        #[source]
+        source: crate::CheckpointWriteError,
+    },
     /// Depth/start limits were zero or exceeded immutable ceilings.
     #[error("graph frame limits must be finite and within framework ceilings")]
     InvalidLimits,

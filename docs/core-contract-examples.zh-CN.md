@@ -185,6 +185,11 @@ Scoped recovery 保留完整 frame，拒绝 sibling/root 证据，并在接管�
 复用根图的 schema/reducer/control 校验；旧根屏障保持关闭。另有四项恢复、
 五项屏障检查和一个各 256 样例的独立求和/摘要模型，数据不能推断
 active leaf、fence 或父返回权限。
+调用准备核对精确声明、目标及 caller，并创建隔离的初始状态快照；返回准备
+要求精确子 checkpoint 与 terminal plan，仅生成固定 route 的父节点结果。
+调用 profile 共十一项构造器检查。这些 Rust-only 方法复用原有数据类型，
+不新增 wire/schema pin，也不授权持久化或派发。PostgreSQL 迁移 27 加入
+scoped 外键及显式根查询；帧入栈/返回事务、等待所有权和故障验收仍待交付。
 
 [RFC-0021](rfcs/0021-core-object-readers.md) 要求全部 181 个封闭对象 reader
 使用已公布的对象形状。流式 map 门禁复用原 owned 字段 reader、重复/未知字段

@@ -90,6 +90,9 @@ pub use tool_authorization_receipts::{
 #[path = "skill_activation_windows.rs"]
 mod skill_activation_windows;
 
+#[path = "scoped_checkpoints.rs"]
+mod scoped_checkpoints;
+
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
     ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
@@ -379,6 +382,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!(
                 "../migrations/0026_skill_activation_windows.sql"
             )),
+            false,
+        ),
+        Migration::new(
+            27,
+            Cow::Borrowed("scoped checkpoints"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0027_scoped_checkpoints.sql")),
             false,
         ),
     ]),
@@ -1270,9 +1280,13 @@ SELECT
     state_digest,
     intent_digest,
     checkpoint_digest,
-    checkpoint_bytes
+    checkpoint_bytes,
+    graph_namespace,
+    frame_identity_digest,
+    frame_checkpoint_digest,
+    frame_checkpoint_head_bytes
 FROM stateknot.run_checkpoints
-WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $3
+WHERE tenant_id = $1 AND run_id = $2 AND graph_namespace = '' AND checkpoint_id = $3
 ";
 
 const SELECT_CHECKPOINT_BY_ANCHOR: &str = r"
@@ -1295,9 +1309,13 @@ SELECT
     state_digest,
     intent_digest,
     checkpoint_digest,
-    checkpoint_bytes
+    checkpoint_bytes,
+    graph_namespace,
+    frame_identity_digest,
+    frame_checkpoint_digest,
+    frame_checkpoint_head_bytes
 FROM stateknot.run_checkpoints
-WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
+WHERE tenant_id = $1 AND run_id = $2 AND graph_namespace = '' AND journal_sequence = $3
 ";
 
 const SELECT_CHECKPOINT_LINEAGE: &str = r"
@@ -1306,6 +1324,7 @@ WITH RECURSIVE checkpoint_lineage AS (
     FROM stateknot.run_checkpoints AS current_checkpoint
     WHERE current_checkpoint.tenant_id = $1
       AND current_checkpoint.run_id = $2
+      AND current_checkpoint.graph_namespace = ''
       AND current_checkpoint.checkpoint_id = $3
 
     UNION ALL
@@ -1315,6 +1334,7 @@ WITH RECURSIVE checkpoint_lineage AS (
     JOIN checkpoint_lineage AS child
       ON parent_checkpoint.tenant_id = child.tenant_id
      AND parent_checkpoint.run_id = child.run_id
+     AND parent_checkpoint.graph_namespace = child.graph_namespace
      AND parent_checkpoint.checkpoint_id = child.parent_checkpoint_id
      AND parent_checkpoint.superstep = child.parent_superstep
      AND parent_checkpoint.checkpoint_digest = child.parent_digest
@@ -1339,7 +1359,11 @@ SELECT
     state_digest,
     intent_digest,
     checkpoint_digest,
-    checkpoint_bytes
+    checkpoint_bytes,
+    graph_namespace,
+    frame_identity_digest,
+    frame_checkpoint_digest,
+    frame_checkpoint_head_bytes
 FROM checkpoint_lineage
 ORDER BY lineage_depth ASC
 ";
@@ -3250,6 +3274,7 @@ impl PostgresStore {
         child_joins::verify_schema(&self.pool).await?;
         agent_deadlines::verify_schema(&self.pool).await?;
         failure_closes::verify_schema(&self.pool).await?;
+        scoped_checkpoints::verify_schema(&self.pool).await?;
         Ok(())
     }
 
@@ -5105,7 +5130,7 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             .await
     }
 
-    /// Loads and verifies one immutable tenant/run-scoped checkpoint by ID.
+    /// Loads and verifies one immutable root checkpoint by tenant, run and ID.
     ///
     /// This does not require the checkpoint to remain the run's current head;
     /// it is suitable for audit and exact lost-acknowledgement recovery.
@@ -10363,6 +10388,10 @@ struct CheckpointRow {
     intent_digest: Vec<u8>,
     checkpoint_digest: Vec<u8>,
     checkpoint_bytes: Vec<u8>,
+    graph_namespace: String,
+    frame_identity_digest: Option<Vec<u8>>,
+    frame_checkpoint_digest: Option<Vec<u8>>,
+    frame_checkpoint_head_bytes: Option<Vec<u8>>,
 }
 
 struct ToolInvocationRow {
@@ -11001,6 +11030,10 @@ impl<'row> FromRow<'row, PgRow> for CheckpointRow {
             intent_digest: row.try_get("intent_digest")?,
             checkpoint_digest: row.try_get("checkpoint_digest")?,
             checkpoint_bytes: row.try_get("checkpoint_bytes")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            frame_identity_digest: row.try_get("frame_identity_digest")?,
+            frame_checkpoint_digest: row.try_get("frame_checkpoint_digest")?,
+            frame_checkpoint_head_bytes: row.try_get("frame_checkpoint_head_bytes")?,
         })
     }
 }
@@ -12874,6 +12907,13 @@ fn encode_checkpoint(checkpoint: &Checkpoint) -> Result<Vec<u8>, StoreError> {
 
 #[allow(clippy::too_many_lines)]
 fn decode_checkpoint(row: CheckpointRow) -> Result<Checkpoint, StoreError> {
+    if !row.graph_namespace.is_empty()
+        || row.frame_identity_digest.is_some()
+        || row.frame_checkpoint_digest.is_some()
+        || row.frame_checkpoint_head_bytes.is_some()
+    {
+        return Err(StoreError::corrupt("root checkpoint namespace binding"));
+    }
     if row.checkpoint_bytes.is_empty() || row.checkpoint_bytes.len() > MAX_CHECKPOINT_BYTES {
         return Err(StoreError::corrupt("checkpoint byte length"));
     }

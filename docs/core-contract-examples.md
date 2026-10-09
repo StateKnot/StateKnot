@@ -212,6 +212,13 @@ activations and bounded canonical results; it shares root schema/reducer/control
 validation while keeping the root barrier closed. Four recovery checks, five
 barrier checks and another independent 256-case sum/checksum model cover these
 pure paths. No active-leaf, fence or parent-return authority is inferred from data.
+Call preparation verifies the exact declaration/target/caller and creates an
+isolated initial snapshot. Return preparation requires the exact child base and
+terminal plan, producing only the fixed-route parent result; eleven constructor
+checks cover the call profile. These Rust-only methods reuse existing data and
+do not add wire/schema pins or authorize persistence/dispatch. PostgreSQL
+migration 27 adds scoped relational guards and explicit root queries; atomic
+frame entry/return, wait ownership and fault qualification remain pending.
 The 181 object readers and 308 pins in the RFC-0021 account below describe its
 original adoption baseline; the six additions use the same map-only guard.
 

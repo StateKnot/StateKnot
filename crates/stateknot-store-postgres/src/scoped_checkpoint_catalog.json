@@ -1,0 +1,269 @@
+{
+  "columns": [
+    [
+      "agent_admissions",
+      "checkpoint_graph_namespace",
+      "text",
+      false,
+      "s",
+      "''::text"
+    ],
+    [
+      "child_run_ownership",
+      "parent_graph_namespace",
+      "text",
+      true,
+      "",
+      "''::text"
+    ],
+    [
+      "run_checkpoints",
+      "frame_checkpoint_digest",
+      "bytea",
+      false,
+      "",
+      null
+    ],
+    [
+      "run_checkpoints",
+      "frame_checkpoint_head_bytes",
+      "bytea",
+      false,
+      "",
+      null
+    ],
+    [
+      "run_checkpoints",
+      "frame_checkpoint_head_checksum",
+      "bytea",
+      false,
+      "s",
+      "sha256(frame_checkpoint_head_bytes)"
+    ],
+    [
+      "run_checkpoints",
+      "frame_identity_digest",
+      "bytea",
+      false,
+      "",
+      null
+    ],
+    [
+      "run_checkpoints",
+      "graph_namespace",
+      "text",
+      true,
+      "",
+      "''::text"
+    ],
+    [
+      "runs",
+      "checkpoint_graph_namespace",
+      "text",
+      false,
+      "s",
+      "''::text"
+    ]
+  ],
+  "indexes": [
+    [
+      "node_attempts",
+      "CREATE UNIQUE INDEX node_attempts_scoped_node_origin_unique ON stateknot.node_attempts USING btree (tenant_id, run_id, attempt_id, base_checkpoint_id, graph_namespace, node_id)",
+      true,
+      true,
+      true
+    ],
+    [
+      "node_attempts",
+      "CREATE UNIQUE INDEX node_attempts_scoped_origin_unique ON stateknot.node_attempts USING btree (tenant_id, run_id, attempt_id, base_checkpoint_id, graph_namespace)",
+      true,
+      true,
+      true
+    ],
+    [
+      "run_checkpoints",
+      "CREATE UNIQUE INDEX run_checkpoints_frame_parent_identity_unique ON stateknot.run_checkpoints USING btree (tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, frame_identity_digest)",
+      true,
+      true,
+      true
+    ],
+    [
+      "run_checkpoints",
+      "CREATE UNIQUE INDEX run_checkpoints_scoped_anchor_unique ON stateknot.run_checkpoints USING btree (tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, journal_sequence, journal_event_id, journal_recorded_at, journal_digest)",
+      true,
+      true,
+      true
+    ],
+    [
+      "run_checkpoints",
+      "CREATE UNIQUE INDEX run_checkpoints_scoped_id_unique ON stateknot.run_checkpoints USING btree (tenant_id, run_id, graph_namespace, checkpoint_id)",
+      true,
+      true,
+      true
+    ],
+    [
+      "run_checkpoints",
+      "CREATE UNIQUE INDEX run_checkpoints_scoped_identity_unique ON stateknot.run_checkpoints USING btree (tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest)",
+      true,
+      true,
+      true
+    ],
+    [
+      "run_checkpoints",
+      "CREATE UNIQUE INDEX run_checkpoints_scoped_position_unique ON stateknot.run_checkpoints USING btree (tenant_id, run_id, graph_namespace, superstep)",
+      true,
+      true,
+      true
+    ]
+  ],
+  "constraints": [
+    [
+      "agent_admissions",
+      "agent_admissions_root_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, run_id, checkpoint_graph_namespace, checkpoint_id, checkpoint_superstep, checkpoint_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest) ON UPDATE RESTRICT ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_scoped_attempt_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, node_attempt_id, base_checkpoint_id, graph_namespace, node_id) REFERENCES stateknot.node_attempts(tenant_id, run_id, attempt_id, base_checkpoint_id, graph_namespace, node_id) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_scoped_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, graph_namespace, base_checkpoint_id) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_ownership",
+      "child_run_ownership_scoped_attempt_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, parent_node_attempt_id, parent_checkpoint_id, parent_graph_namespace) REFERENCES stateknot.node_attempts(tenant_id, run_id, attempt_id, base_checkpoint_id, graph_namespace) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_ownership",
+      "child_run_ownership_scoped_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, parent_graph_namespace, parent_checkpoint_id, parent_checkpoint_superstep, parent_checkpoint_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "model_invocations",
+      "model_invocations_scoped_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, base_checkpoint_id, base_superstep, base_checkpoint_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "node_attempts",
+      "node_attempts_scoped_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, base_checkpoint_id, base_superstep, base_checkpoint_digest, base_journal_sequence, base_journal_event_id, base_journal_recorded_at, base_journal_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, journal_sequence, journal_event_id, journal_recorded_at, journal_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "node_attempts",
+      "node_attempts_scoped_node_origin_unique",
+      "UNIQUE (tenant_id, run_id, attempt_id, base_checkpoint_id, graph_namespace, node_id)",
+      true,
+      false
+    ],
+    [
+      "node_attempts",
+      "node_attempts_scoped_origin_unique",
+      "UNIQUE (tenant_id, run_id, attempt_id, base_checkpoint_id, graph_namespace)",
+      true,
+      false
+    ],
+    [
+      "pending_node_result_consumptions",
+      "pending_node_result_consumptions_scoped_successor_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, successor_checkpoint_id, successor_superstep, successor_checkpoint_digest, successor_journal_sequence, successor_journal_event_id, successor_journal_recorded_at, successor_journal_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, journal_sequence, journal_event_id, journal_recorded_at, journal_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "pending_node_results",
+      "pending_node_results_scoped_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, base_checkpoint_id, base_superstep, base_checkpoint_digest, base_journal_sequence, base_journal_event_id, base_journal_recorded_at, base_journal_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, journal_sequence, journal_event_id, journal_recorded_at, journal_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "run_checkpoints",
+      "run_checkpoints_frame_parent_identity_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, parent_checkpoint_id, parent_superstep, parent_digest, frame_identity_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, frame_identity_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "run_checkpoints",
+      "run_checkpoints_frame_parent_identity_unique",
+      "UNIQUE (tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, frame_identity_digest)",
+      true,
+      false
+    ],
+    [
+      "run_checkpoints",
+      "run_checkpoints_frame_shape",
+      "CHECK ((((graph_namespace = ''::text) AND (frame_identity_digest IS NULL) AND (frame_checkpoint_digest IS NULL) AND (frame_checkpoint_head_bytes IS NULL)) OR ((graph_namespace ~ '^[0-9a-f]{64}(/[0-9a-f]{64}){0,6}$'::text) AND (octet_length(graph_namespace) <= 454) AND (frame_identity_digest IS NOT NULL) AND (octet_length(frame_identity_digest) = 32) AND (frame_checkpoint_digest IS NOT NULL) AND (octet_length(frame_checkpoint_digest) = 32) AND (frame_checkpoint_head_bytes IS NOT NULL) AND ((octet_length(frame_checkpoint_head_bytes) >= 1) AND (octet_length(frame_checkpoint_head_bytes) <= 65536)))))",
+      true,
+      false
+    ],
+    [
+      "run_checkpoints",
+      "run_checkpoints_scoped_anchor_unique",
+      "UNIQUE (tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, journal_sequence, journal_event_id, journal_recorded_at, journal_digest)",
+      true,
+      false
+    ],
+    [
+      "run_checkpoints",
+      "run_checkpoints_scoped_id_unique",
+      "UNIQUE (tenant_id, run_id, graph_namespace, checkpoint_id)",
+      true,
+      false
+    ],
+    [
+      "run_checkpoints",
+      "run_checkpoints_scoped_identity_unique",
+      "UNIQUE (tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest)",
+      true,
+      false
+    ],
+    [
+      "run_checkpoints",
+      "run_checkpoints_scoped_parent_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, parent_checkpoint_id, parent_superstep, parent_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "run_checkpoints",
+      "run_checkpoints_scoped_position_unique",
+      "UNIQUE (tenant_id, run_id, graph_namespace, superstep)",
+      true,
+      false
+    ],
+    [
+      "runs",
+      "runs_root_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, run_id, checkpoint_graph_namespace, checkpoint_id, checkpoint_superstep, checkpoint_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "tool_invocations",
+      "tool_invocations_scoped_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, base_checkpoint_id, base_superstep, base_checkpoint_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest) ON DELETE RESTRICT",
+      true,
+      false
+    ]
+  ],
+  "unscoped_position_absent": true
+}
