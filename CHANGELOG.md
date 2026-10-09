@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Draft RFC-0022 for same-Run namespaced graph frames, with five executable
+  private identity checks. It specifies isolated state, bounded scope, durable
+  parent continuation and compound journal bindings; runtime/persistence
+  implementation and acceptance remain pending. No execution support is added
+  by the Draft or constructor prototype.
+
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
   references and canonical checksum preimages verify the actual root barrier.
