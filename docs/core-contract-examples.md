@@ -82,19 +82,20 @@ without the corresponding typed fixture and property test.
 | `SchemaId`, `SchemaReference` | `core-schema-v1.json`: `ids`, `references` |
 | `CapabilityName`, `Scope`, `ScopeSet` | `core-authorization-v1.json`: `capability_names`, `scopes`, `scope_sets` |
 
-[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs)
-supplies independent models for the following RFC-0001 item 3 requirements.
-Together with the 18 identifier properties, these 31 property tests each run
+[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs) and
+[`nested_json_properties.rs`](../crates/stateknot-core/tests/nested_json_properties.rs)
+supply independent models for the following RFC-0001 item 3 requirements.
+Together with the 18 identifier properties, these 35 property tests each run
 256 bounded generated cases. CI runs a fixed seed for reproduction; the full
 workspace tests also execute the ordinary random-seed run.
 
 | Requirement | Executable model and retained coverage |
 | --- | --- |
 | Constructor bounds | Identity ASCII/length grammars agree with constructors and Serde; UUID bits retain exact identity and reject every other version and variant class; versions/digests retain all integer/byte values; timestamps retain their full range and reject out-of-range values; durations reject numeric wire forms, overflow and precision loss; currencies require uppercase ASCII. Schema IDs require normalized HTTPS, while issuer identity deliberately preserves exact case. Existing content, descriptor and invocation-limit properties remain in their Core modules. |
-| Canonicalization stability | Every listed value preserves wire bytes and digest through canonical decoding. Arbitrary Unicode object keys match an independent UTF-16 sort model, with a fixed supplementary-plane/private-use counterexample to Rust string ordering. Existing JSON, graph, checkpoint, barrier and recovery-order properties remain required. |
+| Canonicalization stability | Every listed value preserves wire bytes and digest through canonical decoding. Arbitrary Unicode object keys match an independent UTF-16 sort model, with a fixed supplementary-plane/private-use counterexample to Rust string ordering. Nested arrays/objects with Unicode keys/values and safe integer leaves match a separate recursive canonical-byte model and SHA-256. Existing JSON, graph, checkpoint, barrier and recovery-order properties remain required. |
 | Budget arithmetic | All three count types and Money match checked `u64` addition, subtraction and multiplication; cross-currency operations fail. Duration arithmetic matches nonnegative `i64`. Existing `budget.rs`, `budget_reservation_tests.rs` and `child_run_budget_tests.rs` retain narrowing, high-water, reservation-order and repeated-settlement models. |
 | Delegation intersection | Caller, grant and policy scopes match the three-way bit-set intersection, remain associative and cannot widen any participant. The existing two-party commutativity/idempotence model remains required. |
-| Extension limits | Complete-map bytes, per-key bytes and entry count accept the exact boundary and reject a one-unit narrowing; duplicate entries fail. The existing insertion-order/accounting property and deterministic nested-JSON hard-limit tests remain required. |
+| Extension limits | Complete-map bytes, per-key bytes and entry count accept the exact boundary and reject a one-unit narrowing; duplicate entries fail. Independent nested-tree accounting checks compact bytes, depth, container entries, value nodes excluding keys, decoded string bytes and decoded key bytes. Both raw/materialized constructors agree with narrowed profiles; exact limits pass, one-unit tightenings fail, and trailing whitespace hits the raw byte gate. Opaque/schema-bound extension construction and restriction enforce the same per-value limits on previously wider values. The existing insertion-order/accounting property and deterministic hard-limit tests remain required. |
 
 The value-family evidence remains required. The root-export inventory below
 adds every current serializable public type; variant combinations, nested

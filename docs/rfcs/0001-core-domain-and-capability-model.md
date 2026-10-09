@@ -1783,9 +1783,9 @@ remains open pending the full variant review.
 The [Core contract guide](../core-contract-examples.md#value-level-fixture-and-property-coverage)
 now maps 38 public value types to direct positive/negative canonical round trips,
 including all 18 macro-generated UUIDv7 types with an inventory drift guard.
-Thirty-one bounded property models cover identity/Serde grammar agreement,
+Thirty-five bounded property models cover identity/Serde grammar agreement,
 precision, checked arithmetic, Unicode UTF-16 canonical ordering, three-way
-delegation intersection and exact extension limits. CI runs a reproducible seed
+delegation intersection, exact extension limits and independent nested JSON resource/canonical models. Raw and materialized values agree with all six measured dimensions; one-unit tightenings fail, and previously wider values cannot bypass extension restrictions. CI runs a reproducible seed
 and retains the ordinary random workspace run. Composite/nested value coverage
 and its complete type audit remain open for items 2 and 3.
 
