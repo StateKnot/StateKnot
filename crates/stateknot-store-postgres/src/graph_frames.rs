@@ -12,6 +12,12 @@ use stateknot_core::{
 mod barriers;
 pub use barriers::{GraphFrameBarrierCommitOutcome, StoredGraphFrameBarrier};
 
+#[path = "graph_frames/caller_bindings.rs"]
+mod caller_bindings;
+pub(super) fn is_framework_kind(kind: &str) -> bool {
+    caller_bindings::is_framework_kind(kind)
+}
+
 const SCOPE_DOMAIN: &[u8] = b"stateknot-postgres-frame-entry-scope-v1\0";
 const COMPOUND_DOMAIN: &[u8] = b"stateknot-postgres-frame-entry-compound-v1\0";
 const MAX_ENTRY_BYTES: usize = 65_536;
@@ -555,6 +561,15 @@ async fn verified_entry(
                 tx, ancestor, admission, graphs, base,
             ))
             .await?;
+            let through = u64::try_from(
+                row.journal_sequence
+                    .checked_sub(1)
+                    .ok_or_else(|| StoreError::corrupt("frame ancestor observation"))?,
+            )
+            .map_err(|_| StoreError::corrupt("frame ancestor sequence"))?;
+            let floor =
+                caller_bindings::usage_floor_before(tx, ancestor, admission, through, &floor)
+                    .await?;
             (Parent::Frame(Box::new(cp)), floor)
         };
         if base_parent.checkpoint().head() != *base {
@@ -1174,6 +1189,11 @@ pub(super) async fn recognize_start(
             .map_err(|_| StoreError::corrupt("frame start sequence"))?,
     )
     .await?;
+    if event.payload().kind().as_str() == "graph-frame-caller-rebound" {
+        return Box::pin(caller_bindings::recognize_start(tx, start, &event))
+            .await
+            .map(Some);
+    }
     if event.payload().kind().as_str() != GraphFrameEntryPlan::EVENT_KIND {
         return Ok(None);
     }

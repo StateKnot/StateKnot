@@ -14,7 +14,7 @@ use stateknot_store_postgres::{
     StoredGraphFrameEntry,
 };
 
-async fn enter(
+pub(super) async fn enter(
     store: &PostgresStore,
     name: &str,
     two_nodes: bool,
@@ -61,7 +61,7 @@ async fn enter(
     Box::pin(enter_graph(store, name, child, &[])).await
 }
 
-async fn enter_graph(
+pub(super) async fn enter_graph(
     store: &PostgresStore,
     name: &str,
     child: CompiledGraph,
@@ -120,7 +120,7 @@ async fn enter_graph(
     (admission, entry, child, fence)
 }
 
-async fn succeed(
+pub(super) async fn succeed(
     store: &PostgresStore,
     base: &GraphFrameCheckpoint,
     fence: &RunFence,
@@ -178,7 +178,7 @@ async fn succeed(
         .await
         .unwrap()
 }
-fn terminal(graph: &CompiledGraph) -> NodeControl {
+pub(super) fn terminal(graph: &CompiledGraph) -> NodeControl {
     NodeControl::Terminal {
         output: NodeTerminalOutput::new(
             graph.output_schema().clone(),
@@ -187,7 +187,7 @@ fn terminal(graph: &CompiledGraph) -> NodeControl {
         .unwrap(),
     }
 }
-fn plan(
+pub(super) fn plan(
     graph: &CompiledGraph,
     base: &GraphFrameCheckpoint,
     result: &PendingNodeResult,
@@ -204,7 +204,7 @@ fn plan(
         )
         .unwrap()
 }
-async fn commit(
+pub(super) async fn commit(
     store: &PostgresStore,
     plan: GraphFrameBarrierPlan,
     fence: &RunFence,
@@ -468,14 +468,14 @@ async fn scoped_successor_dispatch_authenticates_all_barriers_and_keeps_root_sus
     store.close().await;
 }
 
-async fn pool() -> PgPool {
+pub(super) async fn pool() -> PgPool {
     PgPoolOptions::new()
         .max_connections(2)
         .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
         .await
         .unwrap()
 }
-async fn snapshot(pool: &PgPool, fence: &RunFence) -> (Vec<i64>, String, String) {
+pub(super) async fn snapshot(pool: &PgPool, fence: &RunFence) -> (Vec<i64>, String, String) {
     let mut counts = Vec::new();
     for table in [
         "run_events",

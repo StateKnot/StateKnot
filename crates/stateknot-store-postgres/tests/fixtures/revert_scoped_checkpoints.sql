@@ -1,5 +1,14 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
+
+-- Source fixture downgrade is forbidden while caller bindings exist.
+SELECT 1 / CASE WHEN EXISTS (SELECT 1 FROM stateknot.graph_frame_caller_bindings LIMIT 1) THEN 0 ELSE 1 END;
+DROP TRIGGER run_events_frame_caller_complete ON stateknot.run_events;
+DROP TABLE stateknot.graph_frame_caller_bindings;
+DROP FUNCTION stateknot.guard_graph_frame_caller_binding_complete();
+DROP FUNCTION stateknot.guard_graph_frame_caller_event_complete();
+DELETE FROM _sqlx_migrations WHERE version=30;
+
 -- Isolated Root-only source fixtures. Refuse real retained nested-frame data.
 -- Schema-29 removal is restricted to isolated Root-only test fixtures.
 SELECT 1 / CASE WHEN EXISTS (SELECT 1 FROM stateknot.graph_frame_barriers LIMIT 1) THEN 0 ELSE 1 END;

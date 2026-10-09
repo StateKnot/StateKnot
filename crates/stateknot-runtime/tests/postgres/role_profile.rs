@@ -172,6 +172,8 @@ async fn privilege_rejections(fixture: &Fixture) {
             "UPDATE stateknot.graph_frame_heads SET frame_identity_digest=frame_identity_digest WHERE false",
             "UPDATE stateknot.graph_frame_stacks SET admission_digest=admission_digest WHERE false",
             "DELETE FROM stateknot.graph_frame_entries WHERE false",
+            "UPDATE stateknot.graph_frame_caller_bindings SET compound_digest=compound_digest WHERE false",
+            "DELETE FROM stateknot.graph_frame_caller_bindings WHERE false",
             "DELETE FROM stateknot.run_events WHERE false",
             "DELETE FROM stateknot.tool_authorization_receipts WHERE false",
             "TRUNCATE stateknot.run_events",
@@ -732,6 +734,57 @@ async fn scoped_node_completion(
             .unwrap(),
         *record.checkpoint()
     );
+    let next = store
+        .supersede_lease(fence.tenant_id(), fence.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let observed = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap()
+        .journal_head()
+        .unwrap()
+        .clone();
+    let binding = Box::pin(store.rebind_graph_frame_caller(
+        record.checkpoint().frame(),
+        AttemptId::generate(),
+        EventId::generate(),
+        next.clone(),
+        observed,
+        record.direct_usage_after().unwrap(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        binding,
+        NodeAttemptCommitOutcome::Committed { .. }
+    ));
+    let retry = Box::pin(store.rebind_graph_frame_caller(
+        record.checkpoint().frame(),
+        AttemptId::generate(),
+        EventId::generate(),
+        next.clone(),
+        entry.event().head(),
+        BudgetUsage::zero(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(retry, NodeAttemptCommitOutcome::Idempotent { .. }));
+    assert_eq!(binding.attempt().start(), retry.attempt().start());
+    assert_eq!(
+        Box::pin(store.load_node_attempt(
+            fence.tenant_id(),
+            &fence.run_id(),
+            binding.attempt().start().attempt_id()
+        ))
+        .await
+        .unwrap()
+        .start(),
+        binding.attempt().start()
+    );
 }
 
 async fn isolated_retention(fixture: &Fixture, runtime: &PostgresStore) {
@@ -834,7 +887,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 29);
+    assert_eq!(schema_version, 30);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -851,6 +904,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "compound_frame_entry_reload":true,
         "scoped_node_start_success_reload":true,
         "scoped_barrier_commit_retry_reload":true,
+        "framework_caller_rebind_retry_reload":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"

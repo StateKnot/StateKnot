@@ -413,6 +413,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0029_graph_frame_barriers.sql")),
             false,
         ),
+        Migration::new(
+            30,
+            Cow::Borrowed("framework caller bindings"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0030_graph_frame_caller_bindings.sql"
+            )),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -15734,7 +15743,7 @@ async fn verify_node_completion_base(
     start: &NodeAttemptStart,
 ) -> Result<(), StoreError> {
     let event = Box::pin(verify_node_attempt_start(tx, start)).await?;
-    if event.payload().kind().as_str() == stateknot_core::GraphFrameEntryPlan::EVENT_KIND {
+    if graph_frames::is_framework_kind(event.payload().kind().as_str()) {
         return Err(StoreError::GraphFrameCompoundRequired);
     }
     let activation = start.activation();
@@ -15822,7 +15831,7 @@ async fn verify_node_attempt(
     let Some(completion) = attempt.completion() else {
         return Ok(start_event);
     };
-    if start_event.payload().kind().as_str() == stateknot_core::GraphFrameEntryPlan::EVENT_KIND {
+    if graph_frames::is_framework_kind(start_event.payload().kind().as_str()) {
         return Err(StoreError::corrupt(
             "framework caller completion requires a whole frame return",
         ));
@@ -17741,7 +17750,7 @@ async fn insert_event(
     // Entry binds multiple immutable components and requires its dedicated
     // compound transaction; none of the legacy single-projection APIs may
     // insert this reserved kind with an ordinary component projection.
-    if event.payload().kind().as_str() == GraphFrameEntryPlan::EVENT_KIND {
+    if graph_frames::is_framework_kind(event.payload().kind().as_str()) {
         return Err(StoreError::GraphFrameCompoundRequired);
     }
     insert_event_components(transaction, event, projection_digest).await
@@ -18658,6 +18667,16 @@ WHERE current_run.tenant_id = $1
         AND s.active_namespace=$10 AND s.active_frame_identity_digest=h.frame_identity_digest
         AND h.checkpoint_id=$3 AND h.superstep=$4 AND h.checkpoint_digest=$5
     ))
+    OR EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_caller_bindings b
+      JOIN stateknot.graph_frame_entries e USING (tenant_id,run_id,graph_namespace)
+      JOIN stateknot.graph_frame_stacks s USING (tenant_id,run_id)
+      WHERE b.tenant_id=$1 AND b.run_id=$2 AND b.caller_attempt_id=$14
+        AND b.caller_start_digest=$21 AND b.journal_sequence=$17
+        AND b.journal_event_id=$18 AND b.journal_digest=$20
+        AND e.parent_namespace=$10 AND e.parent_checkpoint_id=$3
+        AND s.active_namespace=b.graph_namespace AND s.active_frame_identity_digest=b.frame_identity_digest
+    )
   )
   AND current_run.lease_attempt_id = $15
   AND current_run.fencing_epoch = $16

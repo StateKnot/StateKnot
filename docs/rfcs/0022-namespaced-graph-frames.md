@@ -237,11 +237,11 @@ callback cannot turn that recovery into a new admission.
 Deferred SQL guards require all admission components and reject incomplete
 scoped checkpoint advances, substituted frame heads, legacy wait writes during
 an active child, suspended-parent dispatch and Root continuation/terminal
-projection. The schema-29 trusted-server role profile gives the runtime only
-SELECT/INSERT on immutable entries/barriers and enumerated mutable head/stack columns.
+projection. The schema-30 trusted-server role profile gives the runtime only
+SELECT/INSERT on immutable entries/barriers/caller bindings and enumerated mutable head/stack columns.
 Exact catalog checks cover installed columns, constraints, indexes, functions
 and enabled triggers. Root-only source fixtures explicitly remove migration
-29/28 before reconstructing older schemas and refuse retained actual frame data.
+30/29/28 before reconstructing older schemas and refuse retained actual frame data.
 They do not establish historical-binary downgrade or compatibility.
 
 The experimental Store also starts ordinary ready nodes within an authenticated
@@ -276,8 +276,28 @@ parent successor and shared usage floor. Schema 29 pins the whole barrier
 catalog and trusted runtime ACL inventory. Source-28 migration fixtures retain
 nonempty actual scoped history but do not execute a historical binary.
 
-Admission, node and barrier transactions are parts of the Draft.
-Framework-fence rebinding, settlement/return, waits, all-frame closure, actual
+Framework caller rebinding now atomically commits a reserved worker event,
+a whole immutable binding, a new physical node start/claim and the Run journal
+head. The existing frame identity, activation and current child checkpoint
+stay exact. Recovery authenticates the original entry and every physical
+binding, actual starts/claims and journal predecessors; compact checkpoint
+heads receive independent full lineage verification without recursive result
+ownership replay. Original and rebound framework callers cannot complete
+through ordinary APIs. A committed epoch is recovered before new observation,
+usage or lease checks and grants no application dispatch permission.
+
+A fresh binding requires the actual active leaf, admitted graph closure,
+monotonic complete DIRECT usage, settled child accounting, live database fence
+and original deadline/budget. It charges one graph step, retry and the complete
+canonical event bytes. The existing 64-attempt hard ceiling and 64 MiB aggregate
+binding replay ceiling remain bounded. Later barriers and nested entries retain
+the binding usage floor. Schema 30 pins the additional immutable table, reserved
+event and suspended-caller guards, catalog and exact 49-table runtime ACL.
+Source-29 upgrade fixtures retain a real noninitial terminal barrier and its
+consumptions; they do not qualify historical binaries.
+
+Admission, node, barrier and caller-binding transactions are parts of the Draft.
+Settlement/return, waits, all-frame closure, actual
 registry/driver dispatch, complete process-loss/commit-loss fault qualification
 and production capacity remain pending. These Store primitives do not enable
 nested execution or make RFC-0022 Supported.

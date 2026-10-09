@@ -1,8 +1,8 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
 
-WITH frame_tables(name) AS (VALUES ('graph_frame_entries'),('graph_frame_heads'),('graph_frame_stacks'),('graph_frame_barriers')),
-frame_functions(name) AS (VALUES ('guard_graph_frame_entry_immutable'),('guard_graph_frame_execution_scope'),('guard_graph_frame_entry_complete'),('guard_graph_frame_revision_scope'),('guard_graph_frame_stack_complete'),('guard_graph_frame_entry_components'),('guard_graph_frame_root_projection'),('guard_graph_frame_checkpoint_complete'),('guard_graph_frame_head_complete'),('guard_graph_frame_legacy_wait'),('guard_graph_frame_barrier_complete'),('guard_graph_frame_barrier_event_complete'),('guard_graph_frame_head_advance'),('guard_graph_frame_consumption_complete')),
+WITH frame_tables(name) AS (VALUES ('graph_frame_entries'),('graph_frame_heads'),('graph_frame_stacks'),('graph_frame_barriers'),('graph_frame_caller_bindings')),
+frame_functions(name) AS (VALUES ('guard_graph_frame_entry_immutable'),('guard_graph_frame_execution_scope'),('guard_graph_frame_entry_complete'),('guard_graph_frame_revision_scope'),('guard_graph_frame_stack_complete'),('guard_graph_frame_entry_components'),('guard_graph_frame_root_projection'),('guard_graph_frame_checkpoint_complete'),('guard_graph_frame_head_complete'),('guard_graph_frame_legacy_wait'),('guard_graph_frame_barrier_complete'),('guard_graph_frame_barrier_event_complete'),('guard_graph_frame_head_advance'),('guard_graph_frame_consumption_complete'),('guard_graph_frame_caller_binding_complete'),('guard_graph_frame_caller_event_complete')),
 frame_triggers(table_name,name) AS (VALUES
  ('graph_frame_entries','graph_frame_entries_immutable'),('graph_frame_entries','frame_entries_complete'),
  ('graph_frame_stacks','frame_stacks_complete'),('runs','runs_frame_root_projection'),
@@ -14,7 +14,7 @@ frame_triggers(table_name,name) AS (VALUES
  ('tool_invocation_revisions','tool_revisions_frame_scope'),('model_invocation_revisions','model_revisions_frame_scope'),
  ('graph_frame_barriers','graph_frame_barriers_immutable'),('graph_frame_barriers','frame_barriers_complete'),
  ('run_events','run_events_frame_barrier_complete'),('graph_frame_heads','frame_heads_advance'),
- ('pending_node_result_consumptions','barrier_consumptions_frame_complete'))
+ ('pending_node_result_consumptions','barrier_consumptions_frame_complete'),('graph_frame_caller_bindings','graph_frame_caller_bindings_immutable'),('graph_frame_caller_bindings','frame_caller_bindings_complete'),('run_events','run_events_frame_caller_complete'))
 SELECT jsonb_build_object(
  'columns',(SELECT jsonb_agg(jsonb_build_array(t.name,a.attname,format_type(a.atttypid,a.atttypmod),a.attnotnull,a.attgenerated,pg_get_expr(d.adbin,d.adrelid)) ORDER BY t.name,a.attnum)
  FROM frame_tables t JOIN pg_attribute a ON a.attrelid=to_regclass('stateknot.'||t.name) AND a.attnum>0 AND NOT a.attisdropped

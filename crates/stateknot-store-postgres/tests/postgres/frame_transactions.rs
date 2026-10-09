@@ -35,6 +35,19 @@ pub(super) async fn admit(
     parent: &CompiledGraph,
     child: &CompiledGraph,
 ) -> StoredAgentAdmission {
+    Box::pin(admit_with_retry_limit(
+        store, tenant, run, parent, child, None,
+    ))
+    .await
+}
+pub(super) async fn admit_with_retry_limit(
+    store: &PostgresStore,
+    tenant: &TenantId,
+    run: RunId,
+    parent: &CompiledGraph,
+    child: &CompiledGraph,
+    retries: Option<u64>,
+) -> StoredAgentAdmission {
     store
         .register_graph_definition(tenant.clone(), parent.clone())
         .await
@@ -48,7 +61,23 @@ pub(super) async fn admit(
         template.provenance().clone(),
         template.descriptor().clone(),
         template.request().clone(),
-        template.budget_layers().iter().cloned(),
+        template.budget_layers().iter().map(|layer| {
+            let limits = retries.map_or_else(
+                || layer.limits().clone(),
+                |retries| {
+                    layer
+                        .limits()
+                        .clone()
+                        .with_retries(ExecutionCount::new(retries))
+                },
+            );
+            stateknot_core::AgentAdmissionBudgetLayer::new(
+                layer.source().clone(),
+                layer.decision_digest(),
+                limits,
+            )
+            .unwrap()
+        }),
         parent.reference(),
         template.authority().clone(),
     )

@@ -24,6 +24,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Add experimental atomic framework caller rebinding for RFC-0022. A newer
+  worker records a bounded physical attempt and whole immutable binding to the
+  existing child, preserving its activation/checkpoint and shared Run budget.
+  Schema 30 pins exact caller guards and runtime ACLs; ordinary framework
+  completion remains rejected pending whole return. RFC-0022 remains Draft.
+
 - Experimental scoped Store barriers atomically bind the exact complete result
   set and consumptions, worker event, isolated successor, immutable witness and
   active frame head. Planning uses actual pinned schema/reducer dependencies

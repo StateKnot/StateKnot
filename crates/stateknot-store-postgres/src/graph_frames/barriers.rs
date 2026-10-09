@@ -519,14 +519,22 @@ pub(super) async fn current_checkpoint(
     {
         return Err(StoreError::corrupt("barrier frame pointer"));
     }
-    checkpoint_at(
+    let (checkpoint, floor) = checkpoint_at(
         tx,
         entry,
         admission,
         graphs,
         &checkpoint.checkpoint().head(),
     )
-    .await
+    .await?;
+    let through = admission
+        .run()
+        .journal_head()
+        .ok_or(StoreError::StaleJournalHead)?
+        .sequence()
+        .get();
+    let floor = caller_bindings::usage_floor_before(tx, entry, admission, through, &floor).await?;
+    Ok((checkpoint, floor))
 }
 
 #[allow(clippy::too_many_lines)]
@@ -655,9 +663,12 @@ async fn verify_edge(
         cp.checkpoint(),
     )
     .await?;
+    let floor =
+        caller_bindings::usage_floor_before(tx, entry, admission, before.sequence().get(), floor)
+            .await?;
     wire.budget
         .direct_usage
-        .validate_monotonic_after(floor)
+        .validate_monotonic_after(&floor)
         .map_err(|_| StoreError::corrupt("barrier shared usage regression"))?;
     let record = StoredGraphFrameBarrier {
         event,

@@ -170,10 +170,13 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       complete result consumption and authenticated forward history. Successor
       dispatch and nested parent continuation retain the same Run usage floor;
       actual callbacks finish outside mutation locks. Its 48-table role profile
-      and exact catalog preserve whole-record guards. Framework takeover,
-      return/scoped waits, all-frame closure, actual driver dispatch and
-      complete process-loss qualification remain pending; nested execution stays
-      Draft.
+      and exact catalog preserve whole-record guards. Return/scoped waits,
+      all-frame closure, actual driver dispatch and complete process-loss
+      qualification remain pending; nested execution stays Draft. Schema 30 adds
+      atomic framework caller rebinding with a new physical attempt and whole
+      binding to the existing child/checkpoint and shared Run budget. Ordinary
+      completion still rejects framework calls; whole return and nested driver
+      execution remain Draft gates.
     </p>
     <p>
       Two graph and checkpoint models independently check state, route union,
