@@ -569,6 +569,254 @@
       null
     ],
     [
+      "graph_frame_returns",
+      "tenant_id",
+      "text",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "run_id",
+      "uuid",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "graph_namespace",
+      "text",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "frame_identity_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "entry_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "terminal_base_checkpoint_id",
+      "uuid",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "terminal_checkpoint_id",
+      "uuid",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "terminal_superstep",
+      "bigint",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "terminal_checkpoint_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "terminal_frame_checkpoint_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "terminal_barrier_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "caller_attempt_id",
+      "uuid",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "caller_start_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "caller_compound_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "parent_namespace",
+      "text",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "parent_checkpoint_id",
+      "uuid",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "parent_superstep",
+      "bigint",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "parent_checkpoint_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "node_id",
+      "text",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "activation_input_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "result_intent_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "result_record_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "completion_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "intent_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "compound_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "return_bytes",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "return_checksum",
+      "bytea",
+      false,
+      "s",
+      "sha256(return_bytes)"
+    ],
+    [
+      "graph_frame_returns",
+      "journal_sequence",
+      "bigint",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "journal_event_id",
+      "uuid",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "journal_recorded_at",
+      "timestamp(6) with time zone",
+      true,
+      "",
+      null
+    ],
+    [
+      "graph_frame_returns",
+      "journal_digest",
+      "bytea",
+      true,
+      "",
+      null
+    ],
+    [
       "graph_frame_stacks",
       "tenant_id",
       "text",
@@ -710,6 +958,27 @@
       true
     ],
     [
+      "graph_frame_returns",
+      "CREATE UNIQUE INDEX graph_frame_returns_caller_unique ON stateknot.graph_frame_returns USING btree (tenant_id, run_id, caller_attempt_id)",
+      true,
+      true,
+      true
+    ],
+    [
+      "graph_frame_returns",
+      "CREATE UNIQUE INDEX graph_frame_returns_event_unique ON stateknot.graph_frame_returns USING btree (tenant_id, run_id, journal_sequence)",
+      true,
+      true,
+      true
+    ],
+    [
+      "graph_frame_returns",
+      "CREATE UNIQUE INDEX graph_frame_returns_pkey ON stateknot.graph_frame_returns USING btree (tenant_id, run_id, graph_namespace)",
+      true,
+      true,
+      true
+    ],
+    [
       "graph_frame_stacks",
       "CREATE UNIQUE INDEX graph_frame_stacks_pkey ON stateknot.graph_frame_stacks USING btree (tenant_id, run_id)",
       true,
@@ -783,12 +1052,36 @@
       true
     ],
     [
+      "graph_frame_returns",
+      "frame_returns_complete",
+      "CREATE CONSTRAINT TRIGGER frame_returns_complete AFTER INSERT ON stateknot.graph_frame_returns DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_return_complete()",
+      "O",
+      true,
+      true
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_immutable",
+      "CREATE TRIGGER graph_frame_returns_immutable BEFORE DELETE OR UPDATE ON stateknot.graph_frame_returns FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_entry_immutable()",
+      "O",
+      false,
+      false
+    ],
+    [
       "graph_frame_stacks",
       "frame_stacks_complete",
       "CREATE CONSTRAINT TRIGGER frame_stacks_complete AFTER INSERT OR UPDATE ON stateknot.graph_frame_stacks DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_stack_complete()",
       "O",
       true,
       true
+    ],
+    [
+      "graph_frame_stacks",
+      "frame_stacks_transition",
+      "CREATE TRIGGER frame_stacks_transition BEFORE UPDATE ON stateknot.graph_frame_stacks FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_stack_transition()",
+      "O",
+      false,
+      false
     ],
     [
       "model_invocation_revisions",
@@ -874,6 +1167,14 @@
       "run_events",
       "run_events_frame_entry_complete",
       "CREATE CONSTRAINT TRIGGER run_events_frame_entry_complete AFTER INSERT ON stateknot.run_events DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_entry_complete()",
+      "O",
+      true,
+      true
+    ],
+    [
+      "run_events",
+      "run_events_frame_return_complete",
+      "CREATE CONSTRAINT TRIGGER run_events_frame_return_complete AFTER INSERT ON stateknot.run_events DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_return_event_complete()",
       "O",
       true,
       true
@@ -977,7 +1278,7 @@
     ],
     [
       "guard_graph_frame_execution_scope",
-      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_execution_scope()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE data jsonb; tenant text; identity uuid; namespace text; active text;\nBEGIN\n data:=to_jsonb(NEW);\n tenant:=data->>'tenant_id'; identity:=(data->>'run_id')::uuid;\n namespace:=coalesce(data->>'graph_namespace','');\n SELECT active_namespace INTO active FROM stateknot.graph_frame_stacks\n  WHERE tenant_id=tenant AND run_id=identity;\n active:=coalesce(active,'');\n IF TG_TABLE_NAME='node_attempt_completions' AND (\n  EXISTS (SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity\n   AND e.caller_attempt_id=(data->>'attempt_id')::uuid)\n  OR EXISTS (SELECT 1 FROM stateknot.graph_frame_caller_bindings b WHERE b.tenant_id=tenant AND b.run_id=identity\n   AND b.caller_attempt_id=(data->>'attempt_id')::uuid)\n ) THEN RAISE EXCEPTION 'framework caller requires whole frame return' USING ERRCODE='SKG02'; END IF;\n IF namespace<>active THEN\n  IF TG_TABLE_NAME='node_attempts' AND (\n   EXISTS (SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity\n    AND e.caller_attempt_id=(data->>'attempt_id')::uuid\n    AND e.journal_sequence=(data->>'journal_sequence')::bigint AND e.parent_namespace=namespace)\n   OR EXISTS (SELECT 1 FROM stateknot.graph_frame_caller_bindings b\n    JOIN stateknot.graph_frame_entries e USING (tenant_id,run_id,graph_namespace)\n    WHERE b.tenant_id=tenant AND b.run_id=identity AND b.caller_attempt_id=(data->>'attempt_id')::uuid\n     AND b.journal_sequence=(data->>'journal_sequence')::bigint AND b.journal_digest=decode(substr(data->>'journal_digest',3),'hex')\n     AND e.parent_namespace=namespace AND b.graph_namespace=active)\n  ) THEN RETURN NULL; END IF;\n  RAISE EXCEPTION 'only the current graph frame may execute' USING ERRCODE='SKG01';\n END IF;\n RETURN NULL;\nEND $function$\n",
+      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_execution_scope()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE data jsonb; tenant text; identity uuid; namespace text; active text;\nBEGIN\n data:=to_jsonb(NEW);\n tenant:=data->>'tenant_id'; identity:=(data->>'run_id')::uuid;\n namespace:=coalesce(data->>'graph_namespace','');\n SELECT active_namespace INTO active FROM stateknot.graph_frame_stacks\n  WHERE tenant_id=tenant AND run_id=identity;\n active:=coalesce(active,'');\n IF TG_TABLE_NAME='node_attempt_completions' AND (\n  EXISTS (SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity\n   AND e.caller_attempt_id=(data->>'attempt_id')::uuid)\n  OR EXISTS (SELECT 1 FROM stateknot.graph_frame_caller_bindings b WHERE b.tenant_id=tenant AND b.run_id=identity\n   AND b.caller_attempt_id=(data->>'attempt_id')::uuid)\n ) AND NOT EXISTS (\n  SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=tenant AND x.run_id=identity\n   AND x.caller_attempt_id=(data->>'attempt_id')::uuid AND x.parent_namespace=namespace\n   AND x.completion_digest=decode(substr(data->>'completion_digest',3),'hex')\n   AND x.journal_sequence=(data->>'journal_sequence')::bigint AND x.journal_event_id=(data->>'journal_event_id')::uuid\n   AND x.journal_recorded_at=(data->>'journal_recorded_at')::timestamptz AND x.journal_digest=decode(substr(data->>'journal_digest',3),'hex')\n ) THEN RAISE EXCEPTION 'framework caller requires whole frame return' USING ERRCODE='SKG02'; END IF;\n IF namespace<>active THEN\n  IF TG_TABLE_NAME='node_attempts' AND (\n   EXISTS (SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity\n    AND e.caller_attempt_id=(data->>'attempt_id')::uuid\n    AND e.journal_sequence=(data->>'journal_sequence')::bigint AND e.parent_namespace=namespace)\n   OR EXISTS (SELECT 1 FROM stateknot.graph_frame_caller_bindings b\n    JOIN stateknot.graph_frame_entries e USING (tenant_id,run_id,graph_namespace)\n    WHERE b.tenant_id=tenant AND b.run_id=identity AND b.caller_attempt_id=(data->>'attempt_id')::uuid\n     AND b.journal_sequence=(data->>'journal_sequence')::bigint AND b.journal_digest=decode(substr(data->>'journal_digest',3),'hex')\n     AND e.parent_namespace=namespace AND b.graph_namespace=active)\n  ) THEN RETURN NULL; END IF;\n  RAISE EXCEPTION 'only the current graph frame may execute' USING ERRCODE='SKG01';\n END IF;\n RETURN NULL;\nEND $function$\n",
       false,
       "v",
       null
@@ -1004,6 +1305,20 @@
       null
     ],
     [
+      "guard_graph_frame_return_complete",
+      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_return_complete()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n IF NOT EXISTS (\n  SELECT 1 FROM stateknot.graph_frame_entries e\n  JOIN stateknot.graph_frame_barriers b ON b.tenant_id=e.tenant_id AND b.run_id=e.run_id AND b.graph_namespace=e.graph_namespace AND b.base_checkpoint_id=NEW.terminal_base_checkpoint_id\n  JOIN stateknot.graph_frame_heads h ON h.tenant_id=e.tenant_id AND h.run_id=e.run_id AND h.graph_namespace=e.graph_namespace\n  JOIN stateknot.node_attempts n ON n.tenant_id=e.tenant_id AND n.run_id=e.run_id AND n.attempt_id=NEW.caller_attempt_id\n  JOIN stateknot.node_attempt_completions c ON c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id\n  JOIN stateknot.pending_node_results p ON p.tenant_id=e.tenant_id AND p.run_id=e.run_id AND p.graph_namespace=e.parent_namespace AND p.base_checkpoint_id=e.parent_checkpoint_id AND p.node_id=n.node_id\n  JOIN stateknot.graph_frame_stacks s ON s.tenant_id=e.tenant_id AND s.run_id=e.run_id\n  JOIN stateknot.runs r ON r.tenant_id=e.tenant_id AND r.run_id=e.run_id\n  JOIN stateknot.run_events v ON v.tenant_id=e.tenant_id AND v.run_id=e.run_id AND v.sequence=NEW.journal_sequence\n  WHERE e.tenant_id=NEW.tenant_id AND e.run_id=NEW.run_id AND e.graph_namespace=NEW.graph_namespace\n   AND e.frame_identity_digest=NEW.frame_identity_digest AND e.compound_digest=NEW.entry_digest\n   AND e.parent_namespace=NEW.parent_namespace AND e.parent_checkpoint_id=NEW.parent_checkpoint_id\n   AND b.compound_digest=NEW.terminal_barrier_digest AND b.successor_checkpoint_id=NEW.terminal_checkpoint_id\n   AND b.successor_superstep=NEW.terminal_superstep AND b.successor_checkpoint_digest=NEW.terminal_checkpoint_digest\n   AND b.successor_frame_checkpoint_digest=NEW.terminal_frame_checkpoint_digest\n   AND convert_from(b.barrier_bytes,'UTF8')::jsonb->'disposition'->>'kind'='terminal'\n   AND b.journal_sequence<NEW.journal_sequence\n   AND h.checkpoint_id=NEW.terminal_checkpoint_id AND h.superstep=NEW.terminal_superstep\n   AND h.checkpoint_digest=NEW.terminal_checkpoint_digest AND h.frame_checkpoint_digest=NEW.terminal_frame_checkpoint_digest\n   AND h.frame_identity_digest=NEW.frame_identity_digest\n   AND n.start_digest=NEW.caller_start_digest AND n.graph_namespace=NEW.parent_namespace\n   AND n.base_checkpoint_id=NEW.parent_checkpoint_id AND n.base_superstep=NEW.parent_superstep AND n.base_checkpoint_digest=NEW.parent_checkpoint_digest\n   AND n.node_id=NEW.node_id AND n.activation_input_digest=NEW.activation_input_digest AND n.journal_sequence<NEW.journal_sequence\n   AND n.fence_attempt_id=v.worker_attempt_id AND n.fence_epoch=v.worker_epoch\n   AND ((n.attempt_id=e.caller_attempt_id AND NEW.caller_compound_digest=e.compound_digest\n     AND NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_caller_bindings newer WHERE newer.tenant_id=e.tenant_id AND newer.run_id=e.run_id AND newer.graph_namespace=e.graph_namespace))\n    OR EXISTS (SELECT 1 FROM stateknot.graph_frame_caller_bindings latest WHERE latest.tenant_id=e.tenant_id AND latest.run_id=e.run_id AND latest.graph_namespace=e.graph_namespace\n     AND latest.caller_attempt_id=n.attempt_id AND latest.caller_start_digest=n.start_digest AND latest.compound_digest=NEW.caller_compound_digest\n     AND NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_caller_bindings newer WHERE newer.tenant_id=e.tenant_id AND newer.run_id=e.run_id AND newer.graph_namespace=e.graph_namespace AND newer.worker_epoch>latest.worker_epoch)))\n   AND c.status='succeeded' AND c.start_digest=n.start_digest AND c.completion_digest=NEW.completion_digest\n   AND c.result_intent_digest=NEW.result_intent_digest AND c.result_record_digest=NEW.result_record_digest\n   AND c.journal_sequence=NEW.journal_sequence AND c.journal_event_id=NEW.journal_event_id AND c.journal_recorded_at=NEW.journal_recorded_at AND c.journal_digest=NEW.journal_digest\n   AND p.node_attempt_id=n.attempt_id AND p.intent_digest=NEW.result_intent_digest AND p.record_digest=NEW.result_record_digest AND p.control_kind='route'\n   AND p.journal_sequence=NEW.journal_sequence AND p.journal_event_id=NEW.journal_event_id AND p.journal_recorded_at=NEW.journal_recorded_at AND p.journal_digest=NEW.journal_digest\n   AND p.fence_attempt_id=n.fence_attempt_id AND p.fence_epoch=n.fence_epoch\n   AND s.active_namespace=NEW.parent_namespace AND s.lifetime_starts>=e.ordinal\n   AND ((NEW.parent_namespace='' AND s.active_frame_identity_digest IS NULL AND r.checkpoint_id=NEW.parent_checkpoint_id AND r.checkpoint_superstep=NEW.parent_superstep AND r.checkpoint_digest=NEW.parent_checkpoint_digest)\n    OR EXISTS (SELECT 1 FROM stateknot.graph_frame_heads parent WHERE parent.tenant_id=e.tenant_id AND parent.run_id=e.run_id AND parent.graph_namespace=NEW.parent_namespace\n     AND parent.checkpoint_id=NEW.parent_checkpoint_id AND parent.superstep=NEW.parent_superstep AND parent.checkpoint_digest=NEW.parent_checkpoint_digest AND s.active_frame_identity_digest=parent.frame_identity_digest))\n   AND v.event_kind='graph-frame-returned' AND v.source_kind='worker' AND v.projection_digest=NEW.compound_digest\n   AND r.lease_attempt_id=v.worker_attempt_id AND r.fencing_epoch=v.worker_epoch\n   AND r.lease_expires_at>clock_timestamp() AND r.agent_deadline_at>clock_timestamp()\n   AND r.journal_sequence=NEW.journal_sequence AND r.journal_digest=NEW.journal_digest\n ) THEN RAISE EXCEPTION 'incomplete whole graph frame return' USING ERRCODE='SKG02'; END IF;\n RETURN NULL;\nEND $function$\n",
+      false,
+      "v",
+      null
+    ],
+    [
+      "guard_graph_frame_return_event_complete",
+      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_return_event_complete()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n IF NEW.event_kind='graph-frame-returned' AND NOT EXISTS (\n  SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=NEW.tenant_id AND x.run_id=NEW.run_id AND x.journal_sequence=NEW.sequence\n   AND x.journal_event_id=NEW.event_id AND x.journal_recorded_at=NEW.recorded_at AND x.journal_digest=NEW.event_digest AND x.compound_digest=NEW.projection_digest AND NEW.source_kind='worker'\n ) THEN RAISE EXCEPTION 'frame return event requires whole return' USING ERRCODE='SKG02'; END IF;\n RETURN NULL;\nEND $function$\n",
+      false,
+      "v",
+      null
+    ],
+    [
       "guard_graph_frame_revision_scope",
       "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_revision_scope()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE namespace text; active text;\nBEGIN\n IF TG_TABLE_NAME='tool_invocation_revisions' THEN\n  SELECT graph_namespace INTO namespace FROM stateknot.tool_invocations\n   WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id AND invocation_id=NEW.invocation_id;\n ELSE\n  SELECT graph_namespace INTO namespace FROM stateknot.model_invocations\n   WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id AND invocation_id=NEW.invocation_id;\n END IF;\n SELECT active_namespace INTO active FROM stateknot.graph_frame_stacks\n  WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id;\n IF namespace IS DISTINCT FROM coalesce(active,'') THEN\n  RAISE EXCEPTION 'only the current graph frame may revise an invocation' USING ERRCODE='SKG01';\n END IF;\n RETURN NULL;\nEND $function$\n",
       false,
@@ -1019,7 +1334,14 @@
     ],
     [
       "guard_graph_frame_stack_complete",
-      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_stack_complete()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE total bigint; maximum integer;\nBEGIN\n SELECT count(*),max(ordinal) INTO total,maximum FROM stateknot.graph_frame_entries\n  WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id;\n IF total<>NEW.lifetime_starts OR maximum IS DISTINCT FROM NEW.lifetime_starts\n  OR NOT EXISTS (\n   SELECT 1 FROM stateknot.graph_frame_entries e\n   JOIN stateknot.run_events v ON v.tenant_id=e.tenant_id AND v.run_id=e.run_id AND v.sequence=e.journal_sequence\n   JOIN stateknot.graph_frame_heads h ON h.tenant_id=e.tenant_id AND h.run_id=e.run_id AND h.graph_namespace=e.graph_namespace\n   WHERE e.tenant_id=NEW.tenant_id AND e.run_id=NEW.run_id AND e.ordinal=NEW.lifetime_starts\n    AND e.graph_namespace=NEW.active_namespace AND e.frame_identity_digest=NEW.active_frame_identity_digest\n    AND v.event_kind='graph-frame-entered' AND v.schema_id='https://stknot.com/schemas/core/graph-frame-entry-event/1.0.0'\n    AND v.schema_version='1.0.0' AND v.schema_digest=decode('a2f2d5679fdf7c4dc9a7fa906121e41b9571177aee0d9e28cb29f1d921fa4ea3','hex')\n    AND v.projection_digest=e.compound_digest\n  ) THEN RAISE EXCEPTION 'incomplete graph frame stack push' USING ERRCODE='SKG02'; END IF;\n RETURN NULL;\nEND $function$\n",
+      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_stack_complete()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE total bigint; maximum integer;\nBEGIN\n SELECT count(*),max(ordinal) INTO total,maximum FROM stateknot.graph_frame_entries WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id;\n IF total<>NEW.lifetime_starts OR maximum IS DISTINCT FROM NEW.lifetime_starts\n  OR EXISTS (SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=NEW.tenant_id AND e.run_id=NEW.run_id\n   AND NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=e.tenant_id AND x.run_id=e.run_id AND x.graph_namespace=e.graph_namespace)\n   AND e.graph_namespace<>NEW.active_namespace AND left(NEW.active_namespace,length(e.graph_namespace)+1)<>e.graph_namespace||'/')\n  OR (NEW.active_namespace<>'' AND NOT EXISTS (\n   SELECT 1 FROM stateknot.graph_frame_entries e JOIN stateknot.graph_frame_heads h USING (tenant_id,run_id,graph_namespace)\n   JOIN stateknot.run_events v ON v.tenant_id=e.tenant_id AND v.run_id=e.run_id AND v.sequence=e.journal_sequence\n   WHERE e.tenant_id=NEW.tenant_id AND e.run_id=NEW.run_id AND e.graph_namespace=NEW.active_namespace AND e.frame_identity_digest=NEW.active_frame_identity_digest\n    AND h.frame_identity_digest=e.frame_identity_digest AND v.event_kind='graph-frame-entered' AND v.projection_digest=e.compound_digest\n    AND NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=e.tenant_id AND x.run_id=e.run_id AND x.graph_namespace=e.graph_namespace)\n  )) THEN RAISE EXCEPTION 'incomplete graph frame stack' USING ERRCODE='SKG02'; END IF;\n RETURN NULL;\nEND $function$\n",
+      false,
+      "v",
+      null
+    ],
+    [
+      "guard_graph_frame_stack_transition",
+      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_stack_transition()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n IF NEW.tenant_id<>OLD.tenant_id OR NEW.run_id<>OLD.run_id OR NEW.admission_digest<>OLD.admission_digest THEN\n  RAISE EXCEPTION 'frame stack identity is immutable' USING ERRCODE='SKG02';\n END IF;\n IF NEW.lifetime_starts=OLD.lifetime_starts+1 AND EXISTS (\n  SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=NEW.tenant_id AND e.run_id=NEW.run_id AND e.ordinal=NEW.lifetime_starts\n   AND e.graph_namespace=NEW.active_namespace AND e.frame_identity_digest=NEW.active_frame_identity_digest AND e.parent_namespace=OLD.active_namespace\n ) THEN RETURN NEW; END IF;\n IF NEW.lifetime_starts=OLD.lifetime_starts AND EXISTS (\n  SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=OLD.tenant_id AND x.run_id=OLD.run_id AND x.graph_namespace=OLD.active_namespace\n   AND x.frame_identity_digest=OLD.active_frame_identity_digest AND x.parent_namespace=NEW.active_namespace\n   AND ((NEW.active_namespace='' AND NEW.active_frame_identity_digest IS NULL)\n    OR EXISTS (SELECT 1 FROM stateknot.graph_frame_heads h WHERE h.tenant_id=NEW.tenant_id AND h.run_id=NEW.run_id AND h.graph_namespace=NEW.active_namespace AND h.frame_identity_digest=NEW.active_frame_identity_digest))\n ) THEN RETURN NEW; END IF;\n RAISE EXCEPTION 'frame stack transition requires whole push or return' USING ERRCODE='SKG02';\nEND $function$\n",
       false,
       "v",
       null
@@ -1310,6 +1632,102 @@
       "graph_frame_heads",
       "graph_frame_heads_shape",
       "CHECK (((superstep >= 0) AND (octet_length(frame_checkpoint_digest) = 32)))",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "frame_returns_complete",
+      "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      true,
+      true,
+      true
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_caller_unique",
+      "UNIQUE (tenant_id, run_id, caller_attempt_id)",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, terminal_checkpoint_id, terminal_superstep, terminal_checkpoint_digest, frame_identity_digest) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id, superstep, checkpoint_digest, frame_identity_digest) ON DELETE RESTRICT",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_completion_fk",
+      "FOREIGN KEY (tenant_id, run_id, caller_attempt_id) REFERENCES stateknot.node_attempt_completions(tenant_id, run_id, attempt_id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED",
+      true,
+      true,
+      true
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_entry_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, frame_identity_digest) REFERENCES stateknot.graph_frame_entries(tenant_id, run_id, graph_namespace, frame_identity_digest) ON DELETE RESTRICT",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_event_fk",
+      "FOREIGN KEY (tenant_id, run_id, journal_sequence, journal_event_id, journal_recorded_at, journal_digest) REFERENCES stateknot.run_events(tenant_id, run_id, sequence, event_id, recorded_at, event_digest) ON DELETE RESTRICT",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_event_unique",
+      "UNIQUE (tenant_id, run_id, journal_sequence)",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_pkey",
+      "PRIMARY KEY (tenant_id, run_id, graph_namespace)",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_result_fk",
+      "FOREIGN KEY (tenant_id, run_id, parent_checkpoint_id, parent_namespace, node_id) REFERENCES stateknot.pending_node_results(tenant_id, run_id, base_checkpoint_id, graph_namespace, node_id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED",
+      true,
+      true,
+      true
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_shape",
+      "CHECK (((graph_namespace ~ '^[0-9a-f]{64}(/[0-9a-f]{64}){0,6}$'::text) AND ((parent_namespace = ''::text) OR (parent_namespace ~ '^[0-9a-f]{64}(/[0-9a-f]{64}){0,5}$'::text)) AND (terminal_superstep > 0) AND (parent_superstep >= 0) AND (journal_sequence > 1) AND (octet_length(frame_identity_digest) = 32) AND (octet_length(entry_digest) = 32) AND (octet_length(terminal_checkpoint_digest) = 32) AND (octet_length(terminal_frame_checkpoint_digest) = 32) AND (octet_length(terminal_barrier_digest) = 32) AND (octet_length(caller_start_digest) = 32) AND (octet_length(caller_compound_digest) = 32) AND (octet_length(parent_checkpoint_digest) = 32) AND (octet_length(activation_input_digest) = 32) AND (octet_length(result_intent_digest) = 32) AND (octet_length(result_record_digest) = 32) AND (octet_length(completion_digest) = 32) AND (octet_length(intent_digest) = 32) AND (octet_length(compound_digest) = 32) AND (octet_length(journal_digest) = 32) AND (octet_length(return_bytes) >= 1) AND (octet_length(return_bytes) <= 4194304)))",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_start_fk",
+      "FOREIGN KEY (tenant_id, run_id, caller_attempt_id) REFERENCES stateknot.node_attempts(tenant_id, run_id, attempt_id) ON DELETE RESTRICT",
+      true,
+      false,
+      false
+    ],
+    [
+      "graph_frame_returns",
+      "graph_frame_returns_terminal_fk",
+      "FOREIGN KEY (tenant_id, run_id, graph_namespace, terminal_base_checkpoint_id) REFERENCES stateknot.graph_frame_barriers(tenant_id, run_id, graph_namespace, base_checkpoint_id) ON DELETE RESTRICT",
       true,
       false,
       false

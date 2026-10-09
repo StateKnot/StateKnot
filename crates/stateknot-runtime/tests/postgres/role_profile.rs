@@ -12,7 +12,8 @@ use stateknot_core::{
 };
 use stateknot_store_postgres::{
     AgentAdmissionCommitOutcome, GraphFrameBarrierCommitOutcome, GraphFrameEntryCommitOutcome,
-    SchedulerFairnessPolicyRegistration, SchedulerFairnessRetentionPolicy,
+    GraphFrameReturnCommitOutcome, SchedulerFairnessPolicyRegistration,
+    SchedulerFairnessRetentionPolicy,
 };
 
 const PROFILE: &str =
@@ -174,6 +175,8 @@ async fn privilege_rejections(fixture: &Fixture) {
             "DELETE FROM stateknot.graph_frame_entries WHERE false",
             "UPDATE stateknot.graph_frame_caller_bindings SET compound_digest=compound_digest WHERE false",
             "DELETE FROM stateknot.graph_frame_caller_bindings WHERE false",
+            "UPDATE stateknot.graph_frame_returns SET compound_digest=compound_digest WHERE false",
+            "DELETE FROM stateknot.graph_frame_returns WHERE false",
             "DELETE FROM stateknot.run_events WHERE false",
             "DELETE FROM stateknot.tool_authorization_receipts WHERE false",
             "TRUNCATE stateknot.run_events",
@@ -708,7 +711,7 @@ async fn scoped_node_completion(
         panic!("standalone runtime must commit a whole barrier");
     };
     let retry = Box::pin(store.commit_graph_frame_barrier(
-        barrier,
+        barrier.clone(),
         EventId::generate(),
         fence.clone(),
         done.event().head(),
@@ -785,6 +788,83 @@ async fn scoped_node_completion(
         .start(),
         binding.attempt().start()
     );
+    let usage = record
+        .direct_usage_after()
+        .unwrap()
+        .checked_accumulate(
+            &BudgetUsage::builder()
+                .graph_steps(ExecutionCount::new(1))
+                .retries(ExecutionCount::new(1))
+                .event_bytes(ByteCount::new(
+                    serde_json_canonicalizer::to_vec(binding.event())
+                        .unwrap()
+                        .len() as u64,
+                ))
+                .build()
+                .unwrap(),
+        )
+        .unwrap();
+    let GraphFrameReturnCommitOutcome::Committed(returned) = Box::pin(store.return_graph_frame(
+        barrier.clone(),
+        EventId::generate(),
+        next.clone(),
+        binding.event().head(),
+        usage,
+        &RoleFrameSchemas,
+        &reducer,
+    ))
+    .await
+    .unwrap() else {
+        panic!("standalone runtime must settle a whole return");
+    };
+    assert_eq!(
+        returned.completion().start(),
+        &binding.attempt().start().head()
+    );
+    assert_eq!(
+        Box::pin(store.load_graph_frame_return(
+            fence.tenant_id(),
+            fence.run_id(),
+            record.checkpoint().frame().namespace()
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .digest(),
+        returned.digest()
+    );
+    assert_eq!(
+        Box::pin(store.load_pending_node_result(returned.result().intent().activation()))
+            .await
+            .unwrap(),
+        *returned.result()
+    );
+    assert_eq!(
+        Box::pin(store.load_node_attempt(
+            fence.tenant_id(),
+            &fence.run_id(),
+            binding.attempt().start().attempt_id()
+        ))
+        .await
+        .unwrap()
+        .status(),
+        NodeAttemptStatus::Succeeded
+    );
+    let retry = Box::pin(store.return_graph_frame(
+        barrier,
+        EventId::generate(),
+        next,
+        entry.event().head(),
+        BudgetUsage::zero(),
+        &RoleFrameSchemas,
+        &reducer,
+    ))
+    .await
+    .unwrap();
+    let GraphFrameReturnCommitOutcome::Idempotent(retry) = retry else {
+        panic!("whole return retry");
+    };
+    assert_eq!(retry.digest(), returned.digest());
 }
 
 async fn isolated_retention(fixture: &Fixture, runtime: &PostgresStore) {
@@ -887,7 +967,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 30);
+    assert_eq!(schema_version, 31);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -905,6 +985,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "scoped_node_start_success_reload":true,
         "scoped_barrier_commit_retry_reload":true,
         "framework_caller_rebind_retry_reload":true,
+        "whole_frame_return_retry_reload":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"

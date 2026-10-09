@@ -407,12 +407,12 @@ fn charged(record: &StoredGraphFrameBarrier) -> Result<BudgetUsage, StoreError> 
         .map_err(|_| StoreError::GraphFrameLimitExceeded)
 }
 
-async fn results_on_checkpoint(
-    tx: &mut Transaction<'_, Postgres>,
+pub(super) async fn results_on_checkpoint_replay(
+    replay: &mut Replay<'_, '_>,
     base: &GraphFrameCheckpoint,
     heads: &[PendingNodeResultHead],
 ) -> Result<Vec<PendingNodeResult>, StoreError> {
-    let durable = load_locked_barrier_result_heads(tx, &base.checkpoint().head()).await?;
+    let durable = load_locked_barrier_result_heads(replay.tx, &base.checkpoint().head()).await?;
     validate_complete_barrier_result_heads(&durable, heads)?;
     let mut results = Vec::with_capacity(heads.len());
     let mut compact_bytes = 0_usize;
@@ -423,14 +423,19 @@ async fn results_on_checkpoint(
         {
             return Err(StoreError::corrupt("barrier result activation"));
         }
-        let row = load_pending_node_result_row(tx, head.activation())
+        let row = load_pending_node_result_row(replay.tx, head.activation())
             .await?
             .ok_or(StoreError::CheckpointBarrierIncomplete)?;
         let result = decode_pending_node_result(&row)?;
         if result.head() != *head {
             return Err(StoreError::CheckpointBarrierResultConflict);
         }
-        verify_pending_node_result_components(tx, &result).await?;
+        if Box::pin(returns::recognize_result_replay(replay, &result))
+            .await?
+            .is_none()
+        {
+            verify_pending_node_result_components(replay.tx, &result).await?;
+        }
         let mut counter = CompactByteCounter::default();
         serde_json::to_writer(&mut counter, &result)
             .map_err(|_| StoreError::corrupt("frame barrier result encoding"))?;
@@ -453,6 +458,24 @@ pub(super) async fn checkpoint_at(
     graphs: &BTreeMap<Digest, CompiledGraph>,
     expected: &CheckpointHead,
 ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+    let mut replay = Replay::new(tx);
+    Box::pin(checkpoint_at_replay(
+        &mut replay,
+        entry,
+        admission,
+        graphs,
+        expected,
+    ))
+    .await
+}
+
+pub(super) async fn checkpoint_at_replay(
+    replay: &mut Replay<'_, '_>,
+    entry: &StoredGraphFrameEntry,
+    admission: &StoredAgentAdmission,
+    graphs: &BTreeMap<Digest, CompiledGraph>,
+    expected: &CheckpointHead,
+) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
     let mut current = entry.entry.checkpoint().clone();
     if current.checkpoint().tenant_id() != expected.tenant_id()
         || current.checkpoint().run_id() != expected.run_id()
@@ -469,9 +492,34 @@ pub(super) async fn checkpoint_at(
         return Err(StoreError::GraphFrameLimitExceeded);
     }
     let mut floor = entry.direct_usage_after()?;
+    if let Some(prefix) = replay.prefix(entry)? {
+        if prefix.superstep >= expected.superstep().get() {
+            return previously_verified_checkpoint(replay.tx, entry, &prefix, expected).await;
+        }
+        current = decode_frame_checkpoint(
+            checkpoint_row(
+                replay.tx,
+                expected.tenant_id(),
+                expected.run_id(),
+                current.frame().namespace(),
+                prefix.checkpoint_id,
+            )
+            .await?,
+        )?;
+        if current.checkpoint().superstep().get() != prefix.superstep
+            || current.checkpoint().digest() != prefix.checkpoint_digest
+            || current.digest() != prefix.frame_checkpoint_digest
+            || current.frame() != entry.entry.checkpoint().frame()
+        {
+            return Err(StoreError::corrupt("frame replay prefix head"));
+        }
+        floor = prefix.usage;
+    } else {
+        replay.remember(entry, &current, &floor)?;
+    }
     while current.checkpoint().superstep() < expected.superstep() {
         let row = row(
-            tx,
+            replay.tx,
             expected.tenant_id(),
             expected.run_id(),
             current.frame().namespace(),
@@ -479,9 +527,13 @@ pub(super) async fn checkpoint_at(
         )
         .await?
         .ok_or_else(|| StoreError::corrupt("frame barrier lineage missing"))?;
-        let record = verify_edge(tx, entry, admission, &current, &floor, row).await?;
+        let record = Box::pin(verify_edge_replay(
+            replay, entry, admission, graphs, &current, &floor, row,
+        ))
+        .await?;
         floor = charged(&record)?;
         current = record.checkpoint;
+        replay.remember(entry, &current, &floor)?;
     }
     if current.checkpoint().head() != *expected {
         return Err(StoreError::corrupt("frame checkpoint head substitution"));
@@ -495,15 +547,30 @@ pub(super) async fn current_checkpoint(
     admission: &StoredAgentAdmission,
     graphs: &BTreeMap<Digest, CompiledGraph>,
 ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+    Box::pin(current_checkpoint_replay(
+        &mut Replay::new(tx),
+        entry,
+        admission,
+        graphs,
+    ))
+    .await
+}
+
+pub(super) async fn current_checkpoint_replay(
+    replay: &mut Replay<'_, '_>,
+    entry: &StoredGraphFrameEntry,
+    admission: &StoredAgentAdmission,
+    graphs: &BTreeMap<Digest, CompiledGraph>,
+) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
     let initial = entry.entry.checkpoint();
     let tenant = initial.checkpoint().tenant_id();
     let run = initial.checkpoint().run_id();
     let namespace = initial.frame().namespace();
     let pointer=query_as::<_,(Uuid,i64,Vec<u8>,Vec<u8>)>("SELECT checkpoint_id,superstep,checkpoint_digest,frame_checkpoint_digest FROM stateknot.graph_frame_heads WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3")
-        .bind(tenant.as_str()).bind(*run.as_uuid()).bind(namespace.as_str()).fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("barrier frame head",e))?.ok_or_else(||StoreError::corrupt("barrier frame head missing"))?;
+        .bind(tenant.as_str()).bind(*run.as_uuid()).bind(namespace.as_str()).fetch_optional(&mut **replay.tx).await.map_err(|e|StoreError::database("barrier frame head",e))?.ok_or_else(||StoreError::corrupt("barrier frame head missing"))?;
     let checkpoint = decode_frame_checkpoint(
         checkpoint_row(
-            tx,
+            replay.tx,
             tenant,
             run,
             namespace,
@@ -519,8 +586,8 @@ pub(super) async fn current_checkpoint(
     {
         return Err(StoreError::corrupt("barrier frame pointer"));
     }
-    let (checkpoint, floor) = checkpoint_at(
-        tx,
+    let (checkpoint, floor) = checkpoint_at_replay(
+        replay,
         entry,
         admission,
         graphs,
@@ -533,15 +600,21 @@ pub(super) async fn current_checkpoint(
         .ok_or(StoreError::StaleJournalHead)?
         .sequence()
         .get();
-    let floor = caller_bindings::usage_floor_before(tx, entry, admission, through, &floor).await?;
+    let floor =
+        caller_bindings::usage_floor_before(replay.tx, entry, admission, through, &floor).await?;
+    let floor = Box::pin(returns::usage_floor_before(
+        replay, admission, graphs, through, &floor,
+    ))
+    .await?;
     Ok((checkpoint, floor))
 }
 
 #[allow(clippy::too_many_lines)]
-async fn verify_edge(
-    tx: &mut Transaction<'_, Postgres>,
+async fn verify_edge_replay(
+    replay: &mut Replay<'_, '_>,
     entry: &StoredGraphFrameEntry,
     admission: &StoredAgentAdmission,
+    graphs: &BTreeMap<Digest, CompiledGraph>,
     base: &GraphFrameCheckpoint,
     floor: &BudgetUsage,
     row: Row,
@@ -575,7 +648,7 @@ async fn verify_edge(
     }
     let cp = decode_frame_checkpoint(
         checkpoint_row(
-            tx,
+            replay.tx,
             base.checkpoint().tenant_id(),
             base.checkpoint().run_id(),
             base.frame().namespace(),
@@ -604,7 +677,7 @@ async fn verify_edge(
         .bind(base.checkpoint().tenant_id().as_str())
         .bind(*base.checkpoint().run_id().as_uuid())
         .bind(row.journal_sequence)
-        .fetch_optional(&mut **tx)
+        .fetch_optional(&mut **replay.tx)
         .await
         .map_err(|e| StoreError::database("barrier event", e))?
         .ok_or_else(|| StoreError::corrupt("barrier event missing"))?;
@@ -636,7 +709,7 @@ async fn verify_edge(
                     .checked_sub(1)
                     .ok_or_else(|| StoreError::corrupt("barrier journal predecessor"))?,
             )
-            .fetch_optional(&mut **tx)
+            .fetch_optional(&mut **replay.tx)
             .await
             .map_err(|e| StoreError::database("barrier predecessor", e))?
             .ok_or_else(|| StoreError::corrupt("barrier predecessor missing"))?,
@@ -649,7 +722,31 @@ async fn verify_edge(
     {
         return Err(StoreError::corrupt("barrier observation"));
     }
-    let results = results_on_checkpoint(tx, base, wire.barrier.result_heads()).await?;
+    // Authenticate chronological accounting first. A returned result owner
+    // can then reuse its already verified whole proof instead of descending
+    // into older nested settlements while holding this barrier future.
+    let floor = caller_bindings::usage_floor_before(
+        replay.tx,
+        entry,
+        admission,
+        before.sequence().get(),
+        floor,
+    )
+    .await?;
+    let floor = Box::pin(returns::usage_floor_before(
+        replay,
+        admission,
+        graphs,
+        before.sequence().get(),
+        &floor,
+    ))
+    .await?;
+    let results = Box::pin(results_on_checkpoint_replay(
+        replay,
+        base,
+        wire.barrier.result_heads(),
+    ))
+    .await?;
     if results.iter().any(|result| {
         result.journal_head().sequence() > before.sequence()
             || result.journal_head().recorded_at() > before.recorded_at()
@@ -657,15 +754,12 @@ async fn verify_edge(
         return Err(StoreError::corrupt("barrier result journal order"));
     }
     verify_barrier_consumption_parts(
-        tx,
+        replay.tx,
         &base.checkpoint().head(),
         wire.barrier.result_heads(),
         cp.checkpoint(),
     )
     .await?;
-    let floor =
-        caller_bindings::usage_floor_before(tx, entry, admission, before.sequence().get(), floor)
-            .await?;
     wire.budget
         .direct_usage
         .validate_monotonic_after(&floor)
@@ -704,7 +798,7 @@ fn verify_retry(
     Ok(())
 }
 
-async fn admission_snapshot(
+pub(super) async fn admission_snapshot(
     tx: &mut Transaction<'_, Postgres>,
     tenant: &TenantId,
     run: RunId,
@@ -731,20 +825,45 @@ async fn verified_record(
     graphs: &BTreeMap<Digest, CompiledGraph>,
     row: Row,
 ) -> Result<StoredGraphFrameBarrier, StoreError> {
-    let entry = Box::pin(verified_entry(
-        tx, tenant, run, namespace, admission, graphs,
+    let mut replay = Replay::new(tx);
+    Box::pin(verified_record_replay(
+        &mut replay,
+        tenant,
+        run,
+        namespace,
+        admission,
+        graphs,
+        row,
+    ))
+    .await
+}
+
+async fn verified_record_replay(
+    replay: &mut Replay<'_, '_>,
+    tenant: &TenantId,
+    run: RunId,
+    namespace: &GraphNamespace,
+    admission: &StoredAgentAdmission,
+    graphs: &BTreeMap<Digest, CompiledGraph>,
+    row: Row,
+) -> Result<StoredGraphFrameBarrier, StoreError> {
+    let entry = Box::pin(verified_entry_replay(
+        replay, tenant, run, namespace, admission, graphs,
     ))
     .await?;
     let wire = decode_wire(&row.barrier_bytes)?;
-    let (base, floor) = checkpoint_at(
-        tx,
+    let (base, floor) = checkpoint_at_replay(
+        replay,
         &entry,
         admission,
         graphs,
         wire.barrier.base_checkpoint().checkpoint(),
     )
     .await?;
-    verify_edge(tx, &entry, admission, &base, &floor, row).await
+    Box::pin(verify_edge_replay(
+        replay, &entry, admission, graphs, &base, &floor, row,
+    ))
+    .await
 }
 
 impl PostgresStore {
@@ -924,6 +1043,32 @@ impl PostgresStore {
         if fence.tenant_id() != tenant || fence.run_id() != run {
             return Err(StoreError::GraphFrameConflict);
         }
+        Box::pin(self.prepare_graph_frame_barrier(&plan, schemas, reducer)).await?;
+        Box::pin(self.commit_graph_frame_barrier_locked(
+            plan,
+            event_id,
+            fence,
+            observed,
+            direct_usage,
+        ))
+        .await
+    }
+
+    async fn prepare_graph_frame_barrier<
+        V: GraphSchemaValidator + ?Sized,
+        R: GraphReducer + ?Sized,
+    >(
+        &self,
+        plan: &GraphFrameBarrierPlan,
+        schemas: &V,
+        reducer: &R,
+    ) -> Result<(), StoreError> {
+        let barrier = plan.barrier();
+        let head = barrier.base_checkpoint();
+        let base = head.checkpoint();
+        let tenant = base.tenant_id();
+        let run = base.run_id();
+        let namespace = head.frame().namespace();
         let mut snapshot = self
             .begin_repeatable_read("frame barrier planning snapshot")
             .await?;
@@ -934,8 +1079,22 @@ impl PostgresStore {
             admission.admission().intent().graph(),
         )
         .await?;
-        let entry = Box::pin(verified_entry(
-            &mut snapshot,
+        let mut replay = Replay::new(&mut snapshot);
+        Box::pin(returns::usage_floor_before(
+            &mut replay,
+            &admission,
+            &graphs,
+            admission
+                .run()
+                .journal_head()
+                .ok_or(StoreError::StaleJournalHead)?
+                .sequence()
+                .get(),
+            &admission_usage_floor(&admission)?,
+        ))
+        .await?;
+        let entry = Box::pin(verified_entry_replay(
+            &mut replay,
             tenant,
             run,
             namespace,
@@ -943,10 +1102,20 @@ impl PostgresStore {
             &graphs,
         ))
         .await?;
-        let (checkpoint, _) =
-            checkpoint_at(&mut snapshot, &entry, &admission, &graphs, base).await?;
-        let results =
-            results_on_checkpoint(&mut snapshot, &checkpoint, barrier.result_heads()).await?;
+        let (checkpoint, _) = Box::pin(checkpoint_at_replay(
+            &mut replay,
+            &entry,
+            &admission,
+            &graphs,
+            base,
+        ))
+        .await?;
+        let results = Box::pin(results_on_checkpoint_replay(
+            &mut replay,
+            &checkpoint,
+            barrier.result_heads(),
+        ))
+        .await?;
         let graph = graphs
             .get(&checkpoint.checkpoint().graph().definition_digest())
             .ok_or(StoreError::GraphFrameRejected)?;
@@ -968,12 +1137,24 @@ impl PostgresStore {
         if actual.barrier() != barrier || actual.disposition() != plan.disposition() {
             return Err(StoreError::GraphFrameConflict);
         }
-        drop(results);
-        drop(checkpoint);
-        drop(entry);
-        drop(graphs);
-        drop(admission);
+        Ok(())
+    }
 
+    #[allow(clippy::too_many_lines)]
+    async fn commit_graph_frame_barrier_locked(
+        &self,
+        plan: GraphFrameBarrierPlan,
+        event_id: EventId,
+        fence: RunFence,
+        observed: JournalHead,
+        direct_usage: BudgetUsage,
+    ) -> Result<GraphFrameBarrierCommitOutcome, StoreError> {
+        let barrier = plan.barrier();
+        let head = barrier.base_checkpoint();
+        let base = head.checkpoint();
+        let tenant = base.tenant_id();
+        let run = base.run_id();
+        let namespace = head.frame().namespace();
         let mut tx = self.begin_mutation("whole frame barrier").await?;
         let admission = load_locked_agent_admission(&mut tx, tenant, run)
             .await?
@@ -1000,42 +1181,59 @@ impl PostgresStore {
         }
         let now = database_now(&mut tx, "frame barrier authority clock").await?;
         authorize_worker(stored, &fence, now)?;
-        let entry = Box::pin(verified_entry(
-            &mut tx, tenant, run, namespace, &admission, &graphs,
+        let mut replay = Replay::new(&mut tx);
+        Box::pin(returns::usage_floor_before(
+            &mut replay,
+            &admission,
+            &graphs,
+            observed.sequence().get(),
+            &admission_usage_floor(&admission)?,
         ))
         .await?;
-        let (checkpoint, floor) =
-            Box::pin(current_checkpoint(&mut tx, &entry, &admission, &graphs)).await?;
+        let entry = Box::pin(verified_entry_replay(
+            &mut replay,
+            tenant,
+            run,
+            namespace,
+            &admission,
+            &graphs,
+        ))
+        .await?;
+        let (checkpoint, floor) = Box::pin(current_checkpoint_replay(
+            &mut replay,
+            &entry,
+            &admission,
+            &graphs,
+        ))
+        .await?;
         if checkpoint.head() != *head {
             return Err(StoreError::StaleCheckpointHead);
         }
         // This authenticates the current active leaf and exact requested base.
-        let active = Box::pin(bound_checkpoint(
-            &mut tx, tenant, run, namespace, base, true,
-        ))
-        .await?;
-        if active != checkpoint {
-            return Err(StoreError::GraphFrameConflict);
-        }
+        Box::pin(verify_active_checkpoint(replay.tx, &entry, &checkpoint)).await?;
         direct_usage
             .validate_monotonic_after(&floor)
             .map_err(|_| StoreError::IncompleteChildAccounting)?;
-        ensure_no_unsettled_tool_invocations(&mut tx, checkpoint.checkpoint()).await?;
-        ensure_no_unsettled_model_invocations(&mut tx, checkpoint.checkpoint()).await?;
-        if !load_barrier_consumption_rows(&mut tx, base)
+        ensure_no_unsettled_tool_invocations(replay.tx, checkpoint.checkpoint()).await?;
+        ensure_no_unsettled_model_invocations(replay.tx, checkpoint.checkpoint()).await?;
+        if !load_barrier_consumption_rows(replay.tx, base)
             .await?
             .is_empty()
         {
             return Err(StoreError::CheckpointBarrierResultConflict);
         }
-        let results = results_on_checkpoint(&mut tx, &checkpoint, barrier.result_heads()).await?;
+        let results =
+            results_on_checkpoint_replay(&mut replay, &checkpoint, barrier.result_heads()).await?;
         if results.iter().any(|result| {
             result.journal_head().sequence() > observed.sequence()
                 || result.journal_head().recorded_at() > observed.recorded_at()
         }) {
             return Err(StoreError::CheckpointBarrierResultConflict);
         }
-        let account = Box::pin(child_runs::load_account_inner(&mut tx, tenant, run, false)).await?;
+        let account = Box::pin(child_runs::load_account_inner(
+            replay.tx, tenant, run, false,
+        ))
+        .await?;
         let (delegated_usage, child_account_digest) = if let Some(account) = account {
             child_runs::ensure_settled(&account)?;
             direct_usage
@@ -1090,26 +1288,26 @@ impl PostgresStore {
             .budget()
             .remaining(&total, record.event.recorded_at())
             .map_err(|_| StoreError::GraphFrameLimitExceeded)?;
-        insert_event_components(&mut tx, &record.event, record.digest).await?;
+        insert_event_components(replay.tx, &record.event, record.digest).await?;
         insert_checkpoint_components(
-            &mut tx,
+            replay.tx,
             record.checkpoint.checkpoint(),
             record.event.source(),
             Some(&record.checkpoint),
         )
         .await?;
         insert_barrier_consumption_parts(
-            &mut tx,
+            replay.tx,
             base,
             barrier.result_heads(),
             record.checkpoint.checkpoint(),
             record.event.source(),
         )
         .await?;
-        insert_record(&mut tx, &record).await?;
-        advance_head(&mut tx, base, &record.checkpoint).await?;
-        update_run_head(&mut tx, &record.event, None).await?;
-        revalidate_worker_after_components(&mut tx, &fence).await?;
+        insert_record(replay.tx, &record).await?;
+        advance_head(replay.tx, base, &record.checkpoint).await?;
+        update_run_head(replay.tx, &record.event, None).await?;
+        revalidate_worker_after_components(replay.tx, &fence).await?;
         tx.commit()
             .await
             .map_err(|e| StoreError::database("whole frame barrier commit", e))?;
@@ -1153,4 +1351,134 @@ async fn advance_head(
         return Err(StoreError::StaleCheckpointHead);
     }
     Ok(())
+}
+
+async fn previously_verified_checkpoint(
+    tx: &mut Transaction<'_, Postgres>,
+    entry: &StoredGraphFrameEntry,
+    prefix: &replay::Prefix,
+    expected: &CheckpointHead,
+) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+    let checkpoint = decode_frame_checkpoint(
+        checkpoint_row(
+            tx,
+            expected.tenant_id(),
+            expected.run_id(),
+            entry.entry.checkpoint().frame().namespace(),
+            expected.checkpoint_id(),
+        )
+        .await?,
+    )?;
+    if checkpoint.checkpoint().head() != *expected
+        || checkpoint.frame() != entry.entry.checkpoint().frame()
+        || expected.superstep().get() > prefix.superstep
+        || prefix.entry_digest != entry.digest
+    {
+        return Err(StoreError::corrupt("frame replay cached checkpoint"));
+    }
+    if expected.superstep().get() == prefix.superstep {
+        if expected.checkpoint_id() != prefix.checkpoint_id
+            || expected.digest() != prefix.checkpoint_digest
+            || checkpoint.digest() != prefix.frame_checkpoint_digest
+        {
+            return Err(StoreError::corrupt("frame replay cached head"));
+        }
+        return Ok((checkpoint, prefix.usage.clone()));
+    }
+    if expected.superstep().get() == 0 {
+        return Ok((checkpoint, entry.direct_usage_after()?));
+    }
+    let bytes=query_scalar::<_,Vec<u8>>("SELECT barrier_bytes FROM stateknot.graph_frame_barriers WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3 AND successor_checkpoint_id=$4")
+        .bind(expected.tenant_id().as_str()).bind(*expected.run_id().as_uuid()).bind(checkpoint.frame().namespace().as_str()).bind(*expected.checkpoint_id().as_uuid())
+        .fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("frame replay prefix witness",e))?.ok_or_else(||StoreError::corrupt("frame replay prefix witness missing"))?;
+    let wire = decode_wire(&bytes)?;
+    if wire.checkpoint != checkpoint.head() {
+        return Err(StoreError::corrupt("frame replay older checkpoint"));
+    }
+    let (event, projection) = child_runs::anchored_event(
+        tx,
+        expected.tenant_id(),
+        expected.run_id(),
+        i64::try_from(expected.journal_head().sequence().get())
+            .map_err(|_| StoreError::corrupt("frame replay sequence"))?,
+    )
+    .await?;
+    if event.head() != *expected.journal_head()
+        || projection != Some(wire.compound_digest)
+        || compound(wire.scope_intent_digest, &event, &wire.checkpoint)? != wire.compound_digest
+    {
+        return Err(StoreError::corrupt("frame replay older anchor"));
+    }
+    let record = StoredGraphFrameBarrier {
+        event,
+        barrier: wire.barrier,
+        checkpoint,
+        disposition: wire.disposition,
+        scope: wire.scope,
+        budget: wire.budget,
+        scope_intent_digest: wire.scope_intent_digest,
+        digest: wire.compound_digest,
+    };
+    let usage = charged(&record)?;
+    Ok((record.checkpoint, usage))
+}
+
+pub(super) async fn terminal_by_base_replay(
+    replay: &mut Replay<'_, '_>,
+    entry: &StoredGraphFrameEntry,
+    admission: &StoredAgentAdmission,
+    graphs: &BTreeMap<Digest, CompiledGraph>,
+    base: CheckpointId,
+) -> Result<StoredGraphFrameBarrier, StoreError> {
+    let initial = entry.entry.checkpoint();
+    let tenant = initial.checkpoint().tenant_id();
+    let run = initial.checkpoint().run_id();
+    let namespace = initial.frame().namespace();
+    let row = row(replay.tx, tenant, run, namespace, base)
+        .await?
+        .ok_or(StoreError::GraphFrameConflict)?;
+    // The caller already authenticated this exact entry in the same transaction.
+    // Reuse it rather than re-entering ancestor replay through a terminal proof.
+    let wire = decode_wire(&row.barrier_bytes)?;
+    let (checkpoint, floor) = Box::pin(checkpoint_at_replay(
+        replay,
+        entry,
+        admission,
+        graphs,
+        wire.barrier.base_checkpoint().checkpoint(),
+    ))
+    .await?;
+    let record = Box::pin(verify_edge_replay(
+        replay,
+        entry,
+        admission,
+        graphs,
+        &checkpoint,
+        &floor,
+        row,
+    ))
+    .await?;
+    if record.disposition().terminal_output().is_none() {
+        return Err(StoreError::GraphFrameConflict);
+    }
+    Ok(record)
+}
+pub(super) async fn terminal_replay(
+    replay: &mut Replay<'_, '_>,
+    entry: &StoredGraphFrameEntry,
+    admission: &StoredAgentAdmission,
+    graphs: &BTreeMap<Digest, CompiledGraph>,
+    expected: &GraphFrameCheckpointHead,
+    base: CheckpointId,
+) -> Result<StoredGraphFrameBarrier, StoreError> {
+    let record = Box::pin(terminal_by_base_replay(
+        replay, entry, admission, graphs, base,
+    ))
+    .await?;
+    if record.checkpoint.head() != *expected {
+        return Err(StoreError::corrupt(
+            "return terminal checkpoint substitution",
+        ));
+    }
+    Ok(record)
 }

@@ -97,8 +97,8 @@ mod scoped_checkpoints;
 #[path = "graph_frames.rs"]
 mod graph_frames;
 pub use graph_frames::{
-    GraphFrameBarrierCommitOutcome, GraphFrameEntryCommitOutcome, StoredGraphFrameBarrier,
-    StoredGraphFrameEntry,
+    GraphFrameBarrierCommitOutcome, GraphFrameEntryCommitOutcome, GraphFrameReturnCommitOutcome,
+    StoredGraphFrameBarrier, StoredGraphFrameEntry, StoredGraphFrameReturn,
 };
 
 use crate::{
@@ -420,6 +420,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!(
                 "../migrations/0030_graph_frame_caller_bindings.sql"
             )),
+            false,
+        ),
+        Migration::new(
+            31,
+            Cow::Borrowed("whole graph frame returns"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0031_graph_frame_returns.sql")),
             false,
         ),
     ]),
@@ -15832,9 +15839,7 @@ async fn verify_node_attempt(
         return Ok(start_event);
     };
     if graph_frames::is_framework_kind(start_event.payload().kind().as_str()) {
-        return Err(StoreError::corrupt(
-            "framework caller completion requires a whole frame return",
-        ));
+        return Box::pin(graph_frames::recognize_completion(transaction, attempt)).await;
     }
     let event = verify_node_attempt_anchor(
         transaction,
@@ -16332,6 +16337,9 @@ async fn verify_pending_node_result_components(
     transaction: &mut Transaction<'_, Postgres>,
     result: &PendingNodeResult,
 ) -> Result<JournalEvent, StoreError> {
+    if let Some(event) = Box::pin(graph_frames::recognize_result(transaction, result)).await? {
+        return Ok(event);
+    }
     let row = load_pending_node_result_row(transaction, result.intent().activation())
         .await?
         .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;

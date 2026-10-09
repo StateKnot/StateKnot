@@ -218,15 +218,15 @@ fn charged(binding: &Binding) -> Result<BudgetUsage, StoreError> {
         .map_err(|_| StoreError::GraphFrameLimitExceeded)
 }
 
-struct History {
-    current: NodeAttemptStart,
-    event: JournalEvent,
-    digest: Digest,
+pub(super) struct History {
+    pub(super) current: NodeAttemptStart,
+    pub(super) event: JournalEvent,
+    pub(super) digest: Digest,
     // Compact heads and counters only. Whole checkpoint buffers are released
     // after each independent lineage verification.
     checkpoints: Vec<(GraphFrameCheckpointHead, BudgetUsage)>,
     matched: Option<(JournalEvent, NodeAttemptStart)>,
-    floor: BudgetUsage,
+    pub(super) floor: BudgetUsage,
 }
 
 // Authenticate the bounded physical chain without calling checkpoint replay.
@@ -308,7 +308,8 @@ async fn history_anchors(
         let actual = load_node_attempt_record(tx, tenant, &run, wire.start.attempt_id())
             .await?
             .ok_or_else(|| StoreError::corrupt("framework start missing"))?;
-        if actual.completion().is_some() || actual.start() != &wire.start {
+        returns::verify_completion_anchor(tx, &actual).await?;
+        if actual.start() != &wire.start {
             return Err(StoreError::corrupt("framework start components"));
         }
         verify_claim(tx, &wire.start).await?;
@@ -470,21 +471,43 @@ async fn verified_history(
     graphs: &BTreeMap<Digest, CompiledGraph>,
     requested: Option<&RunFence>,
 ) -> Result<History, StoreError> {
+    let mut replay = Replay::new(tx);
+    Box::pin(verified_history_replay(
+        &mut replay,
+        entry,
+        admission,
+        graphs,
+        requested,
+    ))
+    .await
+}
+
+pub(super) async fn verified_history_replay(
+    replay: &mut Replay<'_, '_>,
+    entry: &StoredGraphFrameEntry,
+    admission: &StoredAgentAdmission,
+    graphs: &BTreeMap<Digest, CompiledGraph>,
+    requested: Option<&RunFence>,
+) -> Result<History, StoreError> {
     let through = admission
         .run()
         .journal_head()
         .ok_or(StoreError::StaleJournalHead)?
         .sequence()
         .get();
-    let history = Box::pin(history_anchors(tx, entry, admission, through, requested)).await?;
+    let history = Box::pin(history_anchors(
+        replay.tx, entry, admission, through, requested,
+    ))
+    .await?;
     for (head, direct) in &history.checkpoints {
         let (_, floor) =
-            barriers::checkpoint_at(tx, entry, admission, graphs, head.checkpoint()).await?;
+            barriers::checkpoint_at_replay(replay, entry, admission, graphs, head.checkpoint())
+                .await?;
         direct
             .validate_monotonic_after(&floor)
             .map_err(|_| StoreError::corrupt("framework checkpoint usage regression"))?;
     }
-    let count = count_node_attempts(tx, entry.entry.start().activation()).await?;
+    let count = count_node_attempts(replay.tx, entry.entry.start().activation()).await?;
     if count != history.checkpoints.len() + 1 {
         return Err(StoreError::corrupt("framework unrelated physical attempt"));
     }
@@ -642,13 +665,16 @@ impl PostgresStore {
         ))
         .await?;
         if let Some((event, start)) = history.matched {
+            let attempt = load_node_attempt_record(&mut tx, tenant, &run, start.attempt_id())
+                .await?
+                .ok_or(StoreError::NodeAttemptNotFound)?;
+            if attempt.completion().is_some() {
+                Box::pin(returns::recognize_completion(&mut tx, &attempt)).await?;
+            }
             tx.commit()
                 .await
                 .map_err(|e| StoreError::database("framework rebinding retry", e))?;
-            return Ok(NodeAttemptCommitOutcome::Idempotent {
-                event,
-                attempt: NodeAttempt::executing(start),
-            });
+            return Ok(NodeAttemptCommitOutcome::Idempotent { event, attempt });
         }
         let stored = admission.run();
         validate_runnable(stored)?;
@@ -667,18 +693,7 @@ impl PostgresStore {
             &mut tx, &entry, &admission, &graphs,
         ))
         .await?;
-        let active = Box::pin(bound_checkpoint(
-            &mut tx,
-            tenant,
-            run,
-            namespace,
-            &checkpoint.checkpoint().head(),
-            true,
-        ))
-        .await?;
-        if active != checkpoint {
-            return Err(StoreError::GraphFrameConflict);
-        }
+        Box::pin(verify_active_checkpoint(&mut tx, &entry, &checkpoint)).await?;
         direct_usage
             .validate_monotonic_after(&floor)
             .map_err(|_| StoreError::IncompleteChildAccounting)?;

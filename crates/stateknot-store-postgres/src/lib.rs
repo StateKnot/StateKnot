@@ -86,8 +86,9 @@ pub use store::{
     ChildCancellationOutcome, ChildCancellationReceipt, ChildCancellationRecord,
     ChildJoinCommitOutcome, ChildJoinRecord, ChildRunCommitOutcome, ChildRunRecord,
     ChildRunSettlementOutcome, ClaimedRunRecovery, GraphFrameBarrierCommitOutcome,
-    GraphFrameEntryCommitOutcome, PostgresStore, RunFailureCloseCursor, RunFailureCloseOutcome,
-    RunFailureCloseRecord, StoredGraphFrameBarrier, StoredGraphFrameEntry,
-    StoredToolAuthorizationReceipt, ToolAuthorizationReceiptOutcome, ToolAuthorizationReceiptPage,
+    GraphFrameEntryCommitOutcome, GraphFrameReturnCommitOutcome, PostgresStore,
+    RunFailureCloseCursor, RunFailureCloseOutcome, RunFailureCloseRecord, StoredGraphFrameBarrier,
+    StoredGraphFrameEntry, StoredGraphFrameReturn, StoredToolAuthorizationReceipt,
+    ToolAuthorizationReceiptOutcome, ToolAuthorizationReceiptPage,
     ToolAuthorizationReceiptPageSize,
 };

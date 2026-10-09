@@ -14,8 +14,33 @@ pub use barriers::{GraphFrameBarrierCommitOutcome, StoredGraphFrameBarrier};
 
 #[path = "graph_frames/caller_bindings.rs"]
 mod caller_bindings;
+
+#[path = "graph_frames/replay.rs"]
+mod replay;
+use replay::Replay;
+#[path = "graph_frames/returns.rs"]
+mod returns;
+pub(super) async fn recognize_completion(
+    tx: &mut Transaction<'_, Postgres>,
+    attempt: &NodeAttempt,
+) -> Result<JournalEvent, StoreError> {
+    Box::pin(returns::recognize_completion(tx, attempt)).await
+}
+pub use returns::{GraphFrameReturnCommitOutcome, StoredGraphFrameReturn};
+
+pub(super) async fn recognize_result(
+    tx: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+) -> Result<Option<JournalEvent>, StoreError> {
+    Box::pin(returns::recognize_result_replay(
+        &mut Replay::new(tx),
+        result,
+    ))
+    .await
+}
+
 pub(super) fn is_framework_kind(kind: &str) -> bool {
-    caller_bindings::is_framework_kind(kind)
+    caller_bindings::is_framework_kind(kind) || kind == "graph-frame-returned"
 }
 
 const SCOPE_DOMAIN: &[u8] = b"stateknot-postgres-frame-entry-scope-v1\0";
@@ -511,6 +536,27 @@ async fn verified_entry(
     admission: &StoredAgentAdmission,
     graphs: &BTreeMap<Digest, CompiledGraph>,
 ) -> Result<StoredGraphFrameEntry, StoreError> {
+    let mut replay = Replay::new(tx);
+    Box::pin(verified_entry_replay(
+        &mut replay,
+        tenant,
+        run,
+        namespace,
+        admission,
+        graphs,
+    ))
+    .await
+}
+
+#[allow(clippy::too_many_lines)] // One root-to-leaf authentication chain.
+async fn verified_entry_replay(
+    replay: &mut Replay<'_, '_>,
+    tenant: &TenantId,
+    run: RunId,
+    namespace: &GraphNamespace,
+    admission: &StoredAgentAdmission,
+    graphs: &BTreeMap<Digest, CompiledGraph>,
+) -> Result<StoredGraphFrameEntry, StoreError> {
     // Load at most seven compact records first, then authenticate root-to-leaf.
     // Full state buffers are released at each edge; no recursive future owns
     // an entire stack of maximum-sized checkpoints.
@@ -520,13 +566,26 @@ async fn verified_entry(
         if chain.len() == 7 {
             return Err(StoreError::corrupt("frame ancestor depth"));
         }
-        let row = entry_row(tx, tenant, run, &next)
+        let row = entry_row(replay.tx, tenant, run, &next)
             .await?
             .ok_or(StoreError::GraphFrameNotFound)?;
         let wire = decode_entry_wire(&row)?;
         next = wire.scope.parent_namespace.clone();
         chain.push((row, wire));
     }
+    let through = chain
+        .first()
+        .and_then(|(row, _)| row.journal_sequence.checked_sub(1))
+        .and_then(|value| u64::try_from(value).ok())
+        .ok_or_else(|| StoreError::corrupt("frame replay entry observation"))?;
+    Box::pin(returns::usage_floor_before(
+        replay,
+        admission,
+        graphs,
+        through,
+        &admission_usage_floor(admission)?,
+    ))
+    .await?;
     let mut last: Option<StoredGraphFrameEntry> = None;
     for (row, wire) in chain.into_iter().rev() {
         let frame = wire.initial_checkpoint.frame();
@@ -537,7 +596,7 @@ async fn verified_entry(
         let (base_parent, usage_floor) = if frame.origin().graph_namespace().is_root() {
             let cp = decode_checkpoint(
                 checkpoint_row(
-                    tx,
+                    replay.tx,
                     tenant,
                     run,
                     &GraphNamespace::root(),
@@ -545,7 +604,7 @@ async fn verified_entry(
                 )
                 .await?,
             )?;
-            verify_checkpoint_anchor(tx, &cp).await?;
+            verify_checkpoint_anchor(replay.tx, &cp).await?;
             (
                 Parent::Root(Box::new(cp)),
                 admission_usage_floor(admission)?,
@@ -557,8 +616,8 @@ async fn verified_entry(
             if ancestor.entry.checkpoint().frame().namespace() != frame.origin().graph_namespace() {
                 return Err(StoreError::corrupt("frame parent namespace"));
             }
-            let (cp, floor) = Box::pin(barriers::checkpoint_at(
-                tx, ancestor, admission, graphs, base,
+            let (cp, floor) = Box::pin(barriers::checkpoint_at_replay(
+                replay, ancestor, admission, graphs, base,
             ))
             .await?;
             let through = u64::try_from(
@@ -567,9 +626,10 @@ async fn verified_entry(
                     .ok_or_else(|| StoreError::corrupt("frame ancestor observation"))?,
             )
             .map_err(|_| StoreError::corrupt("frame ancestor sequence"))?;
-            let floor =
-                caller_bindings::usage_floor_before(tx, ancestor, admission, through, &floor)
-                    .await?;
+            let floor = caller_bindings::usage_floor_before(
+                replay.tx, ancestor, admission, through, &floor,
+            )
+            .await?;
             (Parent::Frame(Box::new(cp)), floor)
         };
         if base_parent.checkpoint().head() != *base {
@@ -599,7 +659,7 @@ async fn verified_entry(
             .bind(tenant.as_str())
             .bind(*run.as_uuid())
             .bind(row.journal_sequence)
-            .fetch_optional(&mut **tx)
+            .fetch_optional(&mut **replay.tx)
             .await
             .map_err(|e| StoreError::database("frame entry event", e))?
             .ok_or_else(|| StoreError::corrupt("frame entry event"))?;
@@ -644,22 +704,18 @@ async fn verified_entry(
                     i64::try_from(predecessor_sequence)
                         .map_err(|_| StoreError::corrupt("frame predecessor"))?,
                 )
-                .fetch_optional(&mut **tx)
+                .fetch_optional(&mut **replay.tx)
                 .await
                 .map_err(|e| StoreError::database("frame predecessor", e))?
                 .ok_or_else(|| StoreError::corrupt("frame predecessor"))?,
         )?;
-        let start = load_node_attempt_record(tx, tenant, &run, attempt)
+        let start = load_node_attempt_record(replay.tx, tenant, &run, attempt)
             .await?
             .ok_or_else(|| StoreError::corrupt("frame caller start"))?;
-        if start.completion().is_some() {
-            return Err(StoreError::corrupt(
-                "frame caller completed without a whole return",
-            ));
-        }
+        returns::verify_completion_anchor(replay.tx, &start).await?;
         let checkpoint = decode_frame_checkpoint(
             checkpoint_row(
-                tx,
+                replay.tx,
                 tenant,
                 run,
                 frame.namespace(),
@@ -686,6 +742,14 @@ async fn verified_entry(
         if wire.budget.observed_head != predecessor.head() {
             return Err(StoreError::corrupt("frame budget observation"));
         }
+        let usage_floor = Box::pin(returns::usage_floor_before(
+            replay,
+            admission,
+            graphs,
+            predecessor_sequence,
+            &usage_floor,
+        ))
+        .await?;
         wire.budget
             .direct_usage
             .validate_monotonic_after(&usage_floor)
@@ -969,8 +1033,16 @@ impl PostgresStore {
         }
         let now = database_now(&mut tx, "frame entry authority clock").await?;
         authorize_worker(stored, plan.fence(), now)?;
+        let root_floor = Box::pin(returns::usage_floor_before(
+            &mut Replay::new(&mut tx),
+            &admission,
+            &graphs,
+            observed.sequence().get(),
+            &admission_usage_floor(&admission)?,
+        ))
+        .await?;
         direct_usage
-            .validate_monotonic_after(&admission_usage_floor(&admission)?)
+            .validate_monotonic_after(&root_floor)
             .map_err(|_| StoreError::IncompleteChildAccounting)?;
         let stack=query_as::<_,StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2")
             .bind(tenant.as_str()).bind(*run.as_uuid()).fetch_optional(&mut *tx).await.map_err(|e|StoreError::database("frame stack",e))?;
@@ -1267,31 +1339,46 @@ pub(super) async fn bound_checkpoint(
     let (checkpoint, _) =
         barriers::checkpoint_at(tx, &entry, &admission, &graphs, expected).await?;
     if require_active {
-        let active = query_as::<_,StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2")
-            .bind(tenant.as_str()).bind(*run.as_uuid()).fetch_optional(&mut **tx).await
-            .map_err(|e|StoreError::database("frame node stack",e))?.ok_or(StoreError::GraphFrameConflict)?;
-        if active.active_namespace != namespace.as_str()
-            || active.active_frame_identity_digest.as_deref()
-                != Some(checkpoint.frame().digest().as_bytes())
-            || decode_digest(&active.admission_digest, "frame node admission")?
-                != entry.scope.admission_digest
-            || active.lifetime_starts < i32::from(entry.scope.ordinal)
-        {
-            return Err(StoreError::GraphFrameConflict);
-        }
-        let head = query_as::<_,(Uuid,i64,Vec<u8>,Vec<u8>)>("SELECT checkpoint_id,superstep,checkpoint_digest,frame_checkpoint_digest FROM stateknot.graph_frame_heads WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3")
-            .bind(tenant.as_str()).bind(*run.as_uuid()).bind(namespace.as_str())
-            .fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("frame node head",e))?
-            .ok_or(StoreError::GraphFrameConflict)?;
-        if head.0 != *checkpoint.checkpoint().checkpoint_id().as_uuid()
-            || nonnegative_superstep(head.1)? != checkpoint.checkpoint().superstep()
-            || decode_digest(&head.2, "frame node checkpoint")? != checkpoint.checkpoint().digest()
-            || decode_digest(&head.3, "frame node scoped head")? != checkpoint.digest()
-        {
-            return Err(StoreError::StaleCheckpointHead);
-        }
+        verify_active_checkpoint(tx, &entry, &checkpoint).await?;
     }
     Ok(checkpoint.clone())
+}
+
+// Use only after authenticating both values in this transaction. Keeping
+// the active-stack predicate separate avoids replaying the same ancestry
+// while a writer already holds its verified entry and checkpoint.
+pub(super) async fn verify_active_checkpoint(
+    tx: &mut Transaction<'_, Postgres>,
+    entry: &StoredGraphFrameEntry,
+    checkpoint: &GraphFrameCheckpoint,
+) -> Result<(), StoreError> {
+    let tenant = checkpoint.checkpoint().tenant_id();
+    let run = checkpoint.checkpoint().run_id();
+    let namespace = checkpoint.frame().namespace();
+    let active = query_as::<_,StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2")
+        .bind(tenant.as_str()).bind(*run.as_uuid()).fetch_optional(&mut **tx).await
+        .map_err(|e|StoreError::database("frame node stack",e))?.ok_or(StoreError::GraphFrameConflict)?;
+    if active.active_namespace != namespace.as_str()
+        || active.active_frame_identity_digest.as_deref()
+            != Some(checkpoint.frame().digest().as_bytes())
+        || decode_digest(&active.admission_digest, "frame node admission")?
+            != entry.scope.admission_digest
+        || active.lifetime_starts < i32::from(entry.scope.ordinal)
+    {
+        return Err(StoreError::GraphFrameConflict);
+    }
+    let head = query_as::<_,(Uuid,i64,Vec<u8>,Vec<u8>)>("SELECT checkpoint_id,superstep,checkpoint_digest,frame_checkpoint_digest FROM stateknot.graph_frame_heads WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3")
+        .bind(tenant.as_str()).bind(*run.as_uuid()).bind(namespace.as_str())
+        .fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("frame node head",e))?
+        .ok_or(StoreError::GraphFrameConflict)?;
+    if head.0 != *checkpoint.checkpoint().checkpoint_id().as_uuid()
+        || nonnegative_superstep(head.1)? != checkpoint.checkpoint().superstep()
+        || decode_digest(&head.2, "frame node checkpoint")? != checkpoint.checkpoint().digest()
+        || decode_digest(&head.3, "frame node scoped head")? != checkpoint.digest()
+    {
+        return Err(StoreError::StaleCheckpointHead);
+    }
+    Ok(())
 }
 
 // Flush deferred compound/scope guards before the final database-clock check.

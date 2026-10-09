@@ -24,6 +24,17 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Experimental whole frame returns authenticate an existing terminal proof and
+  atomically settle the current framework caller, exact parent result, stack
+  pop and reserved journal fact. Recovery precedes fresh callbacks/authority;
+  newer fences require an actual rebound caller. Shared DIRECT floors survive
+  returns and later mutations. Transaction-owned compact replay proofs avoid
+  repeated nested history traversal; default-stack seven-level cascades, races,
+  component rollback, expired leases, corruption and nonempty source upgrades
+  have native regressions. Schema 31 pins exact guards and 50-table ACLs.
+  Scoped waits, closure, actual nested driver and RFC-0022 acceptance remain
+  pending.
+
 - Add experimental atomic framework caller rebinding for RFC-0022. A newer
   worker records a bounded physical attempt and whole immutable binding to the
   existing child, preserving its activation/checkpoint and shared Run budget.

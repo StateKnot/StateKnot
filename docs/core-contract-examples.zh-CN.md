@@ -207,6 +207,14 @@ schema 注册表检查覆盖该数据边界；Rust-only plan/记录/错误没有
 reader 或改变原有类型 schema pin。实际入栈事务、继承限制、active leaf 和
 数据库时钟下的 live fence 校验仍须实现。
 
+实验性 Store Schema 28–31 已接通完整准入、帧内普通节点、作用域屏障、框架 caller
+接管和完整返回。专用返回事务将已保存的 terminal 证明与当前物理 caller、精确父
+结果、完成、stack 弹出及 journal 原子结算；父状态通过自己的屏障继续推进。
+恢复先验证全部组件，再考虑新回调或权限。共享 DIRECT 用量下界和有界事务内
+证明在嵌套返回后保持有效。非空源码升级、默认栈七层级联和真实受限 LOGIN
+路径有原生测试。作用域等待、全帧关闭、实际嵌套 driver 和完整故障验收仍是
+独立草案门禁，不改变已发布 alpha.1 的支持范围。
+
 [RFC-0021](rfcs/0021-core-object-readers.md) 要求全部 181 个封闭对象 reader
 使用已公布的对象形状。流式 map 门禁复用原 owned 字段 reader、重复/未知字段
 检查和构造器，无需额外 JSON 树。矩阵通过文本和 Value 两种 reader 拒绝按

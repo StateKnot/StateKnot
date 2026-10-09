@@ -296,10 +296,38 @@ event and suspended-caller guards, catalog and exact 49-table runtime ACL.
 Source-29 upgrade fixtures retain a real noninitial terminal barrier and its
 consumptions; they do not qualify historical binaries.
 
-Admission, node, barrier and caller-binding transactions are parts of the Draft.
-Settlement/return, waits, all-frame closure, actual
-registry/driver dispatch, complete process-loss/commit-loss fault qualification
-and production capacity remain pending. These Store primitives do not enable
+Schema 31 adds experimental whole returns. A terminal barrier/checkpoint first
+commits as an immutable child proof, leaving the child active and the caller
+suspended. The dedicated return transaction authenticates that proof and the
+current physical framework caller, then atomically commits settlement, exact
+declared-route parent result, caller completion, stack pop and one reserved
+journal fact. The parent checkpoint stays immutable until its own barrier
+consumes the returned result. A newer fence requires caller rebinding first;
+ordinary completion still cannot finish framework calls.
+
+Return recovery validates closed canonical bytes, all SQL projections, the
+admitted graph closure, actual entry/terminal/caller histories, result owner,
+completion, event predecessor and original shared budget. It precedes fresh
+callbacks, observations and lease checks. Fresh planning runs the actual pinned
+schema/reducer before locking; commit repeats active leaf, exact parent/child
+heads, current physical start, settled child accounting, live database fence
+and original deadline. Return charges one graph step and its canonical event;
+its framework completion has zero application usage. Later mutations retain the
+Run-wide DIRECT floor.
+
+Replay reuses only compact proofs owned by its database transaction, at most
+4,096 scope/return entries, with no process-global or full-state cache. Earlier
+returns are authenticated in journal order before result ownership traversal.
+Seven-level cascade tests run with the normal thread stack and the real lease
+renewal API. Exact Schema 31 catalog and 50-table trusted-server ACLs retain
+immutable facts and require whole proofs for stack transitions and framework
+completion. Nonempty source-30 fixtures preserve terminal and rebound-caller
+facts and migration checksums; they do not qualify historical binaries.
+
+Admission, node, barrier, caller-binding and return transactions are parts of
+the Draft. Scoped waits, all-frame closure, actual registry/driver dispatch,
+complete process-loss/commit-loss fault qualification and production capacity
+remain pending. These Store primitives do not enable
 nested execution or make RFC-0022 Supported.
 
 ## Detailed semantics
@@ -362,9 +390,12 @@ fence. Recovery commits a new framework-only parent start when required by the
 existing attempt history, without re-executing application code or allocating
 a child. Its completion must follow that start in journal order.
 
-Return atomically commits the child terminal barrier/checkpoint, frame settlement,
+A child terminal barrier/checkpoint commits as an immutable proof while the
+caller remains suspended. Return atomically settles that exact proof with the
 parent framework-attempt completion and immutable parent pending result, and
-moves the active-leaf projection to the caller. It verifies every output/schema,
+moves the active-leaf projection to the caller. A crash between these stages
+leaves a recoverable terminal child and grants no parent dispatch; recovery
+authenticates the saved terminal proof and commits or reloads the whole return. It verifies every output/schema,
 caller activation, declared route, parent base checkpoint, current frame head,
 physical start and fence. Required invocation/child-Join ownership must already
 be discharged. An acknowledgment loss returns the exact committed outcome;

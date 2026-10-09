@@ -175,8 +175,14 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       qualification remain pending; nested execution stays Draft. Schema 30 adds
       atomic framework caller rebinding with a new physical attempt and whole
       binding to the existing child/checkpoint and shared Run budget. Ordinary
-      completion still rejects framework calls; whole return and nested driver
-      execution remain Draft gates.
+      completion still rejects framework calls. Schema 31 adds a dedicated whole
+      return: the saved terminal proof is atomically settled with the current
+      caller completion, exact parent result, stack pop and journal fact. Shared
+      Run usage survives returns; compact proofs are reused only inside their
+      owning transaction. Seven-level cascades use the default thread stack and
+      actual lease renewal. Exact catalog and 50-table runtime ACLs guard the
+      complete transaction. Scoped waits, all-frame closure, actual nested
+      driver and complete fault qualification remain Draft gates.
     </p>
     <p>
       Two graph and checkpoint models independently check state, route union,

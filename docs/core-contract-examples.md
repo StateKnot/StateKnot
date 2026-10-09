@@ -240,6 +240,20 @@ this data boundary. The Rust-only plan/record/error add no public Serde reader
 or change to existing public type schema pins. Atomic store admission, inherited
 limits and active-leaf/live-fence authority still require implementation.
 
+
+
+Experimental Store schemas 28–31 now provide whole admission, ordinary scoped
+node execution, scoped barriers, framework caller rebinding and whole return.
+Return settles an already saved terminal proof with the current physical caller,
+exact parent result, completion, stack pop and journal in one transaction; the
+parent advances only through its own barrier. Recovery authenticates every
+component before fresh callbacks or authority. Run-wide DIRECT floors and
+bounded transaction-owned replay proofs survive nested returns. Source upgrades,
+seven-level default-stack cascades and real restricted LOGIN paths have native
+tests. Scoped waits, all-frame closure, actual nested driver and complete fault
+qualification remain independent Draft gates; no published alpha.1 support is
+implied.
+
 The 181 object readers and 308 pins in the RFC-0021 account below describe its
 original adoption baseline; the six additions use the same map-only guard.
 

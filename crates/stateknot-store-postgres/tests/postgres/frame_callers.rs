@@ -26,7 +26,7 @@ async fn takeover(store: &PostgresStore, fence: &RunFence) -> RunFence {
         .fence()
         .clone()
 }
-fn charged(usage: &BudgetUsage, result: &NodeAttemptCommitOutcome) -> BudgetUsage {
+pub(super) fn charged(usage: &BudgetUsage, result: &NodeAttemptCommitOutcome) -> BudgetUsage {
     usage
         .checked_accumulate(
             &BudgetUsage::builder()
