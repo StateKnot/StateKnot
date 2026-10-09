@@ -393,7 +393,8 @@ impl<'de> Deserialize<'de> for ModelOutputStart {
     where
         D: Deserializer<'de>,
     {
-        let value = match ModelOutputStartWire::deserialize(deserializer)? {
+        let value = match crate::json::deserialize_object::<ModelOutputStartWire, _>(deserializer)?
+        {
             ModelOutputStartWire::Text { language, metadata } => Self::Text { language, metadata },
             ModelOutputStartWire::Json { schema, metadata } => Self::Json { schema, metadata },
             ModelOutputStartWire::Artifact(artifact) => Self::Artifact(artifact),
@@ -433,7 +434,7 @@ pub enum ModelOutputDeltaKind {
 }
 
 /// One typed exact fragment for an already-started output item.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(
     tag = "type",
     content = "delta",
@@ -449,6 +450,37 @@ pub enum ModelOutputDelta {
     ReasoningSummary(ModelStreamChunk),
     /// Tool-argument JSON delta.
     ToolArguments(ModelStreamChunk),
+}
+
+#[derive(Deserialize)]
+#[serde(
+    tag = "type",
+    content = "delta",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
+enum ModelOutputDeltaObjectWire {
+    Text(ModelStreamChunk),
+    Json(ModelStreamChunk),
+    ReasoningSummary(ModelStreamChunk),
+    ToolArguments(ModelStreamChunk),
+}
+impl<'de> serde::Deserialize<'de> for ModelOutputDelta {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ModelOutputDeltaObjectWire, _>(deserializer)? {
+                ModelOutputDeltaObjectWire::Text(field_0) => Self::Text(field_0),
+                ModelOutputDeltaObjectWire::Json(field_0) => Self::Json(field_0),
+                ModelOutputDeltaObjectWire::ReasoningSummary(field_0) => {
+                    Self::ReasoningSummary(field_0)
+                }
+                ModelOutputDeltaObjectWire::ToolArguments(field_0) => Self::ToolArguments(field_0),
+            },
+        )
+    }
 }
 
 impl ModelOutputDelta {
@@ -586,13 +618,13 @@ impl<'de> Deserialize<'de> for ModelEvent {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelEventWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelEventWire, _>(deserializer)?;
         Self::new(wire.attempt_id, wire.sequence, wire.event).map_err(de::Error::custom)
     }
 }
 
 /// Closed semantic body of a provider-neutral model event.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(
     tag = "type",
     content = "content",
@@ -638,6 +670,77 @@ pub enum ModelEventKind {
         /// Bounded registered provider/adapter terminal metadata.
         extensions: Extensions,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(
+    tag = "type",
+    content = "content",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
+enum ModelEventKindObjectWire {
+    Started {
+        provenance: ModelResponseProvenance,
+    },
+    OutputStarted {
+        output_index: ExecutionCount,
+        start: Box<ModelOutputStart>,
+    },
+    OutputDelta {
+        output_index: ExecutionCount,
+        delta: ModelOutputDelta,
+    },
+    OutputCompleted {
+        output_index: ExecutionCount,
+    },
+    UsageUpdated {
+        usage: ModelUsage,
+    },
+    Completed {
+        finish_reason: ModelFinishReason,
+        usage: ModelUsage,
+        extensions: Extensions,
+    },
+}
+impl<'de> serde::Deserialize<'de> for ModelEventKind {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ModelEventKindObjectWire, _>(deserializer)? {
+                ModelEventKindObjectWire::Started { provenance } => Self::Started { provenance },
+                ModelEventKindObjectWire::OutputStarted {
+                    output_index,
+                    start,
+                } => Self::OutputStarted {
+                    output_index,
+                    start,
+                },
+                ModelEventKindObjectWire::OutputDelta {
+                    output_index,
+                    delta,
+                } => Self::OutputDelta {
+                    output_index,
+                    delta,
+                },
+                ModelEventKindObjectWire::OutputCompleted { output_index } => {
+                    Self::OutputCompleted { output_index }
+                }
+                ModelEventKindObjectWire::UsageUpdated { usage } => Self::UsageUpdated { usage },
+                ModelEventKindObjectWire::Completed {
+                    finish_reason,
+                    usage,
+                    extensions,
+                } => Self::Completed {
+                    finish_reason,
+                    usage,
+                    extensions,
+                },
+            },
+        )
+    }
 }
 
 impl ModelEventKind {

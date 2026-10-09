@@ -372,12 +372,32 @@ pub enum CurrencyCodeError {
 /// The stable JSON form is an object with exactly `currency` and
 /// `micro_units`; the latter is a canonical decimal string. Unknown cost is
 /// represented by absence in an enclosing usage value, not by zero money.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Money {
     currency: CurrencyCode,
     #[serde(with = "crate::decimal::serde_u64")]
     micro_units: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MoneyObjectWire {
+    currency: CurrencyCode,
+    #[serde(with = "crate::decimal::serde_u64")]
+    micro_units: u64,
+}
+impl<'de> serde::Deserialize<'de> for Money {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: MoneyObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            currency: wire.currency,
+            micro_units: wire.micro_units,
+        })
+    }
 }
 
 impl Money {

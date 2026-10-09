@@ -131,7 +131,7 @@ impl<'de> Deserialize<'de> for ChildRunKey {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let key = Self::new(wire.parent, wire.slot).map_err(de::Error::custom)?;
         if key.digest != wire.digest {
             return Err(de::Error::custom(ChildRunKeyError::DigestMismatch));

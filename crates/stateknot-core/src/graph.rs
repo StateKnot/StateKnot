@@ -32,11 +32,30 @@ use crate::{
 const MEBIBYTE: usize = 1024 * 1024;
 
 /// Exact executable reducer revision required by a compiled graph.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GraphReducerReference {
     identity: CapabilityIdentity,
     definition_digest: Digest,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GraphReducerReferenceObjectWire {
+    identity: CapabilityIdentity,
+    definition_digest: Digest,
+}
+impl<'de> serde::Deserialize<'de> for GraphReducerReference {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: GraphReducerReferenceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            identity: wire.identity,
+            definition_digest: wire.definition_digest,
+        })
+    }
 }
 
 impl GraphReducerReference {
@@ -126,7 +145,7 @@ impl<'de> Deserialize<'de> for GraphExecutionLimits {
             maximum_parallelism: u16,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.maximum_supersteps, wire.maximum_parallelism).map_err(de::Error::custom)
     }
 }
@@ -201,7 +220,7 @@ impl<'de> Deserialize<'de> for GraphRoute {
             successors: ReadyNodes,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.route_id, wire.successors).map_err(de::Error::custom)
     }
 }
@@ -457,7 +476,7 @@ impl<'de> Deserialize<'de> for GraphNode {
             terminal: bool,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.node_id,
             wire.continue_to,
@@ -893,7 +912,7 @@ impl<'de> Deserialize<'de> for CompiledGraph {
             definition_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::build(
             wire.identity,
             wire.input_schema,

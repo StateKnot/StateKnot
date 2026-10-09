@@ -226,13 +226,30 @@ fn validate_instruction_name(value: &str) -> Result<(), InstructionNameError> {
 }
 
 /// Stable identity of an application-owned instruction record.
-#[derive(
-    Clone, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct InstructionIdentity {
     name: InstructionName,
     version: Version,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InstructionIdentityObjectWire {
+    name: InstructionName,
+    version: Version,
+}
+impl<'de> serde::Deserialize<'de> for InstructionIdentity {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: InstructionIdentityObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            name: wire.name,
+            version: wire.version,
+        })
+    }
 }
 
 impl InstructionIdentity {
@@ -261,10 +278,25 @@ impl InstructionIdentity {
 /// instruction name and version are resolved. This record is attribution; an
 /// untrusted transport cannot gain instruction authority merely by presenting
 /// a serialized value with a plausible owner.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct InstructionProvenance {
     owner: PrincipalIdentity,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InstructionProvenanceObjectWire {
+    owner: PrincipalIdentity,
+}
+impl<'de> serde::Deserialize<'de> for InstructionProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: InstructionProvenanceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self { owner: wire.owner })
+    }
 }
 
 impl InstructionProvenance {
@@ -286,7 +318,7 @@ impl InstructionProvenance {
 /// Structured JSON is intentionally absent: application-owned structured
 /// configuration must be rendered to validated text or registered as a
 /// digest-bound artifact before it can influence model instruction hierarchy.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[non_exhaustive]
 #[serde(
     tag = "type",
@@ -299,6 +331,32 @@ pub enum InstructionContent {
     Text(TextContent),
     /// An immutable application-controlled artifact.
     Artifact(Box<ArtifactRef>),
+}
+
+#[derive(Deserialize)]
+#[serde(
+    tag = "type",
+    content = "content",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
+enum InstructionContentObjectWire {
+    Text(TextContent),
+    Artifact(Box<ArtifactRef>),
+}
+impl<'de> serde::Deserialize<'de> for InstructionContent {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<InstructionContentObjectWire, _>(deserializer)?
+            {
+                InstructionContentObjectWire::Text(field_0) => Self::Text(field_0),
+                InstructionContentObjectWire::Artifact(field_0) => Self::Artifact(field_0),
+            },
+        )
+    }
 }
 
 impl InstructionContent {
@@ -421,7 +479,7 @@ impl<'de> Deserialize<'de> for Instruction {
             provenance: InstructionProvenance,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let instruction =
             Self::new(wire.identity, wire.content, wire.provenance).map_err(de::Error::custom)?;
         if instruction.content_digest != wire.content_digest {
@@ -524,7 +582,7 @@ pub enum MessageProducerKind {
 /// the owning principal. A tool result additionally carries its invocation ID;
 /// a model message references the durable attempt that snapshots provider and
 /// model identity.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[non_exhaustive]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MessageProducer {
@@ -556,6 +614,53 @@ pub enum MessageProducer {
     },
 }
 
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+enum MessageProducerObjectWire {
+    Principal {
+        principal: PrincipalIdentity,
+    },
+    ModelAttempt {
+        attempt_id: AttemptId,
+    },
+    Capability {
+        owner: PrincipalIdentity,
+        capability: CapabilityReference,
+    },
+    ToolInvocation {
+        owner: PrincipalIdentity,
+        capability: CapabilityReference,
+        invocation_id: InvocationId,
+    },
+}
+impl<'de> serde::Deserialize<'de> for MessageProducer {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<MessageProducerObjectWire, _>(deserializer)? {
+                MessageProducerObjectWire::Principal { principal } => Self::Principal { principal },
+                MessageProducerObjectWire::ModelAttempt { attempt_id } => {
+                    Self::ModelAttempt { attempt_id }
+                }
+                MessageProducerObjectWire::Capability { owner, capability } => {
+                    Self::Capability { owner, capability }
+                }
+                MessageProducerObjectWire::ToolInvocation {
+                    owner,
+                    capability,
+                    invocation_id,
+                } => Self::ToolInvocation {
+                    owner,
+                    capability,
+                    invocation_id,
+                },
+            },
+        )
+    }
+}
+
 impl MessageProducer {
     /// Returns the stable producer classification.
     #[must_use]
@@ -574,12 +679,33 @@ impl MessageProducer {
 /// Timestamp, correlation chain, provider identity, and external protocol IDs
 /// remain on the referenced event/attempt/invocation records rather than being
 /// copied into every message.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MessageProvenance {
     run_id: RunId,
     event_id: EventId,
     producer: MessageProducer,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MessageProvenanceObjectWire {
+    run_id: RunId,
+    event_id: EventId,
+    producer: MessageProducer,
+}
+impl<'de> serde::Deserialize<'de> for MessageProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: MessageProvenanceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            run_id: wire.run_id,
+            event_id: wire.event_id,
+            producer: wire.producer,
+        })
+    }
 }
 
 impl MessageProvenance {
@@ -946,7 +1072,7 @@ impl<'de> Deserialize<'de> for Message {
             provenance: MessageProvenance,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.message_id, wire.role, wire.parts, wire.provenance)
             .map_err(de::Error::custom)
     }

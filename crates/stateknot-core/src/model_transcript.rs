@@ -266,7 +266,7 @@ impl<'de> Deserialize<'de> for ModelProviderReplay {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let replay = Self::new(wire.format, wire.payload).map_err(de::Error::custom)?;
         if replay.digest != wire.digest {
             return Err(de::Error::custom(ModelProviderReplayError::DigestMismatch));
@@ -402,7 +402,7 @@ impl<'de> Deserialize<'de> for ModelToolFailure {
             retry_advice: RetryAdvice,
             external_effect: ToolExternalEffect,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let failure = Self {
             invocation_id: wire.invocation_id,
             attempt_id: wire.attempt_id,
@@ -561,22 +561,24 @@ impl<'de> Deserialize<'de> for ModelToolOutcome {
                 error: ModelToolFailure,
             },
         }
-        Ok(match Wire::deserialize(deserializer)? {
-            Wire::Succeeded {
-                provider_call_id,
-                result,
-            } => Self::Succeeded {
-                provider_call_id,
-                result,
+        Ok(
+            match crate::json::deserialize_object::<Wire, _>(deserializer)? {
+                Wire::Succeeded {
+                    provider_call_id,
+                    result,
+                } => Self::Succeeded {
+                    provider_call_id,
+                    result,
+                },
+                Wire::Failed {
+                    provider_call_id,
+                    error,
+                } => Self::Failed {
+                    provider_call_id,
+                    error,
+                },
             },
-            Wire::Failed {
-                provider_call_id,
-                error,
-            } => Self::Failed {
-                provider_call_id,
-                error,
-            },
-        })
+        )
     }
 }
 
@@ -687,7 +689,7 @@ impl<'de> Deserialize<'de> for ModelTranscriptTurn {
             response: ModelResponse,
             outcomes: Vec<ModelToolOutcome>,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.response, wire.outcomes).map_err(de::Error::custom)
     }
 }

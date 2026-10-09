@@ -101,7 +101,7 @@ impl<'de> Deserialize<'de> for ChildRunJoinRequest {
             activation_digest: Digest,
             digest: Digest,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         if wire.version != 1
             || wire
                 .keys
@@ -213,7 +213,7 @@ impl<'de> Deserialize<'de> for ChildRunJoinBinding {
             terminals: Vec<ChildRunBudgetSettlement>,
             digest: Digest,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let result = Self::new(wire.request, wire.terminals).map_err(de::Error::custom)?;
         if result.digest != wire.digest {
             return Err(de::Error::custom(ChildRunJoinError::DigestMismatch));
@@ -288,7 +288,7 @@ impl<'de> Deserialize<'de> for ChildRunJoinHead {
             binding_digest: Digest,
             journal_head: JournalHead,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.activation,
             wire.request_digest,

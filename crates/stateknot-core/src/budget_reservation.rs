@@ -151,7 +151,8 @@ impl<'de> Deserialize<'de> for CumulativeBudgetReservation {
         struct Wire {
             amount: BudgetUsage,
         }
-        Self::new(Wire::deserialize(deserializer)?.amount).map_err(de::Error::custom)
+        Self::new(crate::json::deserialize_object::<Wire, _>(deserializer)?.amount)
+            .map_err(de::Error::custom)
     }
 }
 

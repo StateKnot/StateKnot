@@ -559,12 +559,33 @@ pub enum ReadyNodesError {
 }
 
 /// Exact graph definition and state schema required to resume a checkpoint.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GraphReference {
     identity: CapabilityIdentity,
     definition_digest: Digest,
     state_schema: SchemaReference,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GraphReferenceObjectWire {
+    identity: CapabilityIdentity,
+    definition_digest: Digest,
+    state_schema: SchemaReference,
+}
+impl<'de> serde::Deserialize<'de> for GraphReference {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: GraphReferenceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            identity: wire.identity,
+            definition_digest: wire.definition_digest,
+            state_schema: wire.state_schema,
+        })
+    }
 }
 
 impl GraphReference {
@@ -699,7 +720,7 @@ impl<'de> Deserialize<'de> for CheckpointState {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.schema, wire.data, wire.digest).map_err(de::Error::custom)
     }
 }
@@ -840,7 +861,7 @@ impl<'de> Deserialize<'de> for CheckpointHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.tenant_id,
             wire.run_id,
@@ -1130,7 +1151,7 @@ impl<'de> Deserialize<'de> for CheckpointWrite {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::build(
             wire.tenant_id,
             wire.run_id,
@@ -1462,7 +1483,7 @@ impl<'de> Deserialize<'de> for Checkpoint {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let write = CheckpointWrite::build(
             wire.tenant_id,
             wire.run_id,

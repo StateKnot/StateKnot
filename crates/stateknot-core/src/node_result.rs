@@ -312,7 +312,7 @@ impl<'de> Deserialize<'de> for NodeStateUpdate {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.schema, wire.data, wire.digest).map_err(de::Error::custom)
     }
 }
@@ -430,7 +430,7 @@ impl<'de> Deserialize<'de> for NodeTerminalOutput {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.schema, wire.data, wire.digest).map_err(de::Error::custom)
     }
 }
@@ -465,7 +465,7 @@ where
 }
 
 /// State contribution from one successful logical node activation.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NodeStateChange {
     /// The activation intentionally emitted no state update.
@@ -476,6 +476,29 @@ pub enum NodeStateChange {
         /// Exact update consumed by the compiled reducer plan.
         update: NodeStateUpdate,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum NodeStateChangeObjectWire {
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
+    Unchanged,
+    Update {
+        update: NodeStateUpdate,
+    },
+}
+impl<'de> serde::Deserialize<'de> for NodeStateChange {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<NodeStateChangeObjectWire, _>(deserializer)? {
+                NodeStateChangeObjectWire::Unchanged => Self::Unchanged,
+                NodeStateChangeObjectWire::Update { update } => Self::Update { update },
+            },
+        )
+    }
 }
 
 impl NodeStateChange {
@@ -692,30 +715,32 @@ impl<'de> Deserialize<'de> for NodeWait {
             },
         }
 
-        Ok(match Wire::deserialize(deserializer)? {
-            Wire::Interrupt {
-                interrupt_id,
-                interrupt_kind,
-                request_payload,
-                action_digest,
-                required_principal,
-                required_scopes,
-                expires_at,
-            } => Self::interrupt(
-                interrupt_id,
-                interrupt_kind,
-                request_payload,
-                action_digest,
-                required_principal,
-                required_scopes,
-                expires_at,
-            ),
-            Wire::Timer {
-                timer_id,
-                timer_kind,
-                due_at,
-            } => Self::timer(timer_id, timer_kind, due_at),
-        })
+        Ok(
+            match crate::json::deserialize_object::<Wire, _>(deserializer)? {
+                Wire::Interrupt {
+                    interrupt_id,
+                    interrupt_kind,
+                    request_payload,
+                    action_digest,
+                    required_principal,
+                    required_scopes,
+                    expires_at,
+                } => Self::interrupt(
+                    interrupt_id,
+                    interrupt_kind,
+                    request_payload,
+                    action_digest,
+                    required_principal,
+                    required_scopes,
+                    expires_at,
+                ),
+                Wire::Timer {
+                    timer_id,
+                    timer_kind,
+                    due_at,
+                } => Self::timer(timer_id, timer_kind, due_at),
+            },
+        )
     }
 }
 
@@ -913,7 +938,7 @@ pub enum NodeWaitsError {
 }
 
 /// Closed control outcome emitted alongside a node's state contribution.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NodeControl {
     /// Follow the node's unconditional compiled edges.
@@ -934,6 +959,37 @@ pub enum NodeControl {
         /// Exact successful graph output.
         output: NodeTerminalOutput,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum NodeControlObjectWire {
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
+    Continue,
+    Route {
+        route_id: RouteId,
+    },
+    Wait {
+        waits: NodeWaits,
+    },
+    Terminal {
+        output: NodeTerminalOutput,
+    },
+}
+impl<'de> serde::Deserialize<'de> for NodeControl {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<NodeControlObjectWire, _>(deserializer)? {
+                NodeControlObjectWire::Continue => Self::Continue,
+                NodeControlObjectWire::Route { route_id } => Self::Route { route_id },
+                NodeControlObjectWire::Wait { waits } => Self::Wait { waits },
+                NodeControlObjectWire::Terminal { output } => Self::Terminal { output },
+            },
+        )
+    }
 }
 
 impl NodeControl {
@@ -1149,7 +1205,7 @@ impl<'de> Deserialize<'de> for NodeInvocationBinding {
             },
         }
 
-        match Wire::deserialize(deserializer)? {
+        match crate::json::deserialize_object::<Wire, _>(deserializer)? {
             Wire::Model { activation, head } => Self::restore_model(activation, head),
             Wire::Tool { activation, head } => Self::restore_tool(activation, head),
         }
@@ -1577,7 +1633,7 @@ impl<'de> Deserialize<'de> for PendingNodeResultIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let mut result = Self::new(
             wire.activation,
             wire.state_change,
@@ -1761,7 +1817,7 @@ impl<'de> Deserialize<'de> for PendingNodeResult {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.intent, wire.fence, wire.journal_head, wire.digest)
             .map_err(de::Error::custom)
     }
@@ -1851,7 +1907,7 @@ impl<'de> Deserialize<'de> for PendingNodeResultHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.activation,
             wire.intent_digest,

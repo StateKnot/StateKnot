@@ -15,6 +15,35 @@ use std::{
     sync::LazyLock,
 };
 
+// Keep real serializer declaration order; Value's sorted keys would produce an
+// unrelated field permutation and miss Serde's positional reader path.
+struct ObjectFieldValues(Vec<Value>);
+
+impl<'de> Deserialize<'de> for ObjectFieldValues {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Fields;
+        impl<'de> serde::de::Visitor<'de> for Fields {
+            type Value = ObjectFieldValues;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("an object producer")
+            }
+
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                mut map: A,
+            ) -> Result<Self::Value, A::Error> {
+                let mut fields = Vec::new();
+                while let Some((_, value)) = map.next_entry::<String, Value>()? {
+                    fields.push(value);
+                }
+                Ok(ObjectFieldValues(fields))
+            }
+        }
+        deserializer.deserialize_map(Fields)
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Inventory {
@@ -175,6 +204,22 @@ fn verify_reader<T: DeserializeOwned + Serialize + JsonSchema>(name: &str) {
             .as_object()
             .filter(|_| name != "BoundedJson" && name != "Extensions")
         {
+            let fields: ObjectFieldValues =
+                serde_json::from_slice(&serde_json::to_vec(&typed).unwrap()).unwrap();
+            let mut extended = fields.0.clone();
+            extended.push(Value::Null);
+            let truncated = fields.0[..fields.0.len().saturating_sub(1)].to_vec();
+            for fields in [fields.0.clone(), Vec::new(), truncated, extended] {
+                let sequence = Value::Array(fields);
+                assert!(
+                    serde_json::from_slice::<T>(&serde_json::to_vec(&sequence).unwrap()).is_err(),
+                    "{name} accepted positional JSON text"
+                );
+                assert!(
+                    serde_json::from_value::<T>(sequence).is_err(),
+                    "{name} accepted a positional JSON value"
+                );
+            }
             for invalid in [Value::Null, json!(true), json!(7), json!("wire")] {
                 assert!(
                     serde_json::from_value::<T>(invalid).is_err(),

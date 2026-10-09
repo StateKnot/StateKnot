@@ -19,11 +19,30 @@ use crate::{
 /// Identity alone cannot detect different definitions published under the same
 /// owner/name/version. This domain-separated digest includes the complete
 /// canonical descriptor, without copying its private content into the parent.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ChildAgentReference {
     identity: CapabilityIdentity,
     definition_digest: Digest,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChildAgentReferenceObjectWire {
+    identity: CapabilityIdentity,
+    definition_digest: Digest,
+}
+impl<'de> serde::Deserialize<'de> for ChildAgentReference {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ChildAgentReferenceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            identity: wire.identity,
+            definition_digest: wire.definition_digest,
+        })
+    }
 }
 
 impl ChildAgentReference {
@@ -53,7 +72,7 @@ impl ChildAgentReference {
 }
 
 /// One node-owned, named delegation slot with pinned Agent and graph contracts.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ChildRunDeclaration {
     node_id: NodeId,
@@ -62,6 +81,33 @@ pub struct ChildRunDeclaration {
     graph: GraphReference,
     input_schema: SchemaReference,
     output_schema: SchemaReference,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChildRunDeclarationObjectWire {
+    node_id: NodeId,
+    slot: ChildRunSlot,
+    agent: ChildAgentReference,
+    graph: GraphReference,
+    input_schema: SchemaReference,
+    output_schema: SchemaReference,
+}
+impl<'de> serde::Deserialize<'de> for ChildRunDeclaration {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ChildRunDeclarationObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            node_id: wire.node_id,
+            slot: wire.slot,
+            agent: wire.agent,
+            graph: wire.graph,
+            input_schema: wire.input_schema,
+            output_schema: wire.output_schema,
+        })
+    }
 }
 
 impl ChildRunDeclaration {
@@ -220,7 +266,7 @@ impl<'de> Deserialize<'de> for ChildRunTopologyLimits {
             maximum_children_per_run: u16,
             maximum_active_descendants: u16,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.maximum_descendant_depth,
             wire.maximum_children_per_run,
@@ -329,7 +375,7 @@ impl<'de> Deserialize<'de> for GraphChildRunPolicy {
             #[serde(deserialize_with = "bounded_declarations")]
             declarations: Vec<ChildRunDeclaration>,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         if wire.version != 1 {
             return Err(de::Error::custom(ChildRunPolicyError::UnsupportedVersion));
         }

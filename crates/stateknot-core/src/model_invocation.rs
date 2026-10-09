@@ -310,7 +310,7 @@ impl<'de> Deserialize<'de> for ModelInvocationIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.activation,
             wire.invocation_id,
@@ -439,12 +439,14 @@ impl<'de> Deserialize<'de> for ModelInvocationState {
             },
         }
 
-        Ok(match Wire::deserialize(deserializer)? {
-            Wire::Prepared => Self::Prepared,
-            Wire::Executing { attempt_id } => Self::Executing { attempt_id },
-            Wire::Committed { response } => Self::Committed { response },
-            Wire::Failed { error } => Self::Failed { error },
-        })
+        Ok(
+            match crate::json::deserialize_object::<Wire, _>(deserializer)? {
+                Wire::Prepared => Self::Prepared,
+                Wire::Executing { attempt_id } => Self::Executing { attempt_id },
+                Wire::Committed { response } => Self::Committed { response },
+                Wire::Failed { error } => Self::Failed { error },
+            },
+        )
     }
 }
 
@@ -463,7 +465,7 @@ pub enum ModelInvocationTransitionKind {
 }
 
 /// Explicit transition appended to the run journal and model history.
-#[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+#[derive(Clone, Debug, JsonSchema, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 #[allow(clippy::large_enum_variant)]
 pub enum ModelInvocationTransition {
@@ -482,6 +484,37 @@ pub enum ModelInvocationTransition {
         /// Validated attempt failure.
         error: ModelError,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[allow(clippy::large_enum_variant)]
+enum ModelInvocationTransitionObjectWire {
+    StartAttempt { attempt_id: AttemptId },
+    RecordResponse { response: ModelResponse },
+    RecordError { error: ModelError },
+}
+impl<'de> serde::Deserialize<'de> for ModelInvocationTransition {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ModelInvocationTransitionObjectWire, _>(
+                deserializer,
+            )? {
+                ModelInvocationTransitionObjectWire::StartAttempt { attempt_id } => {
+                    Self::StartAttempt { attempt_id }
+                }
+                ModelInvocationTransitionObjectWire::RecordResponse { response } => {
+                    Self::RecordResponse { response }
+                }
+                ModelInvocationTransitionObjectWire::RecordError { error } => {
+                    Self::RecordError { error }
+                }
+            },
+        )
+    }
 }
 
 impl ModelInvocationTransition {
@@ -616,7 +649,7 @@ impl<'de> Deserialize<'de> for ModelInvocationHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.tenant_id,
             wire.run_id,
@@ -927,7 +960,7 @@ impl<'de> Deserialize<'de> for ModelInvocation {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.intent,
             wire.revision,

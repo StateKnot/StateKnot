@@ -151,6 +151,16 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       timestamp bytes, ranges and schema pins stay exact.
     </p>
     <p>
+      All 181 closed object readers require maps, including nested schema
+      references in Tool, Agent, journal, checkpoint and child records. Text and
+      Value controls reject full, empty, truncated and extended positional
+      arrays. Use the object shape from the pinned schema; sequence-based
+      binary-format decoding is unsupported. Valid wire bytes, all 43 fixtures
+      and both 308-pin profiles stay exact. The actual Tool registry rejects
+      malformed nested input before application dispatch. This source-only
+      correction does not change the published alpha.1 package.
+    </p>
+    <p>
       CI rejects missing, unregistered, changed, duplicate, unsafe, oversized,
       or unreferenced fixtures. Every entry must remain consumed by executable
       Rust compatibility tests. This is auditable infrastructure toward RFC-0001
@@ -169,7 +179,9 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       explicitly replayed before at most 10,000 executions or 60 seconds of
       mutation per target, with a 128 KiB input bound, 10-second input deadline
       and 2,048 MiB RSS ceiling. CI retains failures and coverage cases. The
-      final immutable source must pass Core bounded fuzz.
+      final immutable source must pass Core bounded fuzz. Accepted input is
+      checked against its offline input schema after actual deserialization;
+      producer output retains its separate schema oracle.
     </p>
     <p><code>python3 fuzz/qualify.py</code></p>
     <p>

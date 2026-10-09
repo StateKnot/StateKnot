@@ -751,7 +751,7 @@ impl<'de> Deserialize<'de> for FailureDetails {
             value: BoundedJson,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::try_new(wire.schema, wire.value).map_err(de::Error::custom)
     }
 }
@@ -1052,7 +1052,7 @@ impl<'de> Deserialize<'de> for Failure {
     where
         D: Deserializer<'de>,
     {
-        let wire = FailureWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<FailureWire, _>(deserializer)?;
         let mut failure = Self::new(
             wire.id,
             wire.category,

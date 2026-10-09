@@ -273,7 +273,7 @@ pub enum ModelFinishReason {
 ///
 /// Provider identifiers are diagnostic correlation values, not registry keys,
 /// authorization claims, or safe replay tokens.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModelResponseProvenance {
     attempt_id: AttemptId,
@@ -284,6 +284,35 @@ pub struct ModelResponseProvenance {
     provider_request_id: Option<ModelProviderRequestId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     provider_response_id: Option<ModelProviderResponseId>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ModelResponseProvenanceObjectWire {
+    attempt_id: AttemptId,
+    model: CapabilityIdentity,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider_model_id: Option<ModelProviderModelId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider_request_id: Option<ModelProviderRequestId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider_response_id: Option<ModelProviderResponseId>,
+}
+impl<'de> serde::Deserialize<'de> for ModelResponseProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ModelResponseProvenanceObjectWire =
+            crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            attempt_id: wire.attempt_id,
+            model: wire.model,
+            provider_model_id: wire.provider_model_id,
+            provider_request_id: wire.provider_request_id,
+            provider_response_id: wire.provider_response_id,
+        })
+    }
 }
 
 impl ModelResponseProvenance {
@@ -467,7 +496,7 @@ impl<'de> Deserialize<'de> for ModelUsage {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelUsageWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelUsageWire, _>(deserializer)?;
         Self::new(
             wire.input_tokens,
             wire.cached_input_tokens,
@@ -599,7 +628,7 @@ impl<'de> Deserialize<'de> for ModelToolCallProposal {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelToolCallProposalWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelToolCallProposalWire, _>(deserializer)?;
         Self::new(
             wire.tool,
             wire.provider_call_id,
@@ -804,7 +833,7 @@ impl<'de> Deserialize<'de> for ModelOutputItem {
     where
         D: Deserializer<'de>,
     {
-        let item = match ModelOutputItemWire::deserialize(deserializer)? {
+        let item = match crate::json::deserialize_object::<ModelOutputItemWire, _>(deserializer)? {
             ModelOutputItemWire::Content(content) => Self::Content(content),
             ModelOutputItemWire::ReasoningSummary(summary) => Self::ReasoningSummary(summary),
             ModelOutputItemWire::ToolCall(proposal) => Self::ToolCall(proposal),
@@ -1392,7 +1421,7 @@ impl<'de> Deserialize<'de> for ModelResponse {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelResponseWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelResponseWire, _>(deserializer)?;
         let mut response = Self::from_parts(
             wire.provenance,
             wire.output,

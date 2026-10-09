@@ -172,6 +172,24 @@ vectors, and raw duplicate known keys. Bounded JSON and extension maps retain
 open-key semantics. New exports, missing typed evidence, and accidental Serde
 implementations fail CI until explicitly reviewed.
 
+[RFC-0021](rfcs/0021-core-object-readers.md) requires the published object shape
+at all 181 closed object readers. A streaming map guard preserves their owned
+field readers, duplicate/unknown-field checks and constructors without an extra
+JSON tree. The matrix rejects declaration-ordered positional arrays, including
+empty, truncated and extended forms, through both text and Value readers.
+Nested schema references in Tool, Agent, journal, checkpoint, child admission
+and Join records have direct regressions. The actual Tool registry rejects
+positional nested input before an application call and still dispatches valid
+objects with exact output pins.
+
+Use the object form specified by the immutable schema. Previously accepted
+positional JSON is rejected; there is no data backfill or pin rewrite. These
+objects support their canonical JSON contract, not sequence-based binary-format
+decoding. Scalar, typed collection, BoundedJson and open extension shapes retain
+their existing contracts. All 43 fixture documents, canonical wire digests and
+both sets of 308 schema pins stay exact. This correction is source-only and does
+not modify the published alpha.1 package.
+
 `core-admission-transcript-wires-v1.json` supplies complete admission, reservation,
 child accounting/Join, provider replay/tool outcome, Run lifecycle and composition
 source wires. Six existing constructor families reproduce the complete values;
@@ -191,7 +209,10 @@ RFC-0001 remains Draft.
 
 [`fuzz/qualify.py`](../fuzz/qualify.py) runs three ASan/libFuzzer targets: strict
 bounded JSON/JCS, all 307 typed readers, and the actual offline runtime schema
-registry. It explicitly replays every seed before fixed-seed mutation, preserves
+registry. Accepted reader inputs are checked against their offline input schema
+after actual deserialization, so an alternate accepted representation cannot be
+masked by validating first. Producers retain their output-schema oracle.
+It explicitly replays every seed before fixed-seed mutation, preserves
 failure bytes and coverage cases, and records source/dependency/compiler hashes.
 Every target has a 128 KiB input bound, 10-second per-input deadline, 2,048 MiB
 RSS ceiling, and a mutation limit of 10,000 executions or 60 seconds. The runner

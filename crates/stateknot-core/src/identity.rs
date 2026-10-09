@@ -457,13 +457,30 @@ fn validate_subject_id(value: &str) -> Result<(), SubjectIdError> {
 /// OIDC guarantees uniqueness and stability only for the issuer/subject pair.
 /// Tenant boundaries remain separate and must still be included in storage
 /// keys and authorization decisions.
-#[derive(
-    Clone, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PrincipalIdentity {
     issuer: IssuerId,
     subject: SubjectId,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PrincipalIdentityObjectWire {
+    issuer: IssuerId,
+    subject: SubjectId,
+}
+impl<'de> serde::Deserialize<'de> for PrincipalIdentity {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: PrincipalIdentityObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            issuer: wire.issuer,
+            subject: wire.subject,
+        })
+    }
 }
 
 impl PrincipalIdentity {

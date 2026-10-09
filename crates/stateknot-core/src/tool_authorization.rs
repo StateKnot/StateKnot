@@ -32,7 +32,7 @@ pub enum ToolAuthorizationOperation {
 }
 
 /// Exact durable invocation identity covered by an authorization decision.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 #[allow(
     clippy::struct_field_names,
@@ -45,6 +45,38 @@ pub struct ToolAuthorizationProvenance {
     invocation_id: InvocationId,
     attempt_id: AttemptId,
     origin_event_id: EventId,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(
+    clippy::struct_field_names,
+    reason = "explicit ID suffixes keep every durable provenance boundary unambiguous"
+)]
+struct ToolAuthorizationProvenanceObjectWire {
+    tenant_id: TenantId,
+    run_id: RunId,
+    thread_id: ThreadId,
+    invocation_id: InvocationId,
+    attempt_id: AttemptId,
+    origin_event_id: EventId,
+}
+impl<'de> serde::Deserialize<'de> for ToolAuthorizationProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ToolAuthorizationProvenanceObjectWire =
+            crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            tenant_id: wire.tenant_id,
+            run_id: wire.run_id,
+            thread_id: wire.thread_id,
+            invocation_id: wire.invocation_id,
+            attempt_id: wire.attempt_id,
+            origin_event_id: wire.origin_event_id,
+        })
+    }
 }
 
 impl ToolAuthorizationProvenance {
@@ -415,7 +447,7 @@ impl<'de> Deserialize<'de> for ToolAuthorizationReceipt {
             receipt_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let mut receipt = Self::new(
             wire.receipt_id,
             wire.provenance,

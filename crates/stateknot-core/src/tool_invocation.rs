@@ -377,13 +377,36 @@ impl ToolInvocationRevisionError {
 /// `input_digest` is the scheduler-computed digest of the node's deterministic
 /// activation input, not merely the tool arguments. The store must additionally
 /// prove from the full base checkpoint that this node belongs to its ready set.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct NodeActivation {
     base_checkpoint: CheckpointHead,
     graph_namespace: GraphNamespace,
     node_id: NodeId,
     input_digest: Digest,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NodeActivationObjectWire {
+    base_checkpoint: CheckpointHead,
+    graph_namespace: GraphNamespace,
+    node_id: NodeId,
+    input_digest: Digest,
+}
+impl<'de> serde::Deserialize<'de> for NodeActivation {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: NodeActivationObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            base_checkpoint: wire.base_checkpoint,
+            graph_namespace: wire.graph_namespace,
+            node_id: wire.node_id,
+            input_digest: wire.input_digest,
+        })
+    }
 }
 
 impl NodeActivation {
@@ -659,7 +682,7 @@ impl<'de> Deserialize<'de> for ToolInvocationIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.activation,
             wire.invocation_id,
@@ -808,13 +831,15 @@ impl<'de> Deserialize<'de> for ToolInvocationState {
             },
         }
 
-        Ok(match Wire::deserialize(deserializer)? {
-            Wire::Prepared => Self::Prepared,
-            Wire::Executing { attempt_id } => Self::Executing { attempt_id },
-            Wire::Committed { result } => Self::Committed { result },
-            Wire::Failed { error } => Self::Failed { error },
-            Wire::Unknown { error } => Self::Unknown { error },
-        })
+        Ok(
+            match crate::json::deserialize_object::<Wire, _>(deserializer)? {
+                Wire::Prepared => Self::Prepared,
+                Wire::Executing { attempt_id } => Self::Executing { attempt_id },
+                Wire::Committed { result } => Self::Committed { result },
+                Wire::Failed { error } => Self::Failed { error },
+                Wire::Unknown { error } => Self::Unknown { error },
+            },
+        )
     }
 }
 
@@ -837,7 +862,7 @@ pub enum ToolInvocationTransitionKind {
 }
 
 /// Explicit transition appended to the run journal and invocation history.
-#[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+#[derive(Clone, Debug, JsonSchema, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ToolInvocationTransition {
     /// Claim a unique physical attempt after durable preparation or safe retry.
@@ -865,6 +890,44 @@ pub enum ToolInvocationTransition {
         /// Failure evidence for the original attempt.
         error: ToolError,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum ToolInvocationTransitionObjectWire {
+    StartAttempt { attempt_id: AttemptId },
+    RecordResult { result: ToolResult },
+    RecordError { error: ToolError },
+    ReconcileResult { result: ToolResult },
+    ReconcileError { error: ToolError },
+}
+impl<'de> serde::Deserialize<'de> for ToolInvocationTransition {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ToolInvocationTransitionObjectWire, _>(
+                deserializer,
+            )? {
+                ToolInvocationTransitionObjectWire::StartAttempt { attempt_id } => {
+                    Self::StartAttempt { attempt_id }
+                }
+                ToolInvocationTransitionObjectWire::RecordResult { result } => {
+                    Self::RecordResult { result }
+                }
+                ToolInvocationTransitionObjectWire::RecordError { error } => {
+                    Self::RecordError { error }
+                }
+                ToolInvocationTransitionObjectWire::ReconcileResult { result } => {
+                    Self::ReconcileResult { result }
+                }
+                ToolInvocationTransitionObjectWire::ReconcileError { error } => {
+                    Self::ReconcileError { error }
+                }
+            },
+        )
+    }
 }
 
 impl ToolInvocationTransition {
@@ -1001,7 +1064,7 @@ impl<'de> Deserialize<'de> for ToolInvocationHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.tenant_id,
             wire.run_id,
@@ -1361,7 +1424,7 @@ impl<'de> Deserialize<'de> for ToolInvocation {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.intent,
             wire.revision,

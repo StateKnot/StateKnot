@@ -279,7 +279,7 @@ impl<'de> Deserialize<'de> for ChildRunAdmissionIntent {
             initial_state: CheckpointState,
             spawn_digest: Digest,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let intent = Self::build(
             wire.key,
             wire.parent_admission_digest,

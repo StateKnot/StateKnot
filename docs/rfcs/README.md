@@ -32,6 +32,7 @@ security, or operational commitments.
 | [0018](0018-agent-http-jwt-jwks.md) | Accepted | Local RFC 9068 access-token verification with operator-managed JWKS |
 | [0019](0019-typed-tool-schema-directions.md) | Accepted | Directional typed Tool schema generation and output registration |
 | [0020](0020-core-optional-output-schemas.md) | Accepted | Core optional producer schema profiles |
+| [0021](0021-core-object-readers.md) | Accepted | Core object reader shapes |
 
 ## When an RFC is required
 

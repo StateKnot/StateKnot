@@ -197,13 +197,30 @@ pub enum CapabilityNameError {
 ///
 /// Names are unique only within their owning registry. Durable provenance must
 /// therefore pair this value with the owning principal or registry identity.
-#[derive(
-    Clone, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct CapabilityReference {
     name: CapabilityName,
     version: Version,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CapabilityReferenceObjectWire {
+    name: CapabilityName,
+    version: Version,
+}
+impl<'de> serde::Deserialize<'de> for CapabilityReference {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: CapabilityReferenceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            name: wire.name,
+            version: wire.version,
+        })
+    }
 }
 
 impl CapabilityReference {
@@ -232,13 +249,30 @@ impl CapabilityReference {
 /// whenever a surrounding record does not already pin the owning registry.
 /// The serialized owner is an auditable claim, not authentication or proof
 /// that the capability is registered.
-#[derive(
-    Clone, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct CapabilityIdentity {
     owner: PrincipalIdentity,
     capability: CapabilityReference,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CapabilityIdentityObjectWire {
+    owner: PrincipalIdentity,
+    capability: CapabilityReference,
+}
+impl<'de> serde::Deserialize<'de> for CapabilityIdentity {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: CapabilityIdentityObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            owner: wire.owner,
+            capability: wire.capability,
+        })
+    }
 }
 
 impl CapabilityIdentity {
@@ -970,7 +1004,7 @@ impl<'de> Deserialize<'de> for CapabilityLifecycle {
     where
         D: Deserializer<'de>,
     {
-        match CapabilityLifecycleWire::deserialize(deserializer)? {
+        match crate::json::deserialize_object::<CapabilityLifecycleWire, _>(deserializer)? {
             CapabilityLifecycleWire::Active {} => Ok(Self::active()),
             CapabilityLifecycleWire::Deprecated {
                 announced_at,
@@ -1146,7 +1180,7 @@ impl<'de> Deserialize<'de> for CapabilityMetadata {
     where
         D: Deserializer<'de>,
     {
-        let wire = CapabilityMetadataWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<CapabilityMetadataWire, _>(deserializer)?;
         Self::new(
             wire.identity,
             wire.kind,

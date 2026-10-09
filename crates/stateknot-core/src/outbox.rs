@@ -49,12 +49,33 @@ pub const MAX_OUTBOX_ATTEMPT_LEASE_MILLIS: i64 = 300_000;
 /// raw credentials must never be embedded in an outbox record. Keeping the
 /// digest here prevents a destination update from changing an in-flight
 /// delivery's authority or routing semantics.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct OutboxDestinationRef {
     tenant_id: TenantId,
     destination_id: DestinationId,
     snapshot_digest: Digest,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OutboxDestinationRefObjectWire {
+    tenant_id: TenantId,
+    destination_id: DestinationId,
+    snapshot_digest: Digest,
+}
+impl<'de> serde::Deserialize<'de> for OutboxDestinationRef {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: OutboxDestinationRefObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            tenant_id: wire.tenant_id,
+            destination_id: wire.destination_id,
+            snapshot_digest: wire.snapshot_digest,
+        })
+    }
 }
 
 impl OutboxDestinationRef {
@@ -267,7 +288,7 @@ impl<'de> Deserialize<'de> for OutboxDeliveryIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.tenant_id,
             wire.run_id,
@@ -392,7 +413,7 @@ impl<'de> Deserialize<'de> for OutboxDelivery {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.intent, wire.origin, wire.digest).map_err(de::Error::custom)
     }
 }
@@ -510,7 +531,7 @@ impl<'de> Deserialize<'de> for OutboxDeliveryHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.tenant_id,
             wire.run_id,
@@ -529,7 +550,7 @@ impl<'de> Deserialize<'de> for OutboxDeliveryHead {
 /// The token is not authority by itself. Completion stores must compare every
 /// field and the database clock against the locked current delivery row in the
 /// same transaction.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeliveryFence {
     tenant_id: TenantId,
@@ -537,6 +558,31 @@ pub struct DeliveryFence {
     delivery_id: DeliveryId,
     attempt_id: AttemptId,
     epoch: FencingEpoch,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DeliveryFenceObjectWire {
+    tenant_id: TenantId,
+    run_id: RunId,
+    delivery_id: DeliveryId,
+    attempt_id: AttemptId,
+    epoch: FencingEpoch,
+}
+impl<'de> serde::Deserialize<'de> for DeliveryFence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: DeliveryFenceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            tenant_id: wire.tenant_id,
+            run_id: wire.run_id,
+            delivery_id: wire.delivery_id,
+            attempt_id: wire.attempt_id,
+            epoch: wire.epoch,
+        })
+    }
 }
 
 impl DeliveryFence {
@@ -687,10 +733,12 @@ impl<'de> Deserialize<'de> for OutboxAttemptOutcome {
             },
         }
 
-        Ok(match Wire::deserialize(deserializer)? {
-            Wire::Acknowledged { evidence_digest } => Self::Acknowledged { evidence_digest },
-            Wire::Failed { failure } => Self::Failed { failure },
-        })
+        Ok(
+            match crate::json::deserialize_object::<Wire, _>(deserializer)? {
+                Wire::Acknowledged { evidence_digest } => Self::Acknowledged { evidence_digest },
+                Wire::Failed { failure } => Self::Failed { failure },
+            },
+        )
     }
 }
 
@@ -833,7 +881,7 @@ impl<'de> Deserialize<'de> for OutboxAttemptStart {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.delivery,
             wire.fence,
@@ -918,7 +966,7 @@ impl<'de> Deserialize<'de> for OutboxAttemptStartHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         OutboxAttemptStart::restore(
             wire.delivery,
             wire.fence,
@@ -1074,7 +1122,7 @@ impl<'de> Deserialize<'de> for OutboxAttemptCompletion {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.start, wire.outcome, wire.completed_at, wire.digest)
             .map_err(de::Error::custom)
     }
@@ -1163,7 +1211,7 @@ impl<'de> Deserialize<'de> for OutboxAttempt {
             completion: Option<OutboxAttemptCompletion>,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.start, wire.completion).map_err(de::Error::custom)
     }
 }

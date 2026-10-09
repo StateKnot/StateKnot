@@ -1780,6 +1780,15 @@ does not replace variant, nested-property or historical qualification; bounded
 fuzz is separately exercised by the fixed ASan/libFuzzer gate in `fuzz/`; item 2
 remains open pending the full variant review.
 
+[RFC-0021](0021-core-object-readers.md) aligns all 181 closed object readers with
+their existing object schema, including nested domain values. A streaming map
+guard preserves field validation and raw duplicate rejection; text and Value
+controls reject full, empty, truncated and extended positional forms. All valid
+wire bytes and both 308-pin profiles remain exact. These readers do not promise
+sequence-based binary-format decoding. The fuzz input-schema oracle executes
+after the actual reader, independently of the retained producer oracle. This
+source-only correction does not close the remaining variant/history gates.
+
 The [Core contract guide](../core-contract-examples.md#value-level-fixture-and-property-coverage)
 now maps 38 public value types to direct positive/negative canonical round trips,
 including all 18 macro-generated UUIDv7 types with an inventory drift guard.

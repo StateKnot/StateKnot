@@ -76,6 +76,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Core object and tagged-object readers require maps instead of accepting
+  positional struct/enum sequences. A streaming guard reuses existing field,
+  constructor and integrity checks; scalar/collection and opaque JSON shapes
+  stay unchanged. Valid wires and all input/output schema pins remain exact;
+  sequence-based binary decoding is outside the canonical JSON contract.
+
 - Canonical timestamp parsing validates decimal characters before arithmetic,
   returning the existing format error across overflow-checking profiles.
   Exhaustive ASCII-position and fixed-length Unicode regressions cover direct

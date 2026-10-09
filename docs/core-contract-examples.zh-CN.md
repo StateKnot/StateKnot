@@ -150,6 +150,19 @@ fixture 文件/JSON pointer、规范 wire 摘要和生成的 JSON Schema 摘要�
 Bounded JSON 与扩展 map 保留开放 key 语义。新增导出、缺少逐型证据和意外
 引入的 Serde 实现会使 CI 失败，直至完成明确审查。
 
+[RFC-0021](rfcs/0021-core-object-readers.md) 要求全部 181 个封闭对象 reader
+使用已公布的对象形状。流式 map 门禁复用原 owned 字段 reader、重复/未知字段
+检查和构造器，无需额外 JSON 树。矩阵通过文本和 Value 两种 reader 拒绝按
+真实声明顺序生成的数组，以及空、截短、扩展形式。Tool、Agent、Journal、
+Checkpoint、子 Run 准入和 Join 的嵌套 schema reference 有直接回归；实际
+Tool 注册表在应用调用前拒绝嵌套数组，合法对象仍按精确输出 pin 派发。
+
+调用方须使用不可变 schema 指定的对象形式。以前被接受的 positional JSON
+现被拒绝，不回填数据或改写 pin。这些对象支持规范 JSON 契约，不支持以
+sequence 表示对象的二进制格式解码。标量、类型集合、BoundedJson 和开放扩展
+保持原契约。全部 43 份 fixture、规范 wire 摘要及两组各 308 个 schema pin
+保持一致；修正仅在源码中采用，不改变已发布的 alpha.1 包。
+
 `core-admission-transcript-wires-v1.json` 补齐准入、reservation、子 Run
 会计/Join、provider replay/tool outcome、Run 生命周期和组合 source 的
 完整 wire。六个原有构造族逐值复现完整载荷；先前 40 份文档保留精确字节。
@@ -165,7 +178,9 @@ C2 变体审查、C3 嵌套/属性审计和 C6 真实 N-1/N-2 验收仍需分别
 
 [`fuzz/qualify.py`](../fuzz/qualify.py) 运行三个实际生产边界的 ASan/libFuzzer
 入口：严格有界 JSON/JCS、全部 307 个 typed reader、实际离线 runtime schema
-注册表。固定种子变异前逐一重放全部语料，保留失败字节和新覆盖样本，记录
+注册表。先执行实际反序列化，再以离线输入 schema 检查被接受的输入，避免
+提前验证掩盖 reader 接受的额外形状；输出 schema oracle 继续执行。
+固定种子变异前逐一重放全部语料，保留失败字节和新覆盖样本，记录
 源文件、依赖及编译器摘要。每个目标限制输入 128 KiB、单输入 10 秒、RSS
 2,048 MiB，以及最多 10,000 次执行或 60 秒变异。runner 拥有进程组，为每轮
 创建独立语料目录，拒绝源快照或锁文件变化。nightly 与开发引擎独立固定，

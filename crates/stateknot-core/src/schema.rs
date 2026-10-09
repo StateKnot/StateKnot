@@ -206,12 +206,33 @@ pub enum SchemaIdError {
 /// The explicit version supports compatibility policy, while the digest
 /// prevents a reused URI or version from silently changing validation
 /// behavior.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SchemaReference {
     id: SchemaId,
     version: Version,
     digest: Digest,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SchemaReferenceObjectWire {
+    id: SchemaId,
+    version: Version,
+    digest: Digest,
+}
+impl<'de> serde::Deserialize<'de> for SchemaReference {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: SchemaReferenceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            id: wire.id,
+            version: wire.version,
+            digest: wire.digest,
+        })
+    }
 }
 
 impl SchemaReference {

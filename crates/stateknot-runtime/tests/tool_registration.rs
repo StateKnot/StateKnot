@@ -47,6 +47,12 @@ struct DirectionalOutput {
     optional: Option<String>,
 }
 
+#[derive(Deserialize, JsonSchema, Serialize)]
+#[serde(deny_unknown_fields)]
+struct NestedCoreInput {
+    reference: SchemaReference,
+}
+
 struct FixtureTool<I, O> {
     descriptor: ToolDescriptor,
     calls: Arc<AtomicUsize>,
@@ -387,6 +393,75 @@ async fn incorrect_input_wire_shape_is_rejected_before_application_dispatch() {
         "stateknot.tool.input_schema_invalid"
     );
     assert_eq!(calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn nested_core_object_shape_agrees_with_the_real_tool_input_schema() {
+    let mut builder = JsonSchemaRegistryBuilder::default();
+    let input = builder
+        .register_rust_type::<NestedCoreInput>(
+            "https://schemas.example.com/tool/nested-input/1.0.0"
+                .parse()
+                .unwrap(),
+            Version::new(1, 0, 0),
+        )
+        .unwrap();
+    let output = builder
+        .register_rust_output_type::<SchemaReference>(
+            "https://schemas.example.com/tool/nested-output/1.0.0"
+                .parse()
+                .unwrap(),
+            Version::new(1, 0, 0),
+        )
+        .unwrap();
+    let descriptor = descriptor(input.clone(), output);
+    let calls = Arc::new(AtomicUsize::new(0));
+    let adapter = ToolAdapter::new(
+        FixtureTool::<NestedCoreInput, SchemaReference> {
+            descriptor: descriptor.clone(),
+            calls: Arc::clone(&calls),
+            output: |input| input.reference,
+        },
+        builder.build().unwrap(),
+    )
+    .unwrap();
+    let mut providers = ToolProviderRegistryBuilder::new();
+    providers.register(Arc::new(adapter)).unwrap();
+    let provider = providers.build().resolve(&descriptor).unwrap();
+    let reference = serde_json::to_value(&input).unwrap();
+    let positional = json!({
+        "reference": [reference["id"], reference["version"], reference["digest"]],
+    });
+    assert!(serde_json::from_value::<NestedCoreInput>(positional.clone()).is_err());
+    assert!(
+        serde_json::from_slice::<NestedCoreInput>(&serde_json::to_vec(&positional).unwrap())
+            .is_err()
+    );
+    let invalid = ToolInput::new(
+        input.clone(),
+        BoundedJson::try_from_value(positional).unwrap(),
+    )
+    .unwrap();
+    let error = provider
+        .call(context(&descriptor), invalid)
+        .await
+        .unwrap_err();
+    assert_eq!(
+        error.failure().code().as_str(),
+        "stateknot.tool.input_schema_invalid"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+    let valid = ToolInput::new(
+        input,
+        BoundedJson::try_from_value(json!({"reference": reference})).unwrap(),
+    )
+    .unwrap();
+    let context = context(&descriptor);
+    let result = provider.call(context.clone(), valid).await.unwrap();
+    result.validate_for(&context, &descriptor).unwrap();
+    assert_eq!(result.output().as_value(), &reference);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
 
 #[test]

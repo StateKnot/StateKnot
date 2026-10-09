@@ -504,13 +504,36 @@ pub enum RedactionState {
 /// The fields are explicit so adapters cannot silently discard trust-boundary
 /// information. This object is an auditable claim only: it does not authorize
 /// execution, declassification, logging, or conversion into an instruction.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentMetadata {
     source: ContentSource,
     trust: ContentTrust,
     security_label: SecurityLabel,
     redaction: RedactionState,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContentMetadataObjectWire {
+    source: ContentSource,
+    trust: ContentTrust,
+    security_label: SecurityLabel,
+    redaction: RedactionState,
+}
+impl<'de> serde::Deserialize<'de> for ContentMetadata {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ContentMetadataObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            source: wire.source,
+            trust: wire.trust,
+            security_label: wire.security_label,
+            redaction: wire.redaction,
+        })
+    }
 }
 
 impl ContentMetadata {
@@ -672,7 +695,7 @@ impl<'de> Deserialize<'de> for TextContent {
             metadata: ContentMetadata,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::from_string(wire.text, wire.language, wire.metadata).map_err(de::Error::custom)
     }
 }
@@ -762,13 +785,35 @@ const fn is_unicode_noncharacter(value: char) -> bool {
 /// and digest. Construction does not resolve a schema registry or execute JSON
 /// Schema validation; adapters must perform that explicit operation before a
 /// schema-dependent use.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct JsonContent {
     value: BoundedJson,
     #[serde(skip_serializing_if = "Option::is_none")]
     schema: Option<SchemaReference>,
     metadata: ContentMetadata,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct JsonContentObjectWire {
+    value: BoundedJson,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    schema: Option<SchemaReference>,
+    metadata: ContentMetadata,
+}
+impl<'de> serde::Deserialize<'de> for JsonContent {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: JsonContentObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            value: wire.value,
+            schema: wire.schema,
+            metadata: wire.metadata,
+        })
+    }
 }
 
 impl JsonContent {

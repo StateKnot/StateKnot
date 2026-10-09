@@ -399,7 +399,7 @@ impl<'de> Deserialize<'de> for CheckpointBarrier {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.base_checkpoint,
             wire.base_ready_nodes,

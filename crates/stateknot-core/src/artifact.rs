@@ -1047,13 +1047,30 @@ pub enum ArtifactModality {
 }
 
 /// The tenant-qualified identity of an artifact.
-#[derive(
-    Clone, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ArtifactIdentity {
     tenant_id: TenantId,
     artifact_id: ArtifactId,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ArtifactIdentityObjectWire {
+    tenant_id: TenantId,
+    artifact_id: ArtifactId,
+}
+impl<'de> serde::Deserialize<'de> for ArtifactIdentity {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ArtifactIdentityObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            tenant_id: wire.tenant_id,
+            artifact_id: wire.artifact_id,
+        })
+    }
 }
 
 impl ArtifactIdentity {
@@ -1080,12 +1097,32 @@ impl ArtifactIdentity {
 }
 
 /// Human-facing artifact metadata, separate from storage coordinates.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ArtifactPresentation {
     name: ArtifactName,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<ArtifactDescription>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ArtifactPresentationObjectWire {
+    name: ArtifactName,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<ArtifactDescription>,
+}
+impl<'de> serde::Deserialize<'de> for ArtifactPresentation {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ArtifactPresentationObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            name: wire.name,
+            description: wire.description,
+        })
+    }
 }
 
 impl ArtifactPresentation {
@@ -1195,7 +1232,7 @@ impl<'de> Deserialize<'de> for ArtifactRepresentation {
             schema: Option<SchemaReference>,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.media_type,
             wire.modality,
@@ -1225,7 +1262,7 @@ pub enum ArtifactRepresentationError {
 /// The principal owns the registry context for an optional capability
 /// reference. `run_id` and `event_id` identify the durable causation record;
 /// neither field grants access to the artifact.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ArtifactProvenance {
     principal: PrincipalIdentity,
@@ -1233,6 +1270,30 @@ pub struct ArtifactProvenance {
     capability: Option<CapabilityReference>,
     run_id: RunId,
     event_id: EventId,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ArtifactProvenanceObjectWire {
+    principal: PrincipalIdentity,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    capability: Option<CapabilityReference>,
+    run_id: RunId,
+    event_id: EventId,
+}
+impl<'de> serde::Deserialize<'de> for ArtifactProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ArtifactProvenanceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            principal: wire.principal,
+            capability: wire.capability,
+            run_id: wire.run_id,
+            event_id: wire.event_id,
+        })
+    }
 }
 
 impl ArtifactProvenance {
@@ -1581,7 +1642,7 @@ impl<'de> Deserialize<'de> for ArtifactRef {
             parents: ArtifactParents,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.identity,
             wire.presentation,
@@ -1616,7 +1677,7 @@ pub enum ArtifactRefError {
 /// Protocol adapters ingest inline bytes and URLs into the artifact boundary
 /// before constructing this enum. Consequently no variant can carry raw bytes,
 /// base64 text, storage coordinates, or a permanent remote URL.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[non_exhaustive]
 #[serde(
     tag = "type",
@@ -1631,6 +1692,33 @@ pub enum ContentPart {
     Json(JsonContent),
     /// A tenant-scoped immutable artifact reference.
     Artifact(Box<ArtifactRef>),
+}
+
+#[derive(Deserialize)]
+#[serde(
+    tag = "type",
+    content = "content",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
+enum ContentPartObjectWire {
+    Text(TextContent),
+    Json(JsonContent),
+    Artifact(Box<ArtifactRef>),
+}
+impl<'de> serde::Deserialize<'de> for ContentPart {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ContentPartObjectWire, _>(deserializer)? {
+                ContentPartObjectWire::Text(field_0) => Self::Text(field_0),
+                ContentPartObjectWire::Json(field_0) => Self::Json(field_0),
+                ContentPartObjectWire::Artifact(field_0) => Self::Artifact(field_0),
+            },
+        )
+    }
 }
 
 impl ContentPart {
