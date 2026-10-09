@@ -79,7 +79,7 @@ async fn failure_close_populated_v23_upgrade_preserves_history_and_rejects_catal
     );
     assert!(matches!(
         PostgresStore::connect(&url, options.clone()).await,
-        Err(StoreError::IncompatibleSchema { .. })
+        Err(StoreError::IncompatibleSchema)
     ));
     PostgresStore::migrate_database(&url, options.clone())
         .await

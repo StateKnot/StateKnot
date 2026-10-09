@@ -79,7 +79,7 @@ async fn deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_pro
     );
     assert!(matches!(
         PostgresStore::connect(&url, options.clone()).await,
-        Err(StoreError::IncompatibleSchema { .. })
+        Err(StoreError::IncompatibleSchema)
     ));
     PostgresStore::migrate_database(&url, options.clone())
         .await

@@ -119,7 +119,7 @@ async fn populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutabl
     );
     assert!(matches!(
         PostgresStore::connect(&url, options.clone()).await,
-        Err(StoreError::IncompatibleSchema { .. })
+        Err(StoreError::IncompatibleSchema)
     ));
     PostgresStore::migrate_database(&url, options.clone())
         .await

@@ -497,7 +497,7 @@ async fn child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_
     );
     assert!(matches!(
         PostgresStore::connect(&url, options.clone()).await,
-        Err(StoreError::IncompatibleSchema { .. })
+        Err(StoreError::IncompatibleSchema)
     ));
     PostgresStore::migrate_database(&url, options.clone())
         .await
