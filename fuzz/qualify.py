@@ -148,6 +148,20 @@ def seed_corpus():
                 add("core_readers", f"{name}-{index}-{label}", prefix + payload, source)
     REPORT["reader_count"] = readers
     assert readers == 307, "review and qualify an expanded public reader set"
+    variants = json.loads((fixtures / "core-public-enum-variants-v1.json").read_bytes())
+    variant_count = 0
+    for name, vectors in variants["types"].items():
+        assert inventory["types"][name]["kind"] == "enum"
+        assert inventory["types"][name]["mode"] == "read_write"
+        for vector in vectors:
+            case = compact(vector["case"])
+            add("core_readers", f"{name}-variant-{digest(case)[:16]}",
+                (name + "\n").encode() + compact(vector["wire"]),
+                "core-public-enum-variants-v1.json " + case.decode())
+            variant_count += 1
+    assert len(variants["types"]) == 71 and variant_count == 298
+    REPORT["enum_type_count"] = len(variants["types"])
+    REPORT["enum_variant_count"] = variant_count
     for name, data in (
         ("depth-65", b"[" * 65 + b"0" + b"]" * 65),
         ("entries-8193", b"[" + b"0," * 8192 + b"0]"),

@@ -158,6 +158,11 @@
       "content_digest": "sha256:d6014c6721b9943c1228c78328d6741dc353d44baa74bad2dcfdd4cee5de7f2e"
     },
     {
+      "path": "core-public-enum-variants-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-public-enum-variants/1.0.0",
+      "content_digest": "sha256:ff973d1a745d6564b8dcc95126871c3818183277df79b6c6c835a8948ff8441e"
+    },
+    {
       "path": "core-public-output-schema-inventory-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-public-output-schema-inventory/1.0.0",
       "content_digest": "sha256:6a34dacde6e30a50ffddb0e17fada32ae2f124cec19858afa7b46acf1c88f160"
@@ -218,5 +223,5 @@
       "content_digest": "sha256:009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
     }
   ],
-  "root_digest": "sha256:faf28aecdcec908ac6514765de5d6c24fb76e03e24aa107785a578bb3d3019c6"
+  "root_digest": "sha256:af87f02577ea898811aa859d2c0a48762d4832655695f6939fcb0321dad8cb2b"
 }

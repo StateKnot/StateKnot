@@ -25,6 +25,7 @@ cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
+cargo test -p stateknot-core --test public_enum_variants --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked
@@ -40,7 +41,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 43 currently
+The versioned `catalog-v1.json` closes the inventory around all 44 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -186,7 +187,7 @@ Use the object form specified by the immutable schema. Previously accepted
 positional JSON is rejected; there is no data backfill or pin rewrite. These
 objects support their canonical JSON contract, not sequence-based binary-format
 decoding. Scalar, typed collection, BoundedJson and open extension shapes retain
-their existing contracts. All 43 fixture documents, canonical wire digests and
+their existing contracts. All 43 previous fixture documents, canonical wire digests and
 both sets of 308 schema pins stay exact. This correction is source-only and does
 not modify the published alpha.1 package.
 
@@ -201,9 +202,34 @@ prove the absence of every possible future conditional generic implementation.
 
 This closes the current root-type inventory gap. Selected vectors are not an
 exhaustive enumeration of variant combinations or historical versions. C2
-variant review, C3 nested/property auditing and C6 actual N-1/N-2 qualification
+optional/nested combination review, C3 composite/property auditing and C6 actual N-1/N-2 qualification
 remain separate acceptance work. The bounded C4 gate below runs independently;
 RFC-0001 remains Draft.
+
+### Closed public enum alternatives
+
+[`public_enum_variants.rs`](../crates/stateknot-core/tests/public_enum_variants.rs)
+adds 73 checks for all 71 public reader/writer enums and their 298 serialized
+alternatives. Its typed list must match the root-export inventory; each type's
+fixed cases must match its generated schema alternatives with no duplicates.
+Every case preserves producer bytes, canonical round trips and its frozen digest.
+Object cases reject declaration-ordered arrays, unknown fields and every raw
+duplicate known key. The existing root matrix retains its shape and pin checks.
+
+[`core-public-enum-variants-v1.json`](../crates/stateknot-core/tests/fixtures/core-public-enum-variants-v1.json)
+reuses independently valid sub-values from the current corpus and adds 28
+public-constructor cases for missing alternatives, including lifecycle,
+reconciliation, model capability and outbox branches. A source audit confirms
+298 Rust enum variants and 298 schema alternatives. Optional fields are stored
+in the actual producer form; an enclosing negative fixture does not make every
+one of its nested values invalid. The previous 43 documents remain byte-exact;
+only the catalog metadata adds this 44th document and binds its reviewed bytes.
+
+The fuzz regression and seed generator exercise every alternative through the
+actual input and output schema oracles. These are current-source vectors, not
+historical releases or exhaustive combinations of optional and nested values.
+Remaining composite properties, history and scenario qualification keep their
+separate gates.
 
 ## Bounded fuzz and output-schema qualification
 

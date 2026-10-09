@@ -14,7 +14,11 @@ This private workspace runs three actual production boundaries:
 | `schema_registry` | Bounded `{"schema": ..., "instance": ..., "bad_pin": false}`; the real immutable runtime registry verifies dialect/URI/pins, duplicate identity, registration atomicity, 32 KiB single/48 KiB aggregate schema limits, offline compilation and instance validation. Missing dialect/URI receive the fixed fixture identity; supplied values are never overwritten. |
 
 The reader list is shared with the closed Core inventory, and fixed positive
-seeds are derived from its exact fixture pointers. The permanent `seeds/`
+seeds are derived from its exact fixture pointers. All 298 alternatives of the
+71 serialized public enums are also replayed from the separately sealed variant
+fixture; a regression checks every alternative against both real schema oracles.
+Variant seed identities include the case digest, so adding a case does not
+renumber existing alternatives. The permanent `seeds/`
 directory retains malformed UTF-8, surrogate escapes, duplicate names, unknown
 authority fields, incompatible shapes and the optional producer regressions.
 The timestamp regression retains a malformed nested Run transition and checks
