@@ -555,6 +555,19 @@ Before this RFC can be accepted, executable evidence must cover:
 - PostgreSQL failover and point-in-time restore integrity validation; and
 - N-1/N-2 graph/checkpoint migration fixtures and rollback-limit tests.
 
+Current source evidence for the ordering gate includes
+[`graph_state_properties.rs`](../../crates/stateknot-core/tests/graph_state_properties.rs),
+with two independent bounded models and the existing graph/barrier/recovery
+checks. Random node insertion and result input order preserve the same fixed
+committed facts. Expected state and routes are constructed independently;
+committed checkpoint bytes and all three checksum preimages are verified.
+Unicode-state checkpoint chains separately bind exact parent heads and journal
+anchors and reject tampered state. Reproduction commands and limits are in the
+[Core guide](../core-contract-examples.md#graph-state-and-checkpoint-models).
+This qualifies the pure root-barrier/checkpoint boundary; same-Run nested
+execution, durable fault matrices, capacity and historical migrations remain
+separate requirements. This RFC remains Draft.
+
 ## Alternatives considered
 
 ### Execute nodes sequentially in completion order

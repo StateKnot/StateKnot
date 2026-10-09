@@ -14,7 +14,7 @@ cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --locked`;
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --locked`;
 ---
 
 <DocsLayout
@@ -138,7 +138,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       positive and negative evidence. Complete graph, checkpoint, invocation,
       outbox and wait wires retain the earlier constructor digests. Empty tagged
       variants reject additional fields and sequence forms while valid wire
-      bytes and seven generated schema pins remain unchanged. Forty-two bounded
+      bytes and seven generated schema pins remain unchanged. Forty-four bounded
       property models also run with a reproducible CI seed. Nested JSON has
       independent six-dimension resource and UTF-16 canonical-tree models;
       opaque and schema-bound extensions revalidate previously wider values when
@@ -147,6 +147,14 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       reservations and exact remaining capacity using wide arithmetic. Per-field
       overflow, deadline equality, unknown costs and an unlisted zero-cost
       currency fail closed; successful paths run in every capacity sample.
+    </p>
+    <p>
+      Two graph and checkpoint models independently check state, route union,
+      canonical bytes and all three checksum preimages. Node insertion and
+      result input order preserve the same committed facts and journal anchors.
+      Unicode state chains bind one to thirteen parent generations and reject
+      tampered data. These pure root-barrier checks retain the separate database
+      and same-Run nested-execution gates; RFC-0002 remains Draft.
     </p>
     <p>
       Timestamp readers reject every ASCII non-digit at all 20 digit positions,

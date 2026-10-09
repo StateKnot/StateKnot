@@ -1800,7 +1800,7 @@ exact. These are current-source vectors, not historical releases.
 The [Core contract guide](../core-contract-examples.md#value-level-fixture-and-property-coverage)
 now maps 38 public value types to direct positive/negative canonical round trips,
 including all 18 macro-generated UUIDv7 types with an inventory drift guard.
-Forty-two bounded property models cover identity/Serde grammar agreement,
+Forty-four bounded property models cover identity/Serde grammar agreement,
 precision, checked arithmetic, Unicode UTF-16 canonical ordering, three-way
 delegation intersection, exact extension limits and independent nested JSON
 resource/canonical models. Raw and materialized JSON agree with all six measured
@@ -1812,6 +1812,10 @@ usage fields, finite ceilings, partial-layer intersections, reservation capacity
 and exact cumulative deductions. Successful generated paths and per-dimension
 overflow controls complement unknown-cost, deadline and currency-denial cases.
 CI runs a reproducible seed and retains the ordinary random workspace run.
+Two root-graph/checkpoint models separately check independent state and route
+results, insertion/result-order stability and each canonical checksum preimage.
+The generated checkpoint chains retain exact parent heads and reject state
+tampering. These models do not qualify nested execution or durable transactions.
 Other composite/nested value coverage and its complete type audit remain open
 for items 2 and 3.
 

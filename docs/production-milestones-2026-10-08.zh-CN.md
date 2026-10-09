@@ -34,10 +34,10 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 | 仓库 | `https://github.com/StateKnot/StateKnot` |
 | 当前工作目录 | `/Users/jiawy/Documents/RustAgentFramework` |
 | R0 验收的 main | `5f156b94516d2eb9ed96e2a648e0a13e66debc14`，2026-10-08 合并 JWT/JWKS #146；此前 #141/#145 已合并 |
-| 当前开发分支 | `codex/r1-budget-composite-properties` |
-| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156/#157/#158 已合并；181 个对象 reader 及 71 枚举/298 固定分支已通过完整验收，当前补齐复合预算属性模型 |
+| 当前开发分支 | `codex/r1-graph-state-properties` |
+| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156/#157/#158/#159 已合并；181 个对象 reader 及 71 枚举/298 固定分支已通过完整验收，复合预算已通过验收，当前补齐 Graph 状态/route/checkpoint 模型 |
 | 已发布 crate 版本 | `0.1.0-alpha.1`，预览版；源码新增能力不都包含在该发布包中 |
-| 官网 | `https://stknot.com`，中英双语文档；当前 release `6e1c102b89d1` 的四个关键页面已核对构建字节 |
+| 官网 | `https://stknot.com`，中英双语文档；当前 release `1699837c2885` 的四个关键页面已核对构建字节 |
 | 依赖 PR | 16 个依赖升级 PR 已由 #141/#145 收口；#146 已合并，后续以 GitHub 实时状态为准 |
 | 新用户需求 | [Issue 140 本地 MCP stdio](https://github.com/StateKnot/StateKnot/issues/140)，来自 JiaClaw 接入需求 |
 
@@ -121,13 +121,13 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 缺少 JsonSchema 的编译拒绝及真实 schema/descriptor 注册拒绝。方向性 Serde 输出的
 启动 pin 修正见 [RFC-0019](rfcs/0019-typed-tool-schema-directions.md)。SDK OAuth
 存储记录仍限于受信加密凭据后端。C2/C3 的值类型增量已映射 38 个公开类型的
-正/负规范往返，补齐全部 18 种 UUIDv7 标识符、42 个有界属性模型和可复现 CI
+正/负规范往返，补齐全部 18 种 UUIDv7 标识符、44 个有界属性模型和可复现 CI
 种子；另有 67 个执行/持久化类型的 104 个完整 wire 映射及负向 reader 验证，
 原有八个构造族保留旧摘要断言。完整映射见中英 Core guide。全部当前根导出项
 另有封闭清单：307 个 reader 的规范 wire 和 308 个生成 schema pin、两个仅输出
 生产者及 246 个没有序列化接口的代表实例；序列化 profile 另有 308 个固定 pin。
 当前三个 ASan/libFuzzer 入口拥有固定工具、逐种子重放、有限变异、源与锁
-快照检查以及失败保留；#158 最终提交已通过全部 14 项 CI，本地和 CI 都完成
+快照检查以及失败保留；#159 最终提交已通过全部 14 项 CI，本地和 CI 都完成
 2,241 个种子重放及三个目标各 10,000 次变异，合并 tree 保持一致。
 嵌套 JSON/扩展另有六维独立资源与规范树模型，剩余变体组合、其他复合属性、
 历史迁移、嵌套 namespace、协议安全 RFC 与 stdio 生命周期继续开放。
@@ -136,7 +136,10 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 实际 reader/input/output oracle 与固定种子重放；#158 已通过最终源码完整验收。
 当前复合预算增量补齐七个独立模型与逐维边界矩阵，核对全部用量字段、
 限制/币种交集、direct + child 预留和剩余容量；保持产品 API/wire/pin 及
-全部 44 份 fixture 精确一致，继续以最终提交完整 CI 验收。
+全部 44 份 fixture 精确一致；#159 已通过完整本地和 14 项最终 CI 验收。
+Graph 的两个独立模型补齐节点插入/结果输入顺序、状态和 route 并集、规范字节
+与状态/意图/记录摘要，并核对一至十三代 Unicode 状态 checkpoint 链。仅比较
+固定已提交事实，不能替代同 Run 嵌套恢复；当前增量继续按最终提交完整验收。
 后续 fuzz 时间戳反例已保留，数字校验先于算术；全部 ASCII 非数字位置、
 固定长度 Unicode 与嵌套 reader 有确定性回归。最终提交继续以完整 CI 验收。
 

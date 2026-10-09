@@ -28,7 +28,7 @@ cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test public_enum_variants --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --locked
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
 ```
@@ -77,10 +77,11 @@ Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 | `SchemaId`、`SchemaReference` | `core-schema-v1.json`：`ids`、`references` |
 | `CapabilityName`、`Scope`、`ScopeSet` | `core-authorization-v1.json`：`capability_names`、`scopes`、`scope_sets` |
 
-[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs) 和
-[`nested_json_properties.rs`](../crates/stateknot-core/tests/nested_json_properties.rs) 和
-[`budget_composite_properties.rs`](../crates/stateknot-core/tests/budget_composite_properties.rs)
-提供 RFC-0001 第 3 项要求的独立模型。加上 18 个标识符属性，共 42 个属性测试，
+[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs)、
+[`nested_json_properties.rs`](../crates/stateknot-core/tests/nested_json_properties.rs)、
+[`budget_composite_properties.rs`](../crates/stateknot-core/tests/budget_composite_properties.rs) 和
+[`graph_state_properties.rs`](../crates/stateknot-core/tests/graph_state_properties.rs)
+提供 RFC-0001 第 3 项要求的独立模型。加上 18 个标识符属性，共 44 个属性测试，
 每个运行 256 个有界生成样例。CI 固定种子便于复现，完整工作区测试同时保留普通
 随机种子运行。
 
@@ -91,6 +92,24 @@ Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 | 预算算术 | 三种 count 和 Money 的加、减、乘与 checked `u64` 一致；跨币种运算失败。时长算术与非负 `i64` 一致。七个复合模型通过独立 `u128` 会计与币种 map 核对全部 20 个用量字段、19 个有限标量限制、三种峰值、部分限制层交集及 16 个币种上限，覆盖累计、合法/非法累计余量、收窄、deadline 等值、direct + child 预留及剩余容量扣除。每个生成的容量样例也执行成功路径；确定性矩阵逐字段/币种拒绝溢出及第 17 种币种。`budget.rs`、`budget_reservation_tests.rs` 和 `child_run_budget_tests.rs` 的既有属性与结算检查继续执行。 |
 | 委托交集 | caller、grant、policy scope 与三方位集合交集一致，满足结合律且不能扩大任何参与方权限。已有两方交换律和幂等模型继续执行。 |
 | 扩展限制 | 完整 map 字节、单 key 字节和条目数接受精确边界，拒绝收窄一个单位；重复条目失败。独立嵌套树模型核对紧凑字节、深度、容器条目、排除 key 的值节点、解码字符串字节与 key 字节；raw/materialized 构造均符合收窄 profile，精确边界通过、减一拒绝，尾部空白命中 raw 字节门禁。Opaque/schema-bound 扩展的构造和收紧会重新验证原先较宽的值，不能绕过逐值限制。既有插入顺序/字节会计属性与硬限制确定性测试继续执行。 |
+
+### Graph 状态与 checkpoint 模型
+
+两个模型覆盖 [RFC-0002](rfcs/0002-deterministic-graph-and-scheduler.md) 当前根
+barrier 和 checkpoint 完整性契约。生成样例同时打乱节点定义插入顺序与结果输入
+顺序，比较相同的已提交事实及固定 journal anchor。对顺序敏感的 reducer 必须与
+独立构造的状态一致；显式 route 必须与独立集合并集模型一致。两份已提交后继
+checkpoint 的规范字节与摘要必须完全相同。
+
+含 Unicode key 的 map 状态组成一至十三代 checkpoint。独立 UTF-16 规范字节模型
+核对状态、意图与记录三类摘要的 preimage，包括 domain separator、精确
+schema/graph reference、父 head 与 journal anchor。每条记录从这些字节往返；修改
+状态 data 却保留旧摘要时必须拒绝。Barrier 使用精确 schema pin 与严格 typed
+应用校验器，没有任意接受输入的替代校验。
+
+这些是纯 Core 模型，不构成 runtime schema 注册、数据库事务、不同实际 journal
+历史、同 Run 嵌套执行或生产容量的资格验证。既有 graph/barrier/recovery 及真实
+PostgreSQL 检查仍须执行，RFC-0002 保持 Draft。
 
 本轮值类型证据继续保留。下面的根导出清单补齐全部当前公开序列化类型的
 基准映射；剩余变体组合、嵌套属性及历史迁移验收继续开放。这些测试不构成生产容量、fuzz 资格验证或新版本发布。
