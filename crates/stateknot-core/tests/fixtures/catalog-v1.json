@@ -185,7 +185,7 @@
     {
       "path": "core-public-type-inventory-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-public-type-inventory/1.0.0",
-      "content_digest": "sha256:b96683ae98c5d7fb292e4e10f509024effd7842d079132f9d9f2ed80aaa6a23f"
+      "content_digest": "sha256:d3f83418bd52e363841ae658c6484e9e50cafa9ddc3feaae27b9d97b7c95a830"
     },
     {
       "path": "core-run-lifecycle-v1.json",
@@ -238,5 +238,5 @@
       "content_digest": "sha256:009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
     }
   ],
-  "root_digest": "sha256:776af7a1673cefe86d85be0db339642db7677c92584acb21e5ced16bcb60529f"
+  "root_digest": "sha256:8f75bd8fba0f61972e87a75b0283808a1608e9c53565ea4766bc8c22b2d6f63a"
 }
