@@ -481,12 +481,13 @@ async fn child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_
         ),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_child_joins.sql"),
-    ]
-    .into_iter()
-    .flat_map(|sql| sql.split(';'))
-    .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(&pool).await.unwrap();
+    ] {
+        // Execute the complete fixture so dollar-quoted function bodies retain
+        // their internal semicolons and the batch keeps its SQL transaction.
+        sqlx_core::raw_sql::raw_sql(sql)
+            .execute(&pool)
+            .await
+            .unwrap();
     }
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")

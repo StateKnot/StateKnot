@@ -91,12 +91,13 @@ async fn populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutabl
         ),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_child_joins.sql"),
-    ]
-    .into_iter()
-    .flat_map(|sql| sql.split(';'))
-    .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(&pool).await.unwrap();
+    ] {
+        // Execute the complete fixture so dollar-quoted function bodies retain
+        // their internal semicolons and the batch keeps its SQL transaction.
+        sqlx_core::raw_sql::raw_sql(sql)
+            .execute(&pool)
+            .await
+            .unwrap();
     }
     for sql in [
         "DROP TRIGGER runs_child_cancellation_claim_guard ON stateknot.runs",

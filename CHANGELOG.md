@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Execute source-schema downgrade fixtures as complete SQL batches, preserving
+  dollar-quoted PostgreSQL function bodies introduced by whole frame returns.
+  Store and Runtime upgrade regressions retain their actual nonempty facts and
+  exact migration checksums.
+
 - Draft RFC-0023 corrects `MediaType` input/default schemas to accept the
   case-insensitive names already supported and normalized by the reader.
   Nested input schema pins explicitly change; all output pins and canonical

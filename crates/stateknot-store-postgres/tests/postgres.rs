@@ -436,12 +436,13 @@ async fn remove_child_run_cancellation(pool: &PgPool) {
         include_str!("fixtures/revert_run_failure_closes.sql"),
         include_str!("fixtures/revert_agent_deadlines.sql"),
         include_str!("fixtures/revert_child_joins.sql"),
-    ]
-    .into_iter()
-    .flat_map(|sql| sql.split(';'))
-    .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(pool).await.unwrap();
+    ] {
+        // Execute the complete fixture so dollar-quoted function bodies retain
+        // their internal semicolons and the batch keeps its SQL transaction.
+        sqlx_core::raw_sql::raw_sql(sql)
+            .execute(pool)
+            .await
+            .unwrap();
     }
     query("DROP TRIGGER runs_child_cancellation_claim_guard ON stateknot.runs")
         .execute(pool)

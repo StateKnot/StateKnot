@@ -63,12 +63,13 @@ async fn failure_close_populated_v23_upgrade_preserves_history_and_rejects_catal
         include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
         ),
-    ]
-    .into_iter()
-    .flat_map(|sql| sql.split(';'))
-    .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(&pool).await.unwrap();
+    ] {
+        // Execute the complete fixture so dollar-quoted function bodies retain
+        // their internal semicolons and the batch keeps its SQL transaction.
+        sqlx_core::raw_sql::raw_sql(sql)
+            .execute(&pool)
+            .await
+            .unwrap();
     }
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
