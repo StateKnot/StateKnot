@@ -14,6 +14,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Keep complete scoped wait authentication in a separate heap-backed Future,
+  preserving whole terminal checks without inflating non-wait barrier replay
+  or overflowing the default thread stack in seven-level return recovery.
+
 - Require actual libFuzzer execution and RSS statistics before marking the
   bounded ASan mutation profile complete; report the actual count and whether
   the execution cap was reached, preserving the original execution/time ceilings.

@@ -815,49 +815,7 @@ async fn verify_edge_replay(
         digest: wire.compound_digest,
         wait_revision: wire.wait_revision,
     };
-    if let Some(waits) = record.waits()? {
-        verify_wait_registration_set(replay.tx, &record.event, &waits).await?;
-        // Registration identity alone cannot discharge a wait. Authenticate
-        // every complete terminal record while this same transaction already
-        // owns the whole suspension proof; avoid re-entering its anchor reader.
-        let rows = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATIONS_BY_ORIGIN.as_str())
-            .bind(record.event.tenant_id().as_str())
-            .bind(*record.event.run_id().as_uuid())
-            .bind(
-                i64::try_from(record.event.sequence().get())
-                    .map_err(|_| StoreError::JournalSequenceExhausted)?,
-            )
-            .fetch_all(&mut **replay.tx)
-            .await
-            .map_err(|e| StoreError::database("frame wait terminal parts", e))?;
-        for row in rows {
-            let wait = decode_wait_registration(&row)?;
-            match (row.status.as_str(), wait) {
-                ("outstanding" | "resolved", DurableWait::Interrupt { request }) => {
-                    verify_interrupt_record_components(replay.tx, &row, request)
-                        .await
-                        .map_err(wait_terminal_error)?;
-                }
-                ("outstanding" | "fired", DurableWait::Timer { timer }) => {
-                    verify_timer_record_components(replay.tx, &row, timer)
-                        .await
-                        .map_err(wait_terminal_error)?;
-                }
-                ("abandoned", wait) => {
-                    verify_wait_abandonment_components(replay.tx, &row, wait)
-                        .await
-                        .map_err(wait_terminal_error)?;
-                }
-                _ => return Err(StoreError::corrupt("frame wait terminal kind")),
-            }
-        }
-        if record
-            .wait_revision
-            .is_some_and(|revision| revision >= admission.run().lifecycle().revision())
-        {
-            return Err(StoreError::corrupt("frame suspension lifecycle revision"));
-        }
-    }
+    verify_wait_components(replay.tx, &record, admission.run().lifecycle().revision()).await?;
     let total = charged(&record)?
         .checked_accumulate(&record.budget.delegated_usage)
         .map_err(|_| StoreError::corrupt("barrier accounting"))?;
@@ -868,6 +826,63 @@ async fn verify_edge_replay(
         .remaining(&total, record.event.recorded_at())
         .map_err(|_| StoreError::corrupt("barrier budget limit"))?;
     Ok(record)
+}
+
+// Keep the complete wait recovery state machine on the heap. Embedding all
+// three terminal branches in every barrier replay inflated non-wait return
+// recovery and exhausted the default Linux thread stack in seven-level cascades.
+fn verify_wait_components<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    record: &'a StoredGraphFrameBarrier,
+    current_revision: RunRevision,
+) -> Pin<Box<dyn Future<Output = Result<(), StoreError>> + Send + 'a>> {
+    Box::pin(async move {
+        if let Some(waits) = record.waits()? {
+            verify_wait_registration_set(tx, &record.event, &waits).await?;
+            // Registration identity alone cannot discharge a wait. Authenticate
+            // every complete terminal record while this same transaction already
+            // owns the whole suspension proof; avoid re-entering its anchor reader.
+            let rows =
+                query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATIONS_BY_ORIGIN.as_str())
+                    .bind(record.event.tenant_id().as_str())
+                    .bind(*record.event.run_id().as_uuid())
+                    .bind(
+                        i64::try_from(record.event.sequence().get())
+                            .map_err(|_| StoreError::JournalSequenceExhausted)?,
+                    )
+                    .fetch_all(&mut **tx)
+                    .await
+                    .map_err(|e| StoreError::database("frame wait terminal parts", e))?;
+            for row in rows {
+                let wait = decode_wait_registration(&row)?;
+                match (row.status.as_str(), wait) {
+                    ("outstanding" | "resolved", DurableWait::Interrupt { request }) => {
+                        verify_interrupt_record_components(tx, &row, request)
+                            .await
+                            .map_err(wait_terminal_error)?;
+                    }
+                    ("outstanding" | "fired", DurableWait::Timer { timer }) => {
+                        verify_timer_record_components(tx, &row, timer)
+                            .await
+                            .map_err(wait_terminal_error)?;
+                    }
+                    ("abandoned", wait) => {
+                        verify_wait_abandonment_components(tx, &row, wait)
+                            .await
+                            .map_err(wait_terminal_error)?;
+                    }
+                    _ => return Err(StoreError::corrupt("frame wait terminal kind")),
+                }
+            }
+            if record
+                .wait_revision
+                .is_some_and(|revision| revision >= current_revision)
+            {
+                return Err(StoreError::corrupt("frame suspension lifecycle revision"));
+            }
+        }
+        Ok(())
+    })
 }
 
 fn verify_retry(
