@@ -197,6 +197,14 @@ impl GraphFrameCheckpoint {
         }
     }
 
+    /// Consumes the binding into its validated immutable frame and checkpoint.
+    ///
+    /// This transfers owned state without cloning its bounded JSON payload.
+    #[must_use]
+    pub fn into_parts(self) -> (GraphFrameIdentity, Checkpoint) {
+        (self.frame, self.checkpoint)
+    }
+
     /// Checks a contiguous successor in this exact frame.
     ///
     /// # Errors

@@ -40,7 +40,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 46 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 47 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -159,27 +159,32 @@ fixture 证据；N-1/N-2 迁移、剩余类型族/变体组合及完整 C2/C3 �
 ### 封闭的公开类型与 schema 清单
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
-将全部 577 个根导出项与
+将全部 580 个根导出项与
 [机器可读清单](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json)
-逐一比较：562 个类型、11 个 trait、四个常量。编译器核对 312 个同时支持
+逐一比较：565 个类型、11 个 trait、四个常量。编译器核对 313 个同时支持
 `Serialize` 与 `DeserializeOwned` 的类型、两个仅支持输出的类型，以及
-248 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
+250 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
 fixture 文件/JSON pointer、规范 wire 摘要和生成的 JSON Schema 摘要；
-`BudgetRemaining` 提供第 313 个 schema pin；独立输出清单另固定全部 313 个
-序列化 profile，已变更 pin 必须显式审查。317 项矩阵检查拒绝不匹配的
-标量/集合形状、186 个封闭对象向量的未知字段及原始重复已知键。
+`BudgetRemaining` 提供第 314 个 schema pin；独立输出清单另固定全部 314 个
+序列化 profile，已变更 pin 必须显式审查。318 项矩阵检查拒绝不匹配的
+标量/集合形状、187 个封闭对象向量的未知字段及原始重复已知键。
 Bounded JSON 与扩展 map 保留开放 key 语义。新增导出、缺少逐型证据和意外
 引入的 Serde 实现会使 CI 失败，直至完成明确审查。
 
-[RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md) 当前新增五个实验性帧
-reader 和两个 Rust-only 错误类型。帧身份/检查点与调用声明有独立当前源码
+[RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md) 当前新增六个实验性帧
+reader、三个 Rust-only 错误类型和一个 Rust-only scoped plan。帧身份/检查点与调用声明有独立当前源码
 fixture、九项帧检查、两个各 256 样例的独立模型及编译器负向检查。
 `CompiledGraph` 的可选 `frame_calls` 纳入定义摘要，因而其生成 schema 和
 包含它的 `ChildRunAdmissionIntent` schema 的两个 profile 均显式更新；
 其余原有 schema pin、根图 canonical wire 和定义摘要保持一致。
 类型检查不构成嵌套执行支持；编译器/注册表闭包、driver/SQL 及故障验收
 在草稿 PR 中持续开发。下方 RFC-0021 的 181 个对象及 308 个 pin 是其
-采用时的原有基线，五个新增对象沿用同样的 map-only 门禁。
+采用时的原有基线，六个新增对象沿用同样的 map-only 门禁。
+Scoped recovery 保留完整 frame，拒绝 sibling/root 证据，并在接管后复用
+已提交结果。帧屏障核对精确 ready activation、有界结果集和规范顺序，
+复用根图的 schema/reducer/control 校验；旧根屏障保持关闭。另有四项恢复、
+五项屏障检查和一个各 256 样例的独立求和/摘要模型，数据不能推断
+active leaf、fence 或父返回权限。
 
 [RFC-0021](rfcs/0021-core-object-readers.md) 要求全部 181 个封闭对象 reader
 使用已公布的对象形状。流式 map 门禁复用原 owned 字段 reader、重复/未知字段
@@ -228,7 +233,7 @@ Fuzz 回归和种子生成器使每个分支进入实际输入、输出 schema o
 ## 有界 fuzz 与输出 schema 验收
 
 [`fuzz/qualify.py`](../fuzz/qualify.py) 运行三个实际生产边界的 ASan/libFuzzer
-入口：严格有界 JSON/JCS、全部 312 个 typed reader、实际离线 runtime schema
+入口：严格有界 JSON/JCS、全部 313 个 typed reader、实际离线 runtime schema
 注册表。先执行实际反序列化，再以离线输入 schema 检查被接受的输入，避免
 提前验证掩盖 reader 接受的额外形状；输出 schema oracle 继续执行。
 固定种子变异前逐一重放全部语料，保留失败字节和新覆盖样本，记录

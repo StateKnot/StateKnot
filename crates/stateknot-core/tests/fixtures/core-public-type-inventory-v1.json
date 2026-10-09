@@ -1918,6 +1918,36 @@
       "vectors": [],
       "schema_digest": null
     },
+    "GraphFrameBarrier": {
+      "module": "graph_frame_barrier",
+      "kind": "struct",
+      "rust_type": "GraphFrameBarrier",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-barrier-v1.json",
+          "pointer": "/barrier",
+          "canonical_digest": "sha256:0994eee3400c80e1cba70efb12cf7a4f708d3821872a4357ee4b48539962c7ab"
+        }
+      ],
+      "schema_digest": "sha256:285ab906698b4872df4a07f916c6e6c3c695518e1d33b837f2d331316f5f730e"
+    },
+    "GraphFrameBarrierError": {
+      "module": "graph_frame_barrier",
+      "kind": "enum",
+      "rust_type": "GraphFrameBarrierError",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameBarrierPlan": {
+      "module": "graph",
+      "kind": "struct",
+      "rust_type": "GraphFrameBarrierPlan",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
     "GraphFrameCall": {
       "module": "graph_frame_call",
       "kind": "struct",

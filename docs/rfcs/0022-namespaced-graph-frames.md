@@ -129,6 +129,17 @@ actual target pins, acyclic relative depth, finite closure bytes and application
 executor conflicts. The complete registry/driver execution path still requires
 transactional frame integration before acceptance.
 
+The scoped pure recovery and barrier path is implemented experimentally.
+`ReadyNodeRecoveryPlanner::for_frame` derives exact ready activations and retains
+the frame in its plan; results from a sibling or root scope cannot be reused.
+`GraphFrameBarrier` is a separate bounded, map-only intent with exact scoped
+activation/input identity, ready-set coverage, local predecessor and its own
+checksum. `CompiledGraph::plan_frame_barrier` reuses the existing pinned
+schema/reducer/control checks. The legacy root barrier still rejects nested
+results. Four recovery checks, five barrier checks and a 256-case independent
+sum/canonical-preimage model cover these pure paths. Actual entry, return, waits,
+SQL authority and fault qualification are still required.
+
 ## Detailed semantics
 
 ### Logical identity and scope

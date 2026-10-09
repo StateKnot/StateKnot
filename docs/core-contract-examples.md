@@ -41,7 +41,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 46 currently
+The versioned `catalog-v1.json` closes the inventory around all 47 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -184,21 +184,21 @@ variant combinations and the complete C2/C3 audit stay open.
 ### Closed public type and schema inventory
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
-checks all 577 named root exports against a
+checks all 580 named root exports against a
 [machine-readable inventory](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json):
-562 types, 11 traits and four constants. The compiler verifies 312 types with
-`Serialize` and `DeserializeOwned`, two output-only types, and 248 reviewed
+565 types, 11 traits and four constants. The compiler verifies 313 types with
+`Serialize` and `DeserializeOwned`, two output-only types, and 250 reviewed
 Rust-only instantiations without `Serialize` or `DeserializeOwned`. Each reader has an explicit fixture
 file/JSON pointer, a canonical wire digest and a generated JSON Schema digest;
-`BudgetRemaining` supplies the 313th schema pin. A separate output inventory
-pins all 313 serialization profiles with explicit review of changed pins. The 317-test matrix rejects
-unsupported scalar/collection shapes, unknown fields on 186 closed object
+`BudgetRemaining` supplies the 314th schema pin. A separate output inventory
+pins all 314 serialization profiles with explicit review of changed pins. The 318-test matrix rejects
+unsupported scalar/collection shapes, unknown fields on 187 closed object
 vectors, and raw duplicate known keys. Bounded JSON and extension maps retain
 open-key semantics. New exports, missing typed evidence, and accidental Serde
 implementations fail CI until explicitly reviewed.
 
-[Draft RFC-0022](rfcs/0022-namespaced-graph-frames.md) currently adds five
-experimental frame readers and two Rust-only error types. Current-source frame
+[Draft RFC-0022](rfcs/0022-namespaced-graph-frames.md) currently adds six
+experimental frame readers, three Rust-only error types and a Rust-only scoped plan. Current-source frame
 and call fixtures, nine frame checks, two independent 256-case models and
 compiler rejection checks cover these data boundaries. Optional `frame_calls`
 enter the compiled definition checksum, explicitly changing both generated
@@ -206,8 +206,14 @@ schema profiles for `CompiledGraph` and its containing `ChildRunAdmissionIntent`
 All other prior schema pins, root graph canonical wires and definition digests
 remain exact. These types do not enable nested execution; registry closure,
 driver/SQL integration and fault qualification remain work in the draft PR.
+Scoped recovery retains the full frame, rejects sibling/root evidence and reuses
+committed results across takeover. The new frame barrier checks exact ready
+activations and bounded canonical results; it shares root schema/reducer/control
+validation while keeping the root barrier closed. Four recovery checks, five
+barrier checks and another independent 256-case sum/checksum model cover these
+pure paths. No active-leaf, fence or parent-return authority is inferred from data.
 The 181 object readers and 308 pins in the RFC-0021 account below describe its
-original adoption baseline; the five additions use the same map-only guard.
+original adoption baseline; the six additions use the same map-only guard.
 
 [RFC-0021](rfcs/0021-core-object-readers.md) requires the published object shape
 at all 181 closed object readers. A streaming map guard preserves their owned
@@ -270,7 +276,7 @@ separate gates.
 ## Bounded fuzz and output-schema qualification
 
 [`fuzz/qualify.py`](../fuzz/qualify.py) runs three ASan/libFuzzer targets: strict
-bounded JSON/JCS, all 312 typed readers, and the actual offline runtime schema
+bounded JSON/JCS, all 313 typed readers, and the actual offline runtime schema
 registry. Accepted reader inputs are checked against their offline input schema
 after actual deserialization, so an alternate accepted representation cannot be
 masked by validating first. Producers retain their output-schema oracle.

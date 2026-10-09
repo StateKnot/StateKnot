@@ -344,6 +344,19 @@ mod tests {
     }
 
     #[test]
+    fn frame_barriers_reject_freshly_bound_input_and_scope_substitution() {
+        // Heads are produced by real result constructors. The outer barrier
+        // checksum is recomputed, so rejection must preserve activation scope
+        // rather than depend on a stale outer fingerprint.
+        for data in [
+            include_bytes!("../seeds/core_readers/GraphFrameBarrier-wrong-input").as_slice(),
+            include_bytes!("../seeds/core_readers/GraphFrameBarrier-crossed-frame").as_slice(),
+        ] {
+            assert!(!core_readers(data));
+        }
+    }
+
+    #[test]
     fn strict_json_and_numeric_normalization_controls() {
         for input in [
             b"null".as_slice(),

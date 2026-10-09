@@ -37,6 +37,176 @@ fn bound(slot: &str) -> GraphFrameCheckpoint {
     .unwrap()
 }
 
+fn fence(checkpoint: &Checkpoint, epoch: u64) -> RunFence {
+    RunFence::new(
+        checkpoint.tenant_id().clone(),
+        checkpoint.run_id(),
+        AttemptId::generate(),
+        FencingEpoch::new(epoch).unwrap(),
+    )
+}
+
+fn result(activation: NodeActivation, fence: RunFence, ordinal: u64) -> PendingNodeResult {
+    let tenant = activation.base_checkpoint().tenant_id().clone();
+    PendingNodeResult::commit(
+        PendingNodeResultIntent::new(
+            activation,
+            NodeStateChange::Unchanged,
+            NodeControl::Continue,
+            NodeInvocationBindings::empty(),
+        )
+        .unwrap(),
+        fence,
+        data::journal(ordinal, tenant.as_str()),
+    )
+    .unwrap()
+}
+
+fn executing(activation: NodeActivation, fence: RunFence, ordinal: u64) -> NodeAttempt {
+    let tenant = activation.base_checkpoint().tenant_id().clone();
+    NodeAttempt::executing(
+        NodeAttemptStart::new(
+            activation,
+            AttemptId::generate(),
+            fence,
+            data::journal(ordinal, tenant.as_str()),
+        )
+        .unwrap(),
+    )
+}
+
+#[test]
+fn scoped_recovery_retains_the_frame_and_derives_the_exact_ready_set() {
+    let checkpoint = bound("slot.a");
+    let owner = fence(checkpoint.checkpoint(), 1);
+    let planner = ReadyNodeRecoveryPlanner::for_frame(checkpoint.clone(), owner.clone()).unwrap();
+    assert_eq!(
+        planner.activations(),
+        [checkpoint.activation("call".parse().unwrap()).unwrap()]
+    );
+    let observed = data::journal(2, "tenant-frame");
+    let plan = planner
+        .finish(observed.clone(), observed.recorded_at())
+        .unwrap();
+    assert_eq!(plan.frame(), Some(checkpoint.frame()));
+    assert_eq!(plan.checkpoint(), checkpoint.checkpoint());
+    assert_eq!(plan.fence(), &owner);
+    assert_eq!(
+        plan.nodes()[0].dispatch_reason(),
+        Some(NodeDispatchReason::FirstAttempt)
+    );
+    assert!(!plan.is_barrier_ready());
+    assert!(plan.completed_result_heads().is_none());
+    let root = ReadyNodeRecoveryPlanner::new(checkpoint.checkpoint().clone(), owner)
+        .unwrap()
+        .finish(observed.clone(), observed.recorded_at())
+        .unwrap();
+    assert!(root.frame().is_none());
+    assert_ne!(root.nodes()[0].activation(), plan.nodes()[0].activation());
+}
+
+#[test]
+fn recovery_rejects_sibling_and_root_evidence_at_the_same_checkpoint() {
+    let checkpoint = bound("slot.a");
+    let sibling = GraphFrameCheckpoint::new(
+        bound("slot.b").frame().clone(),
+        checkpoint.checkpoint().clone(),
+    )
+    .unwrap();
+    let owner = fence(checkpoint.checkpoint(), 1);
+    let correct = checkpoint.activation("call".parse().unwrap()).unwrap();
+    let root =
+        NodeActivation::for_ready_root(checkpoint.checkpoint(), "call".parse().unwrap()).unwrap();
+    let other = sibling.activation("call".parse().unwrap()).unwrap();
+    for activation in [root, other] {
+        let mut planner =
+            ReadyNodeRecoveryPlanner::for_frame(checkpoint.clone(), owner.clone()).unwrap();
+        assert!(matches!(
+            planner.observe_result(&result(activation.clone(), owner.clone(), 4)),
+            Err(ReadyNodeRecoveryError::UnexpectedResult { .. })
+        ));
+        assert!(matches!(
+            planner.observe_attempt(&executing(activation, owner.clone(), 3)),
+            Err(ReadyNodeRecoveryError::UnexpectedAttempt { .. })
+        ));
+    }
+    let mut root =
+        ReadyNodeRecoveryPlanner::new(checkpoint.checkpoint().clone(), owner.clone()).unwrap();
+    assert!(matches!(
+        root.observe_result(&result(correct.clone(), owner.clone(), 4)),
+        Err(ReadyNodeRecoveryError::UnexpectedResult { .. })
+    ));
+    assert!(matches!(
+        root.observe_attempt(&executing(correct, owner, 3)),
+        Err(ReadyNodeRecoveryError::UnexpectedAttempt { .. })
+    ));
+}
+
+#[test]
+fn scoped_recovery_distinguishes_in_flight_work_from_takeover() {
+    let checkpoint = bound("slot.a");
+    let owner = fence(checkpoint.checkpoint(), 1);
+    let attempt = executing(
+        checkpoint.activation("call".parse().unwrap()).unwrap(),
+        owner.clone(),
+        3,
+    );
+    let observed = data::journal(3, "tenant-frame");
+    let mut same = ReadyNodeRecoveryPlanner::for_frame(checkpoint.clone(), owner).unwrap();
+    same.observe_attempt(&attempt).unwrap();
+    let plan = same
+        .finish(observed.clone(), observed.recorded_at())
+        .unwrap();
+    assert_eq!(plan.nodes()[0].kind(), RecoveryNodeKind::InFlight);
+    assert_eq!(
+        plan.nodes()[0].in_flight_attempt(),
+        Some(&attempt.start().head())
+    );
+    let mut takeover =
+        ReadyNodeRecoveryPlanner::for_frame(checkpoint.clone(), fence(checkpoint.checkpoint(), 2))
+            .unwrap();
+    takeover.observe_attempt(&attempt).unwrap();
+    let plan = takeover
+        .finish(observed.clone(), observed.recorded_at())
+        .unwrap();
+    assert_eq!(
+        plan.nodes()[0].dispatch_reason(),
+        Some(NodeDispatchReason::SupersededAttempt)
+    );
+    assert_eq!(plan.frame(), Some(checkpoint.frame()));
+}
+
+#[test]
+fn scoped_recovery_reuses_success_and_keeps_the_legacy_root_barrier_closed() {
+    let checkpoint = bound("slot.a");
+    let owner = fence(checkpoint.checkpoint(), 1);
+    let activation = checkpoint.activation("call".parse().unwrap()).unwrap();
+    let start = executing(activation.clone(), owner.clone(), 3);
+    let result = result(activation, owner, 4);
+    let completion =
+        NodeAttemptCompletion::succeed(start.start(), result.head(), BudgetUsage::zero()).unwrap();
+    let attempt = NodeAttempt::restore(start.start().clone(), Some(completion)).unwrap();
+    let mut planner =
+        ReadyNodeRecoveryPlanner::for_frame(checkpoint.clone(), fence(checkpoint.checkpoint(), 2))
+            .unwrap();
+    planner.observe_result(&result).unwrap();
+    planner.observe_attempt(&attempt).unwrap();
+    let observed = data::journal(4, "tenant-frame");
+    let plan = planner
+        .finish(observed.clone(), observed.recorded_at())
+        .unwrap();
+    assert_eq!(plan.nodes()[0].kind(), RecoveryNodeKind::Completed);
+    assert!(plan.nodes()[0].dispatch_reason().is_none());
+    assert_eq!(
+        plan.completed_result_heads().unwrap().as_ref(),
+        [result.head()]
+    );
+    assert!(matches!(
+        plan.barrier_result_heads(),
+        Err(BarrierResultHeadsError::NestedGraphNamespace { .. })
+    ));
+}
+
 #[test]
 fn committed_current_source_vectors_are_reproduced_by_real_constructors() {
     let wire: Value =

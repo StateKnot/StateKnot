@@ -37,6 +37,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   input/output schema pins explicitly change; old root wires and definition pins
   remain exact. Transactional runtime/SQL execution and acceptance remain pending.
 
+- Experimental scoped recovery and frame barrier planning preserve frame identity,
+  exact ready activations, canonical bounded result order and local lineage.
+  Existing attempt-history/fence classification and pinned schema/reducer/control
+  validation are reused. The legacy root barrier remains root-only. A separate
+  frame intent wire/schema, current-source constructors and independent checksum
+  model cover the new data boundary; transactional execution remains pending.
+
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
   references and canonical checksum preimages verify the actual root barrier.

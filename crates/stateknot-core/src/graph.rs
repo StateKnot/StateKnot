@@ -24,9 +24,10 @@ use thiserror::Error;
 use crate::{
     BoundedJson, CapabilityIdentity, Checkpoint, CheckpointBarrier, CheckpointBarrierError,
     CheckpointId, CheckpointState, CheckpointStateError, CheckpointWrite, CheckpointWriteError,
-    ChildRunPolicyError, Digest, GraphChildRunPolicy, GraphFrameCallPolicy, GraphFrameCompileError,
-    GraphReference, NodeActivation, NodeControl, NodeControlKind, NodeId, NodeStateUpdate,
-    NodeTerminalOutput, NodeWait, NodeWaits, NodeWaitsError, PendingNodeResult, ReadyNodes,
+    ChildRunPolicyError, Digest, GraphChildRunPolicy, GraphFrameBarrier, GraphFrameBarrierError,
+    GraphFrameCallPolicy, GraphFrameCheckpoint, GraphFrameCompileError, GraphReference,
+    NodeActivation, NodeControl, NodeControlKind, NodeId, NodeStateUpdate, NodeTerminalOutput,
+    NodeWait, NodeWaits, NodeWaitsError, PendingNodeResult, PendingNodeResultHead, ReadyNodes,
     RouteId, SchemaReference, Superstep,
 };
 
@@ -810,6 +811,45 @@ impl CompiledGraph {
     {
         GraphBarrierPlanner::new(self, base, results, successor_id, schemas, reducer).plan()
     }
+
+    /// Plans an experimental RFC-0022 barrier from one full scoped checkpoint.
+    ///
+    /// Uses the same pinned schema/reducer/control rules as root planning,
+    /// deriving every activation from the exact frame. The result is a data
+    /// intent; storage must validate the live leaf and fence transactionally.
+    ///
+    /// # Errors
+    /// Rejects graph/schema/reducer drift, crossed scope, incomplete results,
+    /// invalid controls, exhausted limits or invalid scoped barrier integrity.
+    pub fn plan_frame_barrier<V, R>(
+        &self,
+        base: &GraphFrameCheckpoint,
+        results: &[PendingNodeResult],
+        successor_id: CheckpointId,
+        schemas: &V,
+        reducer: &R,
+    ) -> Result<GraphFrameBarrierPlan, GraphBarrierPlanError>
+    where
+        V: GraphSchemaValidator + ?Sized,
+        R: GraphReducer + ?Sized,
+    {
+        let mut planner = GraphBarrierPlanner::new(
+            self,
+            base.checkpoint(),
+            results,
+            successor_id,
+            schemas,
+            reducer,
+        );
+        planner.frame = Some(base);
+        let (successor, disposition, heads) = planner.derive_successor()?;
+        let barrier = GraphFrameBarrier::new(base, successor, heads)
+            .map_err(|source| GraphBarrierPlanError::InvalidFrameBarrier { source })?;
+        Ok(GraphFrameBarrierPlan {
+            barrier,
+            disposition,
+        })
+    }
 }
 
 fn collect_graph_nodes<I>(nodes: I) -> Result<BTreeMap<NodeId, GraphNode>, GraphCompileError>
@@ -1310,6 +1350,36 @@ impl GraphBarrierPlan {
     }
 }
 
+/// Complete deterministic intent for one experimental isolated frame barrier.
+///
+/// This is not an I/O or dispatch capability. It preserves the exact scoped
+/// base so the storage transaction can verify the active leaf before commit.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GraphFrameBarrierPlan {
+    barrier: GraphFrameBarrier,
+    disposition: GraphBarrierDisposition,
+}
+
+impl GraphFrameBarrierPlan {
+    /// Returns the exact scoped barrier intent.
+    #[must_use]
+    pub const fn barrier(&self) -> &GraphFrameBarrier {
+        &self.barrier
+    }
+
+    /// Returns the validated continuation, wait or terminal disposition.
+    #[must_use]
+    pub const fn disposition(&self) -> &GraphBarrierDisposition {
+        &self.disposition
+    }
+
+    /// Consumes the plan into the scoped intent and lifecycle disposition.
+    #[must_use]
+    pub fn into_parts(self) -> (GraphFrameBarrier, GraphBarrierDisposition) {
+        (self.barrier, self.disposition)
+    }
+}
+
 struct GraphBarrierPlanner<'a, V: ?Sized, R: ?Sized> {
     graph: &'a CompiledGraph,
     base: &'a Checkpoint,
@@ -1317,6 +1387,7 @@ struct GraphBarrierPlanner<'a, V: ?Sized, R: ?Sized> {
     successor_id: CheckpointId,
     schemas: &'a V,
     reducer: &'a R,
+    frame: Option<&'a GraphFrameCheckpoint>,
 }
 
 impl<'a, V, R> GraphBarrierPlanner<'a, V, R>
@@ -1339,10 +1410,30 @@ where
             successor_id,
             schemas,
             reducer,
+            frame: None,
         }
     }
 
     fn plan(self) -> Result<GraphBarrierPlan, GraphBarrierPlanError> {
+        let (successor, disposition, heads) = self.derive_successor()?;
+        let barrier = CheckpointBarrier::new(self.base, successor, heads)
+            .map_err(|source| GraphBarrierPlanError::InvalidBarrier { source })?;
+        Ok(GraphBarrierPlan {
+            barrier,
+            disposition,
+        })
+    }
+
+    fn derive_successor(
+        &self,
+    ) -> Result<
+        (
+            CheckpointWrite,
+            GraphBarrierDisposition,
+            Vec<PendingNodeResultHead>,
+        ),
+        GraphBarrierPlanError,
+    > {
         self.validate_checkpoint()?;
         if self.reducer.reference() != self.graph.reducer() {
             return Err(GraphBarrierPlanError::ReducerReferenceMismatch);
@@ -1361,13 +1452,8 @@ where
         let successor =
             CheckpointWrite::successor(self.successor_id, self.base, state, resolved.ready_nodes)
                 .map_err(|source| GraphBarrierPlanError::InvalidSuccessor { source })?;
-        let heads = ordered.iter().map(|result| result.head());
-        let barrier = CheckpointBarrier::new(self.base, successor, heads)
-            .map_err(|source| GraphBarrierPlanError::InvalidBarrier { source })?;
-        Ok(GraphBarrierPlan {
-            barrier,
-            disposition: resolved.disposition,
-        })
+        let heads = ordered.iter().map(|result| result.head()).collect();
+        Ok((successor, resolved.disposition, heads))
     }
 
     fn resolve_controls(
@@ -1549,15 +1635,24 @@ where
                     node_id: activation.node_id().clone(),
                 });
             }
-            if !activation.graph_namespace().is_root() {
-                return Err(GraphBarrierPlanError::NonRootActivation {
-                    node_id: activation.node_id().clone(),
-                });
-            }
-            let expected = NodeActivation::for_ready_root(self.base, activation.node_id().clone())
-                .map_err(|_| GraphBarrierPlanError::ActivationMismatch {
-                    node_id: activation.node_id().clone(),
-                })?;
+            let expected = if let Some(frame) = self.frame {
+                frame
+                    .activation(activation.node_id().clone())
+                    .map_err(|_| GraphBarrierPlanError::ActivationMismatch {
+                        node_id: activation.node_id().clone(),
+                    })?
+            } else {
+                if !activation.graph_namespace().is_root() {
+                    return Err(GraphBarrierPlanError::NonRootActivation {
+                        node_id: activation.node_id().clone(),
+                    });
+                }
+                NodeActivation::for_ready_root(self.base, activation.node_id().clone()).map_err(
+                    |_| GraphBarrierPlanError::ActivationMismatch {
+                        node_id: activation.node_id().clone(),
+                    },
+                )?
+            };
             if activation != &expected {
                 return Err(GraphBarrierPlanError::ActivationMismatch {
                     node_id: activation.node_id().clone(),
@@ -1665,6 +1760,13 @@ impl fmt::Display for GraphValueKind {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum GraphBarrierPlanError {
+    /// Experimental scoped barrier integrity failed.
+    #[error("derived frame barrier is invalid: {source}")]
+    InvalidFrameBarrier {
+        /// Public-safe scoped integrity failure.
+        #[source]
+        source: GraphFrameBarrierError,
+    },
     /// The checkpoint pinned another graph definition or state schema.
     #[error("checkpoint graph reference does not match the compiled graph")]
     GraphReferenceMismatch,

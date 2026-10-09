@@ -95,6 +95,7 @@
     "FencingEpoch": "sha256:80d73846a6d75645959352d1b4d2b140d2cee2de94bd2041401439232d3a4b6a",
     "GraphChildRunPolicy": "sha256:d37bebbd0a5604bfe9f4f1e17a22a73e8ab17ee26e6318ddbbd83f1b00288cfe",
     "GraphExecutionLimits": "sha256:eaacbc1f9068ffe3b810ab9825ad71fe580bde77d96d41319503a1efa6facf7f",
+    "GraphFrameBarrier": "sha256:285ab906698b4872df4a07f916c6e6c3c695518e1d33b837f2d331316f5f730e",
     "GraphFrameCall": "sha256:b5fcaa1aeab180f4f6cdfd8d6339426af4f22a3da41985f832d7e9cd82ca8f42",
     "GraphFrameCallPolicy": "sha256:430ee36c242464a2c4bb802ade783797468789869b127e1b941799d088b9e98b",
     "GraphFrameCheckpoint": "sha256:4dbef2c95e9de8c1114f37e0a7b921812cbfaf90bfaaac4417dd42b0a4f1ccee",
