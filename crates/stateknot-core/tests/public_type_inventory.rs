@@ -15,34 +15,9 @@ use std::{
     sync::LazyLock,
 };
 
-// Keep real serializer declaration order; Value's sorted keys would produce an
-// unrelated field permutation and miss Serde's positional reader path.
-struct ObjectFieldValues(Vec<Value>);
-
-impl<'de> Deserialize<'de> for ObjectFieldValues {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        struct Fields;
-        impl<'de> serde::de::Visitor<'de> for Fields {
-            type Value = ObjectFieldValues;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("an object producer")
-            }
-
-            fn visit_map<A: serde::de::MapAccess<'de>>(
-                self,
-                mut map: A,
-            ) -> Result<Self::Value, A::Error> {
-                let mut fields = Vec::new();
-                while let Some((_, value)) = map.next_entry::<String, Value>()? {
-                    fields.push(value);
-                }
-                Ok(ObjectFieldValues(fields))
-            }
-        }
-        deserializer.deserialize_map(Fields)
-    }
-}
+#[path = "support/object_fields.rs"]
+mod object_fields;
+use object_fields::ObjectFieldValues;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -1763,7 +1763,7 @@ Validation item 1 is implemented by the four compiled
 CI step, and the direct-dependency boundary test. Items 2 through 9 remain
 acceptance gates, so this RFC remains Draft and does not establish API stability.
 
-The current 43-file compatibility fixture corpus is now a closed, versioned
+The current 44-file compatibility fixture corpus is now a closed, versioned
 catalog: exact content digests retain deliberately non-canonical negative
 vectors, while a domain-separated RFC 8785 catalog root binds ordered path,
 schema, and digest metadata. CI rejects inventory drift and requires every
@@ -1778,7 +1778,8 @@ producers, and 246 reviewed Rust-only instantiations. New exports or changed
 Serde boundaries require explicit fixture review. Current root-type coverage
 does not replace variant, nested-property or historical qualification; bounded
 fuzz is separately exercised by the fixed ASan/libFuzzer gate in `fuzz/`; item 2
-remains open pending the full variant review.
+now includes a closed 71-enum/298-alternative matrix; optional/nested combination
+review and the independent C3/C6 gates remain separate.
 
 [RFC-0021](0021-core-object-readers.md) aligns all 181 closed object readers with
 their existing object schema, including nested domain values. A streaming map
@@ -1788,6 +1789,13 @@ wire bytes and both 308-pin profiles remain exact. These readers do not promise
 sequence-based binary-format decoding. The fuzz input-schema oracle executes
 after the actual reader, independently of the retained producer oracle. This
 source-only correction does not close the remaining variant/history gates.
+
+The enum matrix verifies canonical wires/digests and schema-case completeness for
+all currently serialized public enum alternatives, including 28 constructor
+cases absent from the prior corpus. Every object alternative rejects positional
+arrays, unknown fields and raw duplicate known keys; both fuzz schema oracles
+replay every case. The previous 43 documents and all input/output pins remain
+exact. These are current-source vectors, not historical releases.
 
 The [Core contract guide](../core-contract-examples.md#value-level-fixture-and-property-coverage)
 now maps 38 public value types to direct positive/negative canonical round trips,

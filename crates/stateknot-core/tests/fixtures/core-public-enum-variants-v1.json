@@ -1,0 +1,4538 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-public-enum-variants/1.0.0",
+  "types": {
+    "AgentStructuredOutputStrategy": [
+      {
+        "canonical_digest": "sha256:114b2132f57ecf6eb9a6e51ee028c102dcdca1a9190f44eb47b8984fd79ab753",
+        "case": "model_native",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/execution/structured_output"
+        },
+        "wire": "model_native"
+      },
+      {
+        "canonical_digest": "sha256:7c54914a0b3465f1fc713ae2d3b18c8c0afb95f486ebaf0567b5c769a8784824",
+        "case": "tool_call",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/transcripts/0/0/response/output/1/type"
+        },
+        "wire": "tool_call"
+      }
+    ],
+    "AgentToolConcurrency": [
+      {
+        "canonical_digest": "sha256:3099a3f777d8f0242d43e6ab97b5509c5de1f5bebda8182f592b352ece6091a9",
+        "case": {
+          "mode": "parallel_read_only"
+        },
+        "source": {
+          "fixture": "core-agent-v1.json",
+          "pointer": "/execution_configs/invalid/2/tool_concurrency"
+        },
+        "wire": {
+          "max_concurrency": "1",
+          "mode": "parallel_read_only"
+        }
+      },
+      {
+        "canonical_digest": "sha256:6bc5117a33abb24888ce1c304aa00ab82c0ac616512eb2260444377e0357fe9e",
+        "case": {
+          "mode": "sequential"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/execution/tool_concurrency"
+        },
+        "wire": {
+          "mode": "sequential"
+        }
+      }
+    ],
+    "ArtifactModality": [
+      {
+        "canonical_digest": "sha256:d32d6d5eeb28879723113a09a04aac8ec79466cce4e534ee3cf9a29cbf43da24",
+        "case": "archive",
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/modalities/invalid/0"
+        },
+        "wire": "archive"
+      },
+      {
+        "canonical_digest": "sha256:53b773b65438e16d4299755882a66687096d63fe3a435d8bb340a718dc1cae29",
+        "case": "audio",
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/modalities/valid/2"
+        },
+        "wire": "audio"
+      },
+      {
+        "canonical_digest": "sha256:ba83e3f7cdc21d0cc73d83ac09df81e641e76af0e62f6e7df2f095463ec4461e",
+        "case": "binary",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/representations/invalid/0/modality"
+        },
+        "wire": "binary"
+      },
+      {
+        "canonical_digest": "sha256:64ac8e615520cd1ae43ab0d47cfc9e750a82d13f9c47d468dab7cd8c982b7859",
+        "case": "document",
+        "source": {
+          "fixture": "core-agent-runtime-v1.json",
+          "pointer": "/artifacts/valid/1/0/representation/modality"
+        },
+        "wire": "document"
+      },
+      {
+        "canonical_digest": "sha256:affa657b3c3e9337bdf3c879c0561b74d54a9197fdc6acd834dcdc02837454fc",
+        "case": "image",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/representations/invalid/1/modality"
+        },
+        "wire": "image"
+      },
+      {
+        "canonical_digest": "sha256:1dd40a1bb56d1e20162036c545831bd71b3fe346c72b10cf046c40f56d3c916f",
+        "case": "structured_data",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/representations/valid/1/modality"
+        },
+        "wire": "structured_data"
+      },
+      {
+        "canonical_digest": "sha256:1e1d0f251d3a76fa2b1bfc81164078572623403887db02988b504b0492e9f076",
+        "case": "text",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/type"
+        },
+        "wire": "text"
+      },
+      {
+        "canonical_digest": "sha256:807f0525549ec1760febbccb23415a1d78b6acbb28b101cbdbff27c394c1c826",
+        "case": "video",
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/modalities/valid/3"
+        },
+        "wire": "video"
+      }
+    ],
+    "BudgetDimension": [
+      {
+        "canonical_digest": "sha256:2c1d19894f6261a40354ebf9d44c92da0f0c8c384b812d38bb4808b9cfb85b37",
+        "case": "artifact_bytes",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/19"
+        },
+        "wire": "artifact_bytes"
+      },
+      {
+        "canonical_digest": "sha256:b8dec943c1209c62557d490d80bf50d292c5d6731861355f49a241a58d7dd5ec",
+        "case": "cached_input_tokens",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/6"
+        },
+        "wire": "cached_input_tokens"
+      },
+      {
+        "canonical_digest": "sha256:2b1de3e627110e8be6c3347f9bc5e849ca343905e5639bb8ea9c4bec2f5e5040",
+        "case": "checkpoint_bytes",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/18"
+        },
+        "wire": "checkpoint_bytes"
+      },
+      {
+        "canonical_digest": "sha256:a76469d6d8da3ac460b80abddde012bcb1c16caa8791a194aefa85859d7c42e9",
+        "case": "concurrent_branches",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/13"
+        },
+        "wire": "concurrent_branches"
+      },
+      {
+        "canonical_digest": "sha256:327c4d8d1362f92a87630dfe0c28055f886a12836fd4a4f4bf2d8eaedd8566fe",
+        "case": "costs",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/20"
+        },
+        "wire": "costs"
+      },
+      {
+        "canonical_digest": "sha256:d026405876a0800af83ac0c6a67dc9f42582819096621e39ed771735d208da4e",
+        "case": "deadline",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/0"
+        },
+        "wire": "deadline"
+      },
+      {
+        "canonical_digest": "sha256:aa2506860a7f3d0ac0ff1ef87d4a7da9862c90f5db296d45406dff87797c6e5a",
+        "case": "event_bytes",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/17"
+        },
+        "wire": "event_bytes"
+      },
+      {
+        "canonical_digest": "sha256:9bb36f2b7e1a796391dca0df1ee610bf493d4774223f92d84d0a31f0f869f1b9",
+        "case": "fan_out",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/14"
+        },
+        "wire": "fan_out"
+      },
+      {
+        "canonical_digest": "sha256:47322612fa3a49353af1dfb4c5f92eb6169619a1b79897589e9fd044702cc762",
+        "case": "graph_depth",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/1"
+        },
+        "wire": "graph_depth"
+      },
+      {
+        "canonical_digest": "sha256:96bb467383d829e17959a1cf3b43c7a0317c19dbddf56904147111de90e0c31c",
+        "case": "graph_steps",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/2"
+        },
+        "wire": "graph_steps"
+      },
+      {
+        "canonical_digest": "sha256:3de873d28b702f10e10492f9a514c7b930375b5fad49745e358151f1d28f2950",
+        "case": "input_bytes",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/15"
+        },
+        "wire": "input_bytes"
+      },
+      {
+        "canonical_digest": "sha256:98e4991935cd311032fa0ab0acec7e32efbf981733824d92c5755871fd34b0c4",
+        "case": "input_tokens",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/ModelUsageField"
+        },
+        "wire": "input_tokens"
+      },
+      {
+        "canonical_digest": "sha256:aee242520e5779ce43ca2718e14ceb0f0ee736cefd0af0512209ba24a3e39cb3",
+        "case": "model_attempts",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/3"
+        },
+        "wire": "model_attempts"
+      },
+      {
+        "canonical_digest": "sha256:98c46c4573f750d0bbffae1ff5b9809af6cc2802b96933d1ab53be64a2ec8690",
+        "case": "model_turns",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/4"
+        },
+        "wire": "model_turns"
+      },
+      {
+        "canonical_digest": "sha256:0d43dd7cec37e554e79518872bfbe9032b4b96c9c8afb4e8f7e2d4b7e3cda6be",
+        "case": "output_bytes",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/16"
+        },
+        "wire": "output_bytes"
+      },
+      {
+        "canonical_digest": "sha256:a6c972a22e37f881e018e32933a4f7ee4a6fdf5c80f0093f5f1291420e0e4c38",
+        "case": "output_tokens",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/8"
+        },
+        "wire": "output_tokens"
+      },
+      {
+        "canonical_digest": "sha256:d95391f7c747720ba71c840e4719867f58d4d57b0a69136e0dc3e9d21044ca78",
+        "case": "reasoning_tokens",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/7"
+        },
+        "wire": "reasoning_tokens"
+      },
+      {
+        "canonical_digest": "sha256:ca440da6378ed51e0d661e745f208d34c6162933b718b18795624ff117fd4504",
+        "case": "remote_agent_delegations",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/11"
+        },
+        "wire": "remote_agent_delegations"
+      },
+      {
+        "canonical_digest": "sha256:57958b01cd2af71f10efa33e660247807b09dadf64eb3ea4eafbe75dcea93854",
+        "case": "retries",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/12"
+        },
+        "wire": "retries"
+      },
+      {
+        "canonical_digest": "sha256:afa9a5b7f2f60ef7d67b4495f2edb5204aae87965dd3f2680ab1cf2994524088",
+        "case": "tool_calls",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/transcripts/0/0/response/finish_reason"
+        },
+        "wire": "tool_calls"
+      },
+      {
+        "canonical_digest": "sha256:cef62e6378e01e8849961d80d9a8b518759bbe8a4d5612867a0b8d91d5dc7771",
+        "case": "write_calls",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/10"
+        },
+        "wire": "write_calls"
+      }
+    ],
+    "CapabilityKind": [
+      {
+        "canonical_digest": "sha256:7649b444a37e5ea51af536af65bdde29d549803a064bdd0707db6a00c9285673",
+        "case": "agent",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/metadata/kind"
+        },
+        "wire": "agent"
+      },
+      {
+        "canonical_digest": "sha256:07bfaea5744adaf1fcbe59bbd917ab2c4cdbcba37f12613cf43ed69b2bff6487",
+        "case": "application",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/content/metadata/source"
+        },
+        "wire": "application"
+      },
+      {
+        "canonical_digest": "sha256:18fb9fa0b971b807a1312d3702d18747a3b1b39a129df8c5d1a8f68d512bd1fd",
+        "case": "model",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/model/metadata/kind"
+        },
+        "wire": "model"
+      },
+      {
+        "canonical_digest": "sha256:dd04afac1bebb050783a245ed0d88633759f352c85d4ab3bea3d416bf2019c75",
+        "case": "tool",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/metadata/kind"
+        },
+        "wire": "tool"
+      },
+      {
+        "canonical_digest": "sha256:1688d51cb2decc79d2c2d21d78c57a76c7ed3e9bd2a2e245da0c35e213c857a9",
+        "case": "workflow",
+        "source": {
+          "fixture": "core-agent-v1.json",
+          "pointer": "/descriptor_mutations/0/changes/0/value"
+        },
+        "wire": "workflow"
+      }
+    ],
+    "ContentPart": [
+      {
+        "canonical_digest": "sha256:81c797ef2a96cc0e0bb7dc8b9f11097076889b352ad227e0c9252572c0789871",
+        "case": {
+          "type": "artifact"
+        },
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/content_parts/valid/2"
+        },
+        "wire": {
+          "content": {
+            "identity": {
+              "artifact_id": "01912345-6789-7abc-8def-0123456789ab",
+              "tenant_id": "tenant-a"
+            },
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal/pii",
+              "source": "artifact",
+              "trust": "untrusted"
+            },
+            "parents": [],
+            "presentation": {
+              "name": "incident-report.pdf"
+            },
+            "provenance": {
+              "event_id": "01912345-6789-7abc-8def-0123456789af",
+              "principal": {
+                "issuer": "https://issuer.example.com",
+                "subject": "service-account"
+              },
+              "run_id": "01912345-6789-7abc-8def-0123456789ae"
+            },
+            "representation": {
+              "byte_length": "12",
+              "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80",
+              "media_type": "application/pdf",
+              "modality": "document"
+            },
+            "retention_class": "audit/7y"
+          },
+          "type": "artifact"
+        }
+      },
+      {
+        "canonical_digest": "sha256:f0555f9ea9a4b9cf6022519c7e62abc61e3ad5d89222dd5d8918c9c6ceaee3bf",
+        "case": {
+          "type": "json"
+        },
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/content_parts/valid/1"
+        },
+        "wire": {
+          "content": {
+            "metadata": {
+              "redaction": "partial",
+              "security_label": "internal/derived",
+              "source": "tool",
+              "trust": "untrusted"
+            },
+            "value": {
+              "answer": 42
+            }
+          },
+          "type": "json"
+        }
+      },
+      {
+        "canonical_digest": "sha256:345aaba938990385c0009f31829e72b56af8b6340c2ec15cde9a3e1a149be1f0",
+        "case": {
+          "type": "text"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content"
+        },
+        "wire": {
+          "content": {
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal",
+              "source": "application",
+              "trust": "application_controlled"
+            },
+            "text": "never-log-this-instruction"
+          },
+          "type": "text"
+        }
+      }
+    ],
+    "ContentSource": [
+      {
+        "canonical_digest": "sha256:07bfaea5744adaf1fcbe59bbd917ab2c4cdbcba37f12613cf43ed69b2bff6487",
+        "case": "application",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/content/metadata/source"
+        },
+        "wire": "application"
+      },
+      {
+        "canonical_digest": "sha256:0c47fcc7df96778c6d8a9a6b979a21c0fbbe0ed0b6d097f2fa27cfec9142b974",
+        "case": "artifact",
+        "source": {
+          "fixture": "core-agent-runtime-v1.json",
+          "pointer": "/artifacts/valid/1/0/metadata/source"
+        },
+        "wire": "artifact"
+      },
+      {
+        "canonical_digest": "sha256:18fb9fa0b971b807a1312d3702d18747a3b1b39a129df8c5d1a8f68d512bd1fd",
+        "case": "model",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/model/metadata/kind"
+        },
+        "wire": "model"
+      },
+      {
+        "canonical_digest": "sha256:e9f3153933de9fba0b7bd5e8d2c804177eaf00f7ab97ee94a29ee166cbf8dae8",
+        "case": "remote_agent",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/artifact_refs/invalid/0/metadata/source"
+        },
+        "wire": "remote_agent"
+      },
+      {
+        "canonical_digest": "sha256:dd04afac1bebb050783a245ed0d88633759f352c85d4ab3bea3d416bf2019c75",
+        "case": "tool",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/metadata/kind"
+        },
+        "wire": "tool"
+      },
+      {
+        "canonical_digest": "sha256:3190d261d186aeead3a8deec202737c7775af5c8d455a9e5ba958c48b5fd3f59",
+        "case": "user",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/content_parts/invalid/3/content/metadata/source"
+        },
+        "wire": "user"
+      }
+    ],
+    "ContentTrust": [
+      {
+        "canonical_digest": "sha256:9f295be75cf1b9cbd17fc7f263af4524a92525eafb28d77007f55184f0f481a5",
+        "case": "application_controlled",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/content/metadata/trust"
+        },
+        "wire": "application_controlled"
+      },
+      {
+        "canonical_digest": "sha256:e1dc4842f138a558eed844cd2d4149fe7f94b738c2bc1fca4a7c0a1ae8ec4bad",
+        "case": "untrusted",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/transcripts/0/0/response/output/0/content/content/metadata/trust"
+        },
+        "wire": "untrusted"
+      }
+    ],
+    "DurableWait": [
+      {
+        "canonical_digest": "sha256:79aaebca4469b08374cb192378e1d103ba6d0fb2a1b3963e08cb6b1bb7cf9cfa",
+        "case": {
+          "kind": "interrupt"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/waits/0"
+        },
+        "wire": {
+          "kind": "interrupt",
+          "request": {
+            "digest": "sha256:966f6eb594474895349834c0321c6bd8df542ee8adb9370b4a0ec43ef79badcd",
+            "intent": {
+              "action_digest": "sha256:6c360a24360d8db25a0c3a3e489464d665591e8a0b9ea91de21b96e39f8d6ea9",
+              "expires_at": "2030-01-01T00:10:00.000000Z",
+              "intent_digest": "sha256:4e9d3cff0611940e7ec178a88c8320ea1974afa4a1fcfb553b09b4ac932f17a4",
+              "interrupt_id": "01912345-6789-7abc-8def-012345678952",
+              "kind": "approval",
+              "request_event_id": "01912345-6789-7abc-8def-012345678951",
+              "request_payload": {
+                "data": {
+                  "action": "deploy",
+                  "environment": "production"
+                },
+                "kind": "approval-request",
+                "schema": {
+                  "digest": "sha256:8cb642a5f7cd79a3bc9abe6cefd0f7cbb1623b77d3264530613030ef3a45d054",
+                  "id": "https://stateknot.github.io/schema/wait/approval-request/1.0.0",
+                  "version": "1.0.0"
+                }
+              },
+              "required_principal": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "incident-approver"
+              },
+              "required_scopes": [
+                "agent.approve",
+                "run.resolve"
+              ],
+              "run_id": "01912345-6789-7abc-8def-012345678950",
+              "tenant_id": "tenant-canonical"
+            },
+            "journal": {
+              "digest": "sha256:253a766c1678481fb52157a622a9bac460329c94025ac1649c177d741ef7be6f",
+              "event_id": "01912345-6789-7abc-8def-012345678951",
+              "recorded_at": "2030-01-01T00:00:00.000000Z",
+              "run_id": "01912345-6789-7abc-8def-012345678950",
+              "sequence": "11",
+              "tenant_id": "tenant-canonical"
+            },
+            "marker": {
+              "expires_at": "2030-01-01T00:10:00.000000Z",
+              "interrupt_id": "01912345-6789-7abc-8def-012345678952",
+              "kind": "approval",
+              "requested_at": "2030-01-01T00:00:00.000000Z"
+            }
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:b5df51450eaf54b64c117c5b084f62ec6505b9c684d59f04f7f1caea9a48db69",
+        "case": {
+          "kind": "timer"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/waits/1"
+        },
+        "wire": {
+          "kind": "timer",
+          "timer": {
+            "digest": "sha256:c288da382d2896a0f030e167d95ee80816fcd9b3b4ad250824cff894d620796d",
+            "intent": {
+              "due_at": "2030-01-01T00:00:30.000000Z",
+              "intent_digest": "sha256:b5cb4fd0660add7f756550759d61881ce8ec2a14a7992cc73c9b58cd61552fcc",
+              "kind": "retry_backoff",
+              "registration_event_id": "01912345-6789-7abc-8def-012345678960",
+              "run_id": "01912345-6789-7abc-8def-012345678950",
+              "tenant_id": "tenant-canonical",
+              "timer_id": "01912345-6789-7abc-8def-012345678961"
+            },
+            "journal": {
+              "digest": "sha256:93a4ebf9e5411659f366cc616d8850779228aa8d9d1491323419a2f3e42d55f1",
+              "event_id": "01912345-6789-7abc-8def-012345678960",
+              "recorded_at": "2030-01-01T00:00:00.000000Z",
+              "run_id": "01912345-6789-7abc-8def-012345678950",
+              "sequence": "13",
+              "tenant_id": "tenant-canonical"
+            },
+            "marker": {
+              "due_at": "2030-01-01T00:00:30.000000Z",
+              "kind": "retry_backoff",
+              "scheduled_at": "2030-01-01T00:00:00.000000Z",
+              "timer_id": "01912345-6789-7abc-8def-012345678961"
+            }
+          }
+        }
+      }
+    ],
+    "ExtensionValue": [
+      {
+        "canonical_digest": "sha256:ea307fd9e1c699954a8e577c7279c1e2ae2f8058faf933a18fdb37437921c51b",
+        "case": {
+          "kind": "opaque"
+        },
+        "source": {
+          "fixture": "core-capability-v1.json",
+          "pointer": "/metadata/valid/1/extensions/https:~1~1example.com~1extensions~1a2a~1v1"
+        },
+        "wire": {
+          "kind": "opaque",
+          "value": {
+            "protocol_skill_id": "request-approval"
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:28f96b25d4c33e861a330e9802a30eb33cc874ce76cea009c87157ebc46032ec",
+        "case": {
+          "kind": "schema_bound"
+        },
+        "source": {
+          "fixture": "core-extension-v1.json",
+          "pointer": "/values/valid/2"
+        },
+        "wire": {
+          "kind": "schema_bound",
+          "schema": {
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "id": "https://stateknot.github.io/schema/extension/citations/1.0.0",
+            "version": "1.0.0"
+          },
+          "value": [
+            "source-1"
+          ]
+        }
+      }
+    ],
+    "FailureCategory": [
+      {
+        "canonical_digest": "sha256:1c14622049c9c0e98cef3b67cbf9e78e2f14e10c54dccfd3483c27f19b64ab1a",
+        "case": "ambiguous_external_outcome",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/12"
+        },
+        "wire": "ambiguous_external_outcome"
+      },
+      {
+        "canonical_digest": "sha256:06234c1cf33df85364aedb5de2e65dc2fcb144ff65a249457c5f140fde7ee1d4",
+        "case": "cancelled",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/9"
+        },
+        "wire": "cancelled"
+      },
+      {
+        "canonical_digest": "sha256:64c81eb52bff30757e0b40bde27c76dd11818d9ba07a0afa1b2c52f99ffc29f0",
+        "case": "conflict",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/5"
+        },
+        "wire": "conflict"
+      },
+      {
+        "canonical_digest": "sha256:5b8df3a5adf4d6eae51c9b7b9ab56c96dc07448ca412f6998eac6b59e490b8d6",
+        "case": "data_corruption",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/11"
+        },
+        "wire": "data_corruption"
+      },
+      {
+        "canonical_digest": "sha256:b11ffe5e5e323e2ef7c842b04be9ab780076f64536ed114572513740363700a4",
+        "case": "deadline_exceeded",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/8"
+        },
+        "wire": "deadline_exceeded"
+      },
+      {
+        "canonical_digest": "sha256:95f8c2b04ad644ad71f6844de1c9ef706a8e4f353253a330fff1ddbcfa65d263",
+        "case": "dependency_unavailable",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/2/state/error/failure/category"
+        },
+        "wire": "dependency_unavailable"
+      },
+      {
+        "canonical_digest": "sha256:a1aaebe5d6728c1dd534652f6c066659c0890fe1d764c39bef4f4cd135534c8b",
+        "case": "internal",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/content/metadata/security_label"
+        },
+        "wire": "internal"
+      },
+      {
+        "canonical_digest": "sha256:de3ee82b0b97c5aaf6e8e758c2c671a2aeec0a2c75c8925a366850b68859102c",
+        "case": "invalid_input",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/failure/category"
+        },
+        "wire": "invalid_input"
+      },
+      {
+        "canonical_digest": "sha256:75be4a295c8deb47a4949dc99a0ff684306ff97dfccac48d4e183df4dc19b4f2",
+        "case": "not_found",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/4"
+        },
+        "wire": "not_found"
+      },
+      {
+        "canonical_digest": "sha256:20f3a02bcf7ac2a31468f9674fb7c8f75daa4312d64c9e5c576c0469ed037993",
+        "case": "permission_denied",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/2"
+        },
+        "wire": "permission_denied"
+      },
+      {
+        "canonical_digest": "sha256:64ae07b9df07990a96515db6a27f001cc51b588f9150affa5337da707fa123a4",
+        "case": "policy_denied",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/3"
+        },
+        "wire": "policy_denied"
+      },
+      {
+        "canonical_digest": "sha256:1c8118a4f27b3db0add7de47af51f1d85c91b58e958c7bf849606d9db95fd925",
+        "case": "rate_limited",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/7"
+        },
+        "wire": "rate_limited"
+      },
+      {
+        "canonical_digest": "sha256:869289207c92496f07af9932e20ac8cf365bc69b489386a12f60408fc17ec0e3",
+        "case": "unauthenticated",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/1"
+        },
+        "wire": "unauthenticated"
+      },
+      {
+        "canonical_digest": "sha256:0bc6f540bbf1d48a52b38b78f201053bc6ac6a49a3bd6105deccacea34c8b9b8",
+        "case": "unsupported",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/0/intent/request/requirements/structured_output"
+        },
+        "wire": "unsupported"
+      }
+    ],
+    "InstructionContent": [
+      {
+        "canonical_digest": "sha256:81c797ef2a96cc0e0bb7dc8b9f11097076889b352ad227e0c9252572c0789871",
+        "case": {
+          "type": "artifact"
+        },
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/content_parts/valid/2"
+        },
+        "wire": {
+          "content": {
+            "identity": {
+              "artifact_id": "01912345-6789-7abc-8def-0123456789ab",
+              "tenant_id": "tenant-a"
+            },
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal/pii",
+              "source": "artifact",
+              "trust": "untrusted"
+            },
+            "parents": [],
+            "presentation": {
+              "name": "incident-report.pdf"
+            },
+            "provenance": {
+              "event_id": "01912345-6789-7abc-8def-0123456789af",
+              "principal": {
+                "issuer": "https://issuer.example.com",
+                "subject": "service-account"
+              },
+              "run_id": "01912345-6789-7abc-8def-0123456789ae"
+            },
+            "representation": {
+              "byte_length": "12",
+              "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80",
+              "media_type": "application/pdf",
+              "modality": "document"
+            },
+            "retention_class": "audit/7y"
+          },
+          "type": "artifact"
+        }
+      },
+      {
+        "canonical_digest": "sha256:345aaba938990385c0009f31829e72b56af8b6340c2ec15cde9a3e1a149be1f0",
+        "case": {
+          "type": "text"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content"
+        },
+        "wire": {
+          "content": {
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal",
+              "source": "application",
+              "trust": "application_controlled"
+            },
+            "text": "never-log-this-instruction"
+          },
+          "type": "text"
+        }
+      }
+    ],
+    "JournalEventSource": [
+      {
+        "canonical_digest": "sha256:d100e862eab9e0ec640d61762b0b6e7a1f746bc2413dc0d67fb8cd0aadfbb53d",
+        "case": {
+          "kind": "control_plane"
+        },
+        "source": {
+          "fixture": "core-journal-v1.json",
+          "pointer": "/appends/0/intent/source"
+        },
+        "wire": {
+          "kind": "control_plane"
+        }
+      },
+      {
+        "canonical_digest": "sha256:ebf47771a542b6de36e45e3bf0fa06a92a660190742773d1aa70db69eed83759",
+        "case": {
+          "kind": "worker"
+        },
+        "source": {
+          "fixture": "core-journal-v1.json",
+          "pointer": "/appends/1/intent/source"
+        },
+        "wire": {
+          "fence": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789b1",
+            "epoch": "1",
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "tenant_id": "tenant-production"
+          },
+          "kind": "worker"
+        }
+      }
+    ],
+    "JournalExpectation": [
+      {
+        "canonical_digest": "sha256:e35b48e84654ad51a5b1ee607e3f203550707c71e3d5017aa212ff3aa1fc578b",
+        "case": {
+          "kind": "empty"
+        },
+        "source": {
+          "fixture": "core-journal-v1.json",
+          "pointer": "/appends/0/expectation"
+        },
+        "wire": {
+          "kind": "empty"
+        }
+      },
+      {
+        "canonical_digest": "sha256:02873845974e2fdaa5d610f2a8dd7786ed134678002fa92d1179b21d44a2898e",
+        "case": {
+          "kind": "exact"
+        },
+        "source": {
+          "fixture": "core-journal-v1.json",
+          "pointer": "/appends/1/expectation"
+        },
+        "wire": {
+          "head": {
+            "digest": "sha256:fe8b10e3f359c7b8e7648ef9008e35c9c90802edd200e3141f9356c0c4af998a",
+            "event_id": "01912345-6789-7abc-8def-0123456789c1",
+            "recorded_at": "2030-01-01T00:00:01.000000Z",
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "sequence": "1",
+            "tenant_id": "tenant-production"
+          },
+          "kind": "exact"
+        }
+      }
+    ],
+    "MessageProducer": [
+      {
+        "canonical_digest": "sha256:a17a50ca640c835329f5ac9070b68f996b8acd3e7e05f7e35aef899a34c24778",
+        "case": {
+          "type": "capability"
+        },
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/valid/2/provenance/producer"
+        },
+        "wire": {
+          "capability": {
+            "name": "weather.remote",
+            "version": "2.0.0"
+          },
+          "owner": {
+            "issuer": "https://partner.example.com",
+            "subject": "weather-agent"
+          },
+          "type": "capability"
+        }
+      },
+      {
+        "canonical_digest": "sha256:7687365586a5435130d5b3134775bf18ed75ab88c4dbe4191b3ca4d4a891c7f9",
+        "case": {
+          "type": "model_attempt"
+        },
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/invalid/1/provenance/producer"
+        },
+        "wire": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789b5",
+          "type": "model_attempt"
+        }
+      },
+      {
+        "canonical_digest": "sha256:62fd951f3be1f5826a287f94071be90de5b3ffe1315a07f32e6a4ad40fe10817",
+        "case": {
+          "type": "principal"
+        },
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/invalid/0/provenance/producer"
+        },
+        "wire": {
+          "principal": {
+            "issuer": "https://issuer.example.com",
+            "subject": "user-42"
+          },
+          "type": "principal"
+        }
+      },
+      {
+        "canonical_digest": "sha256:f4f01ab1122d551769457a48201d6caff8bf6d7e0be46dda81dffe6f47ecdf10",
+        "case": {
+          "type": "tool_invocation"
+        },
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/valid/3/provenance/producer"
+        },
+        "wire": {
+          "capability": {
+            "name": "ops.lookup",
+            "version": "1.0.0"
+          },
+          "invocation_id": "01912345-6789-7abc-8def-0123456789ba",
+          "owner": {
+            "issuer": "https://issuer.example.com",
+            "subject": "tool-registry"
+          },
+          "type": "tool_invocation"
+        }
+      }
+    ],
+    "MessageProducerKind": [
+      {
+        "canonical_digest": "sha256:4262990fee7e2b84c7a83b930fc8af289c096dd46de7e5f40dbf53c0af668395",
+        "case": "capability",
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/valid/2/provenance/producer/type"
+        },
+        "wire": "capability"
+      },
+      {
+        "canonical_digest": "sha256:933ee7b33e2938f48663d26e7fdd9e7b586f3d528317245b0c1f474e5a56fde8",
+        "case": "model_attempt",
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/invalid/1/provenance/producer/type"
+        },
+        "wire": "model_attempt"
+      },
+      {
+        "canonical_digest": "sha256:590c90cb661e87bf4a2c0e53d0cf95123e9486106d42ff9267b42530b8558b50",
+        "case": "principal",
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/invalid/0/provenance/producer/type"
+        },
+        "wire": "principal"
+      },
+      {
+        "canonical_digest": "sha256:99f76db0529eae6af637cb0147114fabeb62f1564b8c5f48c9edfc06e36d0f18",
+        "case": "tool_invocation",
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/valid/3/provenance/producer/type"
+        },
+        "wire": "tool_invocation"
+      }
+    ],
+    "MessageRole": [
+      {
+        "canonical_digest": "sha256:43f3a43f5a7fef31effcd812e256c8f245da366db65c225fcde611385a4df753",
+        "case": "assistant",
+        "source": {
+          "fixture": "core-message-v1.json",
+          "pointer": "/messages/valid/1/role"
+        },
+        "wire": "assistant"
+      },
+      {
+        "canonical_digest": "sha256:dd04afac1bebb050783a245ed0d88633759f352c85d4ab3bea3d416bf2019c75",
+        "case": "tool",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/metadata/kind"
+        },
+        "wire": "tool"
+      },
+      {
+        "canonical_digest": "sha256:3190d261d186aeead3a8deec202737c7775af5c8d455a9e5ba958c48b5fd3f59",
+        "case": "user",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/content_parts/invalid/3/content/metadata/source"
+        },
+        "wire": "user"
+      }
+    ],
+    "ModelCapabilityIssue": [
+      {
+        "canonical_digest": "sha256:f30d6e56def4f1e76981286a71a7b73fadd1f8786ada0070897b01e647072b14",
+        "case": {
+          "requirement": "context_tokens"
+        },
+        "source": {
+          "constructor_case": "ModelCapabilityIssue/context_tokens"
+        },
+        "wire": {
+          "required": "10",
+          "requirement": "context_tokens"
+        }
+      },
+      {
+        "canonical_digest": "sha256:0e1f895e03f15fd30441cc02fb6183efd5929337bd21c302217e72106b05698e",
+        "case": {
+          "requirement": "input_modality"
+        },
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/mismatches/valid/1/0"
+        },
+        "wire": {
+          "required": "image",
+          "requirement": "input_modality"
+        }
+      },
+      {
+        "canonical_digest": "sha256:e77c7ccb3bbdb047c63ca9b21e2b2f20e8bc7badfb3dc887c101acaf0bdd27fc",
+        "case": {
+          "requirement": "input_tokens"
+        },
+        "source": {
+          "constructor_case": "ModelCapabilityIssue/input_tokens"
+        },
+        "wire": {
+          "available": "1",
+          "required": "10",
+          "requirement": "input_tokens"
+        }
+      },
+      {
+        "canonical_digest": "sha256:a79a474c5c21a4e39956819de31f7f39b0c5407aa60160ecbd52e462d67a5f56",
+        "case": {
+          "requirement": "output_modality"
+        },
+        "source": {
+          "constructor_case": "ModelCapabilityIssue/output_modality"
+        },
+        "wire": {
+          "required": "image",
+          "requirement": "output_modality"
+        }
+      },
+      {
+        "canonical_digest": "sha256:6a1feadc2114f4119516e72a0a20aa5b5b53e84d18425f2f6cf569d5761280d4",
+        "case": {
+          "requirement": "output_tokens"
+        },
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/mismatches/invalid/3/0"
+        },
+        "wire": {
+          "available": "10",
+          "required": "10",
+          "requirement": "output_tokens"
+        }
+      },
+      {
+        "canonical_digest": "sha256:c95af09ea04ebacd367b88387678914508dc8380dc6f2af26f8809b2f6de06bc",
+        "case": {
+          "requirement": "reasoning_summary"
+        },
+        "source": {
+          "constructor_case": "ModelCapabilityIssue/reasoning_summary"
+        },
+        "wire": {
+          "requirement": "reasoning_summary"
+        }
+      },
+      {
+        "canonical_digest": "sha256:49255afd3a7b07cc704fcc1719d571ca493c99b1269965437e936f9dc69a61f1",
+        "case": {
+          "requirement": "streaming"
+        },
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/mismatches/invalid/1/0"
+        },
+        "wire": {
+          "requirement": "streaming"
+        }
+      },
+      {
+        "canonical_digest": "sha256:7483b2ab4ae742a4f316b26e360f825d786405cd4db2b6d573bf2ac1f727712b",
+        "case": {
+          "requirement": "strict_tool_arguments"
+        },
+        "source": {
+          "constructor_case": "ModelCapabilityIssue/strict_tool_arguments"
+        },
+        "wire": {
+          "requirement": "strict_tool_arguments"
+        }
+      },
+      {
+        "canonical_digest": "sha256:50bba9f4be2872f3789ac27836834aa676589b09ab37d2f8271ed5fc080cdd39",
+        "case": {
+          "requirement": "structured_output"
+        },
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/mismatches/valid/1/2"
+        },
+        "wire": {
+          "available": "json",
+          "required": "json_schema",
+          "requirement": "structured_output"
+        }
+      },
+      {
+        "canonical_digest": "sha256:3311d204f0d81b5b48d5aa655ff3e41cd31ad66f692eab7e21305890839c8c4d",
+        "case": {
+          "requirement": "tool_calling"
+        },
+        "source": {
+          "constructor_case": "ModelCapabilityIssue/tool_calling"
+        },
+        "wire": {
+          "requirement": "tool_calling"
+        }
+      },
+      {
+        "canonical_digest": "sha256:51c5f3e4a6f1b0354427a26241fe7094b391bad696d6dce71c7a4012281752f1",
+        "case": {
+          "requirement": "tool_calls_per_response"
+        },
+        "source": {
+          "constructor_case": "ModelCapabilityIssue/tool_calls_per_response"
+        },
+        "wire": {
+          "available": "1",
+          "required": "2",
+          "requirement": "tool_calls_per_response"
+        }
+      },
+      {
+        "canonical_digest": "sha256:ed69ae10161add4eb7439df3d9be5bdc9e887ecffbad451099add6582a359b5b",
+        "case": {
+          "requirement": "tool_choice"
+        },
+        "source": {
+          "constructor_case": "ModelCapabilityIssue/tool_choice"
+        },
+        "wire": {
+          "required": "required",
+          "requirement": "tool_choice"
+        }
+      },
+      {
+        "canonical_digest": "sha256:dbcce879708f1c2ef714ac92668cba8f96c119685307279bb3d63c58113e11c1",
+        "case": {
+          "requirement": "tool_definitions"
+        },
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/mismatches/invalid/2/0"
+        },
+        "wire": {
+          "available": "2",
+          "required": "5",
+          "requirement": "tool_definitions"
+        }
+      }
+    ],
+    "ModelErrorPhase": [
+      {
+        "canonical_digest": "sha256:8a0cbd636892b4abf8d87d3f2d0ff2a984c273c93f9d94b1edb05123cbc476ee",
+        "case": "dispatch",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/2/state/error/phase"
+        },
+        "wire": "dispatch"
+      },
+      {
+        "canonical_digest": "sha256:edfdddeb52d7f14eb208fb303c2ab3e7488aec2c08543d483c32d9d5996da334",
+        "case": "preparation",
+        "source": {
+          "fixture": "core-model-runtime-v1.json",
+          "pointer": "/errors/valid/0/phase"
+        },
+        "wire": "preparation"
+      },
+      {
+        "canonical_digest": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c",
+        "case": "response",
+        "source": {
+          "fixture": "core-model-runtime-v1.json",
+          "pointer": "/phases/valid/2"
+        },
+        "wire": "response"
+      },
+      {
+        "canonical_digest": "sha256:8c84653fcbdf66d732a9c8fcb96c8f6f8223b4270db78d835b0c43375bf750ea",
+        "case": "stream",
+        "source": {
+          "fixture": "core-model-runtime-v1.json",
+          "pointer": "/errors/invalid/2/phase"
+        },
+        "wire": "stream"
+      }
+    ],
+    "ModelEventKind": [
+      {
+        "canonical_digest": "sha256:1d8c8616d018572f4f763f18b219f370a470e185c344f15545b42fa9d97aa0e4",
+        "case": {
+          "type": "completed"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/events/valid/6/event"
+        },
+        "wire": {
+          "content": {
+            "extensions": {},
+            "finish_reason": "completed",
+            "usage": {
+              "cached_input_tokens": "20",
+              "input_tokens": "120",
+              "output_tokens": "30",
+              "reasoning_tokens": "5"
+            }
+          },
+          "type": "completed"
+        }
+      },
+      {
+        "canonical_digest": "sha256:7962d9946a05a728ed3ded7355ee4cc801d77ca5d0b3ae1a76572016aae02489",
+        "case": {
+          "type": "output_completed"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/events/invalid/1/event"
+        },
+        "wire": {
+          "content": {
+            "output_index": "1280"
+          },
+          "type": "output_completed"
+        }
+      },
+      {
+        "canonical_digest": "sha256:4316d75be378fc1ff8f4da9f89cee8cbd0a46d5df20d1ad17278e9c512dd9226",
+        "case": {
+          "type": "output_delta"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/events/valid/2/event"
+        },
+        "wire": {
+          "content": {
+            "delta": {
+              "delta": "Incident summary ",
+              "type": "text"
+            },
+            "output_index": "0"
+          },
+          "type": "output_delta"
+        }
+      },
+      {
+        "canonical_digest": "sha256:9534f29723b15f222b8d16e58b8f964c38f57d20f6e7a62140350e1767775d2f",
+        "case": {
+          "type": "output_started"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/events/valid/1/event"
+        },
+        "wire": {
+          "content": {
+            "output_index": "0",
+            "start": {
+              "content": {
+                "language": "en-us",
+                "metadata": {
+                  "redaction": "not_applied",
+                  "security_label": "internal/model-output",
+                  "source": "model",
+                  "trust": "untrusted"
+                }
+              },
+              "type": "text"
+            }
+          },
+          "type": "output_started"
+        }
+      },
+      {
+        "canonical_digest": "sha256:e53019b82a901dc3fd99a903ceda20eb1d32d4c150b642055b14bbb6beab4d95",
+        "case": {
+          "type": "started"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/events/invalid/2/event"
+        },
+        "wire": {
+          "content": {
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "model": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-registry"
+                }
+              }
+            }
+          },
+          "type": "started"
+        }
+      },
+      {
+        "canonical_digest": "sha256:0d9b30f51909c15455aba30f88424dfc84e8402672201deba783422acaaaa348",
+        "case": {
+          "type": "usage_updated"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/events/invalid/0/event"
+        },
+        "wire": {
+          "content": {
+            "usage": {
+              "input_tokens": "1",
+              "output_tokens": "0"
+            }
+          },
+          "type": "usage_updated"
+        }
+      }
+    ],
+    "ModelFinishReason": [
+      {
+        "canonical_digest": "sha256:7093fda846e50b267da144f7b3683ee1dd8838506939f6052b7370dd01fa2ad0",
+        "case": "completed",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/4/state/response/finish_reason"
+        },
+        "wire": "completed"
+      },
+      {
+        "canonical_digest": "sha256:5afc240612c43fa74562c840b542ab7b4d3d345ecb8f8db16e397ddcbaf58e0c",
+        "case": "content_filtered",
+        "source": {
+          "fixture": "core-model-response-v1.json",
+          "pointer": "/finish_reasons/valid/5"
+        },
+        "wire": "content_filtered"
+      },
+      {
+        "canonical_digest": "sha256:7d595d541943aaaf863e73095d0bbc8faf98ba82de4ad284b24762f55f9eda04",
+        "case": "context_limit",
+        "source": {
+          "fixture": "core-model-response-v1.json",
+          "pointer": "/finish_reasons/valid/3"
+        },
+        "wire": "context_limit"
+      },
+      {
+        "canonical_digest": "sha256:25eb9e750bade30b6c545c4f9b8a86bdc295c451dbdc6ad1e85df13dc735be60",
+        "case": "output_limit",
+        "source": {
+          "fixture": "core-model-response-v1.json",
+          "pointer": "/finish_reasons/valid/2"
+        },
+        "wire": "output_limit"
+      },
+      {
+        "canonical_digest": "sha256:d2f88d9c865e0709761ef96771df45593cc185ac902cfe3ecbb9578129edcf1c",
+        "case": "paused",
+        "source": {
+          "fixture": "core-model-response-v1.json",
+          "pointer": "/finish_reasons/valid/6"
+        },
+        "wire": "paused"
+      },
+      {
+        "canonical_digest": "sha256:e953ee97626b8f0f05a302111063be70f3acc4f724012ed5173351d333928f45",
+        "case": "refused",
+        "source": {
+          "fixture": "core-model-response-v1.json",
+          "pointer": "/finish_reasons/valid/4"
+        },
+        "wire": "refused"
+      },
+      {
+        "canonical_digest": "sha256:afa9a5b7f2f60ef7d67b4495f2edb5204aae87965dd3f2680ab1cf2994524088",
+        "case": "tool_calls",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/transcripts/0/0/response/finish_reason"
+        },
+        "wire": "tool_calls"
+      }
+    ],
+    "ModelInvocationState": [
+      {
+        "canonical_digest": "sha256:0a15690dc87c08fd7c7080a0194890bfa7c99997aaf08c1dfbe702c905d7116d",
+        "case": {
+          "status": "committed"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/4/state"
+        },
+        "wire": {
+          "response": {
+            "extensions": {},
+            "finish_reason": "completed",
+            "output": [
+              {
+                "content": {
+                  "content": {
+                    "language": "en-us",
+                    "metadata": {
+                      "redaction": "not_applied",
+                      "security_label": "internal/model-output",
+                      "source": "model",
+                      "trust": "untrusted"
+                    },
+                    "text": "Incident summary is ready."
+                  },
+                  "type": "text"
+                },
+                "type": "content"
+              }
+            ],
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+              "model": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-owner"
+                }
+              },
+              "provider_model_id": "gpt-5.6-2026-08-15",
+              "provider_response_id": "resp_01JABCDEF"
+            },
+            "usage": {
+              "cached_input_tokens": "20",
+              "input_tokens": "120",
+              "output_tokens": "30",
+              "reasoning_tokens": "5"
+            }
+          },
+          "status": "committed"
+        }
+      },
+      {
+        "canonical_digest": "sha256:934f2a558e1468fac30c77767f25fc3b4f4daef6f285ba7861146b8932b583d7",
+        "case": {
+          "status": "executing"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/1/state"
+        },
+        "wire": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "status": "executing"
+        }
+      },
+      {
+        "canonical_digest": "sha256:d67c4765cc89544dab6add04873cd9e54dba533e62d1514e38cf64d71a0f8f80",
+        "case": {
+          "status": "failed"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/2/state"
+        },
+        "wire": {
+          "error": {
+            "failure": {
+              "category": "dependency_unavailable",
+              "code": "model.dependency_unavailable",
+              "id": "01912345-6789-7abc-8def-0123456789b8",
+              "message": "The model provider is temporarily unavailable.",
+              "origin": "model.provider",
+              "retry_advice": {
+                "delay": "1000",
+                "kind": "safe_after"
+              }
+            },
+            "phase": "dispatch",
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "model": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-owner"
+                }
+              }
+            }
+          },
+          "status": "failed"
+        }
+      },
+      {
+        "canonical_digest": "sha256:9fe7805f1ce2cfa8d589ce9d5592c3cd338cc7e393f9380de9698ae336d6874f",
+        "case": {
+          "status": "prepared"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/0/state"
+        },
+        "wire": {
+          "status": "prepared"
+        }
+      }
+    ],
+    "ModelInvocationStatus": [
+      {
+        "canonical_digest": "sha256:a74985036e451327207c1cc05ef687341e0d00faafe012a0f656eb7037305623",
+        "case": "committed",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/node_binding/head/status"
+        },
+        "wire": "committed"
+      },
+      {
+        "canonical_digest": "sha256:ea389b300a930476d20d12bfde3d5110b5bf0529cfd108fd9cf97c2a58a3686d",
+        "case": "executing",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/1/state/status"
+        },
+        "wire": "executing"
+      },
+      {
+        "canonical_digest": "sha256:33d04bd775e7b6c6436742508b41fa693a15bd2c902fcd994253392abd717740",
+        "case": "failed",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/children/accounts/2/children/0/settlement/status"
+        },
+        "wire": "failed"
+      },
+      {
+        "canonical_digest": "sha256:de6b7ed524e99d440cbac720832e3beb5fb0263e0d4b8e5e1b38599f5e980ce6",
+        "case": "prepared",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/ModelInvocationStatus"
+        },
+        "wire": "prepared"
+      }
+    ],
+    "ModelInvocationTransition": [
+      {
+        "canonical_digest": "sha256:31fb18b71155866b8f6d62459ba1de0e42bfcfb1fd15cc675617fa6ef3411a8d",
+        "case": {
+          "kind": "record_error"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/2/transition"
+        },
+        "wire": {
+          "error": {
+            "failure": {
+              "category": "dependency_unavailable",
+              "code": "model.dependency_unavailable",
+              "id": "01912345-6789-7abc-8def-0123456789b8",
+              "message": "The model provider is temporarily unavailable.",
+              "origin": "model.provider",
+              "retry_advice": {
+                "delay": "1000",
+                "kind": "safe_after"
+              }
+            },
+            "phase": "dispatch",
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "model": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-owner"
+                }
+              }
+            }
+          },
+          "kind": "record_error"
+        }
+      },
+      {
+        "canonical_digest": "sha256:2218eebd00969850b94a238e9ad0d9a47d29aa978cb78b17dc6ee90c3b36b23b",
+        "case": {
+          "kind": "record_response"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/4/transition"
+        },
+        "wire": {
+          "kind": "record_response",
+          "response": {
+            "extensions": {},
+            "finish_reason": "completed",
+            "output": [
+              {
+                "content": {
+                  "content": {
+                    "language": "en-us",
+                    "metadata": {
+                      "redaction": "not_applied",
+                      "security_label": "internal/model-output",
+                      "source": "model",
+                      "trust": "untrusted"
+                    },
+                    "text": "Incident summary is ready."
+                  },
+                  "type": "text"
+                },
+                "type": "content"
+              }
+            ],
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+              "model": {
+                "capability": {
+                  "name": "models.primary",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "model-owner"
+                }
+              },
+              "provider_model_id": "gpt-5.6-2026-08-15",
+              "provider_response_id": "resp_01JABCDEF"
+            },
+            "usage": {
+              "cached_input_tokens": "20",
+              "input_tokens": "120",
+              "output_tokens": "30",
+              "reasoning_tokens": "5"
+            }
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:1d8702588c852d586b0e41bed3d99d644e9c9107a646e624d76d0dcf87205e45",
+        "case": {
+          "kind": "start_attempt"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/1/transition"
+        },
+        "wire": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "kind": "start_attempt"
+        }
+      }
+    ],
+    "ModelInvocationTransitionKind": [
+      {
+        "canonical_digest": "sha256:8beb3d53e5791df013edf7f5ee2f6c7f0d449113ed1f29ee61e9b7fa6f091fe8",
+        "case": "record_error",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/2/transition/kind"
+        },
+        "wire": "record_error"
+      },
+      {
+        "canonical_digest": "sha256:2b61449ac5c177b060c5b03520e07773d74562da1839ebdef4fa673b68c2790d",
+        "case": "record_response",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/4/transition/kind"
+        },
+        "wire": "record_response"
+      },
+      {
+        "canonical_digest": "sha256:043ce1161663481d89dec0e77b0bdce3d8acfadc316c2cf02551456daa7b9cc3",
+        "case": "start_attempt",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/ModelInvocationTransitionKind"
+        },
+        "wire": "start_attempt"
+      }
+    ],
+    "ModelModality": [
+      {
+        "canonical_digest": "sha256:53b773b65438e16d4299755882a66687096d63fe3a435d8bb340a718dc1cae29",
+        "case": "audio",
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/modalities/valid/2"
+        },
+        "wire": "audio"
+      },
+      {
+        "canonical_digest": "sha256:64ac8e615520cd1ae43ab0d47cfc9e750a82d13f9c47d468dab7cd8c982b7859",
+        "case": "document",
+        "source": {
+          "fixture": "core-agent-runtime-v1.json",
+          "pointer": "/artifacts/valid/1/0/representation/modality"
+        },
+        "wire": "document"
+      },
+      {
+        "canonical_digest": "sha256:affa657b3c3e9337bdf3c879c0561b74d54a9197fdc6acd834dcdc02837454fc",
+        "case": "image",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/representations/invalid/1/modality"
+        },
+        "wire": "image"
+      },
+      {
+        "canonical_digest": "sha256:1e1d0f251d3a76fa2b1bfc81164078572623403887db02988b504b0492e9f076",
+        "case": "text",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/type"
+        },
+        "wire": "text"
+      },
+      {
+        "canonical_digest": "sha256:807f0525549ec1760febbccb23415a1d78b6acbb28b101cbdbff27c394c1c826",
+        "case": "video",
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/modalities/valid/3"
+        },
+        "wire": "video"
+      }
+    ],
+    "ModelOutputDelta": [
+      {
+        "canonical_digest": "sha256:fe798826f4ef276e83e8f78e082f0ddcab40217d16f8ef7a1d7623efbb3a2a19",
+        "case": {
+          "type": "json"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/deltas/valid/1"
+        },
+        "wire": {
+          "delta": "{\"answer\":",
+          "type": "json"
+        }
+      },
+      {
+        "canonical_digest": "sha256:a363f8db920e2e186c6c559a25f82abe24a3d11999a31c517a2cb9794f4599bf",
+        "case": {
+          "type": "reasoning_summary"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/deltas/valid/2"
+        },
+        "wire": {
+          "delta": "Checked policy.",
+          "type": "reasoning_summary"
+        }
+      },
+      {
+        "canonical_digest": "sha256:5d8e06db71e32d02031fc57069ecd9545b8f2b237026330467377959a59296c4",
+        "case": {
+          "type": "text"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/deltas/valid/0"
+        },
+        "wire": {
+          "delta": "Incident summary ",
+          "type": "text"
+        }
+      },
+      {
+        "canonical_digest": "sha256:f88a9ce858834ee1f6a17bee03bb537b30f59c394288420ec7211fdfd2c9a31d",
+        "case": {
+          "type": "tool_arguments"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/deltas/valid/3"
+        },
+        "wire": {
+          "delta": "{\"amount_minor\":",
+          "type": "tool_arguments"
+        }
+      }
+    ],
+    "ModelOutputDeltaKind": [
+      {
+        "canonical_digest": "sha256:4e23b392048439acfc9c40dd5d4e908f779147cd3b302b13acce4a083fd3c13d",
+        "case": "json",
+        "source": {
+          "fixture": "core-agent-v1.json",
+          "pointer": "/descriptor_mutations/4/changes/0/value/level"
+        },
+        "wire": "json"
+      },
+      {
+        "canonical_digest": "sha256:6ce4ef3341f434e27950ce41cd276dc5bf52577e4c49fe35a22d76f7b99abee0",
+        "case": "reasoning_summary",
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/delta_kinds/valid/2"
+        },
+        "wire": "reasoning_summary"
+      },
+      {
+        "canonical_digest": "sha256:1e1d0f251d3a76fa2b1bfc81164078572623403887db02988b504b0492e9f076",
+        "case": "text",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/type"
+        },
+        "wire": "text"
+      },
+      {
+        "canonical_digest": "sha256:3da8a08c531fb6a08882afe3a5c192a08762e52628235816a70ce869da6522d8",
+        "case": "tool_arguments",
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/delta_kinds/valid/3"
+        },
+        "wire": "tool_arguments"
+      }
+    ],
+    "ModelOutputItem": [
+      {
+        "canonical_digest": "sha256:cd6c15fbc9b06963ea1218f5e1e0ba4145bc8451a634758bd71e55a699921e2a",
+        "case": {
+          "type": "content"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/transcripts/0/0/response/output/0"
+        },
+        "wire": {
+          "content": {
+            "content": {
+              "metadata": {
+                "redaction": "not_applied",
+                "security_label": "internal/model-output",
+                "source": "model",
+                "trust": "untrusted"
+              },
+              "text": "Approval is required before capture."
+            },
+            "type": "text"
+          },
+          "type": "content"
+        }
+      },
+      {
+        "canonical_digest": "sha256:87a50c9addba171dea1c6166a3e1b8625c446a213d180742c24716f460806086",
+        "case": {
+          "type": "reasoning_summary"
+        },
+        "source": {
+          "fixture": "core-model-response-v1.json",
+          "pointer": "/output_items/valid/1"
+        },
+        "wire": {
+          "content": {
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal/model-output",
+              "source": "model",
+              "trust": "untrusted"
+            },
+            "text": "The request meets the documented prerequisites."
+          },
+          "type": "reasoning_summary"
+        }
+      },
+      {
+        "canonical_digest": "sha256:1f6a6dbb272aeb4e80fa21f2eb7678b294bfa5d8305c59103afa1b954f89125a",
+        "case": {
+          "type": "tool_call"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/transcripts/0/0/response/output/1"
+        },
+        "wire": {
+          "content": {
+            "arguments": {
+              "amount_minor": 4200,
+              "currency": "USD"
+            },
+            "extensions": {},
+            "provider_call_id": "call_01JABCDEF",
+            "tool": {
+              "capability": {
+                "name": "payments.capture",
+                "version": "2.1.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "registry-owner"
+              }
+            }
+          },
+          "type": "tool_call"
+        }
+      }
+    ],
+    "ModelOutputStart": [
+      {
+        "canonical_digest": "sha256:81c797ef2a96cc0e0bb7dc8b9f11097076889b352ad227e0c9252572c0789871",
+        "case": {
+          "type": "artifact"
+        },
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/content_parts/valid/2"
+        },
+        "wire": {
+          "content": {
+            "identity": {
+              "artifact_id": "01912345-6789-7abc-8def-0123456789ab",
+              "tenant_id": "tenant-a"
+            },
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal/pii",
+              "source": "artifact",
+              "trust": "untrusted"
+            },
+            "parents": [],
+            "presentation": {
+              "name": "incident-report.pdf"
+            },
+            "provenance": {
+              "event_id": "01912345-6789-7abc-8def-0123456789af",
+              "principal": {
+                "issuer": "https://issuer.example.com",
+                "subject": "service-account"
+              },
+              "run_id": "01912345-6789-7abc-8def-0123456789ae"
+            },
+            "representation": {
+              "byte_length": "12",
+              "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80",
+              "media_type": "application/pdf",
+              "modality": "document"
+            },
+            "retention_class": "audit/7y"
+          },
+          "type": "artifact"
+        }
+      },
+      {
+        "canonical_digest": "sha256:eb252634c765010f98ff4134233d4c2a1c04085217dbb205ea17e8f31ad6b6be",
+        "case": {
+          "type": "json"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/output_starts/valid/1"
+        },
+        "wire": {
+          "content": {
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal/model-output",
+              "source": "model",
+              "trust": "untrusted"
+            }
+          },
+          "type": "json"
+        }
+      },
+      {
+        "canonical_digest": "sha256:a22eb64f88cc1cb6450bcbc2c297fb720d9e2b1fa2978c309fd0ac61e61ebfc6",
+        "case": {
+          "type": "reasoning_summary"
+        },
+        "source": {
+          "constructor_case": "ModelOutputStart/reasoning_summary"
+        },
+        "wire": {
+          "content": {
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal/model-output",
+              "source": "model",
+              "trust": "untrusted"
+            }
+          },
+          "type": "reasoning_summary"
+        }
+      },
+      {
+        "canonical_digest": "sha256:fc66b7b22e69804619a784e57cd35c6151b876b3292802a0faa9a340b56b2102",
+        "case": {
+          "type": "text"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/events/valid/1/event/content/start"
+        },
+        "wire": {
+          "content": {
+            "language": "en-us",
+            "metadata": {
+              "redaction": "not_applied",
+              "security_label": "internal/model-output",
+              "source": "model",
+              "trust": "untrusted"
+            }
+          },
+          "type": "text"
+        }
+      },
+      {
+        "canonical_digest": "sha256:9e6508df09079ad5cfdb5ae12df28fb43cf991de69a64f32e5fb0cf5a5b12b38",
+        "case": {
+          "type": "tool_call"
+        },
+        "source": {
+          "fixture": "core-model-event-v1.json",
+          "pointer": "/output_starts/valid/2"
+        },
+        "wire": {
+          "content": {
+            "extensions": {},
+            "provider_call_id": "call_01JABCDEF",
+            "tool": {
+              "capability": {
+                "name": "payments.capture",
+                "version": "2.1.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "registry-owner"
+              }
+            }
+          },
+          "type": "tool_call"
+        }
+      }
+    ],
+    "ModelResponseMode": [
+      {
+        "canonical_digest": "sha256:575951db5c63b1e721c1f8f9aefb547ca834245433e7561dc8204a3a18427aae",
+        "case": "complete",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/graph/graph/nodes/0/continue_to/0"
+        },
+        "wire": "complete"
+      },
+      {
+        "canonical_digest": "sha256:586d462544b80ef4050df9ccc48aa05d950fdefd698c1aa12c23cae839586625",
+        "case": "streaming",
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/mismatches/invalid/1/0/requirement"
+        },
+        "wire": "streaming"
+      }
+    ],
+    "ModelStructuredOutputLevel": [
+      {
+        "canonical_digest": "sha256:4e23b392048439acfc9c40dd5d4e908f779147cd3b302b13acce4a083fd3c13d",
+        "case": "json",
+        "source": {
+          "fixture": "core-agent-v1.json",
+          "pointer": "/descriptor_mutations/4/changes/0/value/level"
+        },
+        "wire": "json"
+      },
+      {
+        "canonical_digest": "sha256:259b789992ad8d761ba73a71a0e2a90c2992ce5266c6ef9d15a169c7f87902f8",
+        "case": "json_schema",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/model/capabilities/structured_output/level"
+        },
+        "wire": "json_schema"
+      },
+      {
+        "canonical_digest": "sha256:0bc6f540bbf1d48a52b38b78f201053bc6ac6a49a3bd6105deccacea34c8b9b8",
+        "case": "unsupported",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/0/intent/request/requirements/structured_output"
+        },
+        "wire": "unsupported"
+      }
+    ],
+    "ModelTextOutputFormat": [
+      {
+        "canonical_digest": "sha256:08b973a9cb2fc3d26c7e7deb9fbd5850a19808570ceb7f4d76793eb649f2fae8",
+        "case": {
+          "type": "json"
+        },
+        "source": {
+          "fixture": "core-model-request-v1.json",
+          "pointer": "/text_output_formats/valid/1"
+        },
+        "wire": {
+          "type": "json"
+        }
+      },
+      {
+        "canonical_digest": "sha256:3f2db2156321b8f8749db5bbac194b9af70a0ed828f8042bebf137ec746e5a2f",
+        "case": {
+          "type": "json_schema"
+        },
+        "source": {
+          "fixture": "core-model-request-v1.json",
+          "pointer": "/text_output_formats/valid/2"
+        },
+        "wire": {
+          "schema": {
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "id": "https://schemas.example.com/model-output/incident/1.0.0",
+            "version": "1.0.0"
+          },
+          "type": "json_schema"
+        }
+      },
+      {
+        "canonical_digest": "sha256:89e245f19291763853f428d1105c21cec4bff51d144bb93382e0c9749ddd4bb0",
+        "case": {
+          "type": "text"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/0/intent/request/text_output_format"
+        },
+        "wire": {
+          "type": "text"
+        }
+      }
+    ],
+    "ModelToolChoice": [
+      {
+        "canonical_digest": "sha256:634635a2166efa2ae765abd31d4ae807082287e329a8a7fff42b1fb30f65087e",
+        "case": "auto",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/model/capabilities/tools/choices/0"
+        },
+        "wire": "auto"
+      },
+      {
+        "canonical_digest": "sha256:30a0924a3360be687d1df9fcbbfdff62c01bc0fd14036ab9076cf7f451568666",
+        "case": "none",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/resources/filesystem"
+        },
+        "wire": "none"
+      },
+      {
+        "canonical_digest": "sha256:cf51937bad8b2f6948b8edf1bd3289f3bc332ec610f99df2f5aff0218b3a554b",
+        "case": "required",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/details/valid/0/value/reason"
+        },
+        "wire": "required"
+      },
+      {
+        "canonical_digest": "sha256:8836865e60e9218644afbe7d9177f4337d415ae05868886fcabf3c0fe4e42f0c",
+        "case": "specific",
+        "source": {
+          "fixture": "core-model-capability-v1.json",
+          "pointer": "/capabilities/valid/1/tools/choices/3"
+        },
+        "wire": "specific"
+      }
+    ],
+    "ModelToolOutcome": [
+      {
+        "canonical_digest": "sha256:d38ab1dbc5a695bbaa814e9a8e831bac0e7c49281b7d632fa11286e6ea5bb193",
+        "case": {
+          "status": "failed"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/outcomes/1"
+        },
+        "wire": {
+          "error": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+            "category": "invalid_input",
+            "code": "tool.input_invalid",
+            "external_effect": "not_started",
+            "failure_id": "01912345-6789-7abc-8def-0123456789b1",
+            "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+            "message": "Tool input does not satisfy its registered schema.",
+            "retry_advice": {
+              "kind": "never"
+            },
+            "tool": {
+              "capability": {
+                "name": "payments.capture",
+                "version": "2.1.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "registry-owner"
+              }
+            }
+          },
+          "provider_call_id": "call_01JABCDEF",
+          "status": "failed"
+        }
+      },
+      {
+        "canonical_digest": "sha256:42e61f3fc9349589fc8ea5c4fa745f82ba8137dc3021007254da9dab617d9fc5",
+        "case": {
+          "status": "succeeded"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/outcomes/0"
+        },
+        "wire": {
+          "provider_call_id": "call_01JABCDEF",
+          "result": {
+            "artifacts": [],
+            "output": {
+              "accepted": true,
+              "transaction_id": "txn_42"
+            },
+            "output_schema": {
+              "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+              "version": "1.0.0"
+            },
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            }
+          },
+          "status": "succeeded"
+        }
+      }
+    ],
+    "ModelToolSelection": [
+      {
+        "canonical_digest": "sha256:d4b56535e53d610cbcd5d7edba6271b1b5e00144ace3dcba2a51731cdc18a526",
+        "case": {
+          "mode": "auto"
+        },
+        "source": {
+          "fixture": "core-model-request-v1.json",
+          "pointer": "/requests/invalid/3/tool_selection"
+        },
+        "wire": {
+          "mode": "auto"
+        }
+      },
+      {
+        "canonical_digest": "sha256:7f517f97e00a688b0b402e4005866127e5c928bf44a94ca53477ac34e24b5ef1",
+        "case": {
+          "mode": "none"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/0/intent/request/tool_selection"
+        },
+        "wire": {
+          "mode": "none"
+        }
+      },
+      {
+        "canonical_digest": "sha256:d9e4d53b53b38e425feeb3a9aaca2eccc1fdb311c9aa499534395d956a0f49c4",
+        "case": {
+          "mode": "required"
+        },
+        "source": {
+          "fixture": "core-model-request-v1.json",
+          "pointer": "/tool_selections/valid/2"
+        },
+        "wire": {
+          "mode": "required"
+        }
+      },
+      {
+        "canonical_digest": "sha256:ec9ef07dc11e969d4e72b7e760c2e7791ac790a7edace838b691a47eb26688c7",
+        "case": {
+          "mode": "specific"
+        },
+        "source": {
+          "fixture": "core-model-request-v1.json",
+          "pointer": "/tool_selections/valid/3"
+        },
+        "wire": {
+          "mode": "specific",
+          "name": "payments.capture"
+        }
+      }
+    ],
+    "ModelUsageField": [
+      {
+        "canonical_digest": "sha256:b8dec943c1209c62557d490d80bf50d292c5d6731861355f49a241a58d7dd5ec",
+        "case": "cached_input_tokens",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/6"
+        },
+        "wire": "cached_input_tokens"
+      },
+      {
+        "canonical_digest": "sha256:98e4991935cd311032fa0ab0acec7e32efbf981733824d92c5755871fd34b0c4",
+        "case": "input_tokens",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/ModelUsageField"
+        },
+        "wire": "input_tokens"
+      },
+      {
+        "canonical_digest": "sha256:a6c972a22e37f881e018e32933a4f7ee4a6fdf5c80f0093f5f1291420e0e4c38",
+        "case": "output_tokens",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/8"
+        },
+        "wire": "output_tokens"
+      },
+      {
+        "canonical_digest": "sha256:d95391f7c747720ba71c840e4719867f58d4d57b0a69136e0dc3e9d21044ca78",
+        "case": "reasoning_tokens",
+        "source": {
+          "fixture": "core-budget-v1.json",
+          "pointer": "/dimensions/valid/7"
+        },
+        "wire": "reasoning_tokens"
+      }
+    ],
+    "NodeAttemptOutcome": [
+      {
+        "canonical_digest": "sha256:8d87d48b1a553f9b2a1dd986a5fa9cc69ddd90e100332d4e3046749014bd8475",
+        "case": {
+          "kind": "failed"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/node_attempt/attempts/2/completion/outcome"
+        },
+        "wire": {
+          "failure": {
+            "category": "internal",
+            "caused_by_event_id": "01912345-6789-7abc-8def-0123456789c4",
+            "code": "graph.node_failed",
+            "id": "01912345-6789-7abc-8def-0123456789f1",
+            "message": "Node execution failed safely",
+            "origin": "stateknot.runtime.node",
+            "retry_advice": {
+              "delay": "2500",
+              "kind": "safe_after"
+            }
+          },
+          "kind": "failed"
+        }
+      },
+      {
+        "canonical_digest": "sha256:6ff1d4df72f147edd14d07e1fe834a6234e763dc1536f074504d358b80d5a6d5",
+        "case": {
+          "kind": "succeeded"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/node_attempt/attempts/1/completion/outcome"
+        },
+        "wire": {
+          "kind": "succeeded",
+          "result": {
+            "activation": {
+              "base_checkpoint": {
+                "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+                "digest": "sha256:69a58e9d26ce89b84988c2d62700abedbfebfdde0934f843a99086e156692900",
+                "graph": {
+                  "definition_digest": "sha256:2d996e7daac5b294a0fed7e4168049872f0cab52c51d4c8468d90bea2bf69f45",
+                  "identity": {
+                    "capability": {
+                      "name": "orders.fulfillment",
+                      "version": "1.4.0"
+                    },
+                    "owner": {
+                      "issuer": "https://issuer.example.com/stateknot",
+                      "subject": "workflow-registry"
+                    }
+                  },
+                  "state_schema": {
+                    "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+                    "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+                    "version": "1.0.0"
+                  }
+                },
+                "journal_head": {
+                  "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+                  "event_id": "01912345-6789-7abc-8def-0123456789c1",
+                  "recorded_at": "2030-01-01T00:00:01.000000Z",
+                  "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                  "sequence": "1",
+                  "tenant_id": "tenant-production"
+                },
+                "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                "superstep": "0",
+                "tenant_id": "tenant-production"
+              },
+              "graph_namespace": "",
+              "input_digest": "sha256:e6af5db4f710a9eaced8901a50167909f8eebc7b51c8c3f071ae521bf5dd149b",
+              "node_id": "authorize"
+            },
+            "digest": "sha256:9f536d6aa52e129f6d1027784012b15473b79d9dacda74d67f499f25006e19d9",
+            "fence": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789b1",
+              "epoch": "1",
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "tenant_id": "tenant-production"
+            },
+            "intent_digest": "sha256:ffb1c956c7e5961f21f25c65a6644b168c0895ff8bbd4167284a386e7e6f63c3",
+            "journal_head": {
+              "digest": "sha256:0dc66e8c0cf784c6261ce1db23675daed4f75dac3cdbc8b4d02333f4905d1fb9",
+              "event_id": "01912345-6789-7abc-8def-0123456789c3",
+              "recorded_at": "2030-01-01T00:00:03.000000Z",
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "sequence": "3",
+              "tenant_id": "tenant-production"
+            }
+          }
+        }
+      }
+    ],
+    "NodeAttemptStatus": [
+      {
+        "canonical_digest": "sha256:ea389b300a930476d20d12bfde3d5110b5bf0529cfd108fd9cf97c2a58a3686d",
+        "case": "executing",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/1/state/status"
+        },
+        "wire": "executing"
+      },
+      {
+        "canonical_digest": "sha256:33d04bd775e7b6c6436742508b41fa693a15bd2c902fcd994253392abd717740",
+        "case": "failed",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/children/accounts/2/children/0/settlement/status"
+        },
+        "wire": "failed"
+      },
+      {
+        "canonical_digest": "sha256:b96b3eb9f8f68bef1e5e08ed887d878f7cc9b095a6b734851b578dd1003b3623",
+        "case": "succeeded",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/NodeAttemptStatus"
+        },
+        "wire": "succeeded"
+      }
+    ],
+    "NodeControl": [
+      {
+        "canonical_digest": "sha256:bc76daecc241cb2107c4e504c1302b19b946435ffc862578169b21b868df2eaf",
+        "case": {
+          "kind": "continue"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/0"
+        },
+        "wire": {
+          "kind": "continue"
+        }
+      },
+      {
+        "canonical_digest": "sha256:b8a9eb55e3cb4d6c4129ea0a041930666b20c1a50a95214e5593f75180f64c53",
+        "case": {
+          "kind": "route"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/1"
+        },
+        "wire": {
+          "kind": "route",
+          "route_id": "approved"
+        }
+      },
+      {
+        "canonical_digest": "sha256:d83c38b7d0b50a757ec14d98b1a8d8ddef8a44809680b9e8691cdf39dadf37ff",
+        "case": {
+          "kind": "terminal"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/3"
+        },
+        "wire": {
+          "kind": "terminal",
+          "output": {
+            "data": {
+              "approved": true
+            },
+            "digest": "sha256:dc229ac3f9a6985445683b1581e20fa261ad667455365df97a5a0385955e922b",
+            "schema": {
+              "digest": "sha256:8cb642a5f7cd79a3bc9abe6cefd0f7cbb1623b77d3264530613030ef3a45d054",
+              "id": "https://stateknot.github.io/schema/wait/approval-request/1.0.0",
+              "version": "1.0.0"
+            }
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:ef4b813a961942b6b9d374e2af1b5ffa98791db270216173fc08589a7574b77e",
+        "case": {
+          "kind": "wait"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/2"
+        },
+        "wire": {
+          "kind": "wait",
+          "waits": [
+            {
+              "action_digest": "sha256:6c360a24360d8db25a0c3a3e489464d665591e8a0b9ea91de21b96e39f8d6ea9",
+              "expires_at": "2030-01-01T00:10:00.000000Z",
+              "interrupt_id": "01912345-6789-7abc-8def-012345678952",
+              "interrupt_kind": "approval",
+              "kind": "interrupt",
+              "request_payload": {
+                "data": {
+                  "action": "deploy",
+                  "environment": "production"
+                },
+                "kind": "approval-request",
+                "schema": {
+                  "digest": "sha256:8cb642a5f7cd79a3bc9abe6cefd0f7cbb1623b77d3264530613030ef3a45d054",
+                  "id": "https://stateknot.github.io/schema/wait/approval-request/1.0.0",
+                  "version": "1.0.0"
+                }
+              },
+              "required_principal": {
+                "issuer": "https://issuer.example.com/tenant",
+                "subject": "incident-approver"
+              },
+              "required_scopes": [
+                "agent.approve",
+                "run.resolve"
+              ]
+            },
+            {
+              "due_at": "2030-01-01T00:00:30.000000Z",
+              "kind": "timer",
+              "timer_id": "01912345-6789-7abc-8def-012345678961",
+              "timer_kind": "retry_backoff"
+            }
+          ]
+        }
+      }
+    ],
+    "NodeControlKind": [
+      {
+        "canonical_digest": "sha256:5638dd6b1b8e49e7dbd1219ab6beb8e444e3206e324e145a7d2caf0a2062888d",
+        "case": "continue",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/NodeControlKind"
+        },
+        "wire": "continue"
+      },
+      {
+        "canonical_digest": "sha256:e050efd0a0e23d85c6a1f4dc256aaf88bc6179d0a5a69a50fe274c3e414ddda7",
+        "case": "route",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/1/kind"
+        },
+        "wire": "route"
+      },
+      {
+        "canonical_digest": "sha256:c34e20c40cc2581f3184cc0fc5e67f7d5cbebd5365a5ce02a3614f321b6e3e4b",
+        "case": "terminal",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/3/kind"
+        },
+        "wire": "terminal"
+      },
+      {
+        "canonical_digest": "sha256:f3010736707aae1a39dfde0a213d373f3b4342ab9e48d52dd049725e4bfa5fe2",
+        "case": "wait",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/2/kind"
+        },
+        "wire": "wait"
+      }
+    ],
+    "NodeInvocationBinding": [
+      {
+        "canonical_digest": "sha256:2bb4c9275796d6070e1615b43e332ece88abf05432ac25b3fa8e9ab88a9a97d3",
+        "case": {
+          "kind": "model"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/node_binding"
+        },
+        "wire": {
+          "activation": {
+            "base_checkpoint": {
+              "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+              "digest": "sha256:69a58e9d26ce89b84988c2d62700abedbfebfdde0934f843a99086e156692900",
+              "graph": {
+                "definition_digest": "sha256:2d996e7daac5b294a0fed7e4168049872f0cab52c51d4c8468d90bea2bf69f45",
+                "identity": {
+                  "capability": {
+                    "name": "orders.fulfillment",
+                    "version": "1.4.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/stateknot",
+                    "subject": "workflow-registry"
+                  }
+                },
+                "state_schema": {
+                  "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+                  "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+                  "version": "1.0.0"
+                }
+              },
+              "journal_head": {
+                "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+                "event_id": "01912345-6789-7abc-8def-0123456789c1",
+                "recorded_at": "2030-01-01T00:00:01.000000Z",
+                "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                "sequence": "1",
+                "tenant_id": "tenant-production"
+              },
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "superstep": "0",
+              "tenant_id": "tenant-production"
+            },
+            "graph_namespace": "",
+            "input_digest": "sha256:04989f2838f9eca19f5245ab00a33cffd4aab73d21de4380ef34c3f628a7043b",
+            "node_id": "reason"
+          },
+          "head": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789ac",
+            "digest": "sha256:b5b0b4e963c4bca881a8f20e2e355f9a0a52f22b992dc73501feb861e0ae29e7",
+            "invocation_id": "01912345-6789-7abc-8def-0123456789d0",
+            "journal_head": {
+              "digest": "sha256:14ac577cdb2ef6d986078b4054cc9893a9a14a16dbb0d8f37b89167c1f1aacdf",
+              "event_id": "01912345-6789-7abc-8def-0123456789d6",
+              "recorded_at": "2030-01-01T00:00:06.000000Z",
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "sequence": "6",
+              "tenant_id": "tenant-production"
+            },
+            "revision": "4",
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "status": "committed",
+            "tenant_id": "tenant-production"
+          },
+          "kind": "model"
+        }
+      },
+      {
+        "canonical_digest": "sha256:32dbf5924c55c151d2323a661c0a4517025a640e94a7c1417126b79fce5bf3b5",
+        "case": {
+          "kind": "tool"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/node_result/result/intent/bindings/0"
+        },
+        "wire": {
+          "activation": {
+            "base_checkpoint": {
+              "checkpoint_id": "01912345-6789-7abc-8def-0123456789d1",
+              "digest": "sha256:69a58e9d26ce89b84988c2d62700abedbfebfdde0934f843a99086e156692900",
+              "graph": {
+                "definition_digest": "sha256:2d996e7daac5b294a0fed7e4168049872f0cab52c51d4c8468d90bea2bf69f45",
+                "identity": {
+                  "capability": {
+                    "name": "orders.fulfillment",
+                    "version": "1.4.0"
+                  },
+                  "owner": {
+                    "issuer": "https://issuer.example.com/stateknot",
+                    "subject": "workflow-registry"
+                  }
+                },
+                "state_schema": {
+                  "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+                  "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+                  "version": "1.0.0"
+                }
+              },
+              "journal_head": {
+                "digest": "sha256:b6f7932a150717ad07f42c4a366277fffafe40dcce10ebc5fe37d9a530e793b3",
+                "event_id": "01912345-6789-7abc-8def-0123456789c1",
+                "recorded_at": "2030-01-01T00:00:01.000000Z",
+                "run_id": "01912345-6789-7abc-8def-0123456789ae",
+                "sequence": "1",
+                "tenant_id": "tenant-production"
+              },
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "superstep": "0",
+              "tenant_id": "tenant-production"
+            },
+            "graph_namespace": "",
+            "input_digest": "sha256:8e6070618215bc80f473914ea839813fb1cdc0cdc34804db620ced93c9aa25f8",
+            "node_id": "authorize"
+          },
+          "head": {
+            "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+            "digest": "sha256:9aa477b73acfc52c2f4d7d237bc7c90a548c198e31518f092d7299a9aaf98364",
+            "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+            "journal_head": {
+              "digest": "sha256:8005f02d43fa06e7d0585fb64c961d57e318b27a145c857bcd3a6bdb413ff7fc",
+              "event_id": "01912345-6789-7abc-8def-0123456789c4",
+              "recorded_at": "2030-01-01T00:00:04.000000Z",
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "sequence": "4",
+              "tenant_id": "tenant-production"
+            },
+            "revision": "2",
+            "run_id": "01912345-6789-7abc-8def-0123456789ae",
+            "status": "committed",
+            "tenant_id": "tenant-production"
+          },
+          "kind": "tool"
+        }
+      }
+    ],
+    "NodeInvocationBindingKind": [
+      {
+        "canonical_digest": "sha256:18fb9fa0b971b807a1312d3702d18747a3b1b39a129df8c5d1a8f68d512bd1fd",
+        "case": "model",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/model/metadata/kind"
+        },
+        "wire": "model"
+      },
+      {
+        "canonical_digest": "sha256:dd04afac1bebb050783a245ed0d88633759f352c85d4ab3bea3d416bf2019c75",
+        "case": "tool",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/metadata/kind"
+        },
+        "wire": "tool"
+      }
+    ],
+    "NodeStateChange": [
+      {
+        "canonical_digest": "sha256:996efdfe2ed68fc0fb3378b05d10bb208fb25bf9ffa7c7084104a1a7893b3fa4",
+        "case": {
+          "kind": "unchanged"
+        },
+        "source": {
+          "constructor_case": "NodeStateChange/unchanged"
+        },
+        "wire": {
+          "kind": "unchanged"
+        }
+      },
+      {
+        "canonical_digest": "sha256:3f34b006bb1bceaaf1507d55aae85bdad5a823eeae10c052dabcf3494d1beff6",
+        "case": {
+          "kind": "update"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/node_result/result/intent/state_change"
+        },
+        "wire": {
+          "kind": "update",
+          "update": {
+            "data": {
+              "approved": true,
+              "transaction_id": "txn_42"
+            },
+            "digest": "sha256:4f345f32d6bcd436b67d894d9b6841463b1a8e94ccbe3b09525b70b05fa44889",
+            "schema": {
+              "digest": "sha256:fc94d6bc19f4c04c3ae2c73aecd308b8b7194df64a6621b8789b95c6ab984c44",
+              "id": "https://stateknot.github.io/schema/test/workflow-state/1.0.0",
+              "version": "1.0.0"
+            }
+          }
+        }
+      }
+    ],
+    "NodeWait": [
+      {
+        "canonical_digest": "sha256:9bde5c90f49c78485939599ca1489ccf0a1bc2f9c1ca11012280ca7be1c141e5",
+        "case": {
+          "kind": "interrupt"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/2/waits/0"
+        },
+        "wire": {
+          "action_digest": "sha256:6c360a24360d8db25a0c3a3e489464d665591e8a0b9ea91de21b96e39f8d6ea9",
+          "expires_at": "2030-01-01T00:10:00.000000Z",
+          "interrupt_id": "01912345-6789-7abc-8def-012345678952",
+          "interrupt_kind": "approval",
+          "kind": "interrupt",
+          "request_payload": {
+            "data": {
+              "action": "deploy",
+              "environment": "production"
+            },
+            "kind": "approval-request",
+            "schema": {
+              "digest": "sha256:8cb642a5f7cd79a3bc9abe6cefd0f7cbb1623b77d3264530613030ef3a45d054",
+              "id": "https://stateknot.github.io/schema/wait/approval-request/1.0.0",
+              "version": "1.0.0"
+            }
+          },
+          "required_principal": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "incident-approver"
+          },
+          "required_scopes": [
+            "agent.approve",
+            "run.resolve"
+          ]
+        }
+      },
+      {
+        "canonical_digest": "sha256:007dab6f0b991eee9ec9ce3d4eb83dfd44f4745f8c2aaeb383e90e0fbbb62d58",
+        "case": {
+          "kind": "timer"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/2/waits/1"
+        },
+        "wire": {
+          "due_at": "2030-01-01T00:00:30.000000Z",
+          "kind": "timer",
+          "timer_id": "01912345-6789-7abc-8def-012345678961",
+          "timer_kind": "retry_backoff"
+        }
+      }
+    ],
+    "OutboxAttemptOutcome": [
+      {
+        "canonical_digest": "sha256:78a6264a1864fe1af938425729a635d4705af03e68dfffbdb3dcccb8beee34d9",
+        "case": {
+          "kind": "acknowledged"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/outbox/attempts/1/completion/outcome"
+        },
+        "wire": {
+          "evidence_digest": "sha256:931781ccfacb9319305229a380cd3a02266658e0e2322872f520f8471512d6b6",
+          "kind": "acknowledged"
+        }
+      },
+      {
+        "canonical_digest": "sha256:8d87d48b1a553f9b2a1dd986a5fa9cc69ddd90e100332d4e3046749014bd8475",
+        "case": {
+          "kind": "failed"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/node_attempt/attempts/2/completion/outcome"
+        },
+        "wire": {
+          "failure": {
+            "category": "internal",
+            "caused_by_event_id": "01912345-6789-7abc-8def-0123456789c4",
+            "code": "graph.node_failed",
+            "id": "01912345-6789-7abc-8def-0123456789f1",
+            "message": "Node execution failed safely",
+            "origin": "stateknot.runtime.node",
+            "retry_advice": {
+              "delay": "2500",
+              "kind": "safe_after"
+            }
+          },
+          "kind": "failed"
+        }
+      }
+    ],
+    "OutboxAttemptStatus": [
+      {
+        "canonical_digest": "sha256:7eacfedfebecc1a751aa4fc3bb198a67b58e379ba897d5146f67e677e9d4331e",
+        "case": "acknowledged",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/OutboxAttemptStatus"
+        },
+        "wire": "acknowledged"
+      },
+      {
+        "canonical_digest": "sha256:4bb362fdc2e7043c7b1dd8d0533437ad293360b6382d4d8407b24ee995aa5d7b",
+        "case": "delivering",
+        "source": {
+          "constructor_case": "OutboxAttemptStatus/delivering"
+        },
+        "wire": "delivering"
+      },
+      {
+        "canonical_digest": "sha256:33d04bd775e7b6c6436742508b41fa693a15bd2c902fcd994253392abd717740",
+        "case": "failed",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/children/accounts/2/children/0/settlement/status"
+        },
+        "wire": "failed"
+      }
+    ],
+    "OutboxDeliveryStatus": [
+      {
+        "canonical_digest": "sha256:7eacfedfebecc1a751aa4fc3bb198a67b58e379ba897d5146f67e677e9d4331e",
+        "case": "acknowledged",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/OutboxAttemptStatus"
+        },
+        "wire": "acknowledged"
+      },
+      {
+        "canonical_digest": "sha256:1526d4113513ea2fbedb0646e4652a2fdc67e4972b3fb30b94198ba758d7949d",
+        "case": "dead_letter",
+        "source": {
+          "constructor_case": "OutboxDeliveryStatus/dead_letter"
+        },
+        "wire": "dead_letter"
+      },
+      {
+        "canonical_digest": "sha256:4bb362fdc2e7043c7b1dd8d0533437ad293360b6382d4d8407b24ee995aa5d7b",
+        "case": "delivering",
+        "source": {
+          "constructor_case": "OutboxDeliveryStatus/delivering"
+        },
+        "wire": "delivering"
+      },
+      {
+        "canonical_digest": "sha256:1dabed06d716e646e62a51ab3836212a80a7b7bfa023ef2be12b59468bb51a16",
+        "case": "expired",
+        "source": {
+          "fixture": "core-skill-authorization-v1.json",
+          "pointer": "/revocation_reasons/invalid/0"
+        },
+        "wire": "expired"
+      },
+      {
+        "canonical_digest": "sha256:12adac54ac6f7140109391b670b3cbcd51f083d8f5ee62ce26857c794ed67d36",
+        "case": "pending",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/OutboxDeliveryStatus"
+        },
+        "wire": "pending"
+      },
+      {
+        "canonical_digest": "sha256:325835e64930661ac4239f3fe7d249c9e1b3ab345fcb033a9cd305975bcdffbe",
+        "case": "retry_scheduled",
+        "source": {
+          "constructor_case": "OutboxDeliveryStatus/retry_scheduled"
+        },
+        "wire": "retry_scheduled"
+      }
+    ],
+    "RedactionState": [
+      {
+        "canonical_digest": "sha256:1e5941238a72b1f89a5d4cfad9164d5d37f08fab209161841ebf39bf057083d4",
+        "case": "full",
+        "source": {
+          "fixture": "core-content-v1.json",
+          "pointer": "/metadata/valid/3/redaction"
+        },
+        "wire": "full"
+      },
+      {
+        "canonical_digest": "sha256:e607817edcaa4104a715a8424337a012f24056b07c6aa3c15181d68e6f092db9",
+        "case": "not_applied",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/content/metadata/redaction"
+        },
+        "wire": "not_applied"
+      },
+      {
+        "canonical_digest": "sha256:8ac24611cfe47c129e37108bc6adc6843c4fe8fb9c37c27fac8a1835ba660307",
+        "case": "partial",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/content_parts/valid/1/content/metadata/redaction"
+        },
+        "wire": "partial"
+      }
+    ],
+    "RetryAdvice": [
+      {
+        "canonical_digest": "sha256:b0021989cc6760e7728f8d043961651802de5f1cdd0b038ec6faa7a07ba73ded",
+        "case": {
+          "kind": "never"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/failure/retry_advice"
+        },
+        "wire": {
+          "kind": "never"
+        }
+      },
+      {
+        "canonical_digest": "sha256:19aa8a6dd2ddacd3bd5a4d606cec3594bc6458f31d3fea4829f4122dec1314d8",
+        "case": {
+          "kind": "reconcile_first"
+        },
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/failures/invalid/1/retry_advice"
+        },
+        "wire": {
+          "kind": "reconcile_first"
+        }
+      },
+      {
+        "canonical_digest": "sha256:b02eccfa56d687a8f0d87058402f4c8d2a702bfdc572feb6cad24e32007ade1b",
+        "case": {
+          "kind": "safe_after"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/2/state/error/failure/retry_advice"
+        },
+        "wire": {
+          "delay": "1000",
+          "kind": "safe_after"
+        }
+      }
+    ],
+    "RunInterruptKind": [
+      {
+        "canonical_digest": "sha256:54de280ca0b7d23f2967f7761bd8e1cf87ee68f4fc0ab1db5b80130e2e90c64b",
+        "case": "approval",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/2/waits/0/interrupt_kind"
+        },
+        "wire": "approval"
+      },
+      {
+        "canonical_digest": "sha256:97760401a7a72a8579449ea5534eb63ccf11a53c1e82646904071a53ac8d05e3",
+        "case": "authentication",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/interrupt_kinds/valid/2"
+        },
+        "wire": "authentication"
+      },
+      {
+        "canonical_digest": "sha256:860e36ca0668b9d6971abd27be6dd8481ba451d920718cd98861e6d74794b5c2",
+        "case": "external_signal",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/interrupt_kinds/valid/3"
+        },
+        "wire": "external_signal"
+      },
+      {
+        "canonical_digest": "sha256:48aed2374cea5f3bbbee1c8742439be758dcc1e999e0e3f0e03c1ee80e3565a0",
+        "case": "input",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/interrupt_kinds/valid/1"
+        },
+        "wire": "input"
+      },
+      {
+        "canonical_digest": "sha256:599999dbd00487c20937b3b73200b32e232f3767822f47eaabf5b80c66d88286",
+        "case": "reconciliation",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/interrupt_kinds/valid/4"
+        },
+        "wire": "reconciliation"
+      }
+    ],
+    "RunStatus": [
+      {
+        "canonical_digest": "sha256:db0fb2bf5ebc424454c3e11b5ee8bfb43af24a52e561aa49e94143831dc6fd93",
+        "case": "active",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/metadata/lifecycle/status"
+        },
+        "wire": "active"
+      },
+      {
+        "canonical_digest": "sha256:84e5c9e0c68e607ff2bf099fa21f219f8228d018454dceb6d18f7d3137061afa",
+        "case": "cancellation_requested",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/statuses/valid/3"
+        },
+        "wire": "cancellation_requested"
+      },
+      {
+        "canonical_digest": "sha256:06234c1cf33df85364aedb5de2e65dc2fcb144ff65a249457c5f140fde7ee1d4",
+        "case": "cancelled",
+        "source": {
+          "fixture": "core-failure-v1.json",
+          "pointer": "/categories/valid/9"
+        },
+        "wire": "cancelled"
+      },
+      {
+        "canonical_digest": "sha256:33d04bd775e7b6c6436742508b41fa693a15bd2c902fcd994253392abd717740",
+        "case": "failed",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/children/accounts/2/children/0/settlement/status"
+        },
+        "wire": "failed"
+      },
+      {
+        "canonical_digest": "sha256:12adac54ac6f7140109391b670b3cbcd51f083d8f5ee62ce26857c794ed67d36",
+        "case": "pending",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/OutboxDeliveryStatus"
+        },
+        "wire": "pending"
+      },
+      {
+        "canonical_digest": "sha256:b96b3eb9f8f68bef1e5e08ed887d878f7cc9b095a6b734851b578dd1003b3623",
+        "case": "succeeded",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/NodeAttemptStatus"
+        },
+        "wire": "succeeded"
+      },
+      {
+        "canonical_digest": "sha256:71ce8ff4c179188015b1c36fa4d86d9581a3e9f2b2fad8a879d8cc2538d6b475",
+        "case": "waiting",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/statuses/valid/2"
+        },
+        "wire": "waiting"
+      }
+    ],
+    "RunTimerKind": [
+      {
+        "canonical_digest": "sha256:ff009962ef18e512266187bf88aa68265d2ceb76caee2447f517a5f4553dca80",
+        "case": "retry_backoff",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/2/waits/1/timer_kind"
+        },
+        "wire": "retry_backoff"
+      },
+      {
+        "canonical_digest": "sha256:0bb2388cc80f97389224c151242a99a577611ad28f4d960b6873487cfd5b9663",
+        "case": "sleep",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/timer_kinds/valid/0"
+        },
+        "wire": "sleep"
+      }
+    ],
+    "RunTransition": [
+      {
+        "canonical_digest": "sha256:f735c20fb6e515fbd7deec07518ad169fc8c4c8e3984f2d1592f3d760ddbf2ba",
+        "case": {
+          "kind": "confirm_cancellation"
+        },
+        "source": {
+          "constructor_case": "RunTransition/confirm_cancellation"
+        },
+        "wire": {
+          "completed_at": "2030-01-01T00:00:08.000000Z",
+          "kind": "confirm_cancellation",
+          "usage": {
+            "artifact_bytes": "0",
+            "cached_input_tokens": "0",
+            "checkpoint_bytes": "0",
+            "concurrent_branches": "0",
+            "event_bytes": "0",
+            "fan_out": "0",
+            "graph_depth": "0",
+            "graph_steps": "0",
+            "input_bytes": "0",
+            "input_tokens": "0",
+            "known_costs": [],
+            "model_attempts": "0",
+            "model_turns": "0",
+            "output_bytes": "0",
+            "output_tokens": "0",
+            "reasoning_tokens": "0",
+            "remote_agent_delegations": "0",
+            "retries": "0",
+            "tool_calls": "0",
+            "unpriced_cost_events": "0",
+            "write_calls": "0"
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:2a371973fb0c02e8cf924c375f4ee69dfaae311e25787a9eba5951fe2d7d2a96",
+        "case": {
+          "kind": "fail"
+        },
+        "source": {
+          "constructor_case": "RunTransition/fail"
+        },
+        "wire": {
+          "failure": {
+            "completed_at": "2030-01-01T00:00:06.000000Z",
+            "failure": {
+              "category": "internal",
+              "code": "runtime.failed",
+              "id": "01912345-6789-7abc-8def-0123456789b6",
+              "message": "The run failed terminally.",
+              "origin": "stateknot.runtime",
+              "retry_advice": {
+                "kind": "never"
+              }
+            },
+            "usage": {
+              "artifact_bytes": "0",
+              "cached_input_tokens": "0",
+              "checkpoint_bytes": "0",
+              "concurrent_branches": "0",
+              "event_bytes": "0",
+              "fan_out": "0",
+              "graph_depth": "0",
+              "graph_steps": "0",
+              "input_bytes": "0",
+              "input_tokens": "0",
+              "known_costs": [],
+              "model_attempts": "0",
+              "model_turns": "0",
+              "output_bytes": "0",
+              "output_tokens": "0",
+              "reasoning_tokens": "0",
+              "remote_agent_delegations": "0",
+              "retries": "0",
+              "tool_calls": "0",
+              "unpriced_cost_events": "0",
+              "write_calls": "0"
+            }
+          },
+          "kind": "fail"
+        }
+      },
+      {
+        "canonical_digest": "sha256:c62786d4ccfa2a2cfb94e06a04639487d42fd6df05a77d1a8361193df4b6b4d2",
+        "case": {
+          "kind": "fire_timer"
+        },
+        "source": {
+          "constructor_case": "RunTransition/fire_timer"
+        },
+        "wire": {
+          "fired_at": "2030-01-01T00:00:08.000000Z",
+          "kind": "fire_timer",
+          "timer_id": "01912345-6789-7abc-8def-0123456789ae"
+        }
+      },
+      {
+        "canonical_digest": "sha256:a29237cb372ce42bcbc15287679a7d0af67c0bc7a2cd141bd8d1b5ce0d95e68b",
+        "case": {
+          "kind": "request_cancellation"
+        },
+        "source": {
+          "constructor_case": "RunTransition/request_cancellation"
+        },
+        "wire": {
+          "kind": "request_cancellation",
+          "request": {
+            "failure": {
+              "category": "cancelled",
+              "code": "runtime.cancelled",
+              "id": "01912345-6789-7abc-8def-0123456789b5",
+              "message": "Cancellation was requested.",
+              "origin": "stateknot.runtime",
+              "retry_advice": {
+                "kind": "never"
+              }
+            },
+            "requested_at": "2030-01-01T00:00:06.000000Z"
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:fa518b23bcfcb4fa03eee05cc4550fbe1219955dc5ff37231b3882faf923b28e",
+        "case": {
+          "kind": "resolve_interrupt"
+        },
+        "source": {
+          "constructor_case": "RunTransition/resolve_interrupt"
+        },
+        "wire": {
+          "interrupt_id": "01912345-6789-7abc-8def-0123456789ad",
+          "kind": "resolve_interrupt",
+          "resolved_at": "2030-01-01T00:00:08.000000Z"
+        }
+      },
+      {
+        "canonical_digest": "sha256:cf58919a41c5ea825f6482647ac42cf8cf642692a8a41b38e9344b8445710c43",
+        "case": {
+          "kind": "start"
+        },
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/lifecycle/transition"
+        },
+        "wire": {
+          "kind": "start",
+          "started_at": "2030-01-01T00:00:01.000000Z"
+        }
+      },
+      {
+        "canonical_digest": "sha256:27dd0bd16308b628d8913c568b897ef63bd081e9dbac219fedf373c2eeaae611",
+        "case": {
+          "kind": "succeed"
+        },
+        "source": {
+          "constructor_case": "RunTransition/succeed"
+        },
+        "wire": {
+          "kind": "succeed",
+          "result": {
+            "artifacts": [
+              {
+                "identity": {
+                  "artifact_id": "01912345-6789-7abc-8def-0123456789ab",
+                  "tenant_id": "tenant-production"
+                },
+                "metadata": {
+                  "redaction": "not_applied",
+                  "security_label": "internal/pii",
+                  "source": "artifact",
+                  "trust": "untrusted"
+                },
+                "parents": [
+                  "01912345-6789-7abc-8def-0123456789ac",
+                  "01912345-6789-7abc-8def-0123456789ad"
+                ],
+                "presentation": {
+                  "description": "Sanitized incident report",
+                  "name": "incident-report.pdf"
+                },
+                "provenance": {
+                  "capability": {
+                    "name": "files.convert",
+                    "version": "1.2.3"
+                  },
+                  "event_id": "01912345-6789-7abc-8def-0123456789af",
+                  "principal": {
+                    "issuer": "https://issuer.example.com",
+                    "subject": "service-account"
+                  },
+                  "run_id": "01912345-6789-7abc-8def-0123456789ae"
+                },
+                "representation": {
+                  "byte_length": "12",
+                  "digest": "sha256:26c52f053d1b2572fb8933f989ab92c1856e4cf095e3a6f388df5ad45f0d6d80",
+                  "media_type": "application/pdf",
+                  "modality": "document"
+                },
+                "retention_class": "audit/7y"
+              }
+            ],
+            "completed_at": "2029-12-31T23:59:59.000000Z",
+            "output": {
+              "severity": "high",
+              "summary": "Database latency caused the incident."
+            },
+            "output_schema": {
+              "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+              "id": "https://schemas.example.com/incident-report/1.0.0",
+              "version": "1.0.0"
+            },
+            "provenance": {
+              "agent": {
+                "capability": {
+                  "name": "agents.incident",
+                  "version": "1.0.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "agent-owner"
+                }
+              },
+              "invocation_id": "01912345-6789-7abc-8def-0123456789b0",
+              "run_id": "01912345-6789-7abc-8def-0123456789ae",
+              "tenant_id": "tenant-production",
+              "thread_id": "01912345-6789-7abc-8def-0123456789af"
+            },
+            "usage": {
+              "artifact_bytes": "12",
+              "cached_input_tokens": "100",
+              "checkpoint_bytes": "4096",
+              "concurrent_branches": "1",
+              "event_bytes": "8192",
+              "fan_out": "1",
+              "graph_depth": "1",
+              "graph_steps": "6",
+              "input_bytes": "1024",
+              "input_tokens": "800",
+              "known_costs": [
+                {
+                  "currency": "USD",
+                  "micro_units": "1000"
+                }
+              ],
+              "model_attempts": "3",
+              "model_turns": "2",
+              "output_bytes": "2048",
+              "output_tokens": "200",
+              "reasoning_tokens": "50",
+              "remote_agent_delegations": "0",
+              "retries": "1",
+              "tool_calls": "1",
+              "unpriced_cost_events": "0",
+              "write_calls": "0"
+            }
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:4adfd84370dd1f65be98d5a67e6c7608d6d1c8f1d47dd0ed28d7c1e3aa8cab47",
+        "case": {
+          "kind": "wait"
+        },
+        "source": {
+          "constructor_case": "RunTransition/wait"
+        },
+        "wire": {
+          "kind": "wait",
+          "waits": [
+            {
+              "interrupt": {
+                "expires_at": "2030-01-01T00:00:10.000000Z",
+                "interrupt_id": "01912345-6789-7abc-8def-0123456789b1",
+                "kind": "approval",
+                "requested_at": "2030-01-01T00:00:02.000000Z"
+              },
+              "kind": "interrupt"
+            },
+            {
+              "kind": "timer",
+              "timer": {
+                "due_at": "2030-01-01T00:00:05.000000Z",
+                "kind": "sleep",
+                "scheduled_at": "2030-01-01T00:00:02.000000Z",
+                "timer_id": "01912345-6789-7abc-8def-0123456789b3"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "RunTransitionKind": [
+      {
+        "canonical_digest": "sha256:64b2e577000ef6816a31ab9654441cb3acd60130bebca725cff148502b0dc4c2",
+        "case": "confirm_cancellation",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/transition_kinds/valid/5"
+        },
+        "wire": "confirm_cancellation"
+      },
+      {
+        "canonical_digest": "sha256:34e382cfb94027bb2ebfad2bcd3affd03b843b3d285b73bc2760d19b65abd85f",
+        "case": "fail",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/transition_kinds/valid/7"
+        },
+        "wire": "fail"
+      },
+      {
+        "canonical_digest": "sha256:2e8b478207e89e143e3504b292cfbe66836ddfdf241d72abdd498568baca25e3",
+        "case": "fire_timer",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/transition_kinds/valid/3"
+        },
+        "wire": "fire_timer"
+      },
+      {
+        "canonical_digest": "sha256:987f4f975552553063c12bb8c3f1f9eb3860b70330ca6608ce439bfe5dc89505",
+        "case": "request_cancellation",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/transition_kinds/valid/4"
+        },
+        "wire": "request_cancellation"
+      },
+      {
+        "canonical_digest": "sha256:9b7e5411682ea95ac22109f11abff8b70204661a0e1c568bd0a1d740695bbd4e",
+        "case": "resolve_interrupt",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/transition_kinds/valid/2"
+        },
+        "wire": "resolve_interrupt"
+      },
+      {
+        "canonical_digest": "sha256:a92ae9615600f7f0bcb0edf9703b379c163bef33ed749ae40c48a0830d4ab6ae",
+        "case": "start",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/lifecycle/transition/kind"
+        },
+        "wire": "start"
+      },
+      {
+        "canonical_digest": "sha256:051074382c6db54322175657663e37940590bd789d644d57a301426b45ef1724",
+        "case": "succeed",
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/transition_kinds/valid/6"
+        },
+        "wire": "succeed"
+      },
+      {
+        "canonical_digest": "sha256:f3010736707aae1a39dfde0a213d373f3b4342ab9e48d52dd049725e4bfa5fe2",
+        "case": "wait",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/controls/2/kind"
+        },
+        "wire": "wait"
+      }
+    ],
+    "RunWait": [
+      {
+        "canonical_digest": "sha256:8e1ad6dba8d489b97c2c68e005df5091d7bcdb983c6e36bb46d8ba2d37d9dd66",
+        "case": {
+          "kind": "interrupt"
+        },
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/waits/invalid/1/0"
+        },
+        "wire": {
+          "interrupt": {
+            "interrupt_id": "01912345-6789-7abc-8def-0123456789b1",
+            "kind": "approval",
+            "requested_at": "2030-01-01T00:00:02.000000Z"
+          },
+          "kind": "interrupt"
+        }
+      },
+      {
+        "canonical_digest": "sha256:87a2477deb443b2130b0a24a2c8040b6b1dd1109610cc72c8ffde56c2263150b",
+        "case": {
+          "kind": "timer"
+        },
+        "source": {
+          "fixture": "core-run-lifecycle-v1.json",
+          "pointer": "/waits/invalid/1/1"
+        },
+        "wire": {
+          "kind": "timer",
+          "timer": {
+            "due_at": "2030-01-01T00:00:05.000000Z",
+            "kind": "sleep",
+            "scheduled_at": "2030-01-01T00:00:03.000000Z",
+            "timer_id": "01912345-6789-7abc-8def-0123456789b3"
+          }
+        }
+      }
+    ],
+    "SkillActingWindowRevocationReason": [
+      {
+        "canonical_digest": "sha256:17076f31c053fb39599a2d7dbee6176581e6fbdc2487ef185e17d52471fc9816",
+        "case": "administrative",
+        "source": {
+          "fixture": "core-skill-authorization-v1.json",
+          "pointer": "/revocation_reasons/valid/4"
+        },
+        "wire": "administrative"
+      },
+      {
+        "canonical_digest": "sha256:7cc484b4436452d516193bce2be6f2b32b831bbf6cf626576fa51fafbaa0be8d",
+        "case": "compromised",
+        "source": {
+          "fixture": "core-skill-authorization-v1.json",
+          "pointer": "/revocation_reasons/valid/2"
+        },
+        "wire": "compromised"
+      },
+      {
+        "canonical_digest": "sha256:17ad92e63c962393c0329c658937d16eccaea13036412a3d1d0a5b6b8f29d738",
+        "case": "policy",
+        "source": {
+          "fixture": "core-skill-authorization-v1.json",
+          "pointer": "/records/approval/policy/owner/subject"
+        },
+        "wire": "policy"
+      },
+      {
+        "canonical_digest": "sha256:910626819e9812195810299d9cc9ee97656081d929feda68b53d4810c94ad01c",
+        "case": "superseded",
+        "source": {
+          "fixture": "core-skill-authorization-v1.json",
+          "pointer": "/revocation_reasons/valid/3"
+        },
+        "wire": "superseded"
+      },
+      {
+        "canonical_digest": "sha256:3190d261d186aeead3a8deec202737c7775af5c8d455a9e5ba958c48b5fd3f59",
+        "case": "user",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/content_parts/invalid/3/content/metadata/source"
+        },
+        "wire": "user"
+      }
+    ],
+    "SkillActivationSource": [
+      {
+        "canonical_digest": "sha256:07dd396b8f76f1e2e6a51e9ac07badc5ec9ad1851659ddd84088bc99b8dfb686",
+        "case": {
+          "kind": "direct"
+        },
+        "source": {
+          "fixture": "core-skill-authorization-v1.json",
+          "pointer": "/records/approval/source"
+        },
+        "wire": {
+          "kind": "direct"
+        }
+      },
+      {
+        "canonical_digest": "sha256:1b0e38de23c7ec2b10e57511b18844f6a24c01049c041c91f5dd5424120bc34c",
+        "case": {
+          "kind": "nested"
+        },
+        "source": {
+          "fixture": "core-skill-authorization-v1.json",
+          "pointer": "/sources/valid/1"
+        },
+        "wire": {
+          "kind": "nested",
+          "parent_window_id": "018f1f65-45d3-7a2e-8a19-4de38b783454"
+        }
+      }
+    ],
+    "ToolAuthorizationOperation": [
+      {
+        "canonical_digest": "sha256:7fb37a54725e1ccea37acc297977513b1956d5485a015aa26999ffcfb7eca6cc",
+        "case": "execute",
+        "source": {
+          "fixture": "core-tool-authorization-v1.json",
+          "pointer": "/operations/valid/0"
+        },
+        "wire": "execute"
+      },
+      {
+        "canonical_digest": "sha256:4ee2137acd308d0e0228020ac3a075799cf8937f66b1c5220072a722314e9cc9",
+        "case": "reconcile",
+        "source": {
+          "fixture": "core-tool-authorization-v1.json",
+          "pointer": "/operations/valid/1"
+        },
+        "wire": "reconcile"
+      }
+    ],
+    "ToolCancellationSupport": [
+      {
+        "canonical_digest": "sha256:392c0915da8bd580889fb606ea4e2dae10e47e7833384df50525f0b73741bcc2",
+        "case": "cooperative",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/invocation/cancellation"
+        },
+        "wire": "cooperative"
+      },
+      {
+        "canonical_digest": "sha256:0bc6f540bbf1d48a52b38b78f201053bc6ac6a49a3bd6105deccacea34c8b9b8",
+        "case": "unsupported",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/0/intent/request/requirements/structured_output"
+        },
+        "wire": "unsupported"
+      }
+    ],
+    "ToolErrorPhase": [
+      {
+        "canonical_digest": "sha256:5f17e83816561dbd8d659774e55f931ac528524973c72ac559daac58cd23f74f",
+        "case": "execution",
+        "source": {
+          "fixture": "core-tool-runtime-v1.json",
+          "pointer": "/errors/invalid/0/phase"
+        },
+        "wire": "execution"
+      },
+      {
+        "canonical_digest": "sha256:edfdddeb52d7f14eb208fb303c2ab3e7488aec2c08543d483c32d9d5996da334",
+        "case": "preparation",
+        "source": {
+          "fixture": "core-model-runtime-v1.json",
+          "pointer": "/errors/valid/0/phase"
+        },
+        "wire": "preparation"
+      },
+      {
+        "canonical_digest": "sha256:d9fd9a3d81d750e6edc61aec66e7c4112f7af7c34ebe0a0d20189464ec9df135",
+        "case": "result",
+        "source": {
+          "fixture": "core-tool-runtime-v1.json",
+          "pointer": "/phases/valid/2"
+        },
+        "wire": "result"
+      }
+    ],
+    "ToolExternalEffect": [
+      {
+        "canonical_digest": "sha256:826076ea622367b23e987bbfc3ac854c22e8aede0f8d2dbffc93ebc15c370080",
+        "case": "applied",
+        "source": {
+          "fixture": "core-tool-runtime-v1.json",
+          "pointer": "/errors/invalid/1/external_effect"
+        },
+        "wire": "applied"
+      },
+      {
+        "canonical_digest": "sha256:0296f22b01d3da51783b5e145c24403c9066251dff0d2f86a33204d0d2b0cd38",
+        "case": "not_applicable",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/semantics/idempotency"
+        },
+        "wire": "not_applicable"
+      },
+      {
+        "canonical_digest": "sha256:e607817edcaa4104a715a8424337a012f24056b07c6aa3c15181d68e6f092db9",
+        "case": "not_applied",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/instructions/0/content/content/metadata/redaction"
+        },
+        "wire": "not_applied"
+      },
+      {
+        "canonical_digest": "sha256:1e010d28aa80609939549e19b00537e38ef61ece2e7a0fc0c05a513d3d4fa0a9",
+        "case": "not_started",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/failure/external_effect"
+        },
+        "wire": "not_started"
+      },
+      {
+        "canonical_digest": "sha256:eb8bf0d80db323992f6b634aab492b1e6d9e96a8e87a511c2a0db75ab929452c",
+        "case": "unknown",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/representations/invalid/2/modality"
+        },
+        "wire": "unknown"
+      }
+    ],
+    "ToolIdempotency": [
+      {
+        "canonical_digest": "sha256:e971ad728eb3f1c7211286c5bfc064b3a2f92c410be69e7c4119aecc00958c54",
+        "case": "intrinsic",
+        "source": {
+          "fixture": "core-tool-v1.json",
+          "pointer": "/idempotency/valid/1"
+        },
+        "wire": "intrinsic"
+      },
+      {
+        "canonical_digest": "sha256:0296f22b01d3da51783b5e145c24403c9066251dff0d2f86a33204d0d2b0cd38",
+        "case": "not_applicable",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/semantics/idempotency"
+        },
+        "wire": "not_applicable"
+      },
+      {
+        "canonical_digest": "sha256:d786d503260b10dd93fab2821beddaafea2dc1b87af4ab634e63204ebbff050f",
+        "case": "required_key",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/tool_invocation/records/0/intent/descriptor/semantics/idempotency"
+        },
+        "wire": "required_key"
+      },
+      {
+        "canonical_digest": "sha256:0bc6f540bbf1d48a52b38b78f201053bc6ac6a49a3bd6105deccacea34c8b9b8",
+        "case": "unsupported",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/0/intent/request/requirements/structured_output"
+        },
+        "wire": "unsupported"
+      }
+    ],
+    "ToolInvocationLimit": [
+      {
+        "canonical_digest": "sha256:00f6441f61f8ae78de84a7c1ef0bd50e3f332c36e412b78c5f85a643fc0c4268",
+        "case": "max_artifacts",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/limits/4"
+        },
+        "wire": "max_artifacts"
+      },
+      {
+        "canonical_digest": "sha256:c302848d318053abe0c8d09114ab030969ec59266d67460fee0f96c9e5524708",
+        "case": "max_concurrency",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/limits/1"
+        },
+        "wire": "max_concurrency"
+      },
+      {
+        "canonical_digest": "sha256:f4ec5fd22fa8bb7f7ab68ada1082cc5c1c557f2ad71f5b67cb6353c158b84662",
+        "case": "max_inline_result_bytes",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/limits/3"
+        },
+        "wire": "max_inline_result_bytes"
+      },
+      {
+        "canonical_digest": "sha256:bd86c099c6b3d1d2e0cdc975e502be3e34005ca81a42fd98960863d2ef83eba0",
+        "case": "max_input_bytes",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/limits/2"
+        },
+        "wire": "max_input_bytes"
+      },
+      {
+        "canonical_digest": "sha256:123da3b23c88969733c1953bc772b5aaf6142ffd27951b4277ccb0c9c07206d2",
+        "case": "max_total_artifact_bytes",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/limits/5"
+        },
+        "wire": "max_total_artifact_bytes"
+      },
+      {
+        "canonical_digest": "sha256:492bd0204b74443b7d8d36be9d38f139bd23776b1b1762051c15b89705768595",
+        "case": "timeout",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/transcript/limits/0"
+        },
+        "wire": "timeout"
+      }
+    ],
+    "ToolInvocationState": [
+      {
+        "canonical_digest": "sha256:832159ea1b6f4e02ff0124967a0d43aea14a8e923ec4898210fc8421447a3c9b",
+        "case": {
+          "status": "committed"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/tool_invocation/records/2/state"
+        },
+        "wire": {
+          "result": {
+            "artifacts": [],
+            "output": {
+              "accepted": true,
+              "transaction_id": "txn_42"
+            },
+            "output_schema": {
+              "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+              "version": "1.0.0"
+            },
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            }
+          },
+          "status": "committed"
+        }
+      },
+      {
+        "canonical_digest": "sha256:934f2a558e1468fac30c77767f25fc3b4f4daef6f285ba7861146b8932b583d7",
+        "case": {
+          "status": "executing"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/1/state"
+        },
+        "wire": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "status": "executing"
+        }
+      },
+      {
+        "canonical_digest": "sha256:9a03aa64d2e822967d1da0ac293eb1ce8e4fb3a8e3307150b05a4a3cd7c94bee",
+        "case": {
+          "status": "failed"
+        },
+        "source": {
+          "constructor_case": "ToolInvocationState/failed"
+        },
+        "wire": {
+          "error": {
+            "external_effect": "not_started",
+            "failure": {
+              "category": "invalid_input",
+              "code": "tool.input_invalid",
+              "id": "01912345-6789-7abc-8def-0123456789b1",
+              "message": "Tool input does not satisfy its registered schema.",
+              "origin": "stateknot.tool_adapter",
+              "retry_advice": {
+                "kind": "never"
+              }
+            },
+            "phase": "preparation",
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            }
+          },
+          "status": "failed"
+        }
+      },
+      {
+        "canonical_digest": "sha256:9fe7805f1ce2cfa8d589ce9d5592c3cd338cc7e393f9380de9698ae336d6874f",
+        "case": {
+          "status": "prepared"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/0/state"
+        },
+        "wire": {
+          "status": "prepared"
+        }
+      },
+      {
+        "canonical_digest": "sha256:7723aee4951022269c4fd75252a5f885046028ac4ee03d08c8d74bb2ddcf6290",
+        "case": {
+          "status": "unknown"
+        },
+        "source": {
+          "constructor_case": "ToolInvocationState/unknown"
+        },
+        "wire": {
+          "error": {
+            "external_effect": "unknown",
+            "failure": {
+              "category": "ambiguous_external_outcome",
+              "code": "tool.outcome_unknown",
+              "id": "01912345-6789-7abc-8def-0123456789b2",
+              "message": "The payment outcome must be reconciled.",
+              "origin": "tool.payments",
+              "retry_advice": {
+                "kind": "reconcile_first"
+              }
+            },
+            "phase": "execution",
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            }
+          },
+          "status": "unknown"
+        }
+      }
+    ],
+    "ToolInvocationStatus": [
+      {
+        "canonical_digest": "sha256:a74985036e451327207c1cc05ef687341e0d00faafe012a0f656eb7037305623",
+        "case": "committed",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/node_binding/head/status"
+        },
+        "wire": "committed"
+      },
+      {
+        "canonical_digest": "sha256:ea389b300a930476d20d12bfde3d5110b5bf0529cfd108fd9cf97c2a58a3686d",
+        "case": "executing",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/1/state/status"
+        },
+        "wire": "executing"
+      },
+      {
+        "canonical_digest": "sha256:33d04bd775e7b6c6436742508b41fa693a15bd2c902fcd994253392abd717740",
+        "case": "failed",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/children/accounts/2/children/0/settlement/status"
+        },
+        "wire": "failed"
+      },
+      {
+        "canonical_digest": "sha256:de6b7ed524e99d440cbac720832e3beb5fb0263e0d4b8e5e1b38599f5e980ce6",
+        "case": "prepared",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/ModelInvocationStatus"
+        },
+        "wire": "prepared"
+      },
+      {
+        "canonical_digest": "sha256:eb8bf0d80db323992f6b634aab492b1e6d9e96a8e87a511c2a0db75ab929452c",
+        "case": "unknown",
+        "source": {
+          "fixture": "core-artifact-v1.json",
+          "pointer": "/representations/invalid/2/modality"
+        },
+        "wire": "unknown"
+      }
+    ],
+    "ToolInvocationTransition": [
+      {
+        "canonical_digest": "sha256:6e64d347647d323f7e9cc9bcac81971f52b965ddca7ca691f96fdb3321b4dad8",
+        "case": {
+          "kind": "reconcile_error"
+        },
+        "source": {
+          "constructor_case": "ToolInvocationTransition/reconcile_error"
+        },
+        "wire": {
+          "error": {
+            "external_effect": "not_started",
+            "failure": {
+              "category": "invalid_input",
+              "code": "tool.input_invalid",
+              "id": "01912345-6789-7abc-8def-0123456789b1",
+              "message": "Tool input does not satisfy its registered schema.",
+              "origin": "stateknot.tool_adapter",
+              "retry_advice": {
+                "kind": "never"
+              }
+            },
+            "phase": "preparation",
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            }
+          },
+          "kind": "reconcile_error"
+        }
+      },
+      {
+        "canonical_digest": "sha256:90449ec1d78d398b8a2eab5f41dbac8220d3b21f89db7f2d04ecccc6c56c0ac1",
+        "case": {
+          "kind": "reconcile_result"
+        },
+        "source": {
+          "constructor_case": "ToolInvocationTransition/reconcile_result"
+        },
+        "wire": {
+          "kind": "reconcile_result",
+          "result": {
+            "artifacts": [],
+            "output": {
+              "accepted": true,
+              "transaction_id": "txn_42"
+            },
+            "output_schema": {
+              "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+              "version": "1.0.0"
+            },
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:5b50fde31da95ba5275255ca45e715a2ed40e5ed21d2ea7f2ee08b4697a5bd43",
+        "case": {
+          "kind": "record_error"
+        },
+        "source": {
+          "constructor_case": "ToolInvocationTransition/record_error"
+        },
+        "wire": {
+          "error": {
+            "external_effect": "not_started",
+            "failure": {
+              "category": "invalid_input",
+              "code": "tool.input_invalid",
+              "id": "01912345-6789-7abc-8def-0123456789b1",
+              "message": "Tool input does not satisfy its registered schema.",
+              "origin": "stateknot.tool_adapter",
+              "retry_advice": {
+                "kind": "never"
+              }
+            },
+            "phase": "preparation",
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            }
+          },
+          "kind": "record_error"
+        }
+      },
+      {
+        "canonical_digest": "sha256:9d09e1415d7b28567458fd3451e622420da9ef52d3857cbb80563c53600faeb7",
+        "case": {
+          "kind": "record_result"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/tool_invocation/records/2/transition"
+        },
+        "wire": {
+          "kind": "record_result",
+          "result": {
+            "artifacts": [],
+            "output": {
+              "accepted": true,
+              "transaction_id": "txn_42"
+            },
+            "output_schema": {
+              "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "id": "https://schemas.example.com/tools/capture-output/1.0.0",
+              "version": "1.0.0"
+            },
+            "provenance": {
+              "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+              "invocation_id": "01912345-6789-7abc-8def-0123456789ad",
+              "tool": {
+                "capability": {
+                  "name": "payments.capture",
+                  "version": "2.1.0"
+                },
+                "owner": {
+                  "issuer": "https://issuer.example.com/tenant",
+                  "subject": "registry-owner"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:1d8702588c852d586b0e41bed3d99d644e9c9107a646e624d76d0dcf87205e45",
+        "case": {
+          "kind": "start_attempt"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/1/transition"
+        },
+        "wire": {
+          "attempt_id": "01912345-6789-7abc-8def-0123456789ab",
+          "kind": "start_attempt"
+        }
+      }
+    ],
+    "ToolInvocationTransitionKind": [
+      {
+        "canonical_digest": "sha256:82480b9be9fa63353cfe08d334b7e2ecb3c1a6cf82205b1240151589d9da1652",
+        "case": "reconcile_error",
+        "source": {
+          "constructor_case": "ToolInvocationTransitionKind/reconcile_error"
+        },
+        "wire": "reconcile_error"
+      },
+      {
+        "canonical_digest": "sha256:68e4453bb7811bc3acfa046e300634e5db96b84bf57cf86e174c02aec0b04c87",
+        "case": "reconcile_result",
+        "source": {
+          "constructor_case": "ToolInvocationTransitionKind/reconcile_result"
+        },
+        "wire": "reconcile_result"
+      },
+      {
+        "canonical_digest": "sha256:8beb3d53e5791df013edf7f5ee2f6c7f0d449113ed1f29ee61e9b7fa6f091fe8",
+        "case": "record_error",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/model_invocation/records/2/transition/kind"
+        },
+        "wire": "record_error"
+      },
+      {
+        "canonical_digest": "sha256:2283411ddacbd5429d157affe9dc2aa5cdb5deec32bfb15b2a25b7c531e28ef8",
+        "case": "record_result",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/tool_invocation/records/2/transition/kind"
+        },
+        "wire": "record_result"
+      },
+      {
+        "canonical_digest": "sha256:043ce1161663481d89dec0e77b0bdce3d8acfadc316c2cf02551456daa7b9cc3",
+        "case": "start_attempt",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/public_tags/ModelInvocationTransitionKind"
+        },
+        "wire": "start_attempt"
+      }
+    ],
+    "ToolResourceAccess": [
+      {
+        "canonical_digest": "sha256:30a0924a3360be687d1df9fcbbfdff62c01bc0fd14036ab9076cf7f451568666",
+        "case": "none",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/resources/filesystem"
+        },
+        "wire": "none"
+      },
+      {
+        "canonical_digest": "sha256:99d11117965d18c1d815b3572f82935b55cba683067984144b2979d730a14c8a",
+        "case": "read_only",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/semantics/risk"
+        },
+        "wire": "read_only"
+      },
+      {
+        "canonical_digest": "sha256:84759269826943dd1bc4493bdbd4541d0bb15c7a40a21d092270f9b01fee32e2",
+        "case": "read_write",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/tool_invocation/records/0/intent/descriptor/resources/network"
+        },
+        "wire": "read_write"
+      }
+    ],
+    "ToolRisk": [
+      {
+        "canonical_digest": "sha256:01757c7a1bb7edecb29cc1d9352fbd99b1293b53f5684bf721985ce89de8bf3a",
+        "case": "idempotent_write",
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/tool_invocation/records/0/intent/descriptor/semantics/risk"
+        },
+        "wire": "idempotent_write"
+      },
+      {
+        "canonical_digest": "sha256:25a899410ed8337dfd93e4b9ec5b6bce6f5b76a62000a52c67259d643cd148d7",
+        "case": "non_idempotent_write",
+        "source": {
+          "fixture": "core-tool-v1.json",
+          "pointer": "/risks/valid/2"
+        },
+        "wire": "non_idempotent_write"
+      },
+      {
+        "canonical_digest": "sha256:99d11117965d18c1d815b3572f82935b55cba683067984144b2979d730a14c8a",
+        "case": "read_only",
+        "source": {
+          "fixture": "core-admission-transcript-wires-v1.json",
+          "pointer": "/admission/intent/descriptor/tools/0/semantics/risk"
+        },
+        "wire": "read_only"
+      }
+    ],
+    "WaitRegistrationIntent": [
+      {
+        "canonical_digest": "sha256:33c8d9cd2e77546f185d1b553ab6d2faae1a9811fae0f5be9903227c693e233a",
+        "case": {
+          "kind": "interrupt"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/registrations/0"
+        },
+        "wire": {
+          "kind": "interrupt",
+          "request": {
+            "action_digest": "sha256:6c360a24360d8db25a0c3a3e489464d665591e8a0b9ea91de21b96e39f8d6ea9",
+            "expires_at": "2030-01-01T00:10:00.000000Z",
+            "intent_digest": "sha256:4e9d3cff0611940e7ec178a88c8320ea1974afa4a1fcfb553b09b4ac932f17a4",
+            "interrupt_id": "01912345-6789-7abc-8def-012345678952",
+            "kind": "approval",
+            "request_event_id": "01912345-6789-7abc-8def-012345678951",
+            "request_payload": {
+              "data": {
+                "action": "deploy",
+                "environment": "production"
+              },
+              "kind": "approval-request",
+              "schema": {
+                "digest": "sha256:8cb642a5f7cd79a3bc9abe6cefd0f7cbb1623b77d3264530613030ef3a45d054",
+                "id": "https://stateknot.github.io/schema/wait/approval-request/1.0.0",
+                "version": "1.0.0"
+              }
+            },
+            "required_principal": {
+              "issuer": "https://issuer.example.com/tenant",
+              "subject": "incident-approver"
+            },
+            "required_scopes": [
+              "agent.approve",
+              "run.resolve"
+            ],
+            "run_id": "01912345-6789-7abc-8def-012345678950",
+            "tenant_id": "tenant-canonical"
+          }
+        }
+      },
+      {
+        "canonical_digest": "sha256:11090300c63e381927afcfb7a726da37bf1f1fff0cd0a1199e81ce1a52a5e191",
+        "case": {
+          "kind": "timer"
+        },
+        "source": {
+          "fixture": "core-execution-wires-v1.json",
+          "pointer": "/durable_wait/registrations/1"
+        },
+        "wire": {
+          "kind": "timer",
+          "timer": {
+            "due_at": "2030-01-01T00:00:30.000000Z",
+            "intent_digest": "sha256:b5cb4fd0660add7f756550759d61881ce8ec2a14a7992cc73c9b58cd61552fcc",
+            "kind": "retry_backoff",
+            "registration_event_id": "01912345-6789-7abc-8def-012345678960",
+            "run_id": "01912345-6789-7abc-8def-012345678950",
+            "tenant_id": "tenant-canonical",
+            "timer_id": "01912345-6789-7abc-8def-012345678961"
+          }
+        }
+      }
+    ]
+  }
+}

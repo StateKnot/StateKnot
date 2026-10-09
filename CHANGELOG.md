@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A closed canonical matrix for all 71 serialized public Core enums and their
+  298 alternatives, including 28 newly constructed branches. Typed schema-case
+  completeness, wire/digest stability, raw duplicate/unknown-field and array
+  rejection run alongside both fuzz schema oracles. The 43 previous fixture
+  documents and all existing input/output pins remain exact.
+
 - Independent nested JSON resource and canonical-tree property models, with
   exact boundaries, one-unit tightenings, random narrowed profiles and extension
   restriction of previously wider values. Fixed-seed and ordinary random runs

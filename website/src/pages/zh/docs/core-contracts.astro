@@ -115,7 +115,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">封闭兼容性证据语料库</h2>
     <p>
-      版本化目录对当前提交的全部 43 份 Core Fixture 文档建立封闭清单。每个条目以
+      版本化目录对当前提交的全部 44 份 Core Fixture 文档建立封闭清单。每个条目以
       SHA-256 固定文件的精确字节，从而保留刻意非 Canonical 的非法输入反例；带
       Domain Separation 的 RFC 8785 根摘要绑定有序的路径、Schema 与 Digest
       元数据。
@@ -130,8 +130,8 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       CI 会拒绝缺失、未登记、变化、重复、不安全、过大或没有测试引用的
       Fixture。每个条目都必须继续被可执行的 Rust 兼容性测试消费。这是 RFC-0001
       第 2 项验证门禁的可审计基础。当前根导出类型已有显式 fixture pointer
-      和编译器证据；变体组合、嵌套属性与历史验收仍保持开放。 第 2
-      项仍保持开放，待完成完整变体审查。
+      和编译器证据；可选/嵌套组合、其他复合属性与历史验收继续执行独立门禁。 第 2
+      项仍保持开放，继续完成剩余审查。
     </p>
     <p>
       封闭审计现已分类全部 555 个公开根类型：307 个逐型 reader、两个仅输出
@@ -153,43 +153,52 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       全部 181 个封闭对象 reader 要求 map，包括 Tool、Agent、Journal、Checkpoint
       和子 Run 记录中的嵌套 schema reference。文本及 Value
       检查拒绝完整、空、截短和扩展的 positional 数组。调用方须使用固定 schema
-      的对象形状，不支持以 sequence 表示对象的二进制格式解码。有效 wire
-      字节、全部 43 份 fixture 和两组各 308 个 pin 保持一致；实际 Tool
+      的对象形状，不支持以 sequence 表示对象的二进制格式解码。有效 wire 字节、原
+      43 份 fixture 和两组各 308 个 pin 保持一致；实际 Tool
       注册表在应用派发前拒绝非法嵌套输入。 该修正仅在源码中采用，不改变已发布的
       alpha.1 包。
     </p>
-  </section>
+    <p>
+      独立封闭矩阵覆盖全部 71 个可序列化公开枚举的每个替代分支：298 个规范 wire
+      和摘要，包括 28 个原来缺少向量的构造分支。73 项检查核对类型清单与 生成
+      schema 的分支，拒绝数组、未知字段及原始重复键，并保留原 43 份文档。两个
+      fuzz schema oracle 和固定种子重放均执行每个分支。
+      这些是当前源码向量；可选/嵌套组合及真实历史版本仍有独立工作，产品字节、
+      pin 与依赖保持一致。
+    </p>
 
-  <section aria-labelledby="core-contract-fuzz">
-    <h2 id="core-contract-fuzz">运行有界 fuzz 门禁</h2>
-    <p>
-      独立开发 workspace 对有界 JSON/JCS、全部 307 个 reader 和实际离线 schema
-      注册表运行 ASan/libFuzzer。逐一重放固定语料后，每个目标最多执行 10,000
-      次或 60 秒变异，输入上限 128 KiB、单输入 10 秒、RSS 2,048
-      MiB；失败输入和覆盖语料随 CI 证据保留。最终不可变源码必须通过 Core bounded
-      fuzz 门禁。实际反序列化接受的输入再由离线输入 schema
-      验证；生产者输出保留独立 schema oracle。
-    </p>
-    <p><code>python3 fuzz/qualify.py</code></p>
-    <p>
-      复现所需固定工具及完整步骤见<a
-        href="https://github.com/StateKnot/StateKnot/blob/main/fuzz/README.md"
-        >fuzz 指南</a
-      >。输出 schema 使用实际 serializer wire，原输入 pin 保持一致；旧输出 pin
-      在启动阶段拒绝且不调用应用。变更须采用新 schema/Tool
-      版本并保留已准入工作的旧注册表。有限 fuzz
-      不代表穷尽变体、历史迁移、生产容量或独立安全验收。
-    </p>
-  </section>
+    <section aria-labelledby="core-contract-fuzz">
+      <h2 id="core-contract-fuzz">运行有界 fuzz 门禁</h2>
+      <p>
+        独立开发 workspace 对有界 JSON/JCS、全部 307 个 reader 和实际离线 schema
+        注册表运行 ASan/libFuzzer。逐一重放固定语料后，每个目标最多执行 10,000
+        次或 60 秒变异，输入上限 128 KiB、单输入 10 秒、RSS 2,048
+        MiB；失败输入和覆盖语料随 CI 证据保留。最终不可变源码必须通过 Core
+        bounded fuzz 门禁。实际反序列化接受的输入再由离线输入 schema
+        验证；生产者输出保留独立 schema oracle。
+      </p>
+      <p><code>python3 fuzz/qualify.py</code></p>
+      <p>
+        复现所需固定工具及完整步骤见<a
+          href="https://github.com/StateKnot/StateKnot/blob/main/fuzz/README.md"
+          >fuzz 指南</a
+        >。输出 schema 使用实际 serializer wire，原输入 pin 保持一致；旧输出 pin
+        在启动阶段拒绝且不调用应用。变更须采用新 schema/Tool
+        版本并保留已准入工作的旧注册表。有限 fuzz
+        不代表穷尽变体、历史迁移、生产容量或独立安全验收。
+      </p>
+    </section>
 
-  <section aria-labelledby="core-contract-next">
-    <h2 id="core-contract-next">显式跨越生产边界</h2>
-    <p>
-      真实宿主仍须认证并授权调用方，解析不可变的 Tenant-owned Descriptor 与
-      Schema， 提交<a href="/zh/docs/admission/">持久化准入记录</a>，通过 Ledger
-      执行外部 Attempt，在 Lease/Fence 下驱动 Checkpoint，并重新校验 Terminal
-      Evidence。 下一步阅读<a href="/zh/docs/typed-agent/">强类型 Agent 指南</a
-      >；Core 示例不会隐藏这些责任。
-    </p>
+    <section aria-labelledby="core-contract-next">
+      <h2 id="core-contract-next">显式跨越生产边界</h2>
+      <p>
+        真实宿主仍须认证并授权调用方，解析不可变的 Tenant-owned Descriptor 与
+        Schema， 提交<a href="/zh/docs/admission/">持久化准入记录</a>，通过
+        Ledger 执行外部 Attempt，在 Lease/Fence 下驱动 Checkpoint，并重新校验
+        Terminal Evidence。 下一步阅读<a href="/zh/docs/typed-agent/"
+          >强类型 Agent 指南</a
+        >；Core 示例不会隐藏这些责任。
+      </p>
+    </section>
   </section>
 </DocsLayout>

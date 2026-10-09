@@ -311,6 +311,26 @@ mod tests {
     }
 
     #[test]
+    fn every_enum_variant_reaches_its_actual_input_and_output_oracles() {
+        let fixture: Value = serde_json::from_str(include_str!(
+            "../../crates/stateknot-core/tests/fixtures/core-public-enum-variants-v1.json"
+        ))
+        .unwrap();
+        let mut tested = 0;
+        for (name, vectors) in fixture["types"].as_object().unwrap() {
+            assert!(READERS.contains(&name.as_str()));
+            for vector in vectors.as_array().unwrap() {
+                let mut frame = format!("{name}\n").into_bytes();
+                frame.extend(serde_json::to_vec(&vector["wire"]).unwrap());
+                assert!(core_readers(&frame), "{name} {}", vector["case"]);
+                tested += 1;
+            }
+        }
+        assert_eq!(fixture["types"].as_object().unwrap().len(), 71);
+        assert_eq!(tested, 298);
+    }
+
+    #[test]
     fn strict_json_and_numeric_normalization_controls() {
         for input in [
             b"null".as_slice(),

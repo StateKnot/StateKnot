@@ -25,6 +25,7 @@ cargo run -p stateknot-core --example protocol_adapter --locked
 cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
+cargo test -p stateknot-core --test public_enum_variants --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked
@@ -39,7 +40,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 43 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 44 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -160,7 +161,7 @@ Tool 注册表在应用调用前拒绝嵌套数组，合法对象仍按精确输
 调用方须使用不可变 schema 指定的对象形式。以前被接受的 positional JSON
 现被拒绝，不回填数据或改写 pin。这些对象支持规范 JSON 契约，不支持以
 sequence 表示对象的二进制格式解码。标量、类型集合、BoundedJson 和开放扩展
-保持原契约。全部 43 份 fixture、规范 wire 摘要及两组各 308 个 schema pin
+保持原契约。原 43 份 fixture、规范 wire 摘要及两组各 308 个 schema pin
 保持一致；修正仅在源码中采用，不改变已发布的 alpha.1 包。
 
 `core-admission-transcript-wires-v1.json` 补齐准入、reservation、子 Run
@@ -171,8 +172,28 @@ sequence 表示对象的二进制格式解码。标量、类型集合、BoundedJ
 清单中明确记录的代表实例，不证明所有未来条件泛型实现都无法序列化。
 
 当前根导出类型清单缺口已补齐。所选向量不是全部变体组合或历史版本枚举。
-C2 变体审查、C3 嵌套/属性审计和 C6 真实 N-1/N-2 验收仍需分别完成；
+C2 可选/嵌套组合审查、C3 复合/属性审计和 C6 真实 N-1/N-2 验收仍需分别完成；
 下述有界 C4 门禁独立运行，RFC-0001 保持 Draft。
+
+### 封闭的公开枚举替代分支
+
+[`public_enum_variants.rs`](../crates/stateknot-core/tests/public_enum_variants.rs)
+以 73 项检查覆盖全部 71 个公开 reader/writer 枚举及其 298 个序列化替代分支。
+编译器核对的类型清单须与根导出清单一致；每类固定 case 须与生成 schema
+的分支精确对应且没有重复。每个 case 保留生产者字节、规范往返与固定摘要；
+对象分支拒绝声明顺序数组、未知字段和每个原始重复已知键，原根矩阵的形状与
+双向 pin 检查继续保留。
+
+[`core-public-enum-variants-v1.json`](../crates/stateknot-core/tests/fixtures/core-public-enum-variants-v1.json)
+复用现有语料中可被独立验证的子值，并以公开构造器补齐 28 个缺少向量的分支，
+包括生命周期、结果协调、模型能力及 Outbox。源码审查确认 Rust 枚举变体和
+schema 替代分支均为 298 个。可选字段采用实际生产者形式；外层负向 fixture
+不表示其中每个嵌套子值都非法。原 43 份文档保持精确字节，仅目录元数据新增
+第 44 份文档并固定其已审查字节。
+
+Fuzz 回归和种子生成器使每个分支进入实际输入、输出 schema oracle。
+这些是当前源码向量，不是历史发布，也不穷举可选与嵌套值的组合。
+其他复合属性、历史版本及场景验收继续执行各自门禁。
 
 ## 有界 fuzz 与输出 schema 验收
 
