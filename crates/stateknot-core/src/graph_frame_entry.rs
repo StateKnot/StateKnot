@@ -193,11 +193,11 @@ impl GraphFrameEntryPlan {
         let intent = self.intent_wire();
         let wire = EntryEventWire {
             version: intent.version,
-            parent_graph: intent.parent_graph,
-            frame: intent.frame,
+            parent_graph: intent.parent_graph.clone(),
+            frame: intent.frame.clone(),
             checkpoint_intent_digest: intent.checkpoint_intent_digest,
             caller_attempt_id: intent.caller_attempt_id,
-            fence: intent.fence,
+            fence: intent.fence.clone(),
             intent_digest: self.intent_digest,
         };
         let bytes =
@@ -374,15 +374,15 @@ struct EntryIntentWire<'a> {
 }
 #[derive(JsonSchema, Serialize)]
 #[serde(deny_unknown_fields)]
-struct EntryEventWire<'a> {
+struct EntryEventWire {
     #[schemars(range(min = 1, max = 1))]
     version: u8,
-    parent_graph: &'a GraphReference,
+    parent_graph: GraphReference,
     #[schemars(schema_with = "entry_frame_schema")]
-    frame: &'a GraphFrameIdentity,
+    frame: GraphFrameIdentity,
     checkpoint_intent_digest: Digest,
     caller_attempt_id: AttemptId,
-    fence: &'a RunFence,
+    fence: RunFence,
     intent_digest: Digest,
 }
 #[derive(Serialize)]
@@ -418,7 +418,7 @@ fn generate_event_schema() -> Result<(SchemaReference, serde_json::Value), Graph
         SchemaSettings::draft2020_12()
             .for_serialize()
             .into_generator()
-            .into_root_schema_for::<EntryEventWire<'_>>(),
+            .into_root_schema_for::<EntryEventWire>(),
     )
     .map_err(|_| GraphFrameEntryError::Encoding)?;
     document["$id"] = serde_json::Value::String(SCHEMA_ID.into());
