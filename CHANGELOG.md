@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Independent nested JSON resource and canonical-tree property models, with
+  exact boundaries, one-unit tightenings, random narrowed profiles and extension
+  restriction of previously wider values. Fixed-seed and ordinary random runs
+  preserve all production limits, wire/schema pins and existing properties.
+
 - Isolated, pinned ASan/libFuzzer qualification for strict bounded JSON/JCS,
   all 307 public Core readers and the actual offline runtime schema registry.
   Every seed is replayed before finite mutation; source/lock integrity, owned
@@ -70,6 +75,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   tenant-wide read grant for a one-request typed Agent run.
 
 ### Fixed
+
+- Canonical timestamp parsing validates decimal characters before arithmetic,
+  returning the existing format error across overflow-checking profiles.
+  Exhaustive ASCII-position and fixed-length Unicode regressions cover direct
+  and nested Serde readers, with the synthetic fuzz failure retained as a seed.
+  Valid timestamp bytes, ranges and schema pins remain unchanged.
 
 - `Failure`, `ToolError` and Capability lifecycle output schemas now use their
   actual borrowed serializer wires, preserving optional omission behavior.

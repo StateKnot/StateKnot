@@ -5,7 +5,7 @@
 
 use serde::Deserialize;
 use serde_json::Value;
-use stateknot_core::{DurationMillis, Timestamp};
+use stateknot_core::{DurationMillis, RunTransition, Timestamp, TimestampError};
 
 const FIXTURE_SCHEMA: &str = "https://stateknot.github.io/schema/test-fixture/core-time/2.0.0";
 const LEGACY_FIXTURE_SCHEMA: &str =
@@ -73,6 +73,64 @@ fn canonical_timestamp_fixture_matches_runtime_contract() {
             "accepted {invalid:?}"
         );
     }
+}
+
+#[test]
+fn timestamps_reject_every_ascii_non_digit_at_every_digit_position() {
+    let canonical = b"2030-01-01T00:00:01.000000Z";
+    for (position, byte) in canonical.iter().enumerate() {
+        if !byte.is_ascii_digit() {
+            continue;
+        }
+        for replacement in 0_u8..=127 {
+            if replacement.is_ascii_digit() {
+                continue;
+            }
+            let mut bytes = *canonical;
+            bytes[position] = replacement;
+            let text = std::str::from_utf8(&bytes).unwrap();
+            assert_eq!(
+                text.parse::<Timestamp>(),
+                Err(TimestampError::InvalidFormat),
+                "position {position}, replacement {replacement}"
+            );
+            let encoded = serde_json::to_vec(text).unwrap();
+            assert!(serde_json::from_slice::<Timestamp>(&encoded).is_err());
+            assert!(serde_json::from_value::<Timestamp>(Value::from(text)).is_err());
+        }
+    }
+}
+
+#[test]
+fn timestamps_reject_unicode_with_canonical_length_and_separators() {
+    let canonical = "2030-01-01T00:00:01.000000Z";
+    for component in [0..4, 5..7, 8..10, 11..13, 14..16, 17..19, 20..26] {
+        for replacement in ['é', '٠', '中', '９', '🦀'] {
+            let width = replacement.len_utf8();
+            if component.len() < width {
+                continue;
+            }
+            for position in component.start..=component.end - width {
+                let mut text = canonical.to_owned();
+                text.replace_range(position..position + width, &replacement.to_string());
+                assert_eq!(text.len(), canonical.len());
+                assert_eq!(
+                    text.parse::<Timestamp>(),
+                    Err(TimestampError::InvalidFormat),
+                    "accepted {text:?}"
+                );
+                let encoded = serde_json::to_vec(&text).unwrap();
+                assert!(serde_json::from_slice::<Timestamp>(&encoded).is_err());
+                assert!(serde_json::from_value::<Timestamp>(Value::from(text)).is_err());
+            }
+        }
+    }
+}
+
+#[test]
+fn nested_run_transition_rejects_the_retained_timestamp_failure() {
+    let json = br#"{"kind":"start","started_at":"2030-01- 1T00:00:01.000000Z"}"#;
+    assert!(serde_json::from_slice::<RunTransition>(json).is_err());
 }
 
 #[test]

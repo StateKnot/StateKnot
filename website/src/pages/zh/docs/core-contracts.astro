@@ -13,7 +13,8 @@ cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked`;
+cargo test -p stateknot-core --test canonical_time --locked
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked`;
 ---
 
 <DocsLayout
@@ -139,7 +140,14 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       个执行类型的正向与负向证据继续保留。完整的
       Graph、Checkpoint、invocation、Outbox 和 wait wire 保留原有构造器摘要。
       无字段的带标签变体拒绝额外字段和数组形式，有效 wire 字节及七个生成的
-      schema pin 保持一致。31 个有界属性模型也以固定 CI 种子运行。
+      schema pin 保持一致。35 个有界属性模型也以固定 CI 种子运行。嵌套 JSON
+      具有六维独立资源与 UTF-16 规范树模型；Opaque/schema-bound
+      扩展收紧限制时会重新验证原先较宽的值。
+    </p>
+    <p>
+      时间戳 reader 在全部 20 个数字位置拒绝所有 ASCII 非数字，保持长度的
+      Unicode 和保留的非法嵌套 Run transition 也有回归。所有构建 profile
+      均先校验数字再执行十进制算术；有效时间戳字节、范围和 schema pin 保持一致。
     </p>
   </section>
 

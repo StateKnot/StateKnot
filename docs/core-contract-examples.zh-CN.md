@@ -26,7 +26,8 @@ cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --locked
+cargo test -p stateknot-core --test canonical_time --locked
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
 ```
@@ -75,21 +76,28 @@ Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 | `SchemaId`、`SchemaReference` | `core-schema-v1.json`：`ids`、`references` |
 | `CapabilityName`、`Scope`、`ScopeSet` | `core-authorization-v1.json`：`capability_names`、`scopes`、`scope_sets` |
 
-[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs)
-提供 RFC-0001 第 3 项要求的独立模型。加上 18 个标识符属性，共 31 个属性测试，
+[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs) 和
+[`nested_json_properties.rs`](../crates/stateknot-core/tests/nested_json_properties.rs)
+提供 RFC-0001 第 3 项要求的独立模型。加上 18 个标识符属性，共 35 个属性测试，
 每个运行 256 个有界生成样例。CI 固定种子便于复现，完整工作区测试同时保留普通
 随机种子运行。
 
 | 要求 | 可执行模型与保留的既有覆盖 |
 | --- | --- |
 | 构造边界 | 身份的 ASCII/长度文法与构造和 Serde 一致；UUID 保留全部身份位，拒绝其他所有版本和 variant 类别；版本/摘要保留完整整数和字节值；时间覆盖完整范围并拒绝越界；时长拒绝数字格式、溢出和精度丢失；币种要求大写 ASCII。Schema ID 要求规范 HTTPS，issuer 身份刻意保留精确大小写。Core 各模块已有的内容、descriptor 和调用限制属性继续执行。 |
-| 规范化稳定性 | 表中每个类型经过规范解码后保持 wire 值和摘要。任意 Unicode 对象键与独立 UTF-16 排序模型一致，固定补充平面/私用区反例防止误用 Rust 字符串顺序。现有 JSON、Graph、Checkpoint、barrier 和恢复顺序属性继续执行。 |
+| 规范化稳定性 | 表中每个类型经过规范解码后保持 wire 值和摘要。任意 Unicode 对象键与独立 UTF-16 排序模型一致，固定补充平面/私用区反例防止误用 Rust 字符串顺序。含 Unicode key/value 和安全整数叶子的嵌套数组/对象与独立递归规范字节模型及 SHA-256 一致。现有 JSON、Graph、Checkpoint、barrier 和恢复顺序属性继续执行。 |
 | 预算算术 | 三种 count 和 Money 的加、减、乘与 checked `u64` 一致；跨币种运算失败。时长算术与非负 `i64` 一致。`budget.rs`、`budget_reservation_tests.rs` 和 `child_run_budget_tests.rs` 保留限制收窄、峰值、reservation 顺序及结算去重模型。 |
 | 委托交集 | caller、grant、policy scope 与三方位集合交集一致，满足结合律且不能扩大任何参与方权限。已有两方交换律和幂等模型继续执行。 |
-| 扩展限制 | 完整 map 字节、单 key 字节和条目数接受精确边界，拒绝收窄一个单位；重复条目失败。既有插入顺序/字节会计属性及嵌套 JSON 硬限制的确定性测试继续执行。 |
+| 扩展限制 | 完整 map 字节、单 key 字节和条目数接受精确边界，拒绝收窄一个单位；重复条目失败。独立嵌套树模型核对紧凑字节、深度、容器条目、排除 key 的值节点、解码字符串字节与 key 字节；raw/materialized 构造均符合收窄 profile，精确边界通过、减一拒绝，尾部空白命中 raw 字节门禁。Opaque/schema-bound 扩展的构造和收紧会重新验证原先较宽的值，不能绕过逐值限制。既有插入顺序/字节会计属性与硬限制确定性测试继续执行。 |
 
 本轮值类型证据继续保留。下面的根导出清单补齐全部当前公开序列化类型的
 基准映射；剩余变体组合、嵌套属性及历史迁移验收继续开放。这些测试不构成生产容量、fuzz 资格验证或新版本发布。
+
+[`canonical_time.rs`](../crates/stateknot-core/tests/canonical_time.rs) 还检查时间戳
+20 个数字位置上的全部 2,360 种 ASCII 非数字替换，以及保持字节长度和分隔符的
+Unicode 替换。直接解析、JSON 文本/值 reader 和保留的嵌套 Run transition 均拒绝
+非法时间戳。所有构建 profile 都先校验数字，再执行算术；有效 wire 字节、范围和
+schema pin 保持精确一致。
 
 ### 完整执行 wire 的类型映射
 
