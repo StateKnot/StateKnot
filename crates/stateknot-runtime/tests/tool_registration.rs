@@ -350,14 +350,12 @@ async fn core_optional_producers_dispatch_and_reject_the_actual_old_output_pins(
             ))
             .unwrap();
             let index: usize = input.value.parse().unwrap();
-            let mut wire = fixture["lifecycles"]["valid"][if index < 3 {
-                index
-            } else if index == 3 {
-                1
-            } else {
-                2
-            }]
-            .clone();
+            let variant = match index {
+                0..=2 => index,
+                3 => 1,
+                _ => 2,
+            };
+            let mut wire = fixture["lifecycles"]["valid"][variant].clone();
             if index == 3 {
                 wire.as_object_mut().unwrap().remove("sunset_at");
                 wire.as_object_mut().unwrap().remove("replacement");
