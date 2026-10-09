@@ -26,6 +26,7 @@ cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
+cargo test -p stateknot-core --test canonical_time --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
@@ -91,6 +92,12 @@ Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 
 本轮值类型证据继续保留。下面的根导出清单补齐全部当前公开序列化类型的
 基准映射；剩余变体组合、嵌套属性及历史迁移验收继续开放。这些测试不构成生产容量、fuzz 资格验证或新版本发布。
+
+[`canonical_time.rs`](../crates/stateknot-core/tests/canonical_time.rs) 还检查时间戳
+20 个数字位置上的全部 2,360 种 ASCII 非数字替换，以及保持字节长度和分隔符的
+Unicode 替换。直接解析、JSON 文本/值 reader 和保留的嵌套 Run transition 均拒绝
+非法时间戳。所有构建 profile 都先校验数字，再执行算术；有效 wire 字节、范围和
+schema pin 保持精确一致。
 
 ### 完整执行 wire 的类型映射
 

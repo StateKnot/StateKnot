@@ -13,6 +13,7 @@ cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
+cargo test -p stateknot-core --test canonical_time --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked`;
 ---
 
@@ -142,6 +143,12 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       has independent six-dimension resource and UTF-16 canonical-tree models;
       opaque and schema-bound extensions revalidate previously wider values when
       limits tighten.
+    </p>
+    <p>
+      Timestamp readers reject every ASCII non-digit at all 20 digit positions,
+      fixed-length Unicode and a retained malformed nested Run transition.
+      Decimal arithmetic follows digit validation in every build profile; valid
+      timestamp bytes, ranges and schema pins stay exact.
     </p>
     <p>
       CI rejects missing, unregistered, changed, duplicate, unsafe, oversized,

@@ -17,6 +17,9 @@ The reader list is shared with the closed Core inventory, and fixed positive
 seeds are derived from its exact fixture pointers. The permanent `seeds/`
 directory retains malformed UTF-8, surrogate escapes, duplicate names, unknown
 authority fields, incompatible shapes and the optional producer regressions.
+The timestamp regression retains a malformed nested Run transition and checks
+rejection by the real typed reader; the Core suite independently covers every
+ASCII non-digit position and fixed-length Unicode replacement.
 Deterministic generators add deep structures, oversized strings/keys/container
 counts and schema byte ceilings. Each run's `seeds.json` records source, bytes and
 SHA-256 for every generated seed. No historical version is invented.

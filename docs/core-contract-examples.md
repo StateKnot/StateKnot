@@ -26,6 +26,7 @@ cargo test -p stateknot-core --test dependency_boundary --locked
 cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
+cargo test -p stateknot-core --test canonical_time --locked
 PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
@@ -101,6 +102,13 @@ The value-family evidence remains required. The root-export inventory below
 adds every current serializable public type; variant combinations, nested
 properties and historical migrations remain open acceptance work. These
 tests do not establish production capacity, a fuzz qualification or a new release.
+
+[`canonical_time.rs`](../crates/stateknot-core/tests/canonical_time.rs) also checks
+all 2,360 ASCII non-digit substitutions across the timestamp's 20 digit positions
+and Unicode replacements that preserve its byte length and separators. Direct
+parsing, JSON text/value readers and the retained nested Run transition reject
+malformed timestamps. Digit validation precedes arithmetic in every build
+profile; valid wire bytes, ranges and schema pins remain fixed.
 
 ### Complete execution wire coverage
 

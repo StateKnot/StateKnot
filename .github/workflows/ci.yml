@@ -117,6 +117,12 @@ jobs:
           PROPTEST_RNG_SEED: "20261008"
         run: cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked
 
+      - name: Verify optimized timestamp rejection with overflow checks
+        env:
+          RUSTFLAGS: "-C overflow-checks=on"
+          CARGO_TARGET_DIR: target/core-checked-release
+        run: cargo test -p stateknot-core --test canonical_time --release --locked
+
       - name: Run Clippy
         run: |
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings

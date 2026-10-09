@@ -76,6 +76,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Canonical timestamp parsing validates decimal characters before arithmetic,
+  returning the existing format error across overflow-checking profiles.
+  Exhaustive ASCII-position and fixed-length Unicode regressions cover direct
+  and nested Serde readers, with the synthetic fuzz failure retained as a seed.
+  Valid timestamp bytes, ranges and schema pins remain unchanged.
+
 - `Failure`, `ToolError` and Capability lifecycle output schemas now use their
   actual borrowed serializer wires, preserving optional omission behavior.
   Existing input schema and wire pins stay exact. Incompatible frozen output

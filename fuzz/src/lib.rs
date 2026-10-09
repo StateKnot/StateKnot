@@ -342,4 +342,11 @@ mod tests {
         }
         assert_eq!(tested, 11);
     }
+
+    #[test]
+    fn retained_malformed_timestamp_is_rejected_by_the_real_reader() {
+        assert!(!core_readers(include_bytes!(
+            "../seeds/core_readers/RunTransition-invalid-timestamp"
+        )));
+    }
 }
