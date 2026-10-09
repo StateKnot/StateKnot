@@ -43,7 +43,18 @@ async fn deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_pro
         .connect(&url)
         .await
         .unwrap();
+    // Construct compatible canonical root facts before reconstructing v22.
+    // This source-schema fixture does not execute an old reader or writer.
+    let fixture = driver_fixture();
+    let tenant = tenant("deadline-v22");
+    let deadline = future_deadline(&store, 2).await;
+    let old = admit_deadline(&store, &fixture, tenant.clone(), deadline).await;
+    let run = old.admission().intent().provenance().run_id();
+    store.close().await;
     for fixture in [
+        include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+        ),
         include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
         ),
@@ -66,14 +77,10 @@ async fn deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_pro
             .unwrap(),
         22
     );
-    // The retained connection uses the unchanged v22 admission SQL. This is a
-    // populated SQL-compatibility test, not execution of an old binary artifact.
-    let fixture = driver_fixture();
-    let tenant = tenant("deadline-v22");
-    let deadline = future_deadline(&store, 2).await;
-    let old = admit_deadline(&store, &fixture, tenant.clone(), deadline).await;
-    let run = old.admission().intent().provenance().run_id();
-    store.close().await;
+    assert!(matches!(
+        PostgresStore::connect(&url, options.clone()).await,
+        Err(StoreError::IncompatibleSchema { .. })
+    ));
     PostgresStore::migrate_database(&url, options.clone())
         .await
         .unwrap();

@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Experimental Rust-only compound frame-entry planning binds the complete event,
+  framework start and isolated checkpoint with one domain-separated projection.
+  Its versioned local event schema carries identity/digest data without copied
+  state. Ordinary append/checkpoint/node-start APIs reject the reserved compound
+  kind without partial facts. Atomic store admission and nested dispatch remain
+  pending in RFC-0022.
+
 - Draft RFC-0022 for same-Run namespaced graph frames, with five executable
   private identity checks. It specifies isolated state, bounded scope, durable
   parent continuation and compound journal bindings; runtime/persistence

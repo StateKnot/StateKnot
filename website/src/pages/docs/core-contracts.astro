@@ -14,7 +14,7 @@ cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --test graph_frame_contracts --test graph_frame_calls --test graph_frame_barriers --locked`;
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --test graph_frame_contracts --test graph_frame_calls --test graph_frame_barriers --test graph_frame_entries --locked`;
 ---
 
 <DocsLayout
@@ -131,8 +131,8 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       strict source and duration decoding, schema closure, and tamper rejection.
     </p>
     <p>
-      A closed audit now classifies all 565 public root types: 313 typed
-      readers, two output-only producers and 250 reviewed Rust-only
+      A closed audit now classifies all 568 public root types: 313 typed
+      readers, two output-only producers and 253 reviewed Rust-only
       instantiations. It pins 314 input/default and 314 serialization schemas.
       Earlier readers retain 38 value types and 67 execution types mapped to
       positive and negative evidence. Complete graph, checkpoint, invocation,
@@ -156,9 +156,12 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       matching terminal child plan and fixed route. Only the CompiledGraph and
       ChildRunAdmissionIntent input/output schema profiles change; old root
       wires and definition digests stay exact. Schema 27 adds scoped relational
-      guards and explicit root queries. Complete frame entry/return/wait
-      transactions and fault qualification remain pending; nested execution is
-      not enabled by these data contracts or foreign keys.
+      guards and explicit root queries. A Rust-only compound entry plan binds
+      the complete event, framework start and scoped checkpoint under one
+      projection; it adds no public reader or existing type schema pin change.
+      Complete frame entry/return/wait transactions and fault qualification
+      remain pending; nested execution is not enabled by these data contracts or
+      foreign keys.
     </p>
     <p>
       Two graph and checkpoint models independently check state, route union,

@@ -184,10 +184,10 @@ variant combinations and the complete C2/C3 audit stay open.
 ### Closed public type and schema inventory
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
-checks all 580 named root exports against a
+checks all 583 named root exports against a
 [machine-readable inventory](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json):
-565 types, 11 traits and four constants. The compiler verifies 313 types with
-`Serialize` and `DeserializeOwned`, two output-only types, and 250 reviewed
+568 types, 11 traits and four constants. The compiler verifies 313 types with
+`Serialize` and `DeserializeOwned`, two output-only types, and 253 reviewed
 Rust-only instantiations without `Serialize` or `DeserializeOwned`. Each reader has an explicit fixture
 file/JSON pointer, a canonical wire digest and a generated JSON Schema digest;
 `BudgetRemaining` supplies the 314th schema pin. A separate output inventory
@@ -198,7 +198,7 @@ open-key semantics. New exports, missing typed evidence, and accidental Serde
 implementations fail CI until explicitly reviewed.
 
 [Draft RFC-0022](rfcs/0022-namespaced-graph-frames.md) currently adds six
-experimental frame readers, three Rust-only error types and a Rust-only scoped plan. Current-source frame
+experimental frame readers, four Rust-only error types, two Rust-only plans and a compound entry record. Current-source frame
 and call fixtures, nine frame checks, two independent 256-case models and
 compiler rejection checks cover these data boundaries. Optional `frame_calls`
 enter the compiled definition checksum, explicitly changing both generated
@@ -219,6 +219,18 @@ checks cover the call profile. These Rust-only methods reuse existing data and
 do not add wire/schema pins or authorize persistence/dispatch. PostgreSQL
 migration 27 adds scoped relational guards and explicit root queries; atomic
 frame entry/return, wait ownership and fault qualification remain pending.
+`GraphFrameEntryPlan` now binds the exact caller/target, isolated checkpoint
+intent, distinct framework attempt and worker fence before an event exists.
+Its compact, versioned local event schema contains identities/digests, not child
+state. Materialization checks the exact observed predecessor and entire event,
+then derives the framework start, scoped checkpoint and one compound projection
+digest. `verify_committed` recomputes and checks every component; independently
+valid substituted starts/checkpoints and arbitrary component projection digests
+are rejected. Nine Core checks and a production offline-registry check cover
+this data boundary. The Rust-only plan/record/error add no public Serde reader
+or change to existing public type schema pins. Atomic store admission, inherited
+limits and active-leaf/live-fence authority still require implementation.
+
 The 181 object readers and 308 pins in the RFC-0021 account below describe its
 original adoption baseline; the six additions use the same map-only guard.
 

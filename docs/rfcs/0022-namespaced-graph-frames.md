@@ -166,6 +166,37 @@ references and catalog drift. Their manually inserted scoped rows establish
 relational guards, not frame admission, compound journal authority, nested
 execution or true historical N-1/N-2 compatibility.
 
+The Rust-only `GraphFrameEntryPlan` and `GraphFrameEntry` now define a closed
+compound entry binding. The pre-event intent hashes
+`stateknot-graph-frame-entry-intent-v1\0 || JCS({ version, parent_graph, frame,
+checkpoint_intent_digest, caller_attempt_id, fence })`. The version-1
+`graph-frame-entered` payload adds this intent digest and uses the generated
+output schema at `https://stknot.com/schemas/core/graph-frame-entry-event/1.0.0`,
+pinned from RFC 8785 schema bytes. It carries no copied state. Materialization
+requires the exact next event and predecessor digest for the observed Run head,
+matching tenant/Run, worker source, schema and complete payload. The record
+hashes `stateknot-graph-frame-entry-record-v1\0 || JCS({ intent_digest, event,
+caller_start_digest, checkpoint })`, where `checkpoint` is the full scoped head.
+Both components share the event anchor; neither legacy component digest is an
+acceptable compound projection. Reload verification recomputes the complete
+record and checks the exact start and scoped checkpoint independently.
+
+Nine Core constructor checks cover independent intent/record preimages,
+physical identity/fence changes, crossed/replaced observations, closed event
+profiles, event predecessor substitution, independently valid changed components
+and actual scoped entry. The generated event producer is additionally checked
+against the production offline schema registry. These Rust-only types add no
+public Serde reader or changes to existing public type schema pins. The store
+must still reload admitted closure/active leaf/inherited bounds and repeat the
+live fence in its complete atomic admission transaction; these constructors do
+not persist an entry or grant launch authority.
+
+Ordinary PostgreSQL append, checkpoint and node-start APIs reserve this event
+kind and reject it instead of storing a legacy component projection. A native
+database check covers both control-plane and worker initial-checkpoint paths,
+ordinary appends and node starts, including rollback of every partial fact.
+The dedicated complete frame transaction remains pending.
+
 ## Detailed semantics
 
 ### Logical identity and scope

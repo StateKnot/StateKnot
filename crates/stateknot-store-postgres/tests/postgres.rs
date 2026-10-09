@@ -5,6 +5,8 @@
 
 #[path = "postgres/child_upgrade.rs"]
 mod child_upgrade;
+#[path = "postgres/frame_entries.rs"]
+mod frame_entries;
 #[path = "postgres/frame_scope.rs"]
 mod frame_scope;
 

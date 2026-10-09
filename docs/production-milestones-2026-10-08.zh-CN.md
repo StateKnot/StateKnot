@@ -146,7 +146,9 @@ Graph 的两个独立模型补齐节点插入/结果输入顺序、状态和 rou
 [#161](https://github.com/StateKnot/StateKnot/pull/161) 保持草稿并持续开发。除五项
 私有身份原型外，实验性 Core 帧身份/检查点/head 已有严格 reader、scope/pin/journal
 校验、九项确定性检查和两个各 256 样例的独立模型，七层激活由真实 scoped
-checkpoint 派生。六个实验性 reader、三个 Rust-only 错误类型及 scoped plan 纳入当前清单：580 个根导出、
+checkpoint 派生。复合入栈 plan 另绑定预事件意图、框架 start、scoped
+checkpoint、同一精确事件前驱及总投影；九项 Core 检查和生产离线 schema 检查
+覆盖替换拒绝。它仍不产生 SQL 入栈/dispatch 权限。六个实验性 reader、四个 Rust-only 错误类型、两个 plan 及入栈复合记录纳入当前清单：583 个根导出、
 313 个 reader、两组各 314 个 schema pin 和 47 份数据文档。调用声明进入
 编译图摘要，serial caller、固定返回 route、schema/owner、实际闭包 pin/depth/bytes
 及应用 executor 冲突有编译器/注册表检查；静态组合不能丢弃帧声明。
@@ -159,6 +161,11 @@ terminal output 与固定 route 校验，调用 profile 共十一项构造器检
 生成式根指针及显式根查询，21 项新约束、8 列和 7 个唯一索引进入精确 catalog。
 PostgreSQL 16/17 的非空源码 schema 26→27 与 scope 外键检查已执行；
 其手工 scoped 行仅证明关系约束，不证明帧准入或复合 journal 事务。
+新增帧入口事件在普通 append、initial checkpoint 与 node-start 路径被明确拒绝，
+数据库检查核对没有遗留事件、checkpoint 或 attempt claim。此前迁移 27 导致四个
+旧源码 schema 夹具的版本重建失败；现已先保留兼容事实，再撤销夹具中的新迁移，
+并核对当前 reader 拒绝旧 schema。PostgreSQL 16/17 各 140 项完整 runtime
+测试均已实际通过。这些是源码重建夹具，不能替代真实历史二进制兼容性验收。
 完整 registry/driver、入栈/返回/等待事务及故障矩阵仍未交付；当前草稿没有
 嵌套执行支持，也没有真实历史 N-1/N-2 兼容性结论。
 后续 fuzz 时间戳反例已保留，数字校验先于算术；全部 ASCII 非数字位置、

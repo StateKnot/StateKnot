@@ -88,6 +88,7 @@ mod graph_composition;
 mod graph_frame;
 mod graph_frame_barrier;
 mod graph_frame_call;
+mod graph_frame_entry;
 mod identity;
 mod ids;
 mod journal;
@@ -207,6 +208,7 @@ pub use graph_frame::{
 };
 pub use graph_frame_barrier::{GraphFrameBarrier, GraphFrameBarrierError};
 pub use graph_frame_call::{GraphFrameCall, GraphFrameCallPolicy, GraphFrameCompileError};
+pub use graph_frame_entry::{GraphFrameEntry, GraphFrameEntryError, GraphFrameEntryPlan};
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
     AgentSubmissionKey, AgentSubmissionKeyError, ArtifactId, AttemptId, AuthorizationReceiptId,

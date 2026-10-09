@@ -2012,6 +2012,30 @@
       "vectors": [],
       "schema_digest": null
     },
+    "GraphFrameEntry": {
+      "module": "graph_frame_entry",
+      "kind": "struct",
+      "rust_type": "GraphFrameEntry",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameEntryError": {
+      "module": "graph_frame_entry",
+      "kind": "enum",
+      "rust_type": "GraphFrameEntryError",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameEntryPlan": {
+      "module": "graph_frame_entry",
+      "kind": "struct",
+      "rust_type": "GraphFrameEntryPlan",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
     "GraphFrameError": {
       "module": "graph_frame",
       "kind": "enum",

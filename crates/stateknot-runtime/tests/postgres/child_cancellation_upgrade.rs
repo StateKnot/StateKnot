@@ -54,8 +54,32 @@ async fn populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutabl
         .intent()
         .provenance()
         .run_id();
-    // Only this isolated fixture is downgraded. Retain v20 ownership and live writer.
+    let cancel = cancel_run(&store, key.tenant_id(), key.parent_run_id()).await;
+    let audit = JournalAppend::new(
+        JournalExpectation::exact(cancel.clone()),
+        JournalEventIntent::control_plane(
+            key.tenant_id().clone(),
+            key.parent_run_id(),
+            EventId::generate(),
+            payload("later-parent-audit"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let later = store
+        .append_control_plane(audit, RunProjection::unchanged())
+        .await
+        .unwrap()
+        .event()
+        .head();
+    store.close().await;
+    // Prepare canonical compatible root facts with the current writer, then
+    // reconstruct the isolated populated v20 schema without its later witness.
+    // This does not execute an old binary or support production downgrades.
     for sql in [
+        include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+        ),
         include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
         ),
@@ -93,25 +117,10 @@ async fn populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutabl
             .unwrap(),
         20
     );
-    let cancel = cancel_run(&store, key.tenant_id(), key.parent_run_id()).await;
-    let audit = JournalAppend::new(
-        JournalExpectation::exact(cancel.clone()),
-        JournalEventIntent::control_plane(
-            key.tenant_id().clone(),
-            key.parent_run_id(),
-            EventId::generate(),
-            payload("later-parent-audit"),
-        )
-        .unwrap(),
-    )
-    .unwrap();
-    let later = store
-        .append_control_plane(audit, RunProjection::unchanged())
-        .await
-        .unwrap()
-        .event()
-        .head();
-    store.close().await;
+    assert!(matches!(
+        PostgresStore::connect(&url, options.clone()).await,
+        Err(StoreError::IncompatibleSchema { .. })
+    ));
     PostgresStore::migrate_database(&url, options.clone())
         .await
         .unwrap();

@@ -76,6 +76,9 @@ pub enum ConfigurationError {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum StoreError {
+    /// Reserved frame-entry facts cannot be inserted through ordinary append APIs.
+    #[error("graph frame entry requires the complete compound transaction")]
+    GraphFrameCompoundRequired,
     /// The failure-close boundary lacks complete settled direct evidence or scope.
     #[error("invalid failure close boundary or evidence")]
     InvalidRunFailureClose,

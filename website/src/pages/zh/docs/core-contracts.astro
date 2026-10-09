@@ -14,7 +14,7 @@ cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --test graph_frame_contracts --test graph_frame_calls --test graph_frame_barriers --locked`;
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --test graph_frame_contracts --test graph_frame_calls --test graph_frame_barriers --test graph_frame_entries --locked`;
 ---
 
 <DocsLayout
@@ -134,8 +134,8 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       项仍保持开放，继续完成剩余审查。
     </p>
     <p>
-      封闭审计现已分类全部 565 个公开根类型：313 个逐型 reader、两个仅输出
-      生产者及 250 个 Rust-only 代表实例，并分别固定 314 个输入/default 和 314
+      封闭审计现已分类全部 568 个公开根类型：313 个逐型 reader、两个仅输出
+      生产者及 253 个 Rust-only 代表实例，并分别固定 314 个输入/default 和 314
       个序列化 schema 摘要。 原有 38 个值类型和 67
       个执行类型的正向与负向证据继续保留。完整的
       Graph、Checkpoint、invocation、Outbox 和 wait wire 保留原有构造器摘要。
@@ -153,7 +153,9 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       调用准备复制精确父状态快照，返回准备只接受对应的 terminal 子图 plan 与固定
       route。仅 CompiledGraph、ChildRunAdmissionIntent 的两个 schema profile
       显式变化，旧根 wire 与定义摘要保持一致。Schema 27 加入 scoped
-      外键和显式根查询；完整入栈/返回/等待事务与故障验收仍待完成，这些数据
+      外键和显式根查询。Rust-only 入栈复合 plan 以一个投影绑定完整事件、框架
+      start 和 scoped checkpoint，没有新增公开 reader 或改变原有类型 schema
+      pin。 完整入栈/返回/等待事务与故障验收仍待完成，这些数据
       合约或外键不启用嵌套执行。
     </p>
     <p>

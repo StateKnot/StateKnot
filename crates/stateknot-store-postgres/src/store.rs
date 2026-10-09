@@ -33,26 +33,27 @@ use stateknot_core::{
     CanonicalJson, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
     CheckpointLineageVerifier, CheckpointState, CheckpointWrite, CompiledGraph, DeliveryFence,
     DeliveryId, DestinationId, Digest, DurableTimer, DurableTimerRecord, DurableWait, EventId,
-    Failure, FencingEpoch, GraphBarrierPlanError, GraphNamespace, GraphReducer, GraphReducerError,
-    GraphReference, GraphSchemaValidationError, GraphSchemaValidator, InterruptId, InterruptRecord,
-    InterruptRequest, InterruptResolution, InterruptResolutionIntent, InvocationId, JournalAppend,
-    JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent, JournalEventSource,
-    JournalHead, JournalPayload, JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation,
-    ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
-    ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
-    ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeAttempt,
-    NodeAttemptCompletion, NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart,
-    NodeAttemptStartHead, NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding,
-    NodeInvocationBindingKind, OutboxAttempt, OutboxAttemptCompletion,
-    OutboxAttemptHistoryVerifier, OutboxAttemptOutcome, OutboxAttemptStart, OutboxDelivery,
-    OutboxDeliveryIntent, OutboxDeliveryStatus, OutboxDestinationRef, PendingNodeResult,
-    PendingNodeResultError, PendingNodeResultHead, PendingNodeResultIntent, QuarantineId,
-    ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind, ResolvedBudget,
-    RetryAdvice, RunFence, RunId, RunInterruptKind, RunLease, RunLeaseValidationError,
-    RunLifecycle, RunRevision, RunStatus, RunTimerKind, RunTransition, RunTransitionKind, RunWaits,
-    SchedulerReservationId, SchedulerShardId, Superstep, TenantId, TimerFiring, TimerFiringIntent,
-    TimerId, Timestamp, ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier,
-    ToolInvocationIntent, ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    Failure, FencingEpoch, GraphBarrierPlanError, GraphFrameEntryPlan, GraphNamespace,
+    GraphReducer, GraphReducerError, GraphReference, GraphSchemaValidationError,
+    GraphSchemaValidator, InterruptId, InterruptRecord, InterruptRequest, InterruptResolution,
+    InterruptResolutionIntent, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
+    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalPayload,
+    JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
+    ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
+    ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
+    ModelInvocationTransitionKind, NodeActivation, NodeAttempt, NodeAttemptCompletion,
+    NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart, NodeAttemptStartHead,
+    NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding, NodeInvocationBindingKind,
+    OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptHistoryVerifier, OutboxAttemptOutcome,
+    OutboxAttemptStart, OutboxDelivery, OutboxDeliveryIntent, OutboxDeliveryStatus,
+    OutboxDestinationRef, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
+    PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner,
+    ReadyNodes, RecoveryNodeKind, ResolvedBudget, RetryAdvice, RunFence, RunId, RunInterruptKind,
+    RunLease, RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTimerKind,
+    RunTransition, RunTransitionKind, RunWaits, SchedulerReservationId, SchedulerShardId,
+    Superstep, TenantId, TimerFiring, TimerFiringIntent, TimerId, Timestamp, ToolInvocation,
+    ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
+    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
     ToolInvocationTransitionKind, WaitRegistrationIntent,
 };
 use uuid::Uuid;
@@ -17495,6 +17496,12 @@ async fn insert_event(
     event: &JournalEvent,
     projection_digest: Digest,
 ) -> Result<(), StoreError> {
+    // Entry binds multiple immutable components and requires its dedicated
+    // compound transaction; none of the legacy single-projection APIs may
+    // insert this reserved kind with an ordinary component projection.
+    if event.payload().kind().as_str() == GraphFrameEntryPlan::EVENT_KIND {
+        return Err(StoreError::GraphFrameCompoundRequired);
+    }
     let (source_kind, worker_attempt_id, worker_epoch, worker_write) = match event.source() {
         JournalEventSource::ControlPlane => ("control_plane", None, None, false),
         JournalEventSource::Worker { fence } => (

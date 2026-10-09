@@ -159,11 +159,11 @@ fixture 证据；N-1/N-2 迁移、剩余类型族/变体组合及完整 C2/C3 �
 ### 封闭的公开类型与 schema 清单
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
-将全部 580 个根导出项与
+将全部 583 个根导出项与
 [机器可读清单](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json)
-逐一比较：565 个类型、11 个 trait、四个常量。编译器核对 313 个同时支持
+逐一比较：568 个类型、11 个 trait、四个常量。编译器核对 313 个同时支持
 `Serialize` 与 `DeserializeOwned` 的类型、两个仅支持输出的类型，以及
-250 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
+253 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
 fixture 文件/JSON pointer、规范 wire 摘要和生成的 JSON Schema 摘要；
 `BudgetRemaining` 提供第 314 个 schema pin；独立输出清单另固定全部 314 个
 序列化 profile，已变更 pin 必须显式审查。318 项矩阵检查拒绝不匹配的
@@ -172,7 +172,7 @@ Bounded JSON 与扩展 map 保留开放 key 语义。新增导出、缺少逐型
 引入的 Serde 实现会使 CI 失败，直至完成明确审查。
 
 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md) 当前新增六个实验性帧
-reader、三个 Rust-only 错误类型和一个 Rust-only scoped plan。帧身份/检查点与调用声明有独立当前源码
+reader、四个 Rust-only 错误类型、两个 Rust-only plan 和一个入栈复合记录。帧身份/检查点与调用声明有独立当前源码
 fixture、九项帧检查、两个各 256 样例的独立模型及编译器负向检查。
 `CompiledGraph` 的可选 `frame_calls` 纳入定义摘要，因而其生成 schema 和
 包含它的 `ChildRunAdmissionIntent` schema 的两个 profile 均显式更新；
@@ -190,6 +190,15 @@ active leaf、fence 或父返回权限。
 调用 profile 共十一项构造器检查。这些 Rust-only 方法复用原有数据类型，
 不新增 wire/schema pin，也不授权持久化或派发。PostgreSQL 迁移 27 加入
 scoped 外键及显式根查询；帧入栈/返回事务、等待所有权和故障验收仍待交付。
+
+`GraphFrameEntryPlan` 在事件生成前绑定精确 caller/target、隔离 checkpoint
+意图、独立框架 attempt 和 worker fence。版本化本地事件 schema 仅携带身份
+与摘要；materialize 核对完整事件与精确前驱，生成同一 journal anchor 的 start、
+scoped checkpoint 和一个复合投影摘要。`verify_committed` 重新核对全部组成，
+拒绝独立有效的替换 start/checkpoint 及单个组件投影。九项 Core 检查及生产离线
+schema 注册表检查覆盖该数据边界；Rust-only plan/记录/错误没有新增公开 Serde
+reader 或改变原有类型 schema pin。实际入栈事务、继承限制、active leaf 和
+数据库时钟下的 live fence 校验仍须实现。
 
 [RFC-0021](rfcs/0021-core-object-readers.md) 要求全部 181 个封闭对象 reader
 使用已公布的对象形状。流式 map 门禁复用原 owned 字段 reader、重复/未知字段
