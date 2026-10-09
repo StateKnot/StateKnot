@@ -79,6 +79,18 @@ pub enum StoreError {
     /// Reserved frame-entry facts cannot be inserted through ordinary append APIs.
     #[error("graph frame entry requires the complete compound transaction")]
     GraphFrameCompoundRequired,
+    /// No immutable frame entry exists in the exact tenant/Run/namespace.
+    #[error("graph frame entry was not found")]
+    GraphFrameNotFound,
+    /// Frame identity, call, state or logical admission conflicts.
+    #[error("graph frame admission conflicts with durable evidence")]
+    GraphFrameConflict,
+    /// The declared call, pinned closure or entry context is invalid.
+    #[error("graph frame admission was rejected")]
+    GraphFrameRejected,
+    /// An inherited lifetime or depth ceiling was exhausted.
+    #[error("graph frame inherited limit reached")]
+    GraphFrameLimitExceeded,
     /// The failure-close boundary lacks complete settled direct evidence or scope.
     #[error("invalid failure close boundary or evidence")]
     InvalidRunFailureClose,
@@ -627,6 +639,8 @@ impl StoreError {
             .and_then(sqlx_core::error::DatabaseError::code)
             .as_deref()
         {
+            Some("SKG01") => return Self::GraphFrameConflict,
+            Some("SKG02") => return Self::GraphFrameCompoundRequired,
             Some("SKC01") => return Self::UnsupportedChildRuntime,
             Some("SKC02") => return Self::UnsettledChildRuns,
             Some("SKC03") => return Self::ChildBudgetObservationRequired,

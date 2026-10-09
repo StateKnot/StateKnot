@@ -9,6 +9,8 @@ mod child_upgrade;
 mod frame_entries;
 #[path = "postgres/frame_scope.rs"]
 mod frame_scope;
+#[path = "postgres/frame_transactions.rs"]
+mod frame_transactions;
 
 use std::{
     borrow::Cow,

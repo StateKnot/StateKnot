@@ -6,9 +6,13 @@
 use super::*;
 use sqlx_core::{connection::ConnectOptions, query_as::query_as, raw_sql::raw_sql};
 use sqlx_postgres::{PgConnectOptions, PgPool, PgPoolOptions, PgSslMode};
-use stateknot_core::SchedulerReservationId;
+use stateknot_core::{
+    AgentAdmission, AgentAdmissionIntent, GraphFrameEntryPlan, GraphSchemaValidator,
+    SchedulerReservationId,
+};
 use stateknot_store_postgres::{
-    SchedulerFairnessPolicyRegistration, SchedulerFairnessRetentionPolicy,
+    AgentAdmissionCommitOutcome, GraphFrameEntryCommitOutcome, SchedulerFairnessPolicyRegistration,
+    SchedulerFairnessRetentionPolicy,
 };
 
 const PROFILE: &str =
@@ -164,6 +168,10 @@ async fn privilege_rejections(fixture: &Fixture) {
             "UPDATE stateknot.run_checkpoints SET checkpoint_digest=checkpoint_digest WHERE false",
             "UPDATE stateknot.tool_authorization_receipts SET receipt_bytes=receipt_bytes WHERE false",
             "UPDATE stateknot.runs SET tenant_id=tenant_id WHERE false",
+            "UPDATE stateknot.graph_frame_entries SET compound_digest=compound_digest WHERE false",
+            "UPDATE stateknot.graph_frame_heads SET frame_identity_digest=frame_identity_digest WHERE false",
+            "UPDATE stateknot.graph_frame_stacks SET admission_digest=admission_digest WHERE false",
+            "DELETE FROM stateknot.graph_frame_entries WHERE false",
             "DELETE FROM stateknot.run_events WHERE false",
             "DELETE FROM stateknot.tool_authorization_receipts WHERE false",
             "TRUNCATE stateknot.run_events",
@@ -402,6 +410,170 @@ async fn skill_acting_window_authorization(store: &PostgresStore) {
     ));
 }
 
+struct RoleFrameSchemas;
+impl GraphSchemaValidator for RoleFrameSchemas {
+    fn validate(
+        &self,
+        _: &SchemaReference,
+        _: &BoundedJson,
+    ) -> Result<(), GraphSchemaValidationError> {
+        Ok(())
+    }
+}
+
+// This qualifies the compound Store transaction under the real runtime login;
+// the framework call is not dispatched through an experimental graph driver.
+#[allow(clippy::too_many_lines)]
+async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore) {
+    let wire: Value = serde_json::from_str(include_str!(
+        "../../../stateknot-core/tests/fixtures/core-graph-frame-call-v1.json"
+    ))
+    .unwrap();
+    let parent: CompiledGraph = serde_json::from_value(wire["compiled"].clone()).unwrap();
+    let child: CompiledGraph = serde_json::from_value(wire["child"].clone()).unwrap();
+    let tenant_id = tenant("role-frame-entry");
+    for graph in [&parent, &child] {
+        store
+            .register_graph_definition(tenant_id.clone(), graph.clone())
+            .await
+            .unwrap();
+    }
+    let driver = driver_fixture();
+    let template = durable_admission_request(
+        &driver,
+        tenant_id.clone(),
+        AgentRunIds::generate(),
+        driver.graph.output_schema().clone(),
+        driver.graph.input_schema().clone(),
+    );
+    let template = template.intent();
+    let run = template.provenance().run_id();
+    let intent = AgentAdmissionIntent::new(
+        template.provenance().clone(),
+        template.descriptor().clone(),
+        template.request().clone(),
+        template.budget_layers().iter().cloned(),
+        parent.reference(),
+        template.authority().clone(),
+    )
+    .unwrap();
+    let payload = JournalPayload::new(
+        parent.state_schema().clone(),
+        AgentAdmission::JOURNAL_EVENT_KIND.parse().unwrap(),
+        BoundedJson::try_from_value(json!({"intent_digest": intent.intent_digest().to_string()}))
+            .unwrap(),
+    )
+    .unwrap();
+    let append = JournalAppend::new(
+        JournalExpectation::empty(),
+        JournalEventIntent::control_plane(tenant_id.clone(), run, EventId::generate(), payload)
+            .unwrap(),
+    )
+    .unwrap();
+    let write = CheckpointWrite::initial(
+        tenant_id.clone(),
+        run,
+        CheckpointId::generate(),
+        parent.reference(),
+        CheckpointState::new(
+            parent.state_schema().clone(),
+            BoundedJson::try_from_value(json!({"count":7,"source":"parent"})).unwrap(),
+        )
+        .unwrap(),
+        parent.entry_nodes().clone(),
+    )
+    .unwrap();
+    let AgentAdmissionCommitOutcome::Committed(admission) =
+        Box::pin(store.admit_agent_run(intent, append, write, &RoleFrameSchemas))
+            .await
+            .unwrap()
+    else {
+        panic!("new role-separated Root admission")
+    };
+    let lease = store
+        .claim_lease(&tenant_id, run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let plan = GraphFrameEntryPlan::for_root(
+        &parent.frame_calls().unwrap().calls()[0],
+        &parent,
+        admission.checkpoint(),
+        &child,
+        CheckpointId::generate(),
+        AttemptId::generate(),
+        lease.fence().clone(),
+    )
+    .unwrap();
+    let usage = BudgetUsage::builder()
+        .graph_depth(ExecutionCount::new(1))
+        .event_bytes(ByteCount::new(
+            serde_json_canonicalizer::to_vec(admission.event())
+                .unwrap()
+                .len() as u64,
+        ))
+        .checkpoint_bytes(ByteCount::new(
+            serde_json_canonicalizer::to_vec(admission.checkpoint())
+                .unwrap()
+                .len() as u64,
+        ))
+        .build()
+        .unwrap();
+    let outcomes = futures_util::future::join_all((0..24).map(|_| {
+        Box::pin(store.enter_graph_frame(
+            plan.clone(),
+            EventId::generate(),
+            admission.event().head(),
+            usage.clone(),
+            &RoleFrameSchemas,
+        ))
+    }))
+    .await;
+    let mut committed = 0;
+    let mut digest = None;
+    for outcome in outcomes {
+        let record = match outcome.unwrap() {
+            GraphFrameEntryCommitOutcome::Committed(record) => {
+                committed += 1;
+                record
+            }
+            GraphFrameEntryCommitOutcome::Idempotent(record) => record,
+            _ => panic!("unexpected frame entry outcome"),
+        };
+        assert_eq!(*digest.get_or_insert(record.digest()), record.digest());
+    }
+    assert_eq!(committed, 1);
+    let entry = Box::pin(store.load_graph_frame_entry(&tenant_id, run, plan.frame().namespace()))
+        .await
+        .unwrap();
+    assert_eq!(Some(entry.digest()), digest);
+    assert_eq!(
+        store
+            .load_node_attempt(&tenant_id, &run, plan.attempt_id())
+            .await
+            .unwrap()
+            .start(),
+        entry.entry().start()
+    );
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tenant_id, run)
+            .await
+            .unwrap()
+            .as_ref(),
+        Some(admission.checkpoint())
+    );
+    let counts: (i64,i64,i64) = query_as("SELECT (SELECT count(*) FROM stateknot.run_events WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.run_checkpoints WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2)")
+        .bind(tenant_id.as_str()).bind(*run.as_uuid()).fetch_one(&fixture.runtime).await.unwrap();
+    assert_eq!(counts, (2, 2, 1));
+    denied(
+        &fixture.retention,
+        "SELECT * FROM stateknot.graph_frame_entries LIMIT 1",
+    )
+    .await;
+}
+
 async fn isolated_retention(fixture: &Fixture, runtime: &PostgresStore) {
     let retention = PostgresStore::connect(&fixture.retention_url, options())
         .await
@@ -480,6 +652,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     Box::pin(crate::qualify_provider_native_with_store(&store, false)).await;
     node_completion_race(&store).await;
     skill_acting_window_authorization(&store).await;
+    Box::pin(compound_frame_entry(&fixture, &store)).await;
     isolated_retention(&fixture, &store).await;
     let snapshot = "SELECT jsonb_agg(jsonb_build_array(tenant_id,run_id,journal_sequence,journal_digest) ORDER BY tenant_id,run_id) FROM stateknot.runs";
     let before: Value = query_scalar(snapshot)
@@ -501,7 +674,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 27);
+    assert_eq!(schema_version, 28);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -514,6 +687,8 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "agent_service_submission":true,"provider_native_recovery":true,
         "concurrent_submission_and_completion":24,
         "skill_acting_window_authorization":true,
+        "compound_frame_entry_race":24,
+        "compound_frame_entry_reload":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"

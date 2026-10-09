@@ -94,6 +94,10 @@ mod skill_activation_windows;
 #[path = "scoped_checkpoints.rs"]
 mod scoped_checkpoints;
 
+#[path = "graph_frames.rs"]
+mod graph_frames;
+pub use graph_frames::{GraphFrameEntryCommitOutcome, StoredGraphFrameEntry};
+
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
     ArtifactRegistration, ArtifactRegistrationOutcome, ArtifactStorageLocator,
@@ -390,6 +394,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed("scoped checkpoints"),
             MigrationType::Simple,
             Cow::Borrowed(include_str!("../migrations/0027_scoped_checkpoints.sql")),
+            false,
+        ),
+        Migration::new(
+            28,
+            Cow::Borrowed("compound graph frame entries"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0028_graph_frame_entries.sql")),
             false,
         ),
     ]),
@@ -3276,6 +3287,7 @@ impl PostgresStore {
         agent_deadlines::verify_schema(&self.pool).await?;
         failure_closes::verify_schema(&self.pool).await?;
         scoped_checkpoints::verify_schema(&self.pool).await?;
+        graph_frames::verify_schema(&self.pool).await?;
         Ok(())
     }
 
@@ -12267,7 +12279,11 @@ async fn verify_checkpoint_anchor(
         .map_err(|source| StoreError::database("checkpoint anchor verification", source))?
         .ok_or_else(|| StoreError::corrupt("checkpoint journal anchor"))?;
     let event = decode_event(row)?;
-    if event.head() != *checkpoint.journal_head() {
+    if event.head() != *checkpoint.journal_head()
+        || event.payload().kind().as_str() == GraphFrameEntryPlan::EVENT_KIND
+    {
+        // Ordinary checkpoint reads prove Root scope. A frame entry can only
+        // authenticate its child checkpoint through the whole scoped bundle.
         return Err(StoreError::corrupt("checkpoint journal anchor"));
     }
     Ok(())
@@ -12906,7 +12922,6 @@ fn encode_checkpoint(checkpoint: &Checkpoint) -> Result<Vec<u8>, StoreError> {
     Ok(bytes)
 }
 
-#[allow(clippy::too_many_lines)]
 fn decode_checkpoint(row: CheckpointRow) -> Result<Checkpoint, StoreError> {
     if !row.graph_namespace.is_empty()
         || row.frame_identity_digest.is_some()
@@ -12915,6 +12930,13 @@ fn decode_checkpoint(row: CheckpointRow) -> Result<Checkpoint, StoreError> {
     {
         return Err(StoreError::corrupt("root checkpoint namespace binding"));
     }
+    decode_checkpoint_components(row)
+}
+
+// Shared byte/projection checks are scope-neutral. Each caller validates its
+// complete root or frame envelope before reaching this private decoder.
+#[allow(clippy::too_many_lines)]
+fn decode_checkpoint_components(row: CheckpointRow) -> Result<Checkpoint, StoreError> {
     if row.checkpoint_bytes.is_empty() || row.checkpoint_bytes.len() > MAX_CHECKPOINT_BYTES {
         return Err(StoreError::corrupt("checkpoint byte length"));
     }
@@ -15664,6 +15686,9 @@ async fn verify_node_attempt_start(
     transaction: &mut Transaction<'_, Postgres>,
     start: &NodeAttemptStart,
 ) -> Result<JournalEvent, StoreError> {
+    if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
+        return Ok(event);
+    }
     verify_node_attempt_base_checkpoint(transaction, start).await?;
     verify_node_attempt_anchor(
         transaction,
@@ -17502,6 +17527,15 @@ async fn insert_event(
     if event.payload().kind().as_str() == GraphFrameEntryPlan::EVENT_KIND {
         return Err(StoreError::GraphFrameCompoundRequired);
     }
+    insert_event_components(transaction, event, projection_digest).await
+}
+
+// Called only by the ordinary kind guard or a fully verified framework bundle.
+async fn insert_event_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+    projection_digest: Digest,
+) -> Result<(), StoreError> {
     let (source_kind, worker_attempt_id, worker_epoch, worker_write) = match event.source() {
         JournalEventSource::ControlPlane => ("control_plane", None, None, false),
         JournalEventSource::Worker { fence } => (
@@ -18345,6 +18379,7 @@ WHERE current_run.tenant_id = $1
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 async fn insert_node_attempt_start(
     transaction: &mut Transaction<'_, Postgres>,
     start: &NodeAttemptStart,
@@ -18396,9 +18431,17 @@ SELECT
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $3
-  AND current_run.checkpoint_superstep = $4
-  AND current_run.checkpoint_digest = $5
+  AND (
+    ($10 = '' AND current_run.checkpoint_id = $3
+      AND current_run.checkpoint_superstep = $4 AND current_run.checkpoint_digest = $5)
+    OR ($10 <> '' AND EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_heads h
+      JOIN stateknot.graph_frame_stacks s USING (tenant_id,run_id)
+      WHERE h.tenant_id=$1 AND h.run_id=$2 AND h.graph_namespace=$10
+        AND s.active_namespace=$10 AND s.active_frame_identity_digest=h.frame_identity_digest
+        AND h.checkpoint_id=$3 AND h.superstep=$4 AND h.checkpoint_digest=$5
+    ))
+  )
   AND current_run.lease_attempt_id = $15
   AND current_run.fencing_epoch = $16
   AND current_run.lease_expires_at > clock_timestamp()
@@ -19582,6 +19625,23 @@ async fn insert_checkpoint(
     checkpoint: &Checkpoint,
     source: &JournalEventSource,
 ) -> Result<(), StoreError> {
+    insert_checkpoint_components(transaction, checkpoint, source, None).await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_checkpoint_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    checkpoint: &Checkpoint,
+    source: &JournalEventSource,
+    frame: Option<&stateknot_core::GraphFrameCheckpoint>,
+) -> Result<(), StoreError> {
+    let frame_header = frame
+        .map(|frame| serde_json_canonicalizer::to_vec(&frame.head()))
+        .transpose()
+        .map_err(|_| StoreError::encoding("scoped checkpoint header"))?;
+    if frame.is_some_and(|frame| frame.checkpoint() != checkpoint) {
+        return Err(StoreError::GraphFrameConflict);
+    }
     let checkpoint_bytes = encode_checkpoint(checkpoint)?;
     let superstep = i64::try_from(checkpoint.superstep().get())
         .map_err(|_| StoreError::encoding("checkpoint superstep"))?;
@@ -19629,20 +19689,29 @@ INSERT INTO stateknot.run_checkpoints (
     state_digest,
     intent_digest,
     checkpoint_digest,
-    checkpoint_bytes
+    checkpoint_bytes,
+    graph_namespace, frame_identity_digest, frame_checkpoint_digest, frame_checkpoint_head_bytes
 )
 SELECT
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $22, $23, $24, $25
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
   AND (
+    ($22 = '' AND (
       ($5::uuid IS NULL AND current_run.checkpoint_id IS NULL)
-      OR (
-          current_run.checkpoint_id = $5
+      OR (current_run.checkpoint_id = $5
           AND current_run.checkpoint_superstep = $6
-          AND current_run.checkpoint_digest = $7
+          AND current_run.checkpoint_digest = $7)
+    )) OR ($22 <> '' AND (
+      ($5::uuid IS NULL AND NOT EXISTS (
+        SELECT 1 FROM stateknot.graph_frame_heads h WHERE h.tenant_id=$1 AND h.run_id=$2 AND h.graph_namespace=$22
+      )) OR EXISTS (
+        SELECT 1 FROM stateknot.graph_frame_heads h WHERE h.tenant_id=$1 AND h.run_id=$2
+          AND h.graph_namespace=$22 AND h.frame_identity_digest=$23
+          AND h.checkpoint_id=$5 AND h.superstep=$6 AND h.checkpoint_digest=$7
       )
+    ))
   )
   AND (
       $20::uuid IS NULL
@@ -19675,6 +19744,10 @@ WHERE current_run.tenant_id = $1
     .bind(checkpoint_bytes)
     .bind(worker_attempt_id)
     .bind(worker_epoch)
+    .bind(frame.map_or("", |frame| frame.frame().namespace().as_str()))
+    .bind(frame.map(|frame| frame.frame().digest().as_bytes().to_vec()))
+    .bind(frame.map(|frame| frame.digest().as_bytes().to_vec()))
+    .bind(frame_header)
     .execute(&mut **transaction)
     .await
     .map_err(|source| StoreError::database("checkpoint insert", source))?

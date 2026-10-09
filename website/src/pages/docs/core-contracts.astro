@@ -159,9 +159,11 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       guards and explicit root queries. A Rust-only compound entry plan binds
       the complete event, framework start and scoped checkpoint under one
       projection; it adds no public reader or existing type schema pin change.
-      Complete frame entry/return/wait transactions and fault qualification
-      remain pending; nested execution is not enabled by these data contracts or
-      foreign keys.
+      Schema 28 adds experimental atomic Store admission and authenticated retry
+      under the original Run admission, shared usage and inherited limits, with
+      exact SQL catalog and whole-component guards. Scoped execution, framework
+      takeover, return/waits, all-frame closure, driver dispatch and
+      process-loss qualification remain pending; nested execution stays Draft.
     </p>
     <p>
       Two graph and checkpoint models independently check state, route union,

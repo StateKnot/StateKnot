@@ -195,7 +195,60 @@ Ordinary PostgreSQL append, checkpoint and node-start APIs reserve this event
 kind and reject it instead of storing a legacy component projection. A native
 database check covers both control-plane and worker initial-checkpoint paths,
 ordinary appends and node starts, including rollback of every partial fact.
-The dedicated complete frame transaction remains pending.
+Migration 28 adds an experimental dedicated Store admission transaction. It
+locks the admitted Run and reloads the actual pinned acyclic call closure,
+caller checkpoint, active leaf, inherited absolute-depth/start ceilings and
+settled child-account usage. It commits the event, framework claim/start,
+isolated initial checkpoint, immutable entry, scoped head, lifetime counter and
+Run journal head together. Root checkpoint bytes and its pointer remain exact.
+The final write repeats the live fence and admission deadline with PostgreSQL's
+clock. It rejects unresolved Run effects and undischarged child ownership.
+
+The Store projection additionally authenticates the admitted Root digest,
+Run-wide ordinal, inherited ceilings, parent namespace, observed journal head,
+trusted complete DIRECT observation, settled delegated usage and child-account
+digest. Its intent domain is `stateknot-postgres-frame-entry-scope-v1\0` over
+`JCS({ core_intent_digest, scope, budget })`; its compound domain is
+`stateknot-postgres-frame-entry-compound-v1\0` over
+`JCS({ scope_intent_digest, core_record_digest })`. The existing closed Core
+entry-event profile remains exact; the event's Store projection binds this
+complete context rather than a legacy component or the Core record alone.
+Private entry bytes are capped at 65,536 bytes and must be strict canonical
+objects. Reload checks the whole event/start/scoped checkpoint, registered
+closure and at most seven authenticated ancestor entries. It rejects damage
+before recovery can report an idempotent commit.
+
+`direct_usage` is a trusted, complete Run-wide DIRECT-only observation at the
+exact observed head, including previous frame charges and excluding child-Run
+subtrees. The transaction loads actual settled delegated charges and enforces
+at least the real Root admission's event/checkpoint/depth usage plus every
+active ancestor's entry charges. It charges one graph step per entry, actual
+canonical event bytes, scoped checkpoint/head bytes, and the absolute depth
+high-water mark. These are inherited Run charges; entry does not allocate a
+fresh budget. Deriving all provider usage and unknown costs from durable
+ledgers remains an independent R1 child-accounting gate.
+
+Lost-acknowledgment recovery authenticates the existing immutable bundle before
+fresh schema callbacks, candidate IDs, readiness or lease checks. It verifies
+the same logical frame, target and initial state, returns the original evidence
+and never grants another launch. An expired lease or unavailable schema
+callback cannot turn that recovery into a new admission.
+
+Deferred SQL guards require all admission components and reject ordinary
+scoped checkpoint advances, substituted frame heads, legacy wait writes during
+an active child, suspended-parent dispatch and Root continuation/terminal
+projection. The schema-28 trusted-server role profile gives the runtime only
+SELECT/INSERT on immutable entries and enumerated mutable head/stack columns.
+Exact catalog checks cover installed columns, constraints, indexes, functions
+and enabled triggers. Root-only source fixtures explicitly remove migration
+28 before reconstructing older schemas and refuse retained actual frame data.
+They do not establish historical-binary downgrade or compatibility.
+
+This Store admission is only one part of the Draft. Scoped node/barrier writes,
+framework-fence rebinding, settlement/return, waits, all-frame closure, actual
+registry/driver dispatch, process-loss/commit-loss fault qualification and
+production capacity remain pending. Admission and idempotent evidence alone
+do not enable nested execution or make RFC-0022 Supported.
 
 ## Detailed semantics
 

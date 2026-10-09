@@ -1,10 +1,11 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//! Scoped relational integrity; manual fixture rows do not prove frame entry,
-//! compound journal authority, nested execution or historical N-1/N-2 support.
+//! Relational integrity tested with actual compound admissions; historical
+//! source fixtures do not establish retained N-1/N-2 binary compatibility.
 use super::*;
-use stateknot_core::{GraphFrameCheckpoint, GraphFrameIdentity};
+use stateknot_core::{GraphFrameCheckpoint, GraphFrameEntryPlan, GraphFrameIdentity};
+use stateknot_store_postgres::GraphFrameEntryCommitOutcome;
 
 async fn anchor(store: &PostgresStore, root: &Checkpoint, index: u64) -> JournalHead {
     let head = store
@@ -33,39 +34,19 @@ async fn anchor(store: &PostgresStore, root: &Checkpoint, index: u64) -> Journal
     }
 }
 
-async fn initial_frame(
-    store: &PostgresStore,
-    root: &Checkpoint,
-    slot: &str,
-    index: u64,
-) -> GraphFrameCheckpoint {
-    let frame = GraphFrameIdentity::new(
-        NodeActivation::for_ready_root(root, root.ready_nodes().iter().next().unwrap().clone())
-            .unwrap(),
-        NodeId::new(slot).unwrap(),
-        root.graph().clone(),
-    )
-    .unwrap();
-    let write = CheckpointWrite::initial(
-        root.tenant_id().clone(),
-        root.run_id(),
-        CheckpointId::generate(),
-        root.graph().clone(),
-        root.state().clone(),
-        root.ready_nodes().clone(),
-    )
-    .unwrap();
-    GraphFrameCheckpoint::new(
-        frame,
-        Checkpoint::commit(write, anchor(store, root, index).await).unwrap(),
-    )
-    .unwrap()
-}
-
 async fn insert_frame_checkpoint(
     pool: &PgPool,
     frame: &GraphFrameCheckpoint,
 ) -> Result<(), sqlx_core::Error> {
+    insert_frame_checkpoint_projection(pool, frame, None).await
+}
+
+async fn insert_frame_checkpoint_projection(
+    pool: &PgPool,
+    frame: &GraphFrameCheckpoint,
+    identity: Option<Digest>,
+) -> Result<(), sqlx_core::Error> {
+    let identity = identity.unwrap_or_else(|| frame.frame().digest());
     let checkpoint = frame.checkpoint();
     let parent = checkpoint.parent();
     let schema = checkpoint.graph().state_schema();
@@ -99,7 +80,7 @@ async fn insert_frame_checkpoint(
     .bind(checkpoint.digest().as_bytes())
     .bind(serde_json_canonicalizer::to_vec(checkpoint).unwrap())
     .bind(frame.frame().namespace().as_str())
-    .bind(frame.frame().digest().as_bytes())
+    .bind(identity.as_bytes())
     .bind(frame.digest().as_bytes())
     .bind(serde_json_canonicalizer::to_vec(&frame.head()).unwrap())
     .execute(pool)
@@ -246,21 +227,92 @@ async fn scoped_checkpoint_keys_preserve_root_bytes_and_reject_crossed_reference
         .connect(&url)
         .await
         .unwrap();
-    let admitted = Box::pin(admit_atomic_agent_fixture(
-        &store,
-        &tenant("frame-scope"),
-        RunId::generate(),
+    let (_, leaf, _) = super::frame_transactions::graphs();
+    let middle = super::frame_transactions::caller_graph("relation-middle", &leaf, 4096);
+    let parent = super::frame_transactions::caller_graph("relation-root", &middle, 4096);
+    let tenant = tenant("frame-scope");
+    let run = RunId::generate();
+    store
+        .register_graph_definition(tenant.clone(), leaf.clone())
+        .await
+        .unwrap();
+    let admitted = Box::pin(super::frame_transactions::admit(
+        &store, &tenant, run, &parent, &middle,
     ))
     .await;
     let root = admitted.checkpoint();
     upgrade_nonempty_root_fixture(&url, &pool, root).await;
     store.verify_schema().await.unwrap();
-    let a = initial_frame(&store, root, "slot-a", 27_001).await;
-    insert_frame_checkpoint(&pool, &a).await.unwrap();
-    let b = initial_frame(&store, root, "slot-b", 27_002).await;
-    insert_frame_checkpoint(&pool, &b).await.unwrap();
+    let lease = store
+        .claim_lease(&tenant, run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let first_plan = GraphFrameEntryPlan::for_root(
+        &parent.frame_calls().unwrap().calls()[0],
+        &parent,
+        root,
+        &middle,
+        CheckpointId::generate(),
+        AttemptId::generate(),
+        lease.fence().clone(),
+    )
+    .unwrap();
+    let GraphFrameEntryCommitOutcome::Committed(first) = Box::pin(store.enter_graph_frame(
+        first_plan,
+        EventId::generate(),
+        admitted.event().head(),
+        super::frame_transactions::initial_usage(&admitted),
+        &AcceptGraphSchemas,
+    ))
+    .await
+    .unwrap() else {
+        panic!("first authentic scope")
+    };
+    let a = first.entry().checkpoint();
+    let second_plan = GraphFrameEntryPlan::for_frame(
+        &middle.frame_calls().unwrap().calls()[0],
+        &middle,
+        a,
+        &leaf,
+        CheckpointId::generate(),
+        AttemptId::generate(),
+        lease.fence().clone(),
+    )
+    .unwrap();
+    let GraphFrameEntryCommitOutcome::Committed(second) = Box::pin(store.enter_graph_frame(
+        second_plan,
+        EventId::generate(),
+        first.event().head(),
+        first.direct_usage_after().unwrap(),
+        &AcceptGraphSchemas,
+    ))
+    .await
+    .unwrap() else {
+        panic!("second authentic scope")
+    };
+    let b = second.entry().checkpoint();
     assert_ne!(a.frame().namespace(), b.frame().namespace());
-    let duplicate = initial_frame(&store, root, "slot-a", 27_003).await;
+    assert_eq!(a.checkpoint().superstep(), Superstep::INITIAL);
+    assert_eq!(b.checkpoint().superstep(), Superstep::INITIAL);
+    let duplicate = GraphFrameCheckpoint::new(
+        a.frame().clone(),
+        Checkpoint::commit(
+            CheckpointWrite::initial(
+                tenant.clone(),
+                run,
+                CheckpointId::generate(),
+                a.checkpoint().graph().clone(),
+                a.checkpoint().state().clone(),
+                a.checkpoint().ready_nodes().clone(),
+            )
+            .unwrap(),
+            anchor(&store, root, 28_003).await,
+        )
+        .unwrap(),
+    )
+    .unwrap();
     assert_eq!(
         constraint(
             &insert_frame_checkpoint(&pool, &duplicate)
@@ -271,17 +323,13 @@ async fn scoped_checkpoint_keys_preserve_root_bytes_and_reject_crossed_reference
     );
     assert!(matches!(
         store
-            .load_checkpoint(
-                root.tenant_id(),
-                root.run_id(),
-                a.checkpoint().checkpoint_id()
-            )
+            .load_checkpoint(&tenant, run, a.checkpoint().checkpoint_id())
             .await,
         Err(StoreError::CheckpointNotFound)
     ));
     assert_eq!(
         store
-            .load_current_checkpoint(root.tenant_id(), root.run_id())
+            .load_current_checkpoint(&tenant, run)
             .await
             .unwrap()
             .as_ref(),
@@ -290,24 +338,29 @@ async fn scoped_checkpoint_keys_preserve_root_bytes_and_reject_crossed_reference
     assert!(matches!(
         store
             .load_checkpoint_lineage_page(
-                root.tenant_id(),
-                root.run_id(),
+                &tenant,
+                run,
                 Some(&a.checkpoint().head()),
                 CheckpointLineagePageSize::new(1).unwrap()
             )
             .await,
         Err(StoreError::InvalidCheckpointCursor)
     ));
-    for table in ["runs", "agent_admissions"] {
-        let error = query(&format!("UPDATE stateknot.{table} SET checkpoint_id=$3,checkpoint_superstep=$4,checkpoint_digest=$5 WHERE tenant_id=$1 AND run_id=$2"))
-            .bind(root.tenant_id().as_str()).bind(*root.run_id().as_uuid())
-            .bind(*a.checkpoint().checkpoint_id().as_uuid()).bind(0_i64).bind(a.checkpoint().digest().as_bytes())
-            .execute(&pool).await.unwrap_err();
-        assert_eq!(
-            constraint(&error),
-            Some(format!("{table}_root_checkpoint_fk").as_str())
-        );
-    }
+    let error=query("UPDATE stateknot.runs SET checkpoint_id=$3,checkpoint_superstep=0,checkpoint_digest=$4 WHERE tenant_id=$1 AND run_id=$2")
+        .bind(tenant.as_str()).bind(*run.as_uuid()).bind(*a.checkpoint().checkpoint_id().as_uuid()).bind(a.checkpoint().digest().as_bytes()).execute(&pool).await.unwrap_err();
+    assert_eq!(
+        error
+            .as_database_error()
+            .and_then(sqlx_core::error::DatabaseError::code)
+            .as_deref(),
+        Some("SKG01")
+    );
+    let error=query("UPDATE stateknot.agent_admissions SET checkpoint_id=$3,checkpoint_superstep=0,checkpoint_digest=$4 WHERE tenant_id=$1 AND run_id=$2")
+        .bind(tenant.as_str()).bind(*run.as_uuid()).bind(*a.checkpoint().checkpoint_id().as_uuid()).bind(a.checkpoint().digest().as_bytes()).execute(&pool).await.unwrap_err();
+    assert_eq!(
+        constraint(&error),
+        Some("agent_admissions_root_checkpoint_fk")
+    );
     let write = CheckpointWrite::successor(
         CheckpointId::generate(),
         a.checkpoint(),
@@ -315,8 +368,14 @@ async fn scoped_checkpoint_keys_preserve_root_bytes_and_reject_crossed_reference
         a.checkpoint().ready_nodes().clone(),
     )
     .unwrap();
-    let checkpoint = Checkpoint::commit(write, anchor(&store, root, 27_004).await).unwrap();
-    let crossed = GraphFrameCheckpoint::new(b.frame().clone(), checkpoint.clone()).unwrap();
+    let checkpoint = Checkpoint::commit(write, anchor(&store, root, 28_004).await).unwrap();
+    let undeclared = GraphFrameIdentity::new(
+        a.frame().origin().clone(),
+        NodeId::new("unadmitted-slot").unwrap(),
+        a.frame().target().clone(),
+    )
+    .unwrap();
+    let crossed = GraphFrameCheckpoint::new(undeclared, checkpoint.clone()).unwrap();
     assert!(a.verify_successor(&crossed).is_err());
     assert_eq!(
         constraint(&insert_frame_checkpoint(&pool, &crossed).await.unwrap_err()),
@@ -324,51 +383,75 @@ async fn scoped_checkpoint_keys_preserve_root_bytes_and_reject_crossed_reference
     );
     let next = GraphFrameCheckpoint::new(a.frame().clone(), checkpoint).unwrap();
     a.verify_successor(&next).unwrap();
-    insert_frame_checkpoint(&pool, &next).await.unwrap();
-    let error = query("UPDATE stateknot.run_checkpoints SET frame_identity_digest=$4 WHERE tenant_id=$1 AND run_id=$2 AND checkpoint_id=$3")
-        .bind(root.tenant_id().as_str()).bind(*root.run_id().as_uuid()).bind(*next.checkpoint().checkpoint_id().as_uuid())
-        .bind(Digest::sha256(b"substituted frame identity").as_bytes()).execute(&pool).await.unwrap_err();
+    let error = insert_frame_checkpoint_projection(
+        &pool,
+        &next,
+        Some(Digest::sha256(b"substituted frame identity")),
+    )
+    .await
+    .unwrap_err();
     assert_eq!(
         constraint(&error),
         Some("run_checkpoints_frame_parent_identity_fk")
     );
-    let error = query("UPDATE stateknot.run_checkpoints SET graph_namespace=$4 WHERE tenant_id=$1 AND run_id=$2 AND checkpoint_id=$3")
-        .bind(root.tenant_id().as_str()).bind(*root.run_id().as_uuid()).bind(*a.checkpoint().checkpoint_id().as_uuid())
-        .bind("not-a-full-frame-digest").execute(&pool).await.unwrap_err();
-    assert_eq!(constraint(&error), Some("run_checkpoints_frame_shape"));
-    let lease = store
-        .claim_lease(root.tenant_id(), root.run_id(), AttemptId::generate())
-        .await
-        .unwrap()
-        .lease()
-        .clone();
-    let run = store
-        .load_run(root.tenant_id(), root.run_id())
-        .await
-        .unwrap();
-    let attempt_id = AttemptId::generate();
-    store
-        .start_node_attempt(
-            worker_append(
-                root.tenant_id().clone(),
-                root.run_id(),
-                EventId::generate(),
-                JournalExpectation::exact(run.journal_head().unwrap().clone()),
-                lease.fence().clone(),
-                27_005,
-            ),
-            NodeActivation::for_ready_root(root, root.ready_nodes().iter().next().unwrap().clone())
-                .unwrap(),
-            attempt_id,
-        )
-        .await
-        .unwrap();
-    let error = query("UPDATE stateknot.node_attempts SET graph_namespace=$4 WHERE tenant_id=$1 AND run_id=$2 AND attempt_id=$3")
-        .bind(root.tenant_id().as_str()).bind(*root.run_id().as_uuid()).bind(*attempt_id.as_uuid())
-        .bind(a.frame().namespace().as_str()).execute(&pool).await.unwrap_err();
+    // A typed successor has no whole transaction; this guard fires before
+    // the independent active-leaf guard for the suspended ancestor.
+    let error = insert_frame_checkpoint(&pool, &next).await.unwrap_err();
     assert_eq!(
+        error
+            .as_database_error()
+            .and_then(sqlx_core::error::DatabaseError::code)
+            .as_deref(),
+        Some("SKG02")
+    );
+    // Even the active leaf cannot advance through an ordinary journal anchor.
+    let active_write = CheckpointWrite::successor(
+        CheckpointId::generate(),
+        b.checkpoint(),
+        b.checkpoint().state().clone(),
+        b.checkpoint().ready_nodes().clone(),
+    )
+    .unwrap();
+    let active = GraphFrameCheckpoint::new(
+        b.frame().clone(),
+        Checkpoint::commit(active_write, anchor(&store, root, 28_005).await).unwrap(),
+    )
+    .unwrap();
+    let error = insert_frame_checkpoint(&pool, &active).await.unwrap_err();
+    assert_eq!(
+        error
+            .as_database_error()
+            .and_then(sqlx_core::error::DatabaseError::code)
+            .as_deref(),
+        Some("SKG02")
+    );
+    let error = query("UPDATE stateknot.graph_frame_heads SET frame_checkpoint_digest=$4 WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3")
+        .bind(tenant.as_str()).bind(*run.as_uuid()).bind(b.frame().namespace().as_str())
+        .bind(Digest::sha256(b"substituted frame checkpoint head").as_bytes())
+        .execute(&pool).await.unwrap_err();
+    assert_eq!(
+        error
+            .as_database_error()
+            .and_then(sqlx_core::error::DatabaseError::code)
+            .as_deref(),
+        Some("SKG02")
+    );
+    let error=query("UPDATE stateknot.run_checkpoints SET graph_namespace=$4 WHERE tenant_id=$1 AND run_id=$2 AND checkpoint_id=$3")
+        .bind(tenant.as_str()).bind(*run.as_uuid()).bind(*a.checkpoint().checkpoint_id().as_uuid()).bind("not-a-full-frame-digest").execute(&pool).await.unwrap_err();
+    assert_eq!(constraint(&error), Some("run_checkpoints_frame_shape"));
+    let error=query("UPDATE stateknot.node_attempts SET graph_namespace=$4 WHERE tenant_id=$1 AND run_id=$2 AND attempt_id=$3")
+        .bind(tenant.as_str()).bind(*run.as_uuid()).bind(*first.entry().start().attempt_id().as_uuid()).bind(a.frame().namespace().as_str()).execute(&pool).await.unwrap_err();
+    assert!(matches!(
         constraint(&error),
-        Some("node_attempts_scoped_checkpoint_fk")
+        Some("node_attempts_scoped_checkpoint_fk" | "graph_frame_entries_caller_fk")
+    ));
+    assert_eq!(
+        store
+            .load_current_checkpoint(&tenant, run)
+            .await
+            .unwrap()
+            .as_ref(),
+        Some(root)
     );
     reject_catalog_drift(&url, &pool, &store, root).await;
     pool.close().await;

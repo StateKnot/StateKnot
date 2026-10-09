@@ -18,8 +18,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   framework start and isolated checkpoint with one domain-separated projection.
   Its versioned local event schema carries identity/digest data without copied
   state. Ordinary append/checkpoint/node-start APIs reject the reserved compound
-  kind without partial facts. Atomic store admission and nested dispatch remain
-  pending in RFC-0022.
+  kind without partial facts. Migration 28 adds an experimental atomic Store
+  admission under the original Root admission, inherited ceilings, shared usage,
+  exact journal head and live fence. Authenticated reload precedes fresh schema
+  callbacks or lease checks; SQL guards reject incomplete scoped checkpoints,
+  substituted heads and legacy waits during a child. Scoped execution, return,
+  waits, process-loss qualification and nested dispatch remain pending in RFC-0022.
 
 - Draft RFC-0022 for same-Run namespaced graph frames, with five executable
   private identity checks. It specifies isolated state, bounded scope, durable
@@ -62,7 +66,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   and makes root queries/decoding explicit. Exact installed catalog checks cover
   columns, constraints and indexes. Nonempty source-schema 26→27 and typed scope
   FK checks run on PostgreSQL 16/17; compound frame transactions and nested
-  execution remain Draft. The trusted-server role profile requires schema 27.
+  execution remain Draft. The trusted-server role profile now requires schema 28 and its exact 47-table allowlist.
 
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
