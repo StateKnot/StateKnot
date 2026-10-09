@@ -149,7 +149,7 @@ Graph 的两个独立模型补齐节点插入/结果输入顺序、状态和 rou
 checkpoint 派生。复合入栈 plan 另绑定预事件意图、框架 start、scoped
 checkpoint、同一精确事件前驱及总投影；九项 Core 检查和生产离线 schema 检查
 覆盖替换拒绝。它仍不产生 SQL 入栈/dispatch 权限。六个实验性 reader、四个 Rust-only 错误类型、两个 plan 及入栈复合记录纳入当前清单：583 个根导出、
-313 个 reader、两组各 314 个 schema pin 和 47 份数据文档。调用声明进入
+313 个 reader、两组各 314 个 schema pin；RFC-0023 后共 48 份数据文档。调用声明进入
 编译图摘要，serial caller、固定返回 route、schema/owner、实际闭包 pin/depth/bytes
 及应用 executor 冲突有编译器/注册表检查；静态组合不能丢弃帧声明。
 `CompiledGraph` 与 `ChildRunAdmissionIntent` 的两个 schema profile 显式更新，
@@ -176,7 +176,7 @@ PostgreSQL 16/17 的非空源码 schema 26→27 与 scope 外键检查已执行�
 节点完成新增 SQL 作用域守卫，全部延迟组件约束先于最终数据库时钟的租约/deadline
 复核；stack CHECK 表达式在逻辑备份恢复后保持相同的精确 catalog。
 数据库原生回归及受限账号下的并发验收继续执行，不能用构造器或缩减配置替代。
-完整 registry/driver、scoped barrier、框架接管绑定、返回/等待/全帧关闭和
+完整 registry/driver、框架接管绑定、返回/作用域等待/全帧关闭和
 进程/丢确认故障矩阵仍未交付；当前草稿没有嵌套执行支持，也没有真实历史
 N-1/N-2 兼容性结论。
 后续 fuzz 时间戳反例已保留，数字校验先于算术；全部 ASCII 非数字位置、
@@ -185,7 +185,18 @@ CI 后续发现 `MediaType` 已支持的大小写规范化输入被输入 schema
 [RFC-0023 草案](rfcs/0023-media-type-input-schema.md) 保留精确反例并修正方向性
 输入 pattern。受影响的嵌套输入/default pin 显式变化，全部输出 pin、规范 wire
 与无关输入 pin 保持一致；注册表须使用新输入 schema/Tool 版本并保留原 executable。
-最终源码资格验收与草案接受仍待完成，不能以重跑或移除 fuzz oracle 关闭发现。
+媒体类型修复提交 `41bf0b8c` 已通过全部 14 项 CI/依赖检查、本机 1,853 项
+工作区检查与 331 项网站检查；本机/CI 的 2,297 种子和三目标各 10,000 次
+ASan 变异证据已核对精确源码、树/父提交、清单及日志。RFC-0023 接受仍待完成。
+
+迁移 29 增加作用域内继续/终结屏障的完整原子事实：结果集及消费、事件、
+隔离 successor、不可变 witness 与活动 head。实际 schema/reducer 预检在锁外完成，
+事务重复验证叶帧、原 base、journal、fence/deadline、未决副作用和共享用量。
+历史读取有界正向验证整个屏障链，继续节点与新嵌套调用绑定实际 parent successor。
+精确 48 表角色白名单与 catalog 同步；九项 PostgreSQL 16 原生检查覆盖 24 路竞争、
+所有组件故障回滚、晚租约、预算回退、重写 witness、父续接与非空源码 28→29
+升级。最终源码全量 PostgreSQL 16/17、受限账号、恢复与 CI 验收仍须收齐；
+作用域等待、框架接管/返回、全帧关闭与完整 driver 尚未交付。
 
 ### 交付任务
 

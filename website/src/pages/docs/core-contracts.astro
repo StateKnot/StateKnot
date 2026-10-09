@@ -166,9 +166,14 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       support durable ordinary node starts and atomic success/failure records,
       with scoped replay, bounded histories and a final live-lease check after
       deferred constraints. Ordinary completion cannot release a framework
-      caller. Scoped barriers, framework takeover, return/waits, all-frame
-      closure, driver dispatch and complete process-loss qualification remain
-      pending; nested execution stays Draft.
+      caller. Schema 29 adds atomic scoped continuation/terminal barriers,
+      complete result consumption and authenticated forward history. Successor
+      dispatch and nested parent continuation retain the same Run usage floor;
+      actual callbacks finish outside mutation locks. Its 48-table role profile
+      and exact catalog preserve whole-record guards. Framework takeover,
+      return/scoped waits, all-frame closure, actual driver dispatch and
+      complete process-loss qualification remain pending; nested execution stays
+      Draft.
     </p>
     <p>
       Two graph and checkpoint models independently check state, route union,

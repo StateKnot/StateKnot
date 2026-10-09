@@ -96,7 +96,10 @@ mod scoped_checkpoints;
 
 #[path = "graph_frames.rs"]
 mod graph_frames;
-pub use graph_frames::{GraphFrameEntryCommitOutcome, StoredGraphFrameEntry};
+pub use graph_frames::{
+    GraphFrameBarrierCommitOutcome, GraphFrameEntryCommitOutcome, StoredGraphFrameBarrier,
+    StoredGraphFrameEntry,
+};
 
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
@@ -401,6 +404,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed("compound graph frame entries"),
             MigrationType::Simple,
             Cow::Borrowed(include_str!("../migrations/0028_graph_frame_entries.sql")),
+            false,
+        ),
+        Migration::new(
+            29,
+            Cow::Borrowed("compound scoped frame barriers"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0029_graph_frame_barriers.sql")),
             false,
         ),
     ]),
@@ -2101,6 +2111,7 @@ WHERE tenant_id = $1
   AND run_id = $2
   AND base_checkpoint_id = $3
 ORDER BY graph_namespace ASC, node_id ASC
+LIMIT 1025
 ";
 
 const SELECT_PENDING_NODE_RESULT_TOOL_BINDINGS: &str = r"
@@ -7946,6 +7957,7 @@ RETURNING observation.observed_at
                 &tenant_id,
                 run_id,
                 frame.namespace(),
+                activation.base_checkpoint(),
                 true,
             ))
             .await?;
@@ -9908,7 +9920,7 @@ RETURNING observation.observed_at
             return Err(StoreError::CheckpointBarrierResultConflict);
         }
         let durable_heads = load_locked_barrier_result_heads(&mut transaction, base).await?;
-        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads())?;
+        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads().as_slice())?;
         let current_journal = stored
             .journal_head()
             .ok_or_else(|| StoreError::corrupt("wait barrier run journal head"))?;
@@ -10085,7 +10097,7 @@ RETURNING observation.observed_at
             return Err(StoreError::CheckpointBarrierResultConflict);
         }
         let durable_heads = load_locked_barrier_result_heads(&mut transaction, base).await?;
-        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads())?;
+        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads().as_slice())?;
         let current_journal = stored
             .journal_head()
             .ok_or_else(|| StoreError::corrupt("checkpoint barrier run journal head"))?;
@@ -15743,6 +15755,7 @@ async fn verify_node_completion_base(
             activation.tenant_id(),
             activation.run_id(),
             activation.graph_namespace(),
+            activation.base_checkpoint(),
             true,
         ))
         .await?;
@@ -15771,6 +15784,7 @@ async fn verify_node_attempt_base_checkpoint(
             activation.tenant_id(),
             activation.run_id(),
             activation.graph_namespace(),
+            activation.base_checkpoint(),
             false,
         ))
         .await?;
@@ -16052,9 +16066,9 @@ async fn load_locked_barrier_result_heads(
 
 fn validate_complete_barrier_result_heads(
     durable: &[PendingNodeResultHead],
-    expected: &BarrierResultHeads,
+    expected: &[PendingNodeResultHead],
 ) -> Result<(), StoreError> {
-    if durable == expected.as_slice() {
+    if durable == expected {
         return Ok(());
     }
     if durable.len() < expected.len()
@@ -16085,12 +16099,26 @@ async fn verify_barrier_consumptions(
     barrier: &CheckpointBarrier,
     successor: &Checkpoint,
 ) -> Result<(), StoreError> {
-    let base = barrier.base_checkpoint();
+    verify_barrier_consumption_parts(
+        transaction,
+        barrier.base_checkpoint(),
+        barrier.result_heads().as_slice(),
+        successor,
+    )
+    .await
+}
+
+async fn verify_barrier_consumption_parts(
+    transaction: &mut Transaction<'_, Postgres>,
+    base: &CheckpointHead,
+    heads: &[PendingNodeResultHead],
+    successor: &Checkpoint,
+) -> Result<(), StoreError> {
     let rows = load_barrier_consumption_rows(transaction, base).await?;
-    if rows.len() != barrier.result_heads().len() {
+    if rows.len() != heads.len() {
         return Err(StoreError::CheckpointBarrierCommitConflict);
     }
-    for (row, result) in rows.iter().zip(barrier.result_heads().iter()) {
+    for (row, result) in rows.iter().zip(heads.iter()) {
         let activation = result.activation();
         if row.tenant_id != base.tenant_id().as_str()
             || row.run_id != *base.run_id().as_uuid()
@@ -16222,6 +16250,7 @@ async fn verify_pending_node_result_base_checkpoint(
             activation.tenant_id(),
             activation.run_id(),
             activation.graph_namespace(),
+            activation.base_checkpoint(),
             false,
         ))
         .await?;
@@ -16285,6 +16314,15 @@ async fn verify_pending_node_result(
     result: &PendingNodeResult,
 ) -> Result<JournalEvent, StoreError> {
     verify_pending_node_result_base_checkpoint(transaction, result).await?;
+    verify_pending_node_result_components(transaction, result).await
+}
+
+// The caller authenticates the complete checkpoint and exact activation first.
+// Matching the owner activation makes a second base reload unnecessary.
+async fn verify_pending_node_result_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+) -> Result<JournalEvent, StoreError> {
     let row = load_pending_node_result_row(transaction, result.intent().activation())
         .await?
         .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;
@@ -16307,13 +16345,14 @@ async fn verify_pending_node_result(
             .completion()
             .ok_or_else(|| StoreError::corrupt("pending node result attempt completion"))?;
         if attempt.start().attempt_id() != attempt_id
+            || attempt.start().activation() != result.intent().activation()
+            || attempt.start().fence() != result.fence()
             || completion.outcome().result() != Some(&result.head())
         {
             return Err(StoreError::corrupt(
                 "pending node result attempt completion",
             ));
         }
-        verify_node_attempt_base_checkpoint(transaction, attempt.start()).await?;
         verify_node_attempt_anchor(
             transaction,
             attempt.start().journal_head(),
@@ -19671,25 +19710,39 @@ async fn insert_barrier_consumptions(
     successor: &Checkpoint,
     source: &JournalEventSource,
 ) -> Result<(), StoreError> {
-    let base = barrier.base_checkpoint();
+    insert_barrier_consumption_parts(
+        transaction,
+        barrier.base_checkpoint(),
+        barrier.result_heads().as_slice(),
+        successor,
+        source,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_barrier_consumption_parts(
+    transaction: &mut Transaction<'_, Postgres>,
+    base: &CheckpointHead,
+    heads: &[PendingNodeResultHead],
+    successor: &Checkpoint,
+    source: &JournalEventSource,
+) -> Result<(), StoreError> {
     let base_superstep =
         i64::try_from(base.superstep().get()).map_err(|_| StoreError::InvalidCheckpointBarrier)?;
     let successor_superstep = i64::try_from(successor.superstep().get())
         .map_err(|_| StoreError::encoding("checkpoint barrier successor superstep"))?;
     let successor_sequence = i64::try_from(successor.journal_head().sequence().get())
         .map_err(|_| StoreError::JournalSequenceExhausted)?;
-    let graph_namespaces = barrier
-        .result_heads()
+    let graph_namespaces = heads
         .iter()
         .map(|head| head.activation().graph_namespace().as_str().to_owned())
         .collect::<Vec<_>>();
-    let node_ids = barrier
-        .result_heads()
+    let node_ids = heads
         .iter()
         .map(|head| head.activation().node_id().as_str().to_owned())
         .collect::<Vec<_>>();
-    let result_digests = barrier
-        .result_heads()
+    let result_digests = heads
         .iter()
         .map(|head| head.digest().as_bytes().to_vec())
         .collect::<Vec<_>>();
@@ -19745,9 +19798,19 @@ JOIN stateknot.pending_node_results AS pending
 CROSS JOIN stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $3
-  AND current_run.checkpoint_superstep = $4
-  AND current_run.checkpoint_digest = $5
+  AND (
+    (expected.graph_namespace = '' AND current_run.checkpoint_id = $3
+      AND current_run.checkpoint_superstep = $4 AND current_run.checkpoint_digest = $5)
+    OR (expected.graph_namespace <> '' AND $16::uuid IS NOT NULL AND EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_heads frame
+      JOIN stateknot.graph_frame_stacks stack USING (tenant_id,run_id)
+      WHERE frame.tenant_id=$1 AND frame.run_id=$2
+        AND frame.graph_namespace=expected.graph_namespace
+        AND stack.active_namespace=frame.graph_namespace
+        AND stack.active_frame_identity_digest=frame.frame_identity_digest
+        AND frame.checkpoint_id=$3 AND frame.superstep=$4 AND frame.checkpoint_digest=$5
+    ))
+  )
   AND (
       $16::uuid IS NULL
       OR (
@@ -19800,8 +19863,8 @@ WHERE current_run.tenant_id = $1
             ));
         }
     };
-    let expected_count = u64::try_from(barrier.result_heads().len())
-        .map_err(|_| StoreError::InvalidCheckpointBarrier)?;
+    let expected_count =
+        u64::try_from(heads.len()).map_err(|_| StoreError::InvalidCheckpointBarrier)?;
     if inserted != expected_count {
         if worker_write {
             return Err(StoreError::LeaseExpired);

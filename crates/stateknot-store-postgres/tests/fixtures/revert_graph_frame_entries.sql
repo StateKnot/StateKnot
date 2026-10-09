@@ -1,6 +1,17 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
 -- Isolated Root-only source fixtures. Refuse real retained nested-frame data.
+-- Schema-29 removal is restricted to isolated Root-only test fixtures.
+SELECT 1 / CASE WHEN EXISTS (SELECT 1 FROM stateknot.graph_frame_barriers LIMIT 1) THEN 0 ELSE 1 END;
+DROP TRIGGER run_events_frame_barrier_complete ON stateknot.run_events;
+DROP TRIGGER frame_heads_advance ON stateknot.graph_frame_heads;
+DROP TRIGGER barrier_consumptions_frame_complete ON stateknot.pending_node_result_consumptions;
+DROP TABLE stateknot.graph_frame_barriers;
+DROP FUNCTION stateknot.guard_graph_frame_barrier_complete();
+DROP FUNCTION stateknot.guard_graph_frame_barrier_event_complete();
+DROP FUNCTION stateknot.guard_graph_frame_head_advance();
+DROP FUNCTION stateknot.guard_graph_frame_consumption_complete();
+DELETE FROM _sqlx_migrations WHERE version=29;
 SELECT 1 / CASE WHEN EXISTS (SELECT 1 FROM stateknot.graph_frame_entries LIMIT 1) THEN 0 ELSE 1 END;
 DROP TRIGGER node_attempts_frame_scope ON stateknot.node_attempts;
 DROP TRIGGER node_completions_frame_scope ON stateknot.node_attempt_completions;

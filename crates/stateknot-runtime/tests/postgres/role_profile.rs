@@ -8,11 +8,11 @@ use sqlx_core::{connection::ConnectOptions, query_as::query_as, raw_sql::raw_sql
 use sqlx_postgres::{PgConnectOptions, PgPool, PgPoolOptions, PgSslMode};
 use stateknot_core::{
     AgentAdmission, AgentAdmissionIntent, GraphFrameEntryPlan, GraphSchemaValidator,
-    NodeAttemptStatus, SchedulerReservationId,
+    NodeAttemptStatus, NodeTerminalOutput, SchedulerReservationId,
 };
 use stateknot_store_postgres::{
-    AgentAdmissionCommitOutcome, GraphFrameEntryCommitOutcome, SchedulerFairnessPolicyRegistration,
-    SchedulerFairnessRetentionPolicy,
+    AgentAdmissionCommitOutcome, GraphFrameBarrierCommitOutcome, GraphFrameEntryCommitOutcome,
+    SchedulerFairnessPolicyRegistration, SchedulerFairnessRetentionPolicy,
 };
 
 const PROFILE: &str =
@@ -567,7 +567,7 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore) {
     let counts: (i64,i64,i64) = query_as("SELECT (SELECT count(*) FROM stateknot.run_events WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.run_checkpoints WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2)")
         .bind(tenant_id.as_str()).bind(*run.as_uuid()).fetch_one(&fixture.runtime).await.unwrap();
     assert_eq!(counts, (2, 2, 1));
-    Box::pin(scoped_node_completion(store, &entry, lease.fence())).await;
+    Box::pin(scoped_node_completion(store, &entry, &child, lease.fence())).await;
     denied(
         &fixture.retention,
         "SELECT * FROM stateknot.graph_frame_entries LIMIT 1",
@@ -576,9 +576,11 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore) {
 }
 
 // Exercise the actual scoped SQL path as the standalone runtime LOGIN.
+#[allow(clippy::too_many_lines)]
 async fn scoped_node_completion(
     store: &PostgresStore,
     entry: &stateknot_store_postgres::StoredGraphFrameEntry,
+    graph: &CompiledGraph,
     fence: &stateknot_core::RunFence,
 ) {
     let plan = stateknot_core::ReadyNodeRecoveryPlanner::for_frame(
@@ -611,7 +613,19 @@ async fn scoped_node_completion(
     let intent = stateknot_core::PendingNodeResultIntent::new(
         started.attempt().start().activation().clone(),
         NodeStateChange::Unchanged,
-        NodeControl::Continue,
+        NodeControl::Terminal {
+            output: NodeTerminalOutput::new(
+                graph.output_schema().clone(),
+                entry
+                    .entry()
+                    .checkpoint()
+                    .checkpoint()
+                    .state()
+                    .data()
+                    .clone(),
+            )
+            .unwrap(),
+        },
         stateknot_core::NodeInvocationBindings::empty(),
     )
     .unwrap();
@@ -659,6 +673,64 @@ async fn scoped_node_completion(
             .unwrap()
             .status(),
         NodeAttemptStatus::Succeeded
+    );
+    let result = store
+        .load_pending_node_result(intent.activation())
+        .await
+        .unwrap();
+    let reducer = TestReducer {
+        reference: graph.reducer().clone(),
+    };
+    let barrier = graph
+        .plan_frame_barrier(
+            entry.entry().checkpoint(),
+            std::slice::from_ref(&result),
+            CheckpointId::generate(),
+            &RoleFrameSchemas,
+            &reducer,
+        )
+        .unwrap();
+    let GraphFrameBarrierCommitOutcome::Committed(record) =
+        Box::pin(store.commit_graph_frame_barrier(
+            barrier.clone(),
+            EventId::generate(),
+            fence.clone(),
+            done.event().head(),
+            entry.direct_usage_after().unwrap(),
+            &RoleFrameSchemas,
+            &reducer,
+        ))
+        .await
+        .unwrap()
+    else {
+        panic!("standalone runtime must commit a whole barrier");
+    };
+    let retry = Box::pin(store.commit_graph_frame_barrier(
+        barrier,
+        EventId::generate(),
+        fence.clone(),
+        done.event().head(),
+        BudgetUsage::zero(),
+        &RoleFrameSchemas,
+        &reducer,
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        retry,
+        GraphFrameBarrierCommitOutcome::Idempotent(_)
+    ));
+    assert_eq!(
+        store
+            .load_graph_frame_checkpoint(
+                fence.tenant_id(),
+                fence.run_id(),
+                record.checkpoint().frame().namespace(),
+                record.checkpoint().checkpoint().checkpoint_id()
+            )
+            .await
+            .unwrap(),
+        *record.checkpoint()
     );
 }
 
@@ -762,7 +834,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 28);
+    assert_eq!(schema_version, 29);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -778,6 +850,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "compound_frame_entry_race":24,
         "compound_frame_entry_reload":true,
         "scoped_node_start_success_reload":true,
+        "scoped_barrier_commit_retry_reload":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"

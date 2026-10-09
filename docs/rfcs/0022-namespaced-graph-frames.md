@@ -234,18 +234,18 @@ the same logical frame, target and initial state, returns the original evidence
 and never grants another launch. An expired lease or unavailable schema
 callback cannot turn that recovery into a new admission.
 
-Deferred SQL guards require all admission components and reject ordinary
+Deferred SQL guards require all admission components and reject incomplete
 scoped checkpoint advances, substituted frame heads, legacy wait writes during
 an active child, suspended-parent dispatch and Root continuation/terminal
-projection. The schema-28 trusted-server role profile gives the runtime only
-SELECT/INSERT on immutable entries and enumerated mutable head/stack columns.
+projection. The schema-29 trusted-server role profile gives the runtime only
+SELECT/INSERT on immutable entries/barriers and enumerated mutable head/stack columns.
 Exact catalog checks cover installed columns, constraints, indexes, functions
 and enabled triggers. Root-only source fixtures explicitly remove migration
-28 before reconstructing older schemas and refuse retained actual frame data.
+29/28 before reconstructing older schemas and refuse retained actual frame data.
 They do not establish historical-binary downgrade or compatibility.
 
 The experimental Store also starts ordinary ready nodes within an authenticated
-active initial frame checkpoint and atomically commits their success/result or
+active frame checkpoint and atomically commits their success/result or
 failure. It reuses bounded physical histories, safe-retry rules and fencing.
 A fresh committed start grants launch authority; an idempotent start remains
 in flight. Historical scoped starts/results authenticate their complete entry
@@ -257,8 +257,27 @@ check, so a slow deferred constraint cannot grant launch after lease expiry.
 The stack CHECK expression retains the same bounds in the exact catalog after
 logical dump/restore.
 
-Admission and node transactions are parts of the Draft. Scoped barriers,
-framework-fence rebinding, settlement/return, waits, all-frame closure, actual
+Scoped continuation/terminal barriers commit the full result set and
+consumptions, one worker event, successor, bounded immutable barrier witness
+and active frame head atomically. Schema/reducer callbacks finish against the
+actual admitted graph and full results before mutation locks; the locked commit
+repeats active leaf, base, observed journal, unresolved effects, shared DIRECT
+floor, settled children and live fence/budget. Deferred guards execute before
+the last database-clock lease/deadline check. No Root pointer or Run terminal
+transition is granted. Scoped waits still require a whole suspension record.
+
+Recovery walks forward from the whole entry, authenticates every exact frame
+successor, complete result owner/binding/consumption and journal predecessor,
+and releases previous state/result buffers per edge. The admitted graph,
+original Run graph-step budget, existing 64 MiB replay-result ceiling and 4 MiB
+barrier witness bound cap this path. Ordinary scoped starts/results can now
+bind to those authenticated successors; new nested calls retain the actual
+parent successor and shared usage floor. Schema 29 pins the whole barrier
+catalog and trusted runtime ACL inventory. Source-28 migration fixtures retain
+nonempty actual scoped history but do not execute a historical binary.
+
+Admission, node and barrier transactions are parts of the Draft.
+Framework-fence rebinding, settlement/return, waits, all-frame closure, actual
 registry/driver dispatch, complete process-loss/commit-loss fault qualification
 and production capacity remain pending. These Store primitives do not enable
 nested execution or make RFC-0022 Supported.

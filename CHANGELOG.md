@@ -19,9 +19,20 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   Nested input schema pins explicitly change; all output pins and canonical
   wires stay exact. Immutable registries require new input schema/Tool versions
   and matching retained executables. The real CI reproducer remains a permanent
-  regression; final-source qualification and acceptance remain pending.
+  regression. Source `41bf0b8c` passed all fourteen CI/dependency checks and
+  local/CI bounded ASan; RFC acceptance remains pending.
 
 ### Added
+
+- Experimental scoped Store barriers atomically bind the exact complete result
+  set and consumptions, worker event, isolated successor, immutable witness and
+  active frame head. Planning uses actual pinned schema/reducer dependencies
+  outside the mutation transaction; locked commit repeats scope, fence, shared
+  usage and settled child accounting. Whole historical recovery authenticates
+  bounded forward lineage; acknowledgment loss grants no new launch. Schema 29
+  adds exact deferred guards and a 48-table trusted-server ACL profile. Scoped
+  continuation/terminal barriers are prerequisites for framework return;
+  scoped waits, rebinding, all-frame closure and actual driver remain pending.
 
 - Experimental Store transactions durably start ordinary nodes in an
   authenticated active initial frame and commit their success/result or failure
@@ -30,7 +41,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   are reused. SQL guards prevent suspended-scope completion or independent
   framework-caller completion. Deferred guards execute before the final live
   lease/deadline check. The stack CHECK catalog stays exact after logical
-  dump/restore. Scoped barriers, framework rebinding/return, waits, closure and
+  dump/restore. Framework rebinding/return, scoped waits, closure and
   actual nested driver dispatch remain pending in Draft RFC-0022.
 
 - Experimental Rust-only compound frame-entry planning binds the complete event,

@@ -8,6 +8,10 @@ use stateknot_core::{
     GraphFrameCheckpoint, GraphFrameCheckpointHead, GraphFrameEntry, GraphFrameIdentity,
 };
 
+#[path = "graph_frames/barriers.rs"]
+mod barriers;
+pub use barriers::{GraphFrameBarrierCommitOutcome, StoredGraphFrameBarrier};
+
 const SCOPE_DOMAIN: &[u8] = b"stateknot-postgres-frame-entry-scope-v1\0";
 const COMPOUND_DOMAIN: &[u8] = b"stateknot-postgres-frame-entry-compound-v1\0";
 const MAX_ENTRY_BYTES: usize = 65_536;
@@ -517,7 +521,6 @@ async fn verified_entry(
         next = wire.scope.parent_namespace.clone();
         chain.push((row, wire));
     }
-    let mut parent: Option<Parent> = None;
     let mut last: Option<StoredGraphFrameEntry> = None;
     for (row, wire) in chain.into_iter().rev() {
         let frame = wire.initial_checkpoint.frame();
@@ -525,7 +528,7 @@ async fn verified_entry(
             return Err(StoreError::corrupt("frame tenant/run"));
         }
         let base = frame.origin().base_checkpoint();
-        if frame.origin().graph_namespace().is_root() {
+        let (base_parent, usage_floor) = if frame.origin().graph_namespace().is_root() {
             let cp = decode_checkpoint(
                 checkpoint_row(
                     tx,
@@ -537,21 +540,23 @@ async fn verified_entry(
                 .await?,
             )?;
             verify_checkpoint_anchor(tx, &cp).await?;
-            parent = Some(Parent::Root(Box::new(cp)));
-        } else if parent
-            .as_ref()
-            .map(Parent::checkpoint)
-            .map(Checkpoint::head)
-            .as_ref()
-            != Some(base)
-        {
-            // Successor heads require the dedicated compound barrier verifier;
-            // they are never accepted through the old root-only anchor path.
-            return Err(StoreError::corrupt("frame parent continuation"));
-        }
-        let base_parent = parent
-            .take()
-            .ok_or_else(|| StoreError::corrupt("frame parent"))?;
+            (
+                Parent::Root(Box::new(cp)),
+                admission_usage_floor(admission)?,
+            )
+        } else {
+            let ancestor = last
+                .as_ref()
+                .ok_or_else(|| StoreError::corrupt("frame parent continuation"))?;
+            if ancestor.entry.checkpoint().frame().namespace() != frame.origin().graph_namespace() {
+                return Err(StoreError::corrupt("frame parent namespace"));
+            }
+            let (cp, floor) = Box::pin(barriers::checkpoint_at(
+                tx, ancestor, admission, graphs, base,
+            ))
+            .await?;
+            (Parent::Frame(Box::new(cp)), floor)
+        };
         if base_parent.checkpoint().head() != *base {
             return Err(StoreError::corrupt("frame parent head"));
         }
@@ -666,11 +671,6 @@ async fn verified_entry(
         if wire.budget.observed_head != predecessor.head() {
             return Err(StoreError::corrupt("frame budget observation"));
         }
-        let usage_floor = if let Some(previous) = &last {
-            charged_usage(&previous.budget, &previous.entry, &previous.event)?
-        } else {
-            admission_usage_floor(admission)?
-        };
         wire.budget
             .direct_usage
             .validate_monotonic_after(&usage_floor)
@@ -685,7 +685,6 @@ async fn verified_entry(
             .budget()
             .remaining(&total, event.recorded_at())
             .map_err(|_| StoreError::corrupt("frame budget limits"))?;
-        parent = Some(Parent::Frame(Box::new(checkpoint)));
         last = Some(StoredGraphFrameEntry {
             event,
             entry,
@@ -1000,24 +999,14 @@ impl PostgresStore {
             {
                 return Err(StoreError::corrupt("active frame identity"));
             }
-            let pointer=query_as::<_,(Uuid,i64,Vec<u8>,Vec<u8>)>("SELECT checkpoint_id,superstep,checkpoint_digest,frame_checkpoint_digest FROM stateknot.graph_frame_heads WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3")
-                .bind(tenant.as_str()).bind(*run.as_uuid()).bind(active.as_str()).fetch_optional(&mut *tx).await.map_err(|e|StoreError::database("frame head load",e))?.ok_or_else(||StoreError::corrupt("active frame head"))?;
-            let cp = record.entry.checkpoint();
-            if pointer.0 != *cp.checkpoint().checkpoint_id().as_uuid()
-                || pointer.1 != 0
-                || decode_digest(&pointer.2, "active checkpoint")? != cp.checkpoint().digest()
-                || decode_digest(&pointer.3, "active frame checkpoint")? != cp.digest()
-            {
-                return Err(StoreError::corrupt("active frame head"));
-            }
+            let (cp, floor) = Box::pin(barriers::current_checkpoint(
+                &mut tx, &record, &admission, &graphs,
+            ))
+            .await?;
             direct_usage
-                .validate_monotonic_after(&charged_usage(
-                    &record.budget,
-                    &record.entry,
-                    &record.event,
-                )?)
+                .validate_monotonic_after(&floor)
                 .map_err(|_| StoreError::IncompleteChildAccounting)?;
-            (Parent::Frame(Box::new(cp.clone())), Some(record.scope))
+            (Parent::Frame(Box::new(cp)), Some(record.scope))
         };
         let parent_graph = graphs
             .get(&plan.parent_graph().definition_digest())
@@ -1229,14 +1218,14 @@ pub(super) async fn verify_schema(pool: &PgPool) -> Result<(), StoreError> {
     Ok(())
 }
 
-// Initial scoped checkpoints are authenticated by their whole admission. A
-// future barrier must supply its own whole-record verifier for successor heads;
-// neither this reader nor the Root decoder accepts a metadata-only successor.
+// Every scoped checkpoint is authenticated through its whole entry and
+// bounded forward barrier lineage; the legacy Root decoder stays Root-only.
 pub(super) async fn bound_checkpoint(
     tx: &mut Transaction<'_, Postgres>,
     tenant: &TenantId,
     run: RunId,
     namespace: &GraphNamespace,
+    expected: &CheckpointHead,
     require_active: bool,
 ) -> Result<GraphFrameCheckpoint, StoreError> {
     if namespace.is_root() {
@@ -1255,7 +1244,8 @@ pub(super) async fn bound_checkpoint(
     let admission = verify_stored_agent_admission(tx, decode_run(row)?, admission_row).await?;
     let graphs = closure(tx, tenant, admission.admission().intent().graph()).await?;
     let entry = verified_entry(tx, tenant, run, namespace, &admission, &graphs).await?;
-    let checkpoint = entry.entry.checkpoint();
+    let (checkpoint, _) =
+        barriers::checkpoint_at(tx, &entry, &admission, &graphs, expected).await?;
     if require_active {
         let active = query_as::<_,StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2")
             .bind(tenant.as_str()).bind(*run.as_uuid()).fetch_optional(&mut **tx).await
@@ -1274,11 +1264,11 @@ pub(super) async fn bound_checkpoint(
             .fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("frame node head",e))?
             .ok_or(StoreError::GraphFrameConflict)?;
         if head.0 != *checkpoint.checkpoint().checkpoint_id().as_uuid()
-            || head.1 != 0
+            || nonnegative_superstep(head.1)? != checkpoint.checkpoint().superstep()
             || decode_digest(&head.2, "frame node checkpoint")? != checkpoint.checkpoint().digest()
             || decode_digest(&head.3, "frame node scoped head")? != checkpoint.digest()
         {
-            return Err(StoreError::corrupt("frame node active head"));
+            return Err(StoreError::StaleCheckpointHead);
         }
     }
     Ok(checkpoint.clone())

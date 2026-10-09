@@ -159,9 +159,11 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       pin。Schema 28 新增原子 Store 入栈与完整记录重试，沿用原 Run
       准入、共享用量和祖先上限，并校验精确 SQL catalog 与全部组件。活动初始帧
       已接通普通节点持久化启动、成功/失败原子记录与作用域重读；有界历史和延迟约束
-      执行后的最终租约检查共同保护启动权限，普通完成不能释放框架 caller。 scoped
-      barrier、框架接管、返回/等待、全帧关闭、driver 调度及完整进程故障验收
-      仍待完成；嵌套执行保持草案。
+      执行后的最终租约检查共同保护启动权限，普通完成不能释放框架 caller。Schema
+      29 接通作用域内继续/终结屏障、完整结果消费与正向历史认证；后继调度与父帧
+      继续调用保留同一 Run 的用量下界，实际回调在事务锁外完成。精确 catalog 与
+      48 表角色配置保留完整事实守卫。框架接管、返回/作用域等待、全帧关闭、实际
+      driver 及完整进程故障验收仍待完成；嵌套执行保持草案。
     </p>
     <p>
       RFC-0023 草案修正 MediaType 输入/default schema，使其接受 reader
