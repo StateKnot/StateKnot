@@ -1,0 +1,2 @@
+CapabilityLifecycle
+{"status":"deprecated","announced_at":"2026-08-29T00:00:00.000000Z","sunset_at":"2027-02-28T00:00:00.000000Z","notice":"Migrate to payments.capture 3.0.0 before retirement.","replacement":{"owner":{"issuer":"https://issuer.example.com/tenant","subject":"registry-owner"},"capability":{"name":"payments.capture","version":"3.0.0"}}}

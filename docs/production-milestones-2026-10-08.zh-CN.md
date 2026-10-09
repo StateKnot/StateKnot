@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot 生产完善里程碑与会话交接
 
-更新日期：2026-10-08，Asia/Shanghai。执行顺序：R0 至 R7。
+更新日期：2026-10-09，Asia/Shanghai。执行顺序：R0 至 R7。
 
 StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户调度、审批恢复及 MCP/A2A 适配的实现基础。整体生产验收仍未完成。后续工作集中在契约收尾、数据生命周期、运维观测、可靠协议服务、可部署运行时和完整生产验证。
 
@@ -34,10 +34,10 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 | 仓库 | `https://github.com/StateKnot/StateKnot` |
 | 当前工作目录 | `/Users/jiawy/Documents/RustAgentFramework` |
 | R0 验收的 main | `5f156b94516d2eb9ed96e2a648e0a13e66debc14`，2026-10-08 合并 JWT/JWKS #146；此前 #141/#145 已合并 |
-| 当前开发分支 | `codex/r1-core-wire-inventory` |
-| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152 已合并；当前补齐完整公开类型、schema 与 wire 清单 |
+| 当前开发分支 | `codex/r1-bounded-core-fuzz` |
+| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152/#153 已合并；当前补齐有界 fuzz、双向 schema pin 与可选输出 schema |
 | 已发布 crate 版本 | `0.1.0-alpha.1`，预览版；源码新增能力不都包含在该发布包中 |
-| 官网 | `https://stknot.com`，中英双语文档；当前 release `04567c4db125` 的四个关键页面已核对构建字节 |
+| 官网 | `https://stknot.com`，中英双语文档；当前 release `83802cb3202b` 的四个关键页面已核对构建字节 |
 | 依赖 PR | 16 个依赖升级 PR 已由 #141/#145 收口；#146 已合并，后续以 GitHub 实时状态为准 |
 | 新用户需求 | [Issue 140 本地 MCP stdio](https://github.com/StateKnot/StateKnot/issues/140)，来自 JiaClaw 接入需求 |
 
@@ -125,7 +125,9 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 种子；另有 67 个执行/持久化类型的 104 个完整 wire 映射及负向 reader 验证，
 原有八个构造族保留旧摘要断言。完整映射见中英 Core guide。全部当前根导出项
 另有封闭清单：307 个 reader 的规范 wire 和 308 个生成 schema pin、两个仅输出
-生产者及 246 个没有序列化接口的代表实例。剩余变体组合、property/fuzz、
+生产者及 246 个没有序列化接口的代表实例；序列化 profile 另有 308 个固定 pin。
+当前三个 ASan/libFuzzer 入口拥有固定工具、逐种子重放、有限变异、源与锁
+快照检查以及失败保留；最终精确提交必须通过新门禁。剩余变体组合、嵌套属性、
 历史迁移、嵌套 namespace、协议安全 RFC 与 stdio 生命周期继续开放。
 
 ### 交付任务

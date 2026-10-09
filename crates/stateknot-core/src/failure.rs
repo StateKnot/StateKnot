@@ -1013,7 +1013,8 @@ struct FailureWire {
     caused_by_event_id: Option<EventId>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 struct FailureWireRef<'a> {
     id: FailureId,
     category: FailureCategory,
@@ -1077,7 +1078,11 @@ impl JsonSchema for Failure {
     }
 
     fn json_schema(generator: &mut SchemaGenerator) -> Schema {
-        FailureWire::json_schema(generator)
+        if generator.contract().is_serialize() {
+            FailureWireRef::json_schema(generator)
+        } else {
+            FailureWire::json_schema(generator)
+        }
     }
 }
 

@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Isolated, pinned ASan/libFuzzer qualification for strict bounded JSON/JCS,
+  all 307 public Core readers and the actual offline runtime schema registry.
+  Every seed is replayed before finite mutation; source/lock integrity, owned
+  process cleanup and retained synthetic reproducers form a dedicated CI gate.
+  A separate closed inventory pins all 308 serialization schemas.
+
 - A compiler-checked closed Core root-export inventory covering 555 types,
   307 typed reader/writer wires and 308 generated schema pins. Two output-only
   types retain their producer boundaries; 246 reviewed Rust-only instantiations
@@ -64,6 +70,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   tenant-wide read grant for a one-request typed Agent run.
 
 ### Fixed
+
+- `Failure`, `ToolError` and Capability lifecycle output schemas now use their
+  actual borrowed serializer wires, preserving optional omission behavior.
+  Existing input schema and wire pins stay exact. Incompatible frozen output
+  pins fail before dispatch and require new schema/Tool versions; actual parent
+  schema documents retain regression evidence without rewriting admitted pins.
 
 - Empty internally tagged Core variants now reject extra fields instead of
   silently discarding them in Serde. This closes node control/state, prepared

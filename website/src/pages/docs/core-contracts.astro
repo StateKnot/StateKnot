@@ -118,7 +118,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">Seal the compatibility evidence corpus</h2>
     <p>
-      A versioned catalog closes the inventory around all 42 committed Core
+      A versioned catalog closes the inventory around all 43 committed Core
       fixture documents. Each entry pins the exact file bytes with SHA-256,
       retaining deliberately non-canonical negative vectors; a domain-separated
       RFC 8785 root binds the ordered path, schema, and digest metadata.
@@ -132,22 +132,44 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
     <p>
       A closed audit now classifies all 555 public root types: 307 typed
       readers, two output-only producers and 246 reviewed Rust-only
-      instantiations. It pins 308 generated schemas. Earlier readers retain 38
-      value types and 67 execution types mapped to positive and negative
-      evidence. Complete graph, checkpoint, invocation, outbox and wait wires
-      retain the earlier constructor digests. Empty tagged variants reject
-      additional fields and sequence forms while valid wire bytes and seven
-      generated schema pins remain unchanged. Thirty-one bounded property models
-      also run with a reproducible CI seed.
+      instantiations. It pins 308 input/default and 308 serialization schemas.
+      Earlier readers retain 38 value types and 67 execution types mapped to
+      positive and negative evidence. Complete graph, checkpoint, invocation,
+      outbox and wait wires retain the earlier constructor digests. Empty tagged
+      variants reject additional fields and sequence forms while valid wire
+      bytes and seven generated schema pins remain unchanged. Thirty-one bounded
+      property models also run with a reproducible CI seed.
     </p>
     <p>
       CI rejects missing, unregistered, changed, duplicate, unsafe, oversized,
       or unreferenced fixtures. Every entry must remain consumed by executable
       Rust compatibility tests. This is auditable infrastructure toward RFC-0001
       validation item 2. Current root types have explicit fixture pointers and
-      compiler evidence; variant combinations, nested properties, bounded fuzz
-      and historical qualification remain open; item 2 remains open pending the
-      full variant review.
+      compiler evidence; variant combinations, nested properties and historical
+      qualification remain open; item 2 remains open pending the full variant
+      review.
+    </p>
+  </section>
+
+  <section aria-labelledby="core-contract-fuzz">
+    <h2 id="core-contract-fuzz">Run bounded fuzz qualification</h2>
+    <p>
+      An isolated dev workspace runs ASan/libFuzzer against bounded JSON/JCS,
+      all 307 readers and the actual offline schema registry. Every seed is
+      explicitly replayed before at most 10,000 executions or 60 seconds of
+      mutation per target, with a 128 KiB input bound, 10-second input deadline
+      and 2,048 MiB RSS ceiling. CI retains failures and coverage cases. The
+      final immutable source must pass Core bounded fuzz.
+    </p>
+    <p><code>python3 fuzz/qualify.py</code></p>
+    <p>
+      The repository fuzz/README.md provides pinned tools and full reproduction
+      steps. Output schemas use actual serializer wires; existing input pins
+      stay exact. Stale output pins fail at startup with zero application calls.
+      Changed bytes require new schema/Tool versions and the old registry for
+      admitted work. Finite fuzz does not establish exhaustive variants,
+      historical migration, production capacity or independent security
+      acceptance.
     </p>
   </section>
 

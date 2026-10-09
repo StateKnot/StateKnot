@@ -1,0 +1,2 @@
+CapabilityLifecycle
+{"status":"deprecated","announced_at":"2026-08-29T00:00:00.000000Z","notice":"Migrate to payments.capture 3.0.0 before retirement."}

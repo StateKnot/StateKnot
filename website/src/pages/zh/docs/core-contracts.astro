@@ -114,7 +114,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">封闭兼容性证据语料库</h2>
     <p>
-      版本化目录对当前提交的全部 42 份 Core Fixture 文档建立封闭清单。每个条目以
+      版本化目录对当前提交的全部 43 份 Core Fixture 文档建立封闭清单。每个条目以
       SHA-256 固定文件的精确字节，从而保留刻意非 Canonical 的非法输入反例；带
       Domain Separation 的 RFC 8785 根摘要绑定有序的路径、Schema 与 Digest
       元数据。
@@ -129,16 +129,38 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       CI 会拒绝缺失、未登记、变化、重复、不安全、过大或没有测试引用的
       Fixture。每个条目都必须继续被可执行的 Rust 兼容性测试消费。这是 RFC-0001
       第 2 项验证门禁的可审计基础。当前根导出类型已有显式 fixture pointer
-      和编译器证据；变体组合、嵌套属性、有界 fuzz 与历史验收仍保持开放。 第 2
+      和编译器证据；变体组合、嵌套属性与历史验收仍保持开放。 第 2
       项仍保持开放，待完成完整变体审查。
     </p>
     <p>
       封闭审计现已分类全部 555 个公开根类型：307 个逐型 reader、两个仅输出
-      生产者及 246 个 Rust-only 代表实例，并固定 308 个生成的 schema 摘要。 原有
-      38 个值类型和 67 个执行类型的正向与负向证据继续保留。完整的
+      生产者及 246 个 Rust-only 代表实例，并分别固定 308 个输入/default 和 308
+      个序列化 schema 摘要。 原有 38 个值类型和 67
+      个执行类型的正向与负向证据继续保留。完整的
       Graph、Checkpoint、invocation、Outbox 和 wait wire 保留原有构造器摘要。
       无字段的带标签变体拒绝额外字段和数组形式，有效 wire 字节及七个生成的
       schema pin 保持一致。31 个有界属性模型也以固定 CI 种子运行。
+    </p>
+  </section>
+
+  <section aria-labelledby="core-contract-fuzz">
+    <h2 id="core-contract-fuzz">运行有界 fuzz 门禁</h2>
+    <p>
+      独立开发 workspace 对有界 JSON/JCS、全部 307 个 reader 和实际离线 schema
+      注册表运行 ASan/libFuzzer。逐一重放固定语料后，每个目标最多执行 10,000
+      次或 60 秒变异，输入上限 128 KiB、单输入 10 秒、RSS 2,048
+      MiB；失败输入和覆盖语料随 CI 证据保留。最终不可变源码必须通过 Core bounded
+      fuzz 门禁。
+    </p>
+    <p><code>python3 fuzz/qualify.py</code></p>
+    <p>
+      复现所需固定工具及完整步骤见<a
+        href="https://github.com/StateKnot/StateKnot/blob/main/fuzz/README.md"
+        >fuzz 指南</a
+      >。输出 schema 使用实际 serializer wire，原输入 pin 保持一致；旧输出 pin
+      在启动阶段拒绝且不调用应用。变更须采用新 schema/Tool
+      版本并保留已准入工作的旧注册表。有限 fuzz
+      不代表穷尽变体、历史迁移、生产容量或独立安全验收。
     </p>
   </section>
 

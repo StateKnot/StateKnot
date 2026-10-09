@@ -913,8 +913,8 @@ enum CapabilityLifecycleWire {
     },
 }
 
-#[derive(Serialize)]
-#[serde(tag = "status", rename_all = "snake_case")]
+#[derive(Serialize, JsonSchema)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 enum CapabilityLifecycleWireRef<'a> {
     Active {},
     Deprecated {
@@ -998,7 +998,11 @@ impl JsonSchema for CapabilityLifecycle {
     }
 
     fn json_schema(generator: &mut SchemaGenerator) -> Schema {
-        CapabilityLifecycleWire::json_schema(generator)
+        if generator.contract().is_serialize() {
+            CapabilityLifecycleWireRef::json_schema(generator)
+        } else {
+            CapabilityLifecycleWire::json_schema(generator)
+        }
     }
 }
 

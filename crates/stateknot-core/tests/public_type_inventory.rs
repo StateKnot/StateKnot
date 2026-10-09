@@ -46,6 +46,39 @@ struct Export {
     kind: String,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OutputInventory {
+    schema: String,
+    contract: String,
+    draft: String,
+    types: BTreeMap<String, Digest>,
+    regression_baseline: OutputRegressionBaseline,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OutputRegressionBaseline {
+    source_commit: String,
+    schemas: BTreeMap<String, OutputRegressionSchema>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OutputRegressionSchema {
+    document: Value,
+    canonical_digest: Digest,
+}
+
+static OUTPUT_INVENTORY: LazyLock<OutputInventory> = LazyLock::new(|| {
+    let json = BoundedJson::from_str_with_limits(
+        include_str!("fixtures/core-public-output-schema-inventory-v1.json"),
+        JsonLimits::MAXIMUM,
+    )
+    .unwrap();
+    serde_json::from_value(json.into_value()).unwrap()
+});
+
 static INVENTORY: LazyLock<Inventory> = LazyLock::new(|| {
     let json = BoundedJson::from_str_with_limits(
         include_str!("fixtures/core-public-type-inventory-v1.json"),
@@ -89,6 +122,15 @@ fn schema_pin<T: JsonSchema>(name: &str) {
         Some(canonical(schema).digest()),
         INVENTORY.types[name].schema_digest,
         "{name} schema changed"
+    );
+    let output = schemars::generate::SchemaSettings::draft2020_12()
+        .for_serialize()
+        .into_generator()
+        .into_root_schema_for::<T>();
+    assert_eq!(
+        canonical(serde_json::to_value(output).unwrap()).digest(),
+        OUTPUT_INVENTORY.types[name],
+        "{name} output schema changed"
     );
 }
 fn verify_reader<T: DeserializeOwned + Serialize + JsonSchema>(name: &str) {
@@ -198,315 +240,7 @@ macro_rules! rust_only {
     };
 }
 
-readers! {
-    agent_admission: AgentAdmission,
-    agent_admission_authority: AgentAdmissionAuthority,
-    agent_admission_budget_layer: AgentAdmissionBudgetLayer,
-    agent_admission_intent: AgentAdmissionIntent,
-    agent_artifacts: AgentArtifacts,
-    agent_descriptor: AgentDescriptor,
-    agent_execution_config: AgentExecutionConfig,
-    agent_instructions: AgentInstructions,
-    agent_request: AgentRequest,
-    agent_result: AgentResult,
-    agent_result_provenance: AgentResultProvenance,
-    agent_structured_output_strategy: AgentStructuredOutputStrategy,
-    agent_submission_key: AgentSubmissionKey,
-    agent_tool_concurrency: AgentToolConcurrency,
-    agent_tools: AgentTools,
-    artifact_description: ArtifactDescription,
-    artifact_id: ArtifactId,
-    artifact_identity: ArtifactIdentity,
-    artifact_modality: ArtifactModality,
-    artifact_name: ArtifactName,
-    artifact_parents: ArtifactParents,
-    artifact_presentation: ArtifactPresentation,
-    artifact_provenance: ArtifactProvenance,
-    artifact_ref: ArtifactRef,
-    artifact_representation: ArtifactRepresentation,
-    attempt_id: AttemptId,
-    authorization_receipt_id: AuthorizationReceiptId,
-    barrier_result_heads: BarrierResultHeads,
-    bounded_json: BoundedJson,
-    budget_dimension: BudgetDimension,
-    budget_limits: BudgetLimits,
-    budget_usage: BudgetUsage,
-    byte_count: ByteCount,
-    capability_description: CapabilityDescription,
-    capability_identity: CapabilityIdentity,
-    capability_kind: CapabilityKind,
-    capability_lifecycle: CapabilityLifecycle,
-    capability_metadata: CapabilityMetadata,
-    capability_name: CapabilityName,
-    capability_reference: CapabilityReference,
-    capability_title: CapabilityTitle,
-    checkpoint: Checkpoint,
-    checkpoint_barrier: CheckpointBarrier,
-    checkpoint_head: CheckpointHead,
-    checkpoint_id: CheckpointId,
-    checkpoint_state: CheckpointState,
-    checkpoint_write: CheckpointWrite,
-    child_agent_reference: ChildAgentReference,
-    child_run_admission_intent: ChildRunAdmissionIntent,
-    child_run_budget_account: ChildRunBudgetAccount,
-    child_run_budget_entry: ChildRunBudgetEntry,
-    child_run_budget_settlement: ChildRunBudgetSettlement,
-    child_run_declaration: ChildRunDeclaration,
-    child_run_join_binding: ChildRunJoinBinding,
-    child_run_join_head: ChildRunJoinHead,
-    child_run_join_request: ChildRunJoinRequest,
-    child_run_key: ChildRunKey,
-    child_run_slot: ChildRunSlot,
-    child_run_topology_limits: ChildRunTopologyLimits,
-    compiled_graph: CompiledGraph,
-    content_metadata: ContentMetadata,
-    content_part: ContentPart,
-    content_source: ContentSource,
-    content_trust: ContentTrust,
-    cost_limits: CostLimits,
-    cumulative_budget_reservation: CumulativeBudgetReservation,
-    currency_code: CurrencyCode,
-    delivery_fence: DeliveryFence,
-    delivery_id: DeliveryId,
-    destination_id: DestinationId,
-    digest: Digest,
-    durable_timer: DurableTimer,
-    durable_timer_head: DurableTimerHead,
-    durable_timer_record: DurableTimerRecord,
-    durable_wait: DurableWait,
-    duration_millis: DurationMillis,
-    event_id: EventId,
-    execution_count: ExecutionCount,
-    extension_key: ExtensionKey,
-    extension_value: ExtensionValue,
-    extensions: Extensions,
-    failure: Failure,
-    failure_category: FailureCategory,
-    failure_code: FailureCode,
-    failure_details: FailureDetails,
-    failure_id: FailureId,
-    failure_message: FailureMessage,
-    failure_origin: FailureOrigin,
-    fencing_epoch: FencingEpoch,
-    graph_child_run_policy: GraphChildRunPolicy,
-    graph_execution_limits: GraphExecutionLimits,
-    graph_namespace: GraphNamespace,
-    graph_node: GraphNode,
-    graph_reducer_reference: GraphReducerReference,
-    graph_reference: GraphReference,
-    graph_route: GraphRoute,
-    graph_routes: GraphRoutes,
-    instruction: Instruction,
-    instruction_content: InstructionContent,
-    instruction_identity: InstructionIdentity,
-    instruction_name: InstructionName,
-    instruction_provenance: InstructionProvenance,
-    interrupt_id: InterruptId,
-    interrupt_record: InterruptRecord,
-    interrupt_request: InterruptRequest,
-    interrupt_request_head: InterruptRequestHead,
-    interrupt_request_intent: InterruptRequestIntent,
-    interrupt_resolution: InterruptResolution,
-    interrupt_resolution_intent: InterruptResolutionIntent,
-    interrupt_resolver: InterruptResolver,
-    invocation_id: InvocationId,
-    issuer_id: IssuerId,
-    journal_append: JournalAppend,
-    journal_event: JournalEvent,
-    journal_event_intent: JournalEventIntent,
-    journal_event_kind: JournalEventKind,
-    journal_event_source: JournalEventSource,
-    journal_expectation: JournalExpectation,
-    journal_head: JournalHead,
-    journal_payload: JournalPayload,
-    journal_sequence: JournalSequence,
-    json_content: JsonContent,
-    known_costs: KnownCosts,
-    language_tag: LanguageTag,
-    media_type: MediaType,
-    message: Message,
-    message_id: MessageId,
-    message_parts: MessageParts,
-    message_producer: MessageProducer,
-    message_producer_kind: MessageProducerKind,
-    message_provenance: MessageProvenance,
-    message_role: MessageRole,
-    model_capabilities: ModelCapabilities,
-    model_capability_issue: ModelCapabilityIssue,
-    model_capability_mismatch: ModelCapabilityMismatch,
-    model_descriptor: ModelDescriptor,
-    model_error: ModelError,
-    model_error_phase: ModelErrorPhase,
-    model_error_provenance: ModelErrorProvenance,
-    model_event: ModelEvent,
-    model_event_kind: ModelEventKind,
-    model_finish_reason: ModelFinishReason,
-    model_invocation: ModelInvocation,
-    model_invocation_head: ModelInvocationHead,
-    model_invocation_intent: ModelInvocationIntent,
-    model_invocation_revision: ModelInvocationRevision,
-    model_invocation_state: ModelInvocationState,
-    model_invocation_status: ModelInvocationStatus,
-    model_invocation_transition: ModelInvocationTransition,
-    model_invocation_transition_kind: ModelInvocationTransitionKind,
-    model_modalities: ModelModalities,
-    model_modality: ModelModality,
-    model_output_delta: ModelOutputDelta,
-    model_output_delta_kind: ModelOutputDeltaKind,
-    model_output_item: ModelOutputItem,
-    model_output_start: ModelOutputStart,
-    model_provider_model_id: ModelProviderModelId,
-    model_provider_replay: ModelProviderReplay,
-    model_provider_replay_format: ModelProviderReplayFormat,
-    model_provider_request_id: ModelProviderRequestId,
-    model_provider_response_id: ModelProviderResponseId,
-    model_provider_tool_call_id: ModelProviderToolCallId,
-    model_request: ModelRequest,
-    model_request_limits: ModelRequestLimits,
-    model_requirements: ModelRequirements,
-    model_response: ModelResponse,
-    model_response_mode: ModelResponseMode,
-    model_response_provenance: ModelResponseProvenance,
-    model_stream_chunk: ModelStreamChunk,
-    model_structured_output_capabilities: ModelStructuredOutputCapabilities,
-    model_structured_output_level: ModelStructuredOutputLevel,
-    model_text_output_format: ModelTextOutputFormat,
-    model_token_limits: ModelTokenLimits,
-    model_tool_call_proposal: ModelToolCallProposal,
-    model_tool_capabilities: ModelToolCapabilities,
-    model_tool_choice: ModelToolChoice,
-    model_tool_choices: ModelToolChoices,
-    model_tool_failure: ModelToolFailure,
-    model_tool_outcome: ModelToolOutcome,
-    model_tool_requirements: ModelToolRequirements,
-    model_tool_selection: ModelToolSelection,
-    model_transcript: ModelTranscript,
-    model_transcript_turn: ModelTranscriptTurn,
-    model_usage: ModelUsage,
-    model_usage_field: ModelUsageField,
-    money: Money,
-    node_activation: NodeActivation,
-    node_attempt: NodeAttempt,
-    node_attempt_completion: NodeAttemptCompletion,
-    node_attempt_outcome: NodeAttemptOutcome,
-    node_attempt_start: NodeAttemptStart,
-    node_attempt_start_head: NodeAttemptStartHead,
-    node_attempt_status: NodeAttemptStatus,
-    node_control: NodeControl,
-    node_control_kind: NodeControlKind,
-    node_id: NodeId,
-    node_invocation_binding: NodeInvocationBinding,
-    node_invocation_binding_kind: NodeInvocationBindingKind,
-    node_invocation_bindings: NodeInvocationBindings,
-    node_state_change: NodeStateChange,
-    node_state_update: NodeStateUpdate,
-    node_terminal_output: NodeTerminalOutput,
-    node_wait: NodeWait,
-    node_waits: NodeWaits,
-    outbox_attempt: OutboxAttempt,
-    outbox_attempt_completion: OutboxAttemptCompletion,
-    outbox_attempt_outcome: OutboxAttemptOutcome,
-    outbox_attempt_start: OutboxAttemptStart,
-    outbox_attempt_start_head: OutboxAttemptStartHead,
-    outbox_attempt_status: OutboxAttemptStatus,
-    outbox_delivery: OutboxDelivery,
-    outbox_delivery_head: OutboxDeliveryHead,
-    outbox_delivery_intent: OutboxDeliveryIntent,
-    outbox_delivery_status: OutboxDeliveryStatus,
-    outbox_destination_ref: OutboxDestinationRef,
-    pending_node_result: PendingNodeResult,
-    pending_node_result_head: PendingNodeResultHead,
-    pending_node_result_intent: PendingNodeResultIntent,
-    principal_identity: PrincipalIdentity,
-    quarantine_id: QuarantineId,
-    ready_nodes: ReadyNodes,
-    redaction_state: RedactionState,
-    resolved_budget: ResolvedBudget,
-    retention_class: RetentionClass,
-    retry_advice: RetryAdvice,
-    route_id: RouteId,
-    run_cancellation: RunCancellation,
-    run_cancellation_request: RunCancellationRequest,
-    run_failure: RunFailure,
-    run_fence: RunFence,
-    run_id: RunId,
-    run_interrupt: RunInterrupt,
-    run_interrupt_kind: RunInterruptKind,
-    run_lease: RunLease,
-    run_lifecycle: RunLifecycle,
-    run_revision: RunRevision,
-    run_status: RunStatus,
-    run_timer: RunTimer,
-    run_timer_kind: RunTimerKind,
-    run_transition: RunTransition,
-    run_transition_kind: RunTransitionKind,
-    run_wait: RunWait,
-    run_waits: RunWaits,
-    scheduler_reservation_id: SchedulerReservationId,
-    scheduler_shard_id: SchedulerShardId,
-    schema_id: SchemaId,
-    schema_reference: SchemaReference,
-    scope: Scope,
-    scope_set: ScopeSet,
-    security_label: SecurityLabel,
-    skill_acting_window: SkillActingWindow,
-    skill_acting_window_duration: SkillActingWindowDuration,
-    skill_acting_window_id: SkillActingWindowId,
-    skill_acting_window_open_request: SkillActingWindowOpenRequest,
-    skill_acting_window_revocation: SkillActingWindowRevocation,
-    skill_acting_window_revocation_reason: SkillActingWindowRevocationReason,
-    skill_activation_approval: SkillActivationApproval,
-    skill_activation_approval_id: SkillActivationApprovalId,
-    skill_activation_scope: SkillActivationScope,
-    skill_activation_source: SkillActivationSource,
-    skill_authorization_subject: SkillAuthorizationSubject,
-    subject_id: SubjectId,
-    superstep: Superstep,
-    tenant_id: TenantId,
-    text_content: TextContent,
-    thread_id: ThreadId,
-    timer_firing: TimerFiring,
-    timer_firing_intent: TimerFiringIntent,
-    timer_id: TimerId,
-    timer_registration_intent: TimerRegistrationIntent,
-    timestamp: Timestamp,
-    token_count: TokenCount,
-    tool_artifacts: ToolArtifacts,
-    tool_authorization_operation: ToolAuthorizationOperation,
-    tool_authorization_provenance: ToolAuthorizationProvenance,
-    tool_authorization_receipt: ToolAuthorizationReceipt,
-    tool_cancellation_support: ToolCancellationSupport,
-    tool_descriptor: ToolDescriptor,
-    tool_error: ToolError,
-    tool_error_phase: ToolErrorPhase,
-    tool_error_provenance: ToolErrorProvenance,
-    tool_execution_limits: ToolExecutionLimits,
-    tool_execution_semantics: ToolExecutionSemantics,
-    tool_external_effect: ToolExternalEffect,
-    tool_idempotency: ToolIdempotency,
-    tool_input: ToolInput,
-    tool_invocation: ToolInvocation,
-    tool_invocation_capabilities: ToolInvocationCapabilities,
-    tool_invocation_head: ToolInvocationHead,
-    tool_invocation_intent: ToolInvocationIntent,
-    tool_invocation_limit: ToolInvocationLimit,
-    tool_invocation_revision: ToolInvocationRevision,
-    tool_invocation_state: ToolInvocationState,
-    tool_invocation_status: ToolInvocationStatus,
-    tool_invocation_transition: ToolInvocationTransition,
-    tool_invocation_transition_kind: ToolInvocationTransitionKind,
-    tool_progress_event: ToolProgressEvent,
-    tool_progress_provenance: ToolProgressProvenance,
-    tool_progress_update: ToolProgressUpdate,
-    tool_recovery_handle: ToolRecoveryHandle,
-    tool_resource_access: ToolResourceAccess,
-    tool_resource_requirements: ToolResourceRequirements,
-    tool_result: ToolResult,
-    tool_result_provenance: ToolResultProvenance,
-    tool_risk: ToolRisk,
-    version: Version,
-    wait_registration_intent: WaitRegistrationIntent,
-}
+include!("support/public_readers.rs");
 
 rust_only! {
     AgentAdmissionAuthorityError,
@@ -833,6 +567,39 @@ fn every_named_root_export_has_exactly_one_reviewed_classification() {
     assert_eq!(
         INVENTORY.schema,
         "https://stateknot.github.io/schema/test-fixture/core-public-type-inventory/1.0.0"
+    );
+    assert_eq!(
+        OUTPUT_INVENTORY.schema,
+        "https://stateknot.github.io/schema/test-fixture/core-public-output-schema-inventory/1.0.0"
+    );
+    assert_eq!(OUTPUT_INVENTORY.contract, "serialize");
+    assert_eq!(OUTPUT_INVENTORY.draft, "2020-12");
+    assert_eq!(
+        OUTPUT_INVENTORY.regression_baseline.source_commit,
+        "83802cb3202bf9cb860c6357a94abc80408b1f88"
+    );
+    assert_eq!(
+        OUTPUT_INVENTORY
+            .regression_baseline
+            .schemas
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["CapabilityLifecycle", "Failure", "ToolError"])
+    );
+    for schema in OUTPUT_INVENTORY.regression_baseline.schemas.values() {
+        assert_eq!(
+            canonical(schema.document.clone()).digest(),
+            schema.canonical_digest
+        );
+    }
+    assert_eq!(
+        OUTPUT_INVENTORY
+            .types
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>(),
+        READERS.iter().copied().chain(["BudgetRemaining"]).collect()
     );
     let actual = root_exports(include_str!("../src/lib.rs")).unwrap();
     let mut expected = BTreeMap::new();

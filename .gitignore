@@ -25,3 +25,8 @@ coverage/
 /conformance/mcp-client/results/
 /conformance/mcp-server/results/
 /conformance/a2a-server/results/
+
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/
+/fuzz/results/

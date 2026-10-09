@@ -2915,7 +2915,8 @@ struct ToolErrorWire {
     recovery_handle: Option<ToolRecoveryHandle>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 struct ToolErrorWireRef<'a> {
     failure: &'a Failure,
     phase: ToolErrorPhase,
@@ -2973,7 +2974,11 @@ impl JsonSchema for ToolError {
     }
 
     fn json_schema(generator: &mut SchemaGenerator) -> Schema {
-        ToolErrorWire::json_schema(generator)
+        if generator.contract().is_serialize() {
+            ToolErrorWireRef::json_schema(generator)
+        } else {
+            ToolErrorWire::json_schema(generator)
+        }
     }
 }
 
