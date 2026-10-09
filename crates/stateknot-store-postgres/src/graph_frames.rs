@@ -8,6 +8,10 @@ use stateknot_core::{
     GraphFrameCheckpoint, GraphFrameCheckpointHead, GraphFrameEntry, GraphFrameIdentity,
 };
 
+#[path = "graph_frames/active.rs"]
+mod active;
+pub use active::{StoredActiveGraphFrame, StoredOpenGraphFrame};
+
 #[path = "graph_frames/barriers.rs"]
 mod barriers;
 pub use barriers::{GraphFrameBarrierCommitOutcome, StoredGraphFrameBarrier};

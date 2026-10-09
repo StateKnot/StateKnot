@@ -218,6 +218,15 @@ reader 或改变原有类型 schema pin。实际入栈事务、继承限制、ac
 runtime LOGIN 路径已经执行，最终源码验收仍待收齐。全帧关闭、实际嵌套 driver 和完整故障验收仍是
 独立草案门禁，不改变已发布 alpha.1 的支持范围。
 
+`PostgresStore::load_active_graph_frame` 在同一有界 repeatable-read 快照内认证
+活动叶的完整检查点，以及最多七层入口、当前检查点和物理 caller 的紧凑绑定。
+接管保留实际历史和整个 Run 的结构性 DIRECT 下界；缺失 stack、隐藏开放作用域、
+虚增生命周期计数和等待终态替换会被拒绝。取消后的快照继续保留开放栈，交由
+后续完整关闭事务处理。读取不授予执行权限，结构下界不能替代普通节点/provider
+的完整会计。Schema 32、Core pin 与既有 wire 不变；整栈关闭和真实嵌套 Driver
+仍待完成。
+
+
 [RFC-0021](rfcs/0021-core-object-readers.md) 要求全部 181 个封闭对象 reader
 使用已公布的对象形状。流式 map 门禁复用原 owned 字段 reader、重复/未知字段
 检查和构造器，无需额外 JSON 树。矩阵通过文本和 Value 两种 reader 拒绝按

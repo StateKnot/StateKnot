@@ -1155,6 +1155,14 @@ async fn scoped_wait(
         .unwrap();
     assert_eq!(waiting.lifecycle().status(), RunStatus::Waiting);
     assert!(waiting.lease().is_none());
+    let active = fresh
+        .load_active_graph_frame(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(active.checkpoint(), saved.checkpoint());
+    assert_eq!(active.entry().digest(), entry.digest());
+    assert_eq!(active.run().lifecycle().status(), RunStatus::Waiting);
     let request = fresh
         .load_interrupt_request(fence.tenant_id(), fence.run_id(), interrupt_id)
         .await
@@ -1217,6 +1225,14 @@ async fn scoped_wait(
     .await
     .unwrap();
     assert_eq!(checkpoint, *saved.checkpoint());
+    let active = fresh
+        .load_active_graph_frame(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(active.checkpoint(), &checkpoint);
+    assert_eq!(active.run().lifecycle().status(), RunStatus::Active);
+    assert_eq!(active.run().lease().unwrap().fence(), &next);
     let ready =
         stateknot_core::ReadyNodeRecoveryPlanner::for_frame(checkpoint.clone(), next.clone())
             .unwrap()

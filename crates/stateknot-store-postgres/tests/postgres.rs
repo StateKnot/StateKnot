@@ -13,6 +13,8 @@ mod frame_callers;
 mod frame_dispatch;
 #[path = "postgres/frame_entries.rs"]
 mod frame_entries;
+#[path = "postgres/frame_recovery.rs"]
+mod frame_recovery;
 #[path = "postgres/frame_returns.rs"]
 mod frame_returns;
 #[path = "postgres/frame_scope.rs"]

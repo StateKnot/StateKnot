@@ -810,6 +810,23 @@ async fn seven_level_return_cascade_preserves_every_proof_and_lifetime_counter()
         assert_eq!(usage.graph_depth().get(), 8);
         previous = Some(record.clone());
         returns.push(record);
+        let active = Box::pin(store.load_active_graph_frame(&tenant, run))
+            .await
+            .unwrap();
+        if level == 0 {
+            assert!(active.is_none());
+        } else {
+            let active = active.unwrap();
+            assert_eq!(active.open_frames().len(), level);
+            assert_eq!(
+                active.checkpoint().frame(),
+                entries[level - 1].entry().checkpoint().frame()
+            );
+            active
+                .minimum_direct_usage()
+                .validate_monotonic_after(&usage)
+                .unwrap();
+        }
     }
     assert_eq!(usage.graph_steps().get(), 27);
     let db = pool().await;

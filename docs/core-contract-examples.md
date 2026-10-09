@@ -416,3 +416,14 @@ lease, authenticates complete terminal wait facts, and resumes the saved leaf
 under a new fence only after all conditions are discharged. Default-stack native
 and standalone runtime LOGIN tests cover recovery and whole return. Final source
 qualification, all-frame closure and the nested Driver remain pending.
+
+
+`PostgresStore::load_active_graph_frame` provides one bounded, authenticated
+repeatable-read recovery snapshot. It returns the whole active leaf and at most
+seven compact root-to-leaf checkpoint/entry/current-caller bindings, preserving
+physical takeover history and the Run-wide structural DIRECT floor. It rejects
+missing stacks, hidden open scopes, invented lifetime progress and substituted
+wait terminal facts. A cancellation snapshot keeps the stack open for the future
+whole-close transaction. The read grants no execution authority and the floor is
+not complete ordinary node/provider accounting. Schema 32, Core pins and existing
+wire bytes are unchanged; nested Driver and whole-close support remain pending.

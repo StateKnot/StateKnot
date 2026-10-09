@@ -544,6 +544,22 @@ async fn frame_transaction_admits_seven_real_scopes_without_resetting_root_or_us
             .unwrap();
         assert_eq!(reloaded.digest(), record.digest());
         assert_eq!(reloaded.entry(), record.entry());
+        let active = Box::pin(store.load_active_graph_frame(&tenant, run))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(active.entry().digest(), record.digest());
+        assert_eq!(active.open_frames().len(), level + 1);
+        assert_eq!(
+            active.open_frames().last().unwrap().checkpoint(),
+            &active.checkpoint().head()
+        );
+        assert_eq!(active.checkpoint(), record.entry().checkpoint());
+        assert_eq!(active.caller(), record.entry().start());
+        assert_eq!(
+            active.minimum_direct_usage(),
+            &record.direct_usage_after().unwrap()
+        );
         assert_eq!(
             store
                 .load_node_attempt(&tenant, &run, plan.attempt_id())

@@ -98,7 +98,8 @@ mod scoped_checkpoints;
 mod graph_frames;
 pub use graph_frames::{
     GraphFrameBarrierCommitOutcome, GraphFrameEntryCommitOutcome, GraphFrameReturnCommitOutcome,
-    StoredGraphFrameBarrier, StoredGraphFrameEntry, StoredGraphFrameReturn,
+    StoredActiveGraphFrame, StoredGraphFrameBarrier, StoredGraphFrameEntry, StoredGraphFrameReturn,
+    StoredOpenGraphFrame,
 };
 
 use crate::{

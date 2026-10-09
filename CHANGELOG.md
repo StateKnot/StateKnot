@@ -43,6 +43,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Add an experimental, bounded Store snapshot of the complete active frame
+  ancestry, current leaf and physical caller; authenticate returned history and
+  whole wait terminal facts in the same transaction before Driver recovery.
+  Structural DIRECT floors grant no dispatch authority or complete accounting.
+
 - Experimental whole scoped waits atomically bind the leaf successor, complete
   registrations and original lifecycle revision while releasing the Run lease.
   Recovery authenticates complete resolution/firing/abandonment facts and resumes

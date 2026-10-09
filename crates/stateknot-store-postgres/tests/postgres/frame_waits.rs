@@ -28,7 +28,7 @@ fn interrupt(id: InterruptId) -> NodeWait {
         None,
     )
 }
-async fn prepared(
+pub(super) async fn prepared(
     store: &PostgresStore,
     name: &str,
     waits: NodeWaits,
@@ -95,7 +95,7 @@ async fn prepared(
     )
 }
 #[allow(clippy::too_many_arguments)]
-async fn suspend(
+pub(super) async fn suspend(
     store: &PostgresStore,
     plan: GraphFrameBarrierPlan,
     fence: &RunFence,

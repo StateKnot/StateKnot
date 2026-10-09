@@ -348,6 +348,21 @@ It does not qualify retained historical executables. A separate runtime LOGIN
 exercises the actual wait/resolve/retry/resume path. Final immutable-source
 qualification, two-version backup/restore and all-frame closure remain required.
 
+The Store also provides `load_active_graph_frame`, a heap-backed, bounded
+repeatable-read recovery snapshot. It authenticates the exact lifetime inventory,
+all open root-to-leaf namespaces, suspended parent heads, whole entry/checkpoint
+history and latest physical callers, returning at most seven compact head/entry/
+caller bindings alongside the whole leaf. Returned history is authenticated in journal
+order before ancestor reads, with compact proofs owned only by that transaction.
+Missing stacks and forged Root aliases cannot hide open frames. Waiting and
+cancellation snapshots verify complete resolution/firing/abandonment records;
+terminal Runs cannot retain a runnable frame. The returned DIRECT value is a
+structural floor, not complete ordinary node/provider accounting. This read
+confers no authority; scoped mutations still require their exact live fence,
+heads and complete accounting. No schema migration, Core pin or existing wire
+changes. It is an experimental recovery primitive while nested Driver and
+all-frame closure integration and final qualification remain required.
+
 Admission, node, barrier, caller-binding, return and wait transactions are parts of
 the Draft. All-frame closure, actual registry/driver dispatch,
 complete process-loss/commit-loss fault qualification and production capacity
