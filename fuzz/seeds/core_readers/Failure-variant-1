@@ -1,0 +1,2 @@
+Failure
+{"id":"01890f3e-7b2a-7cc2-a8f1-1234567890ab","category":"rate_limited","code":"dependency.rate_limited","origin":"provider.openai","message":"The dependency is temporarily unavailable.","retry_advice":{"kind":"safe_after","delay":"250"},"details":{"schema":{"id":"https://stateknot.github.io/schema/failure-details/1.0.0","version":"1.0.0","digest":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},"value":{"limit":"requests_per_minute"}},"caused_by_event_id":"01890f3e-7b2a-7cc3-b8f1-1234567890ab"}

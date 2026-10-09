@@ -1,0 +1,2 @@
+Failure
+{"id":"01890f3e-7b2a-7cc4-88f1-1234567890ab","category":"ambiguous_external_outcome","code":"tool.outcome_unknown","origin":"tool.payments","message":"The payment outcome must be reconciled.","retry_advice":{"kind":"reconcile_first"}}

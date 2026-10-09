@@ -1,0 +1,2 @@
+ToolError
+{"failure":{"id":"01912345-6789-7abc-8def-0123456789b1","category":"invalid_input","code":"tool.input_invalid","origin":"stateknot.tool_adapter","message":"Tool input does not satisfy its registered schema.","retry_advice":{"kind":"never"}},"phase":"preparation","external_effect":"not_started","provenance":{"invocation_id":"01912345-6789-7abc-8def-0123456789ad","attempt_id":"01912345-6789-7abc-8def-0123456789ab","tool":{"owner":{"issuer":"https://issuer.example.com/tenant","subject":"registry-owner"},"capability":{"name":"payments.capture","version":"2.1.0"}}}}

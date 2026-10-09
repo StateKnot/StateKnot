@@ -39,7 +39,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 40 currently
+The versioned `catalog-v1.json` closes the inventory around all 43 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -156,7 +156,8 @@ checks all 570 named root exports against a
 `Serialize` and `DeserializeOwned`, two output-only types, and 246 reviewed
 Rust-only instantiations without `Serialize` or `DeserializeOwned`. Each reader has an explicit fixture
 file/JSON pointer, a canonical wire digest and a generated JSON Schema digest;
-`BudgetRemaining` supplies the 308th schema pin. The 312-test matrix rejects
+`BudgetRemaining` supplies the 308th schema pin. A separate output inventory
+pins all 308 serialization profiles without changing the existing input pins. The 312-test matrix rejects
 unsupported scalar/collection shapes, unknown fields on 181 closed object
 vectors, and raw duplicate known keys. Bounded JSON and extension maps retain
 open-key semantics. New exports, missing typed evidence, and accidental Serde
@@ -173,8 +174,35 @@ prove the absence of every possible future conditional generic implementation.
 
 This closes the current root-type inventory gap. Selected vectors are not an
 exhaustive enumeration of variant combinations or historical versions. C2
-variant review, C3 nested/property auditing, C4 bounded fuzzing and C6 actual
-N-1/N-2 qualification remain separate acceptance work; RFC-0001 remains Draft.
+variant review, C3 nested/property auditing and C6 actual N-1/N-2 qualification
+remain separate acceptance work. The bounded C4 gate below runs independently;
+RFC-0001 remains Draft.
+
+## Bounded fuzz and output-schema qualification
+
+[`fuzz/qualify.py`](../fuzz/qualify.py) runs three ASan/libFuzzer targets: strict
+bounded JSON/JCS, all 307 typed readers, and the actual offline runtime schema
+registry. It explicitly replays every seed before fixed-seed mutation, preserves
+failure bytes and coverage cases, and records source/dependency/compiler hashes.
+Every target has a 128 KiB input bound, 10-second per-input deadline, 2,048 MiB
+RSS ceiling, and a mutation limit of 10,000 executions or 60 seconds. The runner
+owns process groups, isolates each run's corpus, and rejects lock/source changes.
+The nightly/compiler and dev-only engine are pinned separately from product
+Rust 1.88 and dependencies. No integrity checks are disabled via `cfg(fuzzing)`.
+
+Reproduction, retained malformed Unicode/duplicate/deep/oversized inputs and
+artifact handling are documented in the [fuzz guide](../fuzz/README.md). The
+`Core bounded fuzz` CI gate must pass on the final immutable source. This finite
+profile does not establish exhaustive coverage, historical migration, production
+capacity or independent security acceptance.
+
+[RFC-0020](rfcs/0020-core-optional-output-schemas.md) corrects optional producer
+schemas for `Failure`, `ToolError` and Capability lifecycle variants, reusing
+actual borrowed serializer wires. Existing input schema/wire pins stay exact;
+all 308 output pins are separately frozen. Actual parent-source output schemas
+prove stale-pin startup rejection with zero calls through the real Tool adapter.
+Changed output bytes require new schema/Tool versions and the old executable
+registry for previously admitted work; durable pins are never rewritten.
 
 ## What each example proves
 

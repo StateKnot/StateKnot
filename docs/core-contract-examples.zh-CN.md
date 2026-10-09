@@ -38,7 +38,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 42 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 43 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -136,7 +136,8 @@ fixture 证据；N-1/N-2 迁移、剩余类型族/变体组合及完整 C2/C3 �
 `Serialize` 与 `DeserializeOwned` 的类型、两个仅支持输出的类型，以及
 246 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
 fixture 文件/JSON pointer、规范 wire 摘要和生成的 JSON Schema 摘要；
-`BudgetRemaining` 提供第 308 个 schema pin。312 项矩阵检查拒绝不匹配的
+`BudgetRemaining` 提供第 308 个 schema pin；独立输出清单另固定全部 308 个
+序列化 profile，原输入 pin 保持精确一致。312 项矩阵检查拒绝不匹配的
 标量/集合形状、181 个封闭对象向量的未知字段及原始重复已知键。
 Bounded JSON 与扩展 map 保留开放 key 语义。新增导出、缺少逐型证据和意外
 引入的 Serde 实现会使 CI 失败，直至完成明确审查。
@@ -149,8 +150,29 @@ Bounded JSON 与扩展 map 保留开放 key 语义。新增导出、缺少逐型
 清单中明确记录的代表实例，不证明所有未来条件泛型实现都无法序列化。
 
 当前根导出类型清单缺口已补齐。所选向量不是全部变体组合或历史版本枚举。
-C2 变体审查、C3 嵌套/属性审计、C4 有界 fuzz 和 C6 真实 N-1/N-2 验收仍需
-分别完成；RFC-0001 保持 Draft。
+C2 变体审查、C3 嵌套/属性审计和 C6 真实 N-1/N-2 验收仍需分别完成；
+下述有界 C4 门禁独立运行，RFC-0001 保持 Draft。
+
+## 有界 fuzz 与输出 schema 验收
+
+[`fuzz/qualify.py`](../fuzz/qualify.py) 运行三个实际生产边界的 ASan/libFuzzer
+入口：严格有界 JSON/JCS、全部 307 个 typed reader、实际离线 runtime schema
+注册表。固定种子变异前逐一重放全部语料，保留失败字节和新覆盖样本，记录
+源文件、依赖及编译器摘要。每个目标限制输入 128 KiB、单输入 10 秒、RSS
+2,048 MiB，以及最多 10,000 次执行或 60 秒变异。runner 拥有进程组，为每轮
+创建独立语料目录，拒绝源快照或锁文件变化。nightly 与开发引擎独立固定，
+不改变产品 Rust 1.88 和依赖，也不通过 `cfg(fuzzing)` 禁用完整性检查。
+
+复现步骤、畸形 Unicode/重复键/深层/超大输入及失败处理见
+[fuzz 指南](../fuzz/README.md)。最终不可变源码必须通过 `Core bounded fuzz`
+CI；该有限 profile 不证明穷尽覆盖、历史迁移、生产容量或独立安全验收。
+
+[RFC-0020](rfcs/0020-core-optional-output-schemas.md) 复用真实借用型 serializer
+wire，修正 `Failure`、`ToolError` 和 Capability 生命周期的可选输出 schema。
+原输入 schema/wire pin 保持精确一致，全部 308 个输出 pin 独立固定。真实
+父提交生成的旧输出 schema 验证了 Tool adapter 的启动拒绝且零应用调用。
+输出字节变化需要新 schema/Tool 版本，已准入工作保留旧可执行版本及注册表；
+不能重写持久 pin。
 
 ## 每个示例证明什么
 

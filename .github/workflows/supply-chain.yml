@@ -10,12 +10,14 @@ on:
       - "**/Cargo.lock"
       - "**/Cargo.toml"
       - "deny.toml"
+      - "fuzz/deny.exceptions.toml"
       - ".github/workflows/supply-chain.yml"
   pull_request:
     paths:
       - "**/Cargo.lock"
       - "**/Cargo.toml"
       - "deny.toml"
+      - "fuzz/deny.exceptions.toml"
       - ".github/workflows/supply-chain.yml"
   schedule:
     - cron: "23 3 * * 1"
@@ -42,4 +44,12 @@ jobs:
         with:
           command: check advisories bans licenses sources
           arguments: --all-features
+          rust-version: "1.88.0"
+
+      - name: Check isolated fuzz dependencies with the same policy
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
+        with:
+          manifest-path: fuzz/Cargo.toml
+          command: check advisories bans licenses sources
+          arguments: --all-features --locked --config deny.toml
           rust-version: "1.88.0"

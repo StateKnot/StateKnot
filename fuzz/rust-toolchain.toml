@@ -1,0 +1,7 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+
+[toolchain]
+channel = "nightly-2026-10-07"
+profile = "minimal"
+components = ["rustfmt"]

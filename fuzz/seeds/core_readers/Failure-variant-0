@@ -1,0 +1,2 @@
+Failure
+{"id":"01890f3e-7b2a-7cc1-98f1-1234567890ab","category":"invalid_input","code":"validation.invalid_argument","origin":"stateknot.core","message":"The request contains invalid input.","retry_advice":{"kind":"never"}}

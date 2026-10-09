@@ -96,7 +96,9 @@ jobs:
         run: rustup toolchain install 1.88.0 --profile minimal --component clippy,rustfmt
 
       - name: Check formatting
-        run: cargo fmt --all --check
+        run: |
+          cargo fmt --all --check
+          cargo fmt --manifest-path fuzz/Cargo.toml --all --check
 
       - name: Compile public core contract examples
         run: cargo check -p stateknot-core --examples --locked
@@ -116,7 +118,9 @@ jobs:
         run: cargo test -p stateknot-core --test canonical_values --test value_properties --locked
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: |
+          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo clippy --manifest-path fuzz/Cargo.toml --all-targets --locked -- -D warnings
 
       - name: Run tests
         run: cargo test --workspace --all-targets --all-features --locked
@@ -131,6 +135,39 @@ jobs:
 
       - name: Validate workspace metadata
         run: cargo metadata --format-version 1 --locked --no-deps
+
+  core-fuzz:
+    name: Core bounded fuzz
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned fuzz toolchains and engine
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup toolchain install nightly-2026-10-07 --profile minimal
+          cargo +1.98.1 install cargo-fuzz --version 0.13.2 --locked
+
+      - name: Fetch frozen fuzz and product dependencies
+        run: |
+          cargo +nightly-2026-10-07 fetch --locked
+          cargo +nightly-2026-10-07 fetch --manifest-path fuzz/Cargo.toml --locked
+
+      - name: Qualify all seeds and bounded ASan mutations
+        run: python3 fuzz/qualify.py
+
+      - name: Retain qualification, coverage corpus and failure reproducers
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: core-fuzz-${{ github.sha }}
+          path: |
+            fuzz/results/
+            fuzz/artifacts/
+          retention-days: 30
+          if-no-files-found: error
 
   release-packages:
     name: Release packages

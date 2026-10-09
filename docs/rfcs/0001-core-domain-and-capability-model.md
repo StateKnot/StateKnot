@@ -1763,7 +1763,7 @@ Validation item 1 is implemented by the four compiled
 CI step, and the direct-dependency boundary test. Items 2 through 9 remain
 acceptance gates, so this RFC remains Draft and does not establish API stability.
 
-The current 42-file compatibility fixture corpus is now a closed, versioned
+The current 43-file compatibility fixture corpus is now a closed, versioned
 catalog: exact content digests retain deliberately non-canonical negative
 vectors, while a domain-separated RFC 8785 catalog root binds ordered path,
 schema, and digest metadata. CI rejects inventory drift and requires every
@@ -1776,7 +1776,8 @@ gaps for item 2. A closed inventory now classifies all 570 named root exports:
 307 typed reader/writer wires and 308 generated schema pins, two output-only
 producers, and 246 reviewed Rust-only instantiations. New exports or changed
 Serde boundaries require explicit fixture review. Current root-type coverage
-does not replace variant, property/fuzz or historical qualification; item 2
+does not replace variant, nested-property or historical qualification; bounded
+fuzz is separately exercised by the fixed ASan/libFuzzer gate in `fuzz/`; item 2
 remains open pending the full variant review.
 
 The [Core contract guide](../core-contract-examples.md#value-level-fixture-and-property-coverage)
