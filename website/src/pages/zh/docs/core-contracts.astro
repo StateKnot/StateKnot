@@ -115,7 +115,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">封闭兼容性证据语料库</h2>
     <p>
-      版本化目录对当前提交的全部 47 份 Core Fixture 文档建立封闭清单。每个条目以
+      版本化目录对当前提交的全部 48 份 Core Fixture 文档建立封闭清单。每个条目以
       SHA-256 固定文件的精确字节，从而保留刻意非 Canonical 的非法输入反例；带
       Domain Separation 的 RFC 8785 根摘要绑定有序的路径、Schema 与 Digest
       元数据。
@@ -163,6 +163,13 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       仍待完成；嵌套执行保持草案。
     </p>
     <p>
+      RFC-0023 草案修正 MediaType 输入/default schema，使其接受 reader
+      已支持并规范化的大小写混合名称。保留的 CI 反例执行两个真实 schema oracle。
+      受影响的嵌套输入 pin 显式变化，全部输出 pin 与规范 wire 保持一致。
+      使用新的不可变输入 schema/Tool 版本，为已准入工作与回滚保留匹配的原
+      executable 和 registry。最终源码资格验收与草案接受仍待完成。
+    </p>
+    <p>
       两个 Graph 与 checkpoint 模型独立核对状态、route 并集、规范字节及三类摘要
       preimage。节点插入及结果输入顺序比较相同已提交事实和 journal anchor；
       Unicode 状态链核对一至十三代父 head，并拒绝 data 篡改。这些纯根 barrier
@@ -206,8 +213,8 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
         复现所需固定工具及完整步骤见<a
           href="https://github.com/StateKnot/StateKnot/blob/main/fuzz/README.md"
           >fuzz 指南</a
-        >。输出 schema 使用实际 serializer wire，原输入 pin 保持一致；旧输出 pin
-        在启动阶段拒绝且不调用应用。变更须采用新 schema/Tool
+        >。RFC-0020 的输出 schema 使用实际 serializer wire，原始采用保留输入
+        pin；旧 pin 在启动阶段拒绝且不调用应用。变更须采用新 schema/Tool
         版本并保留已准入工作的旧注册表。有限 fuzz
         不代表穷尽变体、历史迁移、生产容量或独立安全验收。
       </p>

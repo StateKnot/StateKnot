@@ -421,6 +421,24 @@ mod tests {
     }
 
     #[test]
+    fn retained_case_insensitive_media_type_reaches_both_schema_oracles() {
+        assert!(core_readers(include_bytes!(
+            "../seeds/core_readers/MediaType-mixed-case"
+        )));
+        for input in [
+            "IMAGE/PNG",
+            "Application/Vnd.StateKnot+JSON",
+            "Text/Plain; Format=Flowed; Charset=UTF-8",
+            "Video/MP4; codecs=\"avc1.42E01E, mp4a.40.2\"",
+            &format!("{}/{}", "A".repeat(127), "B".repeat(127)),
+        ] {
+            let mut seed = b"MediaType\n".to_vec();
+            seed.extend(serde_json::to_vec(input).unwrap());
+            assert!(core_readers(&seed), "{input}");
+        }
+    }
+
+    #[test]
     fn retained_malformed_timestamp_is_rejected_by_the_real_reader() {
         assert!(!core_readers(include_bytes!(
             "../seeds/core_readers/RunTransition-invalid-timestamp"

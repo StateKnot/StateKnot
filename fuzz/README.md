@@ -87,16 +87,25 @@ provider payloads or customer data.
 The source-only optional output correction is specified in
 [RFC-0020](../docs/rfcs/0020-core-optional-output-schemas.md). All 308 input pins
 remain fixed, and a separate inventory fixes the 308 serialization pins.
-`schema_pins` prints candidate output pins for explicit review and does not
-rewrite fixtures. Actual parent-source output documents are retained only as
+`schema_pins` prints candidate output pins for explicit review;
+`schema_pins --deserialize` prints candidate input/default pins. Neither command
+rewrites fixtures. Actual parent-source output documents are retained only as
 regression baselines; they are not N-1/N-2 upgrade qualification.
 
 The RFC-0022 draft adds six strictly read frame/call data types to the reader
 set. Current inventories pin 314 input/default and 314 producer schemas.
 `CompiledGraph` and `ChildRunAdmissionIntent` explicitly change both profiles
-for the new optional call metadata; all other original pins remain exact.
+for the new optional call metadata.
 These experimental data records do not enable nested execution. Final ASan
 qualification of the ongoing draft implementation remains required.
+
+[Draft RFC-0023](../docs/rfcs/0023-media-type-input-schema.md) retains the CI
+mixed-case media type reproducer. The existing reader normalizes such names,
+so its input/default pattern now admits ASCII upper/lowercase while its output
+pattern remains lowercase. The affected nested input pins change explicitly;
+all output pins, canonical wires and unrelated input pins stay exact. Tests
+keep both real schema oracles and verify the reproducer, mixed names, suffixes,
+parameters and name-length boundaries. Final-source qualification is required.
 
 This finite qualification establishes the reproducible C4 entry points and
 retained corpus. It does not establish exhaustive branch/variant coverage,

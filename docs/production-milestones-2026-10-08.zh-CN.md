@@ -181,6 +181,11 @@ PostgreSQL 16/17 的非空源码 schema 26→27 与 scope 外键检查已执行�
 N-1/N-2 兼容性结论。
 后续 fuzz 时间戳反例已保留，数字校验先于算术；全部 ASCII 非数字位置、
 固定长度 Unicode 与嵌套 reader 有确定性回归。最终提交继续以完整 CI 验收。
+CI 后续发现 `MediaType` 已支持的大小写规范化输入被输入 schema 拒绝；
+[RFC-0023 草案](rfcs/0023-media-type-input-schema.md) 保留精确反例并修正方向性
+输入 pattern。受影响的嵌套输入/default pin 显式变化，全部输出 pin、规范 wire
+与无关输入 pin 保持一致；注册表须使用新输入 schema/Tool 版本并保留原 executable。
+最终源码资格验收与草案接受仍待完成，不能以重跑或移除 fuzz oracle 关闭发现。
 
 ### 交付任务
 

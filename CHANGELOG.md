@@ -12,6 +12,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Draft RFC-0023 corrects `MediaType` input/default schemas to accept the
+  case-insensitive names already supported and normalized by the reader.
+  Nested input schema pins explicitly change; all output pins and canonical
+  wires stay exact. Immutable registries require new input schema/Tool versions
+  and matching retained executables. The real CI reproducer remains a permanent
+  regression; final-source qualification and acceptance remain pending.
+
 ### Added
 
 - Experimental Store transactions durably start ordinary nodes in an

@@ -41,7 +41,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 47 currently
+The versioned `catalog-v1.json` closes the inventory around all 48 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -62,6 +62,15 @@ This makes the existing evidence corpus reviewable and tamper-evident. It
 now includes the typed root-export audit below. The catalog count itself is
 not a coverage metric; variant combinations, property/fuzz and historical
 qualification remain separate gates.
+
+[Draft RFC-0023](rfcs/0023-media-type-input-schema.md) corrects the `MediaType`
+input/default schema for the case-insensitive names already accepted and
+normalized by the reader. The exact CI reproducer and actual prior-source
+artifact schema are retained. The 35 affected nested input pins change
+explicitly; all 314 output pins and canonical wires remain exact. Use new
+immutable input schema/Tool versions and retain the matching old executable
+and registry for admitted work and rollback. Final-source qualification and
+acceptance remain pending.
 
 ### Value-level fixture and property coverage
 

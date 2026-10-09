@@ -40,7 +40,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 47 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 48 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -57,6 +57,13 @@ Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 
 这让现有证据语料可审查且可检测篡改。下方清单已补齐当前根导出类型的逐型基准，
 目录数量本身不是覆盖率；变体组合、属性/fuzz 和历史验收仍有独立门禁。
+
+[RFC-0023 草案](rfcs/0023-media-type-input-schema.md) 修正 `MediaType` 输入/default
+schema，使其接受 reader 已支持并规范化的大小写混合名称。精确 CI 反例及真实
+上一源码的 artifact schema 已保留。35 个受影响的嵌套输入 pin 显式变化；全部
+314 个输出 pin 和规范 wire 保持一致。使用新的不可变输入 schema/Tool 版本，
+为已准入工作和回滚保留匹配的原 executable 与 registry。最终源码验收及草案
+接受仍待完成。
 
 ### 值类型的 Fixture 与属性测试映射
 

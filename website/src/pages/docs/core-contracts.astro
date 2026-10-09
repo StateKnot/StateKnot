@@ -119,7 +119,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">Seal the compatibility evidence corpus</h2>
     <p>
-      A versioned catalog closes the inventory around all 47 committed Core
+      A versioned catalog closes the inventory around all 48 committed Core
       fixture documents. Each entry pins the exact file bytes with SHA-256,
       retaining deliberately non-canonical negative vectors; a domain-separated
       RFC 8785 root binds the ordered path, schema, and digest metadata.
@@ -195,6 +195,15 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       alpha.1 package.
     </p>
     <p>
+      Draft RFC-0023 corrects the MediaType input/default schema for the
+      case-insensitive names already normalized by its reader. A retained CI
+      reproducer exercises both actual schema oracles. Affected nested input
+      pins change explicitly; all output pins and canonical wires stay exact.
+      Use new immutable input schema/Tool versions and retain the matching old
+      executable and registry for admitted work and rollback. Final-source
+      qualification and acceptance remain pending.
+    </p>
+    <p>
       CI rejects missing, unregistered, changed, duplicate, unsafe, oversized,
       or unreferenced fixtures. Every entry must remain consumed by executable
       Rust compatibility tests. This is auditable infrastructure toward RFC-0001
@@ -231,10 +240,10 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
     <p><code>python3 fuzz/qualify.py</code></p>
     <p>
       The repository fuzz/README.md provides pinned tools and full reproduction
-      steps. Output schemas use actual serializer wires; existing input pins
-      stay exact. Stale output pins fail at startup with zero application calls.
-      Changed bytes require new schema/Tool versions and the old registry for
-      admitted work. Finite fuzz does not establish exhaustive variants,
+      steps. RFC-0020 output schemas use actual serializer wires and preserved
+      input pins at adoption. Stale pins fail at startup with zero application
+      calls. Changed bytes require new schema/Tool versions and the old registry
+      for admitted work. Finite fuzz does not establish exhaustive variants,
       historical migration, production capacity or independent security
       acceptance.
     </p>
