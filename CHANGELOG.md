@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Independent graph state, route and checkpoint property models: node insertion
+  and result input order preserve fixed committed facts, while state/route
+  references and canonical checksum preimages verify the actual root barrier.
+  Unicode checkpoint chains retain exact lineage and reject altered state.
+  Product APIs, wire/schema pins, fixtures and dependencies remain unchanged.
+
 - Seven independent composite budget property models covering all usage fields,
   topology peaks, finite partial-layer intersections, currency allowlists,
   narrowing, reservation capacity and cumulative deduction. Wide arithmetic

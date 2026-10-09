@@ -3,6 +3,10 @@
 
 //! Independent tree models for nested JSON, canonical bytes and extension limits.
 
+#[path = "support/canonical_reference.rs"]
+mod canonical_model;
+use canonical_model::canonical_reference;
+
 use proptest::{collection, prelude::*};
 use serde_json::Value;
 use stateknot_core::{
@@ -70,37 +74,6 @@ fn dimensions(value: &Value) -> [usize; 6] {
 
 fn limits([bytes, depth, entries, nodes, string, key]: [usize; 6]) -> JsonLimits {
     JsonLimits::try_new(bytes, depth, entries, nodes, string, key).unwrap()
-}
-
-fn canonical_reference(value: &Value) -> String {
-    match value {
-        Value::Array(values) => format!(
-            "[{}]",
-            values
-                .iter()
-                .map(canonical_reference)
-                .collect::<Vec<_>>()
-                .join(",")
-        ),
-        Value::Object(values) => {
-            let mut entries = values.iter().collect::<Vec<_>>();
-            entries.sort_by(|(a, _), (b, _)| a.encode_utf16().cmp(b.encode_utf16()));
-            let fields = entries
-                .into_iter()
-                .map(|(key, value)| {
-                    format!(
-                        "{}:{}",
-                        serde_json::to_string(key).unwrap(),
-                        canonical_reference(value)
-                    )
-                })
-                .collect::<Vec<_>>();
-            format!("{{{}}}", fields.join(","))
-        }
-        // This strategy uses interoperable integer leaves, so no float
-        // normalization or unsafe-integer classification is assumed here.
-        _ => serde_json::to_string(value).unwrap(),
-    }
 }
 
 proptest! {

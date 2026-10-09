@@ -28,7 +28,7 @@ cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test public_enum_variants --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --locked
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --locked
 cargo test -p stateknot-core -p stateknot-integrations -p stateknot --doc --locked
 cargo test -p stateknot-runtime --test tool_registration --locked
 ```
@@ -84,11 +84,12 @@ without the corresponding typed fixture and property test.
 | `SchemaId`, `SchemaReference` | `core-schema-v1.json`: `ids`, `references` |
 | `CapabilityName`, `Scope`, `ScopeSet` | `core-authorization-v1.json`: `capability_names`, `scopes`, `scope_sets` |
 
-[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs) and
-[`nested_json_properties.rs`](../crates/stateknot-core/tests/nested_json_properties.rs) and
-[`budget_composite_properties.rs`](../crates/stateknot-core/tests/budget_composite_properties.rs)
+[`value_properties.rs`](../crates/stateknot-core/tests/value_properties.rs),
+[`nested_json_properties.rs`](../crates/stateknot-core/tests/nested_json_properties.rs),
+[`budget_composite_properties.rs`](../crates/stateknot-core/tests/budget_composite_properties.rs) and
+[`graph_state_properties.rs`](../crates/stateknot-core/tests/graph_state_properties.rs)
 supply independent models for the following RFC-0001 item 3 requirements.
-Together with the 18 identifier properties, these 42 property tests each run
+Together with the 18 identifier properties, these 44 property tests each run
 256 bounded generated cases. CI runs a fixed seed for reproduction; the full
 workspace tests also execute the ordinary random-seed run.
 
@@ -99,6 +100,28 @@ workspace tests also execute the ordinary random-seed run.
 | Budget arithmetic | All three count types and Money match checked `u64` addition, subtraction and multiplication; cross-currency operations fail. Duration arithmetic matches nonnegative `i64`. Seven composite models independently check all 20 usage fields, 19 finite scalar ceilings, three topology peaks, partial-layer intersections and 16 currency ceilings with `u128` arithmetic and currency maps. They verify accumulation, valid/invalid cumulative residuals, narrowing, deadline equality, direct-plus-child reservations and remaining-capacity deductions. Every generated capacity case also exercises a successful path; a deterministic matrix rejects overflow in each cumulative field/currency and a seventeenth currency. Existing `budget.rs`, `budget_reservation_tests.rs` and `child_run_budget_tests.rs` retain their narrower properties and settlement checks. |
 | Delegation intersection | Caller, grant and policy scopes match the three-way bit-set intersection, remain associative and cannot widen any participant. The existing two-party commutativity/idempotence model remains required. |
 | Extension limits | Complete-map bytes, per-key bytes and entry count accept the exact boundary and reject a one-unit narrowing; duplicate entries fail. Independent nested-tree accounting checks compact bytes, depth, container entries, value nodes excluding keys, decoded string bytes and decoded key bytes. Both raw/materialized constructors agree with narrowed profiles; exact limits pass, one-unit tightenings fail, and trailing whitespace hits the raw byte gate. Opaque/schema-bound extension construction and restriction enforce the same per-value limits on previously wider values. The existing insertion-order/accounting property and deterministic hard-limit tests remain required. |
+
+### Graph state and checkpoint models
+
+Two models cover the current root-barrier and checkpoint integrity contract in
+[RFC-0002](rfcs/0002-deterministic-graph-and-scheduler.md). Generated node-definition
+insertion order and result input order are compared using the same already
+committed facts, including unchanged journal anchors. An order-sensitive reducer
+must match an independently assembled state; explicit routes must match a
+separate set-union model. Both committed successors must retain identical
+canonical bytes and digests.
+
+Unicode map states form one to thirteen checkpoint generations. An independent
+UTF-16 canonical-byte model checks the state, intent and record checksum
+preimages, including domain separators, exact schema/graph references, parent
+heads and journal anchors. Every record round-trips from those bytes; retaining
+the digests after changing state data is rejected. The barrier uses exact schema
+pins and strict typed application validators, rather than accepting every value.
+
+These are pure Core models. They do not qualify runtime schema registration,
+database transactions, physically different journal histories, same-Run nested
+execution or production capacity. Existing graph/barrier/recovery and real
+PostgreSQL tests remain required; RFC-0002 remains Draft.
 
 The value-family evidence remains required. The root-export inventory below
 adds every current serializable public type; variant combinations, nested
