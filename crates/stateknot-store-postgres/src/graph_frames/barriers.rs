@@ -26,6 +26,7 @@ pub struct StoredGraphFrameBarrier {
     budget: EntryBudget,
     scope_intent_digest: Digest,
     digest: Digest,
+    wait_revision: Option<RunRevision>,
 }
 
 impl StoredGraphFrameBarrier {
@@ -54,6 +55,33 @@ impl StoredGraphFrameBarrier {
     pub const fn digest(&self) -> Digest {
         self.digest
     }
+    /// Returns the original lifecycle revision bound by a whole suspension.
+    #[must_use]
+    pub const fn wait_revision(&self) -> Option<RunRevision> {
+        self.wait_revision
+    }
+
+    /// Returns the exact durable registrations authenticated with a suspension.
+    ///
+    /// # Errors
+    /// Rejects disagreement between suspension metadata, disposition and timing.
+    pub fn waits(&self) -> Result<Option<Vec<DurableWait>>, StoreError> {
+        match (&self.disposition, self.wait_revision) {
+            (Disposition::Wait { waits }, Some(_)) => {
+                let intents = waits
+                    .registration_intents(
+                        self.event.tenant_id(),
+                        self.event.run_id(),
+                        self.event.event_id(),
+                    )
+                    .map_err(|_| StoreError::corrupt("frame wait registration intents"))?;
+                materialize_wait_registrations(intents, &self.event).map(Some)
+            }
+            (Disposition::Continue | Disposition::Terminal { .. }, None) => Ok(None),
+            _ => Err(StoreError::corrupt("frame suspension disposition")),
+        }
+    }
+
     /// Returns authenticated complete DIRECT usage after this scoped barrier.
     ///
     /// # Errors
@@ -119,6 +147,8 @@ struct Wire {
     budget: EntryBudget,
     scope_intent_digest: Digest,
     compound_digest: Digest,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    wait_revision: Option<RunRevision>,
 }
 
 #[derive(Serialize)]
@@ -128,6 +158,8 @@ struct ScopePreimage<'a> {
     disposition: &'a Disposition,
     scope: &'a EntryScope,
     budget: &'a EntryBudget,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    wait_revision: Option<RunRevision>,
 }
 #[derive(Serialize)]
 struct CompoundPreimage<'a> {
@@ -151,15 +183,17 @@ fn scope_intent(
     disposition: &Disposition,
     scope: &EntryScope,
     budget: &EntryBudget,
+    wait_revision: Option<RunRevision>,
 ) -> Result<Digest, StoreError> {
     domain_digest(
         INTENT_DOMAIN,
         &ScopePreimage {
-            version: 1,
+            version: if wait_revision.is_some() { 2 } else { 1 },
             barrier_intent_digest: barrier.intent_digest(),
             disposition,
             scope,
             budget,
+            wait_revision,
         },
     )
 }
@@ -181,7 +215,7 @@ fn compound(
 
 fn wire(record: &StoredGraphFrameBarrier) -> Wire {
     Wire {
-        version: 1,
+        version: if record.wait_revision.is_some() { 2 } else { 1 },
         barrier: record.barrier.clone(),
         checkpoint: record.checkpoint.head(),
         disposition: record.disposition.clone(),
@@ -189,6 +223,7 @@ fn wire(record: &StoredGraphFrameBarrier) -> Wire {
         budget: record.budget.clone(),
         scope_intent_digest: record.scope_intent_digest,
         compound_digest: record.digest,
+        wait_revision: record.wait_revision,
     }
 }
 fn encode(record: &StoredGraphFrameBarrier) -> Result<Vec<u8>, StoreError> {
@@ -208,10 +243,13 @@ fn decode_wire(bytes: &[u8]) -> Result<Wire, StoreError> {
     // additionally reject alternate number, order, whitespace and escape forms.
     let value: Wire =
         serde_json::from_slice(bytes).map_err(|_| StoreError::corrupt("frame barrier wire"))?;
-    if value.version != 1
-        || serde_json_canonicalizer::to_vec(&value)
-            .map_err(|_| StoreError::corrupt("frame barrier canonical wire"))?
-            != bytes
+    let suspension = matches!(value.disposition, Disposition::Wait { .. });
+    if !matches!(
+        (value.version, value.wait_revision.is_some(), suspension),
+        (1, false, false) | (2, true, true)
+    ) || serde_json_canonicalizer::to_vec(&value)
+        .map_err(|_| StoreError::corrupt("frame barrier canonical wire"))?
+        != bytes
     {
         return Err(StoreError::corrupt(
             "frame barrier version or canonical bytes",
@@ -226,6 +264,7 @@ fn bind_record(
     checkpoint: GraphFrameCheckpoint,
     scope: EntryScope,
     budget: EntryBudget,
+    wait_revision: Option<RunRevision>,
 ) -> Result<StoredGraphFrameBarrier, StoreError> {
     let barrier = plan.barrier().clone();
     let disposition = Disposition::from_core(plan.disposition())?;
@@ -237,7 +276,7 @@ fn bind_record(
     {
         return Err(StoreError::GraphFrameConflict);
     }
-    let scope_intent_digest = scope_intent(&barrier, &disposition, &scope, &budget)?;
+    let scope_intent_digest = scope_intent(&barrier, &disposition, &scope, &budget, wait_revision)?;
     let digest = compound(scope_intent_digest, &event, &checkpoint.head())?;
     Ok(StoredGraphFrameBarrier {
         event,
@@ -248,6 +287,7 @@ fn bind_record(
         budget,
         scope_intent_digest,
         digest,
+        wait_revision,
     })
 }
 
@@ -641,11 +681,6 @@ async fn verify_edge_replay(
     {
         return Err(StoreError::corrupt("barrier component projection"));
     }
-    if matches!(wire.disposition, Disposition::Wait { .. }) {
-        return Err(StoreError::corrupt(
-            "barrier wait has no whole scoped suspension",
-        ));
-    }
     let cp = decode_frame_checkpoint(
         checkpoint_row(
             replay.tx,
@@ -694,8 +729,13 @@ async fn verify_edge_replay(
         || event.source().worker_fence().is_none()
         || projection != Some(wire.compound_digest)
         || event.payload() != &payload(&wire.barrier, wire.scope_intent_digest)?
-        || scope_intent(&wire.barrier, &wire.disposition, &wire.scope, &wire.budget)?
-            != wire.scope_intent_digest
+        || scope_intent(
+            &wire.barrier,
+            &wire.disposition,
+            &wire.scope,
+            &wire.budget,
+            wire.wait_revision,
+        )? != wire.scope_intent_digest
         || compound(wire.scope_intent_digest, &event, &wire.checkpoint)? != wire.compound_digest
     {
         return Err(StoreError::corrupt("barrier whole event binding"));
@@ -773,7 +813,51 @@ async fn verify_edge_replay(
         budget: wire.budget,
         scope_intent_digest: wire.scope_intent_digest,
         digest: wire.compound_digest,
+        wait_revision: wire.wait_revision,
     };
+    if let Some(waits) = record.waits()? {
+        verify_wait_registration_set(replay.tx, &record.event, &waits).await?;
+        // Registration identity alone cannot discharge a wait. Authenticate
+        // every complete terminal record while this same transaction already
+        // owns the whole suspension proof; avoid re-entering its anchor reader.
+        let rows = query_as::<_, WaitRegistrationRow>(SELECT_WAIT_REGISTRATIONS_BY_ORIGIN.as_str())
+            .bind(record.event.tenant_id().as_str())
+            .bind(*record.event.run_id().as_uuid())
+            .bind(
+                i64::try_from(record.event.sequence().get())
+                    .map_err(|_| StoreError::JournalSequenceExhausted)?,
+            )
+            .fetch_all(&mut **replay.tx)
+            .await
+            .map_err(|e| StoreError::database("frame wait terminal parts", e))?;
+        for row in rows {
+            let wait = decode_wait_registration(&row)?;
+            match (row.status.as_str(), wait) {
+                ("outstanding" | "resolved", DurableWait::Interrupt { request }) => {
+                    verify_interrupt_record_components(replay.tx, &row, request)
+                        .await
+                        .map_err(wait_terminal_error)?;
+                }
+                ("outstanding" | "fired", DurableWait::Timer { timer }) => {
+                    verify_timer_record_components(replay.tx, &row, timer)
+                        .await
+                        .map_err(wait_terminal_error)?;
+                }
+                ("abandoned", wait) => {
+                    verify_wait_abandonment_components(replay.tx, &row, wait)
+                        .await
+                        .map_err(wait_terminal_error)?;
+                }
+                _ => return Err(StoreError::corrupt("frame wait terminal kind")),
+            }
+        }
+        if record
+            .wait_revision
+            .is_some_and(|revision| revision >= admission.run().lifecycle().revision())
+        {
+            return Err(StoreError::corrupt("frame suspension lifecycle revision"));
+        }
+    }
     let total = charged(&record)?
         .checked_accumulate(&record.budget.delegated_usage)
         .map_err(|_| StoreError::corrupt("barrier accounting"))?;
@@ -789,8 +873,10 @@ async fn verify_edge_replay(
 fn verify_retry(
     record: &StoredGraphFrameBarrier,
     plan: &GraphFrameBarrierPlan,
+    wait_revision: Option<RunRevision>,
 ) -> Result<(), StoreError> {
-    if record.barrier != *plan.barrier()
+    if record.wait_revision != wait_revision
+        || record.barrier != *plan.barrier()
         || record.disposition != Disposition::from_core(plan.disposition())?
     {
         return Err(StoreError::GraphFrameConflict);
@@ -836,6 +922,20 @@ async fn verified_record(
         row,
     ))
     .await
+}
+
+// A whole suspension has already authenticated registration status. A missing
+// or extra immutable terminal component is durable corruption, while database
+// failures retain their original classification for recovery and retry.
+fn wait_terminal_error(error: StoreError) -> StoreError {
+    match error {
+        StoreError::InterruptResolutionCommitConflict
+        | StoreError::TimerFiringCommitConflict
+        | StoreError::WaitAbandonmentNotFound => {
+            StoreError::corrupt("frame wait terminal components")
+        }
+        other => other,
+    }
 }
 
 async fn verified_record_replay(
@@ -1000,6 +1100,46 @@ impl PostgresStore {
             fence,
             observed,
             direct_usage,
+            None,
+            schemas,
+            reducer,
+        ))
+        .await
+    }
+
+    /// Atomically suspends the active leaf, its exact successor and all waits.
+    ///
+    /// The whole version-2 barrier binds the original lifecycle revision and
+    /// every policy-bearing condition. Run waiting projection releases the
+    /// lease; resolver/timer APIs authenticate this scoped proof. After the last
+    /// condition, a new lease resumes this saved leaf rather than the Root.
+    /// Exact retry verifies the original suspension before callbacks or authority.
+    ///
+    /// # Errors
+    /// Rejects non-wait plans, incomplete results/accounting, stale lifecycle or
+    /// authority, crossed scopes, unresolved effects and incomplete SQL facts.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn commit_graph_frame_wait<
+        V: GraphSchemaValidator + ?Sized,
+        R: GraphReducer + ?Sized,
+    >(
+        &self,
+        plan: GraphFrameBarrierPlan,
+        event_id: EventId,
+        fence: RunFence,
+        observed: JournalHead,
+        direct_usage: BudgetUsage,
+        expected_revision: RunRevision,
+        schemas: &V,
+        reducer: &R,
+    ) -> Result<GraphFrameBarrierCommitOutcome, StoreError> {
+        Box::pin(self.commit_graph_frame_barrier_inner(
+            plan,
+            event_id,
+            fence,
+            observed,
+            direct_usage,
+            Some(expected_revision),
             schemas,
             reducer,
         ))
@@ -1017,6 +1157,7 @@ impl PostgresStore {
         fence: RunFence,
         observed: JournalHead,
         direct_usage: BudgetUsage,
+        wait_revision: Option<RunRevision>,
         schemas: &V,
         reducer: &R,
     ) -> Result<GraphFrameBarrierCommitOutcome, StoreError> {
@@ -1034,10 +1175,12 @@ impl PostgresStore {
         ))
         .await?
         {
-            verify_retry(&record, &plan)?;
+            verify_retry(&record, &plan, wait_revision)?;
             return Ok(GraphFrameBarrierCommitOutcome::Idempotent(record));
         }
-        if matches!(plan.disposition(), GraphBarrierDisposition::Wait { .. }) {
+        if matches!(plan.disposition(), GraphBarrierDisposition::Wait { .. })
+            != wait_revision.is_some()
+        {
             return Err(StoreError::GraphFrameCompoundRequired);
         }
         if fence.tenant_id() != tenant || fence.run_id() != run {
@@ -1050,6 +1193,7 @@ impl PostgresStore {
             fence,
             observed,
             direct_usage,
+            wait_revision,
         ))
         .await
     }
@@ -1148,6 +1292,7 @@ impl PostgresStore {
         fence: RunFence,
         observed: JournalHead,
         direct_usage: BudgetUsage,
+        wait_revision: Option<RunRevision>,
     ) -> Result<GraphFrameBarrierCommitOutcome, StoreError> {
         let barrier = plan.barrier();
         let head = barrier.base_checkpoint();
@@ -1165,7 +1310,7 @@ impl PostgresStore {
                 &mut tx, tenant, run, namespace, &admission, &graphs, existing,
             ))
             .await?;
-            verify_retry(&record, &plan)?;
+            verify_retry(&record, &plan, wait_revision)?;
             tx.commit()
                 .await
                 .map_err(|e| StoreError::database("frame barrier retry commit", e))?;
@@ -1255,7 +1400,8 @@ impl PostgresStore {
             child_account_digest,
         };
         let disposition = Disposition::from_core(plan.disposition())?;
-        let intent_digest = scope_intent(barrier, &disposition, &entry.scope, &budget)?;
+        let intent_digest =
+            scope_intent(barrier, &disposition, &entry.scope, &budget, wait_revision)?;
         let intent = JournalEventIntent::worker(
             tenant.clone(),
             run,
@@ -1278,7 +1424,7 @@ impl PostgresStore {
         checkpoint
             .verify_successor(&successor)
             .map_err(|_| StoreError::GraphFrameConflict)?;
-        let record = bind_record(&plan, event, successor, entry.scope, budget)?;
+        let record = bind_record(&plan, event, successor, entry.scope, budget, wait_revision)?;
         let total = charged(&record)?
             .checked_accumulate(&record.budget.delegated_usage)
             .map_err(|_| StoreError::IncompleteChildAccounting)?;
@@ -1304,10 +1450,49 @@ impl PostgresStore {
             record.event.source(),
         )
         .await?;
+        let waits = record.waits()?;
+        let projection = if let Some(waits) = &waits {
+            verify_current_wait_set(replay.tx, stored).await?;
+            let markers = RunWaits::try_new(waits.iter().map(DurableWait::marker))
+                .map_err(|_| StoreError::InvalidWaitRegistrationBatch)?;
+            Some(prepare_durable_wait_projection(
+                stored,
+                tenant,
+                run,
+                wait_revision.ok_or(StoreError::GraphFrameConflict)?,
+                RunTransition::Wait { waits: markers },
+                record.event.recorded_at(),
+            )?)
+        } else {
+            None
+        };
         insert_record(replay.tx, &record).await?;
         advance_head(replay.tx, base, &record.checkpoint).await?;
-        update_run_head(replay.tx, &record.event, None).await?;
-        revalidate_worker_after_components(replay.tx, &fence).await?;
+        if let Some(waits) = &waits {
+            for wait in waits {
+                insert_wait_registration(replay.tx, wait).await?;
+            }
+        }
+        update_run_head(replay.tx, &record.event, projection.as_ref()).await?;
+        if projection.is_some() {
+            // Waiting deliberately clears the lease. The Run lock still owns
+            // the original lease snapshot; validate that exact authority after
+            // every deferred component guard, including slow trigger work.
+            query("SET CONSTRAINTS ALL IMMEDIATE")
+                .execute(&mut **replay.tx)
+                .await
+                .map_err(|e| StoreError::database("frame wait component guards", e))?;
+            let final_now = database_now(replay.tx, "frame wait final authority").await?;
+            authorize_worker(stored, &fence, final_now)?;
+            admission
+                .admission()
+                .intent()
+                .budget()
+                .remaining(&total, final_now)
+                .map_err(|_| StoreError::GraphFrameLimitExceeded)?;
+        } else {
+            revalidate_worker_after_components(replay.tx, &fence).await?;
+        }
         tx.commit()
             .await
             .map_err(|e| StoreError::database("whole frame barrier commit", e))?;
@@ -1418,6 +1603,7 @@ async fn previously_verified_checkpoint(
         budget: wire.budget,
         scope_intent_digest: wire.scope_intent_digest,
         digest: wire.compound_digest,
+        wait_revision: wire.wait_revision,
     };
     let usage = charged(&record)?;
     Ok((record.checkpoint, usage))
@@ -1481,4 +1667,46 @@ pub(super) async fn terminal_replay(
         ));
     }
     Ok(record)
+}
+
+pub(super) fn verify_wait_anchor<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    wait: &'a DurableWait,
+    event: &'a JournalEvent,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), StoreError>> + Send + 'a>> {
+    Box::pin(async move {
+        let row = query_as::<_, Row>("SELECT frame_identity_digest,base_superstep,base_checkpoint_digest,base_frame_checkpoint_digest,successor_checkpoint_id,successor_superstep,successor_checkpoint_digest,successor_frame_checkpoint_digest,result_count,barrier_intent_digest,scope_intent_digest,compound_digest,barrier_bytes,barrier_checksum,journal_sequence,journal_event_id,journal_recorded_at,journal_digest FROM stateknot.graph_frame_barriers WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence=$3")
+            .bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid())
+            .bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?)
+            .fetch_optional(&mut **tx).await
+            .map_err(|e| StoreError::database("frame suspension event proof", e))?
+            .ok_or_else(|| StoreError::corrupt("frame suspension witness missing"))?;
+        let namespace = decode_wire(&row.barrier_bytes)?
+            .barrier
+            .base_checkpoint()
+            .frame()
+            .namespace()
+            .clone();
+        let admission = admission_snapshot(tx, event.tenant_id(), event.run_id()).await?;
+        let graphs = closure(
+            tx,
+            event.tenant_id(),
+            admission.admission().intent().graph(),
+        )
+        .await?;
+        let record = Box::pin(verified_record(
+            tx,
+            event.tenant_id(),
+            event.run_id(),
+            &namespace,
+            &admission,
+            &graphs,
+            row,
+        ))
+        .await?;
+        if record.event != *event || !record.waits()?.is_some_and(|waits| waits.contains(wait)) {
+            return Err(StoreError::corrupt("frame wait ownership"));
+        }
+        Ok(())
+    })
 }

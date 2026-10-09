@@ -324,8 +324,32 @@ immutable facts and require whole proofs for stack transitions and framework
 completion. Nonempty source-30 fixtures preserve terminal and rebound-caller
 facts and migration checksums; they do not qualify historical binaries.
 
-Admission, node, barrier, caller-binding and return transactions are parts of
-the Draft. Scoped waits, all-frame closure, actual registry/driver dispatch,
+Schema 32 adds whole leaf suspension through `commit_graph_frame_wait`.
+A version-2 Store barrier binds the original Run lifecycle revision and every
+complete node wait condition; version-1 non-wait bytes and Core pins remain
+unchanged. One transaction consumes results, saves the scoped successor and
+whole witness, advances the leaf, registers all waits and projects Run waiting
+while releasing its lease. It verifies the original locked lease/deadline after
+all deferred guards, even though the resulting waiting projection has no lease.
+Existing resolver/timer APIs authenticate the whole scoped witness and complete
+terminal records. The last condition makes the saved leaf schedulable under a
+new fence; historical retry/reads retain their exact scope after final return.
+SQL guards reject incomplete suspensions and active projection with outstanding
+conditions. Corruption can still be quarantined with its immutable audit without
+parsing the damaged suspension. The 50-table ACL inventory is unchanged.
+Development tests cover 24-way once-only registration, restart, authorization,
+two-condition discharge, caller takeover/whole return, seven component rollbacks,
+policy substitution, complete terminal substitution rejected before actual node
+start, idempotent fail-stop isolation of malformed suspension bytes and slow
+deferred lease expiry. A populated source-31 reconstruction preserves actual
+entry/result and version-1 terminal facts plus all older migration checksums,
+then commits the new whole wait; downgrade refuses retained version-2 facts.
+It does not qualify retained historical executables. A separate runtime LOGIN
+exercises the actual wait/resolve/retry/resume path. Final immutable-source
+qualification, two-version backup/restore and all-frame closure remain required.
+
+Admission, node, barrier, caller-binding, return and wait transactions are parts of
+the Draft. All-frame closure, actual registry/driver dispatch,
 complete process-loss/commit-loss fault qualification and production capacity
 remain pending. These Store primitives do not enable
 nested execution or make RFC-0022 Supported.

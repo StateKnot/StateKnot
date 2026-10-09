@@ -49,6 +49,9 @@ product lock, runs seed regressions, and builds all three ASan targets without
 `cfg(fuzzing)`. It replays every seed explicitly before coverage-guided mutation.
 Each mutation phase is bounded by 10,000 executions and 60 seconds, each input
 by 10 seconds and 128 KiB, and each process by a 2,048 MiB libFuzzer RSS ceiling.
+The runner records actual mutation counts and peak RSS, validates both ceilings,
+and reports whether the execution cap was reached. A time-limited phase never
+claims 10,000 actual executions unless its final statistics confirm that count.
 The harness separately checks input length; JSON/schema dimensions retain their
 own stricter limits. Compilation uses two jobs and finite deadlines. The runner
 owns process groups and terminates descendants on timeout or interruption.

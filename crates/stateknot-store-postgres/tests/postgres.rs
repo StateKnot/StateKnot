@@ -19,6 +19,8 @@ mod frame_returns;
 mod frame_scope;
 #[path = "postgres/frame_transactions.rs"]
 mod frame_transactions;
+#[path = "postgres/frame_waits.rs"]
+mod frame_waits;
 
 use std::{
     borrow::Cow,

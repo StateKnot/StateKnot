@@ -181,8 +181,14 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       Run usage survives returns; compact proofs are reused only inside their
       owning transaction. Seven-level cascades use the default thread stack and
       actual lease renewal. Exact catalog and 50-table runtime ACLs guard the
-      complete transaction. Scoped waits, all-frame closure, actual nested
-      driver and complete fault qualification remain Draft gates.
+      complete transaction. Schema 32 adds whole active-leaf suspension: a
+      version-2 barrier binds the original revision, complete approval/timer
+      registrations, Waiting projection and lease release atomically. Recovery
+      authenticates full resolution, firing or abandonment records before scoped
+      continuation; damaged suspension bytes still allow audited fail-stop
+      quarantine. Version-1 records, Root wires, Core pins and the 50-table role
+      profile remain exact. Final source qualification, all-frame closure,
+      actual nested driver and complete faults remain Draft gates.
     </p>
     <p>
       Two graph and checkpoint models independently check state, route union,

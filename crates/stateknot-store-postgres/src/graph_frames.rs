@@ -1424,3 +1424,11 @@ pub(super) async fn reject_framework_call(
     }
     Ok(())
 }
+
+pub(super) fn verify_wait_anchor<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    wait: &'a DurableWait,
+    event: &'a JournalEvent,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), StoreError>> + Send + 'a>> {
+    barriers::verify_wait_anchor(tx, wait, event)
+}

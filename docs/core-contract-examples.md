@@ -250,7 +250,7 @@ parent advances only through its own barrier. Recovery authenticates every
 component before fresh callbacks or authority. Run-wide DIRECT floors and
 bounded transaction-owned replay proofs survive nested returns. Source upgrades,
 seven-level default-stack cascades and real restricted LOGIN paths have native
-tests. Scoped waits, all-frame closure, actual nested driver and complete fault
+tests. All-frame closure, actual nested driver and complete fault
 qualification remain independent Draft gates; no published alpha.1 support is
 implied.
 
@@ -406,3 +406,13 @@ Passing the four examples closes only RFC-0001 validation item 1. The sealed
 fixture catalog is infrastructure toward item 2, not completion of its required
 type-level coverage. Fuzzing, historical migrations, scenario mapping, and the complete security review also
 remain acceptance gates. StateKnot remains a preview and RFC-0001 remains Draft.
+
+
+Experimental Schema 32 leaf waits use a version-2 whole Store barrier, retaining
+exact version-1 non-wait bytes and Core schema pins. The suspension atomically
+binds the original lifecycle revision, complete scoped successor/result set,
+all policy-bearing registrations and Run waiting projection. It releases the
+lease, authenticates complete terminal wait facts, and resumes the saved leaf
+under a new fence only after all conditions are discharged. Default-stack native
+and standalone runtime LOGIN tests cover recovery and whole return. Final source
+qualification, all-frame closure and the nested Driver remain pending.

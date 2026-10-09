@@ -429,14 +429,55 @@ impl GraphSchemaValidator for RoleFrameSchemas {
 // This qualifies the compound Store transaction under the real runtime login;
 // the framework call is not dispatched through an experimental graph driver.
 #[allow(clippy::too_many_lines)]
-async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore) {
+async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, wait_case: bool) {
     let wire: Value = serde_json::from_str(include_str!(
         "../../../stateknot-core/tests/fixtures/core-graph-frame-call-v1.json"
     ))
     .unwrap();
-    let parent: CompiledGraph = serde_json::from_value(wire["compiled"].clone()).unwrap();
-    let child: CompiledGraph = serde_json::from_value(wire["child"].clone()).unwrap();
-    let tenant_id = tenant("role-frame-entry");
+    let mut parent: CompiledGraph = serde_json::from_value(wire["compiled"].clone()).unwrap();
+    let mut child: CompiledGraph = serde_json::from_value(wire["child"].clone()).unwrap();
+    if wait_case {
+        let node = child.entry_nodes().iter().next().unwrap().clone();
+        child = CompiledGraph::compile(
+            child.identity().clone(),
+            child.input_schema().clone(),
+            child.state_schema().clone(),
+            child.update_schema().clone(),
+            child.output_schema().clone(),
+            child.reducer().clone(),
+            child.entry_nodes().clone(),
+            [stateknot_core::GraphNode::new(
+                node.clone(),
+                None,
+                stateknot_core::GraphRoutes::default(),
+                Some(stateknot_core::ReadyNodes::try_new([node]).unwrap()),
+                true,
+            )
+            .unwrap()],
+            child.limits(),
+        )
+        .unwrap();
+        let policy = parent.frame_calls().unwrap();
+        let call = &policy.calls()[0];
+        let replacement = stateknot_core::GraphFrameCallPolicy::new(
+            policy.maximum_depth(),
+            policy.maximum_frame_starts(),
+            [stateknot_core::GraphFrameCall::new(
+                call.node_id().clone(),
+                call.slot().clone(),
+                &child,
+                call.return_route().clone(),
+            )
+            .unwrap()],
+        )
+        .unwrap();
+        parent = parent.with_frame_calls(replacement).unwrap();
+    }
+    let tenant_id = tenant(if wait_case {
+        "role-frame-wait"
+    } else {
+        "role-frame-entry"
+    });
     for graph in [&parent, &child] {
         store
             .register_graph_definition(tenant_id.clone(), graph.clone())
@@ -572,7 +613,11 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore) {
     let counts: (i64,i64,i64) = query_as("SELECT (SELECT count(*) FROM stateknot.run_events WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.run_checkpoints WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2)")
         .bind(tenant_id.as_str()).bind(*run.as_uuid()).fetch_one(&fixture.runtime).await.unwrap();
     assert_eq!(counts, (2, 2, 1));
-    Box::pin(scoped_node_completion(store, &entry, &child, lease.fence())).await;
+    if wait_case {
+        Box::pin(scoped_wait(fixture, store, &entry, &child, lease.fence())).await;
+    } else {
+        Box::pin(scoped_node_completion(store, &entry, &child, lease.fence())).await;
+    }
     denied(
         &fixture.retention,
         "SELECT * FROM stateknot.graph_frame_entries LIMIT 1",
@@ -945,7 +990,8 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     Box::pin(crate::qualify_provider_native_with_store(&store, false)).await;
     node_completion_race(&store).await;
     skill_acting_window_authorization(&store).await;
-    Box::pin(compound_frame_entry(&fixture, &store)).await;
+    Box::pin(compound_frame_entry(&fixture, &store, false)).await;
+    Box::pin(compound_frame_entry(&fixture, &store, true)).await;
     isolated_retention(&fixture, &store).await;
     let snapshot = "SELECT jsonb_agg(jsonb_build_array(tenant_id,run_id,journal_sequence,journal_digest) ORDER BY tenant_id,run_id) FROM stateknot.runs";
     let before: Value = query_scalar(snapshot)
@@ -967,7 +1013,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 31);
+    assert_eq!(schema_version, 32);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -986,9 +1032,216 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "scoped_barrier_commit_retry_reload":true,
         "framework_caller_rebind_retry_reload":true,
         "whole_frame_return_retry_reload":true,
+        "whole_frame_wait_resolve_resume":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"
         })
     );
+}
+
+// A real standalone runtime LOGIN owns every scoped registration/resolution.
+#[allow(clippy::too_many_lines)]
+async fn scoped_wait(
+    fixture: &Fixture,
+    store: &PostgresStore,
+    entry: &stateknot_store_postgres::StoredGraphFrameEntry,
+    graph: &CompiledGraph,
+    fence: &stateknot_core::RunFence,
+) {
+    let base = entry.entry().checkpoint();
+    let ready = stateknot_core::ReadyNodeRecoveryPlanner::for_frame(base.clone(), fence.clone())
+        .unwrap()
+        .finish(entry.event().head(), entry.event().recorded_at())
+        .unwrap();
+    let node = base.checkpoint().ready_nodes().iter().next().unwrap();
+    let started = Box::pin(store.start_recovered_graph_frame_node_attempt(
+        worker_append(
+            fence.tenant_id().clone(),
+            fence.run_id(),
+            EventId::generate(),
+            entry.event().head(),
+            fence.clone(),
+        ),
+        &ready,
+        node,
+        AttemptId::generate(),
+    ))
+    .await
+    .unwrap();
+    let interrupt_id = stateknot_core::InterruptId::generate();
+    let principal = stateknot_core::PrincipalIdentity::new(
+        "https://issuer.example.com/role-frame".parse().unwrap(),
+        "approver".parse().unwrap(),
+    );
+    let payload = JournalPayload::new(
+        graph.state_schema().clone(),
+        "frame-approval-requested".parse().unwrap(),
+        base.checkpoint().state().data().clone(),
+    )
+    .unwrap();
+    let waits = stateknot_core::NodeWaits::try_new([stateknot_core::NodeWait::interrupt(
+        interrupt_id,
+        stateknot_core::RunInterruptKind::Approval,
+        payload.clone(),
+        Digest::sha256(b"role frame action"),
+        Some(principal.clone()),
+        stateknot_core::ScopeSet::default(),
+        None,
+    )])
+    .unwrap();
+    let result = stateknot_core::PendingNodeResultIntent::new(
+        started.attempt().start().activation().clone(),
+        NodeStateChange::Unchanged,
+        NodeControl::Wait { waits },
+        stateknot_core::NodeInvocationBindings::empty(),
+    )
+    .unwrap();
+    let done = Box::pin(store.succeed_node_attempt(
+        worker_append(
+            fence.tenant_id().clone(),
+            fence.run_id(),
+            EventId::generate(),
+            started.event().head(),
+            fence.clone(),
+        ),
+        &started.attempt().start().head(),
+        result.clone(),
+        BudgetUsage::zero(),
+    ))
+    .await
+    .unwrap();
+    let result = store
+        .load_pending_node_result(result.activation())
+        .await
+        .unwrap();
+    let reducer = TestReducer {
+        reference: graph.reducer().clone(),
+    };
+    let plan = graph
+        .plan_frame_barrier(
+            base,
+            std::slice::from_ref(&result),
+            CheckpointId::generate(),
+            &RoleFrameSchemas,
+            &reducer,
+        )
+        .unwrap();
+    let run = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let revision = run.lifecycle().revision();
+    let GraphFrameBarrierCommitOutcome::Committed(saved) = Box::pin(store.commit_graph_frame_wait(
+        plan.clone(),
+        EventId::generate(),
+        fence.clone(),
+        done.event().head(),
+        entry.direct_usage_after().unwrap(),
+        revision,
+        &RoleFrameSchemas,
+        &reducer,
+    ))
+    .await
+    .unwrap() else {
+        panic!("whole role suspension");
+    };
+    let fresh = PostgresStore::connect(&fixture.runtime_url, options())
+        .await
+        .unwrap();
+    let waiting = fresh
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(waiting.lifecycle().status(), RunStatus::Waiting);
+    assert!(waiting.lease().is_none());
+    let request = fresh
+        .load_interrupt_request(fence.tenant_id(), fence.run_id(), interrupt_id)
+        .await
+        .unwrap();
+    let id = EventId::generate();
+    let resolution = stateknot_core::InterruptResolutionIntent::new(
+        &request,
+        id,
+        payload,
+        stateknot_core::InterruptResolver::new(principal, stateknot_core::ScopeSet::default()),
+    )
+    .unwrap();
+    let intent = JournalEventIntent::control_plane(
+        fence.tenant_id().clone(),
+        fence.run_id(),
+        id,
+        resolution.resolution_payload().clone(),
+    )
+    .unwrap();
+    let append =
+        JournalAppend::new(JournalExpectation::exact(saved.event().head()), intent).unwrap();
+    fresh
+        .resolve_interrupt(append, waiting.lifecycle().revision(), resolution)
+        .await
+        .unwrap();
+    let resumed = fresh
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(resumed.lifecycle().status(), RunStatus::Active);
+    let next = fresh
+        .claim_lease(fence.tenant_id(), fence.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let retry = Box::pin(fresh.commit_graph_frame_wait(
+        plan,
+        EventId::generate(),
+        fence.clone(),
+        entry.event().head(),
+        BudgetUsage::zero(),
+        revision,
+        &RoleFrameSchemas,
+        &reducer,
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        retry,
+        GraphFrameBarrierCommitOutcome::Idempotent(_)
+    ));
+    let checkpoint = Box::pin(fresh.load_graph_frame_checkpoint(
+        fence.tenant_id(),
+        fence.run_id(),
+        saved.checkpoint().frame().namespace(),
+        saved.checkpoint().checkpoint().checkpoint_id(),
+    ))
+    .await
+    .unwrap();
+    assert_eq!(checkpoint, *saved.checkpoint());
+    let ready =
+        stateknot_core::ReadyNodeRecoveryPlanner::for_frame(checkpoint.clone(), next.clone())
+            .unwrap()
+            .finish(
+                resumed.journal_head().unwrap().clone(),
+                resumed.journal_head().unwrap().recorded_at(),
+            )
+            .unwrap();
+    let started = Box::pin(fresh.start_recovered_graph_frame_node_attempt(
+        worker_append(
+            next.tenant_id().clone(),
+            next.run_id(),
+            EventId::generate(),
+            resumed.journal_head().unwrap().clone(),
+            next,
+        ),
+        &ready,
+        checkpoint.checkpoint().ready_nodes().iter().next().unwrap(),
+        AttemptId::generate(),
+    ))
+    .await
+    .unwrap();
+    assert_eq!(
+        started.attempt().start().activation().graph_namespace(),
+        checkpoint.frame().namespace()
+    );
+    fresh.close().await;
 }

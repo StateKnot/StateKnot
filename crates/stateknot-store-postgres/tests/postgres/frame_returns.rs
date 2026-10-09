@@ -8,7 +8,7 @@ use super::*;
 use stateknot_core::{GraphFrameBarrierPlan, NodeAttemptStatus, PendingNodeResult, RunFence};
 use stateknot_store_postgres::{GraphFrameReturnCommitOutcome, StoredGraphFrameReturn};
 
-async fn finished(
+pub(super) async fn finished(
     store: &PostgresStore,
     name: &str,
 ) -> (

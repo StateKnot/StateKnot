@@ -429,6 +429,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0031_graph_frame_returns.sql")),
             false,
         ),
+        Migration::new(
+            32,
+            Cow::Borrowed("whole scoped graph waits"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0032_graph_frame_waits.sql")),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -12148,6 +12155,9 @@ async fn verify_wait_registration_event(
     if wait.journal() != &event.head() {
         return Err(StoreError::corrupt("wait registration event anchor"));
     }
+    if event.payload().kind().as_str() == "graph-frame-barrier-committed" {
+        graph_frames::verify_wait_anchor(transaction, wait, &event).await?;
+    }
     Ok(())
 }
 
@@ -12246,6 +12256,14 @@ async fn load_interrupt_record_from_row(
         registration.registration_sequence,
     )
     .await?;
+    verify_interrupt_record_components(transaction, registration, request).await
+}
+
+async fn verify_interrupt_record_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    registration: &WaitRegistrationRow,
+    request: Box<InterruptRequest>,
+) -> Result<InterruptRecord, StoreError> {
     let row = query_as::<_, InterruptResolutionRow>(SELECT_INTERRUPT_RESOLUTION)
         .bind(request.intent().tenant_id().as_str())
         .bind(*request.intent().run_id().as_uuid())
@@ -12297,6 +12315,14 @@ async fn load_timer_record_from_row(
         registration.registration_sequence,
     )
     .await?;
+    verify_timer_record_components(transaction, registration, timer).await
+}
+
+async fn verify_timer_record_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    registration: &WaitRegistrationRow,
+    timer: Box<DurableTimer>,
+) -> Result<DurableTimerRecord, StoreError> {
     let row = query_as::<_, TimerFiringRow>(SELECT_TIMER_FIRING)
         .bind(timer.intent().tenant_id().as_str())
         .bind(*timer.intent().run_id().as_uuid())
@@ -18366,6 +18392,20 @@ async fn load_wait_abandonment_by_id(
     let wait = decode_wait_registration(&registration)?;
     verify_wait_registration_event(transaction, &wait, registration.registration_sequence).await?;
 
+    verify_wait_abandonment_components(transaction, &registration, wait).await
+}
+
+async fn verify_wait_abandonment_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    registration: &WaitRegistrationRow,
+    wait: DurableWait,
+) -> Result<WaitAbandonment, StoreError> {
+    let tenant_id = wait.tenant_id().clone();
+    let run_id = wait.run_id();
+    let wait_id = match &wait {
+        DurableWait::Interrupt { request } => *request.marker().interrupt_id().as_uuid(),
+        DurableWait::Timer { timer } => *timer.marker().timer_id().as_uuid(),
+    };
     let row = query_as::<_, WaitAbandonmentRow>(SELECT_WAIT_ABANDONMENT_BY_ID.as_str())
         .bind(tenant_id.as_str())
         .bind(*run_id.as_uuid())

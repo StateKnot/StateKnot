@@ -169,8 +169,12 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       新增专用完整返回事务：将已保存的 terminal 证明与当前 caller
       完成、精确父结果、stack 弹出和 journal 事实原子结算。返回后仍保留共享 Run
       用量；精简证明只在所属事务内复用。七层级联使用默认线程栈和真实续租。 精确
-      catalog 与 50 表运行时权限共同保护完整事务。作用域等待、全帧关闭、
-      实际嵌套 driver 和完整故障验收仍属于草案门禁。
+      catalog 与 50 表运行时权限共同保护完整事务。Schema 32 新增完整活动叶悬停：
+      版本 2 屏障原子绑定原生命周期修订、全部审批/定时注册、Waiting
+      投影和租约释放。
+      恢复先认证完整审批、触发或放弃记录再继续作用域；悬停字节损坏仍可提交独立审计
+      并隔离运行。既有版本 1 记录、根 wire、Core pin 与 50 表权限保持精确。
+      最终源码资格验收、全帧关闭、实际嵌套 driver 和完整故障验收仍属于草案门禁。
     </p>
     <p>
       RFC-0023 草案修正 MediaType 输入/default schema，使其接受 reader

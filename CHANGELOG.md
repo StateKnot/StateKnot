@@ -39,6 +39,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Experimental whole scoped waits atomically bind the leaf successor, complete
+  registrations and original lifecycle revision while releasing the Run lease.
+  Recovery authenticates complete resolution/firing/abandonment facts and resumes
+  the saved scope under a new fence. Schema 32 guards preserve exact prior
+  non-wait bytes, the 50-table ACL and fail-stop quarantine. Final qualification,
+  all-frame closure and nested Driver dispatch remain RFC-0022 gates.
+
+
 - Experimental whole frame returns authenticate an existing terminal proof and
   atomically settle the current framework caller, exact parent result, stack
   pop and reserved journal fact. Recovery precedes fresh callbacks/authority;
