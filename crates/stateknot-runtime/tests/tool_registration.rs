@@ -553,7 +553,7 @@ async fn mixed_case_media_type_dispatches_and_actual_old_input_pin_fails_at_star
     let legacy = SchemaReference::new(
         input.id().clone(),
         input.version(),
-        Digest::sha256(&serde_json_canonicalizer::to_vec(&old).unwrap()),
+        Digest::sha256(serde_json_canonicalizer::to_vec(&old).unwrap()),
     );
     assert_ne!(legacy.digest(), input.digest());
     let mut old_builder = JsonSchemaRegistryBuilder::default();

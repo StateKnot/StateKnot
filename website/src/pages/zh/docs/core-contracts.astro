@@ -139,9 +139,10 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       个序列化 schema 摘要。 原有 38 个值类型和 67
       个执行类型的正向与负向证据继续保留。完整的
       Graph、Checkpoint、invocation、Outbox 和 wait wire 保留原有构造器摘要。
-      无字段的带标签变体拒绝额外字段和数组形式，有效 wire 字节及七个生成的
-      schema pin 保持一致。44 个有界属性模型也以固定 CI 种子运行。嵌套 JSON
-      具有六维独立资源与 UTF-16 规范树模型；Opaque/schema-bound
+      无字段的带标签变体拒绝额外字段和数组形式，原始采用保留有效 wire 及七个输入
+      pin；下述 RFC-0023 显式修正其中三个嵌套媒体输入 pin。44 个有界属性模型
+      也以固定 CI 种子运行。嵌套 JSON 具有六维独立资源与 UTF-16
+      规范树模型；Opaque/schema-bound
       扩展收紧限制时会重新验证原先较宽的值。七个复合预算模型使用独立宽整数会计，
       核对全部 20 个用量字段、部分限制与币种交集、direct + child
       预留和精确剩余容量。 逐字段溢出、deadline

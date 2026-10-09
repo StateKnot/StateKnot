@@ -137,8 +137,9 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       Earlier readers retain 38 value types and 67 execution types mapped to
       positive and negative evidence. Complete graph, checkpoint, invocation,
       outbox and wait wires retain the earlier constructor digests. Empty tagged
-      variants reject additional fields and sequence forms while valid wire
-      bytes and seven generated schema pins remain unchanged. Forty-four bounded
+      variants reject additional fields and sequence forms. Their original
+      adoption preserved valid wires and seven input pins; RFC-0023 below
+      explicitly corrects three nested media input pins. Forty-four bounded
       property models also run with a reproducible CI seed. Nested JSON has
       independent six-dimension resource and UTF-16 canonical-tree models;
       opaque and schema-bound extensions revalidate previously wider values when
