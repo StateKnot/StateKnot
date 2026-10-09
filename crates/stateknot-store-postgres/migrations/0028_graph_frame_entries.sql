@@ -65,7 +65,7 @@ CREATE TABLE stateknot.graph_frame_stacks (
  active_namespace text NOT NULL DEFAULT '',active_frame_identity_digest bytea,
  PRIMARY KEY (tenant_id,run_id),
  CONSTRAINT graph_frame_stacks_shape CHECK (
-  lifetime_starts BETWEEN 0 AND 4096 AND octet_length(admission_digest)=32
+  lifetime_starts >= 0 AND lifetime_starts <= 4096 AND octet_length(admission_digest)=32
   AND ((active_namespace='' AND active_frame_identity_digest IS NULL)
    OR (active_namespace ~ '^[0-9a-f]{64}(/[0-9a-f]{64}){0,6}$' AND active_frame_identity_digest IS NOT NULL AND octet_length(active_frame_identity_digest)=32))
  ),
@@ -93,6 +93,10 @@ BEGIN
  SELECT active_namespace INTO active FROM stateknot.graph_frame_stacks
   WHERE tenant_id=tenant AND run_id=identity;
  active:=coalesce(active,'');
+ IF TG_TABLE_NAME='node_attempt_completions' AND EXISTS (
+  SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity
+   AND e.caller_attempt_id=(data->>'attempt_id')::uuid
+ ) THEN RAISE EXCEPTION 'framework caller requires whole frame return' USING ERRCODE='SKG02'; END IF;
  IF namespace<>active THEN
   IF TG_TABLE_NAME='node_attempts' AND EXISTS (
    SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity
@@ -105,6 +109,8 @@ BEGIN
  RETURN NULL;
 END $$;
 CREATE CONSTRAINT TRIGGER node_attempts_frame_scope AFTER INSERT ON stateknot.node_attempts
+ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_execution_scope();
+CREATE CONSTRAINT TRIGGER node_completions_frame_scope AFTER INSERT ON stateknot.node_attempt_completions
  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_execution_scope();
 CREATE CONSTRAINT TRIGGER pending_results_frame_scope AFTER INSERT ON stateknot.pending_node_results
  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_execution_scope();

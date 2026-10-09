@@ -14,6 +14,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Experimental Store transactions durably start ordinary nodes in an
+  authenticated active initial frame and commit their success/result or failure
+  atomically. Scoped historical reads verify the whole entry and checkpoint;
+  bounded attempt histories, same-fence in-flight recovery and takeover rules
+  are reused. SQL guards prevent suspended-scope completion or independent
+  framework-caller completion. Deferred guards execute before the final live
+  lease/deadline check. The stack CHECK catalog stays exact after logical
+  dump/restore. Scoped barriers, framework rebinding/return, waits, closure and
+  actual nested driver dispatch remain pending in Draft RFC-0022.
+
 - Experimental Rust-only compound frame-entry planning binds the complete event,
   framework start and isolated checkpoint with one domain-separated projection.
   Its versioned local event schema carries identity/digest data without copied

@@ -161,9 +161,13 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       projection; it adds no public reader or existing type schema pin change.
       Schema 28 adds experimental atomic Store admission and authenticated retry
       under the original Run admission, shared usage and inherited limits, with
-      exact SQL catalog and whole-component guards. Scoped execution, framework
-      takeover, return/waits, all-frame closure, driver dispatch and
-      process-loss qualification remain pending; nested execution stays Draft.
+      exact SQL catalog and whole-component guards. Active initial frames now
+      support durable ordinary node starts and atomic success/failure records,
+      with scoped replay, bounded histories and a final live-lease check after
+      deferred constraints. Ordinary completion cannot release a framework
+      caller. Scoped barriers, framework takeover, return/waits, all-frame
+      closure, driver dispatch and complete process-loss qualification remain
+      pending; nested execution stays Draft.
     </p>
     <p>
       Two graph and checkpoint models independently check state, route union,

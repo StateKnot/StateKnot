@@ -366,6 +366,14 @@
       true
     ],
     [
+      "node_attempt_completions",
+      "node_completions_frame_scope",
+      "CREATE CONSTRAINT TRIGGER node_completions_frame_scope AFTER INSERT ON stateknot.node_attempt_completions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_execution_scope()",
+      "O",
+      true,
+      true
+    ],
+    [
       "node_attempts",
       "node_attempts_frame_scope",
       "CREATE CONSTRAINT TRIGGER node_attempts_frame_scope AFTER INSERT ON stateknot.node_attempts DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_execution_scope()",
@@ -469,7 +477,7 @@
     ],
     [
       "guard_graph_frame_execution_scope",
-      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_execution_scope()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE data jsonb; tenant text; identity uuid; namespace text; active text;\nBEGIN\n data:=to_jsonb(NEW);\n tenant:=data->>'tenant_id'; identity:=(data->>'run_id')::uuid;\n namespace:=coalesce(data->>'graph_namespace','');\n SELECT active_namespace INTO active FROM stateknot.graph_frame_stacks\n  WHERE tenant_id=tenant AND run_id=identity;\n active:=coalesce(active,'');\n IF namespace<>active THEN\n  IF TG_TABLE_NAME='node_attempts' AND EXISTS (\n   SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity\n    AND e.caller_attempt_id=(data->>'attempt_id')::uuid\n    AND e.journal_sequence=(data->>'journal_sequence')::bigint\n    AND e.parent_namespace=namespace\n  ) THEN RETURN NULL; END IF;\n  RAISE EXCEPTION 'only the current graph frame may execute' USING ERRCODE='SKG01';\n END IF;\n RETURN NULL;\nEND $function$\n",
+      "CREATE OR REPLACE FUNCTION stateknot.guard_graph_frame_execution_scope()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE data jsonb; tenant text; identity uuid; namespace text; active text;\nBEGIN\n data:=to_jsonb(NEW);\n tenant:=data->>'tenant_id'; identity:=(data->>'run_id')::uuid;\n namespace:=coalesce(data->>'graph_namespace','');\n SELECT active_namespace INTO active FROM stateknot.graph_frame_stacks\n  WHERE tenant_id=tenant AND run_id=identity;\n active:=coalesce(active,'');\n IF TG_TABLE_NAME='node_attempt_completions' AND EXISTS (\n  SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity\n   AND e.caller_attempt_id=(data->>'attempt_id')::uuid\n ) THEN RAISE EXCEPTION 'framework caller requires whole frame return' USING ERRCODE='SKG02'; END IF;\n IF namespace<>active THEN\n  IF TG_TABLE_NAME='node_attempts' AND EXISTS (\n   SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=tenant AND e.run_id=identity\n    AND e.caller_attempt_id=(data->>'attempt_id')::uuid\n    AND e.journal_sequence=(data->>'journal_sequence')::bigint\n    AND e.parent_namespace=namespace\n  ) THEN RETURN NULL; END IF;\n  RAISE EXCEPTION 'only the current graph frame may execute' USING ERRCODE='SKG01';\n END IF;\n RETURN NULL;\nEND $function$\n",
       false,
       "v",
       null
@@ -674,7 +682,7 @@
     [
       "graph_frame_stacks",
       "graph_frame_stacks_shape",
-      "CHECK ((((lifetime_starts >= 0) AND (lifetime_starts <= 4096)) AND (octet_length(admission_digest) = 32) AND (((active_namespace = ''::text) AND (active_frame_identity_digest IS NULL)) OR ((active_namespace ~ '^[0-9a-f]{64}(/[0-9a-f]{64}){0,6}$'::text) AND (active_frame_identity_digest IS NOT NULL) AND (octet_length(active_frame_identity_digest) = 32)))))",
+      "CHECK (((lifetime_starts >= 0) AND (lifetime_starts <= 4096) AND (octet_length(admission_digest) = 32) AND (((active_namespace = ''::text) AND (active_frame_identity_digest IS NULL)) OR ((active_namespace ~ '^[0-9a-f]{64}(/[0-9a-f]{64}){0,6}$'::text) AND (active_frame_identity_digest IS NOT NULL) AND (octet_length(active_frame_identity_digest) = 32)))))",
       true,
       false,
       false

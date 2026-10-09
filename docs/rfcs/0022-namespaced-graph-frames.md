@@ -244,11 +244,24 @@ and enabled triggers. Root-only source fixtures explicitly remove migration
 28 before reconstructing older schemas and refuse retained actual frame data.
 They do not establish historical-binary downgrade or compatibility.
 
-This Store admission is only one part of the Draft. Scoped node/barrier writes,
+The experimental Store also starts ordinary ready nodes within an authenticated
+active initial frame checkpoint and atomically commits their success/result or
+failure. It reuses bounded physical histories, safe-retry rules and fencing.
+A fresh committed start grants launch authority; an idempotent start remains
+in flight. Historical scoped starts/results authenticate their complete entry
+and checkpoint without requiring the old frame to remain the active leaf.
+Ordinary execution and completion APIs reject framework-owned call nodes.
+The SQL completion guard protects the active namespace and suspended caller.
+Deferred component guards run before the final database-clock lease/deadline
+check, so a slow deferred constraint cannot grant launch after lease expiry.
+The stack CHECK expression retains the same bounds in the exact catalog after
+logical dump/restore.
+
+Admission and node transactions are parts of the Draft. Scoped barriers,
 framework-fence rebinding, settlement/return, waits, all-frame closure, actual
-registry/driver dispatch, process-loss/commit-loss fault qualification and
-production capacity remain pending. Admission and idempotent evidence alone
-do not enable nested execution or make RFC-0022 Supported.
+registry/driver dispatch, complete process-loss/commit-loss fault qualification
+and production capacity remain pending. These Store primitives do not enable
+nested execution or make RFC-0022 Supported.
 
 ## Detailed semantics
 

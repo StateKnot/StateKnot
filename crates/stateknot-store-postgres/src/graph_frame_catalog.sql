@@ -6,7 +6,7 @@ frame_functions(name) AS (VALUES ('guard_graph_frame_entry_immutable'),('guard_g
 frame_triggers(table_name,name) AS (VALUES
  ('graph_frame_entries','graph_frame_entries_immutable'),('graph_frame_entries','frame_entries_complete'),
  ('graph_frame_stacks','frame_stacks_complete'),('runs','runs_frame_root_projection'),
- ('node_attempts','node_attempts_frame_scope'),('pending_node_results','pending_results_frame_scope'),
+ ('node_attempts','node_attempts_frame_scope'),('node_attempt_completions','node_completions_frame_scope'),('pending_node_results','pending_results_frame_scope'),
  ('tool_invocations','tool_invocations_frame_scope'),('model_invocations','model_invocations_frame_scope'),
  ('run_checkpoints','checkpoints_frame_scope'),('run_checkpoints','checkpoints_frame_complete'),
  ('graph_frame_heads','frame_heads_complete'),('run_wait_registrations','waits_frame_scope'),

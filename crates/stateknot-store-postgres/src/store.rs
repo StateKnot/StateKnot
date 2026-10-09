@@ -7560,7 +7560,7 @@ WHERE tenant_id = $1
         activation: NodeActivation,
         attempt_id: AttemptId,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
-        Box::pin(self.start_node_attempt_inner(append, activation, attempt_id)).await
+        Box::pin(self.start_node_attempt_inner(append, activation, attempt_id, None)).await
     }
 
     /// Durably starts one node selected by a verified recovery plan.
@@ -7600,6 +7600,9 @@ WHERE tenant_id = $1
         node_id: &NodeId,
         attempt_id: AttemptId,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        if plan.frame().is_some() {
+            return Err(StoreError::InvalidReadyNodeDispatchPlan);
+        }
         let fence = append
             .worker_fence()
             .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
@@ -7631,6 +7634,63 @@ WHERE tenant_id = $1
         }
         self.start_node_attempt(append, decision.activation().clone(), attempt_id)
             .await
+    }
+
+    /// Experimental RFC-0022 handoff for an authenticated active frame node.
+    ///
+    /// The pure scoped plan does not grant launch authority. This transaction
+    /// reloads its whole immutable admission and active frame head, then reuses
+    /// the ordinary bounded history, retry timing, claim and live-fence checks.
+    /// Only a fresh committed start grants launch; an idempotent start remains
+    /// in flight. The caller must enforce the original Run's complete shared
+    /// budget before proposing work; this API allocates no frame budget.
+    ///
+    /// # Errors
+    /// Rejects Root/crossed plans, inactive frames, replaced checkpoints,
+    /// non-dispatchable nodes, stale history, fencing or journal state.
+    pub async fn start_recovered_graph_frame_node_attempt(
+        &self,
+        append: JournalAppend,
+        plan: &ReadyNodeRecoveryPlan,
+        node_id: &NodeId,
+        attempt_id: AttemptId,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        let frame = plan
+            .frame()
+            .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
+        let fence = append
+            .worker_fence()
+            .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
+        let head = append
+            .expectation()
+            .head()
+            .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
+        if frame.namespace().is_root()
+            || fence != plan.fence()
+            || head.tenant_id() != fence.tenant_id()
+            || head.run_id() != fence.run_id()
+            || head.sequence() < plan.journal_head().sequence()
+            || head.recorded_at() < plan.journal_head().recorded_at()
+        {
+            return Err(StoreError::InvalidReadyNodeDispatchPlan);
+        }
+        let decision = plan
+            .nodes()
+            .iter()
+            .find(|node| node.activation().node_id() == node_id)
+            .ok_or(StoreError::ReadyNodeNotDispatchable)?;
+        if decision.dispatch_reason().is_none()
+            || decision.activation().base_checkpoint() != &plan.checkpoint().head()
+        {
+            return Err(StoreError::ReadyNodeNotDispatchable);
+        }
+        Box::pin(self.start_node_attempt_inner(
+            append,
+            decision.activation().clone(),
+            attempt_id,
+            Some(frame),
+        ))
+        .await
     }
 
     /// Durably suppresses scheduler claims until a recovery plan's next retry.
@@ -7803,7 +7863,11 @@ RETURNING observation.observed_at
         append: JournalAppend,
         activation: NodeActivation,
         attempt_id: AttemptId,
+        frame: Option<&stateknot_core::GraphFrameIdentity>,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        if activation.graph_namespace().is_root() != frame.is_none() {
+            return Err(StoreError::InvalidNodeAttemptActivation);
+        }
         let fence = append
             .worker_fence()
             .cloned()
@@ -7876,15 +7940,43 @@ RETURNING observation.observed_at
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *activation.base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !node_attempt_activation_is_ready(&current_checkpoint, &activation) {
-            return Err(StoreError::InvalidNodeAttemptActivation);
+        if let Some(frame) = frame {
+            let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+                &mut transaction,
+                &tenant_id,
+                run_id,
+                frame.namespace(),
+                true,
+            ))
+            .await?;
+            if checkpoint.frame() != frame
+                || checkpoint.checkpoint().head() != *activation.base_checkpoint()
+            {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+            graph_frames::reject_framework_call(
+                &mut transaction,
+                &checkpoint,
+                activation.node_id(),
+            )
+            .await?;
+            if !checkpoint
+                .activation(activation.node_id().clone())
+                .is_ok_and(|expected| expected == activation)
+            {
+                return Err(StoreError::InvalidNodeAttemptActivation);
+            }
+        } else {
+            let current_checkpoint =
+                load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                    .await?
+                    .ok_or(StoreError::StaleCheckpointHead)?;
+            if current_checkpoint.head() != *activation.base_checkpoint() {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+            if !node_attempt_activation_is_ready(&current_checkpoint, &activation) {
+                return Err(StoreError::InvalidNodeAttemptActivation);
+            }
         }
 
         let attempt_count = count_node_attempts(&mut transaction, &activation).await?;
@@ -7922,6 +8014,10 @@ RETURNING observation.observed_at
         insert_node_attempt_claim(&mut transaction, &start).await?;
         insert_node_attempt_start(&mut transaction, &start).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if frame.is_some() {
+            graph_frames::revalidate_worker_after_components(&mut transaction, start.fence())
+                .await?;
+        }
         transaction
             .commit()
             .await
@@ -8068,16 +8164,7 @@ RETURNING observation.observed_at
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *expected.activation().base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !node_attempt_activation_is_ready(&current_checkpoint, expected.activation()) {
-            return Err(StoreError::InvalidNodeAttemptActivation);
-        }
+        verify_node_completion_base(&mut transaction, &stored, attempt.start()).await?;
 
         let observed_at = database_now(&mut transaction, "node attempt failure clock").await?;
         authorize_worker(&stored, &fence, observed_at)?;
@@ -8094,6 +8181,13 @@ RETURNING observation.observed_at
         insert_event(&mut transaction, &event, completion.digest()).await?;
         insert_node_attempt_completion(&mut transaction, attempt.start(), &completion).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if !attempt.start().activation().graph_namespace().is_root() {
+            graph_frames::revalidate_worker_after_components(
+                &mut transaction,
+                attempt.start().fence(),
+            )
+            .await?;
+        }
         transaction
             .commit()
             .await
@@ -8254,16 +8348,7 @@ RETURNING observation.observed_at
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *expected.activation().base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !node_attempt_activation_is_ready(&current_checkpoint, expected.activation()) {
-            return Err(StoreError::InvalidNodeAttemptActivation);
-        }
+        verify_node_completion_base(&mut transaction, &stored, attempt.start()).await?;
 
         let observed_at = database_now(&mut transaction, "node attempt success clock").await?;
         authorize_worker(&stored, &fence, observed_at)?;
@@ -8285,6 +8370,13 @@ RETURNING observation.observed_at
         insert_pending_node_result_bindings(&mut transaction, &result, &fence).await?;
         insert_node_attempt_completion(&mut transaction, attempt.start(), &completion).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if !attempt.start().activation().graph_namespace().is_root() {
+            graph_frames::revalidate_worker_after_components(
+                &mut transaction,
+                attempt.start().fence(),
+            )
+            .await?;
+        }
         transaction
             .commit()
             .await
@@ -15622,12 +15714,75 @@ async fn verify_node_attempt_anchor(
     Ok(event)
 }
 
+// Ordinary success/failure cannot finish a framework-owned graph call; only
+// its future whole return/closure transaction may release the suspended caller.
+async fn verify_node_completion_base(
+    tx: &mut Transaction<'_, Postgres>,
+    stored: &StoredRun,
+    start: &NodeAttemptStart,
+) -> Result<(), StoreError> {
+    let event = Box::pin(verify_node_attempt_start(tx, start)).await?;
+    if event.payload().kind().as_str() == stateknot_core::GraphFrameEntryPlan::EVENT_KIND {
+        return Err(StoreError::GraphFrameCompoundRequired);
+    }
+    let activation = start.activation();
+    if activation.graph_namespace().is_root() {
+        let checkpoint =
+            load_locked_current_checkpoint(tx, stored, activation.tenant_id(), activation.run_id())
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if checkpoint.head() != *activation.base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !node_attempt_activation_is_ready(&checkpoint, activation) {
+            return Err(StoreError::InvalidNodeAttemptActivation);
+        }
+    } else {
+        let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+            tx,
+            activation.tenant_id(),
+            activation.run_id(),
+            activation.graph_namespace(),
+            true,
+        ))
+        .await?;
+        if checkpoint.checkpoint().head() != *activation.base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !checkpoint
+            .activation(activation.node_id().clone())
+            .is_ok_and(|expected| expected == *activation)
+        {
+            return Err(StoreError::InvalidNodeAttemptActivation);
+        }
+    }
+    Ok(())
+}
+
 async fn verify_node_attempt_base_checkpoint(
     transaction: &mut Transaction<'_, Postgres>,
     start: &NodeAttemptStart,
 ) -> Result<(), StoreError> {
     let activation = start.activation();
     let base = activation.base_checkpoint();
+    if !activation.graph_namespace().is_root() {
+        let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+            transaction,
+            activation.tenant_id(),
+            activation.run_id(),
+            activation.graph_namespace(),
+            false,
+        ))
+        .await?;
+        if checkpoint.checkpoint().head() != *base
+            || !checkpoint
+                .activation(activation.node_id().clone())
+                .is_ok_and(|expected| expected == *activation)
+        {
+            return Err(StoreError::corrupt("scoped node attempt base"));
+        }
+        return Ok(());
+    }
     let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
         .bind(activation.tenant_id().as_str())
         .bind(*activation.run_id().as_uuid())
@@ -15653,6 +15808,11 @@ async fn verify_node_attempt(
     let Some(completion) = attempt.completion() else {
         return Ok(start_event);
     };
+    if start_event.payload().kind().as_str() == stateknot_core::GraphFrameEntryPlan::EVENT_KIND {
+        return Err(StoreError::corrupt(
+            "framework caller completion requires a whole frame return",
+        ));
+    }
     let event = verify_node_attempt_anchor(
         transaction,
         completion.journal_head(),
@@ -16056,6 +16216,24 @@ async fn verify_pending_node_result_base_checkpoint(
 ) -> Result<(), StoreError> {
     let activation = result.intent().activation();
     let base = activation.base_checkpoint();
+    if !activation.graph_namespace().is_root() {
+        let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+            transaction,
+            activation.tenant_id(),
+            activation.run_id(),
+            activation.graph_namespace(),
+            false,
+        ))
+        .await?;
+        if checkpoint.checkpoint().head() != *base
+            || !checkpoint
+                .activation(activation.node_id().clone())
+                .is_ok_and(|expected| expected == *activation)
+        {
+            return Err(StoreError::corrupt("scoped pending result base"));
+        }
+        return Ok(());
+    }
     let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
         .bind(activation.tenant_id().as_str())
         .bind(*activation.run_id().as_uuid())
@@ -19215,9 +19393,16 @@ SELECT
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $3
-  AND current_run.checkpoint_superstep = $4
-  AND current_run.checkpoint_digest = $5
+  AND (
+    ($10='' AND current_run.checkpoint_id=$3 AND current_run.checkpoint_superstep=$4 AND current_run.checkpoint_digest=$5)
+    OR ($10<>'' AND EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_heads AS frame
+      JOIN stateknot.graph_frame_stacks AS stack ON stack.tenant_id=frame.tenant_id AND stack.run_id=frame.run_id
+      WHERE frame.tenant_id=$1 AND frame.run_id=$2 AND frame.graph_namespace=$10
+        AND frame.checkpoint_id=$3 AND frame.superstep=$4 AND frame.checkpoint_digest=$5
+        AND stack.active_namespace=frame.graph_namespace AND stack.active_frame_identity_digest=frame.frame_identity_digest
+    ))
+  )
   AND current_run.lease_attempt_id = $16
   AND current_run.fencing_epoch = $17
   AND current_run.lease_expires_at > clock_timestamp()
@@ -19417,9 +19602,16 @@ FROM UNNEST(
 CROSS JOIN stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $3
-  AND current_run.checkpoint_superstep = $4
-  AND current_run.checkpoint_digest = $5
+  AND (
+    ($6='' AND current_run.checkpoint_id=$3 AND current_run.checkpoint_superstep=$4 AND current_run.checkpoint_digest=$5)
+    OR ($6<>'' AND EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_heads AS frame
+      JOIN stateknot.graph_frame_stacks AS stack ON stack.tenant_id=frame.tenant_id AND stack.run_id=frame.run_id
+      WHERE frame.tenant_id=$1 AND frame.run_id=$2 AND frame.graph_namespace=$6
+        AND frame.checkpoint_id=$3 AND frame.superstep=$4 AND frame.checkpoint_digest=$5
+        AND stack.active_namespace=frame.graph_namespace AND stack.active_frame_identity_digest=frame.frame_identity_digest
+    ))
+  )
   AND current_run.lease_attempt_id = $20
   AND current_run.fencing_epoch = $21
   AND current_run.lease_expires_at > clock_timestamp()

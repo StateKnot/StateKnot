@@ -3,6 +3,7 @@
 -- Isolated Root-only source fixtures. Refuse real retained nested-frame data.
 SELECT 1 / CASE WHEN EXISTS (SELECT 1 FROM stateknot.graph_frame_entries LIMIT 1) THEN 0 ELSE 1 END;
 DROP TRIGGER node_attempts_frame_scope ON stateknot.node_attempts;
+DROP TRIGGER node_completions_frame_scope ON stateknot.node_attempt_completions;
 DROP TRIGGER pending_results_frame_scope ON stateknot.pending_node_results;
 DROP TRIGGER tool_invocations_frame_scope ON stateknot.tool_invocations;
 DROP TRIGGER model_invocations_frame_scope ON stateknot.model_invocations;

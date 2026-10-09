@@ -632,6 +632,11 @@ async fn verified_entry(
         let start = load_node_attempt_record(tx, tenant, &run, attempt)
             .await?
             .ok_or_else(|| StoreError::corrupt("frame caller start"))?;
+        if start.completion().is_some() {
+            return Err(StoreError::corrupt(
+                "frame caller completed without a whole return",
+            ));
+        }
         let checkpoint = decode_frame_checkpoint(
             checkpoint_row(
                 tx,
@@ -1115,12 +1120,7 @@ impl PostgresStore {
         update_run_head(&mut tx, &record.event, None).await?;
         // Repeat live clock and the unchanged parent/root pointers immediately
         // before commit; a lease that expired during any insert rolls back all.
-        let valid=query_scalar::<_,bool>("SELECT lease_attempt_id=$3 AND fencing_epoch=$4 AND lease_expires_at>clock_timestamp() AND agent_deadline_at>clock_timestamp() FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2")
-            .bind(tenant.as_str()).bind(*run.as_uuid()).bind(*plan.fence().attempt_id().as_uuid()).bind(i64::try_from(plan.fence().epoch().get()).map_err(|_|StoreError::StaleFence)?)
-            .fetch_one(&mut *tx).await.map_err(|e|StoreError::database("frame entry final authority",e))?;
-        if !valid {
-            return Err(StoreError::LeaseExpired);
-        }
+        revalidate_worker_after_components(&mut tx, plan.fence()).await?;
         tx.commit()
             .await
             .map_err(|e| StoreError::database("compound frame entry commit", e))?;
@@ -1225,6 +1225,105 @@ pub(super) async fn verify_schema(pool: &PgPool) -> Result<(), StoreError> {
         != expected
     {
         return Err(StoreError::IncompleteSchema);
+    }
+    Ok(())
+}
+
+// Initial scoped checkpoints are authenticated by their whole admission. A
+// future barrier must supply its own whole-record verifier for successor heads;
+// neither this reader nor the Root decoder accepts a metadata-only successor.
+pub(super) async fn bound_checkpoint(
+    tx: &mut Transaction<'_, Postgres>,
+    tenant: &TenantId,
+    run: RunId,
+    namespace: &GraphNamespace,
+    require_active: bool,
+) -> Result<GraphFrameCheckpoint, StoreError> {
+    if namespace.is_root() {
+        return Err(StoreError::GraphFrameConflict);
+    }
+    let row = query_as::<_, RunRow>(SELECT_RUN)
+        .bind(tenant.as_str())
+        .bind(*run.as_uuid())
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|e| StoreError::database("frame node Run", e))?
+        .ok_or(StoreError::RunNotFound)?;
+    let admission_row = load_agent_admission_row(tx, tenant, run)
+        .await?
+        .ok_or(StoreError::AgentAdmissionConflict)?;
+    let admission = verify_stored_agent_admission(tx, decode_run(row)?, admission_row).await?;
+    let graphs = closure(tx, tenant, admission.admission().intent().graph()).await?;
+    let entry = verified_entry(tx, tenant, run, namespace, &admission, &graphs).await?;
+    let checkpoint = entry.entry.checkpoint();
+    if require_active {
+        let active = query_as::<_,StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2")
+            .bind(tenant.as_str()).bind(*run.as_uuid()).fetch_optional(&mut **tx).await
+            .map_err(|e|StoreError::database("frame node stack",e))?.ok_or(StoreError::GraphFrameConflict)?;
+        if active.active_namespace != namespace.as_str()
+            || active.active_frame_identity_digest.as_deref()
+                != Some(checkpoint.frame().digest().as_bytes())
+            || decode_digest(&active.admission_digest, "frame node admission")?
+                != entry.scope.admission_digest
+            || active.lifetime_starts < i32::from(entry.scope.ordinal)
+        {
+            return Err(StoreError::GraphFrameConflict);
+        }
+        let head = query_as::<_,(Uuid,i64,Vec<u8>,Vec<u8>)>("SELECT checkpoint_id,superstep,checkpoint_digest,frame_checkpoint_digest FROM stateknot.graph_frame_heads WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3")
+            .bind(tenant.as_str()).bind(*run.as_uuid()).bind(namespace.as_str())
+            .fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("frame node head",e))?
+            .ok_or(StoreError::GraphFrameConflict)?;
+        if head.0 != *checkpoint.checkpoint().checkpoint_id().as_uuid()
+            || head.1 != 0
+            || decode_digest(&head.2, "frame node checkpoint")? != checkpoint.checkpoint().digest()
+            || decode_digest(&head.3, "frame node scoped head")? != checkpoint.digest()
+        {
+            return Err(StoreError::corrupt("frame node active head"));
+        }
+    }
+    Ok(checkpoint.clone())
+}
+
+// Flush deferred compound/scope guards before the final database-clock check.
+// A slow deferred trigger must not let a lease expire between validation and
+// the commit of newly granted launch authority.
+pub(super) async fn revalidate_worker_after_components(
+    tx: &mut Transaction<'_, Postgres>,
+    fence: &RunFence,
+) -> Result<(), StoreError> {
+    query("SET CONSTRAINTS ALL IMMEDIATE")
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| StoreError::database("frame component guards", e))?;
+    let valid = query_scalar::<_, bool>(
+        "SELECT lease_attempt_id=$3 AND fencing_epoch=$4 AND lease_expires_at>clock_timestamp() AND agent_deadline_at>clock_timestamp() FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2"
+    ).bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid())
+        .bind(*fence.attempt_id().as_uuid())
+        .bind(i64::try_from(fence.epoch().get()).map_err(|_|StoreError::StaleFence)?)
+        .fetch_one(&mut **tx).await
+        .map_err(|e|StoreError::database("frame final authority",e))?;
+    if !valid {
+        return Err(StoreError::LeaseExpired);
+    }
+    Ok(())
+}
+
+pub(super) async fn reject_framework_call(
+    tx: &mut Transaction<'_, Postgres>,
+    checkpoint: &GraphFrameCheckpoint,
+    node: &NodeId,
+) -> Result<(), StoreError> {
+    let graph = graph(
+        tx,
+        checkpoint.checkpoint().tenant_id(),
+        checkpoint.checkpoint().graph(),
+    )
+    .await?;
+    if graph
+        .frame_calls()
+        .is_some_and(|policy| policy.calls().iter().any(|call| call.node_id() == node))
+    {
+        return Err(StoreError::GraphFrameCompoundRequired);
     }
     Ok(())
 }

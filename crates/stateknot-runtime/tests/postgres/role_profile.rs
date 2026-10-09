@@ -8,7 +8,7 @@ use sqlx_core::{connection::ConnectOptions, query_as::query_as, raw_sql::raw_sql
 use sqlx_postgres::{PgConnectOptions, PgPool, PgPoolOptions, PgSslMode};
 use stateknot_core::{
     AgentAdmission, AgentAdmissionIntent, GraphFrameEntryPlan, GraphSchemaValidator,
-    SchedulerReservationId,
+    NodeAttemptStatus, SchedulerReservationId,
 };
 use stateknot_store_postgres::{
     AgentAdmissionCommitOutcome, GraphFrameEntryCommitOutcome, SchedulerFairnessPolicyRegistration,
@@ -567,11 +567,99 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore) {
     let counts: (i64,i64,i64) = query_as("SELECT (SELECT count(*) FROM stateknot.run_events WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.run_checkpoints WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2)")
         .bind(tenant_id.as_str()).bind(*run.as_uuid()).fetch_one(&fixture.runtime).await.unwrap();
     assert_eq!(counts, (2, 2, 1));
+    Box::pin(scoped_node_completion(store, &entry, lease.fence())).await;
     denied(
         &fixture.retention,
         "SELECT * FROM stateknot.graph_frame_entries LIMIT 1",
     )
     .await;
+}
+
+// Exercise the actual scoped SQL path as the standalone runtime LOGIN.
+async fn scoped_node_completion(
+    store: &PostgresStore,
+    entry: &stateknot_store_postgres::StoredGraphFrameEntry,
+    fence: &stateknot_core::RunFence,
+) {
+    let plan = stateknot_core::ReadyNodeRecoveryPlanner::for_frame(
+        entry.entry().checkpoint().clone(),
+        fence.clone(),
+    )
+    .unwrap()
+    .finish(entry.event().head(), entry.event().recorded_at())
+    .unwrap();
+    let node = plan.nodes()[0].activation().node_id().clone();
+    let append = worker_append(
+        fence.tenant_id().clone(),
+        fence.run_id(),
+        EventId::generate(),
+        plan.journal_head().clone(),
+        fence.clone(),
+    );
+    let started = Box::pin(store.start_recovered_graph_frame_node_attempt(
+        append,
+        &plan,
+        &node,
+        AttemptId::generate(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        started,
+        NodeAttemptCommitOutcome::Committed { .. }
+    ));
+    let intent = stateknot_core::PendingNodeResultIntent::new(
+        started.attempt().start().activation().clone(),
+        NodeStateChange::Unchanged,
+        NodeControl::Continue,
+        stateknot_core::NodeInvocationBindings::empty(),
+    )
+    .unwrap();
+    let append = worker_append(
+        fence.tenant_id().clone(),
+        fence.run_id(),
+        EventId::generate(),
+        started.event().head(),
+        fence.clone(),
+    );
+    let done = Box::pin(store.succeed_node_attempt(
+        append.clone(),
+        &started.attempt().start().head(),
+        intent.clone(),
+        BudgetUsage::zero(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(done, NodeAttemptCommitOutcome::Committed { .. }));
+    let retry = Box::pin(store.succeed_node_attempt(
+        append,
+        &started.attempt().start().head(),
+        intent.clone(),
+        BudgetUsage::zero(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(retry, NodeAttemptCommitOutcome::Idempotent { .. }));
+    assert_eq!(
+        store
+            .load_pending_node_result(intent.activation())
+            .await
+            .unwrap()
+            .journal_head(),
+        &done.event().head()
+    );
+    assert_eq!(
+        store
+            .load_node_attempt(
+                fence.tenant_id(),
+                &fence.run_id(),
+                started.attempt().start().attempt_id()
+            )
+            .await
+            .unwrap()
+            .status(),
+        NodeAttemptStatus::Succeeded
+    );
 }
 
 async fn isolated_retention(fixture: &Fixture, runtime: &PostgresStore) {
@@ -689,6 +777,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "skill_acting_window_authorization":true,
         "compound_frame_entry_race":24,
         "compound_frame_entry_reload":true,
+        "scoped_node_start_success_reload":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"
