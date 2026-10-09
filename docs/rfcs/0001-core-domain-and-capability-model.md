@@ -1800,11 +1800,20 @@ exact. These are current-source vectors, not historical releases.
 The [Core contract guide](../core-contract-examples.md#value-level-fixture-and-property-coverage)
 now maps 38 public value types to direct positive/negative canonical round trips,
 including all 18 macro-generated UUIDv7 types with an inventory drift guard.
-Thirty-five bounded property models cover identity/Serde grammar agreement,
+Forty-two bounded property models cover identity/Serde grammar agreement,
 precision, checked arithmetic, Unicode UTF-16 canonical ordering, three-way
-delegation intersection, exact extension limits and independent nested JSON resource/canonical models. Raw and materialized values agree with all six measured dimensions; one-unit tightenings fail, and previously wider values cannot bypass extension restrictions. CI runs a reproducible seed
-and retains the ordinary random workspace run. Composite/nested value coverage
-and its complete type audit remain open for items 2 and 3.
+delegation intersection, exact extension limits and independent nested JSON
+resource/canonical models. Raw and materialized JSON agree with all six measured
+dimensions; one-unit tightenings fail, and previously wider values cannot bypass
+extension restrictions.
+
+Seven composite budget models use wide arithmetic and currency maps for all
+usage fields, finite ceilings, partial-layer intersections, reservation capacity
+and exact cumulative deductions. Successful generated paths and per-dimension
+overflow controls complement unknown-cost, deadline and currency-denial cases.
+CI runs a reproducible seed and retains the ordinary random workspace run.
+Other composite/nested value coverage and its complete type audit remain open
+for items 2 and 3.
 
 The current C5 evidence guards four execution/cancellation contexts,
 `ToolIdempotencyKey`, all five first-party zeroizing credential wrappers and

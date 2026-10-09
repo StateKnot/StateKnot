@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Seven independent composite budget property models covering all usage fields,
+  topology peaks, finite partial-layer intersections, currency allowlists,
+  narrowing, reservation capacity and cumulative deduction. Wide arithmetic
+  provides the reference; per-field overflow and currency-count controls retain
+  all production API, wire, pin and dependency contracts.
+
 - A closed canonical matrix for all 71 serialized public Core enums and their
   298 alternatives, including 28 newly constructed branches. Typed schema-case
   completeness, wire/digest stability, raw duplicate/unknown-field and array

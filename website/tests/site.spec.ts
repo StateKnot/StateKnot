@@ -865,6 +865,9 @@ test("core contracts expose executable evidence and the draft boundary", async (
   await expect(
     page.getByText("298 canonical wires and digests", { exact: false }),
   ).toBeVisible();
+  await expect(
+    page.getByText("Seven composite budget models", { exact: false }),
+  ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(1);
 
   await page.goto("/zh/docs/core-contracts/");
@@ -881,6 +884,9 @@ test("core contracts expose executable evidence and the draft boundary", async (
     page.getByText("第 2 项仍保持开放", { exact: false }),
   ).toBeVisible();
   await expect(page.getByText("298 个规范", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("七个复合预算模型", { exact: false }),
+  ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(1);
 });
 
