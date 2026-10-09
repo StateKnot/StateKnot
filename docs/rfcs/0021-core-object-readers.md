@@ -5,9 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # RFC-0021: Core object reader shapes
 
-- Status: Draft
+- Status: Accepted
 - Authors: StateKnot contributors
 - Created: 2026-10-09
+- Accepted: 2026-10-09 (source-only object reader shapes; all merge gates below apply)
 - Tracking: [R1 acceptance ledger, C2/C3/C4](../r1-contract-gap-ledger.zh-CN.md), [Issue 149](https://github.com/StateKnot/StateKnot/issues/149)
 - Supersedes: None
 - Superseded by: None
@@ -76,6 +77,16 @@ the contents of the already published alpha.1 package.
 
 ## Validation and safety
 
+The source compatibility review covers all 181 object readers. The 59 newly
+owned wires preserve every original field, variant and Serde attribute; the 122
+existing manual readers preserve their constructor/integrity bodies, with only
+the streaming map gate added where needed. Public declarations retain their
+original fields and traits except for replacing the permissive derived reader.
+The closed canonical matrix verifies all unchanged wire and dual schema pins.
+Raw field readers remain responsible for duplicates and unknown fields, and the
+gate does not materialize another JSON tree or change authorization. This is
+repository source review, not R7 independent security qualification.
+
 1. Keep the compiler-checked 570-export, 307-reader and dual 308-pin inventories.
    Compare every valid selected fixture, wire/canonical digest and schema pin.
 2. For each object-producing reader, generate an ordered positional candidate
@@ -127,8 +138,7 @@ objects.
 
 ## Unresolved questions
 
-Before acceptance, review the map requirement for all 181 object readers and
-verify their unchanged public items, private Serde field/variant attributes and
-constructor/integrity paths. The complete C2 combination/history audit remains
-a separate gate. Generic binary sequence support is explicitly excluded; no new
-format or production readiness is implied by this source correction.
+None for the map requirement on these 181 object readers. Complete C2
+combination/history auditing remains a separate gate. Generic binary sequence
+support is explicitly excluded; no new format or production readiness is
+implied by this source correction.
