@@ -14,7 +14,7 @@ cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --locked`;
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --locked`;
 ---
 
 <DocsLayout
@@ -138,11 +138,15 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       positive and negative evidence. Complete graph, checkpoint, invocation,
       outbox and wait wires retain the earlier constructor digests. Empty tagged
       variants reject additional fields and sequence forms while valid wire
-      bytes and seven generated schema pins remain unchanged. Thirty-five
-      bounded property models also run with a reproducible CI seed. Nested JSON
-      has independent six-dimension resource and UTF-16 canonical-tree models;
+      bytes and seven generated schema pins remain unchanged. Forty-two bounded
+      property models also run with a reproducible CI seed. Nested JSON has
+      independent six-dimension resource and UTF-16 canonical-tree models;
       opaque and schema-bound extensions revalidate previously wider values when
-      limits tighten.
+      limits tighten. Seven composite budget models independently check all 20
+      usage fields, partial limits, currency intersections, direct-plus-child
+      reservations and exact remaining capacity using wide arithmetic. Per-field
+      overflow, deadline equality, unknown costs and an unlisted zero-cost
+      currency fail closed; successful paths run in every capacity sample.
     </p>
     <p>
       Timestamp readers reject every ASCII non-digit at all 20 digit positions,
