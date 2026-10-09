@@ -117,9 +117,17 @@ models, including seven levels of actual scoped ready-node derivation. The three
 new readers have current-source fixtures, separate input/output schema pins and
 the same closed inventory/fuzz oracles as existing readers. Existing root data
 and input/output pins remain exact. These types are experimental while this RFC
-is Draft; they do not expose a supported nested execution path. Public call
-declaration and driver signatures still require an executable compiler/runtime
-implementation before acceptance.
+is Draft; they do not expose a supported nested execution path. `GraphFrameCall` and `GraphFrameCallPolicy` now declare the exact target, fixed
+return route, seven-level depth ceiling and at-most-4,096 lifetime frame starts.
+`CompiledGraph::with_frame_calls` validates serial callers, owner/schema pins
+and call-site controls, then binds those declarations into a new definition
+digest. Static shared-state expansion refuses to discard isolated frame calls.
+Both generated schema profiles for `CompiledGraph` and
+`ChildRunAdmissionIntent` explicitly change; old graphs without calls retain
+their exact canonical wires and definition digests. Registry checks validate
+actual target pins, acyclic relative depth, finite closure bytes and application
+executor conflicts. The complete registry/driver execution path still requires
+transactional frame integration before acceptance.
 
 ## Detailed semantics
 

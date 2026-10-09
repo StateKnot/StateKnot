@@ -24,9 +24,10 @@ use thiserror::Error;
 use crate::{
     BoundedJson, CapabilityIdentity, Checkpoint, CheckpointBarrier, CheckpointBarrierError,
     CheckpointId, CheckpointState, CheckpointStateError, CheckpointWrite, CheckpointWriteError,
-    ChildRunPolicyError, Digest, GraphChildRunPolicy, GraphReference, NodeActivation, NodeControl,
-    NodeControlKind, NodeId, NodeStateUpdate, NodeTerminalOutput, NodeWait, NodeWaits,
-    NodeWaitsError, PendingNodeResult, ReadyNodes, RouteId, SchemaReference, Superstep,
+    ChildRunPolicyError, Digest, GraphChildRunPolicy, GraphFrameCallPolicy, GraphFrameCompileError,
+    GraphReference, NodeActivation, NodeControl, NodeControlKind, NodeId, NodeStateUpdate,
+    NodeTerminalOutput, NodeWait, NodeWaits, NodeWaitsError, PendingNodeResult, ReadyNodes,
+    RouteId, SchemaReference, Superstep,
 };
 
 const MEBIBYTE: usize = 1024 * 1024;
@@ -519,6 +520,8 @@ pub struct CompiledGraph {
     limits: GraphExecutionLimits,
     #[serde(skip_serializing_if = "Option::is_none")]
     child_runs: Option<GraphChildRunPolicy>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    frame_calls: Option<GraphFrameCallPolicy>,
     definition_digest: Digest,
 }
 
@@ -564,6 +567,7 @@ impl CompiledGraph {
             limits,
             None,
             None,
+            None,
         )
     }
 
@@ -579,6 +583,7 @@ impl CompiledGraph {
         nodes: I,
         limits: GraphExecutionLimits,
         child_runs: Option<GraphChildRunPolicy>,
+        frame_calls: Option<GraphFrameCallPolicy>,
         supplied_digest: Option<Digest>,
     ) -> Result<Self, GraphCompileError>
     where
@@ -599,10 +604,14 @@ impl CompiledGraph {
             nodes,
             limits,
             child_runs,
+            frame_calls,
             definition_digest: Digest::sha256([]),
         };
         if let Some(policy) = &graph.child_runs {
             policy.validate_nodes(&graph)?;
+        }
+        if let Some(policy) = &graph.frame_calls {
+            policy.validate_parent(&graph)?;
         }
         let canonical = graph.canonical_definition_bytes()?;
         if canonical.len() > Self::MAX_DEFINITION_BYTES {
@@ -636,6 +645,7 @@ impl CompiledGraph {
             self.nodes.into_vec(),
             self.limits,
             Some(policy),
+            self.frame_calls,
             None,
         )
     }
@@ -644,6 +654,38 @@ impl CompiledGraph {
     #[must_use]
     pub const fn child_runs(&self) -> Option<&GraphChildRunPolicy> {
         self.child_runs.as_ref()
+    }
+
+    /// Pins experimental same-Run calls and their finite limits into the graph.
+    ///
+    /// The new definition reference differs; bind executable code only afterward.
+    /// Graphs without calls retain their exact canonical bytes. RFC-0022 remains
+    /// Draft, and this data constructor does not enable a nested runtime path.
+    ///
+    /// # Errors
+    ///
+    /// Rejects parallel callers, incompatible owner/schema pins, missing nodes,
+    /// conflicting child delegation and controls other than the fixed return.
+    pub fn with_frame_calls(self, policy: GraphFrameCallPolicy) -> Result<Self, GraphCompileError> {
+        Self::build(
+            self.identity,
+            self.input_schema,
+            self.state_schema,
+            self.update_schema,
+            self.output_schema,
+            self.reducer,
+            self.entry_nodes,
+            self.nodes.into_vec(),
+            self.limits,
+            self.child_runs,
+            Some(policy),
+            None,
+        )
+    }
+    /// Returns exactly pinned experimental calls, or no frame declarations.
+    #[must_use]
+    pub const fn frame_calls(&self) -> Option<&GraphFrameCallPolicy> {
+        self.frame_calls.as_ref()
     }
 
     /// Returns the owner-qualified graph identity.
@@ -733,6 +775,7 @@ impl CompiledGraph {
             nodes: &self.nodes,
             limits: self.limits,
             child_runs: self.child_runs.as_ref(),
+            frame_calls: self.frame_calls.as_ref(),
         })
         .map_err(|_| GraphCompileError::CanonicalSerialization)
     }
@@ -886,6 +929,7 @@ impl fmt::Debug for CompiledGraph {
             .field("node_count", &self.nodes.len())
             .field("limits", &self.limits)
             .field("child_runs", &self.child_runs)
+            .field("frame_calls", &self.frame_calls)
             .field("definition_digest", &self.definition_digest)
             .finish_non_exhaustive()
     }
@@ -909,6 +953,7 @@ impl<'de> Deserialize<'de> for CompiledGraph {
             nodes: Vec<GraphNode>,
             limits: GraphExecutionLimits,
             child_runs: Option<GraphChildRunPolicy>,
+            frame_calls: Option<GraphFrameCallPolicy>,
             definition_digest: Digest,
         }
 
@@ -924,6 +969,7 @@ impl<'de> Deserialize<'de> for CompiledGraph {
             wire.nodes,
             wire.limits,
             wire.child_runs,
+            wire.frame_calls,
             Some(wire.definition_digest),
         )
         .map_err(de::Error::custom)
@@ -943,6 +989,8 @@ struct GraphDefinitionDigestWire<'a> {
     limits: GraphExecutionLimits,
     #[serde(skip_serializing_if = "Option::is_none")]
     child_runs: Option<&'a GraphChildRunPolicy>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    frame_calls: Option<&'a GraphFrameCallPolicy>,
 }
 
 fn validate_reachability(
@@ -1103,6 +1151,9 @@ pub enum GraphCompileError {
     /// Delegation declarations violate their closed policy or parent node set.
     #[error(transparent)]
     ChildPolicy(#[from] ChildRunPolicyError),
+    /// Nested frame declarations violate their closed profile or caller shape.
+    #[error(transparent)]
+    FramePolicy(#[from] GraphFrameCompileError),
 }
 
 /// Public-safe reason a schema registry could not validate a value.

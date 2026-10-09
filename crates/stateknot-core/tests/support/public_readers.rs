@@ -94,6 +94,8 @@ readers! {
     fencing_epoch: FencingEpoch,
     graph_child_run_policy: GraphChildRunPolicy,
     graph_execution_limits: GraphExecutionLimits,
+    graph_frame_call: GraphFrameCall,
+    graph_frame_call_policy: GraphFrameCallPolicy,
     graph_frame_checkpoint: GraphFrameCheckpoint,
     graph_frame_checkpoint_head: GraphFrameCheckpointHead,
     graph_frame_identity: GraphFrameIdentity,

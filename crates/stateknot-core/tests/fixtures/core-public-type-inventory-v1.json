@@ -1067,7 +1067,7 @@
           "canonical_digest": "sha256:b6367f28c25109c5a7db995b0c300f8d17c12247c750c0711f5d610fb2ce2104"
         }
       ],
-      "schema_digest": "sha256:0e7b462933e3946c38d430f0fcd545a9c131e9ca343dbbba62307d5f6d779160"
+      "schema_digest": "sha256:eb1daf05eaf8f99ff79c35a9441928e8c9e62a9f856912071287bbed43a85134"
     },
     "ChildRunAdmissionIntentError": {
       "module": "child_run_admission",
@@ -1259,9 +1259,14 @@
           "fixture": "core-execution-wires-v1.json",
           "pointer": "/graph/graph",
           "canonical_digest": "sha256:17447f3910806bb3b28ea8d278b8fd70a201e409a61954e882f8a6a2bba46323"
+        },
+        {
+          "fixture": "core-graph-frame-call-v1.json",
+          "pointer": "/compiled",
+          "canonical_digest": "sha256:7ceaac87ce4ed0b2c379bca353160bb53bff80f2bff212c884b5edc970499d68"
         }
       ],
-      "schema_digest": "sha256:38da5e88a43a027599de197ea89ca12d032520f0dcc919eddc2c32c76074385b"
+      "schema_digest": "sha256:a446aed4bf020d78d36a0d42cfd9b26bda9ad50544693fb78d5ebcd74509394c"
     },
     "ContentMetadata": {
       "module": "content",
@@ -1913,6 +1918,34 @@
       "vectors": [],
       "schema_digest": null
     },
+    "GraphFrameCall": {
+      "module": "graph_frame_call",
+      "kind": "struct",
+      "rust_type": "GraphFrameCall",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-call-v1.json",
+          "pointer": "/call",
+          "canonical_digest": "sha256:2d11346e64bec31b7b814d3298a1b8e3baa3aaefb9586772e6d56c1c5f398ee5"
+        }
+      ],
+      "schema_digest": "sha256:b5fcaa1aeab180f4f6cdfd8d6339426af4f22a3da41985f832d7e9cd82ca8f42"
+    },
+    "GraphFrameCallPolicy": {
+      "module": "graph_frame_call",
+      "kind": "struct",
+      "rust_type": "GraphFrameCallPolicy",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-call-v1.json",
+          "pointer": "/policy",
+          "canonical_digest": "sha256:fe2dddfc323a9a72c2145428a5eb649d64c7a376c45892e278e74ffa8be7e880"
+        }
+      ],
+      "schema_digest": "sha256:430ee36c242464a2c4bb802ade783797468789869b127e1b941799d088b9e98b"
+    },
     "GraphFrameCheckpoint": {
       "module": "graph_frame",
       "kind": "struct",
@@ -1940,6 +1973,14 @@
         }
       ],
       "schema_digest": "sha256:a2e5adc50ea43b9ab0af345091cc4af61837da883beba203c97180b47b5d0ad4"
+    },
+    "GraphFrameCompileError": {
+      "module": "graph_frame_call",
+      "kind": "enum",
+      "rust_type": "GraphFrameCompileError",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
     },
     "GraphFrameError": {
       "module": "graph_frame",

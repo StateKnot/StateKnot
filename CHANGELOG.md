@@ -28,6 +28,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   independent checksum/chain models extend the inventory. Compiler, runtime and
   SQL integration remain pending; these data types do not enable nested execution.
 
+- Experimental same-Run call declarations bind exact targets, return routes and
+  finite depth/frame-start limits into compiled graph definitions. Compiler and
+  startup closure checks reject incompatible schemas/owners, parallel callers,
+  stale or missing target pins, excessive closure depth/bytes and application
+  executors installed at framework call sites. Static composition cannot drop
+  isolated frame declarations. The `CompiledGraph` and `ChildRunAdmissionIntent`
+  input/output schema pins explicitly change; old root wires and definition pins
+  remain exact. Transactional runtime/SQL execution and acceptance remain pending.
+
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
   references and canonical checksum preimages verify the actual root barrier.

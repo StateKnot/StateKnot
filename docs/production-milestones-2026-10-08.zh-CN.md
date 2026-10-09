@@ -124,7 +124,7 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 正/负规范往返，补齐全部 18 种 UUIDv7 标识符、44 个有界属性模型和可复现 CI
 种子；另有 67 个执行/持久化类型的 104 个完整 wire 映射及负向 reader 验证，
 原有八个构造族保留旧摘要断言。完整映射见中英 Core guide。全部当前根导出项
-另有封闭清单：307 个 reader 的规范 wire 和 308 个生成 schema pin、两个仅输出
+已合并基线另有封闭清单：307 个 reader 的规范 wire 和 308 个生成 schema pin、两个仅输出
 生产者及 246 个没有序列化接口的代表实例；序列化 profile 另有 308 个固定 pin。
 当前三个 ASan/libFuzzer 入口拥有固定工具、逐种子重放、有限变异、源与锁
 快照检查以及失败保留；#160 最终提交已通过全部 14 项 CI，本地和 CI 都完成
@@ -146,8 +146,13 @@ Graph 的两个独立模型补齐节点插入/结果输入顺序、状态和 rou
 [#161](https://github.com/StateKnot/StateKnot/pull/161) 保持草稿并持续开发。除五项
 私有身份原型外，实验性 Core 帧身份/检查点/head 已有严格 reader、scope/pin/journal
 校验、九项确定性检查和两个各 256 样例的独立模型，七层激活由真实 scoped
-checkpoint 派生。新增类型加入清单、双 schema pin 和当前源码 fixture；
-这是数据完整性进展，实际执行、SQL 与故障矩阵仍未交付。
+checkpoint 派生。五个实验性 reader 与两个 Rust-only 错误类型纳入当前清单：577 个根导出、
+312 个 reader、两组各 313 个 schema pin 和 46 份数据文档。调用声明进入
+编译图摘要，serial caller、固定返回 route、schema/owner、实际闭包 pin/depth/bytes
+及应用 executor 冲突有编译器/注册表检查；静态组合不能丢弃帧声明。
+`CompiledGraph` 与 `ChildRunAdmissionIntent` 的两个 schema profile 显式更新，
+其余原有 pin、根图 wire 与定义摘要保持一致。完整 registry/driver 执行路径、
+SQL、迁移与故障矩阵仍未交付；当前草稿没有嵌套执行支持。
 后续 fuzz 时间戳反例已保留，数字校验先于算术；全部 ASCII 非数字位置、
 固定长度 Unicode 与嵌套 reader 有确定性回归。最终提交继续以完整 CI 验收。
 

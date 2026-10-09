@@ -86,6 +86,7 @@ mod failure;
 mod graph;
 mod graph_composition;
 mod graph_frame;
+mod graph_frame_call;
 mod identity;
 mod ids;
 mod journal;
@@ -203,6 +204,7 @@ pub use graph_composition::{
 pub use graph_frame::{
     GraphFrameCheckpoint, GraphFrameCheckpointHead, GraphFrameError, GraphFrameIdentity,
 };
+pub use graph_frame_call::{GraphFrameCall, GraphFrameCallPolicy, GraphFrameCompileError};
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
     AgentSubmissionKey, AgentSubmissionKeyError, ArtifactId, AttemptId, AuthorizationReceiptId,

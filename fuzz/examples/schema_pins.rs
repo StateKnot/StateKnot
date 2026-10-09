@@ -38,7 +38,7 @@ fn main() {
             .insert("BudgetRemaining", pin::<BudgetRemaining>())
             .is_none()
     );
-    assert_eq!(types.len(), 308);
+    assert_eq!(types.len(), 313);
     println!("{}", serde_json::to_string_pretty(&json!({
         "schema": "https://stateknot.github.io/schema/test-fixture/core-public-output-schema-inventory/1.0.0",
         "contract": "serialize",

@@ -10,7 +10,7 @@ This private workspace runs three actual production boundaries:
 | Target | Input and oracle |
 | --- | --- |
 | `bounded_json` | Raw bytes through strict parsing with narrow/default/hard JSON limits; exact compact statistics, bounded round trips, RFC 8785 bytes and digest stability. Duplicate names and malformed Unicode remain raw bytes. |
-| `core_readers` | `RustTypeName\nraw JSON`, then the bounded JSON gate and one of all 307 reviewed readers; accepted input must match its offline deserialization schema, producer output its serialization schema, and ordinary/canonical round trips remain stable. Input validation runs after the actual reader, so alternate accepted shapes cannot be hidden. Names preserve reproducers when the type list grows. |
+| `core_readers` | `RustTypeName\nraw JSON`, then the bounded JSON gate and one of all 312 reviewed readers; accepted input must match its offline deserialization schema, producer output its serialization schema, and ordinary/canonical round trips remain stable. Input validation runs after the actual reader, so alternate accepted shapes cannot be hidden. Names preserve reproducers when the type list grows. |
 | `schema_registry` | Bounded `{"schema": ..., "instance": ..., "bad_pin": false}`; the real immutable runtime registry verifies dialect/URI/pins, duplicate identity, registration atomicity, 32 KiB single/48 KiB aggregate schema limits, offline compilation and instance validation. Missing dialect/URI receive the fixed fixture identity; supplied values are never overwritten. |
 
 The reader list is shared with the closed Core inventory, and fixed positive
@@ -90,6 +90,13 @@ remain fixed, and a separate inventory fixes the 308 serialization pins.
 `schema_pins` prints candidate output pins for explicit review and does not
 rewrite fixtures. Actual parent-source output documents are retained only as
 regression baselines; they are not N-1/N-2 upgrade qualification.
+
+The RFC-0022 draft adds five strictly read frame/call data types to the reader
+set. Current inventories pin 313 input/default and 313 producer schemas.
+`CompiledGraph` and `ChildRunAdmissionIntent` explicitly change both profiles
+for the new optional call metadata; all other original pins remain exact.
+These experimental data records do not enable nested execution. Final ASan
+qualification of the ongoing draft implementation remains required.
 
 This finite qualification establishes the reproducible C4 entry points and
 retained corpus. It does not establish exhaustive branch/variant coverage,
