@@ -27,7 +27,8 @@ there is no implicit serial fallback for a parallel caller. Waiting in the leaf
 persists its exact scope, releases execution ownership and resumes that scope
 after process replacement. No suspended stack retains an application future.
 
-This document and its private constructor prototype do not add runtime support.
+This document, its private constructor prototype and experimental Core frame
+data types do not add runtime support.
 The RFC remains Draft until the semantics and acceptance gates below are
 resolved and reviewed. Existing root graphs and static shared-state composition
 retain their current supported source contracts.
@@ -98,8 +99,27 @@ checkpoint constructors. Five checks establish repeatable logical scope,
 distinct slots/parents, finite full-digest namespace segments, tenant/Run/graph
 binding, same-owner rejection and changed-pin conflict. These are constructor
 checks, not a public API, wire release, authorization decision or SQL qualification.
-Public declaration and driver signatures must be fixed by the executable
-compiler/runtime prototype before acceptance; no placeholder method is exported.
+The experimental Core implementation in
+[`graph_frame.rs`](../../crates/stateknot-core/src/graph_frame.rs) adds
+`GraphFrameIdentity`, `GraphFrameCheckpoint` and `GraphFrameCheckpointHead`.
+Constructors and map-only readers validate the exact owner/state-schema pins,
+full-digest ancestor path, tenant/Run/graph scope, journal order and reconstructed
+checksums. `GraphFrameCheckpoint::activation` derives ready-node identity from
+the full scoped checkpoint using the existing activation digest domain;
+`verify_successor` requires the same frame and exact predecessor. Compact heads,
+like existing checkpoint heads, cannot independently prove omitted state or
+journal authenticity. Admission must additionally validate the declared call,
+caller readiness and active lease inside the store transaction.
+
+[`graph_frame_contracts.rs`](../../crates/stateknot-core/tests/graph_frame_contracts.rs)
+provides nine deterministic checks and two independent 256-case checksum/chain
+models, including seven levels of actual scoped ready-node derivation. The three
+new readers have current-source fixtures, separate input/output schema pins and
+the same closed inventory/fuzz oracles as existing readers. Existing root data
+and input/output pins remain exact. These types are experimental while this RFC
+is Draft; they do not expose a supported nested execution path. Public call
+declaration and driver signatures still require an executable compiler/runtime
+implementation before acceptance.
 
 ## Detailed semantics
 

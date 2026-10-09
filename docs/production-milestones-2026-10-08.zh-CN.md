@@ -143,7 +143,11 @@ Graph 的两个独立模型补齐节点插入/结果输入顺序、状态和 rou
 验收/合并 tree 一致，官网四个关键页面与构建字节一致。
 同 Run 嵌套由 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md) 固定有界
 身份、状态隔离、父续接、等待恢复、复合事务 journal 绑定及迁移要求。
-五项私有构造原型检查仅是契约证据；实际执行、SQL 与故障矩阵仍未交付。
+[#161](https://github.com/StateKnot/StateKnot/pull/161) 保持草稿并持续开发。除五项
+私有身份原型外，实验性 Core 帧身份/检查点/head 已有严格 reader、scope/pin/journal
+校验、九项确定性检查和两个各 256 样例的独立模型，七层激活由真实 scoped
+checkpoint 派生。新增类型加入清单、双 schema pin 和当前源码 fixture；
+这是数据完整性进展，实际执行、SQL 与故障矩阵仍未交付。
 后续 fuzz 时间戳反例已保留，数字校验先于算术；全部 ASCII 非数字位置、
 固定长度 Unicode 与嵌套 reader 有确定性回归。最终提交继续以完整 CI 验收。
 

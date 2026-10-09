@@ -20,6 +20,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   implementation and acceptance remain pending. No execution support is added
   by the Draft or constructor prototype.
 
+- Experimental Core frame identity, scoped checkpoint and compact head data for
+  RFC-0022. Strict readers reconstruct scope/checksums and reject owner/schema,
+  ancestry, tenant/Run/graph, journal-order and predecessor substitution. Scoped
+  ready activations use the existing digest domain; root wires and schema pins
+  remain exact. Three new reader/schema entries, current-source vectors and
+  independent checksum/chain models extend the inventory. Compiler, runtime and
+  SQL integration remain pending; these data types do not enable nested execution.
+
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
   references and canonical checksum preimages verify the actual root barrier.

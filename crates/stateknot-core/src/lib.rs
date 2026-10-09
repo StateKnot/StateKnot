@@ -85,6 +85,7 @@ mod extension;
 mod failure;
 mod graph;
 mod graph_composition;
+mod graph_frame;
 mod identity;
 mod ids;
 mod journal;
@@ -198,6 +199,9 @@ pub use graph::{
 pub use graph_composition::{
     GraphComposition, GraphCompositionError, GraphNodeSource, GraphSubgraphCall,
     SharedStateSubgraph,
+};
+pub use graph_frame::{
+    GraphFrameCheckpoint, GraphFrameCheckpointHead, GraphFrameError, GraphFrameIdentity,
 };
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{

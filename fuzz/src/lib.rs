@@ -331,6 +331,19 @@ mod tests {
     }
 
     #[test]
+    fn scoped_frame_substitution_and_journal_order_reproducers_are_rejected() {
+        for data in [
+            include_bytes!("../seeds/core_readers/GraphFrameIdentity-invalid-ancestor").as_slice(),
+            include_bytes!("../seeds/core_readers/GraphFrameCheckpointHead-before-origin")
+                .as_slice(),
+            include_bytes!("../seeds/core_readers/GraphFrameCheckpoint-sibling-digest").as_slice(),
+            include_bytes!("../seeds/core_readers/GraphFrameCheckpoint-duplicate-frame").as_slice(),
+        ] {
+            assert!(!core_readers(data));
+        }
+    }
+
+    #[test]
     fn strict_json_and_numeric_normalization_controls() {
         for input in [
             b"null".as_slice(),

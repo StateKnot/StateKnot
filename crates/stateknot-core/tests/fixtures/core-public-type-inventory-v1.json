@@ -1913,6 +1913,56 @@
       "vectors": [],
       "schema_digest": null
     },
+    "GraphFrameCheckpoint": {
+      "module": "graph_frame",
+      "kind": "struct",
+      "rust_type": "GraphFrameCheckpoint",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-v1.json",
+          "pointer": "/checkpoint",
+          "canonical_digest": "sha256:91e694471ef42e5dbcfe99922fbf3e7ddcf2a3c821daa1b02be5f18f5bb6f911"
+        }
+      ],
+      "schema_digest": "sha256:4dbef2c95e9de8c1114f37e0a7b921812cbfaf90bfaaac4417dd42b0a4f1ccee"
+    },
+    "GraphFrameCheckpointHead": {
+      "module": "graph_frame",
+      "kind": "struct",
+      "rust_type": "GraphFrameCheckpointHead",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-v1.json",
+          "pointer": "/head",
+          "canonical_digest": "sha256:f04d7fba4ed922d9b33d0353b2fe8cb9c2c70e021693bcbeac534a7fd3f2d0b1"
+        }
+      ],
+      "schema_digest": "sha256:a2e5adc50ea43b9ab0af345091cc4af61837da883beba203c97180b47b5d0ad4"
+    },
+    "GraphFrameError": {
+      "module": "graph_frame",
+      "kind": "enum",
+      "rust_type": "GraphFrameError",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameIdentity": {
+      "module": "graph_frame",
+      "kind": "struct",
+      "rust_type": "GraphFrameIdentity",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-v1.json",
+          "pointer": "/identity",
+          "canonical_digest": "sha256:8b81560a5dd78eb8086e40260cbdaf671f40f6d3e19a2826cc36868d1830c1ba"
+        }
+      ],
+      "schema_digest": "sha256:8117624d09aec5e3f45e17d788c91520cf176c8100effbd711f313e24f2cc9fa"
+    },
     "GraphNamespace": {
       "module": "tool_invocation",
       "kind": "struct",

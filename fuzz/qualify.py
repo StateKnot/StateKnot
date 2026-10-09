@@ -147,7 +147,7 @@ def seed_corpus():
                 payload = b'"\\ud800"' if label == "unicode" else compact(bad)
                 add("core_readers", f"{name}-{index}-{label}", prefix + payload, source)
     REPORT["reader_count"] = readers
-    assert readers == 307, "review and qualify an expanded public reader set"
+    assert readers == 310, "review and qualify an expanded public reader set"
     variants = json.loads((fixtures / "core-public-enum-variants-v1.json").read_bytes())
     variant_count = 0
     for name, vectors in variants["types"].items():
