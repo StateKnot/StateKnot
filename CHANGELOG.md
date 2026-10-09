@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Require actual libFuzzer execution and RSS statistics before marking the
+  fixed ASan mutation profile complete; reaching the time cap early preserves
+  partial evidence without a successful qualification claim.
+
+
 - Retain stable request identities while retrying conservatively classified
   PostgreSQL transaction contention in the 24-way whole-frame return test;
   production lock deadlines and once-only settlement assertions are preserved.

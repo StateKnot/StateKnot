@@ -7,6 +7,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import signal
@@ -236,6 +237,18 @@ def main():
             record["seed_replay_passed"] = True
             execute([str(binary), str(output), str(FUZZ / "corpus" / target)] + flags
                     + ["-max_total_time=60", "-runs=10000"], log, 90)
+            # A successful fuzzer exit can mean the wall-clock cap fired
+            # before the fixed mutation count. Record and require actual stats;
+            # partial mutation evidence remains retained with complete=false.
+            stats = log.read_text()
+            executed = re.findall(r"stat::number_of_executed_units:\s*(\d+)", stats)
+            peak_rss = re.findall(r"stat::peak_rss_mb:\s*(\d+)", stats)
+            if not executed or not peak_rss:
+                raise RuntimeError(f"missing mutation stats: {target}; see {log}")
+            record["actual_mutation_runs"] = int(executed[-1])
+            record["peak_rss_mib"] = int(peak_rss[-1])
+            if record["actual_mutation_runs"] != 10000 or record["peak_rss_mib"] > 2048:
+                raise RuntimeError(f"incomplete bounded mutation profile: {target}; see {log}")
             record["mutation_passed"] = True
             record["retained_coverage_files"] = len(list(output.glob("*")))
             record["retained_coverage_bytes"] = sum(path.stat().st_size for path in output.glob("*"))
