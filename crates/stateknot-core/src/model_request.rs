@@ -38,7 +38,7 @@ pub enum ModelResponseMode {
 }
 
 /// Tool-selection behavior for one model request.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ModelToolSelection {
     /// No tool call may be emitted. Definitions may be retained for history.
@@ -52,6 +52,31 @@ pub enum ModelToolSelection {
         /// Registry-local tool name exposed to the model.
         name: CapabilityName,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
+enum ModelToolSelectionObjectWire {
+    None {},
+    Auto {},
+    Required {},
+    Specific { name: CapabilityName },
+}
+impl<'de> serde::Deserialize<'de> for ModelToolSelection {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ModelToolSelectionObjectWire, _>(deserializer)?
+            {
+                ModelToolSelectionObjectWire::None {} => Self::None {},
+                ModelToolSelectionObjectWire::Auto {} => Self::Auto {},
+                ModelToolSelectionObjectWire::Required {} => Self::Required {},
+                ModelToolSelectionObjectWire::Specific { name } => Self::Specific { name },
+            },
+        )
+    }
 }
 
 impl ModelToolSelection {
@@ -101,7 +126,7 @@ impl ModelToolSelection {
 }
 
 /// Requested format for the text portion of a model response.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ModelTextOutputFormat {
     /// Unstructured validated text.
@@ -113,6 +138,32 @@ pub enum ModelTextOutputFormat {
         /// Exact output schema resolved from the trusted local registry.
         schema: SchemaReference,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+enum ModelTextOutputFormatObjectWire {
+    Text {},
+    Json {},
+    JsonSchema { schema: SchemaReference },
+}
+impl<'de> serde::Deserialize<'de> for ModelTextOutputFormat {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ModelTextOutputFormatObjectWire, _>(
+                deserializer,
+            )? {
+                ModelTextOutputFormatObjectWire::Text {} => Self::Text {},
+                ModelTextOutputFormatObjectWire::Json {} => Self::Json {},
+                ModelTextOutputFormatObjectWire::JsonSchema { schema } => {
+                    Self::JsonSchema { schema }
+                }
+            },
+        )
+    }
 }
 
 impl ModelTextOutputFormat {
@@ -250,7 +301,7 @@ impl<'de> Deserialize<'de> for ModelRequestLimits {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelRequestLimitsWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelRequestLimitsWire, _>(deserializer)?;
         Self::new(
             wire.max_input_tokens,
             wire.max_output_tokens,
@@ -1136,7 +1187,7 @@ impl<'de> Deserialize<'de> for ModelRequest {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelRequestWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelRequestWire, _>(deserializer)?;
         Self::from_parts(
             wire.instructions,
             wire.messages,

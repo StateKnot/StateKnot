@@ -23,12 +23,33 @@ use crate::{
 /// another restrictive layer and can never widen system, tenant, policy, or
 /// immutable agent limits. Input JSON is structurally bounded here, while a
 /// trusted local schema registry performs digest-pinned schema evaluation.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentRequest {
     input_schema: SchemaReference,
     input: BoundedJson,
     budget_limits: BudgetLimits,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentRequestObjectWire {
+    input_schema: SchemaReference,
+    input: BoundedJson,
+    budget_limits: BudgetLimits,
+}
+impl<'de> serde::Deserialize<'de> for AgentRequest {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: AgentRequestObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            input_schema: wire.input_schema,
+            input: wire.input,
+            budget_limits: wire.budget_limits,
+        })
+    }
 }
 
 impl AgentRequest {
@@ -242,7 +263,7 @@ impl AgentRequestValidationError {
 }
 
 /// Trusted execution identity attached to one successful agent result.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentResultProvenance {
     tenant_id: TenantId,
@@ -250,6 +271,31 @@ pub struct AgentResultProvenance {
     thread_id: ThreadId,
     invocation_id: InvocationId,
     agent: CapabilityIdentity,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentResultProvenanceObjectWire {
+    tenant_id: TenantId,
+    run_id: RunId,
+    thread_id: ThreadId,
+    invocation_id: InvocationId,
+    agent: CapabilityIdentity,
+}
+impl<'de> serde::Deserialize<'de> for AgentResultProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: AgentResultProvenanceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            tenant_id: wire.tenant_id,
+            run_id: wire.run_id,
+            thread_id: wire.thread_id,
+            invocation_id: wire.invocation_id,
+            agent: wire.agent,
+        })
+    }
 }
 
 impl AgentResultProvenance {
@@ -839,7 +885,7 @@ impl<'de> Deserialize<'de> for AgentResult {
             usage: BudgetUsage,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.provenance,
             wire.completed_at,

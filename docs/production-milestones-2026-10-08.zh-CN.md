@@ -35,7 +35,7 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 | 当前工作目录 | `/Users/jiawy/Documents/RustAgentFramework` |
 | R0 验收的 main | `5f156b94516d2eb9ed96e2a648e0a13e66debc14`，2026-10-08 合并 JWT/JWKS #146；此前 #141/#145 已合并 |
 | 当前开发分支 | `codex/r1-nested-json-models` |
-| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155 已合并；当前补齐嵌套 JSON 与扩展资源的独立属性模型 |
+| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156 已合并；当前收紧对象 reader 的位置数组形状并补齐嵌套及输入 schema 门禁 |
 | 已发布 crate 版本 | `0.1.0-alpha.1`，预览版；源码新增能力不都包含在该发布包中 |
 | 官网 | `https://stknot.com`，中英双语文档；当前 release `9c52b9cd4a69` 的四个关键页面已核对构建字节 |
 | 依赖 PR | 16 个依赖升级 PR 已由 #141/#145 收口；#146 已合并，后续以 GitHub 实时状态为准 |

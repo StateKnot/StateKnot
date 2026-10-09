@@ -462,7 +462,7 @@ impl<'de> Deserialize<'de> for JournalPayload {
             data: BoundedJson,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.schema, wire.kind, wire.data).map_err(de::Error::custom)
     }
 }
@@ -530,7 +530,7 @@ impl JournalPayloadError {
 /// `ControlPlane` is available only to the trusted API/scheduler transaction
 /// path; it is not a privilege a remote or worker request can self-declare.
 /// Worker writes carry the exact token that the store must fence atomically.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum JournalEventSource {
     /// Trusted API, scheduler, recovery, or migration control path.
@@ -541,6 +541,30 @@ pub enum JournalEventSource {
         /// Exact run-scoped fencing token.
         fence: RunFence,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum JournalEventSourceObjectWire {
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
+    ControlPlane,
+    Worker {
+        fence: RunFence,
+    },
+}
+impl<'de> serde::Deserialize<'de> for JournalEventSource {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<JournalEventSourceObjectWire, _>(deserializer)?
+            {
+                JournalEventSourceObjectWire::ControlPlane => Self::ControlPlane,
+                JournalEventSourceObjectWire::Worker { fence } => Self::Worker { fence },
+            },
+        )
+    }
 }
 
 impl JournalEventSource {
@@ -714,7 +738,7 @@ impl<'de> Deserialize<'de> for JournalEventIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let intent = Self::from_parts(
             wire.tenant_id,
             wire.run_id,
@@ -806,7 +830,7 @@ impl JournalIntentError {
 }
 
 /// Exact committed journal head used for optimistic append comparison.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct JournalHead {
     tenant_id: TenantId,
@@ -815,6 +839,33 @@ pub struct JournalHead {
     event_id: EventId,
     recorded_at: Timestamp,
     digest: Digest,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct JournalHeadObjectWire {
+    tenant_id: TenantId,
+    run_id: RunId,
+    sequence: JournalSequence,
+    event_id: EventId,
+    recorded_at: Timestamp,
+    digest: Digest,
+}
+impl<'de> serde::Deserialize<'de> for JournalHead {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: JournalHeadObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            tenant_id: wire.tenant_id,
+            run_id: wire.run_id,
+            sequence: wire.sequence,
+            event_id: wire.event_id,
+            recorded_at: wire.recorded_at,
+            digest: wire.digest,
+        })
+    }
 }
 
 impl JournalHead {
@@ -876,7 +927,7 @@ impl JournalHead {
 }
 
 /// Optimistic journal precondition supplied with an append request.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum JournalExpectation {
     /// The run journal must not contain any event.
@@ -887,6 +938,30 @@ pub enum JournalExpectation {
         /// Previously observed committed head.
         head: JournalHead,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum JournalExpectationObjectWire {
+    #[serde(deserialize_with = "crate::json::deserialize_empty_object")]
+    Empty,
+    Exact {
+        head: JournalHead,
+    },
+}
+impl<'de> serde::Deserialize<'de> for JournalExpectation {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<JournalExpectationObjectWire, _>(deserializer)?
+            {
+                JournalExpectationObjectWire::Empty => Self::Empty,
+                JournalExpectationObjectWire::Exact { head } => Self::Exact { head },
+            },
+        )
+    }
 }
 
 impl JournalExpectation {
@@ -1013,7 +1088,7 @@ impl<'de> Deserialize<'de> for JournalAppend {
             intent: JournalEventIntent,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.expectation, wire.intent).map_err(de::Error::custom)
     }
 }
@@ -1351,7 +1426,7 @@ impl<'de> Deserialize<'de> for JournalEvent {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let event = Self {
             tenant_id: wire.tenant_id,
             run_id: wire.run_id,

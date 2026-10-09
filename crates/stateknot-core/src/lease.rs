@@ -184,13 +184,36 @@ impl FencingEpochError {
 /// invocation-ledger mutation, and outbox write. It grants nothing by itself;
 /// only an exact match with the current unexpired database lease authorizes a
 /// commit.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RunFence {
     tenant_id: TenantId,
     run_id: RunId,
     attempt_id: AttemptId,
     epoch: FencingEpoch,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RunFenceObjectWire {
+    tenant_id: TenantId,
+    run_id: RunId,
+    attempt_id: AttemptId,
+    epoch: FencingEpoch,
+}
+impl<'de> serde::Deserialize<'de> for RunFence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: RunFenceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            tenant_id: wire.tenant_id,
+            run_id: wire.run_id,
+            attempt_id: wire.attempt_id,
+            epoch: wire.epoch,
+        })
+    }
 }
 
 impl RunFence {
@@ -520,7 +543,7 @@ impl<'de> Deserialize<'de> for RunLease {
             expires_at: Timestamp,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::from_observations(
             wire.fence,
             wire.acquired_at,

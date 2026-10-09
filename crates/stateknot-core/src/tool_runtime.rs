@@ -190,7 +190,7 @@ impl<'de> Deserialize<'de> for ToolRecoveryHandle {
     where
         D: Deserializer<'de>,
     {
-        let wire = ToolRecoveryHandleWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ToolRecoveryHandleWire, _>(deserializer)?;
         Self::new(wire.namespace, wire.binding, wire.opaque_id).map_err(de::Error::custom)
     }
 }
@@ -1241,7 +1241,7 @@ impl<'de> Deserialize<'de> for ToolProgressUpdate {
             total: Option<ExecutionCount>,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.completed, wire.total).map_err(de::Error::custom)
     }
 }
@@ -1264,12 +1264,33 @@ pub enum ToolProgressUpdateError {
 }
 
 /// Stable identity attached to every progress event from one attempt.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ToolProgressProvenance {
     invocation_id: InvocationId,
     attempt_id: AttemptId,
     tool: CapabilityIdentity,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolProgressProvenanceObjectWire {
+    invocation_id: InvocationId,
+    attempt_id: AttemptId,
+    tool: CapabilityIdentity,
+}
+impl<'de> serde::Deserialize<'de> for ToolProgressProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ToolProgressProvenanceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            invocation_id: wire.invocation_id,
+            attempt_id: wire.attempt_id,
+            tool: wire.tool,
+        })
+    }
 }
 
 impl ToolProgressProvenance {
@@ -1318,12 +1339,33 @@ impl fmt::Debug for ToolProgressProvenance {
 }
 
 /// Ordered, identity-bound progress event accepted by the runtime sink.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ToolProgressEvent {
     provenance: ToolProgressProvenance,
     sequence: ExecutionCount,
     update: ToolProgressUpdate,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolProgressEventObjectWire {
+    provenance: ToolProgressProvenance,
+    sequence: ExecutionCount,
+    update: ToolProgressUpdate,
+}
+impl<'de> serde::Deserialize<'de> for ToolProgressEvent {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ToolProgressEventObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            provenance: wire.provenance,
+            sequence: wire.sequence,
+            update: wire.update,
+        })
+    }
 }
 
 impl ToolProgressEvent {
@@ -1858,7 +1900,7 @@ impl<'de> Deserialize<'de> for ToolInput {
             value: BoundedJson,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.schema, wire.value).map_err(de::Error::custom)
     }
 }
@@ -2165,12 +2207,33 @@ impl<T> From<T> for ToolOutput<T> {
 }
 
 /// Stable invocation and tool identity attached to a successful tool result.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ToolResultProvenance {
     invocation_id: InvocationId,
     attempt_id: AttemptId,
     tool: CapabilityIdentity,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolResultProvenanceObjectWire {
+    invocation_id: InvocationId,
+    attempt_id: AttemptId,
+    tool: CapabilityIdentity,
+}
+impl<'de> serde::Deserialize<'de> for ToolResultProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ToolResultProvenanceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            invocation_id: wire.invocation_id,
+            attempt_id: wire.attempt_id,
+            tool: wire.tool,
+        })
+    }
 }
 
 impl ToolResultProvenance {
@@ -2223,13 +2286,36 @@ impl fmt::Debug for ToolResultProvenance {
 /// Construction proves only intrinsic resource safety. Before committing or
 /// exposing a decoded value, runtimes must call [`Self::validate_for`] and the
 /// trusted schema registry must validate `output` against `output_schema`.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ToolResult {
     provenance: ToolResultProvenance,
     output_schema: SchemaReference,
     output: BoundedJson,
     artifacts: ToolArtifacts,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolResultObjectWire {
+    provenance: ToolResultProvenance,
+    output_schema: SchemaReference,
+    output: BoundedJson,
+    artifacts: ToolArtifacts,
+}
+impl<'de> serde::Deserialize<'de> for ToolResult {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ToolResultObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            provenance: wire.provenance,
+            output_schema: wire.output_schema,
+            output: wire.output,
+            artifacts: wire.artifacts,
+        })
+    }
 }
 
 impl ToolResult {
@@ -2627,12 +2713,33 @@ pub enum ToolExternalEffect {
 }
 
 /// Stable invocation and tool identity attached to a failed tool attempt.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ToolErrorProvenance {
     invocation_id: InvocationId,
     attempt_id: AttemptId,
     tool: CapabilityIdentity,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolErrorProvenanceObjectWire {
+    invocation_id: InvocationId,
+    attempt_id: AttemptId,
+    tool: CapabilityIdentity,
+}
+impl<'de> serde::Deserialize<'de> for ToolErrorProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ToolErrorProvenanceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            invocation_id: wire.invocation_id,
+            attempt_id: wire.attempt_id,
+            tool: wire.tool,
+        })
+    }
 }
 
 impl ToolErrorProvenance {
@@ -2947,7 +3054,7 @@ impl<'de> Deserialize<'de> for ToolError {
     where
         D: Deserializer<'de>,
     {
-        let wire = ToolErrorWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ToolErrorWire, _>(deserializer)?;
         let error = Self::new(
             wire.failure,
             wire.phase,

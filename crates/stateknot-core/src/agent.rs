@@ -509,7 +509,7 @@ pub enum AgentStructuredOutputStrategy {
 }
 
 /// Deterministic scheduling mode for ordinary tool calls from one response.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
 pub enum AgentToolConcurrency {
     /// Execute every accepted tool call in model proposal order.
@@ -519,6 +519,30 @@ pub enum AgentToolConcurrency {
         /// Maximum concurrently executing read-only calls.
         max_concurrency: ExecutionCount,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
+enum AgentToolConcurrencyObjectWire {
+    Sequential {},
+    ParallelReadOnly { max_concurrency: ExecutionCount },
+}
+impl<'de> serde::Deserialize<'de> for AgentToolConcurrency {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<AgentToolConcurrencyObjectWire, _>(
+                deserializer,
+            )? {
+                AgentToolConcurrencyObjectWire::Sequential {} => Self::Sequential {},
+                AgentToolConcurrencyObjectWire::ParallelReadOnly { max_concurrency } => {
+                    Self::ParallelReadOnly { max_concurrency }
+                }
+            },
+        )
+    }
 }
 
 impl AgentToolConcurrency {
@@ -674,7 +698,7 @@ impl<'de> Deserialize<'de> for AgentExecutionConfig {
     where
         D: Deserializer<'de>,
     {
-        let wire = AgentExecutionConfigWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<AgentExecutionConfigWire, _>(deserializer)?;
         Self::new(
             wire.structured_output,
             wire.max_model_turns,
@@ -957,7 +981,7 @@ impl<'de> Deserialize<'de> for AgentDescriptor {
     where
         D: Deserializer<'de>,
     {
-        let wire = AgentDescriptorWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<AgentDescriptorWire, _>(deserializer)?;
         Self::new(
             wire.metadata,
             wire.input_schema,

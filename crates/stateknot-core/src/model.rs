@@ -523,7 +523,7 @@ impl<'de> Deserialize<'de> for ModelTokenLimits {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelTokenLimitsWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelTokenLimitsWire, _>(deserializer)?;
         Self::new(
             wire.max_context_tokens,
             wire.max_input_tokens,
@@ -698,7 +698,7 @@ impl<'de> Deserialize<'de> for ModelToolCapabilities {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelToolCapabilitiesWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelToolCapabilitiesWire, _>(deserializer)?;
         Self::new(
             wire.schema_profile,
             wire.max_definitions,
@@ -834,7 +834,9 @@ impl<'de> Deserialize<'de> for ModelStructuredOutputCapabilities {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelStructuredOutputCapabilitiesWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelStructuredOutputCapabilitiesWire, _>(
+            deserializer,
+        )?;
         Self::new(wire.level, wire.schema_profile).map_err(de::Error::custom)
     }
 }
@@ -1085,7 +1087,7 @@ impl<'de> Deserialize<'de> for ModelCapabilities {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelCapabilitiesWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelCapabilitiesWire, _>(deserializer)?;
         Self::new(
             wire.input_modalities,
             wire.output_modalities,
@@ -1196,7 +1198,7 @@ impl<'de> Deserialize<'de> for ModelDescriptor {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelDescriptorWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelDescriptorWire, _>(deserializer)?;
         Self::new(wire.metadata, wire.capabilities).map_err(de::Error::custom)
     }
 }
@@ -1323,7 +1325,7 @@ impl<'de> Deserialize<'de> for ModelToolRequirements {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelToolRequirementsWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelToolRequirementsWire, _>(deserializer)?;
         Self::new(
             wire.min_definitions,
             wire.min_calls_per_response,
@@ -1502,7 +1504,7 @@ impl<'de> Deserialize<'de> for ModelRequirements {
     where
         D: Deserializer<'de>,
     {
-        let wire = ModelRequirementsWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ModelRequirementsWire, _>(deserializer)?;
         Self::new(
             wire.input_modalities,
             wire.output_modalities,
@@ -1534,9 +1536,7 @@ pub enum ModelRequirementsError {
 }
 
 /// One unmet model requirement with known available capacity where useful.
-#[derive(
-    Clone, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(tag = "requirement", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ModelCapabilityIssue {
     /// A required input modality is absent.
@@ -1607,6 +1607,121 @@ pub enum ModelCapabilityIssue {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         available: Option<TokenCount>,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "requirement", rename_all = "snake_case", deny_unknown_fields)]
+enum ModelCapabilityIssueObjectWire {
+    InputModality {
+        required: ModelModality,
+    },
+    OutputModality {
+        required: ModelModality,
+    },
+    Streaming {},
+    ToolCalling {},
+    ToolDefinitions {
+        required: ExecutionCount,
+        available: ExecutionCount,
+    },
+    ToolCallsPerResponse {
+        required: ExecutionCount,
+        available: ExecutionCount,
+    },
+    ToolChoice {
+        required: ModelToolChoice,
+    },
+    StrictToolArguments {},
+    StructuredOutput {
+        required: ModelStructuredOutputLevel,
+        available: ModelStructuredOutputLevel,
+    },
+    ReasoningSummary {},
+    ContextTokens {
+        required: TokenCount,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        available: Option<TokenCount>,
+    },
+    InputTokens {
+        required: TokenCount,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        available: Option<TokenCount>,
+    },
+    OutputTokens {
+        required: TokenCount,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        available: Option<TokenCount>,
+    },
+}
+impl<'de> serde::Deserialize<'de> for ModelCapabilityIssue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ModelCapabilityIssueObjectWire, _>(
+                deserializer,
+            )? {
+                ModelCapabilityIssueObjectWire::InputModality { required } => {
+                    Self::InputModality { required }
+                }
+                ModelCapabilityIssueObjectWire::OutputModality { required } => {
+                    Self::OutputModality { required }
+                }
+                ModelCapabilityIssueObjectWire::Streaming {} => Self::Streaming {},
+                ModelCapabilityIssueObjectWire::ToolCalling {} => Self::ToolCalling {},
+                ModelCapabilityIssueObjectWire::ToolDefinitions {
+                    required,
+                    available,
+                } => Self::ToolDefinitions {
+                    required,
+                    available,
+                },
+                ModelCapabilityIssueObjectWire::ToolCallsPerResponse {
+                    required,
+                    available,
+                } => Self::ToolCallsPerResponse {
+                    required,
+                    available,
+                },
+                ModelCapabilityIssueObjectWire::ToolChoice { required } => {
+                    Self::ToolChoice { required }
+                }
+                ModelCapabilityIssueObjectWire::StrictToolArguments {} => {
+                    Self::StrictToolArguments {}
+                }
+                ModelCapabilityIssueObjectWire::StructuredOutput {
+                    required,
+                    available,
+                } => Self::StructuredOutput {
+                    required,
+                    available,
+                },
+                ModelCapabilityIssueObjectWire::ReasoningSummary {} => Self::ReasoningSummary {},
+                ModelCapabilityIssueObjectWire::ContextTokens {
+                    required,
+                    available,
+                } => Self::ContextTokens {
+                    required,
+                    available,
+                },
+                ModelCapabilityIssueObjectWire::InputTokens {
+                    required,
+                    available,
+                } => Self::InputTokens {
+                    required,
+                    available,
+                },
+                ModelCapabilityIssueObjectWire::OutputTokens {
+                    required,
+                    available,
+                } => Self::OutputTokens {
+                    required,
+                    available,
+                },
+            },
+        )
+    }
 }
 
 impl ModelCapabilityIssue {

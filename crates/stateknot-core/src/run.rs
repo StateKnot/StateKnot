@@ -217,7 +217,7 @@ impl<'de> Deserialize<'de> for RunInterrupt {
             expires_at: Option<Timestamp>,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.interrupt_id,
             wire.kind,
@@ -340,7 +340,7 @@ impl<'de> Deserialize<'de> for RunTimer {
             due_at: Timestamp,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.timer_id, wire.kind, wire.scheduled_at, wire.due_at)
             .map_err(de::Error::custom)
     }
@@ -361,7 +361,7 @@ pub enum RunTimerError {
 }
 
 /// One explicit condition suspending semantic run progress.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RunWait {
     /// Wait for an authenticated and authorized interrupt resolution record.
@@ -374,6 +374,26 @@ pub enum RunWait {
         /// Immutable unresolved timer marker.
         timer: RunTimer,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum RunWaitObjectWire {
+    Interrupt { interrupt: RunInterrupt },
+    Timer { timer: RunTimer },
+}
+impl<'de> serde::Deserialize<'de> for RunWait {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<RunWaitObjectWire, _>(deserializer)? {
+                RunWaitObjectWire::Interrupt { interrupt } => Self::Interrupt { interrupt },
+                RunWaitObjectWire::Timer { timer } => Self::Timer { timer },
+            },
+        )
+    }
 }
 
 impl RunWait {
@@ -771,7 +791,7 @@ impl<'de> Deserialize<'de> for RunFailure {
             usage: BudgetUsage,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.failure, wire.completed_at, wire.usage).map_err(de::Error::custom)
     }
 }
@@ -858,7 +878,7 @@ impl<'de> Deserialize<'de> for RunCancellationRequest {
             requested_at: Timestamp,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.failure, wire.requested_at).map_err(de::Error::custom)
     }
 }
@@ -946,7 +966,7 @@ impl<'de> Deserialize<'de> for RunCancellation {
             usage: BudgetUsage,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.request, wire.completed_at, wire.usage).map_err(de::Error::custom)
     }
 }
@@ -1376,7 +1396,7 @@ impl<'de> Deserialize<'de> for RunLifecycle {
             state: RunState,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let lifecycle = Self {
             provenance: wire.provenance,
             admitted_at: wire.admitted_at,
@@ -1453,7 +1473,7 @@ pub enum RunTransitionKind {
 }
 
 /// One immutable input to the pure run lifecycle state machine.
-#[derive(Clone, Deserialize, JsonSchema, Serialize)]
+#[derive(Clone, JsonSchema, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RunTransition {
     /// Start an admitted pending run.
@@ -1502,6 +1522,73 @@ pub enum RunTransition {
         /// Validated failure and complete cumulative usage.
         failure: RunFailure,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum RunTransitionObjectWire {
+    Start {
+        started_at: Timestamp,
+    },
+    Wait {
+        waits: RunWaits,
+    },
+    ResolveInterrupt {
+        interrupt_id: InterruptId,
+        resolved_at: Timestamp,
+    },
+    FireTimer {
+        timer_id: TimerId,
+        fired_at: Timestamp,
+    },
+    RequestCancellation {
+        request: RunCancellationRequest,
+    },
+    ConfirmCancellation {
+        completed_at: Timestamp,
+        usage: BudgetUsage,
+    },
+    Succeed {
+        result: AgentResult,
+    },
+    Fail {
+        failure: RunFailure,
+    },
+}
+impl<'de> serde::Deserialize<'de> for RunTransition {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<RunTransitionObjectWire, _>(deserializer)? {
+                RunTransitionObjectWire::Start { started_at } => Self::Start { started_at },
+                RunTransitionObjectWire::Wait { waits } => Self::Wait { waits },
+                RunTransitionObjectWire::ResolveInterrupt {
+                    interrupt_id,
+                    resolved_at,
+                } => Self::ResolveInterrupt {
+                    interrupt_id,
+                    resolved_at,
+                },
+                RunTransitionObjectWire::FireTimer { timer_id, fired_at } => {
+                    Self::FireTimer { timer_id, fired_at }
+                }
+                RunTransitionObjectWire::RequestCancellation { request } => {
+                    Self::RequestCancellation { request }
+                }
+                RunTransitionObjectWire::ConfirmCancellation {
+                    completed_at,
+                    usage,
+                } => Self::ConfirmCancellation {
+                    completed_at,
+                    usage,
+                },
+                RunTransitionObjectWire::Succeed { result } => Self::Succeed { result },
+                RunTransitionObjectWire::Fail { failure } => Self::Fail { failure },
+            },
+        )
+    }
 }
 
 impl RunTransition {

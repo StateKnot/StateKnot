@@ -118,10 +118,12 @@ impl<'de> Deserialize<'de> for NodeAttemptOutcome {
             Failed { failure: Failure },
         }
 
-        Ok(match Wire::deserialize(deserializer)? {
-            Wire::Succeeded { result } => Self::Succeeded { result },
-            Wire::Failed { failure } => Self::Failed { failure },
-        })
+        Ok(
+            match crate::json::deserialize_object::<Wire, _>(deserializer)? {
+                Wire::Succeeded { result } => Self::Succeeded { result },
+                Wire::Failed { failure } => Self::Failed { failure },
+            },
+        )
     }
 }
 
@@ -276,7 +278,7 @@ impl<'de> Deserialize<'de> for NodeAttemptStart {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.activation,
             wire.activation_digest,
@@ -371,7 +373,7 @@ impl<'de> Deserialize<'de> for NodeAttemptStartHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         validate_start_scope(
             &wire.activation,
             wire.attempt_id,
@@ -568,7 +570,7 @@ impl<'de> Deserialize<'de> for NodeAttemptCompletion {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.start,
             wire.outcome,
@@ -663,7 +665,7 @@ impl<'de> Deserialize<'de> for NodeAttempt {
             completion: Option<NodeAttemptCompletion>,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.start, wire.completion).map_err(de::Error::custom)
     }
 }

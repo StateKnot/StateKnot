@@ -464,7 +464,7 @@ pub enum BudgetDimension {
 /// Absence means that this layer has no opinion; it never means the resolved
 /// run is unlimited. [`ResolvedBudget::resolve`] requires another layer to
 /// supply every dimension and always chooses the most restrictive value.
-#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BudgetLimits {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -509,6 +509,84 @@ pub struct BudgetLimits {
     artifact_bytes: Option<ByteCount>,
     #[serde(skip_serializing_if = "Option::is_none")]
     costs: Option<CostLimits>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BudgetLimitsObjectWire {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    deadline: Option<Timestamp>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    graph_depth: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    graph_steps: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model_attempts: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model_turns: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    input_tokens: Option<TokenCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cached_input_tokens: Option<TokenCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reasoning_tokens: Option<TokenCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    output_tokens: Option<TokenCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_calls: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    write_calls: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    remote_agent_delegations: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    retries: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    concurrent_branches: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fan_out: Option<ExecutionCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    input_bytes: Option<ByteCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    output_bytes: Option<ByteCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    event_bytes: Option<ByteCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    checkpoint_bytes: Option<ByteCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    artifact_bytes: Option<ByteCount>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    costs: Option<CostLimits>,
+}
+impl<'de> serde::Deserialize<'de> for BudgetLimits {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: BudgetLimitsObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            deadline: wire.deadline,
+            graph_depth: wire.graph_depth,
+            graph_steps: wire.graph_steps,
+            model_attempts: wire.model_attempts,
+            model_turns: wire.model_turns,
+            input_tokens: wire.input_tokens,
+            cached_input_tokens: wire.cached_input_tokens,
+            reasoning_tokens: wire.reasoning_tokens,
+            output_tokens: wire.output_tokens,
+            tool_calls: wire.tool_calls,
+            write_calls: wire.write_calls,
+            remote_agent_delegations: wire.remote_agent_delegations,
+            retries: wire.retries,
+            concurrent_branches: wire.concurrent_branches,
+            fan_out: wire.fan_out,
+            input_bytes: wire.input_bytes,
+            output_bytes: wire.output_bytes,
+            event_bytes: wire.event_bytes,
+            checkpoint_bytes: wire.checkpoint_bytes,
+            artifact_bytes: wire.artifact_bytes,
+            costs: wire.costs,
+        })
+    }
 }
 
 macro_rules! define_optional_limit_methods {
@@ -960,7 +1038,7 @@ impl<'de> Deserialize<'de> for ResolvedBudget {
             costs: CostLimits,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let budget = Self {
             deadline: wire.deadline,
             graph_depth: wire.graph_depth,
@@ -1603,7 +1681,7 @@ impl<'de> Deserialize<'de> for BudgetUsage {
             unpriced_cost_events: ExecutionCount,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         BudgetUsageBuilder {
             graph_depth: wire.graph_depth,
             graph_steps: wire.graph_steps,

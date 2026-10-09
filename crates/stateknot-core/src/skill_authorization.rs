@@ -25,13 +25,35 @@ const MAX_ORIGIN_BYTES: usize = 128;
 const MAX_URI_BYTES: usize = 4096;
 
 /// Exact durable run scope in which one Skill may act.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::struct_field_names)]
 pub struct SkillActivationScope {
     tenant_id: TenantId,
     run_id: RunId,
     thread_id: ThreadId,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::struct_field_names)]
+struct SkillActivationScopeObjectWire {
+    tenant_id: TenantId,
+    run_id: RunId,
+    thread_id: ThreadId,
+}
+impl<'de> serde::Deserialize<'de> for SkillActivationScope {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: SkillActivationScopeObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            tenant_id: wire.tenant_id,
+            run_id: wire.run_id,
+            thread_id: wire.thread_id,
+        })
+    }
 }
 
 impl SkillActivationScope {
@@ -141,7 +163,7 @@ impl<'de> Deserialize<'de> for SkillAuthorizationSubject {
             uri: String,
             manifest_digest: Digest,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.protocol, wire.origin, wire.uri, wire.manifest_digest)
             .map_err(de::Error::custom)
     }
@@ -223,7 +245,7 @@ impl<'de> Deserialize<'de> for SkillActivationSource {
             parent_window_id: Option<SkillActingWindowId>,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         match (wire.kind, wire.parent_window_id) {
             (Kind::Direct, None) => Ok(Self::Direct),
             (Kind::Nested, Some(parent_window_id)) => Ok(Self::Nested { parent_window_id }),
@@ -454,7 +476,7 @@ impl<'de> Deserialize<'de> for SkillActivationApproval {
             requested_duration: SkillActingWindowDuration,
             approval_digest: Digest,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let value = Self::new(
             wire.approval_id,
             wire.scope,
@@ -474,11 +496,31 @@ impl<'de> Deserialize<'de> for SkillActivationApproval {
 }
 
 /// Idempotent request to open an approved acting window.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SkillActingWindowOpenRequest {
     window_id: SkillActingWindowId,
     approval: SkillActivationApproval,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SkillActingWindowOpenRequestObjectWire {
+    window_id: SkillActingWindowId,
+    approval: SkillActivationApproval,
+}
+impl<'de> serde::Deserialize<'de> for SkillActingWindowOpenRequest {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: SkillActingWindowOpenRequestObjectWire =
+            crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            window_id: wire.window_id,
+            approval: wire.approval,
+        })
+    }
 }
 
 impl SkillActingWindowOpenRequest {
@@ -624,7 +666,7 @@ impl<'de> Deserialize<'de> for SkillActingWindow {
             expires_at: Timestamp,
             window_digest: Digest,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let value = Self::new(
             wire.window_id,
             wire.approval,
@@ -739,7 +781,7 @@ impl<'de> Deserialize<'de> for SkillActingWindowRevocation {
             revoked_at: Timestamp,
             revocation_digest: Digest,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let value = Self::new(wire.tenant_id, wire.window_id, wire.reason, wire.revoked_at)
             .map_err(de::Error::custom)?;
         if value.revocation_digest != wire.revocation_digest {

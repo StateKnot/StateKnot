@@ -3,7 +3,7 @@
 
 //! Resource-bounded JSON values for untrusted runtime boundaries.
 
-use std::{collections::BTreeMap, fmt, str::FromStr};
+use std::{collections::BTreeMap, fmt, marker::PhantomData, str::FromStr};
 
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{
@@ -15,6 +15,34 @@ use thiserror::Error;
 
 const KIBIBYTE: usize = 1024;
 const MEBIBYTE: usize = KIBIBYTE * KIBIBYTE;
+
+// An object wire must not inherit Serde's alternate positional struct/enum
+// representation. Delegate the original streaming map to its existing reader,
+// preserving raw duplicate/unknown-field checks and validated field types.
+pub(crate) fn deserialize_object<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+    T: Deserialize<'de>,
+    D: Deserializer<'de>,
+{
+    struct ObjectReader<T>(PhantomData<T>);
+
+    impl<'de, T: Deserialize<'de>> Visitor<'de> for ObjectReader<T> {
+        type Value = T;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("a JSON object")
+        }
+
+        fn visit_map<A>(self, map: A) -> Result<T, A::Error>
+        where
+            A: MapAccess<'de>,
+        {
+            T::deserialize(de::value::MapAccessDeserializer::new(map))
+        }
+    }
+
+    deserializer.deserialize_map(ObjectReader(PhantomData))
+}
 
 // Serde's internally tagged unit visitor discards extra map entries even with
 // deny_unknown_fields. Require an empty map for the tag's remaining content;

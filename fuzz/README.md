@@ -10,7 +10,7 @@ This private workspace runs three actual production boundaries:
 | Target | Input and oracle |
 | --- | --- |
 | `bounded_json` | Raw bytes through strict parsing with narrow/default/hard JSON limits; exact compact statistics, bounded round trips, RFC 8785 bytes and digest stability. Duplicate names and malformed Unicode remain raw bytes. |
-| `core_readers` | `RustTypeName\nraw JSON`, then the bounded JSON gate and one of all 307 reviewed readers; producer output must match its offline serialization schema and remain stable through ordinary/canonical round trips. Names preserve reproducers when the type list grows. |
+| `core_readers` | `RustTypeName\nraw JSON`, then the bounded JSON gate and one of all 307 reviewed readers; accepted input must match its offline deserialization schema, producer output its serialization schema, and ordinary/canonical round trips remain stable. Input validation runs after the actual reader, so alternate accepted shapes cannot be hidden. Names preserve reproducers when the type list grows. |
 | `schema_registry` | Bounded `{"schema": ..., "instance": ..., "bad_pin": false}`; the real immutable runtime registry verifies dialect/URI/pins, duplicate identity, registration atomicity, 32 KiB single/48 KiB aggregate schema limits, offline compilation and instance validation. Missing dialect/URI receive the fixed fixture identity; supplied values are never overwritten. |
 
 The reader list is shared with the closed Core inventory, and fixed positive
@@ -20,6 +20,11 @@ authority fields, incompatible shapes and the optional producer regressions.
 The timestamp regression retains a malformed nested Run transition and checks
 rejection by the real typed reader; the Core suite independently covers every
 ASCII non-digit position and fixed-length Unicode replacement.
+Three object-shape regressions retain a positional SchemaReference and nested
+ToolInput/child-admission schema references. The actual reader rejects them;
+accepted values must satisfy the input-schema oracle after deserialization.
+The object contract and binary-format compatibility limit are specified in
+[RFC-0021](../docs/rfcs/0021-core-object-readers.md).
 Deterministic generators add deep structures, oversized strings/keys/container
 counts and schema byte ceilings. Each run's `seeds.json` records source, bytes and
 SHA-256 for every generated seed. No historical version is invented.

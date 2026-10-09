@@ -55,14 +55,30 @@ pub fn check_bounded_json(data: &[u8]) {
     }
 }
 
-fn reader<T: DeserializeOwned + Serialize>(data: &[u8], validator: &Validator) -> bool {
+struct ReaderSchemas {
+    input: Validator,
+    output: Validator,
+}
+
+fn reader<T: DeserializeOwned + Serialize>(
+    data: &[u8],
+    input: &Value,
+    schemas: &ReaderSchemas,
+) -> bool {
     let Ok(typed) = serde_json::from_slice::<T>(data) else {
         return false;
     };
+    // Check after the real reader: validating first would hide unsupported
+    // representations that Serde accepts despite the declared input contract.
+    assert!(
+        schemas.input.is_valid(input),
+        "{} reader/input-schema drift",
+        std::any::type_name::<T>()
+    );
     let output = serde_json::to_vec(&typed).unwrap();
     let bounded = BoundedJson::from_slice_with_limits(&output, JsonLimits::MAXIMUM).unwrap();
     assert!(
-        validator.is_valid(bounded.as_value()),
+        schemas.output.is_valid(bounded.as_value()),
         "{} producer/schema drift",
         std::any::type_name::<T>()
     );
@@ -84,6 +100,18 @@ fn reader<T: DeserializeOwned + Serialize>(data: &[u8], validator: &Validator) -
     true
 }
 
+fn input_validator<T: JsonSchema>() -> Validator {
+    let schema = SchemaSettings::draft2020_12()
+        .for_deserialize()
+        .into_generator()
+        .into_root_schema_for::<T>();
+    jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .offline()
+        .build(schema.as_value())
+        .expect("generated input schema must compile offline")
+}
+
 fn output_validator<T: JsonSchema>() -> Validator {
     let schema = SchemaSettings::draft2020_12()
         .for_serialize()
@@ -100,13 +128,16 @@ macro_rules! readers {
     ($( $test:ident: $ty:ty ),+ $(,)?) => {
         /// The same closed type list used by the permanent Core wire inventory.
         pub const READERS: &[&str] = &[$(stringify!($ty)),+];
-        $(fn $test(data: &[u8]) -> bool {
-            static VALIDATOR: LazyLock<Validator> = LazyLock::new(output_validator::<$ty>);
-            reader::<$ty>(data, &VALIDATOR)
+        $(fn $test(data: &[u8], input: &Value) -> bool {
+            static SCHEMAS: LazyLock<ReaderSchemas> = LazyLock::new(|| ReaderSchemas {
+                input: input_validator::<$ty>(),
+                output: output_validator::<$ty>(),
+            });
+            reader::<$ty>(data, input, &SCHEMAS)
         })+
-        fn dispatch(name: &str, data: &[u8]) -> bool {
+        fn dispatch(name: &str, data: &[u8], input: &Value) -> bool {
             match name {
-                $(stringify!($ty) => $test(data),)+
+                $(stringify!($ty) => $test(data, input),)+
                 _ => false,
             }
         }
@@ -128,10 +159,10 @@ pub fn core_readers(data: &[u8]) -> bool {
         return false;
     };
     let input = &data[separator + 1..];
-    if BoundedJson::from_slice(input).is_err() {
+    let Ok(bounded) = BoundedJson::from_slice(input) else {
         return false;
-    }
-    dispatch(name, input)
+    };
+    dispatch(name, input, bounded.as_value())
 }
 
 const SCHEMA_ID: &str = "https://stateknot.github.io/schema/fuzz/registry/1.0.0";
@@ -348,5 +379,17 @@ mod tests {
         assert!(!core_readers(include_bytes!(
             "../seeds/core_readers/RunTransition-invalid-timestamp"
         )));
+    }
+
+    #[test]
+    fn retained_positional_objects_are_rejected_by_the_real_readers() {
+        for seed in [
+            include_bytes!("../seeds/core_readers/SchemaReference-positional").as_slice(),
+            include_bytes!("../seeds/core_readers/ToolInput-positional-schema").as_slice(),
+            include_bytes!("../seeds/core_readers/ChildRunAdmissionIntent-positional-schema")
+                .as_slice(),
+        ] {
+            assert!(!core_readers(seed));
+        }
     }
 }

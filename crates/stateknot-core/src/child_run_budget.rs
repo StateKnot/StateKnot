@@ -144,7 +144,7 @@ impl<'de> Deserialize<'de> for ChildRunBudgetSettlement {
             outcome_digest: Digest,
             usage: BudgetUsage,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let value = Self {
             child: wire.child,
             intent_digest: wire.intent_digest,
@@ -236,7 +236,7 @@ impl<'de> Deserialize<'de> for ChildRunBudgetEntry {
             reservation: CumulativeBudgetReservation,
             settlement: Option<ChildRunBudgetSettlement>,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let value = Self {
             key: wire.key,
             spawn_digest: wire.spawn_digest,
@@ -619,7 +619,7 @@ impl<'de> Deserialize<'de> for ChildRunBudgetAccount {
             children: Vec<ChildRunBudgetEntry>,
             digest: Digest,
         }
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let expected = wire.digest;
         let value = Self {
             version: wire.version,

@@ -349,7 +349,7 @@ pub enum ModelErrorPhase {
 ///
 /// Provider identifiers are opaque diagnostic values. They do not grant
 /// authority and are never replay, deduplication, or idempotency keys.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModelErrorProvenance {
     attempt_id: AttemptId,
@@ -360,6 +360,34 @@ pub struct ModelErrorProvenance {
     provider_request_id: Option<ModelProviderRequestId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     provider_response_id: Option<ModelProviderResponseId>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ModelErrorProvenanceObjectWire {
+    attempt_id: AttemptId,
+    model: CapabilityIdentity,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider_model_id: Option<ModelProviderModelId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider_request_id: Option<ModelProviderRequestId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider_response_id: Option<ModelProviderResponseId>,
+}
+impl<'de> serde::Deserialize<'de> for ModelErrorProvenance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ModelErrorProvenanceObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            attempt_id: wire.attempt_id,
+            model: wire.model,
+            provider_model_id: wire.provider_model_id,
+            provider_request_id: wire.provider_request_id,
+            provider_response_id: wire.provider_response_id,
+        })
+    }
 }
 
 impl ModelErrorProvenance {
@@ -431,7 +459,7 @@ impl fmt::Debug for ModelErrorProvenance {
 /// for the failed attempt. Missing usage means unknown and must never be
 /// interpreted as zero. Stream consumers discard partial output as a completed
 /// response and separately account for any reported usage.
-#[derive(Clone, Deserialize, JsonSchema, Serialize)]
+#[derive(Clone, JsonSchema, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModelError {
     failure: Box<Failure>,
@@ -439,6 +467,30 @@ pub struct ModelError {
     provenance: Box<ModelErrorProvenance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     usage: Option<ModelUsage>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ModelErrorObjectWire {
+    failure: Box<Failure>,
+    phase: ModelErrorPhase,
+    provenance: Box<ModelErrorProvenance>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    usage: Option<ModelUsage>,
+}
+impl<'de> serde::Deserialize<'de> for ModelError {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ModelErrorObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            failure: wire.failure,
+            phase: wire.phase,
+            provenance: wire.provenance,
+            usage: wire.usage,
+        })
+    }
 }
 
 impl ModelError {

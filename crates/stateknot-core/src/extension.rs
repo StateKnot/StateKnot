@@ -406,7 +406,7 @@ fn validate_reverse_dns_extension_key(value: &str) -> Result<ExtensionKeyKind, E
 /// deterministic execution, hashing, or capability selection. Schema-bound
 /// values carry an immutable schema identity but still require validation
 /// against a trusted local registry before any semantic use.
-#[derive(Clone, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ExtensionValue {
     /// Bounded data with no registered semantic contract.
@@ -421,6 +421,33 @@ pub enum ExtensionValue {
         /// The bounded value to validate against the local schema registry.
         value: BoundedJson,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum ExtensionValueObjectWire {
+    Opaque {
+        value: BoundedJson,
+    },
+    SchemaBound {
+        schema: SchemaReference,
+        value: BoundedJson,
+    },
+}
+impl<'de> serde::Deserialize<'de> for ExtensionValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<ExtensionValueObjectWire, _>(deserializer)? {
+                ExtensionValueObjectWire::Opaque { value } => Self::Opaque { value },
+                ExtensionValueObjectWire::SchemaBound { schema, value } => {
+                    Self::SchemaBound { schema, value }
+                }
+            },
+        )
+    }
 }
 
 impl ExtensionValue {

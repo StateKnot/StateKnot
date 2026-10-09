@@ -142,7 +142,7 @@ impl<'de> Deserialize<'de> for ToolExecutionSemantics {
     where
         D: Deserializer<'de>,
     {
-        let wire = ToolExecutionSemanticsWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ToolExecutionSemanticsWire, _>(deserializer)?;
         Self::new(
             wire.risk,
             wire.idempotency,
@@ -200,13 +200,37 @@ pub enum ToolResourceAccess {
 /// does not describe ordinary compiled tool implementation code. `StateKnot` v1
 /// does not provide a built-in arbitrary-code sandbox; policy may route such a
 /// tool to an independently operated sandbox service or deny it.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ToolResourceRequirements {
     network: ToolResourceAccess,
     filesystem: ToolResourceAccess,
     credentials: bool,
     dynamic_code: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolResourceRequirementsObjectWire {
+    network: ToolResourceAccess,
+    filesystem: ToolResourceAccess,
+    credentials: bool,
+    dynamic_code: bool,
+}
+impl<'de> serde::Deserialize<'de> for ToolResourceRequirements {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ToolResourceRequirementsObjectWire =
+            crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            network: wire.network,
+            filesystem: wire.filesystem,
+            credentials: wire.credentials,
+            dynamic_code: wire.dynamic_code,
+        })
+    }
 }
 
 impl ToolResourceRequirements {
@@ -283,11 +307,31 @@ pub enum ToolCancellationSupport {
 ///
 /// Cooperative cancellation never proves that an external effect did not
 /// occur. Progress events are observational and cannot commit tool success.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ToolInvocationCapabilities {
     cancellation: ToolCancellationSupport,
     max_progress_events: ExecutionCount,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolInvocationCapabilitiesObjectWire {
+    cancellation: ToolCancellationSupport,
+    max_progress_events: ExecutionCount,
+}
+impl<'de> serde::Deserialize<'de> for ToolInvocationCapabilities {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: ToolInvocationCapabilitiesObjectWire =
+            crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            cancellation: wire.cancellation,
+            max_progress_events: wire.max_progress_events,
+        })
+    }
 }
 
 impl ToolInvocationCapabilities {
@@ -435,7 +479,7 @@ impl<'de> Deserialize<'de> for ToolExecutionLimits {
     where
         D: Deserializer<'de>,
     {
-        let wire = ToolExecutionLimitsWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ToolExecutionLimitsWire, _>(deserializer)?;
         Self::new(
             wire.timeout,
             wire.max_concurrency,
@@ -612,7 +656,7 @@ impl<'de> Deserialize<'de> for ToolDescriptor {
     where
         D: Deserializer<'de>,
     {
-        let wire = ToolDescriptorWire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<ToolDescriptorWire, _>(deserializer)?;
         Self::new(
             wire.metadata,
             wire.input_schema,

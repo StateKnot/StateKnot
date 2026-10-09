@@ -99,7 +99,7 @@ impl<'de> Deserialize<'de> for AgentAdmissionBudgetLayer {
             limits: BudgetLimits,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(wire.source, wire.decision_digest, wire.limits).map_err(de::Error::custom)
     }
 }
@@ -217,7 +217,7 @@ impl<'de> Deserialize<'de> for AgentAdmissionAuthority {
             evidence: JournalPayload,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::new(
             wire.principal,
             wire.granted_scopes,
@@ -501,7 +501,7 @@ impl<'de> Deserialize<'de> for AgentAdmissionIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::build(
             wire.provenance,
             wire.descriptor,
@@ -706,7 +706,7 @@ impl<'de> Deserialize<'de> for AgentAdmission {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         let admission = Self::commit(wire.intent, wire.admitted_at).map_err(de::Error::custom)?;
         if admission.digest != wire.digest {
             return Err(de::Error::custom(AgentAdmissionError::DigestMismatch));

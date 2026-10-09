@@ -254,7 +254,7 @@ impl<'de> Deserialize<'de> for InterruptRequestIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.tenant_id,
             wire.run_id,
@@ -404,7 +404,7 @@ impl<'de> Deserialize<'de> for InterruptRequest {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.intent, &wire.marker, wire.journal, wire.digest)
             .map_err(de::Error::custom)
     }
@@ -608,7 +608,7 @@ impl<'de> Deserialize<'de> for InterruptRequestHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.tenant_id,
             wire.run_id,
@@ -630,11 +630,30 @@ impl<'de> Deserialize<'de> for InterruptRequestHead {
 /// A durable resolver always has an authenticated principal. The scope set is
 /// the bounded authority snapshot evaluated for this resolution, not a bearer
 /// token and never a credential.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct InterruptResolver {
     principal: PrincipalIdentity,
     granted_scopes: ScopeSet,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InterruptResolverObjectWire {
+    principal: PrincipalIdentity,
+    granted_scopes: ScopeSet,
+}
+impl<'de> serde::Deserialize<'de> for InterruptResolver {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire: InterruptResolverObjectWire = crate::json::deserialize_object(deserializer)?;
+        Ok(Self {
+            principal: wire.principal,
+            granted_scopes: wire.granted_scopes,
+        })
+    }
 }
 
 impl InterruptResolver {
@@ -795,7 +814,7 @@ impl<'de> Deserialize<'de> for InterruptResolutionIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.request,
             wire.resolution_event_id,
@@ -925,7 +944,7 @@ impl<'de> Deserialize<'de> for InterruptResolution {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.intent, wire.journal, wire.digest).map_err(de::Error::custom)
     }
 }
@@ -1002,7 +1021,7 @@ impl<'de> Deserialize<'de> for InterruptRecord {
             resolution: Option<InterruptResolution>,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.request, wire.resolution).map_err(de::Error::custom)
     }
 }
@@ -1164,7 +1183,7 @@ impl<'de> Deserialize<'de> for TimerRegistrationIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.tenant_id,
             wire.run_id,
@@ -1313,7 +1332,7 @@ impl<'de> Deserialize<'de> for DurableTimer {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.intent, &wire.marker, wire.journal, wire.digest)
             .map_err(de::Error::custom)
     }
@@ -1451,7 +1470,7 @@ impl<'de> Deserialize<'de> for DurableTimerHead {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(
             wire.tenant_id,
             wire.run_id,
@@ -1551,7 +1570,7 @@ impl<'de> Deserialize<'de> for TimerFiringIntent {
             intent_digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.timer, wire.firing_event_id, wire.intent_digest)
             .map_err(de::Error::custom)
     }
@@ -1656,7 +1675,7 @@ impl<'de> Deserialize<'de> for TimerFiring {
             digest: Digest,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.intent, wire.journal, wire.digest).map_err(de::Error::custom)
     }
 }
@@ -1730,13 +1749,13 @@ impl<'de> Deserialize<'de> for DurableTimerRecord {
             firing: Option<TimerFiring>,
         }
 
-        let wire = Wire::deserialize(deserializer)?;
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
         Self::restore(wire.timer, wire.firing).map_err(de::Error::custom)
     }
 }
 
 /// One protocol-neutral condition to register in an atomic waiting batch.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 #[allow(clippy::large_enum_variant)]
 pub enum WaitRegistrationIntent {
@@ -1750,6 +1769,31 @@ pub enum WaitRegistrationIntent {
         /// Complete timer registration intent.
         timer: TimerRegistrationIntent,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[allow(clippy::large_enum_variant)]
+enum WaitRegistrationIntentObjectWire {
+    Interrupt { request: InterruptRequestIntent },
+    Timer { timer: TimerRegistrationIntent },
+}
+impl<'de> serde::Deserialize<'de> for WaitRegistrationIntent {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<WaitRegistrationIntentObjectWire, _>(
+                deserializer,
+            )? {
+                WaitRegistrationIntentObjectWire::Interrupt { request } => {
+                    Self::Interrupt { request }
+                }
+                WaitRegistrationIntentObjectWire::Timer { timer } => Self::Timer { timer },
+            },
+        )
+    }
 }
 
 impl WaitRegistrationIntent {
@@ -1815,7 +1859,7 @@ impl WaitRegistrationIntent {
 }
 
 /// One fully materialized durable wait registration.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum DurableWait {
     /// An immutable interrupt request.
@@ -1828,6 +1872,26 @@ pub enum DurableWait {
         /// Complete durable timer registration.
         timer: Box<DurableTimer>,
     },
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum DurableWaitObjectWire {
+    Interrupt { request: Box<InterruptRequest> },
+    Timer { timer: Box<DurableTimer> },
+}
+impl<'de> serde::Deserialize<'de> for DurableWait {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(
+            match crate::json::deserialize_object::<DurableWaitObjectWire, _>(deserializer)? {
+                DurableWaitObjectWire::Interrupt { request } => Self::Interrupt { request },
+                DurableWaitObjectWire::Timer { timer } => Self::Timer { timer },
+            },
+        )
+    }
 }
 
 impl DurableWait {
