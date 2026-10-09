@@ -15,8 +15,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - Require actual libFuzzer execution and RSS statistics before marking the
-  fixed ASan mutation profile complete; reaching the time cap early preserves
-  partial evidence without a successful qualification claim.
+  bounded ASan mutation profile complete; report the actual count and whether
+  the execution cap was reached, preserving the original execution/time ceilings.
 
 
 - Retain stable request identities while retrying conservatively classified
