@@ -100,16 +100,28 @@ async fn whole_return_race_recovers_once_and_parent_barrier_consumes_its_result(
             reference: graph.reducer().clone(),
         };
         tasks.spawn(async move {
-            Box::pin(store.return_graph_frame(
-                prepared,
-                EventId::generate(),
-                fence,
-                observed,
-                usage,
-                &AcceptGraphSchemas,
-                &reducer,
-            ))
-            .await
+            let event_id = EventId::generate();
+            // Contention may hit the production lock deadline. Retry only
+            // conservatively classified transaction errors, retaining every
+            // original identity, observation and accounting input.
+            for retry in 0..8 {
+                let outcome = Box::pin(store.return_graph_frame(
+                    prepared.clone(),
+                    event_id,
+                    fence.clone(),
+                    observed.clone(),
+                    usage.clone(),
+                    &AcceptGraphSchemas,
+                    &reducer,
+                ))
+                .await;
+                if retry < 7 && outcome.as_ref().is_err_and(StoreError::is_retryable) {
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                    continue;
+                }
+                return outcome;
+            }
+            unreachable!("bounded retry returns its final outcome")
         });
     }
     let (mut committed, mut idempotent) = (0, 0);

@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Retain stable request identities while retrying conservatively classified
+  PostgreSQL transaction contention in the 24-way whole-frame return test;
+  production lock deadlines and once-only settlement assertions are preserved.
+
+
 - Execute source-schema downgrade fixtures as complete SQL batches, preserving
   dollar-quoted PostgreSQL function bodies introduced by whole frame returns.
   Store and Runtime upgrade regressions retain their actual nonempty facts and
