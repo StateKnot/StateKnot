@@ -103,6 +103,8 @@ Never fabricate a child checkpoint, replace the activation with a template
 identity, or reset the root superstep. Invocation bindings continue to name
 the real tenant/run/checkpoint/activation, including across lease takeover.
 
+The [frozen claimed recovery qualification](qualification/experimental-claimed-frame-recovery-2026-10-10.md) records the exact `8285f25` source, full gates, prechange read-only return compatibility and retained failures. Actual nested Driver and whole application replay remain open.
+
 ## Resource, recovery, and upgrade guarantees
 
 The complete expansion has at most 1,024 executable nodes, 256 routes per node,

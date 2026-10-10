@@ -133,6 +133,10 @@ DIRECT 用量，并拒绝未完成的普通节点、provider 或子任务。作�
 同一精确 checkpoint 下出现异 namespace 结果投影时，读取报告持久事实损坏；
 claimed 恢复通过原 worker 上下文执行隔离。
 
+[冻结 claimed 恢复限定验收](qualification/experimental-claimed-frame-recovery-2026-10-10.zh-CN.md)
+记录精确 `8285f25` 源码、完整门禁、真实旧 return 只读兼容及保留失败。实际嵌套
+Driver 和完整应用 replay 继续开放。
+
 ## 验证与未覆盖边界
 
 Core 测试覆盖确定性身份、冻结摘要、源节点排序、静态嵌套、返回转发、端口/路线/Schema/Reducer

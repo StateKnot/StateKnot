@@ -245,7 +245,7 @@ Docker Hub 匿名拉取限流/超时阻断，不能计为通过。此前 cc75c97
 完整双数据库、工作区及 CI 资格证据须独立收齐。
 
 
-恢复快照提交 `b0bbee8` 已完成全部 14 项 CI/依赖检查、1,888 项本机工作区检查、严格 Clippy/Rustdoc 及 PostgreSQL 16/17 各 161 项 Store 原生和 140 项 Runtime 检查；PG16 首次协议错误与同源重跑分别保留。本机 ASan 三目标实际次数为 4,824/3,124/175，CI 各 10,000，均按原执行/时间上限与完整源码/语料/锁核对。当前 Schema 33 的整栈关闭增量保留实际旧 fence、原始取消/封存失败和冻结完整 DIRECT，原子保存所有关闭 caller 并回到 Root；根终态不能绕过打开的帧。真实竞争、逐组件/延迟故障、七层混合 fence、等待放弃、篡改拒绝、过期/预算耗尽清理和非空源码 32→33 升级已有原生回归；作用域 Tool/Model 准入/推进/历史正在补齐，未知效果不能当作已结算。精确 catalog 与 Schema 33/52 表角色配置同步，当前增量完整源码双数据库、备份恢复及最终 CI 仍待完成。
+恢复快照提交 `b0bbee8` 已完成全部 14 项 CI/依赖检查、1,888 项本机工作区检查、严格 Clippy/Rustdoc 及 PostgreSQL 16/17 各 161 项 Store 原生和 140 项 Runtime 检查；PG16 首次协议错误与同源重跑分别保留。本机 ASan 三目标实际次数为 4,824/3,124/175，CI 各 10,000，均按原执行/时间上限与完整源码/语料/锁核对。当前 Schema 33 的整栈关闭增量保留实际旧 fence、原始取消/封存失败和冻结完整 DIRECT，原子保存所有关闭 caller 并回到 Root；根终态不能绕过打开的帧。真实竞争、逐组件/延迟故障、七层混合 fence、等待放弃、篡改拒绝、过期/预算耗尽清理和非空源码 32→33 升级已有原生回归；作用域 Tool/Model 准入/推进/历史正在补齐，未知效果不能当作已结算。精确 catalog 与 Schema 33/52 表角色配置同步。冻结 `f05d473` 的 whole-frame 限定资格，以及 `8285f25` 的 claimed scoped planning/精确 namespace 拒绝和私有 return 解码增量已分别完成完整门禁；[claimed 增量报告](qualification/experimental-claimed-frame-recovery-2026-10-10.zh-CN.md)记录 1,909 项工作区检查、双版 Store 各 182 项原生/Runtime 各 140 项、全部 14 项 CI/依赖检查、默认栈 Linux 七层级联及本机/CI ASan 原始源码证明。七个真实旧 return 的当前 reader 只读备份兼容不替代历史 N-1/N-2 程序或 ACL 恢复。scoped retry、多图完整应用 replay、Root Wait/Terminal 完整 disposition 持久化、实际 Driver 与 scoped child Join 仍开放；后续增量不得继承本轮源码资格。
 
 ## R2 持久数据生命周期
 
