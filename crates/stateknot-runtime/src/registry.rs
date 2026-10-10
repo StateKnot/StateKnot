@@ -310,7 +310,8 @@ impl ExecutableGraph {
         self.reducer.as_ref()
     }
 
-    /// Resolves one exact compiled node implementation.
+    /// Resolves one exact application node implementation.
+    /// Framework-owned call sites have no application executor.
     #[must_use]
     pub fn node(&self, node_id: &NodeId) -> Option<&(dyn GraphNodeExecutor + 'static)> {
         self.nodes.get(node_id).map(Arc::as_ref)
@@ -322,7 +323,7 @@ impl ExecutableGraph {
         self.nodes.get(node_id).cloned()
     }
 
-    /// Returns the number of executable node bindings.
+    /// Returns the number of application node bindings, excluding framework calls.
     #[must_use]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
@@ -510,12 +511,14 @@ impl ExecutableGraphRegistryBuilder {
                 if graph
                     .frame_calls()
                     .is_some_and(|policy| policy.call(node.node_id()).is_some())
-                    && self.nodes.contains_key(&key)
                 {
-                    return Err(ExecutableGraphRegistryError::FrameCallExecutorConflict {
-                        graph: Box::new(reference.clone()),
-                        node_id: node.node_id().clone(),
-                    });
+                    if self.nodes.contains_key(&key) {
+                        return Err(ExecutableGraphRegistryError::FrameCallExecutorConflict {
+                            graph: Box::new(reference.clone()),
+                            node_id: node.node_id().clone(),
+                        });
+                    }
+                    continue;
                 }
                 let executor = self.nodes.get(&key).cloned().ok_or_else(|| {
                     ExecutableGraphRegistryError::MissingNodeExecutor {
@@ -1079,6 +1082,231 @@ mod tests {
         assert!(matches!(
             missing.build(),
             Err(ExecutableGraphRegistryError::MissingFrameTarget { .. })
+        ));
+    }
+
+    #[test]
+    fn framework_call_registry_builds_without_application_executor() {
+        let (schemas, schema) = schemas();
+        let reference =
+            GraphReducerReference::new(identity("reducer"), stateknot_core::Digest::sha256(b"v1"));
+        let (leaf, leaf_node) = graph(&schema, reference.clone());
+        let parent = frame_parent("parent", &leaf, 1);
+        let parent_reference = parent.reference();
+        let leaf_reference = leaf.reference();
+        let mut builder = ExecutableGraphRegistryBuilder::new(schemas);
+        builder
+            .register_reducer(Arc::new(Reducer { reference }))
+            .unwrap();
+        for graph in [leaf, parent] {
+            builder
+                .register_node(Arc::new(Executor {
+                    graph: graph.reference(),
+                    node_id: NodeId::new("finish").unwrap(),
+                }))
+                .unwrap();
+            builder.register_graph(graph).unwrap();
+        }
+        let registry = builder.build().unwrap();
+        let parent = registry.resolve(&parent_reference).unwrap();
+        assert_eq!(parent.graph().nodes().len(), 2);
+        assert_eq!(parent.node_count(), 1);
+        assert!(parent.node(&NodeId::new("call").unwrap()).is_none());
+        assert!(
+            parent
+                .node_executor(&NodeId::new("call").unwrap())
+                .is_none()
+        );
+        assert!(parent.node(&NodeId::new("finish").unwrap()).is_some());
+        assert!(
+            registry
+                .resolve(&leaf_reference)
+                .unwrap()
+                .node(&leaf_node)
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn sibling_framework_calls_freeze_with_only_application_bindings() {
+        let (schemas, schema) = schemas();
+        let reference =
+            GraphReducerReference::new(identity("reducer"), stateknot_core::Digest::sha256(b"v1"));
+        let (leaf, _) = graph(&schema, reference.clone());
+        let finish_id = NodeId::new("finish").unwrap();
+        let call_ids = [
+            NodeId::new("call.a").unwrap(),
+            NodeId::new("call.b").unwrap(),
+        ];
+        let mut nodes = vec![
+            GraphNode::new(finish_id.clone(), None, GraphRoutes::empty(), None, true).unwrap(),
+        ];
+        let mut calls = Vec::new();
+        for (node_id, slot) in call_ids.iter().zip(["slot.a", "slot.b"]) {
+            let route = RouteId::new(format!("return.{slot}")).unwrap();
+            nodes.push(
+                GraphNode::new(
+                    node_id.clone(),
+                    None,
+                    GraphRoutes::try_new([GraphRoute::new(
+                        route.clone(),
+                        ReadyNodes::try_new([if node_id == &call_ids[0] {
+                            call_ids[1].clone()
+                        } else {
+                            finish_id.clone()
+                        }])
+                        .unwrap(),
+                    )
+                    .unwrap()])
+                    .unwrap(),
+                    None,
+                    false,
+                )
+                .unwrap(),
+            );
+            calls.push(
+                GraphFrameCall::new(
+                    node_id.clone(),
+                    NodeId::new(slot).unwrap(),
+                    &leaf,
+                    route.clone(),
+                )
+                .unwrap(),
+            );
+        }
+        let parent = CompiledGraph::compile(
+            identity("siblings"),
+            schema.clone(),
+            schema.clone(),
+            schema.clone(),
+            schema,
+            reference.clone(),
+            ReadyNodes::try_new([call_ids[0].clone()]).unwrap(),
+            nodes,
+            GraphExecutionLimits::new(Superstep::new(32).unwrap(), 1).unwrap(),
+        )
+        .unwrap()
+        .with_frame_calls(GraphFrameCallPolicy::new(1, 4096, calls).unwrap())
+        .unwrap();
+        let parent_reference = parent.reference();
+        let mut builder = ExecutableGraphRegistryBuilder::new(schemas);
+        builder
+            .register_reducer(Arc::new(Reducer { reference }))
+            .unwrap();
+        for graph in [leaf, parent] {
+            builder
+                .register_node(Arc::new(Executor {
+                    graph: graph.reference(),
+                    node_id: finish_id.clone(),
+                }))
+                .unwrap();
+            builder.register_graph(graph).unwrap();
+        }
+        let registry = builder.build().unwrap();
+        let executable = registry.resolve(&parent_reference).unwrap();
+        assert_eq!(executable.graph().nodes().len(), 3);
+        assert_eq!(executable.node_count(), 1);
+        assert!(executable.node(&finish_id).is_some());
+        for call_id in &call_ids {
+            assert!(executable.node_executor(call_id).is_none());
+            let call = executable
+                .graph()
+                .frame_calls()
+                .unwrap()
+                .call(call_id)
+                .unwrap();
+            assert!(registry.resolve(call.target()).is_some());
+        }
+    }
+
+    #[test]
+    fn seven_level_framework_closure_freezes_on_the_default_stack() {
+        let (schemas, schema) = schemas();
+        let reference =
+            GraphReducerReference::new(identity("reducer"), stateknot_core::Digest::sha256(b"v1"));
+        let (leaf, _) = graph(&schema, reference.clone());
+        let mut graphs = vec![leaf];
+        for depth in 1..=7 {
+            let parent = frame_parent(&format!("frame.{depth}"), graphs.last().unwrap(), depth);
+            graphs.push(parent);
+        }
+        let root_reference = graphs.last().unwrap().reference();
+        let mut builder = ExecutableGraphRegistryBuilder::new(schemas);
+        builder
+            .register_reducer(Arc::new(Reducer { reference }))
+            .unwrap();
+        for graph in graphs {
+            builder
+                .register_node(Arc::new(Executor {
+                    graph: graph.reference(),
+                    node_id: NodeId::new("finish").unwrap(),
+                }))
+                .unwrap();
+            builder.register_graph(graph).unwrap();
+        }
+        let registry = builder.build().unwrap();
+        assert_eq!(registry.len(), 8);
+        let mut current = registry.resolve(&root_reference).unwrap();
+        for _ in 0..7 {
+            assert_eq!(current.node_count(), 1);
+            assert!(
+                current
+                    .node_executor(&NodeId::new("call").unwrap())
+                    .is_none()
+            );
+            let target = current.graph().frame_calls().unwrap().calls()[0].target();
+            current = registry.resolve(target).unwrap();
+        }
+        assert!(current.graph().frame_calls().is_none());
+        assert!(current.node(&NodeId::new("finish").unwrap()).is_some());
+    }
+
+    #[test]
+    fn framework_graph_still_requires_ordinary_node_executors() {
+        let (schemas, schema) = schemas();
+        let reference =
+            GraphReducerReference::new(identity("reducer"), stateknot_core::Digest::sha256(b"v1"));
+        let (leaf, leaf_node) = graph(&schema, reference.clone());
+        let parent = frame_parent("parent", &leaf, 1);
+        let parent_reference = parent.reference();
+        let mut builder = ExecutableGraphRegistryBuilder::new(schemas);
+        builder
+            .register_reducer(Arc::new(Reducer { reference }))
+            .unwrap();
+        builder
+            .register_node(Arc::new(Executor {
+                graph: leaf.reference(),
+                node_id: leaf_node,
+            }))
+            .unwrap();
+        builder.register_graph(leaf).unwrap();
+        builder.register_graph(parent).unwrap();
+        assert!(matches!(
+            builder.build(),
+            Err(ExecutableGraphRegistryError::MissingNodeExecutor { graph, node_id })
+                if *graph == parent_reference && node_id.as_str() == "finish"
+        ));
+    }
+
+    #[test]
+    fn framework_target_with_same_identity_and_different_digest_is_missing() {
+        let (schemas, schema) = schemas();
+        let original_reducer =
+            GraphReducerReference::new(identity("reducer"), stateknot_core::Digest::sha256(b"v1"));
+        let (original, _) = graph(&schema, original_reducer);
+        let parent = frame_parent("parent", &original, 1);
+        let changed_reducer =
+            GraphReducerReference::new(identity("reducer"), stateknot_core::Digest::sha256(b"v2"));
+        let (changed, _) = graph(&schema, changed_reducer);
+        assert_eq!(changed.identity(), original.identity());
+        assert_ne!(changed.reference(), original.reference());
+        let mut builder = ExecutableGraphRegistryBuilder::new(schemas);
+        builder.register_graph(parent).unwrap();
+        builder.register_graph(changed).unwrap();
+        assert!(matches!(
+            builder.build(),
+            Err(ExecutableGraphRegistryError::MissingFrameTarget { target, .. })
+                if *target == original.reference()
         ));
     }
 
