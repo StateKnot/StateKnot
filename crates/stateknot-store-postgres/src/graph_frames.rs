@@ -12,13 +12,14 @@ use stateknot_core::{
 mod active;
 pub use active::{StoredActiveGraphFrame, StoredOpenGraphFrame};
 
-pub(super) async fn verified_active_snapshot(
-    tx: &mut Transaction<'_, Postgres>,
-    tenant: &TenantId,
+// Scope readers keep the full owning proof behind a concrete Send boundary.
+pub(super) fn verified_active_snapshot<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    tenant: &'a TenantId,
     run: RunId,
     stored: StoredRun,
-) -> Result<Option<StoredActiveGraphFrame>, StoreError> {
-    Box::pin(active::verified_snapshot(tx, tenant, run, stored)).await
+) -> stateknot_core::BoxFuture<'a, Result<Option<StoredActiveGraphFrame>, StoreError>> {
+    Box::pin(active::verified_snapshot(tx, tenant, run, stored))
 }
 
 #[path = "graph_frames/closures.rs"]
