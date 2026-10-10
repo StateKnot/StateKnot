@@ -13,6 +13,8 @@ mod frame_barriers;
 mod frame_callers;
 #[path = "postgres/frame_children.rs"]
 mod frame_children;
+#[path = "postgres/frame_child_topology.rs"]
+mod frame_child_topology;
 #[path = "postgres/frame_closures.rs"]
 mod frame_closures;
 #[path = "postgres/frame_dispatch.rs"]
