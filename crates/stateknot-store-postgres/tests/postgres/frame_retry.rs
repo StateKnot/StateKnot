@@ -1203,29 +1203,43 @@ async fn scoped_retry_seven_level_noninitial_leaf_preserves_ancestry_and_root() 
     let plan = Box::pin(claimed_plan(&store, successor.checkpoint(), &fence)).await;
     let db = pool().await;
     let before = snapshot(&db, &fence).await;
-    let outcome = Box::pin(store.schedule_graph_frame_delayed_retry_wakeup(&plan))
-        .await
-        .unwrap();
-    let not_before = plan.earliest_deferred_at().unwrap();
-    match outcome {
-        DelayedRetryScheduleOutcome::Scheduled { not_before: actual } => {
-            assert_eq!(actual, not_before);
-            let sleeping = store.load_run(&tenant, run).await.unwrap();
-            assert!(sleeping.lease().is_none());
-            assert_eq!(sleeping.scheduler_not_before(), Some(not_before));
+    if let Some(not_before) = plan.earliest_deferred_at() {
+        let outcome = Box::pin(store.schedule_graph_frame_delayed_retry_wakeup(&plan))
+            .await
+            .unwrap();
+        match outcome {
+            DelayedRetryScheduleOutcome::Scheduled { not_before: actual } => {
+                assert_eq!(actual, not_before);
+                let sleeping = store.load_run(&tenant, run).await.unwrap();
+                assert!(sleeping.lease().is_none());
+                assert_eq!(sleeping.scheduler_not_before(), Some(not_before));
+            }
+            DelayedRetryScheduleOutcome::Due { not_before: actual } => {
+                assert_eq!(actual, not_before);
+                let live = store.observe_live_lease(&fence).await.unwrap();
+                assert!(live.observed_at() >= not_before);
+                assert_eq!(snapshot(&db, &fence).await, before);
+                let owned = store.load_run(&tenant, run).await.unwrap();
+                assert_eq!(owned.lease().unwrap().fence(), &fence);
+                assert_eq!(owned.scheduler_not_before(), None);
+            }
+            other => {
+                panic!("a first deep retry schedule cannot acknowledge an earlier gate: {other:?}")
+            }
         }
-        DelayedRetryScheduleOutcome::Due { not_before: actual } => {
-            assert_eq!(actual, not_before);
-            let live = store.observe_live_lease(&fence).await.unwrap();
-            assert!(live.observed_at() >= not_before);
-            assert_eq!(snapshot(&db, &fence).await, before);
-            let owned = store.load_run(&tenant, run).await.unwrap();
-            assert_eq!(owned.lease().unwrap().fence(), &fence);
-            assert_eq!(owned.scheduler_not_before(), None);
-        }
-        other => {
-            panic!("a first deep retry schedule cannot acknowledge an earlier gate: {other:?}")
-        }
+    } else {
+        // Complete seven-level proof can outlast the original retry delay. A
+        // fresh already-due observation must retain ownership for durable Start.
+        assert_eq!(plan.nodes().len(), 1);
+        assert_eq!(plan.nodes()[0].kind(), RecoveryNodeKind::Dispatchable);
+        assert!(matches!(
+            Box::pin(store.schedule_graph_frame_delayed_retry_wakeup(&plan)).await,
+            Err(StoreError::InvalidDelayedRetryPlan)
+        ));
+        assert_eq!(snapshot(&db, &fence).await, before);
+        let owned = store.load_run(&tenant, run).await.unwrap();
+        assert_eq!(owned.lease().unwrap().fence(), &fence);
+        assert_eq!(owned.scheduler_not_before(), None);
     }
     let after = snapshot(&db, &fence).await;
     assert_eq!(before.0, after.0);
