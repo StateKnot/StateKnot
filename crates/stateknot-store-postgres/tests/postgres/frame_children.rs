@@ -11,6 +11,9 @@ use stateknot_core::{
 };
 use stateknot_store_postgres::{ChildRunCommitOutcome, GraphFrameEntryCommitOutcome};
 
+#[path = "frame_child_join.rs"]
+mod join;
+
 struct Fixture {
     admission: StoredAgentAdmission,
     intent: ChildRunAdmissionIntent,
@@ -19,6 +22,7 @@ struct Fixture {
     head: JournalHead,
     direct: BudgetUsage,
     frame: GraphFrameCheckpoint,
+    graph: CompiledGraph,
 }
 
 fn child_descriptor(graph: &CompiledGraph) -> AgentDescriptor {
@@ -37,10 +41,24 @@ fn child_descriptor(graph: &CompiledGraph) -> AgentDescriptor {
 }
 
 fn declared(graph: CompiledGraph, child: &CompiledGraph, agent: &AgentDescriptor) -> CompiledGraph {
+    declared_with_limits(
+        graph,
+        child,
+        agent,
+        ChildRunTopologyLimits::new(2, 8, 4).unwrap(),
+    )
+}
+
+fn declared_with_limits(
+    graph: CompiledGraph,
+    child: &CompiledGraph,
+    agent: &AgentDescriptor,
+    limits: ChildRunTopologyLimits,
+) -> CompiledGraph {
     graph
         .with_child_runs(
             GraphChildRunPolicy::new(
-                ChildRunTopologyLimits::new(2, 8, 4).unwrap(),
+                limits,
                 [ChildRunDeclaration::new(
                     NodeId::new("finish").unwrap(),
                     ChildRunSlot::new("analysis").unwrap(),
@@ -60,6 +78,22 @@ async fn started(store: &PostgresStore, name: &str) -> Fixture {
 
 #[allow(clippy::too_many_lines)]
 async fn started_with_sibling(store: &PostgresStore, name: &str, sibling: bool) -> Fixture {
+    Box::pin(started_with_limits(
+        store,
+        name,
+        sibling,
+        ChildRunTopologyLimits::new(2, 8, 4).unwrap(),
+    ))
+    .await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn started_with_limits(
+    store: &PostgresStore,
+    name: &str,
+    sibling: bool,
+    limits: ChildRunTopologyLimits,
+) -> Fixture {
     let tenant = tenant(name);
     let run = RunId::generate();
     let (_, template, _) = graphs();
@@ -116,7 +150,7 @@ async fn started_with_sibling(store: &PostgresStore, name: &str, sibling: bool) 
     } else {
         template
     };
-    let leaf = declared(template, &isolated, &agent);
+    let leaf = declared_with_limits(template, &isolated, &agent, limits);
     let root = declared(
         caller_graph("scoped-child-root", &leaf, 8),
         &isolated,
@@ -274,6 +308,7 @@ async fn started_with_sibling(store: &PostgresStore, name: &str, sibling: bool) 
         head,
         direct,
         frame: entry.entry().checkpoint().clone(),
+        graph: leaf,
     }
 }
 
@@ -397,6 +432,7 @@ async fn scoped_join_rejects_an_actual_unfinished_ordinary_sibling() {
         .checked_accumulate(
             &BudgetUsage::builder()
                 .graph_steps(stateknot_core::ExecutionCount::new(1))
+                .concurrent_branches(stateknot_core::ExecutionCount::new(2))
                 .event_bytes(ByteCount::new(
                     serde_json_canonicalizer::to_vec(sibling.event())
                         .unwrap()
@@ -613,5 +649,56 @@ async fn scoped_child_admission_keeps_root_account_and_original_frame_owner() {
         .unwrap()
         .unwrap();
     assert_eq!(root, *value.admission.checkpoint());
+    store.close().await;
+}
+
+#[tokio::test]
+async fn scoped_child_cannot_expand_any_original_root_topology_cap() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    for (name, limits) in [
+        (
+            "scoped-child-depth-cap",
+            ChildRunTopologyLimits::new(3, 8, 4).unwrap(),
+        ),
+        (
+            "scoped-child-lifetime-cap",
+            ChildRunTopologyLimits::new(2, 9, 4).unwrap(),
+        ),
+        (
+            "scoped-child-active-cap",
+            ChildRunTopologyLimits::new(2, 8, 5).unwrap(),
+        ),
+    ] {
+        let value = Box::pin(started_with_limits(&store, name, false, limits)).await;
+        assert!(matches!(
+            Box::pin(spawn(&store, &value)).await,
+            Err(StoreError::ChildRunRejected)
+        ));
+        let run = store
+            .load_run(value.fence.tenant_id(), value.fence.run_id())
+            .await
+            .unwrap();
+        assert_eq!(run.journal_head(), Some(&value.head));
+        assert_eq!(run.lease().unwrap().fence(), &value.fence);
+        assert!(
+            store
+                .load_child_budget_account(value.fence.tenant_id(), value.fence.run_id())
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert!(matches!(
+            store
+                .load_run(
+                    value.intent.child().provenance().tenant_id(),
+                    value.intent.child().provenance().run_id()
+                )
+                .await,
+            Err(StoreError::RunNotFound)
+        ));
+    }
     store.close().await;
 }
