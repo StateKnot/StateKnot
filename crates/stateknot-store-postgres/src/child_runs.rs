@@ -375,7 +375,7 @@ impl PostgresStore {
         key: &ChildRunKey,
     ) -> Result<Option<ChildRunRecord>, StoreError> {
         let mut tx = self.begin_repeatable_read("child ownership read").await?;
-        let result = Box::pin(load_record_inner(&mut tx, key, false)).await?;
+        let result = load_record_inner(&mut tx, key, false).await?;
         if result.is_some() {
             Box::pin(load_account_inner(
                 &mut tx,
@@ -388,7 +388,7 @@ impl PostgresStore {
         tx.commit()
             .await
             .map_err(|source| StoreError::database("child ownership read commit", source))?;
-        Ok(result)
+        Ok(result.map(|record| *record))
     }
 
     /// Returns a verified accounting projection, not a fresh direct-usage report.
@@ -598,11 +598,11 @@ impl PostgresStore {
     }
 }
 
-fn decode_intent(bytes: &[u8]) -> Result<ChildRunAdmissionIntent, StoreError> {
+fn decode_intent(bytes: &[u8]) -> Result<Box<ChildRunAdmissionIntent>, StoreError> {
     if bytes.is_empty() || bytes.len() > ChildRunAdmissionIntent::MAX_SNAPSHOT_BYTES {
         return Err(StoreError::corrupt("child intent size"));
     }
-    let intent: ChildRunAdmissionIntent =
+    let intent: Box<ChildRunAdmissionIntent> =
         serde_json::from_slice(bytes).map_err(|_| StoreError::corrupt("child intent"))?;
     if intent
         .canonical_bytes()
@@ -1095,237 +1095,244 @@ async fn load_record(
     tx: &mut Transaction<'_, Postgres>,
     key: &ChildRunKey,
 ) -> Result<Option<ChildRunRecord>, StoreError> {
-    Box::pin(load_record_inner(tx, key, true)).await
+    load_record_inner(tx, key, true)
+        .await
+        .map(|record| record.map(|record| *record))
 }
 
 #[allow(clippy::too_many_lines)]
-pub(super) async fn load_record_inner(
-    tx: &mut Transaction<'_, Postgres>,
-    key: &ChildRunKey,
+pub(super) fn load_record_inner<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    key: &'a ChildRunKey,
     lock_child: bool,
-) -> Result<Option<ChildRunRecord>, StoreError> {
-    let sql = format!(
-        "SELECT {OWNER_COLUMNS} FROM stateknot.child_run_ownership WHERE tenant_id=$1 AND parent_run_id=$2 AND key_digest=$3"
-    );
-    let Some(row) = query(&sql)
-        .bind(key.tenant_id().as_str())
-        .bind(*key.parent_run_id().as_uuid())
-        .bind(key.digest().as_bytes())
-        .fetch_optional(&mut **tx)
-        .await
-        .map_err(|source| StoreError::database("child owner load", source))?
-    else {
-        return Ok(None);
-    };
-    let get_error = |source| StoreError::database("child owner decode", source);
-    let intent = decode_intent(
-        &row.try_get::<Vec<u8>, _>("intent_bytes")
-            .map_err(get_error)?,
-    )?;
-    let child_id = RunId::from_uuid(row.try_get("child_run_id").map_err(get_error)?)
-        .map_err(|_| StoreError::corrupt("child run id"))?;
-    let locked_child = if lock_child {
-        Some(fetch_locked_run_row(tx, key.tenant_id(), child_id).await?)
-    } else {
-        None
-    };
-    // Terminal capture can update the ownership notification while acquiring
-    // that child lock. Refresh its mutable projection AFTER the lock, too.
-    let row = if lock_child {
-        query(&sql)
+) -> stateknot_core::BoxFuture<'a, Result<Option<Box<ChildRunRecord>>, StoreError>> {
+    Box::pin(async move {
+        let sql = format!(
+            "SELECT {OWNER_COLUMNS} FROM stateknot.child_run_ownership WHERE tenant_id=$1 AND parent_run_id=$2 AND key_digest=$3"
+        );
+        let Some(row) = query(&sql)
             .bind(key.tenant_id().as_str())
             .bind(*key.parent_run_id().as_uuid())
             .bind(key.digest().as_bytes())
-            .fetch_one(&mut **tx)
+            .fetch_optional(&mut **tx)
             .await
-            .map_err(|source| StoreError::database("locked child owner projection", source))?
-    } else {
-        row
-    };
-    let parent_row = load_agent_admission_row(tx, key.tenant_id(), key.parent_run_id())
-        .await?
-        .ok_or_else(|| StoreError::corrupt("child parent admission"))?;
-    let parent = decode_agent_admission(&parent_row)?;
-    let node_id = AttemptId::from_uuid(row.try_get("parent_node_attempt_id").map_err(get_error)?)
-        .map_err(|_| StoreError::corrupt("child node attempt id"))?;
-    let node = load_node_attempt_record(tx, key.tenant_id(), &key.parent_run_id(), node_id)
-        .await?
-        .ok_or_else(|| StoreError::corrupt("child node attempt"))?;
-    verify_node_attempt_start(tx, node.start()).await?;
-    if node.start().activation() != key.parent()
-        || node.start().activation_digest()
-            != decode_digest(
-                &row.try_get::<Vec<u8>, _>("activation_digest")
-                    .map_err(get_error)?,
-                "child activation",
-            )?
-        || row.try_get::<Vec<u8>, _>("key_bytes").map_err(get_error)?
-            != serde_json_canonicalizer::to_vec(key)
-                .map_err(|_| StoreError::corrupt("child key bytes"))?
-    {
-        return Err(StoreError::corrupt("child node activation"));
-    }
-    let scope = child_run_scope::historical(tx, key.parent()).await?;
-    scope
-        .validate_intent(&parent, &intent)
-        .map_err(|_| StoreError::corrupt("owned child parent scope"))?;
-    let root_graph = load_graph(tx, key.tenant_id(), parent.intent().graph()).await?;
-    let graph = load_graph(tx, key.tenant_id(), scope.checkpoint().graph()).await?;
-    if load_graph(tx, key.tenant_id(), intent.child().graph()).await? != *intent.child_graph() {
-        return Err(StoreError::corrupt("owned child graph"));
-    }
-    scope
-        .validate_policy(&root_graph, &graph, &intent)
-        .map_err(|_| StoreError::corrupt("child declaration"))?;
-    if intent.key() != key
-        || row
-            .try_get::<String, _>("parent_graph_namespace")
-            .map_err(get_error)?
-            != key.parent().graph_namespace().as_str()
-        || intent.parent_admission_digest() != parent.digest()
-        || intent.child().provenance().run_id() != child_id
-        || row.try_get::<String, _>("child_slot").map_err(get_error)? != key.slot().as_str()
-        || decode_digest(
-            &row.try_get::<Vec<u8>, _>("spawn_digest")
+            .map_err(|source| StoreError::database("child owner load", source))?
+        else {
+            return Ok(None);
+        };
+        let get_error = |source| StoreError::database("child owner decode", source);
+        let intent = decode_intent(
+            &row.try_get::<Vec<u8>, _>("intent_bytes")
                 .map_err(get_error)?,
-            "child spawn digest",
-        )? != intent.spawn_digest()
-        || row
-            .try_get::<Uuid, _>("parent_checkpoint_id")
-            .map_err(get_error)?
-            != *key.parent().base_checkpoint().checkpoint_id().as_uuid()
-        || row
-            .try_get::<i64, _>("parent_checkpoint_superstep")
-            .map_err(get_error)?
-            != i64::try_from(key.parent().base_checkpoint().superstep().get())
-                .map_err(|_| StoreError::corrupt("child base step"))?
-        || decode_digest(
-            &row.try_get::<Vec<u8>, _>("parent_checkpoint_digest")
-                .map_err(get_error)?,
-            "child base digest",
-        )? != key.parent().base_checkpoint().digest()
-    {
-        return Err(StoreError::corrupt("child ownership projection"));
-    }
-    let head = row_head(&row, key.tenant_id(), key.parent_run_id())?;
-    let (spawn, projection) = anchored_event(
-        tx,
-        key.tenant_id(),
-        key.parent_run_id(),
-        i64::try_from(head.sequence().get())
-            .map_err(|_| StoreError::corrupt("child spawn sequence"))?,
-    )
-    .await?;
-    // Read-only callers use one repeatable-read snapshot. Mutation callers
-    // already hold the parent lock and lock the child before reading its
-    // lifecycle/terminal notification, avoiding READ COMMITTED torn evidence.
-    let child_run = if let Some(row) = locked_child {
-        decode_run(row)?
-    } else {
-        decode_run(
-            query_as::<_, RunRow>(SELECT_RUN)
+        )?;
+        let child_id = RunId::from_uuid(row.try_get("child_run_id").map_err(get_error)?)
+            .map_err(|_| StoreError::corrupt("child run id"))?;
+        let locked_child = if lock_child {
+            Some(fetch_locked_run_row(tx, key.tenant_id(), child_id).await?)
+        } else {
+            None
+        };
+        // Terminal capture can update the ownership notification while acquiring
+        // that child lock. Refresh its mutable projection AFTER the lock, too.
+        let row = if lock_child {
+            query(&sql)
                 .bind(key.tenant_id().as_str())
-                .bind(*child_id.as_uuid())
+                .bind(*key.parent_run_id().as_uuid())
+                .bind(key.digest().as_bytes())
                 .fetch_one(&mut **tx)
                 .await
-                .map_err(|source| StoreError::database("owned child run", source))?,
-        )?
-    };
-    let child_row = load_agent_admission_row(tx, key.tenant_id(), child_id)
-        .await?
-        .ok_or_else(|| StoreError::corrupt("owned child admission"))?;
-    let child = verify_stored_agent_admission(tx, child_run, child_row).await?;
-    if child.admission().intent() != intent.child()
-        || child.checkpoint().state() != intent.initial_state()
-        || child.admission().digest()
-            != decode_digest(
-                &row.try_get::<Vec<u8>, _>("child_admission_digest")
+                .map_err(|source| StoreError::database("locked child owner projection", source))?
+        } else {
+            row
+        };
+        let parent_row = load_agent_admission_row(tx, key.tenant_id(), key.parent_run_id())
+            .await?
+            .ok_or_else(|| StoreError::corrupt("child parent admission"))?;
+        let parent = decode_agent_admission(&parent_row)?;
+        let node_id =
+            AttemptId::from_uuid(row.try_get("parent_node_attempt_id").map_err(get_error)?)
+                .map_err(|_| StoreError::corrupt("child node attempt id"))?;
+        let node = load_node_attempt_record(tx, key.tenant_id(), &key.parent_run_id(), node_id)
+            .await?
+            .ok_or_else(|| StoreError::corrupt("child node attempt"))?;
+        verify_node_attempt_start(tx, node.start()).await?;
+        if node.start().activation() != key.parent()
+            || node.start().activation_digest()
+                != decode_digest(
+                    &row.try_get::<Vec<u8>, _>("activation_digest")
+                        .map_err(get_error)?,
+                    "child activation",
+                )?
+            || row.try_get::<Vec<u8>, _>("key_bytes").map_err(get_error)?
+                != serde_json_canonicalizer::to_vec(key)
+                    .map_err(|_| StoreError::corrupt("child key bytes"))?
+        {
+            return Err(StoreError::corrupt("child node activation"));
+        }
+        let scope = child_run_scope::historical(tx, key.parent()).await?;
+        scope
+            .validate_intent(&parent, &intent)
+            .map_err(|_| StoreError::corrupt("owned child parent scope"))?;
+        let root_graph = load_graph(tx, key.tenant_id(), parent.intent().graph()).await?;
+        let graph = load_graph(tx, key.tenant_id(), scope.checkpoint().graph()).await?;
+        if load_graph(tx, key.tenant_id(), intent.child().graph()).await? != *intent.child_graph() {
+            return Err(StoreError::corrupt("owned child graph"));
+        }
+        scope
+            .validate_policy(&root_graph, &graph, &intent)
+            .map_err(|_| StoreError::corrupt("child declaration"))?;
+        if intent.key() != key
+            || row
+                .try_get::<String, _>("parent_graph_namespace")
+                .map_err(get_error)?
+                != key.parent().graph_namespace().as_str()
+            || intent.parent_admission_digest() != parent.digest()
+            || intent.child().provenance().run_id() != child_id
+            || row.try_get::<String, _>("child_slot").map_err(get_error)? != key.slot().as_str()
+            || decode_digest(
+                &row.try_get::<Vec<u8>, _>("spawn_digest")
                     .map_err(get_error)?,
-                "owned admission digest",
-            )?
-        || spawn.head() != head
-        || spawn.source().worker_fence() != Some(node.start().fence())
-        || spawn.sequence() <= node.start().journal_head().sequence()
-        || spawn.payload().kind().as_str() != "child-run-admitted"
-        || projection
-            != Some(spawn_projection(
-                &intent,
-                child.admission(),
-                child.checkpoint(),
-                &spawn,
-            )?)
-    {
-        return Err(StoreError::corrupt("child atomic anchors"));
-    }
-    let expected_path = ancestry(tx, key.tenant_id(), key.parent_run_id()).await?;
-    let path: Vec<Uuid> = row.try_get("ancestors").map_err(get_error)?;
-    if path
-        != expected_path
-            .iter()
-            .map(|id| *id.as_uuid())
-            .collect::<Vec<_>>()
-        || row.try_get::<Uuid, _>("root_run_id").map_err(get_error)? != *expected_path[0].as_uuid()
-    {
-        return Err(StoreError::corrupt("child ancestry projection"));
-    }
-    let settled: bool = row.try_get("settled").map_err(get_error)?;
-    let pending: Option<DateTime<Utc>> = row.try_get("terminal_pending_at").map_err(get_error)?;
-    let terminal_at = query_scalar::<_, DateTime<Utc>>("SELECT journal_recorded_at FROM stateknot.child_run_terminals WHERE tenant_id=$1 AND child_run_id=$2")
-        .bind(key.tenant_id().as_str()).bind(*child_id.as_uuid()).fetch_optional(&mut **tx).await
-        .map_err(|source| StoreError::database("child notification evidence", source))?;
-    if terminal_at.is_some() != child.run().lifecycle().status().is_terminal()
-        || pending != if settled { None } else { terminal_at }
-    {
-        return Err(StoreError::corrupt("child terminal notification"));
-    }
-    let settlement_row = query("SELECT * FROM stateknot.child_run_settlements WHERE tenant_id=$1 AND parent_run_id=$2 AND key_digest=$3")
-        .bind(key.tenant_id().as_str()).bind(*key.parent_run_id().as_uuid()).bind(key.digest().as_bytes()).fetch_optional(&mut **tx).await
-        .map_err(|source| StoreError::database("child settlement load", source))?;
-    if settled != settlement_row.is_some() {
-        return Err(StoreError::corrupt("child settlement projection"));
-    }
-    let settlement = if let Some(row) = settlement_row {
-        let bytes: Vec<u8> = row.try_get("settlement_bytes").map_err(get_error)?;
-        let evidence: ChildRunBudgetSettlement = serde_json::from_slice(&bytes)
-            .map_err(|_| StoreError::corrupt("child settlement bytes"))?;
-        let digest = Digest::sha256(&bytes);
-        let expected = terminal_evidence(tx, &child).await?;
+                "child spawn digest",
+            )? != intent.spawn_digest()
+            || row
+                .try_get::<Uuid, _>("parent_checkpoint_id")
+                .map_err(get_error)?
+                != *key.parent().base_checkpoint().checkpoint_id().as_uuid()
+            || row
+                .try_get::<i64, _>("parent_checkpoint_superstep")
+                .map_err(get_error)?
+                != i64::try_from(key.parent().base_checkpoint().superstep().get())
+                    .map_err(|_| StoreError::corrupt("child base step"))?
+            || decode_digest(
+                &row.try_get::<Vec<u8>, _>("parent_checkpoint_digest")
+                    .map_err(get_error)?,
+                "child base digest",
+            )? != key.parent().base_checkpoint().digest()
+        {
+            return Err(StoreError::corrupt("child ownership projection"));
+        }
         let head = row_head(&row, key.tenant_id(), key.parent_run_id())?;
-        let (event, projection) = anchored_event(
+        let (spawn, projection) = anchored_event(
             tx,
             key.tenant_id(),
             key.parent_run_id(),
             i64::try_from(head.sequence().get())
-                .map_err(|_| StoreError::corrupt("settlement sequence"))?,
+                .map_err(|_| StoreError::corrupt("child spawn sequence"))?,
         )
         .await?;
-        if evidence != expected
-            || serde_json_canonicalizer::to_vec(&evidence)
-                .map_err(|_| StoreError::corrupt("settlement encoding"))?
-                != bytes
-            || decode_digest(
-                &row.try_get::<Vec<u8>, _>("settlement_digest")
-                    .map_err(get_error)?,
-                "child settlement checksum",
-            )? != digest
-            || row.try_get::<Uuid, _>("child_run_id").map_err(get_error)? != *child_id.as_uuid()
-            || head != event.head()
-            || projection != Some(settlement_projection(key.digest(), digest, &event)?)
-            || event.payload().kind().as_str() != "child-run-settled"
+        // Read-only callers use one repeatable-read snapshot. Mutation callers
+        // already hold the parent lock and lock the child before reading its
+        // lifecycle/terminal notification, avoiding READ COMMITTED torn evidence.
+        let child_run = if let Some(row) = locked_child {
+            decode_run(row)?
+        } else {
+            decode_run(
+                query_as::<_, RunRow>(SELECT_RUN)
+                    .bind(key.tenant_id().as_str())
+                    .bind(*child_id.as_uuid())
+                    .fetch_one(&mut **tx)
+                    .await
+                    .map_err(|source| StoreError::database("owned child run", source))?,
+            )?
+        };
+        let child_row = load_agent_admission_row(tx, key.tenant_id(), child_id)
+            .await?
+            .ok_or_else(|| StoreError::corrupt("owned child admission"))?;
+        let child = verify_stored_agent_admission(tx, child_run, child_row).await?;
+        if child.admission().intent() != intent.child()
+            || child.checkpoint().state() != intent.initial_state()
+            || child.admission().digest()
+                != decode_digest(
+                    &row.try_get::<Vec<u8>, _>("child_admission_digest")
+                        .map_err(get_error)?,
+                    "owned admission digest",
+                )?
+            || spawn.head() != head
+            || spawn.source().worker_fence() != Some(node.start().fence())
+            || spawn.sequence() <= node.start().journal_head().sequence()
+            || spawn.payload().kind().as_str() != "child-run-admitted"
+            || projection
+                != Some(spawn_projection(
+                    &intent,
+                    child.admission(),
+                    child.checkpoint(),
+                    &spawn,
+                )?)
         {
-            return Err(StoreError::corrupt("child settlement anchors"));
+            return Err(StoreError::corrupt("child atomic anchors"));
         }
-        Some(evidence)
-    } else {
-        None
-    };
-    Ok(Some(ChildRunRecord {
-        intent,
-        child,
-        spawn,
-        ancestors: expected_path,
-        settlement,
-    }))
+        let expected_path = ancestry(tx, key.tenant_id(), key.parent_run_id()).await?;
+        let path: Vec<Uuid> = row.try_get("ancestors").map_err(get_error)?;
+        if path
+            != expected_path
+                .iter()
+                .map(|id| *id.as_uuid())
+                .collect::<Vec<_>>()
+            || row.try_get::<Uuid, _>("root_run_id").map_err(get_error)?
+                != *expected_path[0].as_uuid()
+        {
+            return Err(StoreError::corrupt("child ancestry projection"));
+        }
+        let settled: bool = row.try_get("settled").map_err(get_error)?;
+        let pending: Option<DateTime<Utc>> =
+            row.try_get("terminal_pending_at").map_err(get_error)?;
+        let terminal_at = query_scalar::<_, DateTime<Utc>>("SELECT journal_recorded_at FROM stateknot.child_run_terminals WHERE tenant_id=$1 AND child_run_id=$2")
+        .bind(key.tenant_id().as_str()).bind(*child_id.as_uuid()).fetch_optional(&mut **tx).await
+        .map_err(|source| StoreError::database("child notification evidence", source))?;
+        if terminal_at.is_some() != child.run().lifecycle().status().is_terminal()
+            || pending != if settled { None } else { terminal_at }
+        {
+            return Err(StoreError::corrupt("child terminal notification"));
+        }
+        let settlement_row = query("SELECT * FROM stateknot.child_run_settlements WHERE tenant_id=$1 AND parent_run_id=$2 AND key_digest=$3")
+        .bind(key.tenant_id().as_str()).bind(*key.parent_run_id().as_uuid()).bind(key.digest().as_bytes()).fetch_optional(&mut **tx).await
+        .map_err(|source| StoreError::database("child settlement load", source))?;
+        if settled != settlement_row.is_some() {
+            return Err(StoreError::corrupt("child settlement projection"));
+        }
+        let settlement = if let Some(row) = settlement_row {
+            let bytes: Vec<u8> = row.try_get("settlement_bytes").map_err(get_error)?;
+            let evidence: ChildRunBudgetSettlement = serde_json::from_slice(&bytes)
+                .map_err(|_| StoreError::corrupt("child settlement bytes"))?;
+            let digest = Digest::sha256(&bytes);
+            let expected = terminal_evidence(tx, &child).await?;
+            let head = row_head(&row, key.tenant_id(), key.parent_run_id())?;
+            let (event, projection) = anchored_event(
+                tx,
+                key.tenant_id(),
+                key.parent_run_id(),
+                i64::try_from(head.sequence().get())
+                    .map_err(|_| StoreError::corrupt("settlement sequence"))?,
+            )
+            .await?;
+            if evidence != expected
+                || serde_json_canonicalizer::to_vec(&evidence)
+                    .map_err(|_| StoreError::corrupt("settlement encoding"))?
+                    != bytes
+                || decode_digest(
+                    &row.try_get::<Vec<u8>, _>("settlement_digest")
+                        .map_err(get_error)?,
+                    "child settlement checksum",
+                )? != digest
+                || row.try_get::<Uuid, _>("child_run_id").map_err(get_error)? != *child_id.as_uuid()
+                || head != event.head()
+                || projection != Some(settlement_projection(key.digest(), digest, &event)?)
+                || event.payload().kind().as_str() != "child-run-settled"
+            {
+                return Err(StoreError::corrupt("child settlement anchors"));
+            }
+            Some(evidence)
+        } else {
+            None
+        };
+        Ok(Some(Box::new(ChildRunRecord {
+            intent: *intent,
+            child,
+            spawn,
+            ancestors: expected_path,
+            settlement,
+        })))
+    })
 }
 
 async fn load_account(
@@ -1414,7 +1421,7 @@ pub(super) async fn load_account_inner(
         return Err(StoreError::corrupt("child budget completeness"));
     }
     for entry in account.children() {
-        let record = Box::pin(load_record_inner(tx, entry.key(), lock_children))
+        let record = load_record_inner(tx, entry.key(), lock_children)
             .await?
             .ok_or_else(|| StoreError::corrupt("child budget ownership"))?;
         if entry.spawn_digest() != record.intent.spawn_digest()

@@ -381,37 +381,42 @@ async fn verify_members(
     request: &ChildRunJoinRequest,
     lock: bool,
 ) -> Result<Option<Vec<stateknot_core::ChildRunBudgetSettlement>>, StoreError> {
-    Box::pin(verify_members_inner(tx, request, lock)).await
+    verify_members_inner(tx, request, lock).await
 }
 
-async fn verify_members_inner(
-    tx: &mut Transaction<'_, Postgres>,
-    request: &ChildRunJoinRequest,
+fn verify_members_inner<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    request: &'a ChildRunJoinRequest,
     lock: bool,
-) -> Result<Option<Vec<stateknot_core::ChildRunBudgetSettlement>>, StoreError> {
-    let a = request.activation();
-    let keys = query_scalar::<_, Vec<u8>>("SELECT key_bytes FROM stateknot.child_run_ownership WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3 ORDER BY child_slot COLLATE \"C\" LIMIT 65")
+) -> stateknot_core::BoxFuture<
+    'a,
+    Result<Option<Vec<stateknot_core::ChildRunBudgetSettlement>>, StoreError>,
+> {
+    Box::pin(async move {
+        let a = request.activation();
+        let keys = query_scalar::<_, Vec<u8>>("SELECT key_bytes FROM stateknot.child_run_ownership WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3 ORDER BY child_slot COLLATE \"C\" LIMIT 65")
         .bind(a.tenant_id().as_str()).bind(*a.run_id().as_uuid()).bind(request.activation_digest().as_bytes())
         .fetch_all(&mut **tx).await.map_err(|source| StoreError::database("child Join membership", source))?;
-    if keys.len() != request.keys().len() {
-        return Err(StoreError::ChildJoinRejected);
-    }
-    let mut terminals = Vec::new();
-    for (bytes, key) in keys.iter().zip(request.keys()) {
-        if *bytes != canonical(key)? {
+        if keys.len() != request.keys().len() {
             return Err(StoreError::ChildJoinRejected);
         }
-        let child = Box::pin(child_runs::load_record_inner(tx, key, lock))
-            .await?
-            .ok_or(StoreError::ChildRunNotFound)?;
-        if lock && child.child().run().is_quarantined() {
-            return Err(StoreError::RunQuarantined);
+        let mut terminals = Vec::new();
+        for (bytes, key) in keys.iter().zip(request.keys()) {
+            if *bytes != canonical(key)? {
+                return Err(StoreError::ChildJoinRejected);
+            }
+            let child = child_runs::load_record_inner(tx, key, lock)
+                .await?
+                .ok_or(StoreError::ChildRunNotFound)?;
+            if lock && child.child().run().is_quarantined() {
+                return Err(StoreError::RunQuarantined);
+            }
+            if let Some(terminal) = child.settlement() {
+                terminals.push(terminal.clone());
+            }
         }
-        if let Some(terminal) = child.settlement() {
-            terminals.push(terminal.clone());
-        }
-    }
-    Ok((terminals.len() == keys.len()).then_some(terminals))
+        Ok((terminals.len() == keys.len()).then_some(terminals))
+    })
 }
 
 async fn load(
