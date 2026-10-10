@@ -14,6 +14,9 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Erase the complete return/closure caller-anchor Future at the history boundary
+  so seven-level recovery retains full verification on the default thread stack.
+
 - Reject a Root checkpoint relabeled as a scoped model/tool activation before
   frame lookup, preserving existing invalid-activation errors for new requests
   and treating the same alias in stored invocation facts as corruption.

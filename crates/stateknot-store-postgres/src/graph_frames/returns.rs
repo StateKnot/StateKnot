@@ -397,7 +397,16 @@ async fn anchored_record(
 // Entry/start replay may observe a completed caller without recursively loading
 // its own terminal history. This proves only the completion's whole anchor;
 // result and return readers separately authenticate entry, terminal and usage.
-pub(super) async fn verify_completion_anchor(
+pub(super) fn verify_completion_anchor<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    attempt: &'a NodeAttempt,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(verify_completion_anchor_inner(tx, attempt))
+}
+
+// Keep the whole return/closure anchor off every ancestor's inline Future.
+// Both branches retain their original immutable component authentication.
+async fn verify_completion_anchor_inner(
     tx: &mut Transaction<'_, Postgres>,
     attempt: &NodeAttempt,
 ) -> Result<(), StoreError> {
