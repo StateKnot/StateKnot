@@ -88,7 +88,7 @@ async fn resume(
         .load_node_attempt_history_page(
             activation,
             None,
-            stateknot_store_postgres::NodeAttemptHistoryPageSize::new(8).unwrap(),
+            stateknot_store_postgres::NodeAttemptHistoryPageSize::new(2).unwrap(),
         )
         .await
         .unwrap();
