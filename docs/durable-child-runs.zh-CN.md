@@ -13,6 +13,31 @@ SPDX-License-Identifier: Apache-2.0
 [共享状态静态子图](graph-composition.zh-CN.md)。另见
 [英文说明](durable-child-runs.md)。
 
+## 实验性的帧内独立子 Run
+
+[RFC-0022](rfcs/0022-namespaced-graph-frames.md) 仍为 Draft。Core 使用完整恢复的
+`GraphFrameCheckpoint` 调用 `ChildRunAdmissionIntent::for_frame` 和
+`validate_for_frame`；Root 构造器及校验器继续拒绝 scoped 输入。准备结果不授予派发
+或实际准入权限。
+
+Store 的子准入和 Join 注册认证真实活动叶帧及其 ready 输入。Schema 预检查在同一个
+一致快照中恢复作用域，回调在写事务之外执行；写入在既有树协调锁和祖先锁下重复
+完整作用域、不可变父准入、声明目标、物理 Start、日志和有效 fence 校验。归属写入
+及读取将现有 `parent_graph_namespace` 列绑定到该确切作用域；旧 Root 记录保留空
+namespace 及原有规范编码。
+
+已准入 Root 必须具有子拓扑策略，叶帧只能收窄其三个上限；后代准入还保留每条原始
+归属边的拓扑策略。各帧共享 Root 绑定的 `ChildRunBudgetAccount`，
+`reserve_for_frame` 不创建新账户或重置生命周期计数。完整 DIRECT 排除子树消耗，
+预留和结算只计费一次。历史归属在 Return 或关闭之后仍认证原始帧 lineage；丢失
+ACK 时，原提交恢复先于新叶帧、fence 和 deadline 检查。
+
+Scoped Join 封闭该 activation 的完整子集，并原子释放 Run 租约。排他检查只排除
+完整 stack 认证的挂起 framework caller，未完成的普通 sibling 仍会阻止注册。
+已释放的原 fence 不授予执行权限。嵌套 Driver 集成、scoped 结算/发布/恢复、取消及
+失败关闭，以及最终源码的 PostgreSQL 16/17 故障验收仍须完成后才可声明 Supported；
+在集成完成前 Driver 继续拒绝可达的 scoped 子 Run 声明。
+
 ## PostgreSQL 事务存储（迁移 20）
 
 这是可信存储层构件，不是自动子 Run 协调器。调用前必须完成调用方认证，以及

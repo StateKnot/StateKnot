@@ -12,6 +12,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Prepare frame-owned isolated children with the complete scoped checkpoint and
+  reserve them in the existing Root-bound Run account. Store admission and Join
+  authenticate the actual leaf, original ownership namespace and declared
+  policy under existing locks; scoped limits only narrow Root topology. Join
+  excludes only authenticated suspended framework callers and still rejects
+  unfinished ordinary siblings. Nested Driver and full fault qualification
+  remain gated by Draft RFC-0022.
+
 ### Fixed
 
 - Decode `JournalPayload.data` and `AgentResult.output` with their constructors'

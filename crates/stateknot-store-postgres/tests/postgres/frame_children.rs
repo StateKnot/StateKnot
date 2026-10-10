@@ -460,6 +460,67 @@ async fn scoped_child_ack_recovers_before_a_released_original_fence() {
     store.close().await;
 }
 
+#[tokio::test]
+async fn scoped_child_rejects_a_self_consistent_sibling_namespace_before_writing() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let mut value = Box::pin(started(&store, "scoped-child-crossed-namespace")).await;
+    let sibling = GraphFrameCheckpoint::new(
+        stateknot_core::GraphFrameIdentity::new(
+            value.frame.frame().origin().clone(),
+            NodeId::new("forged.slot").unwrap(),
+            value.frame.checkpoint().graph().clone(),
+        )
+        .unwrap(),
+        value.frame.checkpoint().clone(),
+    )
+    .unwrap();
+    value.intent = ChildRunAdmissionIntent::for_frame(
+        value.admission.admission(),
+        &sibling,
+        ChildRunKey::new(
+            sibling
+                .activation(value.node.activation().node_id().clone())
+                .unwrap(),
+            value.intent.key().slot().clone(),
+        )
+        .unwrap(),
+        value.intent.child().clone(),
+        value.intent.child_graph().clone(),
+        value.intent.initial_state().clone(),
+    )
+    .unwrap();
+    assert!(matches!(
+        Box::pin(spawn(&store, &value)).await,
+        Err(StoreError::StaleCheckpointHead)
+    ));
+    let run = store
+        .load_run(value.fence.tenant_id(), value.fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(run.journal_head(), Some(&value.head));
+    assert_eq!(run.lease().unwrap().fence(), &value.fence);
+    assert!(
+        store
+            .load_child_budget_account(value.fence.tenant_id(), value.fence.run_id())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(matches!(
+        store
+            .load_run(
+                value.intent.child().provenance().tenant_id(),
+                value.intent.child().provenance().run_id()
+            )
+            .await,
+        Err(StoreError::RunNotFound)
+    ));
+    store.close().await;
+}
+
 fn payload(kind: &str) -> JournalPayload {
     JournalPayload::new(
         checkpoint_schema("scoped-child-event"),

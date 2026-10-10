@@ -17,6 +17,38 @@ enabled general child execution service. [RFC-0004](rfcs/0004-durable-child-runs
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
 [static shared-state composition](graph-composition.md) for the distinction.
 
+## Experimental frame-owned isolated children
+
+[RFC-0022](rfcs/0022-namespaced-graph-frames.md) remains Draft. Core preparation
+uses `ChildRunAdmissionIntent::for_frame` and `validate_for_frame` with the full
+restored `GraphFrameCheckpoint`; the Root constructor and validator continue to
+reject scoped inputs. Preparation does not grant dispatch or admission authority.
+
+The Store child admission and Join registration boundaries authenticate the
+actual active leaf and its ready input. Schema preflight uses one consistent
+snapshot and runs callbacks outside the write transaction. Admission repeats
+the full scope, immutable parent admission, declared target, physical Start,
+journal and live fence under the tree/ancestor locks. Ownership writes and reads
+bind the existing `parent_graph_namespace` column to that exact scope; Root
+records retain the empty namespace and their original canonical encoding.
+
+The admitted Root must have a child topology policy. A leaf can narrow its three
+caps, and descendant admission retains the policy of each original owning edge.
+Frames share the Root-bound `ChildRunBudgetAccount`: `reserve_for_frame` does
+not create another account or reset lifetime counts. Complete DIRECT usage
+excludes child subtrees, which reservation/settlement charge once. Historical
+ownership authenticates the original frame lineage after Return or closure;
+lost-ACK recovery precedes fresh leaf/fence/deadline checks.
+
+Scoped Join seals that activation's complete child set and releases the Run
+lease atomically. Only complete-stack authenticated suspended framework callers
+are excluded from its exclusivity check; unfinished ordinary siblings still
+block. The released original fence grants no execution authority. Nested Driver
+integration, scoped settlement/publication/resumption, cancellation/failure and
+final-source PostgreSQL 16/17 fault qualification remain required before this
+profile becomes Supported. The Driver continues to reject reachable scoped child
+declarations until that integration is complete.
+
 ## PostgreSQL transactional storage (migration 20)
 
 This is a trusted-store building block, not an automatic child coordinator.
