@@ -123,6 +123,9 @@ struct Manifest {
     admission: Option<StoredAgentAdmission>,
     bytes: usize,
     structural_edges: u64,
+    // Comparison inventory only: each transaction establishes its own proof;
+    // this callback-spanning copy never grants another Replay owning authority.
+    root_proof: root_prefix::RootProof,
 }
 
 /// Constant-memory, ordered, domain-separated, length-prefixed digest chain.
@@ -435,6 +438,7 @@ impl ClaimedRunRecovery<'_> {
             || after.frames != manifest.frames
             || after.returns != manifest.returns
             || after.bytes != manifest.bytes
+            || after.root_proof != manifest.root_proof
         {
             return Err(StoreError::corrupt(
                 "application replay immutable inventory changed",
@@ -523,7 +527,7 @@ impl ClaimedRunRecovery<'_> {
             Box::pin(recheck(self, &mut tx, expected)).await?;
             let edge = Box::pin(root_edge(&mut tx, &base, returns, limits)).await?;
             bind_edge(transcript, &base, None, &edge.successor, &edge.results)?;
-            transcript.bind(b"root-projection", &edge.projection)?;
+            Box::pin(bind_root_edge(&mut tx, &edge, transcript)).await?;
             tx.commit()
                 .await
                 .map_err(|e| StoreError::database("application replay Root edge commit", e))?;
@@ -531,17 +535,18 @@ impl ClaimedRunRecovery<'_> {
             // Authenticate the legacy compatibility boundary before comparing
             // an application successor. The generic control API could legally
             // commit another projection and did not persist its full plan.
-            if edge.projection
-                != Some(barrier_projection_digest(
-                    &RunProjection::unchanged(),
-                    edge.barrier.intent_digest(),
-                )?)
-                || edge.results.iter().any(|result| {
-                    matches!(
-                        result.intent().control().kind(),
-                        NodeControlKind::Wait | NodeControlKind::Terminal
-                    )
-                })
+            if edge.whole.is_none()
+                && (edge.projection
+                    != Some(barrier_projection_digest(
+                        &RunProjection::unchanged(),
+                        edge.barrier.intent_digest(),
+                    )?)
+                    || edge.results.iter().any(|result| {
+                        matches!(
+                            result.intent().control().kind(),
+                            NodeControlKind::Wait | NodeControlKind::Terminal
+                        )
+                    }))
             {
                 return Err(StoreError::GraphReplayHistoricalDispositionUnavailable);
             }
@@ -556,8 +561,14 @@ impl ClaimedRunRecovery<'_> {
             }))
             .map_err(|_| StoreError::GraphReplayDependencyUnavailable)?
             .map_err(|e| map_graph_replay_plan_error(&e))?;
-            if plan.disposition() != &GraphBarrierDisposition::Continue {
-                return Err(StoreError::GraphReplayHistoricalDispositionUnavailable);
+            match edge.whole.as_ref() {
+                Some(whole) if plan.disposition() != whole.disposition() => {
+                    return Err(StoreError::corrupt("application replay Root disposition"));
+                }
+                None if plan.disposition() != &GraphBarrierDisposition::Continue => {
+                    return Err(StoreError::GraphReplayHistoricalDispositionUnavailable);
+                }
+                _ => {}
             }
             if plan.barrier() != &edge.barrier
                 || !edge.successor.matches_write(plan.barrier().successor())
@@ -763,6 +774,13 @@ async fn capture(
         .await?
         .ok_or(StoreError::ReadyNodeRecoveryCheckpointMissing)?;
     let root_head = root.head();
+    // During qualification this is deliberately additive: keep the existing
+    // complete owning verifier above, then independently authenticate the same
+    // lineage using the bounded transaction-owned prefix implementation.
+    let mut root_replay = Replay::with_limits(tx, limits);
+    Box::pin(root_prefix::verify(&mut root_replay, &root)).await?;
+    let root_proof = root_replay.root_proof.clone();
+    drop(root_replay);
     let root_graph = graph(tx, tenant, root.graph()).await?;
     let graphs = closure(tx, tenant, root.graph()).await?;
     let admission = match load_agent_admission_row(tx, tenant, run).await? {
@@ -841,7 +859,7 @@ async fn capture(
     }
     let mut frames = Vec::with_capacity(inventory.len());
     let mut returned = BTreeMap::new();
-    let mut bytes = 0_usize;
+    let mut bytes = root_proof.bytes();
     let mut structural_edges = 0;
     let mut steps = root.superstep().get();
     if let Some(admission) = &admission {
@@ -1042,6 +1060,7 @@ async fn capture(
         admission,
         bytes,
         structural_edges,
+        root_proof,
     })
 }
 
@@ -1247,6 +1266,7 @@ struct RootEdge {
     results: Vec<PendingNodeResult>,
     bytes: usize,
     projection: Option<Digest>,
+    whole: Option<StoredRootGraphBarrier>,
 }
 async fn root_edge(
     tx: &mut Transaction<'_, Postgres>,
@@ -1292,12 +1312,23 @@ async fn root_edge(
     .map_err(|_| StoreError::corrupt("application replay Root committed write"))?;
     let barrier = CheckpointBarrier::new(base, write, heads.iter().cloned())
         .map_err(|_| StoreError::corrupt("application replay Root committed barrier"))?;
+    let whole = Box::pin(root_graph_barriers::authenticated_edge(
+        tx, base, &successor, &results,
+    ))
+    .await?;
+    if whole
+        .as_ref()
+        .is_some_and(|whole| whole.barrier() != &barrier)
+    {
+        return Err(StoreError::corrupt("application replay Root whole barrier"));
+    }
     Ok(RootEdge {
         barrier,
         successor,
         results,
         bytes,
         projection,
+        whole,
     })
 }
 
@@ -1332,9 +1363,47 @@ async fn bind_waits(
     if barrier.disposition().waits().is_none() {
         return Ok(());
     }
-    // Hash complete status/terminal projections server-side, retaining compact
-    // digests only. Same server/canonical encoding is used in all three passes.
-    let digests = query_as::<_, (Uuid, Vec<u8>)>("SELECT wait_id,sha256(convert_to(row_to_json(w)::text,'UTF8')) FROM stateknot.run_wait_registrations w WHERE tenant_id=$1 AND run_id=$2 AND registration_sequence=$3 ORDER BY wait_id").bind(barrier.event().tenant_id().as_str()).bind(*barrier.event().run_id().as_uuid()).bind(i64::try_from(barrier.event().sequence().get()).map_err(|_| StoreError::GraphReplayResourceLimit)?).fetch_all(&mut **tx).await.map_err(|e| StoreError::database("application replay wait transcript", e))?;
+    bind_wait_event(tx, barrier.event(), transcript).await
+}
+
+async fn bind_root_edge(
+    tx: &mut Transaction<'_, Postgres>,
+    edge: &RootEdge,
+    transcript: &mut Transcript,
+) -> Result<(), StoreError> {
+    transcript.bind(b"root-projection", &edge.projection)?;
+    let Some(whole) = edge.whole.as_ref() else {
+        return Ok(());
+    };
+    transcript.bind(
+        b"root-whole-disposition",
+        &(
+            whole.digest(),
+            whole.source_journal(),
+            whole.original_projection_digest(),
+            Digest::sha256(encode_lifecycle(whole.original_lifecycle())?),
+            Digest::sha256(encode_lifecycle(whole.committed_lifecycle())?),
+        ),
+    )?;
+    if !whole.waits().is_empty() {
+        bind_wait_event(tx, whole.event(), transcript).await?;
+    }
+    Ok(())
+}
+
+async fn bind_wait_event(
+    tx: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+    transcript: &mut Transcript,
+) -> Result<(), StoreError> {
+    // Bind complete status/terminal rows with deterministic timestamp rendering.
+    // Pool reconnection may change session GUCs between capture and final read;
+    // these transaction-local settings cannot change any durable Wait fact.
+    query("SELECT set_config('TimeZone','UTC',true),set_config('DateStyle','ISO,YMD',true)")
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| StoreError::database("application replay wait canonical settings", e))?;
+    let digests = query_as::<_, (Uuid, Vec<u8>)>("SELECT wait_id,sha256(convert_to(row_to_json(w)::text,'UTF8')) FROM stateknot.run_wait_registrations w WHERE tenant_id=$1 AND run_id=$2 AND registration_sequence=$3 ORDER BY wait_id").bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid()).bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::GraphReplayResourceLimit)?).fetch_all(&mut **tx).await.map_err(|e| StoreError::database("application replay wait transcript", e))?;
     for (id, digest) in digests {
         transcript.bind(
             b"wait-terminal",
@@ -1442,7 +1511,7 @@ async fn capture_transcript(
     while base.head() != manifest.root_head {
         let edge = Box::pin(root_edge(tx, &base, &manifest.returns, limits)).await?;
         bind_edge(&mut transcript, &base, None, &edge.successor, &edge.results)?;
-        transcript.bind(b"root-projection", &edge.projection)?;
+        Box::pin(bind_root_edge(tx, &edge, &mut transcript)).await?;
         base = edge.successor;
         if base.superstep() > manifest.root_head.superstep() {
             return Err(StoreError::corrupt(
@@ -1451,4 +1520,58 @@ async fn capture_transcript(
         }
     }
     Ok(transcript)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Independently generated business evidence is read without changing any
+    // durable wait, journal, lifecycle, or lease projection.
+    #[tokio::test]
+    #[ignore = "requires an independently generated real Root Wait corpus"]
+    async fn complete_wait_transcript_is_independent_of_connection_time_zone() {
+        let url = std::env::var("STATEKNOT_TEST_DATABASE_URL").expect("explicit corpus URL");
+        let pool = sqlx_postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&url)
+            .await
+            .unwrap();
+        let mut tx = pool.begin().await.unwrap();
+        let row = query_as::<_, (String, Uuid, i64)>("SELECT tenant_id,run_id,registration_sequence FROM stateknot.run_wait_registrations ORDER BY tenant_id,run_id,registration_sequence LIMIT 1")
+            .fetch_one(&mut *tx).await.unwrap();
+        let tenant = TenantId::try_from(row.0).unwrap();
+        let run = RunId::from_uuid(row.1).unwrap();
+        let (event, _) = child_runs::anchored_event(&mut tx, &tenant, run, row.2)
+            .await
+            .unwrap();
+        let mut original = Transcript::new();
+        query("SET LOCAL TIME ZONE 'UTC'")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+        bind_wait_event(&mut tx, &event, &mut original)
+            .await
+            .unwrap();
+        assert_eq!(original.waits, 1);
+        let mut changed = Transcript::new();
+        query("SET LOCAL TIME ZONE '+09:00'")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+        query("SET LOCAL DateStyle TO 'SQL, DMY'")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+        bind_wait_event(&mut tx, &event, &mut changed)
+            .await
+            .unwrap();
+        // Roll back the connection settings before reporting a failure.
+        tx.rollback().await.unwrap();
+        pool.close().await;
+        assert_eq!(
+            original, changed,
+            "equal durable Wait facts across connection settings"
+        );
+    }
 }

@@ -26,6 +26,7 @@ pub(super) struct Replay<'borrow, 'connection> {
     visiting_returns: std::collections::BTreeSet<(TenantId, RunId, u64)>,
     limits: GraphReplayLimits,
     edge_visits: u64,
+    pub(super) root_proof: root_prefix::RootProof,
 }
 impl<'borrow, 'connection> Replay<'borrow, 'connection> {
     pub(super) fn new(tx: &'borrow mut Transaction<'connection, Postgres>) -> Self {
@@ -42,6 +43,7 @@ impl<'borrow, 'connection> Replay<'borrow, 'connection> {
             visiting_returns: std::collections::BTreeSet::new(),
             limits,
             edge_visits: 0,
+            root_proof: root_prefix::RootProof::default(),
         }
     }
     pub(super) const fn limits(&self) -> GraphReplayLimits {

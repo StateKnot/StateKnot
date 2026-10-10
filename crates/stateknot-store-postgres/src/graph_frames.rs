@@ -44,6 +44,8 @@ mod replay;
 use replay::Replay;
 #[path = "graph_frames/application_replay.rs"]
 mod application_replay;
+#[path = "graph_frames/root_prefix.rs"]
+mod root_prefix;
 pub use application_replay::GraphRecoveryReplayReport;
 #[path = "graph_frames/returns.rs"]
 mod returns;

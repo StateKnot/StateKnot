@@ -31,12 +31,19 @@ schema 实现必须遵守固定摘要契约，reducer 必须确定、无副作�
 应用规划使用实际已提交 successor ID，比较完整 scoped 屏障、Disposition、
 successor 和父返回意图；仅状态摘要一致不能通过。
 
+Schema-34 的完整 Root bundle 认证原 lifecycle、source journal、投影及完整
+Disposition。同一应用重放比较部署计划的完整 Disposition 与 successor，
+capture、application、final 三轮均绑定完整 bundle 及已解决/放弃的 Wait 行。
+Wait transcript 在事务内固定 UTC 与 ISO/YMD，连接设置不会改变相同持久事实
+的摘要。新格式事件缺少 bundle 属于腐败；新格式不会补造合法旧记录未保存的
+原 revision 或 Disposition。
+
 旧 Root Continue 可认证完整屏障意图与精确 `Unchanged` 生命周期投影。
 旧 generic Root writer 没有持久化原生命周期 revision 与完整 Disposition。
 因此旧 Root Wait/Terminal，以及合法地使用其他 generic 生命周期投影的 Continue，
 返回 `GraphReplayHistoricalDispositionUnavailable`。这是运行时兼容缺口：
-不得捏造 revision、隔离合法旧记录或返回完整重放报告。认证这些历史需要新增完整
-Root disposition bundle，并完成迁移及真实旧业务升级验收。
+不得捏造 revision、隔离合法旧记录或返回完整重放报告。只有真实留存的完整原事实
+才能认证这些历史；升级 schema 不能恢复当时未保存的原 revision。
 
 `GraphRecoveryReplayReport::root_report()` 返回现有的 Copy
 `GraphReplayReport`，四个计数均来自同一次 Root 重放，不包含 scoped 帧。
@@ -48,6 +55,10 @@ capture 与 final 各自在一个 repeatable-read 事务中维护完整结构证
 缓存不能跨事务。应用阶段每条边只在新事务中认证直接组件，提交事务后才执行
 解析器、schema 和 reducer。完整 owning 证明仍可能重新遍历 Root 检查点祖先，
 尤其是 schema-34 Root bundle；总遍历复杂度尚未完成资格验收。
+当前有界、事务内完整 Root 前缀证明是额外校验；原完整 initial 与 owning edge
+路径全部保留。跨 callback 复制的紧凑 inventory 只作 transcript 相等对照，
+不授予其他事务 owning authority。真实新 bundle 与旧 generic corpus、腐败反例
+的等价对照不能代替原路径替换审批。
 固定内存、独立 domain、长度前缀的摘要 transcript 绑定 capture、application、
 final 三轮中所有组件的精确 head 与摘要。
 

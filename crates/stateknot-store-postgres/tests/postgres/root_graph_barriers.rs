@@ -1037,6 +1037,25 @@ async fn root_timer_resume_keeps_original_wait_bundle_and_complete_replay() {
     .await
     .unwrap();
     assert_eq!(report.barriers_replayed(), 1);
+    let reducer = IntegrationGraphReducer {
+        reference: graph.reducer().clone(),
+    };
+    let whole = recovery
+        .validate_graph_replay(
+            None,
+            &AcceptGraphSchemas,
+            |_| Some(&reducer as &dyn GraphReducer),
+            GraphReplayLimits::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(whole.root_report(), report);
+    assert_eq!(whole.root_checkpoints_validated(), 2);
+    assert_eq!(whole.waits_validated(), 1);
+    assert_eq!(whole.frames_validated(), 0);
+    assert_eq!(whole.barriers_replayed(), 1);
+    assert_eq!(whole.results_replayed(), 1);
+    assert_eq!(whole.journal_head(), current.journal_head().unwrap());
     let loaded = store
         .load_root_graph_barrier(&admission.checkpoint().head())
         .await

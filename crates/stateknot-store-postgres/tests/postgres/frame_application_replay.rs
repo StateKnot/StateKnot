@@ -1977,6 +1977,7 @@ async fn accumulating_replay_barrier(
 async fn siblings_before_warm_seven(
     store: &PostgresStore,
     name: &str,
+    whole_root: bool,
 ) -> (Vec<CompiledGraph>, RunFence, GraphFrameCheckpoint) {
     use stateknot_core::{ExecutionCount, GraphFrameEntryPlan};
     let (_, terminal, _) = super::frame_transactions::graphs();
@@ -2011,6 +2012,9 @@ async fn siblings_before_warm_seven(
     let mut root_base = admission.checkpoint().clone();
     let mut usage = super::frame_transactions::initial_usage(&admission);
     for index in 0..2 {
+        if whole_root {
+            eprintln!("Root34 fixture sibling {index}: enter");
+        }
         replay_renew(store, &fence).await;
         let call = root
             .frame_calls()
@@ -2088,6 +2092,9 @@ async fn siblings_before_warm_seven(
         else {
             panic!("fresh sibling return");
         };
+        if whole_root {
+            eprintln!("Root34 fixture sibling {index}: returned");
+        }
         let root_plan = root
             .plan_barrier(
                 &root_base,
@@ -2097,21 +2104,62 @@ async fn siblings_before_warm_seven(
                 &AccumulatingReplayReducer::new(&root, false),
             )
             .unwrap();
-        let advanced = store
-            .append_worker_barrier(
-                worker_append(
+        let (advanced_event, advanced_checkpoint) = if whole_root {
+            eprintln!("Root34 fixture sibling {index}: prepare Root");
+            let original = store.load_run(&tenant, run).await.unwrap();
+            let event = EventId::generate();
+            let intent = stateknot_store_postgres::RootGraphBarrierIntent::new(
+                root_plan,
+                original.lifecycle().clone(),
+                event,
+                None,
+            )
+            .unwrap();
+            let append = JournalAppend::new(
+                JournalExpectation::exact(returned.event().head()),
+                JournalEventIntent::worker(
                     tenant.clone(),
                     run,
-                    EventId::generate(),
-                    JournalExpectation::exact(returned.event().head()),
+                    event,
                     fence.clone(),
-                    28_080 + index,
-                ),
-                RunProjection::unchanged(),
-                root_plan.barrier().clone(),
+                    intent.payload().unwrap(),
+                )
+                .unwrap(),
             )
-            .await
             .unwrap();
+            let stateknot_store_postgres::RootGraphBarrierCommitOutcome::Committed(advanced) =
+                store
+                    .append_worker_graph_barrier(
+                        append,
+                        intent,
+                        &AcceptGraphSchemas,
+                        &AccumulatingReplayReducer::new(&root, false),
+                    )
+                    .await
+                    .unwrap()
+            else {
+                panic!("fresh Root whole sibling barrier");
+            };
+            eprintln!("Root34 fixture sibling {index}: committed Root");
+            (advanced.event().clone(), advanced.checkpoint().clone())
+        } else {
+            let advanced = store
+                .append_worker_barrier(
+                    worker_append(
+                        tenant.clone(),
+                        run,
+                        EventId::generate(),
+                        JournalExpectation::exact(returned.event().head()),
+                        fence.clone(),
+                        28_080 + index,
+                    ),
+                    RunProjection::unchanged(),
+                    root_plan.barrier().clone(),
+                )
+                .await
+                .unwrap();
+            (advanced.event().clone(), advanced.checkpoint().clone())
+        };
         usage = returned
             .direct_usage_after()
             .unwrap()
@@ -2120,7 +2168,7 @@ async fn siblings_before_warm_seven(
                     .graph_steps(ExecutionCount::new(1))
                     .event_bytes(ByteCount::new(
                         u64::try_from(
-                            serde_json_canonicalizer::to_vec(advanced.event())
+                            serde_json_canonicalizer::to_vec(&advanced_event)
                                 .unwrap()
                                 .len(),
                         )
@@ -2128,7 +2176,7 @@ async fn siblings_before_warm_seven(
                     ))
                     .checkpoint_bytes(ByteCount::new(
                         u64::try_from(
-                            serde_json_canonicalizer::to_vec(advanced.checkpoint())
+                            serde_json_canonicalizer::to_vec(&advanced_checkpoint)
                                 .unwrap()
                                 .len(),
                         )
@@ -2138,12 +2186,15 @@ async fn siblings_before_warm_seven(
                     .unwrap(),
             )
             .unwrap();
-        root_base = advanced.checkpoint().clone();
+        root_base = advanced_checkpoint;
     }
     assert_eq!(root_base.superstep().get(), 2);
     assert_eq!(root_base.state().data().as_value()["count"], 21);
     let mut previous: Option<GraphFrameCheckpoint> = None;
     for (level, target) in chain.iter().enumerate() {
+        if whole_root {
+            eprintln!("Root34 fixture warm level {level}: enter");
+        }
         replay_renew(store, &fence).await;
         let (parent, call) = if level == 0 {
             (
@@ -2240,6 +2291,7 @@ async fn sequential_returned_siblings_and_seven_noninitial_suspended_parents_are
         let (definitions, fence, leaf) = Box::pin(siblings_before_warm_seven(
             &store,
             &format!("application-replay-siblings-warm-{mode}"),
+            false,
         ))
         .await;
         let journal_before = store
@@ -2308,5 +2360,55 @@ async fn sequential_returned_siblings_and_seven_noninitial_suspended_parents_are
             );
         }
     }
+    store.close().await;
+}
+
+#[tokio::test]
+async fn whole_root_returned_siblings_preserve_complete_application_replay() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let (definitions, fence, leaf) = Box::pin(siblings_before_warm_seven(
+        &store,
+        "application-replay-whole-root-siblings",
+        true,
+    ))
+    .await;
+    eprintln!("Root34 fixture: seven levels built, begin whole replay");
+    let reducers: Vec<_> = definitions
+        .iter()
+        .map(|graph| AccumulatingReplayReducer::new(graph, false))
+        .collect();
+    let report = recovery(&store, &fence)
+        .await
+        .validate_graph_replay(
+            Some(&leaf.head()),
+            &AcceptGraphSchemas,
+            |reference| {
+                definitions
+                    .iter()
+                    .position(|graph| graph.reference() == *reference)
+                    .map(|index| &reducers[index] as &dyn GraphReducer)
+            },
+            GraphReplayLimits::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.root_checkpoints_validated(), 3);
+    assert_eq!(report.root_report().barriers_replayed(), 2);
+    assert_eq!(report.root_report().results_replayed(), 2);
+    assert_eq!(report.frames_validated(), 9);
+    assert_eq!(report.returns_validated(), 2);
+    assert_eq!(report.frame_checkpoints_validated(), 17);
+    assert_eq!(report.barriers_replayed(), 10);
+    assert_eq!(report.results_replayed(), 10);
+    assert_eq!(
+        reducers
+            .iter()
+            .map(|reducer| reducer.calls.load(Ordering::SeqCst))
+            .sum::<usize>(),
+        10
+    );
     store.close().await;
 }

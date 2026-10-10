@@ -43,15 +43,23 @@ return. Application callbacks receive the actual committed successor ID. Store
 compares the full scoped barrier, disposition, successor and parent return
 intent; a matching state digest alone is insufficient.
 
+Schema-34 complete Root bundles authenticate the original lifecycle, source
+journal, projection and full disposition. The same application pass compares
+the deployed plan's complete disposition and successor; capture, application
+and final reads bind the full bundle and resolved/abandoned Wait rows. Wait
+transcript rendering uses transaction-local UTC and ISO/YMD settings, so pool
+connection settings cannot change an otherwise identical durable transcript.
+New-format events missing their bundle are corruption. Creating a new bundle
+format does not reconstruct dispositions absent from valid older records.
+
 Legacy Root Continue edges can authenticate the exact `Unchanged` lifecycle
 projection plus the complete barrier intent. Existing generic Root writers did
 not persist the original lifecycle revision and full disposition. Legacy Root
 Wait/Terminal, or a Continue edge with another valid generic lifecycle
 projection, therefore returns `GraphReplayHistoricalDispositionUnavailable`.
 This is an operational compatibility gap: Store does not invent a revision,
-quarantine valid legacy history, or return a complete replay report. A durable
-Root disposition bundle and migration/old-business upgrade qualification are
-required to authenticate those histories.
+quarantine valid legacy history, or return a complete replay report. Only durably retained complete original evidence can authenticate such a
+history; upgrading the schema does not invent the missing original revision.
 
 `GraphRecoveryReplayReport::root_report()` returns the existing Copy
 `GraphReplayReport` measured during the same Root pass. Its checkpoint, barrier,
@@ -65,7 +73,12 @@ cache. That cache cannot cross a transaction boundary. Each intervening
 application edge is authenticated directly in a fresh transaction; Store closes
 it before invoking the resolver, schemas or reducer. Complete owning proofs can
 still revisit Root checkpoint ancestors, particularly with schema-34 Root
-bundles. Total traversal complexity is not yet qualified. A constant-memory,
+bundles. Total traversal complexity is not yet qualified. A bounded, transaction-owned complete
+Root-prefix proof is currently additive: the original complete initial and
+owning edge paths still execute. Its cloned compact inventory only participates
+in transcript equality across callbacks; it never grants another transaction
+owning authority. Actual new-bundle and legacy generic corpus/corruption
+comparisons do not authorize replacing those original paths. A constant-memory,
 domain-separated, length-prefixed digest transcript binds all exact component
 heads and digests across capture, application and final reads.
 
