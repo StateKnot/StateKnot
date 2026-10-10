@@ -1019,58 +1019,60 @@ async fn local_record(
 
 // Public/component reads authenticate every new-format ancestor with an
 // iterative walk. The application pass uses authenticated_edge once per edge.
-pub(super) async fn verify_checkpoint(
-    tx: &mut Transaction<'_, Postgres>,
-    checkpoint_value: &Checkpoint,
-) -> Result<(), StoreError> {
-    let mut current = checkpoint_value.clone();
-    loop {
-        let (event, _) = child_runs::anchored_event(
-            tx,
-            current.tenant_id(),
-            current.run_id(),
-            i64::try_from(current.journal_head().sequence().get())
-                .map_err(|_| StoreError::corrupt("Root checkpoint sequence"))?,
-        )
-        .await?;
-        if event.head() != *current.journal_head()
-            || event.payload().kind().as_str() == GraphFrameEntryPlan::EVENT_KIND
-        {
-            return Err(StoreError::corrupt("Root checkpoint journal anchor"));
-        }
-        let Some(parent) = current.parent().cloned() else {
-            if event.payload().kind().as_str() == EVENT_KIND
-                || current.superstep() != Superstep::INITIAL
+pub(super) fn verify_checkpoint<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    checkpoint_value: &'a Checkpoint,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        let mut current = checkpoint_value.clone();
+        loop {
+            let (event, _) = child_runs::anchored_event(
+                tx,
+                current.tenant_id(),
+                current.run_id(),
+                i64::try_from(current.journal_head().sequence().get())
+                    .map_err(|_| StoreError::corrupt("Root checkpoint sequence"))?,
+            )
+            .await?;
+            if event.head() != *current.journal_head()
+                || event.payload().kind().as_str() == GraphFrameEntryPlan::EVENT_KIND
+            {
+                return Err(StoreError::corrupt("Root checkpoint journal anchor"));
+            }
+            let Some(parent) = current.parent().cloned() else {
+                if event.payload().kind().as_str() == EVENT_KIND
+                    || current.superstep() != Superstep::INITIAL
+                {
+                    return Err(StoreError::corrupt("Root barrier parent"));
+                }
+                return Ok(());
+            };
+            let base = checkpoint(
+                tx,
+                parent.tenant_id(),
+                parent.run_id(),
+                parent.checkpoint_id(),
+            )
+            .await?;
+            if base.head() != parent
+                || base.superstep().get().checked_add(1) != Some(current.superstep().get())
+                || base.journal_head().sequence() >= current.journal_head().sequence()
             {
                 return Err(StoreError::corrupt("Root barrier parent"));
             }
-            return Ok(());
-        };
-        let base = checkpoint(
-            tx,
-            parent.tenant_id(),
-            parent.run_id(),
-            parent.checkpoint_id(),
-        )
-        .await?;
-        if base.head() != parent
-            || base.superstep().get().checked_add(1) != Some(current.superstep().get())
-            || base.journal_head().sequence() >= current.journal_head().sequence()
-        {
-            return Err(StoreError::corrupt("Root barrier parent"));
+            if event.payload().kind().as_str() == EVENT_KIND {
+                let results = Box::pin(results(tx, &base)).await?;
+                Box::pin(authenticated_edge(tx, &base, &current, &results))
+                    .await?
+                    .ok_or_else(|| StoreError::corrupt("Root barrier missing bundle"))?;
+            } else if row(tx, &base.head()).await?.is_some() {
+                return Err(StoreError::corrupt(
+                    "Root barrier legacy event contradiction",
+                ));
+            }
+            current = base;
         }
-        if event.payload().kind().as_str() == EVENT_KIND {
-            let results = Box::pin(results(tx, &base)).await?;
-            Box::pin(authenticated_edge(tx, &base, &current, &results))
-                .await?
-                .ok_or_else(|| StoreError::corrupt("Root barrier missing bundle"))?;
-        } else if row(tx, &base.head()).await?.is_some() {
-            return Err(StoreError::corrupt(
-                "Root barrier legacy event contradiction",
-            ));
-        }
-        current = base;
-    }
+    })
 }
 
 impl PostgresStore {

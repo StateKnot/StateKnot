@@ -6756,30 +6756,40 @@ WHERE tenant_id = $1
         &self,
         fence: &RunFence,
     ) -> Result<LiveLeaseObservation, StoreError> {
-        let mut transaction = self.begin_repeatable_read("live lease observation").await?;
-        let row = query_as::<_, RunRow>(SELECT_RUN)
-            .bind(fence.tenant_id().as_str())
-            .bind(*fence.run_id().as_uuid())
-            .fetch_optional(&mut *transaction)
-            .await
-            .map_err(|source| StoreError::database("live lease observation load", source))?
-            .ok_or(StoreError::RunNotFound)?;
-        let stored = decode_run(row)?;
-        if stored.lifecycle().provenance().tenant_id() != fence.tenant_id()
-            || stored.lifecycle().provenance().run_id() != fence.run_id()
-        {
-            return Err(StoreError::corrupt("live lease observation scope"));
-        }
-        verify_current_wait_set(&mut transaction, &stored).await?;
-        validate_runnable(&stored)?;
-        let observed_at = database_now(&mut transaction, "live lease observation clock").await?;
-        authorize_worker(&stored, fence, observed_at)?;
-        let lease = stored.lease().cloned().ok_or(StoreError::NoActiveLease)?;
-        transaction
-            .commit()
-            .await
-            .map_err(|source| StoreError::database("live lease observation commit", source))?;
-        Ok(LiveLeaseObservation { lease, observed_at })
+        self.observe_live_lease_inner(fence).await
+    }
+
+    fn observe_live_lease_inner<'a>(
+        &'a self,
+        fence: &'a RunFence,
+    ) -> stateknot_core::BoxFuture<'a, Result<LiveLeaseObservation, StoreError>> {
+        Box::pin(async move {
+            let mut transaction = self.begin_repeatable_read("live lease observation").await?;
+            let row = query_as::<_, RunRow>(SELECT_RUN)
+                .bind(fence.tenant_id().as_str())
+                .bind(*fence.run_id().as_uuid())
+                .fetch_optional(&mut *transaction)
+                .await
+                .map_err(|source| StoreError::database("live lease observation load", source))?
+                .ok_or(StoreError::RunNotFound)?;
+            let stored = decode_run(row)?;
+            if stored.lifecycle().provenance().tenant_id() != fence.tenant_id()
+                || stored.lifecycle().provenance().run_id() != fence.run_id()
+            {
+                return Err(StoreError::corrupt("live lease observation scope"));
+            }
+            verify_current_wait_set(&mut transaction, &stored).await?;
+            validate_runnable(&stored)?;
+            let observed_at =
+                database_now(&mut transaction, "live lease observation clock").await?;
+            authorize_worker(&stored, fence, observed_at)?;
+            let lease = stored.lease().cloned().ok_or(StoreError::NoActiveLease)?;
+            transaction
+                .commit()
+                .await
+                .map_err(|source| StoreError::database("live lease observation commit", source))?;
+            Ok(LiveLeaseObservation { lease, observed_at })
+        })
     }
 
     /// Releases an active lease under its exact fence, retaining the issued epoch.
