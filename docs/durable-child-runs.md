@@ -31,6 +31,10 @@ the full scope, immutable parent admission, declared target, physical Start,
 journal and live fence under the tree/ancestor locks. Ownership writes and reads
 bind the existing `parent_graph_namespace` column to that exact scope; Root
 records retain the empty namespace and their original canonical encoding.
+Fresh admission flushes deferred component constraints and rechecks the original
+live worker, parent/child deadlines and reservation capacity after full ownership
+reads. A lease expiring during those guards rolls back the child, ownership,
+budget reservation and parent journal together.
 
 The admitted Root must have a child topology policy. A leaf can narrow its three
 caps, and descendant admission retains the policy of each original owning edge.
@@ -43,8 +47,12 @@ lost-ACK recovery precedes fresh leaf/fence/deadline checks.
 Scoped Join seals that activation's complete child set and releases the Run
 lease atomically. Only complete-stack authenticated suspended framework callers
 are excluded from its exclusivity check; unfinished ordinary siblings still
-block. The released original fence grants no execution authority. Nested Driver
-integration, scoped settlement/publication/resumption, cancellation/failure and
+block. Publication requires actual settled child terminals. A higher-fence scoped
+attempt consumes that exact published Join in its immutable result; publication
+and consumption retries retain the original identities and charge each child
+once. Historical child and Join reads remain valid after the frame returns.
+The released original fence grants no execution authority. Nested Driver
+integration, cancellation/failure and
 final-source PostgreSQL 16/17 fault qualification remain required before this
 profile becomes Supported. The Driver continues to reject reachable scoped child
 declarations until that integration is complete.

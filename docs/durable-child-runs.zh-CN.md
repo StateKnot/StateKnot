@@ -25,6 +25,9 @@ Store 的子准入和 Join 注册认证真实活动叶帧及其 ready 输入。S
 完整作用域、不可变父准入、声明目标、物理 Start、日志和有效 fence 校验。归属写入
 及读取将现有 `parent_graph_namespace` 列绑定到该确切作用域；旧 Root 记录保留空
 namespace 及原有规范编码。
+新准入在完整归属读取之后先执行延迟组件约束，再复核原有效 Worker、父/子
+截止时间和预留容量。约束校验期间租约过期时，子 Run、归属、预算预留和父日志
+一起回滚。
 
 已准入 Root 必须具有子拓扑策略，叶帧只能收窄其三个上限；后代准入还保留每条原始
 归属边的拓扑策略。各帧共享 Root 绑定的 `ChildRunBudgetAccount`，
@@ -34,7 +37,9 @@ ACK 时，原提交恢复先于新叶帧、fence 和 deadline 检查。
 
 Scoped Join 封闭该 activation 的完整子集，并原子释放 Run 租约。排他检查只排除
 完整 stack 认证的挂起 framework caller，未完成的普通 sibling 仍会阻止注册。
-已释放的原 fence 不授予执行权限。嵌套 Driver 集成、scoped 结算/发布/恢复、取消及
+发布要求真实的子 Run 终态结算；新 fence 下的 scoped 物理尝试必须将该精确 Join
+绑定到不可变结果。发布和消费重试保留原身份，子树只结算一次；帧返回后仍能读取
+原子 Run 归属及 Join。已释放的原 fence 不授予执行权限。嵌套 Driver 集成、取消及
 失败关闭，以及最终源码的 PostgreSQL 16/17 故障验收仍须完成后才可声明 Supported；
 在集成完成前 Driver 继续拒绝可达的 scoped 子 Run 声明。
 

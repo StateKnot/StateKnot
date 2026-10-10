@@ -24,6 +24,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Flush deferred child-admission guards before the final original-worker,
+  parent/child deadline and reservation checks. A lease expiring during those
+  guards now rolls back fresh child admission and its complete parent/account
+  projections. Existing logical-key ACK recovery still precedes fresh checks.
+
 - Decode `JournalPayload.data` and `AgentResult.output` with their constructors'
   existing maximum JSON profile. Constructor-accepted large values now survive
   recovery; complete journal envelopes, streaming bounds, result provenance and
