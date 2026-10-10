@@ -1243,6 +1243,14 @@ async fn scoped_retry_seven_level_noninitial_leaf_preserves_ancestry_and_root() 
 }
 
 async fn root_deferred(store: &PostgresStore, name: &str) -> ReadyNodeRecoveryPlan {
+    Box::pin(root_deferred_with_delay(store, name, 2_000)).await
+}
+
+async fn root_deferred_with_delay(
+    store: &PostgresStore,
+    name: &str,
+    delay: i64,
+) -> ReadyNodeRecoveryPlan {
     let tenant = tenant(name);
     let run = RunId::generate();
     let checkpoint = Box::pin(start_run_with_checkpoint(store, &tenant, run, 24_100)).await;
@@ -1279,7 +1287,7 @@ async fn root_deferred(store: &PostgresStore, name: &str) -> ReadyNodeRecoveryPl
         FailureOrigin::new("graph.integration").unwrap(),
         FailureMessage::new("The original Root scheduler shares final time validation.").unwrap(),
         RetryAdvice::SafeAfter {
-            delay: DurationMillis::new(2_000).unwrap(),
+            delay: DurationMillis::new(delay).unwrap(),
         },
     )
     .unwrap()
@@ -1364,6 +1372,566 @@ async fn root_and_scoped_retry_share_final_trigger_clock_without_crossed_authori
     .await
     .unwrap();
     assert_eq!(before, after);
+    store.verify_schema().await.unwrap();
+    db.close().await;
+    store.close().await;
+}
+
+#[tokio::test]
+async fn root_retry_rejects_fabricated_safe_after_from_public_planner() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let real = Box::pin(root_deferred(&store, "root-retry-fabricated-safe-after")).await;
+    let history = store
+        .load_node_attempt_history_page(
+            real.nodes()[0].activation(),
+            None,
+            NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX).unwrap(),
+        )
+        .await
+        .unwrap();
+    let attempt = &history.records()[0];
+    let head = attempt.completion().unwrap().journal_head();
+    let forged_failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::DependencyUnavailable,
+        FailureCode::new("node.forged_root_delay").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("A public planner cannot replace the actual retry delay.").unwrap(),
+        RetryAdvice::SafeAfter {
+            delay: DurationMillis::new(3_600_000).unwrap(),
+        },
+    )
+    .unwrap()
+    .with_caused_by_event(head.event_id());
+    let completion = stateknot_core::NodeAttemptCompletion::fail(
+        attempt.start(),
+        forged_failure,
+        BudgetUsage::zero(),
+        head.clone(),
+    )
+    .unwrap();
+    let forged_attempt =
+        stateknot_core::NodeAttempt::restore(attempt.start().clone(), Some(completion)).unwrap();
+    let mut planner =
+        ReadyNodeRecoveryPlanner::new(real.checkpoint().clone(), real.fence().clone()).unwrap();
+    planner.observe_attempt(&forged_attempt).unwrap();
+    let forged = planner
+        .finish(real.journal_head().clone(), real.observed_at())
+        .unwrap();
+    let db = pool().await;
+    let before: String = query_scalar(
+        "SELECT to_jsonb(r)::text FROM stateknot.runs r WHERE tenant_id=$1 AND run_id=$2",
+    )
+    .bind(real.fence().tenant_id().as_str())
+    .bind(*real.fence().run_id().as_uuid())
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    let outcome = store.schedule_delayed_retry_wakeup(&forged).await;
+    assert!(
+        matches!(outcome, Err(StoreError::InvalidDelayedRetryPlan)),
+        "{outcome:?}"
+    );
+    let after: String = query_scalar(
+        "SELECT to_jsonb(r)::text FROM stateknot.runs r WHERE tenant_id=$1 AND run_id=$2",
+    )
+    .bind(real.fence().tenant_id().as_str())
+    .bind(*real.fence().run_id().as_uuid())
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert_eq!(before, after);
+    assert!(
+        !store
+            .load_run(real.fence().tenant_id(), real.fence().run_id())
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+    db.close().await;
+    store.close().await;
+}
+
+async fn root_snapshot(db: &PgPool, fence: &RunFence) -> (String, Vec<i64>) {
+    let run = query_scalar(
+        "SELECT to_jsonb(r)::text FROM stateknot.runs r WHERE tenant_id=$1 AND run_id=$2",
+    )
+    .bind(fence.tenant_id().as_str())
+    .bind(*fence.run_id().as_uuid())
+    .fetch_one(db)
+    .await
+    .unwrap();
+    let mut counts = Vec::new();
+    for table in [
+        "run_events",
+        "run_checkpoints",
+        "node_attempts",
+        "node_attempt_completions",
+        "pending_node_results",
+        "run_attempt_claims",
+    ] {
+        counts.push(
+            query_scalar(&format!(
+                "SELECT count(*) FROM stateknot.{table} WHERE tenant_id=$1 AND run_id=$2"
+            ))
+            .bind(fence.tenant_id().as_str())
+            .bind(*fence.run_id().as_uuid())
+            .fetch_one(db)
+            .await
+            .unwrap(),
+        );
+    }
+    (run, counts)
+}
+
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn root_retry_rejects_fabricated_completed_sibling_and_reconciliation() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let tenant = tenant("root-retry-fabricated-completed");
+    let run = RunId::generate();
+    let ready = ReadyNodes::try_new([
+        NodeId::new("node-0001").unwrap(),
+        NodeId::new("node-0002").unwrap(),
+    ])
+    .unwrap();
+    let template = checkpoint_compiled_graph();
+    let graph = CompiledGraph::compile(
+        template.identity().clone(),
+        template.input_schema().clone(),
+        template.state_schema().clone(),
+        template.update_schema().clone(),
+        template.output_schema().clone(),
+        template.reducer().clone(),
+        ready.clone(),
+        ready
+            .iter()
+            .cloned()
+            .map(|node| GraphNode::new(node, None, GraphRoutes::empty(), None, true).unwrap()),
+        GraphExecutionLimits::new(template.limits().maximum_supersteps(), 2).unwrap(),
+    )
+    .unwrap();
+    store
+        .register_graph_definition(tenant.clone(), graph.clone())
+        .await
+        .unwrap();
+    let admitted = store
+        .admit_run(provenance(tenant.clone(), run))
+        .await
+        .unwrap();
+    let write = CheckpointWrite::initial(
+        tenant.clone(),
+        run,
+        CheckpointId::generate(),
+        graph.reference(),
+        checkpoint_state(&graph.reference(), 0),
+        ready,
+    )
+    .unwrap();
+    let checkpoint = store
+        .append_control_plane_checkpoint(
+            control_append(
+                tenant.clone(),
+                run,
+                EventId::generate(),
+                JournalExpectation::empty(),
+                24_110,
+            ),
+            RunProjection::transition(
+                admitted.lifecycle().revision(),
+                RunTransition::Start {
+                    started_at: admitted.lifecycle().admitted_at(),
+                },
+            ),
+            write,
+        )
+        .await
+        .unwrap();
+    let fence = store
+        .claim_lease(&tenant, run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let first = store
+        .start_node_attempt(
+            worker_append(
+                tenant.clone(),
+                run,
+                EventId::generate(),
+                JournalExpectation::exact(checkpoint.event().head()),
+                fence.clone(),
+                24_111,
+            ),
+            NodeActivation::for_ready_root(
+                checkpoint.checkpoint(),
+                NodeId::new("node-0001").unwrap(),
+            )
+            .unwrap(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let second = store
+        .start_node_attempt(
+            worker_append(
+                tenant.clone(),
+                run,
+                EventId::generate(),
+                JournalExpectation::exact(first.event().head()),
+                fence.clone(),
+                24_112,
+            ),
+            NodeActivation::for_ready_root(
+                checkpoint.checkpoint(),
+                NodeId::new("node-0002").unwrap(),
+            )
+            .unwrap(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let event = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::DependencyUnavailable,
+        FailureCode::new("node.root_delayed_sibling").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("A delayed sibling cannot hide work that is still in flight.").unwrap(),
+        RetryAdvice::SafeAfter {
+            delay: DurationMillis::new(3_000).unwrap(),
+        },
+    )
+    .unwrap()
+    .with_caused_by_event(event);
+    let failed = store
+        .fail_node_attempt(
+            worker_append(
+                tenant.clone(),
+                run,
+                event,
+                JournalExpectation::exact(second.event().head()),
+                fence.clone(),
+                24_113,
+            ),
+            &second.attempt().start().head(),
+            failure,
+            BudgetUsage::zero(),
+        )
+        .await
+        .unwrap();
+    let live = store.observe_live_lease(&fence).await.unwrap();
+    let result = stateknot_core::PendingNodeResult::commit(
+        pending_result_intent(
+            first.attempt().start().activation().clone(),
+            NodeInvocationBindings::empty(),
+        ),
+        fence.clone(),
+        failed.event().head(),
+    )
+    .unwrap();
+    let completion = stateknot_core::NodeAttemptCompletion::succeed(
+        first.attempt().start(),
+        result.head(),
+        BudgetUsage::zero(),
+    )
+    .unwrap();
+    let forged_attempt =
+        stateknot_core::NodeAttempt::restore(first.attempt().start().clone(), Some(completion))
+            .unwrap();
+    let mut planner =
+        ReadyNodeRecoveryPlanner::new(checkpoint.checkpoint().clone(), fence.clone()).unwrap();
+    planner.observe_result(&result).unwrap();
+    planner.observe_attempt(&forged_attempt).unwrap();
+    planner.observe_attempt(failed.attempt()).unwrap();
+    let forged = planner
+        .finish(failed.event().head(), live.observed_at())
+        .unwrap();
+    assert_eq!(forged.nodes()[0].kind(), RecoveryNodeKind::Completed);
+    assert_eq!(forged.nodes()[1].kind(), RecoveryNodeKind::Deferred);
+    let db = pool().await;
+    let before = root_snapshot(&db, &fence).await;
+    let context = CorruptionQuarantineContext::new(
+        tenant.clone(),
+        run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(failed.event().head()),
+        Digest::sha256(b"root fabricated completed decision"),
+    )
+    .unwrap()
+    .with_expected_fence(fence.clone())
+    .unwrap();
+    let outcome = store
+        .with_corruption_quarantine(context, store.schedule_delayed_retry_wakeup(&forged))
+        .await;
+    assert!(
+        matches!(outcome, Err(StoreError::InvalidDelayedRetryPlan)),
+        "{outcome:?}"
+    );
+    assert_eq!(before, root_snapshot(&db, &fence).await);
+    assert!(!store.load_run(&tenant, run).await.unwrap().is_quarantined());
+    let reconciliation = Failure::new(
+        FailureId::generate(),
+        FailureCategory::AmbiguousExternalOutcome,
+        FailureCode::new("node.forged_reconciliation").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("A pure node completion cannot require external reconciliation.")
+            .unwrap(),
+        RetryAdvice::ReconcileFirst,
+    )
+    .unwrap()
+    .with_caused_by_event(failed.event().head().event_id());
+    assert!(matches!(
+        stateknot_core::NodeAttemptCompletion::fail(
+            first.attempt().start(),
+            reconciliation.clone(),
+            BudgetUsage::zero(),
+            failed.event().head()
+        ),
+        Err(stateknot_core::NodeAttemptError::ReconciliationUnsupported)
+    ));
+    let event = EventId::generate();
+    let outcome = store
+        .fail_node_attempt(
+            worker_append(
+                tenant.clone(),
+                run,
+                event,
+                JournalExpectation::exact(failed.event().head()),
+                fence.clone(),
+                24_114,
+            ),
+            &first.attempt().start().head(),
+            reconciliation.with_caused_by_event(event),
+            BudgetUsage::zero(),
+        )
+        .await;
+    assert!(
+        matches!(outcome, Err(StoreError::InvalidNodeAttemptTransition)),
+        "{outcome:?}"
+    );
+    assert_eq!(before, root_snapshot(&db, &fence).await);
+    assert!(!store.load_run(&tenant, run).await.unwrap().is_quarantined());
+    let event = EventId::generate();
+    let completed = store
+        .succeed_node_attempt(
+            worker_append(
+                tenant.clone(),
+                run,
+                event,
+                JournalExpectation::exact(failed.event().head()),
+                fence.clone(),
+                24_115,
+            ),
+            &first.attempt().start().head(),
+            pending_result_intent(
+                first.attempt().start().activation().clone(),
+                NodeInvocationBindings::empty(),
+            ),
+            BudgetUsage::zero(),
+        )
+        .await
+        .unwrap();
+    let context = CorruptionQuarantineContext::new(
+        tenant.clone(),
+        run,
+        QuarantineId::generate(),
+        JournalExpectation::exact(completed.event().head()),
+        Digest::sha256(b"actual Root completed sibling"),
+    )
+    .unwrap();
+    let actual = store
+        .begin_claimed_run_recovery(fence.clone(), context)
+        .await
+        .unwrap()
+        .plan_ready_nodes()
+        .await
+        .unwrap();
+    assert_eq!(actual.nodes()[0].kind(), RecoveryNodeKind::Completed);
+    assert_eq!(actual.nodes()[1].kind(), RecoveryNodeKind::Deferred);
+    let durable = store
+        .load_pending_node_result(first.attempt().start().activation())
+        .await
+        .unwrap();
+    assert_eq!(actual.nodes()[0].result(), Some(&durable.head()));
+    let before = root_snapshot(&db, &fence).await;
+    assert_eq!(
+        store.schedule_delayed_retry_wakeup(&actual).await.unwrap(),
+        DelayedRetryScheduleOutcome::Scheduled {
+            not_before: actual.earliest_deferred_at().unwrap(),
+        }
+    );
+    assert_eq!(before.1, root_snapshot(&db, &fence).await.1);
+    assert_eq!(
+        store
+            .load_pending_node_result(first.attempt().start().activation())
+            .await
+            .unwrap(),
+        durable
+    );
+    db.close().await;
+    store.close().await;
+}
+
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn root_retry_ack_is_exact_read_only_and_cannot_prove_erased_worker_or_launch() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let plan = Box::pin(root_deferred(&store, "root-retry-ack-limit")).await;
+    let fence = plan.fence();
+    let history = store
+        .load_node_attempt_history_page(
+            plan.nodes()[0].activation(),
+            None,
+            NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX).unwrap(),
+        )
+        .await
+        .unwrap();
+    let original = &history.records()[0];
+    let other_fence = RunFence::new(
+        fence.tenant_id().clone(),
+        fence.run_id(),
+        AttemptId::generate(),
+        fence.epoch(),
+    );
+    let start = stateknot_core::NodeAttemptStart::new(
+        original.start().activation().clone(),
+        original.start().attempt_id(),
+        other_fence.clone(),
+        original.start().journal_head().clone(),
+    )
+    .unwrap();
+    let original_completion = original.completion().unwrap();
+    let completion = stateknot_core::NodeAttemptCompletion::fail(
+        &start,
+        original_completion.outcome().failure().unwrap().clone(),
+        BudgetUsage::zero(),
+        original_completion.journal_head().clone(),
+    )
+    .unwrap();
+    let forged_attempt = stateknot_core::NodeAttempt::restore(start, Some(completion)).unwrap();
+    let mut planner =
+        ReadyNodeRecoveryPlanner::new(plan.checkpoint().clone(), other_fence).unwrap();
+    planner.observe_attempt(&forged_attempt).unwrap();
+    let observation = planner
+        .finish(plan.journal_head().clone(), plan.observed_at())
+        .unwrap();
+    let db = pool().await;
+    let before = root_snapshot(&db, fence).await;
+    let outcome = store.schedule_delayed_retry_wakeup(&observation).await;
+    assert!(
+        matches!(outcome, Err(StoreError::StaleFence)),
+        "{outcome:?}"
+    );
+    assert_eq!(before, root_snapshot(&db, fence).await);
+    assert_eq!(
+        store.schedule_delayed_retry_wakeup(&plan).await.unwrap(),
+        DelayedRetryScheduleOutcome::Scheduled {
+            not_before: plan.earliest_deferred_at().unwrap(),
+        }
+    );
+    let released = root_snapshot(&db, fence).await;
+    assert_eq!(
+        store
+            .schedule_delayed_retry_wakeup(&observation)
+            .await
+            .unwrap(),
+        DelayedRetryScheduleOutcome::Idempotent {
+            not_before: plan.earliest_deferred_at().unwrap(),
+        }
+    );
+    assert_eq!(released, root_snapshot(&db, fence).await);
+    assert!(matches!(
+        store
+            .start_recovered_node_attempt(
+                append(
+                    &observation,
+                    EventId::generate(),
+                    observation.journal_head().clone()
+                ),
+                &observation,
+                observation.nodes()[0].activation().node_id(),
+                AttemptId::generate()
+            )
+            .await,
+        Err(StoreError::ReadyNodeNotDispatchable)
+    ));
+    assert_eq!(released, root_snapshot(&db, fence).await);
+    let changed_head = JournalHead::new(
+        plan.journal_head().tenant_id().clone(),
+        plan.journal_head().run_id(),
+        plan.journal_head().sequence(),
+        EventId::generate(),
+        plan.journal_head().recorded_at(),
+        plan.journal_head().digest(),
+    );
+    let mut planner =
+        ReadyNodeRecoveryPlanner::new(plan.checkpoint().clone(), plan.fence().clone()).unwrap();
+    planner.observe_attempt(original).unwrap();
+    let changed = planner.finish(changed_head, plan.observed_at()).unwrap();
+    assert!(matches!(
+        store.schedule_delayed_retry_wakeup(&changed).await,
+        Err(StoreError::StaleJournalHead)
+    ));
+    assert_eq!(released, root_snapshot(&db, fence).await);
+    assert!(
+        !store
+            .load_run(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
+    db.close().await;
+    store.close().await;
+}
+
+#[tokio::test]
+async fn root_retry_slow_update_after_expiry_preserves_original_projection_and_history() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(2)).await else {
+        return;
+    };
+    let plan = Box::pin(root_deferred_with_delay(
+        &store,
+        "root-retry-expired-write",
+        3_000,
+    ))
+    .await;
+    let db = pool().await;
+    let before = root_snapshot(&db, plan.fence()).await;
+    query("CREATE FUNCTION stateknot.test_root_retry_expired_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.scheduler_not_before IS NOT NULL AND OLD.scheduler_not_before IS NULL THEN PERFORM pg_sleep(2.1); END IF; RETURN NEW; END $$").execute(&db).await.unwrap();
+    query("CREATE TRIGGER test_root_retry_expired_update BEFORE UPDATE ON stateknot.runs FOR EACH ROW EXECUTE FUNCTION stateknot.test_root_retry_expired_update()").execute(&db).await.unwrap();
+    let outcome = store.schedule_delayed_retry_wakeup(&plan).await;
+    query("DROP TRIGGER test_root_retry_expired_update ON stateknot.runs")
+        .execute(&db)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.test_root_retry_expired_update()")
+        .execute(&db)
+        .await
+        .unwrap();
+    assert!(
+        matches!(outcome, Err(StoreError::LeaseExpired)),
+        "{outcome:?}"
+    );
+    assert_eq!(before, root_snapshot(&db, plan.fence()).await);
+    assert!(
+        !store
+            .load_run(plan.fence().tenant_id(), plan.fence().run_id())
+            .await
+            .unwrap()
+            .is_quarantined()
+    );
     store.verify_schema().await.unwrap();
     db.close().await;
     store.close().await;

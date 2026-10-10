@@ -148,7 +148,9 @@ Driver 和完整应用 replay 继续开放。
 观察时间重新推导原 SafeAfter 边界。调用者决策不一致属于无效输入，持久历史矛盾才是损坏。
 最终写入再次使用数据库当前时间、精确 journal、worker Attempt、epoch 和 scoped head。
 
-Root 与 scoped 调度共用已有延迟门和 Outcome。成功时释放租约，保留 Root 指针、叶/栈、
+Root `schedule_delayed_retry_wakeup` 与 scoped 调度共用上述完整首次历史验证、已有延迟门和
+Outcome。公开纯 Planner 不能虚构 Root 结果或替换已存 Failure 的 SafeAfter 策略来延后队列；
+仅靠专用 Start 校验只能在 gate 到期后保护 launch。成功时释放租约，保留 Root 指针、叶/栈、
 journal、队列年龄、不可变历史及原预算/deadline。慢 Run UPDATE 触发器导致租约过期时，
 整个事务回滚；跨过 inclusive 重试边界时，通过 savepoint 撤回 gate 写入，重新核对原租约、
 队列年龄、Root/叶和 journal，返回 `Due`。调用者需重新规划，并通过专用 scoped Start

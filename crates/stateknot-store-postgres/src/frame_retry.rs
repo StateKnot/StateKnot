@@ -33,7 +33,7 @@ impl PostgresStore {
 }
 
 struct RetryScope {
-    root: CheckpointHead,
+    root: Checkpoint,
     frame: Option<GraphFrameCheckpoint>,
     admission_digest: Option<Digest>,
 }
@@ -119,9 +119,7 @@ async fn authorize_fresh_plan(
     // Authenticate the real worker before using caller fence in the planner.
     // A fabricated same-epoch attempt is operational StaleFence, not corruption.
     authorize_worker(stored, plan.fence(), previous_now)?;
-    if let Some(checkpoint) = &scope.frame {
-        Box::pin(rederive_plan(tx, checkpoint, plan)).await?;
-    }
+    Box::pin(rederive_plan(tx, scope, plan)).await?;
     let now = database_now(tx, "verified retry plan clock").await?;
     if now < previous_now {
         return Err(StoreError::DatabaseClockRegression);
@@ -269,7 +267,7 @@ async fn verify_scope(
             return Err(StoreError::StaleCheckpointHead);
         }
         return Ok(RetryScope {
-            root: root.head(),
+            root,
             frame: None,
             admission_digest: None,
         });
@@ -283,7 +281,7 @@ async fn verify_scope(
         .bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid()).fetch_one(&mut **tx).await
         .map_err(|e| StoreError::database("retry admission binding", e))?;
     Ok(RetryScope {
-        root: root.head(),
+        root,
         frame: Some(checkpoint.clone()),
         admission_digest: Some(decode_digest(&admission, "retry admission binding")?),
     })
@@ -291,14 +289,26 @@ async fn verify_scope(
 
 async fn rederive_plan(
     tx: &mut Transaction<'_, Postgres>,
-    checkpoint: &GraphFrameCheckpoint,
+    scope: &RetryScope,
     expected: &ReadyNodeRecoveryPlan,
 ) -> Result<(), StoreError> {
-    let mut planner =
-        ReadyNodeRecoveryPlanner::for_frame(checkpoint.clone(), expected.fence().clone())
-            .map_err(|_| StoreError::InvalidDelayedRetryPlan)?;
+    let mut planner = match &scope.frame {
+        Some(frame) => ReadyNodeRecoveryPlanner::for_frame(frame.clone(), expected.fence().clone()),
+        None => ReadyNodeRecoveryPlanner::new(scope.root.clone(), expected.fence().clone()),
+    }
+    .map_err(|_| StoreError::InvalidDelayedRetryPlan)?;
+    let checkpoint = scope
+        .frame
+        .as_ref()
+        .map_or(&scope.root, GraphFrameCheckpoint::checkpoint);
+    let namespace = scope
+        .frame
+        .as_ref()
+        .map_or_else(GraphNamespace::root, |frame| {
+            frame.frame().namespace().clone()
+        });
     let activations = planner.activations();
-    verify_inventory(tx, checkpoint, &activations).await?;
+    verify_inventory(tx, checkpoint, &namespace, &activations).await?;
     for activation in activations {
         if let Some(row) = load_pending_node_result_row(tx, &activation).await? {
             let result = decode_pending_node_result(&row)?;
@@ -310,7 +320,7 @@ async fn rederive_plan(
                 .observe_result(&result)
                 .map_err(|_| StoreError::corrupt("retry result history"))?;
         }
-        Box::pin(observe_attempts(tx, checkpoint, &activation, &mut planner)).await?;
+        Box::pin(observe_attempts(tx, &activation, &mut planner)).await?;
     }
     let actual = planner
         .finish(expected.journal_head().clone(), expected.observed_at())
@@ -336,10 +346,11 @@ async fn rederive_plan(
 // Compact predicates prevent filtering away contradictory projected history.
 async fn verify_inventory(
     tx: &mut Transaction<'_, Postgres>,
-    checkpoint: &GraphFrameCheckpoint,
+    checkpoint: &Checkpoint,
+    namespace: &GraphNamespace,
     activations: &[NodeActivation],
 ) -> Result<(), StoreError> {
-    let base = checkpoint.checkpoint().head();
+    let base = checkpoint.head();
     let nodes: Vec<_> = activations
         .iter()
         .map(|a| a.node_id().as_str().to_owned())
@@ -348,7 +359,7 @@ async fn verify_inventory(
         let invalid = query_scalar::<_, bool>(&format!(
             "SELECT EXISTS(SELECT 1 FROM stateknot.{table} WHERE tenant_id=$1 AND run_id=$2 AND base_checkpoint_id=$3 AND (graph_namespace<>$4 OR base_superstep<>$5 OR base_checkpoint_digest<>$6 OR NOT (node_id=ANY($7))))"
         )).bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid())
-            .bind(*base.checkpoint_id().as_uuid()).bind(checkpoint.frame().namespace().as_str())
+            .bind(*base.checkpoint_id().as_uuid()).bind(namespace.as_str())
             .bind(i64::try_from(base.superstep().get()).map_err(|_|StoreError::StaleCheckpointHead)?)
             .bind(base.digest().as_bytes()).bind(&nodes)
             .fetch_one(&mut **tx).await.map_err(|e|StoreError::database("retry compact inventory", e))?;
@@ -372,7 +383,6 @@ async fn verify_inventory(
 
 async fn observe_attempts(
     tx: &mut Transaction<'_, Postgres>,
-    checkpoint: &GraphFrameCheckpoint,
     activation: &NodeActivation,
     planner: &mut ReadyNodeRecoveryPlanner,
 ) -> Result<(), StoreError> {
@@ -406,9 +416,9 @@ async fn observe_attempts(
         if attempt.start().activation() != activation {
             return Err(StoreError::corrupt("retry history activation"));
         }
-        // The whole current frame and this canonical activation were proved once
-        // above. Retain every start/completion/result anchor without prefix replay.
-        Box::pin(verify_attempt(tx, checkpoint, &attempt)).await?;
+        // The whole current Root/frame and this canonical activation were proved
+        // once above. Retain every anchor without replaying the checkpoint prefix.
+        Box::pin(verify_attempt(tx, activation, &attempt)).await?;
         planner
             .observe_attempt(&attempt)
             .map_err(|_| StoreError::corrupt("retry physical attempt chain"))?;
@@ -416,18 +426,15 @@ async fn observe_attempts(
     Ok(())
 }
 
-// Full active proof authenticates this immutable base once in the same locked
-// transaction. Framework completion retains its existing whole return proof.
+// The current Root/full active proof authenticates this immutable base once in
+// the same locked transaction. Framework completion retains whole return proof.
 async fn verify_attempt(
     tx: &mut Transaction<'_, Postgres>,
-    checkpoint: &GraphFrameCheckpoint,
+    activation: &NodeActivation,
     attempt: &NodeAttempt,
 ) -> Result<(), StoreError> {
     let start = attempt.start();
-    if !checkpoint
-        .activation(start.activation().node_id().clone())
-        .is_ok_and(|activation| activation == *start.activation())
-    {
+    if start.activation() != activation {
         return Err(StoreError::corrupt("retry canonical attempt base"));
     }
     if Box::pin(graph_frames::recognize_start(tx, start))
@@ -501,6 +508,7 @@ async fn update_gate(
 ) -> Result<bool, StoreError> {
     let fence = plan.fence();
     let frame = scope.frame.as_ref();
+    let root = scope.root.head();
     let updated = query_scalar::<_, DateTime<Utc>>(UPDATE_GATE)
         .bind(fence.tenant_id().as_str())
         .bind(*fence.run_id().as_uuid())
@@ -514,12 +522,9 @@ async fn update_gate(
         .bind(*plan.journal_head().event_id().as_uuid())
         .bind(to_database_time(plan.journal_head().recorded_at())?)
         .bind(plan.journal_head().digest().as_bytes())
-        .bind(*scope.root.checkpoint_id().as_uuid())
-        .bind(
-            i64::try_from(scope.root.superstep().get())
-                .map_err(|_| StoreError::StaleCheckpointHead)?,
-        )
-        .bind(scope.root.digest().as_bytes())
+        .bind(*root.checkpoint_id().as_uuid())
+        .bind(i64::try_from(root.superstep().get()).map_err(|_| StoreError::StaleCheckpointHead)?)
+        .bind(root.digest().as_bytes())
         .bind(frame.map(|f| f.frame().namespace().as_str()))
         .bind(frame.map(|f| f.frame().digest().as_bytes().to_vec()))
         .bind(scope.admission_digest.map(|d| d.as_bytes().to_vec()))

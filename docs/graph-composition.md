@@ -191,9 +191,12 @@ caller decision is invalid input; contradictory durable history is corruption.
 Fresh database time and the exact journal, worker attempt, epoch and scoped
 head predicates guard the final scheduler projection.
 
-Root and scoped scheduling share the existing gate and outcome contract. A
-successful write releases the lease and preserves the Root pointer, leaf/stack,
-journal, queue age, immutable history and original accounting/deadline. If a
+Root `schedule_delayed_retry_wakeup` and scoped scheduling share this complete
+fresh-history validator, the existing gate and outcome contract. The public
+pure planner cannot invent a Root result or substitute a stored failure's
+SafeAfter policy to delay the queue; dedicated Start validation alone would
+only protect launch after that gate elapsed. A successful write releases the
+lease and preserves the Root pointer, leaf/stack, journal, queue age, immutable history and original accounting/deadline. If a
 slow Run update trigger crosses lease expiry, the transaction rolls back. If
 it crosses the inclusive retry boundary, a savepoint restores the original
 lease and gate before rechecking the Run and whole current scope and returning

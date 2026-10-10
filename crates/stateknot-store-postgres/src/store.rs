@@ -7796,16 +7796,21 @@ WHERE tenant_id = $1
     /// The plan must contain at least one deferred node and no dispatchable,
     /// in-flight, failed, or exhausted node. Completed siblings are permitted
     /// because their immutable results remain pending while the delayed sibling
-    /// waits. The transaction revalidates the exact checkpoint, journal head,
-    /// live worker fence, lifecycle, and database clock, then preserves queue
-    /// age, records the inclusive retry gate, and releases the lease atomically.
+    /// waits. Under the Run lock, the transaction authenticates the actual
+    /// Root and absent active leaf, then independently reloads complete bounded
+    /// results and physical attempts to reproduce every decision with the
+    /// original Core policy. Caller decisions differing from valid history are
+    /// invalid input; contradictory durable history is corruption. The exact
+    /// journal, actual live worker, lifecycle and final database clock guard
+    /// lease release, while queue age and Root projection remain unchanged.
     ///
     /// Retrying after a lost acknowledgement returns
     /// [`DelayedRetryScheduleOutcome::Idempotent`] only while the same fencing
     /// epoch, checkpoint, journal head, and retry boundary still own the run. If
     /// database time reaches the boundary before the update, `Due` leaves the
     /// lease in place so the caller can rebuild the plan without release/reclaim
-    /// churn.
+    /// churn. Released-gate ACK is read-only and grants no launch; it cannot
+    /// prove the erased original worker attempt or complete original plan.
     ///
     /// # Errors
     ///

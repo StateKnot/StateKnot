@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Independently rederive Root delayed-retry decisions from complete actual
+  result and physical-attempt history under the Run lock, sharing the scoped
+  validator. Public pure-planner metadata can no longer fabricate a completed
+  sibling or replace a stored SafeAfter boundary to starve scheduler claims.
+  Released-gate ACK remains a read-only observation without launch authority or
+  proof of the erased original worker attempt and complete original plan.
+
 - Recheck the original live worker and database clock after delayed-retry Run
   updates. A slow trigger past lease expiry rolls back; an inclusive due retry
   restores the original lease, Root/leaf heads, journal and queue age before Due.

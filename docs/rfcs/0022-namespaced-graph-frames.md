@@ -384,6 +384,10 @@ attempt/epoch/expiry, frozen Root projection and scoped active/head predicates
 must still match. No Root column, immutable component, queue age, shared budget
 or deadline is replaced by a leaf value.
 
+Root `schedule_delayed_retry_wakeup` also uses the complete fresh-history
+validator. Public pure-planner metadata cannot substitute a stored Root failure
+or invent a Completed sibling to suppress the queue. Dedicated Start alone
+would protect launch after a forged gate elapsed, not scheduler availability.
 The existing gate releases the lease atomically; it grants no launch. Root and
 scoped scheduling share final-clock handling. Update-trigger delay past lease
 expiry rolls back the transaction; delay past the inclusive retry boundary
