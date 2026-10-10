@@ -287,6 +287,20 @@
       "vectors": [],
       "schema_digest": null
     },
+    "AgentTerminalValidationInputs": {
+      "module": "agent_runtime",
+      "kind": "struct",
+      "rust_type": "AgentTerminalValidationInputs",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-agent-terminal-validation-inputs-v1.json",
+          "pointer": "/inputs/valid/0",
+          "canonical_digest": "sha256:a582879d787b6671acd68aeb35ddf6b987fa39831b17b02d7366a5708d5a6f8e"
+        }
+      ],
+      "schema_digest": "sha256:a675953ae4283ae622e6814cfcd009b82aa7fbe32ee1fc68bd74d04e33098ad9"
+    },
     "AgentToolConcurrency": {
       "module": "agent",
       "kind": "enum",

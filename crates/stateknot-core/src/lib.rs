@@ -135,7 +135,7 @@ pub use agent_admission::{
 pub use agent_runtime::{
     AgentArtifacts, AgentArtifactsError, AgentRequest, AgentRequestValidationError, AgentResult,
     AgentResultError, AgentResultProvenance, AgentResultProvenanceError,
-    AgentResultValidationError,
+    AgentResultValidationError, AgentTerminalValidationInputs,
 };
 pub use artifact::{
     ArtifactDescription, ArtifactDescriptionError, ArtifactIdentity, ArtifactModality,

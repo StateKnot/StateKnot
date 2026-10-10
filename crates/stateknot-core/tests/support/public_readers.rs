@@ -16,6 +16,7 @@ readers! {
     agent_result_provenance: AgentResultProvenance,
     agent_structured_output_strategy: AgentStructuredOutputStrategy,
     agent_submission_key: AgentSubmissionKey,
+    agent_terminal_validation_inputs: AgentTerminalValidationInputs,
     agent_tool_concurrency: AgentToolConcurrency,
     agent_tools: AgentTools,
     artifact_description: ArtifactDescription,

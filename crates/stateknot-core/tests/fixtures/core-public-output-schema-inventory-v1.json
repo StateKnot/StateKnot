@@ -16,6 +16,7 @@
     "AgentResultProvenance": "sha256:ac1c4dd923b5f17627cb55eceb6956aa0404a01e1c84ac68752d52ad71a6b727",
     "AgentStructuredOutputStrategy": "sha256:b19143f6bba343bfb720062af72fe6f8f9b3184cd8ac327110758e47fa8cd842",
     "AgentSubmissionKey": "sha256:5156e3080f2c90070eb44d1a5c95fb10a348a8c4e910cb7a5b3570dcfe87e89e",
+    "AgentTerminalValidationInputs": "sha256:a675953ae4283ae622e6814cfcd009b82aa7fbe32ee1fc68bd74d04e33098ad9",
     "AgentToolConcurrency": "sha256:2ab896689b89d02da76baa83749c9b118c9f8eafbdbeecaa762581b9a0553ca2",
     "AgentTools": "sha256:6b640b974da7a7903bad7d9d0a6f8ba9024c850d38688226d1ef44c7e3ff6a0e",
     "ArtifactDescription": "sha256:1d5f4380239d610f8f0be3caac011cbb94ec744365ea8d8508f0113cc5a11531",

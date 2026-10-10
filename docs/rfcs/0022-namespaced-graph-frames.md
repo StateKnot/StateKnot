@@ -596,6 +596,86 @@ coverage and seven-level replay on the default Linux thread stack. All final
 source gates, actual Driver dispatch and scoped child-Join/Unknown handling are
 still required before this increments any Supported or milestone status.
 
+### Ordinary trusted Root graph source (in development)
+
+The public graph driver also accepts a real trusted `admit_run` followed by
+Start and an initial Root checkpoint. Static shared-state composition expands
+into these Root nodes; it does not create an Agent admission or a scoped frame.
+This contract remains supported by the design. Agent-only schema-34 barriers
+cannot serve these Runs: absence of an admission is neither proof of ordinary
+creation nor authority to waive an Agent deadline.
+
+The ordinary increment uses an explicit `trusted_graph` V2 source, separately
+from the unchanged Agent V1 wire, schema, digest preimages and admission checks.
+The Store derives the source from positive original facts. Its immutable profile
+binds the actual first event, exact Pending revision ZERO to Active revision ONE
+Start projection and original Start time, admitted provenance/time, initial Root
+checkpoint and that checkpoint's owning event. Start and checkpoint may share
+an event or use separate existing commits. Every journal, graph pin, checkpoint,
+result and fence retains its complete owning proof. Later V2 barriers reuse and
+authenticate the same journal-bound profile after Wait/resume, rather than
+guessing the original Start time from the current lifecycle. Agent admission,
+submission, deadline, frame or child-ownership witnesses cannot be relabeled as
+this source. A missing or crossed genuine Agent witness remains corruption.
+
+Legacy ordinary creation is accepted only when its actual Start projection
+preimage can be proved. An authenticated legacy history with unavailable
+original inputs returns `GraphReplayHistoricalDispositionUnavailable`, grants
+no dispatch and is not quarantined. There is no source fallback based solely on
+missing Agent rows, no caller boolean that grants ordinary authority, and no
+metadata or checkpoint verification bypass.
+
+Ordinary Terminal records retain the complete original `AgentResult` and the
+exact validation inputs obtained from the real trusted descriptor, complete
+request and resolved budget. Core's `AgentTerminalValidationInputs` contains the
+descriptor identity/input/output schemas, request and budget used by the
+original `AgentResult::validate_for` predicate; `validate_for_terminal_inputs`
+uses that same predicate and error order. This snapshot is neither an Agent
+admission nor an executable descriptor. The expected provenance comes from the
+authenticated original Run. Fresh schema callbacks and actual whole GraphPlan
+comparison still execute against deployed pinned implementations outside SQL
+locks. All original artifacts, completed time, finite budget dimensions and
+known/unpriced cost checks remain required. ACK recovery authenticates the
+whole committed record and original inputs before invoking fresh callbacks.
+
+The snapshot preserves existing component ceilings, including maximum-profile
+request input, and reserves 32 KiB for its bounded identity, schema and finite
+budget fields above the 2 MiB input ceiling. Its reader rejects unknown fields,
+positional arrays and over-limit nested input before materializing an unread
+tail. The ordinary bundle's separate byte ceiling must be derived from these
+complete inputs and origin anchors and exercised with maximum legal payloads;
+it must not reduce V1, checkpoint, wait, request or terminal result limits.
+
+Migration 35 deploys V2 recognition and source-aware guards without changing
+migration 34's checksum or backfilling guessed origins. Existing immutable
+evidence keys and the event/intent/compound binding remain indivisible. V1 keeps
+its real Agent admission and deadline predicates at every statement and final
+check. A positively authenticated ordinary source has no Agent deadline and
+retains the original live lease, epoch and final database-clock checks; a NULL
+deadline alone is insufficient. Deferred guards, final durable whole reread,
+current-wait-set verification, exact Run projection and original-fence checks
+remain mandatory for both sources. Reader catalog verification and dedicated
+runtime/owner/retention ACL profiles must match the actual schema-35 catalog.
+
+Deployment drains and closes schema-34 runtime pools before enabling V2 writes.
+An already connected V1-only reader cannot interpret V2 history safely. Exact
+schema verification rejects old new connections operationally; it is not a
+mixed-version rolling upgrade or a permission to quarantine V2 Runs. The new
+reader preserves V1 bytes and semantics. Downgrade cannot send V2 history to a
+V1-only runtime. No Supported status or prior qualification is inherited by
+this increment.
+
+Required evidence retains the original ordinary Root Continue/Wait/Terminal
+driver and flattened composition cases. It adds Continue through quantum/drain
+and a fresh drive; Wait partial resolution, fire/resume, cancellation/abandonment
+and old ACK recovery; complete Terminal lost-ACK validation; Agent/deadline
+masquerade rejection; origin and whole-bundle substitutions, missing rows and
+atomic rollback; PostgreSQL 16/17 nonempty 34-to-35 SQLx upgrades, exact catalog
+and non-superuser ACL drift; maximum payloads and early reader rejection; and
+all final-source default-stack, static and complete native gates. Terminal
+reader qualification does not imply a successful claimed application replay of
+an already Succeeded Run.
+
 ## Detailed semantics
 
 ### Scoped isolated ChildRun integration (in development)
