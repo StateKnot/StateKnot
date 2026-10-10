@@ -31,7 +31,7 @@ use stateknot_store_postgres::{
     ClaimedRunRecovery, CorruptionQuarantineContext, DelayedRetryScheduleOutcome,
     GraphReplayLimits, GraphReplayReport, LeaseReleaseOutcome, LeaseRenewalOutcome,
     NodeAttemptCommitOutcome, PendingNodeResultPageSize, PostgresStore,
-    RootGraphBarrierCommitOutcome, RootGraphBarrierIntent, StoreError, StoredRun,
+    RootGraphBarrierCommitOutcome, StoreError, StoredRun,
 };
 use thiserror::Error;
 use tokio::{
@@ -529,6 +529,11 @@ impl DurableGraphDriver {
                         )),
                         report,
                     ));
+                }
+                if scope.active.is_none() {
+                    recovery
+                        .validate_graph_creating_source(&scope.root.head(), plan.journal_head())
+                        .await?;
                 }
                 if self
                     .rebind_current_caller(&recovery, &scope, &mut report, &mut continuation)
@@ -1038,8 +1043,16 @@ impl DurableGraphDriver {
             });
         }
         let event_id = EventId::generate();
-        let intent =
-            RootGraphBarrierIntent::new(barrier_plan, original_lifecycle.clone(), event_id, None)?;
+        let intent = self
+            .store
+            .prepare_worker_graph_barrier(
+                barrier_plan,
+                original_lifecycle.clone(),
+                event_id,
+                None,
+                None,
+            )
+            .await?;
         let append = worker_append(
             fence,
             ready_plan.journal_head().clone(),

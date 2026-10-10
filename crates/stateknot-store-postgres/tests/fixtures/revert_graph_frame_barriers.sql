@@ -11,7 +11,8 @@ DROP TABLE stateknot.root_graph_barriers;
 DROP FUNCTION stateknot.guard_root_graph_barrier_projection();
 DROP FUNCTION stateknot.guard_root_graph_barrier_event_complete();
 DROP FUNCTION stateknot.guard_root_graph_barrier_complete();
-DELETE FROM _sqlx_migrations WHERE version=34;
+-- Removing the whole Root component also removes its source-aware v35 update.
+DELETE FROM _sqlx_migrations WHERE version>=34;
 
 -- Source reconstruction refuses retained whole closure/caller facts.
 SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM stateknot.graph_frame_closures) OR EXISTS(SELECT 1 FROM stateknot.graph_frame_closed_callers) THEN 0 ELSE 1 END;

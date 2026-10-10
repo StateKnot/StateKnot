@@ -737,78 +737,34 @@ impl DurableGraphLifecycle {
 
         match disposition {
             GraphBarrierDisposition::Wait { .. } => {
-                let intent = RootGraphBarrierIntent::new(plan, original_lifecycle, event_id, None)?;
+                let intent = self
+                    .store
+                    .prepare_worker_graph_barrier(plan, original_lifecycle, event_id, None, None)
+                    .await?;
                 let append = worker_append(&fence, journal_head, event_id, intent.payload()?)?;
                 let outcome = self.commit_wait_with_retry(append, intent).await?;
                 Ok(GraphBarrierLifecycleOutcome::Waiting(outcome))
             }
-            GraphBarrierDisposition::Terminal { output } => {
-                let existing = self.store.load_root_graph_barrier(&base).await?;
-                let result = if let Some(record) = existing {
-                    if record.event().event_id() != event_id
-                        || record.barrier() != &barrier
-                        || record.disposition() != plan.disposition()
-                    {
-                        return Err(GraphLifecycleError::StaleHandoff);
-                    }
-                    record.committed_lifecycle().result().cloned().ok_or(
-                        GraphLifecycleError::InvalidHandoff {
-                            operation: "recover the original Root successful result",
-                        },
-                    )?
-                } else {
-                    let snapshot = self
-                        .validate_handoff_snapshot(
-                            &fence,
-                            &journal_head,
-                            event_id,
-                            expected_revision,
-                            RunStatus::Succeeded,
-                        )
-                        .await?;
-                    match snapshot {
-                        GraphLifecycleHandoffSnapshot::Fresh(run) => {
-                            let context = GraphTerminalEvidenceContext {
-                                provenance: run.lifecycle().provenance().clone(),
-                                graph: barrier.successor().graph().clone(),
-                                checkpoint: base.clone(),
-                                successor_checkpoint_id: barrier.successor().checkpoint_id(),
-                                successor_superstep: barrier.successor().superstep(),
-                                output_schema: output.schema().clone(),
-                                output_digest: output.digest(),
-                                expected_revision,
-                            };
-                            let mut evidence = self
-                                .evidence
-                                .terminal_evidence(context)
-                                .await
-                                .map_err(GraphLifecycleError::Evidence)?;
-                            evidence.usage = self
-                                .store
-                                .include_child_usage(
-                                    fence.tenant_id(),
-                                    fence.run_id(),
-                                    evidence.usage,
-                                )
-                                .await?;
-                            self.validate_terminal_result(
-                                run.lifecycle().provenance(),
-                                journal_head.recorded_at(),
-                                &output,
-                                evidence,
-                            )?
-                        }
-                        GraphLifecycleHandoffSnapshot::Committed(run) => {
-                            run.lifecycle().result().cloned().ok_or(
-                                GraphLifecycleError::InvalidHandoff {
-                                    operation: "recover the committed successful result",
-                                },
-                            )?
-                        }
-                    }
-                };
-                let intent =
-                    RootGraphBarrierIntent::new(plan, original_lifecycle, event_id, Some(result))?;
+            GraphBarrierDisposition::Terminal { .. } => {
+                let (result, terminal_validation) = self
+                    .terminal_barrier_inputs(
+                        &plan,
+                        &fence,
+                        &journal_head,
+                        event_id,
+                        expected_revision,
+                    )
+                    .await?;
+                let intent = self
+                    .store
+                    .prepare_worker_graph_barrier(
+                        plan,
+                        original_lifecycle,
+                        event_id,
+                        Some(result),
+                        terminal_validation,
+                    )
+                    .await?;
                 let append = worker_append(&fence, journal_head, event_id, intent.payload()?)?;
                 let outcome = self.commit_success_with_retry(append, intent).await?;
                 Ok(GraphBarrierLifecycleOutcome::Succeeded(outcome))
@@ -819,6 +775,87 @@ impl DurableGraphLifecycle {
             _ => Err(GraphLifecycleError::InvalidHandoff {
                 operation: "commit an unsupported graph barrier disposition",
             }),
+        }
+    }
+
+    async fn terminal_barrier_inputs(
+        &self,
+        plan: &stateknot_core::GraphBarrierPlan,
+        fence: &RunFence,
+        journal_head: &JournalHead,
+        event_id: EventId,
+        expected_revision: RunRevision,
+    ) -> Result<
+        (
+            AgentResult,
+            Option<stateknot_core::AgentTerminalValidationInputs>,
+        ),
+        GraphLifecycleError,
+    > {
+        let barrier = plan.barrier();
+        let base = barrier.base_checkpoint();
+        let GraphBarrierDisposition::Terminal { output } = plan.disposition() else {
+            return Err(GraphLifecycleError::InvalidHandoff {
+                operation: "recover a non-terminal graph barrier as successful output",
+            });
+        };
+        let existing = self.store.load_root_graph_barrier(base).await?;
+        if let Some(record) = existing {
+            if record.event().event_id() != event_id
+                || record.barrier() != barrier
+                || record.disposition() != plan.disposition()
+            {
+                return Err(GraphLifecycleError::StaleHandoff);
+            }
+            let result = record.committed_lifecycle().result().cloned().ok_or(
+                GraphLifecycleError::InvalidHandoff {
+                    operation: "recover the original Root successful result",
+                },
+            )?;
+            Ok((result, record.terminal_validation_inputs().cloned()))
+        } else {
+            let snapshot = self
+                .validate_handoff_snapshot(
+                    fence,
+                    journal_head,
+                    event_id,
+                    expected_revision,
+                    RunStatus::Succeeded,
+                )
+                .await?;
+            match snapshot {
+                GraphLifecycleHandoffSnapshot::Fresh(run) => {
+                    let context = GraphTerminalEvidenceContext {
+                        provenance: run.lifecycle().provenance().clone(),
+                        graph: barrier.successor().graph().clone(),
+                        checkpoint: base.clone(),
+                        successor_checkpoint_id: barrier.successor().checkpoint_id(),
+                        successor_superstep: barrier.successor().superstep(),
+                        output_schema: output.schema().clone(),
+                        output_digest: output.digest(),
+                        expected_revision,
+                    };
+                    let mut evidence = self
+                        .evidence
+                        .terminal_evidence(context)
+                        .await
+                        .map_err(GraphLifecycleError::Evidence)?;
+                    evidence.usage = self
+                        .store
+                        .include_child_usage(fence.tenant_id(), fence.run_id(), evidence.usage)
+                        .await?;
+                    let (result, inputs) = self.validate_terminal_result(
+                        run.lifecycle().provenance(),
+                        journal_head.recorded_at(),
+                        output,
+                        evidence,
+                    )?;
+                    Ok((result, Some(inputs)))
+                }
+                GraphLifecycleHandoffSnapshot::Committed(_run) => {
+                    Err(StoreError::GraphReplayHistoricalDispositionUnavailable.into())
+                }
+            }
         }
     }
 
@@ -1073,7 +1110,8 @@ impl DurableGraphLifecycle {
         completed_at: Timestamp,
         output: &stateknot_core::NodeTerminalOutput,
         evidence: GraphTerminalEvidence,
-    ) -> Result<AgentResult, GraphLifecycleError> {
+    ) -> Result<(AgentResult, stateknot_core::AgentTerminalValidationInputs), GraphLifecycleError>
+    {
         let (descriptor, request, budget, artifacts, usage) = evidence.into_parts();
         self.registry
             .schemas()
@@ -1095,7 +1133,12 @@ impl DurableGraphLifecycle {
         result
             .validate_for(provenance, &request, &descriptor, &budget)
             .map_err(GraphLifecycleError::agent_result_validation)?;
-        Ok(result)
+        let inputs = stateknot_core::AgentTerminalValidationInputs::for_descriptor(
+            &descriptor,
+            request,
+            budget,
+        );
+        Ok((result, inputs))
     }
 
     async fn commit_wait_with_retry(

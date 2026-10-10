@@ -248,7 +248,7 @@ async fn populated_source33_upgrade_preserves_facts_without_disposition_backfill
     assert!(migrations.iter().all(|(_, _, success)| *success));
     store.close().await;
 
-    // Only migration34's empty objects are removed. All original canonical
+    // Only migrations34/35's empty Root objects are removed. All original canonical
     // facts and migration checksums stay untouched. This is source-schema
     // reconstruction and does not pretend to run a published N-1/N-2 binary.
     sqlx_core::raw_sql::raw_sql(
@@ -262,7 +262,7 @@ async fn populated_source33_upgrade_preserves_facts_without_disposition_backfill
          DROP FUNCTION stateknot.guard_root_graph_barrier_event_complete();
          DROP FUNCTION stateknot.guard_root_graph_barrier_projection();
          DROP FUNCTION stateknot.guard_root_graph_barrier_component_complete();
-         DELETE FROM public._sqlx_migrations WHERE version=34;
+         DELETE FROM public._sqlx_migrations WHERE version>=34;
          COMMIT;",
     )
     .execute(&pool)

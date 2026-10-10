@@ -6,19 +6,33 @@
 use super::*;
 use sqlx_core::row::Row as _;
 use stateknot_core::{
-    AgentResult, GraphBarrierDisposition, GraphBarrierPlan, NodeControl, NodeWaits,
+    AgentResult, AgentTerminalValidationInputs, GraphBarrierDisposition, GraphBarrierPlan,
+    NodeControl, NodeWaits,
 };
+
+#[path = "trusted_graph_root.rs"]
+mod trusted_graph;
 
 pub(super) const EVENT_KIND: &str = "root-graph-barrier-committed";
 const INTENT_DOMAIN: &[u8] = b"stateknot-postgres-root-graph-barrier-intent-v1\0";
 const DISPOSITION_DOMAIN: &[u8] = b"stateknot-postgres-root-graph-disposition-v1\0";
 const HEADS_DOMAIN: &[u8] = b"stateknot-postgres-root-graph-result-heads-v1\0";
 const COMPOUND_DOMAIN: &[u8] = b"stateknot-postgres-root-graph-barrier-compound-v1\0";
+const TRUSTED_INTENT_DOMAIN: &[u8] = b"stateknot-postgres-trusted-root-graph-barrier-intent-v2\0";
+const TRUSTED_COMPOUND_DOMAIN: &[u8] =
+    b"stateknot-postgres-trusted-root-graph-barrier-compound-v2\0";
 // Each lifecycle keeps its existing 2 MiB bound. A head cannot exceed its
 // complete checkpoint's existing bound. The remaining fixed fields and at
 // most 64 UUID/digest wait references fit the reserved 36 KiB allowance.
 const MAX_BUNDLE_BYTES: usize =
     2 * JsonLimits::MAXIMUM.max_bytes() + 2 * MAX_CHECKPOINT_BYTES + 36 * 1024;
+// The complete original validation snapshot keeps its Core bound. The original
+// initial head fits its complete checkpoint; three journal heads, provenance
+// and fixed source metadata fit the additional 16 KiB allowance.
+const MAX_TRUSTED_BUNDLE_BYTES: usize = MAX_BUNDLE_BYTES
+    + AgentTerminalValidationInputs::MAX_SNAPSHOT_BYTES
+    + MAX_CHECKPOINT_BYTES
+    + 16 * 1024;
 
 /// Immutable complete graph plan and original lifecycle inputs for one commit.
 /// Construction grants no database or dispatch authority.
@@ -93,6 +107,8 @@ impl RootGraphBarrierIntent {
         };
         let wire = IntentWire {
             version: 1,
+            source: None,
+            terminal_validation: None,
             base: base.clone(),
             successor_checkpoint_id: barrier.successor().checkpoint_id(),
             successor_intent_digest: barrier.successor().intent_digest(),
@@ -108,7 +124,7 @@ impl RootGraphBarrierIntent {
                 .transpose()?,
             original_projection_digest,
         };
-        let digest = domain_digest(INTENT_DOMAIN, &wire)?;
+        let digest = intent_digest(&wire)?;
         Ok(Self {
             data: Box::new(IntentData {
                 plan,
@@ -139,6 +155,25 @@ impl RootGraphBarrierIntent {
     #[must_use]
     pub fn original_lifecycle(&self) -> &RunLifecycle {
         &self.data.before
+    }
+
+    fn with_trusted_source(
+        mut self,
+        source: Box<trusted_graph::Source>,
+        validation: Option<AgentTerminalValidationInputs>,
+    ) -> Result<Self, StoreError> {
+        match (&self.data.terminal_result, &validation) {
+            (Some(result), Some(inputs)) => result
+                .validate_for_terminal_inputs(self.data.before.provenance(), inputs)
+                .map_err(|_| StoreError::InvalidLifecycleTransition)?,
+            (None, None) => (),
+            _ => return Err(StoreError::InvalidLifecycleTransition),
+        }
+        self.data.wire.version = 2;
+        self.data.wire.source = Some(source);
+        self.data.wire.terminal_validation = validation.map(Box::new);
+        self.data.digest = intent_digest(&self.data.wire)?;
+        Ok(self)
     }
 }
 
@@ -202,6 +237,13 @@ impl StoredRootGraphBarrier {
     #[must_use]
     pub fn source_journal(&self) -> &JournalHead {
         &self.wire.source_journal
+    }
+
+    /// Returns original trusted-graph terminal validation inputs, if present.
+    /// Agent V1 obtains these inputs from its authenticated admission instead.
+    #[must_use]
+    pub fn terminal_validation_inputs(&self) -> Option<&AgentTerminalValidationInputs> {
+        self.wire.intent.terminal_validation.as_deref()
     }
 }
 
@@ -275,6 +317,10 @@ fn bounded_wait_references<'de, D: serde::Deserializer<'de>>(
 #[serde(deny_unknown_fields)]
 struct IntentWire {
     version: u8,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    source: Option<Box<trusted_graph::Source>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    terminal_validation: Option<Box<AgentTerminalValidationInputs>>,
     base: CheckpointHead,
     successor_checkpoint_id: CheckpointId,
     successor_intent_digest: Digest,
@@ -316,11 +362,25 @@ fn domain_digest<T: Serialize>(domain: &[u8], value: &T) -> Result<Digest, Store
     bytes.extend_from_slice(&canonical);
     Ok(Digest::sha256(bytes))
 }
+fn intent_digest(intent: &IntentWire) -> Result<Digest, StoreError> {
+    domain_digest(
+        if intent.version == 1 {
+            INTENT_DOMAIN
+        } else {
+            TRUSTED_INTENT_DOMAIN
+        },
+        intent,
+    )
+}
 fn compound(wire: &Wire, event: &JournalEvent) -> Result<Digest, StoreError> {
     domain_digest(
-        COMPOUND_DOMAIN,
+        if wire.version == 1 {
+            COMPOUND_DOMAIN
+        } else {
+            TRUSTED_COMPOUND_DOMAIN
+        },
         &Compound {
-            version: 1,
+            version: wire.version,
             intent_digest: wire.intent_digest,
             source_journal: &wire.source_journal,
             event,
@@ -395,6 +455,7 @@ fn disposition_from_results(
 }
 
 const SCHEMA_ID: &str = "https://stknot.com/schemas/store/root-graph-barrier-event/1.0.0";
+const TRUSTED_SCHEMA_ID: &str = "https://stknot.com/schemas/store/root-graph-barrier-event/2.0.0";
 static EVENT_SCHEMA: LazyLock<Result<stateknot_core::SchemaReference, &'static str>> =
     LazyLock::new(|| {
         let digest = serde_json::json!({"type":"string","minLength":71,"maxLength":71,"pattern":"^sha256:[0-9a-f]{64}$"});
@@ -410,10 +471,39 @@ static EVENT_SCHEMA: LazyLock<Result<stateknot_core::SchemaReference, &'static s
             Digest::sha256(bytes),
         ))
     });
+static TRUSTED_EVENT_SCHEMA: LazyLock<Result<stateknot_core::SchemaReference, &'static str>> =
+    LazyLock::new(|| {
+        let digest = serde_json::json!({"type":"string","minLength":71,"maxLength":71,"pattern":"^sha256:[0-9a-f]{64}$"});
+        let id = serde_json::json!({"type":"string","minLength":36,"maxLength":36,"pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"});
+        let document = serde_json::json!({ "$schema":"https://json-schema.org/draft/2020-12/schema", "$id":TRUSTED_SCHEMA_ID, "type":"object", "additionalProperties":false,
+        "properties":{"version":{"const":2},"source":{"const":"trusted_graph"},"graph_namespace":{"const":""},"base_checkpoint_id":id,"base_checkpoint_digest":digest,"successor_checkpoint_id":id,"successor_intent_digest":digest,"barrier_intent_digest":digest,"intent_digest":digest},
+        "required":["version","source","graph_namespace","base_checkpoint_id","base_checkpoint_digest","successor_checkpoint_id","successor_intent_digest","barrier_intent_digest","intent_digest"] });
+        let bytes = serde_json_canonicalizer::to_vec(&document)
+            .map_err(|_| "Trusted Root barrier schema")?;
+        Ok(stateknot_core::SchemaReference::new(
+            TRUSTED_SCHEMA_ID
+                .parse()
+                .map_err(|_| "Trusted Root barrier schema ID")?,
+            stateknot_core::Version::new(2, 0, 0),
+            Digest::sha256(bytes),
+        ))
+    });
 fn payload(intent: &IntentWire, digest: Digest) -> Result<JournalPayload, StoreError> {
-    let bytes = serde_json_canonicalizer::to_vec(&serde_json::json!({"version":1,"graph_namespace":"","base_checkpoint_id":intent.base.checkpoint_id(),"base_checkpoint_digest":intent.base.digest(),"successor_checkpoint_id":intent.successor_checkpoint_id,"successor_intent_digest":intent.successor_intent_digest,"barrier_intent_digest":intent.barrier_intent_digest,"intent_digest":digest})).map_err(|_| StoreError::encoding("Root barrier event payload"))?;
+    let (schema, data) = if intent.version == 1 {
+        (
+            &EVENT_SCHEMA,
+            serde_json::json!({"version":1,"graph_namespace":"","base_checkpoint_id":intent.base.checkpoint_id(),"base_checkpoint_digest":intent.base.digest(),"successor_checkpoint_id":intent.successor_checkpoint_id,"successor_intent_digest":intent.successor_intent_digest,"barrier_intent_digest":intent.barrier_intent_digest,"intent_digest":digest}),
+        )
+    } else {
+        (
+            &TRUSTED_EVENT_SCHEMA,
+            serde_json::json!({"version":2,"source":"trusted_graph","graph_namespace":"","base_checkpoint_id":intent.base.checkpoint_id(),"base_checkpoint_digest":intent.base.digest(),"successor_checkpoint_id":intent.successor_checkpoint_id,"successor_intent_digest":intent.successor_intent_digest,"barrier_intent_digest":intent.barrier_intent_digest,"intent_digest":digest}),
+        )
+    };
+    let bytes = serde_json_canonicalizer::to_vec(&data)
+        .map_err(|_| StoreError::encoding("Root barrier event payload"))?;
     JournalPayload::new(
-        EVENT_SCHEMA
+        schema
             .as_ref()
             .map_err(|_| StoreError::encoding("Root barrier event schema"))?
             .clone(),
@@ -431,19 +521,37 @@ fn encode(wire: &Wire) -> Result<Vec<u8>, StoreError> {
     encode_lifecycle(&wire.lifecycle_after)?;
     let bytes = serde_json_canonicalizer::to_vec(wire)
         .map_err(|_| StoreError::encoding("Root barrier bundle"))?;
-    if bytes.is_empty() || bytes.len() > MAX_BUNDLE_BYTES {
+    let maximum = if wire.version == 1 {
+        MAX_BUNDLE_BYTES
+    } else {
+        MAX_TRUSTED_BUNDLE_BYTES
+    };
+    if bytes.is_empty() || bytes.len() > maximum {
         return Err(StoreError::InvalidCheckpointBarrier);
     }
     Ok(bytes)
 }
 fn decode(bytes: &[u8]) -> Result<Box<Wire>, StoreError> {
-    if bytes.is_empty() || bytes.len() > MAX_BUNDLE_BYTES {
+    if bytes.is_empty() || bytes.len() > MAX_TRUSTED_BUNDLE_BYTES {
         return Err(StoreError::corrupt("Root barrier byte bound"));
     }
     let wire: Box<Wire> =
         serde_json::from_slice(bytes).map_err(|_| StoreError::corrupt("Root barrier wire"))?;
-    if wire.version != 1
-        || wire.intent.version != 1
+    let source_shape = match wire.version {
+        1 => {
+            wire.intent.version == 1
+                && wire.intent.source.is_none()
+                && wire.intent.terminal_validation.is_none()
+        }
+        2 => {
+            wire.intent.version == 2
+                && wire.intent.source.is_some()
+                && (wire.intent.terminal_validation.is_some()
+                    == matches!(wire.intent.disposition, Disposition::Terminal { .. }))
+        }
+        _ => false,
+    };
+    if !source_shape
         || wire.intent.result_count == 0
         || wire.intent.result_count > BarrierResultHeads::MAX_LEN
         || matches!(&wire.intent.disposition, Disposition::Wait { registrations, .. } if registrations.is_empty() || registrations.len() > NodeWaits::MAX_LEN)
@@ -477,7 +585,7 @@ async fn row(
     let length: Option<i32> = query_scalar("SELECT octet_length(bundle_bytes) FROM stateknot.root_graph_barriers WHERE tenant_id=$1 AND run_id=$2 AND base_checkpoint_id=$3")
         .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(*base.checkpoint_id().as_uuid()).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root barrier compact lookup", source))?;
     if length.is_some_and(|len| {
-        usize::try_from(len).map_or(true, |len| len == 0 || len > MAX_BUNDLE_BYTES)
+        usize::try_from(len).map_or(true, |len| len == 0 || len > MAX_TRUSTED_BUNDLE_BYTES)
     }) {
         return Err(StoreError::corrupt("Root barrier byte bound"));
     }
@@ -556,7 +664,7 @@ pub(super) async fn authenticated_edge(
         || event.previous_digest() != Some(wire.source_journal.digest())
         || wire.source_journal.recorded_at() > event.recorded_at()
         || payload(&wire.intent, wire.intent_digest)? != *event.payload()
-        || domain_digest(INTENT_DOMAIN, &wire.intent)? != wire.intent_digest
+        || intent_digest(&wire.intent)? != wire.intent_digest
         || compound(&wire, &event)? != wire.compound_digest
         || projection != Some(wire.compound_digest)
         || decode_digest(&row.projection, "Root barrier compound column")? != wire.compound_digest
@@ -626,22 +734,16 @@ pub(super) async fn authenticated_edge(
         })?;
     verify_columns(tx, &wire, &event).await?;
     verify_wait_terminals(tx, &event, &waits).await?;
-    let admission = authenticated_admission(tx, &base.head()).await?;
-    if wire.intent.lifecycle_before.provenance() != admission.admission().intent().provenance()
-        || wire.intent.lifecycle_before.admitted_at() != admission.admission().admitted_at()
-    {
-        return Err(StoreError::corrupt("Root historical admission lifecycle"));
-    }
+    authenticate_intent_source(tx, &wire.intent).await?;
     if let Some(result) = result.as_ref() {
-        let source = admission.admission().intent();
-        result
-            .validate_for(
-                source.provenance(),
-                source.request(),
-                source.descriptor(),
-                source.budget(),
-            )
-            .map_err(|_| StoreError::corrupt("Root historical terminal admission"))?;
+        validate_original_terminal(tx, &wire.intent, result)
+            .await
+            .map_err(|error| match error {
+                StoreError::InvalidLifecycleTransition => {
+                    StoreError::corrupt("Root historical complete terminal inputs")
+                }
+                other => other,
+            })?;
         if let Some(account) = Box::pin(child_runs::load_account_inner(
             tx,
             event.tenant_id(),
@@ -696,6 +798,48 @@ async fn authenticated_admission(
         return Err(StoreError::corrupt("Root admission graph"));
     }
     Ok(admission)
+}
+
+async fn authenticate_intent_source(
+    tx: &mut Transaction<'_, Postgres>,
+    intent: &IntentWire,
+) -> Result<(), StoreError> {
+    if let Some(source) = intent.source.as_deref() {
+        return trusted_graph::verify(tx, &intent.base, &intent.lifecycle_before, source).await;
+    }
+    let admission = authenticated_admission(tx, &intent.base).await?;
+    if intent.lifecycle_before.provenance() != admission.admission().intent().provenance()
+        || intent.lifecycle_before.admitted_at() != admission.admission().admitted_at()
+    {
+        return Err(StoreError::corrupt("Root historical admission lifecycle"));
+    }
+    Ok(())
+}
+
+async fn validate_original_terminal(
+    tx: &mut Transaction<'_, Postgres>,
+    intent: &IntentWire,
+    result: &AgentResult,
+) -> Result<(), StoreError> {
+    if intent.source.is_some() {
+        let inputs = intent
+            .terminal_validation
+            .as_deref()
+            .ok_or(StoreError::InvalidLifecycleTransition)?;
+        return result
+            .validate_for_terminal_inputs(intent.lifecycle_before.provenance(), inputs)
+            .map_err(|_| StoreError::InvalidLifecycleTransition);
+    }
+    let admission = authenticated_admission(tx, &intent.base).await?;
+    let source = admission.admission().intent();
+    result
+        .validate_for(
+            source.provenance(),
+            source.request(),
+            source.descriptor(),
+            source.budget(),
+        )
+        .map_err(|_| StoreError::InvalidLifecycleTransition)
 }
 
 fn materialize_lifecycle(
@@ -807,7 +951,7 @@ async fn insert(
         .source()
         .worker_fence()
         .ok_or(StoreError::WrongAppendAuthority)?;
-    let count = query("INSERT INTO stateknot.root_graph_barriers (tenant_id,run_id,base_checkpoint_id,base_superstep,base_checkpoint_digest,successor_checkpoint_id,successor_superstep,successor_checkpoint_digest,result_count,result_heads_digest,barrier_intent_digest,disposition_kind,disposition_digest,original_projection_digest,lifecycle_before_revision,lifecycle_after_revision,lifecycle_before_bytes,lifecycle_after_bytes,intent_digest,compound_digest,bundle_bytes,journal_sequence,journal_event_id,journal_recorded_at,journal_digest) SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::numeric,$16::numeric,$17,$18,$19,$20,$21,$22,$23,$24,$25 WHERE EXISTS (SELECT 1 FROM stateknot.runs r WHERE r.tenant_id=$1 AND r.run_id=$2 AND r.lease_attempt_id=$26 AND r.fencing_epoch=$27 AND r.lease_expires_at>clock_timestamp() AND r.agent_deadline_at>clock_timestamp() AND r.lifecycle_status='active')")
+    let count = query("INSERT INTO stateknot.root_graph_barriers (tenant_id,run_id,base_checkpoint_id,base_superstep,base_checkpoint_digest,successor_checkpoint_id,successor_superstep,successor_checkpoint_digest,result_count,result_heads_digest,barrier_intent_digest,disposition_kind,disposition_digest,original_projection_digest,lifecycle_before_revision,lifecycle_after_revision,lifecycle_before_bytes,lifecycle_after_bytes,intent_digest,compound_digest,bundle_bytes,journal_sequence,journal_event_id,journal_recorded_at,journal_digest) SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::numeric,$16::numeric,$17,$18,$19,$20,$21,$22,$23,$24,$25 WHERE EXISTS (SELECT 1 FROM stateknot.runs r WHERE r.tenant_id=$1 AND r.run_id=$2 AND r.lease_attempt_id=$26 AND r.fencing_epoch=$27 AND r.lease_expires_at>clock_timestamp() AND (($28::integer=1 AND r.agent_deadline_at>clock_timestamp()) OR ($28::integer=2 AND r.agent_deadline_at IS NULL)) AND r.lifecycle_status='active')")
         .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(*base.checkpoint_id().as_uuid()).bind(i64::try_from(base.superstep().get()).map_err(|_| StoreError::InvalidCheckpointBarrier)?).bind(base.digest().as_bytes())
         .bind(*wire.checkpoint.checkpoint_id().as_uuid()).bind(i64::try_from(wire.checkpoint.superstep().get()).map_err(|_| StoreError::InvalidCheckpointBarrier)?).bind(wire.checkpoint.digest().as_bytes())
         .bind(i32::try_from(wire.intent.result_count).map_err(|_| StoreError::InvalidCheckpointBarrier)?).bind(wire.intent.result_heads_digest.as_bytes()).bind(wire.intent.barrier_intent_digest.as_bytes())
@@ -816,6 +960,7 @@ async fn insert(
         .bind(wire.intent_digest.as_bytes()).bind(wire.compound_digest.as_bytes()).bind(encode(wire)?)
         .bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?).bind(*event.event_id().as_uuid()).bind(to_database_time(event.recorded_at())?).bind(event.digest().as_bytes())
         .bind(*worker.attempt_id().as_uuid()).bind(i64::try_from(worker.epoch().get()).map_err(|_| StoreError::StaleFence)?)
+        .bind(i32::from(wire.version))
         .execute(&mut **tx).await.map_err(|source| StoreError::database("Root barrier whole insert",source))?.rows_affected();
     if count != 1 {
         return Err(StoreError::LeaseExpired);
@@ -929,6 +1074,144 @@ pub(super) async fn verify_checkpoint(
 }
 
 impl PostgresStore {
+    /// Verifies the actual creating source before any new Root graph dispatch.
+    /// This reads one repeatable-read snapshot and grants no permission or
+    /// reusable authority; every subsequent write retains its original fence.
+    ///
+    /// # Errors
+    /// Returns stale snapshot/fence, unavailable legacy creation, complete
+    /// owning corruption, expired Agent deadline or database failures.
+    pub async fn validate_worker_graph_creating_source(
+        &self,
+        fence: &RunFence,
+        base: &CheckpointHead,
+        observed: &JournalHead,
+    ) -> Result<(), StoreError> {
+        if base.tenant_id() != fence.tenant_id()
+            || base.run_id() != fence.run_id()
+            || observed.tenant_id() != fence.tenant_id()
+            || observed.run_id() != fence.run_id()
+        {
+            return Err(StoreError::StaleClaimedRunRecoveryObservation);
+        }
+        let mut tx = self
+            .begin_repeatable_read("Root creating source before dispatch")
+            .await?;
+        let row = query_as::<_, RunRow>(SELECT_RUN)
+            .bind(fence.tenant_id().as_str())
+            .bind(*fence.run_id().as_uuid())
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(|source| StoreError::database("Root creating source Run", source))?
+            .ok_or(StoreError::RunNotFound)?;
+        let stored = decode_run(row)?;
+        validate_runnable(&stored)?;
+        if stored.journal_head() != Some(observed) {
+            return Err(StoreError::StaleClaimedRunRecoveryObservation);
+        }
+        let now = database_now(&mut tx, "Root creating source fence clock").await?;
+        authorize_worker(&stored, fence, now)?;
+        let actual = checkpoint(
+            &mut tx,
+            fence.tenant_id(),
+            fence.run_id(),
+            base.checkpoint_id(),
+        )
+        .await?;
+        if actual.head() != *base
+            || stored.checkpoint().is_none_or(|pointer| {
+                pointer.checkpoint_id() != base.checkpoint_id()
+                    || pointer.superstep() != base.superstep()
+                    || pointer.digest() != base.digest()
+            })
+        {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        verify_current_wait_set(&mut tx, &stored).await?;
+        Box::pin(verify_run(&mut tx, &stored)).await?;
+        let pinned = load_graph_definition_row(&mut tx, base.tenant_id(), base.graph())
+            .await?
+            .ok_or_else(|| StoreError::corrupt("Root dispatch pinned graph"))?;
+        if decode_graph_definition(pinned)?.graph().reference() != *base.graph() {
+            return Err(StoreError::corrupt("Root dispatch pinned graph"));
+        }
+        let agent = matches!(
+            trusted_graph::authenticate(&mut tx, base, stored.lifecycle()).await?,
+            trusted_graph::Origin::Agent(_)
+        );
+        let final_now = database_now(&mut tx, "Root creating source final clock").await?;
+        authorize_worker(&stored, fence, final_now)?;
+        let final_valid: bool = query_scalar("SELECT lease_attempt_id=$3 AND fencing_epoch=$4 AND lease_expires_at>clock_timestamp() AND journal_sequence=$5 AND journal_event_id=$6 AND journal_recorded_at=$7 AND journal_digest=$8 AND CASE WHEN $9 THEN agent_deadline_at>clock_timestamp() ELSE agent_deadline_at IS NULL END FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2")
+            .bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid()).bind(*fence.attempt_id().as_uuid())
+            .bind(i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?)
+            .bind(i64::try_from(observed.sequence().get()).map_err(|_| StoreError::StaleClaimedRunRecoveryObservation)?)
+            .bind(*observed.event_id().as_uuid()).bind(to_database_time(observed.recorded_at())?).bind(observed.digest().as_bytes())
+            .bind(agent).fetch_one(&mut *tx).await.map_err(|source| StoreError::database("Root dispatch final fence", source))?;
+        if !final_valid {
+            return Err(StoreError::LeaseExpired);
+        }
+        tx.commit()
+            .await
+            .map_err(|source| StoreError::database("Root creating source read commit", source))?;
+        Ok(())
+    }
+
+    /// Prepares a Root plan using its authenticated original creating source.
+    /// Agent V1 keeps its admission inputs. Trusted ordinary Graph V2 captures
+    /// its positive Start/checkpoint source and, for Terminal, exact original
+    /// validation inputs. This grants no fresh fence or dispatch authority.
+    ///
+    /// # Errors
+    /// Rejects crossed ownership, corrupt sources, unavailable original legacy
+    /// creation inputs or invalid terminal evidence, and database failures.
+    pub async fn prepare_worker_graph_barrier(
+        &self,
+        plan: GraphBarrierPlan,
+        original_lifecycle: RunLifecycle,
+        event_id: EventId,
+        terminal_result: Option<AgentResult>,
+        terminal_validation: Option<AgentTerminalValidationInputs>,
+    ) -> Result<RootGraphBarrierIntent, StoreError> {
+        let intent =
+            RootGraphBarrierIntent::new(plan, original_lifecycle, event_id, terminal_result)?;
+        let base = intent.plan().barrier().base_checkpoint();
+        let mut tx = self
+            .begin_repeatable_read("Root graph creating source preflight")
+            .await?;
+        let checkpoint = checkpoint(
+            &mut tx,
+            base.tenant_id(),
+            base.run_id(),
+            base.checkpoint_id(),
+        )
+        .await?;
+        if checkpoint.head() != *base {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        Box::pin(verify_checkpoint(&mut tx, &checkpoint)).await?;
+        let origin =
+            trusted_graph::authenticate(&mut tx, base, intent.original_lifecycle()).await?;
+        let intent = match origin {
+            trusted_graph::Origin::Agent(admission) => {
+                if intent.original_lifecycle().provenance()
+                    != admission.admission().intent().provenance()
+                    || intent.original_lifecycle().admitted_at()
+                        != admission.admission().admitted_at()
+                {
+                    return Err(StoreError::InvalidLifecycleTransition);
+                }
+                intent
+            }
+            trusted_graph::Origin::TrustedGraph(source) => {
+                intent.with_trusted_source(source, terminal_validation)?
+            }
+        };
+        tx.commit().await.map_err(|source| {
+            StoreError::database("Root graph creating source preflight commit", source)
+        })?;
+        Ok(intent)
+    }
+
     /// Reads a complete journal-bound Root disposition for this exact base.
     /// `None` denotes an authenticated legacy edge, or an uncommitted base.
     ///
@@ -1121,12 +1404,12 @@ impl PostgresStore {
             .await?
             .ok_or(StoreError::GraphReplayDependencyUnavailable)?;
         let graph = decode_graph_definition(graph_row)?;
-        let admission = authenticated_admission(&mut tx, base).await?;
-        if data.before.provenance() != admission.admission().intent().provenance()
-            || data.before.admitted_at() != admission.admission().admitted_at()
-        {
-            return Err(StoreError::InvalidLifecycleTransition);
-        }
+        authenticate_intent_source(&mut tx, &data.wire).await?;
+        let terminal_admission = if data.terminal_result.is_some() && data.wire.source.is_none() {
+            Some(Box::new(authenticated_admission(&mut tx, base).await?))
+        } else {
+            None
+        };
         tx.commit()
             .await
             .map_err(|source| StoreError::database("Root barrier full preflight commit", source))?;
@@ -1144,15 +1427,37 @@ impl PostgresStore {
             return Err(StoreError::InvalidCheckpointBarrier);
         }
         if let Some(result) = &data.terminal_result {
-            let source = admission.admission().intent();
-            result
-                .validate_for(
-                    source.provenance(),
-                    source.request(),
-                    source.descriptor(),
-                    source.budget(),
-                )
-                .map_err(|_| StoreError::InvalidLifecycleTransition)?;
+            if let Some(admission) = terminal_admission.as_ref() {
+                let source = admission.admission().intent();
+                result
+                    .validate_for(
+                        source.provenance(),
+                        source.request(),
+                        source.descriptor(),
+                        source.budget(),
+                    )
+                    .map_err(|_| StoreError::InvalidLifecycleTransition)?;
+            } else {
+                let inputs = data
+                    .wire
+                    .terminal_validation
+                    .as_deref()
+                    .ok_or(StoreError::InvalidLifecycleTransition)?;
+                result
+                    .validate_for_terminal_inputs(data.before.provenance(), inputs)
+                    .map_err(|_| StoreError::InvalidLifecycleTransition)?;
+            }
+            if let Some(inputs) = data.wire.terminal_validation.as_deref() {
+                match catch_unwind(AssertUnwindSafe(|| {
+                    schemas.validate(inputs.request().input_schema(), inputs.request().input())
+                })) {
+                    Ok(Ok(())) => (),
+                    Err(_) | Ok(Err(GraphSchemaValidationError::Unavailable)) => {
+                        return Err(StoreError::GraphReplayDependencyUnavailable);
+                    }
+                    Ok(Err(_)) => return Err(StoreError::InvalidLifecycleTransition),
+                }
+            }
             match catch_unwind(AssertUnwindSafe(|| {
                 schemas.validate(result.output_schema(), result.output())
             })) {
@@ -1254,7 +1559,7 @@ impl PostgresStore {
             Some(prepared_projection(&after)?)
         };
         let mut wire = Box::new(Wire {
-            version: 1,
+            version: data.wire.version,
             intent: Box::new(data.wire.clone()),
             intent_digest: data.digest,
             source_journal,
@@ -1347,8 +1652,8 @@ impl PostgresStore {
                 .ok_or(StoreError::WrongAppendAuthority)?,
             final_now,
         )?;
-        let within_deadline: bool = query_scalar("SELECT agent_deadline_at > clock_timestamp() FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence=$3 AND journal_digest=$4")
-            .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(i64::try_from(record.event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?).bind(record.event.digest().as_bytes()).fetch_one(&mut *tx).await.map_err(|source| StoreError::database("Root barrier final deadline",source))?;
+        let within_deadline: bool = query_scalar("SELECT CASE WHEN $5::integer=1 THEN agent_deadline_at > clock_timestamp() WHEN $5::integer=2 THEN agent_deadline_at IS NULL ELSE false END FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence=$3 AND journal_digest=$4")
+            .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(i64::try_from(record.event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?).bind(record.event.digest().as_bytes()).bind(i32::from(record.wire.version)).fetch_one(&mut *tx).await.map_err(|source| StoreError::database("Root barrier final deadline",source))?;
         if !within_deadline {
             return Err(StoreError::LeaseExpired);
         }
@@ -1356,6 +1661,43 @@ impl PostgresStore {
             .await
             .map_err(|source| StoreError::database("Root graph barrier commit", source))?;
         Ok(RootGraphBarrierCommitOutcome::Committed(durable))
+    }
+}
+
+impl ClaimedRunRecovery<'_> {
+    /// Checks the creating source for the exact observed Root checkpoint.
+    /// Unavailable legitimate history is operational; owning corruption uses
+    /// this session's existing exact-journal, live-fence quarantine boundary.
+    /// No node start, callback, counter or reusable authority is produced.
+    ///
+    /// # Errors
+    /// Returns source availability, stale snapshot/fence, quarantine or
+    /// database failures while retaining the full owning reader contract.
+    pub async fn validate_graph_creating_source(
+        &self,
+        base: &CheckpointHead,
+        observed: &JournalHead,
+    ) -> Result<(), StoreError> {
+        if base.tenant_id() != self.fence.tenant_id()
+            || base.run_id() != self.fence.run_id()
+            || self.initial_run.journal_head() != Some(observed)
+        {
+            return Err(StoreError::StaleClaimedRunRecoveryObservation);
+        }
+        if self.initial_run.checkpoint().is_none_or(|pointer| {
+            pointer.checkpoint_id() != base.checkpoint_id()
+                || pointer.superstep() != base.superstep()
+                || pointer.digest() != base.digest()
+        }) {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        self.store
+            .with_corruption_quarantine(
+                self.context.clone(),
+                self.store
+                    .validate_worker_graph_creating_source(&self.fence, base, observed),
+            )
+            .await
     }
 }
 fn append_fence_epoch(event: &JournalEvent) -> Result<FencingEpoch, StoreError> {
@@ -1558,6 +1900,71 @@ pub(super) async fn verify_mutation_source(
     } else {
         Box::pin(verify_run(tx, stored)).await
     }
+}
+
+// Only the fresh initial-checkpoint writers reach this boundary. They pass
+// the original complete checkpoint and projection intent, before the Run's
+// journal pointer moves; a missing parent is not a historical exception.
+pub(super) async fn verify_initial_mutation_source(
+    tx: &mut Transaction<'_, Postgres>,
+    stored: &StoredRun,
+    expected: &Checkpoint,
+    event: &JournalEvent,
+    projection: Digest,
+) -> Result<(), StoreError> {
+    let owner = stored.lifecycle().provenance();
+    let pointer = stored
+        .checkpoint()
+        .ok_or_else(|| StoreError::corrupt("Root initial mutation pointer"))?;
+    let durable = checkpoint(
+        tx,
+        owner.tenant_id(),
+        owner.run_id(),
+        pointer.checkpoint_id(),
+    )
+    .await?;
+    if durable != *expected
+        || durable.tenant_id() != owner.tenant_id()
+        || durable.run_id() != owner.run_id()
+        || durable.superstep() != Superstep::INITIAL
+        || durable.parent().is_some()
+        || durable.superstep() != pointer.superstep()
+        || durable.digest() != pointer.digest()
+        || durable.journal_head() != &event.head()
+    {
+        return Err(StoreError::corrupt("Root initial mutation checkpoint"));
+    }
+    let (owning, actual_projection) = child_runs::anchored_event(
+        tx,
+        owner.tenant_id(),
+        owner.run_id(),
+        i64::try_from(event.sequence().get())
+            .map_err(|_| StoreError::corrupt("Root initial mutation sequence"))?,
+    )
+    .await?;
+    if owning != *event || actual_projection != Some(projection) {
+        return Err(StoreError::corrupt("Root initial mutation event"));
+    }
+    if let Some(source) = stored.journal_head() {
+        let (previous, _) = child_runs::anchored_event(
+            tx,
+            owner.tenant_id(),
+            owner.run_id(),
+            i64::try_from(source.sequence().get())
+                .map_err(|_| StoreError::corrupt("Root initial source sequence"))?,
+        )
+        .await?;
+        if previous.head() != *source
+            || source.sequence().get().checked_add(1) != Some(owning.sequence().get())
+            || owning.previous_digest() != Some(source.digest())
+            || owning.recorded_at() < source.recorded_at()
+        {
+            return Err(StoreError::corrupt("Root initial mutation predecessor"));
+        }
+    } else if owning.sequence() != JournalSequence::FIRST || owning.previous_digest().is_some() {
+        return Err(StoreError::corrupt("Root initial mutation first event"));
+    }
+    Box::pin(verify_checkpoint(tx, &durable)).await
 }
 
 pub(super) async fn verify_schema(pool: &PgPool) -> Result<(), StoreError> {

@@ -465,6 +465,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!("../migrations/0034_root_graph_barriers.sql")),
             false,
         ),
+        Migration::new(
+            35,
+            Cow::Borrowed("trusted ordinary Root graph dispositions"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0035_trusted_root_graph_barriers.sql"
+            )),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -9647,7 +9656,14 @@ WHERE tenant_id = $1
             insert_wait_registration(&mut transaction, wait).await?;
         }
         update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
-        update_run_head(&mut transaction, &event, Some(&prepared_projection)).await?;
+        update_initial_checkpoint_run_head(
+            &mut transaction,
+            &event,
+            Some(&prepared_projection),
+            &checkpoint,
+            projection_digest,
+        )
+        .await?;
         transaction
             .commit()
             .await
@@ -9778,7 +9794,14 @@ WHERE tenant_id = $1
         insert_event(&mut transaction, &event, projection_digest).await?;
         insert_checkpoint(&mut transaction, &checkpoint, event.source()).await?;
         update_checkpoint_pointer(&mut transaction, &checkpoint, event.source()).await?;
-        update_run_head(&mut transaction, &event, prepared_projection.as_ref()).await?;
+        update_initial_checkpoint_run_head(
+            &mut transaction,
+            &event,
+            prepared_projection.as_ref(),
+            &checkpoint,
+            projection_digest,
+        )
+        .await?;
 
         transaction
             .commit()
@@ -20268,11 +20291,38 @@ WHERE tenant_id = $1
     Ok(())
 }
 
-#[allow(clippy::too_many_lines)]
 async fn update_run_head(
     transaction: &mut Transaction<'_, Postgres>,
     event: &JournalEvent,
     projection: Option<&PreparedProjection>,
+) -> Result<(), StoreError> {
+    update_run_head_inner(transaction, event, projection, None).await
+}
+
+// The two fresh initial writers supply their original immutable inputs.
+// All other mutations retain the original complete source verifier.
+async fn update_initial_checkpoint_run_head(
+    transaction: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+    projection: Option<&PreparedProjection>,
+    checkpoint: &Checkpoint,
+    projection_digest: Digest,
+) -> Result<(), StoreError> {
+    update_run_head_inner(
+        transaction,
+        event,
+        projection,
+        Some((checkpoint, projection_digest)),
+    )
+    .await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn update_run_head_inner(
+    transaction: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+    projection: Option<&PreparedProjection>,
+    initial: Option<(&Checkpoint, Digest)>,
 ) -> Result<(), StoreError> {
     let row = query_as::<_, RunRow>(SELECT_RUN)
         .bind(event.tenant_id().as_str())
@@ -20281,11 +20331,22 @@ async fn update_run_head(
         .await
         .map_err(|source| StoreError::database("Root mutation source snapshot", source))?;
     let source = decode_run(row)?;
-    Box::pin(root_graph_barriers::verify_mutation_source(
-        transaction,
-        &source,
-    ))
-    .await?;
+    if let Some((checkpoint, digest)) = initial {
+        Box::pin(root_graph_barriers::verify_initial_mutation_source(
+            transaction,
+            &source,
+            checkpoint,
+            event,
+            digest,
+        ))
+        .await?;
+    } else {
+        Box::pin(root_graph_barriers::verify_mutation_source(
+            transaction,
+            &source,
+        ))
+        .await?;
+    }
     if let Some(projection) = projection {
         Box::pin(child_runs::validate_terminal_accounting(
             transaction,

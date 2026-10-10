@@ -995,6 +995,10 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .await
         .unwrap();
     Box::pin(runtime_failure_close(&store)).await;
+    Box::pin(crate::ordinary_root::qualify_trusted_graph_with_store(
+        &store,
+    ))
+    .await;
     Box::pin(super::super::join::qualify_join_with_store(&store)).await;
     Box::pin(crate::qualify_agent_service_with_store(&store)).await;
     Box::pin(crate::qualify_provider_native_with_store(&store, false)).await;
@@ -1029,7 +1033,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 34);
+    assert_eq!(schema_version, 35);
     store.close().await;
     fixture.cleanup().await;
     println!(

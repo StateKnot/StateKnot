@@ -642,7 +642,17 @@ preimage can be proved. An authenticated legacy history with unavailable
 original inputs returns `GraphReplayHistoricalDispositionUnavailable`, grants
 no dispatch and is not quarantined. There is no source fallback based solely on
 missing Agent rows, no caller boolean that grants ordinary authority, and no
-metadata or checkpoint verification bypass.
+metadata or checkpoint verification bypass. Before any fresh Root dispatch,
+`ClaimedRunRecovery::validate_graph_creating_source` checks the exact original
+session checkpoint and journal observation through one read-only, repeatable-read
+Store operation. It authenticates the canonical Run, checkpoint, complete owning
+history, graph pin and positive Agent or trusted creation source, and checks the
+original live fence and database clock again before returning unit. A later
+journal cannot replace the session's observation. The Driver calls this after
+its cancellation handoff branch and before node starts, frame operations or
+external work; only an inactive scoped stack enters this Root check. It produces
+no business write, callback, dispatch counter, portable proof or cached authority.
+All subsequent transactional starts and commits retain their original guards.
 
 Ordinary Terminal records retain the complete original `AgentResult` and the
 exact validation inputs obtained from the real trusted descriptor, complete

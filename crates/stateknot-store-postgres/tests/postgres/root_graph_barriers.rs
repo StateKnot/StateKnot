@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Whole Root dispositions, original input recovery and durable corruption isolation.
+#[path = "root_graph_barriers/trusted_upgrade.rs"]
+mod trusted_upgrade;
 use super::*;
 use stateknot_core::{
     AgentArtifacts, AgentRequest, AgentResult, ExecutionCount, GraphBarrierDisposition,

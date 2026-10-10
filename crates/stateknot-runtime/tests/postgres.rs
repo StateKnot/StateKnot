@@ -21,6 +21,9 @@ mod process_harness;
 #[path = "postgres/commit_proxy.rs"]
 mod commit_proxy;
 
+#[path = "postgres/ordinary_root.rs"]
+mod ordinary_root;
+
 use std::{
     collections::VecDeque,
     future,
