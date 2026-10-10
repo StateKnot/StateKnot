@@ -39,6 +39,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Bound experimental scoped DIRECT observation by the original admitted
+  deadline and node timeout, forwarding AgentLoop shutdown without treating
+  incomplete costs as zero. Scoped cancellation retains the original fence
+  while observing, then waits for complete validation/quarantine, renewal and
+  Closure acknowledgements. Guardian failure cannot discard a committed
+  mutation ACK. Cleanup may outlive admission without granting launch.
+
 - Keep complete child admission intents and ownership records on the heap during
   Join and account recovery. Original role-profile recovery now fits the default
   thread stack while retaining canonical bytes, complete ownership/terminal

@@ -427,3 +427,5 @@ npm run verify
 - 实际嵌套 Driver、完整重放适配和祖先拓扑回归继续分别冻结与审查。独立候选的完整原生验收仍保留 Root 历史、七层重试和角色默认栈的真实失败，尚不能作为完整资格或 Supported 证据；最终组合源码、Linux/固定 nightly、故障矩阵、真实历史 N-1/N-2、CI 及 R6/R7 门禁继续执行。
 - [恢复增量报告](qualification/experimental-recovery-increment-2026-10-11.zh-CN.md)分别记录 `3236208` 的 1,995 项工作区测试、`a21534c` 双版各 14 项 scoped 子回归、`a1bc43c` 双版各十项 MCP reconciliation 检查、`01beba98` 双版各七项应用重放探针与 1,996 项工作区测试，以及 `bb8a606` 双版各两项真实 Root Driver 重新接管回归。完整只读探针核对全部 53 张业务表与迁移记录；旧 Wait 原回执、更高 fence 与节点只执行一次均有真实证明。
 - `01beba98` 固定 nightly 的原 Driver future 失败、首次 Root 对照共用 target 误用旧二进制的无效候选结论均保留。Root 对照已用空任务缓存重新编译，两版原生通过并核对提交/源码一致。最终组合门禁、普通 Root 正向来源兼容、过期绝对 Wait 与实际 Driver 的 scoped 子 Join 继续开放，不继承其他源码结果或关闭阶段。
+- [冻结嵌套 Driver 组合报告](qualification/experimental-nested-driver-combination-2026-10-11.zh-CN.md)记录 `f9cae2d` 的严格工作区静态门禁、98 个 suite / 2,020 项测试、45 项独立文档测试和固定 nightly 实际通过。本机与核对到同一完整源码树的 CI ASan 都重放 2,304 份种子、三个目标各完成 10,000 次实际变异，原资源上限不变。双版完整角色原测试在 schema 34、默认栈实际通过，原栈溢出在该组合解决。
+- 同一 f9 CI 的十一项 job 通过；必须执行的 PostgreSQL 16、17 Store 检查各 240 项通过、十项失败，Runtime Native 后续步骤未到达。原始 INITIAL 来源、损坏记录断言和七层完整重放租约失败保留，继续逐项修复；不能据静态、fuzz 或角色子范围关闭完整 Native/R1，也不转授后续源码。

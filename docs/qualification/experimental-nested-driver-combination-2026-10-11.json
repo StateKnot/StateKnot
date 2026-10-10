@@ -1,0 +1,546 @@
+{
+  "schema": "stateknot.experimental-combination-qualification.v1",
+  "date": "2026-10-11",
+  "status": "bounded-source-results-with-open-native-failures",
+  "source_commit": "f9cae2db2efc42bb7a399b2428418a3a59858304",
+  "source_tree": "c239c48fe2c22f331aba629789f249ee63c0b6f3",
+  "source_files": 880,
+  "source_manifest_sha256": "c01ac9d6fb4b294fe31d3b918628f24ee3bfdbee4b448e6bf0ac9b6fd190a3b7",
+  "fuzz_source_sha256": "fc98c89060b3cb5c2d8a24bef03c9348d48ba589b3d203d61b7e6a19342ea104",
+  "source_manifest": {
+    "path": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-inputs.json",
+    "bytes": 107624,
+    "sha256": "65ca7ec527ca71c3f5d89659e4ee4578a9a25d0969e51b5f1eeebec6b8d35e29"
+  },
+  "workspace_counts": {
+    "suites": 98,
+    "passed": 2020,
+    "failed": 0,
+    "ignored": 6
+  },
+  "doctest_counts": {
+    "suites": 10,
+    "passed": 45,
+    "failed": 0,
+    "ignored": 0
+  },
+  "static_gates": {
+    "head": "f9cae2db2efc42bb7a399b2428418a3a59858304",
+    "tree": "c239c48fe2c22f331aba629789f249ee63c0b6f3",
+    "source": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source",
+    "source_files": 880,
+    "source_sha256": "c01ac9d6fb4b294fe31d3b918628f24ee3bfdbee4b448e6bf0ac9b6fd190a3b7",
+    "static_cache": "/private/tmp/stateknot-root-terminal-inputs-no-debug-target-v1",
+    "fuzz_cache": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source/fuzz/target",
+    "initially_empty_caches": true,
+    "checks": [
+      {
+        "name": "fmt",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "exit_code": 0,
+        "log": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-fmt.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "elapsed_seconds": 3.289196584,
+        "source_unchanged": true
+      },
+      {
+        "name": "clippy",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0,
+        "log": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-clippy.log",
+        "log_sha256": "b4b6d7ee4ff65b5e6683100508cd151fd288367ecf08d0df6f8f784ea31d7cac",
+        "elapsed_seconds": 231.217699833,
+        "source_unchanged": true
+      },
+      {
+        "name": "workspace",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "test",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "exit_code": 0,
+        "log": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-workspace.log",
+        "log_sha256": "ca19502ccc2c8294fd03320ac120c7977cacc6782e9f646154776e75c238da53",
+        "elapsed_seconds": 375.87308625,
+        "source_unchanged": true
+      },
+      {
+        "name": "doctests",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "test",
+          "--workspace",
+          "--doc",
+          "--all-features",
+          "--locked"
+        ],
+        "exit_code": 0,
+        "log": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-doctests.log",
+        "log_sha256": "b517ca3791fb7277a2864923814689676c45b44dee76944b12ea1063dfc14ee0",
+        "elapsed_seconds": 8.424380874999997,
+        "source_unchanged": true
+      },
+      {
+        "name": "rustdoc",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "doc",
+          "--workspace",
+          "--all-features",
+          "--no-deps",
+          "--locked"
+        ],
+        "exit_code": 0,
+        "log": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-rustdoc.log",
+        "log_sha256": "571a958433fda8530ebd264bd0181d4499d68b11a2e2b56c67556e360afa147a",
+        "elapsed_seconds": 22.312167375000058,
+        "source_unchanged": true
+      },
+      {
+        "name": "nightly",
+        "command": [
+          "cargo",
+          "+nightly-2026-10-07",
+          "check",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "exit_code": 0,
+        "log": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-nightly.log",
+        "log_sha256": "d2708375cd478701dd8428897b7efaf6e08d4699491613db71f4df30ef661783",
+        "elapsed_seconds": 198.69658400000003,
+        "source_unchanged": true
+      },
+      {
+        "name": "asan",
+        "command": [
+          "python3",
+          "fuzz/qualify.py"
+        ],
+        "exit_code": 1,
+        "log": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-asan.log",
+        "log_sha256": "92f3b3943217ee45e69bea7c4cc608edd3d56af9bc71212641aa1197131d876f",
+        "elapsed_seconds": 0.3309712090000403,
+        "source_unchanged": true,
+        "asan_report": "/private/tmp/stateknot-root-terminal-inputs-asan-v1.json",
+        "asan_report_sha256": "22b8baaface22978dda6276f28d49a398ea3e0584e8ae3d5f84e136afeb94bd3"
+      }
+    ],
+    "scope": "Exact f9cae2d combined source, stable/native compiler and ASan gates only; no P2 guardian, Store35, elapsed Wait, full Native or R1 qualification."
+  },
+  "local_asan": {
+    "schema": "https://stateknot.github.io/schema/qualification/core-fuzz/1.0.0",
+    "targets": {
+      "bounded_json": {
+        "seed_files": 16,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "d837fdc654e0690270b0390706b92e7a5d98cd49244cfd541b6f876b22ad3873",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source/fuzz/artifacts/bounded_json/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 498,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 365,
+        "retained_coverage_bytes": 3483391,
+        "log_sha256": "5ec1c4ce827817c98e5490c2223f40b452c975febaea7f5d12b740089ca491ff"
+      },
+      "core_readers": {
+        "seed_files": 2276,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "c2535f0d0b2e6d0a7209c1f3efb13cf96dcb1003c009d238a1b39a983c2eeac7",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source/fuzz/artifacts/core_readers/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 820,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 291,
+        "retained_coverage_bytes": 214669,
+        "log_sha256": "c9c0c7065a3e1271f2d47cac910bc60118279e7fec64c1c9c379a26eef2d4ba1"
+      },
+      "schema_registry": {
+        "seed_files": 12,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "35688454b6f83aa5d91ecd825eb4e252ec33617bf7266cde21f9badba10462a4",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source/fuzz/artifacts/schema_registry/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 470,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 248,
+        "retained_coverage_bytes": 746245,
+        "log_sha256": "1ff412258673bc4e00dcb51047ed38b20bfe3dd7a6f929f8c3ef186d8ab955e2"
+      }
+    },
+    "limits": {
+      "max_input_bytes": 131072,
+      "max_mutation_runs_per_target": 10000,
+      "max_seconds_per_target": 60,
+      "max_seconds_per_input": 10,
+      "rss_limit_mib": 2048,
+      "build_jobs": 2,
+      "sanitizer": "address",
+      "cfg_fuzzing": false
+    },
+    "complete": true,
+    "run_directory": "fuzz/results/qualification-idr63biv",
+    "source_files_sha256": "fc98c89060b3cb5c2d8a24bef03c9348d48ba589b3d203d61b7e6a19342ea104",
+    "source_commit": "f9cae2db2efc42bb7a399b2428418a3a59858304",
+    "source_dirty": false,
+    "rustc": "rustc 1.101.0-nightly (8d1a76430 2026-10-06)",
+    "cargo_fuzz": "cargo-fuzz 0.13.2",
+    "cargo_locks": {
+      "Cargo.lock": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+      "fuzz/Cargo.lock": "8310a4df054f97b4b64eeaa9ac97c26b4185718d5842b46bdc8ade6cc1439cf6"
+    },
+    "product_dependency_versions_preserved": true,
+    "reader_count": 314,
+    "enum_type_count": 71,
+    "enum_variant_count": 298,
+    "seeds_manifest_sha256": "9a2635fab2febff58ac2942be2895ade4caa35e33d63e3de27466c3bc73d2847",
+    "lockfiles_unchanged": true,
+    "elapsed_seconds": 814.95,
+    "source_files_unchanged": true
+  },
+  "local_asan_receipt": {
+    "head": "f9cae2db2efc42bb7a399b2428418a3a59858304",
+    "tree": "c239c48fe2c22f331aba629789f249ee63c0b6f3",
+    "source": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source",
+    "source_files": 880,
+    "source_sha256": "c01ac9d6fb4b294fe31d3b918628f24ee3bfdbee4b448e6bf0ac9b6fd190a3b7",
+    "static_cache": "/private/tmp/stateknot-root-terminal-inputs-no-debug-target-v1",
+    "fuzz_cache": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source/fuzz/target",
+    "initially_empty_caches": true,
+    "command": [
+      "python3",
+      "fuzz/qualify.py"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 815.321053583,
+    "source_unchanged": true,
+    "cargo_fuzz": "/private/tmp/stateknot-r1-fuzz-tools/bin/cargo-fuzz",
+    "cargo_fuzz_sha256": "1058925c3c9466ec9b4762a7707aefb86a74788d4990b9514bd05b3272862853",
+    "engine_version": "cargo-fuzz 0.13.2",
+    "initially_empty_fuzz_cache": true,
+    "log": "/private/tmp/stateknot-root-terminal-inputs-asan-v2.log",
+    "log_sha256": "376db93644a368a265535fdcb81d273098836b32a285032bd214173692b32e88",
+    "asan_report": "/private/tmp/stateknot-root-terminal-inputs-asan-v2.json",
+    "asan_report_sha256": "270f8d588b3ff5a1e19e88f398fe00ad79cfb7ead6886bd2b63ca75d68f8cf1b",
+    "scope": "Exact f9cae2d fixed limits ASan scope; v1 failed before ASan because the pinned existing engine directory was absent from PATH. No Store35/guardian/elapsed or full Native qualification."
+  },
+  "trusted_role": {
+    "head": "f9cae2db2efc42bb7a399b2428418a3a59858304",
+    "tree": "c239c48fe2c22f331aba629789f249ee63c0b6f3",
+    "source": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source",
+    "source_files": 880,
+    "source_sha256": "c01ac9d6fb4b294fe31d3b918628f24ee3bfdbee4b448e6bf0ac9b6fd190a3b7",
+    "static_cache": "/private/tmp/stateknot-root-terminal-inputs-no-debug-target-v1",
+    "fuzz_cache": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-source/fuzz/target",
+    "initially_empty_caches": true,
+    "checks": [
+      {
+        "major": 16,
+        "database": "stateknot_f9_trusted_role_pg16_v1",
+        "database_created_from_template0": true,
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "test",
+          "-p",
+          "stateknot-runtime",
+          "--all-features",
+          "--locked",
+          "--test",
+          "postgres",
+          "trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+          "--",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 137.23937445800001,
+        "source_unchanged": true,
+        "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+        "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+        "log": "/private/tmp/stateknot-root-f9-trusted-role-pg16-v1.log",
+        "log_sha256": "5e05bf8e54fe2527f94ff9f5ba5c1261efca5de33e542092ba150b7191f614b0",
+        "binary": "/private/tmp/stateknot-root-terminal-inputs-no-debug-target-v1/debug/deps/postgres-29a4376355896e12",
+        "binary_sha256": "56b1a59d60e9b6c35c88f89b6e1952fbb816f2d43d641d7d78538fee85fa693e",
+        "role_evidence": {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 34,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        }
+      },
+      {
+        "major": 17,
+        "database": "stateknot_f9_trusted_role_pg17_v1",
+        "database_created_from_template0": true,
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "test",
+          "-p",
+          "stateknot-runtime",
+          "--all-features",
+          "--locked",
+          "--test",
+          "postgres",
+          "trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+          "--",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 42.697840084000006,
+        "source_unchanged": true,
+        "container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+        "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+        "log": "/private/tmp/stateknot-root-f9-trusted-role-pg17-v1.log",
+        "log_sha256": "aac8fc5bbd33a86c07f273f8776da92afd74e02fe738a38ebeeae832deeb5d5a",
+        "binary": "/private/tmp/stateknot-root-terminal-inputs-no-debug-target-v1/debug/deps/postgres-29a4376355896e12",
+        "binary_sha256": "56b1a59d60e9b6c35c88f89b6e1952fbb816f2d43d641d7d78538fee85fa693e",
+        "role_evidence": {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 34,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        }
+      }
+    ],
+    "compiled_source_provenance": "/private/tmp/stateknot-root-terminal-inputs-static-fuzz-v1-workspace.log",
+    "scope": "Actual f9cae2d complete trusted role path including full owning scoped child/Join/frame Return/Wait/Closure at default Rust stack, PG16/17. Not full Native or schema35/guardian/elapsed qualification."
+  },
+  "remote_asan_attestation": {
+    "run_id": 38079695038,
+    "run_head": "f9cae2db2efc42bb7a399b2428418a3a59858304",
+    "tested_merge": "ff5584c201799660ed3fb11e81291eff9b50c4ac",
+    "tested_merge_parents": [
+      "aa11b4f44a948aaf2e2baba4c30a297dc828ce6d",
+      "f9cae2db2efc42bb7a399b2428418a3a59858304"
+    ],
+    "exact_source_tree": "c239c48fe2c22f331aba629789f249ee63c0b6f3",
+    "source_files_sha256": "fc98c89060b3cb5c2d8a24bef03c9348d48ba589b3d203d61b7e6a19342ea104",
+    "source_hash_matches_local_frozen_source": true,
+    "report": "/private/tmp/stateknot-f9-ci-core-fuzz-v1/results/qualification.json",
+    "report_sha256": "e21699a18dec4ffbe6c90cbd8096d9ab1b491cfcdfb7ca5f637ba1ec41499867",
+    "seeds": 2304,
+    "reader_count": 314,
+    "targets": {
+      "bounded_json": {
+        "seed_files": 16,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "64f4ba5b6befd3ed363f47bb5f81f9274308d21b651c09fc7436e2fb6bbb4078",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/bounded_json/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 456,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 355,
+        "retained_coverage_bytes": 2765603,
+        "log_sha256": "de1a92e62957fec2cc8e45f7fa7308fc56b9ecebcf4b81cf1a2afa483fcc539b"
+      },
+      "core_readers": {
+        "seed_files": 2276,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "634953d11ef32b0136e1d561dfc0411798b039d53066bcbea3c5922c97e01cc9",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/core_readers/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 1026,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 310,
+        "retained_coverage_bytes": 197503,
+        "log_sha256": "f394bada0baceb108a7edc93b5be2a81256348854d772c808b5ef2ae79b6e86b"
+      },
+      "schema_registry": {
+        "seed_files": 12,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "9f6f5d69a463b25abf4bf69fede5d8dcc10b984e6581ad1f58aa8f183b29114c",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/schema_registry/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 271,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 270,
+        "retained_coverage_bytes": 499397,
+        "log_sha256": "a34d95953e93ece44264c534134a056df167f3c02e91afbda690f84f27edadc3"
+      }
+    },
+    "limits": {
+      "max_input_bytes": 131072,
+      "max_mutation_runs_per_target": 10000,
+      "max_seconds_per_target": 60,
+      "max_seconds_per_input": 10,
+      "rss_limit_mib": 2048,
+      "build_jobs": 2,
+      "sanitizer": "address",
+      "cfg_fuzzing": false
+    },
+    "rustc": "rustc 1.101.0-nightly (8d1a76430 2026-10-06)",
+    "engine": "cargo-fuzz 0.13.2",
+    "job_url": "https://github.com/StateKnot/StateKnot/actions/runs/38079695038/job/114293870613",
+    "scope": "Remote fixed ASan of actual synthetic merge ff5584 whose exact source tree and source file digest equal frozen f9. No Store35/guardian/elapsed/full Native or R1 qualification."
+  },
+  "ci": {
+    "run": "https://github.com/StateKnot/StateKnot/actions/runs/38079695038",
+    "conclusion": "failure",
+    "passed_jobs": 11,
+    "failed_jobs": [
+      "PostgreSQL (16)",
+      "PostgreSQL (17)"
+    ],
+    "native_store_per_version": {
+      "passed": 240,
+      "failed": 10,
+      "ignored": 0
+    },
+    "raw_failure_log": {
+      "path": "/private/tmp/stateknot-f9-ci-failed-v1.log",
+      "bytes": 276652,
+      "sha256": "ef7b08415256a3b1f785d78af78d9f0c0db59bb0d87e720fa941aa1e411c081b"
+    },
+    "failure_groups": [
+      "fresh INITIAL Root mutation source parent (7 per version)",
+      "full public Run read of intentionally corrupted canonical checkpoint (2 per version)",
+      "seven-level complete application replay lease expiry (1 per version)"
+    ],
+    "runtime_native_and_later_job_steps": "not reached; not qualified"
+  },
+  "environment": {
+    "default_rust_thread_stack": true,
+    "incremental": 0,
+    "dev_debug": 0,
+    "test_debug": 0,
+    "original_product_limits_preserved": true,
+    "source_copy": "tracked source only; no target copy",
+    "cache_retention": "two exact-source task-owned paths listed in static_gates; logs and reports outside caches",
+    "disk_checks_before_builds": true,
+    "no_cleanup_claim": true
+  },
+  "unqualified": [
+    "later source combinations",
+    "schema35",
+    "P2 cancellation guardian changes",
+    "scoped Driver ChildJoin",
+    "elapsed absolute waits/schema36",
+    "complete Native CI",
+    "R1 exit",
+    "RFC-0022 Accepted",
+    "release support",
+    "historical N-1/N-2",
+    "R6/R7"
+  ]
+}
