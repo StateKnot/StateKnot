@@ -43,6 +43,33 @@ SPDX-License-Identifier: Apache-2.0
 成功写入 Start，因此必须按 In-flight 处理。如果原执行器死亡，只能等 Lease 到期或显式
 Supersede 后，由更高 Fence 恢复这次未完成执行。
 
+## 实验性命名空间帧
+
+当前未发布源码增加了 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md)
+描述的嵌套 Driver。这些 API 不包含在 `0.1.0-alpha.1` 中；完整组合恢复、兼容
+与生产验收仍开放。注册表要求完整且精确的 target graph、reducer、schema pin。
+框架 caller 不安装应用 executor，冲突绑定会被拒绝。
+
+Dispatch 前，Driver 使用部署的 schema/reducer 认证并重放 Root 与全部生命周期
+帧。Entry、更高 fence 的 Rebind、scoped Continue/Wait、Return 都是完整复合事务。
+每个持久框架事件与普通工作共享同一 drive quantum；Return 恢复原父级，
+不会把 caller 当作普通 Node 执行。
+
+帧操作要求 `GraphLifecycleEvidenceProvider::direct_usage_evidence`。
+独立 Driver 通过 `with_direct_usage_evidence` 安装 provider；
+`DurableAgentLoop` 把既有 lifecycle provider 同时绑定到 Driver。
+该方法默认返回 `Unavailable`，使用帧前必须实现它。证据须恢复真实、完整、
+已持久化的 Run-wide DIRECT usage，包含直接 Node/provider/框架费用与未知成本
+事件，排除独立子树费用；并精确绑定传入 `GraphDirectUsageEvidenceContext`
+的 provenance、Root checkpoint、leaf、journal head 与 fence。用量下限、补零
+或重新执行外部调用都不能代替完整证据。缺失或交叉证据不授予帧写入或执行权限。
+
+`FrameWaiting` 表示 scoped Wait 复合事务与租约释放已完成。授权 resolver 或
+timer 完成原持久 Wait 事实后，由 scheduler discovery 与新 claim 恢复原作用域，
+不要再通过 lifecycle coordinator 创建第二个 Root Wait。可达的 scoped 独立子 Run
+Join 仍返回 `ScopedChildJoinUnsupported`，Store 原语不能代替该 Driver 路径验收。
+完整历史成本、进程丢失和备份恢复仍有独立门禁。
+
 ## 启动集成
 
 数据库迁移与可执行注册都属于部署启动流程，不能放到请求热路径。使用拥有 DDL 权限的凭据
@@ -107,6 +134,7 @@ Model 与 Tool 外部副作用必须通过各自的 Durable Invocation Ledger。
 | `Blocked` 且 `in_flight > 0` | 监督或放弃当前所有权；禁止在同一 Fence 下再次 Dispatch。 | 保留 |
 | `Blocked` 且包含 `failed` / `exhausted` | 使用 Recovery Plan 的精确证据与累计 Usage 执行 Run-level Failure Policy，禁止自行推导 Retry 权限。 | 保留 |
 | `Deferred` | 不要在进程内再注册 Timer；数据库时间的索引 Gate 已提交。 | Driver 已释放 |
+| `FrameWaiting`（未发布，RFC-0022 草案） | 解决或触发原持久 scoped Wait，再由 Scheduler Discovery 与新 Claim 进入；不要创建第二个生命周期 Wait。 | 与 scoped Wait 原子释放 |
 | `Yielded` | 若仍有任务，通过 Scheduler Discovery 和新 Claim 再次进入。 | Driver 已释放 |
 | `CancellationRequested` | 立即使用原样 Handoff 调用 Lifecycle Cancellation Confirmation；普通应用应使用会自动完成该步骤的 `DurableAgentLoop`。禁止合成 Usage。 | Fresh Confirmation Commit 前由 Driver 保留且必须仍有效 |
 | `Cancelled` | 进程 Shutdown 已停止本地工作；后续 Scheduler Claim 负责恢复。 | Driver 已释放 |
@@ -176,7 +204,8 @@ Deadline 会转成 Public-safe Node Failure；Process Shutdown 或 Durable Cance
 - Noninitial Replay 必须使用原始提交时相同的 Graph、Reducer、Schema、Journal Anchor、
   Result Set 与 Checkpoint Parentage。
 - Durable Graph 证据缺失或矛盾时，当前 Live Fence 必须先把 Run Quarantine，再允许返回。
-- Driver 只会自主提交 Continue；Wait 与 Terminal 必须经过生命周期集成层。
+- Root Wait 与 Terminal 经过生命周期集成层。实验性帧路径由 Driver 提交 scoped
+  Wait，并通过 Return 结算 scoped Terminal 后恢复原父级。
 - Eligible Ready Sibling 可以重叠执行，但 Start 与 Completion 仍是按 Canonical `NodeId`
   排序的 Journal Fact；Exclusive Node 始终单独执行。
 

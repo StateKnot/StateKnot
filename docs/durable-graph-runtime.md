@@ -51,6 +51,41 @@ acknowledgement or another executor's committed start, so the Driver classifies
 it as in flight. If that executor dies, lease expiry or explicit supersession
 allows a higher fence to recover the unfinished attempt once.
 
+## Experimental namespaced frames
+
+The current unreleased source adds the nested Driver described by
+[Draft RFC-0022](rfcs/0022-namespaced-graph-frames.md). These APIs are absent from
+`0.1.0-alpha.1`; full combined recovery, compatibility and production
+qualification remain open. Registry construction requires the exact complete
+target graph, reducer and schema pins. A framework caller has no application
+executor; conflicting bindings are rejected.
+
+Before dispatch, the Driver authenticates and replays Root and all lifetime
+frames with the deployed schemas and reducers. It commits Entry, higher-fence
+Rebind, scoped Continue/Wait and Return as complete compound transactions.
+Each durable framework event consumes the same drive quantum as ordinary work;
+Return resumes the original parent without executing its caller as a node.
+
+Frame actions require `GraphLifecycleEvidenceProvider::direct_usage_evidence`.
+A standalone Driver installs the provider with `with_direct_usage_evidence`;
+`DurableAgentLoop` shares its existing lifecycle provider with the Driver. The
+method's default returns `Unavailable`, so existing providers must implement it
+before using frames. Recover complete already-durable Run-wide DIRECT usage,
+including direct node/provider/framework charges and unknown cost events,
+excluding isolated child-subtree charges. Bind it to the supplied
+`GraphDirectUsageEvidenceContext`'s exact provenance, Root checkpoint, leaf,
+journal head and fence. A usage floor, zero substitution or re-executed external
+call cannot replace this evidence. Missing or crossed evidence grants no frame
+mutation or dispatch authority.
+
+`FrameWaiting` means the scoped Wait compound and lease release are already
+committed. An authorized resolver or timer must complete the stored Wait facts;
+scheduler discovery and a fresh claim then recover the original scope. Do not
+commit a second Root Wait through the lifecycle coordinator. Reachable scoped
+isolated-child Join still returns `ScopedChildJoinUnsupported`; Store primitives
+alone do not qualify that Driver path. Full history cost, process-loss and
+restore evidence are separate remaining gates.
+
 ## Startup integration
 
 Migrations and executable registration belong to deployment startup, not the
@@ -157,6 +192,7 @@ Every `GraphDriveOutcome` has an explicit ownership rule:
 | `Blocked` with `in_flight > 0` | Supervise or relinquish ownership; do not dispatch another same-fence attempt. | Retained |
 | `Blocked` with `failed` or `exhausted` | Apply the run-level failure policy using the plan's exact evidence and cumulative usage. Do not infer retry authority. | Retained |
 | `Deferred` | Schedule no timer in process; the indexed database-time gate is already committed. | Released by the Driver |
+| `FrameWaiting` (unreleased, Draft RFC-0022) | Resolve or fire the durable scoped Wait, then re-enter through scheduler discovery and a fresh claim. Do not create another lifecycle Wait. | Released atomically with the scoped Wait |
 | `Yielded` | Re-enter through scheduler discovery and a new claim if work remains. | Released by the Driver |
 | `CancellationRequested` | Immediately call lifecycle cancellation confirmation with the exact handoff, or use `DurableAgentLoop`, which does so automatically. Never synthesize usage. | Retained and must still be live at a fresh confirmation commit |
 | `Cancelled` | Process shutdown stopped local work; a later scheduler claim performs recovery. | Released by the Driver |
@@ -242,7 +278,9 @@ limit above one does not make an executor eligible by itself.
   anchors, result set, and checkpoint parentage as the original commit.
 - Missing or contradictory durable graph evidence is quarantined under the
   current live fence before execution.
-- Continue is the only lifecycle barrier the Driver commits autonomously.
+- Root Wait and Terminal go through the lifecycle integration layer. The
+  experimental frame path commits scoped Wait itself and settles a scoped
+  Terminal through Return before resuming its original parent.
 - Eligible ready siblings may overlap, but their starts and completions remain
   canonical `NodeId`-ordered journal facts. Exclusive nodes still run alone.
 

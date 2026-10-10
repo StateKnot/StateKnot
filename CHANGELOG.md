@@ -14,6 +14,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Drive authenticated nested graph frames with complete Entry/Rebind/barrier/
+  Return transactions and one shared durable-event quantum. Trusted providers
+  must supply exact-context complete DIRECT usage; the default is unavailable.
+  `FrameWaiting` releases ownership with the scoped Wait and resumes through
+  authorized resolution and a fresh claim. Draft RFC-0022, scoped child Join and
+  full combined fault, compatibility and production qualification remain open;
+  these APIs are not included in `0.1.0-alpha.1`.
+
 - Prepare frame-owned isolated children with the complete scoped checkpoint and
   reserve them in the existing Root-bound Run account. Store admission and Join
   authenticate the actual leaf, original ownership namespace and declared
