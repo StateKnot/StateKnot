@@ -14,8 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- Erase the complete return/closure caller-anchor Future at the history boundary
-  so seven-level recovery retains full verification on the default thread stack.
+- Keep complete return/closure caller-anchor verification and ordinary node
+  completion restoration behind heap-backed Future boundaries. This prevents
+  closure completion witnesses from enlarging every ancestor replay Future
+  while retaining double-completion rejection and full seven-level recovery
+  checks on the default Linux thread stack.
 
 - Reject a Root checkpoint relabeled as a scoped model/tool activation before
   frame lookup, preserving existing invalid-activation errors for new requests

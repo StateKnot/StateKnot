@@ -15806,7 +15806,19 @@ async fn load_node_attempt_record(
         .map(Some)
 }
 
-async fn load_node_attempt_from_start_row(
+// Completion restoration participates in bounded ancestor replay. Keep both
+// completion witnesses and their full checks off every caller's inline Future.
+fn load_node_attempt_from_start_row<'a>(
+    transaction: &'a mut Transaction<'_, Postgres>,
+    start_row: NodeAttemptStartRow,
+) -> stateknot_core::BoxFuture<'a, Result<NodeAttempt, StoreError>> {
+    Box::pin(load_node_attempt_from_start_row_inner(
+        transaction,
+        start_row,
+    ))
+}
+
+async fn load_node_attempt_from_start_row_inner(
     transaction: &mut Transaction<'_, Postgres>,
     start_row: NodeAttemptStartRow,
 ) -> Result<NodeAttempt, StoreError> {

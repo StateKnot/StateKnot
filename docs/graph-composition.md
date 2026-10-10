@@ -151,8 +151,11 @@ child work. Scoped provider activations authenticate their actual frame; a Root
 checkpoint relabeled as nested retains the original invalid-activation error.
 It uses Schema 33 and the matching 52-table trusted-role profile.
 Existing committed decisions are fully authenticated before retries; cleanup
-granting no execution can finish after the execution deadline. These Store
-primitives still require actual nested Driver dispatch and final qualification.
+granting no execution can finish after the execution deadline. Completion
+restoration and caller-anchor verification use private heap-backed Future
+boundaries so ancestor replay retains the full ordinary/closed completion checks
+on the normal thread stack. These Store primitives still require actual nested
+Driver dispatch and final qualification.
 
 ## Qualification and remaining boundaries
 
