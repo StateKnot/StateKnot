@@ -766,3 +766,113 @@ async fn scoped_child_admission_rechecks_authority_after_deferred_constraints() 
     pool.close().await;
     store.close().await;
 }
+
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn scoped_child_admission_rechecks_its_narrower_deadline_after_deferred_constraints() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let mut value = Box::pin(started(&store, "scoped-child-final-deadline")).await;
+    let now = store.observe_database_clock().await.unwrap();
+    let deadline =
+        Timestamp::from_unix_micros(now.unix_micros().checked_add(5_000_000).unwrap()).unwrap();
+    let original = value.intent.child();
+    let child = AgentAdmissionIntent::new(
+        original.provenance().clone(),
+        original.descriptor().clone(),
+        AgentRequest::new(
+            original.request().input_schema().clone(),
+            original.request().input().clone(),
+            original
+                .request()
+                .budget_limits()
+                .clone()
+                .with_deadline(deadline),
+        ),
+        original.budget_layers().iter().cloned(),
+        original.graph().clone(),
+        original.authority().clone(),
+    )
+    .unwrap();
+    value.intent = ChildRunAdmissionIntent::for_frame(
+        value.admission.admission(),
+        &value.frame,
+        value.intent.key().clone(),
+        child,
+        value.intent.child_graph().clone(),
+        value.intent.initial_state().clone(),
+    )
+    .unwrap();
+    let pool = super::frame_barriers::pool().await;
+    // Sequence increments survive rollback, proving the deferred guard really
+    // ran before this rejection. All three test-owned objects are removed
+    // before assertions and the exact production catalog is checked afterward.
+    query("CREATE SEQUENCE stateknot.test_scoped_child_deadline_observed")
+        .execute(&pool)
+        .await
+        .unwrap();
+    query("CREATE FUNCTION stateknot.test_scoped_child_deadline_delay() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM nextval('stateknot.test_scoped_child_deadline_observed'); PERFORM pg_sleep(6); RETURN NEW; END $$")
+        .execute(&pool).await.unwrap();
+    query("CREATE CONSTRAINT TRIGGER test_scoped_child_deadline_delay AFTER INSERT ON stateknot.child_run_ownership DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.test_scoped_child_deadline_delay()")
+        .execute(&pool).await.unwrap();
+    let outcome = Box::pin(spawn(&store, &value)).await;
+    let observed = query_scalar::<_, bool>(
+        "SELECT is_called FROM stateknot.test_scoped_child_deadline_observed",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    query("DROP TRIGGER test_scoped_child_deadline_delay ON stateknot.child_run_ownership")
+        .execute(&pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.test_scoped_child_deadline_delay()")
+        .execute(&pool)
+        .await
+        .unwrap();
+    query("DROP SEQUENCE stateknot.test_scoped_child_deadline_observed")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(observed, "deferred child deadline guard must execute");
+    assert!(
+        matches!(outcome, Err(StoreError::ChildRunRejected)),
+        "final scoped child deadline: {outcome:?}"
+    );
+    let run = store
+        .load_run(value.fence.tenant_id(), value.fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(run.journal_head(), Some(&value.head));
+    assert_eq!(run.lease().unwrap().fence(), &value.fence);
+    assert!(store.observe_database_clock().await.unwrap() < run.lease().unwrap().expires_at());
+    assert!(
+        store
+            .load_child_budget_account(value.fence.tenant_id(), value.fence.run_id())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(matches!(
+        store
+            .load_run(
+                value.intent.child().provenance().tenant_id(),
+                value.intent.child().provenance().run_id(),
+            )
+            .await,
+        Err(StoreError::RunNotFound)
+    ));
+    assert_eq!(
+        store
+            .load_current_checkpoint(value.fence.tenant_id(), value.fence.run_id())
+            .await
+            .unwrap()
+            .as_ref(),
+        Some(value.admission.checkpoint())
+    );
+    store.verify_schema().await.unwrap();
+    pool.close().await;
+    store.close().await;
+}
