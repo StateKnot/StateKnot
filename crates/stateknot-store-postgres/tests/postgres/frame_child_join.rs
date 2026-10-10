@@ -369,5 +369,37 @@ async fn scoped_join_consumes_original_publication_under_a_higher_fence() {
             .head(),
         Some(&head)
     );
+    // A lost spawn ACK keeps its original physical owner even after that
+    // frame has returned. Fresh candidate IDs and its released fence must not
+    // create another child, reserve again or replace the successor fence.
+    let before_retry = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let before_account = store
+        .load_child_budget_account(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let retry = Box::pin(spawn(&store, &value)).await.unwrap();
+    assert!(matches!(retry, ChildRunCommitOutcome::Idempotent(_)));
+    assert_eq!(retry.record().spawn(), spawned.record().spawn());
+    assert_eq!(
+        retry.record().child().admission(),
+        spawned.record().child().admission()
+    );
+    assert!(retry.record().settlement().is_some());
+    let after_retry = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(after_retry.journal_head(), before_retry.journal_head());
+    assert_eq!(after_retry.lease().unwrap().fence(), &fence);
+    assert_eq!(
+        store
+            .load_child_budget_account(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap(),
+        before_account
+    );
     store.close().await;
 }
