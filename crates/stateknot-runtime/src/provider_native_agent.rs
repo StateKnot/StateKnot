@@ -1394,6 +1394,18 @@ impl ProviderNativeModelNode {
             usage,
             failure,
         } = self.terminal_model_evidence(&invocation)?;
+        let complete_usage = match invocation.state() {
+            ModelInvocationState::Committed { .. } => true,
+            ModelInvocationState::Failed { error } => error.usage().is_some(),
+            ModelInvocationState::Prepared | ModelInvocationState::Executing { .. } => false,
+        };
+        let usage = physical_invocation_usage(
+            context,
+            invocation.intent().activation(),
+            invocation.journal_head(),
+            usage,
+            complete_usage,
+        )?;
         if let Some(failure) = failure {
             return Err(ProviderNativeAgentExecutionError::observed(
                 ProviderNativeAgentNodeError::ModelFailed(failure),
@@ -2014,11 +2026,12 @@ impl ProviderNativeToolsNode {
         let invocation = self
             .dispatch_or_recover_tool(context, plan, invocation)
             .await?;
-        self.completed_tool_step(provider_call_id, &invocation)
+        self.completed_tool_step(context, provider_call_id, &invocation)
     }
 
     fn completed_tool_step(
         &self,
+        context: &GraphNodeContext,
         provider_call_id: stateknot_core::ModelProviderToolCallId,
         invocation: &ToolInvocation,
     ) -> Result<ProviderNativeToolStep, ProviderNativeAgentNodeError> {
@@ -2035,7 +2048,13 @@ impl ProviderNativeToolsNode {
                 return Err(ProviderNativeAgentNodeError::UncertainInvocation);
             }
         };
-        let usage = tool_usage(invocation, self.shared.definition.accounting.as_ref())?;
+        let usage = physical_invocation_usage(
+            context,
+            invocation.intent().activation(),
+            invocation.journal_head(),
+            tool_usage(invocation, self.shared.definition.accounting.as_ref())?,
+            true,
+        )?;
         let binding = NodeInvocationBinding::from_tool(invocation)
             .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
         Ok(ProviderNativeToolStep {
@@ -2103,7 +2122,7 @@ impl ProviderNativeToolsNode {
                 }
             }
 
-            let settled = self.settle_read_only_tool_wave(entries).await;
+            let settled = self.settle_read_only_tool_wave(context, entries).await;
             if let Some(error) = launch_error {
                 // Every already-started provider call was awaited and offered to
                 // the ordered terminal commit path before the launch error wins.
@@ -2202,6 +2221,7 @@ impl ProviderNativeToolsNode {
 
     async fn settle_read_only_tool_wave(
         &self,
+        context: &GraphNodeContext,
         entries: Vec<ProviderNativeToolWaveEntry>,
     ) -> Result<Vec<ProviderNativeToolStep>, ProviderNativeAgentNodeError> {
         let mut steps = Vec::with_capacity(entries.len());
@@ -2211,7 +2231,7 @@ impl ProviderNativeToolsNode {
                 ProviderNativeToolWaveEntry::Resolved {
                     provider_call_id,
                     invocation,
-                } => self.completed_tool_step(provider_call_id, invocation.as_ref()),
+                } => self.completed_tool_step(context, provider_call_id, invocation.as_ref()),
                 ProviderNativeToolWaveEntry::Dispatched {
                     provider_call_id,
                     task,
@@ -2225,7 +2245,7 @@ impl ProviderNativeToolsNode {
                         Ok(
                             ToolAttemptOutcome::Dispatched { invocation, .. }
                             | ToolAttemptOutcome::Recovered { invocation },
-                        ) => self.completed_tool_step(provider_call_id, &invocation),
+                        ) => self.completed_tool_step(context, provider_call_id, &invocation),
                         Err(_) => Err(ProviderNativeAgentNodeError::InvocationExecutor),
                     },
                     Err(_) => Err(ProviderNativeAgentNodeError::InvocationExecutor),
@@ -2489,6 +2509,34 @@ impl AbortOnDropToolTask {
 impl Drop for AbortOnDropToolTask {
     fn drop(&mut self) {
         self.task.abort();
+    }
+}
+
+// Invocation readers already authenticate the complete ledger and activation.
+// A later physical retry may consume its old terminal response, but must not
+// charge the same observed I/O twice. Unknown or unpriced evidence is retained.
+fn physical_invocation_usage(
+    context: &GraphNodeContext,
+    activation: &NodeActivation,
+    terminal: &stateknot_core::JournalHead,
+    usage: BudgetUsage,
+    complete_usage: bool,
+) -> Result<BudgetUsage, ProviderNativeAgentNodeError> {
+    let start = context.attempt().journal_head();
+    if activation != context.attempt().activation()
+        || terminal.tenant_id() != start.tenant_id()
+        || terminal.run_id() != start.run_id()
+        || terminal.sequence() == start.sequence()
+    {
+        return Err(ProviderNativeAgentNodeError::Integrity);
+    }
+    if terminal.sequence() < start.sequence()
+        && complete_usage
+        && usage.unpriced_cost_events() == ExecutionCount::ZERO
+    {
+        Ok(BudgetUsage::zero())
+    } else {
+        Ok(usage)
     }
 }
 
