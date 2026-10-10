@@ -1620,11 +1620,7 @@ enum ParsedMessage {
 }
 
 fn allocate_monotonic_id(counter: &AtomicU64) -> Option<u64> {
-    counter
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-            value.checked_add(1)
-        })
-        .ok()
+    crate::atomic_counter::allocate(counter, u64::MAX, Ordering::Relaxed, Ordering::Relaxed)
 }
 
 async fn wait_until<T, F>(
@@ -2224,6 +2220,14 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[test]
+    fn request_id_exhaustion_fails_closed_without_wrapping() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+        assert_eq!(allocate_monotonic_id(&counter), Some(u64::MAX - 1));
+        assert_eq!(allocate_monotonic_id(&counter), None);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+    }
 
     #[test]
     fn identity_and_options_are_bounded() {

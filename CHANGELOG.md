@@ -24,6 +24,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Stop allocating MCP activation/request and A2A request IDs at their original
+  exclusive ceilings without overflow or ID reuse. Use an MSRV-compatible
+  checked compare-and-exchange loop in place of the deprecated atomic update API,
+  preserving each allocator's original memory ordering and wire range.
+
 - Attribute reused priced model/tool terminal evidence to its original physical
   attempt, retaining exact bindings and cumulative lifecycle charges. Later
   attempts do not charge that I/O again; unknown outcomes, reconciliation after

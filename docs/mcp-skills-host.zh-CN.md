@@ -17,6 +17,10 @@ Client 先校验 Final SEP-2640 Wire Contract；Host 再分配本地 Origin，�
 进行全新审批，只从同一个 Client Binding 按需读取 Manifest 中列出的文件，精确校验
 Size 与 SHA-256，并在完整 Acting Window 内保留已批准的 Entry。
 
+本地 Activation ID 在同一个 Host 内单调递增。耗尽时，Host 会在构造本地 Activation
+时返回 `McpSkillHostError::ActivationIdExhausted`，不会回绕或复用 Activation ID。
+审批、内容校验与持久窗口状态仍遵循下面的生命周期。
+
 规范来源为 [MCP Skills Extension](https://modelcontextprotocol.io/extensions/skills/overview)、
 [稳定版 Extension 规范](https://github.com/modelcontextprotocol/ext-skills/blob/main/specification/stable/skills.mdx)
 与 [Agent Skills 格式](https://agentskills.io/specification)。

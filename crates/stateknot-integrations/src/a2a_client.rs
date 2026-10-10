@@ -2697,12 +2697,13 @@ fn strip_response_tenant(
 }
 
 fn allocate_request_id(counter: &AtomicU64) -> Option<i64> {
-    counter
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-            (value < i64::MAX as u64).then_some(value + 1)
-        })
-        .ok()
-        .and_then(|value| i64::try_from(value).ok())
+    crate::atomic_counter::allocate(
+        counter,
+        i64::MAX as u64,
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+    )
+    .and_then(|value| i64::try_from(value).ok())
 }
 
 async fn wait_until<T, F>(deadline: tokio::time::Instant, future: F) -> Result<T, ()>
@@ -2769,6 +2770,19 @@ fn exactly_one_header(headers: &HeaderMap, name: header::HeaderName) -> Option<&
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn request_id_exhaustion_preserves_the_signed_wire_boundary() {
+        let ceiling = i64::MAX as u64;
+        let counter = AtomicU64::new(ceiling - 1);
+        assert_eq!(allocate_request_id(&counter), Some(i64::MAX - 1));
+        assert_eq!(allocate_request_id(&counter), None);
+        assert_eq!(counter.load(Ordering::Relaxed), ceiling);
+
+        let beyond_wire_range = AtomicU64::new(u64::MAX);
+        assert_eq!(allocate_request_id(&beyond_wire_range), None);
+        assert_eq!(beyond_wire_range.load(Ordering::Relaxed), u64::MAX);
+    }
 
     #[test]
     fn endpoints_fail_closed_outside_exact_https_or_literal_loopback_profiles() {

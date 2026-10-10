@@ -88,6 +88,7 @@ mod a2a_remote_agent;
 mod a2a_server;
 mod adapter;
 mod anthropic;
+mod atomic_counter;
 mod credential;
 mod http;
 mod mcp;
