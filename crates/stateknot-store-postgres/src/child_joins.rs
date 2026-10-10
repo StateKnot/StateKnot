@@ -159,6 +159,27 @@ impl PostgresStore {
         let record = load(&mut tx, activation, true)
             .await?
             .ok_or(StoreError::ChildJoinRejected)?;
+        // Registration deliberately cleared the lease above. Flush all of its
+        // deferred guards before checking the same original authority's expiry;
+        // holding the Run lock cannot extend that worker or its Agent deadline.
+        query("SET CONSTRAINTS ALL IMMEDIATE")
+            .execute(&mut *tx)
+            .await
+            .map_err(|source| StoreError::database("child Join component guards", source))?;
+        let original_expiry = parent.lease().ok_or(StoreError::LeaseExpired)?.expires_at();
+        let valid = query_scalar::<_, bool>(
+            "SELECT lease_attempt_id IS NULL AND fencing_epoch=$3 AND $4>clock_timestamp() AND agent_deadline_at>clock_timestamp() FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2",
+        )
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(i64::try_from(node.fence().epoch().get()).map_err(|_| StoreError::StaleFence)?)
+        .bind(to_database_time(original_expiry)?)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|source| StoreError::database("child Join final released authority", source))?;
+        if !valid {
+            return Err(StoreError::LeaseExpired);
+        }
         tx.commit()
             .await
             .map_err(|source| StoreError::database("child Join register commit", source))?;
