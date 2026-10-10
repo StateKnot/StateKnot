@@ -583,7 +583,21 @@ async fn verified_entry(
 }
 
 #[allow(clippy::too_many_lines)] // One root-to-leaf authentication chain.
-async fn verified_entry_replay(
+fn verified_entry_replay<'a>(
+    replay: &'a mut Replay<'_, '_>,
+    tenant: &'a TenantId,
+    run: RunId,
+    namespace: &'a GraphNamespace,
+    admission: &'a StoredAgentAdmission,
+    graphs: &'a BTreeMap<Digest, CompiledGraph>,
+) -> stateknot_core::BoxFuture<'a, Result<StoredGraphFrameEntry, StoreError>> {
+    Box::pin(verified_entry_replay_inner(
+        replay, tenant, run, namespace, admission, graphs,
+    ))
+}
+
+#[allow(clippy::too_many_lines)] // Keep all original complete owning proofs in order.
+async fn verified_entry_replay_inner(
     replay: &mut Replay<'_, '_>,
     tenant: &TenantId,
     run: RunId,

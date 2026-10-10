@@ -347,10 +347,17 @@ fn verify_columns(row: &PgRow, record: &StoredGraphFrameReturn) -> Result<(), St
     }
     Ok(())
 }
-async fn anchored_record(
+fn anchored_record<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    row: &'a PgRow,
+) -> stateknot_core::BoxFuture<'a, Result<Box<StoredGraphFrameReturn>, StoreError>> {
+    Box::pin(anchored_record_inner(tx, row))
+}
+
+async fn anchored_record_inner(
     tx: &mut Transaction<'_, Postgres>,
     row: &PgRow,
-) -> Result<StoredGraphFrameReturn, StoreError> {
+) -> Result<Box<StoredGraphFrameReturn>, StoreError> {
     let get = |e| StoreError::database("frame return record column", e);
     let bytes: Vec<u8> = row.try_get("return_bytes").map_err(get)?;
     digest_column(row, "return_checksum", Digest::sha256(&bytes))?;
@@ -363,14 +370,16 @@ async fn anchored_record(
         row.try_get("journal_sequence").map_err(get)?,
     )
     .await?;
-    let record = StoredGraphFrameReturn {
+    // The authenticated bundle stays on the heap across recursive ancestor
+    // proofs; public outcomes still return the original concrete record.
+    let record = Box::new(StoredGraphFrameReturn {
         event,
         intent: *wire.intent,
         intent_digest: wire.intent_digest,
         result: wire.result,
         completion: wire.completion,
         digest: wire.compound_digest,
-    };
+    });
     verify_columns(row, &record)?;
     if projection != Some(record.digest)
         || record.event.source().worker_fence() != Some(record.intent.caller.fence())
@@ -433,7 +442,7 @@ pub(super) async fn application_return(
         ));
     }
     Box::pin(verify_pending_node_result_bindings(tx, &record.result)).await?;
-    Ok(Some(record))
+    Ok(Some(*record))
 }
 
 // Entry/start replay may observe a completed caller without recursively loading
@@ -482,7 +491,11 @@ pub(super) fn verified_record_replay<'a>(
     graphs: &'a BTreeMap<Digest, CompiledGraph>,
     row: PgRow,
 ) -> std::pin::Pin<
-    Box<dyn std::future::Future<Output = Result<StoredGraphFrameReturn, StoreError>> + Send + 'a>,
+    Box<
+        dyn std::future::Future<Output = Result<Box<StoredGraphFrameReturn>, StoreError>>
+            + Send
+            + 'a,
+    >,
 > {
     Box::pin(async move {
         let record = anchored_record(replay.tx, &row).await?;
@@ -809,7 +822,7 @@ impl PostgresStore {
         tx.commit()
             .await
             .map_err(|e| StoreError::database("return snapshot commit", e))?;
-        Ok(Some(record))
+        Ok(Some(*record))
     }
 }
 
@@ -1041,7 +1054,7 @@ impl PostgresStore {
             tx.commit()
                 .await
                 .map_err(|e| StoreError::database("whole return retry commit", e))?;
-            return Ok(GraphFrameReturnCommitOutcome::Idempotent(record));
+            return Ok(GraphFrameReturnCommitOutcome::Idempotent(*record));
         }
         let stored = admission.run();
         validate_runnable(stored)?;
