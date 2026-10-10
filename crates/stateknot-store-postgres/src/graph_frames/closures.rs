@@ -456,152 +456,155 @@ async fn anchored_record(
 }
 
 #[allow(clippy::too_many_lines)]
-pub(super) async fn verified_record(
-    tx: &mut Transaction<'_, Postgres>,
-    stored: &StoredRun,
+pub(super) fn verified_record<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    stored: &'a StoredRun,
     row: PgRow,
-) -> Result<StoredGraphFrameClosure, StoreError> {
-    let record = Box::pin(anchored_record(tx, row)).await?;
-    let intent = &record.intent;
-    let tenant = intent.root.tenant_id();
-    let run = intent.root.run_id();
-    let leaf = intent
-        .frames
-        .last()
-        .ok_or_else(|| StoreError::corrupt("frame closure leaf"))?;
-    verify_decision(tx, stored, intent).await?;
-    if !canonical_equal(
-        &intent.caller_failure,
-        &caller_failure(record.event.event_id())?,
-    )? {
-        return Err(StoreError::corrupt("closed caller failure binding"));
-    }
-    let stack=query_as::<_,StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("closed stack",e))?.ok_or_else(||StoreError::corrupt("closed stack missing"))?;
-    let(total,maximum):(i64,Option<i32>)=query_as("SELECT count(*),max(ordinal) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed lifetime inventory",e))?;
-    if !stack.active_namespace.is_empty()
-        || stack.active_frame_identity_digest.is_some()
-        || stack.lifetime_starts != i32::from(intent.lifetime_starts)
-        || total != i64::from(intent.lifetime_starts)
-        || maximum != Some(i32::from(intent.lifetime_starts))
-        || decode_digest(&stack.admission_digest, "closed admission")? != intent.admission_digest
-        || stored.lease().is_some()
-    {
-        return Err(StoreError::corrupt("closed stack projection"));
-    }
-    let root = load_locked_current_checkpoint(tx, stored, tenant, run)
-        .await?
-        .ok_or_else(|| StoreError::corrupt("closed Root checkpoint"))?;
-    if root.head() != intent.root {
-        return Err(StoreError::corrupt("closed Root substitution"));
-    }
-    drop(root);
-    let expected = ancestors(leaf.checkpoint.frame().namespace());
-    if expected.len() != intent.frames.len() {
-        return Err(StoreError::corrupt("closed ancestor count"));
-    }
-    let recovered = Box::pin(active::verify_chain(
-        tx,
-        tenant,
-        run,
-        stored.clone(),
-        expected,
-        false,
-        intent.admission_digest,
-    ))
-    .await?
-    .ok_or_else(|| StoreError::corrupt("closed chain missing"))?;
-    if recovered
-        .open_frames()
-        .iter()
-        .zip(&intent.frames)
-        .any(|(actual, claim)| !claim.matches(actual))
-    {
-        return Err(StoreError::corrupt(
-            "closed frame head or caller substitution",
-        ));
-    }
-    intent
-        .direct_usage
-        .validate_monotonic_after(recovered.minimum_direct_usage())
-        .map_err(|_| StoreError::corrupt("closed direct usage regression"))?;
-    let count:i64=query_scalar("SELECT count(*) FROM stateknot.graph_frame_closed_callers WHERE tenant_id=$1 AND run_id=$2").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed caller inventory",e))?;
-    let hidden:bool=query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=$1 AND e.run_id=$2 AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=e.tenant_id AND x.run_id=e.run_id AND x.graph_namespace=e.graph_namespace) AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_closed_callers c WHERE c.tenant_id=e.tenant_id AND c.run_id=e.run_id AND c.graph_namespace=e.graph_namespace))").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed open inventory",e))?;
-    if count
-        != i64::try_from(intent.frames.len())
-            .map_err(|_| StoreError::corrupt("closed inventory"))?
-        || hidden
-    {
-        return Err(StoreError::corrupt("closed caller completeness"));
-    }
-    for (frame, completion) in intent.frames.iter().zip(&record.completions) {
-        let saved=query("SELECT * FROM stateknot.graph_frame_closed_callers WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3").bind(tenant.as_str()).bind(*run.as_uuid()).bind(frame.checkpoint.frame().namespace().as_str()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed caller",e))?;
-        for (name, value) in [
-            ("frame_identity_digest", frame.checkpoint.frame().digest()),
-            ("entry_digest", frame.entry_digest),
-            ("checkpoint_digest", frame.checkpoint.checkpoint().digest()),
-            ("frame_checkpoint_digest", frame.checkpoint.digest()),
-            ("caller_start_digest", frame.caller.digest()),
-            ("caller_compound_digest", frame.caller_binding_digest),
-            ("completion_digest", completion.digest()),
-            (
-                "completion_checksum",
-                Digest::sha256(encode_node_attempt_completion(completion)?),
-            ),
-            ("journal_digest", record.event.digest()),
-        ] {
-            digest_column(&saved, name, value)?;
+) -> stateknot_core::BoxFuture<'a, Result<StoredGraphFrameClosure, StoreError>> {
+    Box::pin(async move {
+        let record = Box::pin(anchored_record(tx, row)).await?;
+        let intent = &record.intent;
+        let tenant = intent.root.tenant_id();
+        let run = intent.root.run_id();
+        let leaf = intent
+            .frames
+            .last()
+            .ok_or_else(|| StoreError::corrupt("frame closure leaf"))?;
+        verify_decision(tx, stored, intent).await?;
+        if !canonical_equal(
+            &intent.caller_failure,
+            &caller_failure(record.event.event_id())?,
+        )? {
+            return Err(StoreError::corrupt("closed caller failure binding"));
         }
-        if saved
-            .try_get::<Uuid, _>("caller_attempt_id")
-            .map_err(|e| StoreError::database("closed caller id", e))?
-            != *frame.caller.attempt_id().as_uuid()
-            || saved
-                .try_get::<Uuid, _>("checkpoint_id")
-                .map_err(|e| StoreError::database("closed checkpoint id", e))?
-                != *frame.checkpoint.checkpoint().checkpoint_id().as_uuid()
-            || saved
-                .try_get::<i64, _>("checkpoint_superstep")
-                .map_err(|e| StoreError::database("closed checkpoint position", e))?
-                != i64::try_from(frame.checkpoint.checkpoint().superstep().get())
-                    .map_err(|_| StoreError::corrupt("closed checkpoint position"))?
-            || saved
-                .try_get::<Vec<u8>, _>("completion_bytes")
-                .map_err(|e| StoreError::database("closed completion bytes", e))?
-                != encode_node_attempt_completion(completion)?
-            || saved
-                .try_get::<i64, _>("journal_sequence")
-                .map_err(|e| StoreError::database("closed caller sequence", e))?
-                != i64::try_from(record.event.sequence().get())
-                    .map_err(|_| StoreError::corrupt("closed caller sequence"))?
-            || saved
-                .try_get::<Uuid, _>("journal_event_id")
-                .map_err(|e| StoreError::database("closed caller event", e))?
-                != *record.event.event_id().as_uuid()
-            || saved
-                .try_get::<DateTime<Utc>, _>("journal_recorded_at")
-                .map_err(|e| StoreError::database("closed caller clock", e))?
-                != to_database_time(record.event.recorded_at())?
-            || completion.start() != &frame.caller
-            || completion.journal_head() != &record.event.head()
-            || completion.usage() != &BudgetUsage::zero()
-            || !canonical_equal(
-                &completion.outcome().failure(),
-                &Some(&intent.caller_failure),
-            )?
-            || frame.caller.journal_head().sequence() > intent.observed_head.sequence()
-            || frame.checkpoint.checkpoint().journal_head().sequence()
-                > intent.observed_head.sequence()
+        let stack=query_as::<_,StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("closed stack",e))?.ok_or_else(||StoreError::corrupt("closed stack missing"))?;
+        let(total,maximum):(i64,Option<i32>)=query_as("SELECT count(*),max(ordinal) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed lifetime inventory",e))?;
+        if !stack.active_namespace.is_empty()
+            || stack.active_frame_identity_digest.is_some()
+            || stack.lifetime_starts != i32::from(intent.lifetime_starts)
+            || total != i64::from(intent.lifetime_starts)
+            || maximum != Some(i32::from(intent.lifetime_starts))
+            || decode_digest(&stack.admission_digest, "closed admission")?
+                != intent.admission_digest
+            || stored.lease().is_some()
         {
-            return Err(StoreError::corrupt("closed caller component substitution"));
+            return Err(StoreError::corrupt("closed stack projection"));
         }
-        let duplicate:bool=query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.node_attempt_completions WHERE tenant_id=$1 AND run_id=$2 AND attempt_id=$3)").bind(tenant.as_str()).bind(*run.as_uuid()).bind(*frame.caller.attempt_id().as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed caller duplicate completion",e))?;
-        if duplicate {
-            return Err(StoreError::corrupt("closed caller double completion"));
+        let root = load_locked_current_checkpoint(tx, stored, tenant, run)
+            .await?
+            .ok_or_else(|| StoreError::corrupt("closed Root checkpoint"))?;
+        if root.head() != intent.root {
+            return Err(StoreError::corrupt("closed Root substitution"));
         }
-    }
-    verify_account(tx, intent).await?;
-    ensure_settled_work(tx, tenant, run).await?;
-    Ok(record)
+        drop(root);
+        let expected = ancestors(leaf.checkpoint.frame().namespace());
+        if expected.len() != intent.frames.len() {
+            return Err(StoreError::corrupt("closed ancestor count"));
+        }
+        let recovered = Box::pin(active::verify_chain(
+            tx,
+            tenant,
+            run,
+            stored.clone(),
+            expected,
+            false,
+            intent.admission_digest,
+        ))
+        .await?
+        .ok_or_else(|| StoreError::corrupt("closed chain missing"))?;
+        if recovered
+            .open_frames()
+            .iter()
+            .zip(&intent.frames)
+            .any(|(actual, claim)| !claim.matches(actual))
+        {
+            return Err(StoreError::corrupt(
+                "closed frame head or caller substitution",
+            ));
+        }
+        intent
+            .direct_usage
+            .validate_monotonic_after(recovered.minimum_direct_usage())
+            .map_err(|_| StoreError::corrupt("closed direct usage regression"))?;
+        let count:i64=query_scalar("SELECT count(*) FROM stateknot.graph_frame_closed_callers WHERE tenant_id=$1 AND run_id=$2").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed caller inventory",e))?;
+        let hidden:bool=query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=$1 AND e.run_id=$2 AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=e.tenant_id AND x.run_id=e.run_id AND x.graph_namespace=e.graph_namespace) AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_closed_callers c WHERE c.tenant_id=e.tenant_id AND c.run_id=e.run_id AND c.graph_namespace=e.graph_namespace))").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed open inventory",e))?;
+        if count
+            != i64::try_from(intent.frames.len())
+                .map_err(|_| StoreError::corrupt("closed inventory"))?
+            || hidden
+        {
+            return Err(StoreError::corrupt("closed caller completeness"));
+        }
+        for (frame, completion) in intent.frames.iter().zip(&record.completions) {
+            let saved=query("SELECT * FROM stateknot.graph_frame_closed_callers WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3").bind(tenant.as_str()).bind(*run.as_uuid()).bind(frame.checkpoint.frame().namespace().as_str()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed caller",e))?;
+            for (name, value) in [
+                ("frame_identity_digest", frame.checkpoint.frame().digest()),
+                ("entry_digest", frame.entry_digest),
+                ("checkpoint_digest", frame.checkpoint.checkpoint().digest()),
+                ("frame_checkpoint_digest", frame.checkpoint.digest()),
+                ("caller_start_digest", frame.caller.digest()),
+                ("caller_compound_digest", frame.caller_binding_digest),
+                ("completion_digest", completion.digest()),
+                (
+                    "completion_checksum",
+                    Digest::sha256(encode_node_attempt_completion(completion)?),
+                ),
+                ("journal_digest", record.event.digest()),
+            ] {
+                digest_column(&saved, name, value)?;
+            }
+            if saved
+                .try_get::<Uuid, _>("caller_attempt_id")
+                .map_err(|e| StoreError::database("closed caller id", e))?
+                != *frame.caller.attempt_id().as_uuid()
+                || saved
+                    .try_get::<Uuid, _>("checkpoint_id")
+                    .map_err(|e| StoreError::database("closed checkpoint id", e))?
+                    != *frame.checkpoint.checkpoint().checkpoint_id().as_uuid()
+                || saved
+                    .try_get::<i64, _>("checkpoint_superstep")
+                    .map_err(|e| StoreError::database("closed checkpoint position", e))?
+                    != i64::try_from(frame.checkpoint.checkpoint().superstep().get())
+                        .map_err(|_| StoreError::corrupt("closed checkpoint position"))?
+                || saved
+                    .try_get::<Vec<u8>, _>("completion_bytes")
+                    .map_err(|e| StoreError::database("closed completion bytes", e))?
+                    != encode_node_attempt_completion(completion)?
+                || saved
+                    .try_get::<i64, _>("journal_sequence")
+                    .map_err(|e| StoreError::database("closed caller sequence", e))?
+                    != i64::try_from(record.event.sequence().get())
+                        .map_err(|_| StoreError::corrupt("closed caller sequence"))?
+                || saved
+                    .try_get::<Uuid, _>("journal_event_id")
+                    .map_err(|e| StoreError::database("closed caller event", e))?
+                    != *record.event.event_id().as_uuid()
+                || saved
+                    .try_get::<DateTime<Utc>, _>("journal_recorded_at")
+                    .map_err(|e| StoreError::database("closed caller clock", e))?
+                    != to_database_time(record.event.recorded_at())?
+                || completion.start() != &frame.caller
+                || completion.journal_head() != &record.event.head()
+                || completion.usage() != &BudgetUsage::zero()
+                || !canonical_equal(
+                    &completion.outcome().failure(),
+                    &Some(&intent.caller_failure),
+                )?
+                || frame.caller.journal_head().sequence() > intent.observed_head.sequence()
+                || frame.checkpoint.checkpoint().journal_head().sequence()
+                    > intent.observed_head.sequence()
+            {
+                return Err(StoreError::corrupt("closed caller component substitution"));
+            }
+            let duplicate:bool=query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.node_attempt_completions WHERE tenant_id=$1 AND run_id=$2 AND attempt_id=$3)").bind(tenant.as_str()).bind(*run.as_uuid()).bind(*frame.caller.attempt_id().as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("closed caller duplicate completion",e))?;
+            if duplicate {
+                return Err(StoreError::corrupt("closed caller double completion"));
+            }
+        }
+        verify_account(tx, intent).await?;
+        ensure_settled_work(tx, tenant, run).await?;
+        Ok(record)
+    })
 }
 async fn verify_decision(
     tx: &mut Transaction<'_, Postgres>,
