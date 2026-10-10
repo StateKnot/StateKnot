@@ -468,6 +468,9 @@ async fn child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_
         .unwrap();
     for sql in [
         include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+        ),
+        include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
         ),
         include_str!(
@@ -478,12 +481,13 @@ async fn child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_
         ),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"),
         include_str!("../../../stateknot-store-postgres/tests/fixtures/revert_child_joins.sql"),
-    ]
-    .into_iter()
-    .flat_map(|sql| sql.split(';'))
-    .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(&pool).await.unwrap();
+    ] {
+        // Execute the complete fixture so dollar-quoted function bodies retain
+        // their internal semicolons and the batch keeps its SQL transaction.
+        sqlx_core::raw_sql::raw_sql(sql)
+            .execute(&pool)
+            .await
+            .unwrap();
     }
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
@@ -492,6 +496,10 @@ async fn child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_
             .unwrap(),
         21
     );
+    assert!(matches!(
+        PostgresStore::connect(&url, options.clone()).await,
+        Err(StoreError::IncompatibleSchema)
+    ));
     PostgresStore::migrate_database(&url, options.clone())
         .await
         .unwrap();

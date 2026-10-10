@@ -143,6 +143,36 @@ blocker counts remain node counts in the unchanged event schema. A retained
 failure handoff can be retried after a lost acknowledgement without re-reading
 evidence or changing the original terminal failure.
 
+The separate Draft [RFC-0022](rfcs/0022-namespaced-graph-frames.md) experiment
+now includes whole Store closure after an original cancellation or sealed
+failure. It retains the Root state and actual old caller fences, freezes
+complete priced DIRECT accounting and refuses outstanding ordinary/provider or
+child work. Scoped provider activations authenticate their actual frame; a Root
+checkpoint relabeled as nested retains the original invalid-activation error.
+It uses Schema 33 and the matching 52-table trusted-role profile.
+Existing committed decisions are fully authenticated before retries; cleanup
+granting no execution can finish after the execution deadline. Completion
+restoration and caller-anchor verification use private heap-backed Future
+boundaries so ancestor replay retains the full ordinary/closed completion checks
+on the normal thread stack. These Store primitives still require actual nested
+Driver dispatch and final qualification.
+
+[Frozen experimental whole-frame qualification](qualification/experimental-whole-frames-2026-10-10.md)
+
+Private whole-return Wire intents retain their original canonical bytes while
+being decoded on the heap, preserving full ancestor authentication during
+scoped result paging on the normal stack.
+
+The experimental claimed read interface can now plan an exact active frame with
+`ClaimedRunRecovery::plan_graph_frame_ready_nodes`. Its bounded result pages use
+the whole scoped head and namespace, reuse completed work and retain complete
+physical attempt history. Every page pins the Run journal; the planner checks
+the current leaf again before its final database-time fence validation. A
+terminal leaf may have no ready nodes. The plan still needs actual application
+schema/reducer replay and a dedicated durable scoped start before dispatch.
+Unexpected result namespace projections at an exact checkpoint fail as durable
+corruption; claimed reads quarantine through the original worker context.
+
 ## Qualification and remaining boundaries
 
 Core tests cover deterministic identities, a frozen digest, source-order

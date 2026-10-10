@@ -12,7 +12,177 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject unexpected result namespaces at an exact checkpoint in the same paging
+  snapshot. Root and scoped reads report durable corruption; claimed recovery
+  uses the original live worker context to quarantine the Run.
+
+- Keep the immutable whole-return Wire intent on the heap during authenticated
+  scoped result paging. This preserves canonical JSON, digests and all proof
+  checks while avoiding a Serde visitor stack overflow after multiple returns.
+
+- Keep complete return/closure caller-anchor verification and ordinary node
+  completion restoration behind heap-backed Future boundaries. This prevents
+  closure completion witnesses from enlarging every ancestor replay Future
+  while retaining double-completion rejection and full seven-level recovery
+  checks on the default Linux thread stack.
+
+- Reject a Root checkpoint relabeled as a scoped model/tool activation before
+  frame lookup, preserving existing invalid-activation errors for new requests
+  and treating the same alias in stored invocation facts as corruption.
+
+- Keep complete scoped wait authentication in a separate heap-backed Future,
+  preserving whole terminal checks without inflating non-wait barrier replay
+  or overflowing the default thread stack in seven-level return recovery.
+
+- Require actual libFuzzer execution and RSS statistics before marking the
+  bounded ASan mutation profile complete; report the actual count and whether
+  the execution cap was reached, preserving the original execution/time ceilings.
+
+
+- Retain stable request identities while retrying conservatively classified
+  PostgreSQL transaction contention in the 24-way whole-frame return test;
+  production lock deadlines and once-only settlement assertions are preserved.
+
+
+- Execute source-schema downgrade fixtures as complete SQL batches, preserving
+  dollar-quoted PostgreSQL function bodies introduced by whole frame returns.
+  Store and Runtime upgrade regressions retain their actual nonempty facts and
+  exact migration checksums.
+
+- Draft RFC-0023 corrects `MediaType` input/default schemas to accept the
+  case-insensitive names already supported and normalized by the reader.
+  Nested input schema pins explicitly change; all output pins and canonical
+  wires stay exact. Immutable registries require new input schema/Tool versions
+  and matching retained executables. The real CI reproducer remains a permanent
+  regression. Source `41bf0b8c` passed all fourteen CI/dependency checks and
+  local/CI bounded ASan; RFC acceptance remains pending.
+
 ### Added
+
+- Add experimental claimed active-frame ready planning and bounded scoped result
+  pages. Whole leaf/ancestor proofs and exact namespace/head/journal observations
+  reuse completed work and complete physical history, then revalidate the current
+  leaf and database-time fence. Root reads keep their existing interface; actual
+  application replay and dedicated durable scoped starts remain required.
+
+- Add experimental whole-stack closure after an original cancellation or sealed
+  failure. Schema 33 atomically preserves every physical caller's old fence in
+  separate immutable control-plane completion facts, freezes complete priced
+  DIRECT usage, clears the stack/lease and retains the exact Root checkpoint.
+  Whole reads and lost acknowledgements authenticate the original decision;
+  terminal Run writes cannot bypass open frames or replace frozen usage.
+  Scoped Tool/Model mutations and history now authenticate their actual frame
+  activation and head, with a final live-fence check after deferred guards.
+  Unknown effects, in-flight ordinary/provider work and unsettled children
+  block cleanup. Exact catalog and the 52-table trusted-role profile advance
+  together. Nested Driver dispatch, the full fault matrix, immutable-source
+  qualification and RFC-0022 acceptance remain required.
+
+- Add an experimental, bounded Store snapshot of the complete active frame
+  ancestry, current leaf and physical caller; authenticate returned history and
+  whole wait terminal facts in the same transaction before Driver recovery.
+  Structural DIRECT floors grant no dispatch authority or complete accounting.
+
+- Experimental whole scoped waits atomically bind the leaf successor, complete
+  registrations and original lifecycle revision while releasing the Run lease.
+  Recovery authenticates complete resolution/firing/abandonment facts and resumes
+  the saved scope under a new fence. Schema 32 guards preserve exact prior
+  non-wait bytes, the 50-table ACL and fail-stop quarantine. Final qualification,
+  all-frame closure and nested Driver dispatch remain RFC-0022 gates.
+
+
+- Experimental whole frame returns authenticate an existing terminal proof and
+  atomically settle the current framework caller, exact parent result, stack
+  pop and reserved journal fact. Recovery precedes fresh callbacks/authority;
+  newer fences require an actual rebound caller. Shared DIRECT floors survive
+  returns and later mutations. Transaction-owned compact replay proofs avoid
+  repeated nested history traversal; default-stack seven-level cascades, races,
+  component rollback, expired leases, corruption and nonempty source upgrades
+  have native regressions. Schema 31 pins exact guards and 50-table ACLs.
+  Scoped waits, closure, actual nested driver and RFC-0022 acceptance remain
+  pending.
+
+- Add experimental atomic framework caller rebinding for RFC-0022. A newer
+  worker records a bounded physical attempt and whole immutable binding to the
+  existing child, preserving its activation/checkpoint and shared Run budget.
+  Schema 30 pins exact caller guards and runtime ACLs; ordinary framework
+  completion remains rejected pending whole return. RFC-0022 remains Draft.
+
+- Experimental scoped Store barriers atomically bind the exact complete result
+  set and consumptions, worker event, isolated successor, immutable witness and
+  active frame head. Planning uses actual pinned schema/reducer dependencies
+  outside the mutation transaction; locked commit repeats scope, fence, shared
+  usage and settled child accounting. Whole historical recovery authenticates
+  bounded forward lineage; acknowledgment loss grants no new launch. Schema 29
+  adds exact deferred guards and a 48-table trusted-server ACL profile. Scoped
+  continuation/terminal barriers are prerequisites for framework return;
+  scoped waits, rebinding, all-frame closure and actual driver remain pending.
+
+- Experimental Store transactions durably start ordinary nodes in an
+  authenticated active initial frame and commit their success/result or failure
+  atomically. Scoped historical reads verify the whole entry and checkpoint;
+  bounded attempt histories, same-fence in-flight recovery and takeover rules
+  are reused. SQL guards prevent suspended-scope completion or independent
+  framework-caller completion. Deferred guards execute before the final live
+  lease/deadline check. The stack CHECK catalog stays exact after logical
+  dump/restore. Framework rebinding/return, scoped waits, closure and
+  actual nested driver dispatch remain pending in Draft RFC-0022.
+
+- Experimental Rust-only compound frame-entry planning binds the complete event,
+  framework start and isolated checkpoint with one domain-separated projection.
+  Its versioned local event schema carries identity/digest data without copied
+  state. Ordinary append/checkpoint/node-start APIs reject the reserved compound
+  kind without partial facts. Migration 28 adds an experimental atomic Store
+  admission under the original Root admission, inherited ceilings, shared usage,
+  exact journal head and live fence. Authenticated reload precedes fresh schema
+  callbacks or lease checks; SQL guards reject incomplete scoped checkpoints,
+  substituted heads and legacy waits during a child. Scoped execution, return,
+  waits, process-loss qualification and nested dispatch remain pending in RFC-0022.
+
+- Draft RFC-0022 for same-Run namespaced graph frames, with five executable
+  private identity checks. It specifies isolated state, bounded scope, durable
+  parent continuation and compound journal bindings; runtime/persistence
+  implementation and acceptance remain pending. No execution support is added
+  by the Draft or constructor prototype.
+
+- Experimental Core frame identity, scoped checkpoint and compact head data for
+  RFC-0022. Strict readers reconstruct scope/checksums and reject owner/schema,
+  ancestry, tenant/Run/graph, journal-order and predecessor substitution. Scoped
+  ready activations use the existing digest domain; root wires and schema pins
+  remain exact. Three new reader/schema entries, current-source vectors and
+  independent checksum/chain models extend the inventory. Compiler, runtime and
+  SQL integration remain pending; these data types do not enable nested execution.
+
+- Experimental same-Run call declarations bind exact targets, return routes and
+  finite depth/frame-start limits into compiled graph definitions. Compiler and
+  startup closure checks reject incompatible schemas/owners, parallel callers,
+  stale or missing target pins, excessive closure depth/bytes and application
+  executors installed at framework call sites. Static composition cannot drop
+  isolated frame declarations. The `CompiledGraph` and `ChildRunAdmissionIntent`
+  input/output schema pins explicitly change; old root wires and definition pins
+  remain exact. Transactional runtime/SQL execution and acceptance remain pending.
+
+- Experimental scoped recovery and frame barrier planning preserve frame identity,
+  exact ready activations, canonical bounded result order and local lineage.
+  Existing attempt-history/fence classification and pinned schema/reducer/control
+  validation are reused. The legacy root barrier remains root-only. A separate
+  frame intent wire/schema, current-source constructors and independent checksum
+  model cover the new data boundary; transactional execution remains pending.
+
+- Experimental graph call entry/return preparation verifies exact declared
+  callers, target pins and checkpoint positions, copies isolated state, and
+  converts only a matching terminal child plan into the fixed-route parent
+  update. Existing data/wire/schema types are reused; no persistence or dispatch
+  authority is inferred from preparation.
+
+- PostgreSQL migration 27 scopes checkpoint positions and parent/activation/
+  ownership/Join references, fixes root pointers with generated empty namespaces,
+  and makes root queries/decoding explicit. Exact installed catalog checks cover
+  columns, constraints and indexes. Nonempty source-schema 26→27 and typed scope
+  FK checks run on PostgreSQL 16/17; compound frame transactions and nested
+  execution remain Draft. The trusted-server role profile now requires schema 28 and its exact 47-table allowlist.
 
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route

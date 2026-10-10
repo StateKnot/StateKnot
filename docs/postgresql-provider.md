@@ -150,7 +150,7 @@ let store = PostgresStore::connect(&runtime_url, options).await?;
 The migration role needs database `CONNECT`/`CREATE` and permission to create
 `public._sqlx_migrations` and the owned `stateknot` schema. It need not be a
 superuser. The executable [trusted-server role profile](postgresql-roles.md)
-([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema-26 table/column
+([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema-27 table/column
 allowlist, transactional apply, effective-privilege audit and separate
 reservation-retention credential. It grants no runtime DDL, DELETE or immutable
 evidence UPDATE, including node starts and submission mappings. Follow that
@@ -686,6 +686,45 @@ unchanged. Do not restart a v18 binary against a v19 database: older binaries
 cannot validate the new migration set or consume failed Model bindings. After
 such bindings are written, rollback requires a consistent pre-upgrade database
 restore; prefer a forward fix to preserve newly committed work.
+
+## Scoped checkpoint integrity
+
+Migration 27 replaces Run-wide superstep uniqueness with exact tenant/Run/
+namespace/local-position uniqueness. Scoped predecessor keys also bind frame
+identity; node attempts, results, invocations, consumption, child ownership and
+Join references bind their checkpoint namespace. Generated empty-namespace
+columns keep Run and Agent-admission pointers rooted. Root read/recovery queries
+explicitly filter that scope, and the decoder rejects frame columns on root
+records. Old canonical checkpoint bytes are preserved.
+
+The scope catalog checks exact installed definitions, generated/default column
+expressions and live indexes, including refusal of same-name weakened FKs or
+writable root scope columns. The source-schema 26→27 nonempty fixture and typed
+scoped-row FK tests run on PostgreSQL 16 and 17. Manual scoped fixture insertion
+does not establish entry/return authority, compound journal integrity, waiting
+frame recovery or historical-release compatibility. RFC-0022 remains Draft and
+no supported nested execution API is enabled by this migration.
+
+Roll out with workers stopped and a consistent pre-upgrade backup, migrate with
+the dedicated owner, apply/audit the schema-27 role profile, then start only the
+matching executable after exact schema verification. An old schema-26 binary
+cannot validate migration 27. The test-only revert fixture is not a downgrade
+procedure; new scoped history requires a forward fix or a consistent restore.
+
+Schema 33 adds experimental whole-stack closure under Draft
+[RFC-0022](rfcs/0022-namespaced-graph-frames.md). Apply the matching schema-33
+52-table role profile after migration and before resuming matching executables.
+A trusted coordinator must supply complete priced DIRECT usage and authenticate
+actual cancellation/sealed failure and settled work; a structural recovery floor
+is insufficient. The transaction retains Root state and original caller fences
+in separate immutable closure facts. Ordinary completion FKs stay exact.
+`load_graph_frame_closure` and active recovery authenticate the whole original
+decision, including after terminal Root completion. The source reconstruction
+fixture verifies populated 32→33 migration, not historical binary compatibility.
+Once closure facts are retained, prefer a forward fix or a consistent pre-upgrade
+restore; the test-only revert fixture refuses to erase them. Actual nested
+Driver dispatch, complete fault qualification and production acceptance remain
+required.
 
 ## Not yet implemented
 

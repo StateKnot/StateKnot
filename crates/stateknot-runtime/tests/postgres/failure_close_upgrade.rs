@@ -43,7 +43,17 @@ async fn failure_close_populated_v23_upgrade_preserves_history_and_rejects_catal
         .connect(&url)
         .await
         .unwrap();
+    // Prepare compatible canonical root facts, then reconstruct source schema v23.
+    // This is not an old executable or a supported production downgrade.
+    let fixture = driver_fixture();
+    let tenant = tenant("failure-upgrade");
+    let old = Box::pin(tree::root_admission(&store, &fixture, tenant.clone())).await;
+    let run_id = old.admission().intent().provenance().run_id();
+    store.close().await;
     for sql in [
+        include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+        ),
         include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
         ),
@@ -53,12 +63,13 @@ async fn failure_close_populated_v23_upgrade_preserves_history_and_rejects_catal
         include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
         ),
-    ]
-    .into_iter()
-    .flat_map(|sql| sql.split(';'))
-    .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(&pool).await.unwrap();
+    ] {
+        // Execute the complete fixture so dollar-quoted function bodies retain
+        // their internal semicolons and the batch keeps its SQL transaction.
+        sqlx_core::raw_sql::raw_sql(sql)
+            .execute(&pool)
+            .await
+            .unwrap();
     }
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
@@ -67,12 +78,10 @@ async fn failure_close_populated_v23_upgrade_preserves_history_and_rejects_catal
             .unwrap(),
         23
     );
-    // Retained writer exercises unchanged published v23 admission SQL, not an old executable.
-    let fixture = driver_fixture();
-    let tenant = tenant("failure-upgrade");
-    let old = Box::pin(tree::root_admission(&store, &fixture, tenant.clone())).await;
-    let run_id = old.admission().intent().provenance().run_id();
-    store.close().await;
+    assert!(matches!(
+        PostgresStore::connect(&url, options.clone()).await,
+        Err(StoreError::IncompatibleSchema)
+    ));
     PostgresStore::migrate_database(&url, options.clone())
         .await
         .unwrap();

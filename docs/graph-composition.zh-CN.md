@@ -111,6 +111,28 @@ Driver 在**派发新节点之前**检查 `maximum_supersteps`，重启后正好
 原有事件 Schema 中的节点阻塞计数仍然只表示节点计数。保留的失败 Handoff 在响应丢失后可以
 重复提交，不重新读取证据，也不替换原始终态失败。
 
+独立的 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md)实验已加入原始取消
+或封存失败后的整栈 Store 关闭：保留根状态和 Caller 的实际旧 fence，冻结完整已定价
+DIRECT 用量，并拒绝未完成的普通节点、provider 或子任务。作用域 provider 调用验证
+实际帧身份；将 Root checkpoint 伪装为嵌套调用仍返回原有的无效激活错误。它使用 Schema 33 与对应
+的 52 表受信服务端角色配置。重试先完整认证已提交决定；不授予执行权限的清理可以在
+执行截止期后完成。完成记录恢复与 Caller 锚点校验使用私有的堆上 Future 边界，使祖先
+重放在普通线程栈上保留全部普通完成与关闭完成校验。实际嵌套 Driver 派发和最终完整验收
+仍待完成。
+
+[冻结实验性 whole-frame 限定验收](qualification/experimental-whole-frames-2026-10-10.zh-CN.md)
+
+私有 whole-return Wire Intent 在堆上解码，保留原始规范字节、摘要和全部认证，
+避免 scoped 结果分页在多次 return 后扩大 Serde visitor 的栈占用。
+
+实验性 claimed 读取接口现可通过 `ClaimedRunRecovery::plan_graph_frame_ready_nodes`
+规划精确活动帧。有界结果分页使用完整 scoped head 与 namespace，复用已完成工作并保留
+完整物理 Attempt 历史；每页固定 Run journal，规划器在最终数据库时钟与 fence 校验前
+再次核对当前叶。终态叶允许没有 ready 节点。派发前仍须实际应用 schema/reducer 重放，
+并通过专用的持久化 scoped start；规划结果本身不授予派发权限。
+同一精确 checkpoint 下出现异 namespace 结果投影时，读取报告持久事实损坏；
+claimed 恢复通过原 worker 上下文执行隔离。
+
 ## 验证与未覆盖边界
 
 Core 测试覆盖确定性身份、冻结摘要、源节点排序、静态嵌套、返回转发、端口/路线/Schema/Reducer

@@ -519,7 +519,7 @@ bilingual content.
   disaster-recovery profile, standby failover, RPO/RTO or reference scale.
   Arbitrary uncertain direct-effect recovery and full-profile/capacity qualification
   remain gated; the RFC remains Draft.
-- [x] Ship and maintain the schema-26 [trusted-server SQL role profile](postgresql-roles.md):
+- [x] Ship and maintain the schema-27 [trusted-server SQL role profile](postgresql-roles.md):
   non-superuser migration ownership, runtime column grants and separate reservation
   retention credentials; effective ACL/default/membership audit, rollback, real
   role-separated durable recovery and concurrent submission/completion evidence.

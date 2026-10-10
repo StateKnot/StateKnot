@@ -33,26 +33,27 @@ use stateknot_core::{
     CanonicalJson, Checkpoint, CheckpointBarrier, CheckpointHead, CheckpointId,
     CheckpointLineageVerifier, CheckpointState, CheckpointWrite, CompiledGraph, DeliveryFence,
     DeliveryId, DestinationId, Digest, DurableTimer, DurableTimerRecord, DurableWait, EventId,
-    Failure, FencingEpoch, GraphBarrierPlanError, GraphNamespace, GraphReducer, GraphReducerError,
-    GraphReference, GraphSchemaValidationError, GraphSchemaValidator, InterruptId, InterruptRecord,
-    InterruptRequest, InterruptResolution, InterruptResolutionIntent, InvocationId, JournalAppend,
-    JournalChainVerifier, JournalEvent, JournalEventError, JournalEventIntent, JournalEventSource,
-    JournalHead, JournalPayload, JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation,
-    ModelInvocationHead, ModelInvocationHistoryVerifier, ModelInvocationIntent,
-    ModelInvocationRevision, ModelInvocationState, ModelInvocationStatus,
-    ModelInvocationTransition, ModelInvocationTransitionKind, NodeActivation, NodeAttempt,
-    NodeAttemptCompletion, NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart,
-    NodeAttemptStartHead, NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding,
-    NodeInvocationBindingKind, OutboxAttempt, OutboxAttemptCompletion,
-    OutboxAttemptHistoryVerifier, OutboxAttemptOutcome, OutboxAttemptStart, OutboxDelivery,
-    OutboxDeliveryIntent, OutboxDeliveryStatus, OutboxDestinationRef, PendingNodeResult,
-    PendingNodeResultError, PendingNodeResultHead, PendingNodeResultIntent, QuarantineId,
-    ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner, ReadyNodes, RecoveryNodeKind, ResolvedBudget,
-    RetryAdvice, RunFence, RunId, RunInterruptKind, RunLease, RunLeaseValidationError,
-    RunLifecycle, RunRevision, RunStatus, RunTimerKind, RunTransition, RunTransitionKind, RunWaits,
-    SchedulerReservationId, SchedulerShardId, Superstep, TenantId, TimerFiring, TimerFiringIntent,
-    TimerId, Timestamp, ToolInvocation, ToolInvocationHead, ToolInvocationHistoryVerifier,
-    ToolInvocationIntent, ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
+    Failure, FencingEpoch, GraphBarrierPlanError, GraphFrameEntryPlan, GraphNamespace,
+    GraphReducer, GraphReducerError, GraphReference, GraphSchemaValidationError,
+    GraphSchemaValidator, InterruptId, InterruptRecord, InterruptRequest, InterruptResolution,
+    InterruptResolutionIntent, InvocationId, JournalAppend, JournalChainVerifier, JournalEvent,
+    JournalEventError, JournalEventIntent, JournalEventSource, JournalHead, JournalPayload,
+    JournalSequence, JsonLimits, MAX_OUTBOX_ATTEMPTS, ModelInvocation, ModelInvocationHead,
+    ModelInvocationHistoryVerifier, ModelInvocationIntent, ModelInvocationRevision,
+    ModelInvocationState, ModelInvocationStatus, ModelInvocationTransition,
+    ModelInvocationTransitionKind, NodeActivation, NodeAttempt, NodeAttemptCompletion,
+    NodeAttemptHistoryVerifier, NodeAttemptOutcome, NodeAttemptStart, NodeAttemptStartHead,
+    NodeAttemptStatus, NodeControlKind, NodeId, NodeInvocationBinding, NodeInvocationBindingKind,
+    OutboxAttempt, OutboxAttemptCompletion, OutboxAttemptHistoryVerifier, OutboxAttemptOutcome,
+    OutboxAttemptStart, OutboxDelivery, OutboxDeliveryIntent, OutboxDeliveryStatus,
+    OutboxDestinationRef, PendingNodeResult, PendingNodeResultError, PendingNodeResultHead,
+    PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, ReadyNodeRecoveryPlanner,
+    ReadyNodes, RecoveryNodeKind, ResolvedBudget, RetryAdvice, RunFence, RunId, RunInterruptKind,
+    RunLease, RunLeaseValidationError, RunLifecycle, RunRevision, RunStatus, RunTimerKind,
+    RunTransition, RunTransitionKind, RunWaits, SchedulerReservationId, SchedulerShardId,
+    Superstep, TenantId, TimerFiring, TimerFiringIntent, TimerId, Timestamp, ToolInvocation,
+    ToolInvocationHead, ToolInvocationHistoryVerifier, ToolInvocationIntent,
+    ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
     ToolInvocationTransitionKind, WaitRegistrationIntent,
 };
 use uuid::Uuid;
@@ -89,6 +90,19 @@ pub use tool_authorization_receipts::{
 
 #[path = "skill_activation_windows.rs"]
 mod skill_activation_windows;
+
+#[path = "scoped_checkpoints.rs"]
+mod scoped_checkpoints;
+
+#[path = "frame_recovery.rs"]
+mod frame_recovery;
+#[path = "graph_frames.rs"]
+mod graph_frames;
+pub use graph_frames::{
+    GraphFrameBarrierCommitOutcome, GraphFrameClosureCommitOutcome, GraphFrameEntryCommitOutcome,
+    GraphFrameReturnCommitOutcome, StoredActiveGraphFrame, StoredGraphFrameBarrier,
+    StoredGraphFrameClosure, StoredGraphFrameEntry, StoredGraphFrameReturn, StoredOpenGraphFrame,
+};
 
 use crate::{
     AdmissionOutcome, AgentAdmissionCommitOutcome, AgentSubmissionCommitOutcome, AppendOutcome,
@@ -379,6 +393,57 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!(
                 "../migrations/0026_skill_activation_windows.sql"
             )),
+            false,
+        ),
+        Migration::new(
+            27,
+            Cow::Borrowed("scoped checkpoints"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0027_scoped_checkpoints.sql")),
+            false,
+        ),
+        Migration::new(
+            28,
+            Cow::Borrowed("compound graph frame entries"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0028_graph_frame_entries.sql")),
+            false,
+        ),
+        Migration::new(
+            29,
+            Cow::Borrowed("compound scoped frame barriers"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0029_graph_frame_barriers.sql")),
+            false,
+        ),
+        Migration::new(
+            30,
+            Cow::Borrowed("framework caller bindings"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0030_graph_frame_caller_bindings.sql"
+            )),
+            false,
+        ),
+        Migration::new(
+            31,
+            Cow::Borrowed("whole graph frame returns"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0031_graph_frame_returns.sql")),
+            false,
+        ),
+        Migration::new(
+            32,
+            Cow::Borrowed("whole scoped graph waits"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0032_graph_frame_waits.sql")),
+            false,
+        ),
+        Migration::new(
+            33,
+            Cow::Borrowed("whole graph frame closures"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0033_graph_frame_closures.sql")),
             false,
         ),
     ]),
@@ -1270,9 +1335,13 @@ SELECT
     state_digest,
     intent_digest,
     checkpoint_digest,
-    checkpoint_bytes
+    checkpoint_bytes,
+    graph_namespace,
+    frame_identity_digest,
+    frame_checkpoint_digest,
+    frame_checkpoint_head_bytes
 FROM stateknot.run_checkpoints
-WHERE tenant_id = $1 AND run_id = $2 AND checkpoint_id = $3
+WHERE tenant_id = $1 AND run_id = $2 AND graph_namespace = '' AND checkpoint_id = $3
 ";
 
 const SELECT_CHECKPOINT_BY_ANCHOR: &str = r"
@@ -1295,9 +1364,13 @@ SELECT
     state_digest,
     intent_digest,
     checkpoint_digest,
-    checkpoint_bytes
+    checkpoint_bytes,
+    graph_namespace,
+    frame_identity_digest,
+    frame_checkpoint_digest,
+    frame_checkpoint_head_bytes
 FROM stateknot.run_checkpoints
-WHERE tenant_id = $1 AND run_id = $2 AND journal_sequence = $3
+WHERE tenant_id = $1 AND run_id = $2 AND graph_namespace = '' AND journal_sequence = $3
 ";
 
 const SELECT_CHECKPOINT_LINEAGE: &str = r"
@@ -1306,6 +1379,7 @@ WITH RECURSIVE checkpoint_lineage AS (
     FROM stateknot.run_checkpoints AS current_checkpoint
     WHERE current_checkpoint.tenant_id = $1
       AND current_checkpoint.run_id = $2
+      AND current_checkpoint.graph_namespace = ''
       AND current_checkpoint.checkpoint_id = $3
 
     UNION ALL
@@ -1315,6 +1389,7 @@ WITH RECURSIVE checkpoint_lineage AS (
     JOIN checkpoint_lineage AS child
       ON parent_checkpoint.tenant_id = child.tenant_id
      AND parent_checkpoint.run_id = child.run_id
+     AND parent_checkpoint.graph_namespace = child.graph_namespace
      AND parent_checkpoint.checkpoint_id = child.parent_checkpoint_id
      AND parent_checkpoint.superstep = child.parent_superstep
      AND parent_checkpoint.checkpoint_digest = child.parent_digest
@@ -1339,7 +1414,11 @@ SELECT
     state_digest,
     intent_digest,
     checkpoint_digest,
-    checkpoint_bytes
+    checkpoint_bytes,
+    graph_namespace,
+    frame_identity_digest,
+    frame_checkpoint_digest,
+    frame_checkpoint_head_bytes
 FROM checkpoint_lineage
 ORDER BY lineage_depth ASC
 ";
@@ -1856,6 +1935,7 @@ WHERE pending.tenant_id = $1
   AND pending.base_checkpoint_id = $3
   AND pending.base_superstep = $4
   AND pending.base_checkpoint_digest = $5
+  AND pending.graph_namespace = $6
   AND NOT EXISTS (
       SELECT 1
       FROM stateknot.pending_node_result_consumptions AS consumed
@@ -1866,7 +1946,7 @@ WHERE pending.tenant_id = $1
         AND consumed.node_id = pending.node_id
   )
 ORDER BY pending.graph_namespace ASC, pending.node_id ASC
-LIMIT $6
+LIMIT $7
 ";
 
 const SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS_AFTER: &str = r"
@@ -1893,7 +1973,8 @@ WHERE pending.tenant_id = $1
   AND pending.base_checkpoint_id = $3
   AND pending.base_superstep = $4
   AND pending.base_checkpoint_digest = $5
-  AND (pending.graph_namespace, pending.node_id) > ($6, $7)
+  AND pending.graph_namespace = $6
+  AND pending.node_id > $7
   AND NOT EXISTS (
       SELECT 1
       FROM stateknot.pending_node_result_consumptions AS consumed
@@ -2065,6 +2146,7 @@ WHERE tenant_id = $1
   AND run_id = $2
   AND base_checkpoint_id = $3
 ORDER BY graph_namespace ASC, node_id ASC
+LIMIT 1025
 ";
 
 const SELECT_PENDING_NODE_RESULT_TOOL_BINDINGS: &str = r"
@@ -2802,60 +2884,7 @@ impl ClaimedRunRecovery<'_> {
         let base = checkpoint.head();
         let mut planner = ReadyNodeRecoveryPlanner::new(checkpoint, self.fence.clone())
             .map_err(|_| StoreError::corrupt("ready node recovery activation"))?;
-        let result_page_size = PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX)?;
-        let mut result_cursor = None;
-        loop {
-            let page = self
-                .store
-                .load_unconsumed_pending_node_result_page(
-                    &base,
-                    result_cursor.as_ref(),
-                    result_page_size,
-                )
-                .await?;
-            if self.context.expectation().head() != Some(page.snapshot_journal_head()) {
-                return Err(StoreError::StaleClaimedRunRecoveryObservation);
-            }
-            for result in page.records() {
-                planner
-                    .observe_result(result)
-                    .map_err(|_| StoreError::corrupt("ready node recovery result set"))?;
-            }
-            if !page.has_more() {
-                break;
-            }
-            result_cursor = Some(
-                page.next_cursor()
-                    .ok_or_else(|| StoreError::corrupt("ready node recovery result cursor"))?,
-            );
-        }
-
-        let attempt_page_size = NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX)?;
-        for activation in planner.activations() {
-            let mut attempt_cursor = None;
-            loop {
-                let page = self
-                    .store
-                    .load_node_attempt_history_page(
-                        &activation,
-                        attempt_cursor.as_ref(),
-                        attempt_page_size,
-                    )
-                    .await?;
-                for attempt in page.records() {
-                    planner
-                        .observe_attempt(attempt)
-                        .map_err(|_| StoreError::corrupt("ready node recovery attempt history"))?;
-                }
-                if !page.has_more() {
-                    break;
-                }
-                attempt_cursor =
-                    Some(page.next_cursor().ok_or_else(|| {
-                        StoreError::corrupt("ready node recovery attempt cursor")
-                    })?);
-            }
-        }
+        Box::pin(self.observe_ready_node_history(&mut planner, &base, None)).await?;
 
         let observation = self
             .store
@@ -3250,6 +3279,8 @@ impl PostgresStore {
         child_joins::verify_schema(&self.pool).await?;
         agent_deadlines::verify_schema(&self.pool).await?;
         failure_closes::verify_schema(&self.pool).await?;
+        scoped_checkpoints::verify_schema(&self.pool).await?;
+        graph_frames::verify_schema(&self.pool).await?;
         Ok(())
     }
 
@@ -5105,7 +5136,7 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             .await
     }
 
-    /// Loads and verifies one immutable tenant/run-scoped checkpoint by ID.
+    /// Loads and verifies one immutable root checkpoint by tenant, run and ID.
     ///
     /// This does not require the checkpoint to remain the run's current head;
     /// it is suitable for audit and exact lost-acknowledgement recovery.
@@ -5865,6 +5896,14 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             let completion = completion_row
                 .map(|row| decode_node_attempt_completion(&row, &start))
                 .transpose()?;
+            let closed =
+                Box::pin(graph_frames::closed_completion(&mut transaction, &start)).await?;
+            if completion.is_some() && closed.is_some() {
+                return Err(StoreError::corrupt(
+                    "node attempt history double completion",
+                ));
+            }
+            let completion = completion.or(closed);
             let attempt = NodeAttempt::restore(start, completion)
                 .map_err(|_| StoreError::corrupt("node attempt history join"))?;
             verifier
@@ -5983,7 +6022,22 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
         cursor: Option<&PendingNodeResultPageCursor>,
         page_size: PendingNodeResultPageSize,
     ) -> Result<PendingNodeResultPage, StoreError> {
-        if cursor.is_some_and(|cursor| !pending_result_cursor_matches_base(cursor, base)) {
+        Box::pin(self.load_pending_node_result_page_inner(base, None, cursor, page_size)).await
+    }
+
+    async fn load_pending_node_result_page_inner(
+        &self,
+        base: &CheckpointHead,
+        frame: Option<&stateknot_core::GraphFrameCheckpointHead>,
+        cursor: Option<&PendingNodeResultPageCursor>,
+        page_size: PendingNodeResultPageSize,
+    ) -> Result<PendingNodeResultPage, StoreError> {
+        let namespace = frame.map_or_else(GraphNamespace::root, |head| {
+            head.frame().namespace().clone()
+        });
+        if cursor
+            .is_some_and(|cursor| !pending_result_cursor_matches_base(cursor, base, &namespace))
+        {
             return Err(StoreError::InvalidPendingNodeResultCursor);
         }
 
@@ -6000,12 +6054,26 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             .map_err(|source| StoreError::database("pending result page run snapshot", source))?
             .ok_or(StoreError::RunNotFound)?;
         let stored = decode_run(run_row)?;
-        let checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if checkpoint.head() != *base {
-            return Err(StoreError::StaleCheckpointHead);
+        if let Some(expected) = frame {
+            let active = Box::pin(graph_frames::verified_active_snapshot(
+                &mut transaction,
+                tenant_id,
+                run_id,
+                stored.clone(),
+            ))
+            .await?
+            .ok_or(StoreError::StaleCheckpointHead)?;
+            if active.checkpoint().head() != *expected {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+        } else {
+            let checkpoint =
+                load_locked_current_checkpoint(&mut transaction, &stored, tenant_id, run_id)
+                    .await?
+                    .ok_or(StoreError::StaleCheckpointHead)?;
+            if checkpoint.head() != *base {
+                return Err(StoreError::StaleCheckpointHead);
+            }
         }
         let snapshot_journal_head = stored
             .journal_head()
@@ -6015,6 +6083,16 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             return Err(StoreError::StalePendingNodeResultSnapshot);
         }
 
+        // Authenticate namespace projections before reloading the cursor row:
+        // relabeling that row must remain corruption within the same snapshot.
+        let rows = frame_recovery::load_pending_node_result_head_page(
+            &mut transaction,
+            base,
+            &namespace,
+            cursor,
+            page_size,
+        )
+        .await?;
         if let Some(cursor) = cursor {
             let row = load_pending_node_result_head_row(&mut transaction, cursor.after()).await?;
             let durable = decode_pending_node_result_head(row, base)?;
@@ -6022,41 +6100,6 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
                 return Err(StoreError::InvalidPendingNodeResultCursor);
             }
         }
-
-        let base_superstep = i64::try_from(base.superstep().get())
-            .map_err(|_| StoreError::InvalidPendingNodeResultCursor)?;
-        let query_limit = i64::from(page_size.get()) + 1;
-        let rows = if let Some(cursor) = cursor {
-            query_as::<_, PendingNodeResultHeadRow>(
-                SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS_AFTER,
-            )
-            .bind(tenant_id.as_str())
-            .bind(*run_id.as_uuid())
-            .bind(*base.checkpoint_id().as_uuid())
-            .bind(base_superstep)
-            .bind(base.digest().as_bytes())
-            .bind(cursor.after().activation().graph_namespace().as_str())
-            .bind(cursor.after().activation().node_id().as_str())
-            .bind(query_limit)
-            .fetch_all(&mut *transaction)
-            .await
-            .map_err(|source| {
-                StoreError::database("unconsumed pending result continuation", source)
-            })?
-        } else {
-            query_as::<_, PendingNodeResultHeadRow>(SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS)
-                .bind(tenant_id.as_str())
-                .bind(*run_id.as_uuid())
-                .bind(*base.checkpoint_id().as_uuid())
-                .bind(base_superstep)
-                .bind(base.digest().as_bytes())
-                .bind(query_limit)
-                .fetch_all(&mut *transaction)
-                .await
-                .map_err(|source| {
-                    StoreError::database("unconsumed pending result first page", source)
-                })?
-        };
         let has_more = rows.len() > usize::from(page_size.get());
         let retained = rows.into_iter().take(usize::from(page_size.get()));
         let mut records = Vec::with_capacity(usize::from(page_size.get()));
@@ -6892,15 +6935,29 @@ WHERE tenant_id = $1
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !tool_invocation_activation_is_ready(&current_checkpoint, &intent) {
-            return Err(StoreError::InvalidToolInvocationActivation);
+        if intent.activation().graph_namespace().is_root() {
+            let current_checkpoint =
+                load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                    .await?
+                    .ok_or(StoreError::StaleCheckpointHead)?;
+            if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+            if !tool_invocation_activation_is_ready(&current_checkpoint, &intent) {
+                return Err(StoreError::InvalidToolInvocationActivation);
+            }
+        } else {
+            if stored.checkpoint().is_some_and(|root| {
+                root.checkpoint_id() == intent.activation().base_checkpoint().checkpoint_id()
+            }) {
+                return Err(StoreError::InvalidToolInvocationActivation);
+            }
+            Box::pin(verify_scoped_invocation_activation(
+                &mut transaction,
+                intent.activation(),
+                true,
+            ))
+            .await?;
         }
 
         let observed_at = database_now(&mut transaction, "tool invocation prepare clock").await?;
@@ -6917,6 +6974,14 @@ WHERE tenant_id = $1
         insert_tool_invocation_intent(&mut transaction, &invocation, &fence).await?;
         insert_initial_tool_invocation_revision(&mut transaction, &invocation, &fence).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if !invocation.intent().activation().graph_namespace().is_root() {
+            Box::pin(graph_frames::revalidate_scoped_worker_after_components(
+                &mut transaction,
+                &fence,
+                true,
+            ))
+            .await?;
+        }
         transaction
             .commit()
             .await
@@ -7091,15 +7156,29 @@ WHERE tenant_id = $1
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !tool_invocation_activation_is_ready(&current_checkpoint, &intent) {
-            return Err(StoreError::corrupt("tool invocation activation"));
+        if intent.activation().graph_namespace().is_root() {
+            let current_checkpoint =
+                load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                    .await?
+                    .ok_or(StoreError::StaleCheckpointHead)?;
+            if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+            if !tool_invocation_activation_is_ready(&current_checkpoint, &intent) {
+                return Err(StoreError::corrupt("tool invocation activation"));
+            }
+        } else {
+            if stored.checkpoint().is_some_and(|root| {
+                root.checkpoint_id() == intent.activation().base_checkpoint().checkpoint_id()
+            }) {
+                return Err(StoreError::corrupt("tool invocation activation"));
+            }
+            Box::pin(verify_scoped_invocation_activation(
+                &mut transaction,
+                intent.activation(),
+                true,
+            ))
+            .await?;
         }
 
         let observed_at = database_now(&mut transaction, "tool invocation advance clock").await?;
@@ -7118,6 +7197,7 @@ WHERE tenant_id = $1
             .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
         let event = JournalEvent::commit(append, recorded_at)
             .map_err(|error| map_event_commit_error(&error))?;
+        let starts_execution = matches!(&transition, ToolInvocationTransition::StartAttempt { .. });
         let invocation = current
             .advance(transition, event.head())
             .map_err(|_| StoreError::InvalidToolInvocationTransition)?;
@@ -7127,6 +7207,14 @@ WHERE tenant_id = $1
             .await?;
         update_tool_invocation_current(&mut transaction, &invocation, expected, &fence).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if !invocation.intent().activation().graph_namespace().is_root() {
+            Box::pin(graph_frames::revalidate_scoped_worker_after_components(
+                &mut transaction,
+                &fence,
+                starts_execution,
+            ))
+            .await?;
+        }
         transaction
             .commit()
             .await
@@ -7258,15 +7346,29 @@ WHERE tenant_id = $1
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !model_invocation_activation_is_ready(&current_checkpoint, &intent) {
-            return Err(StoreError::InvalidModelInvocationActivation);
+        if intent.activation().graph_namespace().is_root() {
+            let current_checkpoint =
+                load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                    .await?
+                    .ok_or(StoreError::StaleCheckpointHead)?;
+            if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+            if !model_invocation_activation_is_ready(&current_checkpoint, &intent) {
+                return Err(StoreError::InvalidModelInvocationActivation);
+            }
+        } else {
+            if stored.checkpoint().is_some_and(|root| {
+                root.checkpoint_id() == intent.activation().base_checkpoint().checkpoint_id()
+            }) {
+                return Err(StoreError::InvalidModelInvocationActivation);
+            }
+            Box::pin(verify_scoped_invocation_activation(
+                &mut transaction,
+                intent.activation(),
+                true,
+            ))
+            .await?;
         }
 
         let observed_at = database_now(&mut transaction, "model invocation prepare clock").await?;
@@ -7283,6 +7385,14 @@ WHERE tenant_id = $1
         insert_model_invocation_intent(&mut transaction, &invocation, &fence).await?;
         insert_initial_model_invocation_revision(&mut transaction, &invocation, &fence).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if !invocation.intent().activation().graph_namespace().is_root() {
+            Box::pin(graph_frames::revalidate_scoped_worker_after_components(
+                &mut transaction,
+                &fence,
+                true,
+            ))
+            .await?;
+        }
         transaction
             .commit()
             .await
@@ -7456,15 +7566,29 @@ WHERE tenant_id = $1
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *intent.activation().base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !model_invocation_activation_is_ready(&current_checkpoint, &intent) {
-            return Err(StoreError::corrupt("model invocation activation"));
+        if intent.activation().graph_namespace().is_root() {
+            let current_checkpoint =
+                load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                    .await?
+                    .ok_or(StoreError::StaleCheckpointHead)?;
+            if current_checkpoint.head() != *intent.activation().base_checkpoint() {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+            if !model_invocation_activation_is_ready(&current_checkpoint, &intent) {
+                return Err(StoreError::corrupt("model invocation activation"));
+            }
+        } else {
+            if stored.checkpoint().is_some_and(|root| {
+                root.checkpoint_id() == intent.activation().base_checkpoint().checkpoint_id()
+            }) {
+                return Err(StoreError::corrupt("model invocation activation"));
+            }
+            Box::pin(verify_scoped_invocation_activation(
+                &mut transaction,
+                intent.activation(),
+                true,
+            ))
+            .await?;
         }
 
         let observed_at = database_now(&mut transaction, "model invocation advance clock").await?;
@@ -7483,6 +7607,8 @@ WHERE tenant_id = $1
             .map_or(observed_at, |head| observed_at.max(head.recorded_at()));
         let event = JournalEvent::commit(append, recorded_at)
             .map_err(|error| map_event_commit_error(&error))?;
+        let starts_execution =
+            matches!(&transition, ModelInvocationTransition::StartAttempt { .. });
         let invocation = current
             .advance(transition, event.head())
             .map_err(|_| StoreError::InvalidModelInvocationTransition)?;
@@ -7492,6 +7618,14 @@ WHERE tenant_id = $1
             .await?;
         update_model_invocation_current(&mut transaction, &invocation, expected, &fence).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if !invocation.intent().activation().graph_namespace().is_root() {
+            Box::pin(graph_frames::revalidate_scoped_worker_after_components(
+                &mut transaction,
+                &fence,
+                starts_execution,
+            ))
+            .await?;
+        }
         transaction
             .commit()
             .await
@@ -7522,7 +7656,7 @@ WHERE tenant_id = $1
         activation: NodeActivation,
         attempt_id: AttemptId,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
-        Box::pin(self.start_node_attempt_inner(append, activation, attempt_id)).await
+        Box::pin(self.start_node_attempt_inner(append, activation, attempt_id, None)).await
     }
 
     /// Durably starts one node selected by a verified recovery plan.
@@ -7562,6 +7696,9 @@ WHERE tenant_id = $1
         node_id: &NodeId,
         attempt_id: AttemptId,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        if plan.frame().is_some() {
+            return Err(StoreError::InvalidReadyNodeDispatchPlan);
+        }
         let fence = append
             .worker_fence()
             .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
@@ -7593,6 +7730,63 @@ WHERE tenant_id = $1
         }
         self.start_node_attempt(append, decision.activation().clone(), attempt_id)
             .await
+    }
+
+    /// Experimental RFC-0022 handoff for an authenticated active frame node.
+    ///
+    /// The pure scoped plan does not grant launch authority. This transaction
+    /// reloads its whole immutable admission and active frame head, then reuses
+    /// the ordinary bounded history, retry timing, claim and live-fence checks.
+    /// Only a fresh committed start grants launch; an idempotent start remains
+    /// in flight. The caller must enforce the original Run's complete shared
+    /// budget before proposing work; this API allocates no frame budget.
+    ///
+    /// # Errors
+    /// Rejects Root/crossed plans, inactive frames, replaced checkpoints,
+    /// non-dispatchable nodes, stale history, fencing or journal state.
+    pub async fn start_recovered_graph_frame_node_attempt(
+        &self,
+        append: JournalAppend,
+        plan: &ReadyNodeRecoveryPlan,
+        node_id: &NodeId,
+        attempt_id: AttemptId,
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        let frame = plan
+            .frame()
+            .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
+        let fence = append
+            .worker_fence()
+            .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
+        let head = append
+            .expectation()
+            .head()
+            .ok_or(StoreError::InvalidReadyNodeDispatchPlan)?;
+        if frame.namespace().is_root()
+            || fence != plan.fence()
+            || head.tenant_id() != fence.tenant_id()
+            || head.run_id() != fence.run_id()
+            || head.sequence() < plan.journal_head().sequence()
+            || head.recorded_at() < plan.journal_head().recorded_at()
+        {
+            return Err(StoreError::InvalidReadyNodeDispatchPlan);
+        }
+        let decision = plan
+            .nodes()
+            .iter()
+            .find(|node| node.activation().node_id() == node_id)
+            .ok_or(StoreError::ReadyNodeNotDispatchable)?;
+        if decision.dispatch_reason().is_none()
+            || decision.activation().base_checkpoint() != &plan.checkpoint().head()
+        {
+            return Err(StoreError::ReadyNodeNotDispatchable);
+        }
+        Box::pin(self.start_node_attempt_inner(
+            append,
+            decision.activation().clone(),
+            attempt_id,
+            Some(frame),
+        ))
+        .await
     }
 
     /// Durably suppresses scheduler claims until a recovery plan's next retry.
@@ -7765,7 +7959,11 @@ RETURNING observation.observed_at
         append: JournalAppend,
         activation: NodeActivation,
         attempt_id: AttemptId,
+        frame: Option<&stateknot_core::GraphFrameIdentity>,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        if activation.graph_namespace().is_root() != frame.is_none() {
+            return Err(StoreError::InvalidNodeAttemptActivation);
+        }
         let fence = append
             .worker_fence()
             .cloned()
@@ -7838,15 +8036,44 @@ RETURNING observation.observed_at
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *activation.base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !node_attempt_activation_is_ready(&current_checkpoint, &activation) {
-            return Err(StoreError::InvalidNodeAttemptActivation);
+        if let Some(frame) = frame {
+            let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+                &mut transaction,
+                &tenant_id,
+                run_id,
+                frame.namespace(),
+                activation.base_checkpoint(),
+                true,
+            ))
+            .await?;
+            if checkpoint.frame() != frame
+                || checkpoint.checkpoint().head() != *activation.base_checkpoint()
+            {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+            graph_frames::reject_framework_call(
+                &mut transaction,
+                &checkpoint,
+                activation.node_id(),
+            )
+            .await?;
+            if !checkpoint
+                .activation(activation.node_id().clone())
+                .is_ok_and(|expected| expected == activation)
+            {
+                return Err(StoreError::InvalidNodeAttemptActivation);
+            }
+        } else {
+            let current_checkpoint =
+                load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
+                    .await?
+                    .ok_or(StoreError::StaleCheckpointHead)?;
+            if current_checkpoint.head() != *activation.base_checkpoint() {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+            if !node_attempt_activation_is_ready(&current_checkpoint, &activation) {
+                return Err(StoreError::InvalidNodeAttemptActivation);
+            }
         }
 
         let attempt_count = count_node_attempts(&mut transaction, &activation).await?;
@@ -7884,6 +8111,10 @@ RETURNING observation.observed_at
         insert_node_attempt_claim(&mut transaction, &start).await?;
         insert_node_attempt_start(&mut transaction, &start).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if frame.is_some() {
+            graph_frames::revalidate_worker_after_components(&mut transaction, start.fence())
+                .await?;
+        }
         transaction
             .commit()
             .await
@@ -8030,16 +8261,7 @@ RETURNING observation.observed_at
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *expected.activation().base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !node_attempt_activation_is_ready(&current_checkpoint, expected.activation()) {
-            return Err(StoreError::InvalidNodeAttemptActivation);
-        }
+        verify_node_completion_base(&mut transaction, &stored, attempt.start()).await?;
 
         let observed_at = database_now(&mut transaction, "node attempt failure clock").await?;
         authorize_worker(&stored, &fence, observed_at)?;
@@ -8056,6 +8278,13 @@ RETURNING observation.observed_at
         insert_event(&mut transaction, &event, completion.digest()).await?;
         insert_node_attempt_completion(&mut transaction, attempt.start(), &completion).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if !attempt.start().activation().graph_namespace().is_root() {
+            graph_frames::revalidate_worker_after_components(
+                &mut transaction,
+                attempt.start().fence(),
+            )
+            .await?;
+        }
         transaction
             .commit()
             .await
@@ -8216,16 +8445,7 @@ RETURNING observation.observed_at
         if append.expectation().head() != stored.journal_head() {
             return Err(StoreError::StaleJournalHead);
         }
-        let current_checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, &tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if current_checkpoint.head() != *expected.activation().base_checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if !node_attempt_activation_is_ready(&current_checkpoint, expected.activation()) {
-            return Err(StoreError::InvalidNodeAttemptActivation);
-        }
+        verify_node_completion_base(&mut transaction, &stored, attempt.start()).await?;
 
         let observed_at = database_now(&mut transaction, "node attempt success clock").await?;
         authorize_worker(&stored, &fence, observed_at)?;
@@ -8247,6 +8467,13 @@ RETURNING observation.observed_at
         insert_pending_node_result_bindings(&mut transaction, &result, &fence).await?;
         insert_node_attempt_completion(&mut transaction, attempt.start(), &completion).await?;
         update_run_head(&mut transaction, &event, None).await?;
+        if !attempt.start().activation().graph_namespace().is_root() {
+            graph_frames::revalidate_worker_after_components(
+                &mut transaction,
+                attempt.start().fence(),
+            )
+            .await?;
+        }
         transaction
             .commit()
             .await
@@ -9778,7 +10005,7 @@ RETURNING observation.observed_at
             return Err(StoreError::CheckpointBarrierResultConflict);
         }
         let durable_heads = load_locked_barrier_result_heads(&mut transaction, base).await?;
-        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads())?;
+        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads().as_slice())?;
         let current_journal = stored
             .journal_head()
             .ok_or_else(|| StoreError::corrupt("wait barrier run journal head"))?;
@@ -9955,7 +10182,7 @@ RETURNING observation.observed_at
             return Err(StoreError::CheckpointBarrierResultConflict);
         }
         let durable_heads = load_locked_barrier_result_heads(&mut transaction, base).await?;
-        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads())?;
+        validate_complete_barrier_result_heads(&durable_heads, barrier.result_heads().as_slice())?;
         let current_journal = stored
             .journal_head()
             .ok_or_else(|| StoreError::corrupt("checkpoint barrier run journal head"))?;
@@ -10363,6 +10590,10 @@ struct CheckpointRow {
     intent_digest: Vec<u8>,
     checkpoint_digest: Vec<u8>,
     checkpoint_bytes: Vec<u8>,
+    graph_namespace: String,
+    frame_identity_digest: Option<Vec<u8>>,
+    frame_checkpoint_digest: Option<Vec<u8>>,
+    frame_checkpoint_head_bytes: Option<Vec<u8>>,
 }
 
 struct ToolInvocationRow {
@@ -11001,6 +11232,10 @@ impl<'row> FromRow<'row, PgRow> for CheckpointRow {
             intent_digest: row.try_get("intent_digest")?,
             checkpoint_digest: row.try_get("checkpoint_digest")?,
             checkpoint_bytes: row.try_get("checkpoint_bytes")?,
+            graph_namespace: row.try_get("graph_namespace")?,
+            frame_identity_digest: row.try_get("frame_identity_digest")?,
+            frame_checkpoint_digest: row.try_get("frame_checkpoint_digest")?,
+            frame_checkpoint_head_bytes: row.try_get("frame_checkpoint_head_bytes")?,
         })
     }
 }
@@ -11982,6 +12217,9 @@ async fn verify_wait_registration_event(
     if wait.journal() != &event.head() {
         return Err(StoreError::corrupt("wait registration event anchor"));
     }
+    if event.payload().kind().as_str() == "graph-frame-barrier-committed" {
+        graph_frames::verify_wait_anchor(transaction, wait, &event).await?;
+    }
     Ok(())
 }
 
@@ -12080,6 +12318,14 @@ async fn load_interrupt_record_from_row(
         registration.registration_sequence,
     )
     .await?;
+    verify_interrupt_record_components(transaction, registration, request).await
+}
+
+async fn verify_interrupt_record_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    registration: &WaitRegistrationRow,
+    request: Box<InterruptRequest>,
+) -> Result<InterruptRecord, StoreError> {
     let row = query_as::<_, InterruptResolutionRow>(SELECT_INTERRUPT_RESOLUTION)
         .bind(request.intent().tenant_id().as_str())
         .bind(*request.intent().run_id().as_uuid())
@@ -12131,6 +12377,14 @@ async fn load_timer_record_from_row(
         registration.registration_sequence,
     )
     .await?;
+    verify_timer_record_components(transaction, registration, timer).await
+}
+
+async fn verify_timer_record_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    registration: &WaitRegistrationRow,
+    timer: Box<DurableTimer>,
+) -> Result<DurableTimerRecord, StoreError> {
     let row = query_as::<_, TimerFiringRow>(SELECT_TIMER_FIRING)
         .bind(timer.intent().tenant_id().as_str())
         .bind(*timer.intent().run_id().as_uuid())
@@ -12233,7 +12487,11 @@ async fn verify_checkpoint_anchor(
         .map_err(|source| StoreError::database("checkpoint anchor verification", source))?
         .ok_or_else(|| StoreError::corrupt("checkpoint journal anchor"))?;
     let event = decode_event(row)?;
-    if event.head() != *checkpoint.journal_head() {
+    if event.head() != *checkpoint.journal_head()
+        || event.payload().kind().as_str() == GraphFrameEntryPlan::EVENT_KIND
+    {
+        // Ordinary checkpoint reads prove Root scope. A frame entry can only
+        // authenticate its child checkpoint through the whole scoped bundle.
         return Err(StoreError::corrupt("checkpoint journal anchor"));
     }
     Ok(())
@@ -12872,8 +13130,21 @@ fn encode_checkpoint(checkpoint: &Checkpoint) -> Result<Vec<u8>, StoreError> {
     Ok(bytes)
 }
 
-#[allow(clippy::too_many_lines)]
 fn decode_checkpoint(row: CheckpointRow) -> Result<Checkpoint, StoreError> {
+    if !row.graph_namespace.is_empty()
+        || row.frame_identity_digest.is_some()
+        || row.frame_checkpoint_digest.is_some()
+        || row.frame_checkpoint_head_bytes.is_some()
+    {
+        return Err(StoreError::corrupt("root checkpoint namespace binding"));
+    }
+    decode_checkpoint_components(row)
+}
+
+// Shared byte/projection checks are scope-neutral. Each caller validates its
+// complete root or frame envelope before reaching this private decoder.
+#[allow(clippy::too_many_lines)]
+fn decode_checkpoint_components(row: CheckpointRow) -> Result<Checkpoint, StoreError> {
     if row.checkpoint_bytes.is_empty() || row.checkpoint_bytes.len() > MAX_CHECKPOINT_BYTES {
         return Err(StoreError::corrupt("checkpoint byte length"));
     }
@@ -13159,10 +13430,55 @@ async fn load_tool_invocation_revision_row(
         .ok_or(StoreError::ToolInvocationNotFound)
 }
 
+// Canonical scoped activation is derived from the authenticated whole frame,
+// never from a Root checkpoint or a caller-supplied namespace alone.
+async fn verify_scoped_invocation_activation(
+    tx: &mut Transaction<'_, Postgres>,
+    activation: &NodeActivation,
+    require_active: bool,
+) -> Result<(), StoreError> {
+    let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+        tx,
+        activation.tenant_id(),
+        activation.run_id(),
+        activation.graph_namespace(),
+        activation.base_checkpoint(),
+        require_active,
+    ))
+    .await?;
+    if !checkpoint
+        .activation(activation.node_id().clone())
+        .is_ok_and(|actual| actual == *activation)
+    {
+        return Err(if require_active {
+            StoreError::GraphFrameRejected
+        } else {
+            StoreError::corrupt("scoped invocation activation")
+        });
+    }
+    if require_active {
+        Box::pin(graph_frames::reject_framework_call(
+            tx,
+            &checkpoint,
+            activation.node_id(),
+        ))
+        .await?;
+    }
+    Ok(())
+}
+
 async fn verify_tool_invocation_base_checkpoint(
     transaction: &mut Transaction<'_, Postgres>,
     intent: &ToolInvocationIntent,
 ) -> Result<(), StoreError> {
+    if !intent.activation().graph_namespace().is_root() {
+        return Box::pin(verify_scoped_invocation_activation(
+            transaction,
+            intent.activation(),
+            false,
+        ))
+        .await;
+    }
     let head = intent.activation().base_checkpoint();
     let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
         .bind(intent.tenant_id().as_str())
@@ -13483,6 +13799,14 @@ async fn verify_model_invocation_base_checkpoint(
     transaction: &mut Transaction<'_, Postgres>,
     intent: &ModelInvocationIntent,
 ) -> Result<(), StoreError> {
+    if !intent.activation().graph_namespace().is_root() {
+        return Box::pin(verify_scoped_invocation_activation(
+            transaction,
+            intent.activation(),
+            false,
+        ))
+        .await;
+    }
     let head = intent.activation().base_checkpoint();
     let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
         .bind(intent.tenant_id().as_str())
@@ -15437,7 +15761,19 @@ async fn load_node_attempt_record(
         .map(Some)
 }
 
-async fn load_node_attempt_from_start_row(
+// Completion restoration participates in bounded ancestor replay. Keep both
+// completion witnesses and their full checks off every caller's inline Future.
+fn load_node_attempt_from_start_row<'a>(
+    transaction: &'a mut Transaction<'_, Postgres>,
+    start_row: NodeAttemptStartRow,
+) -> stateknot_core::BoxFuture<'a, Result<NodeAttempt, StoreError>> {
+    Box::pin(load_node_attempt_from_start_row_inner(
+        transaction,
+        start_row,
+    ))
+}
+
+async fn load_node_attempt_from_start_row_inner(
     transaction: &mut Transaction<'_, Postgres>,
     start_row: NodeAttemptStartRow,
 ) -> Result<NodeAttempt, StoreError> {
@@ -15452,6 +15788,11 @@ async fn load_node_attempt_from_start_row(
     let completion = completion_row
         .map(|row| decode_node_attempt_completion(&row, &start))
         .transpose()?;
+    let closed = Box::pin(graph_frames::closed_completion(transaction, &start)).await?;
+    if completion.is_some() && closed.is_some() {
+        return Err(StoreError::corrupt("node attempt double completion"));
+    }
+    let completion = completion.or(closed);
     NodeAttempt::restore(start, completion).map_err(|_| StoreError::corrupt("node attempt join"))
 }
 
@@ -15559,12 +15900,77 @@ async fn verify_node_attempt_anchor(
     Ok(event)
 }
 
+// Ordinary success/failure cannot finish a framework-owned graph call; only
+// its future whole return/closure transaction may release the suspended caller.
+async fn verify_node_completion_base(
+    tx: &mut Transaction<'_, Postgres>,
+    stored: &StoredRun,
+    start: &NodeAttemptStart,
+) -> Result<(), StoreError> {
+    let event = Box::pin(verify_node_attempt_start(tx, start)).await?;
+    if graph_frames::is_framework_kind(event.payload().kind().as_str()) {
+        return Err(StoreError::GraphFrameCompoundRequired);
+    }
+    let activation = start.activation();
+    if activation.graph_namespace().is_root() {
+        let checkpoint =
+            load_locked_current_checkpoint(tx, stored, activation.tenant_id(), activation.run_id())
+                .await?
+                .ok_or(StoreError::StaleCheckpointHead)?;
+        if checkpoint.head() != *activation.base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !node_attempt_activation_is_ready(&checkpoint, activation) {
+            return Err(StoreError::InvalidNodeAttemptActivation);
+        }
+    } else {
+        let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+            tx,
+            activation.tenant_id(),
+            activation.run_id(),
+            activation.graph_namespace(),
+            activation.base_checkpoint(),
+            true,
+        ))
+        .await?;
+        if checkpoint.checkpoint().head() != *activation.base_checkpoint() {
+            return Err(StoreError::StaleCheckpointHead);
+        }
+        if !checkpoint
+            .activation(activation.node_id().clone())
+            .is_ok_and(|expected| expected == *activation)
+        {
+            return Err(StoreError::InvalidNodeAttemptActivation);
+        }
+    }
+    Ok(())
+}
+
 async fn verify_node_attempt_base_checkpoint(
     transaction: &mut Transaction<'_, Postgres>,
     start: &NodeAttemptStart,
 ) -> Result<(), StoreError> {
     let activation = start.activation();
     let base = activation.base_checkpoint();
+    if !activation.graph_namespace().is_root() {
+        let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+            transaction,
+            activation.tenant_id(),
+            activation.run_id(),
+            activation.graph_namespace(),
+            activation.base_checkpoint(),
+            false,
+        ))
+        .await?;
+        if checkpoint.checkpoint().head() != *base
+            || !checkpoint
+                .activation(activation.node_id().clone())
+                .is_ok_and(|expected| expected == *activation)
+        {
+            return Err(StoreError::corrupt("scoped node attempt base"));
+        }
+        return Ok(());
+    }
     let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
         .bind(activation.tenant_id().as_str())
         .bind(*activation.run_id().as_uuid())
@@ -15590,6 +15996,9 @@ async fn verify_node_attempt(
     let Some(completion) = attempt.completion() else {
         return Ok(start_event);
     };
+    if graph_frames::is_framework_kind(start_event.payload().kind().as_str()) {
+        return Box::pin(graph_frames::recognize_completion(transaction, attempt)).await;
+    }
     let event = verify_node_attempt_anchor(
         transaction,
         completion.journal_head(),
@@ -15623,6 +16032,9 @@ async fn verify_node_attempt_start(
     transaction: &mut Transaction<'_, Postgres>,
     start: &NodeAttemptStart,
 ) -> Result<JournalEvent, StoreError> {
+    if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
+        return Ok(event);
+    }
     verify_node_attempt_base_checkpoint(transaction, start).await?;
     verify_node_attempt_anchor(
         transaction,
@@ -15826,9 +16238,9 @@ async fn load_locked_barrier_result_heads(
 
 fn validate_complete_barrier_result_heads(
     durable: &[PendingNodeResultHead],
-    expected: &BarrierResultHeads,
+    expected: &[PendingNodeResultHead],
 ) -> Result<(), StoreError> {
-    if durable == expected.as_slice() {
+    if durable == expected {
         return Ok(());
     }
     if durable.len() < expected.len()
@@ -15859,12 +16271,26 @@ async fn verify_barrier_consumptions(
     barrier: &CheckpointBarrier,
     successor: &Checkpoint,
 ) -> Result<(), StoreError> {
-    let base = barrier.base_checkpoint();
+    verify_barrier_consumption_parts(
+        transaction,
+        barrier.base_checkpoint(),
+        barrier.result_heads().as_slice(),
+        successor,
+    )
+    .await
+}
+
+async fn verify_barrier_consumption_parts(
+    transaction: &mut Transaction<'_, Postgres>,
+    base: &CheckpointHead,
+    heads: &[PendingNodeResultHead],
+    successor: &Checkpoint,
+) -> Result<(), StoreError> {
     let rows = load_barrier_consumption_rows(transaction, base).await?;
-    if rows.len() != barrier.result_heads().len() {
+    if rows.len() != heads.len() {
         return Err(StoreError::CheckpointBarrierCommitConflict);
     }
-    for (row, result) in rows.iter().zip(barrier.result_heads().iter()) {
+    for (row, result) in rows.iter().zip(heads.iter()) {
         let activation = result.activation();
         if row.tenant_id != base.tenant_id().as_str()
             || row.run_id != *base.run_id().as_uuid()
@@ -15906,6 +16332,7 @@ async fn verify_barrier_consumptions(
 fn pending_result_cursor_matches_base(
     cursor: &PendingNodeResultPageCursor,
     base: &CheckpointHead,
+    namespace: &GraphNamespace,
 ) -> bool {
     let snapshot = cursor.snapshot_journal_head();
     let after = cursor.after();
@@ -15915,7 +16342,7 @@ fn pending_result_cursor_matches_base(
         && snapshot.sequence() >= after.journal_head().sequence()
         && snapshot.recorded_at() >= after.journal_head().recorded_at()
         && after.activation().base_checkpoint() == base
-        && after.activation().graph_namespace().is_root()
+        && after.activation().graph_namespace() == namespace
 }
 
 fn pending_node_result_activation_is_ready(
@@ -15990,6 +16417,25 @@ async fn verify_pending_node_result_base_checkpoint(
 ) -> Result<(), StoreError> {
     let activation = result.intent().activation();
     let base = activation.base_checkpoint();
+    if !activation.graph_namespace().is_root() {
+        let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+            transaction,
+            activation.tenant_id(),
+            activation.run_id(),
+            activation.graph_namespace(),
+            activation.base_checkpoint(),
+            false,
+        ))
+        .await?;
+        if checkpoint.checkpoint().head() != *base
+            || !checkpoint
+                .activation(activation.node_id().clone())
+                .is_ok_and(|expected| expected == *activation)
+        {
+            return Err(StoreError::corrupt("scoped pending result base"));
+        }
+        return Ok(());
+    }
     let row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
         .bind(activation.tenant_id().as_str())
         .bind(*activation.run_id().as_uuid())
@@ -16041,6 +16487,18 @@ async fn verify_pending_node_result(
     result: &PendingNodeResult,
 ) -> Result<JournalEvent, StoreError> {
     verify_pending_node_result_base_checkpoint(transaction, result).await?;
+    verify_pending_node_result_components(transaction, result).await
+}
+
+// The caller authenticates the complete checkpoint and exact activation first.
+// Matching the owner activation makes a second base reload unnecessary.
+async fn verify_pending_node_result_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+) -> Result<JournalEvent, StoreError> {
+    if let Some(event) = Box::pin(graph_frames::recognize_result(transaction, result)).await? {
+        return Ok(event);
+    }
     let row = load_pending_node_result_row(transaction, result.intent().activation())
         .await?
         .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;
@@ -16063,13 +16521,14 @@ async fn verify_pending_node_result(
             .completion()
             .ok_or_else(|| StoreError::corrupt("pending node result attempt completion"))?;
         if attempt.start().attempt_id() != attempt_id
+            || attempt.start().activation() != result.intent().activation()
+            || attempt.start().fence() != result.fence()
             || completion.outcome().result() != Some(&result.head())
         {
             return Err(StoreError::corrupt(
                 "pending node result attempt completion",
             ));
         }
-        verify_node_attempt_base_checkpoint(transaction, attempt.start()).await?;
         verify_node_attempt_anchor(
             transaction,
             attempt.start().journal_head(),
@@ -17455,6 +17914,21 @@ async fn insert_event(
     event: &JournalEvent,
     projection_digest: Digest,
 ) -> Result<(), StoreError> {
+    // Entry binds multiple immutable components and requires its dedicated
+    // compound transaction; none of the legacy single-projection APIs may
+    // insert this reserved kind with an ordinary component projection.
+    if graph_frames::is_framework_kind(event.payload().kind().as_str()) {
+        return Err(StoreError::GraphFrameCompoundRequired);
+    }
+    insert_event_components(transaction, event, projection_digest).await
+}
+
+// Called only by the ordinary kind guard or a fully verified framework bundle.
+async fn insert_event_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+    projection_digest: Digest,
+) -> Result<(), StoreError> {
     let (source_kind, worker_attempt_id, worker_epoch, worker_write) = match event.source() {
         JournalEventSource::ControlPlane => ("control_plane", None, None, false),
         JournalEventSource::Worker { fence } => (
@@ -18051,6 +18525,20 @@ async fn load_wait_abandonment_by_id(
     let wait = decode_wait_registration(&registration)?;
     verify_wait_registration_event(transaction, &wait, registration.registration_sequence).await?;
 
+    verify_wait_abandonment_components(transaction, &registration, wait).await
+}
+
+async fn verify_wait_abandonment_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    registration: &WaitRegistrationRow,
+    wait: DurableWait,
+) -> Result<WaitAbandonment, StoreError> {
+    let tenant_id = wait.tenant_id().clone();
+    let run_id = wait.run_id();
+    let wait_id = match &wait {
+        DurableWait::Interrupt { request } => *request.marker().interrupt_id().as_uuid(),
+        DurableWait::Timer { timer } => *timer.marker().timer_id().as_uuid(),
+    };
     let row = query_as::<_, WaitAbandonmentRow>(SELECT_WAIT_ABANDONMENT_BY_ID.as_str())
         .bind(tenant_id.as_str())
         .bind(*run_id.as_uuid())
@@ -18115,9 +18603,16 @@ SELECT
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $4
-  AND current_run.checkpoint_superstep = $5
-  AND current_run.checkpoint_digest = $6
+  AND (
+      ($7='' AND current_run.checkpoint_id=$4 AND current_run.checkpoint_superstep=$5 AND current_run.checkpoint_digest=$6)
+      OR ($7<>'' AND EXISTS (
+          SELECT 1 FROM stateknot.graph_frame_stacks s JOIN stateknot.graph_frame_heads h USING(tenant_id,run_id)
+          WHERE s.tenant_id=current_run.tenant_id AND s.run_id=current_run.run_id
+            AND s.active_namespace=$7 AND h.graph_namespace=s.active_namespace
+            AND s.active_frame_identity_digest=h.frame_identity_digest
+            AND h.checkpoint_id=$4 AND h.superstep=$5 AND h.checkpoint_digest=$6
+      ))
+  )
   AND current_run.lease_attempt_id = $17
   AND current_run.fencing_epoch = $18
   AND current_run.lease_expires_at > clock_timestamp()
@@ -18298,6 +18793,7 @@ WHERE current_run.tenant_id = $1
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 async fn insert_node_attempt_start(
     transaction: &mut Transaction<'_, Postgres>,
     start: &NodeAttemptStart,
@@ -18349,9 +18845,27 @@ SELECT
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $3
-  AND current_run.checkpoint_superstep = $4
-  AND current_run.checkpoint_digest = $5
+  AND (
+    ($10 = '' AND current_run.checkpoint_id = $3
+      AND current_run.checkpoint_superstep = $4 AND current_run.checkpoint_digest = $5)
+    OR ($10 <> '' AND EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_heads h
+      JOIN stateknot.graph_frame_stacks s USING (tenant_id,run_id)
+      WHERE h.tenant_id=$1 AND h.run_id=$2 AND h.graph_namespace=$10
+        AND s.active_namespace=$10 AND s.active_frame_identity_digest=h.frame_identity_digest
+        AND h.checkpoint_id=$3 AND h.superstep=$4 AND h.checkpoint_digest=$5
+    ))
+    OR EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_caller_bindings b
+      JOIN stateknot.graph_frame_entries e USING (tenant_id,run_id,graph_namespace)
+      JOIN stateknot.graph_frame_stacks s USING (tenant_id,run_id)
+      WHERE b.tenant_id=$1 AND b.run_id=$2 AND b.caller_attempt_id=$14
+        AND b.caller_start_digest=$21 AND b.journal_sequence=$17
+        AND b.journal_event_id=$18 AND b.journal_digest=$20
+        AND e.parent_namespace=$10 AND e.parent_checkpoint_id=$3
+        AND s.active_namespace=b.graph_namespace AND s.active_frame_identity_digest=b.frame_identity_digest
+    )
+  )
   AND current_run.lease_attempt_id = $15
   AND current_run.fencing_epoch = $16
   AND current_run.lease_expires_at > clock_timestamp()
@@ -18803,9 +19317,16 @@ SELECT
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $4
-  AND current_run.checkpoint_superstep = $5
-  AND current_run.checkpoint_digest = $6
+  AND (
+      ($7='' AND current_run.checkpoint_id=$4 AND current_run.checkpoint_superstep=$5 AND current_run.checkpoint_digest=$6)
+      OR ($7<>'' AND EXISTS (
+          SELECT 1 FROM stateknot.graph_frame_stacks s JOIN stateknot.graph_frame_heads h USING(tenant_id,run_id)
+          WHERE s.tenant_id=current_run.tenant_id AND s.run_id=current_run.run_id
+            AND s.active_namespace=$7 AND h.graph_namespace=s.active_namespace
+            AND s.active_frame_identity_digest=h.frame_identity_digest
+            AND h.checkpoint_id=$4 AND h.superstep=$5 AND h.checkpoint_digest=$6
+      ))
+  )
   AND current_run.lease_attempt_id = $17
   AND current_run.fencing_epoch = $18
   AND current_run.lease_expires_at > clock_timestamp()
@@ -19125,9 +19646,16 @@ SELECT
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $3
-  AND current_run.checkpoint_superstep = $4
-  AND current_run.checkpoint_digest = $5
+  AND (
+    ($10='' AND current_run.checkpoint_id=$3 AND current_run.checkpoint_superstep=$4 AND current_run.checkpoint_digest=$5)
+    OR ($10<>'' AND EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_heads AS frame
+      JOIN stateknot.graph_frame_stacks AS stack ON stack.tenant_id=frame.tenant_id AND stack.run_id=frame.run_id
+      WHERE frame.tenant_id=$1 AND frame.run_id=$2 AND frame.graph_namespace=$10
+        AND frame.checkpoint_id=$3 AND frame.superstep=$4 AND frame.checkpoint_digest=$5
+        AND stack.active_namespace=frame.graph_namespace AND stack.active_frame_identity_digest=frame.frame_identity_digest
+    ))
+  )
   AND current_run.lease_attempt_id = $16
   AND current_run.fencing_epoch = $17
   AND current_run.lease_expires_at > clock_timestamp()
@@ -19327,9 +19855,16 @@ FROM UNNEST(
 CROSS JOIN stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $3
-  AND current_run.checkpoint_superstep = $4
-  AND current_run.checkpoint_digest = $5
+  AND (
+    ($6='' AND current_run.checkpoint_id=$3 AND current_run.checkpoint_superstep=$4 AND current_run.checkpoint_digest=$5)
+    OR ($6<>'' AND EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_heads AS frame
+      JOIN stateknot.graph_frame_stacks AS stack ON stack.tenant_id=frame.tenant_id AND stack.run_id=frame.run_id
+      WHERE frame.tenant_id=$1 AND frame.run_id=$2 AND frame.graph_namespace=$6
+        AND frame.checkpoint_id=$3 AND frame.superstep=$4 AND frame.checkpoint_digest=$5
+        AND stack.active_namespace=frame.graph_namespace AND stack.active_frame_identity_digest=frame.frame_identity_digest
+    ))
+  )
   AND current_run.lease_attempt_id = $20
   AND current_run.fencing_epoch = $21
   AND current_run.lease_expires_at > clock_timestamp()
@@ -19389,25 +19924,39 @@ async fn insert_barrier_consumptions(
     successor: &Checkpoint,
     source: &JournalEventSource,
 ) -> Result<(), StoreError> {
-    let base = barrier.base_checkpoint();
+    insert_barrier_consumption_parts(
+        transaction,
+        barrier.base_checkpoint(),
+        barrier.result_heads().as_slice(),
+        successor,
+        source,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_barrier_consumption_parts(
+    transaction: &mut Transaction<'_, Postgres>,
+    base: &CheckpointHead,
+    heads: &[PendingNodeResultHead],
+    successor: &Checkpoint,
+    source: &JournalEventSource,
+) -> Result<(), StoreError> {
     let base_superstep =
         i64::try_from(base.superstep().get()).map_err(|_| StoreError::InvalidCheckpointBarrier)?;
     let successor_superstep = i64::try_from(successor.superstep().get())
         .map_err(|_| StoreError::encoding("checkpoint barrier successor superstep"))?;
     let successor_sequence = i64::try_from(successor.journal_head().sequence().get())
         .map_err(|_| StoreError::JournalSequenceExhausted)?;
-    let graph_namespaces = barrier
-        .result_heads()
+    let graph_namespaces = heads
         .iter()
         .map(|head| head.activation().graph_namespace().as_str().to_owned())
         .collect::<Vec<_>>();
-    let node_ids = barrier
-        .result_heads()
+    let node_ids = heads
         .iter()
         .map(|head| head.activation().node_id().as_str().to_owned())
         .collect::<Vec<_>>();
-    let result_digests = barrier
-        .result_heads()
+    let result_digests = heads
         .iter()
         .map(|head| head.digest().as_bytes().to_vec())
         .collect::<Vec<_>>();
@@ -19463,9 +20012,19 @@ JOIN stateknot.pending_node_results AS pending
 CROSS JOIN stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
-  AND current_run.checkpoint_id = $3
-  AND current_run.checkpoint_superstep = $4
-  AND current_run.checkpoint_digest = $5
+  AND (
+    (expected.graph_namespace = '' AND current_run.checkpoint_id = $3
+      AND current_run.checkpoint_superstep = $4 AND current_run.checkpoint_digest = $5)
+    OR (expected.graph_namespace <> '' AND $16::uuid IS NOT NULL AND EXISTS (
+      SELECT 1 FROM stateknot.graph_frame_heads frame
+      JOIN stateknot.graph_frame_stacks stack USING (tenant_id,run_id)
+      WHERE frame.tenant_id=$1 AND frame.run_id=$2
+        AND frame.graph_namespace=expected.graph_namespace
+        AND stack.active_namespace=frame.graph_namespace
+        AND stack.active_frame_identity_digest=frame.frame_identity_digest
+        AND frame.checkpoint_id=$3 AND frame.superstep=$4 AND frame.checkpoint_digest=$5
+    ))
+  )
   AND (
       $16::uuid IS NULL
       OR (
@@ -19518,8 +20077,8 @@ WHERE current_run.tenant_id = $1
             ));
         }
     };
-    let expected_count = u64::try_from(barrier.result_heads().len())
-        .map_err(|_| StoreError::InvalidCheckpointBarrier)?;
+    let expected_count =
+        u64::try_from(heads.len()).map_err(|_| StoreError::InvalidCheckpointBarrier)?;
     if inserted != expected_count {
         if worker_write {
             return Err(StoreError::LeaseExpired);
@@ -19535,6 +20094,23 @@ async fn insert_checkpoint(
     checkpoint: &Checkpoint,
     source: &JournalEventSource,
 ) -> Result<(), StoreError> {
+    insert_checkpoint_components(transaction, checkpoint, source, None).await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn insert_checkpoint_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    checkpoint: &Checkpoint,
+    source: &JournalEventSource,
+    frame: Option<&stateknot_core::GraphFrameCheckpoint>,
+) -> Result<(), StoreError> {
+    let frame_header = frame
+        .map(|frame| serde_json_canonicalizer::to_vec(&frame.head()))
+        .transpose()
+        .map_err(|_| StoreError::encoding("scoped checkpoint header"))?;
+    if frame.is_some_and(|frame| frame.checkpoint() != checkpoint) {
+        return Err(StoreError::GraphFrameConflict);
+    }
     let checkpoint_bytes = encode_checkpoint(checkpoint)?;
     let superstep = i64::try_from(checkpoint.superstep().get())
         .map_err(|_| StoreError::encoding("checkpoint superstep"))?;
@@ -19582,20 +20158,29 @@ INSERT INTO stateknot.run_checkpoints (
     state_digest,
     intent_digest,
     checkpoint_digest,
-    checkpoint_bytes
+    checkpoint_bytes,
+    graph_namespace, frame_identity_digest, frame_checkpoint_digest, frame_checkpoint_head_bytes
 )
 SELECT
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $22, $23, $24, $25
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
   AND (
+    ($22 = '' AND (
       ($5::uuid IS NULL AND current_run.checkpoint_id IS NULL)
-      OR (
-          current_run.checkpoint_id = $5
+      OR (current_run.checkpoint_id = $5
           AND current_run.checkpoint_superstep = $6
-          AND current_run.checkpoint_digest = $7
+          AND current_run.checkpoint_digest = $7)
+    )) OR ($22 <> '' AND (
+      ($5::uuid IS NULL AND NOT EXISTS (
+        SELECT 1 FROM stateknot.graph_frame_heads h WHERE h.tenant_id=$1 AND h.run_id=$2 AND h.graph_namespace=$22
+      )) OR EXISTS (
+        SELECT 1 FROM stateknot.graph_frame_heads h WHERE h.tenant_id=$1 AND h.run_id=$2
+          AND h.graph_namespace=$22 AND h.frame_identity_digest=$23
+          AND h.checkpoint_id=$5 AND h.superstep=$6 AND h.checkpoint_digest=$7
       )
+    ))
   )
   AND (
       $20::uuid IS NULL
@@ -19628,6 +20213,10 @@ WHERE current_run.tenant_id = $1
     .bind(checkpoint_bytes)
     .bind(worker_attempt_id)
     .bind(worker_epoch)
+    .bind(frame.map_or("", |frame| frame.frame().namespace().as_str()))
+    .bind(frame.map(|frame| frame.frame().digest().as_bytes().to_vec()))
+    .bind(frame.map(|frame| frame.digest().as_bytes().to_vec()))
+    .bind(frame_header)
     .execute(&mut **transaction)
     .await
     .map_err(|source| StoreError::database("checkpoint insert", source))?

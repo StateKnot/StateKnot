@@ -78,6 +78,21 @@
       "content_digest": "sha256:2a6744b0d25f05d59b0c5966ba7c09a7d4513a3efbdf3f5e2b23d915419d0f7e"
     },
     {
+      "path": "core-graph-frame-barrier-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-graph-frame-barrier/1.0.0",
+      "content_digest": "sha256:756be369cab62197607f08f170998e0b2c1736d447b672203109974ddb5929c1"
+    },
+    {
+      "path": "core-graph-frame-call-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-graph-frame-call/1.0.0",
+      "content_digest": "sha256:ed4e0ccee8d19a803e1863fe8140176cbb0c6fce9086586d7aa621f017406fc5"
+    },
+    {
+      "path": "core-graph-frame-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-graph-frame/1.0.0",
+      "content_digest": "sha256:44690ef63b03dce17e7b9cf4744d886140d981962b405359f9773c2b56e0d94a"
+    },
+    {
       "path": "core-graph-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-graph/1.0.0",
       "content_digest": "sha256:15b437b4738ac918f406a284680343c6b93d4855523fdb4d2376018609c90847"
@@ -101,6 +116,11 @@
       "path": "core-json-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-json/1.0.0",
       "content_digest": "sha256:72db24fe269dc50d70f2056e75ba49aa10db09de0bc66fa024bc6b8e5a1c9787"
+    },
+    {
+      "path": "core-media-type-input-schemas-v1.json",
+      "schema": "https://stateknot.github.io/schema/test-fixture/core-media-type-input-schemas/1.0.0",
+      "content_digest": "sha256:0d5e61835f7ebb0b4c3abc7105aa46c3ac8754a15a462f17c9125cfe5aea7fcf"
     },
     {
       "path": "core-message-v1.json",
@@ -165,12 +185,12 @@
     {
       "path": "core-public-output-schema-inventory-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-public-output-schema-inventory/1.0.0",
-      "content_digest": "sha256:6a34dacde6e30a50ffddb0e17fada32ae2f124cec19858afa7b46acf1c88f160"
+      "content_digest": "sha256:4f1a01b20c9fd582bbb64582c9340fbe4f3b492cda68fdaa0404bf190eca194c"
     },
     {
       "path": "core-public-type-inventory-v1.json",
       "schema": "https://stateknot.github.io/schema/test-fixture/core-public-type-inventory/1.0.0",
-      "content_digest": "sha256:c46cd6eca553e292ee0b32817d628387ee46c6299e91d62d294220723ca3639a"
+      "content_digest": "sha256:4a78218ecd3bf8ed855b6d1b09180cb0140fa9b6e3ec227ecad9f69953f3a10c"
     },
     {
       "path": "core-run-lifecycle-v1.json",
@@ -223,5 +243,5 @@
       "content_digest": "sha256:009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
     }
   ],
-  "root_digest": "sha256:af87f02577ea898811aa859d2c0a48762d4832655695f6939fcb0321dad8cb2b"
+  "root_digest": "sha256:b5a50bb1e974954aed335d92ac7e747fa685b4bfa5cbfa8b69396070fc066461"
 }

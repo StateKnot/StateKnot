@@ -5,6 +5,28 @@
 
 #[path = "postgres/child_upgrade.rs"]
 mod child_upgrade;
+#[path = "postgres/frame_barriers.rs"]
+mod frame_barriers;
+#[path = "postgres/frame_callers.rs"]
+mod frame_callers;
+#[path = "postgres/frame_closures.rs"]
+mod frame_closures;
+#[path = "postgres/frame_dispatch.rs"]
+mod frame_dispatch;
+#[path = "postgres/frame_entries.rs"]
+mod frame_entries;
+#[path = "postgres/frame_recovery.rs"]
+mod frame_recovery;
+#[path = "postgres/frame_returns.rs"]
+mod frame_returns;
+#[path = "postgres/frame_scope.rs"]
+mod frame_scope;
+#[path = "postgres/frame_transactions.rs"]
+mod frame_transactions;
+#[path = "postgres/frame_waits.rs"]
+mod frame_waits;
+#[path = "postgres/result_namespace_corruption.rs"]
+mod result_namespace_corruption;
 
 use std::{
     borrow::Cow,
@@ -416,17 +438,19 @@ async fn remove_artifact_registry(pool: &PgPool) {
 
 async fn remove_child_run_cancellation(pool: &PgPool) {
     for sql in [
+        include_str!("fixtures/revert_scoped_checkpoints.sql"),
         include_str!("fixtures/revert_skill_activation_windows.sql"),
         include_str!("fixtures/revert_tool_authorization_receipts.sql"),
         include_str!("fixtures/revert_run_failure_closes.sql"),
         include_str!("fixtures/revert_agent_deadlines.sql"),
         include_str!("fixtures/revert_child_joins.sql"),
-    ]
-    .into_iter()
-    .flat_map(|sql| sql.split(';'))
-    .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(pool).await.unwrap();
+    ] {
+        // Execute the complete fixture so dollar-quoted function bodies retain
+        // their internal semicolons and the batch keeps its SQL transaction.
+        sqlx_core::raw_sql::raw_sql(sql)
+            .execute(pool)
+            .await
+            .unwrap();
     }
     query("DROP TRIGGER runs_child_cancellation_claim_guard ON stateknot.runs")
         .execute(pool)

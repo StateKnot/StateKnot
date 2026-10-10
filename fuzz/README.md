@@ -10,7 +10,7 @@ This private workspace runs three actual production boundaries:
 | Target | Input and oracle |
 | --- | --- |
 | `bounded_json` | Raw bytes through strict parsing with narrow/default/hard JSON limits; exact compact statistics, bounded round trips, RFC 8785 bytes and digest stability. Duplicate names and malformed Unicode remain raw bytes. |
-| `core_readers` | `RustTypeName\nraw JSON`, then the bounded JSON gate and one of all 307 reviewed readers; accepted input must match its offline deserialization schema, producer output its serialization schema, and ordinary/canonical round trips remain stable. Input validation runs after the actual reader, so alternate accepted shapes cannot be hidden. Names preserve reproducers when the type list grows. |
+| `core_readers` | `RustTypeName\nraw JSON`, then the bounded JSON gate and one of all 313 reviewed readers; accepted input must match its offline deserialization schema, producer output its serialization schema, and ordinary/canonical round trips remain stable. Input validation runs after the actual reader, so alternate accepted shapes cannot be hidden. Names preserve reproducers when the type list grows. |
 | `schema_registry` | Bounded `{"schema": ..., "instance": ..., "bad_pin": false}`; the real immutable runtime registry verifies dialect/URI/pins, duplicate identity, registration atomicity, 32 KiB single/48 KiB aggregate schema limits, offline compilation and instance validation. Missing dialect/URI receive the fixed fixture identity; supplied values are never overwritten. |
 
 The reader list is shared with the closed Core inventory, and fixed positive
@@ -49,6 +49,9 @@ product lock, runs seed regressions, and builds all three ASan targets without
 `cfg(fuzzing)`. It replays every seed explicitly before coverage-guided mutation.
 Each mutation phase is bounded by 10,000 executions and 60 seconds, each input
 by 10 seconds and 128 KiB, and each process by a 2,048 MiB libFuzzer RSS ceiling.
+The runner records actual mutation counts and peak RSS, validates both ceilings,
+and reports whether the execution cap was reached. A time-limited phase never
+claims 10,000 actual executions unless its final statistics confirm that count.
 The harness separately checks input length; JSON/schema dimensions retain their
 own stricter limits. Compilation uses two jobs and finite deadlines. The runner
 owns process groups and terminates descendants on timeout or interruption.
@@ -87,9 +90,25 @@ provider payloads or customer data.
 The source-only optional output correction is specified in
 [RFC-0020](../docs/rfcs/0020-core-optional-output-schemas.md). All 308 input pins
 remain fixed, and a separate inventory fixes the 308 serialization pins.
-`schema_pins` prints candidate output pins for explicit review and does not
-rewrite fixtures. Actual parent-source output documents are retained only as
+`schema_pins` prints candidate output pins for explicit review;
+`schema_pins --deserialize` prints candidate input/default pins. Neither command
+rewrites fixtures. Actual parent-source output documents are retained only as
 regression baselines; they are not N-1/N-2 upgrade qualification.
+
+The RFC-0022 draft adds six strictly read frame/call data types to the reader
+set. Current inventories pin 314 input/default and 314 producer schemas.
+`CompiledGraph` and `ChildRunAdmissionIntent` explicitly change both profiles
+for the new optional call metadata.
+These experimental data records do not enable nested execution. Final ASan
+qualification of the ongoing draft implementation remains required.
+
+[Draft RFC-0023](../docs/rfcs/0023-media-type-input-schema.md) retains the CI
+mixed-case media type reproducer. The existing reader normalizes such names,
+so its input/default pattern now admits ASCII upper/lowercase while its output
+pattern remains lowercase. The affected nested input pins change explicitly;
+all output pins, canonical wires and unrelated input pins stay exact. Tests
+keep both real schema oracles and verify the reproducer, mixed names, suffixes,
+parameters and name-length boundaries. Final-source qualification is required.
 
 This finite qualification establishes the reproducible C4 entry points and
 retained corpus. It does not establish exhaustive branch/variant coverage,

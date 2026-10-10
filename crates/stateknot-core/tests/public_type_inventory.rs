@@ -338,6 +338,13 @@ rust_only! {
     GraphBarrierPlan,
     GraphBarrierPlanError,
     GraphCompileError,
+    GraphFrameBarrierError,
+    GraphFrameBarrierPlan,
+    GraphFrameCompileError,
+    GraphFrameError,
+    GraphFrameEntry,
+    GraphFrameEntryError,
+    GraphFrameEntryPlan,
     GraphComposition,
     GraphCompositionError,
     GraphExecutionLimitsError,
@@ -666,7 +673,7 @@ fn every_named_root_export_has_exactly_one_reviewed_classification() {
     );
     assert_eq!(
         modes,
-        BTreeMap::from([("none", 246), ("read_write", 307), ("write_only", 2)])
+        BTreeMap::from([("none", 253), ("read_write", 313), ("write_only", 2)])
     );
     let names = READERS
         .iter()
@@ -674,7 +681,7 @@ fn every_named_root_export_has_exactly_one_reviewed_classification() {
         .copied()
         .collect::<BTreeSet<_>>();
     assert_eq!(names.len(), READERS.len() + RUST_ONLY.len());
-    assert_eq!(expected.len(), 570);
+    assert_eq!(expected.len(), 583);
 }
 
 #[test]

@@ -41,7 +41,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 44 currently
+The versioned `catalog-v1.json` closes the inventory around all 48 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -62,6 +62,15 @@ This makes the existing evidence corpus reviewable and tamper-evident. It
 now includes the typed root-export audit below. The catalog count itself is
 not a coverage metric; variant combinations, property/fuzz and historical
 qualification remain separate gates.
+
+[Draft RFC-0023](rfcs/0023-media-type-input-schema.md) corrects the `MediaType`
+input/default schema for the case-insensitive names already accepted and
+normalized by the reader. The exact CI reproducer and actual prior-source
+artifact schema are retained. The 35 affected nested input pins change
+explicitly; all 314 output pins and canonical wires remain exact. Use new
+immutable input schema/Tool versions and retain the matching old executable
+and registry for admitted work and rollback. Final-source qualification and
+acceptance remain pending.
 
 ### Value-level fixture and property coverage
 
@@ -184,18 +193,69 @@ variant combinations and the complete C2/C3 audit stay open.
 ### Closed public type and schema inventory
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
-checks all 570 named root exports against a
+checks all 583 named root exports against a
 [machine-readable inventory](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json):
-555 types, 11 traits and four constants. The compiler verifies 307 types with
-`Serialize` and `DeserializeOwned`, two output-only types, and 246 reviewed
+568 types, 11 traits and four constants. The compiler verifies 313 types with
+`Serialize` and `DeserializeOwned`, two output-only types, and 253 reviewed
 Rust-only instantiations without `Serialize` or `DeserializeOwned`. Each reader has an explicit fixture
 file/JSON pointer, a canonical wire digest and a generated JSON Schema digest;
-`BudgetRemaining` supplies the 308th schema pin. A separate output inventory
-pins all 308 serialization profiles without changing the existing input pins. The 312-test matrix rejects
-unsupported scalar/collection shapes, unknown fields on 181 closed object
+`BudgetRemaining` supplies the 314th schema pin. A separate output inventory
+pins all 314 serialization profiles with explicit review of changed pins. The 318-test matrix rejects
+unsupported scalar/collection shapes, unknown fields on 187 closed object
 vectors, and raw duplicate known keys. Bounded JSON and extension maps retain
 open-key semantics. New exports, missing typed evidence, and accidental Serde
 implementations fail CI until explicitly reviewed.
+
+[Draft RFC-0022](rfcs/0022-namespaced-graph-frames.md) currently adds six
+experimental frame readers, four Rust-only error types, two Rust-only plans and a compound entry record. Current-source frame
+and call fixtures, nine frame checks, two independent 256-case models and
+compiler rejection checks cover these data boundaries. Optional `frame_calls`
+enter the compiled definition checksum, explicitly changing both generated
+schema profiles for `CompiledGraph` and its containing `ChildRunAdmissionIntent`.
+All other prior schema pins, root graph canonical wires and definition digests
+remain exact. These types do not enable nested execution; registry closure,
+driver/SQL integration and fault qualification remain work in the draft PR.
+Scoped recovery retains the full frame, rejects sibling/root evidence and reuses
+committed results across takeover. The new frame barrier checks exact ready
+activations and bounded canonical results; it shares root schema/reducer/control
+validation while keeping the root barrier closed. Four recovery checks, five
+barrier checks and another independent 256-case sum/checksum model cover these
+pure paths. No active-leaf, fence or parent-return authority is inferred from data.
+Call preparation verifies the exact declaration/target/caller and creates an
+isolated initial snapshot. Return preparation requires the exact child base and
+terminal plan, producing only the fixed-route parent result; eleven constructor
+checks cover the call profile. These Rust-only methods reuse existing data and
+do not add wire/schema pins or authorize persistence/dispatch. PostgreSQL
+migration 27 adds scoped relational guards and explicit root queries; atomic
+frame entry/return, wait ownership and fault qualification remain pending.
+`GraphFrameEntryPlan` now binds the exact caller/target, isolated checkpoint
+intent, distinct framework attempt and worker fence before an event exists.
+Its compact, versioned local event schema contains identities/digests, not child
+state. Materialization checks the exact observed predecessor and entire event,
+then derives the framework start, scoped checkpoint and one compound projection
+digest. `verify_committed` recomputes and checks every component; independently
+valid substituted starts/checkpoints and arbitrary component projection digests
+are rejected. Nine Core checks and a production offline-registry check cover
+this data boundary. The Rust-only plan/record/error add no public Serde reader
+or change to existing public type schema pins. Atomic store admission, inherited
+limits and active-leaf/live-fence authority still require implementation.
+
+
+
+Experimental Store schemas 28–31 now provide whole admission, ordinary scoped
+node execution, scoped barriers, framework caller rebinding and whole return.
+Return settles an already saved terminal proof with the current physical caller,
+exact parent result, completion, stack pop and journal in one transaction; the
+parent advances only through its own barrier. Recovery authenticates every
+component before fresh callbacks or authority. Run-wide DIRECT floors and
+bounded transaction-owned replay proofs survive nested returns. Source upgrades,
+seven-level default-stack cascades and real restricted LOGIN paths have native
+tests. All-frame closure, actual nested driver and complete fault
+qualification remain independent Draft gates; no published alpha.1 support is
+implied.
+
+The 181 object readers and 308 pins in the RFC-0021 account below describe its
+original adoption baseline; the six additions use the same map-only guard.
 
 [RFC-0021](rfcs/0021-core-object-readers.md) requires the published object shape
 at all 181 closed object readers. A streaming map guard preserves their owned
@@ -258,7 +318,7 @@ separate gates.
 ## Bounded fuzz and output-schema qualification
 
 [`fuzz/qualify.py`](../fuzz/qualify.py) runs three ASan/libFuzzer targets: strict
-bounded JSON/JCS, all 307 typed readers, and the actual offline runtime schema
+bounded JSON/JCS, all 313 typed readers, and the actual offline runtime schema
 registry. Accepted reader inputs are checked against their offline input schema
 after actual deserialization, so an alternate accepted representation cannot be
 masked by validating first. Producers retain their output-schema oracle.
@@ -346,3 +406,24 @@ Passing the four examples closes only RFC-0001 validation item 1. The sealed
 fixture catalog is infrastructure toward item 2, not completion of its required
 type-level coverage. Fuzzing, historical migrations, scenario mapping, and the complete security review also
 remain acceptance gates. StateKnot remains a preview and RFC-0001 remains Draft.
+
+
+Experimental Schema 32 leaf waits use a version-2 whole Store barrier, retaining
+exact version-1 non-wait bytes and Core schema pins. The suspension atomically
+binds the original lifecycle revision, complete scoped successor/result set,
+all policy-bearing registrations and Run waiting projection. It releases the
+lease, authenticates complete terminal wait facts, and resumes the saved leaf
+under a new fence only after all conditions are discharged. Default-stack native
+and standalone runtime LOGIN tests cover recovery and whole return. Final source
+qualification, all-frame closure and the nested Driver remain pending.
+
+
+`PostgresStore::load_active_graph_frame` provides one bounded, authenticated
+repeatable-read recovery snapshot. It returns the whole active leaf and at most
+seven compact root-to-leaf checkpoint/entry/current-caller bindings, preserving
+physical takeover history and the Run-wide structural DIRECT floor. It rejects
+missing stacks, hidden open scopes, invented lifetime progress and substituted
+wait terminal facts. A cancellation snapshot keeps the stack open for the future
+whole-close transaction. The read grants no execution authority and the floor is
+not complete ordinary node/provider accounting. Schema 32, Core pins and existing
+wire bytes are unchanged; nested Driver and whole-close support remain pending.

@@ -7,6 +7,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import signal
@@ -147,7 +148,7 @@ def seed_corpus():
                 payload = b'"\\ud800"' if label == "unicode" else compact(bad)
                 add("core_readers", f"{name}-{index}-{label}", prefix + payload, source)
     REPORT["reader_count"] = readers
-    assert readers == 307, "review and qualify an expanded public reader set"
+    assert readers == 313, "review and qualify an expanded public reader set"
     variants = json.loads((fixtures / "core-public-enum-variants-v1.json").read_bytes())
     variant_count = 0
     for name, vectors in variants["types"].items():
@@ -236,11 +237,24 @@ def main():
             record["seed_replay_passed"] = True
             execute([str(binary), str(output), str(FUZZ / "corpus" / target)] + flags
                     + ["-max_total_time=60", "-runs=10000"], log, 90)
+            # The original profile has execution/time ceilings, not a minimum
+            # iteration count. Require actual stats and report the reached cap;
+            # never describe a time-limited phase as 10,000 executed units.
+            stats = log.read_text()
+            executed = re.findall(r"stat::number_of_executed_units:\s*(\d+)", stats)
+            peak_rss = re.findall(r"stat::peak_rss_mb:\s*(\d+)", stats)
+            if not executed or not peak_rss:
+                raise RuntimeError(f"missing mutation stats: {target}; see {log}")
+            record["actual_mutation_runs"] = int(executed[-1])
+            record["peak_rss_mib"] = int(peak_rss[-1])
+            if not 1 <= record["actual_mutation_runs"] <= 10000 or record["peak_rss_mib"] > 2048:
+                raise RuntimeError(f"invalid bounded mutation stats: {target}; see {log}")
+            record["execution_cap_reached"] = record["actual_mutation_runs"] == 10000
             record["mutation_passed"] = True
             record["retained_coverage_files"] = len(list(output.glob("*")))
             record["retained_coverage_bytes"] = sum(path.stat().st_size for path in output.glob("*"))
             record["log_sha256"] = digest(log.read_bytes())
-            print(f"{target}: {len(seeds)} seeds replayed; bounded mutations passed", flush=True)
+            print(f"{target}: {len(seeds)} seeds replayed; {record['actual_mutation_runs']} actual mutations passed", flush=True)
         REPORT["complete"] = True
     finally:
         unchanged = all(path.read_bytes() == data for path, data in locks.items())

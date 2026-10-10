@@ -40,7 +40,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 44 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 48 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -57,6 +57,13 @@ Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 
 这让现有证据语料可审查且可检测篡改。下方清单已补齐当前根导出类型的逐型基准，
 目录数量本身不是覆盖率；变体组合、属性/fuzz 和历史验收仍有独立门禁。
+
+[RFC-0023 草案](rfcs/0023-media-type-input-schema.md) 修正 `MediaType` 输入/default
+schema，使其接受 reader 已支持并规范化的大小写混合名称。精确 CI 反例及真实
+上一源码的 artifact schema 已保留。35 个受影响的嵌套输入 pin 显式变化；全部
+314 个输出 pin 和规范 wire 保持一致。使用新的不可变输入 schema/Tool 版本，
+为已准入工作和回滚保留匹配的原 executable 与 registry。最终源码验收及草案
+接受仍待完成。
 
 ### 值类型的 Fixture 与属性测试映射
 
@@ -159,17 +166,66 @@ fixture 证据；N-1/N-2 迁移、剩余类型族/变体组合及完整 C2/C3 �
 ### 封闭的公开类型与 schema 清单
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
-将全部 570 个根导出项与
+将全部 583 个根导出项与
 [机器可读清单](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json)
-逐一比较：555 个类型、11 个 trait、四个常量。编译器核对 307 个同时支持
+逐一比较：568 个类型、11 个 trait、四个常量。编译器核对 313 个同时支持
 `Serialize` 与 `DeserializeOwned` 的类型、两个仅支持输出的类型，以及
-246 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
+253 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
 fixture 文件/JSON pointer、规范 wire 摘要和生成的 JSON Schema 摘要；
-`BudgetRemaining` 提供第 308 个 schema pin；独立输出清单另固定全部 308 个
-序列化 profile，原输入 pin 保持精确一致。312 项矩阵检查拒绝不匹配的
-标量/集合形状、181 个封闭对象向量的未知字段及原始重复已知键。
+`BudgetRemaining` 提供第 314 个 schema pin；独立输出清单另固定全部 314 个
+序列化 profile，已变更 pin 必须显式审查。318 项矩阵检查拒绝不匹配的
+标量/集合形状、187 个封闭对象向量的未知字段及原始重复已知键。
 Bounded JSON 与扩展 map 保留开放 key 语义。新增导出、缺少逐型证据和意外
 引入的 Serde 实现会使 CI 失败，直至完成明确审查。
+
+[RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md) 当前新增六个实验性帧
+reader、四个 Rust-only 错误类型、两个 Rust-only plan 和一个入栈复合记录。帧身份/检查点与调用声明有独立当前源码
+fixture、九项帧检查、两个各 256 样例的独立模型及编译器负向检查。
+`CompiledGraph` 的可选 `frame_calls` 纳入定义摘要，因而其生成 schema 和
+包含它的 `ChildRunAdmissionIntent` schema 的两个 profile 均显式更新；
+其余原有 schema pin、根图 canonical wire 和定义摘要保持一致。
+类型检查不构成嵌套执行支持；编译器/注册表闭包、driver/SQL 及故障验收
+在草稿 PR 中持续开发。下方 RFC-0021 的 181 个对象及 308 个 pin 是其
+采用时的原有基线，六个新增对象沿用同样的 map-only 门禁。
+Scoped recovery 保留完整 frame，拒绝 sibling/root 证据，并在接管后复用
+已提交结果。帧屏障核对精确 ready activation、有界结果集和规范顺序，
+复用根图的 schema/reducer/control 校验；旧根屏障保持关闭。另有四项恢复、
+五项屏障检查和一个各 256 样例的独立求和/摘要模型，数据不能推断
+active leaf、fence 或父返回权限。
+调用准备核对精确声明、目标及 caller，并创建隔离的初始状态快照；返回准备
+要求精确子 checkpoint 与 terminal plan，仅生成固定 route 的父节点结果。
+调用 profile 共十一项构造器检查。这些 Rust-only 方法复用原有数据类型，
+不新增 wire/schema pin，也不授权持久化或派发。PostgreSQL 迁移 27 加入
+scoped 外键及显式根查询；帧入栈/返回事务、等待所有权和故障验收仍待交付。
+
+`GraphFrameEntryPlan` 在事件生成前绑定精确 caller/target、隔离 checkpoint
+意图、独立框架 attempt 和 worker fence。版本化本地事件 schema 仅携带身份
+与摘要；materialize 核对完整事件与精确前驱，生成同一 journal anchor 的 start、
+scoped checkpoint 和一个复合投影摘要。`verify_committed` 重新核对全部组成，
+拒绝独立有效的替换 start/checkpoint 及单个组件投影。九项 Core 检查及生产离线
+schema 注册表检查覆盖该数据边界；Rust-only plan/记录/错误没有新增公开 Serde
+reader 或改变原有类型 schema pin。实际入栈事务、继承限制、active leaf 和
+数据库时钟下的 live fence 校验仍须实现。
+
+实验性 Store Schema 28–32 已接通完整准入、帧内普通节点、作用域屏障、框架 caller
+接管和完整返回。专用返回事务将已保存的 terminal 证明与当前物理 caller、精确父
+结果、完成、stack 弹出及 journal 原子结算；父状态通过自己的屏障继续推进。
+恢复先验证全部组件，再考虑新回调或权限。共享 DIRECT 用量下界和有界事务内
+证明在嵌套返回后保持有效。非空源码升级、默认栈七层级联和真实受限 LOGIN
+路径有原生测试。迁移 32 用版本 2 的完整 Store 屏障原子绑定叶帧等待、原生命周期
+版本、全部注册及 Run 等待投影；保留版本 1 非等待字节与 Core pin。恢复验证完整
+解析/触发/放弃事实，全部条件完成后在新租约下续接原叶帧。默认栈回归与独立
+runtime LOGIN 路径已经执行，最终源码验收仍待收齐。全帧关闭、实际嵌套 driver 和完整故障验收仍是
+独立草案门禁，不改变已发布 alpha.1 的支持范围。
+
+`PostgresStore::load_active_graph_frame` 在同一有界 repeatable-read 快照内认证
+活动叶的完整检查点，以及最多七层入口、当前检查点和物理 caller 的紧凑绑定。
+接管保留实际历史和整个 Run 的结构性 DIRECT 下界；缺失 stack、隐藏开放作用域、
+虚增生命周期计数和等待终态替换会被拒绝。取消后的快照继续保留开放栈，交由
+后续完整关闭事务处理。读取不授予执行权限，结构下界不能替代普通节点/provider
+的完整会计。Schema 32、Core pin 与既有 wire 不变；整栈关闭和真实嵌套 Driver
+仍待完成。
+
 
 [RFC-0021](rfcs/0021-core-object-readers.md) 要求全部 181 个封闭对象 reader
 使用已公布的对象形状。流式 map 门禁复用原 owned 字段 reader、重复/未知字段
@@ -218,7 +274,7 @@ Fuzz 回归和种子生成器使每个分支进入实际输入、输出 schema o
 ## 有界 fuzz 与输出 schema 验收
 
 [`fuzz/qualify.py`](../fuzz/qualify.py) 运行三个实际生产边界的 ASan/libFuzzer
-入口：严格有界 JSON/JCS、全部 307 个 typed reader、实际离线 runtime schema
+入口：严格有界 JSON/JCS、全部 313 个 typed reader、实际离线 runtime schema
 注册表。先执行实际反序列化，再以离线输入 schema 检查被接受的输入，避免
 提前验证掩盖 reader 接受的额外形状；输出 schema oracle 继续执行。
 固定种子变异前逐一重放全部语料，保留失败字节和新覆盖样本，记录

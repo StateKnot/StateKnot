@@ -13,7 +13,7 @@
           "canonical_digest": "sha256:f81f9aebe817786e6b6b313d8d2b120662407d31f9a7b849a38a7163ca018bca"
         }
       ],
-      "schema_digest": "sha256:d4a6f7f944091c2ec72cb53802b70cd9971076a5709b3f60660032a3f6c55e3b"
+      "schema_digest": "sha256:b69e9f6e427a4d09a4d0e56b1e8428388f1fc74b86572e8f98cfe9d883f1a79b"
     },
     "AgentAdmissionAuthority": {
       "module": "agent_admission",
@@ -79,7 +79,7 @@
           "canonical_digest": "sha256:1c89e959186c184a72cba6f9f545e9e868457639a6618a9476a608df96a26237"
         }
       ],
-      "schema_digest": "sha256:adcc746e1e0b431eba75c95a7e07afd022f0ef775cc9980fa247ed8f7cb5351b"
+      "schema_digest": "sha256:e787f25a3f408ca55ec8af5d7a9e13eca838a19ede8d06e91417dd951bc2c854"
     },
     "AgentAdmissionIntentError": {
       "module": "agent_admission",
@@ -101,7 +101,7 @@
           "canonical_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         }
       ],
-      "schema_digest": "sha256:c58aed828d3f9361482de22c0f9fc50a901e955262c09d73a2c42bea1fbc3ea9"
+      "schema_digest": "sha256:d47e19b23bf5d42f9e41fa4ce420beb5b969157968d0fa3720a9ba2a1c3be98a"
     },
     "AgentArtifactsError": {
       "module": "agent_runtime",
@@ -123,7 +123,7 @@
           "canonical_digest": "sha256:ec297fcf338acaaecff17a5b6aa1c96e8db0ed1f5187f04dfeb5e14fe4780859"
         }
       ],
-      "schema_digest": "sha256:456b033c88eb920a1371ce40e38927f73094850126b448799a6c110048d8df76"
+      "schema_digest": "sha256:698f7e6cbd68bbfbb52ed15d6189c20b433bd2234bfac82b4c3b1e9cc860dc8d"
     },
     "AgentDescriptorError": {
       "module": "agent",
@@ -167,7 +167,7 @@
           "canonical_digest": "sha256:68ee7dd55cf7b381dc5aa84dd53558216f26fe027dddccde6d55e595ae9e7b20"
         }
       ],
-      "schema_digest": "sha256:253e6e9a5b3ae4a6b59fd2c2b8bcabbc293aa325c2296bd7b74a6860a4b7d218"
+      "schema_digest": "sha256:50cabdde52a6938b43944c65f30e968c43328a3a449e60bf0efe24d3db3dd0dc"
     },
     "AgentInstructionsError": {
       "module": "agent",
@@ -211,7 +211,7 @@
           "canonical_digest": "sha256:575b8461d0b4db6c3ea86e3c7f2791eaba29d35a743d3299c6c2bf404ae9445e"
         }
       ],
-      "schema_digest": "sha256:a894edfad6f2938516e722c2642d25508c8e54d47ce087b4e493d492bca0825b"
+      "schema_digest": "sha256:aa77cb4ee9d5a8d4720b6eb34769e3f4aaf0da28a33bafea369775756b57d1ba"
     },
     "AgentResultError": {
       "module": "agent_runtime",
@@ -471,7 +471,7 @@
           "canonical_digest": "sha256:eed133e632458a051521ff60f56e6f645210b248431790aab8477bc6e04ffa0a"
         }
       ],
-      "schema_digest": "sha256:07499b20ba1bc1fc777836098b1c804f6b2d19973bc4c651ab71a83ace44b187"
+      "schema_digest": "sha256:606ff6b4f6bfd9224724eaadb67a804a6e8c4363068cd13f3cdf91d7a8961b8b"
     },
     "ArtifactRefError": {
       "module": "artifact",
@@ -493,7 +493,7 @@
           "canonical_digest": "sha256:996bc6605a4b80a024f37ab7db98445c387a325a60fee3290484347f233073d5"
         }
       ],
-      "schema_digest": "sha256:2d54d3900f1e4cd78d292540641f81f6a30b00e194d7f3e9472e40d7ec92ca02"
+      "schema_digest": "sha256:20389d9866f23040a787ef643c1d1d4dfc42dac0706a963587a5dd996bbe84c2"
     },
     "ArtifactRepresentationError": {
       "module": "artifact",
@@ -1067,7 +1067,7 @@
           "canonical_digest": "sha256:b6367f28c25109c5a7db995b0c300f8d17c12247c750c0711f5d610fb2ce2104"
         }
       ],
-      "schema_digest": "sha256:0e7b462933e3946c38d430f0fcd545a9c131e9ca343dbbba62307d5f6d779160"
+      "schema_digest": "sha256:6241c04df84720285b6cdec5f2288110f10c695f98fc8b2852d42435b5c983de"
     },
     "ChildRunAdmissionIntentError": {
       "module": "child_run_admission",
@@ -1259,9 +1259,14 @@
           "fixture": "core-execution-wires-v1.json",
           "pointer": "/graph/graph",
           "canonical_digest": "sha256:17447f3910806bb3b28ea8d278b8fd70a201e409a61954e882f8a6a2bba46323"
+        },
+        {
+          "fixture": "core-graph-frame-call-v1.json",
+          "pointer": "/compiled",
+          "canonical_digest": "sha256:7ceaac87ce4ed0b2c379bca353160bb53bff80f2bff212c884b5edc970499d68"
         }
       ],
-      "schema_digest": "sha256:38da5e88a43a027599de197ea89ca12d032520f0dcc919eddc2c32c76074385b"
+      "schema_digest": "sha256:a446aed4bf020d78d36a0d42cfd9b26bda9ad50544693fb78d5ebcd74509394c"
     },
     "ContentMetadata": {
       "module": "content",
@@ -1289,7 +1294,7 @@
           "canonical_digest": "sha256:ba947deb316a6359f84f3670c3134f4b50ffb5933a206b4154d92d04c27e5390"
         }
       ],
-      "schema_digest": "sha256:4da40e52732313404df73eb0adb2d02c05a0bdd38eb0b91744070b4acdcceb85"
+      "schema_digest": "sha256:66177927da63733c6b173dd9c7115488f655b7e37d9c7f28e0011dda8217d529"
     },
     "ContentSource": {
       "module": "content",
@@ -1913,6 +1918,146 @@
       "vectors": [],
       "schema_digest": null
     },
+    "GraphFrameBarrier": {
+      "module": "graph_frame_barrier",
+      "kind": "struct",
+      "rust_type": "GraphFrameBarrier",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-barrier-v1.json",
+          "pointer": "/barrier",
+          "canonical_digest": "sha256:0994eee3400c80e1cba70efb12cf7a4f708d3821872a4357ee4b48539962c7ab"
+        }
+      ],
+      "schema_digest": "sha256:285ab906698b4872df4a07f916c6e6c3c695518e1d33b837f2d331316f5f730e"
+    },
+    "GraphFrameBarrierError": {
+      "module": "graph_frame_barrier",
+      "kind": "enum",
+      "rust_type": "GraphFrameBarrierError",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameBarrierPlan": {
+      "module": "graph",
+      "kind": "struct",
+      "rust_type": "GraphFrameBarrierPlan",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameCall": {
+      "module": "graph_frame_call",
+      "kind": "struct",
+      "rust_type": "GraphFrameCall",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-call-v1.json",
+          "pointer": "/call",
+          "canonical_digest": "sha256:2d11346e64bec31b7b814d3298a1b8e3baa3aaefb9586772e6d56c1c5f398ee5"
+        }
+      ],
+      "schema_digest": "sha256:b5fcaa1aeab180f4f6cdfd8d6339426af4f22a3da41985f832d7e9cd82ca8f42"
+    },
+    "GraphFrameCallPolicy": {
+      "module": "graph_frame_call",
+      "kind": "struct",
+      "rust_type": "GraphFrameCallPolicy",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-call-v1.json",
+          "pointer": "/policy",
+          "canonical_digest": "sha256:fe2dddfc323a9a72c2145428a5eb649d64c7a376c45892e278e74ffa8be7e880"
+        }
+      ],
+      "schema_digest": "sha256:430ee36c242464a2c4bb802ade783797468789869b127e1b941799d088b9e98b"
+    },
+    "GraphFrameCheckpoint": {
+      "module": "graph_frame",
+      "kind": "struct",
+      "rust_type": "GraphFrameCheckpoint",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-v1.json",
+          "pointer": "/checkpoint",
+          "canonical_digest": "sha256:91e694471ef42e5dbcfe99922fbf3e7ddcf2a3c821daa1b02be5f18f5bb6f911"
+        }
+      ],
+      "schema_digest": "sha256:4dbef2c95e9de8c1114f37e0a7b921812cbfaf90bfaaac4417dd42b0a4f1ccee"
+    },
+    "GraphFrameCheckpointHead": {
+      "module": "graph_frame",
+      "kind": "struct",
+      "rust_type": "GraphFrameCheckpointHead",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-v1.json",
+          "pointer": "/head",
+          "canonical_digest": "sha256:f04d7fba4ed922d9b33d0353b2fe8cb9c2c70e021693bcbeac534a7fd3f2d0b1"
+        }
+      ],
+      "schema_digest": "sha256:a2e5adc50ea43b9ab0af345091cc4af61837da883beba203c97180b47b5d0ad4"
+    },
+    "GraphFrameCompileError": {
+      "module": "graph_frame_call",
+      "kind": "enum",
+      "rust_type": "GraphFrameCompileError",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameEntry": {
+      "module": "graph_frame_entry",
+      "kind": "struct",
+      "rust_type": "GraphFrameEntry",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameEntryError": {
+      "module": "graph_frame_entry",
+      "kind": "enum",
+      "rust_type": "GraphFrameEntryError",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameEntryPlan": {
+      "module": "graph_frame_entry",
+      "kind": "struct",
+      "rust_type": "GraphFrameEntryPlan",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameError": {
+      "module": "graph_frame",
+      "kind": "enum",
+      "rust_type": "GraphFrameError",
+      "mode": "none",
+      "vectors": [],
+      "schema_digest": null
+    },
+    "GraphFrameIdentity": {
+      "module": "graph_frame",
+      "kind": "struct",
+      "rust_type": "GraphFrameIdentity",
+      "mode": "read_write",
+      "vectors": [
+        {
+          "fixture": "core-graph-frame-v1.json",
+          "pointer": "/identity",
+          "canonical_digest": "sha256:8b81560a5dd78eb8086e40260cbdaf671f40f6d3e19a2826cc36868d1830c1ba"
+        }
+      ],
+      "schema_digest": "sha256:8117624d09aec5e3f45e17d788c91520cf176c8100effbd711f313e24f2cc9fa"
+    },
     "GraphNamespace": {
       "module": "tool_invocation",
       "kind": "struct",
@@ -2095,7 +2240,7 @@
           "canonical_digest": "sha256:3eafcb86536ae4a231460307ff011c74dfda0bd9446b744d37d327b1094703c7"
         }
       ],
-      "schema_digest": "sha256:74224a56f5573f776dbb0c96b6de502040e1c37c4dde1213390b2ddca38e3d80"
+      "schema_digest": "sha256:60eeabbd4dc55cb34eeca3741427b76d3990edb6d26ffa69982e5961bbb45747"
     },
     "InstructionContent": {
       "module": "message",
@@ -2109,7 +2254,7 @@
           "canonical_digest": "sha256:345aaba938990385c0009f31829e72b56af8b6340c2ec15cde9a3e1a149be1f0"
         }
       ],
-      "schema_digest": "sha256:6350bca71dddbdfdbd87a6ac94d0be5761b239bbd8c3a855ca12d2eab7611a48"
+      "schema_digest": "sha256:cc8c5f6ab460134b7974f7009633e0c9384762b78d28100b09271b634fc21fa6"
     },
     "InstructionError": {
       "module": "message",
@@ -2617,7 +2762,7 @@
           "canonical_digest": "sha256:12d3ce626589189c5c661bb69a14b9ba1d04dcae4d9432bcd486fd5b6a4244d2"
         }
       ],
-      "schema_digest": "sha256:093e5d5ba4e1f404e25df7ce54fdb9a5b798c1f915ae9df558b9b2da77a5a3e6"
+      "schema_digest": "sha256:f96be7f3b97203ab92fbf558c7c2ab82f4c99694389446e4740cd355c824fb67"
     },
     "MediaTypeError": {
       "module": "artifact",
@@ -2639,7 +2784,7 @@
           "canonical_digest": "sha256:22b05dd5d63f95766e7d1040eddc7cf0ec6a8d5754226e3458ac68fec4acaf8f"
         }
       ],
-      "schema_digest": "sha256:ba7f1a2d9ce995f8b60908cd38c9c8aca12f728bad4e7d1c6ac67001c4437b30"
+      "schema_digest": "sha256:059518dc0fd83d43e1771f2ef93662c9c929646ccc1db970ebdd5964ad06b8ce"
     },
     "MessageError": {
       "module": "message",
@@ -2675,7 +2820,7 @@
           "canonical_digest": "sha256:75eccd055ab2de2e26c542f5eb2ffc1ed2b295556c125bcf6eb9653ea0da2563"
         }
       ],
-      "schema_digest": "sha256:d158b4e9275c9399eebc62a7f89cbb7c3e1ec93c5524d4089dc2d35f23af7ffc"
+      "schema_digest": "sha256:f98ed495eda162d2d5d8f833daf5e4355f65ab687b4818e24194e569e4646d0f"
     },
     "MessagePartsError": {
       "module": "message",
@@ -2899,7 +3044,7 @@
           "canonical_digest": "sha256:d2304ac979558b9aa11c106dacc865a1f4518b46b33c7a599785bc02aa62543b"
         }
       ],
-      "schema_digest": "sha256:2300cb2e30e2bcf769939f0ea34faf273097ad37c1409c31480c7655e6dbcb48"
+      "schema_digest": "sha256:a75eae8839316be6cace91f9e3481819d4ffd8953e82b2a55a227bcdd2aebe1d"
     },
     "ModelEventAccumulator": {
       "module": "model_event",
@@ -2929,7 +3074,7 @@
           "canonical_digest": "sha256:b86b12f6d03870e26ab2b2bcaa551b27675fb4235ee1eabb3e268fc36d267d9a"
         }
       ],
-      "schema_digest": "sha256:8b9fd8cd16241b40141ed394a57745b8494f745475fd6bc49fccf203b352527b"
+      "schema_digest": "sha256:f3eb5e38c23cbb26dd8e4c036949ae73700070c2aa84b8a8f22230923a127d7e"
     },
     "ModelEventStreamError": {
       "module": "model_event",
@@ -2965,7 +3110,7 @@
           "canonical_digest": "sha256:b7daa0b75bb1af794eea9a65ae7229e85ba9503a1efc957e5686cc7e1debe3e6"
         }
       ],
-      "schema_digest": "sha256:2c982e8043dc9802085c42322feb45277dd20894985509db60b9d227233ad921"
+      "schema_digest": "sha256:0bce1b827fbaf60a658c8349d6b7e4486bb0070804f28c473f88f7f390a71177"
     },
     "ModelInvocationError": {
       "module": "model_invocation",
@@ -3033,7 +3178,7 @@
           "canonical_digest": "sha256:6a90fa652796f057b200311f21a90db135ba793e4058b6cab73c4fe893ab8430"
         }
       ],
-      "schema_digest": "sha256:4d0d0b671b01f1915abb3b1360d1d4cfb06f8eb8c8629b28a2d3db6a36d5676e"
+      "schema_digest": "sha256:724ee207acdbbedfe70afbf4631da67e5e4b4330061b4b9e606bbb80481244aa"
     },
     "ModelInvocationIntentError": {
       "module": "model_invocation",
@@ -3077,7 +3222,7 @@
           "canonical_digest": "sha256:9fe7805f1ce2cfa8d589ce9d5592c3cd338cc7e393f9380de9698ae336d6874f"
         }
       ],
-      "schema_digest": "sha256:7bd21ce425a718e143d36941a2e1825516bff562374d94c28fca5a30c223501d"
+      "schema_digest": "sha256:fa9ee9c14e6b6b068a4255a345f498772de3d88a2c0b8aff822864772992d0d1"
     },
     "ModelInvocationStatus": {
       "module": "model_invocation",
@@ -3105,7 +3250,7 @@
           "canonical_digest": "sha256:1d8702588c852d586b0e41bed3d99d644e9c9107a646e624d76d0dcf87205e45"
         }
       ],
-      "schema_digest": "sha256:91decff1522507127f763f6b74af23b67df50cb526c6ce893771bb0769db7d16"
+      "schema_digest": "sha256:91fb54e1acf9a8e8af976ac7b97353b2387028df4f5de50f27798e59fa017914"
     },
     "ModelInvocationTransitionKind": {
       "module": "model_invocation",
@@ -3197,7 +3342,7 @@
           "canonical_digest": "sha256:7e0f075339e999406ab4de78f2617f17b1e1c7bcbfdbb08b8504b31ae64399ce"
         }
       ],
-      "schema_digest": "sha256:cbe18550cc4fa0cffdfb49f23a00ad5cd5616a4ef362e16b54ee156a828cf756"
+      "schema_digest": "sha256:c5d04afa12807931d601be28ff7ccac032b6638675520f822f7878790a2944c0"
     },
     "ModelOutputItemError": {
       "module": "model_response",
@@ -3227,7 +3372,7 @@
           "canonical_digest": "sha256:fc66b7b22e69804619a784e57cd35c6151b876b3292802a0faa9a340b56b2102"
         }
       ],
-      "schema_digest": "sha256:dedeba041a28d66ad0a9405e0c331de978443c4945f6eaceed6a33101bdf445a"
+      "schema_digest": "sha256:68f1fa8c400a16602e92ceadf95ca795d83d5bebe524d948b853a1e9bb149461"
     },
     "ModelProviderIdentifierError": {
       "module": "model_response",
@@ -3349,7 +3494,7 @@
           "canonical_digest": "sha256:35290e22ddc6b0f7be086783e1e3c3373874f2a31dc1da757d8e8d540327cf2a"
         }
       ],
-      "schema_digest": "sha256:bcea20bd6b74308ca441bc2e19ac1d8df8bfc15439de61381dc82bd8ccc87074"
+      "schema_digest": "sha256:d6cab3478c84780daf0d58c469260178c7bc2a3da07c6b4f45d2b0824c478cc8"
     },
     "ModelRequestBuilder": {
       "module": "model_request",
@@ -3423,7 +3568,7 @@
           "canonical_digest": "sha256:ba25fb6a39c1c6c150ce7b64e83cc65a29c7f5383676218f2729d8cb452c1086"
         }
       ],
-      "schema_digest": "sha256:7c6632a5443a77ca57cec3caf88a341a085b15c33d619769755e73f24dee831b"
+      "schema_digest": "sha256:8267390d71b86a4a5fd0da45c6ff942cf10aa8674762ecbf2478e05a4d4bbeb1"
     },
     "ModelResponseError": {
       "module": "model_response",
@@ -3677,7 +3822,7 @@
           "canonical_digest": "sha256:42e61f3fc9349589fc8ea5c4fa745f82ba8137dc3021007254da9dab617d9fc5"
         }
       ],
-      "schema_digest": "sha256:067927e0e3eab27202ed33082b3ca3324579504334d7f6e6fabb8145e2615cdd"
+      "schema_digest": "sha256:71f9c8512ba4b77bd8cda778af6c8e707a4ce5b4104859cb0720e7268005f307"
     },
     "ModelToolRequirements": {
       "module": "model",
@@ -3727,7 +3872,7 @@
           "canonical_digest": "sha256:f98e7e36f6234a75e94ba31dcae505ec7da1e0891de69af25e94eec8e4a7dd77"
         }
       ],
-      "schema_digest": "sha256:f644e079bae475d6557e67e0b0a1ca7b5fa3cf1b83f449cca5fea933000261ae"
+      "schema_digest": "sha256:bf01a2f0602035123c70e76c9d75b70fa82b0f6616a1a08f520e2b9929ad80c0"
     },
     "ModelTranscriptError": {
       "module": "model_transcript",
@@ -3749,7 +3894,7 @@
           "canonical_digest": "sha256:26f31b1ad0fc8894ac21cc09ae4b1f7addbf44b36bb2f9cbb9dc857230dd4635"
         }
       ],
-      "schema_digest": "sha256:d69b9fdaa27b9e6a6ff396fa0213e32529c62bc5480f7d53747d722cbbe002c1"
+      "schema_digest": "sha256:19df7dcb994c9540f4fdbba6ad956e29e897c7648e532ad467374478a743a698"
     },
     "ModelTranscriptTurnError": {
       "module": "model_transcript",
@@ -4773,7 +4918,7 @@
           "canonical_digest": "sha256:01eca73701d2bed797049b3092d6177738a4a17b559bbdaf64868dcad7f72575"
         }
       ],
-      "schema_digest": "sha256:35d8846db6af039e0ed348fd0eedd907483389b37d61250c58debc491fd9160d"
+      "schema_digest": "sha256:5a614cc3a22b6a472e5b8affe82a87b29213c8f2cb0640a568fd57efab551f33"
     },
     "RunLifecycleError": {
       "module": "run",
@@ -4859,7 +5004,7 @@
           "canonical_digest": "sha256:cf58919a41c5ea825f6482647ac42cf8cf642692a8a41b38e9344b8445710c43"
         }
       ],
-      "schema_digest": "sha256:69538377e94c74f096528aa66ddf24dafa28bf681cd49546a2298cff135eaba3"
+      "schema_digest": "sha256:12ea9305fd05d00944e199adad4d21fd8aa5269fd9d3f32dda432fc37f9de82f"
     },
     "RunTransitionError": {
       "module": "run",
@@ -5481,7 +5626,7 @@
           "canonical_digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         }
       ],
-      "schema_digest": "sha256:2cf7a1941ce86ac5a5ac90594fab11ff637d1cb1263abf21299619e72e0bc777"
+      "schema_digest": "sha256:c8bf3797e33ae3db48e4b10b09b436d37dc7e2b94e45e6f3b1dff7d1c6535d39"
     },
     "ToolArtifactsError": {
       "module": "tool_runtime",
@@ -5797,7 +5942,7 @@
           "canonical_digest": "sha256:0108dcc0a38ba08992c5e16c644514c403283c46f3ea7647a30fbb867226c72d"
         }
       ],
-      "schema_digest": "sha256:6850454e27fc4f4c6a62bc1f299b94b33b819956a7bb76a5b6bbfed4ab8e2f10"
+      "schema_digest": "sha256:03bef6952a36c8eb0be0281b8d883959310bf04c10a75eafce2e24d258719016"
     },
     "ToolInvocationCapabilities": {
       "module": "tool",
@@ -5937,7 +6082,7 @@
           "canonical_digest": "sha256:9fe7805f1ce2cfa8d589ce9d5592c3cd338cc7e393f9380de9698ae336d6874f"
         }
       ],
-      "schema_digest": "sha256:050ccff8170d4e428807e571cc19bc258a9690d1786a658c554f49b308a5ad4f"
+      "schema_digest": "sha256:608309f4067ea731c4db4927e0374051d2f89cc5a0d240410642a0c84860154d"
     },
     "ToolInvocationStatus": {
       "module": "tool_invocation",
@@ -5965,7 +6110,7 @@
           "canonical_digest": "sha256:1d8702588c852d586b0e41bed3d99d644e9c9107a646e624d76d0dcf87205e45"
         }
       ],
-      "schema_digest": "sha256:49048cc1d0d5bf48dfe100cc0ca8cec95c749b8e240670bb8eeba951addecce5"
+      "schema_digest": "sha256:960b4a7fc3f50d8dca37837a49537ebdd3a3293abb4a8adab750fe2eb13cc5d7"
     },
     "ToolInvocationTransitionKind": {
       "module": "tool_invocation",
@@ -6189,7 +6334,7 @@
           "canonical_digest": "sha256:160fe28ac220235fb923e6503fee18346ef9f484fbf968412f093d3347c22e29"
         }
       ],
-      "schema_digest": "sha256:6c9068c430dd19ad31981d59af360bfbb511349460afd70bb71d46d5c489223c"
+      "schema_digest": "sha256:9d59259f56cdcbc14e62af158f40d66becb5fd36947abd6d5c7beb0d2d83672a"
     },
     "ToolResultProvenance": {
       "module": "tool_runtime",

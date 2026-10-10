@@ -34,10 +34,10 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 | 仓库 | `https://github.com/StateKnot/StateKnot` |
 | 当前工作目录 | `/Users/jiawy/Documents/RustAgentFramework` |
 | R0 验收的 main | `5f156b94516d2eb9ed96e2a648e0a13e66debc14`，2026-10-08 合并 JWT/JWKS #146；此前 #141/#145 已合并 |
-| 当前开发分支 | `codex/r1-graph-state-properties` |
-| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156/#157/#158/#159 已合并；181 个对象 reader 及 71 枚举/298 固定分支已通过完整验收，复合预算已通过验收，当前补齐 Graph 状态/route/checkpoint 模型 |
+| 当前开发分支 | `codex/r1-nested-frame-contract` |
+| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156/#157/#158/#159/#160 已合并；181 个对象 reader 及 71 枚举/298 固定分支已通过完整验收，复合预算及 Graph 状态/route/checkpoint 模型已通过完整验收，当前推进同 Run 嵌套帧契约与实现 |
 | 已发布 crate 版本 | `0.1.0-alpha.1`，预览版；源码新增能力不都包含在该发布包中 |
-| 官网 | `https://stknot.com`，中英双语文档；当前 release `1699837c2885` 的四个关键页面已核对构建字节 |
+| 官网 | `https://stknot.com`，中英双语文档；当前 release `aa11b4f44a94` 的四个关键页面已核对构建字节 |
 | 依赖 PR | 16 个依赖升级 PR 已由 #141/#145 收口；#146 已合并，后续以 GitHub 实时状态为准 |
 | 新用户需求 | [Issue 140 本地 MCP stdio](https://github.com/StateKnot/StateKnot/issues/140)，来自 JiaClaw 接入需求 |
 
@@ -124,10 +124,10 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 正/负规范往返，补齐全部 18 种 UUIDv7 标识符、44 个有界属性模型和可复现 CI
 种子；另有 67 个执行/持久化类型的 104 个完整 wire 映射及负向 reader 验证，
 原有八个构造族保留旧摘要断言。完整映射见中英 Core guide。全部当前根导出项
-另有封闭清单：307 个 reader 的规范 wire 和 308 个生成 schema pin、两个仅输出
+已合并基线另有封闭清单：307 个 reader 的规范 wire 和 308 个生成 schema pin、两个仅输出
 生产者及 246 个没有序列化接口的代表实例；序列化 profile 另有 308 个固定 pin。
 当前三个 ASan/libFuzzer 入口拥有固定工具、逐种子重放、有限变异、源与锁
-快照检查以及失败保留；#159 最终提交已通过全部 14 项 CI，本地和 CI 都完成
+快照检查以及失败保留；#160 最终提交已通过全部 14 项 CI，本地和 CI 都完成
 2,241 个种子重放及三个目标各 10,000 次变异，合并 tree 保持一致。
 嵌套 JSON/扩展另有六维独立资源与规范树模型，剩余变体组合、其他复合属性、
 历史迁移、嵌套 namespace、协议安全 RFC 与 stdio 生命周期继续开放。
@@ -139,9 +139,79 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 全部 44 份 fixture 精确一致；#159 已通过完整本地和 14 项最终 CI 验收。
 Graph 的两个独立模型补齐节点插入/结果输入顺序、状态和 route 并集、规范字节
 与状态/意图/记录摘要，并核对一至十三代 Unicode 状态 checkpoint 链。仅比较
-固定已提交事实，不能替代同 Run 嵌套恢复；当前增量继续按最终提交完整验收。
+固定已提交事实，不能替代同 Run 嵌套恢复；#160 已通过完整本地及 14 项最终 CI，
+验收/合并 tree 一致，官网四个关键页面与构建字节一致。
+同 Run 嵌套由 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md) 固定有界
+身份、状态隔离、父续接、等待恢复、复合事务 journal 绑定及迁移要求。
+[#161](https://github.com/StateKnot/StateKnot/pull/161) 保持草稿并持续开发。除五项
+私有身份原型外，实验性 Core 帧身份/检查点/head 已有严格 reader、scope/pin/journal
+校验、九项确定性检查和两个各 256 样例的独立模型，七层激活由真实 scoped
+checkpoint 派生。复合入栈 plan 另绑定预事件意图、框架 start、scoped
+checkpoint、同一精确事件前驱及总投影；九项 Core 检查和生产离线 schema 检查
+覆盖替换拒绝。它仍不产生 SQL 入栈/dispatch 权限。六个实验性 reader、四个 Rust-only 错误类型、两个 plan 及入栈复合记录纳入当前清单：583 个根导出、
+313 个 reader、两组各 314 个 schema pin；RFC-0023 后共 48 份数据文档。调用声明进入
+编译图摘要，serial caller、固定返回 route、schema/owner、实际闭包 pin/depth/bytes
+及应用 executor 冲突有编译器/注册表检查；静态组合不能丢弃帧声明。
+`CompiledGraph` 与 `ChildRunAdmissionIntent` 的两个 schema profile 显式更新，
+其余原有 pin、根图 wire 与定义摘要保持一致。scoped recovery/屏障共享既有有界 history、schema/reducer/control 校验，
+根屏障继续拒绝非根结果；四项恢复、五项屏障检查与一个独立 256 样例模型
+覆盖这一纯规划路径。调用/返回准备新增精确 caller/target/base、隔离快照、
+terminal output 与固定 route 校验，调用 profile 共十一项构造器检查。
+迁移 27 实现 scoped position/parent/frame identity 与 activation/Join 外键、
+生成式根指针及显式根查询，21 项新约束、8 列和 7 个唯一索引进入精确 catalog。
+PostgreSQL 16/17 的非空源码 schema 26→27 与 scope 外键检查已执行；
+其手工 scoped 行仅证明关系约束，不证明帧准入或复合 journal 事务。
+新增帧入口事件在普通 append、initial checkpoint 与 node-start 路径被明确拒绝，
+数据库检查核对没有遗留事件、checkpoint 或 attempt claim。此前迁移 27 导致四个
+旧源码 schema 夹具的版本重建失败；现已先保留兼容事实，再撤销夹具中的新迁移，
+并核对当前 reader 拒绝旧 schema。PostgreSQL 16/17 各 140 项完整 runtime
+测试均已实际通过。这些是源码重建夹具，不能替代真实历史二进制兼容性验收。
+迁移 28 新增实验性专用 Store 入栈事务，锁定实际 Root 准入、目标闭包、活动叶、
+祖先累计上限、真实子账户与共享用量，将事件、框架 claim/start、隔离 checkpoint、
+不可变 entry、帧 head/stack 和 Run journal 原子提交。重试先验证完整原始事实，
+再考虑新校验器或租约；普通 scoped checkpoint、伪造 head 和旧等待路径有 SQL
+完整性守卫，全部新列、约束、索引、函数、触发器进入精确 catalog。源码升级夹具
+先撤销迁移 28，受信任服务端角色配置同步为精确 Schema 28/47 表。帧内普通节点启动及成功/失败事务已接通，重新验证完整准入、叶帧 head、
+有界物理历史与 fence；幂等 start 保持 in-flight，普通完成路径拒绝释放框架 caller。
+节点完成新增 SQL 作用域守卫，全部延迟组件约束先于最终数据库时钟的租约/deadline
+复核；stack CHECK 表达式在逻辑备份恢复后保持相同的精确 catalog。
+数据库原生回归及受限账号下的并发验收继续执行，不能用构造器或缩减配置替代。
+完整 registry/driver、框架接管绑定、返回/作用域等待/全帧关闭和
+进程/丢确认故障矩阵仍未交付；当前草稿没有嵌套执行支持，也没有真实历史
+N-1/N-2 兼容性结论。
 后续 fuzz 时间戳反例已保留，数字校验先于算术；全部 ASCII 非数字位置、
 固定长度 Unicode 与嵌套 reader 有确定性回归。最终提交继续以完整 CI 验收。
+CI 后续发现 `MediaType` 已支持的大小写规范化输入被输入 schema 拒绝；
+[RFC-0023 草案](rfcs/0023-media-type-input-schema.md) 保留精确反例并修正方向性
+输入 pattern。受影响的嵌套输入/default pin 显式变化，全部输出 pin、规范 wire
+与无关输入 pin 保持一致；注册表须使用新输入 schema/Tool 版本并保留原 executable。
+媒体类型修复提交 `41bf0b8c` 已通过全部 14 项 CI/依赖检查、本机 1,853 项
+工作区检查与 331 项网站检查；本机/CI 的 2,297 种子和三目标各 10,000 次
+ASan 变异证据已核对精确源码、树/父提交、清单及日志。RFC-0023 接受仍待完成。
+
+迁移 29 增加作用域内继续/终结屏障的完整原子事实：结果集及消费、事件、
+隔离 successor、不可变 witness 与活动 head。实际 schema/reducer 预检在锁外完成，
+事务重复验证叶帧、原 base、journal、fence/deadline、未决副作用和共享用量。
+历史读取有界正向验证整个屏障链，继续节点与新嵌套调用绑定实际 parent successor。
+精确 48 表角色白名单与 catalog 同步；九项 PostgreSQL 16 原生检查覆盖 24 路竞争、
+所有组件故障回滚、晚租约、预算回退、重写 witness、父续接与非空源码 28→29
+升级。最终源码全量 PostgreSQL 16/17、受限账号、恢复与 CI 验收仍须收齐；
+作用域等待、框架接管/返回、全帧关闭与完整 driver 尚未交付。
+
+迁移 30 的 caller 接管提交 377ec99d 已完成本地完整工作区、PostgreSQL
+16/17、真实受限账号、健康业务恢复、精确 Schema-only 恢复和本机/CI 有界 ASan。
+最终 head 的九项 CI 已通过，四项 PostgreSQL/PITR 和依赖门禁经三次执行仍受
+Docker Hub 匿名拉取限流/超时阻断，不能计为通过。此前 cc75c971 的十四项
+门禁证据只属于其不可变源码。
+
+迁移 31 新增实验性完整返回：已有 terminal 证明与当前物理 caller 完成、精确
+父结果、stack 弹出和 journal 在专用事务中原子结算。父 checkpoint 由后续父
+屏障推进；返回后共享 DIRECT 用量不重置。事务内精简证明按 journal 顺序验证，
+避免重复嵌套历史。九项 PostgreSQL 原生回归覆盖默认栈七层级联、24 路竞争、
+各写入组件回滚、晚租约、新 fence 接管、损坏记录、绕过拒绝与非空源码 30→31
+升级；独立受限 LOGIN 验证完整返回/重试/重读。Schema 31 的精确 catalog 与
+50 表权限白名单同步。最终不可变源码的全量验收继续执行，作用域等待、全帧
+关闭、实际 driver 及完整进程/丢确认故障矩阵仍待交付，R1 未关闭。
 
 ### 交付任务
 
@@ -158,6 +228,24 @@ Graph 的两个独立模型补齐节点插入/结果输入顺序、状态和 rou
 - 核心兼容性和重放证据覆盖新增边界，子任务会计和终结语义在进程替换后保持一致。
 - stdio 测试包含畸形/超大帧、交错通知、握手阻塞、协议不匹配、进程后代、取消和退出。
 - 外部消费者示例使用精确版本或 revision pin，验证发现与调用。只声明实际验证过的平台。
+
+迁移 32 正在接通完整叶帧等待：版本 2 Store 屏障原子保存 successor、结果消费、
+全部条件及原生命周期版本，并释放 Run 租约；旧非等待字节与 Core pin 保持不变。
+恢复验证完整解析/触发/放弃事实，最后条件完成后用新 fence 续接原 scope，
+继续 terminal、caller 接管和完整返回。24 路竞争、七处组件回滚、策略篡改及
+晚租约路径有 PostgreSQL 17 原生回归；独立非超级用户 LOGIN 验证等待/恢复。
+精确 Schema 32/50 表角色配置已同步。最终不可变源码全量、两版升级/恢复、
+全帧关闭和真实嵌套 Driver 继续开放，不据此关闭 R1 或宣布 Supported。
+
+恢复快照开发新增 `load_active_graph_frame`：单次有界快照认证真实活动叶与最多
+七层入口/检查点/当前物理 caller，先按 journal 顺序验证完整返回，再核对悬停父链、
+生命周期计数及等待终态。默认线程栈七层入栈/逐层返回快照、物理接管、Root
+伪别名/虚增计数拒绝及等待取消后保留开放栈有真实 PostgreSQL 回归。返回的 DIRECT
+仅为结构下界，读取不授予执行权限。整栈关闭及嵌套 Driver 继续实施，当前源码的
+完整双数据库、工作区及 CI 资格证据须独立收齐。
+
+
+恢复快照提交 `b0bbee8` 已完成全部 14 项 CI/依赖检查、1,888 项本机工作区检查、严格 Clippy/Rustdoc 及 PostgreSQL 16/17 各 161 项 Store 原生和 140 项 Runtime 检查；PG16 首次协议错误与同源重跑分别保留。本机 ASan 三目标实际次数为 4,824/3,124/175，CI 各 10,000，均按原执行/时间上限与完整源码/语料/锁核对。当前 Schema 33 的整栈关闭增量保留实际旧 fence、原始取消/封存失败和冻结完整 DIRECT，原子保存所有关闭 caller 并回到 Root；根终态不能绕过打开的帧。真实竞争、逐组件/延迟故障、七层混合 fence、等待放弃、篡改拒绝、过期/预算耗尽清理和非空源码 32→33 升级已有原生回归；作用域 Tool/Model 准入/推进/历史正在补齐，未知效果不能当作已结算。精确 catalog 与 Schema 33/52 表角色配置同步，当前增量完整源码双数据库、备份恢复及最终 CI 仍待完成。
 
 ## R2 持久数据生命周期
 
@@ -324,3 +412,9 @@ npm run verify
 ### 可复制到新会话的执行请求
 
 > 请先完整读取 `docs/production-milestones-2026-10-08.zh-CN.md`，按 R0 至 R7 接续维护 StateKnot。要求所有实现以生产可用为目标，并按 Ponytail 原则复用现有组件、控制复杂度。先核对当前分支、未提交工作与 R0 验收记录，保留现有修改，从 R1 缺口清单的首个开放边界继续开发。R0 的 JWT/JWKS、依赖处理、合并和中英文官网同步已完成，不要把旧交接状态重新当作未完成工作。每阶段必须有真实验收证据；跳过的测试、缩减 CI、未执行的生产试点不能算通过。凭据不得写入仓库或日志；需要额外基础设施或外部协调时说明具体资源缺口。
+
+
+2026-10-10 的嵌套帧开发记录（不提升 R1 或 RFC-0022 状态）：
+
+- 提交 cc75c971 的作用域屏障全量验收完成：全部 14 项 CI/依赖检查、98 个 suite / 1,862 项工作区检查、严格 Clippy/Rustdoc、331 项网站检查通过。PostgreSQL 16.15/17.11 各 135 项 Store 原生与 140 项 Runtime 检查通过，包含独立 runtime LOGIN 的作用域屏障提交/重试/重读和隔离健康 Join 备份恢复；两版 schema-only 恢复的精确 catalog 一致。本机与不可变 CI fuzz 产物均重放 2,297 份种子、三个目标各 10,000 次实际变异，源码/语料/锁/日志摘要及合并树核对一致。
+- 迁移 30 正在实现框架调用方物理接管：新尝试绑定原子帧与当前检查点，不新增逻辑 child；保留原 Run 预算、截止时间、DIRECT 下界和既有重试/64 次硬上限。完整源码验收、返回事务、作用域等待、全帧关闭和完整 driver 继续开放。
