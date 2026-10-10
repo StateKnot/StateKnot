@@ -179,29 +179,48 @@ impl DurableGraphLifecycle {
         Result<Option<Box<stateknot_store_postgres::StoredGraphFrameClosure>>, GraphLifecycleError>,
     > {
         Box::pin(async move {
-            let closing = self.close_frame_cancellation_once(handoff, shutdown, evidence_timeout);
-            let maintenance = self.maintain_frame_cancellation_lease(handoff.lease().fence());
-            tokio::pin!(closing, maintenance);
-            tokio::select! {
+            let preparing = self.prepare_frame_cancellation(handoff, shutdown, evidence_timeout);
+            let (stop, stopping) = tokio::sync::oneshot::channel();
+            let maintenance =
+                self.maintain_frame_cancellation_lease(handoff.lease().fence(), stopping);
+            tokio::pin!(preparing, maintenance);
+            let prepared = tokio::select! {
                 biased;
-                result = &mut closing => result,
+                result = &mut preparing => {
+                    // Stop only at the guardian's pure waiting boundary. Any
+                    // in-flight observe/renew reads its complete SQL ACK first.
+                    let _ = stop.send(());
+                    let maintained = maintenance.await;
+                    let prepared = result?;
+                    maintained?;
+                    prepared
+                }
                 result = &mut maintenance => {
                     result?;
-                    Err(GraphLifecycleError::InvalidHandoff { operation: "maintain scoped cancellation ownership" })
+                    return Err(GraphLifecycleError::InvalidHandoff { operation: "maintain scoped cancellation ownership" });
                 }
-            }
+            };
+            let Some(direct_usage) = prepared else {
+                return Ok(None);
+            };
+            self.store
+                .observe_live_lease(handoff.lease().fence())
+                .await?;
+            // The control-plane closure atomically releases the lease. Once
+            // writing begins, its original complete ACK/retry must finish;
+            // a guardian observing that release cannot supersede this result.
+            self.commit_frame_cancellation_closure(handoff, &direct_usage)
+                .await
+                .map(Some)
         })
     }
 
-    fn close_frame_cancellation_once<'a>(
+    fn prepare_frame_cancellation<'a>(
         &'a self,
         handoff: &'a GraphCancellationHandoff,
         shutdown: &'a stateknot_core::CancellationSignal,
         evidence_timeout: std::time::Duration,
-    ) -> BoxFuture<
-        'a,
-        Result<Option<Box<stateknot_store_postgres::StoredGraphFrameClosure>>, GraphLifecycleError>,
-    > {
+    ) -> BoxFuture<'a, Result<Option<stateknot_core::BudgetUsage>, GraphLifecycleError>> {
         Box::pin(async move {
             let fence = handoff.lease().fence();
             let root = handoff.checkpoint();
@@ -264,6 +283,20 @@ impl DurableGraphLifecycle {
                 .include_child_usage(fence.tenant_id(), fence.run_id(), evidence.usage().clone())
                 .await?;
             self.store.observe_live_lease(fence).await?;
+            Ok(Some(evidence.usage().clone()))
+        })
+    }
+
+    fn commit_frame_cancellation_closure<'a>(
+        &'a self,
+        handoff: &'a GraphCancellationHandoff,
+        direct_usage: &'a stateknot_core::BudgetUsage,
+    ) -> BoxFuture<
+        'a,
+        Result<Box<stateknot_store_postgres::StoredGraphFrameClosure>, GraphLifecycleError>,
+    > {
+        Box::pin(async move {
+            let fence = handoff.lease().fence();
             let event = EventId::generate();
             let mut attempt = 1_u8;
             loop {
@@ -273,13 +306,13 @@ impl DurableGraphLifecycle {
                         fence.tenant_id(),
                         fence.run_id(),
                         event,
-                        original.clone(),
+                        handoff.journal_head().clone(),
                         handoff.expected_revision(),
-                        evidence.usage().clone(),
+                        direct_usage.clone(),
                     )
                     .await
                 {
-                    Ok(outcome) => break Ok(Some(Box::new(outcome.record().clone()))),
+                    Ok(outcome) => break Ok(Box::new(outcome.record().clone())),
                     Err(error) if self.can_retry_mutation(&error, attempt) => {
                         self.mutation_backoff(attempt).await;
                         attempt = attempt.saturating_add(1);
@@ -293,10 +326,16 @@ impl DurableGraphLifecycle {
     fn maintain_frame_cancellation_lease<'a>(
         &'a self,
         fence: &'a RunFence,
+        mut stopping: tokio::sync::oneshot::Receiver<()>,
     ) -> BoxFuture<'a, Result<(), GraphLifecycleError>> {
         Box::pin(async move {
+            let mut next_check = std::time::Duration::ZERO;
             loop {
-                let began = tokio::time::Instant::now();
+                tokio::select! {
+                    biased;
+                    _ = &mut stopping => return Ok(()),
+                    () = tokio::time::sleep(next_check) => {}
+                }
                 let observation = self.store.observe_live_lease(fence).await?;
                 let remaining = observation
                     .lease()
@@ -307,12 +346,6 @@ impl DurableGraphLifecycle {
                     .filter(|value| *value > 0)
                     .map(std::time::Duration::from_micros)
                     .ok_or(super::StoreError::LeaseExpired)?;
-                let expiry =
-                    began
-                        .checked_add(remaining)
-                        .ok_or(GraphLifecycleError::InvalidHandoff {
-                            operation: "bound scoped cancellation lease observation",
-                        })?;
                 if remaining <= self.store.options().lease_duration() / 2 {
                     let extension = i64::try_from(
                         self.store.options().lease_duration().as_micros(),
@@ -349,13 +382,11 @@ impl DurableGraphLifecycle {
                             }
                         }
                     };
-                    tokio::pin!(renewing);
-                    tokio::select! {
-                        result = &mut renewing => result?,
-                        () = tokio::time::sleep_until(expiry) => return Err(super::StoreError::LeaseExpired.into()),
-                    }
+                    // A historical renewal ACK is read to completion, then
+                    // later actual DB-clock observations establish liveness.
+                    renewing.await?;
                 }
-                tokio::time::sleep(remaining.min(self.store.options().lease_duration()) / 4).await;
+                next_check = remaining.min(self.store.options().lease_duration()) / 4;
             }
         })
     }

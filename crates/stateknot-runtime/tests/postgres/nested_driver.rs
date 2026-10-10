@@ -4,6 +4,7 @@
 //! Actual nested Driver storage, accounting and application dispatch.
 
 use super::*;
+use sqlx_core::connection::ConnectOptions;
 use stateknot_core::{
     ByteCount, ExecutionCount, GraphFrameCall, GraphFrameCallPolicy, GraphRoute,
     JournalEventSource, RouteId,
@@ -3376,4 +3377,394 @@ fn assert_scoped_cancellation_pending<'a>(
             .unwrap();
         assert_eq!(still_active.checkpoint().head(), active.checkpoint().head());
     })
+}
+
+struct CancellationCommitFixture {
+    nested: NestedFixture,
+    active: stateknot_store_postgres::StoredActiveGraphFrame,
+    handoff: stateknot_runtime::GraphCancellationHandoff,
+    failure_id: FailureId,
+}
+
+fn cancellation_commit_fixture(store: &PostgresStore) -> BoxFuture<'_, CancellationCommitFixture> {
+    Box::pin(async move {
+        let nested = nested_fixture();
+        let ids = AgentRunIds::generate();
+        let tenant_id = tenant("nested-cancel-commit-guardian");
+        admit_nested_fixture(store, &nested, &tenant_id, ids).await;
+        let driver = cancellation_fixture_driver(store, &nested);
+        let first = store
+            .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .clone();
+        assert!(matches!(
+            driver
+                .drive(first.fence().clone(), CancellationSignal::never())
+                .await
+                .unwrap()
+                .outcome(),
+            GraphDriveOutcome::Yielded { .. }
+        ));
+        let active = store
+            .load_active_graph_frame(&tenant_id, ids.run_id())
+            .await
+            .unwrap()
+            .unwrap();
+        let failure_id = request_direct_cancellation(
+            store,
+            active.run(),
+            "nested.cancel.commit.guardian",
+            "Retain complete cancellation through commit response faults.",
+        )
+        .await;
+        let lease = store
+            .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .clone();
+        let stopped = driver
+            .drive(lease.fence().clone(), CancellationSignal::never())
+            .await
+            .unwrap();
+        let GraphDriveOutcome::CancellationRequested(handoff) = stopped.outcome() else {
+            panic!("actual outcome {:?}", stopped.outcome());
+        };
+        CancellationCommitFixture {
+            nested,
+            active,
+            handoff: handoff.as_ref().clone(),
+            failure_id,
+        }
+    })
+}
+
+fn cancellation_fixture_driver(
+    store: &PostgresStore,
+    fixture: &NestedFixture,
+) -> DurableGraphDriver {
+    DurableGraphDriver::new(
+        store.clone(),
+        fixture.driver.registry.clone(),
+        DurableGraphDriverOptions::new(
+            GraphReplayLimits::default(),
+            2,
+            Duration::from_millis(100),
+            Duration::from_secs(15 * 60),
+            3,
+            Duration::from_millis(25),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+    .with_direct_usage_evidence(Arc::new(AdmissionDirectEvidence {
+        store: store.clone(),
+    }))
+}
+
+fn cancellation_fault_lifecycle(
+    store: &PostgresStore,
+    fixture: &CancellationCommitFixture,
+    evidence: Arc<PausedDirectEvidence>,
+) -> DurableGraphLifecycle {
+    DurableGraphLifecycle::new(
+        store.clone(),
+        fixture.nested.driver.registry.clone(),
+        evidence,
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap()
+}
+
+fn wait_database_boundary(store: &PostgresStore, boundary: Timestamp) -> BoxFuture<'_, ()> {
+    Box::pin(async move {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            loop {
+                if store.observe_database_clock().await.unwrap() >= boundary {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("actual database clock reaches the original boundary");
+    })
+}
+
+struct CancellationAckProbe {
+    proxy: super::commit_proxy::CommitProxy,
+    proxied: PostgresStore,
+    lifecycle: DurableGraphLifecycle,
+    evidence: Arc<PausedDirectEvidence>,
+    closing: tokio::task::JoinHandle<
+        Result<GraphBarrierLifecycleOutcome, stateknot_runtime::GraphLifecycleError>,
+    >,
+    backend: std::net::SocketAddr,
+}
+
+fn cancellation_ack_probe<'a>(
+    store: &'a PostgresStore,
+    fixture: &'a CancellationCommitFixture,
+    target: super::commit_proxy::TransactionTarget,
+    boundary: Option<Timestamp>,
+) -> BoxFuture<'a, CancellationAckProbe> {
+    Box::pin(async move {
+        use super::commit_proxy::{CommitProxy, Cut, loopback_target};
+        let connection: sqlx_postgres::PgConnectOptions =
+            std::env::var(DATABASE_URL_ENV).unwrap().parse().unwrap();
+        let backend = loopback_target(&connection);
+        let proxy = CommitProxy::start(&connection, Cut::CommitResponse, target).await;
+        let proxied = PostgresStore::connect(
+            connection
+                .host("127.0.0.1")
+                .port(proxy.port())
+                .to_url_lossy()
+                .as_str(),
+            store.options().clone().with_pool_size(1, 1),
+        )
+        .await
+        .unwrap();
+        let evidence = Arc::new(PausedDirectEvidence {
+            ledger: AdmissionDirectEvidence {
+                store: store.clone(),
+            },
+            calls: AtomicUsize::new(0),
+            waiting: Arc::new(tokio::sync::Notify::new()),
+            pending_call: None,
+            wait_until: boundary,
+        });
+        let lifecycle = cancellation_fault_lifecycle(&proxied, fixture, Arc::clone(&evidence));
+        let confirming = lifecycle.clone();
+        let original = fixture.handoff.clone();
+        let closing = tokio::spawn(async move { confirming.confirm_cancellation(original).await });
+        CancellationAckProbe {
+            proxy,
+            proxied,
+            lifecycle,
+            evidence,
+            closing,
+            backend,
+        }
+    })
+}
+
+#[tokio::test]
+async fn scoped_cancellation_committed_closure_ack_survives_guardian_fault_then_recovers_exactly() {
+    use super::commit_proxy::{Cut, TransactionTarget};
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(2)).await else {
+        return;
+    };
+    let fixture = cancellation_commit_fixture(&store).await;
+    let mut probe =
+        cancellation_ack_probe(&store, &fixture, TransactionTarget::GraphFrameClosure, None).await;
+    probe.proxy.wait_cut(Cut::CommitResponse).await;
+    let fence = fixture.handoff.lease().fence();
+    let closure = store
+        .load_graph_frame_closure(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap()
+        .unwrap();
+    let committed = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(committed.journal_head(), Some(&closure.event().head()));
+    assert!(committed.lease().is_none());
+    assert_eq!(
+        committed.lifecycle().status(),
+        RunStatus::CancellationRequested
+    );
+    tokio::time::sleep(Duration::from_secs(6)).await; // Original acquire timeout is five seconds.
+    assert!(
+        !probe.closing.is_finished(),
+        "guardian discarded committed closure ACK: {:?}",
+        (&mut probe.closing).await.unwrap()
+    );
+    finish_closure_ack_probe(&store, &fixture, probe, closure.event().head()).await;
+    store.close().await;
+}
+
+fn finish_closure_ack_probe<'a>(
+    store: &'a PostgresStore,
+    fixture: &'a CancellationCommitFixture,
+    mut probe: CancellationAckProbe,
+    closure_head: stateknot_core::JournalHead,
+) -> BoxFuture<'a, ()> {
+    Box::pin(async move {
+        let fence = fixture.handoff.lease().fence();
+        let port = probe.proxy.port();
+        probe.proxy.stop().await;
+        let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port))
+            .await
+            .unwrap();
+        let reconnect = tokio::spawn(async move {
+            let (mut client, _) = listener.accept().await.unwrap();
+            let mut server = tokio::net::TcpStream::connect(probe.backend).await.unwrap();
+            tokio::io::copy_bidirectional(&mut client, &mut server).await
+        });
+        let outcome = tokio::time::timeout(Duration::from_secs(30), probe.closing)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            outcome,
+            GraphBarrierLifecycleOutcome::Cancelled(AppendOutcome::Committed(_))
+        ));
+        assert_eq!(probe.evidence.calls.load(Ordering::SeqCst), 1);
+        let terminal = store
+            .load_run(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap();
+        let again = probe
+            .lifecycle
+            .confirm_cancellation(fixture.handoff.clone())
+            .await
+            .unwrap();
+        assert!(matches!(
+            again,
+            GraphBarrierLifecycleOutcome::Cancelled(AppendOutcome::Idempotent(_))
+        ));
+        assert_eq!(probe.evidence.calls.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            store
+                .load_graph_frame_closure(fence.tenant_id(), fence.run_id())
+                .await
+                .unwrap()
+                .unwrap()
+                .event()
+                .head(),
+            closure_head
+        );
+        assert_eq!(
+            store
+                .load_run(fence.tenant_id(), fence.run_id())
+                .await
+                .unwrap()
+                .journal_head(),
+            terminal.journal_head()
+        );
+        assert_complete_scoped_cancellation(
+            store,
+            &fixture.nested,
+            &fixture.active,
+            fixture.failure_id,
+        )
+        .await;
+        probe.proxied.close().await;
+        reconnect.abort();
+        let _ = reconnect.await;
+    })
+}
+
+#[tokio::test]
+async fn scoped_cancellation_renewal_commit_ack_outlives_original_expiry_without_dropping_sql() {
+    use super::commit_proxy::{Cut, TransactionTarget};
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(2)).await else {
+        return;
+    };
+    let fixture = cancellation_commit_fixture(&store).await;
+    let fence = fixture.handoff.lease().fence();
+    let original_expiry = store
+        .observe_live_lease(fence)
+        .await
+        .unwrap()
+        .lease()
+        .expires_at();
+    let evidence_boundary =
+        Timestamp::from_unix_micros(original_expiry.unix_micros() + 300_000).unwrap();
+    let mut probe = cancellation_ack_probe(
+        &store,
+        &fixture,
+        TransactionTarget::LeaseRenewal,
+        Some(evidence_boundary),
+    )
+    .await;
+    probe.proxy.wait_cut(Cut::CommitResponse).await;
+    let renewed = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(renewed.lease().unwrap().fence(), fence);
+    assert!(renewed.lease().unwrap().expires_at() > original_expiry);
+    assert_eq!(renewed.journal_head(), Some(fixture.handoff.journal_head()));
+    wait_database_boundary(
+        &store,
+        Timestamp::from_unix_micros(original_expiry.unix_micros() + 100_000).unwrap(),
+    )
+    .await;
+    assert!(
+        !probe.closing.is_finished(),
+        "original expiry discarded committed renewal ACK: {:?}",
+        (&mut probe.closing).await.unwrap()
+    );
+    probe.proxy.resume_ack();
+    let outcome = tokio::time::timeout(Duration::from_secs(30), probe.closing)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert!(matches!(
+        outcome,
+        GraphBarrierLifecycleOutcome::Cancelled(AppendOutcome::Committed(_))
+    ));
+    assert_complete_scoped_cancellation(
+        &store,
+        &fixture.nested,
+        &fixture.active,
+        fixture.failure_id,
+    )
+    .await;
+    probe.proxied.close().await;
+    probe.proxy.stop().await;
+    store.close().await;
+}
+
+#[tokio::test]
+async fn scoped_cancellation_guardian_lost_lease_before_write_preserves_history_without_quarantine()
+{
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(2)).await else {
+        return;
+    };
+    let fixture = cancellation_commit_fixture(&store).await;
+    let fence = fixture.handoff.lease().fence();
+    let before = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let waiting = Arc::new(tokio::sync::Notify::new());
+    let evidence = Arc::new(PausedDirectEvidence {
+        ledger: AdmissionDirectEvidence {
+            store: store.clone(),
+        },
+        calls: AtomicUsize::new(0),
+        waiting: Arc::clone(&waiting),
+        pending_call: Some(1),
+        wait_until: None,
+    });
+    let lifecycle = cancellation_fault_lifecycle(&store, &fixture, Arc::clone(&evidence));
+    let original = fixture.handoff.clone();
+    let closing = tokio::spawn(async move { lifecycle.confirm_cancellation(original).await });
+    tokio::time::timeout(Duration::from_secs(10), waiting.notified())
+        .await
+        .unwrap();
+    store.release_lease(fence).await.unwrap();
+    let error = tokio::time::timeout(Duration::from_secs(10), closing)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap_err();
+    assert!(
+        matches!(error, stateknot_runtime::GraphLifecycleError::Store { source } if matches!(*source, StoreError::NoActiveLease))
+    );
+    assert_eq!(evidence.calls.load(Ordering::SeqCst), 1);
+    assert_scoped_cancellation_pending(&store, &before, &fixture.active).await;
+    assert_eq!(fixture.nested.leaf_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.nested.root_calls.load(Ordering::SeqCst), 0);
+    store.close().await;
 }
