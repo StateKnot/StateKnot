@@ -391,49 +391,54 @@ async fn verify_inventory(
     Ok(())
 }
 
-async fn observe_attempts(
-    tx: &mut Transaction<'_, Postgres>,
-    activation: &NodeActivation,
-    planner: &mut ReadyNodeRecoveryPlanner,
-) -> Result<(), StoreError> {
-    let count = count_node_attempts(tx, activation).await?;
-    if count > ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
-        return Err(StoreError::corrupt("retry physical history bound"));
-    }
-    let base = activation.base_checkpoint();
-    let rows = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_HISTORY)
-        .bind(activation.tenant_id().as_str())
-        .bind(*activation.run_id().as_uuid())
-        .bind(*base.checkpoint_id().as_uuid())
-        .bind(i64::try_from(base.superstep().get()).map_err(|_| StoreError::StaleCheckpointHead)?)
-        .bind(base.digest().as_bytes())
-        .bind(activation.graph_namespace().as_str())
-        .bind(activation.node_id().as_str())
-        .bind(activation.input_digest().as_bytes())
-        .bind(0_i64)
-        .bind(
-            i64::try_from(ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE)
-                .map_err(|_| StoreError::InvalidDelayedRetryPlan)?,
-        )
-        .fetch_all(&mut **tx)
-        .await
-        .map_err(|e| StoreError::database("retry physical histories", e))?;
-    if rows.len() != count {
-        return Err(StoreError::corrupt("retry history row count"));
-    }
-    for row in rows {
-        let attempt = load_node_attempt_from_start_row(tx, row).await?;
-        if attempt.start().activation() != activation {
-            return Err(StoreError::corrupt("retry history activation"));
+fn observe_attempts<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    activation: &'a NodeActivation,
+    planner: &'a mut ReadyNodeRecoveryPlanner,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        let count = count_node_attempts(tx, activation).await?;
+        if count > ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
+            return Err(StoreError::corrupt("retry physical history bound"));
         }
-        // The whole current Root/frame and this canonical activation were proved
-        // once above. Retain every anchor without replaying the checkpoint prefix.
-        Box::pin(verify_attempt(tx, activation, &attempt)).await?;
-        planner
-            .observe_attempt(&attempt)
-            .map_err(|_| StoreError::corrupt("retry physical attempt chain"))?;
-    }
-    Ok(())
+        let base = activation.base_checkpoint();
+        let rows = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_HISTORY)
+            .bind(activation.tenant_id().as_str())
+            .bind(*activation.run_id().as_uuid())
+            .bind(*base.checkpoint_id().as_uuid())
+            .bind(
+                i64::try_from(base.superstep().get())
+                    .map_err(|_| StoreError::StaleCheckpointHead)?,
+            )
+            .bind(base.digest().as_bytes())
+            .bind(activation.graph_namespace().as_str())
+            .bind(activation.node_id().as_str())
+            .bind(activation.input_digest().as_bytes())
+            .bind(0_i64)
+            .bind(
+                i64::try_from(ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE)
+                    .map_err(|_| StoreError::InvalidDelayedRetryPlan)?,
+            )
+            .fetch_all(&mut **tx)
+            .await
+            .map_err(|e| StoreError::database("retry physical histories", e))?;
+        if rows.len() != count {
+            return Err(StoreError::corrupt("retry history row count"));
+        }
+        for row in rows {
+            let attempt = load_node_attempt_from_start_row(tx, row).await?;
+            if attempt.start().activation() != activation {
+                return Err(StoreError::corrupt("retry history activation"));
+            }
+            // The whole current Root/frame and this canonical activation were proved
+            // once above. Retain every anchor without replaying the checkpoint prefix.
+            Box::pin(verify_attempt(tx, activation, &attempt)).await?;
+            planner
+                .observe_attempt(&attempt)
+                .map_err(|_| StoreError::corrupt("retry physical attempt chain"))?;
+        }
+        Ok(())
+    })
 }
 
 // The current Root/full active proof authenticates this immutable base once in
