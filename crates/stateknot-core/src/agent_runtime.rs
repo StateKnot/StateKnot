@@ -880,6 +880,7 @@ impl<'de> Deserialize<'de> for AgentResult {
             provenance: AgentResultProvenance,
             completed_at: Timestamp,
             output_schema: SchemaReference,
+            #[serde(deserialize_with = "crate::json::deserialize_maximum_json")]
             output: BoundedJson,
             artifacts: AgentArtifacts,
             usage: BudgetUsage,
@@ -1286,6 +1287,46 @@ mod tests {
             ),
             Err(AgentResultError::ArtifactTenantMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn result_round_trips_constructor_accepted_large_output() {
+        let output = BoundedJson::try_from_value_with_limits(
+            json!({"summary": "x".repeat(1024 * 1024 - 1)}),
+            crate::JsonLimits::MAXIMUM,
+        )
+        .unwrap();
+        let artifacts = AgentArtifacts::empty();
+        let value = AgentResult::for_invocation(
+            provenance(),
+            COMPLETED_AT.parse().unwrap(),
+            &descriptor(),
+            output.clone(),
+            artifacts.clone(),
+            usage_for(&output, &artifacts),
+        )
+        .unwrap();
+        let bytes = serde_json_canonicalizer::to_vec(&value).unwrap();
+        assert!(bytes.len() > crate::JsonLimits::DEFAULT.max_bytes());
+        assert_eq!(
+            serde_json::from_slice::<AgentResult>(&bytes).unwrap(),
+            value
+        );
+        let mut oversized = to_value(&value).unwrap();
+        oversized["output"]["summary"] =
+            json!("x".repeat(crate::JsonLimits::MAXIMUM.max_string_bytes() + 1));
+        assert!(
+            serde_json::from_slice::<AgentResult>(&serde_json::to_vec(&oversized).unwrap())
+                .is_err()
+        );
+        let mut streamed = format!("{{\"provenance\":{},\"completed_at\":{},\"output_schema\":{},\"output\":{{\"summary\":\"", serde_json::to_string(value.provenance()).unwrap(), serde_json::to_string(&value.completed_at()).unwrap(), serde_json::to_string(value.output_schema()).unwrap()).into_bytes();
+        streamed.extend(std::iter::repeat_n(
+            b'x',
+            crate::JsonLimits::MAXIMUM.max_string_bytes() + 1,
+        ));
+        streamed.extend_from_slice(b"\",\"unread\":invalid}}");
+        let error = serde_json::from_slice::<AgentResult>(&streamed).unwrap_err();
+        assert!(error.to_string().contains("string"), "{error}");
     }
 
     #[test]
