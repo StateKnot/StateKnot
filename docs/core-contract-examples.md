@@ -16,6 +16,15 @@ bounded constructors and fail-closed validation paths instead of pseudocode.
 
 ## Run the evidence
 
+`JournalPayload.data` and `AgentResult.output` decode with the same
+`JsonLimits::MAXIMUM` accepted by their constructors. The complete journal
+envelope still must fit its 2 MiB ceiling; result provenance and usage checks
+still apply. Large accepted values round-trip without a hidden 256 KiB reader
+cap. Standalone `BoundedJson` keeps its default 256 KiB profile. The regression
+tests also reject oversized complete envelopes and stop on an oversized decoded
+string before reading a later malformed field. Canonical bytes and schema pins
+are unchanged.
+
 ```console
 cargo check -p stateknot-core --examples --locked
 cargo run -p stateknot-core --example first_agent --locked

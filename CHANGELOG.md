@@ -14,6 +14,19 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Decode `JournalPayload.data` and `AgentResult.output` with their constructors'
+  existing maximum JSON profile. Constructor-accepted large values now survive
+  recovery; complete journal envelopes, streaming bounds, result provenance and
+  accounting remain validated. The default standalone JSON profile is unchanged.
+
+- Freeze framework call sites without requiring an application node executor.
+  Conflicting caller executors and missing ordinary executors remain errors;
+  exact target pins, serial sibling calls and seven-level limits are preserved.
+
+- Erase complete private claimed-read, executor and delayed-retry Future types
+  at concrete heap boundaries. Strict pinned-nightly compilation retains full
+  owning proofs and the original execution, cancellation and deadline behavior.
+
 - Independently rederive Root delayed-retry decisions from complete actual
   result and physical-attempt history under the Run lock, sharing the scoped
   validator. Public pure-planner metadata can no longer fabricate a completed

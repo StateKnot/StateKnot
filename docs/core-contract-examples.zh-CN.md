@@ -16,6 +16,12 @@ RFC 仍为 Draft，公共 API 尚未稳定。已发布 `0.1.0-alpha.1` 仍是预
 
 ## 运行验证
 
+`JournalPayload.data` 与 `AgentResult.output` 按构造器已接受的
+`JsonLimits::MAXIMUM` 解码。完整 Journal envelope 仍须满足 2 MiB 上限，结果的
+provenance 与用量检查继续生效；合法大值往返不再隐含受 reader 的 256 KiB 默认值限制。
+独立 `BoundedJson` 保留默认 256 KiB profile。回归还验证完整 envelope 越界拒绝，以及
+解码字符串越界时提前停止、不会继续读取后面的畸形字段。规范字节与 schema pin 不变。
+
 ```console
 cargo check -p stateknot-core --examples --locked
 cargo run -p stateknot-core --example first_agent --locked

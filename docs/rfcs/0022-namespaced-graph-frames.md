@@ -505,6 +505,15 @@ output alone cannot manufacture an accountable AgentResult. Fix the new Wire
 bound only after deriving its maximum from accepted Core envelopes and testing
 the largest legal terminal and wait cases.
 
+The existing Core constructors accept maximum-profile JSON in journal data
+and terminal results. Their nested readers use that same explicit profile,
+then repeat complete envelope or result validation. This repairs previously
+accepted large values that failed recovery under the standalone default reader
+profile; it does not raise a hard ceiling, change canonical wires or schema
+pins, or widen the default `BoundedJson` profile. Large legal round-trips,
+complete-envelope rejection and early streaming string rejection are required
+regressions alongside maximum legal Root disposition records.
+
 The graph-specific writer accepts the real complete plan and original append,
 lifecycle expectation and terminal result where required. Existing ACK-loss
 recovery authenticates the entire committed event, successor, result
