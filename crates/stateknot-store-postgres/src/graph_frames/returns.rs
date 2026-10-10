@@ -34,7 +34,9 @@ struct Intent {
 #[serde(deny_unknown_fields)]
 struct Wire {
     version: u8,
-    intent: Intent,
+    // Preserve canonical wire bytes while keeping the large immutable intent
+    // out of the Serde visitor stack during complete ancestor authentication.
+    intent: Box<Intent>,
     intent_digest: Digest,
     result: PendingNodeResult,
     completion: NodeAttemptCompletion,
@@ -127,7 +129,7 @@ fn compound(
 fn encode(record: &StoredGraphFrameReturn) -> Result<Vec<u8>, StoreError> {
     let bytes = serde_json_canonicalizer::to_vec(&Wire {
         version: 1,
-        intent: record.intent.clone(),
+        intent: Box::new(record.intent.clone()),
         intent_digest: record.intent_digest,
         result: record.result.clone(),
         completion: record.completion.clone(),
@@ -363,7 +365,7 @@ async fn anchored_record(
     .await?;
     let record = StoredGraphFrameReturn {
         event,
-        intent: wire.intent,
+        intent: *wire.intent,
         intent_digest: wire.intent_digest,
         result: wire.result,
         completion: wire.completion,

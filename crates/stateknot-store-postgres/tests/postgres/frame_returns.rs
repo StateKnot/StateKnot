@@ -683,7 +683,15 @@ async fn finish_and_return(
     } else {
         (entry.entry().checkpoint().clone(), usage)
     };
-    let result = Box::pin(succeed(store, &base, fence, terminal(graph))).await;
+    let recovered = Box::pin(super::frame_recovery::claimed_plan(store, &base, fence)).await;
+    let node = recovered.nodes()[0].activation().node_id();
+    let result = Box::pin(super::frame_recovery::succeed_claimed(
+        store,
+        &recovered,
+        node,
+        terminal(graph),
+    ))
+    .await;
     let prepared = plan(graph, &base, &result);
     let barrier = Box::pin(commit(store, prepared.clone(), fence, usage, graph)).await;
     Box::pin(returned(

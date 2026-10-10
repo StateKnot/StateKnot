@@ -25,6 +25,8 @@ mod frame_scope;
 mod frame_transactions;
 #[path = "postgres/frame_waits.rs"]
 mod frame_waits;
+#[path = "postgres/result_namespace_corruption.rs"]
+mod result_namespace_corruption;
 
 use std::{
     borrow::Cow,

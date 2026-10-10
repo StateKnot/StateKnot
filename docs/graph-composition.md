@@ -157,6 +157,22 @@ boundaries so ancestor replay retains the full ordinary/closed completion checks
 on the normal thread stack. These Store primitives still require actual nested
 Driver dispatch and final qualification.
 
+[Frozen experimental whole-frame qualification](qualification/experimental-whole-frames-2026-10-10.md)
+
+Private whole-return Wire intents retain their original canonical bytes while
+being decoded on the heap, preserving full ancestor authentication during
+scoped result paging on the normal stack.
+
+The experimental claimed read interface can now plan an exact active frame with
+`ClaimedRunRecovery::plan_graph_frame_ready_nodes`. Its bounded result pages use
+the whole scoped head and namespace, reuse completed work and retain complete
+physical attempt history. Every page pins the Run journal; the planner checks
+the current leaf again before its final database-time fence validation. A
+terminal leaf may have no ready nodes. The plan still needs actual application
+schema/reducer replay and a dedicated durable scoped start before dispatch.
+Unexpected result namespace projections at an exact checkpoint fail as durable
+corruption; claimed reads quarantine through the original worker context.
+
 ## Qualification and remaining boundaries
 
 Core tests cover deterministic identities, a frozen digest, source-order

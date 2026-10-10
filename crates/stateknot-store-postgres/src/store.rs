@@ -94,6 +94,8 @@ mod skill_activation_windows;
 #[path = "scoped_checkpoints.rs"]
 mod scoped_checkpoints;
 
+#[path = "frame_recovery.rs"]
+mod frame_recovery;
 #[path = "graph_frames.rs"]
 mod graph_frames;
 pub use graph_frames::{
@@ -1933,6 +1935,7 @@ WHERE pending.tenant_id = $1
   AND pending.base_checkpoint_id = $3
   AND pending.base_superstep = $4
   AND pending.base_checkpoint_digest = $5
+  AND pending.graph_namespace = $6
   AND NOT EXISTS (
       SELECT 1
       FROM stateknot.pending_node_result_consumptions AS consumed
@@ -1943,7 +1946,7 @@ WHERE pending.tenant_id = $1
         AND consumed.node_id = pending.node_id
   )
 ORDER BY pending.graph_namespace ASC, pending.node_id ASC
-LIMIT $6
+LIMIT $7
 ";
 
 const SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS_AFTER: &str = r"
@@ -1970,7 +1973,8 @@ WHERE pending.tenant_id = $1
   AND pending.base_checkpoint_id = $3
   AND pending.base_superstep = $4
   AND pending.base_checkpoint_digest = $5
-  AND (pending.graph_namespace, pending.node_id) > ($6, $7)
+  AND pending.graph_namespace = $6
+  AND pending.node_id > $7
   AND NOT EXISTS (
       SELECT 1
       FROM stateknot.pending_node_result_consumptions AS consumed
@@ -2880,60 +2884,7 @@ impl ClaimedRunRecovery<'_> {
         let base = checkpoint.head();
         let mut planner = ReadyNodeRecoveryPlanner::new(checkpoint, self.fence.clone())
             .map_err(|_| StoreError::corrupt("ready node recovery activation"))?;
-        let result_page_size = PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX)?;
-        let mut result_cursor = None;
-        loop {
-            let page = self
-                .store
-                .load_unconsumed_pending_node_result_page(
-                    &base,
-                    result_cursor.as_ref(),
-                    result_page_size,
-                )
-                .await?;
-            if self.context.expectation().head() != Some(page.snapshot_journal_head()) {
-                return Err(StoreError::StaleClaimedRunRecoveryObservation);
-            }
-            for result in page.records() {
-                planner
-                    .observe_result(result)
-                    .map_err(|_| StoreError::corrupt("ready node recovery result set"))?;
-            }
-            if !page.has_more() {
-                break;
-            }
-            result_cursor = Some(
-                page.next_cursor()
-                    .ok_or_else(|| StoreError::corrupt("ready node recovery result cursor"))?,
-            );
-        }
-
-        let attempt_page_size = NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX)?;
-        for activation in planner.activations() {
-            let mut attempt_cursor = None;
-            loop {
-                let page = self
-                    .store
-                    .load_node_attempt_history_page(
-                        &activation,
-                        attempt_cursor.as_ref(),
-                        attempt_page_size,
-                    )
-                    .await?;
-                for attempt in page.records() {
-                    planner
-                        .observe_attempt(attempt)
-                        .map_err(|_| StoreError::corrupt("ready node recovery attempt history"))?;
-                }
-                if !page.has_more() {
-                    break;
-                }
-                attempt_cursor =
-                    Some(page.next_cursor().ok_or_else(|| {
-                        StoreError::corrupt("ready node recovery attempt cursor")
-                    })?);
-            }
-        }
+        Box::pin(self.observe_ready_node_history(&mut planner, &base, None)).await?;
 
         let observation = self
             .store
@@ -6071,7 +6022,22 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
         cursor: Option<&PendingNodeResultPageCursor>,
         page_size: PendingNodeResultPageSize,
     ) -> Result<PendingNodeResultPage, StoreError> {
-        if cursor.is_some_and(|cursor| !pending_result_cursor_matches_base(cursor, base)) {
+        Box::pin(self.load_pending_node_result_page_inner(base, None, cursor, page_size)).await
+    }
+
+    async fn load_pending_node_result_page_inner(
+        &self,
+        base: &CheckpointHead,
+        frame: Option<&stateknot_core::GraphFrameCheckpointHead>,
+        cursor: Option<&PendingNodeResultPageCursor>,
+        page_size: PendingNodeResultPageSize,
+    ) -> Result<PendingNodeResultPage, StoreError> {
+        let namespace = frame.map_or_else(GraphNamespace::root, |head| {
+            head.frame().namespace().clone()
+        });
+        if cursor
+            .is_some_and(|cursor| !pending_result_cursor_matches_base(cursor, base, &namespace))
+        {
             return Err(StoreError::InvalidPendingNodeResultCursor);
         }
 
@@ -6088,12 +6054,26 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             .map_err(|source| StoreError::database("pending result page run snapshot", source))?
             .ok_or(StoreError::RunNotFound)?;
         let stored = decode_run(run_row)?;
-        let checkpoint =
-            load_locked_current_checkpoint(&mut transaction, &stored, tenant_id, run_id)
-                .await?
-                .ok_or(StoreError::StaleCheckpointHead)?;
-        if checkpoint.head() != *base {
-            return Err(StoreError::StaleCheckpointHead);
+        if let Some(expected) = frame {
+            let active = Box::pin(graph_frames::verified_active_snapshot(
+                &mut transaction,
+                tenant_id,
+                run_id,
+                stored.clone(),
+            ))
+            .await?
+            .ok_or(StoreError::StaleCheckpointHead)?;
+            if active.checkpoint().head() != *expected {
+                return Err(StoreError::StaleCheckpointHead);
+            }
+        } else {
+            let checkpoint =
+                load_locked_current_checkpoint(&mut transaction, &stored, tenant_id, run_id)
+                    .await?
+                    .ok_or(StoreError::StaleCheckpointHead)?;
+            if checkpoint.head() != *base {
+                return Err(StoreError::StaleCheckpointHead);
+            }
         }
         let snapshot_journal_head = stored
             .journal_head()
@@ -6103,6 +6083,16 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             return Err(StoreError::StalePendingNodeResultSnapshot);
         }
 
+        // Authenticate namespace projections before reloading the cursor row:
+        // relabeling that row must remain corruption within the same snapshot.
+        let rows = frame_recovery::load_pending_node_result_head_page(
+            &mut transaction,
+            base,
+            &namespace,
+            cursor,
+            page_size,
+        )
+        .await?;
         if let Some(cursor) = cursor {
             let row = load_pending_node_result_head_row(&mut transaction, cursor.after()).await?;
             let durable = decode_pending_node_result_head(row, base)?;
@@ -6110,41 +6100,6 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
                 return Err(StoreError::InvalidPendingNodeResultCursor);
             }
         }
-
-        let base_superstep = i64::try_from(base.superstep().get())
-            .map_err(|_| StoreError::InvalidPendingNodeResultCursor)?;
-        let query_limit = i64::from(page_size.get()) + 1;
-        let rows = if let Some(cursor) = cursor {
-            query_as::<_, PendingNodeResultHeadRow>(
-                SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS_AFTER,
-            )
-            .bind(tenant_id.as_str())
-            .bind(*run_id.as_uuid())
-            .bind(*base.checkpoint_id().as_uuid())
-            .bind(base_superstep)
-            .bind(base.digest().as_bytes())
-            .bind(cursor.after().activation().graph_namespace().as_str())
-            .bind(cursor.after().activation().node_id().as_str())
-            .bind(query_limit)
-            .fetch_all(&mut *transaction)
-            .await
-            .map_err(|source| {
-                StoreError::database("unconsumed pending result continuation", source)
-            })?
-        } else {
-            query_as::<_, PendingNodeResultHeadRow>(SELECT_UNCONSUMED_PENDING_NODE_RESULT_HEADS)
-                .bind(tenant_id.as_str())
-                .bind(*run_id.as_uuid())
-                .bind(*base.checkpoint_id().as_uuid())
-                .bind(base_superstep)
-                .bind(base.digest().as_bytes())
-                .bind(query_limit)
-                .fetch_all(&mut *transaction)
-                .await
-                .map_err(|source| {
-                    StoreError::database("unconsumed pending result first page", source)
-                })?
-        };
         let has_more = rows.len() > usize::from(page_size.get());
         let retained = rows.into_iter().take(usize::from(page_size.get()));
         let mut records = Vec::with_capacity(usize::from(page_size.get()));
@@ -16377,6 +16332,7 @@ async fn verify_barrier_consumption_parts(
 fn pending_result_cursor_matches_base(
     cursor: &PendingNodeResultPageCursor,
     base: &CheckpointHead,
+    namespace: &GraphNamespace,
 ) -> bool {
     let snapshot = cursor.snapshot_journal_head();
     let after = cursor.after();
@@ -16386,7 +16342,7 @@ fn pending_result_cursor_matches_base(
         && snapshot.sequence() >= after.journal_head().sequence()
         && snapshot.recorded_at() >= after.journal_head().recorded_at()
         && after.activation().base_checkpoint() == base
-        && after.activation().graph_namespace().is_root()
+        && after.activation().graph_namespace() == namespace
 }
 
 fn pending_node_result_activation_is_ready(

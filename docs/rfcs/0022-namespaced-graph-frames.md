@@ -363,6 +363,16 @@ heads and complete accounting. No schema migration, Core pin or existing wire
 changes. It is an experimental recovery primitive while nested Driver and
 all-frame closure integration and final qualification remain required.
 
+Claimed leaf planning now uses `plan_graph_frame_ready_nodes` with the original
+journal/quarantine context. Bounded scoped result pages authenticate the whole
+active stack in their consistent snapshot, reject unexpected namespaces under
+an exact checkpoint identity, and reuse completed work with complete physical
+attempt history. The planner rechecks the leaf and live database-time fence;
+terminal leaves may contain no ready nodes. The plan grants no dispatch, and
+actual application schema/reducer replay and the dedicated scoped durable start
+remain required. Private whole-return intents are decoded on the heap to bound
+Serde stack use without changing canonical bytes or weakening owning proofs.
+
 Schema 33 adds experimental `close_graph_frames` after the actual original
 cancellation request or sealed Run failure, and `load_graph_frame_closure` for
 whole historical recovery. A bounded version-1 wire binds the original Run

@@ -14,6 +14,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Reject unexpected result namespaces at an exact checkpoint in the same paging
+  snapshot. Root and scoped reads report durable corruption; claimed recovery
+  uses the original live worker context to quarantine the Run.
+
+- Keep the immutable whole-return Wire intent on the heap during authenticated
+  scoped result paging. This preserves canonical JSON, digests and all proof
+  checks while avoiding a Serde visitor stack overflow after multiple returns.
+
 - Keep complete return/closure caller-anchor verification and ordinary node
   completion restoration behind heap-backed Future boundaries. This prevents
   closure completion witnesses from enlarging every ancestor replay Future
@@ -52,6 +60,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   local/CI bounded ASan; RFC acceptance remains pending.
 
 ### Added
+
+- Add experimental claimed active-frame ready planning and bounded scoped result
+  pages. Whole leaf/ancestor proofs and exact namespace/head/journal observations
+  reuse completed work and complete physical history, then revalidate the current
+  leaf and database-time fence. Root reads keep their existing interface; actual
+  application replay and dedicated durable scoped starts remain required.
 
 - Add experimental whole-stack closure after an original cancellation or sealed
   failure. Schema 33 atomically preserves every physical caller's old fence in

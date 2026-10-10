@@ -11,6 +11,16 @@ use stateknot_core::{
 #[path = "graph_frames/active.rs"]
 mod active;
 pub use active::{StoredActiveGraphFrame, StoredOpenGraphFrame};
+
+pub(super) async fn verified_active_snapshot(
+    tx: &mut Transaction<'_, Postgres>,
+    tenant: &TenantId,
+    run: RunId,
+    stored: StoredRun,
+) -> Result<Option<StoredActiveGraphFrame>, StoreError> {
+    Box::pin(active::verified_snapshot(tx, tenant, run, stored)).await
+}
+
 #[path = "graph_frames/closures.rs"]
 mod closures;
 pub use closures::{GraphFrameClosureCommitOutcome, StoredGraphFrameClosure};
