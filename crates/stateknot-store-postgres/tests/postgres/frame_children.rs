@@ -6,8 +6,8 @@ use super::frame_transactions::{admit, caller_graph, graphs, initial_usage};
 use super::*;
 use stateknot_core::{
     ChildRunAdmissionIntent, ChildRunDeclaration, ChildRunKey, ChildRunSlot,
-    ChildRunTopologyLimits, GraphChildRunPolicy, GraphFrameEntryPlan, NodeAttemptStartHead,
-    RunFence,
+    ChildRunTopologyLimits, GraphChildRunPolicy, GraphFrameCheckpoint, GraphFrameEntryPlan,
+    NodeAttemptStartHead, RunFence,
 };
 use stateknot_store_postgres::{ChildRunCommitOutcome, GraphFrameEntryCommitOutcome};
 
@@ -18,6 +18,7 @@ struct Fixture {
     fence: RunFence,
     head: JournalHead,
     direct: BudgetUsage,
+    frame: GraphFrameCheckpoint,
 }
 
 fn child_descriptor(graph: &CompiledGraph) -> AgentDescriptor {
@@ -53,8 +54,12 @@ fn declared(graph: CompiledGraph, child: &CompiledGraph, agent: &AgentDescriptor
         .unwrap()
 }
 
-#[allow(clippy::too_many_lines)]
 async fn started(store: &PostgresStore, name: &str) -> Fixture {
+    Box::pin(started_with_sibling(store, name, false)).await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn started_with_sibling(store: &PostgresStore, name: &str, sibling: bool) -> Fixture {
     let tenant = tenant(name);
     let run = RunId::generate();
     let (_, template, _) = graphs();
@@ -74,6 +79,43 @@ async fn started(store: &PostgresStore, name: &str) -> Fixture {
     )
     .unwrap();
     let agent = child_descriptor(&isolated);
+    let template = if sibling {
+        CompiledGraph::compile(
+            template.identity().clone(),
+            template.input_schema().clone(),
+            template.state_schema().clone(),
+            template.update_schema().clone(),
+            template.output_schema().clone(),
+            template.reducer().clone(),
+            ReadyNodes::try_new([
+                NodeId::new("finish").unwrap(),
+                NodeId::new("sibling").unwrap(),
+            ])
+            .unwrap(),
+            [
+                GraphNode::new(
+                    NodeId::new("finish").unwrap(),
+                    None,
+                    GraphRoutes::empty(),
+                    None,
+                    true,
+                )
+                .unwrap(),
+                GraphNode::new(
+                    NodeId::new("sibling").unwrap(),
+                    None,
+                    GraphRoutes::empty(),
+                    None,
+                    true,
+                )
+                .unwrap(),
+            ],
+            GraphExecutionLimits::new(Superstep::new(8).unwrap(), 2).unwrap(),
+        )
+        .unwrap()
+    } else {
+        template
+    };
     let leaf = declared(template, &isolated, &agent);
     let root = declared(
         caller_graph("scoped-child-root", &leaf, 8),
@@ -231,7 +273,191 @@ async fn started(store: &PostgresStore, name: &str) -> Fixture {
         fence,
         head,
         direct,
+        frame: entry.entry().checkpoint().clone(),
     }
+}
+
+fn join_append(value: &Fixture, head: &JournalHead) -> JournalAppend {
+    let activation = value.intent.key().parent();
+    JournalAppend::new(
+        JournalExpectation::exact(head.clone()),
+        JournalEventIntent::worker(
+            activation.tenant_id().clone(),
+            activation.run_id(),
+            EventId::generate(),
+            value.fence.clone(),
+            payload("child-join-registered"),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
+
+#[tokio::test]
+async fn scoped_join_suspends_leaf_without_counting_its_authenticated_framework_caller() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let value = Box::pin(started(&store, "scoped-child-join")).await;
+    let spawned = Box::pin(spawn(&store, &value)).await.unwrap();
+    let request = stateknot_core::ChildRunJoinRequest::new([value.intent.key().clone()]).unwrap();
+    let append = join_append(&value, &spawned.record().spawn().head());
+    let registered =
+        Box::pin(store.register_child_join(request.clone(), &value.node, append.clone()))
+            .await
+            .unwrap();
+    assert!(matches!(
+        registered,
+        stateknot_store_postgres::ChildJoinCommitOutcome::Committed(_)
+    ));
+    let run = store
+        .load_run(
+            value.intent.key().tenant_id(),
+            value.intent.key().parent_run_id(),
+        )
+        .await
+        .unwrap();
+    assert!(run.lease().is_none());
+    assert_eq!(
+        run.journal_head(),
+        Some(&registered.record().registration().head())
+    );
+    let active = store
+        .load_active_graph_frame(
+            value.intent.key().tenant_id(),
+            value.intent.key().parent_run_id(),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(active.checkpoint(), &value.frame);
+    let retry = Box::pin(store.register_child_join(request, &value.node, append))
+        .await
+        .unwrap();
+    assert!(matches!(
+        retry,
+        stateknot_store_postgres::ChildJoinCommitOutcome::Idempotent(_)
+    ));
+    assert_eq!(
+        retry.record().registration(),
+        registered.record().registration()
+    );
+    assert!(matches!(
+        store
+            .claim_lease(
+                value.intent.key().tenant_id(),
+                value.intent.key().parent_run_id(),
+                AttemptId::generate()
+            )
+            .await,
+        Err(StoreError::RunNotRunnable)
+    ));
+    store.close().await;
+}
+
+#[tokio::test]
+async fn scoped_join_rejects_an_actual_unfinished_ordinary_sibling() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let mut value = Box::pin(started_with_sibling(
+        &store,
+        "scoped-child-join-exclusive",
+        true,
+    ))
+    .await;
+    let dispatch = ReadyNodeRecoveryPlanner::for_frame(value.frame.clone(), value.fence.clone())
+        .unwrap()
+        .finish(
+            value.head.clone(),
+            store.observe_database_clock().await.unwrap(),
+        )
+        .unwrap();
+    let sibling = Box::pin(store.start_recovered_graph_frame_node_attempt(
+        worker_append(
+            value.fence.tenant_id().clone(),
+            value.fence.run_id(),
+            EventId::generate(),
+            JournalExpectation::exact(value.head.clone()),
+            value.fence.clone(),
+            42_001,
+        ),
+        &dispatch,
+        &NodeId::new("sibling").unwrap(),
+        AttemptId::generate(),
+    ))
+    .await
+    .unwrap();
+    value.head = sibling.event().head();
+    // One additional real zero-I/O physical start and its actual event bytes.
+    value.direct = value
+        .direct
+        .checked_accumulate(
+            &BudgetUsage::builder()
+                .graph_steps(stateknot_core::ExecutionCount::new(1))
+                .event_bytes(ByteCount::new(
+                    serde_json_canonicalizer::to_vec(sibling.event())
+                        .unwrap()
+                        .len() as u64,
+                ))
+                .build()
+                .unwrap(),
+        )
+        .unwrap();
+    let spawned = Box::pin(spawn(&store, &value)).await.unwrap();
+    let request = stateknot_core::ChildRunJoinRequest::new([value.intent.key().clone()]).unwrap();
+    assert!(matches!(
+        Box::pin(store.register_child_join(
+            request,
+            &value.node,
+            join_append(&value, &spawned.record().spawn().head()),
+        ))
+        .await,
+        Err(StoreError::ChildJoinRejected)
+    ));
+    let run = store
+        .load_run(value.fence.tenant_id(), value.fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(run.journal_head(), Some(&spawned.record().spawn().head()));
+    assert_eq!(run.lease().unwrap().fence(), &value.fence);
+    store.close().await;
+}
+
+#[tokio::test]
+async fn scoped_child_ack_recovers_before_a_released_original_fence() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let value = Box::pin(started(&store, "scoped-child-ack")).await;
+    let first = Box::pin(spawn(&store, &value)).await.unwrap();
+    store.release_lease(&value.fence).await.unwrap();
+    let successor = store
+        .claim_lease(
+            value.fence.tenant_id(),
+            value.fence.run_id(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    assert!(successor.lease().fence().epoch() > value.fence.epoch());
+    let retry = Box::pin(spawn(&store, &value)).await.unwrap();
+    assert!(matches!(retry, ChildRunCommitOutcome::Idempotent(_)));
+    assert_eq!(retry.record().spawn(), first.record().spawn());
+    assert_eq!(
+        retry.record().child().admission(),
+        first.record().child().admission()
+    );
+    let run = store
+        .load_run(value.fence.tenant_id(), value.fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(run.journal_head(), Some(&first.record().spawn().head()));
+    assert_eq!(run.lease().unwrap().fence(), successor.lease().fence());
+    store.close().await;
 }
 
 fn payload(kind: &str) -> JournalPayload {
