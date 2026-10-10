@@ -34,7 +34,7 @@ successor 和父返回意图；仅状态摘要一致不能通过。
 Schema-34 的完整 Root bundle 认证原 lifecycle、source journal、投影及完整
 Disposition。同一应用重放比较部署计划的完整 Disposition 与 successor，
 capture、application、final 三轮均绑定完整 bundle 及已解决/放弃的 Wait 行。
-Wait transcript 在事务内固定 UTC 与 ISO/YMD，连接设置不会改变相同持久事实
+Wait transcript 在事务内固定 UTC、ISO/YMD 与十六进制 bytea 输出，连接设置不会改变相同持久事实
 的摘要。新格式事件缺少 bundle 属于腐败；新格式不会补造合法旧记录未保存的
 原 revision 或 Disposition。
 

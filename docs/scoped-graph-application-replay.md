@@ -47,7 +47,7 @@ Schema-34 complete Root bundles authenticate the original lifecycle, source
 journal, projection and full disposition. The same application pass compares
 the deployed plan's complete disposition and successor; capture, application
 and final reads bind the full bundle and resolved/abandoned Wait rows. Wait
-transcript rendering uses transaction-local UTC and ISO/YMD settings, so pool
+transcript rendering uses transaction-local UTC, ISO/YMD and hexadecimal bytea output, so pool
 connection settings cannot change an otherwise identical durable transcript.
 New-format events missing their bundle are corruption. Creating a new bundle
 format does not reconstruct dispositions absent from valid older records.

@@ -1396,10 +1396,10 @@ async fn bind_wait_event(
     event: &JournalEvent,
     transcript: &mut Transcript,
 ) -> Result<(), StoreError> {
-    // Bind complete status/terminal rows with deterministic timestamp rendering.
-    // Pool reconnection may change session GUCs between capture and final read;
+    // Bind complete status/terminal rows with deterministic timestamp and bytea rendering.
+    // Pool reconnection may change output GUCs between capture and final read;
     // these transaction-local settings cannot change any durable Wait fact.
-    query("SELECT set_config('TimeZone','UTC',true),set_config('DateStyle','ISO,YMD',true)")
+    query("SELECT set_config('TimeZone','UTC',true),set_config('DateStyle','ISO,YMD',true),set_config('bytea_output','hex',true)")
         .execute(&mut **tx)
         .await
         .map_err(|e| StoreError::database("application replay wait canonical settings", e))?;
@@ -1530,7 +1530,7 @@ mod tests {
     // durable wait, journal, lifecycle, or lease projection.
     #[tokio::test]
     #[ignore = "requires an independently generated real Root Wait corpus"]
-    async fn complete_wait_transcript_is_independent_of_connection_time_zone() {
+    async fn complete_wait_transcript_is_independent_of_connection_render_settings() {
         let url = std::env::var("STATEKNOT_TEST_DATABASE_URL").expect("explicit corpus URL");
         let pool = sqlx_postgres::PgPoolOptions::new()
             .max_connections(1)
@@ -1550,6 +1550,10 @@ mod tests {
             .execute(&mut *tx)
             .await
             .unwrap();
+        query("SET LOCAL bytea_output TO 'hex'")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
         bind_wait_event(&mut tx, &event, &mut original)
             .await
             .unwrap();
@@ -1563,6 +1567,10 @@ mod tests {
             .execute(&mut *tx)
             .await
             .unwrap();
+        query("SET LOCAL bytea_output TO 'escape'")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
         bind_wait_event(&mut tx, &event, &mut changed)
             .await
             .unwrap();
@@ -1571,7 +1579,7 @@ mod tests {
         pool.close().await;
         assert_eq!(
             original, changed,
-            "equal durable Wait facts across connection settings"
+            "equal durable Wait facts across time-zone, date-style and bytea rendering settings"
         );
     }
 }

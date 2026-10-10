@@ -56,7 +56,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 - Replay schema-34 complete Root graph dispositions with the deployed schemas
   and reducer, binding the original lifecycle, projection, source journal and
   full Wait facts across all three reads. Canonical Wait transcript rendering
-  is independent of connection time-zone and date-style settings. Legacy
+  is independent of connection time-zone, date-style and bytea output settings. Legacy
   unprovable dispositions remain operational errors without quarantine.
   A bounded Root-prefix proof is additive during qualification; all original
   owning verifiers remain and total SQL complexity is still unqualified.
