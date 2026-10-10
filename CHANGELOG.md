@@ -14,6 +14,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Recheck the original live worker and database clock after delayed-retry Run
+  updates. A slow trigger past lease expiry rolls back; an inclusive due retry
+  restores the original lease, Root/leaf heads, journal and queue age before Due.
+
 - Reject unexpected result namespaces at an exact checkpoint in the same paging
   snapshot. Root and scoped reads report durable corruption; claimed recovery
   uses the original live worker context to quarantine the Run.
@@ -60,6 +64,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   local/CI bounded ASan; RFC acceptance remains pending.
 
 ### Added
+
+- Add the experimental active-frame delayed retry gate with whole current scope
+  proof and complete bounded physical-history replay under the Run lock. Reuse
+  the existing Root outcome/schema and original Core retry policy. Released-gate
+  ACK observes only epoch/head/journal/gate and grants no launch or proof of the
+  erased original worker attempt or complete original plan. Native PostgreSQL
+  seams cover concurrent ACK, exact corruption isolation, slow update clocks,
+  64 physical attempts, deadline cleanup and seven-level noninitial leaves.
 
 - Add experimental claimed active-frame ready planning and bounded scoped result
   pages. Whole leaf/ancestor proofs and exact namespace/head/journal observations

@@ -96,6 +96,8 @@ mod scoped_checkpoints;
 
 #[path = "frame_recovery.rs"]
 mod frame_recovery;
+#[path = "frame_retry.rs"]
+mod frame_retry;
 #[path = "graph_frames.rs"]
 mod graph_frames;
 pub use graph_frames::{
@@ -7811,146 +7813,14 @@ WHERE tenant_id = $1
     /// immediately actionable plan, and otherwise returns explicit stale
     /// checkpoint, journal, lifecycle, fencing, clock, corruption, or database
     /// failures.
-    #[allow(clippy::too_many_lines)]
     pub async fn schedule_delayed_retry_wakeup(
         &self,
         plan: &ReadyNodeRecoveryPlan,
     ) -> Result<DelayedRetryScheduleOutcome, StoreError> {
-        let not_before = plan
-            .earliest_deferred_at()
-            .ok_or(StoreError::InvalidDelayedRetryPlan)?;
-        if plan.nodes().is_empty()
-            || plan.nodes().iter().any(|node| {
-                !matches!(
-                    node.kind(),
-                    RecoveryNodeKind::Completed | RecoveryNodeKind::Deferred
-                )
-            })
-            || not_before <= plan.observed_at()
-            || plan.checkpoint().tenant_id() != plan.fence().tenant_id()
-            || plan.checkpoint().run_id() != plan.fence().run_id()
-            || plan.journal_head().tenant_id() != plan.fence().tenant_id()
-            || plan.journal_head().run_id() != plan.fence().run_id()
-        {
+        if plan.frame().is_some() {
             return Err(StoreError::InvalidDelayedRetryPlan);
         }
-
-        let fence = plan.fence();
-        let mut transaction = self.begin_mutation("delayed retry wakeup").await?;
-        let row = fetch_locked_run_row(&mut transaction, fence.tenant_id(), fence.run_id()).await?;
-        let stored = decode_run(row)?;
-        validate_runnable(&stored)?;
-        if stored.lifecycle().status() != RunStatus::Active {
-            return Err(StoreError::RunNotRunnable);
-        }
-        let current_checkpoint = load_locked_current_checkpoint(
-            &mut transaction,
-            &stored,
-            fence.tenant_id(),
-            fence.run_id(),
-        )
-        .await?
-        .ok_or(StoreError::ReadyNodeRecoveryCheckpointMissing)?;
-        if current_checkpoint != *plan.checkpoint() {
-            return Err(StoreError::StaleCheckpointHead);
-        }
-        if stored.journal_head() != Some(plan.journal_head()) {
-            return Err(StoreError::StaleJournalHead);
-        }
-
-        if stored.lease().is_none()
-            && stored.last_fencing_epoch() == Some(fence.epoch())
-            && stored.scheduler_not_before() == Some(not_before)
-        {
-            transaction.commit().await.map_err(|source| {
-                StoreError::database("idempotent delayed retry wakeup commit", source)
-            })?;
-            return Ok(DelayedRetryScheduleOutcome::Idempotent { not_before });
-        }
-
-        let observed_at = database_now(&mut transaction, "delayed retry wakeup clock").await?;
-        if observed_at < plan.observed_at() {
-            return Err(StoreError::DatabaseClockRegression);
-        }
-        authorize_worker(&stored, fence, observed_at)?;
-        if observed_at >= not_before {
-            transaction.commit().await.map_err(|source| {
-                StoreError::database("due delayed retry wakeup commit", source)
-            })?;
-            return Ok(DelayedRetryScheduleOutcome::Due { not_before });
-        }
-
-        let epoch = i64::try_from(fence.epoch().get()).map_err(|_| StoreError::StaleFence)?;
-        let journal_sequence = i64::try_from(plan.journal_head().sequence().get())
-            .map_err(|_| StoreError::JournalSequenceExhausted)?;
-        let checkpoint_superstep = i64::try_from(plan.checkpoint().superstep().get())
-            .map_err(|_| StoreError::StaleCheckpointHead)?;
-        let scheduled_at = query_scalar::<_, DateTime<Utc>>(
-            r"
-WITH observation AS MATERIALIZED (
-    SELECT clock_timestamp() AS observed_at
-)
-UPDATE stateknot.runs
-SET lease_attempt_id = NULL,
-    lease_acquired_at = NULL,
-    lease_renewed_at = NULL,
-    lease_expires_at = NULL,
-    scheduler_not_before = $5,
-    updated_at = observation.observed_at
-FROM observation
-WHERE tenant_id = $1
-  AND run_id = $2
-  AND lease_attempt_id = $3
-  AND fencing_epoch = $4
-  AND lease_expires_at > observation.observed_at
-  AND observation.observed_at < $5
-  AND journal_sequence = $6
-  AND journal_event_id = $7
-  AND journal_recorded_at = $8
-  AND journal_digest = $9
-  AND checkpoint_id = $10
-  AND checkpoint_superstep = $11
-  AND checkpoint_digest = $12
-  AND lifecycle_status = 'active'
-  AND quarantined_at IS NULL
-RETURNING observation.observed_at
-",
-        )
-        .bind(fence.tenant_id().as_str())
-        .bind(*fence.run_id().as_uuid())
-        .bind(*fence.attempt_id().as_uuid())
-        .bind(epoch)
-        .bind(to_database_time(not_before)?)
-        .bind(journal_sequence)
-        .bind(*plan.journal_head().event_id().as_uuid())
-        .bind(to_database_time(plan.journal_head().recorded_at())?)
-        .bind(plan.journal_head().digest().as_bytes())
-        .bind(*plan.checkpoint().checkpoint_id().as_uuid())
-        .bind(checkpoint_superstep)
-        .bind(plan.checkpoint().digest().as_bytes())
-        .fetch_optional(&mut *transaction)
-        .await
-        .map_err(|source| StoreError::database("delayed retry wakeup update", source))?;
-        if scheduled_at.is_none() {
-            let final_observed_at =
-                database_now(&mut transaction, "delayed retry wakeup final clock").await?;
-            if final_observed_at < observed_at {
-                return Err(StoreError::DatabaseClockRegression);
-            }
-            authorize_worker(&stored, fence, final_observed_at)?;
-            if final_observed_at >= not_before {
-                transaction.commit().await.map_err(|source| {
-                    StoreError::database("due delayed retry wakeup commit", source)
-                })?;
-                return Ok(DelayedRetryScheduleOutcome::Due { not_before });
-            }
-            return Err(StoreError::corrupt("delayed retry wakeup row count"));
-        }
-        transaction
-            .commit()
-            .await
-            .map_err(|source| StoreError::database("delayed retry wakeup commit", source))?;
-        Ok(DelayedRetryScheduleOutcome::Scheduled { not_before })
+        Box::pin(frame_retry::schedule(self, plan)).await
     }
 
     #[allow(clippy::too_many_lines)]

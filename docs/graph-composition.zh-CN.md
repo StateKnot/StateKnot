@@ -141,6 +141,23 @@ Driver 和完整应用 replay 继续开放。
 规定了正在开发的历史 Continue/Wait/Terminal 完整证明。新格式和迁移需要独立的最终源码验收；
 无法证明原 disposition 的合法旧历史明确返回恢复不可用，不能通过推测或回填获得执行权限。
 
+实验性 Store 提供 `PostgresStore::schedule_graph_frame_delayed_retry_wakeup`：
+仅当精确活动叶的 ready 节点全部为 Completed 或 Deferred 时才能首次调度。
+事务先锁 Run，完整认证活动栈和当前 Root/叶 head；在使用调用者 fence 重建历史前，
+先验证真实活动租约。随后重读有界完整结果与物理 Attempt 历史，由 Core 按原计划的
+观察时间重新推导原 SafeAfter 边界。调用者决策不一致属于无效输入，持久历史矛盾才是损坏。
+最终写入再次使用数据库当前时间、精确 journal、worker Attempt、epoch 和 scoped head。
+
+Root 与 scoped 调度共用已有延迟门和 Outcome。成功时释放租约，保留 Root 指针、叶/栈、
+journal、队列年龄、不可变历史及原预算/deadline。慢 Run UPDATE 触发器导致租约过期时，
+整个事务回滚；跨过 inclusive 重试边界时，通过 savepoint 撤回 gate 写入，重新核对原租约、
+队列年龄、Root/叶和 journal，返回 `Due`。调用者需重新规划，并通过专用 scoped Start
+获得新派发权限。远期 gate 不遮蔽独立 deadline 维护；取消清除 gate，并让清理工作进入队列。
+
+`Idempotent` 仅在租约已释放后只读观察同一完整当前 scope、epoch、head、journal 与 gate。
+它不授予 launch，也不证明已清除的原 worker Attempt 或完整原计划；不新增 wakeup Intent 表、
+plan digest 或 timer。本增量仍属于 Store 实验契约，实际嵌套 Driver 与应用重放尚需独立完成。
+
 ## 验证与未覆盖边界
 
 Core 测试覆盖确定性身份、冻结摘要、源节点排序、静态嵌套、返回转发、端口/路线/Schema/Reducer

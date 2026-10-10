@@ -373,6 +373,35 @@ actual application schema/reducer replay and the dedicated scoped durable start
 remain required. Private whole-return intents are decoded on the heap to bound
 Serde stack use without changing canonical bytes or weakening owning proofs.
 
+The experimental delayed-retry operation is
+`PostgresStore::schedule_graph_frame_delayed_retry_wakeup(&ReadyNodeRecoveryPlan)`.
+Fresh scheduling holds the Run lock across whole current active-stack/head proof,
+actual live-worker verification and complete bounded physical-history replay.
+The existing Core policy must independently reproduce every Completed/Deferred
+decision at the original plan observation, including the earliest SafeAfter
+boundary. The final database clock, exact original journal, actual worker
+attempt/epoch/expiry, frozen Root projection and scoped active/head predicates
+must still match. No Root column, immutable component, queue age, shared budget
+or deadline is replaced by a leaf value.
+
+The existing gate releases the lease atomically; it grants no launch. Root and
+scoped scheduling share final-clock handling. Update-trigger delay past lease
+expiry rolls back the transaction; delay past the inclusive retry boundary
+rolls back the gate savepoint, rechecks the retained original lease/Root/leaf/
+journal/queue age and returns Due. A subsequent claimed plan and dedicated
+scoped Start are required. Deadline cancellation remains independently indexed,
+clears a far-future gate and makes cleanup runnable.
+
+Released-gate ACK retry has the minimum observation contract: whole current
+scope/head/journal, last fencing epoch and exact gate still match. It is read
+only and proves neither the erased original worker attempt nor the complete
+original plan. It does not persist a wakeup intent or add a schema/plan digest.
+Malformed caller metadata, availability, stale ownership and expired leases
+must not become quarantine; actual corruption uses the original exact fenced
+context and cannot quarantine a successor. This remains experimental Store
+behavior, without declaring nested Driver or R1/G3 qualification complete.
+
+
 Schema 33 adds experimental `close_graph_frames` after the actual original
 cancellation request or sealed Run failure, and `load_graph_frame_closure` for
 whole historical recovery. A bounded version-1 wire binds the original Run

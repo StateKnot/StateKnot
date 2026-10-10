@@ -180,6 +180,33 @@ replay remain open. The [Root disposition recovery increment](rfcs/0022-namespac
 specifies the complete historical Continue/Wait/Terminal proof being developed;
 its new format and migration require their own final-source qualification.
 
+The experimental Store provides
+`PostgresStore::schedule_graph_frame_delayed_retry_wakeup` for an exact active
+leaf with only Completed and Deferred ready nodes. A fresh write locks the Run,
+authenticates the whole active stack and current Root/leaf heads, checks the
+actual live worker before using its fence in recovery, and reloads complete
+bounded result and physical-attempt history. Core rederives the original
+SafeAfter boundaries at the plan's original observation time. A different
+caller decision is invalid input; contradictory durable history is corruption.
+Fresh database time and the exact journal, worker attempt, epoch and scoped
+head predicates guard the final scheduler projection.
+
+Root and scoped scheduling share the existing gate and outcome contract. A
+successful write releases the lease and preserves the Root pointer, leaf/stack,
+journal, queue age, immutable history and original accounting/deadline. If a
+slow Run update trigger crosses lease expiry, the transaction rolls back. If
+it crosses the inclusive retry boundary, a savepoint restores the original
+lease and gate before rechecking the Run and whole current scope and returning
+`Due`. The caller replans; only a fresh dedicated scoped Start grants launch.
+Deadline maintenance remains independent of a far-future gate and cancellation
+clears the gate while making cleanup scheduler-visible.
+
+`Idempotent` is deliberately a read-only observation of the same current whole
+scope, epoch, head, journal and stored gate after lease release. It grants no
+launch and does not prove the erased original worker attempt or complete
+original plan. No wakeup-intent table, plan digest or timer is added. This Store
+increment does not complete nested Driver dispatch or application replay.
+
 ## Qualification and remaining boundaries
 
 Core tests cover deterministic identities, a frozen digest, source-order
