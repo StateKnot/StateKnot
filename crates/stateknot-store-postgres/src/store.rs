@@ -91,6 +91,12 @@ pub use tool_authorization_receipts::{
 #[path = "skill_activation_windows.rs"]
 mod skill_activation_windows;
 
+#[path = "root_graph_barriers.rs"]
+mod root_graph_barriers;
+pub use root_graph_barriers::{
+    RootGraphBarrierCommitOutcome, RootGraphBarrierIntent, StoredRootGraphBarrier,
+};
+
 #[path = "scoped_checkpoints.rs"]
 mod scoped_checkpoints;
 
@@ -446,6 +452,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed("whole graph frame closures"),
             MigrationType::Simple,
             Cow::Borrowed(include_str!("../migrations/0033_graph_frame_closures.sql")),
+            false,
+        ),
+        Migration::new(
+            34,
+            Cow::Borrowed("whole Root graph dispositions"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0034_root_graph_barriers.sql")),
             false,
         ),
     ]),
@@ -2736,6 +2749,23 @@ impl ClaimedRunRecovery<'_> {
                             "noninitial graph replay successor mismatch",
                         ));
                     }
+                    if let Some(record) = &inputs.root_record {
+                        if record.barrier() != plan.barrier()
+                            || record.disposition() != plan.disposition()
+                        {
+                            return Err(StoreError::corrupt("Root historical complete graph plan"));
+                        }
+                    } else if !matches!(
+                        plan.disposition(),
+                        stateknot_core::GraphBarrierDisposition::Continue
+                    ) || inputs.event_projection
+                        != Some(barrier_projection_digest(
+                            &RunProjection::unchanged(),
+                            plan.barrier().intent_digest(),
+                        )?)
+                    {
+                        return Err(StoreError::GraphReplayHistoricalDispositionUnavailable);
+                    }
                     barriers_replayed = barriers_replayed
                         .checked_add(1)
                         .ok_or_else(|| StoreError::corrupt("noninitial graph replay count"))?;
@@ -3075,6 +3105,8 @@ impl ClaimedRunRecovery<'_> {
 struct HistoricalGraphBarrierResults {
     results: Vec<PendingNodeResult>,
     compact_bytes: usize,
+    root_record: Option<StoredRootGraphBarrier>,
+    event_projection: Option<Digest>,
 }
 
 #[derive(Default)]
@@ -3294,6 +3326,7 @@ impl PostgresStore {
         failure_closes::verify_schema(&self.pool).await?;
         scoped_checkpoints::verify_schema(&self.pool).await?;
         graph_frames::verify_schema(&self.pool).await?;
+        root_graph_barriers::verify_schema(&self.pool).await?;
         Ok(())
     }
 
@@ -4168,6 +4201,7 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .ok_or_else(|| StoreError::corrupt("agent submission run reference"))?;
         let run = decode_run(run_row)?;
         verify_current_wait_set(&mut transaction, &run).await?;
+        Box::pin(root_graph_barriers::verify_run(&mut transaction, &run)).await?;
         let admission_row = load_agent_admission_row(&mut transaction, tenant_id, run_id)
             .await?
             .ok_or_else(|| StoreError::corrupt("agent submission admission reference"))?;
@@ -4206,6 +4240,7 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             .ok_or(StoreError::AgentAdmissionNotFound)?;
         let run = decode_run(run_row)?;
         verify_current_wait_set(&mut transaction, &run).await?;
+        Box::pin(root_graph_barriers::verify_run(&mut transaction, &run)).await?;
         let admission_row = load_agent_admission_row(&mut transaction, tenant_id, run_id)
             .await?
             .ok_or(StoreError::AgentAdmissionNotFound)?;
@@ -4242,6 +4277,7 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             return Err(StoreError::corrupt("run scope"));
         }
         verify_current_wait_set(&mut transaction, &stored).await?;
+        Box::pin(root_graph_barriers::verify_run(&mut transaction, &stored)).await?;
         transaction
             .commit()
             .await
@@ -4451,6 +4487,7 @@ ON CONFLICT (tenant_id, run_id) DO NOTHING
             return Err(StoreError::corrupt("claimed run recovery scope"));
         }
         verify_current_wait_set(&mut transaction, &stored).await?;
+        Box::pin(root_graph_barriers::verify_run(&mut transaction, &stored)).await?;
         validate_runnable(&stored)?;
         if !journal_expectation_matches_stored(&stored, context.expectation()) {
             return Err(StoreError::StaleClaimedRunRecoveryObservation);
@@ -6005,12 +6042,29 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
         verify_barrier_consumptions(&mut transaction, &barrier, child)
             .await
             .map_err(map_graph_replay_consumption_error)?;
+        let root_record = Box::pin(root_graph_barriers::authenticated_edge(
+            &mut transaction,
+            parent,
+            child,
+            &results,
+        ))
+        .await?;
+        let (_, event_projection) = child_runs::anchored_event(
+            &mut transaction,
+            parent.tenant_id(),
+            parent.run_id(),
+            i64::try_from(child.journal_head().sequence().get())
+                .map_err(|_| StoreError::corrupt("Root historical sequence"))?,
+        )
+        .await?;
         transaction.commit().await.map_err(|source| {
             StoreError::database("historical graph barrier replay commit", source)
         })?;
         Ok(HistoricalGraphBarrierResults {
             results,
             compact_bytes,
+            root_record,
+            event_projection,
         })
     }
 
@@ -6878,6 +6932,7 @@ WHERE tenant_id = $1
                 .map(|bytes| decode_digest(bytes, "tool invocation projection digest"))
                 .transpose()?;
             let event = decode_event(row)?;
+            Box::pin(root_graph_barriers::verify_event(&mut transaction, &event)).await?;
             if !event.matches_intent(append.intent()) {
                 return Err(StoreError::EventIdConflict);
             }
@@ -8758,6 +8813,7 @@ WHERE tenant_id = $1
                 .map_err(|source| StoreError::database("journal cursor load", source))?
                 .ok_or(StoreError::InvalidJournalCursor)?;
             let cursor = decode_event(cursor_row)?;
+            Box::pin(root_graph_barriers::verify_event(&mut transaction, &cursor)).await?;
             if cursor.head() != *head {
                 return Err(StoreError::InvalidJournalCursor);
             }
@@ -12103,6 +12159,7 @@ async fn verify_wait_registration_event(
     if wait.journal() != &event.head() {
         return Err(StoreError::corrupt("wait registration event anchor"));
     }
+    Box::pin(root_graph_barriers::verify_event(transaction, &event)).await?;
     if event.payload().kind().as_str() == "graph-frame-barrier-committed" {
         graph_frames::verify_wait_anchor(transaction, wait, &event).await?;
     }
@@ -12131,10 +12188,18 @@ async fn verify_current_wait_set(
         return Err(StoreError::corrupt("current durable wait set"));
     }
     let mut durable = BTreeMap::new();
+    let mut verified_origins: BTreeMap<i64, JournalHead> = BTreeMap::new();
     for row in rows {
         let sequence = row.registration_sequence;
         let wait = decode_wait_registration(&row)?;
-        verify_wait_registration_event(transaction, &wait, sequence).await?;
+        if let Some(origin) = verified_origins.get(&sequence) {
+            if wait.journal() != origin {
+                return Err(StoreError::corrupt("current durable wait origin"));
+            }
+        } else {
+            verify_wait_registration_event(transaction, &wait, sequence).await?;
+            verified_origins.insert(sequence, wait.journal().clone());
+        }
         let marker = wait.marker();
         if durable.insert(run_wait_identity(&marker), marker).is_some() {
             return Err(StoreError::corrupt("current durable wait set"));
@@ -12362,25 +12427,11 @@ async fn verify_checkpoint_anchor(
     transaction: &mut Transaction<'_, Postgres>,
     checkpoint: &Checkpoint,
 ) -> Result<(), StoreError> {
-    let sequence = i64::try_from(checkpoint.journal_head().sequence().get())
-        .map_err(|_| StoreError::corrupt("checkpoint journal sequence"))?;
-    let row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
-        .bind(checkpoint.tenant_id().as_str())
-        .bind(*checkpoint.run_id().as_uuid())
-        .bind(sequence)
-        .fetch_optional(&mut **transaction)
-        .await
-        .map_err(|source| StoreError::database("checkpoint anchor verification", source))?
-        .ok_or_else(|| StoreError::corrupt("checkpoint journal anchor"))?;
-    let event = decode_event(row)?;
-    if event.head() != *checkpoint.journal_head()
-        || event.payload().kind().as_str() == GraphFrameEntryPlan::EVENT_KIND
-    {
-        // Ordinary checkpoint reads prove Root scope. A frame entry can only
-        // authenticate its child checkpoint through the whole scoped bundle.
-        return Err(StoreError::corrupt("checkpoint journal anchor"));
-    }
-    Ok(())
+    Box::pin(root_graph_barriers::verify_checkpoint(
+        transaction,
+        checkpoint,
+    ))
+    .await
 }
 
 fn decode_checkpoint_lineage(
@@ -12446,6 +12497,11 @@ async fn verify_checkpoint_anchors(
         if event.head() != *checkpoint.journal_head() {
             return Err(StoreError::corrupt("checkpoint lineage anchor"));
         }
+        Box::pin(root_graph_barriers::verify_checkpoint(
+            transaction,
+            checkpoint,
+        ))
+        .await?;
     }
     Ok(())
 }
@@ -15794,6 +15850,9 @@ async fn verify_node_completion_base(
     start: &NodeAttemptStart,
 ) -> Result<(), StoreError> {
     let event = Box::pin(verify_node_attempt_start(tx, start)).await?;
+    if event.payload().kind().as_str() == root_graph_barriers::EVENT_KIND {
+        return Err(StoreError::RootGraphBarrierCompoundRequired);
+    }
     if graph_frames::is_framework_kind(event.payload().kind().as_str()) {
         return Err(StoreError::GraphFrameCompoundRequired);
     }
@@ -20198,6 +20257,18 @@ async fn update_run_head(
     event: &JournalEvent,
     projection: Option<&PreparedProjection>,
 ) -> Result<(), StoreError> {
+    let row = query_as::<_, RunRow>(SELECT_RUN)
+        .bind(event.tenant_id().as_str())
+        .bind(*event.run_id().as_uuid())
+        .fetch_one(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("Root mutation source snapshot", source))?;
+    let source = decode_run(row)?;
+    Box::pin(root_graph_barriers::verify_mutation_source(
+        transaction,
+        &source,
+    ))
+    .await?;
     if let Some(projection) = projection {
         Box::pin(child_runs::validate_terminal_accounting(
             transaction,

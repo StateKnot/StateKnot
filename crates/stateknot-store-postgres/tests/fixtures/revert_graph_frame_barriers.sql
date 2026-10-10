@@ -1,6 +1,18 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
 
+SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM stateknot.root_graph_barriers) THEN 0 ELSE 1 END;
+DROP TRIGGER runs_root_barrier_projection ON stateknot.runs;
+DROP TRIGGER run_events_root_barrier_complete ON stateknot.run_events;
+DROP TRIGGER root_wait_components_complete ON stateknot.run_wait_registrations;
+DROP TRIGGER root_result_components_complete ON stateknot.pending_node_result_consumptions;
+DROP FUNCTION stateknot.guard_root_graph_barrier_component_complete();
+DROP TABLE stateknot.root_graph_barriers;
+DROP FUNCTION stateknot.guard_root_graph_barrier_projection();
+DROP FUNCTION stateknot.guard_root_graph_barrier_event_complete();
+DROP FUNCTION stateknot.guard_root_graph_barrier_complete();
+DELETE FROM _sqlx_migrations WHERE version=34;
+
 -- Source reconstruction refuses retained whole closure/caller facts.
 SELECT 1 / CASE WHEN EXISTS(SELECT 1 FROM stateknot.graph_frame_closures) OR EXISTS(SELECT 1 FROM stateknot.graph_frame_closed_callers) THEN 0 ELSE 1 END;
 DROP TRIGGER runs_frame_closed_guard ON stateknot.runs;

@@ -29,6 +29,10 @@ mod frame_transactions;
 mod frame_waits;
 #[path = "postgres/result_namespace_corruption.rs"]
 mod result_namespace_corruption;
+#[path = "postgres/root_barrier_upgrade.rs"]
+mod root_barrier_upgrade;
+#[path = "postgres/root_graph_barriers.rs"]
+mod root_graph_barriers;
 
 use std::{
     borrow::Cow,

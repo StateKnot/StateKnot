@@ -37,7 +37,7 @@
 //! across node, model, tool, remote-agent, or human work.
 //!
 //! This pre-alpha slice assumes a trusted server-side pool. Do not distribute
-//! its database credentials to untrusted workers. The schema-33 trusted-server
+//! its database credentials to untrusted workers. The schema-34 trusted-server
 //! ACL profile in `ops/trusted-role-profile.psql` separates migration, runtime
 //! and reservation-retention accounts; deployment must explicitly apply/audit it.
 //! Connecting a pool validates schema, not that ACL profile. Worker-only procedures and
@@ -87,9 +87,9 @@ pub use store::{
     ChildJoinCommitOutcome, ChildJoinRecord, ChildRunCommitOutcome, ChildRunRecord,
     ChildRunSettlementOutcome, ClaimedRunRecovery, GraphFrameBarrierCommitOutcome,
     GraphFrameClosureCommitOutcome, GraphFrameEntryCommitOutcome, GraphFrameReturnCommitOutcome,
-    PostgresStore, RunFailureCloseCursor, RunFailureCloseOutcome, RunFailureCloseRecord,
-    StoredActiveGraphFrame, StoredGraphFrameBarrier, StoredGraphFrameClosure,
-    StoredGraphFrameEntry, StoredGraphFrameReturn, StoredOpenGraphFrame,
-    StoredToolAuthorizationReceipt, ToolAuthorizationReceiptOutcome, ToolAuthorizationReceiptPage,
-    ToolAuthorizationReceiptPageSize,
+    PostgresStore, RootGraphBarrierCommitOutcome, RootGraphBarrierIntent, RunFailureCloseCursor,
+    RunFailureCloseOutcome, RunFailureCloseRecord, StoredActiveGraphFrame, StoredGraphFrameBarrier,
+    StoredGraphFrameClosure, StoredGraphFrameEntry, StoredGraphFrameReturn, StoredOpenGraphFrame,
+    StoredRootGraphBarrier, StoredToolAuthorizationReceipt, ToolAuthorizationReceiptOutcome,
+    ToolAuthorizationReceiptPage, ToolAuthorizationReceiptPageSize,
 };

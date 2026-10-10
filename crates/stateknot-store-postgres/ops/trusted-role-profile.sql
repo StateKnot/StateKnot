@@ -1,6 +1,6 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
--- Schema-33 trusted-server ACL profile. Apply and audit share one allowlist.
+-- Schema-34 trusted-server ACL profile. Apply and audit share one allowlist.
 -- Execute in one transaction with search_path=pg_catalog (see .psql wrapper).
 DO $profile$
 DECLARE
@@ -21,7 +21,7 @@ DECLARE
         'outbox_attempt_completions', 'outbox_attempts', 'outbox_deliveries',
         'outbox_destinations', 'pending_node_result_consumptions',
         'pending_node_result_model_bindings', 'pending_node_result_tool_bindings',
-        'pending_node_results', 'run_attempt_claims', 'run_checkpoints', 'run_events',
+        'pending_node_results', 'root_graph_barriers', 'run_attempt_claims', 'run_checkpoints', 'run_events',
         'run_failure_closes', 'run_quarantines', 'run_wait_registrations', 'runs',
         'scheduler_fairness_reservations', 'scheduler_fairness_shards',
         'skill_acting_window_revocations', 'skill_acting_windows', 'skill_activation_approvals',
@@ -92,14 +92,14 @@ BEGIN
         END IF;
     END LOOP;
     IF (SELECT array_agg(version ORDER BY version) FROM public._sqlx_migrations WHERE success)
-       IS DISTINCT FROM ARRAY(SELECT generate_series(1,33)::bigint)
-       OR (SELECT count(*) FROM public._sqlx_migrations) <> 33 THEN
-        RAISE EXCEPTION 'profile requires exact schema version 33';
+       IS DISTINCT FROM ARRAY(SELECT generate_series(1,34)::bigint)
+       OR (SELECT count(*) FROM public._sqlx_migrations) <> 34 THEN
+        RAISE EXCEPTION 'profile requires exact schema version 34';
     END IF;
     SELECT array_agg(relname::text ORDER BY relname COLLATE "C") INTO actual_tables
       FROM pg_class WHERE relnamespace='stateknot'::regnamespace AND relkind IN ('r','p','v','m','f','S');
     IF actual_tables IS DISTINCT FROM tables THEN
-        RAISE EXCEPTION 'profile table inventory does not match schema 33';
+        RAISE EXCEPTION 'profile table inventory does not match schema 34';
     END IF;
     IF EXISTS (SELECT FROM pg_class WHERE relnamespace='stateknot'::regnamespace AND relowner<>owner_id)
        OR EXISTS (SELECT FROM pg_proc WHERE pronamespace='stateknot'::regnamespace AND (proowner<>owner_id OR prosecdef)) THEN

@@ -22,13 +22,13 @@ use stateknot_core::{
     GraphBarrierPlanError, GraphReference, JournalAppend, JournalEventIntent, JournalEventKind,
     JournalExpectation, JournalHead, JournalPayload, NodeAttemptStartHead, PendingNodeResult,
     PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, RecoveryNodeKind, RetryAdvice,
-    RunFence, RunLease, RunRevision, RunStatus, Timestamp,
+    RunFence, RunLease, RunLifecycle, RunRevision, RunStatus, Timestamp,
 };
 use stateknot_store_postgres::{
-    BarrierCommitOutcome, ClaimedRunRecovery, CorruptionQuarantineContext,
-    DelayedRetryScheduleOutcome, GraphReplayLimits, GraphReplayReport, LeaseReleaseOutcome,
-    LeaseRenewalOutcome, NodeAttemptCommitOutcome, PendingNodeResultPageSize, PostgresStore,
-    RunProjection, StoreError, StoredRun,
+    ClaimedRunRecovery, CorruptionQuarantineContext, DelayedRetryScheduleOutcome,
+    GraphReplayLimits, GraphReplayReport, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    NodeAttemptCommitOutcome, PendingNodeResultPageSize, PostgresStore,
+    RootGraphBarrierCommitOutcome, RootGraphBarrierIntent, StoreError, StoredRun,
 };
 use thiserror::Error;
 use tokio::{
@@ -493,8 +493,14 @@ impl DurableGraphDriver {
                 match barrier_plan.disposition() {
                     GraphBarrierDisposition::Continue => {
                         drop(recovery);
-                        self.commit_continue_barrier(&fence, &plan, barrier_plan, &mut report)
-                            .await?;
+                        self.commit_continue_barrier(
+                            &fence,
+                            &plan,
+                            barrier_plan,
+                            live.lifecycle(),
+                            &mut report,
+                        )
+                        .await?;
                     }
                     GraphBarrierDisposition::Wait { .. }
                     | GraphBarrierDisposition::Terminal { .. } => {
@@ -505,6 +511,7 @@ impl DurableGraphDriver {
                                     journal_head: plan.journal_head().clone(),
                                     event_id: EventId::generate(),
                                     expected_revision: live.lifecycle().revision(),
+                                    original_lifecycle: Box::new(live.lifecycle().clone()),
                                     lease,
                                 },
                             )),
@@ -831,6 +838,7 @@ impl DurableGraphDriver {
         fence: &RunFence,
         ready_plan: &ReadyNodeRecoveryPlan,
         barrier_plan: GraphBarrierPlan,
+        original_lifecycle: &RunLifecycle,
         report: &mut GraphDriveReport,
     ) -> Result<(), GraphDriverError> {
         if !matches!(
@@ -841,29 +849,36 @@ impl DurableGraphDriver {
                 operation: "commit non-continue graph barrier",
             });
         }
-        let payload = self.barrier_continued_payload(
-            ready_plan.checkpoint().graph(),
-            ready_plan.checkpoint(),
-            barrier_plan.barrier().successor().checkpoint_id(),
-            barrier_plan.barrier().successor().superstep(),
-        )?;
+        let event_id = EventId::generate();
+        let intent =
+            RootGraphBarrierIntent::new(barrier_plan, original_lifecycle.clone(), event_id, None)?;
         let append = worker_append(
             fence,
             ready_plan.journal_head().clone(),
-            EventId::generate(),
-            payload,
+            event_id,
+            intent.payload()?,
         )?;
-        let barrier = barrier_plan.barrier().clone();
+        let executable = self
+            .registry
+            .resolve(ready_plan.checkpoint().graph())
+            .ok_or_else(|| GraphDriverError::ExecutableGraphUnavailable {
+                graph: Box::new(ready_plan.checkpoint().graph().clone()),
+            })?;
         let mut attempt = 1_u8;
         loop {
             let result = self
                 .store
-                .append_worker_barrier(append.clone(), RunProjection::unchanged(), barrier.clone())
+                .append_worker_graph_barrier(
+                    append.clone(),
+                    intent.clone(),
+                    executable.schemas(),
+                    executable.reducer(),
+                )
                 .await;
             match result {
                 Ok(
-                    BarrierCommitOutcome::Committed { .. }
-                    | BarrierCommitOutcome::Idempotent { .. },
+                    RootGraphBarrierCommitOutcome::Committed(..)
+                    | RootGraphBarrierCommitOutcome::Idempotent(..),
                 ) => {
                     report.durable_events = report.durable_events.saturating_add(1);
                     report.barriers_committed = report.barriers_committed.saturating_add(1);
@@ -1503,27 +1518,6 @@ impl DurableGraphDriver {
         )
     }
 
-    fn barrier_continued_payload(
-        &self,
-        graph: &GraphReference,
-        checkpoint: &Checkpoint,
-        successor_id: CheckpointId,
-        successor_superstep: stateknot_core::Superstep,
-    ) -> Result<JournalPayload, GraphDriverError> {
-        self.event_payload(
-            "graph-barrier-continued",
-            json!({
-                "operation": "graph_barrier_continued",
-                "graph_digest": digest_hex(graph.definition_digest()),
-                "checkpoint_id": checkpoint.checkpoint_id().to_string(),
-                "superstep": checkpoint.superstep().get().to_string(),
-                "successor_checkpoint_id": successor_id.to_string(),
-                "successor_superstep": successor_superstep.get().to_string(),
-                "disposition": "continue"
-            }),
-        )
-    }
-
     fn event_payload(
         &self,
         kind: &'static str,
@@ -1814,6 +1808,7 @@ impl GraphCancellationHandoff {
 #[derive(Clone, Debug)]
 pub struct GraphLifecycleBarrierHandoff {
     plan: GraphBarrierPlan,
+    original_lifecycle: Box<RunLifecycle>,
     journal_head: JournalHead,
     event_id: EventId,
     expected_revision: RunRevision,
@@ -1821,6 +1816,12 @@ pub struct GraphLifecycleBarrierHandoff {
 }
 
 impl GraphLifecycleBarrierHandoff {
+    /// Returns the complete original lifecycle retained for exact ACK recovery.
+    #[must_use]
+    pub fn original_lifecycle(&self) -> &RunLifecycle {
+        &self.original_lifecycle
+    }
+
     /// Returns the complete deterministic barrier and disposition.
     #[must_use]
     pub const fn plan(&self) -> &GraphBarrierPlan {

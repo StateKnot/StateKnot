@@ -269,6 +269,12 @@ pub enum StoreError {
     /// Replay could not run because the exact local schema or reducer was not available.
     #[error("noninitial graph replay dependency is unavailable on this worker")]
     GraphReplayDependencyUnavailable,
+    /// A graph-specific Root event requires its immutable whole disposition bundle.
+    #[error("Root graph barrier requires its whole disposition transaction")]
+    RootGraphBarrierCompoundRequired,
+    /// Legal historical Root facts do not contain a complete disposition proof.
+    #[error("historical Root graph disposition evidence is unavailable")]
+    GraphReplayHistoricalDispositionUnavailable,
     /// Replay result material exceeded the explicitly configured memory bound.
     #[error("noninitial graph replay exceeds its configured barrier byte limit")]
     GraphReplayResourceLimit,

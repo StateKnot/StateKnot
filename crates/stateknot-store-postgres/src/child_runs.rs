@@ -944,6 +944,7 @@ async fn terminal_evidence(
             .map_err(|_| StoreError::corrupt("child terminal sequence"))?,
     )
     .await?;
+    Box::pin(root_graph_barriers::verify_event(tx, &event)).await?;
     let bytes: Vec<u8> = row
         .try_get("lifecycle_bytes")
         .map_err(|source| StoreError::database("child terminal bytes", source))?;
