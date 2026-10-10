@@ -702,3 +702,67 @@ async fn scoped_child_cannot_expand_any_original_root_topology_cap() {
     }
     store.close().await;
 }
+
+#[tokio::test]
+async fn scoped_child_admission_rechecks_authority_after_deferred_constraints() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(8)).await else {
+        return;
+    };
+    let value = Box::pin(started(&store, "scoped-child-final-fence")).await;
+    let pool = super::frame_barriers::pool().await;
+    query("CREATE FUNCTION stateknot.test_scoped_child_delay() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(9); RETURN NEW; END $$")
+        .execute(&pool).await.unwrap();
+    query("CREATE CONSTRAINT TRIGGER test_scoped_child_delay AFTER INSERT ON stateknot.child_run_ownership DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.test_scoped_child_delay()")
+        .execute(&pool).await.unwrap();
+    let now = store.observe_database_clock().await.unwrap();
+    let expiry =
+        Timestamp::from_unix_micros(now.unix_micros().checked_add(8_000_000).unwrap()).unwrap();
+    store.renew_lease(&value.fence, expiry).await.unwrap();
+    let outcome = Box::pin(spawn(&store, &value)).await;
+    query("DROP TRIGGER test_scoped_child_delay ON stateknot.child_run_ownership")
+        .execute(&pool)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot.test_scoped_child_delay()")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        matches!(outcome, Err(StoreError::LeaseExpired)),
+        "final scoped child authority: {outcome:?}"
+    );
+    let run = store
+        .load_run(value.fence.tenant_id(), value.fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(run.journal_head(), Some(&value.head));
+    assert_eq!(run.lease().unwrap().fence(), &value.fence);
+    assert!(
+        store
+            .load_child_budget_account(value.fence.tenant_id(), value.fence.run_id())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(matches!(
+        store
+            .load_run(
+                value.intent.child().provenance().tenant_id(),
+                value.intent.child().provenance().run_id()
+            )
+            .await,
+        Err(StoreError::RunNotFound)
+    ));
+    assert_eq!(
+        store
+            .load_current_checkpoint(value.fence.tenant_id(), value.fence.run_id())
+            .await
+            .unwrap()
+            .as_ref(),
+        Some(value.admission.checkpoint())
+    );
+    store.verify_schema().await.unwrap();
+    pool.close().await;
+    store.close().await;
+}
