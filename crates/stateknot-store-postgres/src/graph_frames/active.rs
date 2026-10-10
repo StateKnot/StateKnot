@@ -147,86 +147,88 @@ impl PostgresStore {
 // The transaction borrow owns every proof. Mutations call this under the Run
 // row lock, so they never stitch an external read into their authorization.
 #[allow(clippy::too_many_lines)]
-pub(super) async fn verified_snapshot(
-    tx: &mut Transaction<'_, Postgres>,
-    tenant: &TenantId,
+pub(super) fn verified_snapshot<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    tenant: &'a TenantId,
     run_id: RunId,
     stored: StoredRun,
-) -> Result<Option<StoredActiveGraphFrame>, StoreError> {
-    let stack = query_as::<_, StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2")
+) -> stateknot_core::BoxFuture<'a, Result<Option<StoredActiveGraphFrame>, StoreError>> {
+    Box::pin(async move {
+        let stack = query_as::<_, StackRow>("SELECT admission_digest,lifetime_starts,active_namespace,active_frame_identity_digest FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2")
             .bind(tenant.as_str()).bind(*run_id.as_uuid()).fetch_optional(&mut **tx).await
             .map_err(|e| StoreError::database("active frame stack snapshot", e))?;
-    let (total, maximum): (i64, Option<i32>) = query_as("SELECT count(*),max(ordinal) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2")
+        let (total, maximum): (i64, Option<i32>) = query_as("SELECT count(*),max(ordinal) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2")
             .bind(tenant.as_str()).bind(*run_id.as_uuid()).fetch_one(&mut **tx).await
             .map_err(|e| StoreError::database("active frame lifetime inventory", e))?;
-    let Some(stack) = stack else {
-        if total != 0 {
-            return Err(StoreError::corrupt("active frame stack missing"));
-        }
-        return Ok(None);
-    };
-    if !(1..=4096).contains(&stack.lifetime_starts)
-        || total != i64::from(stack.lifetime_starts)
-        || maximum != Some(stack.lifetime_starts)
-    {
-        return Err(StoreError::corrupt("active frame lifetime inventory"));
-    }
-    let namespace = GraphNamespace::new(stack.active_namespace.clone())
-        .map_err(|_| StoreError::corrupt("active frame namespace"))?;
-    if namespace.is_root() != stack.active_frame_identity_digest.is_none() {
-        return Err(StoreError::corrupt("active frame identity shape"));
-    }
-    if !namespace.is_root()
-        && !matches!(
-            stored.lifecycle().status(),
-            RunStatus::Active | RunStatus::Waiting | RunStatus::CancellationRequested
-        )
-    {
-        return Err(StoreError::corrupt("active frame terminal Run"));
-    }
-    if let Some(closed) = closures::row(tx, tenant, run_id).await? {
-        Box::pin(closures::verified_record(tx, &stored, closed)).await?;
-        if !namespace.is_root() {
-            return Err(StoreError::corrupt("closed Run retained active frame"));
-        }
-        return Ok(None);
-    }
-    let mut expected = Vec::with_capacity(7);
-    if !namespace.is_root() {
-        let mut prefix = String::new();
-        for segment in namespace.as_str().split('/') {
-            if !prefix.is_empty() {
-                prefix.push('/');
+        let Some(stack) = stack else {
+            if total != 0 {
+                return Err(StoreError::corrupt("active frame stack missing"));
             }
-            prefix.push_str(segment);
-            expected.push(prefix.clone());
+            return Ok(None);
+        };
+        if !(1..=4096).contains(&stack.lifetime_starts)
+            || total != i64::from(stack.lifetime_starts)
+            || maximum != Some(stack.lifetime_starts)
+        {
+            return Err(StoreError::corrupt("active frame lifetime inventory"));
         }
-    }
-    // Limit before materialization, including the overflow sentinel.
-    let open: Vec<String> = query_scalar("SELECT e.graph_namespace FROM stateknot.graph_frame_entries e WHERE e.tenant_id=$1 AND e.run_id=$2 AND NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=e.tenant_id AND x.run_id=e.run_id AND x.graph_namespace=e.graph_namespace) ORDER BY length(e.graph_namespace),e.graph_namespace LIMIT 8")
+        let namespace = GraphNamespace::new(stack.active_namespace.clone())
+            .map_err(|_| StoreError::corrupt("active frame namespace"))?;
+        if namespace.is_root() != stack.active_frame_identity_digest.is_none() {
+            return Err(StoreError::corrupt("active frame identity shape"));
+        }
+        if !namespace.is_root()
+            && !matches!(
+                stored.lifecycle().status(),
+                RunStatus::Active | RunStatus::Waiting | RunStatus::CancellationRequested
+            )
+        {
+            return Err(StoreError::corrupt("active frame terminal Run"));
+        }
+        if let Some(closed) = closures::row(tx, tenant, run_id).await? {
+            Box::pin(closures::verified_record(tx, &stored, closed)).await?;
+            if !namespace.is_root() {
+                return Err(StoreError::corrupt("closed Run retained active frame"));
+            }
+            return Ok(None);
+        }
+        let mut expected = Vec::with_capacity(7);
+        if !namespace.is_root() {
+            let mut prefix = String::new();
+            for segment in namespace.as_str().split('/') {
+                if !prefix.is_empty() {
+                    prefix.push('/');
+                }
+                prefix.push_str(segment);
+                expected.push(prefix.clone());
+            }
+        }
+        // Limit before materialization, including the overflow sentinel.
+        let open: Vec<String> = query_scalar("SELECT e.graph_namespace FROM stateknot.graph_frame_entries e WHERE e.tenant_id=$1 AND e.run_id=$2 AND NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_returns x WHERE x.tenant_id=e.tenant_id AND x.run_id=e.run_id AND x.graph_namespace=e.graph_namespace) ORDER BY length(e.graph_namespace),e.graph_namespace LIMIT 8")
             .bind(tenant.as_str()).bind(*run_id.as_uuid()).fetch_all(&mut **tx).await
             .map_err(|e| StoreError::database("active frame open inventory", e))?;
-    if open != expected {
-        return Err(StoreError::corrupt("active frame open ancestry"));
-    }
-    let leaf = Box::pin(verify_chain(
-        tx,
-        tenant,
-        run_id,
-        stored,
-        expected,
-        true,
-        decode_digest(&stack.admission_digest, "active frame admission")?,
-    ))
-    .await?;
-    if leaf
-        .as_ref()
-        .map(|leaf| leaf.checkpoint.frame().digest().as_bytes().to_vec())
-        != stack.active_frame_identity_digest
-    {
-        return Err(StoreError::corrupt("active frame leaf identity"));
-    }
-    Ok(leaf)
+        if open != expected {
+            return Err(StoreError::corrupt("active frame open ancestry"));
+        }
+        let leaf = Box::pin(verify_chain(
+            tx,
+            tenant,
+            run_id,
+            stored,
+            expected,
+            true,
+            decode_digest(&stack.admission_digest, "active frame admission")?,
+        ))
+        .await?;
+        if leaf
+            .as_ref()
+            .map(|leaf| leaf.checkpoint.frame().digest().as_bytes().to_vec())
+            != stack.active_frame_identity_digest
+        {
+            return Err(StoreError::corrupt("active frame leaf identity"));
+        }
+        Ok(leaf)
+    })
 }
 
 // Historical close reads use the same full entry/checkpoint/caller chain. Their
