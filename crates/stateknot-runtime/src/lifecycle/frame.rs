@@ -179,16 +179,43 @@ impl DurableGraphLifecycle {
         Result<Option<Box<stateknot_store_postgres::StoredGraphFrameClosure>>, GraphLifecycleError>,
     > {
         Box::pin(async move {
-            let preparing = self.prepare_frame_cancellation(handoff, shutdown, evidence_timeout);
+            let validating = self.validate_frame_cancellation_handoff(handoff);
             let (stop, stopping) = tokio::sync::oneshot::channel();
             let maintenance =
                 self.maintain_frame_cancellation_lease(handoff.lease().fence(), stopping);
-            tokio::pin!(preparing, maintenance);
+            tokio::pin!(validating, maintenance);
+            let active = tokio::select! {
+                biased;
+                result = &mut validating => match result {
+                    Ok(active) => active,
+                    Err(error) => {
+                        let _ = stop.send(());
+                        // Validation may itself have committed quarantine. Read
+                        // both complete ACKs before returning its original error.
+                        let _ = maintenance.await;
+                        return Err(error);
+                    }
+                },
+                result = &mut maintenance => {
+                    // The validator owns corruption quarantine mutations. A
+                    // guardian failure cannot cancel their pending COMMIT ACK.
+                    let _ = validating.await?;
+                    result?;
+                    return Err(GraphLifecycleError::InvalidHandoff { operation: "maintain scoped cancellation ownership" });
+                }
+            };
+            let observing = self.observe_frame_cancellation_direct(
+                handoff,
+                &active,
+                shutdown,
+                evidence_timeout,
+            );
+            tokio::pin!(observing);
             let prepared = tokio::select! {
                 biased;
-                result = &mut preparing => {
-                    // Stop only at the guardian's pure waiting boundary. Any
-                    // in-flight observe/renew reads its complete SQL ACK first.
+                result = &mut observing => {
+                    // Only the read-only provider observation is cancellable.
+                    // Drain every in-flight guardian SQL ACK before stopping.
                     let _ = stop.send(());
                     let maintained = maintenance.await;
                     let prepared = result?;
@@ -203,6 +230,15 @@ impl DurableGraphLifecycle {
             let Some(direct_usage) = prepared else {
                 return Ok(None);
             };
+            // Every actual child must have settled. This is a complete read
+            // outside cancellation selection; retain DIRECT-only closure input.
+            self.store
+                .include_child_usage(
+                    handoff.lease().fence().tenant_id(),
+                    handoff.lease().fence().run_id(),
+                    direct_usage.clone(),
+                )
+                .await?;
             self.store
                 .observe_live_lease(handoff.lease().fence())
                 .await?;
@@ -215,12 +251,10 @@ impl DurableGraphLifecycle {
         })
     }
 
-    fn prepare_frame_cancellation<'a>(
+    fn validate_frame_cancellation_handoff<'a>(
         &'a self,
         handoff: &'a GraphCancellationHandoff,
-        shutdown: &'a stateknot_core::CancellationSignal,
-        evidence_timeout: std::time::Duration,
-    ) -> BoxFuture<'a, Result<Option<stateknot_core::BudgetUsage>, GraphLifecycleError>> {
+    ) -> BoxFuture<'a, Result<Box<StoredActiveGraphFrame>, GraphLifecycleError>> {
         Box::pin(async move {
             let fence = handoff.lease().fence();
             let root = handoff.checkpoint();
@@ -245,6 +279,23 @@ impl DurableGraphLifecycle {
             {
                 return Err(GraphLifecycleError::StaleHandoff);
             }
+            Ok(Box::new(active))
+        })
+    }
+
+    fn observe_frame_cancellation_direct<'a>(
+        &'a self,
+        handoff: &'a GraphCancellationHandoff,
+        active: &'a StoredActiveGraphFrame,
+        shutdown: &'a stateknot_core::CancellationSignal,
+        evidence_timeout: std::time::Duration,
+    ) -> BoxFuture<'a, Result<Option<stateknot_core::BudgetUsage>, GraphLifecycleError>> {
+        Box::pin(async move {
+            let fence = handoff.lease().fence();
+            let root = handoff.checkpoint();
+            let original = handoff.journal_head();
+            let leaf = handoff.leaf().ok_or(GraphLifecycleError::StaleHandoff)?;
+            let run = active.run();
             let context = GraphDirectUsageEvidenceContext::new(
                 run.lifecycle().provenance().clone(),
                 root.clone(),
@@ -277,12 +328,6 @@ impl DurableGraphLifecycle {
                     GraphLifecycleEvidenceError::Unavailable,
                 ));
             }
-            // This read requires every actual child to have settled, while
-            // retaining DIRECT-only evidence for the whole-frame writer.
-            self.store
-                .include_child_usage(fence.tenant_id(), fence.run_id(), evidence.usage().clone())
-                .await?;
-            self.store.observe_live_lease(fence).await?;
             Ok(Some(evidence.usage().clone()))
         })
     }

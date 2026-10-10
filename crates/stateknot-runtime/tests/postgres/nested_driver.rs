@@ -3768,3 +3768,103 @@ async fn scoped_cancellation_guardian_lost_lease_before_write_preserves_history_
     assert_eq!(fixture.nested.root_calls.load(Ordering::SeqCst), 0);
     store.close().await;
 }
+
+#[tokio::test]
+async fn scoped_cancellation_quarantine_commit_ack_survives_guardian_failure() {
+    use super::commit_proxy::{Cut, TransactionTarget};
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(2)).await else {
+        return;
+    };
+    let fixture = cancellation_commit_fixture(&store).await;
+    let fence = fixture.handoff.lease().fence();
+    corrupt_cancellation_frame_stack(fence).await;
+    let mut probe =
+        cancellation_ack_probe(&store, &fixture, TransactionTarget::RunQuarantine, None).await;
+    probe.proxy.wait_cut(Cut::CommitResponse).await;
+    let isolated = store
+        .load_run_quarantine(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(isolated.request().expected_fence(), Some(fence));
+    assert_eq!(
+        isolated.request().expectation(),
+        &JournalExpectation::exact(fixture.handoff.journal_head().clone())
+    );
+    let committed = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    assert!(committed.is_quarantined());
+    assert!(committed.lease().is_none());
+    assert_eq!(
+        committed.journal_head(),
+        Some(fixture.handoff.journal_head())
+    );
+    // The original one-connection pool acquire bound is thirty seconds. The
+    // guardian must actually fail while validation still awaits its mutation ACK.
+    tokio::time::sleep(Duration::from_secs(31)).await;
+    assert!(
+        !probe.closing.is_finished(),
+        "guardian discarded committed quarantine ACK: {:?}",
+        (&mut probe.closing).await.unwrap()
+    );
+    probe.proxy.resume_ack();
+    let error = tokio::time::timeout(Duration::from_secs(10), probe.closing)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap_err();
+    assert!(
+        matches!(error, stateknot_runtime::GraphLifecycleError::Store { source }
+        if matches!(*source, StoreError::RunQuarantined))
+    );
+    assert_eq!(probe.evidence.calls.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        store
+            .load_run_quarantine(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap(),
+        isolated
+    );
+    assert!(
+        store
+            .load_graph_frame_closure(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(fixture.nested.leaf_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.nested.root_calls.load(Ordering::SeqCst), 0);
+    probe.proxied.close().await;
+    probe.proxy.stop().await;
+    store.close().await;
+}
+
+fn corrupt_cancellation_frame_stack(fence: &RunFence) -> BoxFuture<'_, ()> {
+    Box::pin(async move {
+        let connection: sqlx_postgres::PgConnectOptions =
+            std::env::var(DATABASE_URL_ENV).unwrap().parse().unwrap();
+        let pool = sqlx_postgres::PgPoolOptions::new()
+            .max_connections(1)
+            .connect_with(connection)
+            .await
+            .unwrap();
+        let mut transaction = pool.begin().await.unwrap();
+        sqlx_core::query::query("ALTER TABLE stateknot.graph_frame_stacks DISABLE TRIGGER ALL")
+            .execute(&mut *transaction)
+            .await
+            .unwrap();
+        let changed = sqlx_core::query::query(
+            "UPDATE stateknot.graph_frame_stacks SET lifetime_starts=lifetime_starts+1 WHERE tenant_id=$1 AND run_id=$2"
+        ).bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid())
+            .execute(&mut *transaction).await.unwrap();
+        assert_eq!(changed.rows_affected(), 1);
+        sqlx_core::query::query("ALTER TABLE stateknot.graph_frame_stacks ENABLE TRIGGER ALL")
+            .execute(&mut *transaction)
+            .await
+            .unwrap();
+        transaction.commit().await.unwrap();
+        pool.close().await;
+    })
+}

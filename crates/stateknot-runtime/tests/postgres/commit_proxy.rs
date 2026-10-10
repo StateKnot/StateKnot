@@ -38,6 +38,7 @@ pub(super) enum TransactionTarget {
     GraphNodeStart,
     GraphFrameClosure,
     LeaseRenewal,
+    RunQuarantine,
 }
 
 impl TransactionTarget {
@@ -57,6 +58,7 @@ impl TransactionTarget {
             Self::GraphNodeStart => b"\nINSERT INTO stateknot.node_attempts (",
             Self::GraphFrameClosure => b"INSERT INTO stateknot.graph_frame_closures(",
             Self::LeaseRenewal => b"\nUPDATE stateknot.runs\nSET lease_renewed_at = $5,",
+            Self::RunQuarantine => b"\nINSERT INTO stateknot.run_quarantines (",
         }
     }
 }
