@@ -425,3 +425,5 @@ npm run verify
 - 同一冻结源码实际验证了帧内子 Run 的父取消队列、租户隔离、持久投递、真实零外部调用子级取消终态，以及终态后旧 journal/新候选事件的原回执恢复；双方日志、原帧、Root checkpoint 与共享预留不变。这不替代实际外部调用排空、结算或进程/COMMIT 丢确认故障矩阵。
 - 提交 `f3824eda240c2158cb4019b12fa1b8daaf91945d` 的完整静态验收通过：严格 workspace/all-targets/all-features Clippy、98 个 suite 的 1,987 项工作区测试（3 项原有 ignored）、45 项文档测试及严格 Rustdoc。未配置数据库时提前返回的原生测试入口不构成数据库验收；这些证据也不转授后续组合源码。
 - 实际嵌套 Driver、完整重放适配和祖先拓扑回归继续分别冻结与审查。独立候选的完整原生验收仍保留 Root 历史、七层重试和角色默认栈的真实失败，尚不能作为完整资格或 Supported 证据；最终组合源码、Linux/固定 nightly、故障矩阵、真实历史 N-1/N-2、CI 及 R6/R7 门禁继续执行。
+- [恢复增量报告](qualification/experimental-recovery-increment-2026-10-11.zh-CN.md)分别记录 `3236208` 的 1,995 项工作区测试、`a21534c` 双版各 14 项 scoped 子回归、`a1bc43c` 双版各十项 MCP reconciliation 检查、`01beba98` 双版各七项应用重放探针与 1,996 项工作区测试，以及 `bb8a606` 双版各两项真实 Root Driver 重新接管回归。完整只读探针核对全部 53 张业务表与迁移记录；旧 Wait 原回执、更高 fence 与节点只执行一次均有真实证明。
+- `01beba98` 固定 nightly 的原 Driver future 失败、首次 Root 对照共用 target 误用旧二进制的无效候选结论均保留。Root 对照已用空任务缓存重新编译，两版原生通过并核对提交/源码一致。最终组合门禁、普通 Root 正向来源兼容、过期绝对 Wait 与实际 Driver 的 scoped 子 Join 继续开放，不继承其他源码结果或关闭阶段。
