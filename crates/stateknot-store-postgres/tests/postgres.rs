@@ -11,6 +11,8 @@ mod frame_application_replay;
 mod frame_barriers;
 #[path = "postgres/frame_callers.rs"]
 mod frame_callers;
+#[path = "postgres/frame_children.rs"]
+mod frame_children;
 #[path = "postgres/frame_closures.rs"]
 mod frame_closures;
 #[path = "postgres/frame_dispatch.rs"]
