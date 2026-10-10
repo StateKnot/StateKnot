@@ -197,8 +197,9 @@ impl PostgresStore {
             authorize_parent_append(&mut tx, parent.run(), &parent_append, true).await?;
         let fence = parent_append
             .worker_fence()
+            .cloned()
             .ok_or(StoreError::WrongAppendAuthority)?;
-        if node.activation() != key.parent() || node.fence() != fence {
+        if node.activation() != key.parent() || node.fence() != &fence {
             return Err(StoreError::ChildRunRejected);
         }
         let attempt = load_node_attempt_record(
@@ -301,6 +302,19 @@ impl PostgresStore {
         let record = load_record(&mut tx, key)
             .await?
             .ok_or_else(|| StoreError::corrupt("new child ownership"))?;
+        // Complete owning reads and deferred guards can outlive the earlier
+        // journal CAS clock. Flush them before the final original-fence check;
+        // neither a fresh child nor its reservation may survive expired authority.
+        graph_frames::revalidate_worker_after_components(&mut tx, &fence).await?;
+        let final_at = database_now(&mut tx, "child final admission clock").await?;
+        if final_at >= intent.child().budget().deadline()
+            || final_at >= parent.admission().intent().budget().deadline()
+        {
+            return Err(StoreError::ChildRunRejected);
+        }
+        account
+            .remaining(final_at)
+            .map_err(|_| StoreError::ChildRunRejected)?;
         tx.commit()
             .await
             .map_err(|source| StoreError::database("atomic child admission commit", source))?;
