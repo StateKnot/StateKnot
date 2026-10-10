@@ -10,7 +10,7 @@ use stateknot_core::{
     ChildRunAdmissionIntent, ChildRunBudgetAccount, ChildRunBudgetSettlement, ChildRunKey,
 };
 
-const OWNER_COLUMNS: &str = "tenant_id, parent_run_id, key_digest, key_bytes, child_slot, activation_digest, parent_node_attempt_id, spawn_digest, child_run_id, root_run_id, ancestors, intent_bytes, child_admission_digest, parent_checkpoint_id, parent_checkpoint_superstep, parent_checkpoint_digest, journal_sequence, journal_event_id, journal_recorded_at, journal_digest, settled, terminal_pending_at";
+const OWNER_COLUMNS: &str = "tenant_id, parent_run_id, key_digest, key_bytes, child_slot, activation_digest, parent_node_attempt_id, spawn_digest, child_run_id, root_run_id, ancestors, intent_bytes, child_admission_digest, parent_checkpoint_id, parent_checkpoint_superstep, parent_checkpoint_digest, parent_graph_namespace, journal_sequence, journal_event_id, journal_recorded_at, journal_digest, settled, terminal_pending_at";
 
 /// Fully verified ownership, the original child identities and committed spawn event.
 #[derive(Clone, Debug)]
@@ -897,7 +897,7 @@ async fn insert_owner(
     let bytes = intent
         .canonical_bytes()
         .map_err(|_| StoreError::encoding("child intent"))?;
-    query("INSERT INTO stateknot.child_run_ownership (tenant_id,parent_run_id,key_digest,child_slot,activation_digest,spawn_digest,child_run_id,root_run_id,ancestors,intent_bytes,child_admission_digest,parent_checkpoint_id,parent_checkpoint_superstep,parent_checkpoint_digest,journal_sequence,journal_event_id,journal_recorded_at,journal_digest,key_bytes,parent_node_attempt_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)")
+    query("INSERT INTO stateknot.child_run_ownership (tenant_id,parent_run_id,key_digest,child_slot,activation_digest,spawn_digest,child_run_id,root_run_id,ancestors,intent_bytes,child_admission_digest,parent_checkpoint_id,parent_checkpoint_superstep,parent_checkpoint_digest,journal_sequence,journal_event_id,journal_recorded_at,journal_digest,key_bytes,parent_node_attempt_id,parent_graph_namespace) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)")
         .bind(key.tenant_id().as_str()).bind(*key.parent_run_id().as_uuid()).bind(key.digest().as_bytes())
         .bind(key.slot().as_str()).bind(node.activation_digest().as_bytes()).bind(intent.spawn_digest().as_bytes())
         .bind(*intent.child().provenance().run_id().as_uuid()).bind(*ancestors[0].as_uuid())
@@ -907,6 +907,7 @@ async fn insert_owner(
         .bind(*event.event_id().as_uuid()).bind(to_database_time(event.recorded_at())?).bind(event.digest().as_bytes())
         .bind(serde_json_canonicalizer::to_vec(key).map_err(|_| StoreError::encoding("child key"))?)
         .bind(*node.attempt_id().as_uuid())
+        .bind(key.parent().graph_namespace().as_str())
         .execute(&mut **tx).await.map_err(|source| StoreError::database("child ownership insert", source))?;
     Ok(())
 }
@@ -1122,6 +1123,10 @@ pub(super) async fn load_record_inner(
         .validate_policy(&root_graph, &graph, &intent)
         .map_err(|_| StoreError::corrupt("child declaration"))?;
     if intent.key() != key
+        || row
+            .try_get::<String, _>("parent_graph_namespace")
+            .map_err(get_error)?
+            != key.parent().graph_namespace().as_str()
         || intent.parent_admission_digest() != parent.digest()
         || intent.child().provenance().run_id() != child_id
         || row.try_get::<String, _>("child_slot").map_err(get_error)? != key.slot().as_str()
