@@ -33,8 +33,9 @@ bind the existing `parent_graph_namespace` column to that exact scope; Root
 records retain the empty namespace and their original canonical encoding.
 Fresh admission flushes deferred component constraints and rechecks the original
 live worker, parent/child deadlines and reservation capacity after full ownership
-reads. A lease expiring during those guards rolls back the child, ownership,
-budget reservation and parent journal together.
+reads. A lease or the narrower child deadline expiring during those guards rolls
+back the child, ownership, budget reservation and parent journal together,
+including when the parent lease remains live.
 
 The admitted Root must have a child topology policy. A leaf can narrow its three
 caps, and descendant admission retains the policy of each original owning edge.
@@ -42,10 +43,15 @@ Frames share the Root-bound `ChildRunBudgetAccount`: `reserve_for_frame` does
 not create another account or reset lifetime counts. Complete DIRECT usage
 excludes child subtrees, which reservation/settlement charge once. Historical
 ownership authenticates the original frame lineage after Return or closure;
-lost-ACK recovery precedes fresh leaf/fence/deadline checks.
+lost-ACK recovery precedes fresh leaf/fence/deadline checks. Recovering the
+original spawn after Return retains its settled account and current worker
+fence without advancing the journal or reserving again.
 
 Scoped Join seals that activation's complete child set and releases the Run
-lease atomically. Only complete-stack authenticated suspended framework callers
+lease atomically. After full registration reads and deferred guards, it checks
+the original epoch, original lease expiry and Agent deadline again under the
+same Run lock. Expiry rolls back the registration, journal and lease release.
+Only complete-stack authenticated suspended framework callers
 are excluded from its exclusivity check; unfinished ordinary siblings still
 block. Publication requires actual settled child terminals. A higher-fence scoped
 attempt consumes that exact published Join in its immutable result; publication

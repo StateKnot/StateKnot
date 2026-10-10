@@ -24,6 +24,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Attribute reused priced model/tool terminal evidence to its original physical
+  attempt, retaining exact bindings and cumulative lifecycle charges. Later
+  attempts do not charge that I/O again; unknown outcomes, reconciliation after
+  the current Start and unpriced evidence preserve their original usage rules.
+
+- Flush deferred Join-registration guards before rechecking the released
+  original worker epoch, lease expiry and Agent deadline. Expiry rolls back
+  registration, journal advancement and lease release together.
+
 - Flush deferred child-admission guards before the final original-worker,
   parent/child deadline and reservation checks. A lease expiring during those
   guards now rolls back fresh child admission and its complete parent/account

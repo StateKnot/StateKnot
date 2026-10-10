@@ -26,16 +26,19 @@ Store 的子准入和 Join 注册认证真实活动叶帧及其 ready 输入。S
 及读取将现有 `parent_graph_namespace` 列绑定到该确切作用域；旧 Root 记录保留空
 namespace 及原有规范编码。
 新准入在完整归属读取之后先执行延迟组件约束，再复核原有效 Worker、父/子
-截止时间和预留容量。约束校验期间租约过期时，子 Run、归属、预算预留和父日志
-一起回滚。
+截止时间和预留容量。约束校验期间租约或子级较窄的截止时间到期时，子 Run、归属、
+预算预留和父日志一起回滚；父租约仍有效也不能绕过子级截止时间。
 
 已准入 Root 必须具有子拓扑策略，叶帧只能收窄其三个上限；后代准入还保留每条原始
 归属边的拓扑策略。各帧共享 Root 绑定的 `ChildRunBudgetAccount`，
 `reserve_for_frame` 不创建新账户或重置生命周期计数。完整 DIRECT 排除子树消耗，
 预留和结算只计费一次。历史归属在 Return 或关闭之后仍认证原始帧 lineage；丢失
-ACK 时，原提交恢复先于新叶帧、fence 和 deadline 检查。
+ACK 时，原提交恢复先于新叶帧、fence 和 deadline 检查。Return 后恢复原 spawn
+保留已结算账户和当前 Worker fence，不推进日志或重新预留。
 
-Scoped Join 封闭该 activation 的完整子集，并原子释放 Run 租约。排他检查只排除
+Scoped Join 封闭该 activation 的完整子集，并原子释放 Run 租约。完整注册读取及
+延迟约束之后，在同一个 Run 锁下再次核对原 epoch、原租约有效期和 Agent 截止时间；
+到期则注册、日志和租约释放一起回滚。排他检查只排除
 完整 stack 认证的挂起 framework caller，未完成的普通 sibling 仍会阻止注册。
 发布要求真实的子 Run 终态结算；新 fence 下的 scoped 物理尝试必须将该精确 Join
 绑定到不可变结果。发布和消费重试保留原身份，子树只结算一次；帧返回后仍能读取

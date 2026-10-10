@@ -267,6 +267,14 @@ instead of calling the provider again. A higher fence may recover an unfinished
 physical node attempt, but it cannot rewrite an already committed external
 result.
 
+Node completion usage reports the new I/O of that physical attempt. When the
+same activation reuses a fully priced terminal response committed before its
+new physical Start, it contributes no new invocation usage. The exact terminal
+binding and cumulative lifecycle accounting still retain the original charge.
+Facts committed after the current Start, including lost-ACK recovery or
+reconciliation, retain their observed usage. Unknown outcomes and unpriced
+evidence keep their existing blockers and are never cleared to zero.
+
 Known failed tools remain ordered transcript outcomes. Their exact terminal
 revision is bound into the node result, and the next model turn receives the
 failure outcome without inventing success. An `Unknown` write outcome is never
