@@ -14,6 +14,14 @@ validates every previously returned frame. This Store boundary is experimental;
 RFC-0022 remains Draft and the actual nested Driver is a separate implementation
 and qualification gate.
 
+Claimed recovery authenticates the complete canonical current checkpoint before
+returning a session. Durable canonical corruption can quarantine the current
+live owner against the exact observed journal head and fence at session creation;
+a stale owner or stale session cannot quarantine its successor. Valid legacy
+history whose historical disposition is unavailable remains an operational
+replay error. Session-creation timing compatibility with the earlier
+implementation is not claimed.
+
 ## Dependencies and coverage
 
 The resolver receives the complete authoritative `GraphReference`, including its
@@ -55,8 +63,9 @@ view repeats no callbacks and requires no independent Root replay.
 Capture and final verification each own one repeatable-read structural proof
 cache. That cache cannot cross a transaction boundary. Each intervening
 application edge is authenticated directly in a fresh transaction; Store closes
-it before invoking the resolver, schemas or reducer. Direct materialization
-does not re-read a complete historical prefix per edge. A constant-memory,
+it before invoking the resolver, schemas or reducer. Complete owning proofs can
+still revisit Root checkpoint ancestors, particularly with schema-34 Root
+bundles. Total traversal complexity is not yet qualified. A constant-memory,
 domain-separated, length-prefixed digest transcript binds all exact component
 heads and digests across capture, application and final reads.
 
@@ -73,12 +82,15 @@ heads and digests across capture, application and final reads.
 These are separate bounds, not a claim that the whole process uses 64 MiB.
 Only compact scope heads, exact pins and settlement bindings survive callbacks;
 one scope's base/successor and one bounded result set are transient.
-`structural_edges_verified()` reports actual full verifier visits and the three
-direct materialization passes. Root-only 8/16/32-edge fixtures visit 24/48/96
+`structural_edges_verified()` counts the instrumented structural passes and
+direct materializations. It does not measure every nested owning checkpoint
+walk or SQL query. The earlier Root-only 8/16/32-edge fixtures report 24/48/96
 edges. A seven-level cascade with 13 scoped barriers and seven returns visits
 79: `5 × 13 + 2 × 7`; the two full passes each authenticate one additional
-terminal edge per settlement. The direct application interface never loads
-each edge's whole historical prefix.
+terminal edge per settlement. These reported counts do not establish linear
+total work for schema-34 histories. A transaction-owned complete Root-prefix
+proof and equivalence/corruption qualification remain required before making
+that claim.
 Scoped 8/16/32-edge histories visit 40/80/160 edges. Two returned siblings,
 two Root continuations and seven open scopes with six noninitial suspended
 parents visit 50: `3 × 2 + 5 × 8 + 2 × 2`. Their ten application transitions

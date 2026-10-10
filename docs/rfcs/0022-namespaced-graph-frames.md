@@ -383,6 +383,15 @@ valid legacy record. Actual Driver integration and qualification remain open.
 Private whole-return intents are decoded on the heap to bound
 Serde stack use without changing canonical bytes or weakening owning proofs.
 
+Claimed session creation retains full canonical checkpoint authentication.
+Actual durable corruption may quarantine the exact current live owner before
+returning a session; stale observations cannot quarantine a successor. Valid
+legacy disposition unavailability remains operational, without quarantine.
+Compatibility with the earlier session-creation timing is not claimed.
+Schema-34 Root owning proofs can revisit checkpoint ancestors. Instrumented
+replay counters do not establish total linear work; complete transaction-owned
+prefix equivalence and traversal qualification remain separate gates.
+
 The experimental delayed-retry operation is
 `PostgresStore::schedule_graph_frame_delayed_retry_wakeup(&ReadyNodeRecoveryPlan)`.
 Fresh scheduling holds the Run lock across whole current active-stack/head proof,
