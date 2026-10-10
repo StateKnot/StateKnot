@@ -216,7 +216,13 @@ impl PostgresStore {
         }
         ensure_no_unsettled_tool_invocations(&mut tx, scope.checkpoint()).await?;
         ensure_no_unsettled_model_invocations(&mut tx, scope.checkpoint()).await?;
-        check_topology(&mut tx, key.tenant_id(), &ancestors, &owner_graph).await?;
+        Box::pin(check_topology(
+            &mut tx,
+            key.tenant_id(),
+            &ancestors,
+            &owner_graph,
+        ))
+        .await?;
         let mut account = match load_account(&mut tx, key.tenant_id(), key.parent_run_id()).await? {
             Some(account) => account
                 .observe_direct(

@@ -273,14 +273,14 @@ pub(super) fn historical<'a>(
         } else {
             ParentScope::Frame {
                 checkpoint: Box::new(
-                    graph_frames::bound_checkpoint(
+                    Box::pin(graph_frames::bound_checkpoint(
                         tx,
                         activation.tenant_id(),
                         activation.run_id(),
                         activation.graph_namespace(),
                         activation.base_checkpoint(),
                         false,
-                    )
+                    ))
                     .await?,
                 ),
                 suspended: Vec::new(),
