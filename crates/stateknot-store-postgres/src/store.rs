@@ -2577,7 +2577,7 @@ impl ClaimedRunRecovery<'_> {
     /// initial checkpoint exists. A missing, mismatched, or corrupt pinned
     /// definition is quarantined before returning [`StoreError::RunQuarantined`].
     pub async fn load_pinned_graph(&self) -> Result<StoredGraphDefinition, StoreError> {
-        Box::pin(self.read(self.load_pinned_graph_inner())).await
+        Box::pin(self.read(Box::pin(self.load_pinned_graph_inner()))).await
     }
 
     async fn load_pinned_graph_inner(&self) -> Result<StoredGraphDefinition, StoreError> {
@@ -2642,7 +2642,10 @@ impl ClaimedRunRecovery<'_> {
         V: GraphSchemaValidator + ?Sized,
         R: GraphReducer + ?Sized,
     {
-        Box::pin(self.read(self.validate_noninitial_replay_inner(schemas, reducer, limits))).await
+        Box::pin(self.read(Box::pin(
+            self.validate_noninitial_replay_inner(schemas, reducer, limits),
+        )))
+        .await
     }
 
     #[allow(clippy::too_many_lines)]
@@ -2831,7 +2834,7 @@ impl ClaimedRunRecovery<'_> {
     /// checkpoint/result/attempt contradiction is converted to payload-redacted
     /// corruption and fenced quarantine before return.
     pub async fn plan_ready_nodes(&self) -> Result<ReadyNodeRecoveryPlan, StoreError> {
-        Box::pin(self.read(self.plan_ready_nodes_inner())).await
+        Box::pin(self.read(Box::pin(self.plan_ready_nodes_inner()))).await
     }
 
     async fn load_ready_node_checkpoint(
@@ -2919,12 +2922,12 @@ impl ClaimedRunRecovery<'_> {
         from: Option<&CheckpointHead>,
         page_size: CheckpointLineagePageSize,
     ) -> Result<CheckpointLineagePage, StoreError> {
-        self.read(self.store.load_checkpoint_lineage_page(
+        self.read(Box::pin(self.store.load_checkpoint_lineage_page(
             self.fence.tenant_id(),
             self.fence.run_id(),
             from,
             page_size,
-        ))
+        )))
         .await
     }
 
@@ -2939,12 +2942,12 @@ impl ClaimedRunRecovery<'_> {
         after: Option<&JournalHead>,
         page_size: JournalPageSize,
     ) -> Result<JournalPage, StoreError> {
-        self.read(self.store.load_journal_page(
+        self.read(Box::pin(self.store.load_journal_page(
             self.fence.tenant_id(),
             self.fence.run_id(),
             after,
             page_size,
-        ))
+        )))
         .await
     }
 
@@ -2960,13 +2963,15 @@ impl ClaimedRunRecovery<'_> {
         after: Option<&ToolInvocation>,
         page_size: ToolInvocationHistoryPageSize,
     ) -> Result<ToolInvocationHistoryPage, StoreError> {
-        Box::pin(self.read(self.store.load_tool_invocation_history_page(
-            self.fence.tenant_id(),
-            self.fence.run_id(),
-            invocation_id,
-            after,
-            page_size,
-        )))
+        Box::pin(
+            self.read(Box::pin(self.store.load_tool_invocation_history_page(
+                self.fence.tenant_id(),
+                self.fence.run_id(),
+                invocation_id,
+                after,
+                page_size,
+            ))),
+        )
         .await
     }
 
@@ -2982,13 +2987,15 @@ impl ClaimedRunRecovery<'_> {
         after: Option<&ModelInvocation>,
         page_size: ModelInvocationHistoryPageSize,
     ) -> Result<ModelInvocationHistoryPage, StoreError> {
-        Box::pin(self.read(self.store.load_model_invocation_history_page(
-            self.fence.tenant_id(),
-            self.fence.run_id(),
-            invocation_id,
-            after,
-            page_size,
-        )))
+        Box::pin(
+            self.read(Box::pin(self.store.load_model_invocation_history_page(
+                self.fence.tenant_id(),
+                self.fence.run_id(),
+                invocation_id,
+                after,
+                page_size,
+            ))),
+        )
         .await
     }
 
@@ -3007,10 +3014,10 @@ impl ClaimedRunRecovery<'_> {
     ) -> Result<NodeAttemptHistoryPage, StoreError> {
         self.validate_activation_scope(activation)?;
         Box::pin(
-            self.read(
+            self.read(Box::pin(
                 self.store
                     .load_node_attempt_history_page(activation, cursor, page_size),
-            ),
+            )),
         )
         .await
     }
@@ -3030,21 +3037,25 @@ impl ClaimedRunRecovery<'_> {
     ) -> Result<PendingNodeResultPage, StoreError> {
         self.validate_checkpoint_scope(base)?;
         Box::pin(
-            self.read(
+            self.read(Box::pin(
                 self.store
                     .load_unconsumed_pending_node_result_page(base, cursor, page_size),
-            ),
+            )),
         )
         .await
     }
 
-    async fn read<T, F>(&self, recovery_read: F) -> Result<T, StoreError>
-    where
-        F: Future<Output = Result<T, StoreError>>,
-    {
-        self.store
-            .with_corruption_quarantine(self.context.clone(), recovery_read)
-            .await
+    // Erase the proof future before the quarantine wrapper. Keeping a generic
+    // F here recursively expands every SQL/ancestry Send obligation into the
+    // Runtime drive future and exceeded the pinned compiler's autosolver depth.
+    fn read<'a, T: Send + 'a>(
+        &'a self,
+        recovery_read: stateknot_core::BoxFuture<'a, Result<T, StoreError>>,
+    ) -> stateknot_core::BoxFuture<'a, Result<T, StoreError>> {
+        Box::pin(
+            self.store
+                .with_corruption_quarantine(self.context.clone(), recovery_read),
+        )
     }
 
     fn validate_checkpoint_scope(&self, checkpoint: &CheckpointHead) -> Result<(), StoreError> {

@@ -4,7 +4,7 @@
 //! Claimed leaf planning shares bounded history with Root recovery.
 #[allow(clippy::wildcard_imports)]
 use super::*;
-use stateknot_core::{GraphFrameCheckpoint, GraphFrameCheckpointHead};
+use stateknot_core::{BoxFuture, GraphFrameCheckpoint, GraphFrameCheckpointHead};
 
 impl ClaimedRunRecovery<'_> {
     /// Plans the exact active graph frame under this claimed journal observation.
@@ -24,7 +24,7 @@ impl ClaimedRunRecovery<'_> {
         expected: &GraphFrameCheckpointHead,
     ) -> Result<ReadyNodeRecoveryPlan, StoreError> {
         self.validate_checkpoint_scope(expected.checkpoint())?;
-        Box::pin(self.read(self.plan_graph_frame_ready_nodes_inner(expected))).await
+        Box::pin(self.read(Box::pin(self.plan_graph_frame_ready_nodes_inner(expected)))).await
     }
 
     async fn plan_graph_frame_ready_nodes_inner(
@@ -83,76 +83,78 @@ impl ClaimedRunRecovery<'_> {
         Ok(active.checkpoint().clone())
     }
 
-    pub(super) async fn observe_ready_node_history(
-        &self,
-        planner: &mut ReadyNodeRecoveryPlanner,
-        base: &CheckpointHead,
-        frame: Option<&GraphFrameCheckpointHead>,
-    ) -> Result<(), StoreError> {
-        let result_page_size = PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX)?;
-        let mut result_cursor = None;
-        loop {
-            let page = if let Some(frame) = frame {
-                Box::pin(self.store.load_graph_frame_pending_node_result_page(
-                    frame,
-                    result_cursor.as_ref(),
-                    result_page_size,
-                ))
-                .await?
-            } else {
-                self.store
-                    .load_unconsumed_pending_node_result_page(
-                        base,
+    pub(super) fn observe_ready_node_history<'a>(
+        &'a self,
+        planner: &'a mut ReadyNodeRecoveryPlanner,
+        base: &'a CheckpointHead,
+        frame: Option<&'a GraphFrameCheckpointHead>,
+    ) -> BoxFuture<'a, Result<(), StoreError>> {
+        Box::pin(async move {
+            let result_page_size = PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX)?;
+            let mut result_cursor = None;
+            loop {
+                let page = if let Some(frame) = frame {
+                    Box::pin(self.store.load_graph_frame_pending_node_result_page(
+                        frame,
                         result_cursor.as_ref(),
                         result_page_size,
-                    )
+                    ))
                     .await?
-            };
-            if self.context.expectation().head() != Some(page.snapshot_journal_head()) {
-                return Err(StoreError::StaleClaimedRunRecoveryObservation);
-            }
-            for result in page.records() {
-                planner
-                    .observe_result(result)
-                    .map_err(|_| StoreError::corrupt("ready node recovery result set"))?;
-            }
-            if !page.has_more() {
-                break;
-            }
-            result_cursor = Some(
-                page.next_cursor()
-                    .ok_or_else(|| StoreError::corrupt("ready node recovery result cursor"))?,
-            );
-        }
-
-        let attempt_page_size = NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX)?;
-        for activation in planner.activations() {
-            let mut attempt_cursor = None;
-            loop {
-                let page = self
-                    .store
-                    .load_node_attempt_history_page(
-                        &activation,
-                        attempt_cursor.as_ref(),
-                        attempt_page_size,
-                    )
-                    .await?;
-                for attempt in page.records() {
+                } else {
+                    self.store
+                        .load_unconsumed_pending_node_result_page(
+                            base,
+                            result_cursor.as_ref(),
+                            result_page_size,
+                        )
+                        .await?
+                };
+                if self.context.expectation().head() != Some(page.snapshot_journal_head()) {
+                    return Err(StoreError::StaleClaimedRunRecoveryObservation);
+                }
+                for result in page.records() {
                     planner
-                        .observe_attempt(attempt)
-                        .map_err(|_| StoreError::corrupt("ready node recovery attempt history"))?;
+                        .observe_result(result)
+                        .map_err(|_| StoreError::corrupt("ready node recovery result set"))?;
                 }
                 if !page.has_more() {
                     break;
                 }
-                attempt_cursor =
-                    Some(page.next_cursor().ok_or_else(|| {
+                result_cursor = Some(
+                    page.next_cursor()
+                        .ok_or_else(|| StoreError::corrupt("ready node recovery result cursor"))?,
+                );
+            }
+
+            let attempt_page_size =
+                NodeAttemptHistoryPageSize::new(NodeAttemptHistoryPageSize::MAX)?;
+            for activation in planner.activations() {
+                let mut attempt_cursor = None;
+                loop {
+                    let page = self
+                        .store
+                        .load_node_attempt_history_page(
+                            &activation,
+                            attempt_cursor.as_ref(),
+                            attempt_page_size,
+                        )
+                        .await?;
+                    for attempt in page.records() {
+                        planner.observe_attempt(attempt).map_err(|_| {
+                            StoreError::corrupt("ready node recovery attempt history")
+                        })?;
+                    }
+                    if !page.has_more() {
+                        break;
+                    }
+                    attempt_cursor = Some(page.next_cursor().ok_or_else(|| {
                         StoreError::corrupt("ready node recovery attempt cursor")
                     })?);
+                }
             }
-        }
 
-        Ok(())
+            Ok(())
+        })
     }
 }
 
