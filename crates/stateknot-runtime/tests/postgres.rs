@@ -9,6 +9,9 @@ mod graph_composition;
 #[path = "postgres/nested_driver.rs"]
 mod nested_driver;
 
+#[path = "postgres/root_driver_recovery.rs"]
+mod root_driver_recovery;
+
 #[path = "postgres/child_admission.rs"]
 mod child_admission;
 
