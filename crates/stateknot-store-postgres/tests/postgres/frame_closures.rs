@@ -1345,13 +1345,26 @@ async fn expired_execution_deadline_and_exhausted_step_budget_still_allow_bounde
         panic!("fresh entry");
     };
     assert_eq!(entry.direct_usage_after().unwrap().graph_steps().get(), 1);
-    let now = store.observe_database_clock().await.unwrap();
-    if now < deadline {
-        tokio::time::sleep(Duration::from_micros(
-            u64::try_from(deadline.unix_micros() - now.unix_micros()).unwrap() + 1000,
-        ))
-        .await;
-    }
+    // A host monotonic sleep does not prove that the database wall clock has
+    // reached the original deadline, particularly across VM clock adjustment.
+    // Observe that authority directly; the timeout only bounds this fixture.
+    tokio::time::timeout(Duration::from_secs(20), async {
+        loop {
+            let now = store.observe_database_clock().await.unwrap();
+            if now >= deadline {
+                break;
+            }
+            tokio::time::sleep(
+                Duration::from_micros(
+                    u64::try_from(deadline.unix_micros() - now.unix_micros()).unwrap(),
+                )
+                .min(Duration::from_millis(100)),
+            )
+            .await;
+        }
+    })
+    .await
+    .expect("database clock must reach the unchanged execution deadline");
     assert!(store.observe_database_clock().await.unwrap() >= deadline);
     assert!(store.observe_live_lease(&fence).await.is_err());
     let requested = request_cancel(&store, &fence).await;
