@@ -102,19 +102,7 @@ impl PostgresStore {
         if node.activation() != activation || append.worker_fence() != Some(node.fence()) {
             return Err(StoreError::ChildJoinRejected);
         }
-        let checkpoint = load_locked_current_checkpoint(
-            &mut tx,
-            &parent,
-            activation.tenant_id(),
-            activation.run_id(),
-        )
-        .await?
-        .ok_or(StoreError::StaleCheckpointHead)?;
-        if checkpoint.head() != *activation.base_checkpoint()
-            || !node_attempt_activation_is_ready(&checkpoint, activation)
-        {
-            return Err(StoreError::StaleCheckpointHead);
-        }
+        let scope = child_run_scope::current(&mut tx, &parent, activation).await?;
         let attempt = load_locked_node_attempt(&mut tx, node).await?;
         verify_node_attempt_start(&mut tx, attempt.start()).await?;
         if attempt.start().head() != *node
@@ -125,15 +113,18 @@ impl PostgresStore {
         {
             return Err(StoreError::ChildJoinRejected);
         }
-        let overlapping = query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND n.fence_attempt_id=$3 AND n.attempt_id<>$4 AND NOT EXISTS (SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id))")
+        // Only the complete authenticated stack's actual suspended framework
+        // callers are excluded. Every unfinished ordinary sibling still blocks.
+        let overlapping = query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND n.fence_attempt_id=$3 AND n.attempt_id<>$4 AND n.attempt_id<>ALL($5) AND NOT EXISTS (SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id))")
             .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid())
             .bind(*node.fence().attempt_id().as_uuid()).bind(*node.attempt_id().as_uuid())
+            .bind(scope.suspended_callers())
             .fetch_one(&mut *tx).await.map_err(|source| StoreError::database("child Join exclusive boundary", source))?;
         if overlapping {
             return Err(StoreError::ChildJoinRejected);
         }
-        ensure_no_unsettled_tool_invocations(&mut tx, &checkpoint).await?;
-        ensure_no_unsettled_model_invocations(&mut tx, &checkpoint).await?;
+        ensure_no_unsettled_tool_invocations(&mut tx, scope.checkpoint()).await?;
+        ensure_no_unsettled_model_invocations(&mut tx, scope.checkpoint()).await?;
         verify_members(&mut tx, &request, true).await?;
         let event =
             JournalEvent::commit(append, at).map_err(|error| map_event_commit_error(&error))?;

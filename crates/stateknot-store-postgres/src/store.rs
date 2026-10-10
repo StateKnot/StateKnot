@@ -62,6 +62,9 @@ use uuid::Uuid;
 mod child_runs;
 pub use child_runs::{ChildRunCommitOutcome, ChildRunRecord, ChildRunSettlementOutcome};
 
+#[path = "child_run_scope.rs"]
+mod child_run_scope;
+
 #[path = "child_joins.rs"]
 mod child_joins;
 pub use child_joins::{ChildJoinCommitOutcome, ChildJoinRecord};

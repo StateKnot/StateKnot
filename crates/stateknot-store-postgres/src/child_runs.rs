@@ -130,31 +130,22 @@ impl PostgresStore {
             }
             return Ok(ChildRunCommitOutcome::Idempotent(record));
         }
-        let parent = self
-            .load_agent_admission(key.tenant_id(), key.parent_run_id())
-            .await?;
-        let checkpoint = self
-            .load_current_checkpoint(key.tenant_id(), key.parent_run_id())
-            .await?
-            .ok_or(StoreError::StaleCheckpointHead)?;
-        let parent_graph = self
-            .load_graph_definition(key.tenant_id(), parent.admission().intent().graph())
-            .await?;
+        let preflight = self.child_scope_preflight(&intent, &parent_append).await?;
         let child_graph = self
             .load_graph_definition(key.tenant_id(), intent.child().graph())
             .await?;
         if child_graph.graph() != intent.child_graph() {
             return Err(StoreError::ChildRunRejected);
         }
-        intent
-            .validate_declaration(parent_graph.graph())
-            .map_err(|_| StoreError::ChildRunRejected)?;
-        let schema_clock = self.observe_database_clock().await?;
         catch_unwind(AssertUnwindSafe(|| {
-            intent.validate_for(parent.admission(), &checkpoint, schemas, schema_clock)
+            preflight.scope.validate_schemas(
+                preflight.admission.admission(),
+                &intent,
+                schemas,
+                preflight.observed_at,
+            )
         }))
-        .map_err(|_| StoreError::AgentAdmissionSchemaUnavailable)?
-        .map_err(|_| StoreError::ChildRunRejected)?;
+        .map_err(|_| StoreError::AgentAdmissionSchemaUnavailable)??;
         validate_agent_initial_checkpoint(child_graph.graph(), &child_checkpoint, schemas)?;
 
         let mut tx = self.begin_mutation("atomic child admission").await?;
@@ -186,19 +177,22 @@ impl PostgresStore {
         if parent.admission().digest() != intent.parent_admission_digest() {
             return Err(StoreError::ChildRunConflict);
         }
-        let current = load_locked_current_checkpoint(
+        let scope = child_run_scope::current(&mut tx, parent.run(), key.parent()).await?;
+        scope.validate_intent(parent.admission(), &intent)?;
+        let parent_graph = child_run_scope::graph(
             &mut tx,
-            parent.run(),
             key.tenant_id(),
-            key.parent_run_id(),
+            parent.admission().intent().graph(),
         )
-        .await?
-        .ok_or(StoreError::StaleCheckpointHead)?;
-        if current.head() != *key.parent().base_checkpoint()
-            || !node_attempt_activation_is_ready(&current, key.parent())
-        {
-            return Err(StoreError::StaleCheckpointHead);
+        .await?;
+        let owner_graph =
+            child_run_scope::graph(&mut tx, key.tenant_id(), scope.checkpoint().graph()).await?;
+        if parent_graph != preflight.root_graph || owner_graph != preflight.owner_graph {
+            return Err(StoreError::corrupt(
+                "child scope preflight graph substitution",
+            ));
         }
+        scope.validate_policy(&parent_graph, &owner_graph, &intent)?;
         let observed_at =
             authorize_parent_append(&mut tx, parent.run(), &parent_append, true).await?;
         let fence = parent_append
@@ -219,9 +213,9 @@ impl PostgresStore {
         if attempt.start().head() != *node || attempt.completion().is_some() {
             return Err(StoreError::ChildRunRejected);
         }
-        ensure_no_unsettled_tool_invocations(&mut tx, &current).await?;
-        ensure_no_unsettled_model_invocations(&mut tx, &current).await?;
-        check_topology(&mut tx, key.tenant_id(), &ancestors).await?;
+        ensure_no_unsettled_tool_invocations(&mut tx, scope.checkpoint()).await?;
+        ensure_no_unsettled_model_invocations(&mut tx, scope.checkpoint()).await?;
+        check_topology(&mut tx, key.tenant_id(), &ancestors, &owner_graph).await?;
         let mut account = match load_account(&mut tx, key.tenant_id(), key.parent_run_id()).await? {
             Some(account) => account
                 .observe_direct(
@@ -235,7 +229,7 @@ impl PostgresStore {
                 .map_err(|_| StoreError::ChildRunRejected)?,
             None => ChildRunBudgetAccount::new(
                 parent.admission(),
-                parent_graph.graph(),
+                &parent_graph,
                 parent_append
                     .expectation()
                     .head()
@@ -245,9 +239,7 @@ impl PostgresStore {
             )
             .map_err(|_| StoreError::ChildRunRejected)?,
         };
-        account = account
-            .reserve(&intent, parent_graph.graph(), observed_at)
-            .map_err(|_| StoreError::ChildRunRejected)?;
+        account = scope.reserve(&account, &intent, &owner_graph, observed_at)?;
         let child_id = intent.child().provenance().run_id();
         // Reject existing identities without inverting admission-key/run lock order.
         let exists = query_scalar::<_, bool>(
@@ -725,6 +717,7 @@ async fn check_topology(
     tx: &mut Transaction<'_, Postgres>,
     tenant: &TenantId,
     ancestors: &[RunId],
+    owner_graph: &CompiledGraph,
 ) -> Result<(), StoreError> {
     let active = query_scalar::<_, Vec<Uuid>>("SELECT ancestors FROM stateknot.child_run_ownership WHERE tenant_id = $1 AND root_run_id = $2 AND NOT settled LIMIT 257")
         .bind(tenant.as_str()).bind(*ancestors[0].as_uuid()).fetch_all(&mut **tx).await
@@ -750,11 +743,62 @@ async fn check_topology(
             .iter()
             .filter(|path| path.contains(ancestor.as_uuid()))
             .count();
-        if ancestors.len() - position > usize::from(limits.maximum_descendant_depth())
-            || count >= usize::from(limits.maximum_active_descendants())
+        check_topology_limits(limits, ancestors.len() - position, count)?;
+        // The original scope owning an ancestor edge can narrow its Run's
+        // remaining topology. Authenticate that immutable ownership after
+        // Return as well; a later Root activation cannot reset those ceilings.
+        let scoped_graph = if let Some(child) = ancestors.get(position + 1) {
+            let bytes = query_scalar::<_, Vec<u8>>("SELECT key_bytes FROM stateknot.child_run_ownership WHERE tenant_id=$1 AND parent_run_id=$2 AND child_run_id=$3")
+                .bind(tenant.as_str()).bind(*ancestor.as_uuid()).bind(*child.as_uuid())
+                .fetch_optional(&mut **tx).await
+                .map_err(|source| StoreError::database("child ancestor owning key", source))?
+                .ok_or_else(|| StoreError::corrupt("child ancestor owner missing"))?;
+            let key: ChildRunKey = serde_json::from_slice(&bytes)
+                .map_err(|_| StoreError::corrupt("child ancestor owning key"))?;
+            if serde_json_canonicalizer::to_vec(&key)
+                .map_err(|_| StoreError::encoding("child ancestor key"))?
+                != bytes
+                || key.tenant_id() != tenant
+                || key.parent_run_id() != *ancestor
+            {
+                return Err(StoreError::corrupt("child ancestor key substitution"));
+            }
+            let record = Box::pin(load_record_inner(tx, &key, false))
+                .await?
+                .ok_or_else(|| StoreError::corrupt("child ancestor ownership"))?;
+            if record.child().admission().intent().provenance().run_id() != *child {
+                return Err(StoreError::corrupt("child ancestor child substitution"));
+            }
+            load_graph(tx, tenant, key.parent().base_checkpoint().graph()).await?
+        } else {
+            owner_graph.clone()
+        };
+        let scoped = scoped_graph
+            .child_runs()
+            .ok_or(StoreError::ChildRunRejected)?
+            .limits();
+        if scoped.maximum_descendant_depth() > limits.maximum_descendant_depth()
+            || scoped.maximum_children_per_run() > limits.maximum_children_per_run()
+            || scoped.maximum_active_descendants() > limits.maximum_active_descendants()
         {
-            return Err(StoreError::ChildRunTopologyExceeded);
+            return Err(StoreError::corrupt(
+                "child ancestor scope widens Root topology",
+            ));
         }
+        check_topology_limits(scoped, ancestors.len() - position, count)?;
+    }
+    Ok(())
+}
+
+fn check_topology_limits(
+    limits: stateknot_core::ChildRunTopologyLimits,
+    depth: usize,
+    active: usize,
+) -> Result<(), StoreError> {
+    if depth > usize::from(limits.maximum_descendant_depth())
+        || active >= usize::from(limits.maximum_active_descendants())
+    {
+        return Err(StoreError::ChildRunTopologyExceeded);
     }
     Ok(())
 }
@@ -1065,26 +1109,17 @@ pub(super) async fn load_record_inner(
     {
         return Err(StoreError::corrupt("child node activation"));
     }
-    let checkpoint_row = query_as::<_, CheckpointRow>(SELECT_CHECKPOINT_BY_ID)
-        .bind(key.tenant_id().as_str())
-        .bind(*key.parent_run_id().as_uuid())
-        .bind(*key.parent().base_checkpoint().checkpoint_id().as_uuid())
-        .fetch_one(&mut **tx)
-        .await
-        .map_err(|source| StoreError::database("child base checkpoint", source))?;
-    let checkpoint = decode_checkpoint(checkpoint_row)?;
-    verify_checkpoint_anchor(tx, &checkpoint).await?;
-    if checkpoint.head() != *key.parent().base_checkpoint()
-        || !node_attempt_activation_is_ready(&checkpoint, key.parent())
-    {
-        return Err(StoreError::corrupt("child checkpoint activation"));
-    }
-    let graph = load_graph(tx, key.tenant_id(), parent.intent().graph()).await?;
+    let scope = child_run_scope::historical(tx, key.parent()).await?;
+    scope
+        .validate_intent(&parent, &intent)
+        .map_err(|_| StoreError::corrupt("owned child parent scope"))?;
+    let root_graph = load_graph(tx, key.tenant_id(), parent.intent().graph()).await?;
+    let graph = load_graph(tx, key.tenant_id(), scope.checkpoint().graph()).await?;
     if load_graph(tx, key.tenant_id(), intent.child().graph()).await? != *intent.child_graph() {
         return Err(StoreError::corrupt("owned child graph"));
     }
-    intent
-        .validate_declaration(&graph)
+    scope
+        .validate_policy(&root_graph, &graph, &intent)
         .map_err(|_| StoreError::corrupt("child declaration"))?;
     if intent.key() != key
         || intent.parent_admission_digest() != parent.digest()
