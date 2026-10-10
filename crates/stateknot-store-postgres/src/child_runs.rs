@@ -130,201 +130,236 @@ impl PostgresStore {
             }
             return Ok(ChildRunCommitOutcome::Idempotent(record));
         }
-        let preflight = self.child_scope_preflight(&intent, &parent_append).await?;
-        let child_graph = self
-            .load_graph_definition(key.tenant_id(), intent.child().graph())
-            .await?;
-        if child_graph.graph() != intent.child_graph() {
-            return Err(StoreError::ChildRunRejected);
-        }
-        catch_unwind(AssertUnwindSafe(|| {
-            preflight.scope.validate_schemas(
-                preflight.admission.admission(),
-                &intent,
-                schemas,
-                preflight.observed_at,
-            )
-        }))
-        .map_err(|_| StoreError::AgentAdmissionSchemaUnavailable)??;
-        validate_agent_initial_checkpoint(child_graph.graph(), &child_checkpoint, schemas)?;
-
-        let mut tx = self.begin_mutation("atomic child admission").await?;
-        let ancestors = ancestry(&mut tx, key.tenant_id(), key.parent_run_id()).await?;
-        lock_tree(&mut tx, key.tenant_id(), ancestors[0]).await?;
-        if ancestry(&mut tx, key.tenant_id(), key.parent_run_id()).await? != ancestors {
-            return Err(StoreError::corrupt("child ancestry changed"));
-        }
-        // All ancestors are locked before checking cancellation and live counts.
-        for ancestor in &ancestors {
-            fetch_locked_run_row(&mut tx, key.tenant_id(), *ancestor).await?;
-        }
-        if let Some(record) = load_record(&mut tx, key).await? {
-            load_account(&mut tx, key.tenant_id(), key.parent_run_id()).await?;
-            if record.intent.spawn_digest() != intent.spawn_digest() {
-                return Err(StoreError::ChildRunConflict);
-            }
-            tx.commit()
-                .await
-                .map_err(|source| StoreError::database("child admission retry", source))?;
-            return Ok(ChildRunCommitOutcome::Idempotent(record));
-        }
-        let stored =
-            decode_run(fetch_locked_run_row(&mut tx, key.tenant_id(), key.parent_run_id()).await?)?;
-        let parent_row = load_agent_admission_row(&mut tx, key.tenant_id(), key.parent_run_id())
-            .await?
-            .ok_or(StoreError::AgentAdmissionNotFound)?;
-        let parent = verify_stored_agent_admission(&mut tx, stored, parent_row).await?;
-        if parent.admission().digest() != intent.parent_admission_digest() {
-            return Err(StoreError::ChildRunConflict);
-        }
-        let scope = child_run_scope::current(&mut tx, parent.run(), key.parent()).await?;
-        scope.validate_intent(parent.admission(), &intent)?;
-        let parent_graph = child_run_scope::graph(
-            &mut tx,
-            key.tenant_id(),
-            parent.admission().intent().graph(),
-        )
-        .await?;
-        let owner_graph =
-            child_run_scope::graph(&mut tx, key.tenant_id(), scope.checkpoint().graph()).await?;
-        if parent_graph != preflight.root_graph || owner_graph != preflight.owner_graph {
-            return Err(StoreError::corrupt(
-                "child scope preflight graph substitution",
-            ));
-        }
-        scope.validate_policy(&parent_graph, &owner_graph, &intent)?;
-        let observed_at =
-            authorize_parent_append(&mut tx, parent.run(), &parent_append, true).await?;
-        let fence = parent_append
-            .worker_fence()
-            .cloned()
-            .ok_or(StoreError::WrongAppendAuthority)?;
-        if node.activation() != key.parent() || node.fence() != &fence {
-            return Err(StoreError::ChildRunRejected);
-        }
-        let attempt = load_node_attempt_record(
-            &mut tx,
-            key.tenant_id(),
-            &key.parent_run_id(),
-            node.attempt_id(),
-        )
-        .await?
-        .ok_or(StoreError::ChildRunRejected)?;
-        verify_node_attempt(&mut tx, &attempt).await?;
-        if attempt.start().head() != *node || attempt.completion().is_some() {
-            return Err(StoreError::ChildRunRejected);
-        }
-        ensure_no_unsettled_tool_invocations(&mut tx, scope.checkpoint()).await?;
-        ensure_no_unsettled_model_invocations(&mut tx, scope.checkpoint()).await?;
-        Box::pin(check_topology(
-            &mut tx,
-            key.tenant_id(),
-            &ancestors,
-            &owner_graph,
-        ))
-        .await?;
-        let mut account = match load_account(&mut tx, key.tenant_id(), key.parent_run_id()).await? {
-            Some(account) => account
-                .observe_direct(
-                    parent_append
-                        .expectation()
-                        .head()
-                        .ok_or(StoreError::StaleJournalHead)?
-                        .clone(),
-                    direct_usage,
-                )
-                .map_err(|_| StoreError::ChildRunRejected)?,
-            None => ChildRunBudgetAccount::new(
-                parent.admission(),
-                &parent_graph,
-                parent_append
-                    .expectation()
-                    .head()
-                    .ok_or(StoreError::StaleJournalHead)?
-                    .clone(),
-                direct_usage,
-            )
-            .map_err(|_| StoreError::ChildRunRejected)?,
-        };
-        account = scope.reserve(&account, &intent, &owner_graph, observed_at)?;
-        let child_id = intent.child().provenance().run_id();
-        // Reject existing identities without inverting admission-key/run lock order.
-        let exists = query_scalar::<_, bool>(
-            "SELECT EXISTS (SELECT 1 FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2)",
-        )
-        .bind(key.tenant_id().as_str())
-        .bind(*child_id.as_uuid())
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(|source| StoreError::database("child fresh identity check", source))?;
-        if exists {
-            return Err(StoreError::ChildRunConflict);
-        }
-        if load_locked_agent_admission(&mut tx, key.tenant_id(), child_id)
-            .await?
-            .is_some()
-        {
-            return Err(StoreError::ChildRunConflict);
-        }
-        let child = match Box::pin(commit_new_agent_admission(
-            &mut tx,
-            intent.child().clone(),
+        self.admit_new_child_run(
+            intent,
+            node,
+            parent_append,
             child_append,
             child_checkpoint,
-        ))
-        .await?
-        {
-            NewAgentAdmissionOutcome::Committed(child) => child,
-            NewAgentAdmissionOutcome::Idempotent(_) => return Err(StoreError::ChildRunConflict),
-        };
-        let at = database_now(&mut tx, "child spawn clock")
-            .await?
-            .max(observed_at)
-            .max(child.admission().admitted_at());
-        account
-            .remaining(at)
-            .map_err(|_| StoreError::ChildRunRejected)?;
-        let event = JournalEvent::commit(parent_append, at)
-            .map_err(|error| map_event_commit_error(&error))?;
-        insert_event(
-            &mut tx,
-            &event,
-            spawn_projection(&intent, child.admission(), child.checkpoint(), &event)?,
+            direct_usage,
+            schemas,
         )
-        .await?;
-        insert_owner(
-            &mut tx,
-            &intent,
-            attempt.start(),
-            &ancestors,
-            &child,
-            &event,
-        )
-        .await?;
-        save_account(&mut tx, &account, &event.head()).await?;
-        mark_child_capability(&mut tx, key.tenant_id(), key.parent_run_id()).await?;
-        mark_child_capability(&mut tx, key.tenant_id(), child_id).await?;
-        update_run_head(&mut tx, &event, None).await?; // final live database-time fence
-        let record = load_record(&mut tx, key)
+        .await
+    }
+
+    // Keep the complete fresh mutation behind a private concrete future. ACK
+    // recovery still performs every owning read above, without reserving the
+    // fresh branch's much larger poll frame on that historical read stack.
+    #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+    fn admit_new_child_run<'a, V: GraphSchemaValidator + ?Sized>(
+        &'a self,
+        intent: ChildRunAdmissionIntent,
+        node: &'a NodeAttemptStartHead,
+        parent_append: JournalAppend,
+        child_append: JournalAppend,
+        child_checkpoint: CheckpointWrite,
+        direct_usage: BudgetUsage,
+        schemas: &'a V,
+    ) -> stateknot_core::BoxFuture<'a, Result<ChildRunCommitOutcome, StoreError>> {
+        Box::pin(async move {
+            let key = intent.key();
+            let preflight = self.child_scope_preflight(&intent, &parent_append).await?;
+            let child_graph = self
+                .load_graph_definition(key.tenant_id(), intent.child().graph())
+                .await?;
+            if child_graph.graph() != intent.child_graph() {
+                return Err(StoreError::ChildRunRejected);
+            }
+            catch_unwind(AssertUnwindSafe(|| {
+                preflight.scope.validate_schemas(
+                    preflight.admission.admission(),
+                    &intent,
+                    schemas,
+                    preflight.observed_at,
+                )
+            }))
+            .map_err(|_| StoreError::AgentAdmissionSchemaUnavailable)??;
+            validate_agent_initial_checkpoint(child_graph.graph(), &child_checkpoint, schemas)?;
+
+            let mut tx = self.begin_mutation("atomic child admission").await?;
+            let ancestors = ancestry(&mut tx, key.tenant_id(), key.parent_run_id()).await?;
+            lock_tree(&mut tx, key.tenant_id(), ancestors[0]).await?;
+            if ancestry(&mut tx, key.tenant_id(), key.parent_run_id()).await? != ancestors {
+                return Err(StoreError::corrupt("child ancestry changed"));
+            }
+            // All ancestors are locked before checking cancellation and live counts.
+            for ancestor in &ancestors {
+                fetch_locked_run_row(&mut tx, key.tenant_id(), *ancestor).await?;
+            }
+            if let Some(record) = load_record(&mut tx, key).await? {
+                load_account(&mut tx, key.tenant_id(), key.parent_run_id()).await?;
+                if record.intent.spawn_digest() != intent.spawn_digest() {
+                    return Err(StoreError::ChildRunConflict);
+                }
+                tx.commit()
+                    .await
+                    .map_err(|source| StoreError::database("child admission retry", source))?;
+                return Ok(ChildRunCommitOutcome::Idempotent(record));
+            }
+            let stored = decode_run(
+                fetch_locked_run_row(&mut tx, key.tenant_id(), key.parent_run_id()).await?,
+            )?;
+            let parent_row =
+                load_agent_admission_row(&mut tx, key.tenant_id(), key.parent_run_id())
+                    .await?
+                    .ok_or(StoreError::AgentAdmissionNotFound)?;
+            let parent = verify_stored_agent_admission(&mut tx, stored, parent_row).await?;
+            if parent.admission().digest() != intent.parent_admission_digest() {
+                return Err(StoreError::ChildRunConflict);
+            }
+            let scope = child_run_scope::current(&mut tx, parent.run(), key.parent()).await?;
+            scope.validate_intent(parent.admission(), &intent)?;
+            let parent_graph = child_run_scope::graph(
+                &mut tx,
+                key.tenant_id(),
+                parent.admission().intent().graph(),
+            )
+            .await?;
+            let owner_graph =
+                child_run_scope::graph(&mut tx, key.tenant_id(), scope.checkpoint().graph())
+                    .await?;
+            if parent_graph != preflight.root_graph || owner_graph != preflight.owner_graph {
+                return Err(StoreError::corrupt(
+                    "child scope preflight graph substitution",
+                ));
+            }
+            scope.validate_policy(&parent_graph, &owner_graph, &intent)?;
+            let observed_at =
+                authorize_parent_append(&mut tx, parent.run(), &parent_append, true).await?;
+            let fence = parent_append
+                .worker_fence()
+                .cloned()
+                .ok_or(StoreError::WrongAppendAuthority)?;
+            if node.activation() != key.parent() || node.fence() != &fence {
+                return Err(StoreError::ChildRunRejected);
+            }
+            let attempt = load_node_attempt_record(
+                &mut tx,
+                key.tenant_id(),
+                &key.parent_run_id(),
+                node.attempt_id(),
+            )
             .await?
-            .ok_or_else(|| StoreError::corrupt("new child ownership"))?;
-        // Complete owning reads and deferred guards can outlive the earlier
-        // journal CAS clock. Flush them before the final original-fence check;
-        // neither a fresh child nor its reservation may survive expired authority.
-        graph_frames::revalidate_worker_after_components(&mut tx, &fence).await?;
-        let final_at = database_now(&mut tx, "child final admission clock").await?;
-        if final_at >= intent.child().budget().deadline()
-            || final_at >= parent.admission().intent().budget().deadline()
-        {
-            return Err(StoreError::ChildRunRejected);
-        }
-        account
-            .remaining(final_at)
-            .map_err(|_| StoreError::ChildRunRejected)?;
-        tx.commit()
+            .ok_or(StoreError::ChildRunRejected)?;
+            verify_node_attempt(&mut tx, &attempt).await?;
+            if attempt.start().head() != *node || attempt.completion().is_some() {
+                return Err(StoreError::ChildRunRejected);
+            }
+            ensure_no_unsettled_tool_invocations(&mut tx, scope.checkpoint()).await?;
+            ensure_no_unsettled_model_invocations(&mut tx, scope.checkpoint()).await?;
+            Box::pin(check_topology(
+                &mut tx,
+                key.tenant_id(),
+                &ancestors,
+                &owner_graph,
+            ))
+            .await?;
+            let mut account =
+                match load_account(&mut tx, key.tenant_id(), key.parent_run_id()).await? {
+                    Some(account) => account
+                        .observe_direct(
+                            parent_append
+                                .expectation()
+                                .head()
+                                .ok_or(StoreError::StaleJournalHead)?
+                                .clone(),
+                            direct_usage,
+                        )
+                        .map_err(|_| StoreError::ChildRunRejected)?,
+                    None => ChildRunBudgetAccount::new(
+                        parent.admission(),
+                        &parent_graph,
+                        parent_append
+                            .expectation()
+                            .head()
+                            .ok_or(StoreError::StaleJournalHead)?
+                            .clone(),
+                        direct_usage,
+                    )
+                    .map_err(|_| StoreError::ChildRunRejected)?,
+                };
+            account = scope.reserve(&account, &intent, &owner_graph, observed_at)?;
+            let child_id = intent.child().provenance().run_id();
+            // Reject existing identities without inverting admission-key/run lock order.
+            let exists = query_scalar::<_, bool>(
+                "SELECT EXISTS (SELECT 1 FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2)",
+            )
+            .bind(key.tenant_id().as_str())
+            .bind(*child_id.as_uuid())
+            .fetch_one(&mut *tx)
             .await
-            .map_err(|source| StoreError::database("atomic child admission commit", source))?;
-        Ok(ChildRunCommitOutcome::Committed(record))
+            .map_err(|source| StoreError::database("child fresh identity check", source))?;
+            if exists {
+                return Err(StoreError::ChildRunConflict);
+            }
+            if load_locked_agent_admission(&mut tx, key.tenant_id(), child_id)
+                .await?
+                .is_some()
+            {
+                return Err(StoreError::ChildRunConflict);
+            }
+            let child = match Box::pin(commit_new_agent_admission(
+                &mut tx,
+                intent.child().clone(),
+                child_append,
+                child_checkpoint,
+            ))
+            .await?
+            {
+                NewAgentAdmissionOutcome::Committed(child) => child,
+                NewAgentAdmissionOutcome::Idempotent(_) => {
+                    return Err(StoreError::ChildRunConflict);
+                }
+            };
+            let at = database_now(&mut tx, "child spawn clock")
+                .await?
+                .max(observed_at)
+                .max(child.admission().admitted_at());
+            account
+                .remaining(at)
+                .map_err(|_| StoreError::ChildRunRejected)?;
+            let event = JournalEvent::commit(parent_append, at)
+                .map_err(|error| map_event_commit_error(&error))?;
+            insert_event(
+                &mut tx,
+                &event,
+                spawn_projection(&intent, child.admission(), child.checkpoint(), &event)?,
+            )
+            .await?;
+            insert_owner(
+                &mut tx,
+                &intent,
+                attempt.start(),
+                &ancestors,
+                &child,
+                &event,
+            )
+            .await?;
+            save_account(&mut tx, &account, &event.head()).await?;
+            mark_child_capability(&mut tx, key.tenant_id(), key.parent_run_id()).await?;
+            mark_child_capability(&mut tx, key.tenant_id(), child_id).await?;
+            update_run_head(&mut tx, &event, None).await?; // final live database-time fence
+            let record = load_record(&mut tx, key)
+                .await?
+                .ok_or_else(|| StoreError::corrupt("new child ownership"))?;
+            // Complete owning reads and deferred guards can outlive the earlier
+            // journal CAS clock. Flush them before the final original-fence check;
+            // neither a fresh child nor its reservation may survive expired authority.
+            graph_frames::revalidate_worker_after_components(&mut tx, &fence).await?;
+            let final_at = database_now(&mut tx, "child final admission clock").await?;
+            if final_at >= intent.child().budget().deadline()
+                || final_at >= parent.admission().intent().budget().deadline()
+            {
+                return Err(StoreError::ChildRunRejected);
+            }
+            account
+                .remaining(final_at)
+                .map_err(|_| StoreError::ChildRunRejected)?;
+            tx.commit()
+                .await
+                .map_err(|source| StoreError::database("atomic child admission commit", source))?;
+            Ok(ChildRunCommitOutcome::Committed(record))
+        })
     }
 
     /// Loads fully verified ownership and original child identities within one
