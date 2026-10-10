@@ -50,7 +50,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 48 currently
+The versioned `catalog-v1.json` closes the inventory around all 49 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -76,7 +76,7 @@ qualification remain separate gates.
 input/default schema for the case-insensitive names already accepted and
 normalized by the reader. The exact CI reproducer and actual prior-source
 artifact schema are retained. The 35 affected nested input pins change
-explicitly; all 314 output pins and canonical wires remain exact. Use new
+explicitly; all 314 prior output pins and canonical wires remain exact. Use new
 immutable input schema/Tool versions and retain the matching old executable
 and registry for admitted work and rollback. Final-source qualification and
 acceptance remain pending.
@@ -202,18 +202,30 @@ variant combinations and the complete C2/C3 audit stay open.
 ### Closed public type and schema inventory
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
-checks all 583 named root exports against a
+checks all 584 named root exports against a
 [machine-readable inventory](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json):
-568 types, 11 traits and four constants. The compiler verifies 313 types with
+569 types, 11 traits and four constants. The compiler verifies 314 types with
 `Serialize` and `DeserializeOwned`, two output-only types, and 253 reviewed
 Rust-only instantiations without `Serialize` or `DeserializeOwned`. Each reader has an explicit fixture
 file/JSON pointer, a canonical wire digest and a generated JSON Schema digest;
-`BudgetRemaining` supplies the 314th schema pin. A separate output inventory
-pins all 314 serialization profiles with explicit review of changed pins. The 318-test matrix rejects
-unsupported scalar/collection shapes, unknown fields on 187 closed object
+`BudgetRemaining` supplies the 315th schema pin. A separate output inventory
+pins all 315 serialization profiles with explicit review of changed pins. The 319-test matrix rejects
+unsupported scalar/collection shapes, unknown fields on 188 closed object
 vectors, and raw duplicate known keys. Bounded JSON and extension maps retain
 open-key semantics. New exports, missing typed evidence, and accidental Serde
 implementations fail CI until explicitly reviewed.
+
+The unreleased `AgentTerminalValidationInputs` captures the original trusted
+descriptor identity/input/output schemas, complete `AgentRequest` and
+`ResolvedBudget`. `AgentResult::validate_for_terminal_inputs` runs the same
+predicate and error order as `validate_for`; the expected provenance must still
+come from the authenticated original Run. Construction or decoding grants no
+admission or execution authority. The closed reader preserves the existing
+maximum request-input profile and redacts input content in Debug. A sealed typed
+fixture and regressions cover original error order, costs, maximum fields,
+round trips, early oversized-input rejection and positional/unknown fields.
+Ordinary Root persistence and its rollout remain in development under
+[Draft RFC-0022](rfcs/0022-namespaced-graph-frames.md).
 
 [Draft RFC-0022](rfcs/0022-namespaced-graph-frames.md) currently adds six
 experimental frame readers, four Rust-only error types, two Rust-only plans and a compound entry record. Current-source frame
@@ -327,7 +339,7 @@ separate gates.
 ## Bounded fuzz and output-schema qualification
 
 [`fuzz/qualify.py`](../fuzz/qualify.py) runs three ASan/libFuzzer targets: strict
-bounded JSON/JCS, all 313 typed readers, and the actual offline runtime schema
+bounded JSON/JCS, all 314 typed readers, and the actual offline runtime schema
 registry. Accepted reader inputs are checked against their offline input schema
 after actual deserialization, so an alternate accepted representation cannot be
 masked by validating first. Producers retain their output-schema oracle.

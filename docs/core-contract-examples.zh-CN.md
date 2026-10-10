@@ -46,7 +46,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 48 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 49 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -67,7 +67,7 @@ Rust 兼容性测试消费；只有 Digest 不等于测试覆盖。
 [RFC-0023 草案](rfcs/0023-media-type-input-schema.md) 修正 `MediaType` 输入/default
 schema，使其接受 reader 已支持并规范化的大小写混合名称。精确 CI 反例及真实
 上一源码的 artifact schema 已保留。35 个受影响的嵌套输入 pin 显式变化；全部
-314 个输出 pin 和规范 wire 保持一致。使用新的不可变输入 schema/Tool 版本，
+原有 314 个输出 pin 和规范 wire 保持一致。使用新的不可变输入 schema/Tool 版本，
 为已准入工作和回滚保留匹配的原 executable 与 registry。最终源码验收及草案
 接受仍待完成。
 
@@ -172,17 +172,26 @@ fixture 证据；N-1/N-2 迁移、剩余类型族/变体组合及完整 C2/C3 �
 ### 封闭的公开类型与 schema 清单
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
-将全部 583 个根导出项与
+将全部 584 个根导出项与
 [机器可读清单](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json)
-逐一比较：568 个类型、11 个 trait、四个常量。编译器核对 313 个同时支持
+逐一比较：569 个类型、11 个 trait、四个常量。编译器核对 314 个同时支持
 `Serialize` 与 `DeserializeOwned` 的类型、两个仅支持输出的类型，以及
 253 个已审查且没有 `Serialize` 或 `DeserializeOwned` 的 Rust 类型实例。每个 reader 均有显式
 fixture 文件/JSON pointer、规范 wire 摘要和生成的 JSON Schema 摘要；
-`BudgetRemaining` 提供第 314 个 schema pin；独立输出清单另固定全部 314 个
-序列化 profile，已变更 pin 必须显式审查。318 项矩阵检查拒绝不匹配的
-标量/集合形状、187 个封闭对象向量的未知字段及原始重复已知键。
+`BudgetRemaining` 提供第 315 个 schema pin；独立输出清单另固定全部 315 个
+序列化 profile，已变更 pin 必须显式审查。319 项矩阵检查拒绝不匹配的
+标量/集合形状、188 个封闭对象向量的未知字段及原始重复已知键。
 Bounded JSON 与扩展 map 保留开放 key 语义。新增导出、缺少逐型证据和意外
 引入的 Serde 实现会使 CI 失败，直至完成明确审查。
+
+未发布的 `AgentTerminalValidationInputs` 保存真实可信 descriptor 的身份、
+输入/输出 schema、完整 `AgentRequest` 与 `ResolvedBudget`。
+`AgentResult::validate_for_terminal_inputs` 复用 `validate_for` 的原验证谓词
+和错误顺序；预期 provenance 仍须来自已认证的原 Run。构造或解码不授予准入或
+执行权限。封闭 reader 保留请求输入的原最大 profile，Debug 隐藏输入内容。
+固定的类型化 fixture 与回归覆盖原错误顺序、成本、最大字段、往返、超限输入
+提前拒绝、positional/未知字段。普通 Root 持久化及上线流程仍在
+[RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md)下开发。
 
 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md) 当前新增六个实验性帧
 reader、四个 Rust-only 错误类型、两个 Rust-only plan 和一个入栈复合记录。帧身份/检查点与调用声明有独立当前源码
@@ -280,7 +289,7 @@ Fuzz 回归和种子生成器使每个分支进入实际输入、输出 schema o
 ## 有界 fuzz 与输出 schema 验收
 
 [`fuzz/qualify.py`](../fuzz/qualify.py) 运行三个实际生产边界的 ASan/libFuzzer
-入口：严格有界 JSON/JCS、全部 313 个 typed reader、实际离线 runtime schema
+入口：严格有界 JSON/JCS、全部 314 个 typed reader、实际离线 runtime schema
 注册表。先执行实际反序列化，再以离线输入 schema 检查被接受的输入，避免
 提前验证掩盖 reader 接受的额外形状；输出 schema oracle 继续执行。
 固定种子变异前逐一重放全部语料，保留失败字节和新覆盖样本，记录

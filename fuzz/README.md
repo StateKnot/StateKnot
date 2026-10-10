@@ -10,7 +10,7 @@ This private workspace runs three actual production boundaries:
 | Target | Input and oracle |
 | --- | --- |
 | `bounded_json` | Raw bytes through strict parsing with narrow/default/hard JSON limits; exact compact statistics, bounded round trips, RFC 8785 bytes and digest stability. Duplicate names and malformed Unicode remain raw bytes. |
-| `core_readers` | `RustTypeName\nraw JSON`, then the bounded JSON gate and one of all 313 reviewed readers; accepted input must match its offline deserialization schema, producer output its serialization schema, and ordinary/canonical round trips remain stable. Input validation runs after the actual reader, so alternate accepted shapes cannot be hidden. Names preserve reproducers when the type list grows. |
+| `core_readers` | `RustTypeName\nraw JSON`, then the bounded JSON gate and one of all 314 reviewed readers; accepted input must match its offline deserialization schema, producer output its serialization schema, and ordinary/canonical round trips remain stable. Input validation runs after the actual reader, so alternate accepted shapes cannot be hidden. Names preserve reproducers when the type list grows. |
 | `schema_registry` | Bounded `{"schema": ..., "instance": ..., "bad_pin": false}`; the real immutable runtime registry verifies dialect/URI/pins, duplicate identity, registration atomicity, 32 KiB single/48 KiB aggregate schema limits, offline compilation and instance validation. Missing dialect/URI receive the fixed fixture identity; supplied values are never overwritten. |
 
 The reader list is shared with the closed Core inventory, and fixed positive
@@ -96,11 +96,19 @@ rewrites fixtures. Actual parent-source output documents are retained only as
 regression baselines; they are not N-1/N-2 upgrade qualification.
 
 The RFC-0022 draft adds six strictly read frame/call data types to the reader
-set. Current inventories pin 314 input/default and 314 producer schemas.
+set. That increment pinned 314 input/default and 314 producer schemas.
 `CompiledGraph` and `ChildRunAdmissionIntent` explicitly change both profiles
 for the new optional call metadata.
 These experimental data records do not enable nested execution. Final ASan
 qualification of the ongoing draft implementation remains required.
+
+The unreleased `AgentTerminalValidationInputs` adds one reviewed reader and
+both schema pins, bringing the current totals to 314 readers and 315 pins per
+profile. It retains the real descriptor identity/schema bindings, complete
+request and resolved budget used by the unchanged terminal validation predicate.
+The shared typed list and sealed fixture generate positive, unknown-field,
+duplicate-key and shape seeds for this reader. Existing pins and fuzz limits
+remain unchanged; new-source ASan and CI qualification remain required.
 
 [Draft RFC-0023](../docs/rfcs/0023-media-type-input-schema.md) retains the CI
 mixed-case media type reproducer. The existing reader normalizes such names,

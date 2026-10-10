@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Preserve complete trusted terminal validation inputs in the experimental
+  `AgentTerminalValidationInputs` snapshot. Restored results use the same
+  predicate and error order as `AgentResult::validate_for`, with provenance
+  authenticated by the original Run. Closed readers, schema pins and the shared
+  fuzz corpus cover the new snapshot. Ordinary Root persistence and final
+  combined qualification remain under Draft RFC-0022.
+
 - Drive authenticated nested graph frames with complete Entry/Rebind/barrier/
   Return transactions and one shared durable-event quantum. Trusted providers
   must supply exact-context complete DIRECT usage; the default is unavailable.
