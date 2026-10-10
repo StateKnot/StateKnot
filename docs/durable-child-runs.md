@@ -37,6 +37,14 @@ reads. A lease or the narrower child deadline expiring during those guards rolls
 back the child, ownership, budget reservation and parent journal together,
 including when the parent lease remains live.
 
+A parent Run cancellation queues the exact frame-owned child key. Discovery is
+tenant scoped, and delivery retains the original parent observation and immutable
+child receipt. An exact-key delivery retry after the child has actually reached
+Cancelled returns that first receipt, even with a stale child journal and new
+candidate event/reason; it leaves both journals, the frame, Root checkpoint and
+shared reservation unchanged. Delivery requests cancellation. The child's real
+cleanup, terminal accounting and once-only settlement remain separate steps.
+
 The admitted Root must have a child topology policy. A leaf can narrow its three
 caps, and descendant admission retains the policy of each original owning edge.
 Frames share the Root-bound `ChildRunBudgetAccount`: `reserve_for_frame` does
