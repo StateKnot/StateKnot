@@ -1028,7 +1028,6 @@ mod tests {
     use std::borrow::Cow;
     use std::sync::atomic::{AtomicBool, Ordering};
 
-    use http_body_util::BodyExt as _;
     use rmcp::{
         ErrorData,
         model::{DiscoverResult, Implementation, ServerCapabilities, ServerConfig},
@@ -1156,7 +1155,10 @@ mod tests {
             .unwrap();
         assert_eq!(accepted.status(), StatusCode::OK);
         assert!(observed.load(Ordering::SeqCst));
-        let bytes = accepted.into_body().collect().await.unwrap().to_bytes();
+        let bytes = http_body_util::BodyExt::collect(accepted.into_body())
+            .await
+            .unwrap()
+            .to_bytes();
         let payload: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(payload.pointer("/id"), Some(&json!(1)));
         assert_eq!(

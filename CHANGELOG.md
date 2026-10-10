@@ -24,6 +24,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Keep complete child admission intents and ownership records on the heap during
+  Join and account recovery. Original role-profile recovery now fits the default
+  thread stack while retaining canonical bytes, complete ownership/terminal
+  checks, lock ordering and the existing public record interfaces.
+
+- Erase complete private MCP success and known-error reconciliation Futures at
+  concrete heap boundaries for strict pinned-nightly compilation, preserving
+  authorization, complete durable evidence, non-retryable effects, cancellation
+  and timeout.
+
 - Stop allocating MCP activation/request and A2A request IDs at their original
   exclusive ceilings without overflow or ID reuse. Use an MSRV-compatible
   checked compare-and-exchange loop in place of the deprecated atomic update API,
