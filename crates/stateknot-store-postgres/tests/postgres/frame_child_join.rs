@@ -222,7 +222,7 @@ async fn scoped_join_consumes_original_publication_under_a_higher_fence() {
         .clone();
     assert!(fence.epoch() > value.fence.epoch());
     let node = Box::pin(resume(&store, &value, &fence)).await;
-    let plain = PendingNodeResultIntent::new(
+    let without_join = PendingNodeResultIntent::new(
         node.start().activation().clone(),
         NodeStateChange::Unchanged,
         super::super::frame_barriers::terminal(&value.graph),
@@ -249,13 +249,13 @@ async fn scoped_join_consumes_original_publication_under_a_higher_fence() {
         Box::pin(store.succeed_node_attempt(
             append.clone(),
             &node.start().head(),
-            plain.clone(),
+            without_join.clone(),
             usage.clone()
         ))
         .await,
         Err(StoreError::ChildJoinRejected)
     ));
-    let intent = plain.with_child_join(head.clone()).unwrap();
+    let intent = without_join.with_child_join(head.clone()).unwrap();
     let completed = Box::pin(store.succeed_node_attempt(
         append.clone(),
         &node.start().head(),
