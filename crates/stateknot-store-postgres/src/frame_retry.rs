@@ -443,55 +443,57 @@ fn observe_attempts<'a>(
 
 // The current Root/full active proof authenticates this immutable base once in
 // the same locked transaction. Framework completion retains whole return proof.
-async fn verify_attempt(
-    tx: &mut Transaction<'_, Postgres>,
-    activation: &NodeActivation,
-    attempt: &NodeAttempt,
-) -> Result<(), StoreError> {
-    let start = attempt.start();
-    if start.activation() != activation {
-        return Err(StoreError::corrupt("retry canonical attempt base"));
-    }
-    if Box::pin(graph_frames::recognize_start(tx, start))
-        .await?
-        .is_some()
-    {
-        Box::pin(verify_node_attempt(tx, attempt)).await?;
-        return Ok(());
-    }
-    verify_node_attempt_anchor(
-        tx,
-        start.journal_head(),
-        start.fence(),
-        start.digest(),
-        "retry attempt start anchor",
-    )
-    .await?;
-    let Some(completion) = attempt.completion() else {
-        return Ok(());
-    };
-    verify_node_attempt_anchor(
-        tx,
-        completion.journal_head(),
-        start.fence(),
-        completion.digest(),
-        "retry attempt completion anchor",
-    )
-    .await?;
-    if let NodeAttemptOutcome::Succeeded { result } = completion.outcome() {
-        let row = load_pending_node_result_row(tx, result.activation())
-            .await?
-            .ok_or_else(|| StoreError::corrupt("retry successful result"))?;
-        let durable = decode_pending_node_result(&row)?;
-        if row.node_attempt_id != Some(*start.attempt_id().as_uuid())
-            || durable.head() != **result
-            || durable.intent().activation() != start.activation()
-        {
-            return Err(StoreError::corrupt("retry successful result owner"));
+fn verify_attempt<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    activation: &'a NodeActivation,
+    attempt: &'a NodeAttempt,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        let start = attempt.start();
+        if start.activation() != activation {
+            return Err(StoreError::corrupt("retry canonical attempt base"));
         }
-        Box::pin(verify_pending_node_result_components(tx, &durable)).await?;
-    }
-    Ok(())
+        if Box::pin(graph_frames::recognize_start(tx, start))
+            .await?
+            .is_some()
+        {
+            Box::pin(verify_node_attempt(tx, attempt)).await?;
+            return Ok(());
+        }
+        verify_node_attempt_anchor(
+            tx,
+            start.journal_head(),
+            start.fence(),
+            start.digest(),
+            "retry attempt start anchor",
+        )
+        .await?;
+        let Some(completion) = attempt.completion() else {
+            return Ok(());
+        };
+        verify_node_attempt_anchor(
+            tx,
+            completion.journal_head(),
+            start.fence(),
+            completion.digest(),
+            "retry attempt completion anchor",
+        )
+        .await?;
+        if let NodeAttemptOutcome::Succeeded { result } = completion.outcome() {
+            let row = load_pending_node_result_row(tx, result.activation())
+                .await?
+                .ok_or_else(|| StoreError::corrupt("retry successful result"))?;
+            let durable = decode_pending_node_result(&row)?;
+            if row.node_attempt_id != Some(*start.attempt_id().as_uuid())
+                || durable.head() != **result
+                || durable.intent().activation() != start.activation()
+            {
+                return Err(StoreError::corrupt("retry successful result owner"));
+            }
+            Box::pin(verify_pending_node_result_components(tx, &durable)).await?;
+        }
+        Ok(())
+    })
 }
 
 const UPDATE_GATE: &str = r"
