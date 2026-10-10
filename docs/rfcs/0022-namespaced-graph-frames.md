@@ -579,6 +579,54 @@ still required before this increments any Supported or milestone status.
 
 ## Detailed semantics
 
+### Scoped isolated ChildRun integration (in development)
+
+An isolated ChildRun owned by an ordinary leaf node keeps its separate Run
+identity and existing cancel-and-join policy. Its ownership key binds the exact
+frame namespace, checkpoint, ready-node input and declared slot. A Root
+constructor or validator never accepts a scoped checkpoint. Dedicated frame
+preparation validates the restored full frame checkpoint; storage additionally
+authenticates the active leaf, original journal and live physical Start. The
+framework caller itself cannot own a child slot.
+
+The admitted Root graph must retain its explicit ChildRun topology policy.
+That policy and the admitted Run budget remain the global limits: frames do
+not create another account, reset lifetime child counts or grant another depth
+allowance. The leaf's exact declaration pins the child Agent/graph/schema and
+may only narrow the Root topology caps. One account remains bound to the Root
+admission and includes both Root and scoped ownership keys. Complete priced
+DIRECT observations exclude child subtrees; reservation and settlement use the
+existing shared account and charge every subtree once. Descendant admission
+also retains the topology policy of an original scoped ownership edge when
+checking its ancestor path. New scoped keys use their existing namespace-bound
+digests; old Root keys and account bytes retain their canonical encoding.
+
+Fresh admission authenticates the full actual leaf before callbacks, invokes
+schemas outside transactions, then repeats the scope, original journal, Start,
+fence, account and declarations under the existing tree-coordinator and
+root-to-parent lock order. Historical ownership restoration authenticates the
+original frame checkpoint and entry lineage even after Return or closure. It
+cannot require that old frame to remain the current leaf. Lost acknowledgements
+recover the complete original ownership before fresh readiness/deadline checks.
+
+Join registration seals all children of that exact scoped activation and
+releases the parent Run lease atomically. Exclusive execution excludes only
+whole-proof authenticated suspended framework callers, including their actual
+old fences; every unfinished ordinary sibling still blocks registration.
+Publication, higher-fence logical recovery, pending-result consumption and
+once-only child accounting keep the original scoped owner and active-leaf wake
+gate. Cancellation/failure must drain every owned child across all scopes
+before Return or whole-stack closure. No Root readiness shortcut or timer wait
+may stand in for this contract.
+
+This is an implementation contract, not a Supported claim. Required native
+evidence includes scoped spawn/ACK, wrong leaf/namespace/declaration rejection,
+shared Root/frame capacity and topology, suspended-caller exclusivity, real
+child settlement and publication, higher-fence Join completion, returned-frame
+historical reads, cancellation/failure, Unknown-cost blocking and final-source
+PostgreSQL 16/17 qualification. A Driver that has not completed this integration
+rejects reachable scoped ChildRun declarations before dispatch.
+
 ### Logical identity and scope
 
 The child namespace segment is the full 64-character lowercase SHA-256 encoding
