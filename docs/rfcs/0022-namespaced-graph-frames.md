@@ -369,8 +369,18 @@ active stack in their consistent snapshot, reject unexpected namespaces under
 an exact checkpoint identity, and reuse completed work with complete physical
 attempt history. The planner rechecks the leaf and live database-time fence;
 terminal leaves may contain no ready nodes. The plan grants no dispatch, and
-actual application schema/reducer replay and the dedicated scoped durable start
-remain required. Private whole-return intents are decoded on the heap to bound
+the dedicated scoped durable start remains required. Whole-history application
+validation is exposed separately by `validate_graph_replay`; its
+[bilingual contract](../scoped-graph-application-replay.md) covers all lifetime
+scopes with exact deployed schemas/reducers, direct bounded reads, callbacks
+outside transactions and complete original lifecycle/scheduler/wait/journal
+rechecks. Its Copy Root report derives from that same Root pass; returned
+siblings, noninitial suspended parents and resumed waits with later transitions
+are independently replayed. Complete legacy Root
+Wait/Terminal disposition authentication requires a durable bundle; missing
+historical proof is operational, never an invented revision or quarantine of a
+valid legacy record. Actual Driver integration and qualification remain open.
+Private whole-return intents are decoded on the heap to bound
 Serde stack use without changing canonical bytes or weakening owning proofs.
 
 The experimental delayed-retry operation is

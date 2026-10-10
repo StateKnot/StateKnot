@@ -5,6 +5,8 @@
 
 #[path = "postgres/child_upgrade.rs"]
 mod child_upgrade;
+#[path = "postgres/frame_application_replay.rs"]
+mod frame_application_replay;
 #[path = "postgres/frame_barriers.rs"]
 mod frame_barriers;
 #[path = "postgres/frame_callers.rs"]

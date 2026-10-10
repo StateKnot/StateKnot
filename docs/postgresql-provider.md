@@ -377,6 +377,14 @@ This composes a corruption-isolating
 checkpoint-and-suffix input without treating a read as dispatch authority;
 node/model/tool/outbox start transactions still perform the decisive fence.
 
+For complete Root and lifetime-frame schema/reducer validation, use
+`validate_graph_replay` on that same claimed session. Its
+[application replay contract](scoped-graph-application-replay.md)
+([中文](scoped-graph-application-replay.zh-CN.md)) defines exact dependencies,
+transaction-free callbacks, bounded direct-edge reads, original-observation
+rechecks and operational failure for legacy Root dispositions without a durable
+proof. This experimental Store read grants no dispatch or nested Driver support.
+
 Before planning work, `load_pinned_graph` reloads the current checkpoint's exact
 tenant-scoped graph version, recompiles its canonical bytes, validates the graph
 and state-schema digest binding, rejects unknown ready nodes or an invalid

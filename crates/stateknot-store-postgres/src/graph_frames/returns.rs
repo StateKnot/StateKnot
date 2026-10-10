@@ -396,6 +396,46 @@ async fn anchored_record(
     Ok(record)
 }
 
+// Whole-history replay owns ancestry proofs and independently replays terminal
+// plans. This direct reader authenticates the complete local immutable return,
+// physical caller completion, parent result and binding components without
+// descending into that child's historical application edges again.
+pub(super) async fn application_return(
+    tx: &mut Transaction<'_, Postgres>,
+    tenant: &TenantId,
+    run: RunId,
+    namespace: &GraphNamespace,
+) -> Result<Option<StoredGraphFrameReturn>, StoreError> {
+    let Some(row) = row(tx, tenant, run, namespace).await? else {
+        return Ok(None);
+    };
+    let record = Box::pin(anchored_record(tx, &row)).await?;
+    let caller = load_node_attempt_record(tx, tenant, &run, record.intent.caller.attempt_id())
+        .await?
+        .ok_or_else(|| StoreError::corrupt("application replay return caller"))?;
+    if caller.start().head() != record.intent.caller
+        || caller
+            .completion()
+            .map(encode_node_attempt_completion)
+            .transpose()?
+            != Some(encode_node_attempt_completion(&record.completion)?)
+    {
+        return Err(StoreError::corrupt("application replay return completion"));
+    }
+    let result = load_pending_node_result_row(tx, record.result.intent().activation())
+        .await?
+        .ok_or_else(|| StoreError::corrupt("application replay return result"))?;
+    if result.node_attempt_id != Some(*record.intent.caller.attempt_id().as_uuid())
+        || decode_pending_node_result(&result)? != record.result
+    {
+        return Err(StoreError::corrupt(
+            "application replay return result components",
+        ));
+    }
+    Box::pin(verify_pending_node_result_bindings(tx, &record.result)).await?;
+    Ok(Some(record))
+}
+
 // Entry/start replay may observe a completed caller without recursively loading
 // its own terminal history. This proves only the completion's whole anchor;
 // result and return readers separately authenticate entry, terminal and usage.

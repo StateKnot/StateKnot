@@ -108,8 +108,9 @@ mod frame_retry;
 mod graph_frames;
 pub use graph_frames::{
     GraphFrameBarrierCommitOutcome, GraphFrameClosureCommitOutcome, GraphFrameEntryCommitOutcome,
-    GraphFrameReturnCommitOutcome, StoredActiveGraphFrame, StoredGraphFrameBarrier,
-    StoredGraphFrameClosure, StoredGraphFrameEntry, StoredGraphFrameReturn, StoredOpenGraphFrame,
+    GraphFrameReturnCommitOutcome, GraphRecoveryReplayReport, StoredActiveGraphFrame,
+    StoredGraphFrameBarrier, StoredGraphFrameClosure, StoredGraphFrameEntry,
+    StoredGraphFrameReturn, StoredOpenGraphFrame,
 };
 
 use crate::{
@@ -16444,6 +16445,19 @@ async fn verify_pending_node_result_components(
     if let Some(event) = Box::pin(graph_frames::recognize_result(transaction, result)).await? {
         return Ok(event);
     }
+    Box::pin(verify_ordinary_pending_node_result_components(
+        transaction,
+        result,
+    ))
+    .await
+}
+
+// The scoped replay module independently verifies framework return owners. Its
+// normal result path must not create a fresh ancestry Replay for every edge.
+async fn verify_ordinary_pending_node_result_components(
+    transaction: &mut Transaction<'_, Postgres>,
+    result: &PendingNodeResult,
+) -> Result<JournalEvent, StoreError> {
     let row = load_pending_node_result_row(transaction, result.intent().activation())
         .await?
         .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;

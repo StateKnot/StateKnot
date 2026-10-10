@@ -480,7 +480,7 @@ pub(super) async fn results_on_checkpoint_replay(
         serde_json::to_writer(&mut counter, &result)
             .map_err(|_| StoreError::corrupt("frame barrier result encoding"))?;
         compact_bytes = compact_bytes.saturating_add(counter.bytes);
-        if compact_bytes > GraphReplayLimits::default().maximum_barrier_result_bytes() {
+        if compact_bytes > replay.limits().maximum_barrier_result_bytes() {
             return Err(StoreError::GraphReplayResourceLimit);
         }
         results.push(result);
@@ -659,6 +659,74 @@ async fn verify_edge_replay(
     floor: &BudgetUsage,
     row: Row,
 ) -> Result<StoredGraphFrameBarrier, StoreError> {
+    replay.visit_edge()?;
+    let record = Box::pin(edge_components(replay.tx, entry, base, row)).await?;
+    // Authenticate chronological accounting first. A returned result owner
+    // can then reuse its already verified whole proof instead of descending
+    // into older nested settlements while holding this barrier future.
+    let floor = caller_bindings::usage_floor_before(
+        replay.tx,
+        entry,
+        admission,
+        record.budget.observed_head.sequence().get(),
+        floor,
+    )
+    .await?;
+    let floor = Box::pin(returns::usage_floor_before(
+        replay,
+        admission,
+        graphs,
+        record.budget.observed_head.sequence().get(),
+        &floor,
+    ))
+    .await?;
+    let results = Box::pin(results_on_checkpoint_replay(
+        replay,
+        base,
+        record.barrier.result_heads(),
+    ))
+    .await?;
+    if results.iter().any(|result| {
+        result.journal_head().sequence() > record.budget.observed_head.sequence()
+            || result.journal_head().recorded_at() > record.budget.observed_head.recorded_at()
+    }) {
+        return Err(StoreError::corrupt("barrier result journal order"));
+    }
+    verify_barrier_consumption_parts(
+        replay.tx,
+        &base.checkpoint().head(),
+        record.barrier.result_heads(),
+        record.checkpoint.checkpoint(),
+    )
+    .await?;
+    record
+        .budget
+        .direct_usage
+        .validate_monotonic_after(&floor)
+        .map_err(|_| StoreError::corrupt("barrier shared usage regression"))?;
+    verify_wait_components(replay.tx, &record, admission.run().lifecycle().revision()).await?;
+    let total = charged(&record)?
+        .checked_accumulate(&record.budget.delegated_usage)
+        .map_err(|_| StoreError::corrupt("barrier accounting"))?;
+    admission
+        .admission()
+        .intent()
+        .budget()
+        .remaining(&total, record.event.recorded_at())
+        .map_err(|_| StoreError::corrupt("barrier budget limit"))?;
+    Ok(record)
+}
+
+// A direct local proof is private to whole-history application replay. Capture
+// and final verification authenticate ancestry/accounting with one shared Replay;
+// this seam never restarts historical proof for an individual application edge.
+#[allow(clippy::too_many_lines)]
+async fn edge_components(
+    tx: &mut Transaction<'_, Postgres>,
+    entry: &StoredGraphFrameEntry,
+    base: &GraphFrameCheckpoint,
+    row: Row,
+) -> Result<StoredGraphFrameBarrier, StoreError> {
     let wire = decode_wire(&row.barrier_bytes)?;
     if Digest::sha256(&row.barrier_bytes)
         != decode_digest(&row.barrier_checksum, "barrier bytes checksum")?
@@ -683,7 +751,7 @@ async fn verify_edge_replay(
     }
     let cp = decode_frame_checkpoint(
         checkpoint_row(
-            replay.tx,
+            tx,
             base.checkpoint().tenant_id(),
             base.checkpoint().run_id(),
             base.frame().namespace(),
@@ -712,7 +780,7 @@ async fn verify_edge_replay(
         .bind(base.checkpoint().tenant_id().as_str())
         .bind(*base.checkpoint().run_id().as_uuid())
         .bind(row.journal_sequence)
-        .fetch_optional(&mut **replay.tx)
+        .fetch_optional(&mut **tx)
         .await
         .map_err(|e| StoreError::database("barrier event", e))?
         .ok_or_else(|| StoreError::corrupt("barrier event missing"))?;
@@ -749,7 +817,7 @@ async fn verify_edge_replay(
                     .checked_sub(1)
                     .ok_or_else(|| StoreError::corrupt("barrier journal predecessor"))?,
             )
-            .fetch_optional(&mut **replay.tx)
+            .fetch_optional(&mut **tx)
             .await
             .map_err(|e| StoreError::database("barrier predecessor", e))?
             .ok_or_else(|| StoreError::corrupt("barrier predecessor missing"))?,
@@ -762,48 +830,6 @@ async fn verify_edge_replay(
     {
         return Err(StoreError::corrupt("barrier observation"));
     }
-    // Authenticate chronological accounting first. A returned result owner
-    // can then reuse its already verified whole proof instead of descending
-    // into older nested settlements while holding this barrier future.
-    let floor = caller_bindings::usage_floor_before(
-        replay.tx,
-        entry,
-        admission,
-        before.sequence().get(),
-        floor,
-    )
-    .await?;
-    let floor = Box::pin(returns::usage_floor_before(
-        replay,
-        admission,
-        graphs,
-        before.sequence().get(),
-        &floor,
-    ))
-    .await?;
-    let results = Box::pin(results_on_checkpoint_replay(
-        replay,
-        base,
-        wire.barrier.result_heads(),
-    ))
-    .await?;
-    if results.iter().any(|result| {
-        result.journal_head().sequence() > before.sequence()
-            || result.journal_head().recorded_at() > before.recorded_at()
-    }) {
-        return Err(StoreError::corrupt("barrier result journal order"));
-    }
-    verify_barrier_consumption_parts(
-        replay.tx,
-        &base.checkpoint().head(),
-        wire.barrier.result_heads(),
-        cp.checkpoint(),
-    )
-    .await?;
-    wire.budget
-        .direct_usage
-        .validate_monotonic_after(&floor)
-        .map_err(|_| StoreError::corrupt("barrier shared usage regression"))?;
     let record = StoredGraphFrameBarrier {
         event,
         barrier: wire.barrier,
@@ -815,16 +841,26 @@ async fn verify_edge_replay(
         digest: wire.compound_digest,
         wait_revision: wire.wait_revision,
     };
-    verify_wait_components(replay.tx, &record, admission.run().lifecycle().revision()).await?;
-    let total = charged(&record)?
-        .checked_accumulate(&record.budget.delegated_usage)
-        .map_err(|_| StoreError::corrupt("barrier accounting"))?;
-    admission
-        .admission()
-        .intent()
-        .budget()
-        .remaining(&total, record.event.recorded_at())
-        .map_err(|_| StoreError::corrupt("barrier budget limit"))?;
+    Ok(record)
+}
+
+pub(super) async fn application_edge(
+    tx: &mut Transaction<'_, Postgres>,
+    entry: &StoredGraphFrameEntry,
+    base: &GraphFrameCheckpoint,
+    revision: RunRevision,
+) -> Result<StoredGraphFrameBarrier, StoreError> {
+    let row = row(
+        tx,
+        base.checkpoint().tenant_id(),
+        base.checkpoint().run_id(),
+        base.frame().namespace(),
+        base.checkpoint().checkpoint_id(),
+    )
+    .await?
+    .ok_or_else(|| StoreError::corrupt("application replay missing scoped edge"))?;
+    let record = Box::pin(edge_components(tx, entry, base, row)).await?;
+    verify_wait_components(tx, &record, revision).await?;
     Ok(record)
 }
 

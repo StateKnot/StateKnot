@@ -659,7 +659,7 @@ async fn checksum_valid_return_substitution_is_rejected_by_all_whole_readers() {
 
 // Each phase releases its large future before the next recovered frame is
 // settled. The production replay still uses the normal process/thread stack.
-async fn finish_and_return(
+pub(super) async fn finish_and_return(
     store: &PostgresStore,
     entry: &stateknot_store_postgres::StoredGraphFrameEntry,
     graph: &CompiledGraph,

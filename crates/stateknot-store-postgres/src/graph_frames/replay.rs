@@ -24,15 +24,38 @@ pub(super) struct Replay<'borrow, 'connection> {
     prefixes: BTreeMap<(TenantId, RunId, GraphNamespace), Prefix>,
     returns: BTreeMap<(TenantId, RunId, u64), (Digest, BudgetUsage)>,
     visiting_returns: std::collections::BTreeSet<(TenantId, RunId, u64)>,
+    limits: GraphReplayLimits,
+    edge_visits: u64,
 }
 impl<'borrow, 'connection> Replay<'borrow, 'connection> {
     pub(super) fn new(tx: &'borrow mut Transaction<'connection, Postgres>) -> Self {
+        Self::with_limits(tx, GraphReplayLimits::default())
+    }
+    pub(super) fn with_limits(
+        tx: &'borrow mut Transaction<'connection, Postgres>,
+        limits: GraphReplayLimits,
+    ) -> Self {
         Self {
             tx,
             prefixes: BTreeMap::new(),
             returns: BTreeMap::new(),
             visiting_returns: std::collections::BTreeSet::new(),
+            limits,
+            edge_visits: 0,
         }
+    }
+    pub(super) const fn limits(&self) -> GraphReplayLimits {
+        self.limits
+    }
+    pub(super) const fn edge_visits(&self) -> u64 {
+        self.edge_visits
+    }
+    pub(super) fn visit_edge(&mut self) -> Result<(), StoreError> {
+        self.edge_visits = self
+            .edge_visits
+            .checked_add(1)
+            .ok_or(StoreError::GraphReplayResourceLimit)?;
+        Ok(())
     }
     fn key(entry: &StoredGraphFrameEntry) -> (TenantId, RunId, GraphNamespace) {
         let frame = entry.entry.checkpoint();

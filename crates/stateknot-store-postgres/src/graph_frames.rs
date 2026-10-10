@@ -41,6 +41,9 @@ mod caller_bindings;
 #[path = "graph_frames/replay.rs"]
 mod replay;
 use replay::Replay;
+#[path = "graph_frames/application_replay.rs"]
+mod application_replay;
+pub use application_replay::GraphRecoveryReplayReport;
 #[path = "graph_frames/returns.rs"]
 mod returns;
 pub(super) async fn recognize_completion(

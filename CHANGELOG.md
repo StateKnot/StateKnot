@@ -38,6 +38,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   updates. A slow trigger past lease expiry rolls back; an inclusive due retry
   restores the original lease, Root/leaf heads, journal and queue age before Due.
 
+- Type-erase the private claimed history observer, child reconciliation retry,
+  provider model execution and read-only tool wave futures. This removes the
+  pinned nightly Send autosolver overflow without changing public signatures,
+  retry/cancellation policy, durable effect ordering or compiler recursion limits.
+
 - Reject unexpected result namespaces at an exact checkpoint in the same paging
   snapshot. Root and scoped reads report durable corruption; claimed recovery
   uses the original live worker context to quarantine the Run.
@@ -92,6 +97,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   erased original worker attempt or complete original plan. Native PostgreSQL
   seams cover concurrent ACK, exact corruption isolation, slow update clocks,
   64 physical attempts, deadline cleanup and seven-level noninitial leaves.
+
+- Add experimental claimed Root/lifetime-frame application replay against exact
+  deployed graph schemas/reducers, complete scoped successors/dispositions and
+  returns, transaction-free callbacks, bounded direct-edge transcripts and
+  original journal/lifecycle/scheduler/wait/head/database-time fence revalidation.
+  A Copy Root report is measured in the same pass, without repeating callbacks.
+  Unprovable legacy Root
+  dispositions fail operationally without quarantine or a report. Nested Driver
+  integration and RFC-0022/R1 qualification remain required; see the bilingual
+  scoped graph application replay contract.
 
 - Add experimental claimed active-frame ready planning and bounded scoped result
   pages. Whole leaf/ancestor proofs and exact namespace/head/journal observations

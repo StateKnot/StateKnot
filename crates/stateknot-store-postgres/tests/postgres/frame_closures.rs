@@ -518,7 +518,7 @@ async fn waiting_closure_requires_authenticated_abandonment_and_preserves_wait_e
     store.close().await;
 }
 
-async fn seven(
+pub(super) async fn seven(
     store: &PostgresStore,
     name: &str,
 ) -> (

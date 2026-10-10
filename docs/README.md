@@ -31,6 +31,12 @@ This directory contains the normative design inputs for StateKnot. Claims in
 the project README remain aspirational until backed by implementation,
 conformance output, and the release gates in these documents.
 
+Experimental scoped recovery: [Whole graph application replay](scoped-graph-application-replay.md)
+([中文](scoped-graph-application-replay.zh-CN.md)) — exact deployed dependencies,
+all lifetime frames, transaction-free callbacks, bounded direct-edge proof and
+explicit legacy Root disposition compatibility limits. Actual nested Driver and
+R1 qualification remain open.
+
 ## Start here
 
 For database deployment, use the [trusted PostgreSQL role profile](postgresql-roles.md)

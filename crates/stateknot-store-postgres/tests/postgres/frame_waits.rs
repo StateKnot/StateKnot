@@ -8,16 +8,16 @@ use serde_json::Value;
 use stateknot_core::{GraphFrameBarrierPlan, NodeWait, NodeWaits, RunFence, RunRevision};
 use stateknot_store_postgres::{GraphFrameBarrierCommitOutcome, StoredGraphFrameBarrier};
 
-fn principal() -> PrincipalIdentity {
+pub(super) fn principal() -> PrincipalIdentity {
     PrincipalIdentity::new(
         "https://issuer.example.com/frame-waits".parse().unwrap(),
         "approver".parse().unwrap(),
     )
 }
-fn scopes() -> ScopeSet {
+pub(super) fn scopes() -> ScopeSet {
     ScopeSet::try_new(["run.resolve".parse::<Scope>().unwrap()]).unwrap()
 }
-fn interrupt(id: InterruptId) -> NodeWait {
+pub(super) fn interrupt(id: InterruptId) -> NodeWait {
     NodeWait::interrupt(
         id,
         RunInterruptKind::Approval,
