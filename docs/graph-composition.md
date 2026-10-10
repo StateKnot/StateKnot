@@ -143,6 +143,15 @@ blocker counts remain node counts in the unchanged event schema. A retained
 failure handoff can be retried after a lost acknowledgement without re-reading
 evidence or changing the original terminal failure.
 
+The separate Draft [RFC-0022](rfcs/0022-namespaced-graph-frames.md) experiment
+now includes whole Store closure after an original cancellation or sealed
+failure. It retains the Root state and actual old caller fences, freezes
+complete priced DIRECT accounting and refuses outstanding ordinary/provider or
+child work. It uses Schema 33 and the matching 52-table trusted-role profile.
+Existing committed decisions are fully authenticated before retries; cleanup
+granting no execution can finish after the execution deadline. These Store
+primitives still require actual nested Driver dispatch and final qualification.
+
 ## Qualification and remaining boundaries
 
 Core tests cover deterministic identities, a frozen digest, source-order

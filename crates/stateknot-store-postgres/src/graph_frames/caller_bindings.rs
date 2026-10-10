@@ -669,7 +669,7 @@ impl PostgresStore {
                 .await?
                 .ok_or(StoreError::NodeAttemptNotFound)?;
             if attempt.completion().is_some() {
-                Box::pin(returns::recognize_completion(&mut tx, &attempt)).await?;
+                Box::pin(super::recognize_completion(&mut tx, &attempt)).await?;
             }
             tx.commit()
                 .await

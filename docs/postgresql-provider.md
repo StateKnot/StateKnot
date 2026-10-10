@@ -711,6 +711,21 @@ matching executable after exact schema verification. An old schema-26 binary
 cannot validate migration 27. The test-only revert fixture is not a downgrade
 procedure; new scoped history requires a forward fix or a consistent restore.
 
+Schema 33 adds experimental whole-stack closure under Draft
+[RFC-0022](rfcs/0022-namespaced-graph-frames.md). Apply the matching schema-33
+52-table role profile after migration and before resuming matching executables.
+A trusted coordinator must supply complete priced DIRECT usage and authenticate
+actual cancellation/sealed failure and settled work; a structural recovery floor
+is insufficient. The transaction retains Root state and original caller fences
+in separate immutable closure facts. Ordinary completion FKs stay exact.
+`load_graph_frame_closure` and active recovery authenticate the whole original
+decision, including after terminal Root completion. The source reconstruction
+fixture verifies populated 32→33 migration, not historical binary compatibility.
+Once closure facts are retained, prefer a forward fix or a consistent pre-upgrade
+restore; the test-only revert fixture refuses to erase them. Actual nested
+Driver dispatch, complete fault qualification and production acceptance remain
+required.
+
 ## Not yet implemented
 
 This slice is not a production release or the complete agent runtime. The first

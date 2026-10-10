@@ -43,6 +43,19 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Add experimental whole-stack closure after an original cancellation or sealed
+  failure. Schema 33 atomically preserves every physical caller's old fence in
+  separate immutable control-plane completion facts, freezes complete priced
+  DIRECT usage, clears the stack/lease and retains the exact Root checkpoint.
+  Whole reads and lost acknowledgements authenticate the original decision;
+  terminal Run writes cannot bypass open frames or replace frozen usage.
+  Scoped Tool/Model mutations and history now authenticate their actual frame
+  activation and head, with a final live-fence check after deferred guards.
+  Unknown effects, in-flight ordinary/provider work and unsettled children
+  block cleanup. Exact catalog and the 52-table trusted-role profile advance
+  together. Nested Driver dispatch, the full fault matrix, immutable-source
+  qualification and RFC-0022 acceptance remain required.
+
 - Add an experimental, bounded Store snapshot of the complete active frame
   ancestry, current leaf and physical caller; authenticate returned history and
   whole wait terminal facts in the same transaction before Driver recovery.

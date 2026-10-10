@@ -363,8 +363,55 @@ heads and complete accounting. No schema migration, Core pin or existing wire
 changes. It is an experimental recovery primitive while nested Driver and
 all-frame closure integration and final qualification remain required.
 
-Admission, node, barrier, caller-binding, return and wait transactions are parts of
-the Draft. All-frame closure, actual registry/driver dispatch,
+Schema 33 adds experimental `close_graph_frames` after the actual original
+cancellation request or sealed Run failure, and `load_graph_frame_closure` for
+whole historical recovery. A bounded version-1 wire binds the original Run
+lifecycle/decision, admission, Root checkpoint, predecessor, complete priced
+DIRECT usage, settled delegated account and one-to-seven exact entry/head/latest
+caller bindings. The intent hashes `stateknot-postgres-frame-closure-intent-v1\0`
+followed by JCS; the compound hashes `stateknot-postgres-frame-closure-compound-v1\0`,
+the intent digest, actual event digest and ordered completion digests.
+The reserved control-plane event `graph-frames-closed` has its own closed,
+offline-pinned Store schema; no Core schema pin or old wire changes.
+
+One Run-locked transaction saves the event, immutable whole closure and every
+caller completion, pops the stack to Root without resetting lifetime starts,
+releases the lease and updates the journal. Completions retain the callers'
+actual original physical fences and have zero application usage plus a fixed
+Cancelled/Never failure caused by that closure event. They live in separate
+immutable tables; ordinary node-completion worker-event FKs are unchanged.
+No parent result or state is invented. Deferred guards reject incomplete sets,
+returned/duplicate callers, hidden open frames, outstanding ordinary/provider
+work and unsettled child ownership. Root terminal writes require the completed
+stack and exact frozen DIRECT plus settled delegated usage.
+
+Closing grants no execution authority and performs no application work. Its
+bounded audit is not a new execution charge: expired leases/deadlines and an
+exhausted execution budget do not prevent cleanup. Unknown provider effects or
+unpriced DIRECT usage still reject it. Existing closure recovery authenticates
+all original facts before evaluating a new candidate, including after Root
+termination. Direction-only private anchors avoid recursive caller/closure
+verification; public reads still verify the entire owning closure. Canonical
+wire bytes are capped at 4 MiB and array readers reject an eighth component
+before materializing it. Exact schema verification covers 145 columns, 21
+indexes, 70 constraints, 35 triggers and 23 functions; the trusted runtime
+profile advances to 52 tables with no mutable closure evidence privileges.
+
+Scoped Tool/Model preparation, transitions and history now derive activations
+from the authenticated whole frame checkpoint. Fresh mutation predicates bind
+the actual leaf head and identity; suspended/closed frames and framework call
+sites cannot launch ordinary provider work. Deferred guards run before the
+last live-fence observation. New preparation/physical starts also require the
+original execution deadline; bounded recording of an already in-flight outcome
+grants no new launch authority. Current-source tests cover mixed old/new caller
+fences, seven-level cleanup, once-only races, each component/deferred rollback,
+wait abandonment, frozen Root terminal accounting, corrupted closure facts,
+expired/exhausted cleanup, actual scoped unknown/settled provider work and
+nonempty source-32 reconstruction. They do not qualify retained historical
+executables. Immutable-source full gates remain required for this increment.
+
+Admission, node, barrier, caller-binding, return, wait, active recovery and closure
+transactions are parts of the Draft. Actual registry/driver dispatch,
 complete process-loss/commit-loss fault qualification and production capacity
 remain pending. These Store primitives do not enable
 nested execution or make RFC-0022 Supported.

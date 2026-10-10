@@ -485,6 +485,8 @@ pub(super) async fn snapshot(pool: &PgPool, fence: &RunFence) -> (Vec<i64>, Stri
         "graph_frame_barriers",
         "node_attempts",
         "node_attempt_completions",
+        "graph_frame_closures",
+        "graph_frame_closed_callers",
     ] {
         counts.push(
             query_scalar(&format!(

@@ -5,7 +5,7 @@
 [简体中文](postgresql-roles.zh-CN.md)
 
 `trusted-server-roles-v1` is an executable least-privilege deployment profile for
-the **trusted server-side** PostgreSQL 16/17 provider at schema 32. It separates
+the **trusted server-side** PostgreSQL 16/17 provider at schema 33. It separates
 migration, application runtime and fairness-reservation retention credentials.
 For effect-free remote computation, the separate
 [MCP compute Worker profile](mcp-compute-worker.md) transmits no database
@@ -22,7 +22,7 @@ remain release gates.
 | Principal | Allowed | Not allowed |
 |---|---|---|
 | Migration owner | Own the dedicated database, schema, tables and invoker functions; explicit migrations and transactional profile apply/audit | Superuser, role administration, replication or RLS bypass in this profile; credentials in the runtime process |
-| Runtime | CONNECT; schema USAGE; read migration metadata; SELECT/INSERT on the exact 50 framework tables; UPDATE only enumerated mutable projection columns; execute the UUID check function | DDL, temporary objects, DELETE/TRUNCATE, updating immutable evidence/identity columns, migration metadata writes, grant options, owner membership, disabling triggers |
+| Runtime | CONNECT; schema USAGE; read migration metadata; SELECT/INSERT on the exact 52 framework tables; UPDATE only enumerated mutable projection columns; execute the UUID check function | DDL, temporary objects, DELETE/TRUNCATE, updating immutable evidence/identity columns, migration metadata writes, grant options, owner membership, disabling triggers |
 | Retention | Read migration metadata; SELECT/DELETE on fairness reservations; UPDATE on that table's `reservation_id` only, required by PostgreSQL's row-lock permission check | Runtime writes, journal/checkpoint reads or mutation, shard-policy/cursor mutation, DDL or migration |
 
 The retention identity is a **trusted destructive-maintenance account**.
@@ -104,7 +104,7 @@ timeout: investigate contention and retry the whole deployment step if it fails.
   on existing tables inherit table-level SELECT/INSERT, but never UPDATE. New
   migrations require a reviewed version-specific allowlist, migration, apply,
   audit and functional smoke tests before the new application starts. Schema
-  28 is checked here; migration checksums are checked by the pinned provider.
+  33 is checked here; migration checksums are checked by the pinned provider.
 - Reapplication is idempotent and is tested against populated durable histories.
   A read-only audit detects drift without silently fixing it; apply is a
   deliberate administrative change. Unrelated schema privilege drift is rejected
@@ -123,7 +123,7 @@ timeout: investigate contention and retry the whole deployment step if it fails.
 The mandatory PostgreSQL 16/17 CI creates a unique disposable database and three
 real LOGIN principals, migrates through the non-superuser owner and connects
 runtime/retention with their own credentials (current_user = session_user).
-It checks exact effective ACLs across all 50 tables and columns, SQLSTATE 42501
+It checks exact effective ACLs across all 52 tables and columns, SQLSTATE 42501
 for forbidden operations, PUBLIC/column/grant-option/default drift, SET-only
 membership rejection, atomic apply rollback and denied access to future objects.
 It runs original-failure/child cancellation/settlement accounting, Join

@@ -404,6 +404,9 @@ pub(super) async fn verify_completion_anchor(
     let Some(completion) = attempt.completion() else {
         return Ok(());
     };
+    if Box::pin(closures::verify_completion_anchor(tx, attempt)).await? {
+        return Ok(());
+    }
     let start = attempt.start();
     let origin = start.activation();
     let row=query("SELECT * FROM stateknot.graph_frame_returns WHERE tenant_id=$1 AND run_id=$2 AND caller_attempt_id=$3").bind(origin.tenant_id().as_str()).bind(*origin.run_id().as_uuid()).bind(*start.attempt_id().as_uuid()).fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("framework completion witness",e))?.ok_or_else(||StoreError::corrupt("framework completion whole return missing"))?;

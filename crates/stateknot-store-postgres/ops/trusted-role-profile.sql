@@ -1,6 +1,6 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
--- Schema-32 trusted-server ACL profile. Apply and audit share one allowlist.
+-- Schema-33 trusted-server ACL profile. Apply and audit share one allowlist.
 -- Execute in one transaction with search_path=pg_catalog (see .psql wrapper).
 DO $profile$
 DECLARE
@@ -15,7 +15,7 @@ DECLARE
         'child_run_budget_accounts', 'child_run_cancellation_receipts', 'child_run_cancellations',
         'child_run_join_bindings', 'child_run_join_consumptions', 'child_run_joins',
         'child_run_ownership', 'child_run_settlements', 'child_run_terminals',
-        'graph_definitions', 'graph_frame_barriers', 'graph_frame_caller_bindings', 'graph_frame_entries', 'graph_frame_heads', 'graph_frame_returns', 'graph_frame_stacks',
+        'graph_definitions', 'graph_frame_barriers', 'graph_frame_caller_bindings', 'graph_frame_closed_callers', 'graph_frame_closures', 'graph_frame_entries', 'graph_frame_heads', 'graph_frame_returns', 'graph_frame_stacks',
         'interrupt_resolutions', 'model_invocation_revisions',
         'model_invocations', 'node_attempt_completions', 'node_attempts',
         'outbox_attempt_completions', 'outbox_attempts', 'outbox_deliveries',
@@ -92,14 +92,14 @@ BEGIN
         END IF;
     END LOOP;
     IF (SELECT array_agg(version ORDER BY version) FROM public._sqlx_migrations WHERE success)
-       IS DISTINCT FROM ARRAY(SELECT generate_series(1,32)::bigint)
-       OR (SELECT count(*) FROM public._sqlx_migrations) <> 32 THEN
-        RAISE EXCEPTION 'profile requires exact schema version 32';
+       IS DISTINCT FROM ARRAY(SELECT generate_series(1,33)::bigint)
+       OR (SELECT count(*) FROM public._sqlx_migrations) <> 33 THEN
+        RAISE EXCEPTION 'profile requires exact schema version 33';
     END IF;
     SELECT array_agg(relname::text ORDER BY relname COLLATE "C") INTO actual_tables
       FROM pg_class WHERE relnamespace='stateknot'::regnamespace AND relkind IN ('r','p','v','m','f','S');
     IF actual_tables IS DISTINCT FROM tables THEN
-        RAISE EXCEPTION 'profile table inventory does not match schema 32';
+        RAISE EXCEPTION 'profile table inventory does not match schema 33';
     END IF;
     IF EXISTS (SELECT FROM pg_class WHERE relnamespace='stateknot'::regnamespace AND relowner<>owner_id)
        OR EXISTS (SELECT FROM pg_proc WHERE pronamespace='stateknot'::regnamespace AND (proowner<>owner_id OR prosecdef)) THEN

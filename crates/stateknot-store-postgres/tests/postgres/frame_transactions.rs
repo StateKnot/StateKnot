@@ -48,6 +48,21 @@ pub(super) async fn admit_with_retry_limit(
     child: &CompiledGraph,
     retries: Option<u64>,
 ) -> StoredAgentAdmission {
+    Box::pin(admit_with_budget_override(
+        store, tenant, run, parent, child, retries, None,
+    ))
+    .await
+}
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn admit_with_budget_override(
+    store: &PostgresStore,
+    tenant: &TenantId,
+    run: RunId,
+    parent: &CompiledGraph,
+    child: &CompiledGraph,
+    retries: Option<u64>,
+    budget_override: Option<BudgetLimits>,
+) -> StoredAgentAdmission {
     store
         .register_graph_definition(tenant.clone(), parent.clone())
         .await
@@ -63,7 +78,12 @@ pub(super) async fn admit_with_retry_limit(
         template.request().clone(),
         template.budget_layers().iter().map(|layer| {
             let limits = retries.map_or_else(
-                || layer.limits().clone(),
+                || {
+                    budget_override
+                        .as_ref()
+                        .unwrap_or_else(|| layer.limits())
+                        .clone()
+                },
                 |retries| {
                     layer
                         .limits()

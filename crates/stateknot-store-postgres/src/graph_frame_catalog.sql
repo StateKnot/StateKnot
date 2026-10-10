@@ -1,8 +1,8 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
 
-WITH frame_tables(name) AS (VALUES ('graph_frame_entries'),('graph_frame_heads'),('graph_frame_stacks'),('graph_frame_barriers'),('graph_frame_caller_bindings'),('graph_frame_returns')),
-frame_functions(name) AS (VALUES ('guard_graph_frame_entry_immutable'),('guard_graph_frame_execution_scope'),('guard_graph_frame_entry_complete'),('guard_graph_frame_revision_scope'),('guard_graph_frame_stack_complete'),('guard_graph_frame_entry_components'),('guard_graph_frame_root_projection'),('guard_graph_frame_checkpoint_complete'),('guard_graph_frame_head_complete'),('guard_graph_frame_legacy_wait'),('guard_graph_frame_barrier_complete'),('guard_graph_frame_barrier_event_complete'),('guard_graph_frame_head_advance'),('guard_graph_frame_consumption_complete'),('guard_graph_frame_caller_binding_complete'),('guard_graph_frame_caller_event_complete'),('guard_graph_frame_return_complete'),('guard_graph_frame_return_event_complete'),('guard_graph_frame_stack_transition'),('guard_graph_frame_wait_complete')),
+WITH frame_tables(name) AS (VALUES ('graph_frame_entries'),('graph_frame_heads'),('graph_frame_stacks'),('graph_frame_barriers'),('graph_frame_caller_bindings'),('graph_frame_returns'),('graph_frame_closures'),('graph_frame_closed_callers')),
+frame_functions(name) AS (VALUES ('guard_graph_frame_entry_immutable'),('guard_graph_frame_execution_scope'),('guard_graph_frame_entry_complete'),('guard_graph_frame_revision_scope'),('guard_graph_frame_stack_complete'),('guard_graph_frame_entry_components'),('guard_graph_frame_root_projection'),('guard_graph_frame_checkpoint_complete'),('guard_graph_frame_head_complete'),('guard_graph_frame_legacy_wait'),('guard_graph_frame_barrier_complete'),('guard_graph_frame_barrier_event_complete'),('guard_graph_frame_head_advance'),('guard_graph_frame_consumption_complete'),('guard_graph_frame_caller_binding_complete'),('guard_graph_frame_caller_event_complete'),('guard_graph_frame_return_complete'),('guard_graph_frame_return_event_complete'),('guard_graph_frame_stack_transition'),('guard_graph_frame_wait_complete'),('guard_graph_frame_closure_complete'),('guard_graph_frame_closure_event_complete'),('guard_graph_frame_closed_run')),
 frame_triggers(table_name,name) AS (VALUES
  ('graph_frame_entries','graph_frame_entries_immutable'),('graph_frame_entries','frame_entries_complete'),
  ('graph_frame_stacks','frame_stacks_complete'),('runs','runs_frame_root_projection'),
@@ -11,6 +11,7 @@ frame_triggers(table_name,name) AS (VALUES
  ('run_checkpoints','checkpoints_frame_scope'),('run_checkpoints','checkpoints_frame_complete'),
  ('graph_frame_heads','frame_heads_complete'),('run_wait_registrations','waits_frame_scope'),
  ('run_events','run_events_frame_entry_complete'),
+ ('graph_frame_closures','graph_frame_closures_immutable'),('graph_frame_closures','frame_closures_complete'),('graph_frame_closed_callers','graph_frame_closed_callers_immutable'),('graph_frame_closed_callers','frame_closed_callers_complete'),('run_events','run_events_frame_closure_complete'),('runs','runs_frame_closed_guard'),
  ('tool_invocation_revisions','tool_revisions_frame_scope'),('model_invocation_revisions','model_revisions_frame_scope'),
  ('graph_frame_barriers','graph_frame_barriers_immutable'),('graph_frame_barriers','frame_barriers_complete'),
  ('run_events','run_events_frame_barrier_complete'),('graph_frame_heads','frame_heads_advance'),

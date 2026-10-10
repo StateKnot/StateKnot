@@ -617,6 +617,7 @@ pub(super) async fn validate_terminal_accounting(
         .terminal_usage()
         .ok_or(StoreError::IncompleteChildAccounting)?;
     let Some(account) = load_account(tx, event.tenant_id(), event.run_id()).await? else {
+        graph_frames::validate_closed_direct_usage(tx, event, total).await?;
         return failure_closes::validate_direct_usage(tx, event, total).await;
     };
     ensure_settled(&account)?;
@@ -628,6 +629,7 @@ pub(super) async fn validate_terminal_accounting(
         )
         .map_err(|_| StoreError::IncompleteChildAccounting)?;
     failure_closes::validate_direct_usage(tx, event, &direct).await?;
+    graph_frames::validate_closed_direct_usage(tx, event, &direct).await?;
     let account = account
         .observe_direct(event.head(), direct)
         .map_err(|_| StoreError::IncompleteChildAccounting)?;

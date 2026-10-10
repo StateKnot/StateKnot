@@ -9,6 +9,8 @@ mod child_upgrade;
 mod frame_barriers;
 #[path = "postgres/frame_callers.rs"]
 mod frame_callers;
+#[path = "postgres/frame_closures.rs"]
+mod frame_closures;
 #[path = "postgres/frame_dispatch.rs"]
 mod frame_dispatch;
 #[path = "postgres/frame_entries.rs"]

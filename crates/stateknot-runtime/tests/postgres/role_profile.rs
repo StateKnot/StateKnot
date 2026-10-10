@@ -428,8 +428,14 @@ impl GraphSchemaValidator for RoleFrameSchemas {
 
 // This qualifies the compound Store transaction under the real runtime login;
 // the framework call is not dispatched through an experimental graph driver.
+enum RoleFrameCase {
+    Return,
+    Wait,
+    Close,
+}
 #[allow(clippy::too_many_lines)]
-async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, wait_case: bool) {
+async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, case: RoleFrameCase) {
+    let wait_case = matches!(case, RoleFrameCase::Wait);
     let wire: Value = serde_json::from_str(include_str!(
         "../../../stateknot-core/tests/fixtures/core-graph-frame-call-v1.json"
     ))
@@ -473,10 +479,10 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, wait_cas
         .unwrap();
         parent = parent.with_frame_calls(replacement).unwrap();
     }
-    let tenant_id = tenant(if wait_case {
-        "role-frame-wait"
-    } else {
-        "role-frame-entry"
+    let tenant_id = tenant(match case {
+        RoleFrameCase::Return => "role-frame-entry",
+        RoleFrameCase::Wait => "role-frame-wait",
+        RoleFrameCase::Close => "role-frame-close",
     });
     for graph in [&parent, &child] {
         store
@@ -613,10 +619,14 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, wait_cas
     let counts: (i64,i64,i64) = query_as("SELECT (SELECT count(*) FROM stateknot.run_events WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.run_checkpoints WHERE tenant_id=$1 AND run_id=$2),(SELECT count(*) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2)")
         .bind(tenant_id.as_str()).bind(*run.as_uuid()).fetch_one(&fixture.runtime).await.unwrap();
     assert_eq!(counts, (2, 2, 1));
-    if wait_case {
-        Box::pin(scoped_wait(fixture, store, &entry, &child, lease.fence())).await;
-    } else {
-        Box::pin(scoped_node_completion(store, &entry, &child, lease.fence())).await;
+    match case {
+        RoleFrameCase::Wait => {
+            Box::pin(scoped_wait(fixture, store, &entry, &child, lease.fence())).await;
+        }
+        RoleFrameCase::Return => {
+            Box::pin(scoped_node_completion(store, &entry, &child, lease.fence())).await;
+        }
+        RoleFrameCase::Close => Box::pin(scoped_close(fixture, store, &entry, lease.fence())).await,
     }
     denied(
         &fixture.retention,
@@ -990,8 +1000,14 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     Box::pin(crate::qualify_provider_native_with_store(&store, false)).await;
     node_completion_race(&store).await;
     skill_acting_window_authorization(&store).await;
-    Box::pin(compound_frame_entry(&fixture, &store, false)).await;
-    Box::pin(compound_frame_entry(&fixture, &store, true)).await;
+    Box::pin(compound_frame_entry(
+        &fixture,
+        &store,
+        RoleFrameCase::Return,
+    ))
+    .await;
+    Box::pin(compound_frame_entry(&fixture, &store, RoleFrameCase::Wait)).await;
+    Box::pin(compound_frame_entry(&fixture, &store, RoleFrameCase::Close)).await;
     isolated_retention(&fixture, &store).await;
     let snapshot = "SELECT jsonb_agg(jsonb_build_array(tenant_id,run_id,journal_sequence,journal_digest) ORDER BY tenant_id,run_id) FROM stateknot.runs";
     let before: Value = query_scalar(snapshot)
@@ -1013,7 +1029,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 32);
+    assert_eq!(schema_version, 33);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -1033,6 +1049,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "framework_caller_rebind_retry_reload":true,
         "whole_frame_return_retry_reload":true,
         "whole_frame_wait_resolve_resume":true,
+        "whole_frame_closure_retry_reload_terminal":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"
@@ -1259,5 +1276,171 @@ async fn scoped_wait(
         started.attempt().start().activation().graph_namespace(),
         checkpoint.frame().namespace()
     );
+    fresh.close().await;
+}
+
+// Each mutation and full historical read uses the actual restricted runtime LOGIN.
+#[allow(clippy::too_many_lines)]
+async fn scoped_close(
+    fixture: &Fixture,
+    store: &PostgresStore,
+    entry: &stateknot_store_postgres::StoredGraphFrameEntry,
+    fence: &stateknot_core::RunFence,
+) {
+    let append = |head| {
+        JournalAppend::new(
+            JournalExpectation::exact(head),
+            JournalEventIntent::control_plane(
+                fence.tenant_id().clone(),
+                fence.run_id(),
+                EventId::generate(),
+                test_payload(),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+    };
+    let run = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Cancelled,
+        "role.frame_cancelled".parse().unwrap(),
+        "test.role".parse().unwrap(),
+        "The role qualification closes its actual framework caller."
+            .parse()
+            .unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap();
+    let request = RunCancellationRequest::new(failure, entry.event().recorded_at()).unwrap();
+    store
+        .append_control_plane(
+            append(entry.event().head()),
+            RunProjection::transition(
+                run.lifecycle().revision(),
+                RunTransition::RequestCancellation { request },
+            ),
+        )
+        .await
+        .unwrap();
+    let requested = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let closed = store
+        .close_graph_frames(
+            fence.tenant_id(),
+            fence.run_id(),
+            EventId::generate(),
+            requested.journal_head().unwrap().clone(),
+            requested.lifecycle().revision(),
+            entry.direct_usage_after().unwrap(),
+        )
+        .await
+        .unwrap();
+    let record = closed.record();
+    assert_eq!(
+        record.completions()[0].start(),
+        &entry.entry().start().head()
+    );
+    assert_eq!(record.completions()[0].start().fence(), fence);
+    let fresh = PostgresStore::connect(&fixture.runtime_url, options())
+        .await
+        .unwrap();
+    assert_eq!(
+        fresh
+            .load_graph_frame_closure(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap()
+            .unwrap()
+            .digest(),
+        record.digest()
+    );
+    let retry = fresh
+        .close_graph_frames(
+            fence.tenant_id(),
+            fence.run_id(),
+            EventId::generate(),
+            entry.event().head(),
+            run.lifecycle().revision(),
+            BudgetUsage::zero(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        retry,
+        stateknot_store_postgres::GraphFrameClosureCommitOutcome::Existing(_)
+    ));
+    assert_eq!(retry.record().digest(), record.digest());
+    fresh
+        .append_control_plane(
+            append(record.event().head()),
+            RunProjection::transition(
+                requested.lifecycle().revision(),
+                RunTransition::ConfirmCancellation {
+                    completed_at: record.event().recorded_at(),
+                    usage: record.direct_usage().clone(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        fresh
+            .load_run(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap()
+            .lifecycle()
+            .status(),
+        RunStatus::Cancelled
+    );
+    assert_eq!(
+        fresh
+            .load_graph_frame_closure(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap()
+            .unwrap()
+            .digest(),
+        record.digest()
+    );
+    assert_eq!(
+        fresh
+            .load_node_attempt(
+                fence.tenant_id(),
+                &fence.run_id(),
+                entry.entry().start().attempt_id()
+            )
+            .await
+            .unwrap()
+            .completion()
+            .unwrap()
+            .digest(),
+        record.completions()[0].digest()
+    );
+    assert!(
+        fresh
+            .load_active_graph_frame(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    denied(
+        &fixture.runtime,
+        "UPDATE stateknot.graph_frame_closures SET frame_count=frame_count WHERE false",
+    )
+    .await;
+    denied(
+        &fixture.runtime,
+        "DELETE FROM stateknot.graph_frame_closed_callers WHERE false",
+    )
+    .await;
+    denied(
+        &fixture.retention,
+        "SELECT * FROM stateknot.graph_frame_closures LIMIT 1",
+    )
+    .await;
     fresh.close().await;
 }

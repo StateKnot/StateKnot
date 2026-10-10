@@ -11,6 +11,15 @@ use stateknot_core::{
 #[path = "graph_frames/active.rs"]
 mod active;
 pub use active::{StoredActiveGraphFrame, StoredOpenGraphFrame};
+#[path = "graph_frames/closures.rs"]
+mod closures;
+pub use closures::{GraphFrameClosureCommitOutcome, StoredGraphFrameClosure};
+pub(super) async fn closed_completion(
+    tx: &mut Transaction<'_, Postgres>,
+    start: &NodeAttemptStart,
+) -> Result<Option<NodeAttemptCompletion>, StoreError> {
+    Box::pin(closures::load_completion(tx, start)).await
+}
 
 #[path = "graph_frames/barriers.rs"]
 mod barriers;
@@ -28,6 +37,9 @@ pub(super) async fn recognize_completion(
     tx: &mut Transaction<'_, Postgres>,
     attempt: &NodeAttempt,
 ) -> Result<JournalEvent, StoreError> {
+    if let Some(event) = Box::pin(closures::recognize_completion(tx, attempt)).await? {
+        return Ok(event);
+    }
     Box::pin(returns::recognize_completion(tx, attempt)).await
 }
 pub use returns::{GraphFrameReturnCommitOutcome, StoredGraphFrameReturn};
@@ -1392,15 +1404,26 @@ pub(super) async fn revalidate_worker_after_components(
     tx: &mut Transaction<'_, Postgres>,
     fence: &RunFence,
 ) -> Result<(), StoreError> {
+    Box::pin(revalidate_scoped_worker_after_components(tx, fence, true)).await
+}
+
+// Known in-flight invocation outcomes grant no new execution authority, but
+// still require the exact live fence after every deferred component guard.
+pub(super) async fn revalidate_scoped_worker_after_components(
+    tx: &mut Transaction<'_, Postgres>,
+    fence: &RunFence,
+    requires_deadline: bool,
+) -> Result<(), StoreError> {
     query("SET CONSTRAINTS ALL IMMEDIATE")
         .execute(&mut **tx)
         .await
         .map_err(|e| StoreError::database("frame component guards", e))?;
     let valid = query_scalar::<_, bool>(
-        "SELECT lease_attempt_id=$3 AND fencing_epoch=$4 AND lease_expires_at>clock_timestamp() AND agent_deadline_at>clock_timestamp() FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2"
+        "SELECT lease_attempt_id=$3 AND fencing_epoch=$4 AND lease_expires_at>clock_timestamp() AND (NOT $5 OR agent_deadline_at>clock_timestamp()) FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2"
     ).bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid())
         .bind(*fence.attempt_id().as_uuid())
         .bind(i64::try_from(fence.epoch().get()).map_err(|_|StoreError::StaleFence)?)
+        .bind(requires_deadline)
         .fetch_one(&mut **tx).await
         .map_err(|e|StoreError::database("frame final authority",e))?;
     if !valid {
@@ -1435,4 +1458,53 @@ pub(super) fn verify_wait_anchor<'a>(
     event: &'a JournalEvent,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), StoreError>> + Send + 'a>> {
     barriers::verify_wait_anchor(tx, wait, event)
+}
+
+// A sealed failure may suspend actual framework callers only after the entire
+// open stack and all ordinary/provider work are authenticated in this Run lock.
+pub(super) async fn prepare_failure_close(
+    tx: &mut Transaction<'_, Postgres>,
+    stored: &StoredRun,
+    tenant: &TenantId,
+    run: RunId,
+    direct: &BudgetUsage,
+) -> Result<bool, StoreError> {
+    let open: bool = query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2 AND active_namespace<>'')").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("failure frame boundary",e))?;
+    if !open {
+        return Ok(false);
+    }
+    let snapshot = Box::pin(active::verified_snapshot(tx, tenant, run, stored.clone()))
+        .await?
+        .ok_or(StoreError::GraphFrameConflict)?;
+    direct
+        .validate_monotonic_after(snapshot.minimum_direct_usage())
+        .map_err(|_| StoreError::IncompleteChildAccounting)?;
+    closures::ensure_settled_work(tx, tenant, run).await?;
+    Ok(true)
+}
+pub(super) async fn validate_closed_direct_usage(
+    tx: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+    direct: &BudgetUsage,
+) -> Result<(), StoreError> {
+    let open: bool = query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2 AND active_namespace<>'')")
+        .bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid())
+        .fetch_one(&mut **tx).await.map_err(|e|StoreError::database("terminal frame boundary",e))?;
+    if open {
+        return Err(StoreError::GraphFrameCompoundRequired);
+    }
+    let Some(saved) = closures::row(tx, event.tenant_id(), event.run_id()).await? else {
+        return Ok(());
+    };
+    let current = query_as::<_, RunRow>(SELECT_RUN)
+        .bind(event.tenant_id().as_str())
+        .bind(*event.run_id().as_uuid())
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(|e| StoreError::database("closed terminal Run", e))?;
+    let record = Box::pin(closures::verified_record(tx, &decode_run(current)?, saved)).await?;
+    if record.direct_usage() != direct {
+        return Err(StoreError::IncompleteChildAccounting);
+    }
+    Ok(())
 }
