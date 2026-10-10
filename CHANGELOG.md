@@ -14,6 +14,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Reject a Root checkpoint relabeled as a scoped model/tool activation before
+  frame lookup, preserving existing invalid-activation errors for new requests
+  and treating the same alias in stored invocation facts as corruption.
+
 - Keep complete scoped wait authentication in a separate heap-backed Future,
   preserving whole terminal checks without inflating non-wait barrier replay
   or overflowing the default thread stack in seven-level return recovery.

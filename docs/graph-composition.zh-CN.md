@@ -113,7 +113,8 @@ Driver 在**派发新节点之前**检查 `maximum_supersteps`，重启后正好
 
 独立的 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md)实验已加入原始取消
 或封存失败后的整栈 Store 关闭：保留根状态和 Caller 的实际旧 fence，冻结完整已定价
-DIRECT 用量，并拒绝未完成的普通节点、provider 或子任务。它使用 Schema 33 与对应
+DIRECT 用量，并拒绝未完成的普通节点、provider 或子任务。作用域 provider 调用验证
+实际帧身份；将 Root checkpoint 伪装为嵌套调用仍返回原有的无效激活错误。它使用 Schema 33 与对应
 的 52 表受信服务端角色配置。重试先完整认证已提交决定；不授予执行权限的清理可以在
 执行截止期后完成。实际嵌套 Driver 派发和最终完整验收仍待完成。
 

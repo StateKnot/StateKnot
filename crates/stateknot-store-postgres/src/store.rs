@@ -6992,6 +6992,11 @@ WHERE tenant_id = $1
                 return Err(StoreError::InvalidToolInvocationActivation);
             }
         } else {
+            if stored.checkpoint().is_some_and(|root| {
+                root.checkpoint_id() == intent.activation().base_checkpoint().checkpoint_id()
+            }) {
+                return Err(StoreError::InvalidToolInvocationActivation);
+            }
             Box::pin(verify_scoped_invocation_activation(
                 &mut transaction,
                 intent.activation(),
@@ -7208,6 +7213,11 @@ WHERE tenant_id = $1
                 return Err(StoreError::corrupt("tool invocation activation"));
             }
         } else {
+            if stored.checkpoint().is_some_and(|root| {
+                root.checkpoint_id() == intent.activation().base_checkpoint().checkpoint_id()
+            }) {
+                return Err(StoreError::corrupt("tool invocation activation"));
+            }
             Box::pin(verify_scoped_invocation_activation(
                 &mut transaction,
                 intent.activation(),
@@ -7393,6 +7403,11 @@ WHERE tenant_id = $1
                 return Err(StoreError::InvalidModelInvocationActivation);
             }
         } else {
+            if stored.checkpoint().is_some_and(|root| {
+                root.checkpoint_id() == intent.activation().base_checkpoint().checkpoint_id()
+            }) {
+                return Err(StoreError::InvalidModelInvocationActivation);
+            }
             Box::pin(verify_scoped_invocation_activation(
                 &mut transaction,
                 intent.activation(),
@@ -7608,6 +7623,11 @@ WHERE tenant_id = $1
                 return Err(StoreError::corrupt("model invocation activation"));
             }
         } else {
+            if stored.checkpoint().is_some_and(|root| {
+                root.checkpoint_id() == intent.activation().base_checkpoint().checkpoint_id()
+            }) {
+                return Err(StoreError::corrupt("model invocation activation"));
+            }
             Box::pin(verify_scoped_invocation_activation(
                 &mut transaction,
                 intent.activation(),
