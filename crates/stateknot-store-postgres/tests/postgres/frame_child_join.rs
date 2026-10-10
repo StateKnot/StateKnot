@@ -161,6 +161,9 @@ async fn direct(
     BudgetUsage::builder()
         .graph_depth(ExecutionCount::new(2))
         .graph_steps(ExecutionCount::new(starts))
+        // Both activations first started under the original fence. Each actual
+        // successor physical start is one retry, including caller rebinding.
+        .retries(ExecutionCount::new(starts - 2))
         .concurrent_branches(ExecutionCount::new(1))
         .fan_out(ExecutionCount::new(1))
         .event_bytes(ByteCount::new(bytes as u64))
