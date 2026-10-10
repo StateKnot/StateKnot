@@ -6,7 +6,11 @@ use super::*;
 use stateknot_core::{ChildRunJoinRequest, ExecutionCount};
 use stateknot_store_postgres::{ChildJoinCommitOutcome, GraphFrameReturnCommitOutcome};
 
-async fn control_append(store: &PostgresStore, value: &Fixture, kind: &str) -> JournalAppend {
+pub(super) async fn control_append(
+    store: &PostgresStore,
+    value: &Fixture,
+    kind: &str,
+) -> JournalAppend {
     let run = store
         .load_run(value.fence.tenant_id(), value.fence.run_id())
         .await

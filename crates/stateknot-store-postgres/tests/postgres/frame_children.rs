@@ -14,6 +14,9 @@ use stateknot_store_postgres::{ChildRunCommitOutcome, GraphFrameEntryCommitOutco
 #[path = "frame_child_join.rs"]
 mod join;
 
+#[path = "frame_child_cancellation.rs"]
+mod cancellation;
+
 struct Fixture {
     admission: StoredAgentAdmission,
     intent: ChildRunAdmissionIntent,
