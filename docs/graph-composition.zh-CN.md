@@ -137,6 +137,10 @@ claimed 恢复通过原 worker 上下文执行隔离。
 记录精确 `8285f25` 源码、完整门禁、真实旧 return 只读兼容及保留失败。实际嵌套
 Driver 和完整应用 replay 继续开放。
 
+[Root disposition 恢复增量](rfcs/0022-namespaced-graph-frames.md#root-disposition-recovery-increment-in-development)
+规定了正在开发的历史 Continue/Wait/Terminal 完整证明。新格式和迁移需要独立的最终源码验收；
+无法证明原 disposition 的合法旧历史明确返回恢复不可用，不能通过推测或回填获得执行权限。
+
 ## 验证与未覆盖边界
 
 Core 测试覆盖确定性身份、冻结摘要、源节点排序、静态嵌套、返回转发、端口/路线/Schema/Reducer

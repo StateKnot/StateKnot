@@ -426,6 +426,115 @@ complete process-loss/commit-loss fault qualification and production capacity
 remain pending. These Store primitives do not enable
 nested execution or make RFC-0022 Supported.
 
+### Root disposition recovery increment (in development)
+
+Full application replay must also recover historical Root barriers after the
+last child returns. The existing generic Root barrier records authenticate the
+checkpoint, ordered result consumption and journal projection, but do not
+uniformly retain the original lifecycle revision and complete
+`GraphBarrierDisposition`. Deriving a fresh Wait or Terminal from current
+application code cannot supply missing historical inputs. This increment is in
+development; the frozen `8285f25` qualification does not qualify its migration,
+writer, reader or application replay.
+
+The selected persistence design is a new immutable Root barrier record and a
+Store-owned compound journal projection. It uses migration 34 without changing
+migrations 1 through 33 or backfilling a guessed disposition. An exact legacy
+Continue can be proved by reconstructing its original Unchanged projection
+preimage. A legal legacy edge whose original disposition cannot be proved
+returns `GraphReplayHistoricalDispositionUnavailable`, preserves the Run and
+grants no dispatch. A recognized new-format event with a missing or contradictory
+whole record is durable corruption. A missing migration, catalog object or ACL
+is a deployment error; it does not justify quarantining the Run.
+
+The immutable record binds the exact Root base and successor heads, pinned
+graph, ordered result count/digest, full Core barrier intent, closed
+Continue/Wait/Terminal disposition, original projection digest, original and
+committed lifecycle, and the actual journal anchor. Redundant owner, namespace,
+revision and digest columns must agree with the canonical record. The new
+event's fixed payload contains a precommit intent digest. A separate compound
+digest binds that intent to the actual event, successor and committed lifecycle.
+It is stored in the event projection and record. An event payload must not
+contain the digest of a record that itself includes the full event digest;
+that would create a circular dependency.
+
+Existing Root limits remain unchanged: the complete JournalPayload envelope is
+bounded at 2 MiB, each complete wait registration at 4 MiB, each checkpoint at
+2,621,440 bytes, and a barrier at 1,024 results and 64 waits. The journal contains
+compact intent references. Wait records contain ordered kind/identity/intent
+references and a digest of the complete semantic batch; recovery authenticates
+the complete original registrations and their terminal records. Copying 64
+legal large wait requests into a small bundle would narrow the existing
+contract. Terminal stores the complete original AgentResult once in the
+committed lifecycle and derives its output from that source. It must retain
+artifacts, actual usage, admitted provenance and completion metadata. A graph
+output alone cannot manufacture an accountable AgentResult. Fix the new Wire
+bound only after deriving its maximum from accepted Core envelopes and testing
+the largest legal terminal and wait cases.
+
+The graph-specific writer accepts the real complete plan and original append,
+lifecycle expectation and terminal result where required. Existing ACK-loss
+recovery authenticates the entire committed event, successor, result
+consumptions, waits, disposition and lifecycle before invoking new application
+callbacks. It compares original canonical retry inputs and grants no new node
+launch. It cannot attach a missing record to an old event. Fresh preflight
+authenticates the base and all complete results, then closes SQL before schema,
+reducer or planner callbacks. It independently replans and compares the whole
+plan before taking the mutation lock.
+
+Under the Run lock, the fresh writer rechecks the exact journal, Root base,
+original lifecycle, active Root stack, complete result set, settled invocation
+and child ownership, and the live database-time fence. It atomically commits
+the fixed event, successor, all consumptions, original plan's waits if any,
+immutable record and Run lifecycle/pointers. Continue preserves the lifecycle;
+Wait and Terminal apply their original revision exactly once and release the
+lease according to existing lifecycle rules. Per-statement and final
+database-time checks retain the original owner and detect slow-trigger expiry.
+Deferred guards must enforce both directions of event/record/successor/
+consumption/wait completeness and the actual before/after lifecycle source.
+Generic legacy append paths reject the reserved new event kind. No generic
+failure or cancellation can be relabeled as a graph disposition.
+
+The complete reader reconstructs the barrier from the authenticated base,
+successor write and ordered complete result heads. It recomputes the intent,
+original projection, full disposition and pure lifecycle transition from the
+original source records, then verifies the compound and event payload reference.
+Wait reconstruction uses the actual original registration sequence and every
+resolved/fired/abandoned component; current status alone is insufficient.
+Terminal reconstruction compares the whole NodeTerminalOutput, admitted
+AgentResult and terminal node control. Public readers retain their full owning
+proofs. Private application replay may reuse authenticated direct component
+proofs within its one consistent observation, and includes disposition,
+projection, lifecycle, wait and event bindings in capture/materialization/final
+transcripts. Root edges are replayed after returned child histories. A changed
+record between passes is detected even when the journal head stays unchanged.
+Unavailable executable/schema/reducer, callback panic, replay resource bound
+and lost authority remain operational errors. Authenticated contradictions may
+quarantine only under the original current claimed context.
+
+Schema 34 must update exact migration and normalized catalog verification,
+restore inventories and dedicated non-superuser role profiles. Runtime gets
+SELECT/INSERT on the new immutable evidence table; it cannot UPDATE, DELETE,
+TRUNCATE, disable its triggers or execute its guard functions directly.
+Retention receives no independent evidence mutation or access grant. Rollout
+applies the reviewed migration and ACLs before the new runtime. The old exact
+schema-33 binary rejects schema 34; this design makes no mixed-version rolling
+compatibility promise. New readers preserve old bytes and explicitly classify
+unprovable legacy history. Upgrade, restore and downgrade tests must use
+nonempty real histories; current-source reconstructions do not replace actual
+N-1/N-2 artifact qualification.
+
+Required evidence includes PostgreSQL 16/17 real Continue/Wait/Terminal writes;
+wait discharge and takeover without applying the reducer again; complete
+ACK-loss retry and changed-input rejection; every component rollback and slow
+fence expiry; reserved-event and partial-row rejection under the runtime LOGIN;
+dedicated owner/retention/default ACL and catalog tamper checks; raw canonical
+and complete semantic substitutions; unchanged legacy unavailable outcomes;
+maximum legal payloads; callback lock/pool probes; actual 8/16/32-edge linear
+coverage and seven-level replay on the default Linux thread stack. All final
+source gates, actual Driver dispatch and scoped child-Join/Unknown handling are
+still required before this increments any Supported or milestone status.
+
 ## Detailed semantics
 
 ### Logical identity and scope

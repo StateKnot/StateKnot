@@ -103,8 +103,6 @@ Never fabricate a child checkpoint, replace the activation with a template
 identity, or reset the root superstep. Invocation bindings continue to name
 the real tenant/run/checkpoint/activation, including across lease takeover.
 
-The [frozen claimed recovery qualification](qualification/experimental-claimed-frame-recovery-2026-10-10.md) records the exact `8285f25` source, full gates, prechange read-only return compatibility and retained failures. Actual nested Driver and whole application replay remain open.
-
 ## Resource, recovery, and upgrade guarantees
 
 The complete expansion has at most 1,024 executable nodes, 256 routes per node,
@@ -174,6 +172,13 @@ terminal leaf may have no ready nodes. The plan still needs actual application
 schema/reducer replay and a dedicated durable scoped start before dispatch.
 Unexpected result namespace projections at an exact checkpoint fail as durable
 corruption; claimed reads quarantine through the original worker context.
+
+The [frozen claimed recovery qualification](qualification/experimental-claimed-frame-recovery-2026-10-10.md)
+records the exact `8285f25` source, full gates, prechange read-only return
+compatibility and retained failures. Actual nested Driver and whole application
+replay remain open. The [Root disposition recovery increment](rfcs/0022-namespaced-graph-frames.md#root-disposition-recovery-increment-in-development)
+specifies the complete historical Continue/Wait/Terminal proof being developed;
+its new format and migration require their own final-source qualification.
 
 ## Qualification and remaining boundaries
 
