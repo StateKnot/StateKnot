@@ -60,49 +60,53 @@ fn validate_plan(plan: &ReadyNodeRecoveryPlan) -> Result<Timestamp, StoreError> 
     Ok(not_before)
 }
 
-pub(super) async fn schedule(
-    store: &PostgresStore,
-    plan: &ReadyNodeRecoveryPlan,
-) -> Result<DelayedRetryScheduleOutcome, StoreError> {
-    let not_before = validate_plan(plan)?;
-    let fence = plan.fence();
-    let mut tx = store.begin_mutation("delayed retry wakeup").await?;
-    let stored =
-        decode_run(fetch_locked_run_row(&mut tx, fence.tenant_id(), fence.run_id()).await?)?;
-    validate_runnable(&stored)?;
-    if stored.lifecycle().status() != RunStatus::Active {
-        return Err(StoreError::RunNotRunnable);
-    }
-    if stored.journal_head() != Some(plan.journal_head()) {
-        return Err(StoreError::StaleJournalHead);
-    }
-    let scope = Box::pin(verify_scope(&mut tx, &stored, plan)).await?;
-    // Flush deferred guards while ownership remains live, before the final clock.
-    query("SET CONSTRAINTS ALL IMMEDIATE")
-        .execute(&mut *tx)
-        .await
-        .map_err(|e| StoreError::database("retry component guards", e))?;
-    let now = database_now(&mut tx, "delayed retry wakeup clock").await?;
-    if now < plan.observed_at() {
-        return Err(StoreError::DatabaseClockRegression);
-    }
-    let outcome = if stored.lease().is_none()
-        && stored.last_fencing_epoch() == Some(fence.epoch())
-        && stored.scheduler_not_before() == Some(not_before)
-    {
-        DelayedRetryScheduleOutcome::Idempotent { not_before }
-    } else {
-        let now = Box::pin(authorize_fresh_plan(&mut tx, &stored, plan, &scope, now)).await?;
-        if now >= not_before {
-            DelayedRetryScheduleOutcome::Due { not_before }
-        } else {
-            Box::pin(write_gate(&mut tx, &stored, plan, &scope, not_before, now)).await?
+// Erase the complete scheduler proof at this private module boundary.
+// Box::pin without a concrete Send type still exposes deep inferred futures.
+pub(super) fn schedule<'a>(
+    store: &'a PostgresStore,
+    plan: &'a ReadyNodeRecoveryPlan,
+) -> stateknot_core::BoxFuture<'a, Result<DelayedRetryScheduleOutcome, StoreError>> {
+    Box::pin(async move {
+        let not_before = validate_plan(plan)?;
+        let fence = plan.fence();
+        let mut tx = store.begin_mutation("delayed retry wakeup").await?;
+        let stored =
+            decode_run(fetch_locked_run_row(&mut tx, fence.tenant_id(), fence.run_id()).await?)?;
+        validate_runnable(&stored)?;
+        if stored.lifecycle().status() != RunStatus::Active {
+            return Err(StoreError::RunNotRunnable);
         }
-    };
-    tx.commit()
-        .await
-        .map_err(|e| StoreError::database("delayed retry wakeup commit", e))?;
-    Ok(outcome)
+        if stored.journal_head() != Some(plan.journal_head()) {
+            return Err(StoreError::StaleJournalHead);
+        }
+        let scope = Box::pin(verify_scope(&mut tx, &stored, plan)).await?;
+        // Flush deferred guards while ownership remains live, before the final clock.
+        query("SET CONSTRAINTS ALL IMMEDIATE")
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| StoreError::database("retry component guards", e))?;
+        let now = database_now(&mut tx, "delayed retry wakeup clock").await?;
+        if now < plan.observed_at() {
+            return Err(StoreError::DatabaseClockRegression);
+        }
+        let outcome = if stored.lease().is_none()
+            && stored.last_fencing_epoch() == Some(fence.epoch())
+            && stored.scheduler_not_before() == Some(not_before)
+        {
+            DelayedRetryScheduleOutcome::Idempotent { not_before }
+        } else {
+            let now = Box::pin(authorize_fresh_plan(&mut tx, &stored, plan, &scope, now)).await?;
+            if now >= not_before {
+                DelayedRetryScheduleOutcome::Due { not_before }
+            } else {
+                Box::pin(write_gate(&mut tx, &stored, plan, &scope, not_before, now)).await?
+            }
+        };
+        tx.commit()
+            .await
+            .map_err(|e| StoreError::database("delayed retry wakeup commit", e))?;
+        Ok(outcome)
+    })
 }
 
 // Scope proof above is unconditional, including for a lost ACK: actual Root,
@@ -287,60 +291,66 @@ async fn verify_scope(
     })
 }
 
-async fn rederive_plan(
-    tx: &mut Transaction<'_, Postgres>,
-    scope: &RetryScope,
-    expected: &ReadyNodeRecoveryPlan,
-) -> Result<(), StoreError> {
-    let mut planner = match &scope.frame {
-        Some(frame) => ReadyNodeRecoveryPlanner::for_frame(frame.clone(), expected.fence().clone()),
-        None => ReadyNodeRecoveryPlanner::new(scope.root.clone(), expected.fence().clone()),
-    }
-    .map_err(|_| StoreError::InvalidDelayedRetryPlan)?;
-    let checkpoint = scope
-        .frame
-        .as_ref()
-        .map_or(&scope.root, GraphFrameCheckpoint::checkpoint);
-    let namespace = scope
-        .frame
-        .as_ref()
-        .map_or_else(GraphNamespace::root, |frame| {
-            frame.frame().namespace().clone()
-        });
-    let activations = planner.activations();
-    verify_inventory(tx, checkpoint, &namespace, &activations).await?;
-    for activation in activations {
-        if let Some(row) = load_pending_node_result_row(tx, &activation).await? {
-            let result = decode_pending_node_result(&row)?;
-            if result.intent().activation() != &activation {
-                return Err(StoreError::corrupt("retry result activation"));
+// Keep complete history replay behind a concrete Send future so Runtime
+// does not recursively expand every owning proof through its scheduler.
+fn rederive_plan<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    scope: &'a RetryScope,
+    expected: &'a ReadyNodeRecoveryPlan,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        let mut planner = match &scope.frame {
+            Some(frame) => {
+                ReadyNodeRecoveryPlanner::for_frame(frame.clone(), expected.fence().clone())
             }
-            Box::pin(verify_pending_node_result_components(tx, &result)).await?;
-            planner
-                .observe_result(&result)
-                .map_err(|_| StoreError::corrupt("retry result history"))?;
+            None => ReadyNodeRecoveryPlanner::new(scope.root.clone(), expected.fence().clone()),
         }
-        Box::pin(observe_attempts(tx, &activation, &mut planner)).await?;
-    }
-    let actual = planner
-        .finish(expected.journal_head().clone(), expected.observed_at())
-        .map_err(|_| StoreError::corrupt("retry physical history plan"))?;
-    if actual.nodes().len() != expected.nodes().len()
-        || actual
-            .nodes()
-            .iter()
-            .zip(expected.nodes())
-            .any(|(actual, expected)| {
-                actual.activation() != expected.activation()
-                    || actual.kind() != expected.kind()
-                    || actual.result() != expected.result()
-                    || actual.not_before() != expected.not_before()
-            })
-        || actual.earliest_deferred_at() != expected.earliest_deferred_at()
-    {
-        return Err(StoreError::InvalidDelayedRetryPlan);
-    }
-    Ok(())
+        .map_err(|_| StoreError::InvalidDelayedRetryPlan)?;
+        let checkpoint = scope
+            .frame
+            .as_ref()
+            .map_or(&scope.root, GraphFrameCheckpoint::checkpoint);
+        let namespace = scope
+            .frame
+            .as_ref()
+            .map_or_else(GraphNamespace::root, |frame| {
+                frame.frame().namespace().clone()
+            });
+        let activations = planner.activations();
+        verify_inventory(tx, checkpoint, &namespace, &activations).await?;
+        for activation in activations {
+            if let Some(row) = load_pending_node_result_row(tx, &activation).await? {
+                let result = decode_pending_node_result(&row)?;
+                if result.intent().activation() != &activation {
+                    return Err(StoreError::corrupt("retry result activation"));
+                }
+                Box::pin(verify_pending_node_result_components(tx, &result)).await?;
+                planner
+                    .observe_result(&result)
+                    .map_err(|_| StoreError::corrupt("retry result history"))?;
+            }
+            Box::pin(observe_attempts(tx, &activation, &mut planner)).await?;
+        }
+        let actual = planner
+            .finish(expected.journal_head().clone(), expected.observed_at())
+            .map_err(|_| StoreError::corrupt("retry physical history plan"))?;
+        if actual.nodes().len() != expected.nodes().len()
+            || actual
+                .nodes()
+                .iter()
+                .zip(expected.nodes())
+                .any(|(actual, expected)| {
+                    actual.activation() != expected.activation()
+                        || actual.kind() != expected.kind()
+                        || actual.result() != expected.result()
+                        || actual.not_before() != expected.not_before()
+                })
+            || actual.earliest_deferred_at() != expected.earliest_deferred_at()
+        {
+            return Err(StoreError::InvalidDelayedRetryPlan);
+        }
+        Ok(())
+    })
 }
 
 // Compact predicates prevent filtering away contradictory projected history.
