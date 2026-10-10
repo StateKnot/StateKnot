@@ -46,14 +46,18 @@ mod application_replay;
 pub use application_replay::GraphRecoveryReplayReport;
 #[path = "graph_frames/returns.rs"]
 mod returns;
-pub(super) async fn recognize_completion(
-    tx: &mut Transaction<'_, Postgres>,
-    attempt: &NodeAttempt,
-) -> Result<JournalEvent, StoreError> {
-    if let Some(event) = Box::pin(closures::recognize_completion(tx, attempt)).await? {
-        return Ok(event);
-    }
-    Box::pin(returns::recognize_completion(tx, attempt)).await
+// Hide the complete closure/return proof from every ordinary history reader.
+// Pinning an inferred future alone does not erase its recursive Send proof.
+pub(super) fn recognize_completion<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    attempt: &'a NodeAttempt,
+) -> stateknot_core::BoxFuture<'a, Result<JournalEvent, StoreError>> {
+    Box::pin(async move {
+        if let Some(event) = Box::pin(closures::recognize_completion(tx, attempt)).await? {
+            return Ok(event);
+        }
+        Box::pin(returns::recognize_completion(tx, attempt)).await
+    })
 }
 pub use returns::{GraphFrameReturnCommitOutcome, StoredGraphFrameReturn};
 
