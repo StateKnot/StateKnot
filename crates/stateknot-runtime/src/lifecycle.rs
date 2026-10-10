@@ -476,6 +476,9 @@ pub trait GraphLifecycleEvidenceProvider: Send + Sync + 'static {
     /// event, excluding child subtrees. Implementations must not substitute a
     /// floor, infer missing work, or rerun external IO. The default preserves
     /// existing providers while explicitly declining framework accounting.
+    /// The runtime may drop this read-only observation on shutdown, durable
+    /// cancellation, or its existing timeout. Dropping the future does not
+    /// erase already-durable work or imply that missing costs are zero.
     fn direct_usage_evidence(
         &self,
         _context: GraphDirectUsageEvidenceContext,
@@ -590,19 +593,41 @@ impl DurableGraphLifecycle {
     /// An identical retry reconstructs that timestamp and usage from the
     /// terminal lifecycle, producing the same projection digest even after the
     /// original lease was atomically released.
+    ///
+    /// Scoped DIRECT observation retains the same fence with the configured
+    /// Store lease duration and uses the existing default Driver node timeout.
+    /// Cleanup may finish after the admitted Run deadline; it grants no launch.
+    /// The `DurableAgentLoop` instead supplies its own node timeout and shutdown signal.
     pub fn confirm_cancellation(
         &self,
         handoff: GraphCancellationHandoff,
     ) -> BoxFuture<'_, Result<GraphBarrierLifecycleOutcome, GraphLifecycleError>> {
-        Box::pin(self.confirm_cancellation_inner(handoff))
+        self.confirm_cancellation_with_control(
+            handoff,
+            stateknot_core::CancellationSignal::never(),
+            crate::DurableGraphDriverOptions::default().node_execution_timeout(),
+        )
+    }
+
+    pub(crate) fn confirm_cancellation_with_control(
+        &self,
+        handoff: GraphCancellationHandoff,
+        shutdown: stateknot_core::CancellationSignal,
+        evidence_timeout: Duration,
+    ) -> BoxFuture<'_, Result<GraphBarrierLifecycleOutcome, GraphLifecycleError>> {
+        Box::pin(self.confirm_cancellation_inner(handoff, shutdown, evidence_timeout))
     }
 
     async fn confirm_cancellation_inner(
         &self,
         handoff: GraphCancellationHandoff,
+        shutdown: stateknot_core::CancellationSignal,
+        evidence_timeout: Duration,
     ) -> Result<GraphBarrierLifecycleOutcome, GraphLifecycleError> {
         if handoff.leaf().is_some() {
-            return self.confirm_frame_cancellation(handoff).await;
+            return self
+                .confirm_frame_cancellation(handoff, shutdown, evidence_timeout)
+                .await;
         }
         let leaf = handoff.leaf().cloned();
         let (checkpoint, journal_head, event_id, expected_revision, lease, failure_id) =

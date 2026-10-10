@@ -71,98 +71,37 @@ impl DurableGraphLifecycle {
     pub(super) fn confirm_frame_cancellation(
         &self,
         handoff: GraphCancellationHandoff,
+        shutdown: stateknot_core::CancellationSignal,
+        evidence_timeout: std::time::Duration,
     ) -> BoxFuture<'_, Result<GraphBarrierLifecycleOutcome, GraphLifecycleError>> {
         Box::pin(async move {
             let fence = handoff.lease().fence();
             let root = handoff.checkpoint();
             let original = handoff.journal_head();
-            let leaf = handoff.leaf().ok_or(GraphLifecycleError::StaleHandoff)?;
+            handoff.leaf().ok_or(GraphLifecycleError::StaleHandoff)?;
             validate_cancellation_scope(fence, original, root)?;
             let saved = self
                 .store
                 .load_graph_frame_closure(fence.tenant_id(), fence.run_id())
                 .await?;
             let closure = if let Some(saved) = saved {
-                saved
+                Box::new(saved)
             } else {
-                let active = self
-                    .validate_frame_handoff(
-                        fence,
-                        root,
-                        leaf,
-                        original,
-                        handoff.quarantine_context().clone(),
-                    )
-                    .await?;
-                let run = active.run();
-                if run.lifecycle().status() != RunStatus::CancellationRequested
-                    || run.lifecycle().revision() != handoff.expected_revision()
-                    || run
-                        .lifecycle()
-                        .cancellation_request()
-                        .is_none_or(|request| request.failure().id() != handoff.failure_id())
-                {
-                    return Err(GraphLifecycleError::StaleHandoff);
-                }
-                let context = GraphDirectUsageEvidenceContext::new(
-                    run.lifecycle().provenance().clone(),
-                    root.clone(),
-                    Some(leaf.clone()),
-                    original.clone(),
-                    fence.clone(),
-                );
-                let evidence = AssertUnwindSafe(async {
-                    self.evidence.direct_usage_evidence(context.clone()).await
-                })
-                .catch_unwind()
-                .await
-                .map_err(|_| {
-                    GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::Unavailable)
-                })?
-                .map_err(GraphLifecycleError::Evidence)?;
-                if evidence.context() != &context
-                    || evidence.usage().unpriced_cost_events().get() != 0
-                    || evidence
-                        .usage()
-                        .validate_monotonic_after(active.minimum_direct_usage())
-                        .is_err()
-                {
-                    return Err(GraphLifecycleError::Evidence(
-                        GraphLifecycleEvidenceError::Unavailable,
-                    ));
-                }
-                // This read requires every actual child to have settled, while
-                // retaining DIRECT-only evidence for the whole-frame writer.
-                self.store
-                    .include_child_usage(
-                        fence.tenant_id(),
-                        fence.run_id(),
-                        evidence.usage().clone(),
-                    )
-                    .await?;
-                self.store.observe_live_lease(fence).await?;
-                let event = EventId::generate();
-                let mut attempt = 1_u8;
-                loop {
-                    match self
-                        .store
-                        .close_graph_frames(
-                            fence.tenant_id(),
-                            fence.run_id(),
-                            event,
-                            original.clone(),
-                            handoff.expected_revision(),
-                            evidence.usage().clone(),
-                        )
-                        .await
-                    {
-                        Ok(outcome) => break outcome.record().clone(),
-                        Err(error) if self.can_retry_mutation(&error, attempt) => {
-                            self.mutation_backoff(attempt).await;
-                            attempt = attempt.saturating_add(1);
-                        }
-                        Err(error) => return Err(error.into()),
+                let closing =
+                    self.close_frame_cancellation_with_lease(&handoff, &shutdown, evidence_timeout);
+                let outcome = closing.await;
+                match outcome {
+                    Ok(Some(saved)) => saved,
+                    Ok(None) => {
+                        return Ok(GraphBarrierLifecycleOutcome::Released(
+                            self.release_with_retry(fence).await?,
+                        ));
                     }
+                    Err(error @ GraphLifecycleError::Evidence(_)) => {
+                        self.release_with_retry(fence).await?;
+                        return Err(error);
+                    }
+                    Err(error) => return Err(error),
                 }
             };
             if closure.failure().id() != handoff.failure_id()
@@ -227,6 +166,197 @@ impl DurableGraphLifecycle {
                 .commit_frame_cancellation_with_retry(append, projection)
                 .await?;
             Ok(GraphBarrierLifecycleOutcome::Cancelled(outcome))
+        })
+    }
+
+    fn close_frame_cancellation_with_lease<'a>(
+        &'a self,
+        handoff: &'a GraphCancellationHandoff,
+        shutdown: &'a stateknot_core::CancellationSignal,
+        evidence_timeout: std::time::Duration,
+    ) -> BoxFuture<
+        'a,
+        Result<Option<Box<stateknot_store_postgres::StoredGraphFrameClosure>>, GraphLifecycleError>,
+    > {
+        Box::pin(async move {
+            let closing = self.close_frame_cancellation_once(handoff, shutdown, evidence_timeout);
+            let maintenance = self.maintain_frame_cancellation_lease(handoff.lease().fence());
+            tokio::pin!(closing, maintenance);
+            tokio::select! {
+                biased;
+                result = &mut closing => result,
+                result = &mut maintenance => {
+                    result?;
+                    Err(GraphLifecycleError::InvalidHandoff { operation: "maintain scoped cancellation ownership" })
+                }
+            }
+        })
+    }
+
+    fn close_frame_cancellation_once<'a>(
+        &'a self,
+        handoff: &'a GraphCancellationHandoff,
+        shutdown: &'a stateknot_core::CancellationSignal,
+        evidence_timeout: std::time::Duration,
+    ) -> BoxFuture<
+        'a,
+        Result<Option<Box<stateknot_store_postgres::StoredGraphFrameClosure>>, GraphLifecycleError>,
+    > {
+        Box::pin(async move {
+            let fence = handoff.lease().fence();
+            let root = handoff.checkpoint();
+            let original = handoff.journal_head();
+            let leaf = handoff.leaf().ok_or(GraphLifecycleError::StaleHandoff)?;
+            let active = self
+                .validate_frame_handoff(
+                    fence,
+                    root,
+                    leaf,
+                    original,
+                    handoff.quarantine_context().clone(),
+                )
+                .await?;
+            let run = active.run();
+            if run.lifecycle().status() != RunStatus::CancellationRequested
+                || run.lifecycle().revision() != handoff.expected_revision()
+                || run
+                    .lifecycle()
+                    .cancellation_request()
+                    .is_none_or(|request| request.failure().id() != handoff.failure_id())
+            {
+                return Err(GraphLifecycleError::StaleHandoff);
+            }
+            let context = GraphDirectUsageEvidenceContext::new(
+                run.lifecycle().provenance().clone(),
+                root.clone(),
+                Some(leaf.clone()),
+                original.clone(),
+                fence.clone(),
+            );
+            let observing = AssertUnwindSafe(async {
+                self.evidence.direct_usage_evidence(context.clone()).await
+            })
+            .catch_unwind();
+            tokio::pin!(observing);
+            let evidence = tokio::select! {
+                biased;
+                () = shutdown.cancelled() => return Ok(None),
+                evidence = &mut observing => evidence,
+                () = tokio::time::sleep(evidence_timeout) => {
+                    return Err(GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::TemporarilyUnavailable));
+                }
+            }.map_err(|_| GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::Unavailable))?
+                .map_err(GraphLifecycleError::Evidence)?;
+            if evidence.context() != &context
+                || evidence.usage().unpriced_cost_events().get() != 0
+                || evidence
+                    .usage()
+                    .validate_monotonic_after(active.minimum_direct_usage())
+                    .is_err()
+            {
+                return Err(GraphLifecycleError::Evidence(
+                    GraphLifecycleEvidenceError::Unavailable,
+                ));
+            }
+            // This read requires every actual child to have settled, while
+            // retaining DIRECT-only evidence for the whole-frame writer.
+            self.store
+                .include_child_usage(fence.tenant_id(), fence.run_id(), evidence.usage().clone())
+                .await?;
+            self.store.observe_live_lease(fence).await?;
+            let event = EventId::generate();
+            let mut attempt = 1_u8;
+            loop {
+                match self
+                    .store
+                    .close_graph_frames(
+                        fence.tenant_id(),
+                        fence.run_id(),
+                        event,
+                        original.clone(),
+                        handoff.expected_revision(),
+                        evidence.usage().clone(),
+                    )
+                    .await
+                {
+                    Ok(outcome) => break Ok(Some(Box::new(outcome.record().clone()))),
+                    Err(error) if self.can_retry_mutation(&error, attempt) => {
+                        self.mutation_backoff(attempt).await;
+                        attempt = attempt.saturating_add(1);
+                    }
+                    Err(error) => return Err(error.into()),
+                }
+            }
+        })
+    }
+
+    fn maintain_frame_cancellation_lease<'a>(
+        &'a self,
+        fence: &'a RunFence,
+    ) -> BoxFuture<'a, Result<(), GraphLifecycleError>> {
+        Box::pin(async move {
+            loop {
+                let began = tokio::time::Instant::now();
+                let observation = self.store.observe_live_lease(fence).await?;
+                let remaining = observation
+                    .lease()
+                    .expires_at()
+                    .unix_micros()
+                    .checked_sub(observation.observed_at().unix_micros())
+                    .and_then(|value| u64::try_from(value).ok())
+                    .filter(|value| *value > 0)
+                    .map(std::time::Duration::from_micros)
+                    .ok_or(super::StoreError::LeaseExpired)?;
+                let expiry =
+                    began
+                        .checked_add(remaining)
+                        .ok_or(GraphLifecycleError::InvalidHandoff {
+                            operation: "bound scoped cancellation lease observation",
+                        })?;
+                if remaining <= self.store.options().lease_duration() / 2 {
+                    let extension = i64::try_from(
+                        self.store.options().lease_duration().as_micros(),
+                    )
+                    .map_err(|_| GraphLifecycleError::InvalidHandoff {
+                        operation: "extend scoped cancellation lease",
+                    })?;
+                    let desired = observation
+                        .observed_at()
+                        .unix_micros()
+                        .checked_add(extension)
+                        .and_then(|value| super::Timestamp::from_unix_micros(value).ok())
+                        .ok_or(GraphLifecycleError::InvalidHandoff {
+                            operation: "extend scoped cancellation lease",
+                        })?;
+                    let renewing = async {
+                        let mut attempt = 1_u8;
+                        loop {
+                            match self.store.renew_lease(fence, desired).await {
+                                Ok(
+                                    stateknot_store_postgres::LeaseRenewalOutcome::Renewed(_)
+                                    | stateknot_store_postgres::LeaseRenewalOutcome::Idempotent(_),
+                                ) => break Ok(()),
+                                Ok(_) => {
+                                    break Err(GraphLifecycleError::InvalidHandoff {
+                                        operation: "retain scoped cancellation lease",
+                                    });
+                                }
+                                Err(error) if self.can_retry_mutation(&error, attempt) => {
+                                    self.mutation_backoff(attempt).await;
+                                    attempt = attempt.saturating_add(1);
+                                }
+                                Err(error) => break Err(error.into()),
+                            }
+                        }
+                    };
+                    tokio::pin!(renewing);
+                    tokio::select! {
+                        result = &mut renewing => result?,
+                        () = tokio::time::sleep_until(expiry) => return Err(super::StoreError::LeaseExpired.into()),
+                    }
+                }
+                tokio::time::sleep(remaining.min(self.store.options().lease_duration()) / 4).await;
+            }
         })
     }
 

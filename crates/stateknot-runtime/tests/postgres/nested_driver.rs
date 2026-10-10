@@ -2602,3 +2602,778 @@ async fn scoped_safe_after_releases_exact_gate_and_retries_under_higher_fence() 
     );
     store.close().await;
 }
+
+#[derive(Clone)]
+struct DirectShutdown {
+    requested: Arc<AtomicBool>,
+    notify: Arc<tokio::sync::Notify>,
+}
+
+impl stateknot_core::CancellationObserver for DirectShutdown {
+    fn is_cancelled(&self) -> bool {
+        self.requested.load(Ordering::Acquire)
+    }
+
+    fn cancelled(&self) -> BoxFuture<'_, ()> {
+        Box::pin(async move {
+            loop {
+                let notified = self.notify.notified();
+                if self.is_cancelled() {
+                    return;
+                }
+                notified.await;
+            }
+        })
+    }
+}
+
+struct PausedDirectEvidence {
+    ledger: AdmissionDirectEvidence,
+    calls: AtomicUsize,
+    waiting: Arc<tokio::sync::Notify>,
+    pending_call: Option<usize>,
+    wait_until: Option<Timestamp>,
+}
+
+impl GraphLifecycleEvidenceProvider for PausedDirectEvidence {
+    fn direct_usage_evidence(
+        &self,
+        context: stateknot_runtime::GraphDirectUsageEvidenceContext,
+    ) -> BoxFuture<
+        '_,
+        Result<stateknot_runtime::GraphDirectUsageEvidence, GraphLifecycleEvidenceError>,
+    > {
+        Box::pin(async move {
+            let call = self.calls.fetch_add(1, Ordering::SeqCst) + 1;
+            if self.pending_call == Some(call) {
+                self.waiting.notify_one();
+                return future::pending().await;
+            }
+            if let Some(boundary) = self.wait_until {
+                self.waiting.notify_one();
+                loop {
+                    let observed = self
+                        .ledger
+                        .store
+                        .observe_database_clock()
+                        .await
+                        .map_err(|_| GraphLifecycleEvidenceError::TemporarilyUnavailable)?;
+                    if observed >= boundary {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+            }
+            self.ledger.direct_usage_evidence(context).await
+        })
+    }
+
+    fn terminal_evidence(
+        &self,
+        context: GraphTerminalEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphTerminalEvidence, GraphLifecycleEvidenceError>> {
+        self.ledger.terminal_evidence(context)
+    }
+
+    fn failure_evidence(
+        &self,
+        context: GraphFailureEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphFailureEvidence, GraphLifecycleEvidenceError>> {
+        self.ledger.failure_evidence(context)
+    }
+
+    fn cancellation_evidence(
+        &self,
+        context: GraphCancellationEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphCancellationEvidence, GraphLifecycleEvidenceError>> {
+        self.ledger.cancellation_evidence(context)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum PendingDirectStop {
+    Shutdown,
+    Timeout,
+    DurableCancellation,
+}
+
+#[tokio::test]
+async fn pending_direct_usage_observes_shutdown_preserves_actual_completed_work() {
+    assert_pending_direct_stop(PendingDirectStop::Shutdown).await;
+}
+
+#[tokio::test]
+async fn pending_direct_usage_observes_original_node_timeout_without_fabricating_usage() {
+    assert_pending_direct_stop(PendingDirectStop::Timeout).await;
+}
+
+#[tokio::test]
+async fn pending_direct_usage_observes_durable_cancel_preserving_actual_completed_work() {
+    assert_pending_direct_stop(PendingDirectStop::DurableCancellation).await;
+}
+
+fn assert_pending_direct_stop(stop: PendingDirectStop) -> BoxFuture<'static, ()> {
+    Box::pin(async move {
+        let _guard = DATABASE_TEST_MUTEX.lock().await;
+        let Some(store) = test_store().await else {
+            return;
+        };
+        let fixture = nested_fixture();
+        let ids = AgentRunIds::generate();
+        let tenant_id = tenant("nested-direct-shutdown");
+        admit_nested_fixture(&store, &fixture, &tenant_id, ids).await;
+        let waiting = Arc::new(tokio::sync::Notify::new());
+        let driver = pending_direct_driver(&store, &fixture, Arc::clone(&waiting), stop);
+        let original = store
+            .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .clone();
+        let shutdown = DirectShutdown {
+            requested: Arc::new(AtomicBool::new(false)),
+            notify: Arc::new(tokio::sync::Notify::new()),
+        };
+        let signal = CancellationSignal::new(shutdown.clone());
+        let fence = original.fence().clone();
+        let mut task = tokio::spawn(async move { driver.drive(fence, signal).await });
+        tokio::time::timeout(Duration::from_secs(60), waiting.notified())
+            .await
+            .expect("actual completed work must reach the second DIRECT observation");
+        let active = store
+            .load_active_graph_frame(&tenant_id, ids.run_id())
+            .await
+            .unwrap()
+            .unwrap();
+        let activation = active
+            .checkpoint()
+            .activation(NodeId::new("Step_A").unwrap())
+            .unwrap();
+        let completed = store.load_pending_node_result(&activation).await.unwrap();
+        let before = active.run().clone();
+        assert_eq!(fixture.leaf_calls.load(Ordering::SeqCst), 1);
+        let expected = match stop {
+            PendingDirectStop::DurableCancellation => {
+                request_direct_cancellation(
+                    &store,
+                    &before,
+                    "nested.direct.cancel.control",
+                    "Cancellation preserves already-durable accounting.",
+                )
+                .await;
+                store.load_run(&tenant_id, ids.run_id()).await.unwrap()
+            }
+            PendingDirectStop::Shutdown => {
+                shutdown.requested.store(true, Ordering::Release);
+                shutdown.notify.notify_waiters();
+                before.clone()
+            }
+            PendingDirectStop::Timeout => before.clone(),
+        };
+        let result = tokio::time::timeout(
+            match stop {
+                PendingDirectStop::Shutdown => Duration::from_secs(2),
+                _ => Duration::from_secs(4),
+            },
+            &mut task,
+        )
+        .await
+        .expect("pending read-only DIRECT observation must respect its original control bound")
+        .unwrap();
+        match stop {
+            PendingDirectStop::Timeout => assert!(matches!(
+                result,
+                Err(GraphDriverError::DirectUsageEvidence {
+                    source: GraphLifecycleEvidenceError::TemporarilyUnavailable,
+                })
+            )),
+            PendingDirectStop::Shutdown => assert!(matches!(
+                result.unwrap().outcome(),
+                GraphDriveOutcome::Cancelled { .. }
+            )),
+            PendingDirectStop::DurableCancellation => assert!(matches!(
+                result.unwrap().outcome(),
+                GraphDriveOutcome::CancellationRequested(_)
+            )),
+        }
+        assert_completed_direct_stop_preserved(
+            &store,
+            &fixture,
+            &active,
+            &completed,
+            &expected,
+            original.fence(),
+            stop,
+        )
+        .await;
+        store.close().await;
+    })
+}
+
+fn pending_direct_driver(
+    store: &PostgresStore,
+    fixture: &NestedFixture,
+    waiting: Arc<tokio::sync::Notify>,
+    stop: PendingDirectStop,
+) -> DurableGraphDriver {
+    let evidence = Arc::new(PausedDirectEvidence {
+        ledger: AdmissionDirectEvidence {
+            store: store.clone(),
+        },
+        calls: AtomicUsize::new(0),
+        waiting,
+        pending_call: Some(2),
+        wait_until: None,
+    });
+    DurableGraphDriver::new(
+        store.clone(),
+        fixture.driver.registry.clone(),
+        match stop {
+            PendingDirectStop::Timeout => DurableGraphDriverOptions::new(
+                GraphReplayLimits::default(),
+                1024,
+                Duration::from_secs(10),
+                Duration::from_secs(2),
+                3,
+                Duration::from_millis(25),
+            )
+            .unwrap(),
+            _ => DurableGraphDriverOptions::default(),
+        },
+    )
+    .unwrap()
+    .with_direct_usage_evidence(evidence)
+}
+
+fn assert_completed_direct_stop_preserved<'a>(
+    store: &'a PostgresStore,
+    fixture: &'a NestedFixture,
+    active: &'a stateknot_store_postgres::StoredActiveGraphFrame,
+    completed: &'a stateknot_core::PendingNodeResult,
+    expected: &'a stateknot_store_postgres::StoredRun,
+    fence: &'a RunFence,
+    stop: PendingDirectStop,
+) -> BoxFuture<'a, ()> {
+    Box::pin(async move {
+        let provenance = active.run().lifecycle().provenance();
+        let tenant_id = provenance.tenant_id();
+        let run_id = provenance.run_id();
+        let after = store.load_run(tenant_id, run_id).await.unwrap();
+        assert!(!after.is_quarantined());
+        match stop {
+            PendingDirectStop::DurableCancellation => {
+                assert_eq!(after.lease().unwrap().fence(), fence);
+            }
+            _ => assert!(after.lease().is_none()),
+        }
+        assert_eq!(after.journal_head(), expected.journal_head());
+        assert_eq!(after.checkpoint(), expected.checkpoint());
+        assert_eq!(
+            serde_json_canonicalizer::to_vec(after.lifecycle()).unwrap(),
+            serde_json_canonicalizer::to_vec(expected.lifecycle()).unwrap()
+        );
+        let still_active = store
+            .load_active_graph_frame(tenant_id, run_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(still_active.checkpoint().head(), active.checkpoint().head());
+        let still_completed = store
+            .load_pending_node_result(completed.intent().activation())
+            .await
+            .unwrap();
+        assert_eq!(&still_completed, completed);
+        assert_eq!(fixture.leaf_calls.load(Ordering::SeqCst), 1);
+        assert_eq!(fixture.driver.second_calls.load(Ordering::SeqCst), 0);
+        assert_eq!(fixture.root_calls.load(Ordering::SeqCst), 0);
+    })
+}
+
+#[tokio::test]
+async fn slow_cancellation_direct_evidence_maintains_original_fence_past_original_lease() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(2)).await else {
+        return;
+    };
+    let fixture = nested_fixture_with_depth(2);
+    let ids = AgentRunIds::generate();
+    let tenant_id = tenant("nested-direct-cancel-slow");
+    let admitted_deadline =
+        admit_cancellation_deadline_fixture(&store, &fixture, &tenant_id, ids).await;
+    let options = DurableGraphDriverOptions::new(
+        GraphReplayLimits::default(),
+        2,
+        Duration::from_millis(100),
+        Duration::from_secs(15 * 60),
+        3,
+        Duration::from_millis(25),
+    )
+    .unwrap();
+    let driver = DurableGraphDriver::new(store.clone(), fixture.driver.registry.clone(), options)
+        .unwrap()
+        .with_direct_usage_evidence(Arc::new(AdmissionDirectEvidence {
+            store: store.clone(),
+        }));
+    let first = store
+        .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    assert!(matches!(
+        driver
+            .drive(first.fence().clone(), CancellationSignal::never())
+            .await
+            .unwrap()
+            .outcome(),
+        GraphDriveOutcome::Yielded { .. }
+    ));
+    let active = store
+        .load_active_graph_frame(&tenant_id, ids.run_id())
+        .await
+        .unwrap()
+        .unwrap();
+    let failure_id = request_direct_cancellation(
+        &store,
+        active.run(),
+        "nested.direct.cancel",
+        "Cancellation retains complete delayed accounting.",
+    )
+    .await;
+    let cancellation = store
+        .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let cancellation_result = driver
+        .drive(cancellation.fence().clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let GraphDriveOutcome::CancellationRequested(handoff) = cancellation_result.outcome() else {
+        panic!("actual outcome {:?}", cancellation_result.outcome());
+    };
+    let observed = store
+        .observe_live_lease(cancellation.fence())
+        .await
+        .unwrap();
+    let original_expiry = observed.lease().expires_at();
+    let outcome = confirm_slow_direct_cancellation(
+        &store,
+        &fixture,
+        handoff,
+        original_expiry.max(admitted_deadline),
+    )
+    .await;
+    assert!(matches!(
+        outcome,
+        GraphBarrierLifecycleOutcome::Cancelled(AppendOutcome::Committed(_))
+    ));
+    assert!(store.observe_database_clock().await.unwrap() >= original_expiry);
+    assert!(store.observe_database_clock().await.unwrap() >= admitted_deadline);
+    assert_eq!(
+        store
+            .load_agent_admission(&tenant_id, ids.run_id())
+            .await
+            .unwrap()
+            .admission()
+            .intent()
+            .budget()
+            .deadline(),
+        admitted_deadline
+    );
+    assert_complete_scoped_cancellation(&store, &fixture, &active, failure_id).await;
+    store.close().await;
+}
+
+fn confirm_slow_direct_cancellation<'a>(
+    store: &'a PostgresStore,
+    fixture: &'a NestedFixture,
+    handoff: &'a stateknot_runtime::GraphCancellationHandoff,
+    boundary: Timestamp,
+) -> BoxFuture<'a, GraphBarrierLifecycleOutcome> {
+    Box::pin(async move {
+        let lifecycle = DurableGraphLifecycle::new(
+            store.clone(),
+            fixture.driver.registry.clone(),
+            Arc::new(PausedDirectEvidence {
+                ledger: AdmissionDirectEvidence {
+                    store: store.clone(),
+                },
+                calls: AtomicUsize::new(0),
+                waiting: Arc::new(tokio::sync::Notify::new()),
+                pending_call: None,
+                wait_until: Some(boundary),
+            }),
+            DurableGraphLifecycleOptions::default(),
+        )
+        .unwrap();
+        tokio::time::timeout(
+            Duration::from_secs(20),
+            lifecycle.confirm_cancellation(handoff.clone()),
+        )
+        .await
+        .expect("bounded slow cancellation observation")
+        .unwrap()
+    })
+}
+
+fn admit_cancellation_deadline_fixture<'a>(
+    store: &'a PostgresStore,
+    fixture: &'a NestedFixture,
+    tenant_id: &'a TenantId,
+    ids: AgentRunIds,
+) -> BoxFuture<'a, Timestamp> {
+    Box::pin(async move {
+        for graph in &fixture.graphs {
+            store
+                .register_graph_definition(tenant_id.clone(), graph.clone())
+                .await
+                .unwrap();
+        }
+        let admitted_deadline = Timestamp::from_unix_micros(
+            store.observe_database_clock().await.unwrap().unix_micros() + 8_000_000,
+        )
+        .unwrap();
+        let base = durable_admission_request(
+            &fixture.driver,
+            tenant_id.clone(),
+            ids,
+            fixture.driver.graph.output_schema().clone(),
+            fixture.driver.graph.input_schema().clone(),
+        );
+        let intent = base.intent();
+        let request = DurableAgentAdmissionRequest::new(
+            tenant_id.clone(),
+            ids,
+            intent.descriptor().clone(),
+            AgentRequest::new(
+                intent.request().input_schema().clone(),
+                intent.request().input().clone(),
+                intent
+                    .request()
+                    .budget_limits()
+                    .clone()
+                    .with_deadline(admitted_deadline),
+            ),
+            intent.budget_layers().to_vec(),
+            intent.graph().clone(),
+            intent.authority().clone(),
+            base.initial_state().clone(),
+        )
+        .unwrap();
+        DurableAgentAdmission::new(store.clone(), fixture.driver.registry.clone())
+            .unwrap()
+            .admit(request)
+            .await
+            .unwrap();
+        admitted_deadline
+    })
+}
+
+fn assert_complete_scoped_cancellation<'a>(
+    store: &'a PostgresStore,
+    fixture: &'a NestedFixture,
+    active: &'a stateknot_store_postgres::StoredActiveGraphFrame,
+    failure_id: FailureId,
+) -> BoxFuture<'a, ()> {
+    Box::pin(async move {
+        let provenance = active.run().lifecycle().provenance();
+        let tenant_id = provenance.tenant_id();
+        let run_id = provenance.run_id();
+        let closure = store
+            .load_graph_frame_closure(tenant_id, run_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(closure.failure().id(), failure_id);
+        assert_eq!(closure.completions().len(), active.open_frames().len());
+        let final_run = store.load_run(tenant_id, run_id).await.unwrap();
+        assert_eq!(final_run.lifecycle().status(), RunStatus::Cancelled);
+        assert!(final_run.lease().is_none());
+        assert!(!final_run.is_quarantined());
+        assert_eq!(
+            final_run.lifecycle().terminal_usage(),
+            Some(closure.direct_usage())
+        );
+        assert_eq!(
+            final_run.lifecycle().terminal_failure().unwrap().id(),
+            failure_id
+        );
+        assert_eq!(fixture.leaf_calls.load(Ordering::SeqCst), 0);
+        assert_eq!(fixture.driver.second_calls.load(Ordering::SeqCst), 0);
+        assert_eq!(fixture.root_calls.load(Ordering::SeqCst), 0);
+    })
+}
+
+async fn request_direct_cancellation(
+    store: &PostgresStore,
+    run: &stateknot_store_postgres::StoredRun,
+    code: &str,
+    message: &str,
+) -> FailureId {
+    let provenance = run.lifecycle().provenance();
+    let event = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Cancelled,
+        FailureCode::new(code).unwrap(),
+        FailureOrigin::new("stateknot.runtime.integration").unwrap(),
+        FailureMessage::new(message).unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap()
+    .with_caused_by_event(event);
+    let failure_id = failure.id();
+    let request =
+        RunCancellationRequest::new(failure, store.observe_database_clock().await.unwrap())
+            .unwrap();
+    store
+        .append_control_plane(
+            JournalAppend::new(
+                JournalExpectation::exact(run.journal_head().unwrap().clone()),
+                JournalEventIntent::control_plane(
+                    provenance.tenant_id().clone(),
+                    provenance.run_id(),
+                    event,
+                    test_payload(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+            RunProjection::transition(
+                run.lifecycle().revision(),
+                RunTransition::RequestCancellation { request },
+            ),
+        )
+        .await
+        .unwrap();
+    failure_id
+}
+
+#[tokio::test]
+async fn agent_loop_pending_cancellation_direct_observes_shutdown_without_closing_incomplete_usage()
+{
+    assert_cancellation_direct_control(true).await;
+}
+
+#[tokio::test]
+async fn agent_loop_pending_cancellation_direct_observes_original_node_timeout_then_retries_complete_usage()
+ {
+    assert_cancellation_direct_control(false).await;
+}
+
+fn assert_cancellation_direct_control(shutdown_requested: bool) -> BoxFuture<'static, ()> {
+    Box::pin(async move {
+        let _guard = DATABASE_TEST_MUTEX.lock().await;
+        let Some(store) = test_store().await else {
+            return;
+        };
+        let fixture = nested_fixture();
+        let tenant_id = tenant("nested-direct-lifecycle-control");
+        let ids = AgentRunIds::generate();
+        admit_nested_fixture(&store, &fixture, &tenant_id, ids).await;
+        enter_cancellation_fixture(&store, &fixture, &tenant_id, ids).await;
+        let active = store
+            .load_active_graph_frame(&tenant_id, ids.run_id())
+            .await
+            .unwrap()
+            .unwrap();
+        request_direct_cancellation(
+            &store,
+            active.run(),
+            "nested.direct.cancel.control",
+            "Cancellation preserves already-durable accounting.",
+        )
+        .await;
+        let lease = store
+            .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .clone();
+        let before = store.load_run(&tenant_id, ids.run_id()).await.unwrap();
+        let failure_id = before
+            .lifecycle()
+            .cancellation_request()
+            .unwrap()
+            .failure()
+            .id();
+        let waiting = Arc::new(tokio::sync::Notify::new());
+        let agent_loop = pending_cancellation_agent_loop(
+            &store,
+            &fixture,
+            Arc::clone(&waiting),
+            shutdown_requested,
+        );
+        let shutdown = DirectShutdown {
+            requested: Arc::new(AtomicBool::new(false)),
+            notify: Arc::new(tokio::sync::Notify::new()),
+        };
+        let signal = CancellationSignal::new(shutdown.clone());
+        let loop_task = agent_loop.clone();
+        let fence = lease.fence().clone();
+        let mut task = tokio::spawn(async move { loop_task.run(fence, signal).await });
+        tokio::time::timeout(Duration::from_secs(30), waiting.notified())
+            .await
+            .expect("scoped cancellation DIRECT observation reached");
+        if shutdown_requested {
+            shutdown.requested.store(true, Ordering::Release);
+            shutdown.notify.notify_waiters();
+        }
+        let result = tokio::time::timeout(
+            if shutdown_requested {
+                Duration::from_secs(2)
+            } else {
+                Duration::from_secs(4)
+            },
+            &mut task,
+        )
+        .await
+        .expect("scoped lifecycle DIRECT control bound")
+        .unwrap();
+        if shutdown_requested {
+            assert!(matches!(
+                result.unwrap().outcome(),
+                AgentLoopOutcome::RecoveryReleased(_)
+            ));
+        } else {
+            assert!(
+                matches!(result, Err(AgentLoopError::Lifecycle { source }) if matches!(*source,
+            stateknot_runtime::GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::TemporarilyUnavailable)))
+            );
+        }
+        assert_scoped_cancellation_pending(&store, &before, &active).await;
+        let retry_lease = store
+            .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .clone();
+        assert!(retry_lease.fence().epoch() > lease.fence().epoch());
+        let retried = agent_loop
+            .run(retry_lease.fence().clone(), CancellationSignal::never())
+            .await
+            .unwrap();
+        assert!(matches!(
+            retried.outcome(),
+            AgentLoopOutcome::CancellationConfirmed(AppendOutcome::Committed(_))
+        ));
+        assert_complete_scoped_cancellation(&store, &fixture, &active, failure_id).await;
+        store.close().await;
+    })
+}
+
+fn pending_cancellation_agent_loop(
+    store: &PostgresStore,
+    fixture: &NestedFixture,
+    waiting: Arc<tokio::sync::Notify>,
+    shutdown_requested: bool,
+) -> DurableAgentLoop {
+    let evidence = Arc::new(PausedDirectEvidence {
+        ledger: AdmissionDirectEvidence {
+            store: store.clone(),
+        },
+        calls: AtomicUsize::new(0),
+        waiting,
+        pending_call: Some(1),
+        wait_until: None,
+    });
+    let timeout = if shutdown_requested {
+        Duration::from_secs(15 * 60)
+    } else {
+        Duration::from_secs(2)
+    };
+    let options = DurableGraphDriverOptions::new(
+        GraphReplayLimits::default(),
+        1024,
+        Duration::from_secs(10),
+        timeout,
+        3,
+        Duration::from_millis(25),
+    )
+    .unwrap();
+    DurableAgentLoop::new(
+        store.clone(),
+        fixture.driver.registry.clone(),
+        evidence,
+        options,
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap()
+}
+
+fn enter_cancellation_fixture<'a>(
+    store: &'a PostgresStore,
+    fixture: &'a NestedFixture,
+    tenant_id: &'a TenantId,
+    ids: AgentRunIds,
+) -> BoxFuture<'a, ()> {
+    Box::pin(async move {
+        let driver = DurableGraphDriver::new(
+            store.clone(),
+            fixture.driver.registry.clone(),
+            DurableGraphDriverOptions::new(
+                GraphReplayLimits::default(),
+                2,
+                Duration::from_secs(10),
+                Duration::from_secs(15 * 60),
+                3,
+                Duration::from_millis(25),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+        .with_direct_usage_evidence(Arc::new(AdmissionDirectEvidence {
+            store: store.clone(),
+        }));
+        let original = store
+            .claim_lease(tenant_id, ids.run_id(), AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .clone();
+        assert!(matches!(
+            driver
+                .drive(original.fence().clone(), CancellationSignal::never())
+                .await
+                .unwrap()
+                .outcome(),
+            GraphDriveOutcome::Yielded { .. }
+        ));
+    })
+}
+
+fn assert_scoped_cancellation_pending<'a>(
+    store: &'a PostgresStore,
+    before: &'a stateknot_store_postgres::StoredRun,
+    active: &'a stateknot_store_postgres::StoredActiveGraphFrame,
+) -> BoxFuture<'a, ()> {
+    Box::pin(async move {
+        let provenance = before.lifecycle().provenance();
+        let tenant_id = provenance.tenant_id();
+        let run_id = provenance.run_id();
+        let after = store.load_run(tenant_id, run_id).await.unwrap();
+        assert!(after.lease().is_none());
+        assert!(!after.is_quarantined());
+        assert_eq!(after.journal_head(), before.journal_head());
+        assert_eq!(after.checkpoint(), before.checkpoint());
+        assert_eq!(
+            serde_json_canonicalizer::to_vec(after.lifecycle()).unwrap(),
+            serde_json_canonicalizer::to_vec(before.lifecycle()).unwrap()
+        );
+        assert!(
+            store
+                .load_graph_frame_closure(tenant_id, run_id)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        let still_active = store
+            .load_active_graph_frame(tenant_id, run_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(still_active.checkpoint().head(), active.checkpoint().head());
+    })
+}

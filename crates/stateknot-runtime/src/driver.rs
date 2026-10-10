@@ -406,7 +406,9 @@ impl DurableGraphDriver {
             let (startup_renewals, startup_retries) =
                 self.refresh_near_expiry_lease(&fence).await?;
             let initial_recovery = self.begin_recovery(&fence).await?;
-            let initial_scope = self.load_iteration_scope(&initial_recovery).await?;
+            let initial_scope = self
+                .load_iteration_scope(&initial_recovery, &shutdown)
+                .await?;
             let replay = initial_recovery
                 .validate_graph_replay(
                     initial_scope.leaf().as_ref(),
@@ -460,7 +462,7 @@ impl DurableGraphDriver {
                 }
 
                 let recovery = self.begin_recovery(&fence).await?;
-                let scope = self.load_iteration_scope(&recovery).await?;
+                let scope = self.load_iteration_scope(&recovery, &shutdown).await?;
                 if !continuation.matches(&scope, recovery.initial_run()) {
                     let replay = recovery
                         .validate_graph_replay(
@@ -601,6 +603,9 @@ impl DurableGraphDriver {
                                 &mut continuation,
                             )
                             .await?;
+                        let Some(outcome) = outcome else {
+                            continue;
+                        };
                         if waiting {
                             return Ok(GraphDriveResult::new(
                                 GraphDriveOutcome::FrameWaiting(Box::new(outcome)),

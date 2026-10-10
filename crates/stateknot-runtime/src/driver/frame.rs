@@ -24,6 +24,8 @@ pub(super) struct IterationScope {
     pub(super) root: Checkpoint,
     pub(super) active: Option<StoredActiveGraphFrame>,
     pub(super) executable: ExecutableGraph,
+    // Read-only observation control; never part of recovery or launch authority.
+    shutdown: super::CancellationSignal,
 }
 
 pub(super) struct ReplayContinuation {
@@ -85,6 +87,7 @@ impl DurableGraphDriver {
     pub(super) fn load_iteration_scope<'a>(
         &'a self,
         recovery: &'a ClaimedRunRecovery<'_>,
+        shutdown: &'a super::CancellationSignal,
     ) -> BoxFuture<'a, Result<IterationScope, GraphDriverError>> {
         Box::pin(async move {
             let initial = recovery.initial_run();
@@ -136,6 +139,7 @@ impl DurableGraphDriver {
                 root,
                 active,
                 executable,
+                shutdown: shutdown.clone(),
             })
         })
     }
@@ -145,7 +149,7 @@ impl DurableGraphDriver {
         recovery: &'a ClaimedRunRecovery<'_>,
         scope: &'a IterationScope,
         report: &'a mut GraphDriveReport,
-    ) -> BoxFuture<'a, Result<BudgetUsage, GraphDriverError>> {
+    ) -> BoxFuture<'a, Result<Option<BudgetUsage>, GraphDriverError>> {
         Box::pin(async move {
             let context = crate::GraphDirectUsageEvidenceContext::new(
                 recovery.initial_run().lifecycle().provenance().clone(),
@@ -158,19 +162,63 @@ impl DurableGraphDriver {
                     .ok_or(GraphDriverError::MissingJournalHead)?,
                 recovery.fence().clone(),
             );
-            let evidence = match self.evidence.as_ref() {
-                Some(provider) => AssertUnwindSafe(async {
-                    provider.direct_usage_evidence(context.clone()).await
-                })
-                .catch_unwind()
-                .await
-                .map_err(|_| crate::GraphLifecycleEvidenceError::Unavailable)
-                .and_then(std::convert::identity),
-                None => Err(crate::GraphLifecycleEvidenceError::Unavailable),
-            };
-            let result = evidence
-                .map_err(|source| GraphDriverError::DirectUsageEvidence { source })
-                .and_then(|evidence| {
+            let result: BoxFuture<'_, Result<Option<BudgetUsage>, GraphDriverError>> =
+                Box::pin(async {
+                    let started = tokio::time::Instant::now();
+                    let observation = self.store.observe_live_lease(recovery.fence()).await?;
+                    let admission = Box::pin(self.store.with_corruption_quarantine(
+                        recovery.quarantine_context().clone(),
+                        self.store.load_agent_admission(
+                            recovery.fence().tenant_id(),
+                            recovery.fence().run_id(),
+                        ),
+                    ))
+                    .await?;
+                    let remaining = admission
+                        .admission()
+                        .intent()
+                        .budget()
+                        .deadline()
+                        .unix_micros()
+                        .checked_sub(observation.observed_at().unix_micros())
+                        .and_then(|value| u64::try_from(value).ok())
+                        .filter(|value| *value > 0)
+                        .ok_or(GraphDriverError::DirectUsageEvidence {
+                            source: crate::GraphLifecycleEvidenceError::TemporarilyUnavailable,
+                        })?;
+                    drop(admission);
+                    let deadline = started
+                        .checked_add(
+                            std::time::Duration::from_micros(remaining)
+                                .min(self.options.node_execution_timeout),
+                        )
+                        .ok_or(GraphDriverError::LeaseTimestampOverflow)?;
+                    let observation = async {
+                        match self.evidence.as_ref() {
+                            Some(provider) => AssertUnwindSafe(async {
+                                provider.direct_usage_evidence(context.clone()).await
+                            })
+                            .catch_unwind()
+                            .await
+                            .map_err(|_| crate::GraphLifecycleEvidenceError::Unavailable)
+                            .and_then(std::convert::identity),
+                            None => Err(crate::GraphLifecycleEvidenceError::Unavailable),
+                        }
+                    };
+                    tokio::pin!(observation);
+                    let evidence = tokio::select! {
+                        biased;
+                        () = scope.shutdown.cancelled() => return Ok(None),
+                        cancellation = self.observe_run_cancellation(recovery.fence()) => {
+                            cancellation?;
+                            return Ok(None);
+                        }
+                        evidence = &mut observation => evidence,
+                        () = tokio::time::sleep_until(deadline) => {
+                            Err(crate::GraphLifecycleEvidenceError::TemporarilyUnavailable)
+                        }
+                    }
+                    .map_err(|source| GraphDriverError::DirectUsageEvidence { source })?;
                     if evidence.context() != &context
                         || scope.active.as_ref().is_some_and(|active| {
                             evidence
@@ -179,11 +227,11 @@ impl DurableGraphDriver {
                                 .is_err()
                         })
                     {
-                        Err(GraphDriverError::InvalidDirectUsageEvidence)
-                    } else {
-                        Ok(evidence.into_usage())
+                        return Err(GraphDriverError::InvalidDirectUsageEvidence);
                     }
+                    Ok(Some(evidence.into_usage()))
                 });
+            let result = result.await;
             if result.is_err() {
                 self.release_with_retry(recovery.fence(), report).await?;
             }
@@ -239,7 +287,9 @@ impl DurableGraphDriver {
             .map_err(|_| GraphDriverError::RuntimeInvariant {
                 operation: "prepare exact declared framework entry",
             })?;
-            let usage = self.complete_direct_usage(recovery, scope, report).await?;
+            let Some(usage) = self.complete_direct_usage(recovery, scope, report).await? else {
+                return Ok(());
+            };
             recovery.revalidate().await?;
             let event_id = EventId::generate();
             let mut attempt = 1_u8;
@@ -292,9 +342,11 @@ impl DurableGraphDriver {
         revision: RunRevision,
         report: &'a mut GraphDriveReport,
         continuation: &'a mut ReplayContinuation,
-    ) -> BoxFuture<'a, Result<GraphFrameBarrierCommitOutcome, GraphDriverError>> {
+    ) -> BoxFuture<'a, Result<Option<GraphFrameBarrierCommitOutcome>, GraphDriverError>> {
         Box::pin(async move {
-            let usage = self.complete_direct_usage(recovery, scope, report).await?;
+            let Some(usage) = self.complete_direct_usage(recovery, scope, report).await? else {
+                return Ok(None);
+            };
             recovery.revalidate().await?;
             let event_id = EventId::generate();
             let observed = recovery
@@ -348,7 +400,7 @@ impl DurableGraphDriver {
                         report.durable_events = report.durable_events.saturating_add(1);
                         report.frame_barriers_committed =
                             report.frame_barriers_committed.saturating_add(1);
-                        return Ok(outcome);
+                        return Ok(Some(outcome));
                     }
                     Ok(_) => {
                         return Err(GraphDriverError::RuntimeInvariant {
@@ -486,7 +538,9 @@ impl DurableGraphDriver {
                     graph: Box::new(parent_graph.clone()),
                 }
             })?;
-            let usage = self.complete_direct_usage(recovery, scope, report).await?;
+            let Some(usage) = self.complete_direct_usage(recovery, scope, report).await? else {
+                return Ok(());
+            };
             recovery.revalidate().await?;
             let event_id = EventId::generate();
             let observed = recovery
@@ -574,7 +628,9 @@ impl DurableGraphDriver {
             if active.caller().fence() == recovery.fence() {
                 return Ok(false);
             }
-            let usage = self.complete_direct_usage(recovery, scope, report).await?;
+            let Some(usage) = self.complete_direct_usage(recovery, scope, report).await? else {
+                return Ok(true);
+            };
             recovery.revalidate().await?;
             let event_id = EventId::generate();
             let physical_attempt = AttemptId::generate();

@@ -155,7 +155,7 @@ impl DurableAgentLoop {
         fence: RunFence,
         shutdown: CancellationSignal,
     ) -> Result<AgentLoopResult, AgentLoopError> {
-        let driven = match self.driver.drive(fence.clone(), shutdown).await {
+        let driven = match self.driver.drive(fence.clone(), shutdown.clone()).await {
             Ok(driven) => driven,
             Err(source) => return Err(self.cleanup_driver_error(&fence, source).await),
         };
@@ -163,7 +163,15 @@ impl DurableAgentLoop {
         let outcome = match outcome {
             GraphDriveOutcome::FrameWaiting(outcome) => AgentLoopOutcome::FrameWaiting(outcome),
             GraphDriveOutcome::CancellationRequested(handoff) => {
-                let lifecycle = match self.lifecycle.confirm_cancellation(*handoff).await {
+                let lifecycle = match self
+                    .lifecycle
+                    .confirm_cancellation_with_control(
+                        *handoff,
+                        shutdown.clone(),
+                        self.driver.options().node_execution_timeout(),
+                    )
+                    .await
+                {
                     Ok(outcome) => outcome,
                     Err(source) => {
                         return Err(self.cleanup_lifecycle_error(&fence, source).await);
