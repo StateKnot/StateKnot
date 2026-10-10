@@ -603,43 +603,47 @@ pub(super) async fn authorize_invocation_budget(
 }
 
 /// All terminal writers share this check, including generic control-plane appends.
-pub(super) async fn validate_terminal_accounting(
-    tx: &mut Transaction<'_, Postgres>,
-    event: &JournalEvent,
-    projection: &PreparedProjection,
-) -> Result<(), StoreError> {
-    if !matches!(projection.status, "succeeded" | "failed" | "cancelled") {
-        return Ok(());
-    }
-    let lifecycle: RunLifecycle = serde_json::from_slice(&projection.lifecycle_bytes)
-        .map_err(|_| StoreError::corrupt("child terminal accounting lifecycle"))?;
-    let total = lifecycle
-        .terminal_usage()
-        .ok_or(StoreError::IncompleteChildAccounting)?;
-    let Some(account) = load_account(tx, event.tenant_id(), event.run_id()).await? else {
-        graph_frames::validate_closed_direct_usage(tx, event, total).await?;
-        return failure_closes::validate_direct_usage(tx, event, total).await;
-    };
-    ensure_settled(&account)?;
-    let direct = total
-        .checked_subtract_cumulative(
-            &account
-                .delegated_usage()
-                .map_err(|_| StoreError::IncompleteChildAccounting)?,
+pub(super) fn validate_terminal_accounting<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    event: &'a JournalEvent,
+    projection: &'a PreparedProjection,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        if !matches!(projection.status, "succeeded" | "failed" | "cancelled") {
+            return Ok(());
+        }
+        let lifecycle: RunLifecycle = serde_json::from_slice(&projection.lifecycle_bytes)
+            .map_err(|_| StoreError::corrupt("child terminal accounting lifecycle"))?;
+        let total = lifecycle
+            .terminal_usage()
+            .ok_or(StoreError::IncompleteChildAccounting)?;
+        let Some(account) = load_account(tx, event.tenant_id(), event.run_id()).await? else {
+            graph_frames::validate_closed_direct_usage(tx, event, total).await?;
+            return failure_closes::validate_direct_usage(tx, event, total).await;
+        };
+        ensure_settled(&account)?;
+        let direct = total
+            .checked_subtract_cumulative(
+                &account
+                    .delegated_usage()
+                    .map_err(|_| StoreError::IncompleteChildAccounting)?,
+            )
+            .map_err(|_| StoreError::IncompleteChildAccounting)?;
+        failure_closes::validate_direct_usage(tx, event, &direct).await?;
+        graph_frames::validate_closed_direct_usage(tx, event, &direct).await?;
+        let account = account
+            .observe_direct(event.head(), direct)
+            .map_err(|_| StoreError::IncompleteChildAccounting)?;
+        save_account(tx, &account, &event.head()).await?;
+        query(
+            "SELECT set_config('stateknot.child_terminal_digest', encode($1::bytea, 'hex'), true)",
         )
-        .map_err(|_| StoreError::IncompleteChildAccounting)?;
-    failure_closes::validate_direct_usage(tx, event, &direct).await?;
-    graph_frames::validate_closed_direct_usage(tx, event, &direct).await?;
-    let account = account
-        .observe_direct(event.head(), direct)
-        .map_err(|_| StoreError::IncompleteChildAccounting)?;
-    save_account(tx, &account, &event.head()).await?;
-    query("SELECT set_config('stateknot.child_terminal_digest', encode($1::bytea, 'hex'), true)")
         .bind(Digest::sha256(&projection.lifecycle_bytes).as_bytes())
         .execute(&mut **tx)
         .await
         .map_err(|source| StoreError::database("child terminal accounting fence", source))?;
-    Ok(())
+        Ok(())
+    })
 }
 
 pub(super) async fn lock_tree(
