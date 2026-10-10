@@ -250,6 +250,33 @@ impl DurableRunFailureCloser {
             .store
             .load_run(candidate.tenant_id(), candidate.run_id())
             .await?;
+        if self
+            .store
+            .load_active_graph_frame(candidate.tenant_id(), candidate.run_id())
+            .await?
+            .is_some()
+        {
+            // The worker sealed complete DIRECT evidence and the original
+            // failure before releasing its lease. Whole-frame maintenance must
+            // preserve that decision, drain all actual work, and finish every
+            // physical caller before any Root terminal lifecycle write.
+            self.store
+                .close_graph_frames(
+                    candidate.tenant_id(),
+                    candidate.run_id(),
+                    EventId::generate(),
+                    run.journal_head()
+                        .cloned()
+                        .ok_or(StoreError::InvalidRunFailureClose)?,
+                    run.lifecycle().revision(),
+                    record.direct_usage().clone(),
+                )
+                .await?;
+        }
+        let run = self
+            .store
+            .load_run(candidate.tenant_id(), candidate.run_id())
+            .await?;
         let payload = payload(&self.schemas, &self.schema, record.failure().id(), true)?;
         let append = JournalAppend::new(
             JournalExpectation::exact(

@@ -145,8 +145,8 @@ pub use lifecycle_schema::{
 pub use driver::{
     DurableGraphDriver, DurableGraphDriverBuildError, DurableGraphDriverOptions,
     DurableGraphDriverOptionsError, GraphBlockedHandoff, GraphCancellationHandoff,
-    GraphDriveBlockers, GraphDriveOutcome, GraphDriveReport, GraphDriveResult, GraphDriverError,
-    GraphLifecycleBarrierHandoff,
+    GraphDriveBlockers, GraphDriveOutcome, GraphDriveReplayReport, GraphDriveReport,
+    GraphDriveResult, GraphDriverError, GraphLifecycleBarrierHandoff,
 };
 pub use fair_scheduler::{
     DurableFairScheduler, DurableFairSchedulerBuildError, DurableFairSchedulerOptions,
@@ -157,9 +157,10 @@ pub use fair_scheduler::{
 pub use lifecycle::{
     DurableGraphLifecycle, DurableGraphLifecycleBuildError, DurableGraphLifecycleOptions,
     DurableGraphLifecycleOptionsError, GraphBarrierLifecycleOutcome, GraphCancellationEvidence,
-    GraphCancellationEvidenceContext, GraphFailureEvidence, GraphFailureEvidenceContext,
-    GraphLifecycleError, GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider,
-    GraphTerminalEvidence, GraphTerminalEvidenceContext,
+    GraphCancellationEvidenceContext, GraphDirectUsageEvidence, GraphDirectUsageEvidenceContext,
+    GraphFailureEvidence, GraphFailureEvidenceContext, GraphLifecycleError,
+    GraphLifecycleEvidenceError, GraphLifecycleEvidenceProvider, GraphTerminalEvidence,
+    GraphTerminalEvidenceContext,
 };
 pub use model_token_accounting::{ModelTokenAccounting, ModelTokenRateCard};
 pub use provider_native_agent::{

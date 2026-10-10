@@ -3,6 +3,10 @@
 
 //! Fenced graph-to-agent lifecycle commits.
 
+mod direct;
+mod frame;
+pub use direct::{GraphDirectUsageEvidence, GraphDirectUsageEvidenceContext};
+
 use std::{fmt, sync::Arc, time::Duration};
 
 use serde_json::{Value, json};
@@ -266,9 +270,27 @@ pub struct GraphFailureEvidenceContext {
     observed_at: Timestamp,
     expected_revision: RunRevision,
     blockers: GraphDriveBlockers,
+    leaf: Option<stateknot_core::GraphFrameCheckpointHead>,
+    journal_head: JournalHead,
+    fence: RunFence,
 }
 
 impl GraphFailureEvidenceContext {
+    /// Returns the exact active scoped leaf, if Root progress is suspended.
+    #[must_use]
+    pub const fn leaf(&self) -> Option<&stateknot_core::GraphFrameCheckpointHead> {
+        self.leaf.as_ref()
+    }
+    /// Returns the exact durable history requiring complete evidence.
+    #[must_use]
+    pub const fn journal_head(&self) -> &JournalHead {
+        &self.journal_head
+    }
+    /// Returns the original live claim used only for fenced validation.
+    #[must_use]
+    pub const fn fence(&self) -> &RunFence {
+        &self.fence
+    }
     /// Returns trusted run provenance from the current lifecycle snapshot.
     #[must_use]
     pub const fn provenance(&self) -> &AgentResultProvenance {
@@ -321,9 +343,27 @@ pub struct GraphCancellationEvidenceContext {
     checkpoint: CheckpointHead,
     expected_revision: RunRevision,
     cancellation_failure_id: FailureId,
+    leaf: Option<stateknot_core::GraphFrameCheckpointHead>,
+    journal_head: JournalHead,
+    fence: RunFence,
 }
 
 impl GraphCancellationEvidenceContext {
+    /// Returns the exact active scoped leaf, if Root progress is suspended.
+    #[must_use]
+    pub const fn leaf(&self) -> Option<&stateknot_core::GraphFrameCheckpointHead> {
+        self.leaf.as_ref()
+    }
+    /// Returns the exact durable history requiring complete evidence.
+    #[must_use]
+    pub const fn journal_head(&self) -> &JournalHead {
+        &self.journal_head
+    }
+    /// Returns the original live claim used only for fenced validation.
+    #[must_use]
+    pub const fn fence(&self) -> &RunFence {
+        &self.fence
+    }
     /// Returns trusted run provenance from the current lifecycle snapshot.
     #[must_use]
     pub const fn provenance(&self) -> &AgentResultProvenance {
@@ -430,6 +470,19 @@ pub enum GraphLifecycleEvidenceError {
 /// The coordinator adds verified settled child-subtree charges exactly once;
 /// providers must exclude those charges, and unresolved children block closure.
 pub trait GraphLifecycleEvidenceProvider: Send + Sync + 'static {
+    /// Recovers complete cumulative Run-wide DIRECT usage at the exact journal.
+    ///
+    /// Includes every direct node/provider/framework charge and unknown cost
+    /// event, excluding child subtrees. Implementations must not substitute a
+    /// floor, infer missing work, or rerun external IO. The default preserves
+    /// existing providers while explicitly declining framework accounting.
+    fn direct_usage_evidence(
+        &self,
+        _context: GraphDirectUsageEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphDirectUsageEvidence, GraphLifecycleEvidenceError>> {
+        Box::pin(async { Err(GraphLifecycleEvidenceError::Unavailable) })
+    }
+
     /// Recovers success evidence for an exact terminal barrier.
     fn terminal_evidence(
         &self,
@@ -548,6 +601,10 @@ impl DurableGraphLifecycle {
         &self,
         handoff: GraphCancellationHandoff,
     ) -> Result<GraphBarrierLifecycleOutcome, GraphLifecycleError> {
+        if handoff.leaf().is_some() {
+            return self.confirm_frame_cancellation(handoff).await;
+        }
+        let leaf = handoff.leaf().cloned();
         let (checkpoint, journal_head, event_id, expected_revision, lease, failure_id) =
             handoff.into_parts();
         let fence = lease.fence().clone();
@@ -572,6 +629,9 @@ impl DurableGraphLifecycle {
                 return Err(GraphLifecycleError::StaleHandoff);
             }
             let context = GraphCancellationEvidenceContext {
+                leaf,
+                journal_head: journal_head.clone(),
+                fence: fence.clone(),
                 provenance: run.lifecycle().provenance().clone(),
                 graph: checkpoint.graph().clone(),
                 checkpoint: checkpoint.clone(),
@@ -754,6 +814,9 @@ impl DurableGraphLifecycle {
         &self,
         handoff: GraphBlockedHandoff,
     ) -> Result<GraphBarrierLifecycleOutcome, GraphLifecycleError> {
+        let quarantine_context = handoff.quarantine_context().clone();
+        let checkpoint = handoff.root_checkpoint().clone();
+        let leaf = handoff.leaf().cloned();
         let (plan, lease, event_id, expected_revision, blockers) = handoff.into_parts();
         let fence = lease.fence().clone();
         if plan.fence() != &fence {
@@ -778,15 +841,16 @@ impl DurableGraphLifecycle {
         let journal_head = plan.journal_head().clone();
         let child_graph = self
             .registry
-            .resolve(plan.checkpoint().graph())
-            .is_some_and(|entry| entry.graph().child_runs().is_some());
+            .resolve(checkpoint.graph())
+            .is_some_and(|entry| entry.graph().child_runs().is_some())
+            || leaf.is_some();
         if child_graph {
             if let Some(record) = self
                 .store
                 .load_run_failure_close(fence.tenant_id(), fence.run_id())
                 .await?
             {
-                if record.checkpoint() != &plan.checkpoint().head()
+                if record.checkpoint() != &checkpoint
                     || record.registration().source().worker_fence() != Some(&fence)
                     || record.lifecycle().revision() != expected_revision
                 {
@@ -806,11 +870,23 @@ impl DurableGraphLifecycle {
                 RunStatus::Failed,
             )
             .await?;
-        let checkpoint = plan.checkpoint().head();
         validate_blocked_checkpoint_scope(&fence, &journal_head, &checkpoint)?;
         let failure = match snapshot {
             GraphLifecycleHandoffSnapshot::Fresh(run) => {
+                if let Some(leaf) = leaf.as_ref() {
+                    self.validate_frame_handoff(
+                        &fence,
+                        &checkpoint,
+                        leaf,
+                        &journal_head,
+                        quarantine_context,
+                    )
+                    .await?;
+                }
                 let context = GraphFailureEvidenceContext {
+                    leaf,
+                    journal_head: journal_head.clone(),
+                    fence: fence.clone(),
                     provenance: run.lifecycle().provenance().clone(),
                     graph: checkpoint.graph().clone(),
                     checkpoint: checkpoint.clone(),

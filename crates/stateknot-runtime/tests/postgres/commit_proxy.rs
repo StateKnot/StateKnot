@@ -35,6 +35,7 @@ pub(super) enum TransactionTarget {
     ChildJoinPublication,
     ChildJoinConsumption,
     AgentDeadlineCancellation,
+    GraphNodeStart,
 }
 
 impl TransactionTarget {
@@ -51,6 +52,7 @@ impl TransactionTarget {
             Self::ChildJoinPublication => b"INSERT INTO stateknot.child_run_join_bindings ",
             Self::ChildJoinConsumption => b"\nINSERT INTO stateknot.pending_node_results (",
             Self::AgentDeadlineCancellation => b"SELECT agent_deadline_at FROM stateknot.runs ",
+            Self::GraphNodeStart => b"\nINSERT INTO stateknot.node_attempts (",
         }
     }
 }

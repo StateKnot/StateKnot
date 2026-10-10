@@ -6,6 +6,9 @@
 #[path = "postgres/graph_composition.rs"]
 mod graph_composition;
 
+#[path = "postgres/nested_driver.rs"]
+mod nested_driver;
+
 #[path = "postgres/child_admission.rs"]
 mod child_admission;
 

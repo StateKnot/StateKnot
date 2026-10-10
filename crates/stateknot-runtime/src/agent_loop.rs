@@ -25,6 +25,8 @@ const MAX_MUTATION_RETRY_DELAY: Duration = Duration::from_secs(1);
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum AgentLoopOutcome {
+    /// The actual scoped leaf and complete durable wait batch were suspended.
+    FrameWaiting(Box<stateknot_store_postgres::GraphFrameBarrierCommitOutcome>),
     /// Original failure sealed and execution lease released; maintenance drains children.
     FailureClosing(Box<stateknot_store_postgres::RunFailureCloseOutcome>),
     /// Dedicated child Join registration released the parent lease. This is
@@ -121,7 +123,8 @@ impl DurableAgentLoop {
         driver_options: DurableGraphDriverOptions,
         lifecycle_options: DurableGraphLifecycleOptions,
     ) -> Result<Self, DurableAgentLoopBuildError> {
-        let driver = DurableGraphDriver::new(store.clone(), registry.clone(), driver_options)?;
+        let driver = DurableGraphDriver::new(store.clone(), registry.clone(), driver_options)?
+            .with_direct_usage_evidence(Arc::clone(&evidence));
         let lifecycle =
             DurableGraphLifecycle::new(store.clone(), registry, evidence, lifecycle_options)?;
         Ok(Self {
@@ -158,6 +161,7 @@ impl DurableAgentLoop {
         };
         let (outcome, report) = driven.into_parts();
         let outcome = match outcome {
+            GraphDriveOutcome::FrameWaiting(outcome) => AgentLoopOutcome::FrameWaiting(outcome),
             GraphDriveOutcome::CancellationRequested(handoff) => {
                 let lifecycle = match self.lifecycle.confirm_cancellation(*handoff).await {
                     Ok(outcome) => outcome,
