@@ -14,6 +14,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Authenticate experimental ordinary Root Continue/Wait/Terminal dispositions
+  with the positive original Start and INITIAL checkpoint source. Schema 35
+  preserves Agent V1 facts and complete owning verification while journal-binding
+  trusted V2 creation and original terminal validation inputs. Fresh Root work
+  verifies the original recovery observation before dispatch; deployment drains
+  schema-34 pools before the reviewed migration and matching role profile.
+  Final composed Native, compatibility and production gates remain open.
+
 - Preserve complete trusted terminal validation inputs in the experimental
   `AgentTerminalValidationInputs` snapshot. Restored results use the same
   predicate and error order as `AgentResult::validate_for`, with provenance

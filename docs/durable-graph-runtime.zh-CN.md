@@ -5,8 +5,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # 可恢复 Graph Runtime
 
-状态：已有实现与验证支撑的公共预览契约。API 已随精确版本 `0.1.0-alpha.1` 发布，
-仍可能调整；本文只描述当前真正实现并通过验证的边界，不代表已经达到生产发行标准。
+状态：基础 Runtime 是随精确版本 `0.1.0-alpha.1` 发布的公共预览契约，仍可能调整。
+实验性章节描述未发布源码增量及各自的验收边界；完整生产验收仍开放。
 
 [English](durable-graph-runtime.md)
 
@@ -42,6 +42,16 @@ SPDX-License-Identifier: Apache-2.0
 `Idempotent` Start 绝不是执行授权：它既可能表示上次 ACK 丢失，也可能表示另一个执行器已经
 成功写入 Start，因此必须按 In-flight 处理。如果原执行器死亡，只能等 Lease 到期或显式
 Supersede 后，由更高 Fence 恢复这次未完成执行。
+
+## 实验性受信 Root 控制结果
+
+未发布的 schema-35 路径保留 Agent V1，并通过原 Start 和 INITIAL checkpoint
+认证普通受信 Root 的正向创建来源。静态共享状态组合也使用这个 Root 来源。
+新 Root 工作前，Driver 在取消 handoff 之后认证原恢复观察；活动帧保留自己的完整
+admission/entry 证明。Continue、未来 Wait、Terminal 绑定原完整 plan，Terminal
+保留原完整验证输入。[受信 Root 控制结果](trusted-root-dispositions.zh-CN.md)说明采用、
+排空旧 Worker/迁移及确切证据范围。嵌套/schema-35/schema-36 最终组合仍须按
+RFC-0022 草案单独完成数据库原生验收。
 
 ## 实验性命名空间帧
 

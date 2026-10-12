@@ -429,3 +429,9 @@ npm run verify
 - `01beba98` 固定 nightly 的原 Driver future 失败、首次 Root 对照共用 target 误用旧二进制的无效候选结论均保留。Root 对照已用空任务缓存重新编译，两版原生通过并核对提交/源码一致。最终组合门禁、普通 Root 正向来源兼容、过期绝对 Wait 与实际 Driver 的 scoped 子 Join 继续开放，不继承其他源码结果或关闭阶段。
 - [冻结嵌套 Driver 组合报告](qualification/experimental-nested-driver-combination-2026-10-11.zh-CN.md)记录 `f9cae2d` 的严格工作区静态门禁、98 个 suite / 2,020 项测试、45 项独立文档测试和固定 nightly 实际通过。本机与核对到同一完整源码树的 CI ASan 都重放 2,304 份种子、三个目标各完成 10,000 次实际变异，原资源上限不变。双版完整角色原测试在 schema 34、默认栈实际通过，原栈溢出在该组合解决。
 - 同一 f9 CI 的十一项 job 通过；必须执行的 PostgreSQL 16、17 Store 检查各 240 项通过、十项失败，Runtime Native 后续步骤未到达。原始 INITIAL 来源、损坏记录断言和七层完整重放租约失败保留，继续逐项修复；不能据静态、fuzz 或角色子范围关闭完整 Native/R1，也不转授后续源码。
+
+2026-10-12 的续接记录（R1 与 RFC-0022 仍开放）：
+
+- [Driver 监护确认报告](qualification/experimental-driver-guardian-acks-2026-10-12.zh-CN.md)绑定 `32c1301` 的完整 884 个源码文件：外层 recovery/Start/quarantine 与内层续租确认的六项真实故障回归在 PostgreSQL 16.15/17.11 各全部通过。到原执行期限停止应用，随后读完原 ACK；节点完成与外部 shutdown 的原方法对照均保留真实失败。严格工作区 Clippy、98 个 suite / 2,036 项测试、45 项文档测试、严格 Rustdoc 和固定 nightly 实际通过。完整 Runtime Native 正单独运行，不据子范围提升资格。
+- 普通 Root 的正向创建来源、完整 Terminal 输入、迁移 35 及私有完整 Future 边界已完成独立 Standards/Spec 评审并整合；[采用与组件证据](qualification/experimental-trusted-root-dispositions-2026-10-12.zh-CN.md)保留原完整 Native 与期限失败。嵌套 Driver 保持原 inactive-scope、取消优先契约，并绑定 Root checkpoint 与原 journal；最终 schema-35/schema-36/scoped Child Join 组合需另冻、另编、另验。
+- 七层、多 namespace Child Join 与完整 AgentLoop 仍有真实默认栈和租约失败。继续按实际崩溃链拆分完整私有读取阶段，保留全部 owning 校验、查询/事务顺序和原资源上限；读写成本与完整故障矩阵仍开放。

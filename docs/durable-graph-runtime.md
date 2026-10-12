@@ -5,10 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable Graph runtime
 
-Status: implementation-backed public-preview contract. The APIs are available
-in the exact `0.1.0-alpha.1` release and may still change. This document
-describes the boundary that is implemented and qualified today; it is not a
-production-release claim.
+Status: the baseline runtime is a public-preview contract in the exact
+`0.1.0-alpha.1` release and may still change. The experimental sections describe
+unreleased source increments with separate qualification boundaries. Production
+qualification remains open.
 
 [简体中文](durable-graph-runtime.zh-CN.md)
 
@@ -50,6 +50,19 @@ An idempotently observed start is never execution authority. It may be a lost
 acknowledgement or another executor's committed start, so the Driver classifies
 it as in flight. If that executor dies, lease expiry or explicit supersession
 allows a higher fence to recover the unfinished attempt once.
+
+## Experimental trusted Root dispositions
+
+The unreleased schema-35 path preserves Agent V1 and authenticates ordinary
+trusted Root creation through its original Start and INITIAL checkpoint. Static
+shared-state composition uses this same Root source. Before fresh Root work,
+the Driver validates the original recovery observation after cancellation
+handoff; active frames retain their separate complete admission/entry proof.
+Continue, future Wait and Terminal bind their original whole plans, and Terminal
+retains complete original validation inputs. Adoption, drain/migration steps
+and exact evidence boundaries are in [Trusted Root dispositions](trusted-root-dispositions.md).
+The final nested/schema-35/schema-36 composition still requires its own native
+qualification under Draft RFC-0022.
 
 ## Experimental namespaced frames
 
