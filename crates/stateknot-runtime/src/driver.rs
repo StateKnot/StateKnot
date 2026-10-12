@@ -1181,8 +1181,11 @@ impl DurableGraphDriver {
 
             let fence = lease.lease.fence().clone();
             let lease_deadline = lease.deadline;
-            let maintenance = self.maintain_execution_lease(lease, report);
-            tokio::pin!(maintenance);
+            let lease_lost = DriverCancellation::new();
+            let (stopping, stopped) = tokio::sync::oneshot::channel();
+            let mut maintenance =
+                self.maintain_execution_lease(lease, report, &lease_lost, stopped);
+            let mut maintenance_finished = false;
             let durable_cancellation = self.observe_run_cancellation(&fence);
             tokio::pin!(durable_cancellation);
             let mut results = std::iter::repeat_with(|| None)
@@ -1190,66 +1193,92 @@ impl DurableGraphDriver {
                 .collect::<Vec<_>>();
             let mut completed = 0_usize;
 
-            loop {
-                tokio::select! {
-                    joined = tasks.join_next(), if completed < started.len() => {
-                        let (index, result) = joined
-                            .ok_or(GraphDriverError::RuntimeInvariant {
-                                operation: "join a complete graph node batch",
-                            })?
-                            .map_err(|_| GraphDriverError::RuntimeInvariant {
-                                operation: "join an unexpectedly cancelled graph node task",
-                            })?;
-                        let result = result?;
-                        let slot = results.get_mut(index).ok_or(GraphDriverError::RuntimeInvariant {
-                            operation: "place a graph node batch result",
-                        })?;
-                        if slot.replace(result).is_some() {
-                            return Err(GraphDriverError::RuntimeInvariant {
-                                operation: "deduplicate a graph node batch result",
-                            });
-                        }
-                        completed = completed.saturating_add(1);
-                        if completed == started.len() {
-                            let ordered = results
-                                .into_iter()
-                                .collect::<Option<Vec<_>>>()
-                                .ok_or(GraphDriverError::RuntimeInvariant {
-                                    operation: "materialize ordered graph node batch results",
+            let collecting: BoxFuture<'_, Result<StartedNodesExecution, GraphDriverError>> =
+                Box::pin(async {
+                    loop {
+                        tokio::select! {
+                            () = lease_lost.cancelled() => {
+                                cancel_node_batch(&cancellations);
+                                abort_node_batch(&mut tasks).await;
+                                return Err(StoreError::LeaseExpired.into());
+                            }
+                            joined = tasks.join_next(), if completed < started.len() => {
+                                let (index, result) = joined
+                                    .ok_or(GraphDriverError::RuntimeInvariant {
+                                        operation: "join a complete graph node batch",
+                                    })?
+                                    .map_err(|_| GraphDriverError::RuntimeInvariant {
+                                        operation: "join an unexpectedly cancelled graph node task",
+                                    })?;
+                                let result = result?;
+                                let slot = results.get_mut(index).ok_or(GraphDriverError::RuntimeInvariant {
+                                    operation: "place a graph node batch result",
                                 })?;
-                            return Ok(StartedNodesExecution::Finished(ordered));
+                                if slot.replace(result).is_some() {
+                                    return Err(GraphDriverError::RuntimeInvariant {
+                                        operation: "deduplicate a graph node batch result",
+                                    });
+                                }
+                                completed = completed.saturating_add(1);
+                                if completed == started.len() {
+                                    let ordered = results
+                                        .into_iter()
+                                        .collect::<Option<Vec<_>>>()
+                                        .ok_or(GraphDriverError::RuntimeInvariant {
+                                            operation: "materialize ordered graph node batch results",
+                                        })?;
+                                    return Ok(StartedNodesExecution::Finished(ordered));
+                                }
+                            }
+                            result = &mut maintenance => {
+                                maintenance_finished = true;
+                                cancel_node_batch(&cancellations);
+                                abort_node_batch(&mut tasks).await;
+                                return match result {
+                                    Ok(()) => Err(GraphDriverError::RuntimeInvariant {
+                                        operation: "maintain a live node execution lease",
+                                    }),
+                                    Err(error) => Err(error),
+                                };
+                            }
+                            () = shutdown.cancelled() => {
+                                cancel_node_batch(&cancellations);
+                                abort_node_batch(&mut tasks).await;
+                                return Ok(StartedNodesExecution::Cancelled);
+                            }
+                            result = &mut durable_cancellation => {
+                                cancel_node_batch(&cancellations);
+                                if let Err(error) = result {
+                                    abort_node_batch(&mut tasks).await;
+                                    return Err(error);
+                                }
+                                let grace_deadline = Instant::now()
+                                    .checked_add(self.options.cancellation_grace_period)
+                                    .unwrap_or(lease_deadline)
+                                    .min(lease_deadline);
+                                drain_node_batch_until(&mut tasks, grace_deadline).await;
+                                return Ok(StartedNodesExecution::RunCancellationObserved);
+                            }
                         }
                     }
-                    result = &mut maintenance => {
-                        cancel_node_batch(&cancellations);
-                        abort_node_batch(&mut tasks).await;
-                        return match result {
-                            Ok(()) => Err(GraphDriverError::RuntimeInvariant {
-                                operation: "maintain a live node execution lease",
-                            }),
-                            Err(error) => Err(error),
-                        };
-                    }
-                    () = shutdown.cancelled() => {
-                        cancel_node_batch(&cancellations);
-                        abort_node_batch(&mut tasks).await;
-                        return Ok(StartedNodesExecution::Cancelled);
-                    }
-                    result = &mut durable_cancellation => {
-                        cancel_node_batch(&cancellations);
-                        if let Err(error) = result {
-                            abort_node_batch(&mut tasks).await;
-                            return Err(error);
-                        }
-                        let grace_deadline = Instant::now()
-                            .checked_add(self.options.cancellation_grace_period)
-                            .unwrap_or(lease_deadline)
-                            .min(lease_deadline);
-                        drain_node_batch_until(&mut tasks, grace_deadline).await;
-                        return Ok(StartedNodesExecution::RunCancellationObserved);
+                });
+            let result = collecting.await;
+            if result.is_err() {
+                cancel_node_batch(&cancellations);
+                abort_node_batch(&mut tasks).await;
+            }
+            if !maintenance_finished {
+                let _ = stopping.send(());
+                // Node completion and every cancellation/error exit retain
+                // any already-started renewal's complete SQL acknowledgement.
+                // A failed guard grants no authority to commit a new result.
+                if let Err(error) = maintenance.await {
+                    if result.is_ok() {
+                        return Err(error);
                     }
                 }
             }
+            result
         })
     }
 
@@ -1293,6 +1322,8 @@ impl DurableGraphDriver {
         &'a self,
         mut lease: GuardedRunLease,
         report: &'a mut GraphDriveReport,
+        lease_lost: &'a DriverCancellation,
+        mut stopped: tokio::sync::oneshot::Receiver<()>,
     ) -> BoxFuture<'a, Result<(), GraphDriverError>> {
         Box::pin(async move {
             loop {
@@ -1300,10 +1331,13 @@ impl DurableGraphDriver {
                     .checked_add(self.options.lease_renewal_interval)
                     .ok_or(GraphDriverError::LeaseTimestampOverflow)?;
                 tokio::select! {
-                    () = tokio::time::sleep_until(renewal_due) => {}
+                    biased;
+                    _ = &mut stopped => return Ok(()),
                     () = tokio::time::sleep_until(lease.deadline) => {
+                        lease_lost.cancel();
                         return Err(StoreError::LeaseExpired.into());
                     }
+                    () = tokio::time::sleep_until(renewal_due) => {}
                 }
 
                 let desired = extend_timestamp(
@@ -1316,10 +1350,16 @@ impl DurableGraphDriver {
                     let renewal = self.renew_with_retry(&fence, desired, report);
                     tokio::pin!(renewal);
                     tokio::select! {
-                        result = &mut renewal => result?,
+                        biased;
                         () = tokio::time::sleep_until(deadline) => {
+                            // Stop application work at the original monotonic
+                            // deadline, then drain the historical renewal ACK.
+                            // Receiving it later cannot revive launch authority.
+                            lease_lost.cancel();
+                            let _ = renewal.await;
                             return Err(StoreError::LeaseExpired.into());
                         }
+                        result = &mut renewal => result?,
                     }
                 };
                 lease = renewed;

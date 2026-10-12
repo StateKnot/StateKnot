@@ -3,6 +3,9 @@
 
 //! Actual nested Driver storage, accounting and application dispatch.
 
+#[path = "recovery_guardian.rs"]
+mod recovery_guardian;
+
 use super::*;
 use sqlx_core::connection::ConnectOptions;
 use stateknot_core::{

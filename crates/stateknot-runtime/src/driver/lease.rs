@@ -4,10 +4,32 @@
 //! Lease maintenance while bounded recovery and accounting await durable reads.
 
 use super::{
-    AtomicBool, BoxFuture, CancellationSignal, DurableGraphDriver, GraphDriveResult,
-    GraphDriverError, Ordering, RunFence,
+    AtomicBool, BoxFuture, CancellationObserver, CancellationSignal, DriverCancellation,
+    DurableGraphDriver, GraphDriveResult, GraphDriverError, Ordering, RunFence,
 };
 use std::sync::atomic::AtomicU32;
+
+// Observation control only. The original full owning readers and final live
+// fence checks continue to decide recovery and launch authority.
+struct RecoveryShutdown {
+    shutdown: CancellationSignal,
+    lease_lost: DriverCancellation,
+}
+
+impl CancellationObserver for RecoveryShutdown {
+    fn is_cancelled(&self) -> bool {
+        self.shutdown.is_cancelled() || self.lease_lost.is_cancelled()
+    }
+
+    fn cancelled(&self) -> BoxFuture<'_, ()> {
+        Box::pin(async move {
+            tokio::select! {
+                () = self.shutdown.cancelled() => {},
+                () = self.lease_lost.cancelled() => {},
+            }
+        })
+    }
+}
 
 impl DurableGraphDriver {
     pub(super) fn drive_with_recovery_lease(
@@ -19,10 +41,22 @@ impl DurableGraphDriver {
             let node_phase = AtomicBool::new(false);
             let renewals = AtomicU32::new(0);
             let retries = AtomicU32::new(0);
+            let lease_lost = DriverCancellation::new();
+            let shutdown = CancellationSignal::new(RecoveryShutdown {
+                shutdown,
+                lease_lost: lease_lost.clone(),
+            });
             let mut driving = self.drive_inner(fence.clone(), shutdown, &node_phase);
+            let (stopping, mut stopped) = tokio::sync::oneshot::channel();
             let maintenance = async {
                 loop {
-                    tokio::time::sleep(self.options.lease_renewal_interval).await;
+                    // Only a pure wait can be interrupted. Once a lease read
+                    // or renewal starts, its complete acknowledgement is owned.
+                    tokio::select! {
+                        biased;
+                        _ = &mut stopped => return Ok::<(), GraphDriverError>(()),
+                        () = tokio::time::sleep(self.options.lease_renewal_interval) => {},
+                    }
                     // Node futures retain their existing guarded monotonic lease,
                     // cancellation and deadline maintenance. Recovery owns only
                     // the periods outside that concrete execution phase.
@@ -33,13 +67,16 @@ impl DurableGraphDriver {
                     renewals.fetch_add(renewed, Ordering::Relaxed);
                     retries.fetch_add(extra_attempts, Ordering::Relaxed);
                 }
-                #[allow(unreachable_code)]
-                Ok::<(), GraphDriverError>(())
             };
             tokio::pin!(maintenance);
             tokio::select! {
                 biased;
                 result = &mut driving => {
+                    let _ = stopping.send(());
+                    // A completed drive owns its original result, including a
+                    // release that can make the concurrent observation fail.
+                    // Drain any earlier renewal before returning that result.
+                    let _ = maintenance.await;
                     result.map(|mut result| {
                         result.report.lease_renewals = result.report.lease_renewals.saturating_add(renewals.load(Ordering::Relaxed));
                         result.report.mutation_retries = result.report.mutation_retries.saturating_add(retries.load(Ordering::Relaxed));
@@ -47,9 +84,16 @@ impl DurableGraphDriver {
                     })
                 }
                 result = &mut maintenance => {
-                    match result {
+                    lease_lost.cancel();
+                    // Full owning recovery may be committing quarantine or a
+                    // graph mutation. Signal cooperative stop and retain its
+                    // whole ACK instead of dropping that durable operation.
+                    match driving.await {
                         Err(error) => Err(error),
-                        Ok(()) => Err(GraphDriverError::RuntimeInvariant { operation: "maintain bounded recovery lease" }),
+                        Ok(_) => match result {
+                            Err(error) => Err(error),
+                            Ok(()) => Err(GraphDriverError::RuntimeInvariant { operation: "maintain bounded recovery lease" }),
+                        },
                     }
                 }
             }

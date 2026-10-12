@@ -39,6 +39,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Retain experimental Driver recovery and node-execution mutation
+  acknowledgements across guardian failure, completion and cancellation.
+  Cooperative stop keeps committed quarantine, Start and renewal ACKs alive;
+  the original execution deadline stops application work while the Driver
+  drains an in-flight renewal. Full owning/live-fence checks remain required
+  before dispatch and result commits. Final combined qualification remains open.
+
 - Bound experimental scoped DIRECT observation by the original admitted
   deadline and node timeout, forwarding AgentLoop shutdown without treating
   incomplete costs as zero. Scoped cancellation retains the original fence

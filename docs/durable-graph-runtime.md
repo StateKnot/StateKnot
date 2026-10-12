@@ -78,6 +78,42 @@ journal head and fence. A usage floor, zero substitution or re-executed external
 call cannot replace this evidence. Missing or crossed evidence grants no frame
 mutation or dispatch authority.
 
+DIRECT observation is read-only and cancellable. Before an Entry, Rebind,
+scoped barrier or Return, its wait is bounded by the original admitted deadline
+and configured `node_execution_timeout`, using actual database time. Shutdown
+or durable cancellation stops observation; incomplete usage cannot advance the
+frame or erase already-durable work. The next iteration handles the original
+control request without starting a replacement provider call.
+
+During scoped cancellation, `DurableAgentLoop` forwards its shutdown signal and
+node timeout; standalone `confirm_cancellation` uses the existing default Driver
+node timeout. The guardian renews only the same fence with the configured Store
+lease duration. Validation may quarantine corrupt owning records, so validation
+and every in-flight renewal finish their complete SQL ACK even when the guardian
+fails. Only provider observation can be cancelled. After observation the runtime
+drains the guardian, authenticates settled child usage, checks the live fence and
+awaits the original whole Closure write/retry independently. Cleanup may finish
+after admission expiry, with no new execution authority; unknown or unpriced
+usage still prevents closure.
+
+The Driver's outer recovery guardian also retains complete owning recovery and
+mutation acknowledgements. A guardian failure signals cooperative stop and
+awaits the original drive; it cannot discard committed quarantine or Start ACKs.
+A completed drive stops only the next pure maintenance wait, then drains any
+already-started lease observation or renewal. Original release and recovery
+results keep precedence. The stop signal grants no authority: full owning
+readers and final live-fence checks still reject expired or superseded claims
+before application dispatch.
+
+The node-execution guardian also owns the complete in-flight renewal ACK across
+node completion, shutdown, durable cancellation and errors. Its original
+monotonic lease deadline still stops and aborts application tasks; a late ACK
+cannot restart them or extend that launch authority. The Driver drains the
+renewal before committing a completed node result or releasing ownership.
+Original execution errors retain precedence, and a failed guardian prevents a
+successful batch from committing fresh results. Only the next pure maintenance
+wait can be stopped; the final composed native qualification remains open.
+
 `FrameWaiting` means the scoped Wait compound and lease release are already
 committed. An authorized resolver or timer must complete the stored Wait facts;
 scheduler discovery and a fresh claim then recover the original scope. Do not

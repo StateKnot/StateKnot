@@ -459,6 +459,25 @@ before materializing it. Exact schema verification covers 145 columns, 21
 indexes, 70 constraints, 35 triggers and 23 functions; the trusted runtime
 profile advances to 52 tables with no mutable closure evidence privileges.
 
+Runtime cancellation observation uses the existing node timeout and AgentLoop
+shutdown. The guardian retains the same original fence with the configured lease
+duration. Validation/quarantine, renewal and Closure retain their complete
+COMMIT acknowledgements even when the guardian fails. Only the separately
+bounded read-only DIRECT provider observation is cancellable; the final live
+fence and whole Closure commit keep their original database-clock checks.
+
+The outer Driver recovery guardian likewise stops cooperatively and drains the
+original complete owning recovery/Start/quarantine acknowledgements. A finished
+drive interrupts only the next pure maintenance wait and drains any in-flight
+lease observation/renewal before returning its original result. Full owning
+readers and final live-fence checks retain launch authority; the guardian's
+internal stop signal grants none. Node execution likewise drains in-flight
+renewals across completion, cancellation and errors. Its original monotonic
+deadline stops application tasks before a delayed ACK; that ACK grants no new
+launch authority. Original errors retain precedence and a failed guard prevents
+fresh result commits. The final combined fault matrix still requires its
+separate qualification.
+
 Scoped Tool/Model preparation, transitions and history now derive activations
 from the authenticated whole frame checkpoint. Fresh mutation predicates bind
 the actual leaf head and identity; suspended/closed frames and framework call

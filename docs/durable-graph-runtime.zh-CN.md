@@ -64,6 +64,30 @@ Dispatch 前，Driver 使用部署的 schema/reducer 认证并重放 Root 与全
 的 provenance、Root checkpoint、leaf、journal head 与 fence。用量下限、补零
 或重新执行外部调用都不能代替完整证据。缺失或交叉证据不授予帧写入或执行权限。
 
+DIRECT 观察是可取消的只读操作。Entry、Rebind、scoped barrier、Return 前的观察等待，
+按实际数据库时间限制在原 admission deadline 和配置的 `node_execution_timeout` 内。
+shutdown 或持久取消会停止观察；证据不完整时不推进帧、不抹去已持久化工作。
+后续轮次处理原控制请求，不启动替代 provider 调用。
+
+scoped 取消时，`DurableAgentLoop` 传入自己的 shutdown 和 node timeout；独立
+`confirm_cancellation` 使用既有默认 Driver node timeout。监护只用原 Store 租约长度
+续租同一个 fence。完整 owning 验证可能提交 quarantine，因此监护失败后也要读完
+验证及在途续租的原 SQL ACK；只有 provider 观察可以取消。观察完成后排空监护，
+核对已结算 child usage、原 live fence，再独立完成原 whole Closure 写入与重试。
+清理可在 admission 到期后完成，但不获得新执行权限；未知或未定价用量仍阻止关闭。
+
+Driver 的外层恢复监护也保留完整 owning 验证与写入确认。监护失败时发出协作停止信号，
+随后等待原 drive 完成，不能丢弃已提交的 quarantine 或 Start ACK。drive 完成时，
+停止信号只中断下一次纯等待，并排空已开始的租约观察或续租；原释放与恢复结果保持
+优先级。停止信号不授予权限，完整 owning reader 与最终 live fence 检查仍在应用执行前
+拒绝到期或已被更高围栏接管的 claim。
+
+节点执行监护在节点完成、shutdown、持久取消和出错时也读完在途续租的完整 ACK。
+原单调租约期限仍停止并中断应用任务；迟到的 ACK 不会恢复任务或延长执行权限。
+Driver 排空续租后才提交已完成节点的结果或释放所有权。原执行错误保持优先级，
+监护失败阻止成功 batch 提交新结果。停止信号只中断下一次纯等待；最终组合的
+数据库原生验收仍开放。
+
 `FrameWaiting` 表示 scoped Wait 复合事务与租约释放已完成。授权 resolver 或
 timer 完成原持久 Wait 事实后，由 scheduler discovery 与新 claim 恢复原作用域，
 不要再通过 lifecycle coordinator 创建第二个 Root Wait。可达的 scoped 独立子 Run

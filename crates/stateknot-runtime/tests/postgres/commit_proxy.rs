@@ -10,7 +10,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{
         Arc,
-        atomic::{AtomicBool, AtomicI32, Ordering},
+        atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering},
     },
     time::Duration,
 };
@@ -75,20 +75,34 @@ pub(super) struct CommitProxy {
     reached: mpsc::Receiver<Cut>,
     task: JoinHandle<io::Result<()>>,
     resume: Option<tokio::sync::oneshot::Sender<()>>,
+    messages_while_ack_held: Arc<AtomicUsize>,
 }
 
 impl CommitProxy {
-    #[allow(clippy::too_many_lines)]
     pub(super) async fn start(
         options: &PgConnectOptions,
         cut: Cut,
         target: TransactionTarget,
+    ) -> Self {
+        Self::start_after_matching_commits(options, cut, target, 0).await
+    }
+
+    // Skipped targets require statement_cache_capacity(0) on the test-only
+    // connection so each target transaction has its own actual Parse message.
+    #[allow(clippy::too_many_lines)]
+    pub(super) async fn start_after_matching_commits(
+        options: &PgConnectOptions,
+        cut: Cut,
+        target: TransactionTarget,
+        mut skip: u8,
     ) -> Self {
         let backend = loopback_target(options);
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let backend_pid = Arc::new(AtomicI32::new(0));
         let pid = backend_pid.clone();
+        let messages_while_ack_held = Arc::new(AtomicUsize::new(0));
+        let held_messages = messages_while_ack_held.clone();
         let (sender, reached) = mpsc::channel(1);
         let (resume, resumed) = tokio::sync::oneshot::channel();
         let task = tokio::spawn(async move {
@@ -120,23 +134,27 @@ impl CommitProxy {
                 let mut armed = false;
                 loop {
                     let frame = read_frame(&mut frontend_read).await?;
+                    if hold_response.load(Ordering::SeqCst) {
+                        held_messages.fetch_add(1, Ordering::SeqCst);
+                    }
                     if frame.tag == b'P' {
                         let query = parse_query(&frame.body)?;
                         armed |= query.starts_with(target.parse_prefix());
                     }
-                    if armed
-                        && frame.tag == b'Q'
-                        && frame.body == b"COMMIT\0"
-                        && !cut_once.swap(true, Ordering::SeqCst)
-                    {
-                        if cut == Cut::BeforeCommit {
-                            sender
-                                .send(cut)
-                                .await
-                                .map_err(|_| invalid("controller gone"))?;
-                            return std::future::pending::<io::Result<()>>().await;
+                    if armed && frame.tag == b'Q' && frame.body == b"COMMIT\0" {
+                        armed = false;
+                        if skip > 0 {
+                            skip -= 1;
+                        } else if !cut_once.swap(true, Ordering::SeqCst) {
+                            if cut == Cut::BeforeCommit {
+                                sender
+                                    .send(cut)
+                                    .await
+                                    .map_err(|_| invalid("controller gone"))?;
+                                return std::future::pending::<io::Result<()>>().await;
+                            }
+                            hold_response.store(true, Ordering::SeqCst);
                         }
-                        hold_response.store(true, Ordering::SeqCst);
                     }
                     write_frame(&mut backend_write, &frame).await?;
                 }
@@ -190,6 +208,7 @@ impl CommitProxy {
             reached,
             task,
             resume: Some(resume),
+            messages_while_ack_held,
         }
     }
 
@@ -220,6 +239,10 @@ impl CommitProxy {
             .expect("resume ACK once")
             .send(())
             .unwrap();
+    }
+
+    pub(super) fn messages_while_ack_held(&self) -> usize {
+        self.messages_while_ack_held.load(Ordering::SeqCst)
     }
 
     pub(super) async fn stop(&mut self) {
