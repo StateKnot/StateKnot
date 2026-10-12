@@ -432,6 +432,7 @@ npm run verify
 
 2026-10-12 的续接记录（R1 与 RFC-0022 仍开放）：
 
-- [Driver 监护确认报告](qualification/experimental-driver-guardian-acks-2026-10-12.zh-CN.md)绑定 `32c1301` 的完整 884 个源码文件：外层 recovery/Start/quarantine 与内层续租确认的六项真实故障回归在 PostgreSQL 16.15/17.11 各全部通过。到原执行期限停止应用，随后读完原 ACK；节点完成与外部 shutdown 的原方法对照均保留真实失败。严格工作区 Clippy、98 个 suite / 2,036 项测试、45 项文档测试、严格 Rustdoc 和固定 nightly 实际通过。完整 Runtime Native 正单独运行，不据子范围提升资格。
+- [Driver 监护确认报告](qualification/experimental-driver-guardian-acks-2026-10-12.zh-CN.md)绑定 `32c1301` 的完整 884 个源码文件：外层 recovery/Start/quarantine 与内层续租确认的六项真实故障回归在 PostgreSQL 16.15/17.11 各全部通过。到原执行期限停止应用，随后读完原 ACK；节点完成与外部 shutdown 的原方法对照均保留真实失败。严格工作区 Clippy、98 个 suite / 2,036 项测试、45 项文档测试、严格 Rustdoc 和固定 nightly 实际通过。同一原源码完整 Runtime 后续结束：PostgreSQL 16 为 152 项通过、23 项失败；PostgreSQL 17 在更高 fence 嵌套回归默认栈溢出终止，未获得完整 Native 资格。
 - 普通 Root 的正向创建来源、完整 Terminal 输入、迁移 35 及私有完整 Future 边界已完成独立 Standards/Spec 评审并整合；[采用与组件证据](qualification/experimental-trusted-root-dispositions-2026-10-12.zh-CN.md)保留原完整 Native 与期限失败。嵌套 Driver 保持原 inactive-scope、取消优先契约，并绑定 Root checkpoint 与原 journal；最终 schema-35/schema-36/scoped Child Join 组合需另冻、另编、另验。
 - 七层、多 namespace Child Join 与完整 AgentLoop 仍有真实默认栈和租约失败。继续按实际崩溃链拆分完整私有读取阶段，保留全部 owning 校验、查询/事务顺序和原资源上限；读写成本与完整故障矩阵仍开放。
+- [已确认释放结果报告](qualification/experimental-driver-release-acks-2026-10-12.zh-CN.md)绑定 DCO `ff08161` 与完整 896 个实际输入：原完整 ACK 后保留已释放 Join/Wait/重试/所有权结果，外部 shutdown 与监护内部清理明确区分。两版 PostgreSQL 各七项监护故障全部通过，两个独立评审者完成两轴及仅夹具变化复核；全工作区 98 个 suite / 2,047 项测试、45 项文档测试和全部严格静态门禁通过。十三项普通 Root Runtime 在两版均十一项通过、两个原五秒并行用例超时；准备完整阶段测量并继续修复，不据局部通过提升 R1。

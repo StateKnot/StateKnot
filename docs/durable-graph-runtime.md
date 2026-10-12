@@ -118,6 +118,14 @@ results keep precedence. The stop signal grants no authority: full owning
 readers and final live-fence checks still reject expired or superseded claims
 before application dispatch.
 
+If the guardian finishes first, an already acknowledged Join, Wait, scheduled
+retry or ownership release still retains its original result. A cancelled
+release retains precedence only when external shutdown was already requested
+before guardian cleanup; internal cancellation cannot hide a guardian error.
+Live-authority handoffs still require the original guardian. See the
+[exact component evidence](qualification/experimental-driver-release-acks-2026-10-12.md)
+and its remaining Native failures.
+
 The node-execution guardian also owns the complete in-flight renewal ACK across
 node completion, shutdown, durable cancellation and errors. Its original
 monotonic lease deadline still stops and aborts application tasks; a late ACK

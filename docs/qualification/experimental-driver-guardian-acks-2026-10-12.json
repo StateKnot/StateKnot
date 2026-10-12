@@ -1096,7 +1096,7 @@
     "production": "/private/tmp/stateknot-driver-complete-renewal-two-axis-review-v1.md",
     "scope": "One independent reviewer examined both Standards and Spec on the unchanged production methods; later test-only witness and documentation do not inherit an unperformed independent review."
   },
-  "native_scope": "Six real guardian tests per PostgreSQL version. Original two-second execution deadline, default thirty-second lease and pool acquisition timeout, and thirty-one-second ACK cuts are retained. Complete Runtime native is running separately on the preserved binary, not yet qualified. Later ordinary35/elapsed36/scopedChildJoin compositions receive no inherited qualification.",
+  "native_scope": "Six real guardian tests per PostgreSQL version on the original exact source. Full Runtime subsequently failed on PG16 and aborted with default-stack overflow on PG17; it is not qualified. Later source compositions require separate qualification.",
   "open_gates": [
     "complete native four-suite final composition",
     "scoped Child Join seven-level and multiple namespace/AgentLoop default stack",
@@ -1112,7 +1112,73 @@
     "log": "/private/tmp/stateknot-scoped-child-driver-ack-v35-lostack17-v1.log",
     "log_sha256": "85aabe68bc38c40372338ce454c03f5a15562eea3336c263cae0f0d70fe6ee8f",
     "outcome": "NoActiveLease replaced a fully acknowledged original ChildJoin release outcome; original future and ACK were drained",
-    "qualification": "New integration regression remains open; the original six cases still pass on their exact input."
+    "qualification": "Original true failure preserved; subsequent narrow result-priority repair has separate exact-source qualification in experimental-driver-release-acks-2026-10-12.json."
   },
-  "full_suite_execution_fixture_gap": "The old nth-global-renewal cut can reach preparation before the actual executor call (observed first_calls=0 in complete Runtime source32). New test-only gate observes an actual executor call, retains the original two-second duration and reruns the final source; old full-suite failure stays preserved."
+  "full_suite_execution_fixture_gap": "The old nth-global-renewal cut can reach preparation before the actual executor call (observed first_calls=0 in complete Runtime source32). New test-only gate observes an actual executor call, retains the original two-second duration and reruns the final source; old full-suite failure stays preserved.",
+  "full_runtime_native": {
+    "source_sha256": "127373c9cb1838429d0fd9c4bb93710d0bfc669d87514e8adf283b3af16a744b",
+    "source_files": 884,
+    "checks": [
+      {
+        "name": "pg16",
+        "command": [
+          "/private/tmp/stateknot-driver-complete-ack-runtime-binary-v1",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 101,
+        "seconds": 4400.315497500001,
+        "log": "/private/tmp/stateknot-driver-complete-ack-full-runtime-pg16-v1.log",
+        "log_sha256": "1ec4f6d65f8f9f0781e0c75975eeee7bc749910412fe66afb9bb665a7cf70096",
+        "source_unchanged": true,
+        "major": 16,
+        "database": "stateknot_driver_complete_ack_full_runtime_pg16_v1",
+        "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+        "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+        "started_at": "2026-10-12T07:18:26.01052068Z",
+        "binary": "/private/tmp/stateknot-driver-complete-ack-runtime-binary-v1",
+        "binary_sha256": "d30d260085638f67edf181fa53e1fd5d0fe9c8b531f8d5152cc9c2f0c73fa84f",
+        "actual_compile_log": "/private/tmp/stateknot-driver-complete-ack-pg16-inner-v1.log",
+        "actual_compile_log_sha256": "2d45f855328299d1669a31e4c5c4009cea31c1bbf65fa9e298cd46dbc4266a1f",
+        "expected_outer_test_count": 175
+      },
+      {
+        "name": "pg17",
+        "command": [
+          "/private/tmp/stateknot-driver-complete-ack-runtime-binary-v1",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": -6,
+        "seconds": 575.8233230830001,
+        "log": "/private/tmp/stateknot-driver-complete-ack-full-runtime-pg17-v1.log",
+        "log_sha256": "d5bba2404edfdeffe825b7d52c3eebe1184984a8f2176d10dbf8e6dd78536317",
+        "source_unchanged": true,
+        "major": 17,
+        "database": "stateknot_driver_complete_ack_full_runtime_pg17_v1",
+        "container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+        "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+        "started_at": "2026-10-12T07:18:26.332131597Z",
+        "binary": "/private/tmp/stateknot-driver-complete-ack-runtime-binary-v1",
+        "binary_sha256": "d30d260085638f67edf181fa53e1fd5d0fe9c8b531f8d5152cc9c2f0c73fa84f",
+        "actual_compile_log": "/private/tmp/stateknot-driver-complete-ack-pg16-inner-v1.log",
+        "actual_compile_log_sha256": "2d45f855328299d1669a31e4c5c4009cea31c1bbf65fa9e298cd46dbc4266a1f",
+        "expected_outer_test_count": 175
+      }
+    ],
+    "qualified": false,
+    "pg16": {
+      "passed": 152,
+      "failed": 23,
+      "ignored": 0,
+      "total": 175
+    },
+    "pg17": {
+      "exit_code": -6,
+      "complete_summary": null,
+      "failure_at": "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+      "reason": "default stack overflow"
+    },
+    "archive": "/private/tmp/stateknot-driver-complete-ack-full-runtime-preserved-v1"
+  }
 }

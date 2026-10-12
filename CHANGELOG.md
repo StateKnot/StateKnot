@@ -54,6 +54,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   drains an in-flight renewal. Full owning/live-fence checks remain required
   before dispatch and result commits. Final combined qualification remains open.
 
+- Preserve an experimental Driver's original acknowledged Join, Wait, retry
+  or ownership-release outcome when its guardian subsequently fails. External
+  shutdown is distinguished from guardian cleanup, so guardian-only cancellation
+  still fails closed. Real executor calls select execution-renewal fault cuts;
+  the original lease durations and complete owning checks remain unchanged.
+
 - Bound experimental scoped DIRECT observation by the original admitted
   deadline and node timeout, forwarding AgentLoop shutdown without treating
   incomplete costs as zero. Scoped cancellation retains the original fence

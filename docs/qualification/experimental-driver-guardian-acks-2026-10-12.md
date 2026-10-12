@@ -66,8 +66,11 @@ presented as receiving that earlier review. Full source, binaries, diagnosis,
 logs and receipts are preserved outside the build cache in
 `/private/tmp/stateknot-driver-complete-ack-qualification-v1`.
 
-The complete 175-entry Runtime native suite is running separately against this
-preserved binary; this report does not claim its result. The final four-suite
+The complete 175-entry Runtime native suite subsequently finished against this
+preserved binary: PostgreSQL 16 reports 152 passed / 23 failed; PostgreSQL 17
+aborts with a default-stack overflow in the higher-fence nested case, without
+a complete libtest summary. Logs, crash report and binary are retained; complete
+Native is unqualified. The final four-suite
 native composition, deep/multiple-namespace Child Join and AgentLoop stack,
 history-read cost, Linux, complete process/COMMIT fault matrix, released N−1/N−2
 upgrades and production R6/R7 gates remain required. No lease/resource limit,
@@ -82,3 +85,7 @@ a test-phase gap: counting global renewals can cut preparation before the actual
 node call. The next test-only gate observes a real executor call while keeping
 the original two-second duration. These results do not invalidate the six
 actual selected passes or qualify the later repair.
+
+The subsequent narrow release-result repair and new seven-case guardian matrix
+have their own [component report](experimental-driver-release-acks-2026-10-12.md);
+they do not replace this report's exact source.

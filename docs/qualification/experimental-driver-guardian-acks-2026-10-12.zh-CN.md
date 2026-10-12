@@ -53,7 +53,9 @@ SPDX-License-Identifier: Apache-2.0
 观察器不继承该先前评审。完整源码、实际二进制、诊断、日志和收据保存在构建缓存
 之外的 `/private/tmp/stateknot-driver-complete-ack-qualification-v1`。
 
-完整 175 项 Runtime 数据库测试正使用保存的实际二进制单独运行；本报告不声明其结果。
+完整 175 项 Runtime 数据库测试随后使用该保存二进制结束：PostgreSQL 16 为 152 项
+通过、23 项失败；PostgreSQL 17 在更高 fence 嵌套用例发生默认栈溢出并终止，没有
+完整 libtest summary。原日志、崩溃报告与二进制均保留，完整 Native 不合格。
 最终四套完整原生组合、深层/多个 namespace Child Join 与 AgentLoop 默认栈、
 历史读取成本、Linux、完整进程/COMMIT 故障矩阵、真实已发布 N−1/N−2 升级与
 R6/R7 生产门禁仍须完成。本组件不提高租约/资源上限、不替换为 metadata 认证，
@@ -64,3 +66,6 @@ R6/R7 生产门禁仍须完成。本组件不提高租约/资源上限、不替�
 继续修复。完整 Runtime 另暴露测试阶段区分缺口：按全局续租次数切断可能在实际 Node
 调用前命中准备续租。下一测试观察真实 executor 调用后才切断，原两秒期限不变。
 这些结果不抹去六项实际子范围通过，也不授予后续修复资格。
+
+后续窄范围释放结果修复与新的七项监护矩阵另见
+[独立组件报告](experimental-driver-release-acks-2026-10-12.zh-CN.md)，不覆盖本报告源码。
