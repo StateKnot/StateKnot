@@ -6,6 +6,85 @@
 use super::*;
 
 #[tokio::test]
+async fn recovery_released_ownership_ack_keeps_original_outcome_after_guardian_failure() {
+    use crate::commit_proxy::{Cut, TransactionTarget};
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    assert_eq!(store.options().lease_duration(), Duration::from_secs(30));
+    let fixture = driver_fixture();
+    let tenant_id = tenant("root-released-ownership-ack");
+    let ids = AgentRunIds::generate();
+    admit_root_fixture(&store, &fixture, &tenant_id, ids).await;
+    let (mut proxy, proxied) = recovery_proxy(&store, TransactionTarget::LeaseRelease).await;
+    let driver = recovery_driver(&proxied, fixture.registry.clone());
+    let lease = store
+        .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    let original = store.load_run(&tenant_id, ids.run_id()).await.unwrap();
+    let signal = CancellationSignal::new(DirectShutdown {
+        requested: Arc::new(AtomicBool::new(true)),
+        notify: Arc::new(tokio::sync::Notify::new()),
+    });
+    let mut driving =
+        tokio::spawn(async move { driver.drive(lease.fence().clone(), signal).await });
+    tokio::select! {
+        () = proxy.wait_cut(Cut::CommitResponse) => {},
+        result = &mut driving => panic!("Driver ended before the release cut: {result:?}"),
+    }
+    let committed = store.load_run(&tenant_id, ids.run_id()).await.unwrap();
+    assert!(committed.lease().is_none());
+    assert_eq!(committed.journal_head(), original.journal_head());
+    assert_eq!(committed.checkpoint(), original.checkpoint());
+    assert_eq!(
+        serde_json::to_value(committed.lifecycle()).unwrap(),
+        serde_json::to_value(original.lifecycle()).unwrap()
+    );
+    assert!(!committed.is_quarantined());
+    tokio::time::sleep(Duration::from_secs(31)).await;
+    assert!(
+        !driving.is_finished(),
+        "retain the complete original release ACK"
+    );
+    assert_eq!(proxy.messages_while_ack_held(), 0);
+    proxy.resume_ack();
+    let recovered = tokio::time::timeout(Duration::from_secs(10), driving)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        recovered.is_ok(),
+        "guardian failure replaced an acknowledged ownership release: {recovered:?}"
+    );
+    let recovered = recovered.unwrap();
+    assert!(matches!(
+        recovered.outcome(),
+        GraphDriveOutcome::Cancelled {
+            release: LeaseReleaseOutcome::Released
+        }
+    ));
+    assert_eq!(recovered.report().durable_events(), 0);
+    assert_eq!(fixture.first_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.second_calls.load(Ordering::SeqCst), 0);
+    let current = store.load_run(&tenant_id, ids.run_id()).await.unwrap();
+    assert!(current.lease().is_none());
+    assert_eq!(current.journal_head(), committed.journal_head());
+    assert_eq!(current.checkpoint(), committed.checkpoint());
+    assert_eq!(
+        serde_json::to_value(current.lifecycle()).unwrap(),
+        serde_json::to_value(committed.lifecycle()).unwrap()
+    );
+    assert!(!current.is_quarantined());
+    proxied.close().await;
+    proxy.stop().await;
+    store.close().await;
+}
+
+#[tokio::test]
 async fn execution_renewal_ack_drains_before_completed_node_can_commit() {
     assert_execution_renewal_exit(ExecutionRenewalExit::Completed).await;
 }
@@ -38,11 +117,11 @@ async fn assert_execution_renewal_exit(exit: ExecutionRenewalExit) {
         .parse::<sqlx_postgres::PgConnectOptions>()
         .unwrap()
         .statement_cache_capacity(0);
-    let mut proxy = CommitProxy::start_after_matching_commits(
+    let mut proxy = CommitProxy::start_after_node_launch(
         &connection,
         Cut::CommitResponse,
         TransactionTarget::LeaseRenewal,
-        1,
+        Arc::clone(&fixture.driver.first_calls),
     )
     .await;
     let proxied = PostgresStore::connect(
@@ -171,13 +250,13 @@ async fn execution_renewal_ack_outlives_old_deadline_while_application_stops() {
         .parse::<sqlx_postgres::PgConnectOptions>()
         .unwrap()
         .statement_cache_capacity(0);
-    // The first actual renewal belongs to prepare_execution_lease. Hold the
-    // second actual renewal after the originally authorized node has launched.
-    let mut proxy = CommitProxy::start_after_matching_commits(
+    // Hold only a renewal after an actual originally authorized executor call.
+    // Startup/prepare renewals remain distinct even if they also run first.
+    let mut proxy = CommitProxy::start_after_node_launch(
         &connection,
         Cut::CommitResponse,
         TransactionTarget::LeaseRenewal,
-        1,
+        Arc::clone(&fixture.driver.first_calls),
     )
     .await;
     let proxied = PostgresStore::connect(
@@ -335,14 +414,14 @@ async fn recovery_start_ack_survives_guardian_failure_without_successor_dispatch
         .unwrap()
         .unwrap();
     let activation = invocation_activation(&checkpoint);
+    let (mut proxy, proxied) = recovery_proxy(&store, TransactionTarget::GraphNodeStart).await;
+    let driver = recovery_driver(&proxied, fixture.registry.clone());
     let lease = store
         .claim_lease(&tenant_id, ids.run_id(), AttemptId::generate())
         .await
         .unwrap()
         .lease()
         .clone();
-    let (mut proxy, proxied) = recovery_proxy(&store, TransactionTarget::GraphNodeStart).await;
-    let driver = recovery_driver(&proxied, fixture.registry.clone());
     let fence = lease.fence().clone();
     let mut driving =
         tokio::spawn(async move { driver.drive(fence, CancellationSignal::never()).await });
@@ -401,14 +480,31 @@ async fn recovery_start_ack_survives_guardian_failure_without_successor_dispatch
 async fn recovery_quarantine_ack_survives_outer_lease_guardian_failure() {
     use crate::commit_proxy::{Cut, TransactionTarget};
     let _guard = DATABASE_TEST_MUTEX.lock().await;
-    let Some(store) = test_store_with_lease_duration(Duration::from_secs(2)).await else {
+    let Some(preparation) = test_store().await else {
         return;
     };
-    let fixture = cancellation_commit_fixture(&store).await;
-    let fence = fixture.handoff.lease().fence().clone();
-    corrupt_cancellation_frame_stack(&fence).await;
+    // Build the actual admitted/cancellation facts under the normal preparation
+    // lease, then begin the measured recovery with its original two seconds.
+    let fixture = cancellation_commit_fixture(&preparation).await;
+    let Some(store) = test_store_with_lease_duration(Duration::from_secs(2)).await else {
+        panic!("the already configured database must remain available");
+    };
+    assert_eq!(store.options().lease_duration(), Duration::from_secs(2));
     let (mut proxy, proxied) = recovery_proxy(&store, TransactionTarget::RunQuarantine).await;
     let driver = cancellation_fixture_driver(&proxied, &fixture.nested);
+    let lease = store
+        .supersede_lease(
+            fixture.handoff.lease().fence().tenant_id(),
+            fixture.handoff.lease().fence().run_id(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap()
+        .lease()
+        .clone();
+    assert!(lease.fence().epoch() > fixture.handoff.lease().fence().epoch());
+    let fence = lease.fence().clone();
+    corrupt_cancellation_frame_stack(&fence).await;
     let owner = fence.clone();
     let mut driving =
         tokio::spawn(async move { driver.drive(owner, CancellationSignal::never()).await });
@@ -469,6 +565,7 @@ async fn recovery_quarantine_ack_survives_outer_lease_guardian_failure() {
     proxied.close().await;
     proxy.stop().await;
     store.close().await;
+    preparation.close().await;
 }
 
 async fn recovery_proxy(

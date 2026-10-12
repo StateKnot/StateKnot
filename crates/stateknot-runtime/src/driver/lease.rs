@@ -5,9 +5,33 @@
 
 use super::{
     AtomicBool, BoxFuture, CancellationObserver, CancellationSignal, DriverCancellation,
-    DurableGraphDriver, GraphDriveResult, GraphDriverError, Ordering, RunFence,
+    DurableGraphDriver, GraphDriveOutcome, GraphDriveResult, GraphDriverError, Ordering, RunFence,
 };
+use stateknot_store_postgres::{DelayedRetryScheduleOutcome, LeaseReleaseOutcome};
 use std::sync::atomic::AtomicU32;
+
+// These results already own a complete Store ACK that releases ownership.
+// Other handoffs still require the guardian's original live authority. An
+// internal guardian stop alone must not relabel its error as user shutdown.
+fn acknowledged_release(outcome: &GraphDriveOutcome, external_stop: bool) -> bool {
+    match outcome {
+        GraphDriveOutcome::FrameWaiting(_)
+        | GraphDriveOutcome::ChildJoin(_)
+        | GraphDriveOutcome::Yielded {
+            release: LeaseReleaseOutcome::Released | LeaseReleaseOutcome::Idempotent,
+        }
+        | GraphDriveOutcome::Deferred {
+            schedule:
+                DelayedRetryScheduleOutcome::Scheduled { .. }
+                | DelayedRetryScheduleOutcome::Idempotent { .. },
+            ..
+        } => true,
+        GraphDriveOutcome::Cancelled {
+            release: LeaseReleaseOutcome::Released | LeaseReleaseOutcome::Idempotent,
+        } => external_stop,
+        _ => false,
+    }
+}
 
 // Observation control only. The original full owning readers and final live
 // fence checks continue to decide recovery and launch authority.
@@ -42,6 +66,7 @@ impl DurableGraphDriver {
             let renewals = AtomicU32::new(0);
             let retries = AtomicU32::new(0);
             let lease_lost = DriverCancellation::new();
+            let external_shutdown = shutdown.clone();
             let shutdown = CancellationSignal::new(RecoveryShutdown {
                 shutdown,
                 lease_lost: lease_lost.clone(),
@@ -69,7 +94,7 @@ impl DurableGraphDriver {
                 }
             };
             tokio::pin!(maintenance);
-            tokio::select! {
+            let result = tokio::select! {
                 biased;
                 result = &mut driving => {
                     let _ = stopping.send(());
@@ -77,26 +102,35 @@ impl DurableGraphDriver {
                     // release that can make the concurrent observation fail.
                     // Drain any earlier renewal before returning that result.
                     let _ = maintenance.await;
-                    result.map(|mut result| {
-                        result.report.lease_renewals = result.report.lease_renewals.saturating_add(renewals.load(Ordering::Relaxed));
-                        result.report.mutation_retries = result.report.mutation_retries.saturating_add(retries.load(Ordering::Relaxed));
-                        result
-                    })
+                    result
                 }
                 result = &mut maintenance => {
+                    let external_stop = external_shutdown.is_cancelled();
                     lease_lost.cancel();
                     // Full owning recovery may be committing quarantine or a
                     // graph mutation. Signal cooperative stop and retain its
                     // whole ACK instead of dropping that durable operation.
                     match driving.await {
                         Err(error) => Err(error),
+                        Ok(driven) if acknowledged_release(driven.outcome(), external_stop) => Ok(driven),
                         Ok(_) => match result {
                             Err(error) => Err(error),
                             Ok(()) => Err(GraphDriverError::RuntimeInvariant { operation: "maintain bounded recovery lease" }),
                         },
                     }
                 }
-            }
+            };
+            result.map(|mut result| {
+                result.report.lease_renewals = result
+                    .report
+                    .lease_renewals
+                    .saturating_add(renewals.load(Ordering::Relaxed));
+                result.report.mutation_retries = result
+                    .report
+                    .mutation_retries
+                    .saturating_add(retries.load(Ordering::Relaxed));
+                result
+            })
         })
     }
 }

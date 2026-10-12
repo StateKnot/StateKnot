@@ -38,6 +38,7 @@ pub(super) enum TransactionTarget {
     GraphNodeStart,
     GraphFrameClosure,
     LeaseRenewal,
+    LeaseRelease,
     RunQuarantine,
 }
 
@@ -58,6 +59,7 @@ impl TransactionTarget {
             Self::GraphNodeStart => b"\nINSERT INTO stateknot.node_attempts (",
             Self::GraphFrameClosure => b"INSERT INTO stateknot.graph_frame_closures(",
             Self::LeaseRenewal => b"\nUPDATE stateknot.runs\nSET lease_renewed_at = $5,",
+            Self::LeaseRelease => b"\nUPDATE stateknot.runs\nSET lease_attempt_id = NULL,",
             Self::RunQuarantine => b"\nINSERT INTO stateknot.run_quarantines (",
         }
     }
@@ -89,12 +91,33 @@ impl CommitProxy {
 
     // Skipped targets require statement_cache_capacity(0) on the test-only
     // connection so each target transaction has its own actual Parse message.
-    #[allow(clippy::too_many_lines)]
     pub(super) async fn start_after_matching_commits(
         options: &PgConnectOptions,
         cut: Cut,
         target: TransactionTarget,
+        skip: u8,
+    ) -> Self {
+        Self::start_cut(options, cut, target, skip, None).await
+    }
+
+    // A real executor call distinguishes execution maintenance from any
+    // startup/preparation renewal under the same original lease duration.
+    pub(super) async fn start_after_node_launch(
+        options: &PgConnectOptions,
+        cut: Cut,
+        target: TransactionTarget,
+        calls: Arc<AtomicUsize>,
+    ) -> Self {
+        Self::start_cut(options, cut, target, 0, Some(calls)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn start_cut(
+        options: &PgConnectOptions,
+        cut: Cut,
+        target: TransactionTarget,
         mut skip: u8,
+        launched: Option<Arc<AtomicUsize>>,
     ) -> Self {
         let backend = loopback_target(options);
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
@@ -145,7 +168,11 @@ impl CommitProxy {
                         armed = false;
                         if skip > 0 {
                             skip -= 1;
-                        } else if !cut_once.swap(true, Ordering::SeqCst) {
+                        } else if launched
+                            .as_ref()
+                            .is_none_or(|calls| calls.load(Ordering::SeqCst) > 0)
+                            && !cut_once.swap(true, Ordering::SeqCst)
+                        {
                             if cut == Cut::BeforeCommit {
                                 sender
                                     .send(cut)
