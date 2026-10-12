@@ -1372,11 +1372,16 @@ async fn seven_level_open_and_returned_cascade_replays_all_lifetime_scopes_on_de
     let Some(store) = test_store().await else {
         return;
     };
+    let phase = std::time::Instant::now();
     let (admission, entries, fence, mut usage) = Box::pin(super::frame_closures::seven(
         &store,
         "application-replay-seven",
     ))
     .await;
+    eprintln!(
+        "STATEKNOT_SEVEN_LEVEL_REPLAY_PHASE fixture_ms={}",
+        phase.elapsed().as_millis()
+    );
     let mut definitions = Vec::new();
     definitions.push(
         store
@@ -1409,6 +1414,7 @@ async fn seven_level_open_and_returned_cascade_replays_all_lifetime_scopes_on_de
             .position(|graph| graph.reference() == *reference)
             .map(|index| &reducers[index] as &dyn GraphReducer)
     };
+    let phase = std::time::Instant::now();
     let session = recovery(&store, &fence).await;
     let report = session
         .validate_graph_replay(
@@ -1422,9 +1428,14 @@ async fn seven_level_open_and_returned_cascade_replays_all_lifetime_scopes_on_de
     assert_eq!(report.frames_validated(), 7);
     assert_eq!(report.frame_checkpoints_validated(), 7);
     assert_eq!(report.barriers_replayed(), 0);
+    eprintln!(
+        "STATEKNOT_SEVEN_LEVEL_REPLAY_PHASE open_replay_ms={}",
+        phase.elapsed().as_millis()
+    );
     drop(session);
     let mut previous = None;
     for level in (0..7).rev() {
+        let phase = std::time::Instant::now();
         let live = store.observe_live_lease(&fence).await.unwrap();
         let expiry =
             Timestamp::from_unix_micros(live.observed_at().unix_micros() + 30_000_000).unwrap();
@@ -1440,7 +1451,20 @@ async fn seven_level_open_and_returned_cascade_replays_all_lifetime_scopes_on_de
         .await;
         usage = returned.direct_usage_after().unwrap();
         previous = Some(returned);
+        eprintln!(
+            "STATEKNOT_SEVEN_LEVEL_REPLAY_PHASE return_level={level} elapsed_ms={}",
+            phase.elapsed().as_millis()
+        );
     }
+    // The preceding Return owns its full transaction and can consume most of
+    // the original thirty-second lease. Final complete replay is a separate
+    // operation, so retain the same live fence with the same original duration.
+    // This does not qualify history-read cost or extend any replay/lease limit.
+    let live = store.observe_live_lease(&fence).await.unwrap();
+    let expiry =
+        Timestamp::from_unix_micros(live.observed_at().unix_micros() + 30_000_000).unwrap();
+    store.renew_lease(&fence, expiry).await.unwrap();
+    let phase = std::time::Instant::now();
     let session = recovery(&store, &fence).await;
     let report = session
         .validate_graph_replay(
@@ -1458,6 +1482,10 @@ async fn seven_level_open_and_returned_cascade_replays_all_lifetime_scopes_on_de
     // Capture and final proofs visit 13 edges plus one terminal edge per return;
     // the three direct transcript/application passes visit only the 13 edges.
     assert_eq!(report.structural_edges_verified(), 79);
+    eprintln!(
+        "STATEKNOT_SEVEN_LEVEL_REPLAY_PHASE returned_replay_ms={}",
+        phase.elapsed().as_millis()
+    );
     assert_eq!(
         reducers
             .iter()
