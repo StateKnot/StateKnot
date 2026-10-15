@@ -1,0 +1,56 @@
+{
+  "logical_restore": [
+    {
+      "postgres_major": 16,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "marker_count": 1,
+      "receipt": "backup-restore-pg16/resource-receipt.json",
+      "runtime_binary_sha256": "2dc582601ae7471a87b1b85ac5c90dddd92c7665be71adfd05dd974996f585ab"
+    },
+    {
+      "postgres_major": 17,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "marker_count": 1,
+      "receipt": "backup-restore-pg17/resource-receipt.json",
+      "runtime_binary_sha256": "2dc582601ae7471a87b1b85ac5c90dddd92c7665be71adfd05dd974996f585ab"
+    }
+  ],
+  "pitr": [
+    {
+      "postgres_major": 16,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "marker_count": 1,
+      "server_version": "16.14 (Debian 16.14-1.pgdg13+1)",
+      "host": "x86_64-unknown-linux-gnu",
+      "verification": "pitr-verification.json",
+      "actual_checkout_commit": "4c873c3a8615cae8372daff23f36c5976d5e5883",
+      "actual_checkout_tree": "781d3d550c5b45554dada9723707508d93dc8703",
+      "workflow_head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+      "source_binding": "exact_complete_tree_equality_not_commit_id_equality"
+    },
+    {
+      "postgres_major": 17,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "marker_count": 1,
+      "server_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+      "host": "x86_64-unknown-linux-gnu",
+      "verification": "pitr-verification.json",
+      "actual_checkout_commit": "4c873c3a8615cae8372daff23f36c5976d5e5883",
+      "actual_checkout_tree": "781d3d550c5b45554dada9723707508d93dc8703",
+      "workflow_head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+      "source_binding": "exact_complete_tree_equality_not_commit_id_equality"
+    }
+  ],
+  "same_commit_ci_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198",
+  "all_ci_qualification_passed": false
+}

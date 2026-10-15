@@ -52,6 +52,45 @@ scoped takeover、框架 caller completion 拒绝、checksum-valid Return 替换
 物理 attempt 历史与身份、真实 tool/model bindings。保持默认线程栈、原 fixture
 期限及全部 owning 认证；这 12 条通过不能替代完整 Native suite。
 
+随后，采用提交 `83559f7651f48d65755c1fc5fd8a9ba82e721193` 的相同冻结源码已在
+macOS aarch64 完成原四组本机 Native；保留默认线程栈、原租约、期限和资源上限：
+
+| Suite | PostgreSQL 16.15 | PostgreSQL 17.11 |
+| --- | ---: | ---: |
+| Store | 252 passed | 252 passed |
+| Runtime | 185 passed | 185 passed |
+| Provider integrations | 2 passed | 2 passed |
+| 可恢复 Agent 示例 | 1 passed | 1 passed |
+
+每组均为 0 failed、0 ignored。Runtime 二进制 SHA256 为
+`2dc582601ae7471a87b1b85ac5c90dddd92c7665be71adfd05dd974996f585ab`；
+[完整回执](evidence/scoped-attempt-base-proof-2026-10-15/full-native/receipt.json)
+绑定四个二进制、构建回执、源码核对、原始日志与测试清单。两版 Runtime 均已通过
+原 higher-fence、真实七层、serial siblings 和 shared quantum 的完整原断言。
+这只关闭本候选的这些本机回归；此前仅布局候选的租约过期失败仍独立保留。
+
+[覆盖清单](evidence/scoped-attempt-base-proof-2026-10-15/full-native/coverage.json)将
+185 个 Runtime 入口区分为 164 个普通数据库/父场景、15 个辅助子进程 worker、
+一个逻辑 restore 资源门禁、一个 PITR 资源门禁和四个 harness/协议自测。
+worker 缺少父进程输入时可以正常 return；两项资源分支未设置独立开关时也可以
+return，即使数据库已设 mandatory。因此每版 440 个 harness pass 不等于 440 个
+独立数据库故障场景。这两次普通 Runtime 日志没有 backup/restore 或 PITR marker；
+验证器另行核对原本机 process/COMMIT-loss、角色与 maintenance marker 数量及内容。
+
+另有[独立资源证据](evidence/scoped-attempt-base-proof-2026-10-15/resources/receipt.json)：
+本机两版均使用同一 Runtime 二进制和强制容器/restore 开关完成逻辑备份恢复，
+各 exact 1 passed、唯一 marker 1；实际源/恢复隔离、schema、完整持久快照、跨租户
+拒绝及非初始重放断言均为 true。Linux x86_64 的命名时间点恢复由
+[CI 38709873198](https://github.com/StateKnot/StateKnot/actions/runs/38709873198)
+独立验收，实际 PostgreSQL 为 16.14/17.11，各 exact 1 passed、唯一 marker 1；
+真实 base backup、已归档 WAL、排除时间点后写入及全部重放断言通过。
+CI 实际 checkout 为合成 merge commit `4c873c3a8615cae8372daff23f36c5976d5e5883`，
+完整 tree `781d3d550c5b45554dada9723707508d93dc8703` 与采用 head 的完整 tree
+精确一致，Cargo.lock 也相同。最初仅比较 commit ID 的拒绝记录与后续更严格的
+[完整 tree/锁验证](evidence/scoped-attempt-base-proof-2026-10-15/resources/pitr-verification.json)
+同时保留。这些资源结果不转授其他 CI 步骤或 Linux 深层 Driver 恢复资格，
+没有据此声称完整 CI 通过。
+
 此前独立带探针诊断在两版 PostgreSQL 各五次公开读取中观测到 SQL 从每次 93 条降到
 53 条：完整 base、closure、admission、history 认证从两次变为一次，真实 pending
 bindings 仍执行校验。这些数据属于另行冻结的诊断二进制，不属于上述最终二进制。
@@ -64,9 +103,20 @@ job 均因原 30 分钟 job 总时限终止，结论为 cancelled。Store Native
 通过，其他 11 项 job 成功；Runtime 与后续资格步骤没有完成。这是不同源码的未完成
 CI，不能当成本次增量通过。
 
+采用 head 本身的 [CI 38709873198](https://github.com/StateKnot/StateKnot/actions/runs/38709873198)
+也未完整通过：11 项 job 成功（含两项独立 PITR），两项普通 PostgreSQL job cancelled。
+两项均有明确 annotation，原 30 分钟 job 总时限已耗尽。Store 各完成
+252 passed / 0 failed / 0 ignored，harness 分别耗时 1,231.22/1,243.15 秒。
+Runtime 均已进入 185-test harness，但没有终态摘要，日志也未出现显式 failed-test 行；
+既不能算 Runtime 通过，也不能据此断言代码断言失败。后续 provider/example 与专用资格
+步骤 skipped，缺少 artifact 的 annotation 也原样保留。
+[最终快照、annotations 与完整 job 日志](evidence/scoped-attempt-base-proof-2026-10-15/ci-83559/observed.json)
+与本机成功证据独立保存；原 job/harness 耗时不构成吞吐或容量结论。
+
 [证据目录](evidence/scoped-attempt-base-proof-2026-10-15/README.md)保存原始日志、冻结
 源码摘要、原编译失败、body 证明、独立审阅与诊断 SQL 捕获，并提供核对 hash、
-测试摘要、body 等价和采用输入的验证脚本。完整 Store/Runtime Native、Linux、
-原 higher-fence/七层重新验收、最终 schema36/scoped ChildJoin 组合、完整故障与
-兼容矩阵、容量和发布门禁仍开放。RFC-0022 与 R1 没有关闭，PR #161 仍为 Draft；
+压缩及原始 hash、测试摘要、body 等价、采用输入、Runtime 覆盖与独立资源 marker
+的验证脚本。Linux 完整深层/serial/AgentLoop 恢复、全部专用 CI 资格、最终
+schema36/scoped ChildJoin 组合、完整组合故障与兼容矩阵、容量和发布门禁仍开放。
+RFC-0022 与 R1 没有关闭，PR #161 仍为 Draft；
 本增量不授予 Supported 或生产发布状态。

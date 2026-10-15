@@ -1,7 +1,7 @@
 {
   "profile": "experimental-scoped-attempt-base-proof",
   "date": "2026-10-15",
-  "status": "complete_static_and_selected_native_pass_only",
+  "status": "complete_static_and_four_local_native_suites_plus_independent_restore_pitr_pass",
   "release_qualified": false,
   "r1_complete": false,
   "rfc_0022_status": "Draft",
@@ -181,8 +181,8 @@
     }
   ],
   "full_native_qualified": false,
-  "runtime_higher_fence_requalified": false,
-  "runtime_seven_level_requalified": false,
+  "runtime_higher_fence_requalified": true,
+  "runtime_seven_level_requalified": true,
   "compiler_repair": {
     "original_error": "E0275",
     "original_error_count": 2,
@@ -250,15 +250,63 @@
     "observation": "evidence/scoped-attempt-base-proof-2026-10-15/ci-1fcc/observed.json"
   },
   "open_gates": [
-    "complete Store and Runtime Native on the exact final source",
-    "original higher-fence and seven-level requalification",
-    "Linux and deep/serial/AgentLoop recovery",
+    "Linux complete deep/serial/AgentLoop recovery and all dedicated CI qualification steps",
     "final schema36 and scoped ChildJoin composition",
-    "process/COMMIT, corruption and cancellation fault matrix",
+    "complete combined process/COMMIT, corruption and cancellation fault matrix",
     "released N-1/N-2 compatibility",
     "capacity and R1-R7 production/release gates"
   ],
   "evidence_manifest": "evidence/scoped-attempt-base-proof-2026-10-15/evidence-manifest.json",
-  "evidence_manifest_sha256": "9f8a59afa14560cc95086034718bb60d6137475126639e42b34b0fc2a8982daf",
-  "verification_command": "python3 docs/qualification/evidence/scoped-attempt-base-proof-2026-10-15/verify.py --workspace"
+  "evidence_manifest_sha256": "afa602b01632635779498ba628f29f82cb15ca7394bc101cb97a9fc2837735ed",
+  "verification_command": "python3 docs/qualification/evidence/scoped-attempt-base-proof-2026-10-15/verify.py --workspace",
+  "full_native_scope": "The four named local suites passed; qualification of all dedicated Native/CI profiles remains open",
+  "runtime_requalification_host": "aarch64-apple-darwin; original default stacks, deadlines and resources",
+  "full_native": {
+    "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/full-native/receipt.json",
+    "source_adoption_commit": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+    "source_adoption_tree": "781d3d550c5b45554dada9723707508d93dc8703",
+    "passed_per_major": {
+      "store": 252,
+      "runtime": 185,
+      "integrations": 2,
+      "example": 1
+    },
+    "harness_passed_per_major": 440,
+    "failed": 0,
+    "ignored": 0,
+    "conditional_entry_inventory": {
+      "ordinary_database_scenario": 164,
+      "auxiliary_subprocess_worker": 15,
+      "independent_logical_restore_resource_gate": 1,
+      "independent_pitr_resource_gate": 1,
+      "harness_or_protocol_self_test": 4
+    },
+    "ordinary_runtime_resource_branches_proven_executed": false
+  },
+  "independent_resource_gates": {
+    "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/resources/receipt.json",
+    "forced_logical_restore_passed_per_major": 1,
+    "linux_named_pitr_passed_per_major": 1,
+    "pitr_source_binding": "actual synthetic merge checkout complete tree equals adoption head tree; exact Cargo.lock",
+    "all_ci_qualification_passed": false
+  },
+  "four_local_native_suites_qualified": true,
+  "all_native_ci_profiles_qualified": false,
+  "current_ci": {
+    "run_id": 38709873198,
+    "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+    "url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198",
+    "conclusion": "cancelled",
+    "total_jobs": 13,
+    "successful_jobs": 11,
+    "cancelled_jobs": 2,
+    "ordinary_postgres_job_limit_minutes": 30,
+    "runtime_and_following_ci_qualification_complete": false,
+    "runtime_assertion_failure_proven": false,
+    "full_ci_passed": false,
+    "throughput_or_capacity_claimed": false,
+    "store_passed_per_major": 252,
+    "runtime_harness_entries_started_per_major": 185,
+    "observation": "evidence/scoped-attempt-base-proof-2026-10-15/ci-83559/observed.json"
+  }
 }

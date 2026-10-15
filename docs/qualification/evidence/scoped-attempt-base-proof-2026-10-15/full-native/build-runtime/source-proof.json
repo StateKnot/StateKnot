@@ -1,0 +1,11 @@
+{
+  "source_manifest_sha256": "5cc4e2cd0ab5824b87510dfaea6e95c08e3f1cf0cd20f6e8ebcad0da0b103645",
+  "files": 899,
+  "all_frozen_files_match": true,
+  "main_three_rust_files_match": true,
+  "artifact_fresh": false,
+  "same_source_cache": true,
+  "source_parent_commit": "1fccf1816a2549d8ca7296b635434b52b30140e9",
+  "checked_unix": 1792054182.9462578,
+  "qualification": "Build only; no Runtime Native result yet"
+}

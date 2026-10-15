@@ -61,6 +61,55 @@ identity, and actual tool/model bindings. Default stacks, original fixture
 deadlines and full owning authentication remain in force. These 12 passes do
 not replace the complete Native suites.
 
+Follow-up qualification on adoption commit
+`83559f7651f48d65755c1fc5fd8a9ba82e721193` completed all four original local
+Native suites against that same frozen source, on macOS aarch64 with the
+original default stacks, leases, deadlines and resource limits:
+
+| Suite | PostgreSQL 16.15 | PostgreSQL 17.11 |
+| --- | ---: | ---: |
+| Store | 252 passed | 252 passed |
+| Runtime | 185 passed | 185 passed |
+| Provider integrations | 2 passed | 2 passed |
+| Recoverable Agent example | 1 passed | 1 passed |
+
+Each suite has zero failed and zero ignored tests. The Runtime binary SHA256 is
+`2dc582601ae7471a87b1b85ac5c90dddd92c7665be71adfd05dd974996f585ab`;
+the [complete receipt](evidence/scoped-attempt-base-proof-2026-10-15/full-native/receipt.json)
+binds all four binaries, build receipts, source checks, raw logs and test lists.
+Both Runtime logs include the original higher-fence, actual seven-level,
+serial-sibling and shared-quantum regressions with successful complete
+assertions. This discharges those local regressions for this candidate; the
+earlier layout-only candidate's lease-expiry failures remain separate evidence.
+
+The [coverage inventory](evidence/scoped-attempt-base-proof-2026-10-15/full-native/coverage.json)
+classifies the 185 Runtime entries as 164 ordinary database/parent scenarios,
+15 auxiliary subprocess workers, one logical-restore resource gate, one PITR
+resource gate and four harness/protocol self-tests. Workers can return normally
+without their parent-supplied input; the two resource gates can return without
+their independent environment switches even when PostgreSQL is mandatory.
+Thus 440 harness passes per version do not mean 440 independent database fault
+scenarios. These ordinary Runtime runs emitted no backup/restore or PITR marker.
+The verifier separately checks the original local process/COMMIT-loss,
+role-profile and maintenance marker counts and payloads.
+
+Independent [resource evidence](evidence/scoped-attempt-base-proof-2026-10-15/resources/receipt.json)
+closes two narrower gates. Forced logical backup/restore on each local
+PostgreSQL version uses the same Runtime binary and the mandatory container and
+restore switches: each has one exact pass, one marker and all isolation,
+schema, durable-snapshot, cross-tenant and noninitial-replay assertions true.
+Linux x86_64 named-point-in-time recovery passed separately in
+[CI 38709873198](https://github.com/StateKnot/StateKnot/actions/runs/38709873198),
+with actual PostgreSQL 16.14/17.11, one exact pass and one marker per job; base
+backup, archived WAL, exclusion of the later write and all replay assertions
+passed. CI checked out synthetic merge commit `4c873c3a8615cae8372daff23f36c5976d5e5883`,
+whose complete tree `781d3d550c5b45554dada9723707508d93dc8703` equals the
+adoption head's complete tree and has the same Cargo.lock. The initial
+commit-ID-only rejection is retained alongside this stricter
+[tree/lock verification](evidence/scoped-attempt-base-proof-2026-10-15/resources/pitr-verification.json).
+These resource results do not qualify the other CI steps or Linux deep Driver
+recovery. No complete-CI success is claimed.
+
 Earlier instrumented diagnostics on both PostgreSQL versions observed 93 to 53
 SQL statements per public read over five trials per version: complete base,
 closure, admission and history authentication changed from twice to once;
@@ -76,12 +125,26 @@ limit. Store Native tests passed 251/251 in each job and 11 other jobs succeeded
 Runtime and subsequent qualification steps did not finish. This is an incomplete
 CI result on different source, not approval of this increment.
 
+The adoption head's own [CI run 38709873198](https://github.com/StateKnot/StateKnot/actions/runs/38709873198)
+also finished incomplete: 11 jobs succeeded, including both independent PITR
+jobs, and the two ordinary PostgreSQL jobs were cancelled. Each has the explicit
+annotation that its original 30-minute job limit was exceeded. Store completed
+252 passed / 0 failed / 0 ignored in each job (harness times 1,231.22/1,243.15
+seconds). Runtime entered its 185-test harness but has no terminal summary;
+neither log contains an explicit failed-test line. This proves neither Runtime
+success nor an assertion failure. Subsequent provider/example and dedicated
+qualification steps were skipped; missing-artifact annotations are retained.
+The [final snapshots, annotations and complete job logs](evidence/scoped-attempt-base-proof-2026-10-15/ci-83559/observed.json)
+remain separate from the successful local runs. The job/harness durations are
+observations under their original limits, not a throughput or capacity result.
+
 Raw logs, immutable source hashes, the original compiler failure, body proof,
 review and diagnostic SQL captures are retained in the
 [evidence directory](evidence/scoped-attempt-base-proof-2026-10-15/README.md).
-Its verifier checks hashes, summaries, body equivalence and adopted inputs.
-Complete Store/Runtime Native suites, Linux and original higher-fence/seven-level
-requalification, final schema36/scoped ChildJoin composition, the full fault and
+Its verifier checks compressed and original hashes, summaries, body equivalence,
+adopted inputs, the Runtime coverage and independent resource markers.
+Linux complete deep/serial/AgentLoop recovery, all dedicated CI qualifications,
+final schema36/scoped ChildJoin composition, the complete combined fault and
 compatibility matrices, capacity and release gates remain open. RFC-0022 and R1
 remain open; PR #161 remains Draft. This increment grants no Supported or
 production-release status.

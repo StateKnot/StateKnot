@@ -52,15 +52,23 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   checks. Mutations and post-guards keep the original full path. Erase the
   complete private Start verifier Future to resolve full-workspace Runtime
   trait recursion without raising compiler or resource limits. All static
-  gates and six selected Native tests on each PostgreSQL version pass; deep
-  recovery, complete Native and production qualification remain open.
+  gates and the four original local Native suites pass on each PostgreSQL
+  version: Store 252, Runtime 185, integrations 2 and example 1. Original
+  higher-fence, actual seven-level, serial and shared-quantum regressions pass
+  with default resources. Conditional worker/resource entries are distinguished
+  from actual scenarios; forced local backup/restore and same-tree Linux CI
+  PITR pass separately. Linux deep recovery, remaining CI/composition, capacity
+  and production qualification remain open. Same-head CI has 11 successful
+  jobs and two ordinary PostgreSQL jobs cancelled at the original 30-minute
+  limit: Store passes 252/252; Runtime has no terminal summary.
 
 - Keep complete experimental Driver startup, iteration, barrier and node phases,
   Root admissions and checkpoints behind private heap boundaries. The original
   two-level higher-fence and SQL-role regressions now pass on PostgreSQL 16/17
   with default stacks and unchanged owning verification and resource limits.
-  Seven-level recovery still fails with lease expiry; full qualification remains
-  open under Draft RFC-0022.
+  That earlier layout-only candidate's seven-level recovery failed with lease
+  expiry; its evidence remains separate from the later base-proof candidate.
+  Full qualification remains open under Draft RFC-0022.
 
 - Retain experimental Driver recovery and node-execution mutation
   acknowledgements across guardian failure, completion and cancellation.
