@@ -5870,7 +5870,15 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
         let attempt = load_node_attempt_record(&mut transaction, tenant_id, run_id, attempt_id)
             .await?
             .ok_or(StoreError::NodeAttemptNotFound)?;
-        verify_node_attempt(&mut transaction, &attempt).await?;
+        let (start_event, ordinary_base) =
+            verify_node_attempt_start_with_base(&mut transaction, attempt.start()).await?;
+        Box::pin(verify_node_attempt_after_start(
+            &mut transaction,
+            &attempt,
+            start_event,
+            ordinary_base,
+        ))
+        .await?;
         transaction
             .commit()
             .await
@@ -15972,9 +15980,29 @@ async fn verify_node_attempt(
     transaction: &mut Transaction<'_, Postgres>,
     attempt: &NodeAttempt,
 ) -> Result<JournalEvent, StoreError> {
-    let start = attempt.start();
-    let start_event = verify_node_attempt_start(transaction, start).await?;
+    let start_event = verify_node_attempt_start(transaction, attempt.start()).await?;
+    Box::pin(verify_node_attempt_after_start(
+        transaction,
+        attempt,
+        start_event,
+        None,
+    ))
+    .await
+}
 
+// A full ordinary scoped-base authentication owned by the immediately enclosing read.
+// It is private, non-Clone and never retained across a write or transaction.
+struct VerifiedOrdinaryNodeAttemptBase<'start> {
+    activation: &'start NodeActivation,
+}
+
+async fn verify_node_attempt_after_start(
+    transaction: &mut Transaction<'_, Postgres>,
+    attempt: &NodeAttempt,
+    start_event: JournalEvent,
+    ordinary_base: Option<VerifiedOrdinaryNodeAttemptBase<'_>>,
+) -> Result<JournalEvent, StoreError> {
+    let start = attempt.start();
     let Some(completion) = attempt.completion() else {
         return Ok(start_event);
     };
@@ -16001,7 +16029,20 @@ async fn verify_node_attempt(
         if durable_result.head() != **result {
             return Err(StoreError::corrupt("node attempt successful result"));
         }
-        verify_pending_node_result_base_checkpoint(transaction, &durable_result).await?;
+        if let Some(base) = ordinary_base {
+            // The complete durable result must name the exact activation whose
+            // full base and start anchor were authenticated in this read-only
+            // repeatable-read snapshot. Recognized framework starts never issue
+            // this proof; mutation and post-guard readers always pass None.
+            if base.activation != start.activation()
+                || durable_result.intent().activation() != start.activation()
+                || durable_result.intent().activation() != base.activation
+            {
+                return Err(StoreError::corrupt("node attempt verified result base"));
+            }
+        } else {
+            verify_pending_node_result_base_checkpoint(transaction, &durable_result).await?;
+        }
         verify_pending_node_result_bindings(transaction, &durable_result).await?;
     }
     Ok(event)
@@ -16014,18 +16055,44 @@ async fn verify_node_attempt_start(
     transaction: &mut Transaction<'_, Postgres>,
     start: &NodeAttemptStart,
 ) -> Result<JournalEvent, StoreError> {
-    if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
-        return Ok(event);
-    }
-    verify_node_attempt_base_checkpoint(transaction, start).await?;
-    verify_node_attempt_anchor(
-        transaction,
-        start.journal_head(),
-        start.fence(),
-        start.digest(),
-        "node attempt start anchor",
-    )
-    .await
+    verify_node_attempt_start_with_base(transaction, start)
+        .await
+        .map(|(event, _)| event)
+}
+
+fn verify_node_attempt_start_with_base<'a, 'start: 'a>(
+    transaction: &'a mut Transaction<'_, Postgres>,
+    start: &'start NodeAttemptStart,
+) -> stateknot_core::BoxFuture<
+    'a,
+    Result<
+        (
+            JournalEvent,
+            Option<VerifiedOrdinaryNodeAttemptBase<'start>>,
+        ),
+        StoreError,
+    >,
+> {
+    Box::pin(async move {
+        if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
+            return Ok((event, None));
+        }
+        verify_node_attempt_base_checkpoint(transaction, start).await?;
+        let event = verify_node_attempt_anchor(
+            transaction,
+            start.journal_head(),
+            start.fence(),
+            start.digest(),
+            "node attempt start anchor",
+        )
+        .await?;
+        let ordinary_base = (!start.activation().graph_namespace().is_root()).then_some(
+            VerifiedOrdinaryNodeAttemptBase {
+                activation: start.activation(),
+            },
+        );
+        Ok((event, ordinary_base))
+    })
 }
 
 fn encode_pending_node_result(result: &PendingNodeResult) -> Result<Vec<u8>, StoreError> {

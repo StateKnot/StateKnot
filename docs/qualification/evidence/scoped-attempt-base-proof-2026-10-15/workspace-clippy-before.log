@@ -1,0 +1,1620 @@
+    Checking stateknot-core v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-core)
+    Checking stateknot-testkit v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-testkit)
+    Checking stateknot-store-postgres v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres)
+    Checking stateknot-integrations v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-integrations)
+    Checking stateknot-runtime v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-runtime)
+    Checking stateknot-artifact-store v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-artifact-store)
+error[E0275]: overflow evaluating the requirement `&str: std::marker::Sync`
+      |
+      = help: consider increasing the recursion limit by adding a `#![recursion_limit = "256"]` attribute to your crate (`stateknot_runtime`)
+note: required because it appears within the type `std::borrow::Cow<'_, str>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/borrow.rs:179:10
+note: required because it appears within the type `sqlx_postgres::statement::PgStatement<'_>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-postgres-0.8.6/src/statement.rs:13:12
+      |
+13    | pub struct PgStatement<'q> {
+      |            ^^^^^^^^^^^
+      = note: required for `&sqlx_postgres::statement::PgStatement<'_>` to implement `std::marker::Send`
+note: required because it appears within the type `either::Either<&str, &sqlx_postgres::statement::PgStatement<'_>>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/either-1.18.0/src/lib.rs:49:10
+      |
+49    | pub enum Either<L, R> {
+      |          ^^^^^^
+note: required because it appears within the type `Query<'_, Postgres, PgArguments>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query.rs:17:12
+      |
+17    | pub struct Query<'q, DB: Database, A> {
+      |            ^^^^^
+note: required because it appears within the type `QueryAs<'_, Postgres, (i64,), PgArguments>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:19:12
+      |
+19    | pub struct QueryAs<'q, DB: Database, O, A> {
+      |            ^^^^^^^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:192:5
+      |
+192   | /     {
+193   | |         let row = executor.fetch_optional(self.inner).await?;
+194   | |         if let Some(row) = row {
+195   | |             O::from_row(&row).map(Some)
+...     |
+199   | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:167:5
+      |
+167   | /     {
+168   | |         self.fetch_optional(executor)
+169   | |             .await
+170   | |             .and_then(|row| row.ok_or(Error::RowNotFound))
+171   | |     }
+      | |_____^
+note: required because it appears within the type `IntoFuture<impl Future<Output = Result<(i64,), Error>>>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/try_future/into_future.rs:10:16
+      |
+10    |     pub struct IntoFuture<Fut> {
+      |                ^^^^^^^^^^
+note: required because it appears within the type `Map<IntoFuture<impl Future<Output = Result<(i64,), Error>>>, ...>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/future/map.rs:15:14
+      |
+15    |     pub enum Map<Fut, F> {
+      |              ^^^
+note: required because it appears within the type `Map<IntoFuture<impl Future<Output = Result<(i64,), Error>>>, ...>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/future/mod.rs:49:5
+      |
+49    |     Map<Fut, F>(
+      |     ^^^
+note: required because it appears within the type `MapOk<impl Future<Output = Result<(i64,), Error>>, {closure@...}>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/try_future/mod.rs:108:5
+      |
+108   |     MapOk<Fut, F>(
+      |     ^^^^^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_scalar.rs:164:5
+      |
+164   | /     {
+165   | |         self.inner.fetch_one(executor).map_ok(|it| it.0).await
+166   | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:15839:32
+      |
+15839 |   ) -> Result<usize, StoreError> {
+      |  ________________________________^
+15840 | |     let base = activation.base_checkpoint();
+15841 | |     let base_superstep = i64::try_from(base.superstep().get())
+15842 | |         .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+...     |
+15855 | |     usize::try_from(count).map_err(|_| StoreError::corrupt("node attempt history count"))
+15856 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:491:34
+      |
+491   |   ) -> Result<History, StoreError> {
+      |  __________________________________^
+492   | |     let through = admission
+493   | |         .run()
+494   | |         .journal_head()
+...     |
+514   | |     Ok(history)
+515   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<History, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<History, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<History, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:473:34
+      |
+473   |   ) -> Result<History, StoreError> {
+      |  __________________________________^
+474   | |     let mut replay = Replay::new(tx);
+475   | |     Box::pin(verified_history_replay(
+476   | |         &mut replay,
+...     |
+482   | |     .await
+483   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<History, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<History, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<History, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:546:39
+      |
+546   |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+547   | |     let tenant = start.activation().tenant_id();
+548   | |     let run = start.activation().run_id();
+549   | |     let namespace=query_scalar::<_,String>("SELECT graph_namespace FROM stateknot.graph_frame_caller_bindings WHERE tenant_id=$1 AND run_...
+...     |
+583   | |     Ok(actual_event)
+584   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<JournalEvent, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<JournalEvent, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<JournalEvent, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames.rs:1303:47
+      |
+1303  |   ) -> Result<Option<JournalEvent>, StoreError> {
+      |  _______________________________________________^
+1304  | |     let tenant = start.activation().tenant_id();
+1305  | |     let run = start.activation().run_id();
+1306  | |     let (event, _) = child_runs::anchored_event(
+...     |
+1343  | |     Ok(Some(record.event))
+1344  | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Option<JournalEvent>, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Option<JournalEvent>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Option<JournalEvent>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16072:3
+      |
+16072 |   > {
+      |  ___^
+16073 | |     if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
+16074 | |         return Ok((event, None));
+...     |
+16090 | |     Ok((event, ordinary_base))
+16091 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16057:39
+      |
+16057 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16058 | |     verify_node_attempt_start_with_base(transaction, start)
+16059 | |         .await
+16060 | |         .map(|(event, _)| event)
+16061 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:435:50
+      |
+435   |   ) -> Result<Option<ChildJoinRecord>, StoreError> {
+      |  __________________________________________________^
+436   | |     let row = query("SELECT * FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND base_checkpoint_id=$3 AND graph_...
+437   | |         .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid()).bind(*activation.base_checkpoint().checkpoint_id().as...
+438   | |         .bind(activation.graph_namespace().as_str()).bind(activation.node_id().as_str())
+...     |
+610   | |     Ok(Some(record))
+611   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Option<ChildJoinRecord>, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Option<ChildJoinRecord>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Option<ChildJoinRecord>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:426:50
+      |
+426   |   ) -> Result<Option<ChildJoinRecord>, StoreError> {
+      |  __________________________________________________^
+427   | |     Box::pin(load_inner(tx, activation, lock_children)).await
+428   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:629:29
+      |
+629   |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+630   | |     let a = result.intent().activation();
+...     |
+669   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16615:29
+      |
+16615 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+16616 | |     child_joins::verify_result(transaction, result, true).await?;
+16617 | |     let activation = result.intent().activation();
+16618 | |     let tool_rows =
+...     |
+16657 | |     verify_pending_invocation_anchors(transaction, result, anchors).await
+16658 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16558:39
+      |
+16558 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16559 | |     let row = load_pending_node_result_row(transaction, result.intent().activation())
+16560 | |         .await?
+16561 | |         .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;
+...     |
+16609 | |     Ok(event)
+16610 | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<JournalEvent, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<JournalEvent, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<JournalEvent, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16542:39
+      |
+16542 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16543 | |     if let Some(event) = Box::pin(graph_frames::recognize_result(transaction, result)).await? {
+16544 | |         return Ok(event);
+...     |
+16550 | |     .await
+16551 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:454:49
+      |
+454   |   ) -> Result<Vec<PendingNodeResult>, StoreError> {
+      |  _________________________________________________^
+455   | |     let durable = load_locked_barrier_result_heads(replay.tx, &base.checkpoint().head()).await?;
+456   | |     validate_complete_barrier_result_heads(&durable, heads)?;
+457   | |     let mut results = Vec::with_capacity(heads.len());
+...     |
+488   | |     Ok(results)
+489   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Vec<PendingNodeResult>, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Vec<PendingNodeResult>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Vec<PendingNodeResult>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:661:50
+      |
+661   |   ) -> Result<StoredGraphFrameBarrier, StoreError> {
+      |  __________________________________________________^
+662   | |     replay.visit_edge()?;
+663   | |     let record = Box::pin(edge_components(replay.tx, entry, base, row)).await?;
+...     |
+717   | |     Ok(record)
+718   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<StoredGraphFrameBarrier, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<StoredGraphFrameBarrier, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<StoredGraphFrameBarrier, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:518:62
+      |
+518   |   ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+      |  ______________________________________________________________^
+519   | |     let mut current = entry.entry.checkpoint().clone();
+520   | |     if current.checkpoint().tenant_id() != expected.tenant_id()
+521   | |         || current.checkpoint().run_id() != expected.run_id()
+...     |
+581   | |     Ok((current, floor))
+582   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<(GraphFrameCheckpoint, ...), ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(GraphFrameCheckpoint, ...), ...>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(..., ...), ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:500:62
+      |
+500   |   ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+      |  ______________________________________________________________^
+501   | |     let mut replay = Replay::new(tx);
+502   | |     Box::pin(checkpoint_at_replay(
+503   | |         &mut replay,
+...     |
+509   | |     .await
+510   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames.rs:1372:47
+      |
+1372  |   ) -> Result<GraphFrameCheckpoint, StoreError> {
+      |  _______________________________________________^
+1373  | |     if namespace.is_root() {
+1374  | |         return Err(StoreError::GraphFrameConflict);
+...     |
+1394  | |     Ok(checkpoint.clone())
+1395  | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<GraphFrameCheckpoint, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<GraphFrameCheckpoint, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<GraphFrameCheckpoint, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:13426:29
+      |
+13426 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+13427 | |     let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+13428 | |         tx,
+13429 | |         activation.tenant_id(),
+...     |
+13454 | |     Ok(())
+13455 | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<(), StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(), StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(), StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:13788:29
+      |
+13788 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+13789 | |     if !intent.activation().graph_namespace().is_root() {
+13790 | |         return Box::pin(verify_scoped_invocation_activation(
+13791 | |             transaction,
+...     |
+13810 | |     verify_checkpoint_anchor(transaction, &checkpoint).await
+13811 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:5696:46
+      |
+5696  |       ) -> Result<ModelInvocation, StoreError> {
+      |  ______________________________________________^
+5697  | |         let mut transaction = self.begin_repeatable_read("model invocation load").await?;
+5698  | |         let row = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATION)
+5699  | |             .bind(tenant_id.as_str())
+...     |
+5730  | |         Ok(invocation)
+5731  | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:2577:91
+      |
+2577  |   ) -> Result<(ModelTranscript, BudgetUsage, ExecutionCount), ProviderNativeAgentNodeError> {
+      |  ___________________________________________________________________________________________^
+2578  | |     let mut turns = Vec::with_capacity(state.completed_turns.len());
+2579  | |     let mut usage = BudgetUsage::zero();
+2580  | |     let mut output_repair_turns = 0_u64;
+...     |
+2661  | |     Ok((transcript, usage, ExecutionCount::new(output_repair_turns)))
+2662  | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:1342:84
+      |
+1342  |       ) -> Result<ProviderNativeModelObservation, ProviderNativeAgentExecutionError> {
+      |  ____________________________________________________________________________________^
+1343  | |         let state = self
+1344  | |             .shared
+1345  | |             .definition
+...     |
+1426  | |         })
+1427  | |     }
+      | |_____^
+      = note: required for `Unique<impl Future<Output = Result<..., ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<ProviderNativeModelObservation, ...>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<..., ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` block
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:1330:18
+      |
+1330  |         Box::pin(async move {
+      |                  ^^^^^^^^^^
+      = note: the full name for the type has been written to '/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout/debug/deps/stateknot_runtime-13ba934be28a6146.long-type-7030792199538703831.txt'
+      = note: consider using `--verbose` to print the full type name to the console
+
+error[E0275]: overflow evaluating the requirement `&str: std::marker::Sync`
+      |
+      = help: consider increasing the recursion limit by adding a `#![recursion_limit = "256"]` attribute to your crate (`stateknot_runtime`)
+note: required because it appears within the type `std::borrow::Cow<'_, str>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/borrow.rs:179:10
+note: required because it appears within the type `sqlx_postgres::statement::PgStatement<'_>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-postgres-0.8.6/src/statement.rs:13:12
+      |
+13    | pub struct PgStatement<'q> {
+      |            ^^^^^^^^^^^
+      = note: required for `&sqlx_postgres::statement::PgStatement<'_>` to implement `std::marker::Send`
+note: required because it appears within the type `either::Either<&str, &sqlx_postgres::statement::PgStatement<'_>>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/either-1.18.0/src/lib.rs:49:10
+      |
+49    | pub enum Either<L, R> {
+      |          ^^^^^^
+note: required because it appears within the type `Query<'_, Postgres, PgArguments>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query.rs:17:12
+      |
+17    | pub struct Query<'q, DB: Database, A> {
+      |            ^^^^^
+note: required because it appears within the type `QueryAs<'_, Postgres, (i64,), PgArguments>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:19:12
+      |
+19    | pub struct QueryAs<'q, DB: Database, O, A> {
+      |            ^^^^^^^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:192:5
+      |
+192   | /     {
+193   | |         let row = executor.fetch_optional(self.inner).await?;
+194   | |         if let Some(row) = row {
+195   | |             O::from_row(&row).map(Some)
+...     |
+199   | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:167:5
+      |
+167   | /     {
+168   | |         self.fetch_optional(executor)
+169   | |             .await
+170   | |             .and_then(|row| row.ok_or(Error::RowNotFound))
+171   | |     }
+      | |_____^
+note: required because it appears within the type `IntoFuture<impl Future<Output = Result<(i64,), Error>>>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/try_future/into_future.rs:10:16
+      |
+10    |     pub struct IntoFuture<Fut> {
+      |                ^^^^^^^^^^
+note: required because it appears within the type `Map<IntoFuture<impl Future<Output = Result<(i64,), Error>>>, ...>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/future/map.rs:15:14
+      |
+15    |     pub enum Map<Fut, F> {
+      |              ^^^
+note: required because it appears within the type `Map<IntoFuture<impl Future<Output = Result<(i64,), Error>>>, ...>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/future/mod.rs:49:5
+      |
+49    |     Map<Fut, F>(
+      |     ^^^
+note: required because it appears within the type `MapOk<impl Future<Output = Result<(i64,), Error>>, {closure@...}>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/try_future/mod.rs:108:5
+      |
+108   |     MapOk<Fut, F>(
+      |     ^^^^^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_scalar.rs:164:5
+      |
+164   | /     {
+165   | |         self.inner.fetch_one(executor).map_ok(|it| it.0).await
+166   | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:15839:32
+      |
+15839 |   ) -> Result<usize, StoreError> {
+      |  ________________________________^
+15840 | |     let base = activation.base_checkpoint();
+15841 | |     let base_superstep = i64::try_from(base.superstep().get())
+15842 | |         .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+...     |
+15855 | |     usize::try_from(count).map_err(|_| StoreError::corrupt("node attempt history count"))
+15856 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:491:34
+      |
+491   |   ) -> Result<History, StoreError> {
+      |  __________________________________^
+492   | |     let through = admission
+493   | |         .run()
+494   | |         .journal_head()
+...     |
+514   | |     Ok(history)
+515   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<History, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<History, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<History, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:473:34
+      |
+473   |   ) -> Result<History, StoreError> {
+      |  __________________________________^
+474   | |     let mut replay = Replay::new(tx);
+475   | |     Box::pin(verified_history_replay(
+476   | |         &mut replay,
+...     |
+482   | |     .await
+483   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<History, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<History, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<History, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:546:39
+      |
+546   |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+547   | |     let tenant = start.activation().tenant_id();
+548   | |     let run = start.activation().run_id();
+549   | |     let namespace=query_scalar::<_,String>("SELECT graph_namespace FROM stateknot.graph_frame_caller_bindings WHERE tenant_id=$1 AND run_...
+...     |
+583   | |     Ok(actual_event)
+584   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<JournalEvent, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<JournalEvent, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<JournalEvent, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames.rs:1303:47
+      |
+1303  |   ) -> Result<Option<JournalEvent>, StoreError> {
+      |  _______________________________________________^
+1304  | |     let tenant = start.activation().tenant_id();
+1305  | |     let run = start.activation().run_id();
+1306  | |     let (event, _) = child_runs::anchored_event(
+...     |
+1343  | |     Ok(Some(record.event))
+1344  | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Option<JournalEvent>, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Option<JournalEvent>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Option<JournalEvent>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16072:3
+      |
+16072 |   > {
+      |  ___^
+16073 | |     if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
+16074 | |         return Ok((event, None));
+...     |
+16090 | |     Ok((event, ordinary_base))
+16091 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16057:39
+      |
+16057 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16058 | |     verify_node_attempt_start_with_base(transaction, start)
+16059 | |         .await
+16060 | |         .map(|(event, _)| event)
+16061 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:435:50
+      |
+435   |   ) -> Result<Option<ChildJoinRecord>, StoreError> {
+      |  __________________________________________________^
+436   | |     let row = query("SELECT * FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND base_checkpoint_id=$3 AND graph_...
+437   | |         .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid()).bind(*activation.base_checkpoint().checkpoint_id().as...
+438   | |         .bind(activation.graph_namespace().as_str()).bind(activation.node_id().as_str())
+...     |
+610   | |     Ok(Some(record))
+611   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Option<ChildJoinRecord>, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Option<ChildJoinRecord>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Option<ChildJoinRecord>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:426:50
+      |
+426   |   ) -> Result<Option<ChildJoinRecord>, StoreError> {
+      |  __________________________________________________^
+427   | |     Box::pin(load_inner(tx, activation, lock_children)).await
+428   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:629:29
+      |
+629   |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+630   | |     let a = result.intent().activation();
+...     |
+669   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16615:29
+      |
+16615 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+16616 | |     child_joins::verify_result(transaction, result, true).await?;
+16617 | |     let activation = result.intent().activation();
+16618 | |     let tool_rows =
+...     |
+16657 | |     verify_pending_invocation_anchors(transaction, result, anchors).await
+16658 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16558:39
+      |
+16558 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16559 | |     let row = load_pending_node_result_row(transaction, result.intent().activation())
+16560 | |         .await?
+16561 | |         .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;
+...     |
+16609 | |     Ok(event)
+16610 | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<JournalEvent, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<JournalEvent, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<JournalEvent, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16542:39
+      |
+16542 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16543 | |     if let Some(event) = Box::pin(graph_frames::recognize_result(transaction, result)).await? {
+16544 | |         return Ok(event);
+...     |
+16550 | |     .await
+16551 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:454:49
+      |
+454   |   ) -> Result<Vec<PendingNodeResult>, StoreError> {
+      |  _________________________________________________^
+455   | |     let durable = load_locked_barrier_result_heads(replay.tx, &base.checkpoint().head()).await?;
+456   | |     validate_complete_barrier_result_heads(&durable, heads)?;
+457   | |     let mut results = Vec::with_capacity(heads.len());
+...     |
+488   | |     Ok(results)
+489   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Vec<PendingNodeResult>, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Vec<PendingNodeResult>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Vec<PendingNodeResult>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:661:50
+      |
+661   |   ) -> Result<StoredGraphFrameBarrier, StoreError> {
+      |  __________________________________________________^
+662   | |     replay.visit_edge()?;
+663   | |     let record = Box::pin(edge_components(replay.tx, entry, base, row)).await?;
+...     |
+717   | |     Ok(record)
+718   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<StoredGraphFrameBarrier, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<StoredGraphFrameBarrier, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<StoredGraphFrameBarrier, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:518:62
+      |
+518   |   ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+      |  ______________________________________________________________^
+519   | |     let mut current = entry.entry.checkpoint().clone();
+520   | |     if current.checkpoint().tenant_id() != expected.tenant_id()
+521   | |         || current.checkpoint().run_id() != expected.run_id()
+...     |
+581   | |     Ok((current, floor))
+582   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<(GraphFrameCheckpoint, ...), ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(GraphFrameCheckpoint, ...), ...>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(..., ...), ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:500:62
+      |
+500   |   ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+      |  ______________________________________________________________^
+501   | |     let mut replay = Replay::new(tx);
+502   | |     Box::pin(checkpoint_at_replay(
+503   | |         &mut replay,
+...     |
+509   | |     .await
+510   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames.rs:1372:47
+      |
+1372  |   ) -> Result<GraphFrameCheckpoint, StoreError> {
+      |  _______________________________________________^
+1373  | |     if namespace.is_root() {
+1374  | |         return Err(StoreError::GraphFrameConflict);
+...     |
+1394  | |     Ok(checkpoint.clone())
+1395  | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<GraphFrameCheckpoint, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<GraphFrameCheckpoint, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<GraphFrameCheckpoint, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:13426:29
+      |
+13426 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+13427 | |     let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+13428 | |         tx,
+13429 | |         activation.tenant_id(),
+...     |
+13454 | |     Ok(())
+13455 | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<(), StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(), StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(), StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:13460:29
+      |
+13460 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+13461 | |     if !intent.activation().graph_namespace().is_root() {
+13462 | |         return Box::pin(verify_scoped_invocation_activation(
+13463 | |             transaction,
+...     |
+13482 | |     verify_checkpoint_anchor(transaction, &checkpoint).await
+13483 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:5432:45
+      |
+5432  |       ) -> Result<ToolInvocation, StoreError> {
+      |  _____________________________________________^
+5433  | |         let mut transaction = self.begin_repeatable_read("tool invocation load").await?;
+5434  | |         let row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+5435  | |             .bind(tenant_id.as_str())
+...     |
+5466  | |         Ok(invocation)
+5467  | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:2333:63
+      |
+2333  |       ) -> Result<ToolInvocation, ProviderNativeAgentNodeError> {
+      |  _______________________________________________________________^
+2334  | |         let invocation = match self
+2335  | |             .shared
+2336  | |             .store
+...     |
+2377  | |         Ok(invocation)
+2378  | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:2149:7
+      |
+2149  |       > {
+      |  _______^
+2150  | |         let (provider_call_id, expected_intent) =
+2151  | |             self.prepare_tool_intent(context, stored, model_invocation_id, index, proposal, plan)?;
+2152  | |         if expected_intent.descriptor().semantics().risk() != ToolRisk::ReadOnly {
+...     |
+2220  | |     }
+      | |_____^
+      = note: required for `Unique<impl Future<Output = Result<(..., ...), ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(..., ...), ...>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(..., ...), ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` block
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:2093:18
+      |
+2093  |         Box::pin(async move {
+      |                  ^^^^^^^^^^
+      = note: the full name for the type has been written to '/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout/debug/deps/stateknot_runtime-13ba934be28a6146.long-type-8601069938185892898.txt'
+      = note: consider using `--verbose` to print the full type name to the console
+
+For more information about this error, try `rustc --explain E0275`.
+error: could not compile `stateknot-runtime` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error[E0275]: overflow evaluating the requirement `&str: std::marker::Sync`
+      |
+      = help: consider increasing the recursion limit by adding a `#![recursion_limit = "256"]` attribute to your crate (`stateknot_runtime`)
+note: required because it appears within the type `std::borrow::Cow<'_, str>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/borrow.rs:179:10
+note: required because it appears within the type `sqlx_postgres::statement::PgStatement<'_>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-postgres-0.8.6/src/statement.rs:13:12
+      |
+13    | pub struct PgStatement<'q> {
+      |            ^^^^^^^^^^^
+      = note: required for `&sqlx_postgres::statement::PgStatement<'_>` to implement `std::marker::Send`
+note: required because it appears within the type `either::Either<&str, &sqlx_postgres::statement::PgStatement<'_>>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/either-1.18.0/src/lib.rs:49:10
+      |
+49    | pub enum Either<L, R> {
+      |          ^^^^^^
+note: required because it appears within the type `Query<'_, Postgres, PgArguments>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query.rs:17:12
+      |
+17    | pub struct Query<'q, DB: Database, A> {
+      |            ^^^^^
+note: required because it appears within the type `QueryAs<'_, Postgres, (i64,), PgArguments>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:19:12
+      |
+19    | pub struct QueryAs<'q, DB: Database, O, A> {
+      |            ^^^^^^^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:192:5
+      |
+192   | /     {
+193   | |         let row = executor.fetch_optional(self.inner).await?;
+194   | |         if let Some(row) = row {
+195   | |             O::from_row(&row).map(Some)
+...     |
+199   | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:167:5
+      |
+167   | /     {
+168   | |         self.fetch_optional(executor)
+169   | |             .await
+170   | |             .and_then(|row| row.ok_or(Error::RowNotFound))
+171   | |     }
+      | |_____^
+note: required because it appears within the type `IntoFuture<impl Future<Output = Result<(i64,), Error>>>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/try_future/into_future.rs:10:16
+      |
+10    |     pub struct IntoFuture<Fut> {
+      |                ^^^^^^^^^^
+note: required because it appears within the type `Map<IntoFuture<impl Future<Output = Result<(i64,), Error>>>, ...>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/future/map.rs:15:14
+      |
+15    |     pub enum Map<Fut, F> {
+      |              ^^^
+note: required because it appears within the type `Map<IntoFuture<impl Future<Output = Result<(i64,), Error>>>, ...>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/future/mod.rs:49:5
+      |
+49    |     Map<Fut, F>(
+      |     ^^^
+note: required because it appears within the type `MapOk<impl Future<Output = Result<(i64,), Error>>, {closure@...}>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/try_future/mod.rs:108:5
+      |
+108   |     MapOk<Fut, F>(
+      |     ^^^^^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_scalar.rs:164:5
+      |
+164   | /     {
+165   | |         self.inner.fetch_one(executor).map_ok(|it| it.0).await
+166   | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:15839:32
+      |
+15839 |   ) -> Result<usize, StoreError> {
+      |  ________________________________^
+15840 | |     let base = activation.base_checkpoint();
+15841 | |     let base_superstep = i64::try_from(base.superstep().get())
+15842 | |         .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+...     |
+15855 | |     usize::try_from(count).map_err(|_| StoreError::corrupt("node attempt history count"))
+15856 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:491:34
+      |
+491   |   ) -> Result<History, StoreError> {
+      |  __________________________________^
+492   | |     let through = admission
+493   | |         .run()
+494   | |         .journal_head()
+...     |
+514   | |     Ok(history)
+515   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<History, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<History, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<History, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:473:34
+      |
+473   |   ) -> Result<History, StoreError> {
+      |  __________________________________^
+474   | |     let mut replay = Replay::new(tx);
+475   | |     Box::pin(verified_history_replay(
+476   | |         &mut replay,
+...     |
+482   | |     .await
+483   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<History, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<History, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<History, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:546:39
+      |
+546   |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+547   | |     let tenant = start.activation().tenant_id();
+548   | |     let run = start.activation().run_id();
+549   | |     let namespace=query_scalar::<_,String>("SELECT graph_namespace FROM stateknot.graph_frame_caller_bindings WHERE tenant_id=$1 AND run_...
+...     |
+583   | |     Ok(actual_event)
+584   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<JournalEvent, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<JournalEvent, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<JournalEvent, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames.rs:1303:47
+      |
+1303  |   ) -> Result<Option<JournalEvent>, StoreError> {
+      |  _______________________________________________^
+1304  | |     let tenant = start.activation().tenant_id();
+1305  | |     let run = start.activation().run_id();
+1306  | |     let (event, _) = child_runs::anchored_event(
+...     |
+1343  | |     Ok(Some(record.event))
+1344  | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Option<JournalEvent>, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Option<JournalEvent>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Option<JournalEvent>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16072:3
+      |
+16072 |   > {
+      |  ___^
+16073 | |     if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
+16074 | |         return Ok((event, None));
+...     |
+16090 | |     Ok((event, ordinary_base))
+16091 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16057:39
+      |
+16057 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16058 | |     verify_node_attempt_start_with_base(transaction, start)
+16059 | |         .await
+16060 | |         .map(|(event, _)| event)
+16061 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:435:50
+      |
+435   |   ) -> Result<Option<ChildJoinRecord>, StoreError> {
+      |  __________________________________________________^
+436   | |     let row = query("SELECT * FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND base_checkpoint_id=$3 AND graph_...
+437   | |         .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid()).bind(*activation.base_checkpoint().checkpoint_id().as...
+438   | |         .bind(activation.graph_namespace().as_str()).bind(activation.node_id().as_str())
+...     |
+610   | |     Ok(Some(record))
+611   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Option<ChildJoinRecord>, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Option<ChildJoinRecord>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Option<ChildJoinRecord>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:426:50
+      |
+426   |   ) -> Result<Option<ChildJoinRecord>, StoreError> {
+      |  __________________________________________________^
+427   | |     Box::pin(load_inner(tx, activation, lock_children)).await
+428   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:629:29
+      |
+629   |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+630   | |     let a = result.intent().activation();
+...     |
+669   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16615:29
+      |
+16615 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+16616 | |     child_joins::verify_result(transaction, result, true).await?;
+16617 | |     let activation = result.intent().activation();
+16618 | |     let tool_rows =
+...     |
+16657 | |     verify_pending_invocation_anchors(transaction, result, anchors).await
+16658 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16558:39
+      |
+16558 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16559 | |     let row = load_pending_node_result_row(transaction, result.intent().activation())
+16560 | |         .await?
+16561 | |         .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;
+...     |
+16609 | |     Ok(event)
+16610 | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<JournalEvent, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<JournalEvent, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<JournalEvent, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16542:39
+      |
+16542 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16543 | |     if let Some(event) = Box::pin(graph_frames::recognize_result(transaction, result)).await? {
+16544 | |         return Ok(event);
+...     |
+16550 | |     .await
+16551 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:454:49
+      |
+454   |   ) -> Result<Vec<PendingNodeResult>, StoreError> {
+      |  _________________________________________________^
+455   | |     let durable = load_locked_barrier_result_heads(replay.tx, &base.checkpoint().head()).await?;
+456   | |     validate_complete_barrier_result_heads(&durable, heads)?;
+457   | |     let mut results = Vec::with_capacity(heads.len());
+...     |
+488   | |     Ok(results)
+489   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Vec<PendingNodeResult>, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Vec<PendingNodeResult>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Vec<PendingNodeResult>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:661:50
+      |
+661   |   ) -> Result<StoredGraphFrameBarrier, StoreError> {
+      |  __________________________________________________^
+662   | |     replay.visit_edge()?;
+663   | |     let record = Box::pin(edge_components(replay.tx, entry, base, row)).await?;
+...     |
+717   | |     Ok(record)
+718   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<StoredGraphFrameBarrier, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<StoredGraphFrameBarrier, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<StoredGraphFrameBarrier, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:518:62
+      |
+518   |   ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+      |  ______________________________________________________________^
+519   | |     let mut current = entry.entry.checkpoint().clone();
+520   | |     if current.checkpoint().tenant_id() != expected.tenant_id()
+521   | |         || current.checkpoint().run_id() != expected.run_id()
+...     |
+581   | |     Ok((current, floor))
+582   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<(GraphFrameCheckpoint, ...), ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(GraphFrameCheckpoint, ...), ...>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(..., ...), ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:500:62
+      |
+500   |   ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+      |  ______________________________________________________________^
+501   | |     let mut replay = Replay::new(tx);
+502   | |     Box::pin(checkpoint_at_replay(
+503   | |         &mut replay,
+...     |
+509   | |     .await
+510   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames.rs:1372:47
+      |
+1372  |   ) -> Result<GraphFrameCheckpoint, StoreError> {
+      |  _______________________________________________^
+1373  | |     if namespace.is_root() {
+1374  | |         return Err(StoreError::GraphFrameConflict);
+...     |
+1394  | |     Ok(checkpoint.clone())
+1395  | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<GraphFrameCheckpoint, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<GraphFrameCheckpoint, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<GraphFrameCheckpoint, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:13426:29
+      |
+13426 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+13427 | |     let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+13428 | |         tx,
+13429 | |         activation.tenant_id(),
+...     |
+13454 | |     Ok(())
+13455 | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<(), StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(), StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(), StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:13788:29
+      |
+13788 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+13789 | |     if !intent.activation().graph_namespace().is_root() {
+13790 | |         return Box::pin(verify_scoped_invocation_activation(
+13791 | |             transaction,
+...     |
+13810 | |     verify_checkpoint_anchor(transaction, &checkpoint).await
+13811 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:5696:46
+      |
+5696  |       ) -> Result<ModelInvocation, StoreError> {
+      |  ______________________________________________^
+5697  | |         let mut transaction = self.begin_repeatable_read("model invocation load").await?;
+5698  | |         let row = query_as::<_, ModelInvocationRow>(SELECT_MODEL_INVOCATION)
+5699  | |             .bind(tenant_id.as_str())
+...     |
+5730  | |         Ok(invocation)
+5731  | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:2577:91
+      |
+2577  |   ) -> Result<(ModelTranscript, BudgetUsage, ExecutionCount), ProviderNativeAgentNodeError> {
+      |  ___________________________________________________________________________________________^
+2578  | |     let mut turns = Vec::with_capacity(state.completed_turns.len());
+2579  | |     let mut usage = BudgetUsage::zero();
+2580  | |     let mut output_repair_turns = 0_u64;
+...     |
+2661  | |     Ok((transcript, usage, ExecutionCount::new(output_repair_turns)))
+2662  | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:1342:84
+      |
+1342  |       ) -> Result<ProviderNativeModelObservation, ProviderNativeAgentExecutionError> {
+      |  ____________________________________________________________________________________^
+1343  | |         let state = self
+1344  | |             .shared
+1345  | |             .definition
+...     |
+1426  | |         })
+1427  | |     }
+      | |_____^
+      = note: required for `Unique<impl Future<Output = Result<..., ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<ProviderNativeModelObservation, ...>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<..., ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` block
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:1330:18
+      |
+1330  |         Box::pin(async move {
+      |                  ^^^^^^^^^^
+      = note: the full name for the type has been written to '/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout/debug/deps/stateknot_runtime-ab38c66a6c24ac23.long-type-13050956107194653030.txt'
+      = note: consider using `--verbose` to print the full type name to the console
+
+error[E0275]: overflow evaluating the requirement `&str: std::marker::Sync`
+      |
+      = help: consider increasing the recursion limit by adding a `#![recursion_limit = "256"]` attribute to your crate (`stateknot_runtime`)
+note: required because it appears within the type `std::borrow::Cow<'_, str>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/borrow.rs:179:10
+note: required because it appears within the type `sqlx_postgres::statement::PgStatement<'_>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-postgres-0.8.6/src/statement.rs:13:12
+      |
+13    | pub struct PgStatement<'q> {
+      |            ^^^^^^^^^^^
+      = note: required for `&sqlx_postgres::statement::PgStatement<'_>` to implement `std::marker::Send`
+note: required because it appears within the type `either::Either<&str, &sqlx_postgres::statement::PgStatement<'_>>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/either-1.18.0/src/lib.rs:49:10
+      |
+49    | pub enum Either<L, R> {
+      |          ^^^^^^
+note: required because it appears within the type `Query<'_, Postgres, PgArguments>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query.rs:17:12
+      |
+17    | pub struct Query<'q, DB: Database, A> {
+      |            ^^^^^
+note: required because it appears within the type `QueryAs<'_, Postgres, (i64,), PgArguments>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:19:12
+      |
+19    | pub struct QueryAs<'q, DB: Database, O, A> {
+      |            ^^^^^^^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:192:5
+      |
+192   | /     {
+193   | |         let row = executor.fetch_optional(self.inner).await?;
+194   | |         if let Some(row) = row {
+195   | |             O::from_row(&row).map(Some)
+...     |
+199   | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_as.rs:167:5
+      |
+167   | /     {
+168   | |         self.fetch_optional(executor)
+169   | |             .await
+170   | |             .and_then(|row| row.ok_or(Error::RowNotFound))
+171   | |     }
+      | |_____^
+note: required because it appears within the type `IntoFuture<impl Future<Output = Result<(i64,), Error>>>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/try_future/into_future.rs:10:16
+      |
+10    |     pub struct IntoFuture<Fut> {
+      |                ^^^^^^^^^^
+note: required because it appears within the type `Map<IntoFuture<impl Future<Output = Result<(i64,), Error>>>, ...>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/future/map.rs:15:14
+      |
+15    |     pub enum Map<Fut, F> {
+      |              ^^^
+note: required because it appears within the type `Map<IntoFuture<impl Future<Output = Result<(i64,), Error>>>, ...>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/future/mod.rs:49:5
+      |
+49    |     Map<Fut, F>(
+      |     ^^^
+note: required because it appears within the type `MapOk<impl Future<Output = Result<(i64,), Error>>, {closure@...}>`
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.34/src/future/try_future/mod.rs:108:5
+      |
+108   |     MapOk<Fut, F>(
+      |     ^^^^^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.8.6/src/query_scalar.rs:164:5
+      |
+164   | /     {
+165   | |         self.inner.fetch_one(executor).map_ok(|it| it.0).await
+166   | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:15839:32
+      |
+15839 |   ) -> Result<usize, StoreError> {
+      |  ________________________________^
+15840 | |     let base = activation.base_checkpoint();
+15841 | |     let base_superstep = i64::try_from(base.superstep().get())
+15842 | |         .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
+...     |
+15855 | |     usize::try_from(count).map_err(|_| StoreError::corrupt("node attempt history count"))
+15856 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:491:34
+      |
+491   |   ) -> Result<History, StoreError> {
+      |  __________________________________^
+492   | |     let through = admission
+493   | |         .run()
+494   | |         .journal_head()
+...     |
+514   | |     Ok(history)
+515   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<History, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<History, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<History, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:473:34
+      |
+473   |   ) -> Result<History, StoreError> {
+      |  __________________________________^
+474   | |     let mut replay = Replay::new(tx);
+475   | |     Box::pin(verified_history_replay(
+476   | |         &mut replay,
+...     |
+482   | |     .await
+483   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<History, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<History, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<History, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs:546:39
+      |
+546   |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+547   | |     let tenant = start.activation().tenant_id();
+548   | |     let run = start.activation().run_id();
+549   | |     let namespace=query_scalar::<_,String>("SELECT graph_namespace FROM stateknot.graph_frame_caller_bindings WHERE tenant_id=$1 AND run_...
+...     |
+583   | |     Ok(actual_event)
+584   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<JournalEvent, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<JournalEvent, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<JournalEvent, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames.rs:1303:47
+      |
+1303  |   ) -> Result<Option<JournalEvent>, StoreError> {
+      |  _______________________________________________^
+1304  | |     let tenant = start.activation().tenant_id();
+1305  | |     let run = start.activation().run_id();
+1306  | |     let (event, _) = child_runs::anchored_event(
+...     |
+1343  | |     Ok(Some(record.event))
+1344  | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Option<JournalEvent>, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Option<JournalEvent>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Option<JournalEvent>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16072:3
+      |
+16072 |   > {
+      |  ___^
+16073 | |     if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
+16074 | |         return Ok((event, None));
+...     |
+16090 | |     Ok((event, ordinary_base))
+16091 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16057:39
+      |
+16057 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16058 | |     verify_node_attempt_start_with_base(transaction, start)
+16059 | |         .await
+16060 | |         .map(|(event, _)| event)
+16061 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:435:50
+      |
+435   |   ) -> Result<Option<ChildJoinRecord>, StoreError> {
+      |  __________________________________________________^
+436   | |     let row = query("SELECT * FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND base_checkpoint_id=$3 AND graph_...
+437   | |         .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid()).bind(*activation.base_checkpoint().checkpoint_id().as...
+438   | |         .bind(activation.graph_namespace().as_str()).bind(activation.node_id().as_str())
+...     |
+610   | |     Ok(Some(record))
+611   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Option<ChildJoinRecord>, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Option<ChildJoinRecord>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Option<ChildJoinRecord>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:426:50
+      |
+426   |   ) -> Result<Option<ChildJoinRecord>, StoreError> {
+      |  __________________________________________________^
+427   | |     Box::pin(load_inner(tx, activation, lock_children)).await
+428   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/child_joins.rs:629:29
+      |
+629   |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+630   | |     let a = result.intent().activation();
+...     |
+669   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16615:29
+      |
+16615 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+16616 | |     child_joins::verify_result(transaction, result, true).await?;
+16617 | |     let activation = result.intent().activation();
+16618 | |     let tool_rows =
+...     |
+16657 | |     verify_pending_invocation_anchors(transaction, result, anchors).await
+16658 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16558:39
+      |
+16558 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16559 | |     let row = load_pending_node_result_row(transaction, result.intent().activation())
+16560 | |         .await?
+16561 | |         .ok_or_else(|| StoreError::corrupt("pending node result owner row"))?;
+...     |
+16609 | |     Ok(event)
+16610 | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<JournalEvent, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<JournalEvent, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<JournalEvent, StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:16542:39
+      |
+16542 |   ) -> Result<JournalEvent, StoreError> {
+      |  _______________________________________^
+16543 | |     if let Some(event) = Box::pin(graph_frames::recognize_result(transaction, result)).await? {
+16544 | |         return Ok(event);
+...     |
+16550 | |     .await
+16551 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:454:49
+      |
+454   |   ) -> Result<Vec<PendingNodeResult>, StoreError> {
+      |  _________________________________________________^
+455   | |     let durable = load_locked_barrier_result_heads(replay.tx, &base.checkpoint().head()).await?;
+456   | |     validate_complete_barrier_result_heads(&durable, heads)?;
+457   | |     let mut results = Vec::with_capacity(heads.len());
+...     |
+488   | |     Ok(results)
+489   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<Vec<PendingNodeResult>, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<Vec<PendingNodeResult>, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<Vec<PendingNodeResult>, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:661:50
+      |
+661   |   ) -> Result<StoredGraphFrameBarrier, StoreError> {
+      |  __________________________________________________^
+662   | |     replay.visit_edge()?;
+663   | |     let record = Box::pin(edge_components(replay.tx, entry, base, row)).await?;
+...     |
+717   | |     Ok(record)
+718   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<StoredGraphFrameBarrier, ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<StoredGraphFrameBarrier, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<StoredGraphFrameBarrier, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:518:62
+      |
+518   |   ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+      |  ______________________________________________________________^
+519   | |     let mut current = entry.entry.checkpoint().clone();
+520   | |     if current.checkpoint().tenant_id() != expected.tenant_id()
+521   | |         || current.checkpoint().run_id() != expected.run_id()
+...     |
+581   | |     Ok((current, floor))
+582   | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<(GraphFrameCheckpoint, ...), ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(GraphFrameCheckpoint, ...), ...>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(..., ...), ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames/barriers.rs:500:62
+      |
+500   |   ) -> Result<(GraphFrameCheckpoint, BudgetUsage), StoreError> {
+      |  ______________________________________________________________^
+501   | |     let mut replay = Replay::new(tx);
+502   | |     Box::pin(checkpoint_at_replay(
+503   | |         &mut replay,
+...     |
+509   | |     .await
+510   | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/graph_frames.rs:1372:47
+      |
+1372  |   ) -> Result<GraphFrameCheckpoint, StoreError> {
+      |  _______________________________________________^
+1373  | |     if namespace.is_root() {
+1374  | |         return Err(StoreError::GraphFrameConflict);
+...     |
+1394  | |     Ok(checkpoint.clone())
+1395  | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<GraphFrameCheckpoint, StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<GraphFrameCheckpoint, StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<GraphFrameCheckpoint, ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:13426:29
+      |
+13426 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+13427 | |     let checkpoint = Box::pin(graph_frames::bound_checkpoint(
+13428 | |         tx,
+13429 | |         activation.tenant_id(),
+...     |
+13454 | |     Ok(())
+13455 | | }
+      | |_^
+      = note: required for `Unique<impl Future<Output = Result<(), StoreError>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(), StoreError>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(), StoreError>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:13460:29
+      |
+13460 |   ) -> Result<(), StoreError> {
+      |  _____________________________^
+13461 | |     if !intent.activation().graph_namespace().is_root() {
+13462 | |         return Box::pin(verify_scoped_invocation_activation(
+13463 | |             transaction,
+...     |
+13482 | |     verify_checkpoint_anchor(transaction, &checkpoint).await
+13483 | | }
+      | |_^
+note: required because it's used within this `async` fn body
+     --> /Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source/crates/stateknot-store-postgres/src/store.rs:5432:45
+      |
+5432  |       ) -> Result<ToolInvocation, StoreError> {
+      |  _____________________________________________^
+5433  | |         let mut transaction = self.begin_repeatable_read("tool invocation load").await?;
+5434  | |         let row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+5435  | |             .bind(tenant_id.as_str())
+...     |
+5466  | |         Ok(invocation)
+5467  | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:2333:63
+      |
+2333  |       ) -> Result<ToolInvocation, ProviderNativeAgentNodeError> {
+      |  _______________________________________________________________^
+2334  | |         let invocation = match self
+2335  | |             .shared
+2336  | |             .store
+...     |
+2377  | |         Ok(invocation)
+2378  | |     }
+      | |_____^
+note: required because it's used within this `async` fn body
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:2149:7
+      |
+2149  |       > {
+      |  _______^
+2150  | |         let (provider_call_id, expected_intent) =
+2151  | |             self.prepare_tool_intent(context, stored, model_invocation_id, index, proposal, plan)?;
+2152  | |         if expected_intent.descriptor().semantics().risk() != ToolRisk::ReadOnly {
+...     |
+2220  | |     }
+      | |_____^
+      = note: required for `Unique<impl Future<Output = Result<(..., ...), ...>>>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<impl Future<Output = Result<(..., ...), ...>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/alloc/src/boxed.rs:231:12
+note: required because it appears within the type `Pin<Box<impl Future<Output = Result<(..., ...), ...>>>>`
+     --> /rustc/6b00bc3880198600130e1cf62b8f8a93494488cc/library/core/src/pin.rs:1094:12
+note: required because it's used within this `async` block
+     --> crates/stateknot-runtime/src/provider_native_agent.rs:2093:18
+      |
+2093  |         Box::pin(async move {
+      |                  ^^^^^^^^^^
+      = note: the full name for the type has been written to '/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout/debug/deps/stateknot_runtime-ab38c66a6c24ac23.long-type-11334225204570201336.txt'
+      = note: consider using `--verbose` to print the full type name to the console
+
+error: could not compile `stateknot-runtime` (lib test) due to 2 previous errors

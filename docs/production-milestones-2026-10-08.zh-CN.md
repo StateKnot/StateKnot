@@ -440,3 +440,5 @@ npm run verify
 2026-10-15 的续接记录（R1 与 RFC-0022 仍开放）：
 
 - [完整私有阶段报告](qualification/experimental-driver-private-phases-2026-10-15.zh-CN.md)绑定 902 个实际输入与同一最终二进制。保留全部 owning 校验、SQL/锁序与原资源上限的堆布局在 PostgreSQL 16.15、17.11 各通过原两层更高 fence、完整 SQL 角色回归；全工作区 98 个 suite / 2,047 项测试、45 项独立文档测试与严格 Clippy/Rustdoc/固定 nightly 通过。原七层两版均以 `LeaseExpired` 失败，分别耗时 1,115.07/1,042.00 秒，不能算深层恢复通过或容量数据。继续测量单次完整认证的重复展开；完整 Native、最终 schema36/scoped ChildJoin 组合与后续里程碑门禁未关闭。
+- [同次公开读取的完整 base 证明报告](qualification/experimental-scoped-attempt-base-proof-2026-10-15.zh-CN.md)绑定 899 个最终输入：仅普通非 Root scoped attempt 的公开 repeatable-read 读取复用已完成的完整认证，保留实际 completion/result/owner/bindings 校验；mutation、post-guard 和框架路径继续完整旧校验。原候选完整工作区 `E0275` 已通过完整私有 Start helper 的 `BoxFuture` 边界修复，原 body、默认资源与全部认证保持不变。最终严格六项门禁全部通过，包含 98 个 suite / 2,048 项工作区测试、45 项独立文档测试；新鲜 Store 二进制在 PostgreSQL 16.15/17.11 各六条选择性 Native 通过、无 ignored。旧诊断的 93→53 SQL 不能转授最终二进制的时延、容量或七层资格；完整 Native、Linux/深层重验与最终组合仍开放。
+- 较早 `1fccf18` 的 [CI](https://github.com/StateKnot/StateKnot/actions/runs/38700608003)实际因两项 PostgreSQL job 达到原 30 分钟总时限终止，结论为 cancelled；Store Native 各 251/251，其他 11 项 job 成功，但 Runtime 与后续门禁没有完成。该源码的未完成 CI 不构成本次证明候选或 R1 通过。

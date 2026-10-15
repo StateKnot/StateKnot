@@ -47,6 +47,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Reuse a complete ordinary scoped base authentication within one experimental
+  public attempt read, retaining all physical completion, result and binding
+  checks. Mutations and post-guards keep the original full path. Erase the
+  complete private Start verifier Future to resolve full-workspace Runtime
+  trait recursion without raising compiler or resource limits. All static
+  gates and six selected Native tests on each PostgreSQL version pass; deep
+  recovery, complete Native and production qualification remain open.
+
 - Keep complete experimental Driver startup, iteration, barrier and node phases,
   Root admissions and checkpoints behind private heap boundaries. The original
   two-level higher-fence and SQL-role regressions now pass on PostgreSQL 16/17

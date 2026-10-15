@@ -33,6 +33,8 @@ mod frame_scope;
 mod frame_transactions;
 #[path = "postgres/frame_waits.rs"]
 mod frame_waits;
+#[path = "postgres/proof_base_reuse.rs"]
+mod proof_base_reuse;
 #[path = "postgres/result_namespace_corruption.rs"]
 mod result_namespace_corruption;
 #[path = "postgres/root_barrier_upgrade.rs"]
