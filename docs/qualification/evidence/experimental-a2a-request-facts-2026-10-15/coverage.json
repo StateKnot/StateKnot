@@ -1,0 +1,104 @@
+{
+  "network_test_count": 26,
+  "preexisting_network_test_names_retained": 19,
+  "new_case_count": 7,
+  "new_cases": [
+    {
+      "name": "payload_policy_allows_public_data_and_refuses_private_data_before_send",
+      "bindings": [
+        "HttpJson",
+        "JsonRpc"
+      ],
+      "modes": [
+        "unary",
+        "SSE"
+      ],
+      "scope": "allowed actual wire matches facts; blocked body remains pre-dispatch and no business send"
+    },
+    {
+      "name": "a_shared_provider_refuses_a_destination_outside_its_preconfigured_url",
+      "bindings": [
+        "HttpJson",
+        "JsonRpc"
+      ],
+      "modes": [
+        "unary"
+      ],
+      "scope": "two independent fixture URLs configured before callback, one shared provider, same body; other destination denied"
+    },
+    {
+      "name": "authorization_deadline_drops_the_polled_callback_without_sending",
+      "bindings": [
+        "HttpJson",
+        "JsonRpc"
+      ],
+      "modes": [
+        "unary",
+        "SSE"
+      ],
+      "scope": "callback future actually polled then dropped at original configured deadline; no business send"
+    },
+    {
+      "name": "dropping_a_call_drops_the_polled_callback_without_sending",
+      "bindings": [
+        "HttpJson",
+        "JsonRpc"
+      ],
+      "modes": [
+        "unary",
+        "SSE"
+      ],
+      "scope": "actual caller abort drops polled callback; no business send"
+    },
+    {
+      "name": "anonymous_and_metadata_only_providers_keep_their_existing_wire_contract",
+      "bindings": [
+        "HttpJson",
+        "JsonRpc"
+      ],
+      "modes": [
+        "unary"
+      ],
+      "scope": "Anonymous bypasses provider; legacy metadata-only provider remains usable without implicit facts policy"
+    },
+    {
+      "name": "attested_http_replay_authorizes_the_same_actual_request_and_original_attempt",
+      "bindings": [
+        "HttpJson"
+      ],
+      "modes": [
+        "unary"
+      ],
+      "scope": "fresh operator-attested replay reauthorizes current facts and preserves original durable business attempt"
+    },
+    {
+      "name": "current_policy_revocation_prevents_an_attested_http_replay",
+      "bindings": [
+        "HttpJson"
+      ],
+      "modes": [
+        "unary"
+      ],
+      "scope": "second current-policy evaluation denies replay before its second send"
+    }
+  ],
+  "operation_matrix": {
+    "test_names": [
+      "all_eleven_operations_round_trip_over_http_json",
+      "all_eleven_operations_round_trip_over_json_rpc"
+    ],
+    "operations_per_binding": 11,
+    "received_method_URL_query_and_raw_body_equals_provider_facts": true,
+    "includes_streaming_send_and_subscribe": true,
+    "is_official_external_server_TCK": false
+  },
+  "durable": {
+    "test_count_per_major": 6,
+    "existing_tests_retained": 4,
+    "new_A2A_tests": 2,
+    "MCP_tests": 3,
+    "A2A_tests": 3,
+    "A2A_binding": "HTTP+JSON only",
+    "request_facts_native_JSON_RPC_replay_qualified": false
+  }
+}

@@ -31,7 +31,7 @@ Acceptance requires the concrete identity/policy composition and evidence below.
 
 ## Fixed source observations
 
-| Surface | Current source contract | Host responsibility |
+| Surface | Fixed baseline contract | Host responsibility |
 | --- | --- | --- |
 | MCP HTTP ingress | `McpServerAuthenticator` returns a bounded `McpServerPrincipal` with subject and scopes; decoded Tool/Resource/Prompt policies are separate | Verify the credential, retain issuer provenance and bind the subject to a local principal/tenant and exact operation |
 | A2A ingress | `A2aServerPrincipal` carries a `TenantId`, complete `PrincipalIdentity` and scopes; `A2aServerAuthorizer` runs before backend lookup | Verify identity and the trusted tenant binding; implement resource policy, shared admission and durable `A2aTaskService` |
@@ -121,7 +121,7 @@ Same text in those two namespaces does not establish a relationship.
 Issue a destination/audience/resource-scoped credential for the exact approved
 operation. MCP's approved per-call request exposes the exact endpoint and input.
 Its startup callback receives only the local descriptor, so its provider must
-already be bound to the reviewed endpoint and discovery authority. The current
+already be bound to the reviewed endpoint and discovery authority. At that baseline, the
 A2A authorization request includes card digest and binding but no endpoint
 or actual payload accessor; its provider must be dedicated to the frozen endpoint or obtain that
 binding from trusted construction, never infer an endpoint from a card digest
@@ -133,7 +133,7 @@ control-plane credential or upstream provider secret to a peer as ambient
 authority. Approved arguments/message parts are an explicit data release: the
 Adapter cannot prevent a trusted application from deliberately putting a secret
 there. Local schemas validate shape, not permission to disclose the values.
-The current A2A callback cannot authorize actual arguments from an attempt
+That baseline A2A callback cannot authorize actual arguments from an attempt
 tuple or a shape schema alone. Before acceptance, fix and execute an auditable
 host pre-send payload policy/wrapper or review an Interface exposing the same
 actual destination/request payload. Its check must cover initial send, streaming
@@ -211,6 +211,46 @@ RFC-0024's proposed Debug change needs actual implementation and regression.
 Readiness must include the deployed verifier, fresh tenant/resource policy,
 shared quota and durable backend; a successful discovery probe is insufficient.
 
+## Selected A2A request-facts Interface
+
+The additive experimental Interface extends `A2aClientAuthorizationRequest`
+with `request_method() -> &str`, `request_url() -> &str` and
+`request_body() -> Option<&[u8]>`. This addresses the baseline fact-visibility
+gap described above. It adds no provider trait, dependency, verifier or implicit
+allow/deny decision; acceptance of the complete identity profile remains open.
+
+Both unary and streaming paths prepare the original bounded request before
+credential resolution. The same private immutable request supplies the policy
+facts and is consumed by the HTTP builder. Existing Bytes storage shares the
+serialized body without another full payload copy; no public Bytes type is
+required. HTTP+JSON and JSON-RPC retain their original different envelopes,
+request IDs, URLs, query encoding, headers, limits, deadlines and dispatch/effect
+classification. These accessors do not expose a universal header policy object.
+The deployment still binds its configured headers/extensions and credential
+scope. Anonymous skips the provider; existing/static providers that ignore new
+facts retain their previous behavior.
+
+The host can inspect actual data and refuse before dispatch, including a new
+current-policy check on recovery. This does not prove that every custom provider
+checks arguments or trusted Run consent. MessageIdReplay keeps the original
+business message identity, while its JSON-RPC envelope gets a fresh correlation
+ID; evaluate the actual new round. A callback still pending at deadline or drop
+must be dropped without sending, and synchronous work remains bounded by the
+host. Nothing grants an atomic transaction between remote effects and policy.
+
+Manual Debug omits the newly visible URL/body, while existing tenant/task/attempt
+fields remain visible. Raw accessors are intentional data release to trusted
+host policy. Cloning shares and can retain the payload past the HTTP call;
+host-owned retention is explicit. The concrete validation must compare all
+prepared method/URL/query/body facts against real wire requests, exercise
+payload/destination refusal, pending callback deadline/drop, legacy/anonymous
+behavior and currently authorized attested recovery. PostgreSQL evidence must
+observe the committed original attempt inside policy and prove refusal causes
+no business send. Duplicate recovery of the same committed durable Failed or
+Unknown attempt receipt must add neither another send nor a second policy
+evaluation. A fresh probe or attested MessageIdReplay remains a new operation:
+it re-applies current policy and may send under its original recovery contract.
+
 ## Validation and acceptance
 
 1. Freeze concrete issuer/subject-to-local-principal/tenant mapping, MCP key
@@ -255,15 +295,15 @@ Generic automatic resend would discard the durable Unknown contract. None is
 selected. A single universal principal or transport trait is unnecessary to
 describe the real existing Interfaces and would hide their current differences.
 
-The concrete MCP host principal key, reusable endpoint-aware A2A credential
-Interface, verifier/delegation profiles, stream revocation behavior, an
-actual-payload-aware A2A pre-send authorization composition and deployed durable
-A2A backend remain unresolved. Any resulting public types, dependencies
+The concrete MCP host principal key, deployed current input-aware A2A policy
+using the selected request facts, verifier/delegation profiles, stream revocation
+behavior and durable A2A backend remain unresolved. Any resulting public types, dependencies
 or durable semantics require review under the RFC process before support claims.
 
 ## Source map and claim boundary
 
-The observations above use local source at the fixed baseline; external protocol
+The baseline observations use the fixed local source; the selected A2A request
+facts are the additive experimental change described separately. External protocol
 conformance and a general authentication standard are not newly claimed here.
 The future stdio session is only the RFC-0024 proposal. This text alone adds no
 production policy, tests, credentials or platform capability.

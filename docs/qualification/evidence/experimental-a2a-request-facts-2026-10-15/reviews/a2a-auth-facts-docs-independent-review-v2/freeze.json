@@ -1,0 +1,52 @@
+{
+  "source_baseline": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "candidate_directory": ".local-verification/2026-10-15/a2a-auth-facts-adoption-docs-v2",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "4c12588491d577ba89a8bb531a438bd23cb27316b9a96f13131483447196fd32",
+      "bytes": 78331,
+      "parent_sha256": "4c12588491d577ba89a8bb531a438bd23cb27316b9a96f13131483447196fd32",
+      "changed": false
+    },
+    {
+      "path": "docs/a2a-client.md",
+      "sha256": "de095c052caeb0019da8ca4e7b95f73e2ce39bfbb1551e2185b76ef3f1d750c6",
+      "bytes": 19651,
+      "parent_sha256": "de095c052caeb0019da8ca4e7b95f73e2ce39bfbb1551e2185b76ef3f1d750c6",
+      "changed": false
+    },
+    {
+      "path": "docs/a2a-client.zh-CN.md",
+      "sha256": "d59809752cd474ecde2d5c473b4b6c1c8f1020fd26f48047e950b00af2c4b938",
+      "bytes": 18623,
+      "parent_sha256": "d59809752cd474ecde2d5c473b4b6c1c8f1020fd26f48047e950b00af2c4b938",
+      "changed": false
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "sha256": "345d422fb869f347e8fef51689fcb712fbb17c030d60268f62315a0242a2784e",
+      "bytes": 21266,
+      "parent_sha256": "0b2da5de5e52efa4cec70443aca8441abddba1b32771227c0ed931cabdb30667",
+      "changed": true
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "sha256": "d27169716d14f446e36fac5873a36044a2fdc3a29c173420ea2c69627e554d6b",
+      "bytes": 17634,
+      "parent_sha256": "d0b2888d0d8c5696969db2a959f797cf59a6cf3e5a341b19dda8e8f58aa5de7b",
+      "changed": true
+    }
+  ],
+  "incremental_patch_sha256": "bf30fc11fdcdf42affb1468dd2cd1c86807d2225fa3b190c7a647b0f749c35b4",
+  "candidate_five_docs_tree_sha256": "22ff4125d7db754d83ef1c3486ae2749d37f4495891a7594d41ab11dc9b8acc1",
+  "candidate_manifest_sha256": "0bf93239c0aac54bed268e45a6decdac0d26db3e87f82a9a1226a51028fe3be3",
+  "production_candidate_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "prior_v1_seal_unchanged": true,
+  "changed_files": [
+    "docs/rfcs/0025-protocol-identity-and-authority.md",
+    "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md"
+  ],
+  "unchanged_other_three_files": true,
+  "no_compile_Native_or_support_qualification": true
+}

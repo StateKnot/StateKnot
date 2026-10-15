@@ -1,0 +1,6 @@
+{
+  "authorized": true,
+  "source_tree_sha256": "59fd524f0e21460a9ffc8edf7de8cc6ad4d0f95d69384c6515200675364bbea6",
+  "author": "/root",
+  "instruction": "Original schema36 resource gates finished. Start original six strict gates and fresh two A2A test binaries now; perform real network tests first, mandatory dual-PostgreSQL mcp_durable full suite only after static gates and builds complete. Preserve red receipts and original resources."
+}

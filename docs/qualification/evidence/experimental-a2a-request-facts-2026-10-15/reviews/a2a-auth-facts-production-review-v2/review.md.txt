@@ -1,0 +1,115 @@
+# A2A prepared-request facts: independent production-patch review
+
+Date: 2026-10-15. Read-only source review; no build, database, network fixture,
+source edit, dependency change, staging or commit performed by this reviewer.
+
+## Fixed inputs and review scope
+
+- Baseline: final schema36 candidate 922, `a2a_client.rs` SHA-256
+  `b0397e995e9fea861a7a160344d2a9ead07605705752b6c9e1ff2fe9cd5120e4`.
+- Reviewed production file SHA-256:
+  `46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216`.
+- [Exact patch](candidate.patch) SHA-256:
+  `326059c0a90c9a469fa98ac93d65876a51d813f87c47737322a9829356d4367e`.
+- [Freeze](freeze.json), [complete reviewed source](candidate.rs),
+  [complete baseline](baseline.rs), [previous review input](previous-candidate.rs).
+- The earlier source SHA `3537dece34a33f6bc4059257361f39cc75305da3633868426f4487da066d0767`
+  and patch remain preserved in the sibling v1 directory. The final delta is
+  [Rustdoc only](rustdoc-only-delta.patch): removing lines beginning with `///`
+  leaves the two complete files byte-for-byte equal. It corrects the dispatch
+  wording and documents policy, retention, Anonymous and deadline limitations.
+- Main HEAD observed during review: `a9b265d5b3a96e0e5bbed604b7558f4ae9edc136`.
+  Main is not the source being qualified. Six unchanged source/config inputs
+  are [separately bound](unchanged-inputs.json); this is not a full candidate freeze.
+
+The public network tests are owned by another agent and are outside this frozen
+production-file review. All four agent slots were occupied; this independent
+reviewer kept the Standards and Spec axes separate instead of spawning more agents.
+
+## Standards
+
+**0 actionable findings** in the frozen production patch.
+
+Applied the user-provided production-grade instructions, the repository's
+[contribution rules](context/CONTRIBUTING.md), [RFC lifecycle](context/docs/rfcs/README.md),
+workspace MSRV/unsafe policy, and mattpocock code-review smell baseline and
+codebase-design principles. No repository `AGENTS.md` was present; the supplied
+user instructions still apply.
+
+The existing authorization Interface is the real Seam. Three read-only getters
+add the facts an existing Adapter needs without adding a second policy trait,
+public wire-SDK types, dependencies, or a second serializer. The private
+`A2aHttpRequest` gathers method, URL, body and streaming selection in the same
+place and is consumed by the HTTP builder. Its deletion would reintroduce
+parallel argument lists and possible authorization/send drift. The two call
+paths still have distinct response processing; extracting a larger transport
+framework for their short snapshot construction would add speculative scope.
+
+This remains experimental work under Draft RFC-0025. The patch does not change
+its status to Accepted or satisfy the remaining implementation, test,
+documentation and release requirements for adoption.
+
+## Spec
+
+**0 actionable findings** against the parent's explicit request-facts scope.
+
+The broader identity/policy design remains Draft; this patch supplies a concrete
+Interface for the endpoint/payload gap and does not implement a host authorizer,
+verifier, policy backend or revocation mechanism. The fixed-baseline observations
+in RFC-0025 are historical observations, not evidence that this candidate has
+already been adopted. The getter Rustdoc accurately distinguishes facts from
+policy and prepared requests from successful dispatch.
+
+## Source checks and limits
+
+| Concern | Finding and precise scope |
+| --- | --- |
+| Exact method / URL / body | Unary and streaming paths select the binding, construct the actual REST URL/query or JSON-RPC envelope, serialize once, enforce the existing byte limit, then create the snapshot before `resolve_authorization`. The provider sees a clone of that snapshot; the original is moved into the builder. There is no later application rewrite or second serialization. |
+| URL/query identity | `rest_url` starts from the immutable selected interface, adds percent-encoded path segments, and the read/list operations finish query pairs before the snapshot. JSON-RPC uses the selected interface URL. `request_url()` returns this normalized `Url` serialization, not the original unparsed spelling or a DNS/TLS peer attestation. It includes query data, including page tokens; do not log it. |
+| reqwest URL consumption | Locked reqwest `Client::request` moves an owned `Url` through `IntoUrl` into `Request::new`. The builder's authority extraction would remove URL userinfo, but `parse_a2a_url` already rejects it; fragments and configured-base queries are rejected as well. Dynamic operation queries survive. Existing shared HTTP client disables redirects and retries. This does not make system proxy, DNS, or remote server behavior part of an authorization proof. |
+| Payload identity / copies | Checked original registry archives for bytes 1.12.1 and reqwest 0.12.28 against Cargo.lock checksums, then compared all seven inspected source files to archive members. `Bytes::from(Vec<u8>)` takes over the payload allocation; `Bytes::clone` shares it (possibly allocating reference-count metadata); reqwest `Body::from(Bytes)` stores it as reusable bytes. The previous reqwest Vec-body conversion also used Bytes. No second payload copy is introduced along this conversion path. This is not a zero-allocation, zero transport-copy, or measured performance claim. |
+| Read operations versus writes | REST GET may expose `None` body with resource/filter facts in URL/query. A JSON-RPC read is POST and exposes the complete JSON-RPC envelope. Policy must inspect binding and A2A operation plus the relevant decoded facts, rather than equating POST with write or `None` with no data release. No ToolRisk, idempotency, effect classification, or retry policy changes. Existing `A2aRemoteAgent` delivery validation still requires the configured write semantics. |
+| Streaming / replay | Both `call_unary` and `call_stream` pass the snapshot. Existing attested `MessageIdReplay` calls `send_message_with_attempt` and therefore reaches the same unary snapshot/authorization path; it does not gain an authorization bypass. A2A operation distinguishes streaming send and subscribe. These three getters intentionally do not expose every HTTP header or add a new stream policy. |
+| Anonymous / compatibility providers | Anonymous returns `Ok(None)` before constructing an authorization context and does not call a token provider. Existing providers may ignore all three getters; `StaticA2aBearerToken` does exactly that. They remain source-compatible, but do not acquire destination- or input-aware host policy. Existing immutable endpoint/security pin checks still apply. |
+| Deadlines / dropped Future | The original absolute request deadline is created before serialization and reused for token resolution and send; the patch introduces no new clock or deadline. Dropping the call while authorization is pending drops its awaited Future before builder/send. A trusted provider can independently spawn work or retain a context; this client cannot cancel such work. The synchronous call to `provider.resolve` occurs before its Future is wrapped by `timeout_at`, so synchronous policy work must be bounded/cooperative, as now documented. This was also true before the patch. |
+| Dispatch and uncertainty | `mark_dispatched` remains after authorization and builder construction and immediately before polling HTTP send. Denial/unavailability remains a pre-dispatch authorization error. Timeout/drop after the mark is conservatively treated as potentially dispatched by the durable Adapter; the flag does not prove bytes reached the peer. Existing Unknown/reconciliation behavior is unchanged. No additional business request, automatic retry or policy fallback appears. |
+| Clone / retention / bytes limits | Existing public Clone remains. It now retains a shared immutable body and a cloned URL until every retained context is dropped; raw accessors also let trusted policy explicitly copy values. There is no total-retention, aggregate-memory, zeroization or provider-behavior guarantee. The existing serialization limit is on successful body length (16 MiB default, 32 MiB hard ceiling), not peak serializer allocation or retained Vec capacity, and is checked after serialization. These pre-existing allocation characteristics are not silently promoted into stronger limits. |
+| Debug / secrecy | Manual Debug retains all previous fields and redacts the added URL and body, including avoiding body bytes/length in those two fields. Method is safe because it is selected internally. Existing remote tenant, task ID, scope names and attempt identifiers remain visible as before; do not call this whole context fully secret-free or fully redacted. No client-added bearer token is present in body facts. Deliberately supplied application data may contain secrets, which the raw getter exposes to trusted host policy by design. |
+| Source / MSRV compatibility | Private fields prevent external struct literal construction. Public Clone/Debug implementations and the provider's existing signature/lifetime remain; the additions are getters and private storage. No Serde/wire shape changes. Existing dependencies already supply Bytes, Method and Url. New syntax and operations are available before Rust 1.88; checked package MSRVs are bytes 1.57 and reqwest 1.64.0. This is a static compatibility assessment, not an actual 1.88 build or downstream semver certification. |
+
+Relevant frozen source locations: getters 485/495/509, Debug 514, private snapshot
+538, provider Interface 558, legacy static provider 587, unary 1604, streaming
+1658, authorization 1755, builder 1785, serializer 2597 and deadline wrapper 2795.
+The [locked-source receipt](locked-source-verification.json) includes exact
+package checksums and all inspected member hashes. Context inputs and their
+actual origins are bound by [context-origins.json](context-origins.json).
+
+## Remaining acceptance and smallest useful example
+
+Public Interface tests still need to prove actual received method, percent-
+encoded target/query and raw body bytes equal the callback observations for
+both bindings; denial/unavailability, timeout/drop while policy is pending,
+Anonymous and an unchanged legacy provider; streaming send and attested replay;
+and absence of raw URL/body secrets from Debug. These are acceptance needs,
+not claims of execution or findings that another agent's evolving tests omit them.
+
+After those checks, the smallest useful compiled consumer example is one
+host-owned `A2aBearerTokenProvider` dedicated to a reviewed destination. It
+checks the complete destination/resource facts and bounded decoded body under
+the known binding/operation, rejects unapproved release with PermissionDenied,
+then obtains a separate short-lived token. It must show deny-before-send and
+avoid logging raw facts, prefix-only URL matching, trusting remote tenant as
+local authority, or interpreting a shape schema as consent. Reuse existing
+bounded JSON and A2A types; no new generic parser, policy framework or owner is
+needed. No example was implemented or compiled in this review.
+
+## Result
+
+Standards: 0 findings. Spec: 0 findings. This is a source-review result for the
+exact file/patch above. It grants no Native, latency, capacity, complete CI,
+platform-owner, complete identity-policy, RFC acceptance or R1 qualification.
+
+Run `python3 verify.py --workspace` from this evidence directory to check the
+artifact hashes, regenerate the patch, verify the Rustdoc-only delta, check the
+locked original archives/member identities, and recheck the live production
+file plus six unchanged inputs. The verifier does not compile or run the client.

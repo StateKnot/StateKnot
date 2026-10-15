@@ -1,0 +1,11 @@
+{
+  "runner_pid": 55112,
+  "pid": 57836,
+  "step": "mcp_durable-list",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/mcp_durable",
+    "--list"
+  ],
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "started_unix": 1792067023.621962
+}

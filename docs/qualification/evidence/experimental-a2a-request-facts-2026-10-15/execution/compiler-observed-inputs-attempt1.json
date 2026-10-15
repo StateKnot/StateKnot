@@ -1,0 +1,65 @@
+{
+  "state": "collector assertion failed before final manifest; does not affect compilation or executed tests",
+  "cause": "initial collector incorrectly required a stateknot_testkit artifact; Cargo emitted four workspace library dependencies and two tests, with no Testkit dependency for these final binaries",
+  "cargo_workspace_artifacts": [
+    {
+      "name": "stateknot_core",
+      "kinds": [
+        "lib"
+      ],
+      "files": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_core-ddafa22206b3ba24.rlib",
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_core-ddafa22206b3ba24.rmeta"
+      ]
+    },
+    {
+      "name": "stateknot_integrations",
+      "kinds": [
+        "lib"
+      ],
+      "files": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_integrations-c5c82148e087bc76.rlib",
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_integrations-c5c82148e087bc76.rmeta"
+      ]
+    },
+    {
+      "name": "stateknot_store_postgres",
+      "kinds": [
+        "lib"
+      ],
+      "files": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_store_postgres-1700edaa687b4f6e.rlib",
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_store_postgres-1700edaa687b4f6e.rmeta"
+      ]
+    },
+    {
+      "name": "stateknot_runtime",
+      "kinds": [
+        "lib"
+      ],
+      "files": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_runtime-00f0025f01b8519d.rlib",
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_runtime-00f0025f01b8519d.rmeta"
+      ]
+    },
+    {
+      "name": "a2a_client_contract",
+      "kinds": [
+        "test"
+      ],
+      "files": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/a2a_client_contract-c8abab71b93a7429"
+      ]
+    },
+    {
+      "name": "mcp_durable",
+      "kinds": [
+        "test"
+      ],
+      "files": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_durable-9299de57a29eb9cb"
+      ]
+    }
+  ],
+  "stderr": "AssertionError at the final expected artifact set check"
+}

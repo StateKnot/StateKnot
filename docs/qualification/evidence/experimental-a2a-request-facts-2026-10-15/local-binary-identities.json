@@ -1,0 +1,16 @@
+{
+  "a2a_client_contract": {
+    "saved_executable": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/a2a_client_contract",
+    "sha256": "792acfb788c19a8d387771f1a13c511d06ec6567d795375b9f928b0fcc57d8c2",
+    "bytes": 31841408,
+    "expected_sha256": "792acfb788c19a8d387771f1a13c511d06ec6567d795375b9f928b0fcc57d8c2",
+    "executed": false
+  },
+  "mcp_durable": {
+    "saved_executable": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/mcp_durable",
+    "sha256": "3b0b104b80456e70b1ebe3202cb608f49f648d764478e27a513525fb1d5be687",
+    "bytes": 63478608,
+    "expected_sha256": "3b0b104b80456e70b1ebe3202cb608f49f648d764478e27a513525fb1d5be687",
+    "executed": false
+  }
+}

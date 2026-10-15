@@ -109,6 +109,18 @@ Binding、Operation、Remote Routing Tenant、Target Task ID、Card 所需 Scope
 生产 Provider 应针对该精确 Tuple 签发或读取短期 Token。Token、Remote Response
 Text 与 Response Body 不会进入 Public Error 或 `Debug` 输出。
 
+### 授权实际准备好的请求
+
+已认证操作的 `A2aClientAuthorizationRequest` 还提供 `request_method()`、`request_url()` 和 `request_body()`。URL 包含真实操作路径与 query；可选 body 是已经过原字节上限检查的 HTTP+JSON body 或 JSON-RPC envelope。HTTP GET/DELETE 可能没有 body，对应 JSON-RPC 请求仍有 envelope。策略须结合实际 binding/operation 检查目标、参数与数据释放。
+
+Client 只准备一次请求，在原绝对 deadline 内调用 provider，再于工作继续时发送同一不可改写 URL/body；provider 不能改写它们，返回 token 随后加入 HTTP Authorization header。拒绝，或仍在等待的 provider Future 被取消/超时，均不发送业务请求；之后发生的 dispatch 歧义保留现有 effect/recovery 规则。同步策略工作仍须有界，async deadline 不能抢占阻塞代码。
+
+事实不等于策略实现。宿主必须从可信记录解析 Run principal/consent，在返回凭据前批准实际目的地与 payload。Static/已有 metadata-only provider 保留原行为；Anonymous 不调用 provider。header/extensions 继续属于冻结部署配置，这些 getter 不是新的 verifier 或万能 HTTP header 授权对象。
+
+Debug 省略新增 URL/body，原 tenant/task/attempt 字段仍可见。显式 accessor 暴露可能敏感的应用输入；Clone 共享不可变序列化 body，也可能让宿主保留输入超过 HTTP 调用寿命。可信宿主负责这部分保留，不能记录 payload/凭据。没有新增完整 payload 拷贝、网络 schema 查询、请求上限或隐式授权/重试。 body 上限描述接受的序列化长度；本次不为既有 serializer 增加新的峰值内存保证。
+
+恢复操作重新检查当前策略与其实际新准备请求。已 attested MessageIdReplay 保留原业务 message 身份，但 JSON-RPC transport 每轮仍获得新 correlation ID。不能要求不同 RPC 轮次的 transport envelope 全字节相同，也不能把原 send 的授权当作稍后 replay 的授权。
+
 Anonymous Client 不会 Dispatch `GetExtendedAgentCard`。返回值会被限制大小并重新校验，
 但只作为数据返回：它不会修改 Immutable Client、改变 Egress/Security Pin，或静默重绑
 Tool。要采用 Extended Card，必须先审核，再构造新的 Pinned Client/Binding。

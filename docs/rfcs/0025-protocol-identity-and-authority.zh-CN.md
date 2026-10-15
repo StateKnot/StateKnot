@@ -23,7 +23,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 固定源码事实
 
-| 表面 | 当前源码契约 | 宿主责任 |
+| 表面 | 固定基线契约 | 宿主责任 |
 | --- | --- | --- |
 | MCP HTTP 入站 | `McpServerAuthenticator` 返回仅含有界 subject/scopes 的 `McpServerPrincipal`；解码后的 Tool/Resource/Prompt 策略独立 | 验证凭据，保留 issuer 来源，将 subject 绑定到本地主体/租户及具体操作 |
 | A2A 入站 | `A2aServerPrincipal` 含 `TenantId`、完整 `PrincipalIdentity` 和 scopes；`A2aServerAuthorizer` 在 backend 查询前运行 | 验证身份和可信租户绑定；提供资源策略、共享准入及持久化 `A2aTaskService` |
@@ -57,9 +57,9 @@ dispatch 前冻结部署绑定：精确目的地/transport、已审 descriptor/c
 
 A2A remote tenant 来自已选 interface，属于远端路由命名空间，与本地存储租户独立。禁止将其当作本地存储权限，或自动由本地租户生成。两个字符串恰好相同不构成映射。
 
-为精确批准操作签发 destination/audience/resource 限定的凭据。MCP approved 逐调用 request 有实际 endpoint/input；其 startup callback 只有本地 descriptor，provider 须预先绑定已审 endpoint/discovery 权限。当前 A2A authorization request 有 card digest/binding，没有 endpoint 或实际 payload accessor；provider 须专用于冻结 endpoint，或由可信构造取得绑定，不能仅从 card digest 推断 endpoint。共享 provider 的 endpoint 消歧是待决 Interface，而非已实现检查。
+为精确批准操作签发 destination/audience/resource 限定的凭据。MCP approved 逐调用 request 有实际 endpoint/input；其 startup callback 只有本地 descriptor，provider 须预先绑定已审 endpoint/discovery 权限。在该基线，A2A authorization request 有 card digest/binding，没有 endpoint 或实际 payload accessor；provider 须专用于冻结 endpoint，或由可信构造取得绑定，不能仅从 card digest 推断 endpoint。共享 provider 的 endpoint 消歧是待决 Interface，而非已实现检查。
 
-禁止将入站 bearer token、数据库凭据、worker lease、控制面或上游 provider secret 当作 ambient authority 转发。已批准参数/message part 是显式数据释放：Adapter 不能阻止可信应用主动把秘密放进去；本地 schema 验证形状，不授权披露内容。当前 A2A callback 的 attempt tuple 与 shape schema 都不能替代实际参数授权。接受前必须固定并执行可审计的宿主 pre-send payload policy/wrapper，或另行审阅暴露同一实际目的地/请求载荷的 Interface；其检查必须覆盖首次 send、streaming send 与已 attested MessageIdReplay，保证拒绝后零业务发送。MCP approved request 已有实际输入，两者不能混称为都已完成参数检查。
+禁止将入站 bearer token、数据库凭据、worker lease、控制面或上游 provider secret 当作 ambient authority 转发。已批准参数/message part 是显式数据释放：Adapter 不能阻止可信应用主动把秘密放进去；本地 schema 验证形状，不授权披露内容。该基线 A2A callback 的 attempt tuple 与 shape schema 都不能替代实际参数授权。接受前必须固定并执行可审计的宿主 pre-send payload policy/wrapper，或另行审阅暴露同一实际目的地/请求载荷的 Interface；其检查必须覆盖首次 send、streaming send 与已 attested MessageIdReplay，保证拒绝后零业务发送。MCP approved request 已有实际输入，两者不能混称为都已完成参数检查。
 
 持久执行必须在策略和可能的业务 send 前提交精确物理 attempt start。MCP approved 调用在剩余 deadline 内授权已验证输入；A2A provider 在持久路径收到本地 attempt tuple。直接 `McpClient`/`A2aClient` 不具备持久 dispatch 权限，不能在可恢复 Graph 内替代这个顺序。MCP `connect` 兼容路径也不因此取得 approved 路径的 input-aware 策略或连接退役保证。
 
@@ -81,6 +81,16 @@ A2A 生产 server 仍须交付持久幂等、租户隔离投影、稳定 cursor�
 
 审计保留有界本地 decision/evidence 标识、精确已审绑定和策略 generation、operation、disposition 与恢复结果；身份审计有访问/保留规则。普通 metric/log 省略凭据、参数/结果、request state、原始远端错误。现有 MCP raw response 的 Debug derive 并非已脱敏；RFC-0024 的拟议修改还需实现和回归。Readiness 必须包含实际 verifier、新鲜租户/资源策略、共享额度与持久 backend，发现探针成功不够。
 
+## 选定的 A2A 请求事实 Interface
+
+新增实验性 Interface 在 `A2aClientAuthorizationRequest` 提供 `request_method() -> &str`、`request_url() -> &str`、`request_body() -> Option<&[u8]>`，补齐上述基线的事实可见性缺口。没有新增 provider trait、依赖、verifier 或隐式准入决策，完整身份 profile 的接受仍开放。
+
+Unary/streaming 均在解析凭据前按原上限准备请求；同一个私有不可变请求提供策略事实，随后由 HTTP builder 消费。既有 Bytes 共享序列化 body，无额外完整 payload 拷贝，也不要求公开 Bytes 类型。HTTP+JSON/JSON-RPC 保留各自原 envelope、request ID、URL/query 编码、header、限额、deadline 与 dispatch/effect 分类。getter 不是通用 header policy 对象；部署仍绑定配置好的 header/extensions 与 credential scope。Anonymous 不调用 provider；忽略新事实的 static/旧 provider 保留原行为。
+
+宿主现在可检查实际数据，在发送前拒绝，包括恢复时重新应用当前策略；这不证明任意 provider 都已检查参数或可信 Run consent。MessageIdReplay 保留业务 message 身份，但 JSON-RPC envelope 每轮使用新 correlation ID，应检查实际新请求。deadline/drop 仍在等待的 callback 必须被丢弃且不发送，同步工作继续由宿主保证有界。策略与远端 effect 不因此成为原子事务。
+
+Manual Debug 省略新增 URL/body，原 tenant/task/attempt 字段仍可见。Raw accessor 是对可信宿主策略的显式数据释放；Clone 共享并可能保留 payload 超过 HTTP 调用寿命，宿主保留责任明确。验收须逐字比较 prepared method/URL/query/body 与真实 wire，并覆盖 payload/目的地拒绝、pending callback deadline/drop、legacy/Anonymous、当前授权的 attested 恢复。PostgreSQL 证据须在策略内观察真实原 attempt 已提交，并证明拒绝本身零业务发送。只有同一笔已提交 durable Failed/Unknown attempt receipt 的重复恢复，才要求不新增发送或第二次策略评估。新 probe 或经 attestation 的 MessageIdReplay 仍是新操作，必须重新应用当前策略，并可按原恢复契约发送。
+
 ## 验证与接受
 
 1. 冻结 issuer/subject 到本地主体/租户、MCP key、audience/resource/scopes、策略 lease 与撤销规则。通过公开 Interface 验证同 subject 不同 issuer 不混同，同一外部 pair/相同 scopes 改绑本地 tenant/effective principal 后旧 cursor/MRTR 拒绝，以及恶意 routing/body/metadata 不改变存储租户。
@@ -96,11 +106,11 @@ A2A 生产 server 仍须交付持久幂等、租户隔离投影、稳定 cursor�
 
 把协议 tenant、subject、Tool annotation 或 card scope 当作本地权限会丢失独立宿主策略；转发入站 token 会让无关资源共享 audience/consent 假设；通用自动重发会破坏持久 Unknown 契约，均不采用。没有必要为了描述现有真实 Interface 引入统一万能 principal/transport trait，掩盖两者差异。
 
-具体 MCP host principal key、可复用 endpoint-aware A2A credential Interface、verifier/delegation profile、长流撤销、可见实际 payload 的 A2A pre-send 授权组合及实际持久 A2A backend 仍待决定。由此新增的公开类型、依赖或持久语义，必须先按 RFC 流程审阅再声明支持。
+具体 MCP host principal key、使用选定请求事实的实际当前参数策略、verifier/delegation profile、长流撤销及持久 A2A backend 仍待决定。由此新增的公开类型、依赖或持久语义，必须先按 RFC 流程审阅再声明支持。
 
 ## 源码映射与声明范围
 
-以上事实来自固定本地源码；没有新增外部协议认证或通用身份标准支持声明。未来 stdio 仍只是 RFC-0024 提案。本文本不添加生产策略、测试、凭据或平台能力。
+基线事实来自固定本地源码，选定的 A2A 请求事实另行说明为新增实验性 Interface；没有新增外部协议认证或通用身份标准支持声明。未来 stdio 仍只是 RFC-0024 提案。本文本不添加生产策略、测试、凭据或平台能力。
 
 - [MCP ingress](../../crates/stateknot-integrations/src/mcp_server.rs)
 - [MCP application policies](../../crates/stateknot-integrations/src/mcp_server_app.rs)

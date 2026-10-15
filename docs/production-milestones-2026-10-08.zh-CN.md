@@ -224,8 +224,11 @@ Docker Hub 匿名拉取限流/超时阻断，不能计为通过。此前 cc75c97
 
 [RFC-0025 身份映射草案](rfcs/0025-protocol-identity-and-authority.zh-CN.md)独立记录
 MCP/A2A 的外部身份、本地租户权限、远端路由租户、凭据 audience、参数数据释放
-及当前恢复授权。实际 A2A payload/endpoint 策略接缝、MCP principal 改绑后的
-状态失效、真实 verifier/backend 与部署资格仍须补齐，草案不表示这些实现已交付。
+及当前恢复授权。A2A 现已提供实际 prepared method/URL/body 的策略事实接口，
+并通过真实网络和双版 PostgreSQL 的限定验证，见
+[请求事实采用记录](qualification/experimental-a2a-request-facts-2026-10-15.zh-CN.md)。
+可信宿主策略、MCP principal 改绑后的状态失效、真实 verifier/backend 与部署资格
+仍须补齐；事实访问器本身不执行这些授权，也不接受完整身份 profile。
 
 [RFC-0024 草案](rfcs/0024-owned-bounded-mcp-stdio.zh-CN.md)将 stdio 的完整 session
 Interface、目录准入、关联/聚合限额、逐调用发送阶段、取消及完整进程树清理、
@@ -456,3 +459,4 @@ npm run verify
 - 采用 head `83559f7` 的 [CI 38709873198](https://github.com/StateKnot/StateKnot/actions/runs/38709873198)终态为 11 项成功、两项普通 PostgreSQL job cancelled；两份原始 annotation 均明确原 30 分钟总时限耗尽。Store 各 252/0/0，harness 耗时 1,231.22/1,243.15 秒；Runtime 均 running 185 后无终态摘要、未观察到显式 failed-test 行，后续 provider/example 与专用资格步骤 skipped。完整日志和缺 artifact annotations 原样保留；不能算完整 CI 通过、代码断言失败或吞吐/容量结论，双版本机四组通过与独立 PITR 证据各有自己的适用范围。
 - [原绝对 Graph Wait 采用记录](qualification/experimental-original-graph-waits-2026-10-15.zh-CN.md)绑定最终 922 文件源码及四个新编译二进制。schema36 保留原成功 Pending、Wait 身份与绝对 due，按实际事件时钟分类 future/elapsed；完整库存、原来源认证及 deferred guards 后实际组件重读仍保留。全 elapsed 时的 Ready 不授予派发权限；Root `ReadyReleased` 释放原 fence，scoped Driver 在原 shared quantum 内重新取得 claimed plan。六项严格门禁通过：98 个 suite / 2,064 项工作区测试（6 项原有 ignored）、45 项独立文档测试。PostgreSQL 16.15/17.11 各 Store 264、Runtime 189、provider integrations 2、example 1 全部实际通过，原默认栈七层、higher fence 和完整角色回归均通过；条件 worker/资源入口不冒充独立场景。强制逻辑恢复及单列 named-PITR 双版 exact 1/marker 1 也实际通过；PITR 使用固定 Linux arm64 PostgreSQL 16.14/17.11 镜像与 macOS aarch64 harness，不能称完整 Linux Runtime 已通过。
 - 同一 schema36 记录保留最初 Store 三项/两项失败与两处测试夹具修复：Timer oracle 使用原 due 和实际提交时钟；source32 兼容夹具由真实 schema35 writer 重建，完整字节和原 migration checksums 保留。2 秒租约/2.1 秒 deferred delay 用例没有改动，最终全套双版通过。PITR 恢复断言通过后的资源核对发现 PG16 遗留一个本测试 WAL 卷，原 Drop 忽略删除失败；该卷和事实保留，清理确认修复及复验仍开放，不称完整资源生命周期已通过。真实发布 alpha.1/schema26 的单个非初始重放升级用例通过，160 个生产输入与最终源码精确绑定；不存在的 N−2 未被制造，完整历史窗口仍开放。前一 `c7d8768` 的 CI 同样因两项原 30 分钟 PostgreSQL job 时限终止，11 项其他 job 成功；最终 schema36 的完整 CI 尚待执行。scoped Child Join、stdio owner/外部消费者与后续里程碑继续开发，PR #161、RFC-0022 和 R1 保持开放。
+- [A2A 请求事实采用记录](qualification/experimental-a2a-request-facts-2026-10-15.zh-CN.md)绑定最终 923 文件源码及 531 个编译输入。原 token provider 可检查实际 method、完整 URL/query 与有界序列化 body，随后发送使用同一不可变请求；没有新增隐式策略、重试、依赖或资源上限。严格六门禁通过 2,073 项工作区测试（6 项原有 ignored）、45 项文档测试；完整 26 项真实网络用例与 PostgreSQL 16.15/17.11 各 6 项 mandatory durable 用例均通过。两种 binding 的各十一操作、unary/SSE、实际目的地/数据拒绝和 pending callback 的 deadline/drop 有 wire 证明；durable 策略内验证真实 Start、完整原 input/attempt/fence，拒绝零发送、丢响应保留 Unknown，同一已提交回执不重复策略或发送。新的 attested HTTP replay 仍重新执行当前策略，JSON-RPC replay 不据此获得资格。原 sandbox 和精确 tenant 路由夹具失败保留；Anonymous/旧 provider 行为不变，Debug 原身份字段及 Clone 的 payload 保留责任明确。此记录不转授旧 916 次 Native、完整 CI、生产策略后端或 RFC-0025/R1 接受。

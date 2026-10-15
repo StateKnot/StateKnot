@@ -1,0 +1,11 @@
+{
+  "state": "prepared only; no build/network/DB execution",
+  "source_tree_sha256": "59fd524f0e21460a9ffc8edf7de8cc6ad4d0f95d69384c6515200675364bbea6",
+  "file_count": 923,
+  "archive": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v1/source-59fd524f0e21460a9ffc8edf7de8cc6ad4d0f95d69384c6515200675364bbea6.tar.gz",
+  "archive_bytes": 3451134,
+  "archive_sha256": "d9d888fb2160d5102550426e5c6b07d1f815d8c3798b158a9b50edcecaabd482",
+  "tar_members_rehashed_against_manifest": true,
+  "cargo_input_partition_count": 544,
+  "production_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216"
+}

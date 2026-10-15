@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Expose immutable actual HTTP method, URL/query and bounded request body to
+  A2A bearer-token providers before authenticated unary, streaming and recovery
+  dispatch. Policy inspects the prepared request that is subsequently sent;
+  new URL/body Debug fields are redacted. Existing providers and Anonymous keep
+  their explicit behavior: request facts do not automatically authorize input.
+
 - Authenticate experimental ordinary Root Continue/Wait/Terminal dispositions
   with the positive original Start and INITIAL checkpoint source. Schema 35
   preserves Agent V1 facts and complete owning verification while journal-binding

@@ -1,0 +1,41 @@
+{
+  "schema": "stateknot.independent-doc-review.v1",
+  "status": "completed-with-finding",
+  "source_baseline": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "combined_patch_sha256": "5d631f13ba07c69384d23905efc945b58f130867e6eac35b84bbcb2dff4d80b0",
+  "candidate_five_docs_tree_sha256": "cfd7ac140debeb3c424437ee767b633dfd90b22b15f8bb97e801365f78a474fa",
+  "candidate_manifest_sha256": "612e685f40cfc2070406d5755f3d7fa7547257eb154ccdafa5cab52cbc40b3d7",
+  "production_candidate_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "standards": {
+    "count": 0,
+    "findings": []
+  },
+  "spec": {
+    "count": 1,
+    "findings": [
+      {
+        "priority": "P2",
+        "axis": "Spec",
+        "title": "Scope duplicate no-policy promise to reuse of the same committed attempt receipt",
+        "locations": [
+          {
+            "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+            "line": 248
+          },
+          {
+            "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+            "line": 92
+          }
+        ],
+        "problem": "The new acceptance wording says refusal/duplicate recovery performs no business send or second policy call. Fresh GetTask probes must run current policy, and attested MessageIdReplay must run policy and may issue its authorized business send. The wording does not distinguish those from repeated retrieval/ack recovery of one committed durable Failed/Unknown attempt receipt.",
+        "action": "Separate refusal (no business send), reuse of the same committed attempt receipt (no new send/second policy evaluation), and fresh recovery probe/attested MessageIdReplay (reauthorize actual newly prepared request and may send under its original contract).",
+        "basis": "same RFC newly requires current-policy check on recovery; actual A2aRemoteAgent reconciliation routes new get_task/send_message through A2aClient.resolve_authorization",
+        "status": "accepted-by-parent; v2 correction pending independent review"
+      }
+    ]
+  },
+  "local_file_links_verified": 35,
+  "main_or_candidate_modified_by_review": false,
+  "compiled_or_native_qualification_granted": false,
+  "claim_scope": "five ignored future adoption docs, including independent schema36 CHANGELOG rebase inherited from schema36-adoption-docs-v2; no support/qualification granted"
+}

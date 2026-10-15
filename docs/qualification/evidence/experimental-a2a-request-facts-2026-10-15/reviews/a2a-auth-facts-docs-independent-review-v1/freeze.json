@@ -1,0 +1,47 @@
+{
+  "source_baseline": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "candidate_directory": ".local-verification/2026-10-15/a2a-auth-facts-adoption-docs-v1",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "4c12588491d577ba89a8bb531a438bd23cb27316b9a96f13131483447196fd32",
+      "bytes": 78331,
+      "baseline_sha256": "511c3b560c77ea67439546c62fcbf97ff01de0e417edbf309a8159fda0ada37c",
+      "diff_sha256": "1928bfdb40643e029766d8eaed5e18e437ebe2dc7a6553cbbd17967f4c8af57b"
+    },
+    {
+      "path": "docs/a2a-client.md",
+      "sha256": "de095c052caeb0019da8ca4e7b95f73e2ce39bfbb1551e2185b76ef3f1d750c6",
+      "bytes": 19651,
+      "baseline_sha256": "0b4031d53dbe34e9c3c0c94ab0c48e35b803d313bd0e82d4fc6edeb39d9b58eb",
+      "diff_sha256": "a1675df1e37c73c699467da7c83d20d3eab3748557fc21fd5f5554dd6122e521"
+    },
+    {
+      "path": "docs/a2a-client.zh-CN.md",
+      "sha256": "d59809752cd474ecde2d5c473b4b6c1c8f1020fd26f48047e950b00af2c4b938",
+      "bytes": 18623,
+      "baseline_sha256": "5b831df9ee4729744c54a6b03ddbdc8bce04448be64ed37d159c7974289cb0ae",
+      "diff_sha256": "635a25ae9a6488536adb648ab4a32a519bdc902fbc22336c474792d71f7f04c4"
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "sha256": "0b2da5de5e52efa4cec70443aca8441abddba1b32771227c0ed931cabdb30667",
+      "bytes": 21017,
+      "baseline_sha256": "29be235fc75ca86f33f6ed5824c5a189195c6e68b579ad03caf17015b04c1d46",
+      "diff_sha256": "80f4d20a33cdf40e11795a5e0103a352569e6bf797bde623119dc762319571e6"
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "sha256": "d0b2888d0d8c5696969db2a959f797cf59a6cf3e5a341b19dda8e8f58aa5de7b",
+      "bytes": 17392,
+      "baseline_sha256": "ac080ab108100c2099dc1343e786d0a6c717952f09377f9a72617eadcb0f3841",
+      "diff_sha256": "667a8d4c8dd6e9752c57188be41df2d15c0b9e43d2223f23b020a131c3481811"
+    }
+  ],
+  "combined_patch_sha256": "5d631f13ba07c69384d23905efc945b58f130867e6eac35b84bbcb2dff4d80b0",
+  "candidate_five_docs_tree_sha256": "cfd7ac140debeb3c424437ee767b633dfd90b22b15f8bb97e801365f78a474fa",
+  "candidate_manifest_sha256": "612e685f40cfc2070406d5755f3d7fa7547257eb154ccdafa5cab52cbc40b3d7",
+  "production_candidate_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "production_qualification": "independent uncompiled source candidate; no Native qualification",
+  "main_source_modified": false
+}

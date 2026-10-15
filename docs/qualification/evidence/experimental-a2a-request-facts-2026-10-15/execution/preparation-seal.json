@@ -1,0 +1,61 @@
+{
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "state": "source and execution plan frozen; actual results stored separately",
+  "files": [
+    {
+      "path": "EXECUTION-PLAN.zh-CN.md",
+      "bytes": 6898,
+      "sha256": "4c3350562234b9a42902747d7f2d85df565f6029649f376e0fbc6dc9f7441779"
+    },
+    {
+      "path": "cargo-input-manifest.json",
+      "bytes": 180586,
+      "sha256": "0f62fdbdc2dbe437ea5dc045eeb865548f18b94b390b0e6ecd101c1fc75190d5"
+    },
+    {
+      "path": "execution.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fix-provenance.json",
+      "bytes": 801,
+      "sha256": "822a8b83bd64cf90d5557d30caec0b9884185269d34b39e7c8a1a3b28cae8813"
+    },
+    {
+      "path": "freeze.json",
+      "bytes": 629,
+      "sha256": "4feded1c5a9254a66c2e717e558c1fc8536563222e7ad0f7ecdc19e17d466fd3"
+    },
+    {
+      "path": "root-start-authorization.json",
+      "bytes": 590,
+      "sha256": "3877aecf29f0500a34d19e3ef0c2fc5bb771f1b4277af26c3109df3851eb6e27"
+    },
+    {
+      "path": "run-gates.py",
+      "bytes": 6045,
+      "sha256": "41edf98aa87872a36dbf11dc6bccc9fedee3f26b3f628839769fd86552f411b9"
+    },
+    {
+      "path": "run-qualification.py",
+      "bytes": 10751,
+      "sha256": "1cba260287cce51416152ea375f21b19b7ac1a04059ba216633d7619b546323c"
+    },
+    {
+      "path": "source-250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433.tar.gz",
+      "bytes": 3451150,
+      "sha256": "5a882322c32b5ec165d1a37bf84f087f0c5afc8811b805c07cc4ac7a590e75e3"
+    },
+    {
+      "path": "source-manifest.json",
+      "bytes": 168102,
+      "sha256": "e103125f0b5ece8fa9dd76cd4f70c2e07c634fc6070b6c5717882b0e5f7acb52"
+    },
+    {
+      "path": "tenant-fixture-only.patch",
+      "bytes": 806,
+      "sha256": "b06b60c31d64ed5923a970bcbdef05c87acfc4db53078b152b3ebee653beb048"
+    }
+  ]
+}
