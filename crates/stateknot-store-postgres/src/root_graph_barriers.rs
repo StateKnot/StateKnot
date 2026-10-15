@@ -615,231 +615,243 @@ async fn checkpoint(
 // Local complete edge only. The caller authenticates the base prefix once.
 // No application callback and no recursive historical prefix traversal.
 #[allow(clippy::too_many_lines)] // One local edge keeps every authentication step in the same snapshot.
-pub(super) async fn authenticated_edge(
-    tx: &mut Transaction<'_, Postgres>,
-    base: &Checkpoint,
-    successor: &Checkpoint,
-    results: &[PendingNodeResult],
-) -> Result<Option<StoredRootGraphBarrier>, StoreError> {
-    let event_row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
-        .bind(base.tenant_id().as_str())
-        .bind(*base.run_id().as_uuid())
-        .bind(
-            i64::try_from(successor.journal_head().sequence().get())
-                .map_err(|_| StoreError::corrupt("Root barrier sequence"))?,
-        )
-        .fetch_optional(&mut **tx)
-        .await
-        .map_err(|source| StoreError::database("Root barrier journal", source))?
-        .ok_or_else(|| StoreError::corrupt("Root barrier journal"))?;
-    let projection = event_row
-        .projection_digest
-        .as_deref()
-        .map(|bytes| decode_digest(bytes, "Root barrier event projection"))
-        .transpose()?;
-    let event = decode_event(event_row)?;
-    let row = row(tx, &base.head()).await?;
-    if event.payload().kind().as_str() != EVENT_KIND {
-        if row.is_some() {
-            return Err(StoreError::corrupt(
-                "Root barrier row without its reserved event",
-            ));
-        }
-        return Ok(None);
-    }
-    let row = row.ok_or_else(|| StoreError::corrupt("Root barrier missing whole bundle"))?;
-    if Digest::sha256(&row.bytes) != decode_digest(&row.checksum, "Root barrier checksum")? {
-        return Err(StoreError::corrupt("Root barrier checksum"));
-    }
-    let wire = decode(&row.bytes)?;
-    if wire.intent.base != base.head()
-        || wire.checkpoint != successor.head()
-        || event.head() != *successor.journal_head()
-        || event.source().worker_fence().is_none()
-        || wire.intent.event_id != event.event_id()
-        || successor.parent() != Some(&base.head())
-        || wire.source_journal.tenant_id() != base.tenant_id()
-        || wire.source_journal.run_id() != base.run_id()
-        || wire.source_journal.sequence().get().checked_add(1) != Some(event.sequence().get())
-        || event.previous_digest() != Some(wire.source_journal.digest())
-        || wire.source_journal.recorded_at() > event.recorded_at()
-        || payload(&wire.intent, wire.intent_digest)? != *event.payload()
-        || intent_digest(&wire.intent)? != wire.intent_digest
-        || compound(&wire, &event)? != wire.compound_digest
-        || projection != Some(wire.compound_digest)
-        || decode_digest(&row.projection, "Root barrier compound column")? != wire.compound_digest
-    {
-        return Err(StoreError::corrupt("Root barrier journal binding"));
-    }
-    let (previous, _) = child_runs::anchored_event(
-        tx,
-        base.tenant_id(),
-        base.run_id(),
-        i64::try_from(wire.source_journal.sequence().get())
-            .map_err(|_| StoreError::corrupt("Root source sequence"))?,
-    )
-    .await?;
-    if previous.head() != wire.source_journal {
-        return Err(StoreError::corrupt("Root barrier source journal"));
-    }
-    let barrier = CheckpointBarrier::new(
-        base,
-        successor.write_intent(),
-        results.iter().map(PendingNodeResult::head),
-    )
-    .map_err(|_| StoreError::corrupt("Root barrier complete intent"))?;
-    if wire.intent.successor_checkpoint_id != successor.checkpoint_id()
-        || wire.intent.successor_intent_digest != successor.write_intent().intent_digest()
-        || wire.intent.barrier_intent_digest != barrier.intent_digest()
-        || wire.intent.result_count != results.len()
-        || wire.intent.result_heads_digest != domain_digest(HEADS_DOMAIN, &barrier.result_heads())?
-    {
-        return Err(StoreError::corrupt("Root barrier complete result heads"));
-    }
-    let disposition = disposition_from_results(results)?;
-    let result = wire.lifecycle_after.result().cloned();
-    let expected_compact = compact_disposition(&disposition, &base.head(), event.event_id())
-        .map_err(|_| StoreError::corrupt("Root historical disposition encoding"))?;
-    if wire.intent.disposition != expected_compact {
-        return Err(StoreError::corrupt("Root barrier historical disposition"));
-    }
-    let (after, waits, original_projection_digest) = materialize_lifecycle(
-        &wire.intent.lifecycle_before,
-        &barrier,
-        &disposition,
-        result.as_ref(),
-        &event,
-    )
-    .map_err(|_| StoreError::corrupt("Root barrier historical lifecycle projection"))?;
-    if encode_lifecycle(&after)? != encode_lifecycle(&wire.lifecycle_after)?
-        || original_projection_digest != wire.intent.original_projection_digest
-        || result
-            .as_ref()
-            .map(|value| domain_digest(DISPOSITION_DOMAIN, value))
-            .transpose()?
-            != wire.intent.terminal_result_digest
-    {
-        return Err(StoreError::corrupt("Root barrier historical lifecycle"));
-    }
-    verify_barrier_consumptions(tx, &barrier, successor)
-        .await
-        .map_err(map_graph_replay_consumption_error)?;
-    verify_wait_registration_set(tx, &event, &waits)
-        .await
-        .map_err(|error| match error {
-            StoreError::WaitRegistrationCommitConflict => {
-                StoreError::corrupt("Root barrier complete wait set")
+pub(super) fn authenticated_edge<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    base: &'a Checkpoint,
+    successor: &'a Checkpoint,
+    results: &'a [PendingNodeResult],
+) -> stateknot_core::BoxFuture<'a, Result<Option<StoredRootGraphBarrier>, StoreError>> {
+    Box::pin(async move {
+        let event_row = query_as::<_, EventRow>(SELECT_EVENT_BY_SEQUENCE)
+            .bind(base.tenant_id().as_str())
+            .bind(*base.run_id().as_uuid())
+            .bind(
+                i64::try_from(successor.journal_head().sequence().get())
+                    .map_err(|_| StoreError::corrupt("Root barrier sequence"))?,
+            )
+            .fetch_optional(&mut **tx)
+            .await
+            .map_err(|source| StoreError::database("Root barrier journal", source))?
+            .ok_or_else(|| StoreError::corrupt("Root barrier journal"))?;
+        let projection = event_row
+            .projection_digest
+            .as_deref()
+            .map(|bytes| decode_digest(bytes, "Root barrier event projection"))
+            .transpose()?;
+        let event = decode_event(event_row)?;
+        let row = row(tx, &base.head()).await?;
+        if event.payload().kind().as_str() != EVENT_KIND {
+            if row.is_some() {
+                return Err(StoreError::corrupt(
+                    "Root barrier row without its reserved event",
+                ));
             }
-            other => other,
-        })?;
-    verify_columns(tx, &wire, &event).await?;
-    verify_wait_terminals(tx, &event, &waits).await?;
-    authenticate_intent_source(tx, &wire.intent).await?;
-    if let Some(result) = result.as_ref() {
-        validate_original_terminal(tx, &wire.intent, result)
+            return Ok(None);
+        }
+        let row = row.ok_or_else(|| StoreError::corrupt("Root barrier missing whole bundle"))?;
+        if Digest::sha256(&row.bytes) != decode_digest(&row.checksum, "Root barrier checksum")? {
+            return Err(StoreError::corrupt("Root barrier checksum"));
+        }
+        let wire = decode(&row.bytes)?;
+        if wire.intent.base != base.head()
+            || wire.checkpoint != successor.head()
+            || event.head() != *successor.journal_head()
+            || event.source().worker_fence().is_none()
+            || wire.intent.event_id != event.event_id()
+            || successor.parent() != Some(&base.head())
+            || wire.source_journal.tenant_id() != base.tenant_id()
+            || wire.source_journal.run_id() != base.run_id()
+            || wire.source_journal.sequence().get().checked_add(1) != Some(event.sequence().get())
+            || event.previous_digest() != Some(wire.source_journal.digest())
+            || wire.source_journal.recorded_at() > event.recorded_at()
+            || payload(&wire.intent, wire.intent_digest)? != *event.payload()
+            || intent_digest(&wire.intent)? != wire.intent_digest
+            || compound(&wire, &event)? != wire.compound_digest
+            || projection != Some(wire.compound_digest)
+            || decode_digest(&row.projection, "Root barrier compound column")?
+                != wire.compound_digest
+        {
+            return Err(StoreError::corrupt("Root barrier journal binding"));
+        }
+        let (previous, _) = child_runs::anchored_event(
+            tx,
+            base.tenant_id(),
+            base.run_id(),
+            i64::try_from(wire.source_journal.sequence().get())
+                .map_err(|_| StoreError::corrupt("Root source sequence"))?,
+        )
+        .await?;
+        if previous.head() != wire.source_journal {
+            return Err(StoreError::corrupt("Root barrier source journal"));
+        }
+        let barrier = CheckpointBarrier::new(
+            base,
+            successor.write_intent(),
+            results.iter().map(PendingNodeResult::head),
+        )
+        .map_err(|_| StoreError::corrupt("Root barrier complete intent"))?;
+        if wire.intent.successor_checkpoint_id != successor.checkpoint_id()
+            || wire.intent.successor_intent_digest != successor.write_intent().intent_digest()
+            || wire.intent.barrier_intent_digest != barrier.intent_digest()
+            || wire.intent.result_count != results.len()
+            || wire.intent.result_heads_digest
+                != domain_digest(HEADS_DOMAIN, &barrier.result_heads())?
+        {
+            return Err(StoreError::corrupt("Root barrier complete result heads"));
+        }
+        let disposition = disposition_from_results(results)?;
+        let result = wire.lifecycle_after.result().cloned();
+        let expected_compact = compact_disposition(&disposition, &base.head(), event.event_id())
+            .map_err(|_| StoreError::corrupt("Root historical disposition encoding"))?;
+        if wire.intent.disposition != expected_compact {
+            return Err(StoreError::corrupt("Root barrier historical disposition"));
+        }
+        let (after, waits, original_projection_digest) = materialize_lifecycle(
+            &wire.intent.lifecycle_before,
+            &barrier,
+            &disposition,
+            result.as_ref(),
+            &event,
+        )
+        .map_err(|_| StoreError::corrupt("Root barrier historical lifecycle projection"))?;
+        if encode_lifecycle(&after)? != encode_lifecycle(&wire.lifecycle_after)?
+            || original_projection_digest != wire.intent.original_projection_digest
+            || result
+                .as_ref()
+                .map(|value| domain_digest(DISPOSITION_DOMAIN, value))
+                .transpose()?
+                != wire.intent.terminal_result_digest
+        {
+            return Err(StoreError::corrupt("Root barrier historical lifecycle"));
+        }
+        verify_barrier_consumptions(tx, &barrier, successor)
+            .await
+            .map_err(map_graph_replay_consumption_error)?;
+        verify_wait_registration_set(tx, &event, &waits)
             .await
             .map_err(|error| match error {
-                StoreError::InvalidLifecycleTransition => {
-                    StoreError::corrupt("Root historical complete terminal inputs")
+                StoreError::WaitRegistrationCommitConflict => {
+                    StoreError::corrupt("Root barrier complete wait set")
                 }
                 other => other,
             })?;
-        if let Some(account) = Box::pin(child_runs::load_account_inner(
-            tx,
-            event.tenant_id(),
-            event.run_id(),
-            false,
-        ))
-        .await?
-        {
-            child_runs::ensure_settled(&account)
-                .map_err(|_| StoreError::corrupt("Root historical terminal child settlement"))?;
-            let direct = result
-                .usage()
-                .checked_subtract_cumulative(
-                    &account
-                        .delegated_usage()
-                        .map_err(|_| StoreError::corrupt("Root historical delegated usage"))?,
-                )
-                .map_err(|_| StoreError::corrupt("Root historical terminal child usage"))?;
-            if account.direct_head() != &event.head() || account.direct_usage() != &direct {
-                return Err(StoreError::corrupt(
-                    "Root historical terminal direct anchor",
-                ));
+        verify_columns(tx, &wire, &event).await?;
+        verify_wait_terminals(tx, &event, &waits).await?;
+        authenticate_intent_source(tx, &wire.intent).await?;
+        if let Some(result) = result.as_ref() {
+            validate_original_terminal(tx, &wire.intent, result)
+                .await
+                .map_err(|error| match error {
+                    StoreError::InvalidLifecycleTransition => {
+                        StoreError::corrupt("Root historical complete terminal inputs")
+                    }
+                    other => other,
+                })?;
+            if let Some(account) = Box::pin(child_runs::load_account_inner(
+                tx,
+                event.tenant_id(),
+                event.run_id(),
+                false,
+            ))
+            .await?
+            {
+                child_runs::ensure_settled(&account).map_err(|_| {
+                    StoreError::corrupt("Root historical terminal child settlement")
+                })?;
+                let direct = result
+                    .usage()
+                    .checked_subtract_cumulative(
+                        &account
+                            .delegated_usage()
+                            .map_err(|_| StoreError::corrupt("Root historical delegated usage"))?,
+                    )
+                    .map_err(|_| StoreError::corrupt("Root historical terminal child usage"))?;
+                if account.direct_head() != &event.head() || account.direct_usage() != &direct {
+                    return Err(StoreError::corrupt(
+                        "Root historical terminal direct anchor",
+                    ));
+                }
             }
         }
-    }
-    Ok(Some(StoredRootGraphBarrier {
-        event,
-        barrier,
-        checkpoint: successor.clone(),
-        disposition,
-        waits,
-        wire,
-    }))
+        Ok(Some(StoredRootGraphBarrier {
+            event,
+            barrier,
+            checkpoint: successor.clone(),
+            disposition,
+            waits,
+            wire,
+        }))
+    })
 }
 
-async fn authenticated_admission(
-    tx: &mut Transaction<'_, Postgres>,
-    base: &CheckpointHead,
-) -> Result<StoredAgentAdmission, StoreError> {
-    let run = query_as::<_, RunRow>(SELECT_RUN)
-        .bind(base.tenant_id().as_str())
-        .bind(*base.run_id().as_uuid())
-        .fetch_optional(&mut **tx)
-        .await
-        .map_err(|source| StoreError::database("Root admission run", source))?
-        .ok_or_else(|| StoreError::corrupt("Root admission run"))?;
-    let row = load_agent_admission_row(tx, base.tenant_id(), base.run_id())
-        .await?
-        .ok_or_else(|| StoreError::corrupt("Root admission missing"))?;
-    let admission = Box::pin(verify_stored_agent_admission(tx, decode_run(run)?, row)).await?;
-    if admission.admission().intent().graph() != base.graph() {
-        return Err(StoreError::corrupt("Root admission graph"));
-    }
-    Ok(admission)
+fn authenticated_admission<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    base: &'a CheckpointHead,
+) -> stateknot_core::BoxFuture<'a, Result<Box<StoredAgentAdmission>, StoreError>> {
+    Box::pin(async move {
+        let run = query_as::<_, RunRow>(SELECT_RUN)
+            .bind(base.tenant_id().as_str())
+            .bind(*base.run_id().as_uuid())
+            .fetch_optional(&mut **tx)
+            .await
+            .map_err(|source| StoreError::database("Root admission run", source))?
+            .ok_or_else(|| StoreError::corrupt("Root admission run"))?;
+        let row = load_agent_admission_row(tx, base.tenant_id(), base.run_id())
+            .await?
+            .ok_or_else(|| StoreError::corrupt("Root admission missing"))?;
+        let admission =
+            Box::new(Box::pin(verify_stored_agent_admission(tx, decode_run(run)?, row)).await?);
+        if admission.admission().intent().graph() != base.graph() {
+            return Err(StoreError::corrupt("Root admission graph"));
+        }
+        Ok(admission)
+    })
 }
 
-async fn authenticate_intent_source(
-    tx: &mut Transaction<'_, Postgres>,
-    intent: &IntentWire,
-) -> Result<(), StoreError> {
-    if let Some(source) = intent.source.as_deref() {
-        return trusted_graph::verify(tx, &intent.base, &intent.lifecycle_before, source).await;
-    }
-    let admission = authenticated_admission(tx, &intent.base).await?;
-    if intent.lifecycle_before.provenance() != admission.admission().intent().provenance()
-        || intent.lifecycle_before.admitted_at() != admission.admission().admitted_at()
-    {
-        return Err(StoreError::corrupt("Root historical admission lifecycle"));
-    }
-    Ok(())
+fn authenticate_intent_source<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    intent: &'a IntentWire,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        if let Some(source) = intent.source.as_deref() {
+            return trusted_graph::verify(tx, &intent.base, &intent.lifecycle_before, source).await;
+        }
+        let admission = authenticated_admission(tx, &intent.base).await?;
+        if intent.lifecycle_before.provenance() != admission.admission().intent().provenance()
+            || intent.lifecycle_before.admitted_at() != admission.admission().admitted_at()
+        {
+            return Err(StoreError::corrupt("Root historical admission lifecycle"));
+        }
+        Ok(())
+    })
 }
 
-async fn validate_original_terminal(
-    tx: &mut Transaction<'_, Postgres>,
-    intent: &IntentWire,
-    result: &AgentResult,
-) -> Result<(), StoreError> {
-    if intent.source.is_some() {
-        let inputs = intent
-            .terminal_validation
-            .as_deref()
-            .ok_or(StoreError::InvalidLifecycleTransition)?;
-        return result
-            .validate_for_terminal_inputs(intent.lifecycle_before.provenance(), inputs)
-            .map_err(|_| StoreError::InvalidLifecycleTransition);
-    }
-    let admission = authenticated_admission(tx, &intent.base).await?;
-    let source = admission.admission().intent();
-    result
-        .validate_for(
-            source.provenance(),
-            source.request(),
-            source.descriptor(),
-            source.budget(),
-        )
-        .map_err(|_| StoreError::InvalidLifecycleTransition)
+fn validate_original_terminal<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    intent: &'a IntentWire,
+    result: &'a AgentResult,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        if intent.source.is_some() {
+            let inputs = intent
+                .terminal_validation
+                .as_deref()
+                .ok_or(StoreError::InvalidLifecycleTransition)?;
+            return result
+                .validate_for_terminal_inputs(intent.lifecycle_before.provenance(), inputs)
+                .map_err(|_| StoreError::InvalidLifecycleTransition);
+        }
+        let admission = authenticated_admission(tx, &intent.base).await?;
+        let source = admission.admission().intent();
+        result
+            .validate_for(
+                source.provenance(),
+                source.request(),
+                source.descriptor(),
+                source.budget(),
+            )
+            .map_err(|_| StoreError::InvalidLifecycleTransition)
+    })
 }
 
 fn materialize_lifecycle(
@@ -993,28 +1005,32 @@ pub(super) async fn results(
     Ok(results)
 }
 
-async fn local_record(
-    tx: &mut Transaction<'_, Postgres>,
-    base: &Checkpoint,
-) -> Result<Option<StoredRootGraphBarrier>, StoreError> {
-    let next: Option<Uuid> = query_scalar("SELECT checkpoint_id FROM stateknot.run_checkpoints WHERE tenant_id=$1 AND run_id=$2 AND parent_checkpoint_id=$3 AND graph_namespace='' ORDER BY superstep LIMIT 1")
-        .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(*base.checkpoint_id().as_uuid()).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root barrier successor",source))?;
-    let Some(next) = next else {
-        if row(tx, &base.head()).await?.is_some() {
-            return Err(StoreError::corrupt("Root barrier missing successor"));
-        }
-        return Ok(None);
-    };
-    let successor = checkpoint(
-        tx,
-        base.tenant_id(),
-        base.run_id(),
-        CheckpointId::from_uuid(next)
-            .map_err(|_| StoreError::corrupt("Root successor identity"))?,
-    )
-    .await?;
-    let results = Box::pin(results(tx, base)).await?;
-    Box::pin(authenticated_edge(tx, base, &successor, &results)).await
+fn local_record<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    base: &'a Checkpoint,
+) -> stateknot_core::BoxFuture<'a, Result<Option<StoredRootGraphBarrier>, StoreError>> {
+    Box::pin(async move {
+        let next: Option<Uuid> = query_scalar("SELECT checkpoint_id FROM stateknot.run_checkpoints WHERE tenant_id=$1 AND run_id=$2 AND parent_checkpoint_id=$3 AND graph_namespace='' ORDER BY superstep LIMIT 1")
+            .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(*base.checkpoint_id().as_uuid()).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root barrier successor",source))?;
+        let Some(next) = next else {
+            if row(tx, &base.head()).await?.is_some() {
+                return Err(StoreError::corrupt("Root barrier missing successor"));
+            }
+            return Ok(None);
+        };
+        let successor = Box::new(
+            checkpoint(
+                tx,
+                base.tenant_id(),
+                base.run_id(),
+                CheckpointId::from_uuid(next)
+                    .map_err(|_| StoreError::corrupt("Root successor identity"))?,
+            )
+            .await?,
+        );
+        let results = Box::pin(results(tx, base)).await?;
+        Box::pin(authenticated_edge(tx, base, &successor, &results)).await
+    })
 }
 
 // Public/component reads authenticate every new-format ancestor with an
@@ -1024,7 +1040,7 @@ pub(super) fn verify_checkpoint<'a>(
     checkpoint_value: &'a Checkpoint,
 ) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
     Box::pin(async move {
-        let mut current = checkpoint_value.clone();
+        let mut current = Box::new(checkpoint_value.clone());
         loop {
             let (event, _) = child_runs::anchored_event(
                 tx,
@@ -1047,13 +1063,15 @@ pub(super) fn verify_checkpoint<'a>(
                 }
                 return Ok(());
             };
-            let base = checkpoint(
-                tx,
-                parent.tenant_id(),
-                parent.run_id(),
-                parent.checkpoint_id(),
-            )
-            .await?;
+            let base = Box::new(
+                checkpoint(
+                    tx,
+                    parent.tenant_id(),
+                    parent.run_id(),
+                    parent.checkpoint_id(),
+                )
+                .await?,
+            );
             if base.head() != parent
                 || base.superstep().get().checked_add(1) != Some(current.superstep().get())
                 || base.journal_head().sequence() >= current.journal_head().sequence()
@@ -1408,7 +1426,7 @@ impl PostgresStore {
         let graph = decode_graph_definition(graph_row)?;
         authenticate_intent_source(&mut tx, &data.wire).await?;
         let terminal_admission = if data.terminal_result.is_some() && data.wire.source.is_none() {
-            Some(Box::new(authenticated_admission(&mut tx, base).await?))
+            Some(authenticated_admission(&mut tx, base).await?)
         } else {
             None
         };
@@ -1776,76 +1794,88 @@ async fn verify_wait_terminals(
     Ok(())
 }
 
-pub(super) async fn verify_event(
-    tx: &mut Transaction<'_, Postgres>,
-    event: &JournalEvent,
-) -> Result<(), StoreError> {
-    if event.payload().kind().as_str() != EVENT_KIND {
-        return Ok(());
-    }
-    let id: Uuid = query_scalar("SELECT base_checkpoint_id FROM stateknot.root_graph_barriers WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence=$3")
-        .bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid()).bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::corrupt("Root event sequence"))?).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root event owning bundle",source))?.ok_or_else(|| StoreError::corrupt("Root event missing whole bundle"))?;
-    let base = checkpoint(
-        tx,
-        event.tenant_id(),
-        event.run_id(),
-        CheckpointId::from_uuid(id).map_err(|_| StoreError::corrupt("Root event base identity"))?,
-    )
-    .await?;
-    Box::pin(verify_checkpoint(tx, &base)).await?;
-    let record = Box::pin(local_record(tx, &base))
-        .await?
-        .ok_or_else(|| StoreError::corrupt("Root event missing whole bundle"))?;
-    if record.event() != event {
-        return Err(StoreError::corrupt("Root event owning bundle anchor"));
-    }
-    Ok(())
+pub(super) fn verify_event<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    event: &'a JournalEvent,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        if event.payload().kind().as_str() != EVENT_KIND {
+            return Ok(());
+        }
+        let id: Uuid = query_scalar("SELECT base_checkpoint_id FROM stateknot.root_graph_barriers WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence=$3")
+            .bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid()).bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::corrupt("Root event sequence"))?).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root event owning bundle",source))?.ok_or_else(|| StoreError::corrupt("Root event missing whole bundle"))?;
+        let base = Box::new(
+            checkpoint(
+                tx,
+                event.tenant_id(),
+                event.run_id(),
+                CheckpointId::from_uuid(id)
+                    .map_err(|_| StoreError::corrupt("Root event base identity"))?,
+            )
+            .await?,
+        );
+        Box::pin(verify_checkpoint(tx, &base)).await?;
+        let record = Box::pin(local_record(tx, &base))
+            .await?
+            .ok_or_else(|| StoreError::corrupt("Root event missing whole bundle"))?;
+        if record.event() != event {
+            return Err(StoreError::corrupt("Root event owning bundle anchor"));
+        }
+        Ok(())
+    })
 }
 
-pub(super) async fn verify_run(
-    tx: &mut Transaction<'_, Postgres>,
-    stored: &StoredRun,
-) -> Result<(), StoreError> {
-    let Some(pointer) = stored.checkpoint() else {
-        return Ok(());
-    };
-    let owner = stored.lifecycle().provenance();
-    let checkpoint = checkpoint(
-        tx,
-        owner.tenant_id(),
-        owner.run_id(),
-        pointer.checkpoint_id(),
-    )
-    .await?;
-    if checkpoint.superstep() != pointer.superstep() || checkpoint.digest() != pointer.digest() {
-        return Err(StoreError::corrupt("Root run checkpoint projection"));
-    }
-    Box::pin(verify_checkpoint(tx, &checkpoint)).await?;
-    let journal = stored
-        .journal_head()
-        .ok_or_else(|| StoreError::corrupt("Root run journal projection"))?;
-    if journal.sequence() < checkpoint.journal_head().sequence() {
-        return Err(StoreError::corrupt("Root run journal before checkpoint"));
-    }
-    if journal == checkpoint.journal_head() {
-        if let Some(parent) = checkpoint.parent() {
-            let base = self::checkpoint(
+pub(super) fn verify_run<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    stored: &'a StoredRun,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        let Some(pointer) = stored.checkpoint() else {
+            return Ok(());
+        };
+        let owner = stored.lifecycle().provenance();
+        let checkpoint = Box::new(
+            checkpoint(
                 tx,
                 owner.tenant_id(),
                 owner.run_id(),
-                parent.checkpoint_id(),
+                pointer.checkpoint_id(),
             )
-            .await?;
-            if let Some(record) = Box::pin(local_record(tx, &base)).await? {
-                if encode_lifecycle(stored.lifecycle())?
-                    != encode_lifecycle(record.committed_lifecycle())?
-                {
-                    return Err(StoreError::corrupt("Root current lifecycle projection"));
+            .await?,
+        );
+        if checkpoint.superstep() != pointer.superstep() || checkpoint.digest() != pointer.digest()
+        {
+            return Err(StoreError::corrupt("Root run checkpoint projection"));
+        }
+        Box::pin(verify_checkpoint(tx, &checkpoint)).await?;
+        let journal = stored
+            .journal_head()
+            .ok_or_else(|| StoreError::corrupt("Root run journal projection"))?;
+        if journal.sequence() < checkpoint.journal_head().sequence() {
+            return Err(StoreError::corrupt("Root run journal before checkpoint"));
+        }
+        if journal == checkpoint.journal_head() {
+            if let Some(parent) = checkpoint.parent() {
+                let base = Box::new(
+                    self::checkpoint(
+                        tx,
+                        owner.tenant_id(),
+                        owner.run_id(),
+                        parent.checkpoint_id(),
+                    )
+                    .await?,
+                );
+                if let Some(record) = Box::pin(local_record(tx, &base)).await? {
+                    if encode_lifecycle(stored.lifecycle())?
+                        != encode_lifecycle(record.committed_lifecycle())?
+                    {
+                        return Err(StoreError::corrupt("Root current lifecycle projection"));
+                    }
                 }
             }
         }
-    }
-    Ok(())
+        Ok(())
+    })
 }
 
 pub(super) async fn verify_mutation_source(

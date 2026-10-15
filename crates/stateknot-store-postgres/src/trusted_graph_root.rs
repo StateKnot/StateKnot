@@ -95,9 +95,7 @@ pub(super) async fn authenticate(
 ) -> Result<Origin, StoreError> {
     let (first, projection) = first_event(tx, base).await?;
     if agent_witness(tx, base, &first).await? {
-        return Ok(Origin::Agent(Box::new(
-            authenticated_admission(tx, base).await?,
-        )));
+        return Ok(Origin::Agent(authenticated_admission(tx, base).await?));
     }
     let source = if let Some(source) = original_profile(tx, base).await? {
         source

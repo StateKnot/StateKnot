@@ -47,6 +47,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Keep complete experimental Driver startup, iteration, barrier and node phases,
+  Root admissions and checkpoints behind private heap boundaries. The original
+  two-level higher-fence and SQL-role regressions now pass on PostgreSQL 16/17
+  with default stacks and unchanged owning verification and resource limits.
+  Seven-level recovery still fails with lease expiry; full qualification remains
+  open under Draft RFC-0022.
+
 - Retain experimental Driver recovery and node-execution mutation
   acknowledgements across guardian failure, completion and cancellation.
   Cooperative stop keeps committed quarantine, Start and renewal ACKs alive;
