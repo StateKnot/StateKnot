@@ -51,6 +51,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   final limits, compilable public types and external-consumer qualification
   remain acceptance requirements; stdio is not implemented by this proposal.
 
+- Record Draft RFC-0025 for separate MCP/A2A external identity, local tenant
+  authority, destination-scoped credentials, input release and authorized
+  recovery. It records actual restricted Interfaces and effect mappings,
+  including missing A2A payload facts and MCP principal rebinding requirements;
+  it adds no verifier, durable task backend or production qualification.
+
 ### Fixed
 
 - Reuse a complete ordinary scoped base authentication within one experimental

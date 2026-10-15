@@ -222,6 +222,11 @@ Docker Hub 匿名拉取限流/超时阻断，不能计为通过。此前 cc75c97
 5. 约束 stdio 帧、输出、工具目录、握手期限和请求关联。取消、超时、启动失败及关闭后释放完整子进程树；不继承宿主凭据，不自动安装软件，不自动重试不确定写入。
 6. 完善外部 crate 使用示例、错误诊断和常用路径。样板代码精简伴随显式版本变更，保留已发布错误类型的兼容处理。
 
+[RFC-0025 身份映射草案](rfcs/0025-protocol-identity-and-authority.zh-CN.md)独立记录
+MCP/A2A 的外部身份、本地租户权限、远端路由租户、凭据 audience、参数数据释放
+及当前恢复授权。实际 A2A payload/endpoint 策略接缝、MCP principal 改绑后的
+状态失效、真实 verifier/backend 与部署资格仍须补齐，草案不表示这些实现已交付。
+
 [RFC-0024 草案](rfcs/0024-owned-bounded-mcp-stdio.zh-CN.md)将 stdio 的完整 session
 Interface、目录准入、关联/聚合限额、逐调用发送阶段、取消及完整进程树清理、
 凭据作用域和不确定外部效果收口为独立提案。现有 HTTP 行为与拟议 stdio 映射的

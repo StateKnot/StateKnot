@@ -36,6 +36,7 @@ security, or operational commitments.
 | [0022](0022-namespaced-graph-frames.md) | Draft | Namespaced same-Run graph frames and durable parent continuation |
 | [0023](0023-media-type-input-schema.md) | Draft | Case-insensitive media type input schemas |
 | [0024](0024-owned-bounded-mcp-stdio.md) / [中文](0024-owned-bounded-mcp-stdio.zh-CN.md) | Draft | Owned, bounded MCP stdio sessions and verified process-tree lifecycle |
+| [0025](0025-protocol-identity-and-authority.md) / [中文](0025-protocol-identity-and-authority.zh-CN.md) | Draft | MCP/A2A identity, local authority, data release and recovery mapping |
 
 ## When an RFC is required
 

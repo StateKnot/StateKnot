@@ -108,7 +108,7 @@ profile 的限定证据继续有效，但不能合并成未经执行的完整矩
 | 边界 | 当前证据/限制 | 下一步验收 |
 | --- | --- | --- |
 | 不确定外部副作用 | Tool 的 `Unknown + ReconcileFirst`、MCP 授权 result/known-error reconciliation 和 A2A exact-task 查询路径已实现；不自动重复 uncertain business send | 补齐 provider effect 与子任务会计/终结组合；授权处置、不可证明结果保留 Unknown，重启后相同决定 |
-| MCP/A2A 安全映射 | 现有两协议 guide、scope/resource 授权、租户上下文、URL/credential 约束和协议测试分散存在 | 独立 RFC，明确 ingress/egress、routing tenant 与本地 tenant、凭据 audience、descriptor/Agent Card 信任及恢复授权；RFC-0004 不能替代 |
+| MCP/A2A 安全映射 | 现有两协议 guide、scope/resource 授权、租户上下文、URL/credential 约束和协议测试分散存在；[RFC-0025 草案](rfcs/0025-protocol-identity-and-authority.zh-CN.md)已独立映射 ingress/egress、远端与本地租户、audience、descriptor/Agent Card 信任和恢复授权 | 具体 A2A endpoint/payload 授权接缝、MCP principal 改绑后旧状态拒绝、实际 verifier/持久 backend、部署与独立安全资格仍须验收；RFC-0004 和本草案均不能替代 |
 | Issue 140 MCP stdio | 当前 `McpClient` 只实现 stateless Streamable HTTP；[官方规格与锁定源码研究](research/mcp-stdio-process-ownership-2026-10-12.md)已记录 SDK 无界接收、默认版本与进程回收限制；[RFC-0024 草案](rfcs/0024-owned-bounded-mcp-stdio.zh-CN.md)提出完整 session、目录准入、发送阶段、聚合限额和完整进程树生命周期，尚未实现或声明支持 | 先完成平台 owner、最终限额及可编译 Interface 的评审与原生验证，再复用 bounded parser/schema/tool 授权；实现 explicit executable/literal argv/env allowlist、启动版本核实与帧限制、request correlation 和完整后代回收 |
 | 外部消费者 | crate 已发布 alpha.1，但后续源码功能不能用该包声明 | exact revision/version pin 的独立消费者，实际发现和调用；不自动安装 MCP 程序；平台只按执行证据声明 |
 
