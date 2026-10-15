@@ -1,0 +1,1 @@
+{"state":"collector-only red; no product command executed","cause":"main binding retains source manifest order while its canonical digest uses sorted path strings","correction":"preserve original row order for raw equality, sort only the canonical digest and actual path-set check"}

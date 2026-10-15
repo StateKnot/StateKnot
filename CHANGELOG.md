@@ -446,6 +446,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Configure only the PostgreSQL CI test job for basic optimization while retaining
+  debug assertions, overflow checks, original fixtures and the 30-minute budget.
+  Record the bounded local experiment: six gates and both PostgreSQL versions'
+  original four Native suites plus separate authorization facts exit zero, while
+  the runner's final missing-cache-tag guard remains a preserved failure. The
+  original full CI default-feature profile remains pending; no production
+  capacity or Supported claim follows. See the [execution record](docs/qualification/experimental-postgres-test-profile-2026-10-15.md).
+
 - `InProcessAgent::run` now performs its post-admission and polling reads through
   the caller-retained submission key, with an exact Run-ID consistency check.
   Deployments using this convenience path must grant `Read` on that submission

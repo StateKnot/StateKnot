@@ -80,6 +80,14 @@ Clippy、fresh189库存及 PostgreSQL16.14/17.11 各 exact1 实际通过，成�
 实际通过98个suite/2073 passed/6个原ignored及45个独立doc，全部2182个当时非ignored
 文件前后相同；这仍不转授完整189/四套Native、CI或R1。
 
+2026-10-15 的[测试 profile 限定执行记录](qualification/experimental-postgres-test-profile-2026-10-15.zh-CN.md)
+补充组合531输入的本机test opt1原始执行：六门禁及双版原四套Native加单列facts共十suite
+命令全部exit0，默认栈七层/serial/shared quantum和原marker完整保留；runner收尾因两新缓存
+缺TAG而exit1，原失败保留，仅另有通过的只读空闲审计。head686原CI为11success/2cancelled，
+双Store264通过但Runtime189无终态，原30m耗尽注解保留；同tree Linux PITR双版exact1
+只按独立profile记录。本机feature union不转授原CI默认构建或30分钟整链；9行job env候选
+不改原步骤、资源或预算，完整CI、G3/R1与Supported仍开放。
+
 剩余语义决策：typed builder、reducer 注册/版本、非 root namespace grammar 与
 shared-state declaration 属于 R1；参考负载下调度策略和阈值属于 R6。
 blob checkpoint 若引入须另立 RFC，并先依赖 R2 的 Artifact 生命周期。

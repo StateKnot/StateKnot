@@ -1,0 +1,19 @@
+{
+  "step": "gate-rustdoc",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "doc",
+    "--workspace",
+    "--all-features",
+    "--no-deps",
+    "--locked"
+  ],
+  "runner_pid": 68288,
+  "pid": 83734,
+  "started_unix": 1792070334.705055,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 10.799995183944702,
+  "log_sha256": "de56f015b54a45744697c2c70ebc6e2899e943e1221663a2474c1feb083aa207"
+}

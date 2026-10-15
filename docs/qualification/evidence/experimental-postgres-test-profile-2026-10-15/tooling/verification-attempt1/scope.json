@@ -1,0 +1,1 @@
+{"state":"collector-only red; no product command executed", "cause":"string path sorting differs from the frozen Path-component manifest order", "correction":"preserve pinned manifest path order when reproducing source tree digest", "workspace_rejection_was_not_yet_the_expected_adoption_rejection":true}

@@ -333,6 +333,15 @@ jobs:
     name: PostgreSQL (${{ matrix.version }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Optimize the CPU-heavy contract tests while retaining panic checks.
+    # Build/test profile only; leases, fixtures and job budgets are unchanged.
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_PROFILE_TEST_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_TEST_OVERFLOW_CHECKS: "true"
     strategy:
       fail-fast: false
       matrix:

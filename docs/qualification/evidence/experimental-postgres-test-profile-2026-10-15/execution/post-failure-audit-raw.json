@@ -1,0 +1,264 @@
+{
+  "format": "lossless original UTF-8 texts, not a new execution",
+  "files": [
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/df-final-audit.command.json",
+      "basename": "df-final-audit.command.json",
+      "raw_bytes": 629,
+      "raw_sha256": "c88e3695c39c4647fd890465e12673390602a7d6e2adcff55f4080dfdf2e7612",
+      "raw_text": "{\n  \"argv\": [\n    \"/bin/df\",\n    \"-k\",\n    \"/Users/jiawy/Documents/RustAgentFramework\"\n  ],\n  \"exit_code\": 0,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/df-final-audit.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/df-final-audit.stderr\",\n  \"stdout_sha256\": \"080969063e80a56ec08ed12a824b9ae8d278a5a94df7764644588a6446b384da\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/df-final-audit.stderr",
+      "basename": "df-final-audit.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/df-final-audit.stdout",
+      "basename": "df-final-audit.stdout",
+      "raw_bytes": 190,
+      "raw_sha256": "080969063e80a56ec08ed12a824b9ae8d278a5a94df7764644588a6446b384da",
+      "raw_text": "Filesystem   1024-blocks      Used Available Capacity iused      ifree %iused  Mounted on\n/dev/disk3s5   971298980 619412088 324664452    66% 4646992 3246644520    0%   /System/Volumes/Data\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg16.command.json",
+      "basename": "docker-identity-pg16.command.json",
+      "raw_bytes": 760,
+      "raw_sha256": "2035d7bad4efaf376ed406f86a9c4cbc24d36ab3442c5d1ff7db933e1afcaf36",
+      "raw_text": "{\n  \"argv\": [\n    \"docker\",\n    \"inspect\",\n    \"--format\",\n    \"{{json .Id}}|{{json .State.Running}}|{{json .Config.Labels}}|{{json .NetworkSettings.Ports}}|{{json .Mounts}}\",\n    \"stateknot-r1-oct15-pg16\"\n  ],\n  \"exit_code\": 0,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg16.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg16.stderr\",\n  \"stdout_sha256\": \"f6a766fa7d0f7432b2c91ff49344beb777d5e5431c58bc6c87bd9d1baa853a35\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg16.stderr",
+      "basename": "docker-identity-pg16.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg16.stdout",
+      "basename": "docker-identity-pg16.stdout",
+      "raw_bytes": 454,
+      "raw_sha256": "f6a766fa7d0f7432b2c91ff49344beb777d5e5431c58bc6c87bd9d1baa853a35",
+      "raw_text": "\"cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea\"|true|{\"stateknot.task\":\"r1-oct15\"}|{\"5432/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"55416\"}]}|[{\"Destination\":\"/var/lib/postgresql/data\",\"Driver\":\"local\",\"Mode\":\"\",\"Name\":\"26a2ec7e167a2723e7d5c2dcc7348f2e01d80976f5a86feb0c883c26cbb500c4\",\"Propagation\":\"\",\"RW\":true,\"Source\":\"/var/lib/docker/volumes/26a2ec7e167a2723e7d5c2dcc7348f2e01d80976f5a86feb0c883c26cbb500c4/_data\",\"Type\":\"volume\"}]\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg17.command.json",
+      "basename": "docker-identity-pg17.command.json",
+      "raw_bytes": 760,
+      "raw_sha256": "8e0a369ac08228f3d8c84f19c683448fd7275ce9daf46199c7a0f76e4f279594",
+      "raw_text": "{\n  \"argv\": [\n    \"docker\",\n    \"inspect\",\n    \"--format\",\n    \"{{json .Id}}|{{json .State.Running}}|{{json .Config.Labels}}|{{json .NetworkSettings.Ports}}|{{json .Mounts}}\",\n    \"stateknot-r1-oct15-pg17\"\n  ],\n  \"exit_code\": 0,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg17.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg17.stderr\",\n  \"stdout_sha256\": \"0154c296acae26856ff4c3c2845b11798b06507836a9904ec8484ff414f01d96\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg17.stderr",
+      "basename": "docker-identity-pg17.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg17.stdout",
+      "basename": "docker-identity-pg17.stdout",
+      "raw_bytes": 454,
+      "raw_sha256": "0154c296acae26856ff4c3c2845b11798b06507836a9904ec8484ff414f01d96",
+      "raw_text": "\"700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127\"|true|{\"stateknot.task\":\"r1-oct15\"}|{\"5432/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"55417\"}]}|[{\"Destination\":\"/var/lib/postgresql/data\",\"Driver\":\"local\",\"Mode\":\"\",\"Name\":\"21c48092a6738a7b6b2dff5c30bb86a94fee100a42295a03d24fdbb0cc6408f3\",\"Propagation\":\"\",\"RW\":true,\"Source\":\"/var/lib/docker/volumes/21c48092a6738a7b6b2dff5c30bb86a94fee100a42295a03d24fdbb0cc6408f3/_data\",\"Type\":\"volume\"}]\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-nightly.command.json",
+      "basename": "du-nightly.command.json",
+      "raw_bytes": 653,
+      "raw_sha256": "48c2cf5b67a211acf5d6e15e29c1d2850b2626d96376ab2d118dcfaf1cacd36c",
+      "raw_text": "{\n  \"argv\": [\n    \"du\",\n    \"-sk\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1-nightly\"\n  ],\n  \"exit_code\": 0,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-nightly.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-nightly.stderr\",\n  \"stdout_sha256\": \"7e1e797c91a55ad86e3df96f0ed041701765e0b767b75c2aa4caca3da0e1e13d\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-nightly.stderr",
+      "basename": "du-nightly.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-nightly.stdout",
+      "basename": "du-nightly.stdout",
+      "raw_bytes": 85,
+      "raw_sha256": "7e1e797c91a55ad86e3df96f0ed041701765e0b767b75c2aa4caca3da0e1e13d",
+      "raw_text": "427288\t/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1-nightly\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-stable.command.json",
+      "basename": "du-stable.command.json",
+      "raw_bytes": 643,
+      "raw_sha256": "f2102982a27634f877852b0efb29a5d58abfa7f7e2a068e43dc286692f4f2f92",
+      "raw_text": "{\n  \"argv\": [\n    \"du\",\n    \"-sk\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1\"\n  ],\n  \"exit_code\": 0,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-stable.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-stable.stderr\",\n  \"stdout_sha256\": \"a5260d4fbd922ba34057819cb7361266c1d87a9b8c635c30802acac13d9acde7\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-stable.stderr",
+      "basename": "du-stable.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-stable.stdout",
+      "basename": "du-stable.stdout",
+      "raw_bytes": 78,
+      "raw_sha256": "a5260d4fbd922ba34057819cb7361266c1d87a9b8c635c30802acac13d9acde7",
+      "raw_text": "2081528\t/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-nightly.command.json",
+      "basename": "git-tracked-nightly.command.json",
+      "raw_bytes": 645,
+      "raw_sha256": "43c7bcaaae8615a2d579622006d707d6a343a6599ab2c917988d95f9ba0757ce",
+      "raw_text": "{\n  \"argv\": [\n    \"git\",\n    \"ls-files\",\n    \"--\",\n    \"target/r1-oct15-native-opt1-nightly\"\n  ],\n  \"exit_code\": 0,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-nightly.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-nightly.stderr\",\n  \"stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-nightly.stderr",
+      "basename": "git-tracked-nightly.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-nightly.stdout",
+      "basename": "git-tracked-nightly.stdout",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-stable.command.json",
+      "basename": "git-tracked-stable.command.json",
+      "raw_bytes": 635,
+      "raw_sha256": "556388b56098a54710c9621791d3034353a3466039af45addf0d8bd14770d847",
+      "raw_text": "{\n  \"argv\": [\n    \"git\",\n    \"ls-files\",\n    \"--\",\n    \"target/r1-oct15-native-opt1\"\n  ],\n  \"exit_code\": 0,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-stable.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-stable.stderr\",\n  \"stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-stable.stderr",
+      "basename": "git-tracked-stable.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-stable.stdout",
+      "basename": "git-tracked-stable.stdout",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-all-selected-native-programs.command.json",
+      "basename": "lsof-all-selected-native-programs.command.json",
+      "raw_bytes": 1885,
+      "raw_sha256": "4c5962492cf9ae35e127d932fab6f11ef1e3ebe4aa251df4ea0890abe7ae1cfb",
+      "raw_text": "{\n  \"argv\": [\n    \"/usr/sbin/lsof\",\n    \"-Fpcfn\",\n    \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/store\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/postgres-ce32fac027781ee6\",\n    \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/runtime\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/postgres-99593050e586663a\",\n    \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/provider\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/provider_native_postgres-5df9f38d6d17cfde\",\n    \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/example\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/examples/deepseek_agent-ec04b2b94f408cf4\",\n    \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/facts\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/mcp_durable-16b49de8057ee053\"\n  ],\n  \"exit_code\": 1,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-all-selected-native-programs.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-all-selected-native-programs.stderr\",\n  \"stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-all-selected-native-programs.stderr",
+      "basename": "lsof-all-selected-native-programs.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-all-selected-native-programs.stdout",
+      "basename": "lsof-all-selected-native-programs.stdout",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-nightly.command.json",
+      "basename": "lsof-nightly.command.json",
+      "raw_bytes": 682,
+      "raw_sha256": "ea70ab6d3db30b5909121442d96b4b4d6e7d7d2d8208295eb191812e843a8363",
+      "raw_text": "{\n  \"argv\": [\n    \"/usr/sbin/lsof\",\n    \"-Fpcfn\",\n    \"+D\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1-nightly\"\n  ],\n  \"exit_code\": 1,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-nightly.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-nightly.stderr\",\n  \"stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-nightly.stderr",
+      "basename": "lsof-nightly.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-nightly.stdout",
+      "basename": "lsof-nightly.stdout",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-saved-binary-directory.command.json",
+      "basename": "lsof-saved-binary-directory.command.json",
+      "raw_bytes": 751,
+      "raw_sha256": "999035053a01015d30d7d8cb69b661a9ffabed28a219160f61c788fab36cc8b6",
+      "raw_text": "{\n  \"argv\": [\n    \"/usr/sbin/lsof\",\n    \"-Fpcfn\",\n    \"+D\",\n    \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts\"\n  ],\n  \"exit_code\": 1,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-saved-binary-directory.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-saved-binary-directory.stderr\",\n  \"stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-saved-binary-directory.stderr",
+      "basename": "lsof-saved-binary-directory.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-saved-binary-directory.stdout",
+      "basename": "lsof-saved-binary-directory.stdout",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-stable.command.json",
+      "basename": "lsof-stable.command.json",
+      "raw_bytes": 672,
+      "raw_sha256": "0490b67262b8969781662e602f2e0cdd9e2ea342a0003056ada8ad915ad8f605",
+      "raw_text": "{\n  \"argv\": [\n    \"/usr/sbin/lsof\",\n    \"-Fpcfn\",\n    \"+D\",\n    \"/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1\"\n  ],\n  \"exit_code\": 1,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-stable.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-stable.stderr\",\n  \"stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-stable.stderr",
+      "basename": "lsof-stable.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-stable.stdout",
+      "basename": "lsof-stable.stdout",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/ps-recorded-pids.command.json",
+      "basename": "ps-recorded-pids.command.json",
+      "raw_bytes": 775,
+      "raw_sha256": "390f5217f4b311fc594a36843831b0c282e46c5e7ffaab3a00a512357047c718",
+      "raw_text": "{\n  \"argv\": [\n    \"/bin/ps\",\n    \"-p\",\n    \"797,835,862,68288,68310,68360,76257,76276,76297,76330,76351,76371,83392,83628,83734,83808,91285,91304,93093,96434,96522,96550,96573,96592,97927\",\n    \"-o\",\n    \"pid=,ppid=,stat=,comm=\"\n  ],\n  \"exit_code\": 1,\n  \"stdout_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/ps-recorded-pids.stdout\",\n  \"stderr_path\": \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/ps-recorded-pids.stderr\",\n  \"stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/ps-recorded-pids.stderr",
+      "basename": "ps-recorded-pids.stderr",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/ps-recorded-pids.stdout",
+      "basename": "ps-recorded-pids.stdout",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_text": ""
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/recorded-pid-provenance.json",
+      "basename": "recorded-pid-provenance.json",
+      "raw_bytes": 4614,
+      "raw_sha256": "6053e5b4b264ac5c5e59349c6c2913b2ae8d3bae0c23ee18e05c55d89717eab5",
+      "raw_text": "[\n  {\n    \"source\": \"gate-clippy.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"gate-clippy.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 76371\n  },\n  {\n    \"source\": \"gate-doctests.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"gate-doctests.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 83628\n  },\n  {\n    \"source\": \"gate-fmt.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"gate-fmt.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 68310\n  },\n  {\n    \"source\": \"gate-nightly.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"gate-nightly.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 83808\n  },\n  {\n    \"source\": \"gate-rustdoc.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"gate-rustdoc.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 83734\n  },\n  {\n    \"source\": \"gate-workspace.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"gate-workspace.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 83392\n  },\n  {\n    \"source\": \"list-example.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"list-example.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 76330\n  },\n  {\n    \"source\": \"list-facts.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"list-facts.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 76351\n  },\n  {\n    \"source\": \"list-provider.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"list-provider.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 76297\n  },\n  {\n    \"source\": \"list-runtime.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"list-runtime.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 76276\n  },\n  {\n    \"source\": \"list-store.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"list-store.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 76257\n  },\n  {\n    \"source\": \"pg16-create-new-db.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg16-create-new-db.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 91285\n  },\n  {\n    \"source\": \"pg16-example.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg16-example.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 96522\n  },\n  {\n    \"source\": \"pg16-facts.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg16-facts.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 96550\n  },\n  {\n    \"source\": \"pg16-provider.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg16-provider.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 96434\n  },\n  {\n    \"source\": \"pg16-runtime.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg16-runtime.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 93093\n  },\n  {\n    \"source\": \"pg16-store.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg16-store.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 91304\n  },\n  {\n    \"source\": \"pg17-create-new-db.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg17-create-new-db.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 96573\n  },\n  {\n    \"source\": \"pg17-example.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg17-example.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 835\n  },\n  {\n    \"source\": \"pg17-facts.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg17-facts.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 862\n  },\n  {\n    \"source\": \"pg17-provider.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg17-provider.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 797\n  },\n  {\n    \"source\": \"pg17-runtime.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg17-runtime.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 97927\n  },\n  {\n    \"source\": \"pg17-store.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"pg17-store.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 96592\n  },\n  {\n    \"source\": \"running.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"running.json\",\n    \"field\": \"pid\",\n    \"pid\": 862\n  },\n  {\n    \"source\": \"workspace-fresh-build.receipt.json\",\n    \"field\": \"runner_pid\",\n    \"pid\": 68288\n  },\n  {\n    \"source\": \"workspace-fresh-build.receipt.json\",\n    \"field\": \"pid\",\n    \"pid\": 68360\n  }\n]\n"
+    }
+  ]
+}
