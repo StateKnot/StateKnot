@@ -76,7 +76,9 @@ Child Join、进程/COMMIT 故障矩阵、Linux 全部 CI 或 G3/R1。
 Clippy、fresh189库存及 PostgreSQL16.14/17.11 各 exact1 实际通过，成功 marker 前
 确认各两个命名容器和三个卷不存在。原预算、耐久断言和 best-effort Drop 保留；
 旧 PG16 WAL 卷仍在，旧清理异常不重写，全部失败路径不据此获得资格。与 A2A
-组成后的531输入 main 仍待原opt0六门禁；不转授完整189/四套Native、CI或R1。
+组成后的531输入 main 已在[后续原opt0六门禁记录](qualification/experimental-composed-request-facts-pitr-2026-10-15.zh-CN.md)
+实际通过98个suite/2073 passed/6个原ignored及45个独立doc，全部2182个当时非ignored
+文件前后相同；这仍不转授完整189/四套Native、CI或R1。
 
 剩余语义决策：typed builder、reducer 注册/版本、非 root namespace grammar 与
 shared-state declaration 属于 R1；参考负载下调度策略和阈值属于 R6。
