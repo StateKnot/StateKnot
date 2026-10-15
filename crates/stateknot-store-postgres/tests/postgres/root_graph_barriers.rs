@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Whole Root dispositions, original input recovery and durable corruption isolation.
+#[path = "root_graph_barriers/elapsed.rs"]
+mod elapsed;
 #[path = "root_graph_barriers/trusted_upgrade.rs"]
 mod trusted_upgrade;
 use super::*;
@@ -315,6 +317,7 @@ async fn snapshot(db: &PgPool, fence: &RunFence) -> Vec<serde_json::Value> {
         "run_events",
         "run_checkpoints",
         "root_graph_barriers",
+        "graph_wait_conditions",
         "pending_node_results",
         "pending_node_result_consumptions",
         "run_wait_registrations",

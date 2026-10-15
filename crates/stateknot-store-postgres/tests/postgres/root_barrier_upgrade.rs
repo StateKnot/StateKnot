@@ -11,7 +11,7 @@ use stateknot_store_postgres::GraphFrameEntryCommitOutcome;
 
 async fn table_fingerprints(pool: &PgPool) -> Vec<(String, i64, String)> {
     let names = query_scalar::<_, String>(
-        "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='stateknot' AND tablename<>'root_graph_barriers' ORDER BY tablename",
+        "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='stateknot' AND tablename NOT IN ('root_graph_barriers','graph_wait_conditions') ORDER BY tablename",
     )
     .fetch_all(pool)
     .await
@@ -248,9 +248,13 @@ async fn populated_source33_upgrade_preserves_facts_without_disposition_backfill
     assert!(migrations.iter().all(|(_, _, success)| *success));
     store.close().await;
 
-    // Only migrations34/35's empty Root objects are removed. All original canonical
+    // Migration36 is safely reverted before migrations34/35's empty Root objects. All original canonical
     // facts and migration checksums stay untouched. This is source-schema
     // reconstruction and does not pretend to run a published N-1/N-2 binary.
+    sqlx_core::raw_sql::raw_sql(include_str!("../fixtures/revert_elapsed_graph_waits.sql"))
+        .execute(&pool)
+        .await
+        .unwrap();
     sqlx_core::raw_sql::raw_sql(
         "BEGIN;
          DROP TRIGGER run_events_root_barrier_complete ON stateknot.run_events;

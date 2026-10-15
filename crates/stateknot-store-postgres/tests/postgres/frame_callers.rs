@@ -718,8 +718,10 @@ async fn source_schema_29_upgrade_preserves_real_barrier_history_before_rebindin
     .fetch_all(&fixture)
     .await
     .unwrap();
-    sqlx_core::raw_sql::raw_sql(include_str!(
-        "../fixtures/revert_graph_frame_caller_bindings.sql"
+    sqlx_core::raw_sql::raw_sql(&format!(
+        "{}\n{}",
+        include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+        include_str!("../fixtures/revert_graph_frame_caller_bindings.sql")
     ))
     .execute(&fixture)
     .await

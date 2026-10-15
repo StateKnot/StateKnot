@@ -1,0 +1,34 @@
+{
+  "case": 14,
+  "exact_test": "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+  "origin_label": "elapsed36-ready-v2-sql-role-pg17",
+  "postgres_major": "17",
+  "database": "stateknot_r1_a36_feedback_oct15v1",
+  "package": "stateknot-runtime",
+  "binary_sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+    "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "exit_code": 0,
+  "seconds": 36.96768093109131,
+  "valid_exact_native_success": true,
+  "summaries": [
+    [
+      "ok",
+      "1",
+      "0",
+      "0"
+    ]
+  ],
+  "result_lines": [
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 36.96s"
+  ],
+  "log_sha256": "da786938dfe8b45dd00992a40be47018c58ea058c89183081ab7e5def318afa4",
+  "default_stack": true,
+  "original_config_and_assertions": true
+}

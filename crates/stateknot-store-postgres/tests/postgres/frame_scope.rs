@@ -103,10 +103,14 @@ async fn upgrade_nonempty_root_fixture(url: &str, pool: &PgPool, root: &Checkpoi
     .fetch_one(pool)
     .await
     .unwrap();
-    sqlx_core::raw_sql::raw_sql(include_str!("../fixtures/revert_scoped_checkpoints.sql"))
-        .execute(pool)
-        .await
-        .unwrap();
+    sqlx_core::raw_sql::raw_sql(&format!(
+        "{}\n{}",
+        include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+        include_str!("../fixtures/revert_scoped_checkpoints.sql")
+    ))
+    .execute(pool)
+    .await
+    .unwrap();
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM _sqlx_migrations")
             .fetch_one(pool)

@@ -13,6 +13,10 @@ use stateknot_core::{
 #[path = "trusted_graph_root.rs"]
 mod trusted_graph;
 
+#[path = "root_graph_barriers/elapsed.rs"]
+mod elapsed;
+use super::graph_waits::{self, GraphWaitInventory};
+
 pub(super) const EVENT_KIND: &str = "root-graph-barrier-committed";
 const INTENT_DOMAIN: &[u8] = b"stateknot-postgres-root-graph-barrier-intent-v1\0";
 const DISPOSITION_DOMAIN: &[u8] = b"stateknot-postgres-root-graph-disposition-v1\0";
@@ -108,6 +112,7 @@ impl RootGraphBarrierIntent {
         let wire = IntentWire {
             version: 1,
             source: None,
+            elapsed_agent_source: None,
             terminal_validation: None,
             base: base.clone(),
             successor_checkpoint_id: barrier.successor().checkpoint_id(),
@@ -233,6 +238,21 @@ impl StoredRootGraphBarrier {
     pub fn waits(&self) -> &[DurableWait] {
         &self.waits
     }
+    /// Returns the authenticated effect at the original event clock. Ready is
+    /// historical evidence and grants no fresh claim or dispatch authority.
+    #[must_use]
+    pub fn wait_effect(&self) -> Option<super::graph_frames::GraphWaitEffect> {
+        if !matches!(self.disposition, GraphBarrierDisposition::Wait { .. }) {
+            return None;
+        }
+        Some(self.wire.wait_inventory.as_deref().map_or(
+            super::graph_frames::GraphWaitEffect::Waiting,
+            elapsed::effect,
+        ))
+    }
+    pub(super) fn wait_inventory(&self) -> Option<&GraphWaitInventory> {
+        self.wire.wait_inventory.as_deref()
+    }
     /// Returns the exact journal observation used by the original append.
     #[must_use]
     pub fn source_journal(&self) -> &JournalHead {
@@ -320,6 +340,8 @@ struct IntentWire {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     source: Option<Box<trusted_graph::Source>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    elapsed_agent_source: Option<Box<elapsed::AgentSource>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     terminal_validation: Option<Box<AgentTerminalValidationInputs>>,
     base: CheckpointHead,
     successor_checkpoint_id: CheckpointId,
@@ -343,6 +365,8 @@ struct Wire {
     source_journal: JournalHead,
     checkpoint: CheckpointHead,
     lifecycle_after: Box<RunLifecycle>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    wait_inventory: Option<Box<GraphWaitInventory>>,
     compound_digest: Digest,
 }
 #[derive(Serialize)]
@@ -353,6 +377,8 @@ struct Compound<'a> {
     event: &'a JournalEvent,
     checkpoint: &'a CheckpointHead,
     lifecycle_after: &'a RunLifecycle,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    wait_inventory: Option<&'a GraphWaitInventory>,
 }
 fn domain_digest<T: Serialize>(domain: &[u8], value: &T) -> Result<Digest, StoreError> {
     let canonical = serde_json_canonicalizer::to_vec(value)
@@ -364,20 +390,22 @@ fn domain_digest<T: Serialize>(domain: &[u8], value: &T) -> Result<Digest, Store
 }
 fn intent_digest(intent: &IntentWire) -> Result<Digest, StoreError> {
     domain_digest(
-        if intent.version == 1 {
-            INTENT_DOMAIN
-        } else {
-            TRUSTED_INTENT_DOMAIN
+        match intent.version {
+            1 => INTENT_DOMAIN,
+            2 => TRUSTED_INTENT_DOMAIN,
+            3 => elapsed::INTENT_DOMAIN,
+            _ => return Err(StoreError::InvalidCheckpointBarrier),
         },
         intent,
     )
 }
 fn compound(wire: &Wire, event: &JournalEvent) -> Result<Digest, StoreError> {
     domain_digest(
-        if wire.version == 1 {
-            COMPOUND_DOMAIN
-        } else {
-            TRUSTED_COMPOUND_DOMAIN
+        match wire.version {
+            1 => COMPOUND_DOMAIN,
+            2 => TRUSTED_COMPOUND_DOMAIN,
+            3 => elapsed::COMPOUND_DOMAIN,
+            _ => return Err(StoreError::InvalidCheckpointBarrier),
         },
         &Compound {
             version: wire.version,
@@ -386,6 +414,7 @@ fn compound(wire: &Wire, event: &JournalEvent) -> Result<Digest, StoreError> {
             event,
             checkpoint: &wire.checkpoint,
             lifecycle_after: &wire.lifecycle_after,
+            wait_inventory: wire.wait_inventory.as_deref(),
         },
     )
 }
@@ -489,6 +518,26 @@ static TRUSTED_EVENT_SCHEMA: LazyLock<Result<stateknot_core::SchemaReference, &'
         ))
     });
 fn payload(intent: &IntentWire, digest: Digest) -> Result<JournalPayload, StoreError> {
+    if intent.version == 3 {
+        let source = if intent.elapsed_agent_source.is_some() {
+            "agent_admission"
+        } else {
+            "trusted_graph"
+        };
+        let data = serde_json::json!({"version":3,"source":source,"graph_namespace":"","base_checkpoint_id":intent.base.checkpoint_id(),"base_checkpoint_digest":intent.base.digest(),"successor_checkpoint_id":intent.successor_checkpoint_id,"successor_intent_digest":intent.successor_intent_digest,"barrier_intent_digest":intent.barrier_intent_digest,"intent_digest":digest});
+        return JournalPayload::new(
+            elapsed::schema()?,
+            EVENT_KIND
+                .parse()
+                .map_err(|_| StoreError::encoding("elapsed Root event kind"))?,
+            BoundedJson::from_slice(
+                &serde_json_canonicalizer::to_vec(&data)
+                    .map_err(|_| StoreError::encoding("elapsed Root event"))?,
+            )
+            .map_err(|_| StoreError::encoding("elapsed Root event bound"))?,
+        )
+        .map_err(|_| StoreError::encoding("elapsed Root event"));
+    }
     let (schema, data) = if intent.version == 1 {
         (
             &EVENT_SCHEMA,
@@ -549,9 +598,19 @@ fn decode(bytes: &[u8]) -> Result<Box<Wire>, StoreError> {
                 && (wire.intent.terminal_validation.is_some()
                     == matches!(wire.intent.disposition, Disposition::Terminal { .. }))
         }
+        3 => {
+            wire.intent.version == 3
+                && (wire.intent.source.is_some() != wire.intent.elapsed_agent_source.is_some())
+                && wire.intent.terminal_validation.is_none()
+                && wire.intent.terminal_result_digest.is_none()
+                && matches!(wire.intent.disposition, Disposition::Wait { .. })
+                && wire.wait_inventory.is_some()
+        }
         _ => false,
     };
     if !source_shape
+        || (wire.version != 3
+            && (wire.wait_inventory.is_some() || wire.intent.elapsed_agent_source.is_some()))
         || wire.intent.result_count == 0
         || wire.intent.result_count > BarrierResultHeads::MAX_LEN
         || matches!(&wire.intent.disposition, Disposition::Wait { registrations, .. } if registrations.is_empty() || registrations.len() > NodeWaits::MAX_LEN)
@@ -706,14 +765,41 @@ pub(super) fn authenticated_edge<'a>(
         if wire.intent.disposition != expected_compact {
             return Err(StoreError::corrupt("Root barrier historical disposition"));
         }
-        let (after, waits, original_projection_digest) = materialize_lifecycle(
-            &wire.intent.lifecycle_before,
-            &barrier,
-            &disposition,
-            result.as_ref(),
-            &event,
-        )
-        .map_err(|_| StoreError::corrupt("Root barrier historical lifecycle projection"))?;
+        let (after, waits, original_projection_digest) =
+            if let Some(stored_inventory) = wire.wait_inventory.as_deref() {
+                let (prepared, inventory) = elapsed::prepare(
+                    base,
+                    &barrier,
+                    results,
+                    &disposition,
+                    &wire.source_journal,
+                    &event,
+                    successor,
+                )
+                .map_err(|_| StoreError::corrupt("elapsed Root complete original inputs"))?;
+                inventory
+                    .validate_summary(stored_inventory)
+                    .map_err(|_| StoreError::corrupt("elapsed Root inventory summary"))?;
+                graph_waits::verify(tx, &prepared, &inventory)
+                    .await
+                    .map_err(|error| elapsed::database_error(error, true))?;
+                elapsed::materialize(
+                    &wire.intent.lifecycle_before,
+                    &barrier,
+                    &disposition,
+                    &event,
+                    stored_inventory,
+                )
+            } else {
+                materialize_lifecycle(
+                    &wire.intent.lifecycle_before,
+                    &barrier,
+                    &disposition,
+                    result.as_ref(),
+                    &event,
+                )
+            }
+            .map_err(|_| StoreError::corrupt("Root barrier historical lifecycle projection"))?;
         if encode_lifecycle(&after)? != encode_lifecycle(&wire.lifecycle_after)?
             || original_projection_digest != wire.intent.original_projection_digest
             || result
@@ -817,6 +903,13 @@ fn authenticate_intent_source<'a>(
             return trusted_graph::verify(tx, &intent.base, &intent.lifecycle_before, source).await;
         }
         let admission = authenticated_admission(tx, &intent.base).await?;
+        if intent.version == 3 {
+            intent
+                .elapsed_agent_source
+                .as_deref()
+                .ok_or_else(|| StoreError::corrupt("elapsed Root positive Agent source missing"))?
+                .verify(&admission)?;
+        }
         if intent.lifecycle_before.provenance() != admission.admission().intent().provenance()
             || intent.lifecycle_before.admitted_at() != admission.admission().admitted_at()
         {
@@ -972,7 +1065,7 @@ async fn insert(
         .bind(wire.intent_digest.as_bytes()).bind(wire.compound_digest.as_bytes()).bind(encode(wire)?)
         .bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?).bind(*event.event_id().as_uuid()).bind(to_database_time(event.recorded_at())?).bind(event.digest().as_bytes())
         .bind(*worker.attempt_id().as_uuid()).bind(i64::try_from(worker.epoch().get()).map_err(|_| StoreError::StaleFence)?)
-        .bind(i32::from(wire.version))
+        .bind(if wire.intent.source.is_some() { 2_i32 } else { 1_i32 })
         .execute(&mut **tx).await.map_err(|source| StoreError::database("Root barrier whole insert",source))?.rows_affected();
     if count != 1 {
         return Err(StoreError::LeaseExpired);
@@ -1011,7 +1104,7 @@ fn local_record<'a>(
 ) -> stateknot_core::BoxFuture<'a, Result<Option<StoredRootGraphBarrier>, StoreError>> {
     Box::pin(async move {
         let next: Option<Uuid> = query_scalar("SELECT checkpoint_id FROM stateknot.run_checkpoints WHERE tenant_id=$1 AND run_id=$2 AND parent_checkpoint_id=$3 AND graph_namespace='' ORDER BY superstep LIMIT 1")
-            .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(*base.checkpoint_id().as_uuid()).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root barrier successor",source))?;
+        .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(*base.checkpoint_id().as_uuid()).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root barrier successor",source))?;
         let Some(next) = next else {
             if row(tx, &base.head()).await?.is_some() {
                 return Err(StoreError::corrupt("Root barrier missing successor"));
@@ -1177,9 +1270,10 @@ impl PostgresStore {
     }
 
     /// Prepares a Root plan using its authenticated original creating source.
-    /// Agent V1 keeps its admission inputs. Trusted ordinary Graph V2 captures
-    /// its positive Start/checkpoint source and, for Terminal, exact original
-    /// validation inputs. This grants no fresh fence or dispatch authority.
+    /// Continue/Terminal retain Agent V1 or trusted ordinary Graph V2 inputs.
+    /// A new Wait uses V3 with either its positive full-admission reference or
+    /// original trusted Start/checkpoint source and a complete original-condition
+    /// inventory at commit. This grants no fresh fence or dispatch authority.
     ///
     /// # Errors
     /// Rejects crossed ownership, corrupt sources, unavailable original legacy
@@ -1211,7 +1305,7 @@ impl PostgresStore {
         Box::pin(verify_checkpoint(&mut tx, &checkpoint)).await?;
         let origin =
             trusted_graph::authenticate(&mut tx, base, intent.original_lifecycle()).await?;
-        let intent = match origin {
+        let mut intent = match origin {
             trusted_graph::Origin::Agent(admission) => {
                 if intent.original_lifecycle().provenance()
                     != admission.admission().intent().provenance()
@@ -1220,12 +1314,27 @@ impl PostgresStore {
                 {
                     return Err(StoreError::InvalidLifecycleTransition);
                 }
+                let mut intent = intent;
+                if matches!(
+                    intent.plan().disposition(),
+                    GraphBarrierDisposition::Wait { .. }
+                ) {
+                    intent.data.wire.elapsed_agent_source =
+                        Some(Box::new(elapsed::AgentSource::new(&admission)));
+                }
                 intent
             }
             trusted_graph::Origin::TrustedGraph(source) => {
                 intent.with_trusted_source(source, terminal_validation)?
             }
         };
+        if matches!(
+            intent.plan().disposition(),
+            GraphBarrierDisposition::Wait { .. }
+        ) {
+            intent.data.wire.version = 3;
+            intent.data.digest = intent_digest(&intent.data.wire)?;
+        }
         tx.commit().await.map_err(|source| {
             StoreError::database("Root graph creating source preflight commit", source)
         })?;
@@ -1563,13 +1672,37 @@ impl PostgresStore {
             .map_err(|error| map_event_commit_error(&error))?;
         let successor = Checkpoint::commit(barrier.successor().clone(), event.head())
             .map_err(|_| StoreError::InvalidCheckpointBarrier)?;
-        let (after, waits, original_projection_digest) = materialize_lifecycle(
-            &data.before,
-            barrier,
-            data.plan.disposition(),
-            data.terminal_result.as_ref(),
-            &event,
-        )?;
+        let original_waits = if data.wire.version == 3 {
+            Some(elapsed::prepare(
+                &parent,
+                barrier,
+                &full_results,
+                data.plan.disposition(),
+                &source_journal,
+                &event,
+                &successor,
+            )?)
+        } else {
+            None
+        };
+        let (after, waits, original_projection_digest) =
+            if let Some((_, inventory)) = &original_waits {
+                elapsed::materialize(
+                    &data.before,
+                    barrier,
+                    data.plan.disposition(),
+                    &event,
+                    inventory.summary(),
+                )?
+            } else {
+                materialize_lifecycle(
+                    &data.before,
+                    barrier,
+                    data.plan.disposition(),
+                    data.terminal_result.as_ref(),
+                    &event,
+                )?
+            };
         if original_projection_digest != data.wire.original_projection_digest {
             return Err(StoreError::ProjectionIntentConflict);
         }
@@ -1585,6 +1718,9 @@ impl PostgresStore {
             source_journal,
             checkpoint: successor.head(),
             lifecycle_after: Box::new(after),
+            wait_inventory: original_waits
+                .as_ref()
+                .map(|(_, inventory)| Box::new(inventory.summary().clone())),
             compound_digest: Digest::sha256([]),
         });
         wire.compound_digest = compound(&wire, &event)?;
@@ -1598,6 +1734,11 @@ impl PostgresStore {
         };
         insert_event_components(&mut tx, &record.event, record.digest()).await?;
         insert_checkpoint(&mut tx, &record.checkpoint, record.event.source()).await?;
+        if let Some((prepared, inventory)) = &original_waits {
+            graph_waits::insert(&mut tx, prepared, inventory)
+                .await
+                .map_err(|error| elapsed::database_error(error, false))?;
+        }
         for wait in &record.waits {
             insert_wait_registration(&mut tx, wait).await?;
         }
@@ -1611,6 +1752,10 @@ impl PostgresStore {
         insert(&mut tx, &record).await?;
         update_checkpoint_pointer(&mut tx, &record.checkpoint, record.event.source()).await?;
         update_run_head(&mut tx, &record.event, prepared.as_ref()).await?;
+        // Release the bounded preflight result set before reading its actual
+        // post-guard replacement; retaining both would double the live payload.
+        drop(original_waits);
+        drop(full_results);
         query("SET CONSTRAINTS ALL IMMEDIATE")
             .execute(&mut *tx)
             .await
@@ -1619,11 +1764,31 @@ impl PostgresStore {
             })?;
         // Authenticate what the database actually stored after every deferred
         // guard, before returning a receipt or releasing the transaction lock.
+        // Re-read the complete owning results and their provider/attempt rows;
+        // a preflight copy cannot authenticate post-trigger durable inputs.
+        let durable_parent = checkpoint(
+            &mut tx,
+            base.tenant_id(),
+            base.run_id(),
+            base.checkpoint_id(),
+        )
+        .await?;
+        let durable_successor = checkpoint(
+            &mut tx,
+            base.tenant_id(),
+            base.run_id(),
+            record.checkpoint.checkpoint_id(),
+        )
+        .await?;
+        if durable_parent != parent || durable_successor != record.checkpoint {
+            return Err(StoreError::corrupt("Root commit durable checkpoint bytes"));
+        }
+        let durable_results = Box::pin(results(&mut tx, &durable_parent)).await?;
         let durable = Box::pin(authenticated_edge(
             &mut tx,
-            &parent,
-            &record.checkpoint,
-            &full_results,
+            &durable_parent,
+            &durable_successor,
+            &durable_results,
         ))
         .await?
         .ok_or_else(|| StoreError::corrupt("Root commit durable whole bundle"))?;
@@ -1647,8 +1812,8 @@ impl PostgresStore {
             || encode_lifecycle(final_run.lifecycle())?
                 != encode_lifecycle(durable.committed_lifecycle())?
             || final_run.last_fencing_epoch() != Some(append_fence_epoch(&durable.event)?)
-            || match durable.disposition {
-                GraphBarrierDisposition::Continue => {
+            || match durable.committed_lifecycle().status() {
+                RunStatus::Active => {
                     final_run.lease() != stored.lease()
                         || final_run.scheduler_ready_at() != stored.scheduler_ready_at()
                         || final_run.scheduler_not_before() != stored.scheduler_not_before()
@@ -1673,7 +1838,7 @@ impl PostgresStore {
             final_now,
         )?;
         let within_deadline: bool = query_scalar("SELECT CASE WHEN $5::integer=1 THEN agent_deadline_at > clock_timestamp() WHEN $5::integer=2 THEN agent_deadline_at IS NULL ELSE false END FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence=$3 AND journal_digest=$4")
-            .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(i64::try_from(record.event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?).bind(record.event.digest().as_bytes()).bind(i32::from(record.wire.version)).fetch_one(&mut *tx).await.map_err(|source| StoreError::database("Root barrier final deadline",source))?;
+            .bind(base.tenant_id().as_str()).bind(*base.run_id().as_uuid()).bind(i64::try_from(record.event.sequence().get()).map_err(|_| StoreError::JournalSequenceExhausted)?).bind(record.event.digest().as_bytes()).bind(if record.wire.intent.source.is_some() { 2_i32 } else { 1_i32 }).fetch_one(&mut *tx).await.map_err(|source| StoreError::database("Root barrier final deadline",source))?;
         if !within_deadline {
             return Err(StoreError::LeaseExpired);
         }
@@ -1803,7 +1968,7 @@ pub(super) fn verify_event<'a>(
             return Ok(());
         }
         let id: Uuid = query_scalar("SELECT base_checkpoint_id FROM stateknot.root_graph_barriers WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence=$3")
-            .bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid()).bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::corrupt("Root event sequence"))?).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root event owning bundle",source))?.ok_or_else(|| StoreError::corrupt("Root event missing whole bundle"))?;
+        .bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid()).bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::corrupt("Root event sequence"))?).fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("Root event owning bundle",source))?.ok_or_else(|| StoreError::corrupt("Root event missing whole bundle"))?;
         let base = Box::new(
             checkpoint(
                 tx,

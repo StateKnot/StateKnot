@@ -10,10 +10,26 @@ use stateknot_core::{
     NodeWaits,
 };
 
+#[path = "barriers/elapsed.rs"]
+mod elapsed;
+
+use super::super::graph_waits::{self, GraphWaitInventory, OriginalGraphWaits};
+
 const INTENT_DOMAIN: &[u8] = b"stateknot-postgres-frame-barrier-scope-v1\0";
 const COMPOUND_DOMAIN: &[u8] = b"stateknot-postgres-frame-barrier-compound-v1\0";
 const MAX_BARRIER_BYTES: usize = 4 * 1024 * 1024;
 const EVENT_KIND: &str = "graph-frame-barrier-committed";
+
+/// The committed effect of complete original graph Wait conditions.
+/// This value alone grants no dispatch or lease authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum GraphWaitEffect {
+    /// At least one original future Timer or authorized Interrupt remains.
+    Waiting,
+    /// Every original condition is a Timer elapsed at the actual event clock.
+    Ready,
+}
 
 /// Authenticated scoped checkpoint advance and complete result consumption.
 #[derive(Clone, Debug)]
@@ -27,6 +43,7 @@ pub struct StoredGraphFrameBarrier {
     scope_intent_digest: Digest,
     digest: Digest,
     wait_revision: Option<RunRevision>,
+    wait_inventory: Option<GraphWaitInventory>,
 }
 
 impl StoredGraphFrameBarrier {
@@ -61,6 +78,23 @@ impl StoredGraphFrameBarrier {
         self.wait_revision
     }
 
+    /// Returns the authenticated original Wait effect, if this is a Wait edge.
+    #[must_use]
+    pub fn wait_effect(&self) -> Option<GraphWaitEffect> {
+        match &self.disposition {
+            Disposition::Wait { .. } => Some(
+                self.wait_inventory
+                    .as_ref()
+                    .map_or(GraphWaitEffect::Waiting, elapsed::effect),
+            ),
+            Disposition::Continue | Disposition::Terminal { .. } => None,
+        }
+    }
+
+    pub(super) const fn wait_inventory(&self) -> Option<&GraphWaitInventory> {
+        self.wait_inventory.as_ref()
+    }
+
     /// Returns the exact durable registrations authenticated with a suspension.
     ///
     /// # Errors
@@ -68,6 +102,13 @@ impl StoredGraphFrameBarrier {
     pub fn waits(&self) -> Result<Option<Vec<DurableWait>>, StoreError> {
         match (&self.disposition, self.wait_revision) {
             (Disposition::Wait { waits }, Some(_)) => {
+                if let Some(inventory) = &self.wait_inventory {
+                    let registrations = elapsed::registrations(waits, &self.event)?;
+                    if registrations.len() != usize::from(inventory.registered_count()) {
+                        return Err(StoreError::corrupt("elapsed scoped Wait registered count"));
+                    }
+                    return Ok(Some(registrations));
+                }
                 let intents = waits
                     .registration_intents(
                         self.event.tenant_id(),
@@ -138,7 +179,7 @@ impl Disposition {
 // successor intent, not merely one legacy checkpoint or result projection.
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Wire {
+struct LegacyWire {
     version: u8,
     barrier: GraphFrameBarrier,
     checkpoint: GraphFrameCheckpointHead,
@@ -149,6 +190,40 @@ struct Wire {
     compound_digest: Digest,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     wait_revision: Option<RunRevision>,
+}
+
+// Normalized private inputs; V3 full originals are restored from bounded rows.
+// This is never returned before the enclosing caller finishes owning proof.
+struct Wire {
+    barrier: GraphFrameBarrier,
+    checkpoint: GraphFrameCheckpointHead,
+    disposition: Disposition,
+    scope: EntryScope,
+    budget: EntryBudget,
+    scope_intent_digest: Digest,
+    compound_digest: Digest,
+    wait_revision: Option<RunRevision>,
+    wait_inventory: Option<GraphWaitInventory>,
+}
+impl From<LegacyWire> for Wire {
+    fn from(value: LegacyWire) -> Self {
+        Self {
+            barrier: value.barrier,
+            checkpoint: value.checkpoint,
+            disposition: value.disposition,
+            scope: value.scope,
+            budget: value.budget,
+            scope_intent_digest: value.scope_intent_digest,
+            compound_digest: value.compound_digest,
+            wait_revision: value.wait_revision,
+            wait_inventory: None,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct VersionHeader {
+    version: u8,
 }
 
 #[derive(Serialize)]
@@ -213,8 +288,8 @@ fn compound(
     )
 }
 
-fn wire(record: &StoredGraphFrameBarrier) -> Wire {
-    Wire {
+fn wire(record: &StoredGraphFrameBarrier) -> LegacyWire {
+    LegacyWire {
         version: if record.wait_revision.is_some() { 2 } else { 1 },
         barrier: record.barrier.clone(),
         checkpoint: record.checkpoint.head(),
@@ -227,6 +302,9 @@ fn wire(record: &StoredGraphFrameBarrier) -> Wire {
     }
 }
 fn encode(record: &StoredGraphFrameBarrier) -> Result<Vec<u8>, StoreError> {
+    if record.wait_inventory.is_some() {
+        return elapsed::encode(record);
+    }
     let bytes = serde_json_canonicalizer::to_vec(&wire(record))
         .map_err(|_| StoreError::encoding("frame barrier record"))?;
     if bytes.is_empty() || bytes.len() > MAX_BARRIER_BYTES {
@@ -234,28 +312,66 @@ fn encode(record: &StoredGraphFrameBarrier) -> Result<Vec<u8>, StoreError> {
     }
     Ok(bytes)
 }
-fn decode_wire(bytes: &[u8]) -> Result<Wire, StoreError> {
-    if bytes.is_empty() || bytes.len() > MAX_BARRIER_BYTES {
-        return Err(StoreError::corrupt("frame barrier byte bound"));
+fn decode_wire<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    bytes: &'a [u8],
+) -> stateknot_core::BoxFuture<'a, Result<Box<Wire>, StoreError>> {
+    Box::pin(async move {
+        if bytes.is_empty() || bytes.len() > MAX_BARRIER_BYTES {
+            return Err(StoreError::corrupt("frame barrier byte bound"));
+        }
+        // Bounded Core readers cap the result collection and nested state. Strict
+        // struct/enum readers reject unknown/duplicate fields; exact canonical bytes
+        // additionally reject alternate number, order, whitespace and escape forms.
+        let header: VersionHeader = serde_json::from_slice(bytes)
+            .map_err(|_| StoreError::corrupt("frame barrier version"))?;
+        if header.version == 3 {
+            return elapsed::decode(tx, bytes).await;
+        }
+        let value: Box<LegacyWire> =
+            serde_json::from_slice(bytes).map_err(|_| StoreError::corrupt("frame barrier wire"))?;
+        let suspension = matches!(value.disposition, Disposition::Wait { .. });
+        if !matches!(
+            (value.version, value.wait_revision.is_some(), suspension),
+            (1, false, false) | (2, true, true)
+        ) || serde_json_canonicalizer::to_vec(&value)
+            .map_err(|_| StoreError::corrupt("frame barrier canonical wire"))?
+            != bytes
+        {
+            return Err(StoreError::corrupt(
+                "frame barrier version or canonical bytes",
+            ));
+        }
+        Ok(Box::new((*value).into()))
+    })
+}
+
+fn record_scope_intent(wire: &Wire) -> Result<Digest, StoreError> {
+    if wire.wait_inventory.is_some() {
+        elapsed::scope_intent(
+            &wire.barrier,
+            &wire.disposition,
+            &wire.scope,
+            &wire.budget,
+            wire.wait_revision.ok_or(StoreError::GraphFrameConflict)?,
+        )
+    } else {
+        scope_intent(
+            &wire.barrier,
+            &wire.disposition,
+            &wire.scope,
+            &wire.budget,
+            wire.wait_revision,
+        )
     }
-    // Bounded Core readers cap the result collection and nested state. Strict
-    // struct/enum readers reject unknown/duplicate fields; exact canonical bytes
-    // additionally reject alternate number, order, whitespace and escape forms.
-    let value: Wire =
-        serde_json::from_slice(bytes).map_err(|_| StoreError::corrupt("frame barrier wire"))?;
-    let suspension = matches!(value.disposition, Disposition::Wait { .. });
-    if !matches!(
-        (value.version, value.wait_revision.is_some(), suspension),
-        (1, false, false) | (2, true, true)
-    ) || serde_json_canonicalizer::to_vec(&value)
-        .map_err(|_| StoreError::corrupt("frame barrier canonical wire"))?
-        != bytes
-    {
-        return Err(StoreError::corrupt(
-            "frame barrier version or canonical bytes",
-        ));
+}
+fn record_compound(wire: &Wire, event: &JournalEvent) -> Result<Digest, StoreError> {
+    match &wire.wait_inventory {
+        Some(inventory) => {
+            elapsed::compound(wire.scope_intent_digest, event, &wire.checkpoint, inventory)
+        }
+        None => compound(wire.scope_intent_digest, event, &wire.checkpoint),
     }
-    Ok(value)
 }
 
 fn bind_record(
@@ -265,6 +381,7 @@ fn bind_record(
     scope: EntryScope,
     budget: EntryBudget,
     wait_revision: Option<RunRevision>,
+    wait_inventory: Option<GraphWaitInventory>,
 ) -> Result<StoredGraphFrameBarrier, StoreError> {
     let barrier = plan.barrier().clone();
     let disposition = Disposition::from_core(plan.disposition())?;
@@ -276,8 +393,23 @@ fn bind_record(
     {
         return Err(StoreError::GraphFrameConflict);
     }
-    let scope_intent_digest = scope_intent(&barrier, &disposition, &scope, &budget, wait_revision)?;
-    let digest = compound(scope_intent_digest, &event, &checkpoint.head())?;
+    let scope_intent_digest = if wait_inventory.is_some() {
+        elapsed::scope_intent(
+            &barrier,
+            &disposition,
+            &scope,
+            &budget,
+            wait_revision.ok_or(StoreError::GraphFrameConflict)?,
+        )?
+    } else {
+        scope_intent(&barrier, &disposition, &scope, &budget, wait_revision)?
+    };
+    let digest = match &wait_inventory {
+        Some(inventory) => {
+            elapsed::compound(scope_intent_digest, &event, &checkpoint.head(), inventory)?
+        }
+        None => compound(scope_intent_digest, &event, &checkpoint.head())?,
+    };
     Ok(StoredGraphFrameBarrier {
         event,
         barrier,
@@ -288,6 +420,7 @@ fn bind_record(
         scope_intent_digest,
         digest,
         wait_revision,
+        wait_inventory,
     })
 }
 
@@ -319,6 +452,31 @@ static EVENT_SCHEMA: LazyLock<
     Ok((reference, document))
 });
 
+const ELAPSED_SCHEMA_ID: &str = "https://stknot.com/schemas/store/graph-frame-barrier-event/3.0.0";
+static ELAPSED_EVENT_SCHEMA: LazyLock<
+    Result<(stateknot_core::SchemaReference, serde_json::Value), &'static str>,
+> = LazyLock::new(|| {
+    let mut document = EVENT_SCHEMA
+        .as_ref()
+        .map_err(|_| "frame barrier event schema")?
+        .1
+        .clone();
+    document["$id"] = serde_json::json!(ELAPSED_SCHEMA_ID);
+    document["properties"]["version"] = serde_json::json!({"const":3});
+    let bytes = serde_json_canonicalizer::to_vec(&document)
+        .map_err(|_| "elapsed frame barrier event schema")?;
+    Ok((
+        stateknot_core::SchemaReference::new(
+            ELAPSED_SCHEMA_ID
+                .parse()
+                .map_err(|_| "elapsed frame barrier schema ID")?,
+            stateknot_core::Version::new(3, 0, 0),
+            Digest::sha256(bytes),
+        ),
+        document,
+    ))
+});
+
 #[derive(Serialize)]
 struct EventWire<'a> {
     version: u8,
@@ -332,9 +490,16 @@ struct EventWire<'a> {
     scope_intent_digest: Digest,
 }
 fn payload(barrier: &GraphFrameBarrier, scope: Digest) -> Result<JournalPayload, StoreError> {
+    payload_version(barrier, scope, false)
+}
+fn payload_version(
+    barrier: &GraphFrameBarrier,
+    scope: Digest,
+    elapsed: bool,
+) -> Result<JournalPayload, StoreError> {
     let base = barrier.base_checkpoint();
     let bytes = serde_json_canonicalizer::to_vec(&EventWire {
-        version: 1,
+        version: if elapsed { 3 } else { 1 },
         graph_namespace: base.frame().namespace(),
         frame_identity_digest: base.frame().digest(),
         base_checkpoint_id: base.checkpoint().checkpoint_id(),
@@ -345,11 +510,15 @@ fn payload(barrier: &GraphFrameBarrier, scope: Digest) -> Result<JournalPayload,
         scope_intent_digest: scope,
     })
     .map_err(|_| StoreError::encoding("frame barrier payload"))?;
-    let schema = EVENT_SCHEMA
-        .as_ref()
-        .map_err(|_| StoreError::encoding("frame barrier schema"))?
-        .0
-        .clone();
+    let schema = if elapsed {
+        &ELAPSED_EVENT_SCHEMA
+    } else {
+        &EVENT_SCHEMA
+    }
+    .as_ref()
+    .map_err(|_| StoreError::encoding("frame barrier schema"))?
+    .0
+    .clone();
     JournalPayload::new(
         schema,
         EVENT_KIND
@@ -568,7 +737,13 @@ pub(super) async fn checkpoint_at_replay(
         .await?
         .ok_or_else(|| StoreError::corrupt("frame barrier lineage missing"))?;
         let record = Box::pin(verify_edge_replay(
-            replay, entry, admission, graphs, &current, &floor, row,
+            replay,
+            entry,
+            admission,
+            graphs,
+            &current,
+            &floor,
+            BarrierReplayEdge::new(row, admission.run()),
         ))
         .await?;
         floor = charged(&record)?;
@@ -649,6 +824,23 @@ pub(super) async fn current_checkpoint_replay(
     Ok((checkpoint, floor))
 }
 
+// This input binds the complete edge to the actual current Run revision.
+// Fresh Waiting has already committed its lifecycle projection inside the
+// owning transaction; recovery uses its authenticated admission snapshot.
+struct BarrierReplayEdge {
+    row: Row,
+    current_revision: RunRevision,
+}
+
+impl BarrierReplayEdge {
+    fn new(row: Row, run: &StoredRun) -> Self {
+        Self {
+            row,
+            current_revision: run.lifecycle().revision(),
+        }
+    }
+}
+
 #[allow(clippy::too_many_lines)]
 async fn verify_edge_replay(
     replay: &mut Replay<'_, '_>,
@@ -657,10 +849,10 @@ async fn verify_edge_replay(
     graphs: &BTreeMap<Digest, CompiledGraph>,
     base: &GraphFrameCheckpoint,
     floor: &BudgetUsage,
-    row: Row,
+    edge: BarrierReplayEdge,
 ) -> Result<StoredGraphFrameBarrier, StoreError> {
     replay.visit_edge()?;
-    let record = Box::pin(edge_components(replay.tx, entry, base, row)).await?;
+    let record = Box::pin(edge_components(replay.tx, entry, base, edge.row)).await?;
     // Authenticate chronological accounting first. A returned result owner
     // can then reuse its already verified whole proof instead of descending
     // into older nested settlements while holding this barrier future.
@@ -704,7 +896,7 @@ async fn verify_edge_replay(
         .direct_usage
         .validate_monotonic_after(&floor)
         .map_err(|_| StoreError::corrupt("barrier shared usage regression"))?;
-    verify_wait_components(replay.tx, &record, admission.run().lifecycle().revision()).await?;
+    verify_wait_components(replay.tx, &record, edge.current_revision).await?;
     let total = charged(&record)?
         .checked_accumulate(&record.budget.delegated_usage)
         .map_err(|_| StoreError::corrupt("barrier accounting"))?;
@@ -727,7 +919,7 @@ async fn edge_components(
     base: &GraphFrameCheckpoint,
     row: Row,
 ) -> Result<StoredGraphFrameBarrier, StoreError> {
-    let wire = decode_wire(&row.barrier_bytes)?;
+    let wire = Box::pin(decode_wire(tx, &row.barrier_bytes)).await?;
     if Digest::sha256(&row.barrier_bytes)
         != decode_digest(&row.barrier_checksum, "barrier bytes checksum")?
         || wire.scope != entry.scope
@@ -796,15 +988,14 @@ async fn edge_components(
         || event.digest() != decode_digest(&row.journal_digest, "barrier journal")?
         || event.source().worker_fence().is_none()
         || projection != Some(wire.compound_digest)
-        || event.payload() != &payload(&wire.barrier, wire.scope_intent_digest)?
-        || scope_intent(
-            &wire.barrier,
-            &wire.disposition,
-            &wire.scope,
-            &wire.budget,
-            wire.wait_revision,
-        )? != wire.scope_intent_digest
-        || compound(wire.scope_intent_digest, &event, &wire.checkpoint)? != wire.compound_digest
+        || event.payload()
+            != &if wire.wait_inventory.is_some() {
+                payload_version(&wire.barrier, wire.scope_intent_digest, true)?
+            } else {
+                payload(&wire.barrier, wire.scope_intent_digest)?
+            }
+        || record_scope_intent(&wire)? != wire.scope_intent_digest
+        || record_compound(&wire, &event)? != wire.compound_digest
     {
         return Err(StoreError::corrupt("barrier whole event binding"));
     }
@@ -840,6 +1031,7 @@ async fn edge_components(
         scope_intent_digest: wire.scope_intent_digest,
         digest: wire.compound_digest,
         wait_revision: wire.wait_revision,
+        wait_inventory: wire.wait_inventory,
     };
     Ok(record)
 }
@@ -912,7 +1104,10 @@ fn verify_wait_components<'a>(
             }
             if record
                 .wait_revision
-                .is_some_and(|revision| revision >= current_revision)
+                .is_some_and(|revision| match record.wait_effect() {
+                    Some(GraphWaitEffect::Ready) => revision > current_revision,
+                    _ => revision >= current_revision,
+                })
             {
                 return Err(StoreError::corrupt("frame suspension lifecycle revision"));
             }
@@ -1002,7 +1197,7 @@ async fn verified_record_replay(
         replay, tenant, run, namespace, admission, graphs,
     ))
     .await?;
-    let wire = decode_wire(&row.barrier_bytes)?;
+    let wire = Box::pin(decode_wire(replay.tx, &row.barrier_bytes)).await?;
     let (base, floor) = checkpoint_at_replay(
         replay,
         &entry,
@@ -1012,7 +1207,13 @@ async fn verified_record_replay(
     )
     .await?;
     Box::pin(verify_edge_replay(
-        replay, &entry, admission, graphs, &base, &floor, row,
+        replay,
+        &entry,
+        admission,
+        graphs,
+        &base,
+        &floor,
+        BarrierReplayEdge::new(row, admission.run()),
     ))
     .await
 }
@@ -1028,6 +1229,19 @@ impl PostgresStore {
             .as_ref()
             .cloned()
             .map_err(|_| StoreError::encoding("frame barrier event schema"))
+    }
+
+    /// Returns the closed pinned schema for V3 original-condition Wait events.
+    /// Existing V1/V2 event schema bytes remain unchanged.
+    ///
+    /// # Errors
+    /// Rejects a local canonical schema encoding failure.
+    pub fn graph_frame_elapsed_wait_event_schema()
+    -> Result<(stateknot_core::SchemaReference, serde_json::Value), StoreError> {
+        ELAPSED_EVENT_SCHEMA
+            .as_ref()
+            .cloned()
+            .map_err(|_| StoreError::encoding("elapsed frame barrier schema"))
     }
 
     /// Restores one whole immutable barrier, including its bounded ancestry,
@@ -1063,7 +1277,7 @@ impl PostgresStore {
                 .map_err(|e| StoreError::database("empty frame barrier snapshot commit", e))?;
             return Ok(None);
         };
-        let wire = decode_wire(&row.barrier_bytes)?;
+        let wire = Box::pin(decode_wire(&mut tx, &row.barrier_bytes)).await?;
         if wire.barrier.base_checkpoint().checkpoint().checkpoint_id() != base
             || wire.barrier.base_checkpoint().frame().namespace() != namespace
         {
@@ -1451,14 +1665,18 @@ impl PostgresStore {
             child_account_digest,
         };
         let disposition = Disposition::from_core(plan.disposition())?;
-        let intent_digest =
-            scope_intent(barrier, &disposition, &entry.scope, &budget, wait_revision)?;
+        let intent_digest = match wait_revision {
+            Some(revision) => {
+                elapsed::scope_intent(barrier, &disposition, &entry.scope, &budget, revision)?
+            }
+            None => scope_intent(barrier, &disposition, &entry.scope, &budget, None)?,
+        };
         let intent = JournalEventIntent::worker(
             tenant.clone(),
             run,
             event_id,
             fence.clone(),
-            payload(barrier, intent_digest)?,
+            payload_version(barrier, intent_digest, wait_revision.is_some())?,
         )
         .map_err(|_| StoreError::GraphFrameRejected)?;
         let append = JournalAppend::new(
@@ -1475,7 +1693,36 @@ impl PostgresStore {
         checkpoint
             .verify_successor(&successor)
             .map_err(|_| StoreError::GraphFrameConflict)?;
-        let record = bind_record(&plan, event, successor, entry.scope, budget, wait_revision)?;
+        let prepared = match &disposition {
+            Disposition::Wait { waits } => Some(
+                OriginalGraphWaits::from_complete_results(
+                    checkpoint.checkpoint(),
+                    namespace,
+                    barrier.result_heads(),
+                    &results,
+                    waits,
+                )
+                .and_then(|original| original.prepare(&observed, &event))
+                .map_err(elapsed::write_error)?,
+            ),
+            Disposition::Continue | Disposition::Terminal { .. } => None,
+        };
+        let inventory = prepared
+            .as_ref()
+            .map(|prepared| prepared.inventory(successor.checkpoint()))
+            .transpose()
+            .map_err(elapsed::write_error)?;
+        let mut record = bind_record(
+            &plan,
+            event,
+            successor,
+            entry.scope.clone(),
+            budget,
+            wait_revision,
+            inventory
+                .as_ref()
+                .map(|inventory| inventory.summary().clone()),
+        )?;
         let total = charged(&record)?
             .checked_accumulate(&record.budget.delegated_usage)
             .map_err(|_| StoreError::IncompleteChildAccounting)?;
@@ -1502,7 +1749,7 @@ impl PostgresStore {
         )
         .await?;
         let waits = record.waits()?;
-        let projection = if let Some(waits) = &waits {
+        let projection = if let Some(waits) = &waits.as_ref().filter(|waits| !waits.is_empty()) {
             verify_current_wait_set(replay.tx, stored).await?;
             let markers = RunWaits::try_new(waits.iter().map(DurableWait::marker))
                 .map_err(|_| StoreError::InvalidWaitRegistrationBatch)?;
@@ -1517,6 +1764,11 @@ impl PostgresStore {
         } else {
             None
         };
+        if let (Some(prepared), Some(inventory)) = (&prepared, &inventory) {
+            graph_waits::insert(replay.tx, prepared, inventory)
+                .await
+                .map_err(elapsed::database_write_error)?;
+        }
         insert_record(replay.tx, &record).await?;
         advance_head(replay.tx, base, &record.checkpoint).await?;
         if let Some(waits) = &waits {
@@ -1525,6 +1777,69 @@ impl PostgresStore {
             }
         }
         update_run_head(replay.tx, &record.event, projection.as_ref()).await?;
+        if let (Some(prepared), Some(inventory)) = (&prepared, &inventory) {
+            query("SET CONSTRAINTS ALL IMMEDIATE")
+                .execute(&mut **replay.tx)
+                .await
+                .map_err(|e| StoreError::database("elapsed scoped Wait component guards", e))?;
+            graph_waits::verify(replay.tx, prepared, inventory)
+                .await
+                .map_err(elapsed::database_read_error)?;
+            // Authenticate the actual stored edge after all deferred guards.
+            // Reuse the owning prefix, complete result and chronological
+            // accounting proof rather than restarting its historical reader.
+            let current_run = decode_run(fetch_locked_run_row(replay.tx, tenant, run).await?)?;
+            let expected_lifecycle = projection.as_ref().map_or_else(
+                || encode_lifecycle(stored.lifecycle()),
+                |projection| Ok(projection.lifecycle_bytes.clone()),
+            )?;
+            if current_run.is_quarantined()
+                || current_run.journal_head() != Some(&record.event.head())
+                || current_run.checkpoint() != stored.checkpoint()
+                || current_run.last_fencing_epoch() != Some(fence.epoch())
+                || encode_lifecycle(current_run.lifecycle())? != expected_lifecycle
+                || if projection.is_some() {
+                    current_run.lease().is_some()
+                        || current_run.scheduler_ready_at().is_some()
+                        || current_run.scheduler_not_before().is_some()
+                } else {
+                    current_run.lease() != stored.lease()
+                        || current_run.scheduler_ready_at() != stored.scheduler_ready_at()
+                        || current_run.scheduler_not_before() != stored.scheduler_not_before()
+                }
+            {
+                return Err(StoreError::corrupt("fresh frame Wait Run projection"));
+            }
+            Box::pin(verify_current_wait_set(replay.tx, &current_run)).await?;
+            let actual_row = row(replay.tx, tenant, run, namespace, base.checkpoint_id())
+                .await?
+                .ok_or_else(|| StoreError::corrupt("fresh frame Wait durable edge missing"))?;
+            let durable = Box::pin(verify_edge_replay(
+                &mut replay,
+                &entry,
+                &admission,
+                &graphs,
+                &checkpoint,
+                &floor,
+                BarrierReplayEdge::new(actual_row, &current_run),
+            ))
+            .await?;
+            if durable.event != record.event
+                || durable.barrier != record.barrier
+                || durable.checkpoint != record.checkpoint
+                || durable.disposition != record.disposition
+                || encode(&durable)? != encode(&record)?
+            {
+                return Err(StoreError::corrupt("fresh frame Wait durable whole input"));
+            }
+            Box::pin(verify_active_checkpoint(
+                replay.tx,
+                &entry,
+                &durable.checkpoint,
+            ))
+            .await?;
+            record = durable;
+        }
         if projection.is_some() {
             // Waiting deliberately clears the lease. The Run lock still owns
             // the original lease snapshot; validate that exact authority after
@@ -1543,6 +1858,18 @@ impl PostgresStore {
                 .map_err(|_| StoreError::GraphFrameLimitExceeded)?;
         } else {
             revalidate_worker_after_components(replay.tx, &fence).await?;
+            if prepared.is_some() {
+                // Ready preserves the exact original lease. A changed current
+                // expiry can never renew the authority held by this transaction.
+                let final_now = database_now(replay.tx, "frame Ready final authority").await?;
+                authorize_worker(stored, &fence, final_now)?;
+                admission
+                    .admission()
+                    .intent()
+                    .budget()
+                    .remaining(&total, final_now)
+                    .map_err(|_| StoreError::GraphFrameLimitExceeded)?;
+            }
         }
         tx.commit()
             .await
@@ -1627,7 +1954,7 @@ async fn previously_verified_checkpoint(
     let bytes=query_scalar::<_,Vec<u8>>("SELECT barrier_bytes FROM stateknot.graph_frame_barriers WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3 AND successor_checkpoint_id=$4")
         .bind(expected.tenant_id().as_str()).bind(*expected.run_id().as_uuid()).bind(checkpoint.frame().namespace().as_str()).bind(*expected.checkpoint_id().as_uuid())
         .fetch_optional(&mut **tx).await.map_err(|e|StoreError::database("frame replay prefix witness",e))?.ok_or_else(||StoreError::corrupt("frame replay prefix witness missing"))?;
-    let wire = decode_wire(&bytes)?;
+    let wire = Box::pin(decode_wire(tx, &bytes)).await?;
     if wire.checkpoint != checkpoint.head() {
         return Err(StoreError::corrupt("frame replay older checkpoint"));
     }
@@ -1641,7 +1968,7 @@ async fn previously_verified_checkpoint(
     .await?;
     if event.head() != *expected.journal_head()
         || projection != Some(wire.compound_digest)
-        || compound(wire.scope_intent_digest, &event, &wire.checkpoint)? != wire.compound_digest
+        || record_compound(&wire, &event)? != wire.compound_digest
     {
         return Err(StoreError::corrupt("frame replay older anchor"));
     }
@@ -1655,6 +1982,7 @@ async fn previously_verified_checkpoint(
         scope_intent_digest: wire.scope_intent_digest,
         digest: wire.compound_digest,
         wait_revision: wire.wait_revision,
+        wait_inventory: wire.wait_inventory,
     };
     let usage = charged(&record)?;
     Ok((record.checkpoint, usage))
@@ -1676,7 +2004,7 @@ pub(super) async fn terminal_by_base_replay(
         .ok_or(StoreError::GraphFrameConflict)?;
     // The caller already authenticated this exact entry in the same transaction.
     // Reuse it rather than re-entering ancestor replay through a terminal proof.
-    let wire = decode_wire(&row.barrier_bytes)?;
+    let wire = Box::pin(decode_wire(replay.tx, &row.barrier_bytes)).await?;
     let (checkpoint, floor) = Box::pin(checkpoint_at_replay(
         replay,
         entry,
@@ -1692,7 +2020,7 @@ pub(super) async fn terminal_by_base_replay(
         graphs,
         &checkpoint,
         &floor,
-        row,
+        BarrierReplayEdge::new(row, admission.run()),
     ))
     .await?;
     if record.disposition().terminal_output().is_none() {
@@ -1732,7 +2060,8 @@ pub(super) fn verify_wait_anchor<'a>(
             .fetch_optional(&mut **tx).await
             .map_err(|e| StoreError::database("frame suspension event proof", e))?
             .ok_or_else(|| StoreError::corrupt("frame suspension witness missing"))?;
-        let namespace = decode_wire(&row.barrier_bytes)?
+        let namespace = Box::pin(decode_wire(tx, &row.barrier_bytes))
+            .await?
             .barrier
             .base_checkpoint()
             .frame()

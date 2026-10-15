@@ -80,7 +80,7 @@ impl GraphRecoveryReplayReport {
     pub const fn returns_validated(&self) -> u64 {
         self.returns_validated
     }
-    /// Returns scoped wait barriers with complete registration/terminal proofs.
+    /// Returns scoped Wait barriers with complete original conditions and registration/terminal proofs.
     #[must_use]
     pub const fn waits_validated(&self) -> u64 {
         self.waits_validated
@@ -1363,7 +1363,49 @@ async fn bind_waits(
     if barrier.disposition().waits().is_none() {
         return Ok(());
     }
-    bind_wait_event(tx, barrier.event(), transcript).await
+    bind_wait_event(tx, barrier.event(), transcript).await?;
+    if let Some(inventory) = barrier.wait_inventory() {
+        bind_graph_wait_inventory(tx, barrier.event(), inventory, transcript).await?;
+    }
+    Ok(())
+}
+
+async fn bind_graph_wait_inventory(
+    tx: &mut Transaction<'_, Postgres>,
+    event: &JournalEvent,
+    inventory: &super::super::graph_waits::GraphWaitInventory,
+    transcript: &mut Transcript,
+) -> Result<(), StoreError> {
+    transcript.bind(
+        b"graph-wait-inventory",
+        &inventory
+            .digest()
+            .map_err(|_| StoreError::corrupt("application replay graph Wait inventory digest"))?,
+    )?;
+    let rows = query_as::<_, (i16, Vec<u8>)>("SELECT condition_ordinal,sha256(convert_to(row_to_json(c)::text,'UTF8')) FROM stateknot.graph_wait_conditions c WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence=$3 AND profile IN ('graph_registered','graph_elapsed') ORDER BY condition_ordinal LIMIT 65")
+            .bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid())
+            .bind(i64::try_from(event.sequence().get()).map_err(|_| StoreError::GraphReplayResourceLimit)?)
+            .fetch_all(&mut **tx).await.map_err(|e| StoreError::database("application replay graph Wait conditions transcript",e))?;
+    if rows.len() != inventory.condition_count() {
+        return Err(StoreError::corrupt(
+            "application replay complete graph Wait conditions",
+        ));
+    }
+    for (expected, (ordinal, digest)) in rows.into_iter().enumerate() {
+        if usize::try_from(ordinal).ok() != Some(expected) {
+            return Err(StoreError::corrupt(
+                "application replay graph Wait condition order",
+            ));
+        }
+        transcript.bind(
+            b"graph-wait-condition",
+            &(
+                ordinal,
+                decode_digest(&digest, "application replay graph Wait condition digest")?,
+            ),
+        )?;
+    }
+    Ok(())
 }
 
 async fn bind_root_edge(
@@ -1385,8 +1427,11 @@ async fn bind_root_edge(
             Digest::sha256(encode_lifecycle(whole.committed_lifecycle())?),
         ),
     )?;
-    if !whole.waits().is_empty() {
+    if !whole.waits().is_empty() || whole.wait_inventory().is_some() {
         bind_wait_event(tx, whole.event(), transcript).await?;
+    }
+    if let Some(inventory) = whole.wait_inventory() {
+        bind_graph_wait_inventory(tx, whole.event(), inventory, transcript).await?;
     }
     Ok(())
 }

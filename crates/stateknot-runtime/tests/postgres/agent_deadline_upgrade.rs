@@ -53,6 +53,9 @@ async fn deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_pro
     store.close().await;
     for fixture in [
         include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+        ),
+        include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
         ),
         include_str!(

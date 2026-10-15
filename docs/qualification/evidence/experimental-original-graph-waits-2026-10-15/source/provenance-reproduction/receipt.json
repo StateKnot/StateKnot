@@ -1,0 +1,21 @@
+{
+  "source_readme_sha256": "1055e9526769871d0ad7ac61115a7838811ef22fb62fbb8514d05ba7fcc38392",
+  "old_commit": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+  "old_test_sha256": "27453d5c6e3b8d24050a56cf59a720431afd0f1b99808225a69c1e9166eb6cea",
+  "exporter_patch_sha256": "94dbada85aeb219776d4baa555f3784ec5a3826e85ce14d1d8523ac892c40f76",
+  "command": [
+    "patch",
+    "-d",
+    "/private/tmp/stateknot-source32-provenance-tz8pfrmp",
+    "-p1",
+    "-i",
+    "/private/tmp/stateknot-source32-provenance-tz8pfrmp/exporter.patch"
+  ],
+  "exit_code": 0,
+  "patched_test_sha256": "5e66c5fa4356f4ffd22d07edb21164499edf881a3b70df2e83bb261f70d5907d",
+  "patched_test_exact_actual_native_producer": true,
+  "scratch_path": "/private/tmp/stateknot-source32-provenance-tz8pfrmp",
+  "source922_changed": false,
+  "production_changed": false,
+  "compiled_or_database_executed": false
+}

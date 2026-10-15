@@ -61,7 +61,24 @@ impl Fixture {
         }
     }
 
+    async fn restore_v35(&self) {
+        raw_sql(include_str!(
+            "../../fixtures/revert_elapsed_graph_waits.sql"
+        ))
+        .execute(&self.db)
+        .await
+        .unwrap();
+        assert_eq!(
+            query_scalar::<_, i64>("SELECT max(version) FROM public._sqlx_migrations")
+                .fetch_one(&self.db)
+                .await
+                .unwrap(),
+            35
+        );
+    }
+
     async fn restore_v1(&self) {
+        self.restore_v35().await;
         for name in [
             "guard_root_graph_barrier_complete",
             "guard_root_graph_barrier_projection",
@@ -264,7 +281,7 @@ async fn result_with_pool(
 
 async fn facts(db: &PgPool) -> Vec<(String, i64, String)> {
     let names = query_scalar::<_, String>(
-        "SELECT tablename FROM pg_tables WHERE schemaname='stateknot' ORDER BY tablename",
+        "SELECT tablename FROM pg_tables WHERE schemaname='stateknot' AND tablename<>'graph_wait_conditions' ORDER BY tablename",
     )
     .fetch_all(db)
     .await
@@ -352,6 +369,157 @@ async fn populated_source34_upgrade_preserves_full_v1_and_lost_ack_before_callba
         assert_eq!(recovered.digest(), item.digest);
     }
     assert_eq!(facts(&fixture.db).await, before);
+    upgraded.close().await;
+    fixture.cleanup().await;
+}
+
+#[tokio::test]
+async fn populated_source35_upgrade_preserves_registration_bytes_and_legacy_identity() {
+    Box::pin(populated_source35_upgrade()).await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn populated_source35_upgrade() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(shared) = test_store().await else {
+        return;
+    };
+    let options = shared.options().clone();
+    shared.close().await;
+    let fixture = Fixture::create(options).await;
+    let store = PostgresStore::connect(&fixture.url, fixture.options.clone())
+        .await
+        .unwrap();
+    // The public legacy constructor intentionally emits V1 bytes. Their
+    // original registration facts are valid and remain byte-for-byte retained.
+    let mut existing = Box::pin(continue_terminal(&store, &fixture.db)).await;
+    existing.push(Box::pin(wait(&store)).await);
+    store.close().await;
+    fixture.restore_v35().await;
+    let before = facts(&fixture.db).await;
+    let migrations: Vec<(i64, Vec<u8>, bool)> =
+        query_as("SELECT version,checksum,success FROM public._sqlx_migrations ORDER BY version")
+            .fetch_all(&fixture.db)
+            .await
+            .unwrap();
+    assert_eq!(migrations.len(), 35);
+    assert!(migrations.iter().all(|(_, _, success)| *success));
+    let registration_count: i64 =
+        query_scalar("SELECT count(*) FROM stateknot.run_wait_registrations")
+            .fetch_one(&fixture.db)
+            .await
+            .unwrap();
+    assert!(registration_count > 0);
+    assert!(matches!(
+        PostgresStore::connect(&fixture.url, fixture.options.clone()).await,
+        Err(StoreError::IncompatibleSchema)
+    ));
+    PostgresStore::migrate_database(&fixture.url, fixture.options.clone())
+        .await
+        .unwrap();
+    assert_eq!(facts(&fixture.db).await, before);
+    let retained: Vec<(i64, Vec<u8>, bool)> = query_as(
+        "SELECT version,checksum,success FROM public._sqlx_migrations WHERE version<=35 ORDER BY version")
+        .fetch_all(&fixture.db).await.unwrap();
+    assert_eq!(retained, migrations);
+    let legacy_count: i64 = query_scalar(
+        "SELECT count(*) FROM stateknot.graph_wait_conditions WHERE profile='legacy_registration'",
+    )
+    .fetch_one(&fixture.db)
+    .await
+    .unwrap();
+    assert_eq!(legacy_count, registration_count);
+    let mismatches: i64 = query_scalar("SELECT count(*) FROM stateknot.graph_wait_conditions c FULL JOIN stateknot.run_wait_registrations w ON c.tenant_id=w.tenant_id AND c.wait_id=w.wait_id WHERE c.tenant_id IS NULL OR w.tenant_id IS NULL OR c.profile<>'legacy_registration' OR c.run_id<>w.run_id OR c.wait_kind<>w.wait_kind OR c.interrupt_kind IS DISTINCT FROM w.interrupt_kind OR c.timer_kind IS DISTINCT FROM w.timer_kind OR c.due_at IS DISTINCT FROM w.due_at OR c.expires_at IS DISTINCT FROM w.expires_at OR c.intent_digest<>w.intent_digest OR c.registration_digest<>w.record_digest OR c.journal_sequence<>w.registration_sequence OR c.journal_event_id<>w.registration_event_id OR c.journal_recorded_at<>w.registered_at OR c.journal_digest<>w.registration_event_digest OR c.graph_namespace IS NOT NULL OR c.owner_node_id IS NOT NULL OR c.condition_bytes IS NOT NULL")
+        .fetch_one(&fixture.db).await.unwrap();
+    assert_eq!(mismatches, 0);
+    let upgraded = PostgresStore::connect(&fixture.url, fixture.options.clone())
+        .await
+        .unwrap();
+    upgraded.verify_schema().await.unwrap();
+    for item in existing {
+        let base = item.intent.plan().barrier().base_checkpoint();
+        let loaded = upgraded
+            .load_root_graph_barrier(base)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(loaded.digest(), item.digest);
+        let retry = Box::pin(upgraded.append_worker_graph_barrier(
+            item.append,
+            item.intent,
+            &Unavailable,
+            &IntegrationGraphReducer {
+                reference: item.graph.reducer().clone(),
+            },
+        ))
+        .await
+        .unwrap();
+        assert!(matches!(
+            retry,
+            RootGraphBarrierCommitOutcome::Idempotent(_)
+        ));
+    }
+    assert_eq!(facts(&fixture.db).await, before);
+
+    // Fresh original-condition evidence makes source removal invalid. It must
+    // reject atomically rather than falsely recreating a schema35 fixture.
+    let (admission, graph, fence) =
+        Box::pin(admitted(&upgraded, "v36-refuse-source-removal")).await;
+    let (result, _) = Box::pin(succeed(
+        &upgraded,
+        admission.checkpoint(),
+        &fence,
+        NodeControl::Wait {
+            waits: NodeWaits::try_new([interrupt(InterruptId::generate())]).unwrap(),
+        },
+        false,
+    ))
+    .await;
+    let plan = planned(&graph, admission.checkpoint(), &result);
+    let current = upgraded
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let event = EventId::generate();
+    let intent = upgraded
+        .prepare_worker_graph_barrier(plan, current.lifecycle().clone(), event, None, None)
+        .await
+        .unwrap();
+    let append = JournalAppend::new(
+        JournalExpectation::exact(current.journal_head().unwrap().clone()),
+        JournalEventIntent::worker(
+            fence.tenant_id().clone(),
+            fence.run_id(),
+            event,
+            fence.clone(),
+            intent.payload().unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let saved = Box::pin(commit(&upgraded, &graph, append, intent)).await;
+    let preserved = facts(&fixture.db).await;
+    let mut tx = fixture.db.begin().await.unwrap();
+    assert!(
+        raw_sql(include_str!(
+            "../../fixtures/revert_elapsed_graph_waits.sql"
+        ))
+        .execute(&mut *tx)
+        .await
+        .is_err()
+    );
+    tx.rollback().await.unwrap();
+    assert_eq!(facts(&fixture.db).await, preserved);
+    upgraded.verify_schema().await.unwrap();
+    assert_eq!(
+        upgraded
+            .load_root_graph_barrier(&admission.checkpoint().head())
+            .await
+            .unwrap()
+            .unwrap()
+            .digest(),
+        saved.digest()
+    );
     upgraded.close().await;
     fixture.cleanup().await;
 }

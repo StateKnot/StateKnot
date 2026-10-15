@@ -1130,69 +1130,30 @@ async fn populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_wh
     PostgresStore::migrate_database(&url, options.clone())
         .await
         .unwrap();
-    let store = PostgresStore::connect(&url, options.clone()).await.unwrap();
-    let waits = NodeWaits::try_new([NodeWait::timer(
-        TimerId::generate(),
-        RunTimerKind::Sleep,
-        Timestamp::from_unix_micros(2_000_000_000_000_000).unwrap(),
-    )])
-    .unwrap();
-    let (_, entry, graph, fence, plan, observed, revision) = Box::pin(
-        super::frame_waits::prepared(&store, "frame-close-upgrade-wait", waits),
-    )
-    .await;
-    let saved = Box::pin(super::frame_waits::suspend(
-        &store,
-        plan,
-        &fence,
-        observed,
-        entry.direct_usage_after().unwrap(),
-        revision,
-        &graph,
-    ))
-    .await;
-    let (_, prior_entry, prior_graph, prior_fence, prepared, prior_barrier) = Box::pin(
-        super::frame_returns::finished(&store, "frame-close-upgrade-return"),
-    )
-    .await;
-    let stateknot_store_postgres::GraphFrameReturnCommitOutcome::Committed(returned) =
-        Box::pin(store.return_graph_frame(
-            prepared,
-            EventId::generate(),
-            prior_fence.clone(),
-            prior_barrier.event().head(),
-            prior_barrier.direct_usage_after().unwrap(),
-            &AcceptGraphSchemas,
-            &IntegrationGraphReducer {
-                reference: prior_graph.reducer().clone(),
-            },
-        ))
-        .await
-        .unwrap()
-    else {
-        panic!("fresh upgrade return");
-    };
+    // The current writer emits original V3 Wait facts that cannot be represented
+    // in schema32. Reconstruct an empty schema32 first, then restore the exact
+    // rows emitted by the actual frozen schema35 writer; never relabel new bytes.
     let fixture = PgPoolOptions::new()
         .max_connections(1)
         .connect(&url)
         .await
         .unwrap();
-    let checksums: Vec<(i64, Vec<u8>)> = query_as(
-        "SELECT version,checksum FROM public._sqlx_migrations WHERE version<=32 ORDER BY version",
-    )
-    .fetch_all(&fixture)
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT count(*) FROM stateknot.runs")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        0
+    );
+    // Source reconstruction is distinct from retained N-1/N-2 executable qualification.
+    sqlx_core::raw_sql::raw_sql(&format!(
+        "{}\n{}",
+        include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+        include_str!("../fixtures/revert_graph_frame_closures.sql")
+    ))
+    .execute(&fixture)
     .await
     .unwrap();
-    let before = facts(&fixture, &fence).await;
-    let prior = facts(&fixture, &prior_fence).await;
-    let waits_before: String = query_scalar("SELECT jsonb_agg(to_jsonb(w) ORDER BY wait_id)::text FROM stateknot.run_wait_registrations w WHERE tenant_id=$1 AND run_id=$2")
-        .bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid()).fetch_one(&fixture).await.unwrap();
-    store.close().await;
-    // Source reconstruction is distinct from retained N-1/N-2 executable qualification.
-    sqlx_core::raw_sql::raw_sql(include_str!("../fixtures/revert_graph_frame_closures.sql"))
-        .execute(&fixture)
-        .await
-        .unwrap();
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM public._sqlx_migrations")
             .fetch_one(&fixture)
@@ -1204,6 +1165,73 @@ async fn populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_wh
         PostgresStore::connect(&url, options.clone()).await,
         Err(StoreError::IncompatibleSchema)
     ));
+    let trigger_states: Vec<(String, String, String)> = query_as(
+        "SELECT c.relname::text,t.tgname::text,t.tgenabled::text FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('stateknot','public') ORDER BY n.nspname,c.relname,t.tgname",
+    )
+    .fetch_all(&fixture)
+    .await
+    .unwrap();
+    let mut restore = fixture.begin().await.unwrap();
+    query("DELETE FROM public._sqlx_migrations")
+        .execute(&mut *restore)
+        .await
+        .unwrap();
+    // pg_dump's bounded fixture restore disables and re-enables every trigger
+    // around the original INSERT statements. All bytea/canonical values and all
+    // 32 ledger rows are unchanged; no production writer or guard is modified.
+    sqlx_core::raw_sql::raw_sql(include_str!(
+        "../fixtures/actual_schema35_writer_source32.sql"
+    ))
+    .execute(&mut *restore)
+    .await
+    .unwrap();
+    restore.commit().await.unwrap();
+    assert_eq!(
+        trigger_states,
+        query_as::<_, (String, String, String)>(
+            "SELECT c.relname::text,t.tgname::text,t.tgenabled::text FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('stateknot','public') ORDER BY n.nspname,c.relname,t.tgname"
+        )
+        .fetch_all(&fixture)
+        .await
+        .unwrap()
+    );
+    // Discard pg_dump's connection-local settings before ordinary Store reads.
+    fixture.close().await;
+    let fixture = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&url)
+        .await
+        .unwrap();
+    let expected: serde_json::Value = serde_json::from_str(include_str!(
+        "../fixtures/actual_schema35_writer_source32.json"
+    ))
+    .unwrap();
+    assert_eq!(expected["producer_schema"], 35);
+    assert_eq!(expected["reconstructed_source_schema"], 32);
+    let fence: RunFence = serde_json::from_value(expected["fence"].clone()).unwrap();
+    let prior_fence: RunFence = serde_json::from_value(expected["prior_fence"].clone()).unwrap();
+    let prior_namespace: GraphNamespace =
+        serde_json::from_value(expected["prior_entry_namespace"].clone()).unwrap();
+    let saved_checkpoint: stateknot_core::GraphFrameCheckpoint =
+        serde_json::from_value(expected["saved_checkpoint"].clone()).unwrap();
+    let saved_event: stateknot_core::JournalEvent =
+        serde_json::from_value(expected["saved_event"].clone()).unwrap();
+    let saved_usage: BudgetUsage =
+        serde_json::from_value(expected["saved_direct_usage"].clone()).unwrap();
+    let returned_digest: Digest =
+        serde_json::from_value(expected["returned_digest"].clone()).unwrap();
+    let checksums: Vec<(i64, Vec<u8>)> =
+        serde_json::from_value(expected["checksums"].clone()).unwrap();
+    let before: Vec<String> = serde_json::from_value(expected["before"].clone()).unwrap();
+    let prior: Vec<String> = serde_json::from_value(expected["prior"].clone()).unwrap();
+    let waits_before: String = serde_json::from_value(expected["waits_before"].clone()).unwrap();
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM public._sqlx_migrations")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        32
+    );
     PostgresStore::migrate_database(&url, options.clone())
         .await
         .unwrap();
@@ -1217,31 +1245,49 @@ async fn populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_wh
         Box::pin(upgraded.load_graph_frame_return(
             prior_fence.tenant_id(),
             prior_fence.run_id(),
-            prior_entry.entry().checkpoint().frame().namespace()
+            &prior_namespace
         ))
         .await
         .unwrap()
         .unwrap()
         .digest(),
-        returned.digest()
+        returned_digest
     );
     let active = Box::pin(upgraded.load_active_graph_frame(fence.tenant_id(), fence.run_id()))
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(active.checkpoint(), saved.checkpoint());
+    assert_eq!(active.checkpoint(), &saved_checkpoint);
+    let saved = Box::pin(
+        upgraded.load_graph_frame_barrier(
+            fence.tenant_id(),
+            fence.run_id(),
+            saved_checkpoint.frame().namespace(),
+            saved_checkpoint
+                .checkpoint()
+                .parent()
+                .unwrap()
+                .checkpoint_id(),
+        ),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(saved.checkpoint(), &saved_checkpoint);
+    assert_eq!(saved.event(), &saved_event);
+    assert_eq!(saved.direct_usage_after().unwrap(), saved_usage);
     upgraded
         .append_control_plane_abandon_waits(
             control_append(
                 fence.tenant_id().clone(),
                 fence.run_id(),
                 EventId::generate(),
-                JournalExpectation::exact(saved.event().head()),
+                JournalExpectation::exact(saved_event.head()),
                 33_030,
             ),
             active.run().lifecycle().revision(),
             RunTransition::RequestCancellation {
-                request: cancellation_request(saved.event().recorded_at()),
+                request: cancellation_request(saved_event.recorded_at()),
             },
         )
         .await
@@ -1256,19 +1302,30 @@ async fn populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_wh
         EventId::generate(),
         current.journal_head().unwrap().clone(),
         current.lifecycle().revision(),
-        saved.direct_usage_after().unwrap(),
+        saved_usage,
     ))
     .await
     .unwrap();
     confirm(&upgraded, &fence, closed.record().direct_usage().clone())
         .await
         .unwrap();
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT (SELECT count(*) FROM stateknot.graph_wait_conditions WHERE profile<>'legacy_registration') + (SELECT count(*) FROM stateknot.root_graph_barriers WHERE convert_from(bundle_bytes,'UTF8')::jsonb->>'version'='3') + (SELECT count(*) FROM stateknot.graph_frame_barriers WHERE convert_from(barrier_bytes,'UTF8')::jsonb->>'version'='3')")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        0
+    );
     let mut tx = fixture.begin().await.unwrap();
     assert!(
-        sqlx_core::raw_sql::raw_sql(include_str!("../fixtures/revert_graph_frame_closures.sql"))
-            .execute(&mut *tx)
-            .await
-            .is_err()
+        sqlx_core::raw_sql::raw_sql(&format!(
+            "{}\n{}",
+            include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+            include_str!("../fixtures/revert_graph_frame_closures.sql")
+        ))
+        .execute(&mut *tx)
+        .await
+        .is_err()
     );
     tx.rollback().await.unwrap();
     assert_eq!(

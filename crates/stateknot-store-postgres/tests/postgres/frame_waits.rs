@@ -2,6 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Whole leaf suspensions, authenticated resolution and scoped continuation.
+
+#[path = "frame_elapsed_waits.rs"]
+mod elapsed;
+#[path = "frame_elapsed_wait_faults.rs"]
+mod elapsed_faults;
 use super::frame_barriers::{commit, enter_graph, plan, pool, snapshot, succeed, terminal};
 use super::*;
 use serde_json::Value;
@@ -680,7 +685,11 @@ async fn scoped_wait_policy_substitution_fails_closed_in_all_whole_readers() {
     .await
     .unwrap();
     let mut wire: Value = serde_json::from_slice(&original).unwrap();
-    wire["disposition"]["waits"][0]["action_digest"] =
+    assert_eq!(wire["version"], 3);
+    assert!(wire["disposition"]["original_digest"].is_string());
+    // V3 binds complete original policies through the compact digest. Their
+    // full specifications remain in the authenticated Pending owners.
+    wire["disposition"]["original_digest"] =
         json!(Digest::sha256(b"substituted scoped action").to_string());
     let changed = serde_json_canonicalizer::to_vec(&wire).unwrap();
     query(
@@ -946,7 +955,7 @@ async fn source_schema_31_upgrade_preserves_nonempty_scoped_facts_and_commits_wh
     let prior_facts = snapshot(&fixture, &prior_fence).await;
     // This reconstructs a populated source-schema fixture; it is not a retained
     // historical executable or N-1/N-2 compatibility qualification.
-    sqlx_core::raw_sql::raw_sql(include_str!("../fixtures/revert_graph_frame_waits.sql"))
+    sqlx_core::raw_sql::raw_sql(&scoped_wait_source_reconstruction_sql())
         .execute(&fixture)
         .await
         .unwrap();
@@ -1029,7 +1038,7 @@ async fn source_schema_31_upgrade_preserves_nonempty_scoped_facts_and_commits_wh
     // Downgrading after a version-2 suspension must not erase persisted facts.
     let mut tx = fixture.begin().await.unwrap();
     assert!(
-        sqlx_core::raw_sql::raw_sql(include_str!("../fixtures/revert_graph_frame_waits.sql"))
+        sqlx_core::raw_sql::raw_sql(&scoped_wait_source_reconstruction_sql())
             .execute(&mut *tx)
             .await
             .is_err()
@@ -1043,4 +1052,15 @@ async fn source_schema_31_upgrade_preserves_nonempty_scoped_facts_and_commits_wh
         .await
         .unwrap();
     admin.close().await;
+}
+
+// Isolated test source reconstruction must retain original registrations and
+// refuse removal of any complete new-format Graph Wait condition evidence.
+// It is not a deployed-schema downgrade or retained N-1/N-2 qualification.
+fn scoped_wait_source_reconstruction_sql() -> String {
+    format!(
+        "{}\n{}",
+        include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+        include_str!("../fixtures/revert_graph_frame_waits.sql")
+    )
 }

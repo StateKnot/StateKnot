@@ -1,0 +1,42 @@
+[
+  {
+    "original_or_requirement": "原now+500000µs、Waits IDs/kinds、prepared/suspend",
+    "preserved_or_added": "逐字保留；只clone原输入供独立核验"
+  },
+  {
+    "original_or_requirement": "Wait期新claim拒绝",
+    "preserved_or_added": "原assert保留，两分支都仍有真实Interrupt阻塞"
+  },
+  {
+    "original_or_requirement": "Interrupt请求与授权resolve调用",
+    "preserved_or_added": "原调用完整保留；新增actual interrupt record resolution journal==真实resolved event"
+  },
+  {
+    "original_or_requirement": "future remaining==1",
+    "preserved_or_added": "由原due>实际saved.event.recorded_at选择后原assert原样保留"
+  },
+  {
+    "original_or_requirement": "future真实load Timer、等待原due、fire_timer",
+    "preserved_or_added": "原body忽略缩进精确相同；未改due、租约、延迟或target"
+  },
+  {
+    "original_or_requirement": "原successor fence与首次完整graph replay",
+    "preserved_or_added": "共用原尾段精确相同：Wait1/Barrier1/FrameCP2/leaf/superstep1"
+  },
+  {
+    "original_or_requirement": "原实际terminal transition与第二次完整replay",
+    "preserved_or_added": "共用原尾段精确相同：Wait1/Barrier2/FrameCP3/leaf/reducer.calls1"
+  },
+  {
+    "original_or_requirement": "原schema/disposition/result",
+    "preserved_or_added": "新增完整原NodeWaits与实际Pending result control equality；原Wait disposition及Waiting receipt独立核验"
+  },
+  {
+    "original_or_requirement": "elapsed input证明",
+    "preserved_or_added": "新增canonical condition bytes/checksum、完整原Timer intent与spec digest、实际owner/source/successor绑定"
+  },
+  {
+    "original_or_requirement": "elapsed物理事实",
+    "preserved_or_added": "新增graph_elapsed、typed Timer lookup缺失、registration count0、firing count0；resolve后Active0/真实head/无lease/无quarantine，后半共用全部原assert"
+  }
+]

@@ -628,6 +628,15 @@ async fn root_only_eight_sixteen_and_thirty_two_edges_have_linear_actual_visits(
             .clone();
         let mut base = initial.checkpoint().clone();
         for edge in 0..edges {
+            let live = store.observe_live_lease(&fence).await.unwrap();
+            store
+                .renew_lease(
+                    &fence,
+                    Timestamp::from_unix_micros(live.observed_at().unix_micros() + 30_000_000)
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
             let (heads, journal) = Box::pin(commit_ready_results(
                 &store,
                 &base,
@@ -661,6 +670,14 @@ async fn root_only_eight_sixteen_and_thirty_two_edges_have_linear_actual_visits(
                 .checkpoint()
                 .clone();
         }
+        let live = store.observe_live_lease(&fence).await.unwrap();
+        store
+            .renew_lease(
+                &fence,
+                Timestamp::from_unix_micros(live.observed_at().unix_micros() + 30_000_000).unwrap(),
+            )
+            .await
+            .unwrap();
         let session = recovery(&store, &fence).await;
         let reducer = IntegrationGraphReducer::new();
         let report = session
@@ -1519,19 +1536,116 @@ async fn scoped_interrupt_and_timer_resume_replay_original_wait_without_an_extra
     let (_, entry, child, old, plan, observed, revision) = Box::pin(super::frame_waits::prepared(
         &store,
         "application-replay-wait",
-        waits,
+        waits.clone(),
     ))
     .await;
     let saved = Box::pin(super::frame_waits::suspend(
         &store,
         plan,
         &old,
-        observed,
+        observed.clone(),
         entry.direct_usage_after().unwrap(),
         revision,
         &child,
     ))
     .await;
+    // The oracle uses the original absolute input and the actual committed
+    // event clock, independently of the stored condition/effect being checked.
+    let timer_was_future = due > saved.event().recorded_at();
+    assert_eq!(
+        saved.wait_effect(),
+        Some(stateknot_store_postgres::GraphWaitEffect::Waiting)
+    );
+    assert_eq!(
+        saved.disposition(),
+        stateknot_core::GraphBarrierDisposition::Wait {
+            waits: waits.clone()
+        }
+    );
+    let owner = saved.barrier().result_heads().first().unwrap();
+    let original_result = Box::pin(store.load_pending_node_result(owner.activation()))
+        .await
+        .unwrap();
+    assert_eq!(original_result.head(), *owner);
+    assert_eq!(
+        original_result.intent().control(),
+        &NodeControl::Wait {
+            waits: waits.clone()
+        }
+    );
+    let timer_intent = TimerRegistrationIntent::new(
+        old.tenant_id().clone(),
+        old.run_id(),
+        timer_id,
+        saved.event().event_id(),
+        RunTimerKind::Sleep,
+        due,
+    )
+    .unwrap();
+    let (profile, condition_bytes, condition_checksum): (String, Vec<u8>, Vec<u8>) = query_as(
+        "SELECT profile,condition_bytes,condition_checksum FROM stateknot.graph_wait_conditions WHERE tenant_id=$1 AND run_id=$2 AND wait_id=$3"
+    ).bind(old.tenant_id().as_str()).bind(*old.run_id().as_uuid()).bind(*timer_id.as_uuid()).fetch_one(&db).await.unwrap();
+    let condition: serde_json::Value = serde_json::from_slice(&condition_bytes).unwrap();
+    assert_eq!(
+        serde_json_canonicalizer::to_vec(&condition).unwrap(),
+        condition_bytes
+    );
+    assert_eq!(
+        condition_checksum,
+        Digest::sha256(&condition_bytes).as_bytes()
+    );
+    let original_timer = NodeWait::timer(timer_id, RunTimerKind::Sleep, due);
+    let mut specification_bytes = b"stateknot-postgres-original-graph-wait-spec-v1\0".to_vec();
+    specification_bytes.extend(serde_json_canonicalizer::to_vec(&original_timer).unwrap());
+    assert_eq!(
+        condition["specification_digest"],
+        serde_json::to_value(Digest::sha256(&specification_bytes)).unwrap()
+    );
+    assert_eq!(
+        condition["registration_intent_digest"],
+        serde_json::to_value(timer_intent.intent_digest()).unwrap()
+    );
+    assert_eq!(condition["owner"], serde_json::to_value(owner).unwrap());
+    assert_eq!(
+        condition["source"],
+        serde_json::to_value(&observed).unwrap()
+    );
+    assert_eq!(
+        condition["successor"],
+        serde_json::to_value(saved.checkpoint().checkpoint().head()).unwrap()
+    );
+    assert_eq!(
+        profile,
+        if timer_was_future {
+            "graph_registered"
+        } else {
+            "graph_elapsed"
+        }
+    );
+    if timer_was_future {
+        let timer = store
+            .load_durable_timer(old.tenant_id(), old.run_id(), timer_id)
+            .await
+            .unwrap();
+        assert_eq!(timer.intent(), &timer_intent);
+    } else {
+        assert_eq!(
+            condition["observation"],
+            serde_json::json!({"kind":"elapsed_timer","timer":timer_intent})
+        );
+        assert!(matches!(
+            store
+                .load_durable_timer(old.tenant_id(), old.run_id(), timer_id)
+                .await,
+            Err(StoreError::WaitRegistrationNotFound)
+        ));
+        let registrations: i64 = query_scalar("SELECT count(*) FROM stateknot.run_wait_registrations WHERE tenant_id=$1 AND run_id=$2 AND wait_id=$3")
+            .bind(old.tenant_id().as_str()).bind(*old.run_id().as_uuid()).bind(*timer_id.as_uuid()).fetch_one(&db).await.unwrap();
+        let firings: i64 = query_scalar("SELECT count(*) FROM stateknot.timer_firings WHERE tenant_id=$1 AND run_id=$2 AND timer_id=$3")
+            .bind(old.tenant_id().as_str()).bind(*old.run_id().as_uuid()).bind(*timer_id.as_uuid()).fetch_one(&db).await.unwrap();
+        assert_eq!(registrations, 0);
+        assert_eq!(firings, 0);
+    }
     assert!(
         store
             .claim_lease(old.tenant_id(), old.run_id(), AttemptId::generate())
@@ -1568,37 +1682,57 @@ async fn scoped_interrupt_and_timer_resume_replay_original_wait_without_an_extra
         )
         .await
         .unwrap();
+    let actual_interrupt = store
+        .load_interrupt_record(old.tenant_id(), old.run_id(), interrupt_id)
+        .await
+        .unwrap();
+    assert_eq!(
+        actual_interrupt.resolution().unwrap().journal(),
+        &resolved.event().head()
+    );
     let remaining = store.load_run(old.tenant_id(), old.run_id()).await.unwrap();
-    assert_eq!(remaining.unresolved_wait_count(), 1);
-    let timer = store
-        .load_durable_timer(old.tenant_id(), old.run_id(), timer_id)
-        .await
-        .unwrap();
-    let now: i64 = query_scalar("SELECT (extract(epoch FROM clock_timestamp())*1000000)::bigint")
-        .fetch_one(&db)
-        .await
-        .unwrap();
-    if now < due.unix_micros() {
-        tokio::time::sleep(Duration::from_micros(
-            u64::try_from(due.unix_micros() - now + 1000).unwrap(),
-        ))
-        .await;
+    if timer_was_future {
+        assert_eq!(remaining.unresolved_wait_count(), 1);
+        let timer = store
+            .load_durable_timer(old.tenant_id(), old.run_id(), timer_id)
+            .await
+            .unwrap();
+        let now: i64 =
+            query_scalar("SELECT (extract(epoch FROM clock_timestamp())*1000000)::bigint")
+                .fetch_one(&db)
+                .await
+                .unwrap();
+        if now < due.unix_micros() {
+            tokio::time::sleep(Duration::from_micros(
+                u64::try_from(due.unix_micros() - now + 1000).unwrap(),
+            ))
+            .await;
+        }
+        let event_id = EventId::generate();
+        store
+            .fire_timer(
+                control_append(
+                    old.tenant_id().clone(),
+                    old.run_id(),
+                    event_id,
+                    JournalExpectation::exact(resolved.event().head()),
+                    28_033,
+                ),
+                remaining.lifecycle().revision(),
+                TimerFiringIntent::new(&timer, event_id).unwrap(),
+            )
+            .await
+            .unwrap();
+    } else {
+        assert_eq!(remaining.lifecycle().status(), RunStatus::Active);
+        assert_eq!(remaining.unresolved_wait_count(), 0);
+        assert_eq!(remaining.journal_head(), Some(&resolved.event().head()));
+        assert!(remaining.lease().is_none());
+        assert!(!remaining.is_quarantined());
+        let firings: i64 = query_scalar("SELECT count(*) FROM stateknot.timer_firings WHERE tenant_id=$1 AND run_id=$2 AND timer_id=$3")
+            .bind(old.tenant_id().as_str()).bind(*old.run_id().as_uuid()).bind(*timer_id.as_uuid()).fetch_one(&db).await.unwrap();
+        assert_eq!(firings, 0);
     }
-    let event_id = EventId::generate();
-    store
-        .fire_timer(
-            control_append(
-                old.tenant_id().clone(),
-                old.run_id(),
-                event_id,
-                JournalExpectation::exact(resolved.event().head()),
-                28_033,
-            ),
-            remaining.lifecycle().revision(),
-            TimerFiringIntent::new(&timer, event_id).unwrap(),
-        )
-        .await
-        .unwrap();
     let newer = store
         .claim_lease(old.tenant_id(), old.run_id(), AttemptId::generate())
         .await

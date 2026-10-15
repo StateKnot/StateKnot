@@ -7,7 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 本文说明 [RFC-0022](rfcs/0022-namespaced-graph-frames.md) 的实验实现契约。
 实际验收范围见[当前证据报告](qualification/experimental-trusted-root-dispositions-2026-10-12.zh-CN.md)。
-RFC 与 R1 仍未关闭，完整原生验收仍存在失败。
+RFC 与 R1 仍未关闭。该报告记录历史 schema35 增量；当前 schema36 部署还须采用
+[原始绝对 Wait profile](elapsed-graph-waits.zh-CN.md)及其独立证据。
 
 ## 创建 Root Run
 
@@ -38,8 +39,8 @@ Run。真实归属记录损坏仍拒绝访问，并保留原有受 fence 约束�
 V2 完整 barrier 绑定创建来源、base checkpoint、有序结果、原始完整 GraphPlan、
 journal event、后继 checkpoint 与 lifecycle projection。Continue 保留 quantum、
 yield 和后续 fresh claim 恢复；未来 Wait 保留原注册、部分解除、resume 和
-abandonment 契约。已经到期的绝对 Wait 属于仍在推进的独立增量，schema 35
-不能证明它已经通过验收。
+abandonment 契约。到期后的绝对 Timer 恢复属于独立的实验性
+[schema36 profile](elapsed-graph-waits.zh-CN.md)，历史 schema35 证据不授予该增量资格。
 
 普通 Terminal 保留完整原始 `AgentResult`，以及从真实 descriptor、完整 request
 和已解析 budget 得到的 `AgentTerminalValidationInputs`。
@@ -60,7 +61,11 @@ token usage、已定价费用和 invocation binding 完成账本。完整 state 
 V2 完整 bundle 读取上限为 14,241,792 字节，原 V1 仍为 9,474,048 字节。
 这些是完整记录读取边界，不扩大各组件原有上限。
 
-## 从 schema 34 升级到 35
+## 历史 schema 34→35 升级
+
+当前未发布 binary 要求完整迁移至36并匹配当前 role profile，遵循
+[schema36 部署顺序](elapsed-graph-waits.zh-CN.md#迁移与部署)。
+以下步骤仅说明原 schema35 增量。
 
 1. 排空旧 worker，并关闭 schema-34 runtime pool。
 2. 由 migration owner 正常应用 SQLx migration 35。既有 migration checksum

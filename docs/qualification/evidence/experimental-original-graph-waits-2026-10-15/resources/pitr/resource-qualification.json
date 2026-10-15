@@ -1,0 +1,14 @@
+{
+  "exact_execution_passed_both_majors": true,
+  "durable_PITR_invariants_passed": true,
+  "resource_lifecycle_passed": false,
+  "status": "exact_execution_passed_resource_cleanup_open",
+  "retained_own_pg16_wal_volume": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1",
+  "volume_created_at": "2026-10-15T11:58:13Z",
+  "original_pg16_profile_started_at": "2026-10-15T11:58:13.712429+00:00",
+  "current_referencing_containers": [],
+  "same_uuid_containers_present": false,
+  "binding": "Absent in PG16 before inventory; present immediately after PG16 original case; same recorded original source/target/three-volume UUID format; created within original profile time; retained into PG17 before/after inventory.",
+  "no_extra_stop_rm_prune_or_DB_operation": true,
+  "cause": "Not verified. Original Drop discards stop/rm Output; no actual failing rm stderr was captured. Async --rm removal race is a static hypothesis only."
+}

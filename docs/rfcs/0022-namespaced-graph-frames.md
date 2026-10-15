@@ -832,6 +832,113 @@ Resolution/firing requires existing resolver authorization and an exact persiste
 frame binding. Restart resumes the saved leaf and continuation; it cannot derive
 root activations for a child checkpoint. No sleeping task owns the suspended Run.
 
+### Recovering original absolute Wait conditions
+
+The experimental schema-36 implementation follows the contract below. See
+[original Wait recovery](../elapsed-graph-waits.md) for the Interface, migration
+and qualification scope. Existing Root V1/V2 and scoped V1/V2 facts retain their
+complete owning readers. The RFC remains Draft: source-level requirements and
+individual passing scenarios do not close combined CI, scoped child Join,
+complete fault/compatibility, capacity or production acceptance.
+
+`NodeWait::Timer` is an immutable absolute condition selected by the successful
+node, not a requirement that its due instant remain in the future until an
+unknown later barrier transaction. A legal Pending result can survive a process
+loss or ordinary work past that instant. Recovery must reuse that exact result
+and its schema-pinned Wait disposition under the new live fence; it must not
+execute the successful node again, rewrite its original `due_at`, backdate a
+registration, or repeatedly retry an impossible future-only registration.
+
+The shared Store module `graph_waits` owns complete original-condition
+inventory, transaction-clock classification, durable evidence and the actual
+Wait projection for both Root and scoped barriers. Its internal inputs come
+from the existing full owning preflight and locked result recheck, not from a
+caller-created clock, status flag or compact owner hint. Application callbacks
+remain outside transactions. For each original condition it authenticates the
+exact Pending result head/control, namespace and base checkpoint, original
+NodeWait bytes, source journal and candidate whole-barrier event. The complete
+inventory must equal the original Wait disposition and consume each original
+result once. Retaining an inventory grants no dispatch authority.
+
+At the actual candidate event's database `recorded_at = T`, every condition has
+exactly one outcome:
+
+- A Timer with `due_at > T` becomes the existing future-only DurableTimer,
+  preserving its original ID, kind and due instant. Its registration time is T.
+- A Timer with `due_at <= T`, including equality, becomes a distinct immutable
+  elapsed-condition fact. It proves that the original Timer was already due at
+  this actual whole-barrier event, with the complete original owner/spec/source
+  binding. It is neither a backdated DurableTimer nor a synthetic TimerFiring.
+- A still-valid Interrupt uses its original authenticated registration and
+  resolver policy. An expired Interrupt cannot be approved by the elapsed
+  Timer branch; it remains an explicit operational/business-policy rejection
+  with no quarantine or partial commit.
+
+The original complete Wait disposition, result intents and successor remain
+unchanged. If any registered condition still blocks, the transaction applies
+the existing Run Wait transition to those remaining markers, saves every
+original condition and elapsed proof, and releases the lease. The authenticated
+receipt reports **Waiting**. Partial authorized resolution or true firing uses
+the existing bound conditions; the last condition resumes the saved successor.
+
+If all original Timer conditions were already due, the same transaction saves
+the original Wait successor and result consumptions together with all elapsed
+proofs, keeps Active lifecycle/revision and the exact live lease, and reports
+**Ready**. There is no fabricated Waiting-to-firing transition and no replacement
+Continue disposition. Runtime must use the authenticated receipt, obtain a
+fresh claimed observation/plan before any next durable Start, and retain normal
+quantum/yield behavior. Ready itself is not a scheduling or lease-renewal grant.
+
+Classification is fixed by the committed event T. A Timer registered while
+future at T may become due during deferred constraint work; its original valid
+registration remains intact and the existing indexed Timer path observes it.
+After all component/deferred guards, the writer must recheck the original
+worker/epoch, saved expiry, deadline, complete accounting, journal and head
+under the same Run lock. Elapsed or Ready cannot rescue an expired authority.
+Any rejected component rolls back the event, checkpoint, inventory,
+consumptions, registrations and projection together.
+
+An exact lost-ACK retry authenticates the original whole receipt and inventory
+before taking a fresh clock or invoking callbacks. It returns that original
+Waiting/Ready outcome even after a higher fence, resolution or Return; it must
+not reclassify conditions against current time, repeat result consumption,
+reset queue/lifecycle, regress a returned scope or authorize another launch.
+
+New inventory storage and Root/scoped whole formats must be coordinated after
+the ordinary Root disposition owner freezes its actual migration and format.
+This RFC assigns no migration number or wire version in advance. New formats
+bind the original full plan/intention, condition inventory and actual lifecycle
+effect in the whole event/checksum/projection. Missing new-format inventory is
+corruption; valid old formats retain their complete owning readers and cannot
+be supplied with invented elapsed facts. Existing NodeWait/Pending-result and
+RunTimer/DurableTimer canonical bytes, pins and future-only guards are unchanged.
+Ordinary Timer lookup/firing cannot fabricate a registered Timer for an elapsed
+condition; a typed whole-condition reader authenticates its separate evidence.
+
+Inventory is bounded by the existing 64-condition ceiling and preserves the
+existing tenant-wide `(tenant, wait ID)` unique ownership rule across old
+registrations and new facts, with the exact Run retained in each binding. Same-origin future registration plus its inventory reference is the
+only valid paired representation. Duplicate, extra, crossed or replaced
+owners/specs/anchors must fail the bidirectional deferred component guards.
+Compact references avoid duplicating large Interrupt payloads; every owning
+reader still authenticates their complete original fields. Whole application
+capture/materialization/final transcripts, historical public readers, ACKs,
+roles/catalog, upgrades and restore consumers include the new evidence without
+raising existing JSON/transcript/stack bounds or replacing full owning proofs.
+
+Qualification requires real Agent-admitted Root and scoped public Store/Driver
+cases with the original 500ms due, a real 600ms delay and higher-fence recovery
+without reexecution. Both PostgreSQL versions must prove original canonical
+results/due, exact successor/consumption/accounting, journal/lifecycle and no
+quarantine; also qualify mixed future/elapsed/authorized Interrupt conditions,
+partial resolution then true Timer firing, equality, faults/deferred expiry,
+ID conflicts/corruption, lost ACK after higher fence/Return, actual Role
+consumers, nonempty old-schema upgrade and logical restore, full Native gates
+and default-stack nested recovery. The current reproducible operational
+registration failure is open until these durable writers/readers and Runtime
+outcomes pass; a longer fixture window or a documented limitation does not
+close it.
+
 Run cancellation and deadline failure apply to the entire stack and its owned
 invocations/child Runs. Failure/unknown-effect close keeps committed evidence,
 respects cancellation races and settles every frame before terminal projection.

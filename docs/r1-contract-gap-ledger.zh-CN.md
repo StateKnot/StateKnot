@@ -60,6 +60,17 @@ artifact 输入 schema、审查前后 pin 和 Tool 注册表零调用拒绝路�
 | G10 | 独立逻辑 restore 与物理 named-PITR drill | 同步 standby failover、完整参考数据集恢复和完整性检查 | R6 |
 | G11 | populated migration、部分 checkpoint 恢复与拒绝测试 | 支持窗口内历史 graph/checkpoint fixture、升级中断和 rollback-limit 验证 | R1 契约；R6 升级 |
 
+2026-10-15 的[原绝对 Graph Wait 采用记录](qualification/experimental-original-graph-waits-2026-10-15.zh-CN.md)
+补充 G3/G5/G6/G10/G11 的限定证据：schema36 保留完整原 Pending、条件身份与
+due，按实际提交事件时钟保存 future registration 或 elapsed evidence；全已到期
+Timer 产生 Ready，不能据此直接派发。最终 922 文件源码的严格六项门禁、两版
+PostgreSQL 四组原生 suite、强制逻辑恢复及独立 named-PITR 已实际通过，默认栈
+七层恢复保留原租约。PITR 恢复断言通过后，PG16 留下一个本测试 WAL 卷；原 Drop
+忽略清理失败，资源清理资格仍开放，不能把业务恢复的通过算作完整生命周期通过。
+原失败、真实 schema35 writer 的 source32 重建和单个真实
+alpha.1 升级各自保留来源与适用范围；这些证据不关闭完整历史兼容、scoped
+Child Join、进程/COMMIT 故障矩阵、Linux 全部 CI 或 G3/R1。
+
 剩余语义决策：typed builder、reducer 注册/版本、非 root namespace grammar 与
 shared-state declaration 属于 R1；参考负载下调度策略和阈值属于 R6。
 blob checkpoint 若引入须另立 RFC，并先依赖 R2 的 Artifact 生命周期。

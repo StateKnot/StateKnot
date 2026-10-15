@@ -1,0 +1,3089 @@
+{
+  "source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "runtime_binary_sha256": "0ffef18341a15cdbabd43db827988c5b0e5ad5e56b3ff5ca937f5a9f7da126b7",
+  "runtime_inventory_count": 189,
+  "role_counts": {
+    "ordinary_database_scenario": 168,
+    "auxiliary_subprocess_worker": 15,
+    "independent_logical_restore_resource_gate": 1,
+    "independent_pitr_resource_gate": 1,
+    "harness_or_protocol_self_test": 4
+  },
+  "runtime_tests": [
+    {
+      "name": "agent_loop_confirms_preexecution_cancellation_without_provider_dispatch",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "agent_service_authorizes_submits_recovers_and_cancels_without_redispatch",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "cancellation_evidence_unavailability_fails_closed_without_zero_usage",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::advanced_parent_requires_current_checkpoint_and_new_activation",
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission.rs",
+      "source_file_sha256": "9d89bed8e2ffb85f19bcd92d2ccfebacec7ca396857092e513ee1c61b3df4f6a",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::cancelled_parent_cannot_validate_an_earlier_preparation",
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission.rs",
+      "source_file_sha256": "9d89bed8e2ffb85f19bcd92d2ccfebacec7ca396857092e513ee1c61b3df4f6a",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ordinary_root_graph_cannot_prepare_children_without_declaration",
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission.rs",
+      "source_file_sha256": "9d89bed8e2ffb85f19bcd92d2ccfebacec7ca396857092e513ee1c61b3df4f6a",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::account_corruption_blocks_both_read_and_lost_ack_recovery",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::atomic_spawn_retry_terminal_reconciliation_and_parent_accounting",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::cancellation::bounded_cursor_passes_unpriced_prefix_and_survives_recreation_and_shutdown",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation.rs",
+      "source_file_sha256": "0eeb0afb8314937c07655dbce94ae693980eee3e4cc792ccfed0475ce190f2ed",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::cancellation::cancellation_atomically_abandons_real_child_waits_and_makes_cleanup_schedulable",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation.rs",
+      "source_file_sha256": "0eeb0afb8314937c07655dbce94ae693980eee3e4cc792ccfed0475ce190f2ed",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::cancellation::cancellation_delivery_is_atomic_race_safe_and_never_fabricates_terminal_usage",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation.rs",
+      "source_file_sha256": "0eeb0afb8314937c07655dbce94ae693980eee3e4cc792ccfed0475ce190f2ed",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::cancellation::draining_parent_cannot_reclaim_capacity_until_last_child_settles",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation.rs",
+      "source_file_sha256": "0eeb0afb8314937c07655dbce94ae693980eee3e4cc792ccfed0475ce190f2ed",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::cancellation::existing_child_request_and_terminal_outcome_are_not_replaced",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation.rs",
+      "source_file_sha256": "0eeb0afb8314937c07655dbce94ae693980eee3e4cc792ccfed0475ce190f2ed",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::cancellation::nested_delivery_queues_one_level_per_commit_and_settles_leaf_to_root_once",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation.rs",
+      "source_file_sha256": "0eeb0afb8314937c07655dbce94ae693980eee3e4cc792ccfed0475ce190f2ed",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::cancellation::racing_parent_cancel_and_spawn_never_leaves_an_unowned_or_unqueued_child",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation.rs",
+      "source_file_sha256": "0eeb0afb8314937c07655dbce94ae693980eee3e4cc792ccfed0475ce190f2ed",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::cancellation::upgrade::populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutable_guards",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "source_file_sha256": "20db69a8756ed6bed43b67e239b67f94b823440178beccd0c36045ea005cbfb1",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable",
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission_commit_loss.rs",
+      "source_file_sha256": "1f83ae9144ce4f350d630b397b5feec52521870f342920776e2bf595e7ca79fc",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission_commit_loss.rs",
+      "source_file_sha256": "1f83ae9144ce4f350d630b397b5feec52521870f342920776e2bf595e7ca79fc",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation_commit_loss.rs",
+      "source_file_sha256": "0f246101da4e61fe33045c40bc0ebcbb10a37a83092d67bde0e2ad1bf5d2b571",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation_commit_loss.rs",
+      "source_file_sha256": "0f246101da4e61fe33045c40bc0ebcbb10a37a83092d67bde0e2ad1bf5d2b571",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_is_recoverable",
+      "path": "crates/stateknot-runtime/tests/postgres/child_settlement_commit_loss.rs",
+      "source_file_sha256": "9ccb4f5af28adad1f3ddfedd560e97603c52624e4372d4a8bbbb4f5e204df91b",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/child_settlement_commit_loss.rs",
+      "source_file_sha256": "9ccb4f5af28adad1f3ddfedd560e97603c52624e4372d4a8bbbb4f5e204df91b",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::child_terminal_racing_settlement_is_consistent_without_ancestor_lock_inversion",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::concurrent_logical_spawn_has_one_owner_and_no_orphan_candidates",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::deadline_abandons_real_waits_atomically_without_firing_the_timer",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadlines.rs",
+      "source_file_sha256": "26a45ad851a07b3a9dcc24312684122a5c6c75bed583082581d0f45a7d6742b9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::deadline_never_overwrites_terminal_or_operator_cancellation",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadlines.rs",
+      "source_file_sha256": "26a45ad851a07b3a9dcc24312684122a5c6c75bed583082581d0f45a7d6742b9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::deadline_observes_expiry_after_waiting_for_the_lifecycle_lock",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadlines.rs",
+      "source_file_sha256": "26a45ad851a07b3a9dcc24312684122a5c6c75bed583082581d0f45a7d6742b9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::deadline_shutdown_preserves_work_and_quarantine_is_visible_without_blocking_other_runs",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadlines.rs",
+      "source_file_sha256": "26a45ad851a07b3a9dcc24312684122a5c6c75bed583082581d0f45a7d6742b9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::deadline_suspended_join_queues_children_rollback_then_drains_before_parent_closure",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadlines.rs",
+      "source_file_sha256": "26a45ad851a07b3a9dcc24312684122a5c6c75bed583082581d0f45a7d6742b9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::deadline_sweep_pages_past_errors_resets_after_tail_and_restarts_without_losing_work",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadlines.rs",
+      "source_file_sha256": "26a45ad851a07b3a9dcc24312684122a5c6c75bed583082581d0f45a7d6742b9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::deadline_uses_database_clock_converges_racers_and_waits_for_real_cleanup_evidence",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadlines.rs",
+      "source_file_sha256": "26a45ad851a07b3a9dcc24312684122a5c6c75bed583082581d0f45a7d6742b9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::process::deadline_join_process_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadline_process.rs",
+      "source_file_sha256": "c5c5c80f2501ab29a38cb4688ba0e8b8d11d46019a652e50dc80d5827b908a5a",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::deadlines::process::deadline_join_stale_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadline_process.rs",
+      "source_file_sha256": "c5c5c80f2501ab29a38cb4688ba0e8b8d11d46019a652e50dc80d5827b908a5a",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadline_process.rs",
+      "source_file_sha256": "c5c5c80f2501ab29a38cb4688ba0e8b8d11d46019a652e50dc80d5827b908a5a",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::deadlines::upgrade::deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_projection_guards",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "source_file_sha256": "adc7e7405e7770d4b489e1c12675a3a74035211c866d2745eae5a1ec01dfef22",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::external_dispatch_excludes_live_children_and_deducts_settled_usage",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::commit_loss::commit_loss_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_commit_loss.rs",
+      "source_file_sha256": "74d453f79218104cfa5fc5df3d967a772329fca4256f5a4ce5377464ca87c913",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_commit_loss.rs",
+      "source_file_sha256": "74d453f79218104cfa5fc5df3d967a772329fca4256f5a4ce5377464ca87c913",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_COMMIT_LOSS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_is_recoverable",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_completion_commit_loss.rs",
+      "source_file_sha256": "8822f21f90b552ce1143cd4db32ea7a11a4bdca918f190bdc18b0613a9b843da",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_completion_commit_loss.rs",
+      "source_file_sha256": "8822f21f90b552ce1143cd4db32ea7a11a4bdca918f190bdc18b0613a9b843da",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::failure_close::failure_close_checks_fresh_lease_after_child_queue_capture",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "source_file_sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::failure_close_drains_children_preserves_original_and_charges_once_after_reconstruction",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "source_file_sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::failure_close_final_write_rollback_guards_and_terminal_accounting_are_enforced",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "source_file_sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::failure_close_graph_handoff_recovers_without_reconsulting_evidence",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "source_file_sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::failure_close_pages_continue_past_blocked_work_and_preserve_tenant_shutdown_and_quarantine",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "source_file_sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::failure_close_rejects_unfinished_or_unpriced_direct_evidence_without_stranding_lease",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "source_file_sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::failure_close_unknown_child_cost_blocks_only_its_own_closure",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "source_file_sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::failure_closing_child_retains_its_own_failure_before_parent_settlement",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "source_file_sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::maintenance::owned_maintenance_advances_past_a_full_failed_page_and_restart_revisits_it",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "source_file_sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::maintenance::owned_maintenance_drives_all_jobs_and_excludes_unauthorized_tenants",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "source_file_sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::maintenance::owned_maintenance_periodic_panic_and_store_error_fail_stop",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "source_file_sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::maintenance::owned_maintenance_process_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "source_file_sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::failure_close::maintenance::owned_maintenance_readiness_wait_drop_and_startup_fail_closed",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "source_file_sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::maintenance::owned_maintenance_sigkill_then_fresh_owner_finishes_without_duplicate_effects",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "source_file_sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::maintenance::owned_maintenance_tick_deadline_cancels_locked_database_work",
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "source_file_sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::process::failure_close_process_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_process.rs",
+      "source_file_sha256": "f17685021616204b1efc9e5d76c0bee00f712ed49bf202b131187814a4af61a1",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_process.rs",
+      "source_file_sha256": "f17685021616204b1efc9e5d76c0bee00f712ed49bf202b131187814a4af61a1",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_PROCESS_KILL_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+      "path": "crates/stateknot-runtime/tests/postgres/role_profile.rs",
+      "source_file_sha256": "a09417101545c0c40baba62f49cb6e31733a43cbd0d06d3e3a6ad6f18e58910f",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_ROLE_PROFILE_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::failure_close::upgrade::failure_close_populated_v23_upgrade_preserves_history_and_rejects_catalog_drift",
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs",
+      "source_file_sha256": "005186858cbcedea53275b338ea05988d02c91f95d502018879383e0a7e328d9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_backup_restore.rs",
+      "source_file_sha256": "4d8cf0fdecfc41ee137cb3a00e65a94251714d3cde9a1a2eb2c9a56b20abf7a5",
+      "role": "independent_logical_restore_resource_gate",
+      "gate_environment": [
+        "STATEKNOT_TEST_POSTGRES_CONTAINER",
+        "STATEKNOT_REQUIRE_BACKUP_RESTORE_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_CHILD_JOIN_BACKUP_RESTORE_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::join::child_join_cancel_during_wait_drains_without_fake_consumption",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join.rs",
+      "source_file_sha256": "18ad30bb9ab870a08807ce016d869d67bbdab9519b26f56c4b7f967ac3f2c8a2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::child_join_final_writes_roll_back_registration_wakeup_and_consumption",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join.rs",
+      "source_file_sha256": "18ad30bb9ab870a08807ce016d869d67bbdab9519b26f56c4b7f967ac3f2c8a2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::child_join_legacy_writer_and_sealed_spawn_cannot_bypass_guards",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join.rs",
+      "source_file_sha256": "18ad30bb9ab870a08807ce016d869d67bbdab9519b26f56c4b7f967ac3f2c8a2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::child_join_register_publish_recover_and_consume_exact_result",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join.rs",
+      "source_file_sha256": "18ad30bb9ab870a08807ce016d869d67bbdab9519b26f56c4b7f967ac3f2c8a2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::child_join_terminal_before_registration_and_duplicate_publication",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join.rs",
+      "source_file_sha256": "18ad30bb9ab870a08807ce016d869d67bbdab9519b26f56c4b7f967ac3f2c8a2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_is_recoverable",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_consumption_commit_loss.rs",
+      "source_file_sha256": "4ca175b2e3ba82deab9f66b2d4067668dd3c91f5450ddb0edefc8b299a11108f",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_consumption_commit_loss.rs",
+      "source_file_sha256": "4ca175b2e3ba82deab9f66b2d4067668dd3c91f5450ddb0edefc8b299a11108f",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::join::driver::automatic_join_refuses_rejoin_and_recovers_failed_child_without_respending",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_driver.rs",
+      "source_file_sha256": "769e878028dd246072b1a67f89ab1161e4061be42eafb0defa5fe5fb11569cd7",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::driver::automatic_join_registration_rollback_replays_spawn_and_cancellation_drains_without_consuming",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_driver.rs",
+      "source_file_sha256": "769e878028dd246072b1a67f89ab1161e4061be42eafb0defa5fe5fb11569cd7",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::driver::automatic_join_suspends_runs_child_recovers_parent_and_consumes_once",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_driver.rs",
+      "source_file_sha256": "769e878028dd246072b1a67f89ab1161e4061be42eafb0defa5fe5fb11569cd7",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::driver::child_quarantined_after_preflight_cannot_be_read_or_consumed",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_driver.rs",
+      "source_file_sha256": "769e878028dd246072b1a67f89ab1161e4061be42eafb0defa5fe5fb11569cd7",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::driver::join_preparation_timeout_never_dispatches_or_fabricates_a_node_completion",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_driver.rs",
+      "source_file_sha256": "769e878028dd246072b1a67f89ab1161e4061be42eafb0defa5fe5fb11569cd7",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::driver::join_publisher_pages_past_failure_recovers_after_restart_and_keeps_tenant_scope",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_driver.rs",
+      "source_file_sha256": "769e878028dd246072b1a67f89ab1161e4061be42eafb0defa5fe5fb11569cd7",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::driver::published_join_cannot_dispatch_through_a_non_join_executor_binding",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_driver.rs",
+      "source_file_sha256": "769e878028dd246072b1a67f89ab1161e4061be42eafb0defa5fe5fb11569cd7",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+      "source_file_sha256": "8dcaa48e644869544723cce7fb7f1ffa54b71fcaa16b812da67bb201015707fa",
+      "role": "independent_pitr_resource_gate",
+      "gate_environment": [
+        "STATEKNOT_PITR_POSTGRES_IMAGE",
+        "STATEKNOT_REQUIRE_PITR_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_CHILD_JOIN_PITR_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::join::process::child_join_process_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_process.rs",
+      "source_file_sha256": "07e953366e5f37dfe73b947d1ccaf83c827a3444bbb0814d151b8653f5c11e73",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::join::process::child_join_stale_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_process.rs",
+      "source_file_sha256": "07e953366e5f37dfe73b947d1ccaf83c827a3444bbb0814d151b8653f5c11e73",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::join::process::child_join_survives_process_loss_and_rejects_retained_stale_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_process.rs",
+      "source_file_sha256": "07e953366e5f37dfe73b947d1ccaf83c827a3444bbb0814d151b8653f5c11e73",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::qualification::child_join_discovery_pages_past_unknown_cost_without_losing_retained_cursor",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "source_file_sha256": "5c68670da51463baab9829352f5e9df662ad3510b81e76733f02ddbb1dfaeb10",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::qualification::child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_catalog_drift",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "source_file_sha256": "5c68670da51463baab9829352f5e9df662ad3510b81e76733f02ddbb1dfaeb10",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::qualification::child_join_real_child_success_is_published_from_its_own_driver_and_lease",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "source_file_sha256": "5c68670da51463baab9829352f5e9df662ad3510b81e76733f02ddbb1dfaeb10",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::qualification::child_join_seals_complete_membership_and_canonical_order_not_completion_order",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "source_file_sha256": "5c68670da51463baab9829352f5e9df662ad3510b81e76733f02ddbb1dfaeb10",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::join::qualification::child_join_terminal_commit_races_registration_without_lost_wakeup",
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "source_file_sha256": "5c68670da51463baab9829352f5e9df662ad3510b81e76733f02ddbb1dfaeb10",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::prepared_parent_invocation_prevents_child_budget_reservation",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::sibling_reservation_after_head_retry_cannot_reuse_allocated_capacity",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::spawn_final_write_failure_rolls_back_every_fact_and_old_workers_fail_closed",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::stale_spawn_and_existing_root_attachment_leave_parent_unchanged",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::transaction_commit_loss::join_and_deadline_commit_loss_are_recoverable",
+      "path": "crates/stateknot-runtime/tests/postgres/transaction_commit_loss.rs",
+      "source_file_sha256": "30437f993e34b367c1c12c2f9f57a26c6a0063a960fa10c7660c9fb56ac04dcc",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [
+        "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE"
+      ],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::transaction_commit_loss::join_deadline_commit_loss_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/transaction_commit_loss.rs",
+      "source_file_sha256": "30437f993e34b367c1c12c2f9f57a26c6a0063a960fa10c7660c9fb56ac04dcc",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "child_admission::ownership::tree::nested_ownership_enforces_ancestor_limits_cancellation_and_once_only_subtree_cost",
+      "path": "crates/stateknot-runtime/tests/postgres/child_tree.rs",
+      "source_file_sha256": "0147b2b7de6d7610e00ff4d2cf128e595bc3f5fdbb733849ae4fffc78d911b3f",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::ownership::unknown_cost_remains_discoverable_while_known_overrun_settles_without_erasure",
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "source_file_sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::preparation_refuses_schema_rejection_and_unavailable_deployment",
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission.rs",
+      "source_file_sha256": "9d89bed8e2ffb85f19bcd92d2ccfebacec7ca396857092e513ee1c61b3df4f6a",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::preparation_refuses_undeclared_slots_without_writing",
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission.rs",
+      "source_file_sha256": "9d89bed8e2ffb85f19bcd92d2ccfebacec7ca396857092e513ee1c61b3df4f6a",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "child_admission::preparation_replays_candidate_identity_without_creating_child_runs",
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission.rs",
+      "source_file_sha256": "9d89bed8e2ffb85f19bcd92d2ccfebacec7ca396857092e513ee1c61b3df4f6a",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "commit_proxy::commit_proxy_rejects_truncated_oversized_and_malformed_frames",
+      "path": "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+      "source_file_sha256": "c679ce5aa0aecb8d610da396954168e46a4648bece20ce986ed303d2ba68e0ed",
+      "role": "harness_or_protocol_self_test",
+      "gate_environment": [],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "driver_advances_then_replays_a_noninitial_checkpoint_before_terminal_handoff",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "durable_agent_admission_facade_validates_and_converges_exact_retries",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "durable_agent_loop_drives_and_commits_one_claimed_run_to_success",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "durable_agent_loop_releases_lease_when_terminal_evidence_is_unavailable",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "durable_fair_scheduler_preserves_exact_cross_tenant_share_across_ticks",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "failed_supervision_lost_ack_retries_without_rereading_failure_evidence",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "graph_composition::bounded_composition_exhaustion_runs_the_explicit_failure_exit",
+      "path": "crates/stateknot-runtime/tests/postgres/graph_composition.rs",
+      "source_file_sha256": "47fe392569e49a1a3ca19b5cc9b88c70e197e9c170587cd34d5360fb9eb9d563",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "graph_composition::composed_call_rejects_a_changed_template_before_any_executor_runs",
+      "path": "crates/stateknot-runtime/tests/postgres/graph_composition.rs",
+      "source_file_sha256": "47fe392569e49a1a3ca19b5cc9b88c70e197e9c170587cd34d5360fb9eb9d563",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "graph_composition::composed_node_orphan_is_taken_over_under_the_next_fence",
+      "path": "crates/stateknot-runtime/tests/postgres/graph_composition.rs",
+      "source_file_sha256": "47fe392569e49a1a3ca19b5cc9b88c70e197e9c170587cd34d5360fb9eb9d563",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "graph_composition::composed_wait_returns_to_parent_only_after_durable_timer_resolution",
+      "path": "crates/stateknot-runtime/tests/postgres/graph_composition.rs",
+      "source_file_sha256": "47fe392569e49a1a3ca19b5cc9b88c70e197e9c170587cd34d5360fb9eb9d563",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "graph_composition::pending_composed_nodes_survive_driver_recreation_and_exit_early",
+      "path": "crates/stateknot-runtime/tests/postgres/graph_composition.rs",
+      "source_file_sha256": "47fe392569e49a1a3ca19b5cc9b88c70e197e9c170587cd34d5360fb9eb9d563",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "graph_composition::recovered_global_step_limit_blocks_dispatch_and_commits_replayable_failure",
+      "path": "crates/stateknot-runtime/tests/postgres/graph_composition.rs",
+      "source_file_sha256": "47fe392569e49a1a3ca19b5cc9b88c70e197e9c170587cd34d5360fb9eb9d563",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "invalid_initial_checkpoint_state_is_quarantined_before_node_launch",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "journal_isolated_siblings_overlap_but_commit_in_canonical_node_order",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "long_running_node_renews_its_lease_until_completion",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "model_executor_commits_real_terminal_evidence_after_cancellation_advances_journal",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "model_executor_rebinds_terminal_evidence_after_lease_takeover_without_redispatch",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "near_expiry_lease_is_refreshed_before_node_code_is_launched",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::agent_loop_pending_cancellation_direct_observes_original_node_timeout_then_retries_complete_usage",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::agent_loop_pending_cancellation_direct_observes_shutdown_without_closing_incomplete_usage",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::elapsed_graph_waits::races::concurrent_scoped_elapsed_writers_claim_one_tenant_wide_wait_identity",
+      "path": "crates/stateknot-runtime/tests/postgres/elapsed_graph_wait_races.rs",
+      "source_file_sha256": "2b9079a2498497b665a9bb2d0028315f727b2f6bf8ce3eb3b3595e9546c0a96c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "direct_evidence_markers": [],
+      "new_case": true
+    },
+    {
+      "name": "nested_driver::elapsed_graph_waits::races::legacy_registered_and_elapsed_wait_writers_compete_for_one_identity",
+      "path": "crates/stateknot-runtime/tests/postgres/elapsed_graph_wait_races.rs",
+      "source_file_sha256": "2b9079a2498497b665a9bb2d0028315f727b2f6bf8ce3eb3b3595e9546c0a96c",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "direct_evidence_markers": [],
+      "new_case": true
+    },
+    {
+      "name": "nested_driver::elapsed_graph_waits::root_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+      "path": "crates/stateknot-runtime/tests/postgres/elapsed_graph_waits.rs",
+      "source_file_sha256": "8fe8a7412110028d061cb1b767291b8d2c53af1ed1177c77c8d6d6a01c2cede9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "direct_evidence_markers": [],
+      "new_case": true
+    },
+    {
+      "name": "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+      "path": "crates/stateknot-runtime/tests/postgres/elapsed_graph_waits.rs",
+      "source_file_sha256": "8fe8a7412110028d061cb1b767291b8d2c53af1ed1177c77c8d6d6a01c2cede9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "direct_evidence_markers": [],
+      "new_case": true
+    },
+    {
+      "name": "nested_driver::framework_entry_and_scoped_application_start_share_original_run",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::missing_complete_direct_evidence_leaves_no_frame_or_application_dispatch",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::nested_leaf_terminal_returns_before_parent_terminal_handoff",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::pending_direct_usage_observes_durable_cancel_preserving_actual_completed_work",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::pending_direct_usage_observes_original_node_timeout_without_fabricating_usage",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::pending_direct_usage_observes_shutdown_preserves_actual_completed_work",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::recovery_guardian::execution_renewal_ack_drains_before_completed_node_can_commit",
+      "path": "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs",
+      "source_file_sha256": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::recovery_guardian::execution_renewal_ack_drains_before_external_shutdown_can_release",
+      "path": "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs",
+      "source_file_sha256": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::recovery_guardian::execution_renewal_ack_outlives_old_deadline_while_application_stops",
+      "path": "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs",
+      "source_file_sha256": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::recovery_guardian::recovery_guardian_failure_stops_dispatch_while_original_fence_is_live",
+      "path": "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs",
+      "source_file_sha256": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::recovery_guardian::recovery_quarantine_ack_survives_outer_lease_guardian_failure",
+      "path": "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs",
+      "source_file_sha256": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::recovery_guardian::recovery_released_ownership_ack_keeps_original_outcome_after_guardian_failure",
+      "path": "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs",
+      "source_file_sha256": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::recovery_guardian::recovery_start_ack_survives_guardian_failure_without_successor_dispatch",
+      "path": "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs",
+      "source_file_sha256": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::retained_direct_context_rejects_new_journal_without_quarantine_or_repeat_execution",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_cancellation_closes_original_fences_then_control_plane_confirms_and_recovers_ack",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_cancellation_committed_closure_ack_survives_guardian_fault_then_recovers_exactly",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_cancellation_guardian_lost_lease_before_write_preserves_history_without_quarantine",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_cancellation_quarantine_commit_ack_survives_guardian_failure",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_cancellation_renewal_commit_ack_outlives_original_expiry_without_dropping_sql",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_failure_closes_all_original_callers_before_root_terminal",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_safe_after_releases_exact_gate_and_retries_under_higher_fence",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_start_lost_commit_ack_retries_exact_original_without_application_launch",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::scoped_wait_releases_once_resolves_all_conditions_and_resumes_actual_leaf",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::serial_siblings_finish_in_distinct_namespaces_before_root_terminal",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::shared_quantum_bounds_seven_level_entry_and_higher_fence_rebind",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::shared_quantum_retains_terminal_leaf_before_return_then_resumes_parent_once",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "nested_driver::slow_cancellation_direct_evidence_maintains_original_fence_past_original_lease",
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "source_file_sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::creating_source_preflight_preserves_exact_session_and_never_writes",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::separate_initial_checkpoint_rejects_crossed_fresh_components_and_rolls_back",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::separate_start_and_initial_checkpoint_keep_positive_creation_and_whole_recovery",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::trusted_root_final_clock_rejects_slow_deferred_terminal_and_rolls_back",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::trusted_root_keeps_maximum_input_state_and_large_terminal_together",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::trusted_root_rejects_fresh_source_substitution_without_partial_commit",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::trusted_root_terminal_keeps_original_known_and_unpriced_cost_predicate",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::trusted_terminal_keeps_maximum_request_and_original_inputs_after_lost_ack",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "ordinary_root::unavailable_legacy_creation_is_operational_before_any_node_dispatch",
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "source_file_sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "process_harness::parent_watch_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/process_harness.rs",
+      "source_file_sha256": "f65d30e965a9c7d39e16878016d0d7b51b980b8827d706b1ca59087b46252271",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "process_harness::process_harness_exits_when_controller_liveness_pipe_closes",
+      "path": "crates/stateknot-runtime/tests/postgres/process_harness.rs",
+      "source_file_sha256": "f65d30e965a9c7d39e16878016d0d7b51b980b8827d706b1ca59087b46252271",
+      "role": "harness_or_protocol_self_test",
+      "gate_environment": [],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "process_harness::process_harness_rejects_successful_exit_without_a_kill_point",
+      "path": "crates/stateknot-runtime/tests/postgres/process_harness.rs",
+      "source_file_sha256": "f65d30e965a9c7d39e16878016d0d7b51b980b8827d706b1ca59087b46252271",
+      "role": "harness_or_protocol_self_test",
+      "gate_environment": [],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "process_harness::process_harness_resumes_and_observes_asserting_worker_exit",
+      "path": "crates/stateknot-runtime/tests/postgres/process_harness.rs",
+      "source_file_sha256": "f65d30e965a9c7d39e16878016d0d7b51b980b8827d706b1ca59087b46252271",
+      "role": "harness_or_protocol_self_test",
+      "gate_environment": [],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "process_harness::resume_worker",
+      "path": "crates/stateknot-runtime/tests/postgres/process_harness.rs",
+      "source_file_sha256": "f65d30e965a9c7d39e16878016d0d7b51b980b8827d706b1ca59087b46252271",
+      "role": "auxiliary_subprocess_worker",
+      "gate_environment": [
+        "STATEKNOT_TEST_PROCESS_INPUT",
+        "STATEKNOT_TEST_PROCESS_TOKEN"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": true
+    },
+    {
+      "name": "provider_native_budget_recovers_prior_model_and_tool_usage_from_postgres",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_cancellation_recovers_exact_usage_and_replays_confirmation",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_graph_continues_after_known_failed_tool_and_binds_terminal_revision",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_graph_reconciles_unknown_tool_without_repeating_business_io",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_graph_recovers_committed_model_without_redispatch_and_completes_lifecycle",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_higher_fence_wins_stale_policy_race_without_external_redispatch",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_malformed_adapter_response_repairs_from_failed_ledger",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_output_repair_exhaustion_fails_with_exact_usage",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_output_repair_never_executes_a_proposed_tool",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_output_repair_resumes_from_checkpoint_without_redispatch",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposal_order",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_partial_tool_retry_charges_only_newly_reconciled_usage",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_recovered_response_does_not_charge_new_physical_attempt",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_native_recovered_unpriced_response_retains_monetary_blocker",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "provider_probe_persists_pending_then_commits_once_and_recovers_without_io",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "public_agent_run_facade_exposes_only_confirmed_cancellation_as_terminal",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "public_agent_run_facade_revalidates_active_and_successful_snapshots",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "root_driver_recovery::root_continue_yield_then_fresh_higher_fence_driver_replays_whole_bundle",
+      "path": "crates/stateknot-runtime/tests/postgres/root_driver_recovery.rs",
+      "source_file_sha256": "66592baf57a5ea3937e59bc96d38801a9d429eb0a4c9ff6651271793f582b910",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "root_driver_recovery::root_wait_resolution_and_original_ack_then_fresh_driver_replay",
+      "path": "crates/stateknot-runtime/tests/postgres/root_driver_recovery.rs",
+      "source_file_sha256": "66592baf57a5ea3937e59bc96d38801a9d429eb0a4c9ff6651271793f582b910",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "same_fence_inflight_start_is_never_executed_twice",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "streaming_model_executor_validates_emits_accumulates_and_deduplicates",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "successor_fence_restarts_an_orphaned_parallel_sibling_batch_once",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "successor_fence_takes_over_an_unfinished_attempt_once",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "tenant_scheduler_scans_claims_executes_and_then_observes_idle",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "terminal_handoff_lost_ack_retries_without_rereading_success_evidence",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "timed_out_tool_write_reconciles_without_redispatch_or_invalid_schema_commit",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    },
+    {
+      "name": "wait_handoff_replays_exactly_after_a_later_cancellation_advances_the_run",
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "source_file_sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de",
+      "role": "ordinary_database_scenario",
+      "gate_environment": [
+        "STATEKNOT_TEST_DATABASE_URL",
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+      ],
+      "direct_evidence_markers": [],
+      "conditional_or_auxiliary_whole_file_equals_reviewed_parent": null
+    }
+  ],
+  "workflow_path": ".github/workflows/ci.yml",
+  "workflow_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004",
+  "ci_qualification_steps": [
+    {
+      "job": "postgres",
+      "name": "Run mandatory PostgreSQL integration tests",
+      "workflow_line": 364,
+      "command_and_marker_checks": "cargo test -p stateknot-store-postgres --test postgres --locked -- --test-threads=1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [],
+      "required_markers": {},
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Run durable Graph Driver integration tests",
+      "workflow_line": 373,
+      "command_and_marker_checks": "cargo test -p stateknot-runtime --test postgres --locked -- --test-threads=1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [],
+      "required_markers": {},
+      "runtime185_members": [
+        "provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposal_order",
+        "provider_native_output_repair_resumes_from_checkpoint_without_redispatch",
+        "provider_native_malformed_adapter_response_repairs_from_failed_ledger",
+        "provider_native_output_repair_exhaustion_fails_with_exact_usage",
+        "provider_native_output_repair_never_executes_a_proposed_tool",
+        "agent_service_authorizes_submits_recovers_and_cancels_without_redispatch",
+        "durable_agent_admission_facade_validates_and_converges_exact_retries",
+        "provider_native_graph_recovers_committed_model_without_redispatch_and_completes_lifecycle",
+        "provider_native_budget_recovers_prior_model_and_tool_usage_from_postgres",
+        "provider_native_recovered_response_does_not_charge_new_physical_attempt",
+        "provider_native_recovered_unpriced_response_retains_monetary_blocker",
+        "provider_native_graph_reconciles_unknown_tool_without_repeating_business_io",
+        "provider_native_partial_tool_retry_charges_only_newly_reconciled_usage",
+        "provider_native_higher_fence_wins_stale_policy_race_without_external_redispatch",
+        "provider_native_cancellation_recovers_exact_usage_and_replays_confirmation",
+        "agent_loop_confirms_preexecution_cancellation_without_provider_dispatch",
+        "cancellation_evidence_unavailability_fails_closed_without_zero_usage",
+        "provider_native_graph_continues_after_known_failed_tool_and_binds_terminal_revision",
+        "public_agent_run_facade_revalidates_active_and_successful_snapshots",
+        "public_agent_run_facade_exposes_only_confirmed_cancellation_as_terminal",
+        "model_executor_rebinds_terminal_evidence_after_lease_takeover_without_redispatch",
+        "model_executor_commits_real_terminal_evidence_after_cancellation_advances_journal",
+        "streaming_model_executor_validates_emits_accumulates_and_deduplicates",
+        "timed_out_tool_write_reconciles_without_redispatch_or_invalid_schema_commit",
+        "provider_probe_persists_pending_then_commits_once_and_recovers_without_io",
+        "durable_fair_scheduler_preserves_exact_cross_tenant_share_across_ticks",
+        "terminal_handoff_lost_ack_retries_without_rereading_success_evidence",
+        "wait_handoff_replays_exactly_after_a_later_cancellation_advances_the_run",
+        "failed_supervision_lost_ack_retries_without_rereading_failure_evidence",
+        "durable_agent_loop_drives_and_commits_one_claimed_run_to_success",
+        "durable_agent_loop_releases_lease_when_terminal_evidence_is_unavailable",
+        "journal_isolated_siblings_overlap_but_commit_in_canonical_node_order",
+        "successor_fence_restarts_an_orphaned_parallel_sibling_batch_once",
+        "tenant_scheduler_scans_claims_executes_and_then_observes_idle",
+        "driver_advances_then_replays_a_noninitial_checkpoint_before_terminal_handoff",
+        "same_fence_inflight_start_is_never_executed_twice",
+        "long_running_node_renews_its_lease_until_completion",
+        "near_expiry_lease_is_refreshed_before_node_code_is_launched",
+        "invalid_initial_checkpoint_state_is_quarantined_before_node_launch",
+        "successor_fence_takes_over_an_unfinished_attempt_once",
+        "graph_composition::composed_call_rejects_a_changed_template_before_any_executor_runs",
+        "graph_composition::composed_node_orphan_is_taken_over_under_the_next_fence",
+        "graph_composition::pending_composed_nodes_survive_driver_recreation_and_exit_early",
+        "graph_composition::bounded_composition_exhaustion_runs_the_explicit_failure_exit",
+        "graph_composition::recovered_global_step_limit_blocks_dispatch_and_commits_replayable_failure",
+        "graph_composition::composed_wait_returns_to_parent_only_after_durable_timer_resolution",
+        "nested_driver::missing_complete_direct_evidence_leaves_no_frame_or_application_dispatch",
+        "nested_driver::retained_direct_context_rejects_new_journal_without_quarantine_or_repeat_execution",
+        "nested_driver::framework_entry_and_scoped_application_start_share_original_run",
+        "nested_driver::nested_leaf_terminal_returns_before_parent_terminal_handoff",
+        "nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay",
+        "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+        "nested_driver::scoped_failure_closes_all_original_callers_before_root_terminal",
+        "nested_driver::scoped_cancellation_closes_original_fences_then_control_plane_confirms_and_recovers_ack",
+        "nested_driver::scoped_wait_releases_once_resolves_all_conditions_and_resumes_actual_leaf",
+        "nested_driver::shared_quantum_bounds_seven_level_entry_and_higher_fence_rebind",
+        "nested_driver::shared_quantum_retains_terminal_leaf_before_return_then_resumes_parent_once",
+        "nested_driver::scoped_start_lost_commit_ack_retries_exact_original_without_application_launch",
+        "nested_driver::serial_siblings_finish_in_distinct_namespaces_before_root_terminal",
+        "nested_driver::scoped_safe_after_releases_exact_gate_and_retries_under_higher_fence",
+        "nested_driver::pending_direct_usage_observes_shutdown_preserves_actual_completed_work",
+        "nested_driver::pending_direct_usage_observes_original_node_timeout_without_fabricating_usage",
+        "nested_driver::pending_direct_usage_observes_durable_cancel_preserving_actual_completed_work",
+        "nested_driver::slow_cancellation_direct_evidence_maintains_original_fence_past_original_lease",
+        "nested_driver::agent_loop_pending_cancellation_direct_observes_shutdown_without_closing_incomplete_usage",
+        "nested_driver::agent_loop_pending_cancellation_direct_observes_original_node_timeout_then_retries_complete_usage",
+        "nested_driver::scoped_cancellation_committed_closure_ack_survives_guardian_fault_then_recovers_exactly",
+        "nested_driver::scoped_cancellation_renewal_commit_ack_outlives_original_expiry_without_dropping_sql",
+        "nested_driver::scoped_cancellation_guardian_lost_lease_before_write_preserves_history_without_quarantine",
+        "nested_driver::scoped_cancellation_quarantine_commit_ack_survives_guardian_failure",
+        "nested_driver::recovery_guardian::recovery_released_ownership_ack_keeps_original_outcome_after_guardian_failure",
+        "nested_driver::recovery_guardian::execution_renewal_ack_drains_before_completed_node_can_commit",
+        "nested_driver::recovery_guardian::execution_renewal_ack_drains_before_external_shutdown_can_release",
+        "nested_driver::recovery_guardian::execution_renewal_ack_outlives_old_deadline_while_application_stops",
+        "nested_driver::recovery_guardian::recovery_guardian_failure_stops_dispatch_while_original_fence_is_live",
+        "nested_driver::recovery_guardian::recovery_start_ack_survives_guardian_failure_without_successor_dispatch",
+        "nested_driver::recovery_guardian::recovery_quarantine_ack_survives_outer_lease_guardian_failure",
+        "root_driver_recovery::root_continue_yield_then_fresh_higher_fence_driver_replays_whole_bundle",
+        "root_driver_recovery::root_wait_resolution_and_original_ack_then_fresh_driver_replay",
+        "child_admission::preparation_refuses_undeclared_slots_without_writing",
+        "child_admission::ordinary_root_graph_cannot_prepare_children_without_declaration",
+        "child_admission::preparation_replays_candidate_identity_without_creating_child_runs",
+        "child_admission::preparation_refuses_schema_rejection_and_unavailable_deployment",
+        "child_admission::cancelled_parent_cannot_validate_an_earlier_preparation",
+        "child_admission::advanced_parent_requires_current_checkpoint_and_new_activation",
+        "child_admission::ownership::atomic_spawn_retry_terminal_reconciliation_and_parent_accounting",
+        "child_admission::ownership::concurrent_logical_spawn_has_one_owner_and_no_orphan_candidates",
+        "child_admission::ownership::stale_spawn_and_existing_root_attachment_leave_parent_unchanged",
+        "child_admission::ownership::spawn_final_write_failure_rolls_back_every_fact_and_old_workers_fail_closed",
+        "child_admission::ownership::external_dispatch_excludes_live_children_and_deducts_settled_usage",
+        "child_admission::ownership::prepared_parent_invocation_prevents_child_budget_reservation",
+        "child_admission::ownership::unknown_cost_remains_discoverable_while_known_overrun_settles_without_erasure",
+        "child_admission::ownership::sibling_reservation_after_head_retry_cannot_reuse_allocated_capacity",
+        "child_admission::ownership::account_corruption_blocks_both_read_and_lost_ack_recovery",
+        "child_admission::ownership::child_terminal_racing_settlement_is_consistent_without_ancestor_lock_inversion",
+        "child_admission::ownership::tree::nested_ownership_enforces_ancestor_limits_cancellation_and_once_only_subtree_cost",
+        "child_admission::ownership::cancellation::cancellation_delivery_is_atomic_race_safe_and_never_fabricates_terminal_usage",
+        "child_admission::ownership::cancellation::existing_child_request_and_terminal_outcome_are_not_replaced",
+        "child_admission::ownership::cancellation::cancellation_atomically_abandons_real_child_waits_and_makes_cleanup_schedulable",
+        "child_admission::ownership::cancellation::nested_delivery_queues_one_level_per_commit_and_settles_leaf_to_root_once",
+        "child_admission::ownership::cancellation::draining_parent_cannot_reclaim_capacity_until_last_child_settles",
+        "child_admission::ownership::cancellation::racing_parent_cancel_and_spawn_never_leaves_an_unowned_or_unqueued_child",
+        "child_admission::ownership::cancellation::bounded_cursor_passes_unpriced_prefix_and_survives_recreation_and_shutdown",
+        "child_admission::ownership::cancellation::upgrade::populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutable_guards",
+        "child_admission::ownership::join::child_join_register_publish_recover_and_consume_exact_result",
+        "child_admission::ownership::join::child_join_terminal_before_registration_and_duplicate_publication",
+        "child_admission::ownership::join::child_join_final_writes_roll_back_registration_wakeup_and_consumption",
+        "child_admission::ownership::join::child_join_cancel_during_wait_drains_without_fake_consumption",
+        "child_admission::ownership::join::child_join_legacy_writer_and_sealed_spawn_cannot_bypass_guards",
+        "child_admission::ownership::join::qualification::child_join_seals_complete_membership_and_canonical_order_not_completion_order",
+        "child_admission::ownership::join::qualification::child_join_terminal_commit_races_registration_without_lost_wakeup",
+        "child_admission::ownership::join::qualification::child_join_real_child_success_is_published_from_its_own_driver_and_lease",
+        "child_admission::ownership::join::qualification::child_join_discovery_pages_past_unknown_cost_without_losing_retained_cursor",
+        "child_admission::ownership::join::qualification::child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_catalog_drift",
+        "child_admission::ownership::join::driver::automatic_join_suspends_runs_child_recovers_parent_and_consumes_once",
+        "child_admission::ownership::join::driver::automatic_join_refuses_rejoin_and_recovers_failed_child_without_respending",
+        "child_admission::ownership::join::driver::automatic_join_registration_rollback_replays_spawn_and_cancellation_drains_without_consuming",
+        "child_admission::ownership::join::driver::join_publisher_pages_past_failure_recovers_after_restart_and_keeps_tenant_scope",
+        "child_admission::ownership::join::driver::join_preparation_timeout_never_dispatches_or_fabricates_a_node_completion",
+        "child_admission::ownership::join::driver::published_join_cannot_dispatch_through_a_non_join_executor_binding",
+        "child_admission::ownership::join::driver::child_quarantined_after_preflight_cannot_be_read_or_consumed",
+        "child_admission::ownership::join::process::child_join_process_worker",
+        "child_admission::ownership::join::process::child_join_stale_worker",
+        "child_admission::ownership::join::process::child_join_survives_process_loss_and_rejects_retained_stale_worker",
+        "child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_worker",
+        "child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_is_recoverable",
+        "child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore",
+        "child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery",
+        "child_admission::ownership::deadlines::deadline_uses_database_clock_converges_racers_and_waits_for_real_cleanup_evidence",
+        "child_admission::ownership::deadlines::deadline_abandons_real_waits_atomically_without_firing_the_timer",
+        "child_admission::ownership::deadlines::deadline_suspended_join_queues_children_rollback_then_drains_before_parent_closure",
+        "child_admission::ownership::deadlines::deadline_sweep_pages_past_errors_resets_after_tail_and_restarts_without_losing_work",
+        "child_admission::ownership::deadlines::deadline_never_overwrites_terminal_or_operator_cancellation",
+        "child_admission::ownership::deadlines::deadline_shutdown_preserves_work_and_quarantine_is_visible_without_blocking_other_runs",
+        "child_admission::ownership::deadlines::deadline_observes_expiry_after_waiting_for_the_lifecycle_lock",
+        "child_admission::ownership::deadlines::upgrade::deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_projection_guards",
+        "child_admission::ownership::deadlines::process::deadline_join_process_worker",
+        "child_admission::ownership::deadlines::process::deadline_join_stale_worker",
+        "child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker",
+        "child_admission::ownership::failure_close::failure_close_final_write_rollback_guards_and_terminal_accounting_are_enforced",
+        "child_admission::ownership::failure_close::failure_close_checks_fresh_lease_after_child_queue_capture",
+        "child_admission::ownership::failure_close::failure_close_pages_continue_past_blocked_work_and_preserve_tenant_shutdown_and_quarantine",
+        "child_admission::ownership::failure_close::failure_close_drains_children_preserves_original_and_charges_once_after_reconstruction",
+        "child_admission::ownership::failure_close::failure_close_rejects_unfinished_or_unpriced_direct_evidence_without_stranding_lease",
+        "child_admission::ownership::failure_close::failure_close_unknown_child_cost_blocks_only_its_own_closure",
+        "child_admission::ownership::failure_close::failure_closing_child_retains_its_own_failure_before_parent_settlement",
+        "child_admission::ownership::failure_close::failure_close_graph_handoff_recovers_without_reconsulting_evidence",
+        "child_admission::ownership::failure_close::upgrade::failure_close_populated_v23_upgrade_preserves_history_and_rejects_catalog_drift",
+        "child_admission::ownership::failure_close::process::failure_close_process_worker",
+        "child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary",
+        "child_admission::ownership::failure_close::commit_loss::commit_loss_worker",
+        "child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable",
+        "child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_worker",
+        "child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_is_recoverable",
+        "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_drives_all_jobs_and_excludes_unauthorized_tenants",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_advances_past_a_full_failed_page_and_restart_revisits_it",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_readiness_wait_drop_and_startup_fail_closed",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_periodic_panic_and_store_error_fail_stop",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_tick_deadline_cancels_locked_database_work",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_process_worker",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_sigkill_then_fresh_owner_finishes_without_duplicate_effects",
+        "child_admission::ownership::transaction_commit_loss::join_deadline_commit_loss_worker",
+        "child_admission::ownership::transaction_commit_loss::join_and_deadline_commit_loss_are_recoverable",
+        "child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_worker",
+        "child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable",
+        "child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_worker",
+        "child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable",
+        "child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_worker",
+        "child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_is_recoverable",
+        "process_harness::resume_worker",
+        "process_harness::process_harness_resumes_and_observes_asserting_worker_exit",
+        "process_harness::parent_watch_worker",
+        "process_harness::process_harness_exits_when_controller_liveness_pipe_closes",
+        "process_harness::process_harness_rejects_successful_exit_without_a_kill_point",
+        "commit_proxy::commit_proxy_rejects_truncated_oversized_and_malformed_frames",
+        "ordinary_root::separate_initial_checkpoint_rejects_crossed_fresh_components_and_rolls_back",
+        "ordinary_root::separate_start_and_initial_checkpoint_keep_positive_creation_and_whole_recovery",
+        "ordinary_root::unavailable_legacy_creation_is_operational_before_any_node_dispatch",
+        "ordinary_root::creating_source_preflight_preserves_exact_session_and_never_writes",
+        "ordinary_root::trusted_terminal_keeps_maximum_request_and_original_inputs_after_lost_ack",
+        "ordinary_root::trusted_root_keeps_maximum_input_state_and_large_terminal_together",
+        "ordinary_root::trusted_root_terminal_keeps_original_known_and_unpriced_cost_predicate",
+        "ordinary_root::trusted_root_rejects_fresh_source_substitution_without_partial_commit",
+        "ordinary_root::trusted_root_final_clock_rejects_slow_deferred_terminal_and_rolls_back"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify real model adapter, pricing, and exact-key authorization",
+      "workflow_line": 379,
+      "command_and_marker_checks": "cargo test -p stateknot-integrations --test provider_native_postgres --locked -- --test-threads=1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [],
+      "required_markers": {},
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Execute recoverable DeepSeek Agent example against PostgreSQL",
+      "workflow_line": 385,
+      "command_and_marker_checks": "cargo test -p stateknot --example deepseek_agent --locked -- --test-threads=1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [],
+      "required_markers": {},
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify committed failure-close process-kill boundaries",
+      "workflow_line": 407,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary \\\n  --nocapture --test-threads=1 | tee failure-close-process-qualification.log\n# Rust's test harness exits successfully even when a filter matches zero\n# tests. Require all six machine-readable checkpoints as well as exit 0.\ntest \"$(grep -c '^STATEKNOT_PROCESS_KILL_EVIDENCE=' failure-close-process-qualification.log)\" = 6",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "failure-close-process-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_PROCESS_KILL_EVIDENCE": 6
+      },
+      "runtime185_members": [
+        "child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify commit loss and expired-fence takeover",
+      "workflow_line": 420,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable \\\n  --nocapture --test-threads=1 | tee failure-close-commit-loss.log\ntest \"$(grep -c '^STATEKNOT_COMMIT_LOSS_EVIDENCE=' failure-close-commit-loss.log)\" = 2",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "failure-close-commit-loss.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "runtime185_members": [
+        "child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify Join and deadline COMMIT loss",
+      "workflow_line": 431,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::transaction_commit_loss::join_and_deadline_commit_loss_are_recoverable \\\n  --nocapture --test-threads=1 | tee join-deadline-commit-loss.log\n# Registration, publication and deadline cancellation each require\n# both the unforwarded-COMMIT and withheld-response cut.\ntest \"$(grep -c '^STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE=' join-deadline-commit-loss.log)\" = 6",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "join-deadline-commit-loss.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6
+      },
+      "runtime185_members": [
+        "child_admission::ownership::transaction_commit_loss::join_and_deadline_commit_loss_are_recoverable"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify child-admission COMMIT loss",
+      "workflow_line": 444,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-admission-commit-loss.log\n# Atomic admission requires both an unforwarded COMMIT rollback and\n# committed-response-loss recovery from a separate process.\ntest \"$(grep -c '^STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE=' child-admission-commit-loss.log)\" = 2",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "child-admission-commit-loss.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "runtime185_members": [
+        "child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify child-cancellation delivery COMMIT loss",
+      "workflow_line": 468,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-cancellation-commit-loss.log\n# Delivery must prove both full rollback and original receipt recovery,\n# including atomic cleanup of the real outstanding wait set.\ntest \"$(grep -c '^STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE=' child-cancellation-commit-loss.log)\" = 2",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "child-cancellation-commit-loss.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "runtime185_members": [
+        "child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify child-settlement COMMIT loss",
+      "workflow_line": 492,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-settlement-commit-loss.log\n# Require rollback and original-event recovery, not a vacuous filter.\ntest \"$(grep -c '^STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE=' child-settlement-commit-loss.log)\" = 2",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "child-settlement-commit-loss.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "runtime185_members": [
+        "child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_is_recoverable"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify parent-finalization COMMIT loss",
+      "workflow_line": 515,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee parent-finalization-commit-loss.log\n# Require both exact cuts, not a successful zero-test filter.\ntest \"$(grep -c '^STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE=' parent-finalization-commit-loss.log)\" = 2",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "parent-finalization-commit-loss.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "runtime185_members": [
+        "child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_is_recoverable"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify child-join consumption COMMIT loss",
+      "workflow_line": 538,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-join-consumption-commit-loss.log\n# Both cut positions must yield independently verified evidence.\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE=' child-join-consumption-commit-loss.log)\" = 2",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "child-join-consumption-commit-loss.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "runtime185_members": [
+        "child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_is_recoverable"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify isolated child-join logical backup restore",
+      "workflow_line": 561,
+      "command_and_marker_checks": "set -o pipefail\ntest -n \"$STATEKNOT_TEST_POSTGRES_CONTAINER\"\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore \\\n  --nocapture --test-threads=1 | tee child-join-backup-restore.log\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_BACKUP_RESTORE_EVIDENCE=' child-join-backup-restore.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_REQUIRE_BACKUP_RESTORE_TESTS",
+        "STATEKNOT_TEST_POSTGRES_CONTAINER",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "child-join-backup-restore.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_CHILD_JOIN_BACKUP_RESTORE_EVIDENCE": 1
+      },
+      "runtime185_members": [
+        "child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "Separate forced local Native passed 1/1 per major with exact unique marker and full invariant payload."
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify committed child-join process-loss boundaries",
+      "workflow_line": 597,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::process::child_join_survives_process_loss_and_rejects_retained_stale_worker \\\n  --nocapture --test-threads=1 | tee child-join-process-qualification.log\n# A successful filtered test with partial or missing process evidence\n# is not a passing qualification profile.\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE=' child-join-process-qualification.log)\" = 8",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "child-join-process-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8
+      },
+      "runtime185_members": [
+        "child_admission::ownership::join::process::child_join_survives_process_loss_and_rejects_retained_stale_worker"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify deadline cancel-and-join process-loss boundaries",
+      "workflow_line": 610,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker \\\n  --nocapture --test-threads=1 | tee deadline-join-process-qualification.log\n# Both inherited-deadline candidates and every committed recovery\n# boundary are mandatory; a partial matrix fails closed.\ntest \"$(grep -c '^STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE=' deadline-join-process-qualification.log)\" = 9",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "deadline-join-process-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9
+      },
+      "runtime185_members": [
+        "child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Run durable protocol integration tests",
+      "workflow_line": 656,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-integrations --test mcp_durable --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-authorization-qualification.log\ntest \"$(grep -c '^STATEKNOT_MCP_AUTHORIZATION_EVIDENCE=' mcp-authorization-qualification.log)\" = 2",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "mcp-authorization-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify authenticated MCP result and known-error reconciliation",
+      "workflow_line": 677,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot --test mcp_reconciliation --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-reconciliation-qualification.log\ntest \"$(grep -c '^STATEKNOT_MCP_RECONCILIATION_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "mcp-reconciliation-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": 1,
+        "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": 1,
+        "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify trusted SQL role profile",
+      "workflow_line": 700,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work \\\n  --nocapture --test-threads=1 | tee trusted-role-profile-qualification.log\ntest \"$(grep -c '^STATEKNOT_ROLE_PROFILE_EVIDENCE=' trusted-role-profile-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "trusted-role-profile-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1
+      },
+      "runtime185_members": [
+        "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify MCP compute Worker isolation and recovery",
+      "workflow_line": 722,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot --test mcp_compute --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-compute-worker-qualification.log\ntest \"$(grep -c '^STATEKNOT_COMPUTE_WORKER_EVIDENCE=' mcp-compute-worker-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "mcp-compute-worker-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_COMPUTE_WORKER_EVIDENCE": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify Agent HTTP ingress and lost-response recovery",
+      "workflow_line": 743,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot --test agent_http --locked -- \\\n  --nocapture --test-threads=1 | tee agent-http-qualification.log\ntest \"$(grep -c '^STATEKNOT_AGENT_HTTP_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_AGENT_SSE_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_AGENT_SERVER_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_RESOURCE_POLICY_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_JWT_JWKS_EVIDENCE=' agent-http-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "agent-http-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_AGENT_HTTP_EVIDENCE": 1,
+        "STATEKNOT_AGENT_SSE_EVIDENCE": 1,
+        "STATEKNOT_AGENT_SERVER_EVIDENCE": 1,
+        "STATEKNOT_RESOURCE_POLICY_EVIDENCE": 1,
+        "STATEKNOT_JWT_JWKS_EVIDENCE": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify owned durable scheduling Worker",
+      "workflow_line": 768,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked -- \\\n  --nocapture --test-threads=1 --skip host:: --skip operations:: --skip qualification:: | tee agent-worker-qualification.log\ntest \"$(grep -c '^STATEKNOT_WORKER_EXECUTION_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_RECOVERY_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_FAILSTOP_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_FAIR_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_MAINTENANCE_EVIDENCE=' agent-worker-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "agent-worker-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_WORKER_EXECUTION_EVIDENCE": 1,
+        "STATEKNOT_WORKER_RECOVERY_EVIDENCE": 1,
+        "STATEKNOT_WORKER_FAILSTOP_EVIDENCE": 1,
+        "STATEKNOT_WORKER_FAIR_EVIDENCE": 1,
+        "STATEKNOT_WORKER_MAINTENANCE_EVIDENCE": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify exact-key in-process Agent execution and recovery",
+      "workflow_line": 782,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot --test in_process_agent --locked -- \\\n  --nocapture --test-threads=1 | tee in-process-agent-qualification.log\ngrep -Fq 'test postgres_typed_run_accepts_exact_submission_key_read_without_tenant_wide_access ... ok' in-process-agent-qualification.log\ntest \"$(grep -c '^STATEKNOT_IN_PROCESS_AGENT_EVIDENCE=' in-process-agent-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "in-process-agent-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_IN_PROCESS_AGENT_EVIDENCE": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify co-located Agent host",
+      "workflow_line": 805,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked host:: -- \\\n  --nocapture --test-threads=1 | tee agent-host-qualification.log\nfor marker in ADMISSION STARTUP FAILURE DRAIN DROP; do\n  test \"$(grep -c \"^STATEKNOT_HOST_${marker}_EVIDENCE=\" agent-host-qualification.log)\" = 1\ndone",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "agent-host-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_HOST_ADMISSION_EVIDENCE": 1,
+        "STATEKNOT_HOST_STARTUP_EVIDENCE": 1,
+        "STATEKNOT_HOST_FAILURE_EVIDENCE": 1,
+        "STATEKNOT_HOST_DRAIN_EVIDENCE": 1,
+        "STATEKNOT_HOST_DROP_EVIDENCE": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify protected host operations",
+      "workflow_line": 828,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked operations:: -- \\\n  --nocapture --test-threads=1 | tee agent-operations-qualification.log\nfor marker in AUTHORIZATION LIFECYCLE INPUT BOUNDS TRANSPORT; do\n  test \"$(grep -c \"^STATEKNOT_OPERATIONS_${marker}_EVIDENCE=\" agent-operations-qualification.log)\" = 1\ndone",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "agent-operations-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_OPERATIONS_AUTHORIZATION_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_LIFECYCLE_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_INPUT_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_BOUNDS_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_TRANSPORT_EVIDENCE": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Run reduced host capacity and recovery qualification",
+      "workflow_line": 886,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked -- \\\n  --exact qualification::postgres_reduced_host_qualification_emits_verified_non_release_evidence \\\n  --nocapture --test-threads=1 | tee reduced-host-qualification.log\ntest \"$(grep -c '^STATEKNOT_HOST_QUALIFICATION_REPORT=' reduced-host-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "reduced-host-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_HOST_QUALIFICATION_REPORT": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify owned Agent maintenance",
+      "workflow_line": 908,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked \\\n  child_admission::ownership::failure_close::maintenance:: -- \\\n  --nocapture --test-threads=1 | tee agent-maintenance-qualification.log\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE=' agent-maintenance-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "agent-maintenance-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1
+      },
+      "runtime185_members": [
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_drives_all_jobs_and_excludes_unauthorized_tenants",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_advances_past_a_full_failed_page_and_restart_revisits_it",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_readiness_wait_drop_and_startup_fail_closed",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_periodic_panic_and_store_error_fail_stop",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_tick_deadline_cancels_locked_database_work",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_process_worker",
+        "child_admission::ownership::failure_close::maintenance::owned_maintenance_sigkill_then_fresh_owner_finishes_without_duplicate_effects"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Run durable artifact storage integration tests",
+      "workflow_line": 933,
+      "command_and_marker_checks": "cargo test -p stateknot-artifact-store --test artifact_store --locked -- --test-threads=1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_POSTGRES_TESTS",
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [],
+      "required_markers": {},
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres",
+      "name": "Qualify real TLS identity, rotation, revocation and ingress",
+      "workflow_line": 939,
+      "command_and_marker_checks": "set -o pipefail\nbash conformance/agent-identity/run.sh | tee agent-identity-qualification.log\ntest \"$(grep -c '^STATEKNOT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_JWT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_HOST_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_OPERATIONS_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_TEST_DATABASE_URL"
+      ],
+      "log_files": [
+        "agent-identity-qualification.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_IDENTITY_EVIDENCE": 1,
+        "STATEKNOT_JWT_IDENTITY_EVIDENCE": 1,
+        "STATEKNOT_HOST_IDENTITY_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_IDENTITY_EVIDENCE": 1
+      },
+      "runtime185_members": [],
+      "inside_runtime185": false,
+      "new_candidate_observation": "not observed by this source-only matrix"
+    },
+    {
+      "job": "postgres-pitr",
+      "name": "Qualify physical base backup and named WAL recovery",
+      "workflow_line": 231,
+      "command_and_marker_checks": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery \\\n  --nocapture --test-threads=1 | tee child-join-pitr.log\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_PITR_EVIDENCE=' child-join-pitr.log)\" = 1",
+      "required_environment_keys": [
+        "STATEKNOT_REQUIRE_PITR_TESTS",
+        "STATEKNOT_PITR_POSTGRES_IMAGE"
+      ],
+      "log_files": [
+        "child-join-pitr.log"
+      ],
+      "required_markers": {
+        "STATEKNOT_CHILD_JOIN_PITR_EVIDENCE": 1
+      },
+      "runtime185_members": [
+        "child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery"
+      ],
+      "inside_runtime185": true,
+      "new_candidate_observation": "Both same-head Linux PITR jobs succeeded, including the exact test plus marker-count assertion. Local repetition is unnecessary."
+    }
+  ],
+  "parent185_qualification_transferred": false,
+  "classification_reuse_basis": "all 21 non-ordinary test entries live in 15 complete source files byte-identical to prior reviewed role map; all final189 names resolved; four added elapsed-wait cases are ordinary mandatory-DB scenarios",
+  "ordinary_harness_pass_is_independent_backup_or_PITR_execution": false,
+  "all_CI_steps_observed_executed": false
+}

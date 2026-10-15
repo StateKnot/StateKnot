@@ -177,6 +177,8 @@ async fn privilege_rejections(fixture: &Fixture) {
             "DELETE FROM stateknot.graph_frame_caller_bindings WHERE false",
             "UPDATE stateknot.graph_frame_returns SET compound_digest=compound_digest WHERE false",
             "DELETE FROM stateknot.graph_frame_returns WHERE false",
+            "UPDATE stateknot.graph_wait_conditions SET condition_bytes=condition_bytes WHERE false",
+            "DELETE FROM stateknot.graph_wait_conditions WHERE false",
             "DELETE FROM stateknot.run_events WHERE false",
             "DELETE FROM stateknot.tool_authorization_receipts WHERE false",
             "TRUNCATE stateknot.run_events",
@@ -202,6 +204,16 @@ async fn privilege_rejections(fixture: &Fixture) {
     .await;
     denied(
         &fixture.retention,
+        "SELECT * FROM stateknot.graph_wait_conditions LIMIT 1",
+    )
+    .await;
+    denied(
+        &fixture.retention,
+        "INSERT INTO stateknot.graph_wait_conditions (tenant_id) SELECT 'forbidden' WHERE false",
+    )
+    .await;
+    denied(
+        &fixture.retention,
         "UPDATE stateknot.scheduler_fairness_shards SET next_slot=next_slot WHERE false",
     )
     .await;
@@ -222,6 +234,10 @@ async fn drift_is_rejected(fixture: &Fixture) {
     fixture.profile(true).await.unwrap();
     for sql in [
         "GRANT UPDATE ON stateknot.run_events TO PUBLIC".to_owned(),
+        format!(
+            "GRANT UPDATE (condition_bytes) ON stateknot.graph_wait_conditions TO {}",
+            fixture.names[1]
+        ),
         format!(
             "GRANT UPDATE (payload_bytes) ON stateknot.run_events TO {}",
             fixture.names[1]
@@ -1033,7 +1049,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 35);
+    assert_eq!(schema_version, 36);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -1053,6 +1069,8 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "framework_caller_rebind_retry_reload":true,
         "whole_frame_return_retry_reload":true,
         "whole_frame_wait_resolve_resume":true,
+        "graph_wait_elapsed_and_registered_real_runtime_login":true,
+        "graph_wait_runtime_update_delete_and_retention_rejected":true,
         "whole_frame_closure_retry_reload_terminal":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
@@ -1101,15 +1119,23 @@ async fn scoped_wait(
         base.checkpoint().state().data().clone(),
     )
     .unwrap();
-    let waits = stateknot_core::NodeWaits::try_new([stateknot_core::NodeWait::interrupt(
-        interrupt_id,
-        stateknot_core::RunInterruptKind::Approval,
-        payload.clone(),
-        Digest::sha256(b"role frame action"),
-        Some(principal.clone()),
-        stateknot_core::ScopeSet::default(),
-        None,
-    )])
+    let elapsed_timer_id = stateknot_core::TimerId::generate();
+    let waits = stateknot_core::NodeWaits::try_new([
+        stateknot_core::NodeWait::timer(
+            elapsed_timer_id,
+            stateknot_core::RunTimerKind::Sleep,
+            started.event().recorded_at(),
+        ),
+        stateknot_core::NodeWait::interrupt(
+            interrupt_id,
+            stateknot_core::RunInterruptKind::Approval,
+            payload.clone(),
+            Digest::sha256(b"role frame action"),
+            Some(principal.clone()),
+            stateknot_core::ScopeSet::default(),
+            None,
+        ),
+    ])
     .unwrap();
     let result = stateknot_core::PendingNodeResultIntent::new(
         started.attempt().start().activation().clone(),
@@ -1167,6 +1193,20 @@ async fn scoped_wait(
     .unwrap() else {
         panic!("whole role suspension");
     };
+    assert_eq!(
+        saved.wait_effect(),
+        Some(stateknot_store_postgres::GraphWaitEffect::Waiting)
+    );
+    assert_eq!(saved.waits().unwrap().unwrap().len(), 1);
+    let profiles: Vec<String> = query_scalar("SELECT profile FROM stateknot.graph_wait_conditions WHERE tenant_id=$1 AND run_id=$2 ORDER BY condition_ordinal")
+        .bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid()).fetch_all(&fixture.runtime).await.unwrap();
+    assert_eq!(profiles, ["graph_elapsed", "graph_registered"]);
+    assert!(matches!(
+        store
+            .load_durable_timer(fence.tenant_id(), fence.run_id(), elapsed_timer_id)
+            .await,
+        Err(stateknot_store_postgres::StoreError::WaitRegistrationNotFound)
+    ));
     let fresh = PostgresStore::connect(&fixture.runtime_url, options())
         .await
         .unwrap();

@@ -94,6 +94,9 @@ pub use tool_authorization_receipts::{
 #[path = "skill_activation_windows.rs"]
 mod skill_activation_windows;
 
+#[path = "graph_waits.rs"]
+mod graph_waits;
+
 #[path = "root_graph_barriers.rs"]
 mod root_graph_barriers;
 pub use root_graph_barriers::{
@@ -111,9 +114,9 @@ mod frame_retry;
 mod graph_frames;
 pub use graph_frames::{
     GraphFrameBarrierCommitOutcome, GraphFrameClosureCommitOutcome, GraphFrameEntryCommitOutcome,
-    GraphFrameReturnCommitOutcome, GraphRecoveryReplayReport, StoredActiveGraphFrame,
-    StoredGraphFrameBarrier, StoredGraphFrameClosure, StoredGraphFrameEntry,
-    StoredGraphFrameReturn, StoredOpenGraphFrame,
+    GraphFrameReturnCommitOutcome, GraphRecoveryReplayReport, GraphWaitEffect,
+    StoredActiveGraphFrame, StoredGraphFrameBarrier, StoredGraphFrameClosure,
+    StoredGraphFrameEntry, StoredGraphFrameReturn, StoredOpenGraphFrame,
 };
 
 use crate::{
@@ -472,6 +475,13 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             Cow::Borrowed(include_str!(
                 "../migrations/0035_trusted_root_graph_barriers.sql"
             )),
+            false,
+        ),
+        Migration::new(
+            36,
+            Cow::Borrowed("original elapsed graph Wait conditions"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!("../migrations/0036_elapsed_graph_waits.sql")),
             false,
         ),
     ]),
@@ -3340,6 +3350,7 @@ impl PostgresStore {
         scoped_checkpoints::verify_schema(&self.pool).await?;
         graph_frames::verify_schema(&self.pool).await?;
         root_graph_barriers::verify_schema(&self.pool).await?;
+        graph_waits::verify_schema(&self.pool).await?;
         Ok(())
     }
 

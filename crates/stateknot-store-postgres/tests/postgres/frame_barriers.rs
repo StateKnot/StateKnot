@@ -1076,10 +1076,14 @@ async fn source_schema_28_upgrade_preserves_populated_scoped_history_before_real
         .unwrap();
     // Reconstruct the actual source-28 guard bodies and migration inventory.
     // This proves a populated source-schema upgrade, not an old binary.
-    sqlx_core::raw_sql::raw_sql(include_str!("../fixtures/revert_graph_frame_barriers.sql"))
-        .execute(&fixture)
-        .await
-        .unwrap();
+    sqlx_core::raw_sql::raw_sql(&format!(
+        "{}\n{}",
+        include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+        include_str!("../fixtures/revert_graph_frame_barriers.sql")
+    ))
+    .execute(&fixture)
+    .await
+    .unwrap();
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM public._sqlx_migrations")
             .fetch_one(&fixture)

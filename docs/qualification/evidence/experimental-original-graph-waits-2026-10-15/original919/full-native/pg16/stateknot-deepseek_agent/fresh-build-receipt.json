@@ -1,0 +1,57 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "source_files": 919,
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/Cargo.toml",
+    "-p",
+    "stateknot",
+    "--example",
+    "deepseek_agent",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "exit_code": 0,
+  "seconds": 25.292892932891846,
+  "artifacts": [
+    {
+      "package": "stateknot",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot#0.1.0-alpha.1",
+      "name": "deepseek_agent",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/full-native-v1/fresh-additional-build/stateknot-deepseek_agent",
+      "sha256": "524df71aeb6876eec65ec262077c2224fbd71a6981b4e01a663a28786ac5b461",
+      "fresh": false,
+      "exact_test_count": 1,
+      "exact_names": [
+        "tests::example_executes_and_recovers_without_a_second_provider_call"
+      ]
+    }
+  ],
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+  "clean": [
+    "cargo",
+    "clean",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/Cargo.toml",
+    "--target-dir",
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+    "-p",
+    "stateknot-integrations",
+    "-p",
+    "stateknot"
+  ],
+  "cache_safety_confirmed": true,
+  "strict_environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings"
+  },
+  "no_native_execution": true
+}

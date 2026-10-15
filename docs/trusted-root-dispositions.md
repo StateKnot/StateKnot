@@ -8,7 +8,9 @@ SPDX-License-Identifier: Apache-2.0
 This is the experimental implementation contract of
 [RFC-0022](rfcs/0022-namespaced-graph-frames.md). Its qualification scope is
 recorded in [the current evidence report](qualification/experimental-trusted-root-dispositions-2026-10-12.md).
-The RFC and R1 remain open. The complete native gates still contain failures.
+The RFC and R1 remain open. This report records the historical schema35
+increment; current schema36 deployment also requires the
+[original absolute Wait profile](elapsed-graph-waits.md) and its own evidence.
 
 ## Creating a Root Run
 
@@ -47,8 +49,9 @@ The V2 whole barrier binds its creation source, base checkpoint, ordered
 results, original complete GraphPlan, journal event, successor checkpoint and
 lifecycle projection. Continue preserves quantum/yield and later fresh-claim
 recovery. Future Wait preserves the original registration, partial resolution,
-resume and abandonment contracts. An elapsed absolute Wait is a separate open
-increment and is not qualified by schema 35.
+resume and abandonment contracts. Absolute Timer recovery after its due instant
+is the separate experimental [schema36 profile](elapsed-graph-waits.md); the
+historical schema35 evidence does not qualify it.
 
 Ordinary Terminal retains the complete original `AgentResult` and
 `AgentTerminalValidationInputs` obtained from the real descriptor, complete
@@ -73,7 +76,11 @@ the compact bundle contains the complete request and terminal output. The V2
 bundle ceiling is 14,241,792 bytes; unchanged V1 retains 9,474,048 bytes. These
 are complete-record reader ceilings, not permission to raise component limits.
 
-## Upgrading schema 34 to 35
+## Historical schema 34 to 35 upgrade
+
+Current unreleased binaries require migrations through 36 and the matching
+current role profile; follow the [schema36 deployment sequence](elapsed-graph-waits.md#migration-and-deployment).
+The steps below describe the original schema35 increment.
 
 1. Drain old workers and close schema-34 runtime pools.
 2. Apply the normal SQLx migration 35 with the migration owner. Earlier migration

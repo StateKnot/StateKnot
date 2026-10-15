@@ -59,6 +59,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Recover experimental original absolute Graph Timer Waits after their due
+  instant without reexecuting successful nodes or inventing registrations or
+  firings. Schema 36 binds the complete original condition inventory and
+  `GraphWaitEffect::{Waiting, Ready}` to the whole Root/scoped transaction.
+  Root lifecycle/Agent Loop exposes `ReadyReleased` with its original receipt
+  and fence-release result; scoped Ready retains fresh planning and the shared
+  quantum. Existing wire formats and complete owning/post-guard authentication
+  remain intact. Final CI, full fault/compatibility and production acceptance
+  remain open under Draft RFC-0022.
+
 - Reuse a complete ordinary scoped base authentication within one experimental
   public attempt read, retaining all physical completion, result and binding
   checks. Mutations and post-guards keep the original full path. Erase the

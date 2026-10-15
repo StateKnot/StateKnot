@@ -1,0 +1,22 @@
+{
+  "schema": "stateknot.qualification-seal.v1",
+  "status": "sealed-exact-execution-with-open-cleanup",
+  "source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "compiled_input_count": 530,
+  "manifest_sha256": "d51ae534c8d0b57c81ee7aca8ffccdb60e27096c4bfc33002164468f802919a6",
+  "reports": {
+    "experimental-original-graph-waits-2026-10-15.md": "748f894ca91e34f6365cb25d4c8dd8c9530bc31ef21d8f28bb0a0877103958c9",
+    "experimental-original-graph-waits-2026-10-15.zh-CN.md": "560c435a5e5ae363c81e8b2489513c33564db83fa382ae963f356dbe4783cd31",
+    "experimental-original-graph-waits-2026-10-15.json": "06c134cb9241c62c885017ccdfda6f89fca032663d9d60c5c07b5cc34678bed6"
+  },
+  "exact_execution_gates_passed": 12,
+  "Native_libtest_executions": 916,
+  "resource_cleanup_complete": false,
+  "PITR16_cleanup_unresolved": true,
+  "full_CI_passed": false,
+  "R1_complete": false,
+  "native_execution_gates_passed": true,
+  "resource_cleanup_qualified": false,
+  "full_resource_lifecycle_qualified": false,
+  "overall_qualification": false
+}

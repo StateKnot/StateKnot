@@ -1141,10 +1141,14 @@ async fn source_schema_30_upgrade_retains_terminal_and_rebound_caller_before_ret
     .await
     .unwrap();
     let facts = snapshot(&fixture, &fence).await;
-    sqlx_core::raw_sql::raw_sql(include_str!("../fixtures/revert_graph_frame_returns.sql"))
-        .execute(&fixture)
-        .await
-        .unwrap();
+    sqlx_core::raw_sql::raw_sql(&format!(
+        "{}\n{}",
+        include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+        include_str!("../fixtures/revert_graph_frame_returns.sql")
+    ))
+    .execute(&fixture)
+    .await
+    .unwrap();
     assert_eq!(
         query_scalar::<_, i64>("SELECT max(version) FROM public._sqlx_migrations")
             .fetch_one(&fixture)

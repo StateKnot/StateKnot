@@ -34,7 +34,7 @@ pub(super) async fn closed_completion(
 
 #[path = "graph_frames/barriers.rs"]
 mod barriers;
-pub use barriers::{GraphFrameBarrierCommitOutcome, StoredGraphFrameBarrier};
+pub use barriers::{GraphFrameBarrierCommitOutcome, GraphWaitEffect, StoredGraphFrameBarrier};
 
 #[path = "graph_frames/caller_bindings.rs"]
 mod caller_bindings;

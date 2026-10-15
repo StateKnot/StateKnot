@@ -49,10 +49,6 @@ impl DurableGraphDriver {
                         )
                         .map_err(GraphDriverError::graph_plan)?,
                 );
-                let waiting = matches!(
-                    barrier_plan.disposition(),
-                    GraphBarrierDisposition::Wait { .. }
-                );
                 let outcome = self
                     .commit_scoped_barrier(
                         &recovery,
@@ -65,6 +61,23 @@ impl DurableGraphDriver {
                     .await?;
                 let Some(outcome) = outcome else {
                     return Ok(None);
+                };
+                let (stateknot_store_postgres::GraphFrameBarrierCommitOutcome::Committed(record)
+                | stateknot_store_postgres::GraphFrameBarrierCommitOutcome::Idempotent(record)) =
+                    outcome.as_ref()
+                else {
+                    return Err(GraphDriverError::RuntimeInvariant {
+                        operation: "read committed scoped Wait effect",
+                    });
+                };
+                let waiting = match record.wait_effect() {
+                    Some(stateknot_store_postgres::GraphWaitEffect::Waiting) => true,
+                    Some(stateknot_store_postgres::GraphWaitEffect::Ready) | None => false,
+                    Some(_) => {
+                        return Err(GraphDriverError::RuntimeInvariant {
+                            operation: "classify committed scoped Wait effect",
+                        });
+                    }
                 };
                 if waiting {
                     return Ok(Some(Box::new(GraphDriveOutcome::FrameWaiting(outcome))));

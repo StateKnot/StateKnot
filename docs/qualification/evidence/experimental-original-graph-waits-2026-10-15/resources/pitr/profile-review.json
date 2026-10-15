@@ -1,0 +1,38 @@
+{
+  "source": ".local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+  "read_only_review": true,
+  "production_or_test_code_change": false,
+  "resources": {
+    "containers": [
+      "stateknot-pitr-source-<UUID>",
+      "stateknot-pitr-target-<sameUUID>"
+    ],
+    "container_flags": [
+      "--rm",
+      "--publish 127.0.0.1::5432"
+    ],
+    "volumes": [
+      "stateknot-pitr-wal-<sameUUID>",
+      "stateknot-pitr-base-<sameUUID>",
+      "stateknot-pitr-target-data-<sameUUID>"
+    ],
+    "helper_containers": "--rm, mount only same owned volumes",
+    "pool_min": 1,
+    "pool_max": 8,
+    "acquire_timeout_seconds": 30,
+    "transaction_timeout_seconds": [
+      5,
+      20
+    ],
+    "lease_seconds": 300,
+    "renewal_seconds": 300,
+    "ready_timeout_seconds": 90,
+    "basebackup_timeout_seconds": 120,
+    "verifybackup_timeout_seconds": 60,
+    "wal_archive_timeout_seconds": 45,
+    "original_timeouts_unchanged": true
+  },
+  "cleanup": "Original DockerResources Drop: stop only recorded own containers; rm only recorded own volumes. Source --rm stop is explicit, target --rm stop during Drop; no global prune or existing task/user resources.",
+  "wait_requirement": "Only after both final922 complete four-suite and mandatory backup receipts. No concurrent short-lease Store test.",
+  "environment": "Only REQUIRE_PITR=1 plus exact fixed image set; database/test env removed; RUST_MIN_STACK absent."
+}

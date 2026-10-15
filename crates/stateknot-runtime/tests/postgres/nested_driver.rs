@@ -6,6 +6,9 @@
 #[path = "recovery_guardian.rs"]
 mod recovery_guardian;
 
+#[path = "elapsed_graph_waits.rs"]
+mod elapsed_graph_waits;
+
 use super::*;
 use sqlx_core::connection::ConnectOptions;
 use stateknot_core::{

@@ -87,7 +87,7 @@ pub use store::{
     ChildJoinCommitOutcome, ChildJoinRecord, ChildRunCommitOutcome, ChildRunRecord,
     ChildRunSettlementOutcome, ClaimedRunRecovery, GraphFrameBarrierCommitOutcome,
     GraphFrameClosureCommitOutcome, GraphFrameEntryCommitOutcome, GraphFrameReturnCommitOutcome,
-    GraphRecoveryReplayReport, PostgresStore, RootGraphBarrierCommitOutcome,
+    GraphRecoveryReplayReport, GraphWaitEffect, PostgresStore, RootGraphBarrierCommitOutcome,
     RootGraphBarrierIntent, RunFailureCloseCursor, RunFailureCloseOutcome, RunFailureCloseRecord,
     StoredActiveGraphFrame, StoredGraphFrameBarrier, StoredGraphFrameClosure,
     StoredGraphFrameEntry, StoredGraphFrameReturn, StoredOpenGraphFrame, StoredRootGraphBarrier,

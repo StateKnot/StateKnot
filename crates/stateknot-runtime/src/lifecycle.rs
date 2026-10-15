@@ -516,6 +516,15 @@ pub enum GraphBarrierLifecycleOutcome {
     /// Barrier, successor checkpoint, wait transition, registrations, and lease
     /// release committed atomically.
     Waiting(WaitCheckpointCommitOutcome),
+    /// The complete original Root Wait committed Ready. The original fence was
+    /// normally released; `None` means it had already been superseded. This
+    /// historical receipt never authorizes dispatch under a replacement claim.
+    ReadyReleased {
+        /// Complete authenticated whole Root receipt, preserved across ACK loss.
+        receipt: Box<RootGraphBarrierCommitOutcome>,
+        /// Exact original-fence release; absent only after a stale-fence result.
+        release: Option<LeaseReleaseOutcome>,
+    },
     /// Barrier, terminal checkpoint, successful result, and lease release
     /// committed atomically.
     Succeeded(BarrierCommitOutcome),
@@ -742,8 +751,7 @@ impl DurableGraphLifecycle {
                     .prepare_worker_graph_barrier(plan, original_lifecycle, event_id, None, None)
                     .await?;
                 let append = worker_append(&fence, journal_head, event_id, intent.payload()?)?;
-                let outcome = self.commit_wait_with_retry(append, intent).await?;
-                Ok(GraphBarrierLifecycleOutcome::Waiting(outcome))
+                self.commit_wait_with_retry(append, intent).await
             }
             GraphBarrierDisposition::Terminal { .. } => {
                 let (result, terminal_validation) = self
@@ -1145,9 +1153,44 @@ impl DurableGraphLifecycle {
         &self,
         append: JournalAppend,
         intent: RootGraphBarrierIntent,
-    ) -> Result<WaitCheckpointCommitOutcome, GraphLifecycleError> {
+    ) -> Result<GraphBarrierLifecycleOutcome, GraphLifecycleError> {
+        let fence = append
+            .worker_fence()
+            .cloned()
+            .ok_or(GraphLifecycleError::InvalidHandoff {
+                operation: "retain the original Root Wait fence",
+            })?;
         let outcome = self.commit_root_with_retry(append, intent).await?;
-        match outcome {
+        let (RootGraphBarrierCommitOutcome::Committed(record)
+        | RootGraphBarrierCommitOutcome::Idempotent(record)) = &outcome
+        else {
+            return Err(GraphLifecycleError::InvalidHandoff {
+                operation: "classify original Root Wait receipt",
+            });
+        };
+        if record.wait_effect() == Some(stateknot_store_postgres::GraphWaitEffect::Ready) {
+            // Recovery above authenticates the entire original transaction
+            // before this mutable clock/fence operation or application code.
+            let release = match self.release_with_retry(&fence).await {
+                Ok(release) => Some(release),
+                Err(GraphLifecycleError::Store { source })
+                    if matches!(*source, StoreError::StaleFence) =>
+                {
+                    None
+                }
+                Err(error) => return Err(error),
+            };
+            return Ok(GraphBarrierLifecycleOutcome::ReadyReleased {
+                receipt: Box::new(outcome),
+                release,
+            });
+        }
+        if record.wait_effect() != Some(stateknot_store_postgres::GraphWaitEffect::Waiting) {
+            return Err(GraphLifecycleError::InvalidHandoff {
+                operation: "require authenticated Root Wait effect",
+            });
+        }
+        let waiting = match outcome {
             RootGraphBarrierCommitOutcome::Committed(record) => {
                 Ok(WaitCheckpointCommitOutcome::Committed {
                     event: record.event().clone(),
@@ -1165,7 +1208,8 @@ impl DurableGraphLifecycle {
             _ => Err(GraphLifecycleError::InvalidHandoff {
                 operation: "recover unsupported Root wait commit",
             }),
-        }
+        }?;
+        Ok(GraphBarrierLifecycleOutcome::Waiting(waiting))
     }
 
     async fn commit_success_with_retry(

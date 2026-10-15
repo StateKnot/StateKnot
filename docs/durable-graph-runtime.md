@@ -254,6 +254,22 @@ Every `GraphDriveOutcome` has an explicit ownership rule:
 | `CancellationRequested` | Immediately call lifecycle cancellation confirmation with the exact handoff, or use `DurableAgentLoop`, which does so automatically. Never synthesize usage. | Retained and must still be live at a fresh confirmation commit |
 | `Cancelled` | Process shutdown stopped local work; a later scheduler claim performs recovery. | Released by the Driver |
 
+A successful Pending result can contain an absolute Timer Wait whose original
+due instant passes before its barrier commits, including recovery after process
+loss. The experimental schema-36 path addresses this recovery gap under Draft
+RFC-0022; combined CI and production qualification remain open. Recovery must preserve the
+original due/specification and complete successful result, with no earlier
+registration time or larger Wait/lease window. [RFC-0022](rfcs/0022-namespaced-graph-frames.md#recovering-original-absolute-wait-conditions)
+defines the complete original condition inventory and authenticated Waiting/Ready
+effect; durable writers/readers, ACK behavior and full qualification are required
+before this recovery behavior is available.
+
+A Root all-elapsed Wait returns lifecycle/Agent Loop
+`ReadyReleased` with its complete original Root receipt and original-fence normal
+release result. A late ACK after fence supersession preserves the Ready receipt
+without releasing the replacement lease. Scheduler discovery and a fresh claim
+continue execution; a Ready receipt never authorizes another node launch.
+
 `GraphLifecycleBarrierHandoff` is deliberately not serializable or detached
 from its `RunLease`. It is short-lived commit input, not a queue message. If the
 lifecycle service cannot finish before lease expiry, release or allow expiry and

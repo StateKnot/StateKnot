@@ -179,6 +179,17 @@ Model 与 Tool 外部副作用必须通过各自的 Durable Invocation Ledger。
 | `CancellationRequested` | 立即使用原样 Handoff 调用 Lifecycle Cancellation Confirmation；普通应用应使用会自动完成该步骤的 `DurableAgentLoop`。禁止合成 Usage。 | Fresh Confirmation Commit 前由 Driver 保留且必须仍有效 |
 | `Cancelled` | 进程 Shutdown 已停止本地工作；后续 Scheduler Claim 负责恢复。 | Driver 已释放 |
 
+绝对 Timer Wait 的成功 Pending 结果可能在 Barrier 提交前已经到期，包括进程丢失后的
+恢复。实验性 schema36 路径按 RFC-0022 草案处理这个缺口，完整组合 CI 与生产验收仍开放。不能重写原 Due、重执行成功 Node、回填注册时刻
+或提高 Wait/Lease 窗口。[RFC-0022](rfcs/0022-namespaced-graph-frames.md#recovering-original-absolute-wait-conditions)
+规定完整原条件证据和认证 Waiting/Ready 效果，必须实现 Durable Writer/Reader、ACK
+并完成全量验收后，才能提供该恢复行为。
+
+全部原 Timer 均已到期的 Root Wait 由 Lifecycle/Agent Loop 返回
+`ReadyReleased`，保留完整原Root Receipt及原Fence的normal release结果。
+更高Fence之后的晚ACK保留原Ready Receipt，不释放替换Lease。后续执行必须经过
+Scheduler Discovery和新Claim；Ready Receipt本身不授权启动Node。
+
 `GraphLifecycleBarrierHandoff` 刻意不能序列化，也不能脱离 `RunLease` 作为队列消息。它是
 短生命周期的原子提交输入。如果生命周期服务不能在 Lease 过期前完成，就应释放或等待过期，
 然后让新 Fence 重新规划，绝不能拿过期 Handoff 提交元数据。

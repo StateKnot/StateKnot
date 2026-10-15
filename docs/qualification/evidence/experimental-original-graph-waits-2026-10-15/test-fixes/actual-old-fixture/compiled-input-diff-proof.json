@@ -1,0 +1,20 @@
+{
+  "file_count": 921,
+  "source_tree_sha256": "343eaa8ae7299a520fa2858fa2983025116b8b3ea55926c1ad8faef55df6508d",
+  "changes_relative_wait_v2": [
+    "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs"
+  ],
+  "added": [
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.json",
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.sql"
+  ],
+  "changes_relative919": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "changed_tests_relative919": [
+    "crates/stateknot-store-postgres/tests/postgres/frame_application_replay.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs"
+  ],
+  "all_production_rust_core_store_sql_migrations_configs_other_tests_exact_v1": true,
+  "all_1_to36_migrations_exact": true,
+  "generated_directories_present": [],
+  "qualification": "Strict build and exact Native execution not yet performed; frozen test-only candidate."
+}

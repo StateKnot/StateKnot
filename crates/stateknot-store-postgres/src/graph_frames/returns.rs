@@ -419,30 +419,45 @@ pub(super) async fn application_return(
         return Ok(None);
     };
     let record = Box::pin(anchored_record(tx, &row)).await?;
-    let caller = load_node_attempt_record(tx, tenant, &run, record.intent.caller.attempt_id())
-        .await?
-        .ok_or_else(|| StoreError::corrupt("application replay return caller"))?;
-    if caller.start().head() != record.intent.caller
-        || caller
-            .completion()
-            .map(encode_node_attempt_completion)
-            .transpose()?
-            != Some(encode_node_attempt_completion(&record.completion)?)
-    {
-        return Err(StoreError::corrupt("application replay return completion"));
-    }
-    let result = load_pending_node_result_row(tx, record.result.intent().activation())
-        .await?
-        .ok_or_else(|| StoreError::corrupt("application replay return result"))?;
-    if result.node_attempt_id != Some(*record.intent.caller.attempt_id().as_uuid())
-        || decode_pending_node_result(&result)? != record.result
-    {
-        return Err(StoreError::corrupt(
-            "application replay return result components",
-        ));
-    }
-    Box::pin(verify_pending_node_result_bindings(tx, &record.result)).await?;
+    verify_application_components(tx, &record).await?;
     Ok(Some(*record))
+}
+
+// An ancestry/accounting prefix may be cached inside the transaction, but its
+// physical caller completion and result bindings are re-read at each current
+// owning proof, including the fresh post-deferred-guard barrier proof.
+fn verify_application_components<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    record: &'a StoredGraphFrameReturn,
+) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+    Box::pin(async move {
+        let tenant = record.event.tenant_id();
+        let run = record.event.run_id();
+        let caller = load_node_attempt_record(tx, tenant, &run, record.intent.caller.attempt_id())
+            .await?
+            .ok_or_else(|| StoreError::corrupt("application replay return caller"))?;
+        if caller.start().head() != record.intent.caller
+            || caller
+                .completion()
+                .map(encode_node_attempt_completion)
+                .transpose()?
+                != Some(encode_node_attempt_completion(&record.completion)?)
+        {
+            return Err(StoreError::corrupt("application replay return completion"));
+        }
+        let result = load_pending_node_result_row(tx, record.result.intent().activation())
+            .await?
+            .ok_or_else(|| StoreError::corrupt("application replay return result"))?;
+        if result.node_attempt_id != Some(*record.intent.caller.attempt_id().as_uuid())
+            || decode_pending_node_result(&result)? != record.result
+        {
+            return Err(StoreError::corrupt(
+                "application replay return result components",
+            ));
+        }
+        Box::pin(verify_pending_node_result_bindings(tx, &record.result)).await?;
+        Ok(())
+    })
 }
 
 // Entry/start replay may observe a completed caller without recursively loading
@@ -710,6 +725,7 @@ pub(super) async fn recognize_result_replay(
         if anchored.result != *result {
             return Err(StoreError::corrupt("returned result cached substitution"));
         }
+        verify_application_components(replay.tx, &anchored).await?;
         return Ok(Some(anchored.event));
     }
     drop(anchored);

@@ -36,6 +36,14 @@ pub enum AgentLoopOutcome {
     CancellationConfirmed(AppendOutcome),
     /// The graph suspended with a complete durable wait batch.
     Waiting(WaitCheckpointCommitOutcome),
+    /// Original conditions were already elapsed at their committed Root event.
+    /// Scheduler discovery and a fresh claim perform the next business quantum.
+    ReadyReleased {
+        /// Full authenticated original Root transaction.
+        receipt: Box<stateknot_store_postgres::RootGraphBarrierCommitOutcome>,
+        /// Exact original-fence normal release, or an already superseded fence.
+        release: Option<LeaseReleaseOutcome>,
+    },
     /// The graph and admitted agent invocation succeeded.
     Succeeded(BarrierCommitOutcome),
     /// Durable supervision committed terminal failure.
@@ -292,6 +300,9 @@ fn lifecycle_outcome(outcome: GraphBarrierLifecycleOutcome) -> AgentLoopOutcome 
             AgentLoopOutcome::CancellationConfirmed(outcome)
         }
         GraphBarrierLifecycleOutcome::Waiting(outcome) => AgentLoopOutcome::Waiting(outcome),
+        GraphBarrierLifecycleOutcome::ReadyReleased { receipt, release } => {
+            AgentLoopOutcome::ReadyReleased { receipt, release }
+        }
         GraphBarrierLifecycleOutcome::Succeeded(outcome) => AgentLoopOutcome::Succeeded(outcome),
         GraphBarrierLifecycleOutcome::Failed(outcome) => AgentLoopOutcome::Failed(outcome),
         GraphBarrierLifecycleOutcome::Released(outcome) => {

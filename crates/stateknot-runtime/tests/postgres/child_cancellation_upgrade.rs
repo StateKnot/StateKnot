@@ -78,6 +78,9 @@ async fn populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutabl
     // This does not execute an old binary or support production downgrades.
     for sql in [
         include_str!(
+            "../../../stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+        ),
+        include_str!(
             "../../../stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
         ),
         include_str!(
