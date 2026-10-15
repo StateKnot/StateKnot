@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 
 [Issue 140](https://github.com/StateKnot/StateKnot/issues/140) 要求：宿主以可执行文件、字面参数、显式环境白名单启动；有界发现与调用；启动失败不公布工具；取消、超时和关闭释放完整进程树；工具错误与传输失败分开；不自动重试结果不明的写入；公开版本、平台、取消与孤儿恢复边界。2026-10-12 通过第一方 GitHub connector 读取：issue 为 open，正文 updated_at 为 `2026-10-02T10:25:44Z`，comments 为 0。
 
-仓库基线 HEAD 为 `cb816a9cc8ec2c3820600c8f7afc1fc8b4b18f06`。`docs/production-milestones-2026-10-08.zh-CN.md:221-230` 对上述要求增加了畸形/超大帧、交错通知、握手阻塞、后代、取消和退出的验收，并要求外部消费者精确 pin、只声明实测平台。研究时现有 `McpClient` 仅实现现代 2026-07-28 HTTP；`Cargo.toml:45-54` 锁定 rmcp `=3.5.0`，未启用 `transport-child-process` 或 `transport-async-rw`。
+仓库基线 HEAD 为 `cb816a9cc8ec2c3820600c8f7afc1fc8b4b18f06`。`docs/production-milestones-2026-10-08.zh-CN.md:221-230` 对上述要求增加了畸形/超大帧、交错通知、握手阻塞、后代、取消和退出的验收，并要求外部消费者精确 pin、只声明实测平台。研究时现有 `McpClient` 仅实现现代 2026-07-28 HTTP；`Cargo.toml:45-54` 锁定 rmcp `=3.5.0`，未启用 `transport-child-process`。已有 `server` feature 会间接启用 `transport-async-rw`；此前将它也记为未启用有误，本句于 2026-10-15 按锁定包的 feature 定义勘正。这不表示宿主已实现有界 stdio 或完整进程所有权。
 
 本机是 macOS `26.6.2 / 25G83`；此信息仅描述读源码的宿主，不是生命周期测试结果。没有创建凭据、安装软件、发送外部消息或修改主仓库其他文件。
 

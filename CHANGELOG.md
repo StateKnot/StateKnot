@@ -45,6 +45,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   unfinished ordinary siblings. Nested Driver and full fault qualification
   remain gated by Draft RFC-0022.
 
+- Record Draft RFC-0024 for complete owned MCP stdio sessions: bounded catalog
+  admission and correlation, per-call send phases, cancellation and process-tree
+  cleanup, credential scope and durable uncertain effects. Platform owners,
+  final limits, compilable public types and external-consumer qualification
+  remain acceptance requirements; stdio is not implemented by this proposal.
+
 ### Fixed
 
 - Reuse a complete ordinary scoped base authentication within one experimental

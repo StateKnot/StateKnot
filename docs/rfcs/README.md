@@ -35,6 +35,7 @@ security, or operational commitments.
 | [0021](0021-core-object-readers.md) | Accepted | Core object reader shapes |
 | [0022](0022-namespaced-graph-frames.md) | Draft | Namespaced same-Run graph frames and durable parent continuation |
 | [0023](0023-media-type-input-schema.md) | Draft | Case-insensitive media type input schemas |
+| [0024](0024-owned-bounded-mcp-stdio.md) / [中文](0024-owned-bounded-mcp-stdio.zh-CN.md) | Draft | Owned, bounded MCP stdio sessions and verified process-tree lifecycle |
 
 ## When an RFC is required
 
