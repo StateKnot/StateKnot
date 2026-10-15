@@ -1,0 +1,18 @@
+{
+  "pid": 58866,
+  "command": [
+    "cargo",
+    "clippy",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-pitr-cleanup-source/Cargo.toml",
+    "-p",
+    "stateknot-runtime",
+    "--all-targets",
+    "--all-features",
+    "--locked",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "started_unix": 1792067268.698068
+}

@@ -1,0 +1,8 @@
+{
+  "artifact_manifest_sha256": "0fea589c3fa9d716086c9cfff72592d8a25d31211466d6bb03a97952eb55f077",
+  "profile_sha256": "3f719acfaee769ff502d7b18834e60af9449407b3936325747b63d921a00f7f9",
+  "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+  "binary_sha256": "994be9d00fe567660a847627c82b96a5e51c45e9ded56b0ba54e6760b75f0a32",
+  "history_overwritten": false,
+  "full_workspace_or_R1_qualification": false
+}

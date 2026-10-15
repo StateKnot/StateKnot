@@ -41,8 +41,65 @@ impl DockerResources {
     }
 
     fn stop(&mut self, name: &str) {
-        docker_ok(&["stop", "--time", "10", name], Duration::from_secs(30));
+        self.stop_and_confirm(name, "10", Duration::from_secs(30));
+    }
+
+    fn stop_and_confirm(&mut self, name: &str, grace: &str, timeout: Duration) {
+        let deadline = Instant::now() + timeout;
+        docker_ok(&["stop", "--time", grace, name], timeout);
+        // --rm removal can finish after stop returns. Confirm absence before
+        // releasing ownership or removing volumes; use the same time budget.
+        loop {
+            let remaining = deadline
+                .checked_duration_since(Instant::now())
+                .expect("PITR container removal did not finish within its stop deadline");
+            let names = docker_ok(
+                &[
+                    "container",
+                    "ls",
+                    "--all",
+                    "--filter",
+                    &format!("name={name}"),
+                    "--format",
+                    "{{.Names}}",
+                ],
+                remaining,
+            );
+            if !names.lines().any(|candidate| candidate == name) {
+                break;
+            }
+            thread::sleep(Duration::from_millis(100).min(remaining));
+        }
         self.containers.retain(|candidate| candidate != name);
+    }
+
+    fn cleanup_and_confirm(&mut self) {
+        while let Some(name) = self.containers.last().cloned() {
+            self.stop_and_confirm(&name, "2", Duration::from_secs(10));
+        }
+        while let Some(name) = self.volumes.last().cloned() {
+            let deadline = Instant::now() + Duration::from_secs(10);
+            docker_ok(&["volume", "rm", &name], Duration::from_secs(10));
+            let remaining = deadline
+                .checked_duration_since(Instant::now())
+                .expect("PITR volume removal exceeded its original deadline");
+            let names = docker_ok(
+                &[
+                    "volume",
+                    "ls",
+                    "--filter",
+                    &format!("name={name}"),
+                    "--format",
+                    "{{.Name}}",
+                ],
+                remaining,
+            );
+            assert!(
+                !names.lines().any(|candidate| candidate == name),
+                "PITR volume remains after its removal"
+            );
+            self.volumes.pop();
+        }
     }
 }
 
@@ -395,6 +452,7 @@ async fn consumed_child_join_survives_named_point_in_time_recovery() {
     Box::pin(replay_consumed_join(&restored, &key)).await;
     restored.close().await;
     target_pool.close().await;
+    resources.cleanup_and_confirm();
     println!(
         "\nSTATEKNOT_CHILD_JOIN_PITR_EVIDENCE={}",
         json!({
@@ -407,6 +465,8 @@ async fn consumed_child_join_survives_named_point_in_time_recovery() {
             "exact_durable_snapshot_verified": true,
             "noninitial_replay_verified": true,
             "cross_tenant_refusal_verified": true,
+            "resource_cleanup_verified": true,
+            "resource_identity": identity,
             "invariants": "passed",
             "postgres": version,
             "os": std::env::consts::OS,

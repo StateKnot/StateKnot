@@ -65,6 +65,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Confirm test-owned container and volume removal before PITR drill success markers, retaining original budgets and best-effort failure cleanup.
+
 - Recover experimental original absolute Graph Timer Waits after their due
   instant without reexecuting successful nodes or inventing registrations or
   firings. Schema 36 binds the complete original condition inventory and

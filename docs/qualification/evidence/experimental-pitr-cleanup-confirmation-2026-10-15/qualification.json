@@ -1,0 +1,59 @@
+{
+  "status": "two exact mandatory PITR executions and success-path owned-resource cleanup confirmations passed for this candidate",
+  "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+  "source_files": 922,
+  "parent_source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "only_changed_path": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+  "production_Runtime_Store_Core_SQL_unchanged_from_parent": true,
+  "targeted_Runtime_Clippy_passed": true,
+  "fresh_Runtime_postgres_build_passed": true,
+  "binary_sha256": "994be9d00fe567660a847627c82b96a5e51c45e9ded56b0ba54e6760b75f0a32",
+  "runtime_inventory_count": 189,
+  "full_Runtime189_executed": false,
+  "two_exact_PITR_execution_and_owned_cleanup_passed": true,
+  "tests_executed": 2,
+  "passed": 2,
+  "failed": 0,
+  "ignored": 0,
+  "actual_postgres_versions": [
+    "16.14 (Debian 16.14-1.pgdg13+1)",
+    "17.11 (Debian 17.11-1.pgdg13+2)"
+  ],
+  "mandatory_env": [
+    "STATEKNOT_REQUIRE_PITR_TESTS=1",
+    "STATEKNOT_PITR_POSTGRES_IMAGE=<pinned digest>"
+  ],
+  "host": "macos/aarch64",
+  "database_containers": "linux/arm64",
+  "resource_identities": [
+    "01a13f89b1647070894c494a3a7f6099",
+    "01a13f89d42073c089c09c09ad3b7c4e"
+  ],
+  "each_new_UUID_owned_resources_absent_after_execution": {
+    "volumes": 3,
+    "named_containers": 2
+  },
+  "all_prior_container_IDs_and_volume_names_preserved": true,
+  "historical_WAL_volume": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1",
+  "historical_WAL_volume_removed": false,
+  "historical_WAL_before_after_inspect_byte_equal": true,
+  "historical_final922_cleanup_open_qualification_rewritten": false,
+  "all_failure_path_cleanup_qualified": false,
+  "original_best_effort_Drop_unchanged": true,
+  "original_business_assertions_and_30s_10s_budgets_unchanged": true,
+  "full_workspace_six_gates_qualified": false,
+  "full_four_Native_suites_rerun": false,
+  "composed_main_qualification_transferred": false,
+  "full_CI_or_capacity_or_performance_qualified": false,
+  "R1_closed": false,
+  "main_or_source_written_by_verifier": false,
+  "cache_copied": false,
+  "task_cache_deleted": false,
+  "retained_cache": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+  "retained_cache_KiB": 2755928,
+  "final_free_KiB": 322714632,
+  "process_audit_scope": "Known five recorded task PIDs absent; not a system-wide process guarantee",
+  "sandbox_audit_restriction": "Post-execution ps was denied in sandbox; scoped read-only elevated audit passed. No build/Native rerun.",
+  "binary_storage": "Actual 70,951,264-byte binary retained outside Cargo cache; SHA bound in build receipts, deliberately excluded from this compact bundle",
+  "freeze_snapshot_semantics": "Original freeze/preparation/review retain their original uncompiled status at creation; later receipts are the execution record"
+}

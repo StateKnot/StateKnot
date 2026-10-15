@@ -71,6 +71,13 @@ PostgreSQL 四组原生 suite、强制逻辑恢复及独立 named-PITR 已实际
 alpha.1 升级各自保留来源与适用范围；这些证据不关闭完整历史兼容、scoped
 Child Join、进程/COMMIT 故障矩阵、Linux 全部 CI 或 G3/R1。
 
+2026-10-15 的[PITR 清理确认记录](qualification/experimental-pitr-cleanup-confirmation-2026-10-15.zh-CN.md)
+仅补充 G10 的两个新 UUID 成功路径：独立922文件/test-only候选的定向 Runtime
+Clippy、fresh189库存及 PostgreSQL16.14/17.11 各 exact1 实际通过，成功 marker 前
+确认各两个命名容器和三个卷不存在。原预算、耐久断言和 best-effort Drop 保留；
+旧 PG16 WAL 卷仍在，旧清理异常不重写，全部失败路径不据此获得资格。与 A2A
+组成后的531输入 main 仍待原opt0六门禁；不转授完整189/四套Native、CI或R1。
+
 剩余语义决策：typed builder、reducer 注册/版本、非 root namespace grammar 与
 shared-state declaration 属于 R1；参考负载下调度策略和阈值属于 R6。
 blob checkpoint 若引入须另立 RFC，并先依赖 R2 的 Artifact 生命周期。

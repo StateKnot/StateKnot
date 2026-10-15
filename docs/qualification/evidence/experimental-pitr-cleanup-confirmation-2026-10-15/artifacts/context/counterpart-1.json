@@ -1,0 +1,121 @@
+{
+  "state": "passed",
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "binaries": {
+    "a2a_client_contract": {
+      "cargo_artifact": {
+        "reason": "compiler-artifact",
+        "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-a2a-auth-facts-source/crates/stateknot-integrations#0.1.0-alpha.1",
+        "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-a2a-auth-facts-source/crates/stateknot-integrations/Cargo.toml",
+        "target": {
+          "kind": [
+            "test"
+          ],
+          "crate_types": [
+            "bin"
+          ],
+          "name": "a2a_client_contract",
+          "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-a2a-auth-facts-source/crates/stateknot-integrations/tests/a2a_client_contract.rs",
+          "edition": "2024",
+          "doc": false,
+          "doctest": false,
+          "test": true
+        },
+        "profile": {
+          "opt_level": "0",
+          "debuginfo": 0,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": true
+        },
+        "features": [],
+        "filenames": [
+          "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/a2a_client_contract-c8abab71b93a7429"
+        ],
+        "executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/a2a_client_contract-c8abab71b93a7429",
+        "fresh": false
+      },
+      "original_executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/a2a_client_contract-c8abab71b93a7429",
+      "saved_executable": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/a2a_client_contract",
+      "sha256": "792acfb788c19a8d387771f1a13c511d06ec6567d795375b9f928b0fcc57d8c2",
+      "bytes": 31841408,
+      "tests": [
+        "all_eleven_operations_round_trip_over_http_json",
+        "all_eleven_operations_round_trip_over_json_rpc",
+        "authorization_facts::a_shared_provider_refuses_a_destination_outside_its_preconfigured_url",
+        "authorization_facts::anonymous_and_metadata_only_providers_keep_their_existing_wire_contract",
+        "authorization_facts::attested_http_replay_authorizes_the_same_actual_request_and_original_attempt",
+        "authorization_facts::authorization_deadline_drops_the_polled_callback_without_sending",
+        "authorization_facts::current_policy_revocation_prevents_an_attested_http_replay",
+        "authorization_facts::dropping_a_call_drops_the_polled_callback_without_sending",
+        "authorization_facts::payload_policy_allows_public_data_and_refuses_private_data_before_send",
+        "context_history_reconciliation_recovers_lost_send_without_replay",
+        "context_history_reconciliation_rejects_same_id_payload_substitution",
+        "deduplicated_replay_uses_the_exact_original_message_identity",
+        "discovery_fails_closed_on_digest_or_preferred_interface_pin_drift",
+        "extended_agent_card_requires_an_authenticated_client",
+        "http_json_adapter_preserves_tenant_headers_and_attempt_message_id",
+        "http_json_durable_task_handle_polls_without_resend_and_materializes_artifacts",
+        "json_rpc_adapter_uses_stable_invocation_id_and_skill_scoped_authorization",
+        "json_rpc_delete_requires_a_correlated_response_envelope",
+        "json_rpc_durable_task_handle_polls_without_resend_and_materializes_artifacts",
+        "lost_send_response_is_unknown_and_is_not_retried",
+        "premature_task_stream_fails_closed_instead_of_looking_complete",
+        "sse_events_remain_ordered_and_stop_at_the_configured_event_bound",
+        "standard_invalid_params_error_is_authoritative_not_applied_evidence",
+        "subscription_rejects_an_update_from_another_task",
+        "task_bound_send_scopes_credential_resolution_to_the_task",
+        "task_lookup_rejects_a_cross_resource_response"
+      ],
+      "dep_info_raw": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/a2a_client_contract-c8abab71b93a7429.d"
+    },
+    "mcp_durable": {
+      "cargo_artifact": {
+        "reason": "compiler-artifact",
+        "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-a2a-auth-facts-source/crates/stateknot-integrations#0.1.0-alpha.1",
+        "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-a2a-auth-facts-source/crates/stateknot-integrations/Cargo.toml",
+        "target": {
+          "kind": [
+            "test"
+          ],
+          "crate_types": [
+            "bin"
+          ],
+          "name": "mcp_durable",
+          "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-a2a-auth-facts-source/crates/stateknot-integrations/tests/mcp_durable.rs",
+          "edition": "2024",
+          "doc": false,
+          "doctest": false,
+          "test": true
+        },
+        "profile": {
+          "opt_level": "0",
+          "debuginfo": 0,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": true
+        },
+        "features": [],
+        "filenames": [
+          "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_durable-9299de57a29eb9cb"
+        ],
+        "executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_durable-9299de57a29eb9cb",
+        "fresh": false
+      },
+      "original_executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_durable-9299de57a29eb9cb",
+      "saved_executable": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/mcp_durable",
+      "sha256": "3b0b104b80456e70b1ebe3202cb608f49f648d764478e27a513525fb1d5be687",
+      "bytes": 63478608,
+      "tests": [
+        "a2a_authorized_denial_commits_once_without_business_send_or_policy_repeat",
+        "a2a_authorized_send_reads_the_durable_start_and_recovery_does_not_send_again",
+        "a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched",
+        "mcp_approved_denial_commits_without_remote_dispatch_or_repeat_authorization",
+        "mcp_approved_write_is_authorized_after_durable_start_and_reconciles_once",
+        "mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch"
+      ],
+      "dep_info_raw": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/mcp_durable-9299de57a29eb9cb.d"
+    }
+  },
+  "finished_unix": 1792067024.756693
+}

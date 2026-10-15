@@ -1,0 +1,32 @@
+{
+  "authorized": true,
+  "authorization_origin": "root explicitly requires waiting for proofagent complete resource chain; trusted proofagent completion message and actual terminal receipt checked",
+  "counterpart": "/root/resume_proof_base_oct15",
+  "counterpart_source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "counterpart_all_requested_phases_terminal": true,
+  "counterpart_no_active_processes_confirmed": true,
+  "terminal_receipts": [
+    {
+      "path": ".local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/gates-v1-loopback/summary.json",
+      "sha256": "c44e1ae2f917fe5973eb4f91ce8a69a6bbbe558e950b4399d4391c287fb65034"
+    },
+    {
+      "path": ".local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/summary.json",
+      "sha256": "d871a6b138912cecfa74cbb7d4bbb8cb23204e42796f5c9576f99736ab22372d"
+    },
+    {
+      "path": ".local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/network-v1/summary.json",
+      "sha256": "01e15bfbbcca727319e0f34140e30731b8c0e0dedb93da13dabf626b305b5938"
+    },
+    {
+      "path": ".local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/native-v1/summary.json",
+      "sha256": "67ce9ce4f04b19ab8c998d96817109c85d650ecb909f896b9a1ea230df12d3ff"
+    },
+    {
+      "path": ".local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/terminal-resource-source-check.json",
+      "sha256": "6dd1b8c8067f959a71fbe257af6630b000fa6816bd028ea21069fbd233b3bf09"
+    }
+  ],
+  "our_allowed_scope": "targeted strict Runtime alltargets/allfeatures Clippy, fresh Runtime189 binary, serial mandatory pinned-PG16/17 exact PITR with UUID cleanup proof; no main/source modification or historical cleanup",
+  "gate_released_unix": 1792067267.826496
+}

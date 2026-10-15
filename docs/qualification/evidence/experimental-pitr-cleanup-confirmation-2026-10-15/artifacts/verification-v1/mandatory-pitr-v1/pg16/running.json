@@ -1,0 +1,13 @@
+{
+  "pid": 59263,
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/pitr-cleanup-confirmation-v1/verification-v1/strict-runtime-build-v1/stateknot-runtime-postgres",
+    "child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "started_unix": 1792067350.878928,
+  "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+  "binary_sha256": "994be9d00fe567660a847627c82b96a5e51c45e9ded56b0ba54e6760b75f0a32"
+}
