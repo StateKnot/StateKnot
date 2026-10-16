@@ -47,6 +47,56 @@ public `Host` authorities and optional browser Origins are configured
 explicitly. Requests without `Origin` remain valid for server-to-server use.
 Malformed or duplicate Bearer credentials fail before the body is decoded.
 
+## Request preparation deadline
+
+`with_timeouts(request_timeout, stream_idle_timeout)` also bounds initial
+request preparation. After successful authentication, one server-clock deadline
+covers collecting the request body, normalization, decoded authorization and
+replica-wide admission. Authorization and admission share the remaining budget;
+neither callback receives a fresh request timeout. Authentication retains its
+own original budget, and backend execution or stream creation starts its
+separate original budget only after preparation succeeds.
+
+The deadline applies to all eleven decoded operations in both bindings. Body
+collection follows the actual SDK extractor paths: REST send/stream and
+JSON-RPC retain their existing normalization; REST push-config creation buffers
+its exact bytes under the configured body ceiling. Other routes acquire no new
+body read. Push requests preserve the original method, URI, HTTP version,
+headers (including Content-Length) and extension instances. A configured limit
+above Axum's default 2 MiB remains effective.
+
+Pending body collection returns plain HTTP 408 `request timed out`; observed
+shutdown returns plain HTTP 503 `service unavailable`. A preparation callback
+that times out returns the existing A2A internal error `A2A operation timed
+out`; shutdown returns `A2A service is shutting down`, using the binding's
+ordinary pre-stream error envelope. Timely policy refusals and unavailability
+keep their original mappings. REST push body-buffer failures keep the pinned
+SDK's complete plain 400/413 rejection and allowed-Origin response headers;
+REST send and JSON-RPC keep their existing early body-error mappings. Inputs
+with multiple simultaneous defects are rejected before backend dispatch, but
+the precedence of their errors is not a compatibility guarantee.
+
+The boundary checks actual clock and shutdown state after awaited work. A late
+authorization result cannot start admission, and a failed preparation cannot
+invoke the backend. Pending work is owned and dropped with its request; no
+policy task is detached. Policy waiting does not consume an operation permit.
+The final guard can briefly acquire an operation permit and immediately drop
+it if the deadline or shutdown was observed after acquisition. Request capacity
+is released before returning the preparation error response.
+
+Host authentication, policy and admission futures must remain bounded and
+nonblocking. Rust cannot preempt synchronous blocking callbacks or decoding;
+during preparation, late valid normalization, decoded authorization or
+admission results are refused after control returns. This does not
+promise a hard wall-clock response bound, external quota rollback, immediate
+client-disconnect detection or durable task cancellation. The opt-in
+subscription checks below still use their separate per-step idle budget.
+
+The [bounded execution record](qualification/experimental-a2a-preparation-deadline-2026-10-16.md)
+preserves the original cumulative-deadline failure, source/cache binding issue,
+fixture corrections and final local gates. These checks do not qualify a
+deployed identity provider, durable task backend, full CI or R1.
+
 ## Implemented operations
 
 | Capability | HTTP+JSON | JSON-RPC | Backend requirement |

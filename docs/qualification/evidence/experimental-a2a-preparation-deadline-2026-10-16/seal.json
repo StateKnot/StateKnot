@@ -1,0 +1,7 @@
+{
+  "manifest_sha256": "e8351b6a84a006759bbfb99b0428ad1d74a23075ac2a7d61ecefbdf584b807c7",
+  "profile_sha256": "43c46c6e9e7b57a3a5ac5a3979aee75f4489d9c8c4041e0a6b1f7764210a9efc",
+  "source_tree": "9a98cd929c10698f8cb866b99b3fd00a9b0f69dd840a68da1d01f5b30817f49d",
+  "compiled_inputs_sha256": "c3c5ed5bb8f102d9b1b31bf1afbb21e75e1e05d4e2b37d523f4ba4ca2bc80edc",
+  "qualification": "component-only; independent publication review and actual-main adoption separate"
+}

@@ -1,0 +1,38 @@
+{
+  "source_directory": "a2a-initial-authority-source-v5",
+  "origin_commit": "1638f5adb597f5cafdcb2923608ca63ed75eccfe",
+  "fixed_product": true,
+  "same_three_test_files": [
+    "crates/stateknot-integrations/src/a2a_server/preparation_tests.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs"
+  ],
+  "changes": [
+    "crates/stateknot-integrations/src/a2a_server/preparation_tests.rs",
+    "crates/stateknot-integrations/src/a2a_server.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs"
+  ],
+  "source_count": 931,
+  "compiled_count": 540,
+  "compiled_sha256": "c3c5ed5bb8f102d9b1b31bf1afbb21e75e1e05d4e2b37d523f4ba4ca2bc80edc",
+  "whole_Git_or_compiler_read_closure": false,
+  "fixture_only_v1_changes": [
+    "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs",
+    "crates/stateknot-integrations/src/a2a_server/preparation_tests.rs"
+  ],
+  "production_unchanged_from_v1": false,
+  "fixture_only_v2_changes": [
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs"
+  ],
+  "v3_changes": [
+    "crates/stateknot-integrations/src/a2a_server.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs"
+  ],
+  "production_change": "extract same deadline/body/error/Origin guards into private helper without relaxing behavior",
+  "fixture_only_v4_changes": [
+    "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs"
+  ],
+  "production_unchanged_from_v4": true
+}

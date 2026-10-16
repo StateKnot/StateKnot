@@ -1,0 +1,27 @@
+{
+  "scope": "diagnostic string/metadata observation only; not compiler read closure or gate",
+  "workspace_gate_still_running": true,
+  "files": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_integrations-1db863904d2b1ed7.rlib",
+      "bytes": 20489352,
+      "sha256": "edaf6f6592061a7be90eccabe143799f2ae78d9470107aa686c721e4ef35181e",
+      "mtime_ns": 1792129415199576253,
+      "preparation_context_marker": true
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_integrations-a758980bf479ec0a.rlib",
+      "bytes": 20024792,
+      "sha256": "520cd0d589793618244d0db81bc3c7cb73a327276468fbb16bc2a9437183d6a3",
+      "mtime_ns": 1792121434617698743,
+      "preparation_context_marker": false
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_integrations-c5c82148e087bc76.rlib",
+      "bytes": 20474952,
+      "sha256": "0cf395ae7f9bd10a11461870ceb5a5ece855966f7716ea49b9272283563e8ee3",
+      "mtime_ns": 1792129013197247835,
+      "preparation_context_marker": true
+    }
+  ]
+}

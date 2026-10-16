@@ -44,6 +44,45 @@ Authentication 的路由。启动时，Card 声明的 Capability 和 Interface U
 与可选浏览器 Origin 必须逐项精确配置。没有 `Origin` 的 Server-to-server
 请求仍然有效。格式错误或重复的 Bearer Credential 会在 Body Decode 前失败。
 
+## 请求准备期限
+
+`with_timeouts(request_timeout, stream_idle_timeout)` 同时约束初始请求准备。
+认证成功后，Server 按单调时钟只采样一次期限，覆盖请求体收集、规范化、基于
+已解码操作的授权和跨副本准入。授权与准入共享剩余预算，不会在进入下一个
+Callback 时重新获得完整超时。认证保留原有独立预算；准备成功后，Backend
+执行或 Stream 创建才开始各自原有的独立预算。
+
+此期限适用于两种 Binding 的全部十一种已解码操作。请求体只在 SDK 实际读取
+它的路径收集：REST Send/Stream 与 JSON-RPC 保留原有规范化；REST 创建
+Push Config 在配置的 Body 上限内缓冲原始字节。其他路由不会新增 Body 读取。
+Push Request 保留原始 Method、URI、HTTP Version、Header（含 Content-Length）
+与 Extension 实例。高于 Axum 默认 2 MiB 的显式上限仍然有效。
+
+请求体等待超时返回纯文本 HTTP 408 `request timed out`；观察到 Shutdown 时
+返回纯文本 HTTP 503 `service unavailable`。准备 Callback 超时使用既有 A2A
+Internal Error `A2A operation timed out`，Shutdown 使用
+`A2A service is shutting down`，按各 Binding 的普通流前错误 Envelope 返回。
+按时完成的策略拒绝与不可用保留原映射。REST Push 的 Body Buffer 失败保留
+固定 SDK 完整的纯文本 400/413 与允许 Origin 的响应头；REST Send、JSON-RPC
+保留各自原有早期 Body 错误映射。多个缺陷同时存在的输入会在 Backend 派发前
+拒绝，但其错误优先级不作为兼容保证。
+
+边界在等待后重新检查真实时钟和 Shutdown。迟到的授权结果不能开始准入，
+准备失败不能调用 Backend。请求拥有并释放正在等待的工作，不创建后台 Policy
+Task。等待 Policy 时不占 Operation Permit；最后一道检查可能在取得 Permit
+后立即观察到期限或 Shutdown，此时会在 Backend 前释放。准备错误 Response
+返回前释放 Request 容量。
+
+宿主认证、策略与准入 Future 必须有界且不阻塞。Rust 无法抢占同步阻塞的
+Callback 或 Decode；准备阶段在控制权返回后拒绝迟到的有效规范化、已解码授权
+或准入结果。这不承诺硬性
+墙钟响应时限、外部配额回滚、即时发现客户端断开或持久化 Task Cancellation。
+下述可选订阅复核仍使用每次步骤独立的 Idle 预算。
+
+[限定执行记录](qualification/experimental-a2a-preparation-deadline-2026-10-16.zh-CN.md)
+保留原累计期限失败、源码/缓存绑定问题、夹具修正与最终本地门禁。这些检查不
+授予部署身份提供方、持久化 Task Backend、完整 CI 或 R1 资格。
+
 ## 已实现 Operation
 
 | Capability | HTTP+JSON | JSON-RPC | Backend 要求 |

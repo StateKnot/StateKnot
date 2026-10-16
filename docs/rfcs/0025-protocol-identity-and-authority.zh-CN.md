@@ -159,6 +159,23 @@ Policy/Stream 证据。源码不变的 Loopback 授权重跑与原始红见
 RFC25 保持 Draft，不新增 Native 数据库、独立 Server TCK、完整 CI、部署中的
 Identity/Policy/Durable A2A Backend 或 R1 资格。
 
+## 选定的 A2A 初始准备期限
+
+认证成功后，已有 Request Timeout 提供一个私有单调时钟准备期限。全部十一
+操作的 Body 收集/规范化、已解码授权与共享准入消耗同一期限；Backend 执行
+保留原有独立超时。期限来自可信 Task-local 状态，不来自客户端；缺少 Principal
+或期限 Context 时拒绝。真实时钟/Shutdown 检查在下一个策略阶段或 Backend
+派发前拒绝迟到的有效结果，等待中的工作始终由请求拥有。
+
+只读取 SDK 实际消费 Body 的路由。REST 创建 Push Config 使用配置上限并
+转交原始字节与原 Request Parts。有效路径上的 Body Buffer 拒绝保留固定 SDK
+完整 400/413 和允许 Origin 响应头；不保证多缺陷输入的错误优先级。新增解码前
+超时/Shutdown 返回纯文本 HTTP 408/503；已解码准备失败使用原 Binding Envelope
+与既有 A2A Internal Error。同步宿主工作不能被抢占，不据此承诺外部准入回滚、
+断开探测时延或持久化 Backend。详见
+[Server 合约](../a2a-server.zh-CN.md#请求准备期限)。此变更收紧原先无界的准备路径，
+不代表 RFC25、Deployment 或 R1 已接受。
+
 ## 验证与接受
 
 1. 冻结 issuer/subject 到本地主体/租户、MCP key、audience/resource/scopes、策略 lease 与撤销规则。通过公开 Interface 验证同 subject 不同 issuer 不混同，同一外部 pair/相同 scopes 改绑本地 tenant/effective principal 后旧 cursor/MRTR 拒绝，以及恶意 routing/body/metadata 不改变存储租户。

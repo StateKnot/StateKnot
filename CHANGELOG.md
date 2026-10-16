@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Bound A2A initial body preparation, decoded authorization and shared
+  admission with one post-authentication request deadline across all eleven
+  operations. Preserve independent authentication/backend budgets, SDK push
+  body rejection compatibility and configured limits; release owned pending
+  work and request capacity on observed timeout or shutdown. See the
+  [server contract](docs/a2a-server.md#request-preparation-deadline).
+
 - Add experimental opt-in current decoded-policy rechecks before backend
   polling and event handoff for A2A task subscriptions through
   `A2aServerHttpOptions::with_subscription_authorization_rechecks()`. Preserve

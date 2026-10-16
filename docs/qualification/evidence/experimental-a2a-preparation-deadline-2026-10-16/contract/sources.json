@@ -1,0 +1,149 @@
+{
+  "observed_UTC": "2026-10-16T04:58:17.569918+00:00",
+  "HEAD": "1638f5adb597f5cafdcb2923608ca63ed75eccfe",
+  "HEAD_is_not_uncommitted_worktree": true,
+  "workingtree_A2A_file_sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+  "workingtree_A2A_new538_compiled_digest_parent_verified": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "files": [
+    {
+      "path": "docs/production-milestones-2026-10-08.zh-CN.md",
+      "bytes": 52651,
+      "sha256": "ddde171b443b39855829d7a126c4b2f2cc22518eca1f0e8a374a4739d0517d83"
+    },
+    {
+      "path": "docs/r1-contract-gap-ledger.zh-CN.md",
+      "bytes": 27557,
+      "sha256": "1ff4e62981df1442951ad3909c1915df199eadac68b657f1520fbb7f56b710f5"
+    },
+    {
+      "path": "docs/rfcs/0022-namespaced-graph-frames.md",
+      "bytes": 73713,
+      "sha256": "3aabb79d50d7e27af0426a15a6d3fbb93fe57c1a071d7059e6d611599a6e4a17"
+    },
+    {
+      "path": "docs/rfcs/0024-owned-bounded-mcp-stdio.zh-CN.md",
+      "bytes": 26205,
+      "sha256": "145ad6a91bdc8422a3269b9b3bdbdbb105339923ce557a9c003532123685e232"
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "bytes": 22989,
+      "sha256": "e499f47d74c4264cb35498a3bc553bcf824273274ea3627822a1a678883bdbb3"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server.rs",
+      "bytes": 98954,
+      "sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+      "bytes": 14901,
+      "sha256": "b498c091c580665e0f4d584ca8b36ca39723f7753b8c3831cb85afa07877e042"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+      "bytes": 41547,
+      "sha256": "ce8ca227d3c4e032dbf6c5d2ded45df7e560c13016c6c8e6ade4071431860458"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver.rs",
+      "bytes": 102945,
+      "sha256": "ff17ee321eec475865c3094a1b8d95fdcfec1a78952046d9a2c94798d9d61969"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/frame.rs",
+      "bytes": 35897,
+      "sha256": "5c95b1453baf55347dc1dbbf3ddb82ec573c1e906290288e398be4e762f7b6bf"
+    },
+    {
+      "path": "Cargo.lock",
+      "bytes": 98935,
+      "sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+    }
+  ],
+  "locked_primary_SDK_source": [
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/a2a-server-lf-0.4.3/src/rest.rs",
+      "bytes": 45107,
+      "sha256": "cc516f62c11555955e949e711e6ef2f3e5b831cd1a16b53f5740cdc3cfe2878b"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/a2a-server-lf-0.4.3/src/jsonrpc.rs",
+      "bytes": 27681,
+      "sha256": "c5e39780e20f7ec2805fbbec754e375def25730af7d81fd30171e73bc694ce12"
+    }
+  ],
+  "actual_SDK_router_has_no_hidden_timeout_layer": true,
+  "a2a_server_boundary_rs_exists": false,
+  "source_network_compile_DB_Docker_CI_executed_by_this_audit": false,
+  "A2A_adoption_local_commit_observed": "1638f5adb597f5cafdcb2923608ca63ed75eccfe",
+  "A2A_new_remote_CI_qualification_claimed": false,
+  "initial_parent_status_was_HEAD4e_with_uncommitted_A2A_then_local_commit_advanced_during_read": true,
+  "locked_primary_Axum_body_sources": [
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.8.9/src/json.rs",
+      "bytes": 11554,
+      "sha256": "feaad1fce714c48cad69b3a1e6ccac9a49966e7c6b5f85f7d8a7c392af667f7a"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.8.9/src/extract/rejection.rs",
+      "bytes": 6343,
+      "sha256": "1e9866397c2e59178dd1f5948e55cc2ecf168d8a2fee328d25832eaa1cee6a72"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.8.9/src/body/mod.rs",
+      "bytes": 1430,
+      "sha256": "83a6632a770e9f3c0ddcdafc26dce4729a1c305f12eef0006c9200f38e774a5a"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-core-0.5.6/src/extract/request_parts.rs",
+      "bytes": 5024,
+      "sha256": "5e791539e708afde58143eb82c7a61c6a4dfc5c61cbde87429165e03b33d29b1"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-core-0.5.6/src/extract/default_body_limit.rs",
+      "bytes": 7329,
+      "sha256": "1a749c637239600e68271fc71b5eef46c6a72abb32c0dc60757fe36a57fba155"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-core-0.5.6/src/ext_traits/request.rs",
+      "bytes": 13300,
+      "sha256": "630a931c1c4ee0f6232e7934a0ff4d08a2cc1854587e48c87af12cb93611b935"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-core-0.5.6/src/extract/rejection.rs",
+      "bytes": 2596,
+      "sha256": "5a29ae9f7ef35316d4cb0978cb1abb455d681e2ae5fe8dc163272b550692b4a7"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-core-0.5.6/src/macros.rs",
+      "bytes": 10253,
+      "sha256": "d05abefae3b886d726be7b8c75a23016a34b413eee5936e9ad280aeed7827e5c"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/http-body-util-0.1.5/src/limited.rs",
+      "bytes": 8001,
+      "sha256": "c12ee827d8e09935a96f7ff9bdc9ccc6a5f0bbdc061faa4a3519fa738c49491e"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.8.9/src/docs/middleware.md",
+      "bytes": 18439,
+      "sha256": "ea8230b01447f074f5b321f6f75305f52d4484f4c9f38c08e1b087eb9154f518"
+    },
+    {
+      "path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/http-1.5.0/src/request.rs",
+      "bytes": 28303,
+      "sha256": "b7c17b4c43d9078a13151d86ec8c4add03b3ec2a0e73f0422369a701fdd22eb1"
+    }
+  ],
+  "locked_versions": {
+    "axum": "0.8.9",
+    "axum-core": "0.5.6",
+    "http-body-util": "0.1.5",
+    "a2a-server-lf": "0.4.3",
+    "http": "1.5.0"
+  },
+  "original_inner_DefaultBodyLimit_not_visible_to_boundary_early_Bytes": true,
+  "confirmed_sole_layer_reorder_inserts_same_configured_limit_before_boundary_without_reading_body": true,
+  "observed_UTC_v3": "2026-10-16T05:11:23.821009+00:00"
+}

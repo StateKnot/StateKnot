@@ -1,0 +1,15 @@
+{
+  "actual_copy_unix": 1792131513.357038,
+  "candidate_version": "v4",
+  "publication_plan_sha256": "fa35984934531b282ef18a7c00938df37335f79e4f84ccb8933e817e2d1dfe50",
+  "candidate_manifest_sha256": "a6c1e7693e7d7cd7a4028c2d2bfd01ee49667f413866d76c0ed4cb232a5115a0",
+  "paths_copied_and_verified": 186,
+  "changed_from_prior_view": 5,
+  "main_compiled540_exact": true,
+  "publication_Spec_receipt_sha256": "1509af2ba99b7cb6df66a379743764c3f97e224c9a83e74871a7eda1a4b036f7",
+  "publication_Standards_receipt_sha256": "931e81a999a95ce145f05167c27c455675620da05d123b682df90e3c5f5cdb6f",
+  "prior_v3_copy_receipt_preserved": "eca12ab29feb6fab4a8c0665cd861e037c4d1bb6c68fadb6fd01e82d96f9d97a",
+  "original_Git_whitespace_failure_preserved": "def4b3f996ef3cbe86f3075d43e9771d1f66841c4c1d95c2c156a14b29994094",
+  "new_Rust_DB_CI_qualification": false,
+  "staged_or_committed": false
+}

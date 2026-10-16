@@ -347,6 +347,28 @@ for the unchanged-source authorized-loopback retry and preserved original reds.
 RFC25 remains Draft; this adds no Native database, standalone server TCK, full
 CI, deployed identity/policy/durable A2A backend or R1 qualification.
 
+## Selected initial A2A preparation deadline
+
+The existing request timeout now supplies one private monotonic preparation
+deadline after successful authentication. Body collection/normalization,
+decoded authorization and shared admission consume that same deadline across
+all eleven operations; backend execution keeps its original separate timeout.
+The deadline is trusted task-local state, never client authority. Missing
+principal or deadline context fails closed. Actual clock/shutdown guards reject
+late valid results before the next policy stage or backend dispatch; pending
+work remains owned by the request.
+
+Only SDK body-consuming paths are read. REST push creation uses the configured
+ceiling and forwards its exact bytes and original request parts. Valid-path
+body-buffer rejections preserve the pinned SDK's full 400/413 response and
+allowed-Origin headers. Multi-defect error precedence is not promised. New
+pre-decode timeout/shutdown errors are plain HTTP 408/503; decoded preparation
+failures use the original binding envelope and existing A2A internal errors.
+Synchronous host work cannot be preempted, and no external admission rollback,
+disconnect-detection latency or durable backend guarantee follows. See the
+[server contract](../a2a-server.md#request-preparation-deadline). This narrows an
+unbounded preparation path without accepting RFC25, deployment or R1.
+
 ## Validation and acceptance
 
 1. Freeze concrete issuer/subject-to-local-principal/tenant mapping, MCP key

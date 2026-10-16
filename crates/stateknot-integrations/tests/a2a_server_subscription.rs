@@ -61,6 +61,7 @@ struct Setup {
     idle_timeout: Duration,
     event_cap: u32,
     hold_admission: bool,
+    initial: Option<initial_authority::Controls>,
 }
 
 impl Default for Setup {
@@ -81,12 +82,15 @@ impl Default for Setup {
             idle_timeout: Duration::from_secs(1),
             event_cap: 8,
             hold_admission: false,
+            initial: None,
         }
     }
 }
 
 struct Probe {
     setup: Setup,
+    initial: initial_authority::Observations,
+    shutdown: CancellationToken,
     mode: AtomicUsize,
     remapped: AtomicBool,
     authn: AtomicUsize,
@@ -160,11 +164,23 @@ impl A2aServerAuthenticator for Authenticator {
         request: A2aServerAuthenticationRequest,
     ) -> BoxFuture<'_, Result<A2aServerPrincipal, A2aServerAuthenticationError>> {
         self.0.authn.fetch_add(1, Ordering::SeqCst);
+        if self.0.setup.initial.is_some() {
+            self.0.changed.notify_one();
+        }
         let valid = request
             .bearer()
             .is_some_and(|v| v.expose_secret() == "subscription-token");
         let remapped = self.0.remapped.load(Ordering::SeqCst);
+        let delay = self
+            .0
+            .setup
+            .initial
+            .as_ref()
+            .map_or(Duration::ZERO, |c| c.authentication_delay);
         Box::pin(async move {
+            if !delay.is_zero() {
+                tokio::time::sleep(delay).await;
+            }
             if valid {
                 Ok(principal(remapped))
             } else {
@@ -189,6 +205,9 @@ impl A2aServerAuthorizer for Policy {
         &self,
         request: A2aServerAuthorizationRequest,
     ) -> BoxFuture<'_, Result<(), A2aServerAuthorizationError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::authorize(self.0.clone(), request);
+        }
         let probe = self.0.clone();
         let is_original = request.task_id() == Some(TASK);
         let index = if is_original {
@@ -239,8 +258,11 @@ struct Admission(Arc<Probe>);
 impl A2aServerAdmissionControl for Admission {
     fn admit(
         &self,
-        _: A2aServerAdmissionRequest,
+        request: A2aServerAdmissionRequest,
     ) -> BoxFuture<'_, Result<(), A2aServerAdmissionError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::admit(self.0.clone(), request);
+        }
         let probe = self.0.clone();
         let index = probe.admissions.fetch_add(1, Ordering::SeqCst);
         probe.changed.notify_one();
@@ -328,9 +350,17 @@ impl A2aTaskService for Service {
     }
     fn send_message(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
         _: A2aSendMessageRequest,
     ) -> BoxFuture<'_, Result<A2aSendMessageResponse, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::SendMessage,
+                A2aSendMessageResponse::Task(task(TASK, true)),
+            );
+        }
         Box::pin(async { Err(A2aTaskServiceError::UnsupportedOperation) })
     }
     fn send_streaming_message(
@@ -338,29 +368,62 @@ impl A2aTaskService for Service {
         context: A2aRequestContext,
         _: A2aSendMessageRequest,
     ) -> BoxFuture<'_, Result<A2aEventStream, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::SendStreamingMessage,
+                Box::pin(stream::iter([Ok(A2aStreamEvent::Task(task(TASK, true)))]))
+                    as A2aEventStream,
+            );
+        }
         let stream = self.open(&context, TASK);
         Box::pin(async { Ok(stream) })
     }
     fn get_task(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
         request: A2aGetTaskRequest,
     ) -> BoxFuture<'_, Result<A2aTask, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::GetTask,
+                task(request.id(), true),
+            );
+        }
         let task = task(request.id(), true);
         Box::pin(async { Ok(task) })
     }
     fn list_tasks(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
         _: A2aListTasksRequest,
     ) -> BoxFuture<'_, Result<A2aTaskPage, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::ListTasks,
+                A2aTaskPage::new(Vec::new(), None, 50, 0).unwrap(),
+            );
+        }
         Box::pin(async { Err(A2aTaskServiceError::UnsupportedOperation) })
     }
     fn cancel_task(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
         _: A2aCancelTaskRequest,
     ) -> BoxFuture<'_, Result<A2aTask, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::CancelTask,
+                task(TASK, true),
+            );
+        }
         Box::pin(async { Err(A2aTaskServiceError::UnsupportedOperation) })
     }
     fn subscribe_to_task(
@@ -368,53 +431,114 @@ impl A2aTaskService for Service {
         context: A2aRequestContext,
         request: A2aSubscribeTaskRequest,
     ) -> BoxFuture<'_, Result<A2aEventStream, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::SubscribeToTask,
+                Box::pin(stream::iter([Ok(A2aStreamEvent::Task(task(TASK, true)))]))
+                    as A2aEventStream,
+            );
+        }
         let stream = self.open(&context, request.id());
         Box::pin(async { Ok(stream) })
     }
     fn create_push_config(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
         _: A2aPushConfig,
     ) -> BoxFuture<'_, Result<A2aPushConfig, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::CreatePushConfig,
+                initial_authority::push_config(),
+            );
+        }
         Box::pin(async { Err(A2aTaskServiceError::PushNotificationsNotSupported) })
     }
     fn get_push_config(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
         _: A2aGetPushConfigRequest,
     ) -> BoxFuture<'_, Result<A2aPushConfig, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::GetPushConfig,
+                initial_authority::push_config(),
+            );
+        }
         Box::pin(async { Err(A2aTaskServiceError::PushNotificationsNotSupported) })
     }
     fn list_push_configs(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
         _: A2aListPushConfigsRequest,
     ) -> BoxFuture<'_, Result<A2aPushConfigPage, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::ListPushConfigs,
+                A2aPushConfigPage::new(vec![initial_authority::push_config()], None).unwrap(),
+            );
+        }
         Box::pin(async { Err(A2aTaskServiceError::PushNotificationsNotSupported) })
     }
     fn delete_push_config(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
         _: A2aDeletePushConfigRequest,
     ) -> BoxFuture<'_, Result<(), A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::DeletePushConfig,
+                (),
+            );
+        }
         Box::pin(async { Err(A2aTaskServiceError::PushNotificationsNotSupported) })
     }
     fn get_extended_agent_card(
         &self,
-        _: A2aRequestContext,
+        context: A2aRequestContext,
     ) -> BoxFuture<'_, Result<A2aAgentCard, A2aTaskServiceError>> {
+        if self.0.setup.initial.is_some() {
+            return initial_authority::business(
+                self.0.clone(),
+                &context,
+                A2aServerOperation::GetExtendedAgentCard,
+                card(true),
+            );
+        }
         Box::pin(async { Err(A2aTaskServiceError::ExtendedCardNotConfigured) })
     }
 }
 
 fn card(streaming: bool) -> A2aAgentCard {
+    card_with_capabilities(A2aTaskServiceCapabilities {
+        streaming,
+        ..A2aTaskServiceCapabilities::default()
+    })
+}
+
+fn card_with_capabilities(capabilities: A2aTaskServiceCapabilities) -> A2aAgentCard {
     A2aAgentCard::builder(
         "Subscription guard fixture",
         "Controlled policy/stream only",
         "0.0.0",
     )
     .unwrap()
-    .capabilities(A2aAgentCapabilities::new().streaming(streaming))
+    .capabilities(
+        A2aAgentCapabilities::new()
+            .streaming(capabilities.streaming)
+            .push_notifications(capabilities.push_notifications)
+            .extended_agent_card(capabilities.extended_agent_card),
+    )
     .interface(
         A2aAgentInterface::new("https://agent.example/a2a/rest", A2aBinding::HttpJson).unwrap(),
     )
@@ -444,6 +568,7 @@ fn card(streaming: bool) -> A2aAgentCard {
 struct Server {
     url: String,
     client: Client,
+    router: axum::Router,
     probe: Arc<Probe>,
     sender: Option<mpsc::Sender<Result<A2aStreamEvent, A2aTaskServiceError>>>,
     shutdown: CancellationToken,
@@ -465,8 +590,11 @@ impl Server {
         sender
             .try_send(Ok(A2aStreamEvent::Task(task(TASK, false))))
             .unwrap();
+        let shutdown = CancellationToken::new();
         let probe = Arc::new(Probe {
             setup: setup.clone(),
+            initial: initial_authority::Observations::default(),
+            shutdown: shutdown.clone(),
             mode: AtomicUsize::new(0),
             remapped: AtomicBool::new(false),
             authn: AtomicUsize::new(0),
@@ -494,7 +622,14 @@ impl Server {
         options = options
             .with_allowed_authorities(["agent.example"])
             .unwrap()
-            .with_limits(2048, 8, 1)
+            .with_limits(
+                setup
+                    .initial
+                    .as_ref()
+                    .map_or(2048, |c| c.maximum_body_bytes),
+                setup.initial.as_ref().map_or(8, |c| c.request_capacity),
+                1,
+            )
             .unwrap()
             .with_timeouts(setup.request_timeout, setup.idle_timeout)
             .unwrap()
@@ -505,9 +640,13 @@ impl Server {
                 .with_subscription_authorization_rechecks()
                 .with_subscription_authorization_rechecks();
         }
-        let shutdown = CancellationToken::new();
+        if setup.initial.is_some() {
+            options = options
+                .with_allowed_origins([initial_authority::ORIGIN])
+                .unwrap();
+        }
         let server = A2aServer::new(
-            card(setup.service_capabilities.streaming),
+            card_with_capabilities(setup.service_capabilities),
             Authenticator(probe.clone()),
             Policy(probe.clone()),
             Admission(probe.clone()),
@@ -517,9 +656,10 @@ impl Server {
         )
         .unwrap();
         let router = server.router();
+        let served_router = router.clone();
         let stopped = shutdown.clone();
         let task = tokio::spawn(async move {
-            axum::serve(listener, router)
+            axum::serve(listener, served_router)
                 .with_graceful_shutdown(stopped.cancelled_owned())
                 .await
                 .unwrap();
@@ -533,6 +673,7 @@ impl Server {
         Self {
             url,
             client,
+            router,
             probe,
             sender: Some(sender),
             shutdown,
@@ -1196,3 +1337,6 @@ async fn real_server_subscription_authorization_matrix_covers_both_bindings() {
         refused(binding, true, false, true).await; // immutable_operation_context
     }
 }
+
+#[path = "a2a_server_subscription/initial_authority.rs"]
+mod initial_authority;
