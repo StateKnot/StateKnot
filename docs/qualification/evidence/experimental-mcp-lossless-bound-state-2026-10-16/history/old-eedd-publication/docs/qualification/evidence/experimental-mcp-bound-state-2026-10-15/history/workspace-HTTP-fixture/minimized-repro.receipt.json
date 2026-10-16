@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_bound_state-7710ca7299006db0",
+    "--exact",
+    "network::direct_shared_and_composite_order_keep_actual_three_consumer_guards",
+    "--nocapture"
+  ],
+  "exit_code": 101,
+  "seconds": 0.23860573768615723,
+  "binary_sha256": "86c4ad9c03dc11c2dd794a987e16c7efd91376d571f224b4b3707c51033bc6ca",
+  "log_sha256": "272869c97b547a40ee68e579e9d86c68084bfe77988b8720734ecfcd63733282",
+  "source_tree": "78ae451ebbb33275e19f1998733191ae312649a688d8ba53736e87bd6b97c4e7",
+  "no_source_changes": true,
+  "actual_refusal_in_wire_body": "HTTP400 JSONRPC code -32602 Invalid MCP request state",
+  "failure": "test helper wraps non-success JSON as string; exact error pointer is absent"
+}

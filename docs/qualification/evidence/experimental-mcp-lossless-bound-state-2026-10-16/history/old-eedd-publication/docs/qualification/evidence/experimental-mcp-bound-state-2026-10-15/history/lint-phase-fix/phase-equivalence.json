@@ -1,0 +1,19 @@
+{
+  "moved_original_block_byte_equal": true,
+  "original_block_sha256": "c922d4b0d7b18b2898492e93cf2b14cc8505ddd8493997c5479fbe2aa1641aac",
+  "new_private_helper": "McpServerToolService::bounded_wire_call",
+  "call_site_remains_after_scope_checks_before_authorization": true,
+  "returns_original_call_and_decoded_response_presence": true,
+  "authorization_schema_state_open_handler_result_order_unchanged": true,
+  "error_expressions_and_outbound_effect_handling_unchanged": true,
+  "Debug_change": "finish_non_exhaustive; only host_bound/scope_count plus omitted-fields marker",
+  "internal_Debug_format_positive_assertion_updated": true,
+  "redaction_negative_assertions_unchanged": true,
+  "BoundOperation_change": "derive Clone, Copy; all variants contain borrowed values only",
+  "public_Interface_six_fixed_files_modified": false,
+  "external_four_test_files_modified": false,
+  "format_compile_or_tests_run_by_fix_author": false,
+  "complete_dispatch_outside_exact_moved_block_byte_equal": true,
+  "unchanged_nonowned_files": 925,
+  "external_test_files_unchanged": 4
+}

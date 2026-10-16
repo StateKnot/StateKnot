@@ -1,0 +1,26 @@
+{
+  "actual_main_base_commit": "85f3fd556ff7623ef148da7e335b67e08dd022ad",
+  "sample_noncompiled_differences": [
+    {
+      "path": ".gitignore",
+      "historical_frozen_source_sha256": "d9660048d2738c9c097fcb33fa8e2448343924ecaa0519180ce2cef0cbbd54c5",
+      "actual_main_sha256": "f5b696600144c49ccbc97d595f0a7952addae5466c6de806a5f627aefb9db940",
+      "equal": false
+    },
+    {
+      "path": "CHANGELOG.md",
+      "historical_frozen_source_sha256": "94c59fafb8af07a741142f2f07cbff1d00ec1bd124aabe2053a2490672b70522",
+      "actual_main_sha256": "839d0000157c06621f6bea62938d07415545c690600aa46009db6637540f0c9f",
+      "equal": false
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "historical_frozen_source_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004",
+      "actual_main_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7",
+      "equal": false
+    }
+  ],
+  "only_source_adoption_scope": "12 listed MCP files; no wholesale928 copy",
+  "compiled_supplied_set_only_after_adoption": 536,
+  "whole_main_Git_tree_equal_frozen_source_claimed": false
+}

@@ -43,6 +43,9 @@ use tokio_util::sync::CancellationToken;
 use tower_service::Service;
 use zeroize::Zeroizing;
 
+use crate::McpServerHostBinding;
+use crate::mcp_server_bound_state::{hex, principal_fingerprint};
+
 const MCP_METHOD_HEADER: &str = "mcp-method";
 const MCP_NAME_HEADER: &str = "mcp-name";
 const MAX_HINT_BYTES: usize = 1024;
@@ -129,10 +132,20 @@ pub enum McpServerBearerCredentialError {
 }
 
 /// Authenticated identity injected into an MCP request context.
-#[derive(Clone, Debug, Eq, PartialEq)]
+///
+/// Host-bound construction retains one trusted mapping, but current mapping
+/// authorization remains host-owned. Debug omits raw identity and scope values.
+///
+/// ```compile_fail,E0277
+/// fn durable_record<T: serde::Serialize>() {}
+/// durable_record::<stateknot_integrations::McpServerPrincipal>();
+/// ```
+#[derive(Clone, Eq, PartialEq)]
 pub struct McpServerPrincipal {
     subject: Arc<str>,
     scopes: Arc<[Box<str>]>,
+    host_binding: Option<McpServerHostBinding>,
+    state_fingerprint: Option<[u8; 32]>,
 }
 
 impl McpServerPrincipal {
@@ -166,6 +179,8 @@ impl McpServerPrincipal {
 
         Ok(Self {
             subject: Arc::from(subject),
+            host_binding: None,
+            state_fingerprint: None,
             scopes: scopes
                 .into_iter()
                 .map(String::into_boxed_str)
@@ -174,14 +189,50 @@ impl McpServerPrincipal {
         })
     }
 
+    /// Constructs a principal from one current, trusted host mapping.
+    ///
+    /// Subject becomes an opaque `hb1:` key for the complete binding. This
+    /// validates and canonicalizes scopes, but does not verify credentials or
+    /// refresh the mapping. The existing host authorizer must recheck the full
+    /// tuple/generation after queueing. Merely constructing a legacy principal
+    /// with this subject text does not create a host binding.
+    pub fn from_host_binding(
+        binding: McpServerHostBinding,
+        scopes: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Self, McpServerPrincipalError> {
+        let key = binding.host_key();
+        let mut principal = Self::new(format!("hb1:{}", hex(&key)), scopes)?;
+        principal.state_fingerprint = Some(principal_fingerprint(&key, principal.scopes()));
+        principal.host_binding = Some(binding);
+        Ok(principal)
+    }
+
+    /// Returns trusted host mapping inputs, if explicitly constructed with them.
+    ///
+    /// Trusted callers may retain these values. They are not zeroized and do
+    /// not prove that a credential or current authorization was checked.
+    #[must_use]
+    pub fn host_binding(&self) -> Option<&McpServerHostBinding> {
+        self.host_binding.as_ref()
+    }
+
+    pub(crate) fn bound_state_fingerprint(&self) -> Option<[u8; 32]> {
+        self.state_fingerprint
+    }
+
     fn anonymous() -> Self {
         Self {
             subject: Arc::from("anonymous"),
+            host_binding: None,
+            state_fingerprint: None,
             scopes: Arc::from([]),
         }
     }
 
     /// Returns the stable subject identifier.
+    ///
+    /// Host-bound construction returns its opaque `hb1:` mapping key. The exact
+    /// external identity remains available through [`Self::host_binding`].
     #[must_use]
     pub fn subject(&self) -> &str {
         &self.subject
@@ -198,6 +249,16 @@ impl McpServerPrincipal {
         self.scopes
             .binary_search_by(|candidate| candidate.as_ref().cmp(scope))
             .is_ok()
+    }
+}
+
+impl fmt::Debug for McpServerPrincipal {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpServerPrincipal")
+            .field("host_bound", &self.host_binding.is_some())
+            .field("scope_count", &self.scopes.len())
+            .finish_non_exhaustive()
     }
 }
 

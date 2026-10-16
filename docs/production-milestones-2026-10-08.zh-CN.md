@@ -227,8 +227,15 @@ MCP/A2A 的外部身份、本地租户权限、远端路由租户、凭据 audie
 及当前恢复授权。A2A 现已提供实际 prepared method/URL/body 的策略事实接口，
 并通过真实网络和双版 PostgreSQL 的限定验证，见
 [请求事实采用记录](qualification/experimental-a2a-request-facts-2026-10-15.zh-CN.md)。
-可信宿主策略、MCP principal 改绑后的状态失效、真实 verifier/backend 与部署资格
-仍须补齐；事实访问器本身不执行这些授权，也不接受完整身份 profile。
+可信宿主策略、MCP 可信映射的部署资格、真实 verifier/backend 与完整部署资格
+仍须补齐；事实访问器本身不执行这些授权，也不接受完整身份 profile。另有
+[MCP绑定状态数值修复候选](mcp-server.zh-CN.md#实验性宿主绑定状态候选)已有本机限定组件证据，
+[新限定记录](qualification/experimental-mcp-lossless-bound-state-2026-10-16.zh-CN.md)绑定928文件
+`69af3a0f…`/536编译输入`ded1a866…`，原opt0/default stack六门禁2098项/6个原ignored/
+48doc通过；fresh default-feature opt0双PG16.15/17.11各完整串行15/0/0/0和唯一marker通过。三种ADv3、cursorv2、envelope1独立，旧v2合法
+token不fallback，Tool真实数值反例与Prompt字符串schema边界明确；旧eedd14项绿灯不认证
+精确参数绑定，历史证据保留。完整tuple/generation/scopes指纹与十owned入口仍不替代
+宿主当前映射核验，不扩大显式Public内容保密或stdio支持；完整CI/部署/R1/RFC继续开放。
 
 [RFC-0024 草案](rfcs/0024-owned-bounded-mcp-stdio.zh-CN.md)将 stdio 的完整 session
 Interface、目录准入、关联/聚合限额、逐调用发送阶段、取消及完整进程树清理、
@@ -453,6 +460,8 @@ npm run verify
 
 2026-10-15 的续接记录（R1 与 RFC-0022 仍开放）：
 
+- [MCP数值修复限定记录](qualification/experimental-mcp-lossless-bound-state-2026-10-16.zh-CN.md)记录：928文件`69af3a0f…`/536输入`ded1a866…`的六门禁2098/0/6及48doc通过，fresh default-feature opt0双PG16.15/17.11各完整串行15/0/0/0和唯一marker通过。新TCP family核真实业务数字字节、合法同值/变值正控及旧token改值零business；ADv3/cursorv2/envelope1与legacy分立。旧eedd六门禁/双版14项成功、实际2^53相邻整数反例和原红回执均保留，旧候选不能按精确参数绑定采用。两fixture账本不冒充全部表/backend，workspace条件项/旧916不转授；完整CI/宿主部署/stdio/R1继续开放。
+
 - [完整私有阶段报告](qualification/experimental-driver-private-phases-2026-10-15.zh-CN.md)绑定 902 个实际输入与同一最终二进制。保留全部 owning 校验、SQL/锁序与原资源上限的堆布局在 PostgreSQL 16.15、17.11 各通过原两层更高 fence、完整 SQL 角色回归；全工作区 98 个 suite / 2,047 项测试、45 项独立文档测试与严格 Clippy/Rustdoc/固定 nightly 通过。原七层两版均以 `LeaseExpired` 失败，分别耗时 1,115.07/1,042.00 秒，不能算深层恢复通过或容量数据。继续测量单次完整认证的重复展开；完整 Native、最终 schema36/scoped ChildJoin 组合与后续里程碑门禁未关闭。
 - [同次公开读取的完整 base 证明报告](qualification/experimental-scoped-attempt-base-proof-2026-10-15.zh-CN.md)绑定 899 个最终输入：仅普通非 Root scoped attempt 的公开 repeatable-read 读取复用已完成的完整认证，保留实际 completion/result/owner/bindings 校验；mutation、post-guard 和框架路径继续完整旧校验。原候选完整工作区 `E0275` 已通过完整私有 Start helper 的 `BoxFuture` 修复，原 body、默认资源与全部认证保持不变。严格六项门禁全部通过，包含 98 个 suite / 2,048 项工作区测试、45 项独立文档测试。采用提交 `83559f7` 的相同冻结源码已在 macOS aarch64、PostgreSQL 16.15/17.11 各通过原四组 Native：Store 252、Runtime 185、integrations 2、example 1，0 failed/ignored；原 higher-fence、真实七层、serial 与 shared quantum 均通过。185 入口含 15 个条件 worker、两个独立资源分支及四个 harness 自测，不能把总数当作完整故障/容量资格；强制本机逻辑恢复和同完整 tree 的 Linux CI 命名 PITR 各双版 exact 1/marker 1 独立通过。原始日志、源码/构建绑定与条件覆盖可复核。旧诊断的 93→53 SQL 不转授最终二进制的时延或容量；Linux 完整深层恢复、全部专用 CI、最终组合与生产门禁仍开放。
 - 较早 `1fccf18` 的 [CI](https://github.com/StateKnot/StateKnot/actions/runs/38700608003)实际因两项 PostgreSQL job 达到原 30 分钟总时限终止，结论为 cancelled；Store Native 各 251/251，其他 11 项 job 成功，但 Runtime 与后续门禁没有完成。该源码的未完成 CI 不构成本次证明候选或 R1 通过。
@@ -463,3 +472,5 @@ npm run verify
 - [PITR 清理确认记录](qualification/experimental-pitr-cleanup-confirmation-2026-10-15.zh-CN.md)绑定独立922文件单测试候选 `82fc93f1…`，相对原922仅改 `child_join_pitr.rs`，生产源码/SQL未变。定向Runtime严格Clippy、fresh189项库存和保存binary `994be9d0…` 有实证；只实际执行固定PostgreSQL16.14/17.11各exact1，唯一完整marker含 `resource_cleanup_verified=true`，两个新UUID各两容器/三卷均不存在。旧PG16 WAL卷与旧清理异常保留，原预算/断言/default stack及best-effort Drop不变，全部失败路径仍开放；macOS harness配Linux容器不称Linux宿主资格。A2A与该test-only修复组成的531输入main已通过[后续原opt0六门禁](qualification/experimental-composed-request-facts-pitr-2026-10-15.zh-CN.md)：98个suite/2073 passed/0 failed/6个原ignored、45个独立doc，全部2182个当时非ignored文件前后相同；PITR原封签中的待执行语境保留，不转授完整189/四套Native、全CI或R1。
 
 - [测试 profile 限定执行记录](qualification/experimental-postgres-test-profile-2026-10-15.zh-CN.md)保留组合923源码/main531输入的本机test opt1实验：六门禁、双版原Store264/Runtime189/provider2/example1及单列facts6命令全部exit0；默认栈七层与原marker保留。runner因最终两缓存缺TAG而exit1，原红回执不改，独立只读资源审计通过但不授缓存清理资格。原head686 CI为11success/2cancelled，两普通PG job均原30m耗尽、Store264通过而Runtime189无终态；同tree Linux PITR双版各exact1单列通过。本机workspace feature union不转授CI默认features；拟议仅9行CI job env保留原53steps/31run/30m及全部资源，完整CI终态、容量、Supported与R1继续开放。
+
+- 已采用opt1的后续head85f CI [38752172054](https://github.com/StateKnot/StateKnot/actions/runs/38752172054)终态11success/2cancelled，两普通PG job均原30m耗尽；双版Store264/Runtime189均真实终态通过，后续完整链未完成，没有显式FAILED测试判定。它尚不含新MCP候选，不能认证本组合；新增MCP Ubuntu/test-opt1步骤与完整CI仍未执行。

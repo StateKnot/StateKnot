@@ -52,7 +52,7 @@ effective principal with a finite policy lifetime. Effective permission is the
 intersection of verified credential authority, local binding and resource policy.
 An absent, expired, ambiguous or unavailable binding grants no permission.
 
-MCP's current principal has no issuer or tenant fields. A multi-issuer host
+At the fixed review baseline, MCP's principal has no issuer or tenant fields. A multi-issuer host
 must resolve verified issuer/subject to a bounded, opaque, host-owned principal
 key before constructing it, and preserve the full mapping outside the protocol
 subject string. The key must not alias another issuer/subject during any cursor,
@@ -63,7 +63,8 @@ every associated state lifetime. Current private cursors bind subject/scopes;
 MRTR associated data binds subject/Tool/arguments without another local tenant
 field. Reusing the key cannot be described as revoking that old state. Do not concatenate unescaped identity strings
 or treat an arbitrary subject as `TenantId`. Freeze and test the concrete key
-and lifecycle representation before acceptance; this RFC invents no public type.
+and lifecycle representation before acceptance; the candidate below now authors
+concrete types whose numeric-corrected qualification is recorded below.
 A2A already carries the complete identity and explicit local tenant, which must
 come from the authenticator's trusted mapping.
 
@@ -193,7 +194,9 @@ execution capability. Persist only the existing explicit identity/provenance,
 descriptor/schema pins, attempt/effect/result and audit contracts. A serializable
 `PrincipalIdentity` is an audit value, not proof that its holder is authenticated.
 Do not serialize an arbitrary policy object or replay a stale authorization
-decision as a current grant. This RFC introduces no migration or wire change.
+decision as a current grant. This Draft itself applies no database migration. The explicit state profile
+candidate below invalidates old private cursors/continuations; unconfigured
+behavior stays legacy.
 
 A2A server deployments still owe durable idempotency, tenant-scoped projections,
 stable cursors, committed streams/cancellation and encrypted push secrets with
@@ -251,6 +254,64 @@ Unknown attempt receipt must add neither another send nor a second policy
 evaluation. A fresh probe or attested MessageIdReplay remains a new operation:
 it re-applies current policy and may send under its original recovery contract.
 
+## Selected experimental MCP host-bound state candidate
+
+The selected numeric-corrected
+source is `69af3a0f…` (928 files; 536 compiled inputs `ded1a866…`). Six local gates
+pass: 99 workspace summaries/2,098 passed/6 original ignored, 48 doctests,
+strict Rust1.88 Clippy/Rustdoc and fixed nightly, original opt0/default stack.
+A fresh default-feature opt0 binary `0751e63128bf…` runs all15 cases serially on
+PostgreSQL16.15/17.11, each15/0/0/0 and one complete marker. The13TCP/1constructor/
+1DB inventory includes only three consumers/six commits/twelve refused rebinds/
+two full fixture Run/Journal ledgers, not all tables or a general backend.
+See the [bounded record](../qualification/experimental-mcp-lossless-bound-state-2026-10-16.md)
+and [server guide](../mcp-server.md#experimental-host-bound-state-candidate).
+This is not RFC acceptance, complete CI, Supported deployment or a published API.
+
+The typed binding retains stable deployment namespace, verified external
+issuer/subject, local tenant, effective issuer/subject and non-reused positive
+u64 generation. One fingerprint includes that full tuple and canonical scopes.
+Syntax is not provenance verification. Current host policy/admission checks the
+full mapping after queueing; its successful check is the authorization
+linearization point. No dynamic backend or zero-gap in-flight revocation is
+added. Generation cannot repeat or wrap, including ABA and revoke/reactivate.
+
+Explicit immutable configuration remains on the composite builder and four
+direct services. The ten owned context-bearing RPC entries, including empty,
+unmounted and actual Skill internal dispatch paths, enforce host binding.
+Synchronous static metadata and SDK control methods gain no business authority.
+Private catalog caching does not change explicit Public Resource contents or
+replace the existing HTTP authenticator/verifier.
+
+Strict private cursors remain v2. All three strict operation AD domains are v3;
+private envelopes remain integer1 with exactly required version/applicationState
+keys, null allowed but missing refused. Tool/Prompt argument encoding clones the
+actual bounded parsed Value, recursively sorts object keys and serializes with
+serde_json::to_vec: sorted serde_json value encoding, not JCS or original wire
+spelling. It preserves wide integers, integer/float and signed-zero
+representations. Resource has no argument part. The real numeric counterexample
+is Tool-only; public Prompt still validates declared strings before AD. Numeric
+helper tests do not widen that schema. Valid same-key old v2 states refuse on
+all three domains without fallback; legacy unconfigured v1/JCS remains unchanged.
+
+Decoded policy sees untrusted wire state; after original permit/schema checks
+and successful guard opening, only the business request's state changes to the
+inner application value. Any present decoded responses, even an empty map,
+requires bound state. Complete envelope64KiB/wire128KiB/positive TTL<=24h remain.
+Output wrapping is after business, so failure grants no zero-effect/retry
+inference. Types remain non-Serde with scoped redacted Debug; raw getters and
+Clone retain existing sensitive-data responsibilities.
+
+Historical eedd six-gate/14-case successes remain, but the actual wide-integer
+TCP counterexample prevents adopting that old exact-argument candidate. Original
+strict-gate/fixture/marker failures and new E0597/socket failures stay preserved.
+Fresh v3 gates do not transfer old Native/916 executions or qualify arbitrary
+host implementations. The Markdown outline is not a separately compiled external
+consumer. Preceding85f CI ended11success/2original30m cancellations despite both
+Store264/Runtime189 terminal greens; it contains no MCP candidate. Expanded
+Ubuntu/test-opt1 MCP and complete CI, deployed mapping/verifier/delegation,
+long streams, A2A durable backend, stdio and R1 remain open.
+
 ## Validation and acceptance
 
 1. Freeze concrete issuer/subject-to-local-principal/tenant mapping, MCP key
@@ -295,7 +356,9 @@ Generic automatic resend would discard the durable Unknown contract. None is
 selected. A single universal principal or transport trait is unnecessary to
 describe the real existing Interfaces and would hide their current differences.
 
-The concrete MCP host principal key, deployed current input-aware A2A policy
+The concrete MCP host principal key is frozen and authored in the selected
+candidate section, with bounded local component acceptance above. Deployed
+current input-aware A2A policy
 using the selected request facts, verifier/delegation profiles, stream revocation
 behavior and durable A2A backend remain unresolved. Any resulting public types, dependencies
 or durable semantics require review under the RFC process before support claims.

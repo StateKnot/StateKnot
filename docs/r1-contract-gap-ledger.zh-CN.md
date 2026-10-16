@@ -92,6 +92,10 @@ Clippy、fresh189库存及 PostgreSQL16.14/17.11 各 exact1 实际通过，成�
 shared-state declaration 属于 R1；参考负载下调度策略和阈值属于 R6。
 blob checkpoint 若引入须另立 RFC，并先依赖 R2 的 Artifact 生命周期。
 
+后续已采用opt1的head85f [CI38752172054](https://github.com/StateKnot/StateKnot/actions/runs/38752172054)
+真实终态为11success/2原30m取消；两版Store264/Runtime189均终态通过，后续完整链未完成，
+没有显式FAILED判定。该tree不含本MCP候选；新增MCP步骤及完整CI仍未执行。
+
 ## RFC-0003：PostgreSQL 持久化
 
 编号按 [RFC-0003 Before RFC acceptance](rfcs/0003-postgresql-durability-recovery-and-migration.md#validation-and-rollout)的十条排列。
@@ -136,7 +140,8 @@ profile 的限定证据继续有效，但不能合并成未经执行的完整矩
 | 边界 | 当前证据/限制 | 下一步验收 |
 | --- | --- | --- |
 | 不确定外部副作用 | Tool 的 `Unknown + ReconcileFirst`、MCP 授权 result/known-error reconciliation 和 A2A exact-task 查询路径已实现；不自动重复 uncertain business send | 补齐 provider effect 与子任务会计/终结组合；授权处置、不可证明结果保留 Unknown，重启后相同决定 |
-| MCP/A2A 安全映射 | 现有两协议 guide、scope/resource 授权、租户上下文、URL/credential 约束和协议测试分散存在；[RFC-0025 草案](rfcs/0025-protocol-identity-and-authority.zh-CN.md)已独立映射 ingress/egress、远端与本地租户、audience、descriptor/Agent Card 信任和恢复授权。新增 A2A prepared method/URL/body 事实接口已有[限定采用记录](qualification/experimental-a2a-request-facts-2026-10-15.zh-CN.md)：26 项真实网络、双版各 6 项 durable 用例和完整严格静态门禁通过，拒绝及原回执恢复均核对实际发送次数 | 可信宿主数据释放/当前 consent 策略、MCP principal 改绑后旧状态拒绝、实际 verifier/持久 backend、部署与独立安全资格仍须验收；事实访问器不自动执行策略，Anonymous/旧 provider 不获得参数授权，RFC-0004 和本草案均不能替代完整资格 |
+| MCP/A2A 安全映射 | 现有两协议 guide、scope/resource 授权、租户上下文、URL/credential 约束和协议测试分散存在；[RFC-0025 草案](rfcs/0025-protocol-identity-and-authority.zh-CN.md)已独立映射 ingress/egress、远端与本地租户、audience、descriptor/Agent Card 信任和恢复授权。新增 A2A prepared method/URL/body 事实接口已有[限定采用记录](qualification/experimental-a2a-request-facts-2026-10-15.zh-CN.md)：26 项真实网络、双版各 6 项 durable 用例和完整严格静态门禁通过，拒绝及原回执恢复均核对实际发送次数 | 可信宿主数据释放/当前 consent 策略、MCP 绑定状态的真实部署/当前映射资格（组件证据见下行）、实际 verifier/持久 backend、部署与独立安全资格仍须验收；事实访问器不自动执行策略，Anonymous/旧 provider 不获得参数授权，RFC-0004 和本草案均不能替代完整资格 |
+| MCP principal绑定状态数值修复候选 | [新限定记录](qualification/experimental-mcp-lossless-bound-state-2026-10-16.zh-CN.md)绑定928文件`69af3a0f…`/536输入`ded1a866…`，六门禁2098/0/6、48doc通过；fresh default-feature opt0双PG16.15/17.11各完整串行15/0/0/0和唯一marker通过。三ADv3、cursorv2、envelope1独立，旧v2无fallback；真实数值反例Tool可达、Prompt仍字符串schema。旧eedd/14项成功与反例并存，旧候选不能按exact argument binding采用 | 新Ubuntu/test-opt1 MCP/完整CI、宿主当前mapping/verifier/不复用generation及排队后检查的部署资格继续验收；fixture账本不代表全部表/backend，workspace条件分支/旧916不转授；Private不扩大应用Public内容保密，不关闭RFC-0025/R1，不交付stdio/backend |
 | Issue 140 MCP stdio | 当前 `McpClient` 只实现 stateless Streamable HTTP；[官方规格与锁定源码研究](research/mcp-stdio-process-ownership-2026-10-12.md)已记录 SDK 无界接收、默认版本与进程回收限制；[RFC-0024 草案](rfcs/0024-owned-bounded-mcp-stdio.zh-CN.md)提出完整 session、目录准入、发送阶段、聚合限额和完整进程树生命周期，尚未实现或声明支持 | 先完成平台 owner、最终限额及可编译 Interface 的评审与原生验证，再复用 bounded parser/schema/tool 授权；实现 explicit executable/literal argv/env allowlist、启动版本核实与帧限制、request correlation 和完整后代回收 |
 | 外部消费者 | crate 已发布 alpha.1，但后续源码功能不能用该包声明 | exact revision/version pin 的独立消费者，实际发现和调用；不自动安装 MCP 程序；平台只按执行证据声明 |
 

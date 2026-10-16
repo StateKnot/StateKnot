@@ -37,7 +37,7 @@ SPDX-License-Identifier: Apache-2.0
 
 外部身份使用精确已验证的 `(issuer, subject)`。显示名、邮箱、Agent Card 名称、Tool metadata、模型输出不能替代它。可信控制面将其映射到一个明确本地租户与有效主体，并设置有限策略寿命。实际权限是已验证凭据权限、本地绑定与资源策略的交集；缺失、过期、歧义或不可用绑定均不授予权限。
 
-当前 MCP principal 没有 issuer/tenant 字段。多 issuer 宿主必须先将已验证 issuer/subject 映射为有界、不透明、宿主持有的 principal key，完整映射保留在协议 subject 之外；在 cursor、request-state 和审计的全部寿命内不得与另一身份产生别名。同一外部 issuer/subject 若改绑本地 tenant、effective principal 或 binding generation，也必须获得不同的 key；或证明原映射在全部关联状态寿命内不可变。现有 private cursor 绑定 subject/scopes、MRTR associated data 绑定 subject/Tool/arguments，本身不含额外本地租户字段；不能复用旧 key 后声称旧状态已失效。不能直接拼接未转义字符串，不能把任意 subject 当作 `TenantId`。具体 key/生命周期表示须在接受前冻结并验证，本提案没有发明公开类型。A2A 已携带完整身份与本地租户，但它们仍须来自 authenticator 的可信映射。
+在固定审阅基线，MCP principal 没有 issuer/tenant 字段。多 issuer 宿主必须先将已验证 issuer/subject 映射为有界、不透明、宿主持有的 principal key，完整映射保留在协议 subject 之外；在 cursor、request-state 和审计的全部寿命内不得与另一身份产生别名。同一外部 issuer/subject 若改绑本地 tenant、effective principal 或 binding generation，也必须获得不同的 key；或证明原映射在全部关联状态寿命内不可变。现有 private cursor 绑定 subject/scopes、MRTR associated data 绑定 subject/Tool/arguments，本身不含额外本地租户字段；不能复用旧 key 后声称旧状态已失效。不能直接拼接未转义字符串，不能把任意 subject 当作 `TenantId`。具体 key/生命周期表示须在接受前冻结并验证；下文新增候选已有具体类型，数值修复后的资格单独记录。A2A 已携带完整身份与本地租户，但它们仍须来自 authenticator 的可信映射。
 
 本地 Run/invocation/attempt ID、worker fence、journal head 是关联及持久所有权事实，不是远端登录凭据。可信 `ToolContext` 可关联 dispatch，自身不证明终端用户身份、同意或当前 capability；这些必须从宿主持有记录解析。委托需要另行支持的 verifier/策略保留 actor、effective principal、目标资源与权限收窄；未支持的委托或 sender-constrained 凭据须拒绝，不能静默降级。
 
@@ -75,7 +75,7 @@ MCP result/known-error reconciliation 需要单独授权、绑定原 endpoint/de
 
 ## 持久存储、审计与运维
 
-token、grant、live client、request context、process credential 不成为持久执行 capability。仅保存现有显式身份/来源、descriptor/schema pin、attempt/effect/result 和审计契约。可序列化 `PrincipalIdentity` 是审计值，不证明持有者已认证；不能持久化任意策略对象或把旧决策重放成当前 grant。本提案不增加 migration/wire。
+token、grant、live client、request context、process credential 不成为持久执行 capability。仅保存现有显式身份/来源、descriptor/schema pin、attempt/effect/result 和审计契约。可序列化 `PrincipalIdentity` 是审计值，不证明持有者已认证；不能持久化任意策略对象或把旧决策重放成当前 grant。本 Draft 本身不执行数据库迁移；下文显式状态 profile 候选会使旧 private cursor/continuation 失效，未配置行为保持 legacy。
 
 A2A 生产 server 仍须交付持久幂等、租户隔离投影、稳定 cursor、已提交 stream/cancellation、加密 push secret、具 SSRF 约束的 egress 与事务 outbox；router/TCK 不提供这些。容量与跨副本准入需要真实部署测量。MCP/A2A 服务路由也不建立 Worker-only 数据库隔离，后者属于独立部署契约。
 
@@ -90,6 +90,46 @@ Unary/streaming 均在解析凭据前按原上限准备请求；同一个私有�
 宿主现在可检查实际数据，在发送前拒绝，包括恢复时重新应用当前策略；这不证明任意 provider 都已检查参数或可信 Run consent。MessageIdReplay 保留业务 message 身份，但 JSON-RPC envelope 每轮使用新 correlation ID，应检查实际新请求。deadline/drop 仍在等待的 callback 必须被丢弃且不发送，同步工作继续由宿主保证有界。策略与远端 effect 不因此成为原子事务。
 
 Manual Debug 省略新增 URL/body，原 tenant/task/attempt 字段仍可见。Raw accessor 是对可信宿主策略的显式数据释放；Clone 共享并可能保留 payload 超过 HTTP 调用寿命，宿主保留责任明确。验收须逐字比较 prepared method/URL/query/body 与真实 wire，并覆盖 payload/目的地拒绝、pending callback deadline/drop、legacy/Anonymous、当前授权的 attested 恢复。PostgreSQL 证据须在策略内观察真实原 attempt 已提交，并证明拒绝本身零业务发送。只有同一笔已提交 durable Failed/Unknown attempt receipt 的重复恢复，才要求不新增发送或第二次策略评估。新 probe 或经 attestation 的 MessageIdReplay 仍是新操作，必须重新应用当前策略，并可按原恢复契约发送。
+
+## 选定的实验性 MCP 宿主绑定状态候选
+
+数值修复候选固定928文件source `69af3a0f…`，
+536编译输入 `ded1a866…`。原opt0/默认栈六门禁通过：99suite/2098 passed/6个原ignored、
+48doc、严格Rust1.88 Clippy/Rustdoc及固定nightly。
+fresh default-feature opt0 binary `0751e63128bf…` 双PG16.15/17.11各串行完整15/0/0/0、
+完整marker一次；库存13TCP/1constructor/1DB，DB只含3消费者/6commit/12拒绝及两个完整
+fixture Run/Journal账本，不是全部表或通用backend。
+见[限定记录](../qualification/experimental-mcp-lossless-bound-state-2026-10-16.zh-CN.md)
+及[server guide](../mcp-server.zh-CN.md#实验性宿主绑定状态候选)；不表示RFC接受、完整CI、
+Supported部署或已发布API。
+
+完整typed binding保留稳定namespace、已验证外部issuer/subject、本地tenant、effective
+issuer/subject和不得复用的正u64 generation；canonical scopes参与同一完整指纹。语法不
+验证来源；宿主现有decoded策略/admission在排队后核当前mapping，成功检查是授权线性化
+点；无新动态backend或在途零时隙撤销。generation在ABA/撤销再启用时也不能复用或回绕。
+
+显式immutable profile保持composite builder与四direct services配置；十owned context
+入口覆盖空/未挂载与Skill实际内部dispatch。同步静态metadata、SDK控制方法不新增业务
+权限。Private catalog不改应用显式Public Resource内容，也不替代HTTP认证/verifier。
+
+强private cursor仍v2；三种操作AD均v3；内部envelope仍整数1，version/applicationState
+两字段必须完整，null合法而missing拒绝。Tool/Prompt使用实际有界parsed Value递归排序
+对象后serde_json::to_vec的sorted serde_json value encoding；不是JCS，不保留原wire
+数字拼写，保持宽整数/整数浮点/正负零表示。Resource没有参数。实际公开数值反例限定
+Tool；Prompt先按原schema验证声明字符串，helper数值测试不扩schema。同key合法旧v2
+state在三域拒绝且无fallback；未配置legacy v1/JCS不变。
+
+decoded policy仍见untrusted wire state；原permit/schema及开封成功后业务请求只恢复inner
+state，其他数据不变。Some responses含空map也要求token。原完整envelope64KiB/wire128KiB/
+正TTL<=24h不变；封装发生在业务之后，失败不证明零effect或授重试。类型不成为Serde
+record，限定Debug脱敏不免除getter/Clone敏感数据保留责任。
+
+历史eedd六门禁/14项成功保留，但实际wide-integer TCP反例使旧候选不能按精确参数绑定
+采用。原门禁/夹具/marker失败及新E0597/socket失败均保留。v3新门禁不转授旧Native/916
+或任意宿主实现；Markdown轮廓不是独立编译的外部consumer。前置85f CI虽双版Store264/
+Runtime189有成功终态，整体仍11success/2原30m取消，且没有新MCP候选。新增Ubuntu/
+test-opt1 MCP及完整CI、真实mapping/verifier/delegation/长流、A2A持久backend、stdio与R1
+继续开放。
 
 ## 验证与接受
 
@@ -106,7 +146,7 @@ Manual Debug 省略新增 URL/body，原 tenant/task/attempt 字段仍可见。R
 
 把协议 tenant、subject、Tool annotation 或 card scope 当作本地权限会丢失独立宿主策略；转发入站 token 会让无关资源共享 audience/consent 假设；通用自动重发会破坏持久 Unknown 契约，均不采用。没有必要为了描述现有真实 Interface 引入统一万能 principal/transport trait，掩盖两者差异。
 
-具体 MCP host principal key、使用选定请求事实的实际当前参数策略、verifier/delegation profile、长流撤销及持久 A2A backend 仍待决定。由此新增的公开类型、依赖或持久语义，必须先按 RFC 流程审阅再声明支持。
+具体 MCP host principal key 已在选定候选一节冻结、编写，具有上述限定本机组件证据；使用选定请求事实的实际当前参数策略、verifier/delegation profile、长流撤销及持久 A2A backend 仍待决定。由此新增的公开类型、依赖或持久语义，必须先按 RFC 流程审阅再声明支持。
 
 ## 源码映射与声明范围
 

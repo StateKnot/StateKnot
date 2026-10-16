@@ -25,6 +25,11 @@ use stateknot_core::{BoxFuture, Digest};
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
+use crate::McpServerBoundStateProfile;
+use crate::mcp_server_bound_state::{
+    BoundOperation, check_context, operation_binding, require_bound_principal, validate_wire_state,
+};
+
 use crate::{
     McpServerApplicationOptions, McpServerCacheScope, McpServerContent, McpServerInputRequired,
     McpServerPrincipal, mcp_server_principal,
@@ -618,6 +623,11 @@ impl McpServerPromptRender {
     }
 
     /// Returns untrusted echoed request state.
+    ///
+    /// With an explicit bound-state profile, decoded authorization sees the
+    /// untrusted wire envelope; the business callback sees restored inner
+    /// application state only after the framework verifies the outer binding.
+    /// Without that profile the original opaque-state behavior is unchanged.
     #[must_use]
     pub fn request_state(&self) -> Option<&str> {
         self.request_state.as_deref()
@@ -647,6 +657,10 @@ impl McpServerPromptContext {
     }
 
     /// Returns principal/Prompt/arguments-bound request-state associated data.
+    ///
+    /// An explicitly configured bound-state profile supplies its full host and
+    /// scope-bound v3 associated data. Unconfigured services retain legacy AD;
+    /// the presence of a host-bound principal alone does not enable enforcement.
     #[must_use]
     pub fn request_state_binding(&self) -> &[u8] {
         &self.request_state_binding
@@ -911,6 +925,7 @@ pub struct McpServerPromptService {
     renderer: Arc<dyn McpServerPromptRenderer>,
     authorization: Arc<dyn McpServerPromptAuthorization>,
     completion: Option<Arc<dyn McpServerCompletionProvider>>,
+    bound_state: Option<McpServerBoundStateProfile>,
 }
 
 impl McpServerPromptService {
@@ -951,7 +966,28 @@ impl McpServerPromptService {
             renderer,
             authorization,
             completion: None,
+            bound_state: None,
         })
+    }
+
+    /// Enforces host-bound private cursors and MRTR state on this service.
+    ///
+    /// The existing host policy still checks current mapping/generation after
+    /// queueing. Private applies to catalog metadata and continuation identity;
+    /// independently selected Public Resource contents are not made private.
+    /// Clones and later Completion configuration retain this immutable profile.
+    pub fn with_bound_state(
+        mut self,
+        profile: McpServerBoundStateProfile,
+    ) -> Result<Self, McpServerPromptServiceBuildError> {
+        if self.bound_state.is_some() {
+            return Err(McpServerPromptServiceBuildError::BoundStateAlreadyConfigured);
+        }
+        if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
+            return Err(McpServerPromptServiceBuildError::PublicCacheWithBoundState);
+        }
+        self.bound_state = Some(profile);
+        Ok(self)
     }
 
     /// Adds a Completion provider.
@@ -974,15 +1010,26 @@ impl McpServerPromptService {
         self
     }
 
-    fn scope_tag(&self, principal: &McpServerPrincipal) -> String {
+    fn cursor_version(&self) -> &'static str {
+        if self.bound_state.is_some() {
+            "v2"
+        } else {
+            "v1"
+        }
+    }
+
+    fn scope_tag(&self, principal: &McpServerPrincipal) -> Result<String, ErrorData> {
+        if self.bound_state.is_some() {
+            return Ok(require_bound_principal(principal)?.hex());
+        }
         if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
-            return "public".to_owned();
+            return Ok("public".to_owned());
         }
         let mut material = principal.subject().as_bytes().to_vec();
         for scope in principal.scopes() {
             append_digest_part(&mut material, scope.as_bytes());
         }
-        digest_hex(material)
+        Ok(digest_hex(material))
     }
 
     fn page(
@@ -990,7 +1037,7 @@ impl McpServerPromptService {
         principal: &McpServerPrincipal,
         cursor: Option<&str>,
     ) -> Result<(Vec<Prompt>, Option<String>), ErrorData> {
-        let scope = self.scope_tag(principal);
+        let scope = self.scope_tag(principal)?;
         let visible = self
             .catalog
             .inner
@@ -1013,8 +1060,15 @@ impl McpServerPromptService {
             .iter()
             .map(|value| value.to_protocol())
             .collect();
-        let next = (end < visible.len())
-            .then(|| format!("v1.{}.{}.{}", self.catalog.inner.digest, scope, end));
+        let next = (end < visible.len()).then(|| {
+            format!(
+                "{}.{}.{}.{}",
+                self.cursor_version(),
+                self.catalog.inner.digest,
+                scope,
+                end
+            )
+        });
         Ok((values, next))
     }
 
@@ -1023,7 +1077,7 @@ impl McpServerPromptService {
             return Err(invalid_cursor());
         }
         let mut parts = cursor.split('.');
-        let valid = parts.next() == Some("v1")
+        let valid = parts.next() == Some(self.cursor_version())
             && parts.next() == Some(self.catalog.inner.digest.as_ref())
             && parts.next() == Some(scope);
         let offset = parts.next().and_then(|value| value.parse().ok());
@@ -1038,6 +1092,7 @@ impl McpServerPromptService {
         request: GetPromptRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<GetPromptResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         validate_name(&request.name).map_err(|_| unavailable_prompt())?;
         let principal = mcp_server_principal(&context)
             .cloned()
@@ -1050,8 +1105,14 @@ impl McpServerPromptService {
         }) {
             return Err(unavailable_prompt());
         }
+        let input_responses_was_present = request.input_responses.is_some();
         let input_responses = request.input_responses.unwrap_or_default();
-        validate_inbound_mrtr(&input_responses, request.request_state.as_deref())?;
+        if self.bound_state.is_some() {
+            validate_wire_state(request.request_state.as_deref())?;
+            validate_inbound_mrtr(&input_responses, None)?;
+        } else {
+            validate_inbound_mrtr(&input_responses, request.request_state.as_deref())?;
+        }
         let render = McpServerPromptRender {
             name: Arc::from(request.name),
             arguments: Arc::new(request.arguments.unwrap_or_default()),
@@ -1079,10 +1140,30 @@ impl McpServerPromptService {
             return Err(unavailable_prompt());
         };
         validate_arguments(&definition, render.arguments())?;
-        let execution_context = prompt_context(&context, principal, &render)?;
+        let execution_context =
+            prompt_context(&context, principal, &render, self.bound_state.as_ref())?;
+        let state_binding = execution_context.request_state_binding.clone();
+        let render = if let Some(profile) = &self.bound_state {
+            McpServerPromptRender {
+                request_state: profile.open_inbound(
+                    render.request_state(),
+                    input_responses_was_present,
+                    &state_binding,
+                )?,
+                ..render
+            }
+        } else {
+            render
+        };
         match self.renderer.render(render, execution_context).await {
             Ok(McpServerPromptOutcome::Complete(result)) => Ok(result.into_protocol().into()),
-            Ok(McpServerPromptOutcome::InputRequired(result)) => Ok(result.into_protocol().into()),
+            Ok(McpServerPromptOutcome::InputRequired(result)) => {
+                let result = match &self.bound_state {
+                    Some(profile) => result.bind_for_profile(profile, &state_binding)?,
+                    None => result,
+                };
+                Ok(result.into_protocol().into())
+            }
             Err(McpServerPromptRendererError::NotFound) => Err(unavailable_prompt()),
             Err(McpServerPromptRendererError::Unavailable) => Err(ErrorData::internal_error(
                 "MCP prompt dependency is unavailable",
@@ -1104,6 +1185,7 @@ impl McpServerPromptService {
         request: CompleteRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CompleteResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let Some(provider) = &self.completion else {
             return Err(ErrorData::invalid_params(
                 "Completion is not available",
@@ -1210,8 +1292,9 @@ impl ServerHandler for McpServerPromptService {
 
     async fn discover(
         &self,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<DiscoverResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         Ok(
             DiscoverResult::from_server_info(vec![ProtocolVersion::V_2026_07_28], self.get_info())
                 .with_ttl_ms(self.options.cache_ttl_ms)
@@ -1224,6 +1307,7 @@ impl ServerHandler for McpServerPromptService {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListPromptsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let principal = mcp_server_principal(&context)
             .ok_or_else(|| ErrorData::internal_error("MCP server boundary is missing", None))?;
         let (prompts, next_cursor) = self.page(
@@ -1242,6 +1326,7 @@ impl ServerHandler for McpServerPromptService {
         request: GetPromptRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<GetPromptResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         self.dispatch_prompt(request, context).await
     }
 
@@ -1250,7 +1335,91 @@ impl ServerHandler for McpServerPromptService {
         request: CompleteRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CompleteResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         self.dispatch_completion(request, context).await
+    }
+    async fn list_resources(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListResourcesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_resources(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_resource_templates(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListResourceTemplatesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_resource_templates(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn read_resource(
+        &self,
+        request: rmcp::model::ReadResourceRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ReadResourceResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::read_resource(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn call_tool(
+        &self,
+        request: rmcp::model::CallToolRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CallToolResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::call_tool(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_tools(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListToolsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_tools(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn on_custom_request(
+        &self,
+        request: rmcp::model::CustomRequest,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CustomResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::on_custom_request(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
     }
 }
 
@@ -1258,6 +1427,12 @@ impl ServerHandler for McpServerPromptService {
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum McpServerPromptServiceBuildError {
+    /// Bound state was configured more than once.
+    #[error("MCP bound state is already configured")]
+    BoundStateAlreadyConfigured,
+    /// An explicit strong profile requires Private catalog caching.
+    #[error("MCP bound state requires a private catalog cache")]
+    PublicCacheWithBoundState,
     /// Scope-filtered Prompts require principal-private caching.
     #[error("scope-restricted MCP prompts require a private catalog cache")]
     PublicCacheWithScopedPrompts,
@@ -1292,20 +1467,34 @@ fn prompt_context(
     context: &RequestContext<RoleServer>,
     principal: McpServerPrincipal,
     request: &McpServerPromptRender,
+    profile: Option<&McpServerBoundStateProfile>,
 ) -> Result<McpServerPromptContext, ErrorData> {
     let capabilities = serde_json::to_value(context.client_capabilities().unwrap_or_default())
         .map_err(|_| ErrorData::internal_error("Failed to retain client capabilities", None))?;
-    let arguments = serde_json_canonicalizer::to_vec(&Value::Object((*request.arguments).clone()))
-        .map_err(|_| ErrorData::internal_error("Failed to bind MCP request state", None))?;
-    let mut binding = b"stateknot/mcp-server/request-state/prompt/v1".to_vec();
-    append_digest_part(&mut binding, principal.subject().as_bytes());
-    append_digest_part(&mut binding, request.name().as_bytes());
-    append_digest_part(&mut binding, &arguments);
+    let binding = if profile.is_some() {
+        operation_binding(
+            &require_bound_principal(&principal)?,
+            BoundOperation::Prompt {
+                name: request.name(),
+                arguments: request.arguments(),
+            },
+        )?
+        .to_vec()
+    } else {
+        let arguments =
+            serde_json_canonicalizer::to_vec(&Value::Object((*request.arguments).clone()))
+                .map_err(|_| ErrorData::internal_error("Failed to bind MCP request state", None))?;
+        let mut binding = b"stateknot/mcp-server/request-state/prompt/v1".to_vec();
+        append_digest_part(&mut binding, principal.subject().as_bytes());
+        append_digest_part(&mut binding, request.name().as_bytes());
+        append_digest_part(&mut binding, &arguments);
+        Digest::sha256(binding).as_bytes().to_vec()
+    };
     Ok(McpServerPromptContext {
         principal,
         client_capabilities: Arc::new(capabilities),
         cancellation: context.ct.clone(),
-        request_state_binding: Digest::sha256(binding).as_bytes().to_vec().into(),
+        request_state_binding: binding.into(),
     })
 }
 

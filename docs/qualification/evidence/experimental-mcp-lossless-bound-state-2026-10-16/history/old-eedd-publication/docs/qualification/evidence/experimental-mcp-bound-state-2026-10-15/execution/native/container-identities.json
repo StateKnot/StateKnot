@@ -1,0 +1,42 @@
+{
+  "records": [
+    {
+      "major": 16,
+      "original_inspection_sha256": "70a81446fe96f43ef0010d8934f1b56b2585ca3f1bc93055b77dad3b90221ffd",
+      "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+      "running": true,
+      "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+      "labels": {
+        "stateknot.task": "r1-oct15"
+      },
+      "ports": {
+        "5432/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "55416"
+          }
+        ]
+      },
+      "kind": "derived field projection, not raw full inspection"
+    },
+    {
+      "major": 17,
+      "original_inspection_sha256": "59661b8809722999114db52a7cd945c590c2cc6a3a32937eab3a9b3d1b16f8f8",
+      "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+      "running": true,
+      "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+      "labels": {
+        "stateknot.task": "r1-oct15"
+      },
+      "ports": {
+        "5432/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "55417"
+          }
+        ]
+      },
+      "kind": "derived field projection, not raw full inspection"
+    }
+  ]
+}

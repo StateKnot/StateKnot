@@ -683,6 +683,50 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Qualify mandatory MCP host-bound state ingress
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+          STATEKNOT_QUALIFICATION_POSTGRES_IMAGE: ${{ matrix.image }}
+          STATEKNOT_QUALIFICATION_POSTGRES_MAJOR: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          {
+            git rev-parse HEAD
+            git rev-parse 'HEAD^{tree}'
+            sha256sum Cargo.lock
+            rustc -Vv
+            uname -a
+            df -T .
+            printf 'configured_postgres_image=%s\n' "$STATEKNOT_QUALIFICATION_POSTGRES_IMAGE"
+            printf 'configured_postgres_major=%s\n' "$STATEKNOT_QUALIFICATION_POSTGRES_MAJOR"
+            printf 'STATEKNOT_REQUIRE_POSTGRES_TESTS=%s\n' "$STATEKNOT_REQUIRE_POSTGRES_TESTS"
+            for setting in CARGO_INCREMENTAL CARGO_PROFILE_DEV_DEBUG CARGO_PROFILE_TEST_DEBUG \
+              CARGO_PROFILE_TEST_OPT_LEVEL CARGO_PROFILE_TEST_DEBUG_ASSERTIONS CARGO_PROFILE_TEST_OVERFLOW_CHECKS; do
+              printf '%s=%s\n' "$setting" "${!setting}"
+            done
+          } > mcp-bound-state-environment.log
+          cargo test -p stateknot --test mcp_bound_state --locked -- \
+            --nocapture --test-threads=1 2>&1 | tee mcp-bound-state-qualification.log
+          test "$(grep -c '^running 15 tests$' mcp-bound-state-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_MCP_BOUND_STATE_POSTGRES:' mcp-bound-state-qualification.log)" = 1
+          test "$(grep -Fxc 'STATEKNOT_MCP_BOUND_STATE_POSTGRES: consumers=3 positive_commits=6 refused_rebinds=12 tenant_ledgers=2 complete_journals=true' mcp-bound-state-qualification.log)" = 1
+          test "$(grep -Ec '^test result: ok[.] 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' mcp-bound-state-qualification.log)" = 1
+          if grep -Fq 'STATEKNOT_MCP_BOUND_STATE_POSTGRES_SKIPPED:' mcp-bound-state-qualification.log; then
+            exit 1
+          fi
+
+      - name: Upload MCP host-bound state ingress evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mcp-bound-state-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            mcp-bound-state-qualification.log
+            mcp-bound-state-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Qualify authenticated MCP result and known-error reconciliation
         env:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"

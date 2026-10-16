@@ -14,6 +14,18 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Add the numeric-corrected experimental explicit MCP host-bound state
+  profile for private cursors and real MRTR consumers on composite/direct services.
+  Bind parsed argument values with sorted serde_json encoding and strict operation
+  ADv3; cursorv2/envelope1 and unconfigured legacy semantics remain. Preserve host
+  authority, independent Public Resource contents and all original limits.
+  Fixed928-file source passes six local gates (2,098 workspace tests/6 original
+  ignored,48doctests); both PostgreSQL majors pass all15 serial ingress cases with one marker each. See the
+  [bounded record](docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.md).
+  Historical14-case greens are retained with the actual numeric counterexample,
+  which prevents adopting the old exact-argument candidate. Ubuntu/test-opt1 MCP,
+  complete CI, deployment/backend, stdio and RFC-0025/R1 remain open.
+
 - Expose immutable actual HTTP method, URL/query and bounded request body to
   A2A bearer-token providers before authenticated unary, streaming and recovery
   dispatch. Policy inspects the prepared request that is subsequently sent;

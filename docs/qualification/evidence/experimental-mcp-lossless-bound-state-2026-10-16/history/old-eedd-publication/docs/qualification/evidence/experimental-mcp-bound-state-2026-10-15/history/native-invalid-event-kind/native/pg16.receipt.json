@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/artifacts/mcp_bound_state",
+    "--nocapture"
+  ],
+  "pid": 6796,
+  "exit_code": 101,
+  "seconds": 18.613941192626953,
+  "log_sha256": "ee8c97c08bcfe7f60cff22f114536c88d7dc6f7861756823e7118ec8cfae410c",
+  "source_tree": "3216e2d3e495fd02a6946381a49dd6ec9f2f97df0911dac0de6f9466b61d616b"
+}
