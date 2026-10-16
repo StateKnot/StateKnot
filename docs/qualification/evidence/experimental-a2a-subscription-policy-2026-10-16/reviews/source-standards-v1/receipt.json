@@ -1,0 +1,23 @@
+{
+  "role": "independent non-author source Standards axis only",
+  "source_tree_sha256": "d994771b87e580ef6b15e28dc101e35e52c2a97f9b9984ded83c060bc7968b56",
+  "source_count": 930,
+  "compiled_count": 538,
+  "compiled_sha256": "c04f7bf97b13395753f4a704da1e0c8f992403d00ceb8cf5c93ba2aa59ae9cd5",
+  "new_non_tooling_standards_violations": 0,
+  "actionable_non_tooling_smells": 0,
+  "known_v3_strict_clippy_exit_code": 101,
+  "known_fixture_only_tooling_diagnostics": 7,
+  "full_source_or_delivery_qualification": false,
+  "v4_increment_and_final_execution_pending": true,
+  "guide_rfc_changelog_required_before_adoption": true,
+  "artifact_manifest_sha256": "562d435fe8ef40570650599998fca5b1ec83270d32555eb8ce6f76e28a966f89",
+  "review_basis_sha256": "5ad477769d93f4b9864bcb3f44e2a20f214e3f8f70b5fa86ba9f25cc71a823bf",
+  "report_sha256": "fc41e8ec0f562008834a887e89bbab46ec29a19b07df5bdaff6c9225fefbdf3f",
+  "offline_verifier": {
+    "exit_code": 0,
+    "actual_tool_chunk_id": "d3f95c"
+  },
+  "reviewer_compiled_or_executed_network_db": false,
+  "main_source_git_index_unchanged": true
+}

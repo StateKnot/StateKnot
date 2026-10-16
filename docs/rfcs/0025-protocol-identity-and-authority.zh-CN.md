@@ -131,6 +131,34 @@ Runtime189有成功终态，整体仍11success/2原30m取消，且没有新MCP�
 test-opt1 MCP及完整CI、真实mapping/verifier/delegation/长流、A2A持久backend、stdio与R1
 继续开放。
 
+## 选定的实验性 A2A 订阅策略 Interface
+
+新增的 `A2aServerHttpOptions::with_subscription_authorization_rechecks()` 显式开关
+仅作用于只读 `SubscribeToTask`；默认关闭且幂等，Clone、原限额和其他 Operation
+保持原样。它不广告 Streaming 支持，也不改变原 Prepare/Admission/Backend 创建
+顺序，因此第一次新增 Pre-check 拒绝不代表未创建订阅。
+
+私有 Owned Stream 在 Backend next 前和取得正常 Event 后，复用原完整 Principal、
+Canonical Scopes、原解码 Task ID、`SubscribeToTask` 和 configNone，调用当前宿主
+Policy。一个 Idle 绝对期限覆盖两次 Callback 与 Backend 等待；每次 Callback
+还受原 Request Timeout 约束。宿主 Callback 必须有界且不阻塞，Timeout 无法抢占
+同步宿主工作。步骤观察终结后在终止/交付前释放自有 Stream 与 Operation Permit，
+不创建 Detached Policy Task，也没有 Permit Release/Reacquire 窗口。
+
+这是对当前 Decoded Policy 的复核，不是重新认证 Bearer；宿主必须通过当前可信
+策略拒绝失效权限。最后 Post-check 不追回已 yield/缓冲字节，也不在背压或未 poll
+期间提供周期撤销保证。Rust Drop 不代表持久化 Task Cancellation。默认/非订阅
+行为，以及更广的 Backend、Deployment、Stream Lifetime 接受条件仍分别开放。
+
+详见 [Server Guide](../a2a-server.zh-CN.md#实验性订阅当前策略复核)。最终冻结 v5
+共 930 文件，六项本地门禁通过：100 个 Workspace Suite，2,108 passed、0 failed、
+6 个原有 ignored；10 组 Doctest 共 48 passed。8 个 Direct Ownership Test 与
+一个 TCP Family 经 REST/RPC 两条 Binding 覆盖 17 个矩阵 ID，这是可控
+Policy/Stream 证据。源码不变的 Loopback 授权重跑与原始红见
+[限定记录](../qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md)。
+RFC25 保持 Draft，不新增 Native 数据库、独立 Server TCK、完整 CI、部署中的
+Identity/Policy/Durable A2A Backend 或 R1 资格。
+
 ## 验证与接受
 
 1. 冻结 issuer/subject 到本地主体/租户、MCP key、audience/resource/scopes、策略 lease 与撤销规则。通过公开 Interface 验证同 subject 不同 issuer 不混同，同一外部 pair/相同 scopes 改绑本地 tenant/effective principal 后旧 cursor/MRTR 拒绝，以及恶意 routing/body/metadata 不改变存储租户。

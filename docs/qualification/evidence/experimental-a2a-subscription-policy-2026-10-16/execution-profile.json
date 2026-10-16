@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "source_files": 930,
+  "compiled_inputs": 538,
+  "compiled_canonical_sha256": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "six_gates_passed": true,
+  "workspace": {
+    "suites": 100,
+    "passed": 2108,
+    "failed": 0,
+    "ignored": 6,
+    "measured": 0,
+    "filtered": 0,
+    "database_environment_cleared": true,
+    "conditional_database_tests_not_Native": true
+  },
+  "doctests": {
+    "groups": 10,
+    "passed": 48,
+    "failed": 0
+  },
+  "new_tests": {
+    "private_total": 8,
+    "private_configuration": 1,
+    "private_async": 7,
+    "real_TCP_libtest_families": 1,
+    "frozen_matrix_ids": 17,
+    "bindings": [
+      "HTTP+JSON REST",
+      "JSON-RPC"
+    ],
+    "not_34_independent_libtests": true
+  },
+  "profile": {
+    "toolchain": "1.88.0",
+    "nightly": "nightly-2026-10-07",
+    "dev_test_opt": "0",
+    "dev_test_debug": "0",
+    "incremental": "0",
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings",
+    "stack_override": false
+  },
+  "history": [
+    {
+      "q": "q1",
+      "gate": "unit",
+      "exit": 101,
+      "classification": "fixture error: repeated poll after EOF; Stream does not promise fused behavior",
+      "product_regression_proven": false
+    },
+    {
+      "q": "q2",
+      "gate": "tcp",
+      "exit": 101,
+      "classification": "fixture error: separate Utc::now timestamps compared literally",
+      "product_regression_proven": false
+    },
+    {
+      "q": "q3",
+      "gate": "clippy",
+      "exit": 101,
+      "classification": "seven fixture tooling diagnostics; production bytes unchanged",
+      "product_regression_proven": false,
+      "separate_targeted_TCP_exit": 0
+    },
+    {
+      "q": "q4",
+      "gate": "fmt",
+      "exit": 1,
+      "classification": "fixture formatted with edition2021 before actual repository edition2024 check",
+      "product_regression_proven": false
+    },
+    {
+      "q": "q5",
+      "gate": "workspace",
+      "exit": 101,
+      "classification": "five existing loopback binds denied by sandbox; 29 pass/5 failures in first harness",
+      "product_regression_proven": false,
+      "same_source_network_enabled_retry_exit": 0
+    }
+  ],
+  "independent_reviews": {
+    "source_standards_v1_non_tooling_findings": 0,
+    "source_standards_v2_findings": 0,
+    "final_Spec_review_included": false,
+    "complete_independent_delivery_review_included": false,
+    "note": "Package author wrote the tests; author verification is not independent source or delivery review. Later independent appendices may bind this fixed package."
+  },
+  "qualification": {
+    "local_component_execution": true,
+    "Native_database": false,
+    "new_IdP": false,
+    "current_host_policy_backend": false,
+    "durable_task_backend": false,
+    "full_CI": false,
+    "CI_30m_resolved": false,
+    "stdio": false,
+    "deployment_or_external_pilot": false,
+    "R1_complete": false,
+    "old_qualification_inherited": false
+  },
+  "known_limits": [
+    "Original principal/task/op/configNone is rechecked by the existing host authorizer; bearer token is not reauthenticated.",
+    "Initial prepare/admission/backend-creation order remains; a queued policy change can create a backend which is then retired before delivery.",
+    "Already submitted headers/bytes cannot be recalled; post-header refusal terminates SSE with existing safe error, not promised HTTP401.",
+    "No periodic authorization or timer task runs when strict stream is not polled.",
+    "Noncooperative callbacks are not preempted; explicit actual-clock/shutdown guards refuse after they return.",
+    "Full frozen930 source is reconstructed; workspace checks only supplied538 inputs, not entire Git tree or compiler read closure."
+  ]
+}

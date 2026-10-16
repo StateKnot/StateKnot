@@ -1,0 +1,201 @@
+{
+  "classification": "executable acceptance plan, no executed tests or review verdict",
+  "required_bindings": [
+    "HTTP+JSON REST",
+    "JSON-RPC"
+  ],
+  "production_fixture_requirement": "serve actual A2aServer::router over real TcpListener; handwritten existing client wire server and router.call tests are supporting baselines only",
+  "policy_backend_fixture_scope": "controlled host policy and owned instrumented stream measure library guard; not a real IdP/durable backend/external consumer/pilot",
+  "oracles": [
+    {
+      "id": "default_legacy",
+      "flag": "default false",
+      "setup_action": "Observe SubscribeToTask and SendStreamingMessage with the flag omitted",
+      "required_observation": "Only the original prepare authorization/admission runs; no new recheck/poll/order/error/timeout behavior is introduced",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "enable_lifecycle",
+      "flag": "enabled",
+      "setup_action": "Apply no-arg enable twice; clone; compose before/after with_timeouts/with_limits",
+      "required_observation": "Enable is idempotent and Clone preserves it; original numerical limits stay exact; flag advertises no streaming capability",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "success_fixed_facts",
+      "flag": "enabled",
+      "setup_action": "Deliver snapshot, update, terminal; record every authorizer request and backend poll/drop",
+      "required_observation": "Each recheck uses original exact tenant/identity/canonical scopes, SubscribeToTask, original task ID, configNone; wire events unchanged; last successful postcheck precedes each delivery",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "pre_poll_forbidden",
+      "flag": "enabled",
+      "setup_action": "Latch the next pre-poll check; revoke originaltask before permit; keep first HTTP body alive",
+      "required_observation": "Zero backend poll for that step, zero next data event; fixed existence-hiding stream error; backend Drop once and operation permit reusable by a different still-authorized task",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "post_event_forbidden",
+      "flag": "enabled",
+      "setup_action": "Let precheck allow, block backend next, revoke, then make second event ready",
+      "required_observation": "Prepared second event is never delivered; no later poll; backend Drop once and permit released; old yielded bytes are outside claim",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "pre_post_unavailable",
+      "flag": "enabled",
+      "setup_action": "Return Unavailable at precheck and separately after an event was obtained",
+      "required_observation": "No affected event delivery; safe existing authorization-unavailable mapping; backend/permit retirement occurs before returning terminal error",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "callback_timeout",
+      "flag": "enabled",
+      "setup_action": "Hold precheck and postcheck futures with original request_timeout shorter than idle",
+      "required_observation": "Check future is dropped at min(request deadline,idle deadline); no affected event; no callback/task is spawned or detached; prompt resource release",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "cumulative_idle_budget",
+      "flag": "enabled",
+      "setup_action": "Make precheck, backend wait and postcheck each individually shorter than idle but sum longer",
+      "required_observation": "One absolute idle deadline spans all phases without resets; idle error and resource release, no event after deadline",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "ready_deadline_race",
+      "flag": "enabled",
+      "setup_action": "Use deterministic step polling plus real TCP timing control for ready-at/after-deadline and simultaneous shutdown",
+      "required_observation": "Post-await actual clock and shutdown checks prevent proceeding/handing event off once observed expired/cancelled; no preemption or zero-gap network promise",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "backend_lifecycle",
+      "flag": "enabled",
+      "setup_action": "EOF, backend error, permitted terminal event and event-count exhaustion",
+      "required_observation": "EOF/error/limit retire before return; terminal event passes postcheck then retires before handoff; no live backend/permit in terminal state; event count unchanged",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "shutdown_each_phase",
+      "flag": "enabled",
+      "setup_action": "Cancel shared shutdown while waiting in precheck, backend next, or postcheck",
+      "required_observation": "Pending futures dropped, at most one existing safe shutdown error, no further event/poll; backend Drop and operation permit release once",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "tcp_disconnect",
+      "flag": "enabled",
+      "setup_action": "Receive first event then close the actual TCP connection while each phase is pending",
+      "required_observation": "When HTTP stack observes disconnect and drops body/stream, backend Drop and healthy-task permit reuse observed within bounded test wait; no claim at caller local Drop instant",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "terminal_body_retained",
+      "flag": "enabled",
+      "setup_action": "Keep first response/connection object alive after observed terminal error, with max operations1",
+      "required_observation": "Healthy distinct task succeeds without dropping/repolling first response; direct strict-stream single-poll oracle also proves handles gone before yielded Err, avoiding SDK eager-drop false proof",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "backpressure_scope",
+      "flag": "enabled",
+      "setup_action": "Pause network consumption and retain buffered first bytes",
+      "required_observation": "No unbounded queue/recheck task; existing idle semantics start only when adapter step is polled; no periodic wall-clock revocation SLO during unpolled/backpressured state",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "non_subscription_isolation",
+      "flag": "enabled",
+      "setup_action": "Exercise SendStreamingMessage and ordinary unary operations",
+      "required_observation": "Original single prepare authorization/admission and bounded stream implementation preserved; no subscription guard, writes/cancellation/retry unchanged",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "initial_boundary_order",
+      "flag": "both default/enabled",
+      "setup_action": "Unauthenticated malformed body, forbidden opaque task, queued admission policy changes",
+      "required_observation": "Original authenticate-before-body, authorize-before-backend/admit/permit order remains; denied resource existence hidden, zero forbidden backend dispatch",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    },
+    {
+      "id": "immutable_operation_context",
+      "flag": "enabled",
+      "setup_action": "Change current host mapping while backend is pending; record every callback tuple",
+      "required_observation": "Guard keeps original principal/task/op instead of remapping to another tenant/resource; current host authorizer refuses stale authority; stream payload or routing metadata never supplies new authorization facts",
+      "bindings": [
+        "HTTP+JSON REST",
+        "JSON-RPC"
+      ],
+      "status": "not implemented/not executed"
+    }
+  ],
+  "common_resource_probe": "maximum_in_flight_operations=1, concurrent requests>=2, first taskA revoked but healthy taskB authorized; first response retained; do not release it merely to make probe pass",
+  "drop_order_proof": "Combine direct next-step single-poll resource ownership oracle with actual TCP Drop/permit-reuse observations; TCP receipt order alone cannot prove adapter before-yield ordering",
+  "timing": "Keep original allowed with_timeouts limits (request>=10ms,idle>=1s); use controlled latches and monotonic timestamps; never extend production caps for green tests"
+}

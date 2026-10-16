@@ -312,6 +312,41 @@ Store264/Runtime189 terminal greens; it contains no MCP candidate. Expanded
 Ubuntu/test-opt1 MCP and complete CI, deployed mapping/verifier/delegation,
 long streams, A2A durable backend, stdio and R1 remain open.
 
+## Selected experimental A2A subscription-policy Interface
+
+The additive `A2aServerHttpOptions::with_subscription_authorization_rechecks()`
+opt-in applies only to read-only `SubscribeToTask`. It defaults off and is
+idempotent; Clone, original limits and all other operations remain unchanged.
+It neither advertises streaming support nor changes the original
+prepare/admission/backend-creation sequence. A first new pre-check refusal
+therefore does not imply that no subscription was created.
+
+The private owned stream reuses the original complete principal, canonical
+scopes, decoded task ID, `SubscribeToTask` and configNone for the current host
+policy before backend next and after a normal event. One absolute idle deadline
+spans both callbacks and backend waiting; each callback is additionally bounded
+by the original request timeout. Callbacks must be bounded and nonblocking;
+timeouts cannot preempt synchronous host work. Terminal observations retire
+the owned stream and operation permit before termination/handoff, with no
+detached policy task or permit release/reacquire window.
+
+This checks current decoded policy, not the bearer credential again. The host
+must reject stale authority using its current trusted policy. The final
+post-check does not revoke already yielded/buffered bytes or give a periodic
+revocation guarantee during backpressure or an unpolled next-step. Rust Drop
+is not durable Task cancellation. Default/non-subscription behavior and the
+broader backend/deployment/lifetime acceptance items remain separate.
+
+See the [server guide](../a2a-server.md#experimental-current-policy-checks-for-task-subscriptions).
+The final frozen v5 source (930 files) passes six local gates: 100 workspace
+suites with 2,108 passed/0 failed/6 original ignored, plus 48 doctests in 10 groups.
+The 8 direct ownership tests and one TCP family cover 17 matrix IDs over both
+REST/RPC bindings; this is controlled policy/stream evidence. See the
+[bounded record](../qualification/experimental-a2a-subscription-policy-2026-10-16.md)
+for the unchanged-source authorized-loopback retry and preserved original reds.
+RFC25 remains Draft; this adds no Native database, standalone server TCK, full
+CI, deployed identity/policy/durable A2A backend or R1 qualification.
+
 ## Validation and acceptance
 
 1. Freeze concrete issuer/subject-to-local-principal/tenant mapping, MCP key

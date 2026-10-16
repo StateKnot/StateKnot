@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/verify-candidate.py",
+    "--repository-root",
+    "/Users/jiawy/Documents/RustAgentFramework"
+  ],
+  "started_at_unix": 1792126135.889984,
+  "elapsed_seconds": 0.23084402084350586,
+  "actual_exit_code": 0,
+  "expected_exit_code": 0,
+  "stdout_sha256": "9d0bdaa48108efe3982abc64d6fa77fafa923d5c2c34660a1d74e83ee407ad5c",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "actual_Rust_network_DB_Docker_CI_or_cache_execution": false
+}

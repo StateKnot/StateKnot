@@ -550,6 +550,7 @@ pub struct A2aServerHttpOptions {
     request_timeout: Duration,
     stream_idle_timeout: Duration,
     maximum_stream_events: u32,
+    subscription_authorization_rechecks: bool,
     card_max_age: Duration,
     bearer_challenge: Option<Box<str>>,
 }
@@ -571,6 +572,7 @@ impl A2aServerHttpOptions {
             request_timeout: Duration::from_secs(30),
             stream_idle_timeout: Duration::from_secs(60),
             maximum_stream_events: 16_384,
+            subscription_authorization_rechecks: false,
             card_max_age: Duration::from_secs(300),
             bearer_challenge: None,
         }
@@ -717,6 +719,20 @@ impl A2aServerHttpOptions {
         }
         self.maximum_stream_events = value;
         Ok(self)
+    }
+
+    /// Enables current-policy rechecks before polling and delivering each
+    /// `SubscribeToTask` event, within the existing idle and request deadlines.
+    ///
+    /// The existing authorizer receives the original principal and task ID and
+    /// must consult current host policy. This does not reauthenticate the bearer
+    /// credential or retract events already handed to the HTTP transport.
+    /// Streaming capability, other operations and all configured limits remain
+    /// unchanged. Repeated enable is idempotent; the default is disabled.
+    #[must_use]
+    pub fn with_subscription_authorization_rechecks(mut self) -> Self {
+        self.subscription_authorization_rechecks = true;
+        self
     }
 
     /// Sets public Agent Card cache duration.
@@ -871,6 +887,7 @@ impl A2aServer {
             request_timeout: options.request_timeout,
             stream_idle_timeout: options.stream_idle_timeout,
             maximum_stream_events: options.maximum_stream_events,
+            subscription_authorization_rechecks: options.subscription_authorization_rechecks,
             shutdown: shutdown.clone(),
         });
 
@@ -1560,7 +1577,123 @@ struct A2aSdkRequestHandler {
     request_timeout: Duration,
     stream_idle_timeout: Duration,
     maximum_stream_events: u32,
+    subscription_authorization_rechecks: bool,
     shutdown: CancellationToken,
+}
+
+// A strict subscription owns its backend stream and admission permit together.
+// An unfold state of None releases both before yielding a final event or error.
+struct AuthorizedSubscriptionStream {
+    stream: A2aEventStream,
+    _permit: OwnedSemaphorePermit,
+    authorizer: Arc<dyn A2aServerAuthorizer>,
+    authorization: A2aServerAuthorizationRequest,
+    shutdown: CancellationToken,
+    request_timeout: Duration,
+    idle_timeout: Duration,
+    remaining: u32,
+}
+
+impl AuthorizedSubscriptionStream {
+    fn ensure_active(&self, idle_deadline: tokio::time::Instant) -> Result<(), wire::A2AError> {
+        if self.shutdown.is_cancelled() {
+            return Err(wire::A2AError::internal("A2A service is shutting down"));
+        }
+        if tokio::time::Instant::now() >= idle_deadline {
+            return Err(wire::A2AError::internal("A2A stream idle timeout"));
+        }
+        Ok(())
+    }
+
+    async fn authorize(
+        &mut self,
+        idle_deadline: tokio::time::Instant,
+    ) -> Result<(), wire::A2AError> {
+        self.ensure_active(idle_deadline)?;
+        let deadline = idle_deadline.min(tokio::time::Instant::now() + self.request_timeout);
+        let result = tokio::select! {
+            biased;
+            () = self.shutdown.cancelled() => {
+                return Err(wire::A2AError::internal("A2A service is shutting down"));
+            }
+            result = tokio::time::timeout_at(
+                deadline,
+                self.authorizer.authorize(self.authorization.clone()),
+            ) => result,
+        };
+        // A ready callback can win a timeout race, including one that blocked
+        // synchronously. Recheck the actual clock before accepting its result.
+        self.ensure_active(idle_deadline)?;
+        if tokio::time::Instant::now() >= deadline {
+            return Err(map_authorization_error(
+                A2aServerAuthorizationError::Unavailable,
+            ));
+        }
+        result
+            .map_err(|_| map_authorization_error(A2aServerAuthorizationError::Unavailable))?
+            .map_err(map_authorization_error)
+    }
+
+    async fn next_event(&mut self) -> Result<Option<A2aStreamEvent>, wire::A2AError> {
+        // One deadline covers both policy checks and backend waiting. Consumer
+        // backpressure does not start a detached timer or policy task.
+        let idle_deadline = tokio::time::Instant::now() + self.idle_timeout;
+        self.authorize(idle_deadline).await?;
+        let next = tokio::select! {
+            biased;
+            () = self.shutdown.cancelled() => {
+                return Err(wire::A2AError::internal("A2A service is shutting down"));
+            }
+            next = tokio::time::timeout_at(idle_deadline, self.stream.next()) => next,
+        };
+        self.ensure_active(idle_deadline)?;
+        let event = next
+            .map_err(|_| wire::A2AError::internal("A2A stream idle timeout"))?
+            .transpose()
+            .map_err(map_service_error)?;
+        if event.is_some() {
+            self.authorize(idle_deadline).await?;
+            self.ensure_active(idle_deadline)?;
+        }
+        Ok(event)
+    }
+
+    fn into_stream(
+        self,
+    ) -> futures_util::stream::BoxStream<'static, Result<wire::StreamResponse, wire::A2AError>>
+    {
+        Box::pin(futures_util::stream::unfold(
+            Some(self),
+            |state| async move {
+                let mut state = state?;
+                if state.remaining == 0 {
+                    drop(state);
+                    return Some((
+                        Err(wire::A2AError::internal("A2A stream event limit reached")),
+                        None,
+                    ));
+                }
+                match state.next_event().await {
+                    Err(error) => {
+                        drop(state);
+                        Some((Err(error), None))
+                    }
+                    Ok(None) => None,
+                    Ok(Some(event)) => {
+                        state.remaining -= 1;
+                        let terminal = event.is_terminal();
+                        let event = event.into_wire();
+                        if terminal {
+                            drop(state);
+                            Some((Ok(event), None))
+                        } else {
+                            Some((Ok(event), Some(state)))
+                        }
+                    }
+                }
+            },
+        ))
+    }
 }
 
 impl A2aSdkRequestHandler {
@@ -1672,6 +1805,51 @@ impl A2aSdkRequestHandler {
         // for the complete stream lifetime. This prevents a release/reacquire
         // race from orphaning a durable subscription after it was created.
         Ok(self.bounded_stream(stream, permit))
+    }
+
+    async fn authorized_subscription(
+        &self,
+        future: impl std::future::Future<Output = Result<A2aEventStream, A2aTaskServiceError>>,
+        permit: OwnedSemaphorePermit,
+        authorization: A2aServerAuthorizationRequest,
+    ) -> Result<
+        futures_util::stream::BoxStream<'static, Result<wire::StreamResponse, wire::A2AError>>,
+        wire::A2AError,
+    > {
+        // Preserve the original subscription-creation boundary. Rechecks begin
+        // only after this backend stream exists, with its permit still owned.
+        let stream = tokio::select! {
+            () = self.shutdown.cancelled() => {
+                return Err(wire::A2AError::internal("A2A service is shutting down"));
+            }
+            result = tokio::time::timeout(self.request_timeout, future) => {
+                match result {
+                    Ok(result) => result.map_err(map_service_error)?,
+                    Err(_) => return Err(wire::A2AError::internal("A2A operation timed out")),
+                }
+            }
+        };
+        Ok(self.bounded_authorized_subscription(stream, permit, authorization))
+    }
+
+    fn bounded_authorized_subscription(
+        &self,
+        stream: A2aEventStream,
+        permit: OwnedSemaphorePermit,
+        authorization: A2aServerAuthorizationRequest,
+    ) -> futures_util::stream::BoxStream<'static, Result<wire::StreamResponse, wire::A2AError>>
+    {
+        let state = AuthorizedSubscriptionStream {
+            stream,
+            _permit: permit,
+            authorizer: Arc::clone(&self.authorizer),
+            authorization,
+            shutdown: self.shutdown.clone(),
+            request_timeout: self.request_timeout,
+            idle_timeout: self.stream_idle_timeout,
+            remaining: self.maximum_stream_events,
+        };
+        state.into_stream()
     }
 
     fn bounded_stream(
@@ -1985,8 +2163,23 @@ impl RequestHandler for A2aSdkRequestHandler {
                 None,
             )
             .await?;
-        self.stream(self.service.subscribe_to_task(context, request), permit)
+        if self.subscription_authorization_rechecks {
+            let authorization = A2aServerAuthorizationRequest {
+                principal: context.principal.clone(),
+                operation: A2aServerOperation::SubscribeToTask,
+                task_id: Some(task_id.into()),
+                config_id: None,
+            };
+            self.authorized_subscription(
+                self.service.subscribe_to_task(context, request),
+                permit,
+                authorization,
+            )
             .await
+        } else {
+            self.stream(self.service.subscribe_to_task(context, request), permit)
+                .await
+        }
     }
 
     async fn create_push_config(
@@ -2100,6 +2293,10 @@ impl RequestHandler for A2aSdkRequestHandler {
         Ok(card.into_wire())
     }
 }
+
+#[cfg(test)]
+#[path = "a2a_server/subscription_tests.rs"]
+mod subscription_tests;
 
 #[cfg(test)]
 mod tests {

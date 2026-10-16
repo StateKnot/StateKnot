@@ -149,6 +149,55 @@ TLS 与可信 Proxy Termination 位于 Router 外层。Allowlist 应配置应用
 Authority；除非外层可信组件已经替换 Request Authority，否则不要信任客户端
 提供的 Forwarding Header。
 
+## 实验性订阅当前策略复核
+
+对只读 `SubscribeToTask` SSE，在上方组装示例把 Options 传给
+`A2aServer::new` 前显式启用：
+
+```rust,ignore
+let options = options.with_subscription_authorization_rechecks();
+```
+
+默认关闭。此 consuming 方法幂等，Clone 和其他 Options 方法会保留开关与原有
+数值限额。它不会开启缺失的 Streaming Capability，也不改变
+`SendStreamingMessage`、Unary、原有 Admission、Retry 或持久化 Task Cancellation。
+
+原 Authentication、Decoded Authorization、Admission 和 Backend Subscription
+创建完成后，每个被 poll 的 next-step 在 poll Backend 前，以及取得正常 Event 后，
+调用现有 `A2aServerAuthorizer`。两次检查都保留最初完整 Principal、Canonical
+Scopes、`SubscribeToTask`、原解码 Task ID 和空 Config ID。宿主必须查询当前权威
+Tenant/Resource Policy 并拒绝失效绑定；恒定允许的 Authorizer 不会因为打开开关
+而获得撤销能力。Adapter 不保留 Bearer 做重新认证，也不自行重新校验 Credential
+Expiry 或 Revocation。
+
+每一步只建立一个原 Stream-idle 绝对期限，覆盖 Pre-check、Backend 等待和
+Post-check。每次 Callback 的期限还取该 Idle Deadline 与本阶段开始加原
+Request Timeout 的较早值；await 后实际检查时钟与 Shutdown，阻止晚到 Event
+交付。宿主 Callback 必须有界且不阻塞：Rust Timeout 无法抢占同步阻塞工作，
+事后时钟检查不会把此类 Callback 变成具有有界延迟的实现。
+
+被 poll 的步骤观察到拒绝、不可用、超时、Shutdown、Backend Error/EOF 或 Event
+Cap 耗尽时，会在返回终结输出前 drop 自有 Backend Stream 和 Operation Permit。
+获准 Terminal Event 先通过 Post-check，再于交付前退役这些资源。Headers 已提交
+后，错误沿用 SDK 原有 REST/RPC Stream Envelope，不改变 HTTP Status。
+Pre-check 拒绝发生在原 Backend 创建之后，不能据此声称从未创建 Backend。
+
+最后成功的 Post-check 是该 Event 的策略线性化点，不是与 TCP 发送原子化的撤销
+边界。已经交给 SDK、Transport 或 Proxy 的字节无法收回。未被 poll 的 next-step
+不会启动后台策略任务、周期复核或到期计时器。真实连接清理依赖 HTTP 栈观察关闭
+并 drop Body；Rust Stream Drop 不代表 Durable Task 已取消或 Backend 已清理。
+下方更广的部署门禁仍然必需。
+
+冻结的 v5 共 930 文件，在原 opt0/default stack 下六项本地门禁通过：100 个
+Workspace Suite，2,108 passed、0 failed、6 个原有 ignored；10 组 Doctest 共
+48 passed。包含 8 个 Direct Ownership Test，以及一个真实 TCP Family 经
+REST/RPC 两条 Binding 执行 17 个矩阵 ID；这是可控 Policy/Stream 证据，不是
+34 个独立 Test Family。Fmt/Clippy 在首轮 v5 通过，其余四项在源码不变、获得
+Loopback 授权后通过。原 Fixture/Format 红与 Sandbox Listener Denial 保留于
+[限定执行记录](qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md)。
+这不新增 Native 数据库、独立 Server TCK、完整 CI、部署中的 Identity/Policy
+Backend、Durable A2A Backend 或 R1 资格。
+
 ## 部署门禁
 
 暴露流量前，必须验证：

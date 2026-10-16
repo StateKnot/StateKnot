@@ -1,0 +1,18 @@
+{
+  "record_kind": "post-hoc retained actual tool result; not a newly executed gate",
+  "tool_chunk_id": "0532db",
+  "argv": [
+    "python3",
+    "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/verify.py",
+    "--repository-root",
+    ".",
+    "--workspace"
+  ],
+  "exit_code": 0,
+  "verifier_sha256": "2372b4eea29dedc278e864750eb77e7386f6cbaf2a3484d74153e118d477cbc8",
+  "verified_exact538_compilation_inputs": true,
+  "whole_Git_or_compiler_read_closure_claimed": false,
+  "same_frozen_source": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "six_gates_reexecuted_for_metadata_only_adoption": false,
+  "fullCI_Native_R1_qualification": false
+}

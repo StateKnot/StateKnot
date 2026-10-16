@@ -14,6 +14,13 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Add experimental opt-in current decoded-policy rechecks before backend
+  polling and event handoff for A2A task subscriptions through
+  `A2aServerHttpOptions::with_subscription_authorization_rechecks()`. Preserve
+  the original principal, limits and default/non-subscription behavior; host
+  policy remains responsible for current authority. See the
+  [server guide](docs/a2a-server.md#experimental-current-policy-checks-for-task-subscriptions).
+
 - Add the numeric-corrected experimental explicit MCP host-bound state
   profile for private cursors and real MRTR consumers on composite/direct services.
   Bind parsed argument values with sorted serde_json encoding and strict operation
