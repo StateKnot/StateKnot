@@ -1,0 +1,1231 @@
+{
+  "markers": {
+    "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "case": "denial",
+          "durable_start_verified": true,
+          "payload_from_full_input": true,
+          "calls": 0,
+          "policy_calls": 1,
+          "duplicate_ledger_unchanged": true
+        },
+        {
+          "case": "lost_response",
+          "durable_start_verified": true,
+          "payload_from_full_input": true,
+          "calls": 1,
+          "policy_calls": 1,
+          "duplicate_ledger_unchanged": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_AGENT_HTTP_EVIDENCE": {
+      "kind": "exact_text",
+      "value": "24_concurrent_submissions_one_run;24_cancellation_races_one_commit;lost_submit_recovered;lost_cancel_recovered;no_inline_dispatch",
+      "count": 1
+    },
+    "STATEKNOT_AGENT_SERVER_EVIDENCE": {
+      "kind": "exact_text",
+      "value": "real-store-readiness;host-recovery;single-flight;fail-closed-admission;idempotent-recovery;no-inline-executor",
+      "count": 1
+    },
+    "STATEKNOT_AGENT_SSE_EVIDENCE": {
+      "kind": "exact_text",
+      "value": "exact_process_restart_suffix;live_cancellation;separate_capacity;no_inline_dispatch",
+      "count": 1
+    },
+    "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "child-admission-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "original_identity_recovery_verified": true,
+          "downstream_progress_verified": true
+        },
+        {
+          "profile": "child-admission-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "original_identity_recovery_verified": true,
+          "downstream_progress_verified": true
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "child-cancellation-delivery-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "original_identity_recovery_verified": true,
+          "wait_abandonment_verified": true,
+          "downstream_settlement_verified": true
+        },
+        {
+          "profile": "child-cancellation-delivery-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "original_identity_recovery_verified": true,
+          "wait_abandonment_verified": true,
+          "downstream_settlement_verified": true
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_CHILD_JOIN_BACKUP_RESTORE_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "child-join-logical-restore-v1",
+          "source_isolated": true,
+          "restore_isolated": true,
+          "schema_verified": true,
+          "exact_durable_snapshot_verified": true,
+          "cross_tenant_refusal_verified": true,
+          "noninitial_replay_verified": true,
+          "invariants": "passed"
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        },
+        "archive_sha256": "sha256",
+        "archive_bytes": "positive_integer"
+      }
+    },
+    "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "child-join-consumption-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "downstream_noninitial_checkpoint_verified": true,
+          "original_event_recovered": false
+        },
+        {
+          "profile": "child-join-consumption-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "downstream_noninitial_checkpoint_verified": true,
+          "original_event_recovered": true
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "child-join-committed-boundaries-v1",
+          "phase": "admission",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "child-join-committed-boundaries-v1",
+          "phase": "join",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "child-join-committed-boundaries-v1",
+          "phase": "child_terminal",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "child-join-committed-boundaries-v1",
+          "phase": "settlement",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "child-join-committed-boundaries-v1",
+          "phase": "publication",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "child-join-committed-boundaries-v1",
+          "phase": "takeover",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "child-join-committed-boundaries-v1",
+          "phase": "parent_resume",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "child-join-committed-boundaries-v1",
+          "phase": "replay",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "child-settlement-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "original_event_recovery_verified": true,
+          "terminal_anchor_verified": true,
+          "accounting_and_notification_verified": true,
+          "parent_finalization_verified": true
+        },
+        {
+          "profile": "child-settlement-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "original_event_recovery_verified": true,
+          "terminal_anchor_verified": true,
+          "accounting_and_notification_verified": true,
+          "parent_finalization_verified": true
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_COMMIT_LOSS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "failure-close-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "expired_fence_rejection_verified": true
+        },
+        {
+          "profile": "failure-close-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "expired_fence_rejection_verified": false
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_COMPUTE_WORKER_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "mcp-compute-worker-v1",
+          "schema": 24,
+          "separate_process": true,
+          "no_inherited_credentials": true,
+          "first_party_mcp_server": true,
+          "noninitial_replay": true,
+          "pending_recovery_without_worker": true,
+          "stale_fence_rejected": true,
+          "hostile_result_rejected": true,
+          "worker_reaped": true,
+          "invariants": "passed"
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "admission",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "join",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "deadline",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "child_cancel",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "child_terminal",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "settlement",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "takeover",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "parent_terminal",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "phase": "replay",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_HOST_ADMISSION_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "http_to_terminal": true,
+          "sibling_gate": true,
+          "maintenance_pauses_worker": true,
+          "recovery": true,
+          "cancelled_wait_retains_owner": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_HOST_DRAIN_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "ordered_drain": true,
+          "maintenance_during_worker_drain": true,
+          "forced_connections": true,
+          "joined_streams_and_nodes": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_HOST_DROP_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "before_first_poll": true,
+          "running_drop": true,
+          "loopback_required": true,
+          "eventual_idle": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_HOST_FAILURE_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "ingress_exit": true,
+          "worker_panic": true,
+          "maintenance_panic": true,
+          "siblings_joined": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_HOST_IDENTITY_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "verified_tls": true,
+          "actual_resource_policy": true,
+          "durable_queue_recovered": true,
+          "terminal_result": true,
+          "idempotent_no_repeat": true,
+          "policy_loss_recovery": true,
+          "joined": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_HOST_QUALIFICATION_REPORT": {
+      "kind": "integrity_envelope",
+      "count": 1,
+      "envelope_schema": 1,
+      "report_schema": 1,
+      "profile": "ci_reduced",
+      "scenario": "agent_host_control_plane_v1",
+      "evidence_valid": true,
+      "release_qualified": false,
+      "original_Rust_test_validates_derived_fields_and_JCS_digest": true,
+      "offline_checker_does_not_reimplement_JCS": true
+    },
+    "STATEKNOT_HOST_STARTUP_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "all_stages_fail_closed": true,
+          "panics_joined": true,
+          "cancelled_startup_joined": true,
+          "shared_ingress_closed": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_IDENTITY_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "provider": "keycloak-26.7.3",
+          "verified_tls": true,
+          "rotation": true,
+          "revocation": true,
+          "cross_tenant_denied": true,
+          "resource_policy_required": true,
+          "sse_closed": true,
+          "readiness_recovered": true,
+          "policy_expiry": true,
+          "drained": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_IN_PROCESS_AGENT_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "typed_terminal": true,
+          "same_key_idempotent": true,
+          "timeout_preserves_run": true,
+          "same_key_resume": true,
+          "drain_closes_submission": true,
+          "roles_joined": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "join-deadline-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "downstream_progress_verified": true,
+          "operation": "join_registration"
+        },
+        {
+          "profile": "join-deadline-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "downstream_progress_verified": true,
+          "operation": "join_registration"
+        },
+        {
+          "profile": "join-deadline-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "downstream_progress_verified": true,
+          "operation": "join_publication"
+        },
+        {
+          "profile": "join-deadline-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "downstream_progress_verified": true,
+          "operation": "join_publication"
+        },
+        {
+          "profile": "join-deadline-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "downstream_progress_verified": true,
+          "operation": "deadline_cancellation"
+        },
+        {
+          "profile": "join-deadline-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "downstream_progress_verified": true,
+          "operation": "deadline_cancellation"
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_JWT_IDENTITY_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "provider": "keycloak-26.7.3",
+          "verified_tls": true,
+          "rfc9068": true,
+          "algorithm": "RS256",
+          "operator_provisioned_jwks": true,
+          "trusted_tenant": true,
+          "exact_key_replay": true,
+          "empty_key_revocation": true,
+          "drained": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_JWT_JWKS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "rfc9068-rs256-local-jwks",
+          "real_signature": true,
+          "key_rotation": true,
+          "cross_tenant_denied": true,
+          "resource_policy_required": true,
+          "sse_closed": true,
+          "key_expiry_recovered": true,
+          "fresh_verifier_replay": true,
+          "drained": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "failed_page": 16,
+          "tail_reached": true,
+          "restart_revisited": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "deadline": true,
+          "child_cancel": true,
+          "child_settle": true,
+          "join": true,
+          "failure_close": true,
+          "replicas": true,
+          "tenant_allowlist": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "real_database_tick_deadline": true,
+          "joined": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "forced_process_loss": true,
+          "fresh_owner": true,
+          "cancellation_identity_preserved": true,
+          "original_failure_preserved": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "case": "denial",
+          "durable_before_authorization": true,
+          "calls": 0,
+          "policy_calls": 1,
+          "duplicate_ledger_unchanged": true
+        },
+        {
+          "case": "lost_response",
+          "durable_before_authorization": true,
+          "calls": 1,
+          "policy_calls": 1,
+          "reconciliation_idempotent": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "known-error-reconciliation-v1",
+          "effects": 2,
+          "authorization_before_lookup": true,
+          "distinct_scopes": true,
+          "atomic_audit": true,
+          "lost_http_receipt": true,
+          "duplicate_receipts_per_effect": 24,
+          "retry_never": true,
+          "fresh_service_recovery": true,
+          "stale_fence_rejected": true,
+          "invariants": "passed"
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "error_first_submissions": 24,
+          "mixed_success_failure_submissions": 24,
+          "same_event_identity": true,
+          "single_revision": true,
+          "success_first_conflict": true,
+          "invariants": "passed"
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "mcp-result-reconciliation-v1",
+          "schema": 24,
+          "authenticated_http": true,
+          "authorization_before_lookup": true,
+          "atomic_audit": true,
+          "lost_http_receipt": true,
+          "duplicate_receipts": 24,
+          "concurrent_first_submissions": 24,
+          "fresh_service_recovery": true,
+          "stale_fence_rejected": true,
+          "invariants": "passed"
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_OPERATIONS_AUTHORIZATION_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "separate_permission": true,
+          "exact_tenant": true,
+          "redacted_counters": true,
+          "expiry_recovery": true,
+          "in_flight_revocation": true,
+          "independent_shutdown": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_OPERATIONS_BOUNDS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "request_ceiling": 2,
+          "deadline": true,
+          "sync_async_panics": true,
+          "cancelled_wait_retains_owner": true,
+          "forced_join": true,
+          "zero_auth_activity": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_OPERATIONS_IDENTITY_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "verified_tls": true,
+          "dedicated_ops_principal": true,
+          "scope_opt_in": true,
+          "business_token_denied": true,
+          "ops_business_denied": true,
+          "separate_acl": true,
+          "expiry": true,
+          "rotation_recovery": true,
+          "idp_revocation": true,
+          "joined": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_OPERATIONS_INPUT_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "loopback_only": true,
+          "authentication_first": true,
+          "exact_host": true,
+          "no_origin": true,
+          "no_body": true,
+          "duplicate_headers": true,
+          "read_only": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_OPERATIONS_LIFECYCLE_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "starting": true,
+          "business_outage": true,
+          "stopped_inspection": true,
+          "no_read_probes": true,
+          "zero_activity": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_OPERATIONS_TRANSPORT_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "connection_ceiling": true,
+          "header_deadline": true,
+          "absolute_lifetime": true,
+          "running_drop": true,
+          "unpolled_drop": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "parent-finalization-commit-loss-v1",
+          "cut": "commit_not_forwarded",
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "original_failure_and_event_verified": true,
+          "terminal_accounting_verified": true,
+          "close_record_and_journal_atomicity_verified": true
+        },
+        {
+          "profile": "parent-finalization-commit-loss-v1",
+          "cut": "commit_response_withheld",
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "interrupted_writer_killed": true,
+          "termination": "SIGKILL",
+          "invariants": "passed",
+          "cold_recovery_verified": true,
+          "original_failure_and_event_verified": true,
+          "terminal_accounting_verified": true,
+          "close_record_and_journal_atomicity_verified": true
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_PROCESS_KILL_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "failure-close-committed-boundaries-v1",
+          "phase": "source",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "failure-close-committed-boundaries-v1",
+          "phase": "delivery",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "failure-close-committed-boundaries-v1",
+          "phase": "child_terminal",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "failure-close-committed-boundaries-v1",
+          "phase": "settlement",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "failure-close-committed-boundaries-v1",
+          "phase": "close",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        },
+        {
+          "profile": "failure-close-committed-boundaries-v1",
+          "phase": "replay",
+          "forced_exit": true,
+          "invariants": "passed",
+          "termination": "SIGKILL"
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version",
+        "os": {
+          "exact": "linux"
+        },
+        "arch": {
+          "exact": "x86_64"
+        }
+      }
+    },
+    "STATEKNOT_RESOURCE_POLICY_EVIDENCE": {
+      "kind": "exact_text",
+      "value": "exact_targets;cross_tenant_denied;lost_submit_recovered;unrelated_refresh_stable;durable_evidence;cancel_idempotent;revoked_sse_closed;expired_unavailable;no_inline_dispatch",
+      "count": 1
+    },
+    "STATEKNOT_ROLE_PROFILE_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "profile": "trusted-server-roles-v1",
+          "separate_login_connections": true,
+          "owner_is_non_superuser": true,
+          "effective_acl_audit": true,
+          "privilege_rejections": true,
+          "drift_rejected": true,
+          "runtime_failure_close": true,
+          "join_checkpoint_recovery": true,
+          "agent_service_submission": true,
+          "provider_native_recovery": true,
+          "concurrent_submission_and_completion": 24,
+          "skill_acting_window_authorization": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "scoped_barrier_commit_retry_reload": true,
+          "framework_caller_rebind_retry_reload": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true,
+          "graph_wait_elapsed_and_registered_real_runtime_login": true,
+          "graph_wait_runtime_update_delete_and_retention_rejected": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "populated_reapply": true,
+          "isolated_retention": true,
+          "fixture_cleaned": true,
+          "invariants": "passed",
+          "schema": 36
+        }
+      ],
+      "dynamic": {
+        "postgres": "postgres_version"
+      }
+    },
+    "STATEKNOT_WORKER_EXECUTION_EVIDENCE": {
+      "kind": "exact_text",
+      "value": "startup_denied;readiness_pause_resume;real_execution;fixed_concurrency;cancel_safe_wait;joined_nodes",
+      "count": 1
+    },
+    "STATEKNOT_WORKER_FAILSTOP_EVIDENCE": {
+      "kind": "exact_text",
+      "value": "tick_deadline;lifecycle_panic;probe_panic;joined_cleanup",
+      "count": 1
+    },
+    "STATEKNOT_WORKER_FAIR_EVIDENCE": {
+      "kind": "exact_text",
+      "value": "owned_fair_role;persisted_policy;fresh_process;continuous_slots",
+      "count": 1
+    },
+    "STATEKNOT_WORKER_MAINTENANCE_EVIDENCE": {
+      "kind": "json_variants",
+      "variants": [
+        {
+          "concurrent_roles": true,
+          "independent_shutdown": true,
+          "execution_after_maintenance_stop": true
+        }
+      ],
+      "dynamic": {}
+    },
+    "STATEKNOT_WORKER_RECOVERY_EVIDENCE": {
+      "kind": "exact_text",
+      "value": "forced_join;lease_expiry;fresh_process;terminal_replay;no_node_repeat",
+      "count": 1
+    }
+  },
+  "constant_marker_source_refs": [
+    {
+      "path": "crates/stateknot/tests/agent_http.rs",
+      "line": 350,
+      "sha256": "39a61913543d368d407b0dc28d0c7d746ed5ade9dc1da19437fd253f9d82dca0"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker.rs",
+      "line": 93,
+      "sha256": "dd9f642140f6875455f2d00edcb685f6172370a8c26b7c2807fafa03df8e38b5"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker.rs",
+      "line": 338,
+      "sha256": "dd9f642140f6875455f2d00edcb685f6172370a8c26b7c2807fafa03df8e38b5"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker.rs",
+      "line": 379,
+      "sha256": "dd9f642140f6875455f2d00edcb685f6172370a8c26b7c2807fafa03df8e38b5"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker.rs",
+      "line": 435,
+      "sha256": "dd9f642140f6875455f2d00edcb685f6172370a8c26b7c2807fafa03df8e38b5"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker.rs",
+      "line": 602,
+      "sha256": "dd9f642140f6875455f2d00edcb685f6172370a8c26b7c2807fafa03df8e38b5"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_reconciliation.rs",
+      "line": 793,
+      "sha256": "6318ad8c5696a2461bba32eff147efaf37440b6153ab472034c9066f72c199ec"
+    },
+    {
+      "path": "crates/stateknot/tests/in_process_agent.rs",
+      "line": 281,
+      "sha256": "885c6024737b72bddee970381e59b076b216d5a2463aa18a68676c09ce7a2608"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/sse.rs",
+      "line": 227,
+      "sha256": "317ce2988467f0e8a382fc5ecd4c767b57fc193b3a42fbde73d8e68bd5cf743d"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/resource_policy.rs",
+      "line": 311,
+      "sha256": "8e3833c718aa3e2618b0fb091f3f76b709ef33543e36d84c1ed1be6b9ffe8dfe"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/server.rs",
+      "line": 284,
+      "sha256": "bb4ff8e360406d8c180caa7561299078a494fee1d6a7796c9544cb05e5803ec5"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/identity.rs",
+      "line": 385,
+      "sha256": "7bb0f35e15a7fe6fc42612650fa325416b448616b4f2aef762a7a96bd037a792"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/identity.rs",
+      "line": 558,
+      "sha256": "7bb0f35e15a7fe6fc42612650fa325416b448616b4f2aef762a7a96bd037a792"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/jwt_jwks_identity.rs",
+      "line": 365,
+      "sha256": "3f06f561ae002faed8fb2749f251c20ab65bbfac6dfc06d2e5208d2fbb13d5d2"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/jwt_jwks_identity.rs",
+      "line": 507,
+      "sha256": "3f06f561ae002faed8fb2749f251c20ab65bbfac6dfc06d2e5208d2fbb13d5d2"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/identity/operations.rs",
+      "line": 213,
+      "sha256": "d47fea9734a8866b271bb4ef73c783188c3ad0b83264ec52a14ede2abbe63731"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_reconciliation/error.rs",
+      "line": 485,
+      "sha256": "b72c7074770e19f6427b1b9bb187ab7bbe0366d5637c2cfbd1b4d26c33734f06"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_reconciliation/error.rs",
+      "line": 610,
+      "sha256": "b72c7074770e19f6427b1b9bb187ab7bbe0366d5637c2cfbd1b4d26c33734f06"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_compute/postgres.rs",
+      "line": 366,
+      "sha256": "9a45edd871b18521c473cb976cd61b6d6abaa4f8db7282e4b7e96f84214a4901"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/host.rs",
+      "line": 173,
+      "sha256": "410e56d7639cb371c087f236739ef10cf30e86660afc787ea1a4659f0c1adc03"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/host.rs",
+      "line": 223,
+      "sha256": "410e56d7639cb371c087f236739ef10cf30e86660afc787ea1a4659f0c1adc03"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/host.rs",
+      "line": 283,
+      "sha256": "410e56d7639cb371c087f236739ef10cf30e86660afc787ea1a4659f0c1adc03"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/host.rs",
+      "line": 355,
+      "sha256": "410e56d7639cb371c087f236739ef10cf30e86660afc787ea1a4659f0c1adc03"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/host.rs",
+      "line": 431,
+      "sha256": "410e56d7639cb371c087f236739ef10cf30e86660afc787ea1a4659f0c1adc03"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/operations.rs",
+      "line": 204,
+      "sha256": "6bf12df39c05a0349b7519f5b003182fac9bced631bea29d624f860ad3fa349e"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/operations.rs",
+      "line": 283,
+      "sha256": "6bf12df39c05a0349b7519f5b003182fac9bced631bea29d624f860ad3fa349e"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/operations.rs",
+      "line": 387,
+      "sha256": "6bf12df39c05a0349b7519f5b003182fac9bced631bea29d624f860ad3fa349e"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/operations.rs",
+      "line": 469,
+      "sha256": "6bf12df39c05a0349b7519f5b003182fac9bced631bea29d624f860ad3fa349e"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/operations.rs",
+      "line": 552,
+      "sha256": "6bf12df39c05a0349b7519f5b003182fac9bced631bea29d624f860ad3fa349e"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "line": 250,
+      "sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "line": 337,
+      "sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "line": 525,
+      "sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "line": 643,
+      "sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "line": 593,
+      "sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "line": 686,
+      "sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "line": 997,
+      "sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "line": 1084,
+      "sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    }
+  ],
+  "dynamic_marker_basis": "Frozen test source31a json! construction, exact variant/phase/cut sets and complete field comparisons. Qualified cold measurements still require original tests and all original shell predicates."
+}

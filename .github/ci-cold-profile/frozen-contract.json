@@ -1,0 +1,1305 @@
+{
+  "schema": "stateknot.ci-cold-profile-existing-entry-contract.v2",
+  "frozen": true,
+  "full_cold_contract_frozen": true,
+  "source_label": "Immutable source origin4e726/5361ec; isolated measurement commit/tree externally frozen after assets commit",
+  "source_commit": "4e726b4c5a95d52a171690a2f4df315692c38d3c",
+  "source_tree": "de059923f298762d98ea9ae5cb5016ff6c625359",
+  "compiled_input_count": 536,
+  "compiled_input_manifest_sha256": "ddb5b8f32a4071422d9c568576512093a77bde9b662eb1e912f55fc260e9d816",
+  "compiled_canonical_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "frozen_source928_sha256": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "allowed_cargo_config_sha256": {},
+  "mcp_expected_tests": 15,
+  "mcp_run": "set -euo pipefail\n{\n  git rev-parse HEAD\n  git rev-parse 'HEAD^{tree}'\n  sha256sum Cargo.lock\n  rustc -Vv\n  uname -a\n  df -T .\n  printf 'configured_postgres_image=%s\\n' \"$STATEKNOT_QUALIFICATION_POSTGRES_IMAGE\"\n  printf 'configured_postgres_major=%s\\n' \"$STATEKNOT_QUALIFICATION_POSTGRES_MAJOR\"\n  printf 'STATEKNOT_REQUIRE_POSTGRES_TESTS=%s\\n' \"$STATEKNOT_REQUIRE_POSTGRES_TESTS\"\n  for setting in CARGO_INCREMENTAL CARGO_PROFILE_DEV_DEBUG CARGO_PROFILE_TEST_DEBUG \\\n    CARGO_PROFILE_TEST_OPT_LEVEL CARGO_PROFILE_TEST_DEBUG_ASSERTIONS CARGO_PROFILE_TEST_OVERFLOW_CHECKS; do\n    printf '%s=%s\\n' \"$setting\" \"${!setting}\"\n  done\n} > mcp-bound-state-environment.log\ncargo test -p stateknot --test mcp_bound_state --locked -- \\\n  --nocapture --test-threads=1 2>&1 | tee mcp-bound-state-qualification.log\ntest \"$(grep -c '^running 15 tests$' mcp-bound-state-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MCP_BOUND_STATE_POSTGRES:' mcp-bound-state-qualification.log)\" = 1\ntest \"$(grep -Fxc 'STATEKNOT_MCP_BOUND_STATE_POSTGRES: consumers=3 positive_commits=6 refused_rebinds=12 tenant_ledgers=2 complete_journals=true' mcp-bound-state-qualification.log)\" = 1\ntest \"$(grep -Ec '^test result: ok[.] 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' mcp-bound-state-qualification.log)\" = 1\nif grep -Fq 'STATEKNOT_MCP_BOUND_STATE_POSTGRES_SKIPPED:' mcp-bound-state-qualification.log; then\n  exit 1\nfi\n",
+  "mcp_marker": "STATEKNOT_MCP_BOUND_STATE_POSTGRES:",
+  "mcp_log": "mcp-bound-state-qualification.log",
+  "acceptance_by_run_label": {
+    "original-02": {
+      "step_index": 2,
+      "step_name": "Install pinned Rust toolchain",
+      "summaries": [],
+      "selected_harness_names": [],
+      "markers": {},
+      "text_markers": {}
+    },
+    "original-03": {
+      "step_index": 3,
+      "step_name": "Run mandatory PostgreSQL integration tests",
+      "summaries": [
+        {
+          "passed": 264,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "barrier_rejects_complete_results_while_external_invocations_are_unsettled",
+          "artifact_registry_is_exact_tenant_scoped_and_lineage_safe",
+          "checkpoint_commits_fence_stale_workers_but_preserve_lost_ack_retries",
+          "atomic_agent_admission_is_scheduler_ready_retry_exact_and_tamper_evident",
+          "cancellation_blocks_new_tool_work_but_accepts_an_inflight_result",
+          "barrier_consumption_failure_rolls_back_event_checkpoint_and_run_heads",
+          "barrier_rejects_incomplete_conflicting_and_stale_fenced_inputs_without_mutation",
+          "checkpoint_commit_recovery_idempotency_and_projection_binding",
+          "cancellation_blocks_new_model_work_but_accepts_an_inflight_response",
+          "cancellation_blocks_new_pending_results_but_preserves_committed_idempotency",
+          "checkpoint_lineage_pages_are_exact_bounded_and_advance_safe",
+          "checkpoint_load_fails_closed_on_corrupt_bytes_and_journal_anchor",
+          "claimed_recovery_migration_eleven_preserves_unfenced_v1_quarantine_evidence",
+          "child_upgrade::migration_twenty_preserves_v19_admissions_and_fences_existing_declared_graphs",
+          "claimed_recovery_plans_superseded_attempt_for_crash_takeover",
+          "claimed_recovery_quarantine_cannot_cross_a_successor_fence",
+          "claimed_recovery_ready_plan_treats_missing_checkpoint_as_ordinary_state",
+          "claimed_recovery_plans_fresh_ready_nodes_deterministically",
+          "complete_development_config_migrates_connects_and_health_checks",
+          "claimed_recovery_reuses_attempt_owned_results_as_barrier_input",
+          "claimed_recovery_revalidates_and_quarantines_a_missing_pinned_graph",
+          "claimed_run_recovery_requires_exact_live_fence_and_journal_observation",
+          "concurrent_agent_admissions_converge_and_late_failure_rolls_back_all_rows",
+          "concurrent_checkpoint_writers_form_one_linear_barrier_chain",
+          "concurrent_appenders_converge_to_one_contiguous_history",
+          "concurrent_graph_registrations_choose_one_immutable_version",
+          "concurrent_identical_barriers_converge_on_one_physical_commit",
+          "concurrent_model_advances_admit_exactly_one_physical_attempt",
+          "concurrent_identical_node_attempt_retries_converge_on_one_physical_winner",
+          "concurrent_identical_interrupt_resolutions_converge_on_one_commit",
+          "concurrent_identical_quarantine_requests_converge_on_one_record",
+          "concurrent_invocation_advances_admit_exactly_one_physical_attempt",
+          "current_migrations_upgrade_existing_v1_history_without_guessing_projection_intent",
+          "concurrent_outbox_claims_are_unique_durable_and_lost_ack_safe",
+          "delayed_retry_that_becomes_due_keeps_ownership_for_replanning",
+          "delayed_retry_wakeup_is_plan_bound_idempotent_and_scheduler_visible_when_due",
+          "failed_invocation_projection_update_rolls_back_event_and_revision",
+          "expired_renewal_retry_confirms_only_the_already_committed_expiry",
+          "due_and_expired_wait_discovery_pages_are_bounded_stable_and_tenant_scoped",
+          "failed_model_projection_update_rolls_back_event_claim_and_revision",
+          "concurrent_scheduler_replicas_share_one_linear_fairness_cursor",
+          "concurrent_schedulers_claim_exactly_one_discovered_run",
+          "durable_agent_submission_keys_converge_conflict_and_roll_back_atomically",
+          "failure_after_event_insert_rolls_back_event_and_head_together",
+          "failure_after_checkpoint_insert_rolls_back_every_projection",
+          "frame_application_replay::actual_noninitial_leaf_replay_covers_root_and_child_without_dispatch",
+          "frame_application_replay::actual_update_calls_the_pinned_reducer_once_and_limits_are_operational",
+          "frame_application_replay::administrative_component_change_after_capture_is_not_hidden_by_the_same_journal",
+          "frame_application_replay::callback_journal_progress_successor_fence_and_expiry_reject_the_original_handoff",
+          "frame_application_replay::callback_projection_changes_reject_the_original_observation_but_lease_renewal_is_allowed",
+          "frame_application_replay::deployed_reducer_successor_mismatch_is_fenced_corruption",
+          "frame_application_replay::crossed_leaf_wrong_reducer_and_resolver_panic_never_quarantine",
+          "frame_application_replay::callbacks_can_reuse_a_one_connection_store_and_obtain_the_run_mutation_lock",
+          "frame_application_replay::fresh_child_input_schema_availability_and_rejection_are_distinct",
+          "frame_application_replay::legacy_root_dispositions_without_a_complete_bundle_are_operational",
+          "frame_application_replay::maximum_legal_individual_json_replays_with_a_sufficient_local_result_limit",
+          "frame_application_replay::missing_exact_reducer_is_operational_and_fresh_entry_schema_is_replayed",
+          "frame_application_replay::reducer_availability_resource_limit_and_panic_never_quarantine_durable_data",
+          "frame_application_replay::returned_child_and_root_consumption_are_replayed_after_the_final_pop",
+          "frame_application_replay::root_only_eight_sixteen_and_thirty_two_edges_have_linear_actual_visits",
+          "frame_application_replay::scoped_interrupt_and_timer_resume_replay_original_wait_without_an_extra_transition",
+          "frame_application_replay::scoped_linear_history_replays_eight_sixteen_and_thirty_two_edges_once",
+          "frame_application_replay::sequential_returned_siblings_and_seven_noninitial_suspended_parents_are_all_replayed",
+          "frame_application_replay::seven_level_open_and_returned_cascade_replays_all_lifetime_scopes_on_default_stack",
+          "frame_application_replay::whole_root_returned_siblings_preserve_complete_application_replay",
+          "frame_barriers::nested_entry_after_scoped_barrier_authenticates_parent_successor_and_usage_floor",
+          "frame_barriers::reserved_scoped_barrier_event_cannot_commit_through_ordinary_append",
+          "frame_barriers::rewritten_scoped_barrier_bytes_are_rejected_by_whole_and_checkpoint_recovery",
+          "frame_barriers::scoped_barrier_rechecks_lease_after_slow_deferred_constraints",
+          "frame_barriers::scoped_barrier_stale_fence_and_incomplete_shared_usage_create_no_facts",
+          "frame_barriers::scoped_barrier_write_faults_roll_back_event_state_consumption_witness_and_heads",
+          "frame_barriers::scoped_successor_dispatch_authenticates_all_barriers_and_keeps_root_suspended",
+          "frame_barriers::source_schema_28_upgrade_preserves_populated_scoped_history_before_real_barrier_commit",
+          "frame_callers::framework_rebinding_deferred_delay_cannot_commit_after_live_lease_expires",
+          "frame_barriers::scoped_barrier_race_consumes_once_and_whole_retry_survives_takeover",
+          "frame_callers::framework_rebinding_preserves_original_retry_budget_and_bounded_physical_history",
+          "frame_callers::framework_rebinding_rejects_checksum_valid_witness_rewrite_then_recovers_original",
+          "frame_callers::framework_rebinding_write_faults_roll_back_every_component_and_projection",
+          "frame_callers::reserved_framework_binding_event_requires_the_whole_transaction",
+          "frame_callers::framework_takeover_at_noninitial_checkpoint_charges_shared_budget_before_barrier",
+          "frame_callers::scoped_parent_caller_can_rebind_while_its_existing_leaf_remains_active",
+          "frame_callers::source_schema_29_upgrade_preserves_real_barrier_history_before_rebinding",
+          "frame_child_topology::original_frame_active_ceiling_refuses_the_next_valid_root_grandchild",
+          "frame_child_topology::original_frame_depth_ceiling_rejects_a_declared_target_with_too_much_depth",
+          "frame_child_topology::original_frame_room_allows_two_grandchildren_in_the_same_per_run_account",
+          "frame_callers::framework_caller_epoch_race_recovers_once_without_reentering_child",
+          "frame_children::cancellation::scoped_child_cancellation_recovers_the_original_receipt_after_child_termination",
+          "frame_children::join::scoped_join_consumes_original_publication_under_a_higher_fence",
+          "frame_children::scoped_child_ack_recovers_before_a_released_original_fence",
+          "frame_children::scoped_child_admission_keeps_root_account_and_original_frame_owner",
+          "frame_children::scoped_child_admission_rechecks_authority_after_deferred_constraints",
+          "frame_children::scoped_child_admission_rechecks_its_narrower_deadline_after_deferred_constraints",
+          "frame_children::scoped_child_cannot_expand_any_original_root_topology_cap",
+          "frame_children::scoped_child_rejects_a_self_consistent_sibling_namespace_before_writing",
+          "frame_children::scoped_join_registration_rechecks_released_authority_after_deferred_constraints",
+          "frame_children::scoped_join_rejects_an_actual_unfinished_ordinary_sibling",
+          "frame_children::scoped_join_suspends_leaf_without_counting_its_authenticated_framework_caller",
+          "frame_closures::damaged_closed_caller_projection_is_rejected_by_all_whole_readers_and_retries",
+          "frame_closures::expired_execution_deadline_and_exhausted_step_budget_still_allow_bounded_cleanup",
+          "frame_closures::every_closure_write_and_deferred_guard_fault_rolls_back_the_whole_seven_frame_stack",
+          "frame_closures::populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_whole_closure",
+          "frame_closures::real_unknown_tool_effect_and_executing_model_block_closure_without_replaying_work",
+          "frame_closures::scoped_tool_and_model_terminal_bindings_reload_after_complete_frame_and_root_closure",
+          "frame_closures::sealed_failure_closes_current_caller_and_root_retains_original_failure",
+          "frame_closures::seven_level_closure_preserves_mixed_physical_fences_and_lifetime_counter",
+          "frame_closures::undecided_unpriced_stale_and_unfinished_ordinary_work_cannot_be_closed",
+          "frame_closures::waiting_closure_requires_authenticated_abandonment_and_preserves_wait_evidence",
+          "frame_closures::concurrent_closers_recover_one_original_decision_with_unchanged_candidates",
+          "frame_closures::whole_closure_cancels_real_caller_without_replacing_its_fence_or_root_state",
+          "frame_dispatch::ordinary_node_completion_cannot_release_framework_owned_caller",
+          "frame_dispatch::scoped_start_rechecks_database_clock_after_slow_deferred_constraints",
+          "frame_dispatch::scoped_start_requires_successor_fence_and_retains_historical_start_after_takeover",
+          "frame_dispatch::scoped_start_write_faults_roll_back_every_component_and_preserve_root",
+          "frame_dispatch::scoped_success_commits_exact_attempt_result_and_reloads_after_takeover",
+          "frame_dispatch::scoped_success_write_faults_roll_back_result_completion_and_journal",
+          "frame_dispatch::scoped_terminal_failure_is_durable_and_blocks_automatic_retry",
+          "frame_dispatch::suspended_frame_cannot_start_while_a_deeper_leaf_owns_the_stack",
+          "frame_dispatch::scoped_start_race_commits_one_launch_and_acknowledgment_loss_remains_in_flight",
+          "frame_entries::compound_frame_entry_rejects_ordinary_append_start_and_checkpoint_without_partial_facts",
+          "frame_recovery::active_snapshot_rejects_a_root_alias_and_invented_lifetime_progress",
+          "frame_recovery::active_snapshot_tracks_physical_takeover_terminal_proof_and_whole_return",
+          "frame_recovery::claimed_frame_corruption_quarantine_requires_the_exact_live_owner",
+          "frame_recovery::claimed_frame_history_distinguishes_in_flight_and_successor_takeover",
+          "frame_recovery::claimed_frame_pages_preserve_scope_order_and_exact_journal_snapshot",
+          "frame_recovery::claimed_frame_planning_recovers_completed_work_and_rejects_journal_progress",
+          "frame_recovery::claimed_frame_result_namespace_corruption_cannot_hide_a_cursor_row",
+          "frame_recovery::claimed_frame_result_namespace_corruption_is_never_an_empty_page",
+          "frame_retry::root_and_scoped_retry_share_final_trigger_clock_without_crossed_authority",
+          "frame_recovery::scoped_wait_cancellation_authenticates_abandonment_and_keeps_the_stack_for_close",
+          "frame_retry::root_retry_ack_is_exact_read_only_and_cannot_prove_erased_worker_or_launch",
+          "frame_retry::root_retry_rejects_fabricated_safe_after_from_public_planner",
+          "frame_retry::root_retry_rejects_fabricated_completed_sibling_and_reconciliation",
+          "frame_retry::root_retry_slow_update_after_expiry_preserves_original_projection_and_history",
+          "frame_retry::scoped_retry_ack_observes_gate_without_proving_original_worker_attempt",
+          "frame_retry::scoped_retry_corruption_quarantine_rechecks_exact_live_owner",
+          "frame_retry::scoped_retry_completed_sibling_and_multiple_delays_choose_only_earliest",
+          "frame_retry::scoped_retry_due_under_run_lock_keeps_lease_and_all_projections",
+          "frame_retry::scoped_retry_far_future_gate_cannot_hide_original_deadline_cancellation",
+          "frame_retry::scoped_retry_gate_preserves_root_history_queue_and_requires_new_start",
+          "frame_retry::scoped_retry_lost_ack_24_way_converges_without_new_work",
+          "frame_retry::scoped_retry_never_zero_delay_reconcile_and_physical_cap_remain_closed",
+          "frame_retry::scoped_retry_rederives_history_and_rejects_fabricated_delay_or_future_clock",
+          "frame_retry::scoped_retry_rejects_actionable_inflight_and_root_entry_point",
+          "frame_retry::scoped_retry_slow_update_cannot_release_an_expired_lease",
+          "frame_retry::scoped_retry_seven_level_noninitial_leaf_preserves_ancestry_and_root",
+          "frame_retry::scoped_retry_slow_update_rechecks_due_and_rolls_back_release",
+          "frame_retry::scoped_retry_stale_owner_expiry_and_journal_progress_are_operational",
+          "frame_returns::checksum_valid_return_substitution_is_rejected_by_all_whole_readers",
+          "frame_returns::deferred_return_delay_cannot_commit_after_live_lease_expires",
+          "frame_returns::nested_return_resumes_scoped_parent_without_resetting_shared_usage",
+          "frame_returns::reserved_return_event_and_raw_stack_pop_cannot_bypass_whole_settlement",
+          "frame_returns::return_write_faults_roll_back_every_component_and_exact_stack",
+          "frame_returns::return_requires_current_framework_start_after_fence_takeover",
+          "frame_returns::seven_level_return_cascade_preserves_every_proof_and_lifetime_counter",
+          "frame_returns::source_schema_30_upgrade_retains_terminal_and_rebound_caller_before_return",
+          "frame_scope::scoped_checkpoint_keys_preserve_root_bytes_and_reject_crossed_references",
+          "frame_transactions::frame_entry_reload_rejects_noncanonical_duplicate_or_substituted_compound_bytes",
+          "frame_transactions::frame_transaction_admits_seven_real_scopes_without_resetting_root_or_usage",
+          "frame_transactions::frame_transaction_intersects_ancestor_start_limits_and_rejects_a_usage_reset",
+          "frame_transactions::frame_transaction_commits_one_bundle_and_recovers_after_lease_expiry",
+          "frame_transactions::frame_transaction_rolls_back_at_each_of_eight_durable_write_boundaries",
+          "frame_transactions::frame_transaction_rolls_back_every_component_after_late_insert_failure",
+          "frame_returns::whole_return_race_recovers_once_and_parent_barrier_consumes_its_result",
+          "frame_waits::scoped_wait_policy_substitution_fails_closed_in_all_whole_readers",
+          "frame_waits::elapsed::expired_original_interrupt_blocks_elapsed_ready_without_any_partial_commit",
+          "frame_waits::elapsed_faults::substituted_canonical_scoped_wait_wire_rolls_back_the_complete_commit",
+          "frame_waits::elapsed::maximum_original_wait_inventory_retains_all_sixty_four_real_owners",
+          "frame_waits::elapsed::original_condition_corruption_blocks_complete_read_and_ack_without_writes",
+          "frame_waits::every_scoped_wait_component_failure_rolls_back_the_whole_suspension",
+          "frame_waits::elapsed::mixed_original_conditions_release_only_the_real_remaining_registrations",
+          "frame_waits::elapsed_faults::substituted_ready_lease_cannot_extend_the_original_commit_authority",
+          "frame_waits::scoped_wait_rechecks_the_original_lease_after_release_and_slow_deferred_guards",
+          "frame_waits::source_schema_31_upgrade_preserves_nonempty_scoped_facts_and_commits_whole_wait",
+          "graph_registry_is_tenant_scoped_immutable_and_fully_verified",
+          "idempotent_claim_rejects_clock_before_latest_renewal",
+          "frame_waits::whole_leaf_wait_race_restarts_resolves_both_conditions_and_resumes_exact_scope",
+          "invalid_pending_binding_rolls_back_event_result_bindings_and_run_head",
+          "initial_wait_checkpoint_is_atomic_exact_and_fail_closed",
+          "interrupt_resolution_and_timer_firing_are_atomic_and_retry_exact",
+          "known_failed_tool_binding_releases_checkpoint_barrier_with_exact_terminal_status",
+          "migration_eight_preserves_v7_attempts_and_installs_exact_outbox_guards",
+          "leases_fence_late_workers_and_preserve_lost_ack_retries",
+          "invocation_reads_fail_closed_on_corrupt_canonical_bytes_and_anchors",
+          "migration_eighteen_preserves_v17_runs_and_installs_the_artifact_registry",
+          "migration_fifteen_installs_atomic_agent_admissions_during_full_upgrade",
+          "migration_four_backfills_existing_tool_attempts_into_the_run_registry",
+          "migration_fourteen_installs_verified_distributed_fairness_state",
+          "migration_nine_quarantines_legacy_waits_without_fabricating_evidence",
+          "migration_nineteen_preserves_v18_runs_and_installs_terminal_model_bindings",
+          "migration_seven_backfills_an_indexed_fail_closed_scheduler_projection",
+          "migration_seventeen_preserves_committed_bindings_and_installs_terminal_status_guards",
+          "migration_ten_preserves_legacy_quarantine_without_fabricating_evidence",
+          "migration_six_preserves_legacy_results_without_fabricating_starts",
+          "migration_sixteen_upgrades_existing_admissions_and_verifies_submission_keys",
+          "migration_twelve_preserves_queue_age_and_installs_delayed_retry_guards",
+          "migration_thirteen_installs_an_exact_immutable_graph_registry",
+          "migrations_admission_projection_idempotency_and_pages",
+          "model_invocations_are_atomic_fenced_idempotent_and_page_verifiable",
+          "model_invocation_preparation_requires_a_ready_root_activation",
+          "node_attempt_failure_is_atomic_idempotent_and_blocks_unsafe_retry",
+          "node_attempt_hard_limit_is_recoverable_and_rejects_a_sixty_fifth_start",
+          "node_attempt_reads_fail_closed_and_attempt_ids_are_run_wide",
+          "model_retry_delay_and_run_wide_attempt_claims_are_enforced",
+          "node_attempt_success_atomically_binds_result_and_checkpoint_barrier",
+          "node_attempt_recovery_requires_takeover_and_database_safe_after_time",
+          "noncanonical_ready_activation_is_rejected_before_recovery",
+          "node_attempt_start_is_atomic_idempotent_and_load_verifiable",
+          "noninitial_replay_recomputes_committed_state_with_bounded_memory",
+          "noninitial_replay_quarantines_a_semantically_divergent_successor",
+          "outbox_destination_and_atomic_enqueue_are_fail_closed_and_idempotent",
+          "outbox_load_claim_and_completion_fail_closed_on_every_durable_anchor",
+          "pending_node_result_bindings_accept_exact_failed_model_revisions",
+          "outbox_retry_takeover_dead_letter_expiry_and_history_follow_database_time",
+          "outbox_attempt_limit_is_hard_bounded_for_completed_and_abandoned_attempts",
+          "pending_node_result_bindings_prove_exact_committed_tool_and_model_revisions",
+          "pending_node_result_recovery_batches_large_binding_sets",
+          "pending_node_result_recovery_rejects_noncanonical_or_corrupted_bytes",
+          "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+          "quarantine_update_failure_rolls_back_evidence_and_corruption_fails_closed",
+          "pending_node_results_are_attempt_owned_fenced_and_load_verifiable",
+          "result_namespace_corruption::root_pending_result_page_rejects_a_relabelled_namespace",
+          "result_namespace_corruption::claimed_root_result_namespace_corruption_quarantines_the_current_owner",
+          "recovery_wrapper_quarantines_only_corruption_and_rejects_stale_observations",
+          "result_namespace_corruption::root_result_continuation_rejects_a_relabelled_cursor_and_quarantines",
+          "root_barrier_upgrade::populated_source33_upgrade_preserves_facts_without_disposition_backfill",
+          "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+          "root_graph_barriers::elapsed::expired_root_interrupt_cannot_turn_mixed_wait_into_ready_or_partially_commit",
+          "root_graph_barriers::elapsed::root_ready_checks_original_expiry_after_the_actual_deferred_guard",
+          "root_graph_barriers::elapsed::root_mixed_originals_register_only_remaining_conditions_and_keep_waiting_ack",
+          "root_graph_barriers::elapsed::root_ready_reloads_actual_successor_bytes_before_returning_the_receipt",
+          "root_graph_barriers::root_continue_retains_original_whole_inputs_and_recovers_before_callbacks",
+          "recovered_node_start_is_durable_idempotent_and_plan_scoped",
+          "root_graph_barriers::root_durable_wire_contradictions_are_corrupt_and_sixty_fifth_reference_is_rejected",
+          "root_graph_barriers::root_fresh_commit_rejects_substituted_run_epoch_and_queue_age",
+          "root_graph_barriers::root_late_wait_component_is_rejected_after_actual_timer_resume",
+          "root_graph_barriers::root_missing_bundle_rejects_public_batch_cursor_and_claimed_owner_reads",
+          "root_graph_barriers::root_terminal_keeps_one_large_result_beyond_the_journal_payload_ceiling",
+          "root_graph_barriers::root_terminal_preserves_true_model_evidence_and_full_agent_result",
+          "root_graph_barriers::root_timer_resume_keeps_original_wait_bundle_and_complete_replay",
+          "root_graph_barriers::root_wait_ack_survives_cancellation_and_actual_abandonment",
+          "root_graph_barriers::root_wait_checks_original_live_fence_after_slow_deferred_guards",
+          "root_graph_barriers::root_wait_large_payloads_use_only_original_authenticated_registration_references",
+          "root_graph_barriers::root_wait_retains_all_sixty_four_registrations_and_original_revision",
+          "root_graph_barriers::root_writer_rejects_a_trigger_substituted_source_journal_before_commit",
+          "root_graph_barriers::root_writer_rejects_substituted_whole_wire_fields_without_partial_commits",
+          "root_graph_barriers::trusted_upgrade::populated_source34_upgrade_preserves_full_v1_and_lost_ack_before_callbacks",
+          "root_graph_barriers::trusted_upgrade::populated_source35_upgrade_preserves_registration_bytes_and_legacy_identity",
+          "runnable_run_pages_are_tenant_scoped_snapshot_stable_and_lease_aware",
+          "runtime_connection_refuses_an_unmigrated_database",
+          "run_quarantine_is_atomic_idempotent_and_removes_execution_ownership",
+          "stale_quarantine_observation_cannot_stop_a_newer_run_head",
+          "scheduler_fairness_policy_is_immutable_and_reservations_are_lost_ack_safe",
+          "scheduler_reservation_retention_is_database_timed_bounded_and_cursor_neutral",
+          "tool_invocation_preparation_requires_a_ready_root_activation",
+          "tool_authorization_receipts_are_exact_immutable_and_page_verifiable",
+          "wait_abandonment_failure_rolls_back_event_details_projections_and_lifecycle",
+          "unconsumed_pending_result_pages_are_stable_bounded_and_fully_verified",
+          "tool_invocations_are_atomic_fenced_idempotent_and_page_verifiable",
+          "wait_barrier_failure_rolls_back_every_joined_projection",
+          "waiting_run_cancellation_and_failure_abandon_every_wait_exactly_once",
+          "worker_barrier_atomically_consumes_complete_results_and_is_idempotent",
+          "worker_outbox_enqueue_is_fenced_but_preserves_committed_lost_ack_retries",
+          "worker_wait_barrier_atomically_consumes_results_checkpoints_and_waits",
+          "run_quarantine_contract_rejects_unbounded_or_crossed_codes"
+        ]
+      ],
+      "markers": {},
+      "text_markers": {}
+    },
+    "original-04": {
+      "step_index": 4,
+      "step_name": "Run durable Graph Driver integration tests",
+      "summaries": [
+        {
+          "passed": 189,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::advanced_parent_requires_current_checkpoint_and_new_activation",
+          "cancellation_evidence_unavailability_fails_closed_without_zero_usage",
+          "child_admission::cancelled_parent_cannot_validate_an_earlier_preparation",
+          "child_admission::ownership::atomic_spawn_retry_terminal_reconciliation_and_parent_accounting",
+          "agent_service_authorizes_submits_recovers_and_cancels_without_redispatch",
+          "child_admission::ordinary_root_graph_cannot_prepare_children_without_declaration",
+          "child_admission::ownership::cancellation::cancellation_atomically_abandons_real_child_waits_and_makes_cleanup_schedulable",
+          "agent_loop_confirms_preexecution_cancellation_without_provider_dispatch",
+          "child_admission::ownership::account_corruption_blocks_both_read_and_lost_ack_recovery",
+          "child_admission::ownership::cancellation::bounded_cursor_passes_unpriced_prefix_and_survives_recreation_and_shutdown",
+          "child_admission::ownership::cancellation::cancellation_delivery_is_atomic_race_safe_and_never_fabricates_terminal_usage",
+          "child_admission::ownership::cancellation::draining_parent_cannot_reclaim_capacity_until_last_child_settles",
+          "child_admission::ownership::cancellation::existing_child_request_and_terminal_outcome_are_not_replaced",
+          "child_admission::ownership::cancellation::nested_delivery_queues_one_level_per_commit_and_settles_leaf_to_root_once",
+          "child_admission::ownership::cancellation::racing_parent_cancel_and_spawn_never_leaves_an_unowned_or_unqueued_child",
+          "child_admission::ownership::cancellation::upgrade::populated_v20_upgrade_backfills_later_audit_witness_and_checks_immutable_guards",
+          "child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_worker",
+          "child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_worker",
+          "child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable",
+          "child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_worker",
+          "child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable",
+          "child_admission::ownership::concurrent_logical_spawn_has_one_owner_and_no_orphan_candidates",
+          "child_admission::ownership::deadlines::deadline_observes_expiry_after_waiting_for_the_lifecycle_lock",
+          "child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_is_recoverable",
+          "child_admission::ownership::deadlines::deadline_abandons_real_waits_atomically_without_firing_the_timer",
+          "child_admission::ownership::deadlines::deadline_shutdown_preserves_work_and_quarantine_is_visible_without_blocking_other_runs",
+          "child_admission::ownership::deadlines::deadline_never_overwrites_terminal_or_operator_cancellation",
+          "child_admission::ownership::deadlines::deadline_sweep_pages_past_errors_resets_after_tail_and_restarts_without_losing_work",
+          "child_admission::ownership::child_terminal_racing_settlement_is_consistent_without_ancestor_lock_inversion",
+          "child_admission::ownership::deadlines::deadline_suspended_join_queues_children_rollback_then_drains_before_parent_closure",
+          "child_admission::ownership::deadlines::deadline_uses_database_clock_converges_racers_and_waits_for_real_cleanup_evidence",
+          "child_admission::ownership::deadlines::process::deadline_join_stale_worker",
+          "child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker",
+          "child_admission::ownership::deadlines::process::deadline_join_process_worker",
+          "child_admission::ownership::failure_close::commit_loss::commit_loss_worker",
+          "child_admission::ownership::external_dispatch_excludes_live_children_and_deducts_settled_usage",
+          "child_admission::ownership::deadlines::upgrade::deadline_populated_v22_upgrade_preserves_history_and_verifies_exact_projection_guards",
+          "child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_worker",
+          "child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable",
+          "child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_is_recoverable",
+          "child_admission::ownership::failure_close::failure_close_checks_fresh_lease_after_child_queue_capture",
+          "child_admission::ownership::failure_close::failure_close_drains_children_preserves_original_and_charges_once_after_reconstruction",
+          "child_admission::ownership::failure_close::failure_close_final_write_rollback_guards_and_terminal_accounting_are_enforced",
+          "child_admission::ownership::failure_close::failure_close_pages_continue_past_blocked_work_and_preserve_tenant_shutdown_and_quarantine",
+          "child_admission::ownership::failure_close::failure_close_rejects_unfinished_or_unpriced_direct_evidence_without_stranding_lease",
+          "child_admission::ownership::failure_close::failure_close_graph_handoff_recovers_without_reconsulting_evidence",
+          "child_admission::ownership::failure_close::failure_closing_child_retains_its_own_failure_before_parent_settlement",
+          "child_admission::ownership::failure_close::failure_close_unknown_child_cost_blocks_only_its_own_closure",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_advances_past_a_full_failed_page_and_restart_revisits_it",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_readiness_wait_drop_and_startup_fail_closed",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_process_worker",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_drives_all_jobs_and_excludes_unauthorized_tenants",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_periodic_panic_and_store_error_fail_stop",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_tick_deadline_cancels_locked_database_work",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_sigkill_then_fresh_owner_finishes_without_duplicate_effects",
+          "child_admission::ownership::failure_close::process::failure_close_process_worker",
+          "child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary",
+          "child_admission::ownership::failure_close::upgrade::failure_close_populated_v23_upgrade_preserves_history_and_rejects_catalog_drift",
+          "child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore",
+          "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+          "child_admission::ownership::join::child_join_cancel_during_wait_drains_without_fake_consumption",
+          "child_admission::ownership::join::child_join_register_publish_recover_and_consume_exact_result",
+          "child_admission::ownership::join::child_join_final_writes_roll_back_registration_wakeup_and_consumption",
+          "child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_worker",
+          "child_admission::ownership::join::child_join_terminal_before_registration_and_duplicate_publication",
+          "child_admission::ownership::join::child_join_legacy_writer_and_sealed_spawn_cannot_bypass_guards",
+          "child_admission::ownership::join::driver::automatic_join_refuses_rejoin_and_recovers_failed_child_without_respending",
+          "child_admission::ownership::join::driver::automatic_join_registration_rollback_replays_spawn_and_cancellation_drains_without_consuming",
+          "child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_is_recoverable",
+          "child_admission::ownership::join::driver::automatic_join_suspends_runs_child_recovers_parent_and_consumes_once",
+          "child_admission::ownership::join::driver::child_quarantined_after_preflight_cannot_be_read_or_consumed",
+          "child_admission::ownership::join::driver::join_preparation_timeout_never_dispatches_or_fabricates_a_node_completion",
+          "child_admission::ownership::join::driver::join_publisher_pages_past_failure_recovers_after_restart_and_keeps_tenant_scope",
+          "child_admission::ownership::join::driver::published_join_cannot_dispatch_through_a_non_join_executor_binding",
+          "child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery",
+          "child_admission::ownership::join::process::child_join_survives_process_loss_and_rejects_retained_stale_worker",
+          "child_admission::ownership::join::process::child_join_process_worker",
+          "child_admission::ownership::join::process::child_join_stale_worker",
+          "child_admission::ownership::join::qualification::child_join_discovery_pages_past_unknown_cost_without_losing_retained_cursor",
+          "child_admission::ownership::join::qualification::child_join_real_child_success_is_published_from_its_own_driver_and_lease",
+          "child_admission::ownership::join::qualification::child_join_populated_v21_upgrade_preserves_cancel_receipts_and_detects_catalog_drift",
+          "child_admission::ownership::join::qualification::child_join_seals_complete_membership_and_canonical_order_not_completion_order",
+          "child_admission::ownership::join::qualification::child_join_terminal_commit_races_registration_without_lost_wakeup",
+          "child_admission::ownership::prepared_parent_invocation_prevents_child_budget_reservation",
+          "child_admission::ownership::sibling_reservation_after_head_retry_cannot_reuse_allocated_capacity",
+          "child_admission::ownership::stale_spawn_and_existing_root_attachment_leave_parent_unchanged",
+          "child_admission::ownership::spawn_final_write_failure_rolls_back_every_fact_and_old_workers_fail_closed",
+          "child_admission::ownership::transaction_commit_loss::join_deadline_commit_loss_worker",
+          "child_admission::ownership::transaction_commit_loss::join_and_deadline_commit_loss_are_recoverable",
+          "child_admission::ownership::tree::nested_ownership_enforces_ancestor_limits_cancellation_and_once_only_subtree_cost",
+          "child_admission::ownership::unknown_cost_remains_discoverable_while_known_overrun_settles_without_erasure",
+          "child_admission::preparation_refuses_schema_rejection_and_unavailable_deployment",
+          "child_admission::preparation_refuses_undeclared_slots_without_writing",
+          "child_admission::preparation_replays_candidate_identity_without_creating_child_runs",
+          "durable_agent_admission_facade_validates_and_converges_exact_retries",
+          "graph_composition::bounded_composition_exhaustion_runs_the_explicit_failure_exit",
+          "driver_advances_then_replays_a_noninitial_checkpoint_before_terminal_handoff",
+          "durable_agent_loop_releases_lease_when_terminal_evidence_is_unavailable",
+          "graph_composition::composed_call_rejects_a_changed_template_before_any_executor_runs",
+          "failed_supervision_lost_ack_retries_without_rereading_failure_evidence",
+          "graph_composition::composed_node_orphan_is_taken_over_under_the_next_fence",
+          "durable_agent_loop_drives_and_commits_one_claimed_run_to_success",
+          "durable_fair_scheduler_preserves_exact_cross_tenant_share_across_ticks",
+          "graph_composition::pending_composed_nodes_survive_driver_recreation_and_exit_early",
+          "graph_composition::composed_wait_returns_to_parent_only_after_durable_timer_resolution",
+          "graph_composition::recovered_global_step_limit_blocks_dispatch_and_commits_replayable_failure",
+          "invalid_initial_checkpoint_state_is_quarantined_before_node_launch",
+          "journal_isolated_siblings_overlap_but_commit_in_canonical_node_order",
+          "long_running_node_renews_its_lease_until_completion",
+          "model_executor_commits_real_terminal_evidence_after_cancellation_advances_journal",
+          "model_executor_rebinds_terminal_evidence_after_lease_takeover_without_redispatch",
+          "near_expiry_lease_is_refreshed_before_node_code_is_launched",
+          "nested_driver::missing_complete_direct_evidence_leaves_no_frame_or_application_dispatch",
+          "nested_driver::elapsed_graph_waits::races::concurrent_scoped_elapsed_writers_claim_one_tenant_wide_wait_identity",
+          "nested_driver::agent_loop_pending_cancellation_direct_observes_original_node_timeout_then_retries_complete_usage",
+          "nested_driver::agent_loop_pending_cancellation_direct_observes_shutdown_without_closing_incomplete_usage",
+          "nested_driver::elapsed_graph_waits::root_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+          "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+          "nested_driver::elapsed_graph_waits::races::legacy_registered_and_elapsed_wait_writers_compete_for_one_identity",
+          "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+          "nested_driver::framework_entry_and_scoped_application_start_share_original_run",
+          "nested_driver::nested_leaf_terminal_returns_before_parent_terminal_handoff",
+          "nested_driver::pending_direct_usage_observes_durable_cancel_preserving_actual_completed_work",
+          "nested_driver::pending_direct_usage_observes_original_node_timeout_without_fabricating_usage",
+          "nested_driver::pending_direct_usage_observes_shutdown_preserves_actual_completed_work",
+          "nested_driver::recovery_guardian::execution_renewal_ack_outlives_old_deadline_while_application_stops",
+          "nested_driver::recovery_guardian::execution_renewal_ack_drains_before_completed_node_can_commit",
+          "nested_driver::recovery_guardian::execution_renewal_ack_drains_before_external_shutdown_can_release",
+          "nested_driver::recovery_guardian::recovery_guardian_failure_stops_dispatch_while_original_fence_is_live",
+          "nested_driver::recovery_guardian::recovery_quarantine_ack_survives_outer_lease_guardian_failure",
+          "nested_driver::recovery_guardian::recovery_start_ack_survives_guardian_failure_without_successor_dispatch",
+          "nested_driver::recovery_guardian::recovery_released_ownership_ack_keeps_original_outcome_after_guardian_failure",
+          "nested_driver::retained_direct_context_rejects_new_journal_without_quarantine_or_repeat_execution",
+          "nested_driver::scoped_cancellation_committed_closure_ack_survives_guardian_fault_then_recovers_exactly",
+          "nested_driver::scoped_cancellation_closes_original_fences_then_control_plane_confirms_and_recovers_ack",
+          "nested_driver::scoped_cancellation_guardian_lost_lease_before_write_preserves_history_without_quarantine",
+          "nested_driver::scoped_cancellation_quarantine_commit_ack_survives_guardian_failure",
+          "nested_driver::scoped_cancellation_renewal_commit_ack_outlives_original_expiry_without_dropping_sql",
+          "nested_driver::scoped_failure_closes_all_original_callers_before_root_terminal",
+          "nested_driver::serial_siblings_finish_in_distinct_namespaces_before_root_terminal",
+          "nested_driver::scoped_start_lost_commit_ack_retries_exact_original_without_application_launch",
+          "nested_driver::scoped_safe_after_releases_exact_gate_and_retries_under_higher_fence",
+          "nested_driver::scoped_wait_releases_once_resolves_all_conditions_and_resumes_actual_leaf",
+          "nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay",
+          "nested_driver::shared_quantum_bounds_seven_level_entry_and_higher_fence_rebind",
+          "nested_driver::shared_quantum_retains_terminal_leaf_before_return_then_resumes_parent_once",
+          "nested_driver::slow_cancellation_direct_evidence_maintains_original_fence_past_original_lease",
+          "ordinary_root::creating_source_preflight_preserves_exact_session_and_never_writes",
+          "ordinary_root::separate_initial_checkpoint_rejects_crossed_fresh_components_and_rolls_back",
+          "process_harness::parent_watch_worker",
+          "ordinary_root::separate_start_and_initial_checkpoint_keep_positive_creation_and_whole_recovery",
+          "ordinary_root::trusted_root_keeps_maximum_input_state_and_large_terminal_together",
+          "ordinary_root::trusted_root_final_clock_rejects_slow_deferred_terminal_and_rolls_back",
+          "ordinary_root::trusted_root_terminal_keeps_original_known_and_unpriced_cost_predicate",
+          "ordinary_root::unavailable_legacy_creation_is_operational_before_any_node_dispatch",
+          "ordinary_root::trusted_root_rejects_fresh_source_substitution_without_partial_commit",
+          "ordinary_root::trusted_terminal_keeps_maximum_request_and_original_inputs_after_lost_ack",
+          "process_harness::resume_worker",
+          "provider_native_graph_continues_after_known_failed_tool_and_binds_terminal_revision",
+          "provider_native_budget_recovers_prior_model_and_tool_usage_from_postgres",
+          "provider_native_cancellation_recovers_exact_usage_and_replays_confirmation",
+          "provider_native_graph_reconciles_unknown_tool_without_repeating_business_io",
+          "provider_native_graph_recovers_committed_model_without_redispatch_and_completes_lifecycle",
+          "provider_native_malformed_adapter_response_repairs_from_failed_ledger",
+          "provider_native_higher_fence_wins_stale_policy_race_without_external_redispatch",
+          "provider_native_output_repair_exhaustion_fails_with_exact_usage",
+          "provider_native_output_repair_never_executes_a_proposed_tool",
+          "provider_native_output_repair_resumes_from_checkpoint_without_redispatch",
+          "provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposal_order",
+          "provider_native_recovered_response_does_not_charge_new_physical_attempt",
+          "provider_native_recovered_unpriced_response_retains_monetary_blocker",
+          "provider_native_partial_tool_retry_charges_only_newly_reconciled_usage",
+          "root_driver_recovery::root_continue_yield_then_fresh_higher_fence_driver_replays_whole_bundle",
+          "public_agent_run_facade_exposes_only_confirmed_cancellation_as_terminal",
+          "root_driver_recovery::root_wait_resolution_and_original_ack_then_fresh_driver_replay",
+          "provider_probe_persists_pending_then_commits_once_and_recovers_without_io",
+          "public_agent_run_facade_revalidates_active_and_successful_snapshots",
+          "same_fence_inflight_start_is_never_executed_twice",
+          "streaming_model_executor_validates_emits_accumulates_and_deduplicates",
+          "successor_fence_takes_over_an_unfinished_attempt_once",
+          "tenant_scheduler_scans_claims_executes_and_then_observes_idle",
+          "successor_fence_restarts_an_orphaned_parallel_sibling_batch_once",
+          "terminal_handoff_lost_ack_retries_without_rereading_success_evidence",
+          "timed_out_tool_write_reconciles_without_redispatch_or_invalid_schema_commit",
+          "wait_handoff_replays_exactly_after_a_later_cancellation_advances_the_run",
+          "commit_proxy::commit_proxy_rejects_truncated_oversized_and_malformed_frames",
+          "process_harness::process_harness_rejects_successful_exit_without_a_kill_point",
+          "process_harness::process_harness_resumes_and_observes_asserting_worker_exit",
+          "process_harness::process_harness_exits_when_controller_liveness_pipe_closes"
+        ]
+      ],
+      "markers": {},
+      "text_markers": {}
+    },
+    "original-05": {
+      "step_index": 5,
+      "step_name": "Qualify real model adapter, pricing, and exact-key authorization",
+      "summaries": [
+        {
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "openai_http_response_is_durably_priced_and_terminal_on_postgres",
+          "deepseek_http_response_is_durably_priced_and_terminal_on_postgres"
+        ]
+      ],
+      "markers": {},
+      "text_markers": {}
+    },
+    "original-06": {
+      "step_index": 6,
+      "step_name": "Execute recoverable DeepSeek Agent example against PostgreSQL",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "tests::example_executes_and_recovers_without_a_second_provider_call"
+        ]
+      ],
+      "markers": {},
+      "text_markers": {}
+    },
+    "original-07": {
+      "step_index": 7,
+      "step_name": "Record process-kill qualification environment",
+      "summaries": [],
+      "selected_harness_names": [],
+      "markers": {},
+      "text_markers": {}
+    },
+    "original-08": {
+      "step_index": 8,
+      "step_name": "Qualify committed failure-close process-kill boundaries",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_PROCESS_KILL_EVIDENCE": 6
+      },
+      "text_markers": {}
+    },
+    "original-09": {
+      "step_index": 9,
+      "step_name": "Qualify commit loss and expired-fence takeover",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "text_markers": {}
+    },
+    "original-10": {
+      "step_index": 10,
+      "step_name": "Qualify Join and deadline COMMIT loss",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::transaction_commit_loss::join_and_deadline_commit_loss_are_recoverable"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6
+      },
+      "text_markers": {}
+    },
+    "original-11": {
+      "step_index": 11,
+      "step_name": "Qualify child-admission COMMIT loss",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "text_markers": {}
+    },
+    "original-13": {
+      "step_index": 13,
+      "step_name": "Qualify child-cancellation delivery COMMIT loss",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "text_markers": {}
+    },
+    "original-15": {
+      "step_index": 15,
+      "step_name": "Qualify child-settlement COMMIT loss",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_is_recoverable"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "text_markers": {}
+    },
+    "original-17": {
+      "step_index": 17,
+      "step_name": "Qualify parent-finalization COMMIT loss",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_is_recoverable"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "text_markers": {}
+    },
+    "original-19": {
+      "step_index": 19,
+      "step_name": "Qualify child-join consumption COMMIT loss",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_is_recoverable"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2
+      },
+      "text_markers": {}
+    },
+    "original-21": {
+      "step_index": 21,
+      "step_name": "Qualify isolated child-join logical backup restore",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_CHILD_JOIN_BACKUP_RESTORE_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-24": {
+      "step_index": 24,
+      "step_name": "Qualify committed child-join process-loss boundaries",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::join::process::child_join_survives_process_loss_and_rejects_retained_stale_worker"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8
+      },
+      "text_markers": {}
+    },
+    "original-25": {
+      "step_index": 25,
+      "step_name": "Qualify deadline cancel-and-join process-loss boundaries",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9
+      },
+      "text_markers": {}
+    },
+    "original-29": {
+      "step_index": 29,
+      "step_name": "Run durable protocol integration tests",
+      "summaries": [
+        {
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "mcp_approved_denial_commits_without_remote_dispatch_or_repeat_authorization",
+          "a2a_authorized_denial_commits_once_without_business_send_or_policy_repeat",
+          "mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch",
+          "a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched",
+          "a2a_authorized_send_reads_the_durable_start_and_recovery_does_not_send_again",
+          "mcp_approved_write_is_authorized_after_durable_start_and_reconciles_once"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2,
+        "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": 2
+      },
+      "text_markers": {}
+    },
+    "new-mcp": {
+      "step_index": 31,
+      "step_name": "Qualify mandatory MCP host-bound state ingress",
+      "summaries": [
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "durable::postgres_three_consumers_rebind_refusals_preserve_two_complete_fixture_ledgers",
+          "network::private_catalog_does_not_rewrite_explicit_public_resource_contents",
+          "network::public_catalog_and_reconfiguration_refusals_cover_composite_and_standalone",
+          "network::null_inner_state_is_sealed_and_round_trips_in_all_three_consumers",
+          "network::actual_expired_state_refuses_before_business_and_outgoing_aggregate_limit_is_after_business",
+          "network::configuring_a_clone_retains_the_old_legacy_handle_and_public_legacy_cursor_contract",
+          "network::queued_decoded_policy_and_admission_recheck_current_generation",
+          "network::no_profile_preserves_legacy_plain_inner_state_for_legacy_and_host_bound_principals",
+          "network::configured_direct_default_metadata_and_no_profile_cursor_versions_keep_their_scope",
+          "network::unbound_principal_is_rejected_at_metadata_empty_templates_and_composite_skill_internal_routes",
+          "network::direct_shared_and_composite_order_keep_actual_three_consumer_guards",
+          "network::lossless_numeric_argument_binding_is_enforced_over_tcp",
+          "network::decoded_presence_and_strict_envelope_reach_each_real_consumer_guard",
+          "network::three_consumers_round_trip_over_tcp_and_refuse_rebound_state_before_business",
+          "network::private_pages_share_binding_scope_and_refuse_remaps_scope_changes_and_legacy_cursors"
+        ]
+      ],
+      "markers": {},
+      "text_markers": {
+        "STATEKNOT_MCP_BOUND_STATE_POSTGRES:": {
+          "exact": "STATEKNOT_MCP_BOUND_STATE_POSTGRES: consumers=3 positive_commits=6 refused_rebinds=12 tenant_ledgers=2 complete_journals=true",
+          "count": 1
+        }
+      }
+    },
+    "original-33": {
+      "step_index": 33,
+      "step_name": "Qualify authenticated MCP result and known-error reconciliation",
+      "summaries": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "error::error_startup_rejects_missing_and_drifted_audit_schemas",
+          "authenticated_reconciliation_is_atomic_fenced_and_recovers_a_lost_http_receipt",
+          "wire_request_is_closed_and_debug_does_not_expose_output",
+          "error::known_error_wire_rejects_foreign_authority_uncertainty_and_private_debug",
+          "error::concurrent_success_and_failure_submissions_have_one_authoritative_winner",
+          "error::known_errors_require_distinct_authority_and_recover_exact_lost_receipts",
+          "reconciliation_definition_requires_explicit_scope_and_closed_shapes",
+          "error::successful_v1_schemas_remain_byte_compatible",
+          "error::known_error_definition_is_separate_closed_and_cannot_grant_retry",
+          "lost_receipt_gate_never_carries_release_into_another_request"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": 1,
+        "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": 1,
+        "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-35": {
+      "step_index": 35,
+      "step_name": "Qualify trusted SQL role profile",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 188
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-37": {
+      "step_index": 37,
+      "step_name": "Qualify MCP compute Worker isolation and recovery",
+      "summaries": [
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "postgres::compute_worker_child",
+          "projection_is_finite_explicit_and_not_a_whole_state_escape",
+          "postgres::durable_compute_worker_recovery_and_authority_boundary",
+          "once_disables_real_auth_and_version_recovery_without_changing_general_client",
+          "projects_only_authorized_data_and_host_owns_control_and_usage",
+          "startup_rejects_drift_extensions_missing_schemas_and_invalid_binding",
+          "cancellation_stops_before_dispatch_and_during_wait_without_retry",
+          "hostile_results_challenges_redirects_and_timeouts_never_replay_or_leak"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_COMPUTE_WORKER_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-39": {
+      "step_index": 39,
+      "step_name": "Qualify Agent HTTP ingress and lost-response recovery",
+      "summaries": [
+        {
+          "passed": 19,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "jwt_jwks_identity::keycloak_tls_rfc9068_jwks_and_durable_admission",
+          "identity::keycloak_tls_authentication_rotation_revocation_and_owned_ingress",
+          "owned_server::owned_server_options_reject_unbounded_values",
+          "postgres_http_adversarial_envelopes_authorization_and_recovery_limits",
+          "owned_server::postgres_owned_graceful_commit_and_cancellation_safe_join",
+          "owned_server::postgres_owned_startup_dependencies_and_exclusive_ownership",
+          "owned_server::postgres_owned_startup_timeout_and_cancel_drop_claimed_service",
+          "owned_server::postgres_owned_transport_capacity_headers_and_absolute_lifetime",
+          "owned_server::postgres_owned_readiness_loss_recovery_timeout_and_no_inline_work",
+          "owned_server::postgres_owned_forced_body_sse_and_handle_drop_close_sockets",
+          "resource_policy::exact_resource_policy_http_evidence_recovery_revocation_and_expiry",
+          "sse::postgres_sse_restart_child",
+          "sse::postgres_sse_observes_quarantine_without_revision_change_and_expires",
+          "sse::postgres_sse_replays_across_process_restart_and_live_updates",
+          "sse::postgres_sse_unpolled_body_releases_permit_and_shutdown_is_bounded",
+          "sse::postgres_sse_rejects_hostile_cursors_and_rechecks_authority",
+          "postgres_http_commit_loss_recovery_concurrency_and_cancellation",
+          "jwt_jwks_identity::postgres_jwt_rotation_authorization_sse_expiry_and_restart",
+          "postgres_http_slow_body_auth_deadline_overload_and_shutdown",
+          "sse::event_reader_preserves_activity_before_or_after_independent_snapshot"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_AGENT_HTTP_EVIDENCE": 1,
+        "STATEKNOT_AGENT_SSE_EVIDENCE": 1,
+        "STATEKNOT_AGENT_SERVER_EVIDENCE": 1,
+        "STATEKNOT_RESOURCE_POLICY_EVIDENCE": 1,
+        "STATEKNOT_JWT_JWKS_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-41": {
+      "step_index": 41,
+      "step_name": "Qualify owned durable scheduling Worker",
+      "summaries": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 11
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "postgres_worker_child",
+          "postgres_worker_actual_store_failure_stops_role_and_rejects_startup",
+          "postgres_worker_and_maintenance_have_independent_joined_lifecycles",
+          "postgres_worker_deadline_and_panics_fail_stop",
+          "postgres_worker_drop_reclaims_nested_nodes",
+          "postgres_worker_fixture_terminal_contract",
+          "postgres_worker_fair_cursor_survives_fresh_process",
+          "postgres_worker_readiness_execution_concurrency_and_joined_shutdown",
+          "postgres_worker_forced_shutdown_recovers_in_fresh_process_without_node_repeat",
+          "postgres_worker_run_failure_backs_off_without_crashing_role",
+          "postgres_worker_startup_cancellation_and_probe_timeout_claim_no_work"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_WORKER_EXECUTION_EVIDENCE": 1,
+        "STATEKNOT_WORKER_RECOVERY_EVIDENCE": 1,
+        "STATEKNOT_WORKER_FAILSTOP_EVIDENCE": 1,
+        "STATEKNOT_WORKER_FAIR_EVIDENCE": 1,
+        "STATEKNOT_WORKER_MAINTENANCE_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-42": {
+      "step_index": 42,
+      "step_name": "Qualify exact-key in-process Agent execution and recovery",
+      "summaries": [
+        {
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "postgres_typed_run_accepts_exact_submission_key_read_without_tenant_wide_access",
+          "postgres_typed_run_is_idempotent_and_resumes_after_wait_timeout"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_IN_PROCESS_AGENT_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-44": {
+      "step_index": 44,
+      "step_name": "Qualify co-located Agent host",
+      "summaries": [
+        {
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 17
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "host::postgres_host_unexpected_role_exit_drains_siblings",
+          "host::postgres_host_startup_failure_panic_and_cancel_join_started_roles",
+          "host::postgres_host_drop_before_poll_and_running_drop_close_ownership",
+          "host::postgres_host_end_to_end_and_independent_dependency_gates",
+          "host::postgres_host_ordered_forced_drain_joins_connections_streams_and_nodes"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_HOST_ADMISSION_EVIDENCE": 1,
+        "STATEKNOT_HOST_STARTUP_EVIDENCE": 1,
+        "STATEKNOT_HOST_FAILURE_EVIDENCE": 1,
+        "STATEKNOT_HOST_DRAIN_EVIDENCE": 1,
+        "STATEKNOT_HOST_DROP_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-46": {
+      "step_index": 46,
+      "step_name": "Qualify protected host operations",
+      "summaries": [
+        {
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 17
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "operations::postgres_operations_authorization_privacy_and_revocation",
+          "operations::postgres_operations_hostile_inputs_and_loopback_only",
+          "operations::postgres_operations_auth_deadline_concurrency_panics_and_join",
+          "operations::postgres_operations_observes_starting_unavailable_draining_stopped",
+          "operations::postgres_operations_transport_limits_and_drop_cleanup"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_OPERATIONS_AUTHORIZATION_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_LIFECYCLE_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_INPUT_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_BOUNDS_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_TRANSPORT_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-48": {
+      "step_index": 48,
+      "step_name": "Record reduced host qualification metadata",
+      "summaries": [],
+      "selected_harness_names": [],
+      "markers": {},
+      "text_markers": {}
+    },
+    "original-49": {
+      "step_index": 49,
+      "step_name": "Run reduced host capacity and recovery qualification",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 21
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "qualification::postgres_reduced_host_qualification_emits_verified_non_release_evidence"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_HOST_QUALIFICATION_REPORT": 1
+      },
+      "text_markers": {}
+    },
+    "original-51": {
+      "step_index": 51,
+      "step_name": "Qualify owned Agent maintenance",
+      "summaries": [
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 182
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_advances_past_a_full_failed_page_and_restart_revisits_it",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_readiness_wait_drop_and_startup_fail_closed",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_process_worker",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_drives_all_jobs_and_excludes_unauthorized_tenants",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_periodic_panic_and_store_error_fail_stop",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_tick_deadline_cancels_locked_database_work",
+          "child_admission::ownership::failure_close::maintenance::owned_maintenance_sigkill_then_fresh_owner_finishes_without_duplicate_effects"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1
+      },
+      "text_markers": {}
+    },
+    "original-53": {
+      "step_index": 53,
+      "step_name": "Run durable artifact storage integration tests",
+      "summaries": [
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "object_persistence_and_real_postgres_registration_form_one_verified_boundary",
+          "remote_url_policy_rejects_unapproved_redirect_media_encoding_and_size",
+          "process_local_admission_bounds_complete_artifact_operations",
+          "invalid_presentation_is_rejected_before_remote_fetch_or_object_write",
+          "exact_retry_reuses_final_object_and_resolver_detects_tampering",
+          "authorization_denial_happens_before_registry_lookup",
+          "approved_remote_url_streams_through_multipart_and_resolves_exact_bytes"
+        ]
+      ],
+      "markers": {},
+      "text_markers": {}
+    },
+    "original-54": {
+      "step_index": 54,
+      "step_name": "Qualify real TLS identity, rotation, revocation and ingress",
+      "summaries": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 19
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 19
+        }
+      ],
+      "selected_harness_names": [
+        [
+          "identity::keycloak_tls_authentication_rotation_revocation_and_owned_ingress"
+        ],
+        [
+          "jwt_jwks_identity::keycloak_tls_rfc9068_jwks_and_durable_admission"
+        ]
+      ],
+      "markers": {
+        "STATEKNOT_IDENTITY_EVIDENCE": 1,
+        "STATEKNOT_JWT_IDENTITY_EVIDENCE": 1,
+        "STATEKNOT_HOST_IDENTITY_EVIDENCE": 1,
+        "STATEKNOT_OPERATIONS_IDENTITY_EVIDENCE": 1
+      },
+      "text_markers": {}
+    }
+  },
+  "original_steps": 55,
+  "original_runs": 32,
+  "timeout_minutes": 30,
+  "profile_experiment": "only CARGO_PROFILE_TEST_OPT_LEVEL1→2; five other original settings unchanged",
+  "expected_profile_opt": "2",
+  "remaining_binding": [
+    "owner review of final frozen increment and external receipt before dispatch",
+    "isolated candidate assets commit/tree/ref and external pre-dispatch anchor plus registered workflow id/access",
+    "mandatory real Linux locale/env/argv/cwd/FD/token/exit37 controls before Cargo",
+    "actual complete per-major artifact-cold terminal execution in original30m and all13 experimental job results"
+  ],
+  "runtime_scope": "Each major complete artifact-cold/download-cache-may-be-warm PG job only; all13 original experimental jobs must pass; not ordinary PRopt1/fullStoreRuntime/capacity/R1.",
+  "new_execution_performed": false,
+  "acceptance_definition_closed": true,
+  "independent_review_pending": true,
+  "measurement_execution_ready": false,
+  "analyzer_required_cli_flag": "--require-qualified",
+  "timeout_acceptance": "Original GitHub timeout30m, completed/success and all required steps success without timeout/cancellation. Report API total wall including setup/post-cleanup separately; do not equate that total with product budget.",
+  "measurement_workflow_path": ".github/workflows/ci.yml",
+  "measurement_workflow_sha256": "c6e2e552bef385e83dddf6f29f0e4ecc3e943508cb5e58c05d05ba5bb5289725",
+  "workflow_object_sha256": "aae6b24c4f92fe8443d334f46f4739bb140abc6785693d7dbe3d9a11ddc55db4",
+  "runtime_controls_executed": false,
+  "full_cold_qualification": false,
+  "measurement_binding_external_required": true,
+  "new_inputs_added": false,
+  "all_original_job_definitions": 9,
+  "all_original_expanded_job_instances": 13,
+  "all_original_expanded_job_names": [
+    "Quality",
+    "Test (windows-latest)",
+    "Core bounded fuzz",
+    "A2A 1.0 Conformance",
+    "Test (ubuntu-latest)",
+    "Website",
+    "Release packages",
+    "PostgreSQL PITR (17)",
+    "Test (macos-latest)",
+    "PostgreSQL PITR (16)",
+    "PostgreSQL (16)",
+    "PostgreSQL (17)",
+    "MCP Conformance"
+  ],
+  "locale_controls": {
+    "guard_sha256": "5bd449872a7c3c30df7b541ea8fbccaf43d1c70333cb8e2cb9035594c6b689b7",
+    "runtime_controls_sha256": "aa92039e1cf691b2a073bb0f88f6f50955b269d0137f852f1d3186cf2d96db47",
+    "wrapper_entry_sha256": "3aeecf174c50269e86fa47e8495b83293e243da77e67c228e01fd700f7347680",
+    "before_any_package_Python": "Bash init snapshot and effective installed C.UTF-8/C.utf8 charmap guard; every entry rechecks; never rewrites locale",
+    "actual_runtime_controls_must_precede_Cargo": true,
+    "actual_Linux_controls_executed": false,
+    "runtime_report_schema": "stateknot.cold-locale-runtime-controls.v1",
+    "environment_scope": "LANG/LC_ALL/LC_CTYPE with unset/set-empty/raw value only, not all process environment",
+    "failure_artifacts_preserved_by_early_evidence_output": true
+  },
+  "external_anchor_owner_sha256_argument_required": true,
+  "shell_semantics_reference": "shell-semantics.json",
+  "owner_static_review_performed": true,
+  "owner_final_frozen_delta_review_pending": true,
+  "author_claims_independent_review_zero": false,
+  "freeze_meaning": "Complete executable acceptance contract/input freeze after owner static review and correction; runtime controls and actual cold/30m qualification remain unexecuted. Final owner frozen-delta review precedes Git publication/dispatch."
+}

@@ -1,0 +1,987 @@
+{
+  "name": "CI",
+  "permissions": {
+    "contents": "read"
+  },
+  "concurrency": {
+    "group": "ci-${{ github.workflow }}-${{ github.ref }}",
+    "cancel-in-progress": true
+  },
+  "jobs": {
+    "website": {
+      "name": "Website",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 20,
+      "defaults": {
+        "run": {
+          "working-directory": "website"
+        }
+      },
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Install pinned Node.js toolchain",
+          "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "with": {
+            "node-version-file": "website/.nvmrc",
+            "cache": "npm",
+            "cache-dependency-path": "website/package-lock.json"
+          }
+        },
+        {
+          "name": "Install website dependencies",
+          "run": "npm ci"
+        },
+        {
+          "name": "Install Chromium",
+          "run": "npx --no-install playwright install --with-deps chromium"
+        },
+        {
+          "name": "Install Caddy configuration validator",
+          "run": "sudo apt-get update\nsudo apt-get install --yes --no-install-recommends caddy\n"
+        },
+        {
+          "name": "Check formatting",
+          "run": "npm run format:check"
+        },
+        {
+          "name": "Check deployment script syntax",
+          "run": "bash -n scripts/bootstrap-tls.sh\nbash -n scripts/deploy.sh\ncaddy validate --config deploy/Caddyfile --adapter caddyfile\ncaddy fmt --overwrite deploy/Caddyfile\ngit diff --exit-code -- deploy/Caddyfile\n"
+        },
+        {
+          "name": "Check Astro and TypeScript",
+          "run": "npm run check"
+        },
+        {
+          "name": "Verify published runtime schemas",
+          "run": "cmp ../crates/stateknot-runtime/schemas/graph-driver-event-1.0.0.json \\\n  public/schemas/runtime/graph-driver-event/1.0.0\ncmp ../crates/stateknot-runtime/schemas/graph-lifecycle-event-1.0.0.json \\\n  public/schemas/runtime/graph-lifecycle-event/1.0.0\ncmp ../crates/stateknot-runtime/schemas/agent-admission-event-1.0.0.json \\\n  public/schemas/runtime/agent-admission-event/1.0.0\ncmp ../crates/stateknot-runtime/schemas/agent-policy-evidence-1.0.0.json \\\n  public/schemas/runtime/agent-policy-evidence/1.0.0\ncmp ../crates/stateknot-runtime/schemas/agent-cancellation-event-1.0.0.json \\\n  public/schemas/runtime/agent-cancellation-event/1.0.0\ncmp ../crates/stateknot-runtime/schemas/invocation-execution-event-1.0.0.json \\\n  public/schemas/runtime/invocation-execution-event/1.0.0\n"
+        },
+        {
+          "name": "Audit dependencies",
+          "run": "npm audit --audit-level=high"
+        },
+        {
+          "name": "Build website",
+          "run": "npm run build"
+        },
+        {
+          "name": "Run browser and accessibility tests",
+          "run": "npm run test:e2e"
+        }
+      ]
+    },
+    "quality": {
+      "name": "Quality",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "run": "rustup toolchain install 1.88.0 --profile minimal --component clippy,rustfmt"
+        },
+        {
+          "name": "Check formatting",
+          "run": "cargo fmt --all --check\ncargo fmt --manifest-path fuzz/Cargo.toml --all --check\n"
+        },
+        {
+          "name": "Compile public core contract examples",
+          "run": "cargo check -p stateknot-core --examples --locked"
+        },
+        {
+          "name": "Verify sealed Core compatibility fixture catalog",
+          "run": "cargo test -p stateknot-core --test fixture_catalog --locked"
+        },
+        {
+          "name": "Verify closed Core public type and schema inventory",
+          "run": "cargo test -p stateknot-core --test public_type_inventory --locked"
+        },
+        {
+          "name": "Verify every public Core enum wire alternative",
+          "run": "cargo test -p stateknot-core --test public_enum_variants --locked"
+        },
+        {
+          "name": "Verify typed durable Core execution wires",
+          "run": "cargo test -p stateknot-core --test canonical_execution_wires --locked"
+        },
+        {
+          "name": "Verify typed Core value fixtures and reproducible property models",
+          "env": {
+            "PROPTEST_RNG_SEED": "20261008"
+          },
+          "run": "cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --test graph_frame_contracts --test graph_frame_calls --test graph_frame_barriers --locked"
+        },
+        {
+          "name": "Verify optimized timestamp rejection with overflow checks",
+          "env": {
+            "RUSTFLAGS": "-C overflow-checks=on",
+            "CARGO_TARGET_DIR": "target/core-checked-release"
+          },
+          "run": "cargo test -p stateknot-core --test canonical_time --release --locked"
+        },
+        {
+          "name": "Run Clippy",
+          "run": "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings\ncargo clippy --manifest-path fuzz/Cargo.toml --all-targets --locked -- -D warnings\n"
+        },
+        {
+          "name": "Run tests",
+          "run": "cargo test --workspace --all-targets --all-features --locked"
+        },
+        {
+          "name": "Verify executable documentation and compile-fail privacy contracts",
+          "run": "cargo test --workspace --all-features --doc --locked"
+        },
+        {
+          "name": "Build documentation",
+          "env": {
+            "RUSTDOCFLAGS": "-D warnings"
+          },
+          "run": "cargo doc --workspace --all-features --no-deps --locked"
+        },
+        {
+          "name": "Validate workspace metadata",
+          "run": "cargo metadata --format-version 1 --locked --no-deps"
+        }
+      ]
+    },
+    "core-fuzz": {
+      "name": "Core bounded fuzz",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 35,
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Install pinned fuzz toolchains and engine",
+          "run": "rustup toolchain install 1.98.1 --profile minimal\nrustup toolchain install nightly-2026-10-07 --profile minimal\ncargo +1.98.1 install cargo-fuzz --version 0.13.2 --locked\n"
+        },
+        {
+          "name": "Fetch frozen fuzz and product dependencies",
+          "run": "cargo +nightly-2026-10-07 fetch --locked\ncargo +nightly-2026-10-07 fetch --manifest-path fuzz/Cargo.toml --locked\n"
+        },
+        {
+          "name": "Qualify all seeds and bounded ASan mutations",
+          "run": "python3 fuzz/qualify.py"
+        },
+        {
+          "name": "Retain qualification, coverage corpus and failure reproducers",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "core-fuzz-${{ github.sha }}",
+            "path": "fuzz/results/\nfuzz/artifacts/\n",
+            "retention-days": 30,
+            "if-no-files-found": "error"
+          }
+        }
+      ]
+    },
+    "release-packages": {
+      "name": "Release packages",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "run": "rustup toolchain install 1.88.0 --profile minimal"
+        },
+        {
+          "name": "Verify crates.io source lists and bootstrap archives",
+          "run": "./scripts/verify-release.sh 0.1.0-alpha.1"
+        }
+      ]
+    },
+    "postgres-pitr": {
+      "name": "PostgreSQL PITR (${{ matrix.version }})",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 20,
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "include": [
+            {
+              "version": "16",
+              "image": "postgres@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54"
+            },
+            {
+              "version": "17",
+              "image": "postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675"
+            }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "run": "rustup toolchain install 1.88.0 --profile minimal"
+        },
+        {
+          "name": "Record PITR qualification environment",
+          "env": {
+            "STATEKNOT_PITR_POSTGRES_IMAGE": "${{ matrix.image }}"
+          },
+          "run": "{\n  git rev-parse HEAD\n  git rev-parse 'HEAD^{tree}'\n  sha256sum Cargo.lock\n  rustc -Vv\n  docker version --format '{{.Server.Version}}'\n  uname -a\n  lscpu\n  free -b\n  df -T .\n  printenv STATEKNOT_PITR_POSTGRES_IMAGE\n} | tee child-join-pitr-environment.log\n"
+        },
+        {
+          "name": "Qualify physical base backup and named WAL recovery",
+          "env": {
+            "STATEKNOT_REQUIRE_PITR_TESTS": "1",
+            "STATEKNOT_PITR_POSTGRES_IMAGE": "${{ matrix.image }}"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery \\\n  --nocapture --test-threads=1 | tee child-join-pitr.log\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_PITR_EVIDENCE=' child-join-pitr.log)\" = 1\n"
+        },
+        {
+          "name": "Upload physical PITR evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "child-join-pitr-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "child-join-pitr.log\nchild-join-pitr-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        }
+      ]
+    },
+    "mcp-conformance": {
+      "name": "MCP Conformance",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "run": "rustup toolchain install 1.88.0 --profile minimal"
+        },
+        {
+          "name": "Install pinned Node.js toolchain",
+          "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "with": {
+            "node-version-file": "conformance/mcp-client/.nvmrc",
+            "cache": "npm",
+            "cache-dependency-path": "conformance/mcp-client/package-lock.json"
+          }
+        },
+        {
+          "name": "Install pinned official MCP runner",
+          "working-directory": "conformance/mcp-client",
+          "run": "npm ci --ignore-scripts"
+        },
+        {
+          "name": "Audit MCP runner dependencies",
+          "working-directory": "conformance/mcp-client",
+          "run": "npm audit --audit-level=high"
+        },
+        {
+          "name": "Run frozen MCP client requirement set",
+          "run": "bash conformance/mcp-client/run-2026-07-28.sh"
+        },
+        {
+          "name": "Run frozen MCP server requirement set",
+          "run": "bash conformance/mcp-server/run-2026-07-28.sh"
+        }
+      ]
+    },
+    "a2a-conformance": {
+      "name": "A2A 1.0 Conformance",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 20,
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "run": "rustup toolchain install 1.88.0 --profile minimal"
+        },
+        {
+          "name": "Install pinned uv",
+          "uses": "astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7",
+          "with": {
+            "version": "0.11.25",
+            "enable-cache": false
+          }
+        },
+        {
+          "name": "Run frozen A2A 1.0 server profile",
+          "run": "bash conformance/a2a-server/run-1.0.sh"
+        },
+        {
+          "name": "Upload A2A conformance evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "a2a-1.0-conformance-${{ github.run_id }}",
+            "path": "conformance/a2a-server/results/",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        }
+      ]
+    },
+    "cross-platform": {
+      "name": "Test (${{ matrix.os }})",
+      "runs-on": "${{ matrix.os }}",
+      "timeout-minutes": 20,
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "os": [
+            "ubuntu-latest",
+            "macos-latest",
+            "windows-latest"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "name": "Enable long paths on Windows",
+          "if": "runner.os == 'Windows'",
+          "run": "git config --global core.longpaths true"
+        },
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "run": "rustup toolchain install 1.88.0 --profile minimal"
+        },
+        {
+          "name": "Check and test workspace",
+          "run": "cargo test --workspace --all-targets --all-features --locked"
+        }
+      ]
+    },
+    "postgres": {
+      "name": "PostgreSQL (${{ matrix.version }})",
+      "runs-on": "ubuntu-latest",
+      "timeout-minutes": 30,
+      "env": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "2",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true"
+      },
+      "strategy": {
+        "fail-fast": false,
+        "matrix": {
+          "include": [
+            {
+              "version": "16",
+              "image": "postgres@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54"
+            },
+            {
+              "version": "17",
+              "image": "postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675"
+            }
+          ]
+        }
+      },
+      "services": {
+        "postgres": {
+          "image": "${{ matrix.image }}",
+          "env": {
+            "POSTGRES_DB": "stateknot_test",
+            "POSTGRES_PASSWORD": "stateknot_test_password"
+          },
+          "ports": [
+            "5432:5432"
+          ],
+          "options": "--health-cmd \"pg_isready -U postgres -d stateknot_test\" --health-interval 2s --health-timeout 2s --health-retries 30"
+        }
+      },
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        },
+        {
+          "name": "Prepare original-locale controls and cold measurement evidence",
+          "id": "cold_probe_setup",
+          "run": "bash .github/ci-cold-profile/locale_guard.sh init bash .github/ci-cold-profile/measurement_setup.sh",
+          "env": {
+            "STATEKNOT_COLD_PG_CONTAINER": "${{ job.services.postgres.id }}",
+            "STATEKNOT_COLD_PG_IMAGE": "${{ matrix.image }}",
+            "STATEKNOT_COLD_PG_MAJOR": "${{ matrix.version }}"
+          }
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "run": "rustup toolchain install 1.88.0 --profile minimal",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Run mandatory PostgreSQL integration tests",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "cargo test -p stateknot-store-postgres --test postgres --locked -- --test-threads=1",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Run durable Graph Driver integration tests",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "cargo test -p stateknot-runtime --test postgres --locked -- --test-threads=1",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Qualify real model adapter, pricing, and exact-key authorization",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "cargo test -p stateknot-integrations --test provider_native_postgres --locked -- --test-threads=1",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Execute recoverable DeepSeek Agent example against PostgreSQL",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "cargo test -p stateknot --example deepseek_agent --locked -- --test-threads=1",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Record process-kill qualification environment",
+          "env": {
+            "STATEKNOT_QUALIFICATION_POSTGRES_IMAGE": "${{ matrix.image }}"
+          },
+          "run": "{\n  git rev-parse HEAD\n  git rev-parse 'HEAD^{tree}'\n  sha256sum Cargo.lock\n  rustc -Vv\n  uname -a\n  lscpu\n  free -b\n  df -T .\n  printenv STATEKNOT_QUALIFICATION_POSTGRES_IMAGE\n} | tee failure-close-process-environment.log\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Qualify committed failure-close process-kill boundaries",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary \\\n  --nocapture --test-threads=1 | tee failure-close-process-qualification.log\n# Rust's test harness exits successfully even when a filter matches zero\n# tests. Require all six machine-readable checkpoints as well as exit 0.\ntest \"$(grep -c '^STATEKNOT_PROCESS_KILL_EVIDENCE=' failure-close-process-qualification.log)\" = 6\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Qualify commit loss and expired-fence takeover",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable \\\n  --nocapture --test-threads=1 | tee failure-close-commit-loss.log\ntest \"$(grep -c '^STATEKNOT_COMMIT_LOSS_EVIDENCE=' failure-close-commit-loss.log)\" = 2\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Qualify Join and deadline COMMIT loss",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::transaction_commit_loss::join_and_deadline_commit_loss_are_recoverable \\\n  --nocapture --test-threads=1 | tee join-deadline-commit-loss.log\n# Registration, publication and deadline cancellation each require\n# both the unforwarded-COMMIT and withheld-response cut.\ntest \"$(grep -c '^STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE=' join-deadline-commit-loss.log)\" = 6\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Qualify child-admission COMMIT loss",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-admission-commit-loss.log\n# Atomic admission requires both an unforwarded COMMIT rollback and\n# committed-response-loss recovery from a separate process.\ntest \"$(grep -c '^STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE=' child-admission-commit-loss.log)\" = 2\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload child-admission COMMIT-loss evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "child-admission-commit-loss-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "child-admission-commit-loss.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify child-cancellation delivery COMMIT loss",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-cancellation-commit-loss.log\n# Delivery must prove both full rollback and original receipt recovery,\n# including atomic cleanup of the real outstanding wait set.\ntest \"$(grep -c '^STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE=' child-cancellation-commit-loss.log)\" = 2\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload child-cancellation COMMIT-loss evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "child-cancellation-commit-loss-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "child-cancellation-commit-loss.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify child-settlement COMMIT loss",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-settlement-commit-loss.log\n# Require rollback and original-event recovery, not a vacuous filter.\ntest \"$(grep -c '^STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE=' child-settlement-commit-loss.log)\" = 2\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload child-settlement COMMIT-loss evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "child-settlement-commit-loss-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "child-settlement-commit-loss.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify parent-finalization COMMIT loss",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee parent-finalization-commit-loss.log\n# Require both exact cuts, not a successful zero-test filter.\ntest \"$(grep -c '^STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE=' parent-finalization-commit-loss.log)\" = 2\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload parent-finalization COMMIT-loss evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "parent-finalization-commit-loss-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "parent-finalization-commit-loss.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify child-join consumption COMMIT loss",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-join-consumption-commit-loss.log\n# Both cut positions must yield independently verified evidence.\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE=' child-join-consumption-commit-loss.log)\" = 2\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload child-join consumption COMMIT-loss evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "child-join-consumption-commit-loss-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "child-join-consumption-commit-loss.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify isolated child-join logical backup restore",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_REQUIRE_BACKUP_RESTORE_TESTS": "1",
+            "STATEKNOT_TEST_POSTGRES_CONTAINER": "${{ job.services.postgres.id }}",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ntest -n \"$STATEKNOT_TEST_POSTGRES_CONTAINER\"\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore \\\n  --nocapture --test-threads=1 | tee child-join-backup-restore.log\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_BACKUP_RESTORE_EVIDENCE=' child-join-backup-restore.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload child-join logical restore evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "child-join-backup-restore-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "child-join-backup-restore.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Upload Join and deadline COMMIT-loss evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "join-deadline-commit-loss-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "join-deadline-commit-loss.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify committed child-join process-loss boundaries",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::process::child_join_survives_process_loss_and_rejects_retained_stale_worker \\\n  --nocapture --test-threads=1 | tee child-join-process-qualification.log\n# A successful filtered test with partial or missing process evidence\n# is not a passing qualification profile.\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE=' child-join-process-qualification.log)\" = 8\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Qualify deadline cancel-and-join process-loss boundaries",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker \\\n  --nocapture --test-threads=1 | tee deadline-join-process-qualification.log\n# Both inherited-deadline candidates and every committed recovery\n# boundary are mandatory; a partial matrix fails closed.\ntest \"$(grep -c '^STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE=' deadline-join-process-qualification.log)\" = 9\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload child-join process qualification evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "child-join-process-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "child-join-process-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Upload deadline cancel-and-join qualification evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "deadline-join-process-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "deadline-join-process-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Upload process-kill qualification evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "failure-close-process-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "failure-close-process-*.log\nfailure-close-commit-loss.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Run durable protocol integration tests",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-integrations --test mcp_durable --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-authorization-qualification.log\ntest \"$(grep -c '^STATEKNOT_MCP_AUTHORIZATION_EVIDENCE=' mcp-authorization-qualification.log)\" = 2\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload MCP call authorization evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "mcp-authorization-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "mcp-authorization-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify mandatory MCP host-bound state ingress",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test",
+            "STATEKNOT_QUALIFICATION_POSTGRES_IMAGE": "${{ matrix.image }}",
+            "STATEKNOT_QUALIFICATION_POSTGRES_MAJOR": "${{ matrix.version }}"
+          },
+          "run": "set -euo pipefail\n{\n  git rev-parse HEAD\n  git rev-parse 'HEAD^{tree}'\n  sha256sum Cargo.lock\n  rustc -Vv\n  uname -a\n  df -T .\n  printf 'configured_postgres_image=%s\\n' \"$STATEKNOT_QUALIFICATION_POSTGRES_IMAGE\"\n  printf 'configured_postgres_major=%s\\n' \"$STATEKNOT_QUALIFICATION_POSTGRES_MAJOR\"\n  printf 'STATEKNOT_REQUIRE_POSTGRES_TESTS=%s\\n' \"$STATEKNOT_REQUIRE_POSTGRES_TESTS\"\n  for setting in CARGO_INCREMENTAL CARGO_PROFILE_DEV_DEBUG CARGO_PROFILE_TEST_DEBUG \\\n    CARGO_PROFILE_TEST_OPT_LEVEL CARGO_PROFILE_TEST_DEBUG_ASSERTIONS CARGO_PROFILE_TEST_OVERFLOW_CHECKS; do\n    printf '%s=%s\\n' \"$setting\" \"${!setting}\"\n  done\n} > mcp-bound-state-environment.log\ncargo test -p stateknot --test mcp_bound_state --locked -- \\\n  --nocapture --test-threads=1 2>&1 | tee mcp-bound-state-qualification.log\ntest \"$(grep -c '^running 15 tests$' mcp-bound-state-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MCP_BOUND_STATE_POSTGRES:' mcp-bound-state-qualification.log)\" = 1\ntest \"$(grep -Fxc 'STATEKNOT_MCP_BOUND_STATE_POSTGRES: consumers=3 positive_commits=6 refused_rebinds=12 tenant_ledgers=2 complete_journals=true' mcp-bound-state-qualification.log)\" = 1\ntest \"$(grep -Ec '^test result: ok[.] 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' mcp-bound-state-qualification.log)\" = 1\nif grep -Fq 'STATEKNOT_MCP_BOUND_STATE_POSTGRES_SKIPPED:' mcp-bound-state-qualification.log; then\n  exit 1\nfi\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload MCP host-bound state ingress evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "mcp-bound-state-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "mcp-bound-state-qualification.log\nmcp-bound-state-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify authenticated MCP result and known-error reconciliation",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot --test mcp_reconciliation --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-reconciliation-qualification.log\ntest \"$(grep -c '^STATEKNOT_MCP_RECONCILIATION_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload MCP outcome reconciliation evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "mcp-reconciliation-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "mcp-reconciliation-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify trusted SQL role profile",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work \\\n  --nocapture --test-threads=1 | tee trusted-role-profile-qualification.log\ntest \"$(grep -c '^STATEKNOT_ROLE_PROFILE_EVIDENCE=' trusted-role-profile-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload trusted SQL role evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "trusted-role-profile-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "trusted-role-profile-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify MCP compute Worker isolation and recovery",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot --test mcp_compute --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-compute-worker-qualification.log\ntest \"$(grep -c '^STATEKNOT_COMPUTE_WORKER_EVIDENCE=' mcp-compute-worker-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload MCP compute Worker evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "mcp-compute-worker-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "mcp-compute-worker-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify Agent HTTP ingress and lost-response recovery",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot --test agent_http --locked -- \\\n  --nocapture --test-threads=1 | tee agent-http-qualification.log\ntest \"$(grep -c '^STATEKNOT_AGENT_HTTP_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_AGENT_SSE_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_AGENT_SERVER_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_RESOURCE_POLICY_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_JWT_JWKS_EVIDENCE=' agent-http-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload Agent HTTP evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "agent-http-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "agent-http-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify owned durable scheduling Worker",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked -- \\\n  --nocapture --test-threads=1 --skip host:: --skip operations:: --skip qualification:: | tee agent-worker-qualification.log\ntest \"$(grep -c '^STATEKNOT_WORKER_EXECUTION_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_RECOVERY_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_FAILSTOP_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_FAIR_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_MAINTENANCE_EVIDENCE=' agent-worker-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Qualify exact-key in-process Agent execution and recovery",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot --test in_process_agent --locked -- \\\n  --nocapture --test-threads=1 | tee in-process-agent-qualification.log\ngrep -Fq 'test postgres_typed_run_accepts_exact_submission_key_read_without_tenant_wide_access ... ok' in-process-agent-qualification.log\ntest \"$(grep -c '^STATEKNOT_IN_PROCESS_AGENT_EVIDENCE=' in-process-agent-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload owned Worker evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "agent-worker-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "agent-worker-qualification.log\nin-process-agent-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify co-located Agent host",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked host:: -- \\\n  --nocapture --test-threads=1 | tee agent-host-qualification.log\nfor marker in ADMISSION STARTUP FAILURE DRAIN DROP; do\n  test \"$(grep -c \"^STATEKNOT_HOST_${marker}_EVIDENCE=\" agent-host-qualification.log)\" = 1\ndone\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload co-located host evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "agent-host-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "agent-host-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify protected host operations",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked operations:: -- \\\n  --nocapture --test-threads=1 | tee agent-operations-qualification.log\nfor marker in AUTHORIZATION LIFECYCLE INPUT BOUNDS TRANSPORT; do\n  test \"$(grep -c \"^STATEKNOT_OPERATIONS_${marker}_EVIDENCE=\" agent-operations-qualification.log)\" = 1\ndone\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload protected operations evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "agent-operations-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "agent-operations-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Record reduced host qualification metadata",
+          "env": {
+            "STATEKNOT_QUALIFICATION_POSTGRES_IMAGE": "${{ matrix.image }}",
+            "STATEKNOT_QUALIFICATION_POSTGRES_MAJOR": "${{ matrix.version }}"
+          },
+          "run": "set -euo pipefail\nsource_commit=\"$(git rev-parse HEAD)\"\nsource_tree=\"$(git rev-parse 'HEAD^{tree}')\"\ncargo_lock_sha256=\"$(sha256sum Cargo.lock | cut -d ' ' -f 1)\"\ndataset_sha256=\"$(sha256sum docs/scenarios/README.md | cut -d ' ' -f 1)\"\nconfiguration_sha256=\"$(printf '%s\\n' \\\n  'profile=ci_reduced' \\\n  \"postgres_image=${STATEKNOT_QUALIFICATION_POSTGRES_IMAGE}\" \\\n  'synchronous_commit=on' \\\n  'topology=1,1,1,1' | sha256sum | cut -d ' ' -f 1)\"\nlogical_cpus=\"$(nproc)\"\ncpu_model=\"$(lscpu | awk -F: '/Model name:/ { sub(/^[[:space:]]+/, \"\", $2); print $2; exit }')\"\ntest -n \"$cpu_model\"\nmemory_bytes=\"$(awk '/MemTotal:/ { print $2 * 1024 }' /proc/meminfo | cut -d . -f 1)\"\nkernel=\"$(uname -sr)\"\n{\n  echo \"STATEKNOT_QUALIFICATION_SOURCE_COMMIT=${source_commit}\"\n  echo \"STATEKNOT_QUALIFICATION_SOURCE_TREE=${source_tree}\"\n  echo \"STATEKNOT_QUALIFICATION_CARGO_LOCK_SHA256=${cargo_lock_sha256}\"\n  echo \"STATEKNOT_QUALIFICATION_DATASET_SHA256=${dataset_sha256}\"\n  echo \"STATEKNOT_QUALIFICATION_CONFIGURATION_SHA256=${configuration_sha256}\"\n  echo \"STATEKNOT_QUALIFICATION_LOGICAL_CPUS=${logical_cpus}\"\n  echo \"STATEKNOT_QUALIFICATION_CPU_MODEL=${cpu_model}\"\n  echo \"STATEKNOT_QUALIFICATION_MEMORY_BYTES=${memory_bytes}\"\n  echo \"STATEKNOT_QUALIFICATION_KERNEL=${kernel}\"\n  echo \"STATEKNOT_QUALIFICATION_POSTGRES_MAJOR=${STATEKNOT_QUALIFICATION_POSTGRES_MAJOR}\"\n} | tee -a \"$GITHUB_ENV\" > reduced-host-qualification-environment.log\nprintf '%s\\n' \"postgres_image=${STATEKNOT_QUALIFICATION_POSTGRES_IMAGE}\" \\\n  >> reduced-host-qualification-environment.log\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Run reduced host capacity and recovery qualification",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked -- \\\n  --exact qualification::postgres_reduced_host_qualification_emits_verified_non_release_evidence \\\n  --nocapture --test-threads=1 | tee reduced-host-qualification.log\ntest \"$(grep -c '^STATEKNOT_HOST_QUALIFICATION_REPORT=' reduced-host-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload reduced host qualification evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "reduced-host-qualification-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "reduced-host-qualification.log\nreduced-host-qualification-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Qualify owned Agent maintenance",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked \\\n  child_admission::ownership::failure_close::maintenance:: -- \\\n  --nocapture --test-threads=1 | tee agent-maintenance-qualification.log\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload owned maintenance evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "agent-maintenance-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "agent-maintenance-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Run durable artifact storage integration tests",
+          "env": {
+            "STATEKNOT_REQUIRE_POSTGRES_TESTS": "1",
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "cargo test -p stateknot-artifact-store --test artifact_store --locked -- --test-threads=1",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Qualify real TLS identity, rotation, revocation and ingress",
+          "env": {
+            "STATEKNOT_TEST_DATABASE_URL": "postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test"
+          },
+          "run": "set -o pipefail\nbash conformance/agent-identity/run.sh | tee agent-identity-qualification.log\ntest \"$(grep -c '^STATEKNOT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_JWT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_HOST_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_OPERATIONS_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\n",
+          "shell": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py shell {0}"
+        },
+        {
+          "name": "Upload real identity qualification evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "agent-identity-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "agent-identity-qualification.log\nfailure-close-process-environment.log\n",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        },
+        {
+          "name": "Audit measured command completion and frozen source",
+          "if": "always()",
+          "run": "bash .github/ci-cold-profile/locale_guard.sh check python3 .github/ci-cold-profile/cold_probe.py audit"
+        },
+        {
+          "name": "Upload cold profile measurement evidence",
+          "if": "always()",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "cold-opt2-postgres-${{ matrix.version }}-${{ github.run_id }}",
+            "path": "${{ steps.cold_probe_setup.outputs.evidence }}",
+            "if-no-files-found": "error",
+            "retention-days": 30
+          }
+        }
+      ]
+    }
+  },
+  "on": {
+    "push": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pull_request": null,
+    "workflow_dispatch": null
+  }
+}
