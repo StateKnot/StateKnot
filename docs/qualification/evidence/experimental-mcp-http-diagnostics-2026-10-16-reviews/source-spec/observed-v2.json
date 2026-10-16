@@ -1,0 +1,83 @@
+{
+  "actual_observed_old_production_red": "first JSON Complete ordinary Debug canary only; not all8branches",
+  "changed_paths_only": [
+    "crates/stateknot-integrations/src/mcp_client.rs",
+    "crates/stateknot-integrations/tests/mcp_client_contract.rs"
+  ],
+  "compiled_canonical_recomputed_sha256": "b212d64c1d77ced579fcdcceeeb259cb36b08b5d0d7d11c7030f980c1a8ee8e8",
+  "compiled_rows_verified": 536,
+  "error_network_parser_original_unit_suffix_byte_equal": true,
+  "inputs": [
+    {
+      "bytes": 168897,
+      "path": "mcp-http-debug-qualification-v2/frozen-source-manifest.json",
+      "sha256": "25a9ade166dcd10a85ee7ce094922e7bc6bf6f07d888f8b6a2e180660ed156f7"
+    },
+    {
+      "bytes": 101435,
+      "path": "mcp-http-debug-qualification-v2/compiled-inputs.json",
+      "sha256": "bda58d1b65c1c78355f91c06d0571845608ca30087a629160d5f75cc53e2d042"
+    },
+    {
+      "bytes": 506,
+      "path": "mcp-http-debug-qualification-v2/preparation.json",
+      "sha256": "7976cb4cb35abee83b8023e3d14b870242adfadd27ca1f0b6ab6e2254f5359b0"
+    },
+    {
+      "bytes": 3472,
+      "path": "mcp-http-debug-authoring-v1/contract-v1/CONTRACT.zh-CN.md",
+      "sha256": "9f5e8793942b5e11362b250058ceb7351550d116db07cdda8319f97041426a24"
+    },
+    {
+      "bytes": 1032,
+      "path": "mcp-http-debug-authoring-v1/contract-v1/oracle.json",
+      "sha256": "5970a4b4271b8bef55d7a0188c50c0d1e77a99b0abc07d798a1695ed59c0e9cd"
+    },
+    {
+      "bytes": 318,
+      "path": "mcp-http-debug-authoring-v1/contract-v1/manifest.json",
+      "sha256": "571e11968858a1c973c20aefc7278398f4ef95ec5222d53108a2497531699bd8"
+    },
+    {
+      "bytes": 329,
+      "path": "mcp-http-debug-authoring-v1/contract-v1/freeze.json",
+      "sha256": "a3fd8a09c6e5a3380913eb0446380ffbf466ba1296247b68d1936d1455975064"
+    },
+    {
+      "bytes": 168897,
+      "path": "mcp-http-debug-authoring-v1/baseline-source-manifest.json",
+      "sha256": "bb55b237ac2daaecf334c92297dc64a147eadfdc8dd4d730677110ce01837371"
+    },
+    {
+      "bytes": 85744,
+      "path": "mcp-http-debug-source-v2/crates/stateknot-integrations/src/mcp_client.rs",
+      "sha256": "069d23e5b0917f67e2d8f1ca31908ddb8b441c3e3b7496a7f05da15acbde3472"
+    },
+    {
+      "bytes": 26977,
+      "path": "mcp-http-debug-source-v2/crates/stateknot-integrations/tests/mcp_client_contract.rs",
+      "sha256": "437a04930e7e7d7b5aefb1d9b3d38ea0354595c58daa7ce56ba0c3236e9ea409"
+    },
+    {
+      "bytes": 709,
+      "path": "mcp-http-debug-qualification-v2/red-probe-v1/receipt.json",
+      "sha256": "4425b38dc3a6d276a78722dd68ce7b3799a4ffd1f9a3e54d5cb29733c4f81bc2"
+    },
+    {
+      "bytes": 2214,
+      "path": "mcp-http-debug-qualification-v2/red-probe-v1/test.log",
+      "sha256": "fde49495aaf4bd84acc7f673816dbf90250c2b4a5a2a7368f7b0308205902858"
+    }
+  ],
+  "new_network_family_cases_static_inventory": 8,
+  "nonDebug_nonDoc_production_normalized_equal_to_69af": true,
+  "not_final_reason": "Root observed v2 fixture needless_pass_by_value Clippy101 and is freezing a v3 test-only reference fix. Final review must use that new fixed candidate.",
+  "reviewer_execution": {
+    "Cargo_network_DB_Docker_cache": false
+  },
+  "scope": "provisional read-only Spec observations of v2; not a final candidate seal",
+  "source_declared_tree": "99861ea4d92e931a28608411f3611144d468c0c3d514ec880589a4e0752c8774",
+  "source_rows_verified": 928,
+  "static_spec_findings": [],
+  "test_original_357_line_13917_byte_prefix_exact": true
+}

@@ -1,0 +1,36 @@
+{
+  "Native_suite_count": 4,
+  "actual_versions": [
+    "16.15",
+    "17.11"
+  ],
+  "all_list_profile_source_resource_receipts_checked": true,
+  "complete_JSON_records_per_major": 7,
+  "each_major_harness_passed": [
+    6,
+    10
+  ],
+  "fixed_final_v3_freeze_sha256": "b78c134739263f99a62ef8c7e65e95dd8ab916b75c6031d89d42383354cff281",
+  "fixed_final_v3_manifest_sha256": "aef6ecd8f947bf410d4e97f721ea3d0fb7c01a1a5b23dce1bf4d2d07b54a1044",
+  "fixed_v2_manifest_sha256": "869cff0e7918bc1ad5f8c48aa70a86d9796f7ffa32e21b11a6b5a2e820476593",
+  "native_raw_bindings_verified": 85,
+  "native_summary_sha256": "d09277466fedc0fe80a2b6f42d801481d00831694118858eba18c11868b7eb05",
+  "new_execution_or_main_index_source_candidate_modification": false,
+  "original_v2_finding_preserved_sha256": "999434b98e20dd50000cfe29d20f7e3826ad6a3984a343d50ad1e2dbfd017baf",
+  "package_readonly_verifier_exit": [
+    0,
+    0
+  ],
+  "qualification_scope": "two selected full suites permajor only; no full Store Runtime CI capacity deployment stdio R1",
+  "report_sha256": "42a96bb7d9b30850492c3efe2597ed1d32139bfe151552b611de0e83d8af19e0",
+  "reserved_publication_report_paths": 3,
+  "role": "independent Spec review of others three-document adoption increment and read-only actual Native evidence cross-check; reviewer authored runner preparation, root executed",
+  "saved_fresh_binaries_rehashed": 2,
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "v1_review_or_sealed_evidence_modified": false,
+  "v2_body_spec_findings": 0,
+  "v2_evidence_consistency_findings": 1,
+  "v3_only_receipt_combined_field_rename": true,
+  "v3_remaining_spec_findings": 0,
+  "v3_three_docs_byte_equal_v2": true
+}

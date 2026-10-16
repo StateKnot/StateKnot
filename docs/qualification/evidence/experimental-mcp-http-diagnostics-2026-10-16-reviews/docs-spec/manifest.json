@@ -1,0 +1,67 @@
+{
+  "files": [
+    {
+      "bytes": 1979,
+      "path": "document-input-bindings.json",
+      "sha256": "3bd1c49184167e4b637f0dd1321341c8be10868b80a06cf317a9749be2ec9f35"
+    },
+    {
+      "bytes": 1775,
+      "path": "final-v3-increment.json",
+      "sha256": "49098eac8c3aa0346bdec9a482832ad01115435a0c7f345387b43be779195cbf"
+    },
+    {
+      "bytes": 0,
+      "path": "final-v3-package-verifier.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 90,
+      "path": "final-v3-package-verifier.stdout",
+      "sha256": "3853dca58067a53635acbaa983377de747d5965a399022bec64d285ad8e51709"
+    },
+    {
+      "bytes": 634,
+      "path": "finding.json",
+      "sha256": "999434b98e20dd50000cfe29d20f7e3826ad6a3984a343d50ad1e2dbfd017baf"
+    },
+    {
+      "bytes": 19881,
+      "path": "native-input-bindings.json",
+      "sha256": "790cb861e146a2f14181bd498308abdc393665f00dd94c3524aaca0182a768b7"
+    },
+    {
+      "bytes": 2338,
+      "path": "native-observation.json",
+      "sha256": "2e6877c5933f81c3fa7e2b22f84d2cd4a370f5d39cb740810bd0d4692e5679cd"
+    },
+    {
+      "bytes": 0,
+      "path": "package-verifier.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 90,
+      "path": "package-verifier.stdout",
+      "sha256": "3853dca58067a53635acbaa983377de747d5965a399022bec64d285ad8e51709"
+    },
+    {
+      "bytes": 1710,
+      "path": "receipt.json",
+      "sha256": "16a6088d99f26e25fcda7ece7d6e2395f15b3e82b9117c3244a7659c8a5310bb"
+    },
+    {
+      "bytes": 2797,
+      "path": "review.md",
+      "sha256": "42a96bb7d9b30850492c3efe2597ed1d32139bfe151552b611de0e83d8af19e0"
+    },
+    {
+      "bytes": 3948,
+      "path": "v1-to-v2-documents.patch",
+      "sha256": "ce31a2e53d3ab6d10a5fd49cd36fb2791c12df47362c5367161213cbcf00555c"
+    }
+  ],
+  "final_review_basis": "docs-v3",
+  "schema": 1,
+  "v2_finding_preserved": true
+}

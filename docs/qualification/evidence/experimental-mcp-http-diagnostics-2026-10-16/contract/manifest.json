@@ -1,0 +1,14 @@
+{
+  "files": [
+    {
+      "path": "CONTRACT.zh-CN.md",
+      "bytes": 3472,
+      "sha256": "9f5e8793942b5e11362b250058ceb7351550d116db07cdda8319f97041426a24"
+    },
+    {
+      "path": "oracle.json",
+      "bytes": 1032,
+      "sha256": "5970a4b4271b8bef55d7a0188c50c0d1e77a99b0abc07d798a1695ed59c0e9cd"
+    }
+  ]
+}

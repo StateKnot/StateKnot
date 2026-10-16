@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-publication-preparation-v1/candidate/docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/verify.py",
+    "--repository-root",
+    "."
+  ],
+  "exit_code": 0,
+  "stdout_sha256": "a8c9c926ca33a94c04c0936a667c188ab3c6444398313bdd48b0c6bd4c93924a",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "read_only_saved_evidence_verification": true
+}

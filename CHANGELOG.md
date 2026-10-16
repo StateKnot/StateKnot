@@ -77,6 +77,21 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Redact Debug/pretty Debug for the four unreleased MCP HTTP response types:
+  notifications, complete Tool results, remote errors and the outer call response.
+  Retain fixed kind/count/presence fields and the allowed error code; the outer
+  response never recursively formats continuation Tool metadata. Raw getters,
+  existing Clone/PartialEq, wire, MRTR resume, resource limits and effect/retry
+  mappings remain unchanged. Bare InputRequired values keep their existing
+  Debug scope. Fixed source passes six local gates (2,099 workspace tests,
+  6 original ignored, 48 doctests) and the eight real-TCP JSON/SSE branches;
+  see the [bounded record](docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.md).
+  Prior canary/lint failures stay recorded. Separately, this tree passes both
+  complete targeted Native suites (6 and 10 tests) on each PostgreSQL 16.15/17.11,
+  using freshly built default-feature binaries, serial/default-stack opt0 with
+  assertions and overflow checks. This does not transfer older PostgreSQL
+  evidence or qualify full Store/Runtime Native, full CI, deployment, stdio or R1.
+
 - Confirm test-owned container and volume removal before PITR drill success markers, retaining original budgets and best-effort failure cleanup. Subsequent composed-main original-opt0 local gates pass; see the [bounded record](docs/qualification/experimental-composed-request-facts-pitr-2026-10-15.md).
 
 - Recover experimental original absolute Graph Timer Waits after their due

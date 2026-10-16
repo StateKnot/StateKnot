@@ -192,6 +192,60 @@ descriptors, unsafe integer headers, oversized payloads, mismatched response
 IDs, independent server requests on SSE, and malformed result types fail
 closed through `StatelessMcpClientError`.
 
+## Unreleased response diagnostics
+
+The unreleased HTTP client redacts both `Debug` and pretty `Debug` for exactly
+these four response types:
+
+| Type | Fields retained in Debug |
+| --- | --- |
+| `McpNotification` | `has_params` |
+| `McpCompleteToolResult` | `content_count`, `has_structured_content`, `is_error` |
+| `McpRemoteError` | original i32 `code`, `has_data` |
+| `McpToolCallResponse` | fixed `outcome` label (`complete` or `input_required`), `notification_count` |
+
+Each summary also has its fixed type name and non-exhaustive marker. It formats
+no remote method/message, content, structured/raw value, data, request state or
+Tool metadata. The outer response deliberately does not recursively format its
+outcome or notifications.
+
+This scope is precise: directly formatting `McpInputRequired` or bare
+`McpToolCall::InputRequired` retains the existing Tool-metadata behavior. Other
+MCP types receive no general payload-free guarantee. Explicit raw/content/
+notification/error getters still return untrusted data, and existing Clone and
+PartialEq behavior is unchanged. Opaque state remains private; an explicit
+`resume` still echoes its original bytes, arguments and exact response keys.
+No wire, authentication, retry, resource limit or durable effect mapping changes.
+In particular, the HTTP malformed-complete write path retains `Applied + Never`;
+this does not adopt the separate proposed stdio outcome mapping.
+
+[The bounded diagnostic record](qualification/experimental-mcp-http-diagnostics-2026-10-16.md)
+and [machine receipt](qualification/experimental-mcp-http-diagnostics-2026-10-16.json)
+bind 928-file source `31a5ff55…` and 536 compilation inputs `1ec97f72…`.
+Its six local gates pass on Rust1.88/original opt0/default stack: 99 workspace
+suites, 2,099 passed/0 failed/6 original ignored, 48 documentation tests, strict
+Clippy/Rustdoc and fixed nightly-2026-10-07, with formatting checked. The added
+real-TCP family completes eight JSON/fragmented-SSE outcome branches, including
+both Tool `isError` values, an explicit MRTR resume and JSON-RPC errors. Both
+formatting styles exclude nested canaries while raw getter values/serialized
+bytes, existing Clone/PartialEq and actual resume wire remain intact.
+
+The original canary run on unchanged Debug behavior fails at its first JSON
+Complete branch (0 passed/1 failed/2 filtered). The fixed candidate's initial
+Clippy test-helper warning also remains; the final fixture borrows its JSON ID,
+with no new lint allowance or production change. These failures are preserved
+with the final evidence. Earlier bound-state PostgreSQL 16/17 full 15-test
+serial-suite results belong to their exact source and do not qualify this
+changed tree. This tree separately passes both complete targeted Native suites
+on each of PostgreSQL 16.15 and 17.11: `mcp_durable` (6 tests, including A2A/MCP)
+and `mcp_reconciliation` (10 tests, including definition/wire cases). Both fresh
+default-feature binaries use opt0/debug0, debug assertions and overflow checks,
+with serial execution and the default stack; all seven complete JSON evidence
+markers match on each major. These 32 harness executions are not 32 database
+cases. Conditional DB workspace entries are not Native evidence; full Store/
+Runtime Native, full CI, fresh official conformance, deployment, stdio and R1
+qualification remain separate.
+
 ## Verification and operating checklist
 
 ```console

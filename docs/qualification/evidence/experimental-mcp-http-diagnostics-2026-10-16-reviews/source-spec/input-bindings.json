@@ -1,0 +1,80 @@
+{
+  "base": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16",
+  "files": [
+    {
+      "bytes": 168897,
+      "path": "mcp-http-debug-qualification-v3/frozen-source-manifest.json",
+      "sha256": "21739dd9400139ae922a60de00003625f3692c47e2ee883f9500bab58e65eb9c"
+    },
+    {
+      "bytes": 101435,
+      "path": "mcp-http-debug-qualification-v3/compiled-inputs.json",
+      "sha256": "ddb5b8f32a4071422d9c568576512093a77bde9b662eb1e912f55fc260e9d816"
+    },
+    {
+      "bytes": 363,
+      "path": "mcp-http-debug-qualification-v3/fix-receipt.json",
+      "sha256": "7382a15bbaa6434e8cf79f302ee86b1a760cbbfd763ea44d9c207211bf36648b"
+    },
+    {
+      "bytes": 918,
+      "path": "mcp-http-debug-qualification-v3/fixture-reference-fix.patch",
+      "sha256": "27104f8f6a9609b043eedbaed7035304004675a2746ef95a64da7b5814eb39d7"
+    },
+    {
+      "bytes": 168897,
+      "path": "mcp-http-debug-authoring-v1/baseline-source-manifest.json",
+      "sha256": "bb55b237ac2daaecf334c92297dc64a147eadfdc8dd4d730677110ce01837371"
+    },
+    {
+      "bytes": 3472,
+      "path": "mcp-http-debug-authoring-v1/contract-v1/CONTRACT.zh-CN.md",
+      "sha256": "9f5e8793942b5e11362b250058ceb7351550d116db07cdda8319f97041426a24"
+    },
+    {
+      "bytes": 1032,
+      "path": "mcp-http-debug-authoring-v1/contract-v1/oracle.json",
+      "sha256": "5970a4b4271b8bef55d7a0188c50c0d1e77a99b0abc07d798a1695ed59c0e9cd"
+    },
+    {
+      "bytes": 318,
+      "path": "mcp-http-debug-authoring-v1/contract-v1/manifest.json",
+      "sha256": "571e11968858a1c973c20aefc7278398f4ef95ec5222d53108a2497531699bd8"
+    },
+    {
+      "bytes": 329,
+      "path": "mcp-http-debug-authoring-v1/contract-v1/freeze.json",
+      "sha256": "a3fd8a09c6e5a3380913eb0446380ffbf466ba1296247b68d1936d1455975064"
+    },
+    {
+      "bytes": 85744,
+      "path": "mcp-http-debug-source-v3/crates/stateknot-integrations/src/mcp_client.rs",
+      "sha256": "069d23e5b0917f67e2d8f1ca31908ddb8b441c3e3b7496a7f05da15acbde3472"
+    },
+    {
+      "bytes": 26951,
+      "path": "mcp-http-debug-source-v3/crates/stateknot-integrations/tests/mcp_client_contract.rs",
+      "sha256": "1eaeaa9e4eacce0a4600a5270be770797a843489770cdb821e17a3fe26f691c3"
+    },
+    {
+      "bytes": 709,
+      "path": "mcp-http-debug-qualification-v2/red-probe-v1/receipt.json",
+      "sha256": "4425b38dc3a6d276a78722dd68ce7b3799a4ffd1f9a3e54d5cb29733c4f81bc2"
+    },
+    {
+      "bytes": 2214,
+      "path": "mcp-http-debug-qualification-v2/red-probe-v1/test.log",
+      "sha256": "fde49495aaf4bd84acc7f673816dbf90250c2b4a5a2a7368f7b0308205902858"
+    },
+    {
+      "bytes": 656,
+      "path": "mcp-http-debug-qualification-v2/clippy.receipt.json",
+      "sha256": "fc0ba7d73de317ff6a15491c40634ef65347e35e99851684483612340fe0278a"
+    },
+    {
+      "bytes": 1947,
+      "path": "mcp-http-debug-qualification-v2/clippy.log",
+      "sha256": "96e4fed554374155e12a7496a90e635dd30e05b1bf56a29d3fd593cae26dabc0"
+    }
+  ]
+}
