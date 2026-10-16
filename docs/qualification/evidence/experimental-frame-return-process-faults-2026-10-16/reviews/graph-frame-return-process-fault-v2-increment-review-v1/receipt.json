@@ -1,0 +1,18 @@
+{
+  "review": "read-only v1-to-v2 fixture comparison increment; test author self-check, not independent source Spec",
+  "hard_findings": 0,
+  "changed_paths": [
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs"
+  ],
+  "all_other_931_frozen_source_rows_equal": true,
+  "actual_v1_and_v2_full_frozen_source_maps_checked": true,
+  "v1_child_sha256": "19934222e426313d369efade9bd5667bb9826b09dcaa30f0a615c723b9f415c8",
+  "v2_child_sha256": "907f17773531ce1136f163d50c06b31040cb0a96d4eb37ec09908bf3ea537fe7",
+  "change": "NodeAttemptCompletion has Serialize and no PartialEq; compare both complete serialized records instead of unsupported assert_eq on references",
+  "serde_source": "crates/stateknot-core/src/node_attempt.rs:407-415: all five completion fields serialize; no skip on completion fields",
+  "retained_oracles": "terminal checkpoint, exact parent activation, complete pending result, both complete completion wire records, atomic 14-table facts and four immutable Return rows remain",
+  "qualification": "static fixture review only; no Rust, Native or DB executed; no product fix claimed",
+  "v2_source_tree": "a92d20842f48ddf78edf8ac6f5009878ecf585aaedee29ebf8ed731b114eecbd",
+  "v2_compiled_inputs_sha256": "f569ddbc5be8a6551b57229c45ec5f34705e05a8570a3d3481353452c9fa847e",
+  "original_v1_preserved": true
+}

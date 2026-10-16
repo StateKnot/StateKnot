@@ -60,6 +60,12 @@ artifact 输入 schema、审查前后 pin 和 Tool 注册表零调用拒绝路�
 | G10 | 独立逻辑 restore 与物理 named-PITR drill | 同步 standby failover、完整参考数据集恢复和完整性检查 | R6 |
 | G11 | populated migration、部分 checkpoint 恢复与拒绝测试 | 支持窗口内历史 graph/checkpoint fixture、升级中断和 rollback-limit 验证 | R1 契约；R6 升级 |
 
+2026-10-16 的[Return 进程故障记录](qualification/experimental-frame-return-process-faults-2026-10-16.zh-CN.md)
+补充 G4/G5/G6 的定向证据：PostgreSQL16/17 各通过 Store 中层组件损坏拒绝和
+Runtime Return COMMIT 请求/响应丢失、真实 SIGKILL、受信强制 higher-fence 接管后的
+冷 Driver 恢复，原叶结果没有重派发。六类本机门禁通过，原失败保留；这不是自然
+租约到期、完整 Native/CI、一般进程树 owner 或完整故障矩阵，G3/G4/R1仍开放。
+
 2026-10-15 的[原绝对 Graph Wait 采用记录](qualification/experimental-original-graph-waits-2026-10-15.zh-CN.md)
 补充 G3/G5/G6/G10/G11 的限定证据：schema36 保留完整原 Pending、条件身份与
 due，按实际提交事件时钟保存 future registration 或 elapsed evidence；全已到期

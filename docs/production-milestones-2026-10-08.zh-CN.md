@@ -115,6 +115,11 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 
 ## R1 核心契约与开发者接入
 
+2026-10-16 增量：[Return 进程故障资格记录](qualification/experimental-frame-return-process-faults-2026-10-16.zh-CN.md)
+保存双版 PostgreSQL 的真实提交请求/响应丢失、杀死 writer 与冷 Driver 接管结果；
+仅四个测试路径变化，不关闭完整故障矩阵、CI或R1。下一步继续完成原预算内完整 CI
+及剩余契约；阶段退出条件保持不变。
+
 状态：进行中。RFC-0001 至 RFC-0004 的每条验收项、已有证据和后续阶段依赖已经
 记录在 [R1 缺口清单](r1-contract-gap-ledger.zh-CN.md)。当前 C5 增量覆盖 18 个第一方
 临时 context/key/credential/carrier 的序列化拒绝与正向对照、typed Tool 输入/输出

@@ -1,0 +1,51 @@
+{
+  "argv": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "-p",
+    "stateknot-store-postgres",
+    "--test",
+    "postgres",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "cwd": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3",
+  "pid": 27450,
+  "runner_pid": 27439,
+  "start_unix": 1792138335.094684,
+  "runner_sha256": "b1436d0d38e705c124c1bf16d2b25998f6288dd90c7b798bf4a29a8d6522ff4c",
+  "role": "candidate",
+  "package": "store",
+  "source_tree": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "compiled_inputs_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "source_manifest": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-qualification-v3/frozen-source-manifest.json",
+  "source_manifest_sha256": "6c44b95d23bcbbeb0e89df4c2e8777d2131b344e40c35ca8e315d584e6a44fd6",
+  "compiled_inputs": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-qualification-v3/compiled-inputs.json",
+  "compiled_manifest_sha256": "dbb65735bef70b9dac98f38385e2b74d41889e8c65b4141a35e3e9622ce97bfc",
+  "environment_allowlist": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+    "RUSTDOCFLAGS": "-D warnings",
+    "RUSTFLAGS": "-D warnings"
+  },
+  "overrides_present": {
+    "RUST_MIN_STACK": false,
+    "CARGO_ENCODED_RUSTFLAGS": false,
+    "RUSTC_WRAPPER": false,
+    "RUSTC_WORKSPACE_WRAPPER": false,
+    "RUSTC_BOOTSTRAP": false,
+    "RUSTC": false
+  },
+  "DEV_OPT_LEVEL_override_present": false,
+  "cache_CACHEDIR_TAG_exists": false,
+  "cache_TAG_not_fabricated_and_no_cleanup": true,
+  "database_execution": false,
+  "freshness_sha256": "b41d06dc76dee35cb6ae353eb2ddbe246a87a990577145d1e4fba9cb64739bc0"
+}

@@ -6,6 +6,9 @@
 #[path = "recovery_guardian.rs"]
 mod recovery_guardian;
 
+#[path = "frame_return_process_faults.rs"]
+mod frame_return_process_faults;
+
 #[path = "elapsed_graph_waits.rs"]
 mod elapsed_graph_waits;
 

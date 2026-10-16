@@ -873,7 +873,228 @@ async fn nested_entry_after_scoped_barrier_authenticates_parent_successor_and_us
             .unwrap(),
         *admission.checkpoint()
     );
+    nested_active_snapshot_requires_middle_components(&store, &entry, &barrier, &nested).await;
     store.close().await;
+}
+
+// A complete public owning read must authenticate suspended middle components,
+// even though the current active leaf and all compact heads remain unchanged.
+async fn assert_nested_active_snapshot(
+    store: &PostgresStore,
+    middle: &StoredGraphFrameEntry,
+    successor: &StoredGraphFrameBarrier,
+    leaf: &StoredGraphFrameEntry,
+) {
+    let checkpoint = leaf.entry().checkpoint();
+    let active = Box::pin(store.load_active_graph_frame(
+        checkpoint.checkpoint().tenant_id(),
+        checkpoint.checkpoint().run_id(),
+    ))
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(active.open_frames().len(), 2);
+    assert_eq!(active.open_frames()[0].entry_digest(), middle.digest());
+    assert_eq!(
+        active.open_frames()[0].checkpoint(),
+        &successor.checkpoint().head()
+    );
+    assert_eq!(active.open_frames()[1].entry_digest(), leaf.digest());
+    assert_eq!(active.open_frames()[1].checkpoint(), &checkpoint.head());
+    assert_eq!(active.entry().digest(), leaf.digest());
+    assert_eq!(active.entry().entry(), leaf.entry());
+    assert_eq!(active.checkpoint(), checkpoint);
+    assert_eq!(active.caller(), leaf.entry().start());
+    assert_eq!(active.caller_binding_digest(), leaf.digest());
+}
+
+struct MiddleComponentTarget {
+    table: &'static str,
+    column: &'static str,
+    changed_columns: &'static str,
+    predicate: &'static str,
+    identity: Uuid,
+}
+
+fn middle_component_targets(
+    middle: &StoredGraphFrameEntry,
+    successor: &StoredGraphFrameBarrier,
+) -> [MiddleComponentTarget; 3] {
+    [
+        MiddleComponentTarget {
+            table: "run_checkpoints",
+            column: "checkpoint_bytes",
+            changed_columns: "ARRAY['checkpoint_bytes','checkpoint_byte_length']::text[]",
+            predicate: "r.tenant_id=$1 AND r.run_id=$2 AND r.graph_namespace=$3 AND r.checkpoint_id=$4",
+            identity: *successor
+                .checkpoint()
+                .checkpoint()
+                .checkpoint_id()
+                .as_uuid(),
+        },
+        MiddleComponentTarget {
+            table: "graph_frame_entries",
+            column: "entry_bytes",
+            changed_columns: "ARRAY['entry_bytes','entry_checksum']::text[]",
+            predicate: "r.tenant_id=$1 AND r.run_id=$2 AND r.graph_namespace=$3 AND r.initial_checkpoint_id=$4",
+            identity: *middle
+                .entry()
+                .checkpoint()
+                .checkpoint()
+                .checkpoint_id()
+                .as_uuid(),
+        },
+        MiddleComponentTarget {
+            table: "run_events",
+            column: "projection_digest",
+            changed_columns: "ARRAY['projection_digest']::text[]",
+            predicate: "r.tenant_id=$1 AND r.run_id=$2 AND r.event_id=$4 AND EXISTS (SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=r.tenant_id AND e.run_id=r.run_id AND e.graph_namespace=$3 AND e.journal_event_id=r.event_id AND e.journal_sequence=r.sequence AND e.journal_recorded_at=r.recorded_at AND e.journal_digest=r.event_digest)",
+            identity: *middle.event().event_id().as_uuid(),
+        },
+    ]
+}
+
+async fn middle_component_row(
+    pool: &PgPool,
+    target: &MiddleComponentTarget,
+    middle: &GraphFrameCheckpoint,
+) -> Result<(Vec<u8>, String, String), sqlx_core::Error> {
+    query_as(&format!(
+        "SELECT r.{},to_jsonb(r)::text,(to_jsonb(r)-{})::text FROM stateknot.{} r WHERE {}",
+        target.column, target.changed_columns, target.table, target.predicate
+    ))
+    .bind(middle.checkpoint().tenant_id().as_str())
+    .bind(*middle.checkpoint().run_id().as_uuid())
+    .bind(middle.frame().namespace().as_str())
+    .bind(target.identity)
+    .fetch_one(pool)
+    .await
+}
+
+// Each temporary trigger change is transactional: a failed update rolls back
+// both the bytes and trigger state. Triggers are enabled before the owning read.
+// Only the migration-owner connection in the isolated Native test DB does this.
+async fn rewrite_middle_component(
+    pool: &PgPool,
+    target: &MiddleComponentTarget,
+    middle: &GraphFrameCheckpoint,
+    bytes: &[u8],
+) {
+    let mut tx = pool.begin().await.unwrap();
+    query(&format!(
+        "ALTER TABLE stateknot.{} DISABLE TRIGGER USER",
+        target.table
+    ))
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+    let changed = query(&format!(
+        "UPDATE stateknot.{} r SET {}=$5 WHERE {}",
+        target.table, target.column, target.predicate
+    ))
+    .bind(middle.checkpoint().tenant_id().as_str())
+    .bind(*middle.checkpoint().run_id().as_uuid())
+    .bind(middle.frame().namespace().as_str())
+    .bind(target.identity)
+    .bind(bytes)
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+    assert_eq!(changed.rows_affected(), 1, "{}", target.column);
+    query(&format!(
+        "ALTER TABLE stateknot.{} ENABLE TRIGGER USER",
+        target.table
+    ))
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+}
+
+async fn nested_active_snapshot_requires_middle_components(
+    store: &PostgresStore,
+    middle: &StoredGraphFrameEntry,
+    successor: &StoredGraphFrameBarrier,
+    leaf: &StoredGraphFrameEntry,
+) {
+    assert_nested_active_snapshot(store, middle, successor, leaf).await;
+    let db = pool().await;
+    let checkpoint = middle.entry().checkpoint();
+    for target in middle_component_targets(middle, successor) {
+        let original = middle_component_row(&db, &target, checkpoint)
+            .await
+            .unwrap();
+        let mut damaged = original.0.clone();
+        match target.column {
+            "checkpoint_bytes" => {
+                let mut wire: serde_json::Value = serde_json::from_slice(&damaged).unwrap();
+                assert_eq!(wire["state"]["data"]["count"], json!(7));
+                wire["state"]["data"]["count"] = json!(8);
+                damaged = serde_json_canonicalizer::to_vec(&wire).unwrap();
+            }
+            "entry_bytes" => {
+                damaged.insert(0, b' ');
+                assert_eq!(
+                    serde_json::from_slice::<serde_json::Value>(&damaged).unwrap(),
+                    serde_json::from_slice::<serde_json::Value>(&original.0).unwrap()
+                );
+            }
+            "projection_digest" => {
+                assert_eq!(damaged.len(), 32);
+                damaged[0] ^= 1;
+            }
+            _ => unreachable!("three fixed middle components"),
+        }
+        assert_ne!(damaged, original.0);
+        rewrite_middle_component(&db, &target, checkpoint, &damaged).await;
+        let retained = middle_component_row(&db, &target, checkpoint).await;
+        let checksum_valid = if target.column == "entry_bytes" {
+            Some(
+                query_scalar::<_, bool>("SELECT entry_checksum=sha256(entry_bytes) FROM stateknot.graph_frame_entries WHERE tenant_id=$1 AND run_id=$2 AND graph_namespace=$3 AND initial_checkpoint_id=$4")
+                    .bind(checkpoint.checkpoint().tenant_id().as_str())
+                    .bind(*checkpoint.checkpoint().run_id().as_uuid())
+                    .bind(checkpoint.frame().namespace().as_str())
+                    .bind(target.identity)
+                    .fetch_one(&db).await,
+            )
+        } else {
+            None
+        };
+        let rejected = Box::pin(store.load_active_graph_frame(
+            checkpoint.checkpoint().tenant_id(),
+            checkpoint.checkpoint().run_id(),
+        ))
+        .await;
+        // Restore before inspecting the rejection, so an unexpected success
+        // cannot strand deliberately damaged bytes in a later test's fixture.
+        rewrite_middle_component(&db, &target, checkpoint, &original.0).await;
+        let restored = middle_component_row(&db, &target, checkpoint)
+            .await
+            .unwrap();
+        let retained = retained.unwrap();
+        assert_eq!(retained.0, damaged);
+        assert_eq!(retained.2, original.2, "compact heads and IDs unchanged");
+        assert_ne!(retained.1, original.1);
+        assert_eq!(
+            restored, original,
+            "complete original physical row restored"
+        );
+        if let Some(valid) = checksum_valid {
+            assert!(
+                valid.unwrap(),
+                "noncanonical entry still has its actual checksum"
+            );
+        }
+        assert!(
+            matches!(rejected, Err(StoreError::CorruptData { .. })),
+            "middle {} must be authenticated: {rejected:?}",
+            target.column
+        );
+        // This public method opens another repeatable-read snapshot.
+        assert_nested_active_snapshot(store, middle, successor, leaf).await;
+        store.verify_schema().await.unwrap();
+    }
+    db.close().await;
 }
 
 #[tokio::test]

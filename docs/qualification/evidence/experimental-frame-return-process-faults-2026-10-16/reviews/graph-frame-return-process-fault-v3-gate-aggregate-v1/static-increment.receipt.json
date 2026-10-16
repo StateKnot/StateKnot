@@ -1,0 +1,26 @@
+{
+  "kind": "independent_read_only_v3_increment_and_gate_input_binding",
+  "actionable_static_findings": 0,
+  "source_tree": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "source_count": 932,
+  "supplied_compiled_count": 541,
+  "supplied_compiled_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "definition": "conservative supplied compilation inputs in relative path STRING order, not compiler read closure",
+  "two_Q_manifest_and_compiled_input_files_byte_equal": true,
+  "actual_932_source_paths_bytes_and_sha_checked": true,
+  "runtime_v2_to_v3_exact_two_Box_pin_insertions": true,
+  "middle_fixture_equals_original_production_single_walk_baseline_same_test": true,
+  "middle_fixture_sha256": "ad11c5ae9ddb37adebe87f0d7f8620606b6f22832ebfddbae15369636732450d",
+  "single_walk_two_production_files_equal_a544": true,
+  "main_compiled_differences_only_four_tests": [
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs"
+  ],
+  "source_files_changed_by_reviewer": false,
+  "Rust_DB_or_CI_executed_by_reviewer": false,
+  "Native_or_performance_qualification": false,
+  "source_manifest_file_sha256": "6c44b95d23bcbbeb0e89df4c2e8777d2131b344e40c35ca8e315d584e6a44fd6",
+  "compiled_manifest_file_sha256": "dbb65735bef70b9dac98f38385e2b74d41889e8c65b4141a35e3e9622ce97bfc"
+}

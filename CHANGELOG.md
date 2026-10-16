@@ -14,6 +14,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Exercise experimental frame Return COMMIT request/response loss through real
+  writer termination and cold higher-fence Driver recovery, and reject corrupted
+  suspended middle-frame components. Four targeted PostgreSQL16/17 runs pass;
+  the complete fault matrix and R1 remain open. See the
+  [qualification record](docs/qualification/experimental-frame-return-process-faults-2026-10-16.md).
+
 - Bound A2A initial body preparation, decoded authorization and shared
   admission with one post-authentication request deadline across all eleven
   operations. Preserve independent authentication/backend budgets, SDK push

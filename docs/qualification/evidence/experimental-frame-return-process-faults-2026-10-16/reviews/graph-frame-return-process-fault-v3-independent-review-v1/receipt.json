@@ -1,0 +1,131 @@
+{
+  "kind": "independent non-author read-only Standards and Spec review of Return v3 frozen source and actual four-case Native evidence",
+  "standards_actionable_findings": 0,
+  "spec_actionable_findings": 0,
+  "review_is_two_axes_by_one_independent_reviewer_not_two_separate_reviewers": true,
+  "baseline_commit": "a544ad9bfcb516a1ac7a6b8232c66019b46ad1f5",
+  "source_count": 932,
+  "source_tree_sha256": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "supplied_compilation_input_count": 541,
+  "supplied_compilation_inputs_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "all_frozen_rows_and_compilation_rows_actual_bytes_verified": true,
+  "selected_source_changes_vs_baseline": [
+    "CHANGELOG.md",
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs",
+    "docs/a2a-server.md",
+    "docs/a2a-server.zh-CN.md"
+  ],
+  "compilation_input_changes_vs_baseline": [
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs"
+  ],
+  "production_Rust_SQL_migrations_locks_authentication_or_budgets_changed": false,
+  "adoption_condition": "Adopt only the four reviewed test paths. Retain a544 CHANGELOG and bilingual A2A preparation deadline documentation; three stale noncompiled snapshot documents are not Return changes.",
+  "standards_basis": [
+    "CONTRIBUTING.md: focused reviewable scope, behavior tests, local gates",
+    "User AGENTS instructions: production evidence, unchanged business budgets, root-only builds and DB execution"
+  ],
+  "spec_basis": [
+    "docs/rfcs/0022-namespaced-graph-frames.md:58-61, 803-824, 1097-1103",
+    "docs/r1-contract-gap-ledger.zh-CN.md: G3/G4/P3 open complete process and acknowledgement-loss matrix"
+  ],
+  "source_oracles_reviewed": [
+    "Exact Return SQL Parse and actual COMMIT cuts before forwarding and after CommandComplete plus idle ReadyForQuery, no ACK forwarded",
+    "Owned child alive before force kill; Unix SIGKILL 9 and reap; actual proxy backend PID absent afterwards",
+    "14 fixture table JSON row snapshots before cut, after cut and after kill; atomic Return event/result/completion/stack and owning public readers",
+    "Explicit forced lease supersession plus higher epoch and stale old renewal refusal with unchanged rows; no natural-expiry qualification",
+    "Old-fence exact whole Return returns Idempotent after supersession; controller verifies original digest and unchanged 14-table snapshot before Driver",
+    "Fresh cold Driver has zero leaf and second application calls, one root application call; Return/rebind counts differ correctly by cut",
+    "Post-ACK original four complete Return/event/result/completion row representations remain exact after later parent work",
+    "Three middle corruptions preserve compact identities, restore full original row representation before asserting refusal, and require fresh positive owning reads"
+  ],
+  "six_gate_evidence": {
+    "aggregate_sha256": "0d9de247e4b0297da4ca4cc5cd410ab6e2acdf8db2bb56dfce6aae05715842a2",
+    "actual_receipts_and_raw_logs_hashes_verified": true,
+    "workspace_summaries": 100,
+    "workspace_passed": 2121,
+    "workspace_ignored": 6,
+    "doctest_summaries": 10,
+    "doctests_passed": 48,
+    "same_source_successful_continuation_not_original_single_driver_green": true
+  },
+  "native_build_artifacts_verified": {
+    "store_fresh_false_artifacts": 3,
+    "runtime_fresh_false_artifacts": 4,
+    "opt_level": "1",
+    "features": [],
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "binaries": {
+      "store": "43720b996435e8e40d46be2b460cb881ccaab1b8ac67728d2523ab3126286bc3",
+      "runtime": "51d2eeeedaa430e44d2bab1ba673c2dc5bdf39c369d3b2f0cd96e34aa1287100"
+    }
+  },
+  "actual_native_cases": [
+    {
+      "major": 16,
+      "package": "store",
+      "native_exit_code": 0,
+      "original_wrapper_observation_passed": true,
+      "inventory": 264,
+      "passed": 1,
+      "filtered": 263,
+      "return_markers": 0,
+      "receipt_sha256": "88e97a98cbe843c03269970399914a5ebe53ad8b24da0b3c32a9fb6892b951c8"
+    },
+    {
+      "major": 16,
+      "package": "runtime",
+      "native_exit_code": 0,
+      "original_wrapper_observation_passed": false,
+      "inventory": 191,
+      "passed": 1,
+      "filtered": 190,
+      "return_markers": 2,
+      "receipt_sha256": "e1fbb2cebb2b16636b101ab9987f3c02d9954f2ed0d94e398e4053a903a23a22"
+    },
+    {
+      "major": 17,
+      "package": "store",
+      "native_exit_code": 0,
+      "original_wrapper_observation_passed": true,
+      "inventory": 264,
+      "passed": 1,
+      "filtered": 263,
+      "return_markers": 0,
+      "receipt_sha256": "ec11bf856f9701c53e7921e270b6e7cef35b94e3d46ca83123a0423f06a2d6b3"
+    },
+    {
+      "major": 17,
+      "package": "runtime",
+      "native_exit_code": 0,
+      "original_wrapper_observation_passed": true,
+      "inventory": 191,
+      "passed": 1,
+      "filtered": 190,
+      "return_markers": 2,
+      "receipt_sha256": "d9356f10b6293ee17118009a95f5576c3c4e30e6620ad72838b1e5eae62ca01e"
+    }
+  ],
+  "runtime_native_marker_profile": "macOS aarch64 SIGKILL with PostgreSQL16.15 and17.11 on durable on/on/on containers",
+  "v4_runner_review": "Only database prefix and exact case completion parser changed. Parser binds one exact case start to its sole inline or subsequent standalone ok while one actual libtest summary and process exit remain mandatory.",
+  "v4_runner_sha256": "5971de42998a1505ae81abc13d2cd7523f77ecd3b9fa08e2fe9da2b74cd52bab",
+  "four_case_qualification_sha256": "9f6d82e4086b67ac8dd04bbbe1b9abaf532ff511d183a5780a26bfe60b7c1332",
+  "original_pg16_native_zero_wrapper_one_and_observations_false_preserved": true,
+  "pg17_first_default_sandbox_inspect_failure_before_test_preserved": true,
+  "originals_modified_by_reviewer": false,
+  "Rust_DB_Docker_or_archived_verifier_executed_by_reviewer": false,
+  "qualification_limits": [
+    "Targeted two Store cases and two Runtime controller cases, not complete Native suites",
+    "Two cuts occur inside one Runtime controller per database, not two separate business test cases",
+    "14 selected fixture tables and row JSON representations, not whole database or physical storage tuple snapshots",
+    "Forced supersession profile; no natural expiry or independent liveness-before-supersession claim",
+    "macOS parent and child processes with Linux PostgreSQL containers; not Linux process kill qualification",
+    "No whole cold CI, capacity, independent security, full fault matrix or R1 completion claim"
+  ]
+}

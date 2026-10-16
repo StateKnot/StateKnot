@@ -1,0 +1,47 @@
+{
+  "base_commit": "a544ad9bfcb516a1ac7a6b8232c66019b46ad1f5",
+  "source_tree": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "selected_source_count": 932,
+  "supplied_compilation_count": 541,
+  "supplied_compilation_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "adopted_test_paths": [
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs"
+  ],
+  "selected_tree_differences_from_base": [
+    "CHANGELOG.md",
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs",
+    "docs/a2a-server.md",
+    "docs/a2a-server.zh-CN.md"
+  ],
+  "excluded_older_noncompilation_docs": [
+    "CHANGELOG.md",
+    "docs/a2a-server.md",
+    "docs/a2a-server.zh-CN.md"
+  ],
+  "production_Rust_SQL_API_or_migrations_changed": false,
+  "six_gate_classes_passed_in_two_plus_four_commands": true,
+  "single_six_driver_passed": false,
+  "workspace_passed": 2121,
+  "workspace_original_ignored": 6,
+  "doctests_passed": 48,
+  "actual_Native_exact_cases": 4,
+  "actual_return_cuts_per_runtime_case": 2,
+  "original_pg16_runtime_native_exit": 0,
+  "original_pg16_runtime_wrapper_exit": 1,
+  "pg16_runtime_offline_supplement_not_rewrite": true,
+  "full_Native_CI_capacity_or_R1_qualification": false,
+  "evidence_root": "docs/qualification/evidence/experimental-frame-return-process-faults-2026-10-16",
+  "artifact_index_sha256": "877ae3675046d76f8da108455c92c7ede4735ca826c61541d7815c69e4795674",
+  "manifest_sha256": "e7aac14a0e9ff25643f4667635876ac60a62d27d2ade36974e63aeb09e9f4df2",
+  "verifier_sha256": "7b08ea20e509a77ea556622fb850892153738df4586143245f9c9646521812a3",
+  "offline_workspace_verifier_actual_exit_code": 0,
+  "independent_source_standards_findings": 0,
+  "independent_source_spec_findings": 0,
+  "scope": "test-only component qualification; full CI and R1 open"
+}
