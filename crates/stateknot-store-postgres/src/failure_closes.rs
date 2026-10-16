@@ -143,8 +143,16 @@ impl PostgresStore {
             .clone();
         ensure_no_unsettled_tool_invocations(&mut tx, &current).await?;
         ensure_no_unsettled_model_invocations(&mut tx, &current).await?;
-        let unfinished = query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND n.fence_attempt_id=$3 AND NOT EXISTS (SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id))")
-            .bind(tenant.as_str()).bind(*run_id.as_uuid()).bind(*fence.attempt_id().as_uuid())
+        let verified_frames = Box::pin(graph_frames::prepare_failure_close(
+            &mut tx,
+            &run,
+            tenant,
+            run_id,
+            &direct_usage,
+        ))
+        .await?;
+        let unfinished = query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND n.fence_attempt_id=$3 AND NOT EXISTS (SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id) AND NOT ($4 AND (EXISTS(SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=n.tenant_id AND e.run_id=n.run_id AND e.caller_attempt_id=n.attempt_id) OR EXISTS(SELECT 1 FROM stateknot.graph_frame_caller_bindings b WHERE b.tenant_id=n.tenant_id AND b.run_id=n.run_id AND b.caller_attempt_id=n.attempt_id))))")
+            .bind(tenant.as_str()).bind(*run_id.as_uuid()).bind(*fence.attempt_id().as_uuid()).bind(verified_frames)
             .fetch_one(&mut *tx).await.map_err(|source| StoreError::database("failure close direct boundary",source))?;
         if unfinished {
             return Err(StoreError::InvalidRunFailureClose);

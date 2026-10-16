@@ -740,7 +740,9 @@ impl McpToolCatalog {
 }
 
 /// One request-scoped server notification received before an SSE final response.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// `Debug` reports parameter presence without the untrusted method or payload.
+#[derive(Clone, PartialEq)]
 pub struct McpNotification {
     method: Box<str>,
     params: Option<Value>,
@@ -767,9 +769,21 @@ impl McpNotification {
     }
 }
 
+impl fmt::Debug for McpNotification {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpNotification")
+            .field("has_params", &self.params.is_some())
+            .finish_non_exhaustive()
+    }
+}
+
 /// A complete Tool result. Tool-level failures remain results through
 /// [`Self::is_error`] so an Agent can inspect and recover from them.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// `Debug` reports only content count, structured-output presence and `is_error`;
+/// no content or raw result values are formatted.
+#[derive(Clone, PartialEq)]
 pub struct McpCompleteToolResult {
     content: Vec<Value>,
     structured_content: Option<Value>,
@@ -800,6 +814,17 @@ impl McpCompleteToolResult {
     #[must_use]
     pub const fn raw(&self) -> &Value {
         &self.raw
+    }
+}
+
+impl fmt::Debug for McpCompleteToolResult {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpCompleteToolResult")
+            .field("content_count", &self.content.len())
+            .field("has_structured_content", &self.structured_content.is_some())
+            .field("is_error", &self.is_error)
+            .finish_non_exhaustive()
     }
 }
 
@@ -872,7 +897,10 @@ pub enum McpToolCall {
 }
 
 /// One Tool-call round plus any request-scoped SSE notifications.
-#[derive(Debug)]
+///
+/// `Debug` reports only the outcome kind and notification count, without
+/// formatting the nested result, continuation, Tool metadata or notifications.
+/// This does not change the separate `Debug` contract of `McpInputRequired`.
 pub struct McpToolCallResponse {
     outcome: McpToolCall,
     notifications: Vec<McpNotification>,
@@ -898,8 +926,25 @@ impl McpToolCallResponse {
     }
 }
 
+impl fmt::Debug for McpToolCallResponse {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let outcome = match &self.outcome {
+            McpToolCall::Complete(_) => "complete",
+            McpToolCall::InputRequired(_) => "input_required",
+        };
+        formatter
+            .debug_struct("McpToolCallResponse")
+            .field("outcome", &outcome)
+            .field("notification_count", &self.notifications.len())
+            .finish_non_exhaustive()
+    }
+}
+
 /// A bounded JSON-RPC error returned by the MCP server.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// `Debug` retains only its code and data presence; message and data remain
+/// available through explicit untrusted accessors.
+#[derive(Clone, PartialEq)]
 pub struct McpRemoteError {
     code: i32,
     message: Box<str>,
@@ -923,6 +968,16 @@ impl McpRemoteError {
     #[must_use]
     pub const fn data(&self) -> Option<&Value> {
         self.data.as_ref()
+    }
+}
+
+impl fmt::Debug for McpRemoteError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpRemoteError")
+            .field("code", &self.code)
+            .field("has_data", &self.data.is_some())
+            .finish_non_exhaustive()
     }
 }
 
@@ -1620,11 +1675,7 @@ enum ParsedMessage {
 }
 
 fn allocate_monotonic_id(counter: &AtomicU64) -> Option<u64> {
-    counter
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-            value.checked_add(1)
-        })
-        .ok()
+    crate::atomic_counter::allocate(counter, u64::MAX, Ordering::Relaxed, Ordering::Relaxed)
 }
 
 async fn wait_until<T, F>(
@@ -2224,6 +2275,14 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[test]
+    fn request_id_exhaustion_fails_closed_without_wrapping() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+        assert_eq!(allocate_monotonic_id(&counter), Some(u64::MAX - 1));
+        assert_eq!(allocate_monotonic_id(&counter), None);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+    }
 
     #[test]
     fn identity_and_options_are_bounded() {

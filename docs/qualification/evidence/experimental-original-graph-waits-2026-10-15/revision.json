@@ -1,0 +1,11 @@
+{
+  "revision": "v2-baseline514-vs-actual-exporter-clarification",
+  "parent_v1_seal_sha256": "a64fb37eea030e1f26c80b7d6b6e796471e7d551ab2d97e50d354f9da4ef9cd0",
+  "source_and_raw_execution_artifacts_unchanged": true,
+  "changed_report_files": [
+    "experimental-original-graph-waits-2026-10-15.md",
+    "experimental-original-graph-waits-2026-10-15.zh-CN.md",
+    "experimental-original-graph-waits-2026-10-15.json"
+  ],
+  "new_compilation_or_native_execution": false
+}

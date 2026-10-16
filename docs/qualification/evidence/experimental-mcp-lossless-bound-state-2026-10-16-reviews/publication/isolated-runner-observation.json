@@ -1,0 +1,82 @@
+{
+  "schema": "retained-isolated-gate-runner-observation/v1",
+  "initial_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/run-gate.py",
+  "retry_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/run-gate.py",
+  "same_current_bytes": true,
+  "runner_sha256": "084de67b556627e6faa764ebc7cd560651c607b8c45bc146da0761ce4a6cab03",
+  "runner_bytes": 3374,
+  "initial_mtime_ns": 1792116950556391116,
+  "retry_mtime_ns": 1792117075857167681,
+  "copied_raw_here": [
+    "isolated-initial-v3-run-gate.py.txt",
+    "isolated-network-retry-run-gate.py.txt"
+  ],
+  "execute_six_current_bytes_sha256": "523169e5ec77d659cf3afd5589f4939f86d4a8e9ec70ed2ed4941091e9c5ae89",
+  "execute_six_calls_same_directory_run_gate": true,
+  "source_directory": "mcp-lossless-bound-state-source-v3",
+  "retained_runner_configuration_read": {
+    "all_STATEKNOT_variables_removed": true,
+    "all_CARGO_PROFILE_variables_removed_before_setting_debug0": true,
+    "RUST_MIN_STACK_encoded_flags_bootstrap_removed": true,
+    "RUSTFLAGS_and_RUSTDOCFLAGS_strict_warnings": true,
+    "incremental0_devtest_debug0_no_opt_override": true,
+    "same_original_cache_paths": true
+  },
+  "gate_start_receipts": [
+    {
+      "gate": "fmt",
+      "receipt_sha256": "b07075a678d941cc68e46569a23bcd3ab5da757565f0e712560b6674cf290f98",
+      "start_unix": 1792117098.841794,
+      "runner_pid": 41512,
+      "Cargo_pid": 41575,
+      "exit_code": 0,
+      "runner_current_mtime_precedes_recorded_start": true
+    },
+    {
+      "gate": "clippy",
+      "receipt_sha256": "dd46baeaa791739ecc8d3bd5be94760f57eca565c0dfee3a62f46888d064b640",
+      "start_unix": 1792117101.065398,
+      "runner_pid": 41620,
+      "Cargo_pid": 41630,
+      "exit_code": 0,
+      "runner_current_mtime_precedes_recorded_start": true
+    },
+    {
+      "gate": "workspace",
+      "receipt_sha256": "8598ec23429809e92f5625ff52d34721db4ccdaa526ff5a535b7fb7dbf8181ad",
+      "start_unix": 1792117102.2468648,
+      "runner_pid": 41649,
+      "Cargo_pid": 41662,
+      "exit_code": 0,
+      "runner_current_mtime_precedes_recorded_start": true
+    },
+    {
+      "gate": "doctests",
+      "receipt_sha256": "d9ab85325fb0f4f371bf9d94f39d354aeb91eaa614070309020d80567e53051f",
+      "start_unix": 1792117202.787104,
+      "runner_pid": 41898,
+      "Cargo_pid": 41909,
+      "exit_code": 0,
+      "runner_current_mtime_precedes_recorded_start": true
+    },
+    {
+      "gate": "rustdoc",
+      "receipt_sha256": "781fe2c70cb67f2b397ede421b7bc60726446b56478751b71be6f79b749e85df",
+      "start_unix": 1792117210.599791,
+      "runner_pid": 42038,
+      "Cargo_pid": 42048,
+      "exit_code": 0,
+      "runner_current_mtime_precedes_recorded_start": true
+    },
+    {
+      "gate": "nightly",
+      "receipt_sha256": "1da3e761520268562551c3998f2412da39304bdc5900e94f26ff72714fe2d70c",
+      "start_unix": 1792117225.3559082,
+      "runner_pid": 42126,
+      "Cargo_pid": 42137,
+      "exit_code": 0,
+      "runner_current_mtime_precedes_recorded_start": true
+    }
+  ],
+  "observation_limit": "Read/hash of retained runner bytes and filesystem timestamps now. Execution receipts identify each command/PID/start and raw log; these are not a separately captured execution-time environment or cryptographic runner-hash attestation. This runner was absent from frozen P2 and is supplied here as an independent local observation pending the separate public execution appendix."
+}

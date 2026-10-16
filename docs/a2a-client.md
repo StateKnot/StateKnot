@@ -122,6 +122,45 @@ run, invocation, and physical attempt IDs. Production providers should mint or
 retrieve short-lived tokens for that exact tuple. Tokens, remote response text,
 and response bodies are not retained in public errors or `Debug` output.
 
+### Authorize the actual prepared request
+
+Authenticated operations also expose `request_method()`, `request_url()` and
+`request_body()` on `A2aClientAuthorizationRequest`. The URL includes the actual
+operation path and query. The optional body is the already-bounded serialized
+HTTP+JSON body or JSON-RPC envelope; HTTP GET/DELETE can have no body while their
+JSON-RPC equivalents carry an envelope. Evaluate the selected binding and exact
+operation when applying target, argument and data-release policy.
+
+The client prepares that request once, invokes the provider under the original
+absolute deadline and then sends the same immutable URL/body if work proceeds.
+The provider cannot rewrite them. Its returned token is added to the HTTP
+Authorization header afterward. Refusal or a dropped/timed-out pending provider
+Future does not dispatch the business request. Later dispatch uncertainty keeps
+the existing effect/recovery rules. Synchronous provider work must be bounded;
+an async deadline cannot preempt blocking policy code.
+
+Facts alone do not implement a policy. The host must resolve trusted Run
+principal/consent and authorize the actual destination and payload before
+returning a credential. Static or existing metadata-only providers keep their
+previous behavior, and Anonymous mode does not call a token provider. Client
+headers/extensions remain part of the frozen deployment configuration; these
+getters are not a new verifier or a universal HTTP-header authorization object.
+
+Debug omits the new request URL and body; existing tenant/task/attempt fields
+remain visible. Explicit accessors expose potentially sensitive application
+input. Cloning the context shares the immutable serialized body and can retain
+that input beyond the HTTP call; trusted host code owns that retention and must
+not log the payload or credentials. No extra full payload copy, schema fetch,
+new request limit or automatic policy/retry is introduced. The body ceiling
+describes accepted serialized length; this change adds no new peak-memory
+guarantee to the existing serializer.
+
+Recovery operations use current policy and their actual newly prepared request.
+Attested MessageIdReplay retains the original business message identity; a
+JSON-RPC transport request still receives its fresh correlation ID. Do not
+require identical transport-envelope bytes across distinct JSON-RPC rounds or
+mistake an authorized original send for authorization of a later replay.
+
 `GetExtendedAgentCard` is never dispatched by an anonymous client. Its result
 is bounded and revalidated, but it is returned as data: it does not mutate the
 immutable client, change egress/security pins, or silently rebind a Tool. To

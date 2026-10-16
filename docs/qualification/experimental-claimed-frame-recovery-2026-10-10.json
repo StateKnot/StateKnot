@@ -1,0 +1,1588 @@
+{
+  "source_commit": "8285f25130eeba18b7f6f2059089f851a64e1fac",
+  "source_tree": "9428ca4c0c7e48b58c85beeeaa120323739f9d42",
+  "source_files_sha256": "d483296953788d3f9c7922fd5a260b7ef62461d3aa38fa276eb813eed7969989",
+  "qualification_complete": true,
+  "business_nested_execution_complete": false,
+  "qualification_scope": "Frozen 8285 experimental Core/PostgreSQL bounded qualification only. Actual nested Driver, complete whole application replay, historical executable N-1/N-2 and R1/G3/R6/R7 closure remain open.",
+  "strict_clippy": {
+    "log": "/tmp/stateknot-claimed-frame-full-clippy-v5.log",
+    "log_sha256": "afe8cd3b33fd60be4baca5c49793619be89ff3368729c185aa366f4edecc2256",
+    "bytes": 803
+  },
+  "workspace": {
+    "log": "/tmp/stateknot-claimed-frame-full-workspace-v1.log",
+    "log_sha256": "a3e660486d18cabbeaf73db0c16268df4d75b61faea06ec31360ac73ad01f960",
+    "bytes": 168714,
+    "suites": 98,
+    "passed": 1909,
+    "failed": 0,
+    "ignored": 3,
+    "seconds": 16.01,
+    "individual_suites": [
+      {
+        "passed": 34,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.92
+      },
+      {
+        "passed": 19,
+        "failed": 0,
+        "ignored": 1,
+        "seconds": 0.0
+      },
+      {
+        "passed": 21,
+        "failed": 0,
+        "ignored": 1,
+        "seconds": 0.0
+      },
+      {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 1,
+        "seconds": 1.19
+      },
+      {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.19
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.41
+      },
+      {
+        "passed": 487,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 3.7
+      },
+      {
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.32
+      },
+      {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 67,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.05
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.03
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 57,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.03
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.02
+      },
+      {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.07
+      },
+      {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 1.03
+      },
+      {
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.15
+      },
+      {
+        "passed": 15,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 2.09
+      },
+      {
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.02
+      },
+      {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 1.66
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.09
+      },
+      {
+        "passed": 12,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.07
+      },
+      {
+        "passed": 73,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.03
+      },
+      {
+        "passed": 318,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.14
+      },
+      {
+        "passed": 14,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.13
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 72,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.03
+      },
+      {
+        "passed": 19,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.9
+      },
+      {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.14
+      },
+      {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.66
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.39
+      },
+      {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 18,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 1.09
+      },
+      {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 76,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.11
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.02
+      },
+      {
+        "passed": 140,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.06
+      },
+      {
+        "passed": 11,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.05
+      },
+      {
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 0,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.0
+      },
+      {
+        "passed": 182,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.01
+      },
+      {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.11
+      }
+    ]
+  },
+  "rustdoc": {
+    "log": "/tmp/stateknot-claimed-frame-rustdoc-v1.log",
+    "log_sha256": "9d56adc6c4731c14742d9e47150af5d87e2e5646fb43df0773a1561f78146572",
+    "bytes": 2106
+  },
+  "postgres": {
+    "16": {
+      "full_store": {
+        "log": "/tmp/stateknot-claimed-frame-full-store16-v1.log",
+        "log_sha256": "10193baf6c8651d7186dfe541efa7790390d6516f147cd131fadff7500a54a3a",
+        "bytes": 17830,
+        "suites": 3,
+        "passed": 193,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 320.95,
+        "individual_suites": [
+          {
+            "passed": 10,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 0.01
+          },
+          {
+            "passed": 1,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 0.0
+          },
+          {
+            "passed": 182,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 320.94
+          }
+        ]
+      },
+      "runtime_initial": {
+        "log": "/tmp/stateknot-claimed-frame-runtime16-v1.log",
+        "log_sha256": "ab7c045e27934ee28722d7cfcb39706f1c41fefd9802631a62e6af4c6fcc9b9f",
+        "bytes": 32030,
+        "suites": 1,
+        "passed": 139,
+        "failed": 1,
+        "ignored": 0,
+        "seconds": 238.21,
+        "individual_suites": [
+          {
+            "passed": 139,
+            "failed": 1,
+            "ignored": 0,
+            "seconds": 238.21
+          }
+        ],
+        "actual_login_role_profile": [
+          {
+            "agent_service_submission": true,
+            "compound_frame_entry_race": 24,
+            "compound_frame_entry_reload": true,
+            "concurrent_submission_and_completion": 24,
+            "drift_rejected": true,
+            "effective_acl_audit": true,
+            "fixture_cleaned": true,
+            "framework_caller_rebind_retry_reload": true,
+            "invariants": "passed",
+            "isolated_retention": true,
+            "join_checkpoint_recovery": true,
+            "owner_is_non_superuser": true,
+            "populated_reapply": true,
+            "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+            "privilege_rejections": true,
+            "profile": "trusted-server-roles-v1",
+            "provider_native_recovery": true,
+            "runtime_failure_close": true,
+            "schema": 33,
+            "scoped_barrier_commit_retry_reload": true,
+            "scoped_node_start_success_reload": true,
+            "separate_login_connections": true,
+            "skill_acting_window_authorization": true,
+            "whole_frame_closure_retry_reload_terminal": true,
+            "whole_frame_return_retry_reload": true,
+            "whole_frame_wait_resolve_resume": true
+          }
+        ]
+      },
+      "runtime_full": {
+        "passed": 140,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 359.28,
+        "log": "/tmp/stateknot-claimed-frame-runtime16-v2.log",
+        "log_sha256": "b96492ed5fa4d85db1cf2b8128f49450acb296caf2a8184a49806752f52e8056",
+        "actual_login_role_profile": {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 33,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        },
+        "configuration": "same frozen source, ordinary Rust 1.88, original default stack/lease/deadline/overflow assertions; independent database frozen2"
+      }
+    },
+    "17": {
+      "full_store": {
+        "log": "/tmp/stateknot-claimed-frame-full-store17-v1.log",
+        "log_sha256": "11ba99c554fbf5e44d94d5af77e338990b57a8ede8d017bdb72669baa2126738",
+        "bytes": 18043,
+        "suites": 3,
+        "passed": 193,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 355.44,
+        "individual_suites": [
+          {
+            "passed": 10,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 0.0
+          },
+          {
+            "passed": 1,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 0.0
+          },
+          {
+            "passed": 182,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 355.44
+          }
+        ]
+      },
+      "runtime_initial": {
+        "log": "/tmp/stateknot-claimed-frame-runtime17-v1.log",
+        "log_sha256": "00603c62abc2ce3832dbcc3fee200eb45f984d93acdd2b5952213413bea45715",
+        "bytes": 32438,
+        "suites": 1,
+        "passed": 140,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 258.28,
+        "individual_suites": [
+          {
+            "passed": 140,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 258.28
+          }
+        ],
+        "actual_login_role_profile": [
+          {
+            "agent_service_submission": true,
+            "compound_frame_entry_race": 24,
+            "compound_frame_entry_reload": true,
+            "concurrent_submission_and_completion": 24,
+            "drift_rejected": true,
+            "effective_acl_audit": true,
+            "fixture_cleaned": true,
+            "framework_caller_rebind_retry_reload": true,
+            "invariants": "passed",
+            "isolated_retention": true,
+            "join_checkpoint_recovery": true,
+            "owner_is_non_superuser": true,
+            "populated_reapply": true,
+            "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+            "privilege_rejections": true,
+            "profile": "trusted-server-roles-v1",
+            "provider_native_recovery": true,
+            "runtime_failure_close": true,
+            "schema": 33,
+            "scoped_barrier_commit_retry_reload": true,
+            "scoped_node_start_success_reload": true,
+            "separate_login_connections": true,
+            "skill_acting_window_authorization": true,
+            "whole_frame_closure_retry_reload_terminal": true,
+            "whole_frame_return_retry_reload": true,
+            "whole_frame_wait_resolve_resume": true
+          }
+        ]
+      },
+      "runtime_full": {
+        "log": "/tmp/stateknot-claimed-frame-runtime17-v1.log",
+        "log_sha256": "00603c62abc2ce3832dbcc3fee200eb45f984d93acdd2b5952213413bea45715",
+        "bytes": 32438,
+        "suites": 1,
+        "passed": 140,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 258.28,
+        "individual_suites": [
+          {
+            "passed": 140,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 258.28
+          }
+        ],
+        "actual_login_role_profile": [
+          {
+            "agent_service_submission": true,
+            "compound_frame_entry_race": 24,
+            "compound_frame_entry_reload": true,
+            "concurrent_submission_and_completion": 24,
+            "drift_rejected": true,
+            "effective_acl_audit": true,
+            "fixture_cleaned": true,
+            "framework_caller_rebind_retry_reload": true,
+            "invariants": "passed",
+            "isolated_retention": true,
+            "join_checkpoint_recovery": true,
+            "owner_is_non_superuser": true,
+            "populated_reapply": true,
+            "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+            "privilege_rejections": true,
+            "profile": "trusted-server-roles-v1",
+            "provider_native_recovery": true,
+            "runtime_failure_close": true,
+            "schema": 33,
+            "scoped_barrier_commit_retry_reload": true,
+            "scoped_node_start_success_reload": true,
+            "separate_login_connections": true,
+            "skill_acting_window_authorization": true,
+            "whole_frame_closure_retry_reload_terminal": true,
+            "whole_frame_return_retry_reload": true,
+            "whole_frame_wait_resolve_resume": true
+          }
+        ]
+      }
+    }
+  },
+  "linux_original_regression": {
+    "source_commit": "8285f25130eeba18b7f6f2059089f851a64e1fac",
+    "source_tree": "9428ca4c0c7e48b58c85beeeaa120323739f9d42",
+    "qualification_scope": "One original full seven-level return regression on Linux Rust 1.88 with default Rust test thread stack; no nested Driver or milestone-completion claim.",
+    "database": "stateknot_claimed_frame_linux17v1",
+    "pg_container": "stateknot-r1-frame-scope-20261009-pg17",
+    "test": "frame_returns::seven_level_return_cascade_preserves_every_proof_and_lifetime_counter",
+    "log": "/tmp/stateknot-claimed-frame-linux-seven-level-v1.log",
+    "started_at_utc": "2026-10-10T13:22:58.319323+00:00",
+    "disk_before": "Filesystem      Size    Used   Avail Capacity iused ifree %iused  Mounted on\n/dev/disk3s5   926Gi   600Gi   296Gi    67%    4.2M  3.1G    0%   /System/Volumes/Data",
+    "source_before": {
+      "tracked_files": 847,
+      "all_files_and_modes_match": true,
+      "file_manifest_sha256": "617339f64f79f58b7907e336526b2e53c8728d1f06dd29ff6db152f280940b36",
+      "lockfiles": {
+        "Cargo.lock": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+        "conformance/mcp-client/package-lock.json": "5a9fd8fb8b4f213ab16fef245e58537414d08411cd6b6cf6895952bc8560881e",
+        "fuzz/Cargo.lock": "8310a4df054f97b4b64eeaa9ac97c26b4185718d5842b46bdc8ade6cc1439cf6",
+        "website/package-lock.json": "dac6d858b80059a5a06cf46395c66fc97942e167a4b676bb54f6c55c8256f520"
+      }
+    },
+    "container_before": {
+      "container_id": "8a6f70960a15e54aab5bb8f891a66398a825bb21fff32a72a3afe4fe562b28fc",
+      "image_id": "sha256:93ce27a88655056a51dbdd8f5f2d7ddc071c7b0070fb288a37b5a285fc83971e",
+      "compiler": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo_version": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "environment": {
+        "RUSTUP_HOME": "/task-rustup",
+        "RUSTUP_TOOLCHAIN": "1.88.0",
+        "CARGO_HOME": "/task-cargo",
+        "CARGO_TARGET_DIR": "/task-target",
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "boundaries": {
+        "Memory": 2147483648,
+        "NanoCpus": 2000000000,
+        "ReadonlyRootfs": true,
+        "CapDrop": [
+          "ALL"
+        ],
+        "Tmpfs": {
+          "/tmp": "rw,exec,size=512m"
+        },
+        "SecurityOpt": [
+          "no-new-privileges"
+        ],
+        "NetworkMode": "bridge"
+      },
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-linux-stack-rustup",
+          "Destination": "/task-rustup",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/Users/jiawy/.cargo/registry",
+          "Destination": "/task-cargo/registry",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-source-v1",
+          "Destination": "/workspace",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-target-v1",
+          "Destination": "/task-target",
+          "RW": true
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-cargo-v1",
+          "Destination": "/task-cargo",
+          "RW": true
+        }
+      ],
+      "rust_min_stack_absent": true,
+      "custom_rustflags_absent": true
+    },
+    "postgres_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+    "old_resources_before": {
+      "container_config_sha256": "9722aa81372786c4bdf16dc9ce483758fefb6f5063f46bc08f80baf582f55e43",
+      "source_and_target_stat_manifest_sha256": {
+        "source": "13342ea0f4fe39ecb7c681d91ed583633c289f149e8a2b09cad7d00c8e8c3130",
+        "target": "b62538c8ed909bd145b265a8ed8bb1d0697a65116d38093bed6cf9b71510b37f"
+      }
+    },
+    "target_initially_empty": true,
+    "command_redacted": [
+      "docker",
+      "exec",
+      "-e",
+      "RUSTUP_TOOLCHAIN=1.88.0",
+      "-e",
+      "STATEKNOT_REQUIRE_POSTGRES_TESTS=1",
+      "-e",
+      "STATEKNOT_TEST_DATABASE_URL=<owned PG17 independent DB>",
+      "stateknot-r1-claimed-linux-20261010",
+      "cargo",
+      "test",
+      "-p",
+      "stateknot-store-postgres",
+      "--test",
+      "postgres",
+      "--all-features",
+      "--locked",
+      "--offline",
+      "frame_returns::seven_level_return_cascade_preserves_every_proof_and_lifetime_counter",
+      "--",
+      "--exact",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "wall_seconds_including_empty_cache_compile": 148.003,
+    "completed_at_utc": "2026-10-10T13:25:26.837591+00:00",
+    "actual_one_test": true,
+    "actual_pass": true,
+    "log_sha256": "847d2ab7c6a6582b9a2a427a7f6622b0447f79e3df470d4582fef40da0e1d8e4",
+    "source_after": {
+      "tracked_files": 847,
+      "all_files_and_modes_match": true,
+      "file_manifest_sha256": "617339f64f79f58b7907e336526b2e53c8728d1f06dd29ff6db152f280940b36",
+      "lockfiles": {
+        "Cargo.lock": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+        "conformance/mcp-client/package-lock.json": "5a9fd8fb8b4f213ab16fef245e58537414d08411cd6b6cf6895952bc8560881e",
+        "fuzz/Cargo.lock": "8310a4df054f97b4b64eeaa9ac97c26b4185718d5842b46bdc8ade6cc1439cf6",
+        "website/package-lock.json": "dac6d858b80059a5a06cf46395c66fc97942e167a4b676bb54f6c55c8256f520"
+      }
+    },
+    "container_after": {
+      "container_id": "8a6f70960a15e54aab5bb8f891a66398a825bb21fff32a72a3afe4fe562b28fc",
+      "image_id": "sha256:93ce27a88655056a51dbdd8f5f2d7ddc071c7b0070fb288a37b5a285fc83971e",
+      "compiler": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo_version": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "environment": {
+        "RUSTUP_HOME": "/task-rustup",
+        "RUSTUP_TOOLCHAIN": "1.88.0",
+        "CARGO_HOME": "/task-cargo",
+        "CARGO_TARGET_DIR": "/task-target",
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "boundaries": {
+        "Memory": 2147483648,
+        "NanoCpus": 2000000000,
+        "ReadonlyRootfs": true,
+        "CapDrop": [
+          "ALL"
+        ],
+        "Tmpfs": {
+          "/tmp": "rw,exec,size=512m"
+        },
+        "SecurityOpt": [
+          "no-new-privileges"
+        ],
+        "NetworkMode": "bridge"
+      },
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-linux-stack-rustup",
+          "Destination": "/task-rustup",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/Users/jiawy/.cargo/registry",
+          "Destination": "/task-cargo/registry",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-source-v1",
+          "Destination": "/workspace",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-target-v1",
+          "Destination": "/task-target",
+          "RW": true
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-cargo-v1",
+          "Destination": "/task-cargo",
+          "RW": true
+        }
+      ],
+      "rust_min_stack_absent": true,
+      "custom_rustflags_absent": true
+    },
+    "old_resources_after": {
+      "container_config_sha256": "0dc2352e4e208a4356a7485f8f69b1b77272a9882e7f961bec89fc9368871a0e",
+      "source_and_target_stat_manifest_sha256": {
+        "source": "13342ea0f4fe39ecb7c681d91ed583633c289f149e8a2b09cad7d00c8e8c3130",
+        "target": "b62538c8ed909bd145b265a8ed8bb1d0697a65116d38093bed6cf9b71510b37f"
+      }
+    },
+    "old_resources_unchanged": true,
+    "post_run_verification_passed": true,
+    "qualified": true,
+    "v1_guard_failed": true,
+    "v1_guard_failure_record_preserved": "/tmp/stateknot-claimed-frame-linux-seven-level-evidence-v1.json",
+    "v1_guard_failure_record_sha256": "70f89bbc2cb9f890ead5a1083e7b87cb7d026306c1e14801023a24faea196178",
+    "preservation_comparison_correction": "Docker inspect Mounts array order was variable. The exact complete before and after object hashes are both reproduced solely by mount order permutations, and all fields are equal after canonical order.",
+    "mount_order_proof": "/tmp/stateknot-claimed-frame-linux-old-container-order-proof-v1.json",
+    "mount_order_proof_sha256": "58ac2b6ea2f1a9f2e92b2f9b056523fea261e3053a53d50adf13cc33c1b22f5b",
+    "source_after_additional_verify": {
+      "tracked_files": 847,
+      "all_files_and_modes_match": true,
+      "file_manifest_sha256": "617339f64f79f58b7907e336526b2e53c8728d1f06dd29ff6db152f280940b36",
+      "lockfiles": {
+        "Cargo.lock": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+        "conformance/mcp-client/package-lock.json": "5a9fd8fb8b4f213ab16fef245e58537414d08411cd6b6cf6895952bc8560881e",
+        "fuzz/Cargo.lock": "8310a4df054f97b4b64eeaa9ac97c26b4185718d5842b46bdc8ade6cc1439cf6",
+        "website/package-lock.json": "dac6d858b80059a5a06cf46395c66fc97942e167a4b676bb54f6c55c8256f520"
+      }
+    },
+    "container_after_additional_verify": {
+      "container_id": "8a6f70960a15e54aab5bb8f891a66398a825bb21fff32a72a3afe4fe562b28fc",
+      "image_id": "sha256:93ce27a88655056a51dbdd8f5f2d7ddc071c7b0070fb288a37b5a285fc83971e",
+      "compiler": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo_version": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "environment": {
+        "RUSTUP_HOME": "/task-rustup",
+        "RUSTUP_TOOLCHAIN": "1.88.0",
+        "CARGO_HOME": "/task-cargo",
+        "CARGO_TARGET_DIR": "/task-target",
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "boundaries": {
+        "Memory": 2147483648,
+        "NanoCpus": 2000000000,
+        "ReadonlyRootfs": true,
+        "CapDrop": [
+          "ALL"
+        ],
+        "Tmpfs": {
+          "/tmp": "rw,exec,size=512m"
+        },
+        "SecurityOpt": [
+          "no-new-privileges"
+        ],
+        "NetworkMode": "bridge"
+      },
+      "mounts": [
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-linux-stack-rustup",
+          "Destination": "/task-rustup",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/Users/jiawy/.cargo/registry",
+          "Destination": "/task-cargo/registry",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-source-v1",
+          "Destination": "/workspace",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-target-v1",
+          "Destination": "/task-target",
+          "RW": true
+        },
+        {
+          "Type": "bind",
+          "Source": "/private/tmp/stateknot-claimed-frame-linux-cargo-v1",
+          "Destination": "/task-cargo",
+          "RW": true
+        }
+      ],
+      "rust_min_stack_absent": true,
+      "custom_rustflags_absent": true
+    },
+    "old_container_canonical_config_sha256": "b526c4c52783c3297895d1d08ccd38389f4575d7e25f92256720d60afd3e9ca1",
+    "old_container_running": true,
+    "old_container_original_limits": {
+      "Memory": 2147483648,
+      "NanoCpus": 2000000000,
+      "ReadonlyRootfs": true,
+      "CapDrop": [
+        "ALL"
+      ],
+      "SecurityOpt": [
+        "no-new-privileges"
+      ],
+      "Tmpfs": {
+        "/tmp": "rw,exec,size=512m"
+      }
+    },
+    "pg_container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+    "postgres_version_after": "17.11 (Debian 17.11-1.pgdg13+2)",
+    "schema_version_after": 33,
+    "post_run_processes": "PID                 COMMAND\n14033               sleep",
+    "task_cache_size": "513M\t/private/tmp/stateknot-claimed-frame-linux-target-v1",
+    "task_cache_kib": 524840,
+    "cargo_cachedir_tag_present": false,
+    "cargo_cachedir_tag_verified": false,
+    "cache_cleanup_note": "CACHEDIR.TAG is absent in this custom target. No cleanup was performed. Any later cleanup must separately verify this exact task-created path and cache provenance, build locks and processes; this qualification does not authorize automatic deletion.",
+    "disk_after": "Filesystem      Size    Used   Avail Capacity iused ifree %iused  Mounted on\n/dev/disk3s5   926Gi   600Gi   296Gi    67%    4.2M  3.1G    0%   /System/Volumes/Data",
+    "no_cache_cleanup_performed": true,
+    "test_binaries": [
+      {
+        "path": "/private/tmp/stateknot-claimed-frame-linux-target-v1/debug/deps/postgres-f52468737644bd72",
+        "sha256": "3b1335d8e04cfc9dd2fe0ebc95fcfe78a27c4125d4a91cd37fd56593ee3dcbb2"
+      }
+    ],
+    "qualification_wrapper_sha256": "8279baf791a1f73f6996874c610d1d765076de65758785d6ea5217bef5e0a8c6",
+    "original_regression_identity": {
+      "original_f05_test_body_unchanged": true,
+      "test_body_sha256": "d5268b744f2964583dcf19c678751a03d160fb7bfebc2aa8a6d878f8206c99ee",
+      "test": "frame_returns::seven_level_return_cascade_preserves_every_proof_and_lifetime_counter",
+      "original_renewals_unchanged": true,
+      "test_assertions_unchanged": true
+    },
+    "verified_at_utc": "2026-10-10T13:28:32.785391+00:00"
+  },
+  "current_reader_prechange_returns": {
+    "evidence": "/tmp/stateknot-frame-return-box-compat-v2-evidence.json",
+    "sha256": "78b5e6688b482c6c3d55e8c6ee88aa31a3f21bdac6c976158a542e716c42a7fc",
+    "scope": "Current public-reader logical backup compatibility, no ACL restore or published N-1/N-2 executable qualification"
+  },
+  "ci_run": 38055431022,
+  "ci_status": "completed",
+  "ci_passed": true,
+  "ci_jobs": [
+    {
+      "id": 114222791177,
+      "name": "MCP Conformance",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791256,
+      "name": "Release packages",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791288,
+      "name": "PostgreSQL PITR (16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791291,
+      "name": "Test (windows-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791292,
+      "name": "Test (macos-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791294,
+      "name": "Quality",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791300,
+      "name": "Test (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791313,
+      "name": "PostgreSQL (17)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791358,
+      "name": "PostgreSQL (16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791380,
+      "name": "PostgreSQL PITR (17)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791395,
+      "name": "A2A 1.0 Conformance",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791416,
+      "name": "Core bounded fuzz",
+      "conclusion": "success"
+    },
+    {
+      "id": 114222791483,
+      "name": "Website",
+      "conclusion": "success"
+    }
+  ],
+  "supply_chain_run": 38056473049,
+  "supply_chain_passed": true,
+  "ci_merge_commit": "721b38b9eff13495f5b24283d26af2c342f6f9d9",
+  "ci_merge_tree": "9428ca4c0c7e48b58c85beeeaa120323739f9d42",
+  "ci_merge_parents": [
+    "aa11b4f44a948aaf2e2baba4c30a297dc828ce6d",
+    "8285f25130eeba18b7f6f2059089f851a64e1fac"
+  ],
+  "pending": [],
+  "failed_observations": [
+    {
+      "kind": "Runtime16 original complete run",
+      "result": {
+        "log": "/tmp/stateknot-claimed-frame-runtime16-v1.log",
+        "log_sha256": "ab7c045e27934ee28722d7cfcb39706f1c41fefd9802631a62e6af4c6fcc9b9f",
+        "bytes": 32030,
+        "suites": 1,
+        "passed": 139,
+        "failed": 1,
+        "ignored": 0,
+        "seconds": 238.21,
+        "individual_suites": [
+          {
+            "passed": 139,
+            "failed": 1,
+            "ignored": 0,
+            "seconds": 238.21
+          }
+        ],
+        "actual_login_role_profile": [
+          {
+            "agent_service_submission": true,
+            "compound_frame_entry_race": 24,
+            "compound_frame_entry_reload": true,
+            "concurrent_submission_and_completion": 24,
+            "drift_rejected": true,
+            "effective_acl_audit": true,
+            "fixture_cleaned": true,
+            "framework_caller_rebind_retry_reload": true,
+            "invariants": "passed",
+            "isolated_retention": true,
+            "join_checkpoint_recovery": true,
+            "owner_is_non_superuser": true,
+            "populated_reapply": true,
+            "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+            "privilege_rejections": true,
+            "profile": "trusted-server-roles-v1",
+            "provider_native_recovery": true,
+            "runtime_failure_close": true,
+            "schema": 33,
+            "scoped_barrier_commit_retry_reload": true,
+            "scoped_node_start_success_reload": true,
+            "separate_login_connections": true,
+            "skill_acting_window_authorization": true,
+            "whole_frame_closure_retry_reload_terminal": true,
+            "whole_frame_return_retry_reload": true,
+            "whole_frame_wait_resolve_resume": true
+          }
+        ]
+      },
+      "failure": "Connect Protocol unknown message type \\0 before test business execution. TLS was explicitly Disabled; raw wire failure cause unproven. Do not conflate with parent f05 SSLRequest failure.",
+      "server_log": {
+        "log": "/tmp/stateknot-claimed-frame-runtime16-v1-postgres-tail.log",
+        "log_sha256": "8dc87f8e18b4b626181ec7ca12d3fb89ff274e26b1e82efc96ee16bd050da31d",
+        "bytes": 19938
+      },
+      "diagnostic_same_test": {
+        "log": "/tmp/stateknot-claimed-frame-runtime16-diagnostic-v1.log",
+        "log_sha256": "ea5b18ac9264e49048bdd7f025c4fec13133bae1133b46c71fd9a04dce24b551",
+        "bytes": 562,
+        "suites": 1,
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 0.6,
+        "individual_suites": [
+          {
+            "passed": 1,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 0.6
+          }
+        ]
+      },
+      "config_changed": false
+    }
+  ],
+  "local_fuzz": {
+    "schema": "https://stateknot.github.io/schema/qualification/core-fuzz/1.0.0",
+    "targets": {
+      "bounded_json": {
+        "seed_files": 16,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "7973cbfa93788b9f80375616bb2826e83723ea9edf57f35a50ff27e72d9289d2",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/Users/jiawy/.codex/worktrees/nested-frame-dispatch/RustAgentFramework/fuzz/artifacts/bounded_json/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 512,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 366,
+        "retained_coverage_bytes": 3238881,
+        "log_sha256": "ba937170b6137c4b2fb71960009522e9712ac2ee7377073cf2e5dc6ef365a478"
+      },
+      "core_readers": {
+        "seed_files": 2269,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "0e6f0b265c456575f15199a70ba9de7f7b8c7215d9e1e745dce9e57e8789fa94",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/Users/jiawy/.codex/worktrees/nested-frame-dispatch/RustAgentFramework/fuzz/artifacts/core_readers/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 1019,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 326,
+        "retained_coverage_bytes": 244586,
+        "log_sha256": "569a5709a8ab8a2352bfcc8158089b287ce17a10eb8f2fe0c55af8dfdb4dc4e9"
+      },
+      "schema_registry": {
+        "seed_files": 12,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "780e630c44685b5db5961c7ea724a5566413ef48a8521b5cc581dce28551cc86",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/Users/jiawy/.codex/worktrees/nested-frame-dispatch/RustAgentFramework/fuzz/artifacts/schema_registry/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 448,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 248,
+        "retained_coverage_bytes": 594853,
+        "log_sha256": "32249563ab43ce2326f9d780b5bd09a2c421cbc6d62cbce0e788a62d256866f8"
+      }
+    },
+    "limits": {
+      "max_input_bytes": 131072,
+      "max_mutation_runs_per_target": 10000,
+      "max_seconds_per_target": 60,
+      "max_seconds_per_input": 10,
+      "rss_limit_mib": 2048,
+      "build_jobs": 2,
+      "sanitizer": "address",
+      "cfg_fuzzing": false
+    },
+    "complete": true,
+    "run_directory": "fuzz/results/qualification-vsqv33dy",
+    "source_files_sha256": "d483296953788d3f9c7922fd5a260b7ef62461d3aa38fa276eb813eed7969989",
+    "source_commit": "8285f25130eeba18b7f6f2059089f851a64e1fac",
+    "source_dirty": false,
+    "rustc": "rustc 1.101.0-nightly (8d1a76430 2026-10-06)",
+    "cargo_fuzz": "cargo-fuzz 0.13.2",
+    "cargo_locks": {
+      "Cargo.lock": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+      "fuzz/Cargo.lock": "8310a4df054f97b4b64eeaa9ac97c26b4185718d5842b46bdc8ade6cc1439cf6"
+    },
+    "product_dependency_versions_preserved": true,
+    "reader_count": 313,
+    "enum_type_count": 71,
+    "enum_variant_count": 298,
+    "seeds_manifest_sha256": "33c1bc82f482529105f2c302cd02c8b04245b1d36d76e91f3e68bb86ae1c8c7e",
+    "lockfiles_unchanged": true,
+    "elapsed_seconds": 385.0,
+    "source_files_unchanged": true
+  },
+  "ci_fuzz": {
+    "schema": "https://stateknot.github.io/schema/qualification/core-fuzz/1.0.0",
+    "targets": {
+      "bounded_json": {
+        "seed_files": 16,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "e616cebbc0de1b9ecaec0f58b7b84279469e46bf37f4de5ffdbdf4a042b57811",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/bounded_json/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 428,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 382,
+        "retained_coverage_bytes": 2906679,
+        "log_sha256": "0c37346c9a109b2dd0c9752c5266d96f6fcf5dc60a3cafea74abbbda3b930236"
+      },
+      "core_readers": {
+        "seed_files": 2269,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "ff40b88273a76477b76996a7f08f1b12fa116cda67bfc326160d948c3fe3aea9",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/core_readers/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 1039,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 321,
+        "retained_coverage_bytes": 261844,
+        "log_sha256": "a8adfa9491cfa970ec6a79fe1d3cced78456e6e080fb8b5dd4c38431d1792af6"
+      },
+      "schema_registry": {
+        "seed_files": 12,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "b75bebe1dda6cca3d19f38bd25e2d0ad0a554a2842c43e5a15dd1af1f4f7a8a2",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/schema_registry/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 299,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 279,
+        "retained_coverage_bytes": 412575,
+        "log_sha256": "097fdb5b683330838c2cee64e30738e86cf76d5be7b8944d08b1863dd2702777"
+      }
+    },
+    "limits": {
+      "max_input_bytes": 131072,
+      "max_mutation_runs_per_target": 10000,
+      "max_seconds_per_target": 60,
+      "max_seconds_per_input": 10,
+      "rss_limit_mib": 2048,
+      "build_jobs": 2,
+      "sanitizer": "address",
+      "cfg_fuzzing": false
+    },
+    "complete": true,
+    "run_directory": "fuzz/results/qualification-1x2ca8sw",
+    "source_files_sha256": "d483296953788d3f9c7922fd5a260b7ef62461d3aa38fa276eb813eed7969989",
+    "source_commit": "721b38b9eff13495f5b24283d26af2c342f6f9d9",
+    "source_dirty": false,
+    "rustc": "rustc 1.101.0-nightly (8d1a76430 2026-10-06)",
+    "cargo_fuzz": "cargo-fuzz 0.13.2",
+    "cargo_locks": {
+      "Cargo.lock": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+      "fuzz/Cargo.lock": "8310a4df054f97b4b64eeaa9ac97c26b4185718d5842b46bdc8ade6cc1439cf6"
+    },
+    "product_dependency_versions_preserved": true,
+    "reader_count": 313,
+    "enum_type_count": 71,
+    "enum_variant_count": 298,
+    "seeds_manifest_sha256": "33c1bc82f482529105f2c302cd02c8b04245b1d36d76e91f3e68bb86ae1c8c7e",
+    "lockfiles_unchanged": true,
+    "elapsed_seconds": 592.157,
+    "source_files_unchanged": true
+  },
+  "ci_fuzz_actual_stats": {
+    "bounded_json": {
+      "seeds": 16,
+      "actual_mutation_runs": 10000,
+      "peak_rss_mib": 428
+    },
+    "core_readers": {
+      "seeds": 2269,
+      "actual_mutation_runs": 10000,
+      "peak_rss_mib": 1039
+    },
+    "schema_registry": {
+      "seeds": 12,
+      "actual_mutation_runs": 10000,
+      "peak_rss_mib": 299
+    }
+  },
+  "ci_fuzz_artifact": 11671561451,
+  "ci_fuzz_source_and_seed_manifest_verified": true,
+  "nonblocking_pinned_nightly_warning": {
+    "logs": {
+      "seed-regressions.log": {
+        "path": "/Users/jiawy/.codex/worktrees/nested-frame-dispatch/RustAgentFramework/fuzz/results/qualification-vsqv33dy/seed-regressions.log",
+        "sha256": "e98f446094fc7eba345870a32a972ca536b2db8d3b8865fa0299cb50ea20b110",
+        "future_incompatible_recursion_depth_warning_present": true
+      },
+      "build.log": {
+        "path": "/Users/jiawy/.codex/worktrees/nested-frame-dispatch/RustAgentFramework/fuzz/results/qualification-vsqv33dy/build.log",
+        "sha256": "fba0404a41cc1c064ccd29309e89008d56ecc0294e6aaceb1579547f6e3ce35c",
+        "future_incompatible_recursion_depth_warning_present": true
+      }
+    },
+    "issue": "Pinned nightly warns that Runtime claimed read generic Future Send proof exceeds compiler recursion limit. Current pinned qualification succeeds; a real private BoxFuture seam fix is being developed separately, no recursion_limit override.",
+    "does_not_close_followup": true
+  },
+  "final_frozen_source_clean": true
+}

@@ -226,6 +226,12 @@ Attempt 与 Turn。
 Terminal Ledger，而不是再次调用 Provider。更高 Fence 可以恢复未完成的 Physical Node
 Attempt，但不能改写已经提交的外部结果。
 
+Node completion 的用量报告该物理尝试新产生的 I/O。同一 activation 复用在新物理
+Start 之前已提交且完整定价的终态响应时，不重复报告新增 Invocation 用量；精确终态
+绑定和生命周期累计账本仍保留原费用。当前 Start 之后提交的事实，包括 Lost ACK
+恢复或 Reconciliation，仍保留实际用量。Unknown 和未定价证据继续保留既有阻塞，
+不能清零。
+
 已知失败的 Tool 会继续作为有序 Transcript Outcome；其精确 Terminal Revision 绑定到
 Node Result，下一轮 Model 会收到失败结果，而不是虚构 Success。Write Tool 的 `Unknown`
 Outcome 绝不会作为普通 Business Call 自动 Retry。当不可变 Descriptor 与精确安装的

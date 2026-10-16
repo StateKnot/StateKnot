@@ -49,6 +49,15 @@ protocol profiles, and production qualification remain release work.
 
 ## Startup binding
 
+The unreleased [nested Driver](durable-graph-runtime.md#experimental-namespaced-frames)
+requires the same provider to implement `direct_usage_evidence`; its default
+declines complete framework accounting. The Loop installs this provider on both
+Driver and lifecycle coordinator. `AgentLoopOutcome::FrameWaiting` forwards the
+already-committed scoped Wait and lease release; authorized Wait resolution and
+a fresh scheduler claim own resumption. It does not request another Root Wait
+commit. These additions remain under Draft RFC-0022 and are absent from
+`0.1.0-alpha.1`.
+
 Install all three standard Driver, lifecycle, and cancellation audit schemas
 before freezing the executable registry.
 Construct the scheduler only after migrations and all application schemas,

@@ -1,0 +1,1018 @@
+{
+  "profile": "experimental-complete-private-driver-phases",
+  "date": "2026-10-15",
+  "status": "partial_native_pass_seven_level_lease_failure",
+  "release_qualified": false,
+  "r1_complete": false,
+  "rfc_0022_status": "Draft",
+  "source": {
+    "baseline": "7f4180762dfd90c849ff934af94f1398d265554d",
+    "tested_files": 902,
+    "tested_manifest_sha256": "2629e47bb772ae27ff506707cdc9fbacd7afcd0a0f016b2e63a1f7ee303e1d2b",
+    "adopted_rust_sha256": {
+      "crates/stateknot-store-postgres/src/root_graph_barriers.rs": "37598ebdc1d2e9fb67e809833aad07ade5d210eee551f5d9108102416ab022dc",
+      "crates/stateknot-store-postgres/src/trusted_graph_root.rs": "c94ea20859fb64e034e29148c682a69b55802b42e135be150e8e50dcde28c715",
+      "crates/stateknot-runtime/src/driver.rs": "ff17ee321eec475865c3094a1b8d95fdcfec1a78952046d9a2c94798d9d61969",
+      "crates/stateknot-runtime/src/driver/frame.rs": "5c95b1453baf55347dc1dbbf3ddb82ec573c1e906290288e398be4e762f7b6bf",
+      "crates/stateknot-runtime/src/driver/barrier.rs": "7c9e795ef0ae1ade78b4f4b75b721ea2f549af976c9d4774985fab3e18fbad8d",
+      "crates/stateknot-runtime/src/driver/node_batch.rs": "dc0969ae208a568c31ced9a5d24efe54ed423e738010f697eed88827db0e1d42"
+    },
+    "lockfile_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+    "all_adopted_rust_matches_tested_input": true,
+    "qualification_docs_added_after_tests": true,
+    "frozen_manifest_local_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source-manifest.json"
+  },
+  "environment": {
+    "date": "2026-10-15",
+    "rust_toolchain": "1.88.0-aarch64-apple-darwin",
+    "postgres": {
+      "16": {
+        "container": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+        "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+        "server_version": "16.15 (Debian 16.15-1.pgdg13+2)",
+        "host_port": 55416
+      },
+      "17": {
+        "container": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+        "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+        "server_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+        "host_port": 55417
+      }
+    },
+    "cache_assessment": {
+      "available_gib_before": 322,
+      "existing_shared_target_gib": 34,
+      "existing_shared_target_retained": "Ownership and active use were not fully attributable to this task; no deletion. Separate empty target/r1-oct15 created with incremental and debug symbols disabled.",
+      "new_target": "target/r1-oct15",
+      "log_and_source_location": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15"
+    }
+  },
+  "build": {
+    "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source",
+    "command": [
+      "cargo",
+      "test",
+      "--manifest-path",
+      "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source/Cargo.toml",
+      "-p",
+      "stateknot-runtime",
+      "--test",
+      "postgres",
+      "--all-features",
+      "--locked",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "seconds": 109.53859615325928,
+    "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15",
+    "artifacts": [
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/root-driver-layout-final-runtime/stateknot-runtime-postgres",
+        "sha256": "e254cd98ae9bac08a82d13980d6155a642866d9c616bd4bc9e0f1a6a051796d1"
+      }
+    ],
+    "workspace_artifacts_explicitly_cleaned": true
+  },
+  "gates": {
+    "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source",
+    "native_database_tests": false,
+    "receipts": [
+      {
+        "gate": "fmt",
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "exit_code": 0,
+        "seconds": 5.866828680038452,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "summaries": [],
+        "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout"
+      },
+      {
+        "gate": "clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "exit_code": 0,
+        "seconds": 161.4168770313263,
+        "log_sha256": "86802eada05ff196e825125403ec825e9866b836ed8f33a032460eadb40dd333",
+        "summaries": [],
+        "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout"
+      },
+      {
+        "gate": "workspace",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "exit_code": 0,
+        "seconds": 339.08965516090393,
+        "log_sha256": "8f28e07660a581b7d6349ea85012f64b145b9433912648027081d906fdc7c233",
+        "summaries": [
+          [
+            "ok",
+            "34",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "19",
+            "0",
+            "1"
+          ],
+          [
+            "ok",
+            "21",
+            "0",
+            "1"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "7",
+            "0",
+            "1"
+          ],
+          [
+            "ok",
+            "10",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "7",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "500",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "8",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "3",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "7",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "3",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "6",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "67",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "7",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "3",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "6",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "3",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "7",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "6",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "57",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "3",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "6",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "11",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "15",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "9",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "12",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "73",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "319",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "14",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "76",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "19",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "10",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "8",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "18",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "81",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "185",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "11",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "6",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "10",
+            "0",
+            "3"
+          ],
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "251",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "7",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ]
+        ],
+        "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout"
+      },
+      {
+        "gate": "doctests",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--doc",
+          "--all-features",
+          "--locked"
+        ],
+        "exit_code": 0,
+        "seconds": 14.30960988998413,
+        "log_sha256": "39ee6cda7f6e663d90e25097b8c0b016ef8511f883af943fd5095bef3974c663",
+        "summaries": [
+          [
+            "ok",
+            "9",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "2",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "4",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "7",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "5",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "11",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "7",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "ok",
+            "0",
+            "0",
+            "0"
+          ]
+        ],
+        "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout"
+      },
+      {
+        "gate": "rustdoc",
+        "command": [
+          "cargo",
+          "doc",
+          "--workspace",
+          "--all-features",
+          "--no-deps",
+          "--locked"
+        ],
+        "exit_code": 0,
+        "seconds": 43.11125206947327,
+        "log_sha256": "14df92b4952a968e5a972ac379ad6c55dc61a856208baedd21573c4f58f92cc2",
+        "summaries": [],
+        "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout"
+      },
+      {
+        "gate": "nightly",
+        "command": [
+          "cargo",
+          "+nightly-2026-10-07",
+          "check",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "exit_code": 0,
+        "seconds": 56.50679302215576,
+        "log_sha256": "1fe6dfb1289c6947bc1518516cd69612898028598f11a6f3fc09ff5183cbab04",
+        "summaries": [],
+        "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout-nightly"
+      }
+    ]
+  },
+  "workspace_counts": {
+    "suites": 98,
+    "passed": 2047,
+    "failed": 0,
+    "ignored": 6
+  },
+  "native": [
+    {
+      "expected_test_count": 1,
+      "valid_success_summary": true,
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source",
+      "binary_sha256": "e254cd98ae9bac08a82d13980d6155a642866d9c616bd4bc9e0f1a6a051796d1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/root-driver-layout-final-runtime/stateknot-runtime-postgres",
+        "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "postgres_major": "16",
+      "exit_code": 0,
+      "seconds": 252.70065307617188,
+      "default_stack": true,
+      "log_sha256": "cc75547d08a6caa373611ee66b3ba17e7bf16cec581a5f89d722041f640ae1c0",
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 250.13s"
+      ],
+      "public_log": "evidence/driver-private-phases-2026-10-15/higher-fence-pg16.log",
+      "case": "higher-fence"
+    },
+    {
+      "expected_test_count": 1,
+      "valid_success_summary": false,
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source",
+      "binary_sha256": "e254cd98ae9bac08a82d13980d6155a642866d9c616bd4bc9e0f1a6a051796d1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/root-driver-layout-final-runtime/stateknot-runtime-postgres",
+        "nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "postgres_major": "16",
+      "exit_code": 101,
+      "seconds": 1115.0686330795288,
+      "default_stack": true,
+      "log_sha256": "0fea7f1b652e34d9fc5dbb08a2ecc9712dab805718463a748500bbd4aa7a9aac",
+      "result_lines": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 184 filtered out; finished in 1115.03s"
+      ],
+      "public_log": "evidence/driver-private-phases-2026-10-15/seven-levels-pg16.log",
+      "case": "seven-levels"
+    },
+    {
+      "expected_test_count": 1,
+      "valid_success_summary": true,
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source",
+      "binary_sha256": "e254cd98ae9bac08a82d13980d6155a642866d9c616bd4bc9e0f1a6a051796d1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/root-driver-layout-final-runtime/stateknot-runtime-postgres",
+        "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "postgres_major": "16",
+      "exit_code": 0,
+      "seconds": 166.85117888450623,
+      "default_stack": true,
+      "log_sha256": "53b3cb294b2920280e1fd5bc631ca67643b3cdf8f69b7861c2f79e6b04d49450",
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 166.82s"
+      ],
+      "public_log": "evidence/driver-private-phases-2026-10-15/roles-pg16.log",
+      "case": "roles"
+    },
+    {
+      "expected_test_count": 1,
+      "valid_success_summary": true,
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source",
+      "binary_sha256": "e254cd98ae9bac08a82d13980d6155a642866d9c616bd4bc9e0f1a6a051796d1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/root-driver-layout-final-runtime/stateknot-runtime-postgres",
+        "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "postgres_major": "17",
+      "exit_code": 0,
+      "seconds": 252.3831181526184,
+      "default_stack": true,
+      "log_sha256": "2c3949c38e4ee326dc5e4c29bb4dc191fc325520960f630b26645ec4ab7a4a5f",
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 248.97s"
+      ],
+      "public_log": "evidence/driver-private-phases-2026-10-15/higher-fence-pg17.log",
+      "case": "higher-fence"
+    },
+    {
+      "expected_test_count": 1,
+      "valid_success_summary": false,
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source",
+      "binary_sha256": "e254cd98ae9bac08a82d13980d6155a642866d9c616bd4bc9e0f1a6a051796d1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/root-driver-layout-final-runtime/stateknot-runtime-postgres",
+        "nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "postgres_major": "17",
+      "exit_code": 101,
+      "seconds": 1041.9998750686646,
+      "default_stack": true,
+      "log_sha256": "9e067a71871431a99717b2c455bbd1763d1d960baebd3adfa1ff1f3065d7e91c",
+      "result_lines": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 184 filtered out; finished in 1041.92s"
+      ],
+      "public_log": "evidence/driver-private-phases-2026-10-15/seven-levels-pg17.log",
+      "case": "seven-levels"
+    },
+    {
+      "expected_test_count": 1,
+      "valid_success_summary": true,
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/root-driver-layout-final-source",
+      "binary_sha256": "e254cd98ae9bac08a82d13980d6155a642866d9c616bd4bc9e0f1a6a051796d1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/root-driver-layout-final-runtime/stateknot-runtime-postgres",
+        "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "postgres_major": "17",
+      "exit_code": 0,
+      "seconds": 171.9828338623047,
+      "default_stack": true,
+      "log_sha256": "7f91ab08d222020fb16937bcb2b68ce4be6df1ac6a18005f2f1fe27f2d1378c0",
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 171.92s"
+      ],
+      "public_log": "evidence/driver-private-phases-2026-10-15/roles-pg17.log",
+      "case": "roles"
+    }
+  ],
+  "static_review": {
+    "root_standards_findings": 0,
+    "root_spec_findings": 0,
+    "runtime_standards_findings": 0,
+    "runtime_spec_findings": 0,
+    "runtime_token_comparisons_passed": 296,
+    "root_sql_literal_order_preserved": true
+  },
+  "preserved_limits": {
+    "default_thread_stack": true,
+    "original_leases_deadlines_and_resources": true,
+    "all_complete_owning_verification": true,
+    "sql_and_lock_order": true,
+    "guardian_acknowledgements": true,
+    "scoped_child_join_refusal": true
+  },
+  "open_failures": [
+    {
+      "test": "nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay",
+      "symptom": "LeaseExpired",
+      "final_assertions_reached": false,
+      "postgres": [
+        16,
+        17
+      ],
+      "elapsed_is_capacity_evidence": false
+    }
+  ],
+  "discarded_observation": {
+    "label": "root-layout-runtime",
+    "reason": "Cross-directory Cargo artifact reused baseline binary; detected by identical SHA; not executed as candidate; qualified=false."
+  },
+  "open_gates": [
+    "complete Store/Runtime Native suites on both PostgreSQL versions",
+    "schema36/scoped ChildJoin final composition",
+    "Linux/default-stack deep, serial and AgentLoop recovery",
+    "process/COMMIT and corruption fault matrix",
+    "released N-1/N-2 compatibility",
+    "capacity and production release milestones"
+  ],
+  "evidence_root": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence"
+}

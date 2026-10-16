@@ -1,0 +1,22 @@
+{
+  "source_tree_sha256": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "files": [
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/source.tar.gz",
+      "bytes": 3451150,
+      "sha256": "5a882322c32b5ec165d1a37bf84f087f0c5afc8811b805c07cc4ac7a590e75e3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/manifest.json.gz",
+      "bytes": 49086,
+      "sha256": "c289109e2234c9a2b5462dacf1dcc91e84bdf460dbb0cc05684248caa2278a06"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-postgres-test-profile-2026-10-15/source/child_join_pitr.rs.gz",
+      "bytes": 4303,
+      "sha256": "49ed6fa9ddbca9d9530bee1a0c30cd6b4292d2f5de0a7b14aaefd8b24e0994b4"
+    }
+  ],
+  "no_new_complete_source_archive": true,
+  "whole_source_not_equal_current_main": true
+}

@@ -1,0 +1,377 @@
+{
+  "stages": [
+    {
+      "stage": "first-clippy",
+      "source_tree_sha256": "341915b8591583df412cc7a5ec6ceb83b89e8dcdc8015c8f39aaabcab6ffed01",
+      "files": 928,
+      "original_private_archive_sha256": "8c06aa762492e2a80ab85c8dec1166d74935bc247e562b4c5066bb128623c0b7",
+      "original_archive_not_copied": true,
+      "changes_from3a84": [
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/durable.rs",
+          "before_sha256": null,
+          "after_sha256": "e1d9b4064f84a1606c0114483a4ff6a0d259fcc43c2e1d1c3e914b446678f8e5",
+          "bytes": 10459,
+          "payload": "source/payloads/e1d9b4064f84a1606c0114483a4ff6a0d259fcc43c2e1d1c3e914b446678f8e5.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/network.rs",
+          "before_sha256": null,
+          "after_sha256": "ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827",
+          "bytes": 29780,
+          "payload": "source/payloads/ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/support.rs",
+          "before_sha256": null,
+          "after_sha256": "e9e3618aeb18777035a0455da847786f7a1b72a9082c054dcc4351645c76827d",
+          "bytes": 25817,
+          "payload": "source/payloads/e9e3618aeb18777035a0455da847786f7a1b72a9082c054dcc4351645c76827d.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state.rs",
+          "before_sha256": null,
+          "after_sha256": "9ffb892525a45226b6df0dcd2b91a9c30a3d0d328711ab1d123a8d28cec3802f",
+          "bytes": 834,
+          "payload": "source/payloads/9ffb892525a45226b6df0dcd2b91a9c30a3d0d328711ab1d123a8d28cec3802f.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/lib.rs",
+          "before_sha256": "96510fbee09ca4e061cf90964bf298042d58aaf6f1d9c4f386d2107959d7d05a",
+          "after_sha256": "d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335",
+          "bytes": 13004,
+          "payload": "source/payloads/d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server.rs",
+          "before_sha256": "57f887adee53a654e2fe0f7f5dac81279463ccd5c46c74c2733fc93808a323a8",
+          "after_sha256": "af082e8e4ba0dce9de4cb5e0df22ccb495785a8bc94d5551b7591271965cdf67",
+          "bytes": 45837,
+          "payload": "source/payloads/af082e8e4ba0dce9de4cb5e0df22ccb495785a8bc94d5551b7591271965cdf67.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_app.rs",
+          "before_sha256": "cb2e2fcdb43001a414b70a4c922f3fe15dd21957907226b9a18bce7bb0b015ce",
+          "after_sha256": "1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560",
+          "bytes": 28845,
+          "payload": "source/payloads/1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_bound_state.rs",
+          "before_sha256": null,
+          "after_sha256": "7eb1479003dd7c6e60ffcab3839b2bfc9763ee6dac578f2d9d6174460a94e737",
+          "bytes": 25705,
+          "payload": "source/payloads/7eb1479003dd7c6e60ffcab3839b2bfc9763ee6dac578f2d9d6174460a94e737.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_prompt.rs",
+          "before_sha256": "e09b0d0c28b93c11fe58d0240fdee8403c2e3a75c02fca817b69a5c7b2cc4356",
+          "after_sha256": "68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a",
+          "bytes": 58423,
+          "payload": "source/payloads/68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_resource.rs",
+          "before_sha256": "c299ca1d93703aa5475d10b5868e4463bcc7a1bdb368084a2c54e85314fbc745",
+          "after_sha256": "d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a",
+          "bytes": 57247,
+          "payload": "source/payloads/d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_skill.rs",
+          "before_sha256": "5aff4c3192505efd90988d3d677c7300cb1349b859e7c335c93ccd6a4b1720a9",
+          "after_sha256": "9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3",
+          "bytes": 62762,
+          "payload": "source/payloads/9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_tool.rs",
+          "before_sha256": "15bdd3baa2693fc24b3f3745257ed5d9e5ffd48e8c84c682c014585f3a795aa6",
+          "after_sha256": "69aacce70e0826f011cc956deaace864513a50ba7815ccb71bb4ccda912d22ed",
+          "bytes": 94317,
+          "payload": "source/payloads/69aacce70e0826f011cc956deaace864513a50ba7815ccb71bb4ccda912d22ed.txt.gz"
+        }
+      ]
+    },
+    {
+      "stage": "second-clippy",
+      "source_tree_sha256": "5815ebb0e70a8c9ad8e7c24abec9643e62c1cc3f0ece7d60e00383f01ce17917",
+      "files": 928,
+      "original_private_archive_sha256": "a8dcc93b70f64567499b0dc1fc32ff6326419df8d8a28560b3673cd342668fa5",
+      "original_archive_not_copied": true,
+      "changes_from3a84": [
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/durable.rs",
+          "before_sha256": null,
+          "after_sha256": "e1d9b4064f84a1606c0114483a4ff6a0d259fcc43c2e1d1c3e914b446678f8e5",
+          "bytes": 10459,
+          "payload": "source/payloads/e1d9b4064f84a1606c0114483a4ff6a0d259fcc43c2e1d1c3e914b446678f8e5.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/network.rs",
+          "before_sha256": null,
+          "after_sha256": "ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827",
+          "bytes": 29780,
+          "payload": "source/payloads/ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/support.rs",
+          "before_sha256": null,
+          "after_sha256": "e9e3618aeb18777035a0455da847786f7a1b72a9082c054dcc4351645c76827d",
+          "bytes": 25817,
+          "payload": "source/payloads/e9e3618aeb18777035a0455da847786f7a1b72a9082c054dcc4351645c76827d.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state.rs",
+          "before_sha256": null,
+          "after_sha256": "9ffb892525a45226b6df0dcd2b91a9c30a3d0d328711ab1d123a8d28cec3802f",
+          "bytes": 834,
+          "payload": "source/payloads/9ffb892525a45226b6df0dcd2b91a9c30a3d0d328711ab1d123a8d28cec3802f.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/lib.rs",
+          "before_sha256": "96510fbee09ca4e061cf90964bf298042d58aaf6f1d9c4f386d2107959d7d05a",
+          "after_sha256": "d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335",
+          "bytes": 13004,
+          "payload": "source/payloads/d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server.rs",
+          "before_sha256": "57f887adee53a654e2fe0f7f5dac81279463ccd5c46c74c2733fc93808a323a8",
+          "after_sha256": "44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8",
+          "bytes": 45852,
+          "payload": "source/payloads/44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_app.rs",
+          "before_sha256": "cb2e2fcdb43001a414b70a4c922f3fe15dd21957907226b9a18bce7bb0b015ce",
+          "after_sha256": "1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560",
+          "bytes": 28845,
+          "payload": "source/payloads/1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_bound_state.rs",
+          "before_sha256": null,
+          "after_sha256": "0748ccec2da55113c01dc8e6b3dcd5eabd921c4cfcc9892b98ca4a17874768bd",
+          "bytes": 25732,
+          "payload": "source/payloads/0748ccec2da55113c01dc8e6b3dcd5eabd921c4cfcc9892b98ca4a17874768bd.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_prompt.rs",
+          "before_sha256": "e09b0d0c28b93c11fe58d0240fdee8403c2e3a75c02fca817b69a5c7b2cc4356",
+          "after_sha256": "68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a",
+          "bytes": 58423,
+          "payload": "source/payloads/68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_resource.rs",
+          "before_sha256": "c299ca1d93703aa5475d10b5868e4463bcc7a1bdb368084a2c54e85314fbc745",
+          "after_sha256": "d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a",
+          "bytes": 57247,
+          "payload": "source/payloads/d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_skill.rs",
+          "before_sha256": "5aff4c3192505efd90988d3d677c7300cb1349b859e7c335c93ccd6a4b1720a9",
+          "after_sha256": "9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3",
+          "bytes": 62762,
+          "payload": "source/payloads/9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_tool.rs",
+          "before_sha256": "15bdd3baa2693fc24b3f3745257ed5d9e5ffd48e8c84c682c014585f3a795aa6",
+          "after_sha256": "f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b",
+          "bytes": 94750,
+          "payload": "source/payloads/f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b.txt.gz"
+        }
+      ]
+    },
+    {
+      "stage": "workspace-HTTP-fixture",
+      "source_tree_sha256": "78ae451ebbb33275e19f1998733191ae312649a688d8ba53736e87bd6b97c4e7",
+      "files": 928,
+      "original_private_archive_sha256": "a972c9158a3fe5b9b2575996a08f95bf53c5c9d869b2bf9adb7d4657c3c37935",
+      "original_archive_not_copied": true,
+      "changes_from3a84": [
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/durable.rs",
+          "before_sha256": null,
+          "after_sha256": "4fa232b251ae06ff6140bda3655a1b74a153e33acd546b11ab34b29f3dd26010",
+          "bytes": 10466,
+          "payload": "source/payloads/4fa232b251ae06ff6140bda3655a1b74a153e33acd546b11ab34b29f3dd26010.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/network.rs",
+          "before_sha256": null,
+          "after_sha256": "ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827",
+          "bytes": 29780,
+          "payload": "source/payloads/ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/support.rs",
+          "before_sha256": null,
+          "after_sha256": "4c326a037a8d84e1be12889377738a5d90d833689ef4b5deedae118c57d264d9",
+          "bytes": 25962,
+          "payload": "source/payloads/4c326a037a8d84e1be12889377738a5d90d833689ef4b5deedae118c57d264d9.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state.rs",
+          "before_sha256": null,
+          "after_sha256": "4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca",
+          "bytes": 836,
+          "payload": "source/payloads/4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/lib.rs",
+          "before_sha256": "96510fbee09ca4e061cf90964bf298042d58aaf6f1d9c4f386d2107959d7d05a",
+          "after_sha256": "d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335",
+          "bytes": 13004,
+          "payload": "source/payloads/d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server.rs",
+          "before_sha256": "57f887adee53a654e2fe0f7f5dac81279463ccd5c46c74c2733fc93808a323a8",
+          "after_sha256": "44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8",
+          "bytes": 45852,
+          "payload": "source/payloads/44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_app.rs",
+          "before_sha256": "cb2e2fcdb43001a414b70a4c922f3fe15dd21957907226b9a18bce7bb0b015ce",
+          "after_sha256": "1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560",
+          "bytes": 28845,
+          "payload": "source/payloads/1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_bound_state.rs",
+          "before_sha256": null,
+          "after_sha256": "bf373b080025d40e619e16b6144295a363754653ab3c162e7f9433773abd30b7",
+          "bytes": 25732,
+          "payload": "source/payloads/bf373b080025d40e619e16b6144295a363754653ab3c162e7f9433773abd30b7.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_prompt.rs",
+          "before_sha256": "e09b0d0c28b93c11fe58d0240fdee8403c2e3a75c02fca817b69a5c7b2cc4356",
+          "after_sha256": "68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a",
+          "bytes": 58423,
+          "payload": "source/payloads/68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_resource.rs",
+          "before_sha256": "c299ca1d93703aa5475d10b5868e4463bcc7a1bdb368084a2c54e85314fbc745",
+          "after_sha256": "d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a",
+          "bytes": 57247,
+          "payload": "source/payloads/d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_skill.rs",
+          "before_sha256": "5aff4c3192505efd90988d3d677c7300cb1349b859e7c335c93ccd6a4b1720a9",
+          "after_sha256": "9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3",
+          "bytes": 62762,
+          "payload": "source/payloads/9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_tool.rs",
+          "before_sha256": "15bdd3baa2693fc24b3f3745257ed5d9e5ffd48e8c84c682c014585f3a795aa6",
+          "after_sha256": "f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b",
+          "bytes": 94750,
+          "payload": "source/payloads/f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b.txt.gz"
+        }
+      ]
+    },
+    {
+      "stage": "native-invalid-event-kind",
+      "source_tree_sha256": "3216e2d3e495fd02a6946381a49dd6ec9f2f97df0911dac0de6f9466b61d616b",
+      "files": 928,
+      "original_private_archive_sha256": "0c1bba873089efd02d333a8de4cbda0f47bfc23eb239714a58ce687db9716acd",
+      "original_archive_not_copied": true,
+      "changes_from3a84": [
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/durable.rs",
+          "before_sha256": null,
+          "after_sha256": "4fa232b251ae06ff6140bda3655a1b74a153e33acd546b11ab34b29f3dd26010",
+          "bytes": 10466,
+          "payload": "source/payloads/4fa232b251ae06ff6140bda3655a1b74a153e33acd546b11ab34b29f3dd26010.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/network.rs",
+          "before_sha256": null,
+          "after_sha256": "ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827",
+          "bytes": 29780,
+          "payload": "source/payloads/ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state/support.rs",
+          "before_sha256": null,
+          "after_sha256": "6d22e3b162187d446c4fa243cd6c5e58505d972a2065315c9f6a9b7bc2b5bdba",
+          "bytes": 26578,
+          "payload": "source/payloads/6d22e3b162187d446c4fa243cd6c5e58505d972a2065315c9f6a9b7bc2b5bdba.txt.gz"
+        },
+        {
+          "path": "crates/stateknot/tests/mcp_bound_state.rs",
+          "before_sha256": null,
+          "after_sha256": "4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca",
+          "bytes": 836,
+          "payload": "source/payloads/4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/lib.rs",
+          "before_sha256": "96510fbee09ca4e061cf90964bf298042d58aaf6f1d9c4f386d2107959d7d05a",
+          "after_sha256": "d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335",
+          "bytes": 13004,
+          "payload": "source/payloads/d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server.rs",
+          "before_sha256": "57f887adee53a654e2fe0f7f5dac81279463ccd5c46c74c2733fc93808a323a8",
+          "after_sha256": "44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8",
+          "bytes": 45852,
+          "payload": "source/payloads/44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_app.rs",
+          "before_sha256": "cb2e2fcdb43001a414b70a4c922f3fe15dd21957907226b9a18bce7bb0b015ce",
+          "after_sha256": "1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560",
+          "bytes": 28845,
+          "payload": "source/payloads/1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_bound_state.rs",
+          "before_sha256": null,
+          "after_sha256": "bf373b080025d40e619e16b6144295a363754653ab3c162e7f9433773abd30b7",
+          "bytes": 25732,
+          "payload": "source/payloads/bf373b080025d40e619e16b6144295a363754653ab3c162e7f9433773abd30b7.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_prompt.rs",
+          "before_sha256": "e09b0d0c28b93c11fe58d0240fdee8403c2e3a75c02fca817b69a5c7b2cc4356",
+          "after_sha256": "68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a",
+          "bytes": 58423,
+          "payload": "source/payloads/68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_resource.rs",
+          "before_sha256": "c299ca1d93703aa5475d10b5868e4463bcc7a1bdb368084a2c54e85314fbc745",
+          "after_sha256": "d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a",
+          "bytes": 57247,
+          "payload": "source/payloads/d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_skill.rs",
+          "before_sha256": "5aff4c3192505efd90988d3d677c7300cb1349b859e7c335c93ccd6a4b1720a9",
+          "after_sha256": "9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3",
+          "bytes": 62762,
+          "payload": "source/payloads/9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3.txt.gz"
+        },
+        {
+          "path": "crates/stateknot-integrations/src/mcp_server_tool.rs",
+          "before_sha256": "15bdd3baa2693fc24b3f3745257ed5d9e5ffd48e8c84c682c014585f3a795aa6",
+          "after_sha256": "f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b",
+          "bytes": 94750,
+          "payload": "source/payloads/f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b.txt.gz"
+        }
+      ]
+    }
+  ],
+  "scope": "exact pre-final history; no final MCP qualification assigned here"
+}

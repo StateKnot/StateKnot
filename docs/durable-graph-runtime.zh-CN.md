@@ -5,8 +5,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # 可恢复 Graph Runtime
 
-状态：已有实现与验证支撑的公共预览契约。API 已随精确版本 `0.1.0-alpha.1` 发布，
-仍可能调整；本文只描述当前真正实现并通过验证的边界，不代表已经达到生产发行标准。
+状态：基础 Runtime 是随精确版本 `0.1.0-alpha.1` 发布的公共预览契约，仍可能调整。
+实验性章节描述未发布源码增量及各自的验收边界；完整生产验收仍开放。
 
 [English](durable-graph-runtime.md)
 
@@ -42,6 +42,73 @@ SPDX-License-Identifier: Apache-2.0
 `Idempotent` Start 绝不是执行授权：它既可能表示上次 ACK 丢失，也可能表示另一个执行器已经
 成功写入 Start，因此必须按 In-flight 处理。如果原执行器死亡，只能等 Lease 到期或显式
 Supersede 后，由更高 Fence 恢复这次未完成执行。
+
+## 实验性受信 Root 控制结果
+
+未发布的 schema-35 路径保留 Agent V1，并通过原 Start 和 INITIAL checkpoint
+认证普通受信 Root 的正向创建来源。静态共享状态组合也使用这个 Root 来源。
+新 Root 工作前，Driver 在取消 handoff 之后认证原恢复观察；活动帧保留自己的完整
+admission/entry 证明。Continue、未来 Wait、Terminal 绑定原完整 plan，Terminal
+保留原完整验证输入。[受信 Root 控制结果](trusted-root-dispositions.zh-CN.md)说明采用、
+排空旧 Worker/迁移及确切证据范围。嵌套/schema-35/schema-36 最终组合仍须按
+RFC-0022 草案单独完成数据库原生验收。
+
+## 实验性命名空间帧
+
+当前未发布源码增加了 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md)
+描述的嵌套 Driver。这些 API 不包含在 `0.1.0-alpha.1` 中；完整组合恢复、兼容
+与生产验收仍开放。注册表要求完整且精确的 target graph、reducer、schema pin。
+框架 caller 不安装应用 executor，冲突绑定会被拒绝。
+
+Dispatch 前，Driver 使用部署的 schema/reducer 认证并重放 Root 与全部生命周期
+帧。Entry、更高 fence 的 Rebind、scoped Continue/Wait、Return 都是完整复合事务。
+每个持久框架事件与普通工作共享同一 drive quantum；Return 恢复原父级，
+不会把 caller 当作普通 Node 执行。
+
+帧操作要求 `GraphLifecycleEvidenceProvider::direct_usage_evidence`。
+独立 Driver 通过 `with_direct_usage_evidence` 安装 provider；
+`DurableAgentLoop` 把既有 lifecycle provider 同时绑定到 Driver。
+该方法默认返回 `Unavailable`，使用帧前必须实现它。证据须恢复真实、完整、
+已持久化的 Run-wide DIRECT usage，包含直接 Node/provider/框架费用与未知成本
+事件，排除独立子树费用；并精确绑定传入 `GraphDirectUsageEvidenceContext`
+的 provenance、Root checkpoint、leaf、journal head 与 fence。用量下限、补零
+或重新执行外部调用都不能代替完整证据。缺失或交叉证据不授予帧写入或执行权限。
+
+DIRECT 观察是可取消的只读操作。Entry、Rebind、scoped barrier、Return 前的观察等待，
+按实际数据库时间限制在原 admission deadline 和配置的 `node_execution_timeout` 内。
+shutdown 或持久取消会停止观察；证据不完整时不推进帧、不抹去已持久化工作。
+后续轮次处理原控制请求，不启动替代 provider 调用。
+
+scoped 取消时，`DurableAgentLoop` 传入自己的 shutdown 和 node timeout；独立
+`confirm_cancellation` 使用既有默认 Driver node timeout。监护只用原 Store 租约长度
+续租同一个 fence。完整 owning 验证可能提交 quarantine，因此监护失败后也要读完
+验证及在途续租的原 SQL ACK；只有 provider 观察可以取消。观察完成后排空监护，
+核对已结算 child usage、原 live fence，再独立完成原 whole Closure 写入与重试。
+清理可在 admission 到期后完成，但不获得新执行权限；未知或未定价用量仍阻止关闭。
+
+Driver 的外层恢复监护也保留完整 owning 验证与写入确认。监护失败时发出协作停止信号，
+随后等待原 drive 完成，不能丢弃已提交的 quarantine 或 Start ACK。drive 完成时，
+停止信号只中断下一次纯等待，并排空已开始的租约观察或续租；原释放与恢复结果保持
+优先级。停止信号不授予权限，完整 owning reader 与最终 live fence 检查仍在应用执行前
+拒绝到期或已被更高围栏接管的 claim。
+
+监护先结束时，已确认的 Join、Wait、调度重试或所有权释放仍保留原结果。取消释放
+仅在监护清理之前外部 shutdown 已请求时保持优先级；内部取消不能掩盖监护错误。
+仍需 live 权限的交接继续依赖原监护。详见
+[精确组件证据](qualification/experimental-driver-release-acks-2026-10-12.zh-CN.md)
+及尚未通过的 Native 项目。
+
+节点执行监护在节点完成、shutdown、持久取消和出错时也读完在途续租的完整 ACK。
+原单调租约期限仍停止并中断应用任务；迟到的 ACK 不会恢复任务或延长执行权限。
+Driver 排空续租后才提交已完成节点的结果或释放所有权。原执行错误保持优先级，
+监护失败阻止成功 batch 提交新结果。停止信号只中断下一次纯等待；最终组合的
+数据库原生验收仍开放。
+
+`FrameWaiting` 表示 scoped Wait 复合事务与租约释放已完成。授权 resolver 或
+timer 完成原持久 Wait 事实后，由 scheduler discovery 与新 claim 恢复原作用域，
+不要再通过 lifecycle coordinator 创建第二个 Root Wait。可达的 scoped 独立子 Run
+Join 仍返回 `ScopedChildJoinUnsupported`，Store 原语不能代替该 Driver 路径验收。
+完整历史成本、进程丢失和备份恢复仍有独立门禁。
 
 ## 启动集成
 
@@ -107,9 +174,21 @@ Model 与 Tool 外部副作用必须通过各自的 Durable Invocation Ledger。
 | `Blocked` 且 `in_flight > 0` | 监督或放弃当前所有权；禁止在同一 Fence 下再次 Dispatch。 | 保留 |
 | `Blocked` 且包含 `failed` / `exhausted` | 使用 Recovery Plan 的精确证据与累计 Usage 执行 Run-level Failure Policy，禁止自行推导 Retry 权限。 | 保留 |
 | `Deferred` | 不要在进程内再注册 Timer；数据库时间的索引 Gate 已提交。 | Driver 已释放 |
+| `FrameWaiting`（未发布，RFC-0022 草案） | 解决或触发原持久 scoped Wait，再由 Scheduler Discovery 与新 Claim 进入；不要创建第二个生命周期 Wait。 | 与 scoped Wait 原子释放 |
 | `Yielded` | 若仍有任务，通过 Scheduler Discovery 和新 Claim 再次进入。 | Driver 已释放 |
 | `CancellationRequested` | 立即使用原样 Handoff 调用 Lifecycle Cancellation Confirmation；普通应用应使用会自动完成该步骤的 `DurableAgentLoop`。禁止合成 Usage。 | Fresh Confirmation Commit 前由 Driver 保留且必须仍有效 |
 | `Cancelled` | 进程 Shutdown 已停止本地工作；后续 Scheduler Claim 负责恢复。 | Driver 已释放 |
+
+绝对 Timer Wait 的成功 Pending 结果可能在 Barrier 提交前已经到期，包括进程丢失后的
+恢复。实验性 schema36 路径按 RFC-0022 草案处理这个缺口，完整组合 CI 与生产验收仍开放。不能重写原 Due、重执行成功 Node、回填注册时刻
+或提高 Wait/Lease 窗口。[RFC-0022](rfcs/0022-namespaced-graph-frames.md#recovering-original-absolute-wait-conditions)
+规定完整原条件证据和认证 Waiting/Ready 效果，必须实现 Durable Writer/Reader、ACK
+并完成全量验收后，才能提供该恢复行为。
+
+全部原 Timer 均已到期的 Root Wait 由 Lifecycle/Agent Loop 返回
+`ReadyReleased`，保留完整原Root Receipt及原Fence的normal release结果。
+更高Fence之后的晚ACK保留原Ready Receipt，不释放替换Lease。后续执行必须经过
+Scheduler Discovery和新Claim；Ready Receipt本身不授权启动Node。
 
 `GraphLifecycleBarrierHandoff` 刻意不能序列化，也不能脱离 `RunLease` 作为队列消息。它是
 短生命周期的原子提交输入。如果生命周期服务不能在 Lease 过期前完成，就应释放或等待过期，
@@ -176,7 +255,8 @@ Deadline 会转成 Public-safe Node Failure；Process Shutdown 或 Durable Cance
 - Noninitial Replay 必须使用原始提交时相同的 Graph、Reducer、Schema、Journal Anchor、
   Result Set 与 Checkpoint Parentage。
 - Durable Graph 证据缺失或矛盾时，当前 Live Fence 必须先把 Run Quarantine，再允许返回。
-- Driver 只会自主提交 Continue；Wait 与 Terminal 必须经过生命周期集成层。
+- Root Wait 与 Terminal 经过生命周期集成层。实验性帧路径由 Driver 提交 scoped
+  Wait，并通过 Return 结算 scoped Terminal 后恢复原父级。
 - Eligible Ready Sibling 可以重叠执行，但 Start 与 Completion 仍是按 Canonical `NodeId`
   排序的 Journal Fact；Exclusive Node 始终单独执行。
 

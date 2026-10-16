@@ -1,0 +1,22 @@
+{
+  "step": "gate-clippy",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "clippy",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "runner_pid": 68288,
+  "pid": 76371,
+  "started_unix": 1792070234.674622,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 39.351813077926636,
+  "log_sha256": "e12c4c07af926a038b35661be18ffd9894da67940cb9ae5183319d98655b4a7d"
+}

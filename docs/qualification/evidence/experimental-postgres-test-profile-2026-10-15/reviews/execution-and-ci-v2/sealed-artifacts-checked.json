@@ -1,0 +1,1126 @@
+[
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/example",
+    "sha256": "b041f4c59db10dd0b72ab041439792ce1d5ce511307e14245deaadebce00043b"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/example.d",
+    "sha256": "d8fa387cfa6043343da8713a6292ada557d6b28b7412cc3fce0496abb69afffc"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/facts",
+    "sha256": "b4dcc159a0d0e345637edd0479264f13c745cb993bfe7037f70d700c661f301d"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/facts.d",
+    "sha256": "5a771b6491bf428f96f783944a488478c0186da879e42e5192feb340387983fa"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/provider",
+    "sha256": "278c37c38e6302efd517bfbe74655ff91b28e789e6aad29bbe1565eae601313d"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/provider.d",
+    "sha256": "016794137130d12c2b8915abc9ffbd08e1540ff51bfe9036fc60fb4b68652653"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/runtime",
+    "sha256": "f38577af6bff376ea3d2eb66e7ab1e004ddad6c1d9f4e279d291182e3736e762"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/runtime.d",
+    "sha256": "2d24bd40d7ba14e51a4ac49c9ae51bf1e30e590caa7ea7e1839978ff90822a85"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/store",
+    "sha256": "0bbd9117f395ebc7d34c4863e628c09f505c602d3a66a1a981d283d141857109"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/store.d",
+    "sha256": "4da30ccb14aafa2304606e6d16dda4fcfdf0b36f021ba6564e84b02f32aa42cc"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/container-preflight-pg16.json",
+    "sha256": "4c6672c8bebb0b207841ea1fc9e707eecbd6d6cd0c3de1df03d0f205ba79c5aa"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/container-preflight-pg17.json",
+    "sha256": "925d9b2dfe46442ed90530cfaa7d10c2a5a8ca38cf0cf8191437bcfd62c709ce"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/environment.json",
+    "sha256": "750b6b0bdb6ebaebfe54af2b89aff7db5d226b406492b520d1064735d94ced33"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/execution-config.json",
+    "sha256": "a29dae07f6475e79f33466e86e06a552c09e3c7a9a269ffc262d6cdd462ecc83"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/execution-report.zh-CN.md",
+    "sha256": "db55b6119410dc337ee3b531cc5cd516afaf9a7d2f319199d31687dea5bd5f69"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/failure.json",
+    "sha256": "6d95b03135134a41293d10f776261f0f3e166862638bd065b5378473a809488a"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/final-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/final.df",
+    "sha256": "fbbf7371197d0e72815b1f7dc8ec6a7965aa4d0568ac8200c1f14bcc5092dcbc"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/fresh-binaries.json",
+    "sha256": "aa61c127a47619385093b56dedf6691ae6daaeb9f9880a2aaab852cde79c2762"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-clippy-after-cache-budget.json",
+    "sha256": "4f1522199f9324ca5ada41653ee43d416c9595aae4173426414bbcc60b3cf902"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-clippy-after.df",
+    "sha256": "425a5b112690a123b83ad473fa26c2993375b3d1d83dab4d7daceab9da8c7dc4"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-clippy-before-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-clippy-before.df",
+    "sha256": "d714aa5ae6e9220d4fd75ee7c5332fe5c0b1c536b9b7fca92786473a6980529b"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-clippy.log",
+    "sha256": "e12c4c07af926a038b35661be18ffd9894da67940cb9ae5183319d98655b4a7d"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-clippy.receipt.json",
+    "sha256": "1bc9db9e78fb9ae362e3fc3ffc6b4001ca7c205492cdd2dc9c2f8a1a09b3cbff"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-doctests-after-cache-budget.json",
+    "sha256": "4f1522199f9324ca5ada41653ee43d416c9595aae4173426414bbcc60b3cf902"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-doctests-after.df",
+    "sha256": "bf8e929cce1aa5e926d3053a89fb50c2019f1a09e73ec92ac05562cc51f0c0e3"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-doctests-before-cache-budget.json",
+    "sha256": "4f1522199f9324ca5ada41653ee43d416c9595aae4173426414bbcc60b3cf902"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-doctests-before.df",
+    "sha256": "66b5b8b057c6a4d64fc2a643603a8868eb5f41489154dc8c5ed7551aa099ea2d"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-doctests.log",
+    "sha256": "a1e2878771768262b34a1aecf562377d7288e4a373dcf5343d7621001af0c055"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-doctests.receipt.json",
+    "sha256": "06896c0c52d0135b0b4b300e8434247e7db574ad6ac9e04014599c66274adeb8"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-fmt-after-cache-budget.json",
+    "sha256": "f7cfb17c320e3d12f73f7dd5eda491ee74f75530cb0ce739708537ddac54a655"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-fmt-after.df",
+    "sha256": "db151a4ba59fe4d0a14c4aceb30452ef2bd9a1ebf91c4c69d5a71321c96c943b"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-fmt-before-cache-budget.json",
+    "sha256": "f7cfb17c320e3d12f73f7dd5eda491ee74f75530cb0ce739708537ddac54a655"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-fmt-before.df",
+    "sha256": "b13d67d1400db180e3e2e0bce0b2869eec81f4ce1af2ef02b0ba8e383cb81604"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-fmt.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-fmt.receipt.json",
+    "sha256": "24bd5e826a8d3ce23078886678592f3163b62f7103c22549ba5f207781a0014c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-nightly-after-cache-budget.json",
+    "sha256": "850c23f75f4333043ca2952a7dc91cbc9c3fe039510e9a60080025a4a4d25754"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-nightly-after.df",
+    "sha256": "cbd24a5c7717fe7ea77597db32bf401622202f5b7733e91d53d781c523b0a797"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-nightly-before-cache-budget.json",
+    "sha256": "0e4d041fd704f0d9293913eaf916b9109301133d33306069ca27b818b5dfe117"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-nightly-before.df",
+    "sha256": "ab54c5b767289a153ba180105e55dd272891f152b3c82063e7e02f67a8263bf0"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-nightly.log",
+    "sha256": "4aa8f7dae3f26354dbae8fb58749a6a66d1c9b3094d978c6f8a116dce4f4630b"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-nightly.receipt.json",
+    "sha256": "2ff6c9218b9b2e81d092dce5830895a89b076931fc89dadac20f7d09e7f12c20"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-rustdoc-after-cache-budget.json",
+    "sha256": "0e4d041fd704f0d9293913eaf916b9109301133d33306069ca27b818b5dfe117"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-rustdoc-after.df",
+    "sha256": "a01c98991686d761dc0138d96ed3b5b6a91dfffd8ad3a78a9692685ecf685ee5"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-rustdoc-before-cache-budget.json",
+    "sha256": "4f1522199f9324ca5ada41653ee43d416c9595aae4173426414bbcc60b3cf902"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-rustdoc-before.df",
+    "sha256": "f19f716589eb47eff99f81cc6076e0342ab260b6fe42459b74492a905417438e"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-rustdoc.log",
+    "sha256": "de56f015b54a45744697c2c70ebc6e2899e943e1221663a2474c1feb083aa207"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-rustdoc.receipt.json",
+    "sha256": "c86b624c5a1ad1b195b3efc5532028b6e9537c6df5d6e4e8e00c53d057544703"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-workspace-after-cache-budget.json",
+    "sha256": "4f1522199f9324ca5ada41653ee43d416c9595aae4173426414bbcc60b3cf902"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-workspace-after.df",
+    "sha256": "7ca89cd12860207b125a7de87afe7d38911b9daae6feaf88748dfe4d72680d93"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-workspace-before-cache-budget.json",
+    "sha256": "4f1522199f9324ca5ada41653ee43d416c9595aae4173426414bbcc60b3cf902"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-workspace-before.df",
+    "sha256": "bc4a7861e99ec3cd88cae235b83bb9491abe5b5cdb1a61bbab30fb6022d4b23e"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-workspace.log",
+    "sha256": "57efe784ce0fc3edbbde663328639411a9195dd5a7db6949972bfbe4b2d4a6d6"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/gate-workspace.receipt.json",
+    "sha256": "27a75b00babf4f12aa5bcec5fccb6b6d1111bddaac2883bed67bdfc9f8ccfc35"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/initial-cache-budget.json",
+    "sha256": "ea2ea6bcc92b832888ce0ddf9bd4f933eb4a4405e9ebc81a74345ba7b653ea84"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/initial.df",
+    "sha256": "ed6c93652e71dfeedf940d87db914c7b90ae17b89f5a37bbf2f29101a1fc78ec"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-final.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-clippy-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-clippy-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-doctests-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-doctests-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-fmt-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-fmt-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-nightly-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-nightly-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-rustdoc-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-rustdoc-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-workspace-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-workspace-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-initial.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-example-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-example-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-facts-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-facts-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-provider-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-provider-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-runtime-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-runtime-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-store-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-store-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-create-new-db-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-create-new-db-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-example-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-example-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-facts-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-facts-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-provider-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-provider-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-runtime-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-runtime-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-store-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-store-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-create-new-db-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-create-new-db-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-example-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-example-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-facts-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-facts-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-provider-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-provider-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-runtime-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-runtime-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-store-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-store-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-workspace-fresh-build-after.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-workspace-fresh-build-before.json",
+    "sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-example-after-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-example-after.df",
+    "sha256": "7aef7f9a87627192bd72617757890c2c64c52106a236c574d9c376f313a7c07d"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-example-before-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-example-before.df",
+    "sha256": "1bb2141df72367a0156001935a8c606d121ce30306d9038b99aaa2b52b2b7d34"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-example.log",
+    "sha256": "d6a4e72d6efa1ee763d9041807d21cdc08ee74ea854091069897212fa763ab2f"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-example.receipt.json",
+    "sha256": "e348d6fbce173ebf724f58901620302663ebd14b406837b417f3afab3b627cd7"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-facts-after-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-facts-after.df",
+    "sha256": "5e2174b60d087b83cc1172f52b01925bd4ae0dfd776ba1f801e9e33b9ba20bcf"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-facts-before-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-facts-before.df",
+    "sha256": "44041a1ee557da0b64cceb7af28ba5e65013a34788b8e0f37fb91dda1d884f20"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-facts.log",
+    "sha256": "04037d748b7db742bd0a10ff97bacfbdc1fe86ccd58ac33acf2722d758a4e512"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-facts.receipt.json",
+    "sha256": "5a2b43023e9ad923b09eaff3d64bf673eee1b149ed5d7c1b9d3159b07a062cbd"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-provider-after-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-provider-after.df",
+    "sha256": "2fd124570c884e9200cd3e88eb6b1e66e1e61790cef0162dcc91a04533dfcc34"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-provider-before-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-provider-before.df",
+    "sha256": "f5b169a628900d27e1b1ea7d17df427886980d248b64ba1499278d8044e1be24"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-provider.log",
+    "sha256": "bd25b46d99add2cd2fcb717608eaf9150b7b8ac51f6a0c2700a2e2e193d1afe0"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-provider.receipt.json",
+    "sha256": "2cc1b635633af91cf2971c2429766a3e3cc8fc7a31100904b98ecb716366e7c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-runtime-after-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-runtime-after.df",
+    "sha256": "67ac076fdc4e907b455ad687e1b410cdfaec32edb92d9e97b46adaca29e66fd0"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-runtime-before-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-runtime-before.df",
+    "sha256": "10b2180e09094e94f41530948dd5aa5a3fc0eedd1162807d5ddf1c4674adcf19"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-runtime.log",
+    "sha256": "3d51a5b528d5f447268d33b6c276c5399701d7a807f597cf1c35c8a7d4005706"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-runtime.receipt.json",
+    "sha256": "1f77c08ec59543c820fd1386fda41a51e0f88f5d235df6b5eaa5304af5dfda80"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-store-after-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-store-after.df",
+    "sha256": "da1dbd42db6bfa34691ebde42ddb0e348a89d50c59f2fa439d631297322c8662"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-store-before-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-store-before.df",
+    "sha256": "c370f21d3f17426efa96b26bb970ad52aaa2307bf921928b707878f916355304"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-store.log",
+    "sha256": "efbffe8ed06c4e2f17ca0d55e01bb6a25019f2142d78615a9c2b3669aa6ade05"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/list-store.receipt.json",
+    "sha256": "80fb72c393920f34ec7381b09afefb73e81a1bce2ba79e9710ccfed929cfdb13"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/native-summary.json",
+    "sha256": "3cddaa24d6dea3d3f73defc517b6ba4670a90a32e93166296f56c6259c867fed"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/opt0-input-bridge.json",
+    "sha256": "84b3252f7f2eff0d7faf06b4274d138de85949feb257a8357245e1ed8ec29481"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/ordinary-runtime-library-profiles.json",
+    "sha256": "7bd1a90f4e7c6c0123535d3e66ed8d4299dfd69e26f43ec81cdbce3ebeef341b"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-create-new-db-after-cache-budget.json",
+    "sha256": "850c23f75f4333043ca2952a7dc91cbc9c3fe039510e9a60080025a4a4d25754"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-create-new-db-after.df",
+    "sha256": "ad5a2a8b5dbe935131178231550c665eecaffcfa5f7922ea3d6485e852d927ed"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-create-new-db-before-cache-budget.json",
+    "sha256": "850c23f75f4333043ca2952a7dc91cbc9c3fe039510e9a60080025a4a4d25754"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-create-new-db-before.df",
+    "sha256": "6d1c5bb4c94dbb42c6a5c1f82b2d8426a440a547557b133c35c31b6eb97fd272"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-create-new-db.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-create-new-db.receipt.json",
+    "sha256": "2813a5968ab2fd7cc35cbb03de7052ae45dd0cc39cdce3701da5d66563b0c224"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-example-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-example-after.df",
+    "sha256": "03af39c50de39379f2b542908eaeaa02f3beff5bcaeb56c3d460179d5a9e4418"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-example-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-example-before.df",
+    "sha256": "2298bf30da7a54bf9d334ed6d71b3079240a9232f0c2f484368edc129605eb64"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-example-qualification.json",
+    "sha256": "c646c49732655362cca3481f300e165182658e96546e3930b608b29ec20bdc58"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-example.log",
+    "sha256": "89c65ee9c721b573529be40b5ed0d5b592f7876a0274c5cdf295dedee2a4926e"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-example.receipt.json",
+    "sha256": "a8a1cae4e868d21647654b7ef33ba00223b2fe5e6f1099a8fa231ac572fe5590"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-facts-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-facts-after.df",
+    "sha256": "f296a9d7d56b6677a82eb70e4a120013bcf778ebdb159fdb14b586d498f9e705"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-facts-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-facts-before.df",
+    "sha256": "1c20569ea7af0ef7e3d6f844c09bbf5440390bf9db193100bb998d4feba107c6"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-facts-qualification.json",
+    "sha256": "56f1e22efc770f233680ac2d293870625d40e0c4dd1c88c1f9482495f675cae4"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-facts.log",
+    "sha256": "388cf2213f113f372d9aec0cd7f0257936b83cbbde5cb3e567c823d588ae236f"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-facts.receipt.json",
+    "sha256": "35b8ea817f5f7bfa16b972d60b70a1ba8ec2ac841c812cdf45c25cd3fa146cb8"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-provider-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-provider-after.df",
+    "sha256": "4047465d821d958f730f5dabe94899714f7439cbc08d6b3f9b4a5be66b0ec195"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-provider-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-provider-before.df",
+    "sha256": "8e8ab8e58cb61c962bbabce30d319bd8a55a0c4ac5d81ffb2421c55b14ceb1ff"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-provider-qualification.json",
+    "sha256": "79f8445588fcc0e1fbb9096badfbcf3151aecaf2185f7cadc854d728e9b15531"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-provider.log",
+    "sha256": "054b44a07f1b073b98ec8efd331dd47a341658ce169c25e4d5febb52c1c8bef2"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-provider.receipt.json",
+    "sha256": "dc88d13e8c16624a44a680ddb58a38d41d6214e07b6dbe53f0728b5a8c056f26"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-runtime-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-runtime-after.df",
+    "sha256": "5ce47bf8fbaf0c0a637786830c3b8a3ff4078cd57afd345a32bd61be07100afb"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-runtime-before-cache-budget.json",
+    "sha256": "850c23f75f4333043ca2952a7dc91cbc9c3fe039510e9a60080025a4a4d25754"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-runtime-before.df",
+    "sha256": "9c756de2d62116c7b86e75ebb1e88e2e33362a5e8f8558a7a6de66b6a6b1b53d"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-runtime-qualification.json",
+    "sha256": "0b1efd612d58c0819f9bb872fd319418bff4d5e97b3e7c378df4e15df8260f3e"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-runtime.log",
+    "sha256": "8dfe377eaa74d7ac4ad53e1f58f234b6e888f353424faaff47d94b791c76dabb"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-runtime.receipt.json",
+    "sha256": "f18842f12d74a859da221f6ee2720b495df4c720b480732adc798a13416e1cd3"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-setup.json",
+    "sha256": "81b35768d4bf6e93d6e00241dd6e2adc52d72d9c0d50e511dcf8b4dbd1c9c1fc"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-store-after-cache-budget.json",
+    "sha256": "850c23f75f4333043ca2952a7dc91cbc9c3fe039510e9a60080025a4a4d25754"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-store-after.df",
+    "sha256": "ff643169340b3d20370e3a86175a1e9e9c541da73e87ad6f1e22ac14d17cc187"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-store-before-cache-budget.json",
+    "sha256": "850c23f75f4333043ca2952a7dc91cbc9c3fe039510e9a60080025a4a4d25754"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-store-before.df",
+    "sha256": "9894ad1f732dd6d07e7834515a72a742cbcd6d632f10dcdc0a22827d7a707cf9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-store-qualification.json",
+    "sha256": "6a06e20f4f8e127706ba1384f24cbb17aa6a509c0690ca4bc5c94b1ac6b247f5"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-store.log",
+    "sha256": "f397c3688334f3b61960b32a5ca70dffe6e6b2a7febcd2d6170c9a93e749781c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg16-store.receipt.json",
+    "sha256": "b969e0d57f95b94648db993a9bb7bf2ab9f9a8647cbdc117a81031d7dfcc68b4"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-create-new-db-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-create-new-db-after.df",
+    "sha256": "ced4c4b0f459b8194baf3f46bf731441cfc29bb848b093281384f9a7d9e67a85"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-create-new-db-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-create-new-db-before.df",
+    "sha256": "7af3b00582d30567b251ecb48e615553f82b4516fecfe194e90768d233af00eb"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-create-new-db.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-create-new-db.receipt.json",
+    "sha256": "a845b16af54e1931c18c03b3cacb32fe7cf7bb12287083b762e615969cda0772"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-example-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-example-after.df",
+    "sha256": "46c5278b3719ff87ac33b4967ebfaf6d5cc874ce6402a3e0b9b48a5670f21d53"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-example-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-example-before.df",
+    "sha256": "77ade9a52c4058c5fdec12ed9086babd201079573dd2c93d73d51384ddd0dee6"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-example-qualification.json",
+    "sha256": "ac8b65ddd561e80ceb1a58cc7cf30324068e68a83e611995285dc4d6f27586b5"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-example.log",
+    "sha256": "01fcfb3e693da80780f00a8d9365406372b6a86033e5ddad32a2817778173aa8"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-example.receipt.json",
+    "sha256": "2ea90662c47c4196b87e1950ba0168121a6067e8f72833b0d0da46a5edc927ce"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-facts-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-facts-after.df",
+    "sha256": "063e6d1937c3050bc3c9c3c8cc7710fc373ff3b4259d04424d320d0161ce0a51"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-facts-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-facts-before.df",
+    "sha256": "1c0a6fedd0c1d6acfa3c18d91c0df76995f580218d59f6fcd094250a5bc8b117"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-facts-qualification.json",
+    "sha256": "80ccdbed653de3717c1f38ec743e887f23eb63fae3eded8b2ed0eef17e08bb6a"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-facts.log",
+    "sha256": "6c9f548fa9dc48672649c10e6fd67f35226f1ba81520f3d7b1bac3e78ed2c32e"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-facts.receipt.json",
+    "sha256": "3597cac2e05e484b3e59d4dcc29fb8ee4c2451a4040b7d1aee49dd056d892ed0"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-provider-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-provider-after.df",
+    "sha256": "85db12ac44691d2fafeb0001e2d72268cb07c4305b42e0f1e89275235255a9cd"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-provider-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-provider-before.df",
+    "sha256": "4f224aef78109d2363a9ab667cad22753c393faf78183f244ced39f635b03fb8"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-provider-qualification.json",
+    "sha256": "7d5294f5f7f27f72821d31cf62ce5ab8a7db4fd1e1929c250ea140426298b9c8"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-provider.log",
+    "sha256": "63999023050da47895aa7ef0474dc073e8b2294116c8fe381221f60cc3a4ecd9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-provider.receipt.json",
+    "sha256": "9076e006a919ca451b1ef7d4ee287ac656eb372beb64effe7682c2463df1470e"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-runtime-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-runtime-after.df",
+    "sha256": "a723e21f8cb603d785e8122886666a59521bf48f3836626a0cd6d50273333e51"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-runtime-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-runtime-before.df",
+    "sha256": "5b9ee98e69bd491ab6fa3f948016050931ce5ba17659c04621f0c6e70be72e80"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-runtime-qualification.json",
+    "sha256": "599549b6bac70f327f505d14c343d52d852a0857493e5f6ea3de354179c2f50a"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-runtime.log",
+    "sha256": "08c293eaa292d78361a17a4159615db4470691b71a61765394476b6036337434"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-runtime.receipt.json",
+    "sha256": "5401f4c6fc97deb355e4543165e830d7244867e565d30ac4b65445c796ef43a9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-setup.json",
+    "sha256": "3753b562dfe16c851760e6d653dc8065fc3a1cdce4236fc59db401a0b44d3631"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-store-after-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-store-after.df",
+    "sha256": "1684e34c464580b31ad894f2b31797134112c8a08235c40f533e4e299ccec8ed"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-store-before-cache-budget.json",
+    "sha256": "fda59fbf64d1061ecce77d82869c029081c5fe05d64a820c416027230115c6da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-store-before.df",
+    "sha256": "24aff474ab10ea6ed4d435d325542a32339b96106a98c9c37b1d99ddcbf0f9cd"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-store-qualification.json",
+    "sha256": "0cd1ae9f8821845619624d9463768969aefb02c49f644a55e0317c117825c098"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-store.log",
+    "sha256": "fcb399395b556a20a519b8c82da6945e68640edc318f8868f1184570c236e567"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/pg17-store.receipt.json",
+    "sha256": "22739d5176c83c39d0e7ca1dccd10dac2e6076ef44752b2582ed4919d3690305"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/df-final-audit.command.json",
+    "sha256": "c88e3695c39c4647fd890465e12673390602a7d6e2adcff55f4080dfdf2e7612"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/df-final-audit.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/df-final-audit.stdout",
+    "sha256": "080969063e80a56ec08ed12a824b9ae8d278a5a94df7764644588a6446b384da"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg16.command.json",
+    "sha256": "2035d7bad4efaf376ed406f86a9c4cbc24d36ab3442c5d1ff7db933e1afcaf36"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg16.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg16.stdout",
+    "sha256": "f6a766fa7d0f7432b2c91ff49344beb777d5e5431c58bc6c87bd9d1baa853a35"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg17.command.json",
+    "sha256": "8e0a369ac08228f3d8c84f19c683448fd7275ce9daf46199c7a0f76e4f279594"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg17.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/docker-identity-pg17.stdout",
+    "sha256": "0154c296acae26856ff4c3c2845b11798b06507836a9904ec8484ff414f01d96"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-nightly.command.json",
+    "sha256": "48c2cf5b67a211acf5d6e15e29c1d2850b2626d96376ab2d118dcfaf1cacd36c"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-nightly.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-nightly.stdout",
+    "sha256": "7e1e797c91a55ad86e3df96f0ed041701765e0b767b75c2aa4caca3da0e1e13d"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-stable.command.json",
+    "sha256": "f2102982a27634f877852b0efb29a5d58abfa7f7e2a068e43dc286692f4f2f92"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-stable.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/du-stable.stdout",
+    "sha256": "a5260d4fbd922ba34057819cb7361266c1d87a9b8c635c30802acac13d9acde7"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-nightly.command.json",
+    "sha256": "43c7bcaaae8615a2d579622006d707d6a343a6599ab2c917988d95f9ba0757ce"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-nightly.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-nightly.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-stable.command.json",
+    "sha256": "556388b56098a54710c9621791d3034353a3466039af45addf0d8bd14770d847"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-stable.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/git-tracked-stable.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-all-selected-native-programs.command.json",
+    "sha256": "4c5962492cf9ae35e127d932fab6f11ef1e3ebe4aa251df4ea0890abe7ae1cfb"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-all-selected-native-programs.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-all-selected-native-programs.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-nightly.command.json",
+    "sha256": "ea70ab6d3db30b5909121442d96b4b4d6e7d7d2d8208295eb191812e843a8363"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-nightly.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-nightly.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-saved-binary-directory.command.json",
+    "sha256": "999035053a01015d30d7d8cb69b661a9ffabed28a219160f61c788fab36cc8b6"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-saved-binary-directory.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-saved-binary-directory.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-stable.command.json",
+    "sha256": "0490b67262b8969781662e602f2e0cdd9e2ea342a0003056ada8ad915ad8f605"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-stable.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/lsof-stable.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/ps-recorded-pids.command.json",
+    "sha256": "390f5217f4b311fc594a36843831b0c282e46c5e7ffaab3a00a512357047c718"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/ps-recorded-pids.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/ps-recorded-pids.stdout",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-audit-raw/recorded-pid-provenance.json",
+    "sha256": "6053e5b4b264ac5c5e59349c6c2913b2ae8d3bae0c23ee18e05c55d89717eab5"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-resource-audit.json",
+    "sha256": "da4aeb04755efed87da63fbf1d10e36b184141651a120fa1609e01f0119344ef"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/post-failure-resource-observation.json",
+    "sha256": "1654e36b23c0d7f1f525ebcd4f2d7c039ac4b0726e06aca5f0154982185091f8"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/runner.py",
+    "sha256": "a0a60f8f3086e0315addfa3a6d6be21055635b9aab7e853b4213fa8e0b919c45"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/running.json",
+    "sha256": "b389e7a9038672229f7c1bb44a8856fc93179ee03901f0dac2e57f4765e5a657"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/semantic-execution-summary.json",
+    "sha256": "40fb5ffbf2e41c502c85dc4e0c96edf114d691df7a6ff3a771fc041e19cfe2e0"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/six-gates-summary.json",
+    "sha256": "7f2f305f97893d3887236ec142113ca9fde9ab6c2f9f45fe430e0673c6b36b14"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/workspace-fresh-build-after-cache-budget.json",
+    "sha256": "f9ceeaa7bfbc742ed20a60282be59339791460658e61a528aab91abab2c1c8c9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/workspace-fresh-build-after.df",
+    "sha256": "b7b267f23c1d90c5378120cc99809da899763dbc4911130be76548f9c8bbdc8b"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/workspace-fresh-build-before-cache-budget.json",
+    "sha256": "f7cfb17c320e3d12f73f7dd5eda491ee74f75530cb0ce739708537ddac54a655"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/workspace-fresh-build-before.df",
+    "sha256": "6adba01504a5b4d1189f688e1baaf30315d6f1b8f7ea3d22adb693ec30ff81d9"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/workspace-fresh-build.log",
+    "sha256": "d94532fc6fa6f74f0c6ab9adb6984031d20a4f83f7d9855274539d353165d807"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/workspace-fresh-build.receipt.json",
+    "sha256": "bdc6bbc1b378d2ad7ac1f4f45e064b8491ed800ef59eeae7f6e44d8a3d61808f"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runner.py",
+    "sha256": "a0a60f8f3086e0315addfa3a6d6be21055635b9aab7e853b4213fa8e0b919c45"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runtime-markers-actual922.json",
+    "sha256": "625b573df2012d0f2c2d7597da3fee312200dd05c030f31a8856923a19c7b81e"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/ci-inventory.json",
+    "sha256": "2602a3f9cff8a368cb08c14032fb93325ae47b4ea22d6612f73cdfe0337d0009"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-root-execution-v1/authorization.json",
+    "sha256": "1b9ec56e37d1246891bad1895bb40f0843feaac97a1a0adde34ac98dc498b4f1"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-root-execution-v1/execution-config.json",
+    "sha256": "a29dae07f6475e79f33466e86e06a552c09e3c7a9a269ffc262d6cdd462ecc83"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-main-freeze-v1/source-manifest.json",
+    "sha256": "55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-main-freeze-v1/main-binding.json",
+    "sha256": "29b950008be634f485d5322dd5e3b661740aa82ede7544376d8b7190d8ee9754"
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-main-freeze-v1/opt0-six-receipts-bridge.json",
+    "sha256": "e52afc315bc73969eb8e94fecabeff7c763d8dc773e4c40cadf82ce0e67d6beb"
+  }
+]

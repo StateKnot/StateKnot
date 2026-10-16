@@ -1,0 +1,36 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-test-fixes-source",
+  "source_files": 921,
+  "source_tree_sha256": "343eaa8ae7299a520fa2858fa2983025116b8b3ea55926c1ad8faef55df6508d",
+  "source_unchanged": true,
+  "binary": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/source32-real-old-producer-v1/strict-store-build-v1/stateknot-store-postgres-postgres",
+  "binary_sha256": "de221bb45fcb9bd2efe50ebd9355bca18b302bbea6113604c06b09ef4f9c2bc7",
+  "exact_test": "frame_closures::populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_whole_closure",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/source32-real-old-producer-v1/strict-store-build-v1/stateknot-store-postgres-postgres",
+    "frame_closures::populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_whole_closure",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "database": "stateknot_r1_a36_real_old32_upgrade_oct15v1",
+  "postgres_major": 16,
+  "server_version_num": 160015,
+  "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+  "default_stack": true,
+  "original_runtime_resources_and_production_bytes": true,
+  "test_only_actual_old_fixture_fix": true,
+  "exit_code": 0,
+  "seconds": 6.329324960708618,
+  "summary": [
+    [
+      "ok",
+      "1",
+      "0",
+      "0"
+    ]
+  ],
+  "exact_candidate_success": true,
+  "concurrent_host_full_native_chains": true,
+  "log_sha256": "01c60d2cbdca430c0d508adab18b16e546b7883ba8e28cdd4a44d1ebf350abbd"
+}

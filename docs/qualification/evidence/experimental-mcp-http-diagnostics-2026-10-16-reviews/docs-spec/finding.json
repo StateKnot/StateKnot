@@ -1,0 +1,7 @@
+{
+  "field": "new_Native_or_fullCI_conformance_or_stdio_qualification",
+  "path": "mcp-http-debug-adoption-docs-v2/receipt.json",
+  "priority": "P2",
+  "problem": "The retained combined false field literally denies new Native qualification while new_targeted_Native_qualification is true. The three document bodies themselves accurately claim only the new selected Native suites.",
+  "requested_fix": "In a new immutable package increment, rename/split the old combined field to explicitly mean no new FULL Native/fullCI/conformance/stdio qualification, preserving new_targeted_Native_qualification=true. Do not rewrite sealed v2."
+}

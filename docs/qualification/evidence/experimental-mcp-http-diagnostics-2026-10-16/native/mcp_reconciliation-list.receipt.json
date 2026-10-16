@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-native-v1/execution-v1/artifacts/mcp_reconciliation",
+    "--list"
+  ],
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-native-v1/execution-v1/artifacts/mcp_reconciliation",
+    "--list"
+  ],
+  "cwd": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3",
+  "default_stack_no_runner_override": true,
+  "exit_code": 0,
+  "inventory_sha256": "6a67f0c836784651d1b4207ffa2b18666720f86803ed44d67dd738f910cf809b",
+  "log_sha256": "0f24e4053f8ab56cc96dd80982143a9198c12173d85b794302028529b77cfd5a",
+  "override_presence": {
+    "CARGO_ENCODED_RUSTFLAGS": false,
+    "RUSTC": false,
+    "RUSTC_BOOTSTRAP": false,
+    "RUSTC_WORKSPACE_WRAPPER": false,
+    "RUSTC_WRAPPER": false,
+    "RUST_MIN_STACK": false
+  },
+  "pid": 63324,
+  "runner_sha256": "234a01c80b914084d707e37b52ae04e7e58601ee264cae45f075fff0108813a9",
+  "rust_environment_allowlist": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+    "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+    "RUSTDOCFLAGS": "-D warnings",
+    "RUSTFLAGS": "-D warnings",
+    "STATEKNOT_REQUIRE_POSTGRES_TESTS": null
+  },
+  "seconds": 0.9140803813934326,
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca"
+}

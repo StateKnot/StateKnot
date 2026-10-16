@@ -1,0 +1,213 @@
+{
+  "publication_sha256": "ae37d8dcb37e964a3a727c5e3ac10803867ccc2d18c76f87a181404873de9f7f",
+  "file_count": 449,
+  "stored_bytes": 2583435,
+  "actual_workspace_449_bytemap_match": true,
+  "evidence_manifest_sha256": "b026df3fcfbfcc90bd938b567dbc2de488cf41c202d8c0666a53fdf18148b171",
+  "seal_sha256": "ffa8222a8f56aba03aa46f7234640c4a9371e4cad0ca40b2c2ab39dd03a18a9b",
+  "index_rows_checked": 431,
+  "copied_originals_byte_checked": 412,
+  "derived_payloads": 19,
+  "source_reconstruction": {
+    "base_archive_files": 923,
+    "base_refs": [
+      {
+        "path": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/source.tar.gz",
+        "bytes": 3451150,
+        "sha256": "5a882322c32b5ec165d1a37bf84f087f0c5afc8811b805c07cc4ac7a590e75e3"
+      },
+      {
+        "path": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/manifest.json.gz",
+        "bytes": 49086,
+        "sha256": "c289109e2234c9a2b5462dacf1dcc91e84bdf460dbb0cc05684248caa2278a06"
+      },
+      {
+        "path": "docs/qualification/evidence/experimental-postgres-test-profile-2026-10-15/source/child_join_pitr.rs.gz",
+        "bytes": 4303,
+        "sha256": "49ed6fa9ddbca9d9530bee1a0c30cd6b4292d2f5de0a7b14aaefd8b24e0994b4"
+      }
+    ],
+    "source_count": 928,
+    "source_tree": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+    "changed_payloads": 12,
+    "new_files": 5,
+    "compiled_count": 536,
+    "canonical_digest": "cfd0f2f8b48e062567fb591be2e5c427781cb7db616ee20b942cc2174a775b2d",
+    "original_order_digest": "ded1a866797889ed38df63f59f671c8a2c34a5b7373a688932cc714eae582794",
+    "actual_workspace_536_match": true
+  },
+  "old_history": {
+    "files": 224,
+    "all_bytemaps_match": true,
+    "adoptable": false,
+    "numeric_production_equal_eedd": true,
+    "numeric_exit": 101,
+    "HTTP_status": 200,
+    "business_before": 2,
+    "business_after": 3,
+    "a87_only_unit_reference_type_fix": true,
+    "same69af_sandbox_failed_29_passed_5_failed_then_same_source_authorized_retry": true,
+    "collector_tool_reds_not_product_failure": true
+  },
+  "six_raw_gates": [
+    {
+      "gate": "fmt",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--check"
+      ]
+    },
+    {
+      "gate": "clippy",
+      "exit_code": 0,
+      "log_sha256": "970c742910792bfbe48abef0e530c79a74dbeaab153744556de13c44dbdb2074",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    {
+      "gate": "workspace",
+      "exit_code": 0,
+      "log_sha256": "dc3e9b0a16ad74bb41239b6f1cdbd2997c9f01dfec584dcb77d93d045da1e264",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ]
+    },
+    {
+      "gate": "doctests",
+      "exit_code": 0,
+      "log_sha256": "d365f49369b5ad4182ed6c89e86cf61ba0deeae7be35992c17fee616a7bec875",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked"
+      ]
+    },
+    {
+      "gate": "rustdoc",
+      "exit_code": 0,
+      "log_sha256": "750050c7f75a9bd4370591a4140ee98d8ca32700261d040ddf758a8064f27cca",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ]
+    },
+    {
+      "gate": "nightly",
+      "exit_code": 0,
+      "log_sha256": "809f0cdfff107f61bd8dd791c82c4562d6f53914149fc69b5353a8ad00e6c7ef",
+      "command": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ]
+    }
+  ],
+  "recounted_totals": {
+    "workspace": {
+      "groups": 99,
+      "passed": 2098,
+      "failed": 0,
+      "ignored": 6
+    },
+    "doctests": {
+      "groups": 10,
+      "passed": 48,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "native": {
+    "artifact_fresh": false,
+    "default_features": [],
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "binary_sha256": "0751e63128bf2fc1a28342f4e05bf62d7fd1416e9ae991032fa4136cf22bc8ed",
+    "inventory": 15,
+    "postgres": [
+      {
+        "major": 16,
+        "log_sha256": "0e9469442f880f644935b4c4c40504510bd7e68d22abd26305bf598f9ef9076c",
+        "summary": [
+          15,
+          0,
+          0,
+          0
+        ],
+        "marker_count": 1,
+        "saved_binary_still_hash_matches": true
+      },
+      {
+        "major": 17,
+        "log_sha256": "7e5144b94176c36dc1414482a79b94aa10b4f9916a67ba572dea958871daa1fa",
+        "summary": [
+          15,
+          0,
+          0,
+          0
+        ],
+        "marker_count": 1,
+        "saved_binary_still_hash_matches": true
+      }
+    ]
+  },
+  "review_roles": {
+    "reviewer_not_publication_author": true,
+    "reviewer_not_raw_execution_owner": true,
+    "previous_Standards_role_disclosed": true,
+    "not_new_complete_source_Spec": true,
+    "Spec_author_contract_caveat_retained": true,
+    "collector_test_author_caveat_retained": true
+  },
+  "claims": {
+    "actual_main_six_gates_claimed": false,
+    "actual_Ubuntu_opt1_or_fullCI_claimed": false,
+    "Prompt_numeric_admitted": false,
+    "old_fullNative_qualification_transferred": false
+  },
+  "workspace_state_transition": {
+    "prior_collector_missing_report_exit": 1,
+    "prior_missing_first_report": "experimental-mcp-lossless-bound-state-2026-10-16.json",
+    "after_root_package_copy_independent_workspace_exit": 0,
+    "no_artificial_red_created": true
+  },
+  "scope": "Independent read/hash/reconstruction/raw-log fact review only; no product commands, network, DB, Docker or source mutation."
+}

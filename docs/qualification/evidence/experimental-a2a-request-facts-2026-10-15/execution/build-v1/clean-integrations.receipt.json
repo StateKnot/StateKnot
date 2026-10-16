@@ -1,0 +1,20 @@
+{
+  "runner_pid": 55112,
+  "pid": 55525,
+  "step": "clean-integrations",
+  "command": [
+    "cargo",
+    "clean",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-a2a-auth-facts-source/Cargo.toml",
+    "--target-dir",
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+    "-p",
+    "stateknot-integrations"
+  ],
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "started_unix": 1792066991.224669,
+  "exit_code": 0,
+  "seconds": 0.5900881290435791,
+  "log_sha256": "b8eaf5479be5480bc0b08343b8c87e6fc79178343c26f0f55433816b203098bc"
+}

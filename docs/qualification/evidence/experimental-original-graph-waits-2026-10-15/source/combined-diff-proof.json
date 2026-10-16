@@ -1,0 +1,15 @@
+{
+  "parent919": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "final922": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "changed_tests": [
+    "crates/stateknot-store-postgres/tests/postgres/frame_application_replay.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs"
+  ],
+  "added": [
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.README.md",
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.json",
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.sql"
+  ],
+  "no_production_config_or_other_test_change": true,
+  "combined_patch_sha256": "b8e425c7d4f8de7db00118859bbdf10cc0246a5804052f2466ad5db7196f1a1a"
+}

@@ -1,0 +1,27 @@
+{
+  "runner_pid": 21929,
+  "pid": 22743,
+  "step": "workspace",
+  "command": [
+    "cargo",
+    "test",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ],
+  "started_unix": 1792065891.8856928,
+  "source_tree": "59fd524f0e21460a9ffc8edf7de8cc6ad4d0f95d69384c6515200675364bbea6",
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+  "exit_code": 101,
+  "seconds": 76.93552899360657,
+  "log_sha256": "196debd25c8dc9543e1f9bddd04aad4aebd4e611369cd511b1a57d105facaad5",
+  "summaries": [
+    [
+      "FAILED",
+      "29",
+      "5",
+      "0"
+    ]
+  ]
+}

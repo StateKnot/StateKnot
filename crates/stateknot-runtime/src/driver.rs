@@ -3,6 +3,11 @@
 
 //! Fenced, crash-recoverable execution of registered graph nodes.
 
+mod barrier;
+mod frame;
+mod lease;
+mod node_batch;
+
 use std::{
     fmt,
     panic::AssertUnwindSafe,
@@ -22,13 +27,13 @@ use stateknot_core::{
     GraphBarrierPlanError, GraphReference, JournalAppend, JournalEventIntent, JournalEventKind,
     JournalExpectation, JournalHead, JournalPayload, NodeAttemptStartHead, PendingNodeResult,
     PendingNodeResultIntent, QuarantineId, ReadyNodeRecoveryPlan, RecoveryNodeKind, RetryAdvice,
-    RunFence, RunLease, RunRevision, RunStatus, Timestamp,
+    RunFence, RunLease, RunLifecycle, RunRevision, RunStatus, Timestamp,
 };
 use stateknot_store_postgres::{
-    BarrierCommitOutcome, ClaimedRunRecovery, CorruptionQuarantineContext,
-    DelayedRetryScheduleOutcome, GraphReplayLimits, GraphReplayReport, LeaseReleaseOutcome,
-    LeaseRenewalOutcome, NodeAttemptCommitOutcome, PendingNodeResultPageSize, PostgresStore,
-    RunProjection, StoreError, StoredRun,
+    ClaimedRunRecovery, CorruptionQuarantineContext, DelayedRetryScheduleOutcome,
+    GraphReplayLimits, GraphReplayReport, LeaseReleaseOutcome, LeaseRenewalOutcome,
+    NodeAttemptCommitOutcome, PendingNodeResultPageSize, PostgresStore,
+    RootGraphBarrierCommitOutcome, StoreError, StoredRun,
 };
 use thiserror::Error;
 use tokio::{
@@ -38,8 +43,8 @@ use tokio::{
 };
 
 use crate::{
-    ExecutableGraph, ExecutableGraphRegistry, GraphNodeContext, GraphNodeContextError,
-    GraphNodeExecution, GraphNodeExecutionError, GraphNodeScheduling,
+    ExecutableGraph, ExecutableGraphRegistry, GraphLifecycleEvidenceProvider, GraphNodeContext,
+    GraphNodeContextError, GraphNodeExecution, GraphNodeExecutionError, GraphNodeScheduling,
     StandardGraphDriverSchemaError, standard_graph_driver_event_schema,
 };
 
@@ -285,6 +290,7 @@ pub struct DurableGraphDriver {
     registry: ExecutableGraphRegistry,
     journal_schema: stateknot_core::SchemaReference,
     options: DurableGraphDriverOptions,
+    evidence: Option<Arc<dyn GraphLifecycleEvidenceProvider>>,
 }
 
 impl DurableGraphDriver {
@@ -323,7 +329,23 @@ impl DurableGraphDriver {
             registry,
             journal_schema,
             options,
+            evidence: None,
         })
+    }
+
+    /// Installs trusted exact-journal complete DIRECT accounting for frame actions.
+    ///
+    /// The existing lifecycle provider must implement `direct_usage_evidence`.
+    /// Missing or incomplete evidence is operational unavailability and never
+    /// becomes zero usage or a fresh launch grant. Root-only providers retain
+    /// their original behavior without this optional configuration.
+    #[must_use]
+    pub fn with_direct_usage_evidence(
+        mut self,
+        evidence: Arc<dyn GraphLifecycleEvidenceProvider>,
+    ) -> Self {
+        self.evidence = Some(evidence);
+        self
     }
 
     /// Returns shared node-future completion accounting for this driver and clones.
@@ -346,11 +368,17 @@ impl DurableGraphDriver {
     /// completions use the latest exact journal head so invocation-ledger facts
     /// committed by the node remain ordered before its result.
     ///
-    /// Continue barriers commit automatically. Wait and successful-terminal
+    /// Root Continue barriers commit automatically. Root Wait and successful-terminal
     /// barriers, plus node failure/exhaustion, return a lease-bound handoff:
     /// their complete registration, admitted result, or cumulative failure
     /// metadata belongs to the lifecycle integration layer and is never guessed
     /// by this driver.
+    ///
+    /// The current leaf is independently authenticated and replayed against its
+    /// exact registry pins. Framework callers use durable Entry and Return
+    /// records without application executors. Scoped barriers commit directly;
+    /// scoped Wait returns [`GraphDriveOutcome::FrameWaiting`] after releasing
+    /// the lease, and Terminal returns to the parent before its next barrier.
     ///
     /// # Errors
     ///
@@ -362,115 +390,203 @@ impl DurableGraphDriver {
         fence: RunFence,
         shutdown: CancellationSignal,
     ) -> BoxFuture<'_, Result<GraphDriveResult, GraphDriverError>> {
-        Box::pin(self.drive_inner(fence, shutdown))
+        self.drive_with_recovery_lease(fence, shutdown)
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn drive_inner(
-        &self,
+    fn drive_inner<'a>(
+        &'a self,
         fence: RunFence,
         shutdown: CancellationSignal,
-    ) -> Result<GraphDriveResult, GraphDriverError> {
-        // Recovery, graph loading, and replay are bounded but may still consume
-        // a meaningful fraction of a short lease. Refresh below half-life
-        // before those reads so a valid near-expiry claim is not lost merely
-        // because integrity verification ran before the first durable start.
-        let (startup_renewals, startup_retries) = self.refresh_near_expiry_lease(&fence).await?;
-        let initial_recovery = self.begin_recovery(&fence).await?;
-        let stored_graph = initial_recovery.load_pinned_graph().await?;
-        let graph_reference = stored_graph.graph().reference();
-        let executable = self
-            .registry
-            .resolve(&graph_reference)
-            .cloned()
-            .ok_or_else(|| GraphDriverError::ExecutableGraphUnavailable {
-                graph: Box::new(graph_reference),
-            })?;
-        let replay = initial_recovery
-            .validate_noninitial_replay(
-                executable.schemas(),
-                executable.reducer(),
-                self.options.replay_limits,
-            )
-            .await?;
-        drop(initial_recovery);
-
-        let mut report = GraphDriveReport::new(replay);
-        report.lease_renewals = startup_renewals;
-        report.mutation_retries = startup_retries;
-        loop {
-            if shutdown.is_cancelled() {
-                let release = self.release_with_retry(&fence, &mut report).await?;
-                return Ok(GraphDriveResult::new(
-                    GraphDriveOutcome::Cancelled { release },
-                    report,
-                ));
-            }
-            if report.durable_events >= self.options.maximum_durable_events {
-                let release = self.release_with_retry(&fence, &mut report).await?;
-                return Ok(GraphDriveResult::new(
-                    GraphDriveOutcome::Yielded { release },
-                    report,
-                ));
-            }
-
-            let recovery = self.begin_recovery(&fence).await?;
-            let plan = recovery.plan_ready_nodes().await?;
-            let live = recovery.revalidate().await?;
-            if live.lifecycle().status() == RunStatus::CancellationRequested {
-                let lease = exact_live_lease(&live, &fence)?.clone();
-                let request = live.lifecycle().cancellation_request().ok_or(
-                    GraphDriverError::RuntimeInvariant {
-                        operation: "recover durable cancellation intent",
-                    },
-                )?;
-                let checkpoint = plan.checkpoint().head();
-                let pointer = live
-                    .checkpoint()
-                    .ok_or(GraphDriverError::RuntimeInvariant {
-                        operation: "bind cancellation to the current checkpoint",
-                    })?;
-                if pointer.checkpoint_id() != checkpoint.checkpoint_id()
-                    || pointer.superstep() != checkpoint.superstep()
-                    || pointer.digest() != checkpoint.digest()
-                    || live.journal_head() != Some(plan.journal_head())
-                {
-                    return Err(GraphDriverError::StaleBarrierSnapshot);
+        node_phase: &'a AtomicBool,
+    ) -> BoxFuture<'a, Result<GraphDriveResult, GraphDriverError>> {
+        Box::pin(async move {
+            let startup = self.prepare_drive_start(&fence, &shutdown).await?;
+            let frame::DriveStartup {
+                mut continuation,
+                mut report,
+            } = *startup;
+            loop {
+                if shutdown.is_cancelled() {
+                    let release = self.release_with_retry(&fence, &mut report).await?;
+                    return Ok(GraphDriveResult::new(
+                        GraphDriveOutcome::Cancelled { release },
+                        report,
+                    ));
                 }
-                return Ok(GraphDriveResult::new(
-                    GraphDriveOutcome::CancellationRequested(Box::new(GraphCancellationHandoff {
-                        checkpoint,
-                        journal_head: plan.journal_head().clone(),
-                        event_id: EventId::generate(),
-                        expected_revision: live.lifecycle().revision(),
-                        lease,
-                        failure_id: request.failure().id(),
-                    })),
-                    report,
-                ));
-            }
-            let mut blockers = GraphDriveBlockers::from_plan(&plan);
-            // Stop before durable attempt starts or external dispatch, including
-            // after recovery at the last permitted barrier. A finite graph
-            // budget is a lifecycle failure, not corruption or a retry loop.
-            blockers.superstep_limit_reached = plan.checkpoint().superstep().get()
-                >= executable.graph().limits().maximum_supersteps().get();
-            if !blockers.is_empty() {
-                let lease = exact_live_lease(&live, &fence)?.clone();
-                return Ok(GraphDriveResult::new(
-                    GraphDriveOutcome::Blocked(Box::new(GraphBlockedHandoff {
-                        plan,
-                        lease,
-                        event_id: EventId::generate(),
-                        expected_revision: live.lifecycle().revision(),
-                        blockers,
-                    })),
-                    report,
-                ));
-            }
+                if report.durable_events >= self.options.maximum_durable_events {
+                    let release = self.release_with_retry(&fence, &mut report).await?;
+                    return Ok(GraphDriveResult::new(
+                        GraphDriveOutcome::Yielded { release },
+                        report,
+                    ));
+                }
 
-            if plan.is_barrier_ready() {
-                if report.durable_events == self.options.maximum_durable_events {
+                let iteration = self
+                    .load_drive_iteration(&fence, &shutdown, &mut report, &mut continuation)
+                    .await?;
+                let frame::IterationRead {
+                    recovery,
+                    scope,
+                    plan,
+                    live,
+                } = *iteration;
+                let executable = &scope.executable;
+                if live.lifecycle().status() == RunStatus::CancellationRequested {
+                    let lease = exact_live_lease(&live, &fence)?.clone();
+                    let request = live.lifecycle().cancellation_request().ok_or(
+                        GraphDriverError::RuntimeInvariant {
+                            operation: "recover durable cancellation intent",
+                        },
+                    )?;
+                    let checkpoint = scope.root.head();
+                    let pointer = live
+                        .checkpoint()
+                        .ok_or(GraphDriverError::RuntimeInvariant {
+                            operation: "bind cancellation to the current checkpoint",
+                        })?;
+                    if pointer.checkpoint_id() != checkpoint.checkpoint_id()
+                        || pointer.superstep() != checkpoint.superstep()
+                        || pointer.digest() != checkpoint.digest()
+                        || live.journal_head() != Some(plan.journal_head())
+                    {
+                        return Err(GraphDriverError::StaleBarrierSnapshot);
+                    }
+                    return Ok(GraphDriveResult::new(
+                        GraphDriveOutcome::CancellationRequested(Box::new(
+                            GraphCancellationHandoff {
+                                quarantine_context: recovery.quarantine_context().clone(),
+                                checkpoint,
+                                leaf: scope.leaf(),
+                                journal_head: plan.journal_head().clone(),
+                                event_id: EventId::generate(),
+                                expected_revision: live.lifecycle().revision(),
+                                lease,
+                                failure_id: request.failure().id(),
+                            },
+                        )),
+                        report,
+                    ));
+                }
+                if scope.active.is_none() {
+                    recovery
+                        .validate_graph_creating_source(&scope.root.head(), plan.journal_head())
+                        .await?;
+                }
+                if self
+                    .rebind_current_caller(&recovery, &scope, &mut report, &mut continuation)
+                    .await?
+                {
+                    continue;
+                }
+                if scope
+                    .active
+                    .as_ref()
+                    .is_some_and(|active| active.checkpoint().checkpoint().ready_nodes().is_empty())
+                {
+                    self.return_terminal_frame(&recovery, &scope, &mut report, &mut continuation)
+                        .await?;
+                    continue;
+                }
+                let mut blockers = GraphDriveBlockers::from_plan(&plan);
+                // Stop before durable attempt starts or external dispatch, including
+                // after recovery at the last permitted barrier. A finite graph
+                // budget is a lifecycle failure, not corruption or a retry loop.
+                blockers.superstep_limit_reached = plan.checkpoint().superstep().get()
+                    >= executable.graph().limits().maximum_supersteps().get();
+                if !blockers.is_empty() {
+                    let lease = exact_live_lease(&live, &fence)?.clone();
+                    return Ok(GraphDriveResult::new(
+                        GraphDriveOutcome::Blocked(Box::new(GraphBlockedHandoff {
+                            quarantine_context: recovery.quarantine_context().clone(),
+                            root_checkpoint: scope.root.head(),
+                            leaf: scope.leaf(),
+                            plan: *plan,
+                            lease,
+                            event_id: EventId::generate(),
+                            expected_revision: live.lifecycle().revision(),
+                            blockers,
+                        })),
+                        report,
+                    ));
+                }
+
+                if plan.is_barrier_ready() {
+                    if report.durable_events == self.options.maximum_durable_events {
+                        drop(recovery);
+                        let release = self.release_with_retry(&fence, &mut report).await?;
+                        return Ok(GraphDriveResult::new(
+                            GraphDriveOutcome::Yielded { release },
+                            report,
+                        ));
+                    }
+                    if let Some(outcome) = self
+                        .commit_ready_barrier(
+                            barrier::BarrierContext {
+                                scope: &scope,
+                                plan: &plan,
+                                live: &live,
+                                recovery,
+                                fence: &fence,
+                            },
+                            &mut report,
+                            &mut continuation,
+                        )
+                        .await?
+                    {
+                        return Ok(GraphDriveResult::new(*outcome, report));
+                    }
+                    continue;
+                }
+
+                if let Some(not_before) = plan.earliest_deferred_at() {
+                    if plan.nodes().iter().all(|node| {
+                        matches!(
+                            node.kind(),
+                            RecoveryNodeKind::Completed | RecoveryNodeKind::Deferred
+                        )
+                    }) {
+                        let outcome = self
+                            .schedule_deferred_with_retry(&plan, &mut report)
+                            .await?;
+                        if matches!(outcome, DelayedRetryScheduleOutcome::Due { .. }) {
+                            continue;
+                        }
+                        return Ok(GraphDriveResult::new(
+                            GraphDriveOutcome::Deferred {
+                                not_before,
+                                schedule: outcome,
+                            },
+                            report,
+                        ));
+                    }
+                }
+
+                if let Some(node) = plan
+                    .nodes()
+                    .iter()
+                    .find(|node| node.kind() == RecoveryNodeKind::Dispatchable)
+                {
+                    if executable
+                        .graph()
+                        .frame_calls()
+                        .and_then(|policy| policy.call(node.activation().node_id()))
+                        .is_some()
+                    {
+                        self.enter_declared_frame(
+                            &recovery,
+                            &scope,
+                            &plan,
+                            node.activation().node_id(),
+                            &mut report,
+                            &mut continuation,
+                        )
+                        .await?;
+                        continue;
+                    }
+                }
+
+                if report.durable_events.saturating_add(2) > self.options.maximum_durable_events {
                     drop(recovery);
                     let release = self.release_with_retry(&fence, &mut report).await?;
                     return Ok(GraphDriveResult::new(
@@ -478,227 +594,25 @@ impl DurableGraphDriver {
                         report,
                     ));
                 }
-                let results = self.load_barrier_results(&recovery, &plan).await?;
-                let barrier_plan = executable
-                    .graph()
-                    .plan_barrier(
-                        plan.checkpoint(),
-                        &results,
-                        CheckpointId::generate(),
-                        executable.schemas(),
-                        executable.reducer(),
-                    )
-                    .map_err(GraphDriverError::graph_plan)?;
-                let lease = exact_live_lease(&live, &fence)?.clone();
-                match barrier_plan.disposition() {
-                    GraphBarrierDisposition::Continue => {
-                        drop(recovery);
-                        self.commit_continue_barrier(&fence, &plan, barrier_plan, &mut report)
-                            .await?;
-                    }
-                    GraphBarrierDisposition::Wait { .. }
-                    | GraphBarrierDisposition::Terminal { .. } => {
-                        return Ok(GraphDriveResult::new(
-                            GraphDriveOutcome::LifecycleBarrierReady(Box::new(
-                                GraphLifecycleBarrierHandoff {
-                                    plan: barrier_plan,
-                                    journal_head: plan.journal_head().clone(),
-                                    event_id: EventId::generate(),
-                                    expected_revision: live.lifecycle().revision(),
-                                    lease,
-                                },
-                            )),
-                            report,
-                        ));
-                    }
-                    _ => {
-                        return Err(GraphDriverError::RuntimeInvariant {
-                            operation: "handle unsupported graph barrier disposition",
-                        });
-                    }
-                }
-                continue;
-            }
-
-            if let Some(not_before) = plan.earliest_deferred_at() {
-                if plan.nodes().iter().all(|node| {
-                    matches!(
-                        node.kind(),
-                        RecoveryNodeKind::Completed | RecoveryNodeKind::Deferred
-                    )
-                }) {
-                    let outcome = self
-                        .schedule_deferred_with_retry(&plan, &mut report)
-                        .await?;
-                    if matches!(outcome, DelayedRetryScheduleOutcome::Due { .. }) {
-                        continue;
-                    }
-                    return Ok(GraphDriveResult::new(
-                        GraphDriveOutcome::Deferred {
-                            not_before,
-                            schedule: outcome,
+                if let Some(outcome) = self
+                    .dispatch_node_batch(
+                        node_batch::NodeBatchContext {
+                            executable,
+                            plan: &plan,
+                            recovery,
+                            fence: &fence,
                         },
-                        report,
-                    ));
-                }
-            }
-
-            if report.durable_events.saturating_add(2) > self.options.maximum_durable_events {
-                drop(recovery);
-                let release = self.release_with_retry(&fence, &mut report).await?;
-                return Ok(GraphDriveResult::new(
-                    GraphDriveOutcome::Yielded { release },
-                    report,
-                ));
-            }
-            let first_node = plan
-                .nodes()
-                .iter()
-                .find(|node| node.kind() == RecoveryNodeKind::Dispatchable)
-                .ok_or(GraphDriverError::RuntimeInvariant {
-                    operation: "select dispatchable graph node",
-                })?;
-            let first_node_id = first_node.activation().node_id().clone();
-            let first_executor = Self::resolve_node_executor(&executable, &first_node_id)?;
-            let batch_limit = usize::from(self.options.maximum_parallel_nodes)
-                .min(usize::from(
-                    executable.graph().limits().maximum_parallelism(),
-                ))
-                .min(
-                    usize::try_from(
-                        (self
-                            .options
-                            .maximum_durable_events
-                            .saturating_sub(report.durable_events))
-                            / 2,
+                        shutdown.clone(),
+                        node_phase,
+                        &mut report,
+                        &mut continuation,
                     )
-                    .unwrap_or(usize::MAX),
-                );
-            let first_scheduling = first_executor.scheduling();
-            let mut selected = Vec::with_capacity(batch_limit);
-            selected.push((first_node_id, first_executor));
-            if first_scheduling == GraphNodeScheduling::JournalIsolated && batch_limit > 1 {
-                for node in plan
-                    .nodes()
-                    .iter()
-                    .filter(|node| node.kind() == RecoveryNodeKind::Dispatchable)
-                    .skip(1)
-                    .take(batch_limit.saturating_sub(1))
+                    .await?
                 {
-                    let node_id = node.activation().node_id().clone();
-                    let executor = Self::resolve_node_executor(&executable, &node_id)?;
-                    if executor.scheduling() != GraphNodeScheduling::JournalIsolated {
-                        break;
-                    }
-                    selected.push((node_id, executor));
+                    return Ok(GraphDriveResult::new(*outcome, report));
                 }
             }
-
-            // Start facts are serialized in canonical NodeId order before any
-            // journal-isolated executor is spawned. This makes both launch
-            // authority and the later result-commit order independent of task
-            // completion timing.
-            let mut journal_head = plan.journal_head().clone();
-            let mut started = Vec::with_capacity(selected.len());
-            for (node_id, executor) in selected {
-                let attempt_id = AttemptId::generate();
-                let start_event_id = EventId::generate();
-                let payload = self.node_started_payload(
-                    &executable.graph().reference(),
-                    plan.checkpoint(),
-                    &node_id,
-                    attempt_id,
-                )?;
-                let append = worker_append(&fence, journal_head.clone(), start_event_id, payload)?;
-                let start = self
-                    .start_node_with_retry(append, &plan, &node_id, attempt_id, &mut report)
-                    .await?;
-                match start {
-                    NodeAttemptCommitOutcome::Committed { event, attempt } => {
-                        report.durable_events = report.durable_events.saturating_add(1);
-                        report.node_attempts_started =
-                            report.node_attempts_started.saturating_add(1);
-                        journal_head = event.head();
-                        started.push(StartedNode {
-                            executor,
-                            start: attempt.start().head(),
-                        });
-                    }
-                    NodeAttemptCommitOutcome::Idempotent { .. } => {
-                        // Lost acknowledgement convergence never grants launch
-                        // authority. Any starts committed earlier in this batch
-                        // still execute and settle normally.
-                        report.durable_events = report.durable_events.saturating_add(1);
-                        break;
-                    }
-                    _ => {
-                        return Err(GraphDriverError::RuntimeInvariant {
-                            operation: "handle unsupported node attempt start outcome",
-                        });
-                    }
-                }
-            }
-            if started.is_empty() {
-                continue;
-            }
-            let checkpoint = Arc::new(plan.checkpoint().clone());
-            drop(recovery);
-
-            // A recovery/dispatch pass may have consumed most of the lease that
-            // was originally acquired. Re-observe the database clock only after
-            // the durable start commits, then restore a full configured lease
-            // before node code can perform external work. If this preflight
-            // fails, the committed start remains available for fenced takeover
-            // and the executor is never launched under an unsafe lease margin.
-            let current_lease = self.prepare_execution_lease(&fence, &mut report).await?;
-
-            report.node_batches_started = report.node_batches_started.saturating_add(1);
-            report.maximum_nodes_in_batch = report
-                .maximum_nodes_in_batch
-                .max(u16::try_from(started.len()).unwrap_or(u16::MAX));
-            let execution = self
-                .execute_started_nodes(
-                    &started,
-                    checkpoint,
-                    current_lease,
-                    shutdown.clone(),
-                    &mut report,
-                )
-                .await?;
-            match execution {
-                StartedNodesExecution::Cancelled => {
-                    let release = self.release_with_retry(&fence, &mut report).await?;
-                    return Ok(GraphDriveResult::new(
-                        GraphDriveOutcome::Cancelled { release },
-                        report,
-                    ));
-                }
-                StartedNodesExecution::RunCancellationObserved => {}
-                StartedNodesExecution::Finished(results) => {
-                    for (started, result) in started.iter().zip(results) {
-                        match self
-                            .commit_node_execution(
-                                &fence,
-                                &executable,
-                                started,
-                                result,
-                                &mut report,
-                            )
-                            .await?
-                        {
-                            NodeExecutionCommit::RunCancellationObserved => break,
-                            NodeExecutionCommit::Committed => {}
-                            NodeExecutionCommit::ChildJoin(request) => {
-                                return Ok(GraphDriveResult::new(
-                                    GraphDriveOutcome::ChildJoin(request),
-                                    report,
-                                ));
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        })
     }
 
     async fn begin_recovery<'driver>(
@@ -775,19 +689,33 @@ impl DurableGraphDriver {
         &self,
         recovery: &ClaimedRunRecovery<'_>,
         plan: &ReadyNodeRecoveryPlan,
+        scope: &frame::IterationScope,
     ) -> Result<Vec<PendingNodeResult>, GraphDriverError> {
         let page_size = PendingNodeResultPageSize::new(PendingNodeResultPageSize::MAX)?;
         let mut cursor = None;
         let mut results = Vec::with_capacity(plan.nodes().len());
         let mut compact_bytes = 0_usize;
         loop {
-            let page = recovery
-                .load_unconsumed_pending_node_result_page(
-                    &plan.checkpoint().head(),
-                    cursor.as_ref(),
-                    page_size,
-                )
-                .await?;
+            let page = if let Some(active) = scope.active.as_ref() {
+                self.store
+                    .with_corruption_quarantine(
+                        recovery.quarantine_context().clone(),
+                        self.store.load_graph_frame_pending_node_result_page(
+                            &active.checkpoint().head(),
+                            cursor.as_ref(),
+                            page_size,
+                        ),
+                    )
+                    .await?
+            } else {
+                recovery
+                    .load_unconsumed_pending_node_result_page(
+                        &plan.checkpoint().head(),
+                        cursor.as_ref(),
+                        page_size,
+                    )
+                    .await?
+            };
             if page.snapshot_journal_head() != plan.journal_head() {
                 return Err(GraphDriverError::StaleBarrierSnapshot);
             }
@@ -831,8 +759,9 @@ impl DurableGraphDriver {
         fence: &RunFence,
         ready_plan: &ReadyNodeRecoveryPlan,
         barrier_plan: GraphBarrierPlan,
+        original_lifecycle: &RunLifecycle,
         report: &mut GraphDriveReport,
-    ) -> Result<(), GraphDriverError> {
+    ) -> Result<stateknot_store_postgres::StoredRootGraphBarrier, GraphDriverError> {
         if !matches!(
             barrier_plan.disposition(),
             GraphBarrierDisposition::Continue
@@ -841,33 +770,48 @@ impl DurableGraphDriver {
                 operation: "commit non-continue graph barrier",
             });
         }
-        let payload = self.barrier_continued_payload(
-            ready_plan.checkpoint().graph(),
-            ready_plan.checkpoint(),
-            barrier_plan.barrier().successor().checkpoint_id(),
-            barrier_plan.barrier().successor().superstep(),
-        )?;
+        let event_id = EventId::generate();
+        let intent = self
+            .store
+            .prepare_worker_graph_barrier(
+                barrier_plan,
+                original_lifecycle.clone(),
+                event_id,
+                None,
+                None,
+            )
+            .await?;
         let append = worker_append(
             fence,
             ready_plan.journal_head().clone(),
-            EventId::generate(),
-            payload,
+            event_id,
+            intent.payload()?,
         )?;
-        let barrier = barrier_plan.barrier().clone();
+        let executable = self
+            .registry
+            .resolve(ready_plan.checkpoint().graph())
+            .ok_or_else(|| GraphDriverError::ExecutableGraphUnavailable {
+                graph: Box::new(ready_plan.checkpoint().graph().clone()),
+            })?;
         let mut attempt = 1_u8;
         loop {
             let result = self
                 .store
-                .append_worker_barrier(append.clone(), RunProjection::unchanged(), barrier.clone())
+                .append_worker_graph_barrier(
+                    append.clone(),
+                    intent.clone(),
+                    executable.schemas(),
+                    executable.reducer(),
+                )
                 .await;
             match result {
                 Ok(
-                    BarrierCommitOutcome::Committed { .. }
-                    | BarrierCommitOutcome::Idempotent { .. },
+                    RootGraphBarrierCommitOutcome::Committed(record)
+                    | RootGraphBarrierCommitOutcome::Idempotent(record),
                 ) => {
                     report.durable_events = report.durable_events.saturating_add(1);
                     report.barriers_committed = report.barriers_committed.saturating_add(1);
-                    return Ok(());
+                    return Ok(record);
                 }
                 Ok(_) => {
                     return Err(GraphDriverError::RuntimeInvariant {
@@ -897,42 +841,43 @@ impl DurableGraphDriver {
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn execute_started_nodes(
-        &self,
-        started: &[StartedNode],
+    fn execute_started_nodes<'a>(
+        &'a self,
+        started: &'a [StartedNode],
         checkpoint: Arc<Checkpoint>,
         lease: GuardedRunLease,
         shutdown: CancellationSignal,
-        report: &mut GraphDriveReport,
-    ) -> Result<StartedNodesExecution, GraphDriverError> {
-        if shutdown.is_cancelled() {
-            return Ok(StartedNodesExecution::Cancelled);
-        }
-        if started.is_empty() {
-            return Err(GraphDriverError::RuntimeInvariant {
-                operation: "execute an empty graph node batch",
-            });
-        }
+        report: &'a mut GraphDriveReport,
+    ) -> BoxFuture<'a, Result<StartedNodesExecution, GraphDriverError>> {
+        Box::pin(async move {
+            if shutdown.is_cancelled() {
+                return Ok(StartedNodesExecution::Cancelled);
+            }
+            if started.is_empty() {
+                return Err(GraphDriverError::RuntimeInvariant {
+                    operation: "execute an empty graph node batch",
+                });
+            }
 
-        let mut tasks = JoinSet::new();
-        let mut cancellations = Vec::with_capacity(started.len());
-        for (index, started_node) in started.iter().enumerate() {
-            let cancellation = DriverCancellation::new();
-            let context = GraphNodeContext::new(
-                started_node.start.clone(),
-                Arc::clone(&checkpoint),
-                cancellation.signal(),
-            )?;
-            let executor = Arc::clone(&started_node.executor);
-            let store = self.store.clone();
-            let registry = self.registry.clone();
-            let has_children = registry
-                .resolve(executor.graph())
-                .is_some_and(|graph| graph.graph().child_runs().is_some());
-            let task_cancellation = cancellation.clone();
-            let timeout = self.options.node_execution_timeout;
-            cancellations.push(cancellation);
-            tasks.spawn(self.activity.track(async move {
+            let mut tasks = JoinSet::new();
+            let mut cancellations = Vec::with_capacity(started.len());
+            for (index, started_node) in started.iter().enumerate() {
+                let cancellation = DriverCancellation::new();
+                let context = GraphNodeContext::new(
+                    started_node.start.clone(),
+                    Arc::clone(&checkpoint),
+                    cancellation.signal(),
+                )?;
+                let executor = Arc::clone(&started_node.executor);
+                let store = self.store.clone();
+                let registry = self.registry.clone();
+                let has_children = registry
+                    .resolve(executor.graph())
+                    .is_some_and(|graph| graph.graph().child_runs().is_some());
+                let task_cancellation = cancellation.clone();
+                let timeout = self.options.node_execution_timeout;
+                cancellations.push(cancellation);
+                tasks.spawn(self.activity.track(async move {
                 let executing = AtomicBool::new(false);
                 let executing_marker = &executing;
                 // Wrap both the synchronous `execute` call and the returned
@@ -973,79 +918,109 @@ impl DurableGraphDriver {
                 };
                 (index, outcome)
             }));
-        }
+            }
 
-        let fence = lease.lease.fence().clone();
-        let lease_deadline = lease.deadline;
-        let maintenance = self.maintain_execution_lease(lease, report);
-        tokio::pin!(maintenance);
-        let durable_cancellation = self.observe_run_cancellation(&fence);
-        tokio::pin!(durable_cancellation);
-        let mut results = std::iter::repeat_with(|| None)
-            .take(started.len())
-            .collect::<Vec<_>>();
-        let mut completed = 0_usize;
+            let fence = lease.lease.fence().clone();
+            let lease_deadline = lease.deadline;
+            let lease_lost = DriverCancellation::new();
+            let (stopping, stopped) = tokio::sync::oneshot::channel();
+            let mut maintenance =
+                self.maintain_execution_lease(lease, report, &lease_lost, stopped);
+            let mut maintenance_finished = false;
+            let durable_cancellation = self.observe_run_cancellation(&fence);
+            tokio::pin!(durable_cancellation);
+            let mut results = std::iter::repeat_with(|| None)
+                .take(started.len())
+                .collect::<Vec<_>>();
+            let mut completed = 0_usize;
 
-        loop {
-            tokio::select! {
-                joined = tasks.join_next(), if completed < started.len() => {
-                    let (index, result) = joined
-                        .ok_or(GraphDriverError::RuntimeInvariant {
-                            operation: "join a complete graph node batch",
-                        })?
-                        .map_err(|_| GraphDriverError::RuntimeInvariant {
-                            operation: "join an unexpectedly cancelled graph node task",
-                        })?;
-                    let result = result?;
-                    let slot = results.get_mut(index).ok_or(GraphDriverError::RuntimeInvariant {
-                        operation: "place a graph node batch result",
-                    })?;
-                    if slot.replace(result).is_some() {
-                        return Err(GraphDriverError::RuntimeInvariant {
-                            operation: "deduplicate a graph node batch result",
-                        });
+            let collecting: BoxFuture<'_, Result<StartedNodesExecution, GraphDriverError>> =
+                Box::pin(async {
+                    loop {
+                        tokio::select! {
+                            () = lease_lost.cancelled() => {
+                                cancel_node_batch(&cancellations);
+                                abort_node_batch(&mut tasks).await;
+                                return Err(StoreError::LeaseExpired.into());
+                            }
+                            joined = tasks.join_next(), if completed < started.len() => {
+                                let (index, result) = joined
+                                    .ok_or(GraphDriverError::RuntimeInvariant {
+                                        operation: "join a complete graph node batch",
+                                    })?
+                                    .map_err(|_| GraphDriverError::RuntimeInvariant {
+                                        operation: "join an unexpectedly cancelled graph node task",
+                                    })?;
+                                let result = result?;
+                                let slot = results.get_mut(index).ok_or(GraphDriverError::RuntimeInvariant {
+                                    operation: "place a graph node batch result",
+                                })?;
+                                if slot.replace(result).is_some() {
+                                    return Err(GraphDriverError::RuntimeInvariant {
+                                        operation: "deduplicate a graph node batch result",
+                                    });
+                                }
+                                completed = completed.saturating_add(1);
+                                if completed == started.len() {
+                                    let ordered = results
+                                        .into_iter()
+                                        .collect::<Option<Vec<_>>>()
+                                        .ok_or(GraphDriverError::RuntimeInvariant {
+                                            operation: "materialize ordered graph node batch results",
+                                        })?;
+                                    return Ok(StartedNodesExecution::Finished(ordered));
+                                }
+                            }
+                            result = &mut maintenance => {
+                                maintenance_finished = true;
+                                cancel_node_batch(&cancellations);
+                                abort_node_batch(&mut tasks).await;
+                                return match result {
+                                    Ok(()) => Err(GraphDriverError::RuntimeInvariant {
+                                        operation: "maintain a live node execution lease",
+                                    }),
+                                    Err(error) => Err(error),
+                                };
+                            }
+                            () = shutdown.cancelled() => {
+                                cancel_node_batch(&cancellations);
+                                abort_node_batch(&mut tasks).await;
+                                return Ok(StartedNodesExecution::Cancelled);
+                            }
+                            result = &mut durable_cancellation => {
+                                cancel_node_batch(&cancellations);
+                                if let Err(error) = result {
+                                    abort_node_batch(&mut tasks).await;
+                                    return Err(error);
+                                }
+                                let grace_deadline = Instant::now()
+                                    .checked_add(self.options.cancellation_grace_period)
+                                    .unwrap_or(lease_deadline)
+                                    .min(lease_deadline);
+                                drain_node_batch_until(&mut tasks, grace_deadline).await;
+                                return Ok(StartedNodesExecution::RunCancellationObserved);
+                            }
+                        }
                     }
-                    completed = completed.saturating_add(1);
-                    if completed == started.len() {
-                        let ordered = results
-                            .into_iter()
-                            .collect::<Option<Vec<_>>>()
-                            .ok_or(GraphDriverError::RuntimeInvariant {
-                                operation: "materialize ordered graph node batch results",
-                            })?;
-                        return Ok(StartedNodesExecution::Finished(ordered));
-                    }
-                }
-                result = &mut maintenance => {
-                    cancel_node_batch(&cancellations);
-                    abort_node_batch(&mut tasks).await;
-                    return match result {
-                        Ok(()) => Err(GraphDriverError::RuntimeInvariant {
-                            operation: "maintain a live node execution lease",
-                        }),
-                        Err(error) => Err(error),
-                    };
-                }
-                () = shutdown.cancelled() => {
-                    cancel_node_batch(&cancellations);
-                    abort_node_batch(&mut tasks).await;
-                    return Ok(StartedNodesExecution::Cancelled);
-                }
-                result = &mut durable_cancellation => {
-                    cancel_node_batch(&cancellations);
-                    if let Err(error) = result {
-                        abort_node_batch(&mut tasks).await;
+                });
+            let result = collecting.await;
+            if result.is_err() {
+                cancel_node_batch(&cancellations);
+                abort_node_batch(&mut tasks).await;
+            }
+            if !maintenance_finished {
+                let _ = stopping.send(());
+                // Node completion and every cancellation/error exit retain
+                // any already-started renewal's complete SQL acknowledgement.
+                // A failed guard grants no authority to commit a new result.
+                if let Err(error) = maintenance.await {
+                    if result.is_ok() {
                         return Err(error);
                     }
-                    let grace_deadline = Instant::now()
-                        .checked_add(self.options.cancellation_grace_period)
-                        .unwrap_or(lease_deadline)
-                        .min(lease_deadline);
-                    drain_node_batch_until(&mut tasks, grace_deadline).await;
-                    return Ok(StartedNodesExecution::RunCancellationObserved);
                 }
             }
-        }
+            result
+        })
     }
 
     async fn observe_run_cancellation(&self, fence: &RunFence) -> Result<(), GraphDriverError> {
@@ -1084,139 +1059,183 @@ impl DurableGraphDriver {
         Ok(lease)
     }
 
-    async fn maintain_execution_lease(
-        &self,
+    fn maintain_execution_lease<'a>(
+        &'a self,
         mut lease: GuardedRunLease,
-        report: &mut GraphDriveReport,
-    ) -> Result<(), GraphDriverError> {
-        loop {
-            let renewal_due = Instant::now()
-                .checked_add(self.options.lease_renewal_interval)
-                .ok_or(GraphDriverError::LeaseTimestampOverflow)?;
-            tokio::select! {
-                () = tokio::time::sleep_until(renewal_due) => {}
-                () = tokio::time::sleep_until(lease.deadline) => {
-                    return Err(StoreError::LeaseExpired.into());
-                }
-            }
-
-            let desired = extend_timestamp(
-                lease.lease.expires_at(),
-                self.options.lease_renewal_interval,
-            )?;
-            let fence = lease.lease.fence().clone();
-            let deadline = lease.deadline;
-            let renewed = {
-                let renewal = self.renew_with_retry(&fence, desired, report);
-                tokio::pin!(renewal);
+        report: &'a mut GraphDriveReport,
+        lease_lost: &'a DriverCancellation,
+        mut stopped: tokio::sync::oneshot::Receiver<()>,
+    ) -> BoxFuture<'a, Result<(), GraphDriverError>> {
+        Box::pin(async move {
+            loop {
+                let renewal_due = Instant::now()
+                    .checked_add(self.options.lease_renewal_interval)
+                    .ok_or(GraphDriverError::LeaseTimestampOverflow)?;
                 tokio::select! {
-                    result = &mut renewal => result?,
-                    () = tokio::time::sleep_until(deadline) => {
+                    biased;
+                    _ = &mut stopped => return Ok(()),
+                    () = tokio::time::sleep_until(lease.deadline) => {
+                        lease_lost.cancel();
                         return Err(StoreError::LeaseExpired.into());
                     }
+                    () = tokio::time::sleep_until(renewal_due) => {}
                 }
-            };
-            lease = renewed;
-            report.lease_renewals = report.lease_renewals.saturating_add(1);
-        }
+
+                let desired = extend_timestamp(
+                    lease.lease.expires_at(),
+                    self.options.lease_renewal_interval,
+                )?;
+                let fence = lease.lease.fence().clone();
+                let deadline = lease.deadline;
+                let renewed = {
+                    let renewal = self.renew_with_retry(&fence, desired, report);
+                    tokio::pin!(renewal);
+                    tokio::select! {
+                        biased;
+                        () = tokio::time::sleep_until(deadline) => {
+                            // Stop application work at the original monotonic
+                            // deadline, then drain the historical renewal ACK.
+                            // Receiving it later cannot revive launch authority.
+                            lease_lost.cancel();
+                            let _ = renewal.await;
+                            return Err(StoreError::LeaseExpired.into());
+                        }
+                        result = &mut renewal => result?,
+                    }
+                };
+                lease = renewed;
+                report.lease_renewals = report.lease_renewals.saturating_add(1);
+            }
+        })
     }
 
-    async fn commit_node_execution(
-        &self,
-        fence: &RunFence,
-        executable: &ExecutableGraph,
-        started: &StartedNode,
+    #[allow(clippy::too_many_lines)]
+    fn commit_node_execution<'a>(
+        &'a self,
+        fence: &'a RunFence,
+        executable: &'a ExecutableGraph,
+        started: &'a StartedNode,
         execution: FinishedNodeExecution,
-        report: &mut GraphDriveReport,
-    ) -> Result<NodeExecutionCommit, GraphDriverError> {
-        let start = &started.start;
-        let run = self
-            .store
-            .load_run(fence.tenant_id(), fence.run_id())
-            .await?;
-        exact_live_lease(&run, fence)?;
-        if run.lifecycle().status() == RunStatus::CancellationRequested {
-            return Ok(NodeExecutionCommit::RunCancellationObserved);
-        }
-        let head = run
-            .journal_head()
-            .cloned()
-            .ok_or(GraphDriverError::MissingJournalHead)?;
-        match execution.result {
-            Ok(GraphNodeExecution::ChildJoin(request)) => {
-                if !started.executor.supports_child_join()
-                    || started.executor.scheduling() != GraphNodeScheduling::Exclusive
-                    || execution.child_join.is_some()
-                    || request.activation() != start.activation()
-                {
-                    return Err(StoreError::ChildJoinRejected.into());
-                }
-                Box::pin(self.register_child_join_with_retry(fence, start, &request, report))
-                    .await?;
-                report.durable_events = report.durable_events.saturating_add(1);
-                // Registration already released ownership atomically. Never run
-                // another node, complete this attempt, or release a newer fence.
-                return Ok(NodeExecutionCommit::ChildJoin(request));
+        report: &'a mut GraphDriveReport,
+    ) -> BoxFuture<'a, Result<NodeExecutionCommit, GraphDriverError>> {
+        Box::pin(async move {
+            let start = &started.start;
+            let run = self
+                .store
+                .load_run(fence.tenant_id(), fence.run_id())
+                .await?;
+            exact_live_lease(&run, fence)?;
+            if run.lifecycle().status() == RunStatus::CancellationRequested {
+                return Ok(NodeExecutionCommit::RunCancellationObserved);
             }
-            Ok(GraphNodeExecution::Completed {
-                state_change,
-                control,
-                bindings,
-                usage,
-            }) => {
-                let mut intent = PendingNodeResultIntent::new(
-                    start.activation().clone(),
+            let head = run
+                .journal_head()
+                .cloned()
+                .ok_or(GraphDriverError::MissingJournalHead)?;
+            let committed_head = match execution.result {
+                Ok(GraphNodeExecution::ChildJoin(request)) => {
+                    if !start.activation().graph_namespace().is_root() {
+                        return Err(GraphDriverError::ScopedChildJoinUnsupported);
+                    }
+                    if !started.executor.supports_child_join()
+                        || started.executor.scheduling() != GraphNodeScheduling::Exclusive
+                        || execution.child_join.is_some()
+                        || request.activation() != start.activation()
+                    {
+                        return Err(StoreError::ChildJoinRejected.into());
+                    }
+                    Box::pin(self.register_child_join_with_retry(fence, start, &request, report))
+                        .await?;
+                    report.durable_events = report.durable_events.saturating_add(1);
+                    // Registration already released ownership atomically. Never run
+                    // another node, complete this attempt, or release a newer fence.
+                    return Ok(NodeExecutionCommit::ChildJoin(request));
+                }
+                Ok(GraphNodeExecution::Completed {
                     state_change,
                     control,
                     bindings,
-                )
-                .map_err(|_| GraphDriverError::InvalidNodeResult)?;
-                if let Some(head) = execution.child_join {
-                    intent = intent
-                        .with_child_join(*head)
-                        .map_err(|_| GraphDriverError::InvalidNodeResult)?;
-                }
-                let payload = self.node_succeeded_payload(
-                    &executable.graph().reference(),
-                    start,
-                    intent.intent_digest(),
-                )?;
-                let append = worker_append(fence, head, EventId::generate(), payload)?;
-                if let Err(error) = self
-                    .succeed_node_with_retry(append, start, intent, usage, report)
-                    .await
-                {
-                    if graph_error_is_run_not_runnable(&error)
-                        && self.run_cancellation_requested(fence).await?
-                    {
-                        return Ok(NodeExecutionCommit::RunCancellationObserved);
+                    usage,
+                }) => {
+                    let mut intent = PendingNodeResultIntent::new(
+                        start.activation().clone(),
+                        state_change,
+                        control,
+                        bindings,
+                    )
+                    .map_err(|_| GraphDriverError::InvalidNodeResult)?;
+                    if let Some(head) = execution.child_join {
+                        intent = intent
+                            .with_child_join(*head)
+                            .map_err(|_| GraphDriverError::InvalidNodeResult)?;
                     }
-                    return Err(error);
-                }
-            }
-            Err(execution) => {
-                let (failure, usage) = execution.into_parts();
-                let event_id = EventId::generate();
-                let payload =
-                    self.node_failed_payload(&executable.graph().reference(), start, failure.id())?;
-                let append = worker_append(fence, head, event_id, payload)?;
-                let failure = failure.with_caused_by_event(event_id);
-                if let Err(error) = self
-                    .fail_node_with_retry(append, start, failure, usage, report)
-                    .await
-                {
-                    if graph_error_is_run_not_runnable(&error)
-                        && self.run_cancellation_requested(fence).await?
+                    let payload = self.node_succeeded_payload(
+                        &executable.graph().reference(),
+                        start,
+                        intent.intent_digest(),
+                    )?;
+                    let append = worker_append(fence, head, EventId::generate(), payload)?;
+                    match self
+                        .succeed_node_with_retry(append, start, intent, usage, report)
+                        .await
                     {
-                        return Ok(NodeExecutionCommit::RunCancellationObserved);
+                        Ok(
+                            NodeAttemptCommitOutcome::Committed { event, .. }
+                            | NodeAttemptCommitOutcome::Idempotent { event, .. },
+                        ) => event.head(),
+                        Ok(_) => {
+                            return Err(GraphDriverError::RuntimeInvariant {
+                                operation: "retain node completion observation",
+                            });
+                        }
+                        Err(error) => {
+                            if graph_error_is_run_not_runnable(&error)
+                                && self.run_cancellation_requested(fence).await?
+                            {
+                                return Ok(NodeExecutionCommit::RunCancellationObserved);
+                            }
+                            return Err(error);
+                        }
                     }
-                    return Err(error);
                 }
-            }
-        }
-        report.durable_events = report.durable_events.saturating_add(1);
-        report.node_attempts_completed = report.node_attempts_completed.saturating_add(1);
-        Ok(NodeExecutionCommit::Committed)
+                Err(execution) => {
+                    let (failure, usage) = execution.into_parts();
+                    let event_id = EventId::generate();
+                    let payload = self.node_failed_payload(
+                        &executable.graph().reference(),
+                        start,
+                        failure.id(),
+                    )?;
+                    let append = worker_append(fence, head, event_id, payload)?;
+                    let failure = failure.with_caused_by_event(event_id);
+                    match self
+                        .fail_node_with_retry(append, start, failure, usage, report)
+                        .await
+                    {
+                        Ok(
+                            NodeAttemptCommitOutcome::Committed { event, .. }
+                            | NodeAttemptCommitOutcome::Idempotent { event, .. },
+                        ) => event.head(),
+                        Ok(_) => {
+                            return Err(GraphDriverError::RuntimeInvariant {
+                                operation: "retain node completion observation",
+                            });
+                        }
+                        Err(error) => {
+                            if graph_error_is_run_not_runnable(&error)
+                                && self.run_cancellation_requested(fence).await?
+                            {
+                                return Ok(NodeExecutionCommit::RunCancellationObserved);
+                            }
+                            return Err(error);
+                        }
+                    }
+                }
+            };
+            report.durable_events = report.durable_events.saturating_add(1);
+            report.node_attempts_completed = report.node_attempts_completed.saturating_add(1);
+            Ok(NodeExecutionCommit::Committed(Box::new(committed_head)))
+        })
     }
 
     async fn register_child_join_with_retry(
@@ -1283,11 +1302,21 @@ impl DurableGraphDriver {
     ) -> Result<NodeAttemptCommitOutcome, GraphDriverError> {
         let mut attempt = 1_u8;
         loop {
-            match self
-                .store
-                .start_recovered_node_attempt(append.clone(), plan, node_id, attempt_id)
-                .await
-            {
+            let outcome = if plan.frame().is_some() {
+                self.store
+                    .start_recovered_graph_frame_node_attempt(
+                        append.clone(),
+                        plan,
+                        node_id,
+                        attempt_id,
+                    )
+                    .await
+            } else {
+                self.store
+                    .start_recovered_node_attempt(append.clone(), plan, node_id, attempt_id)
+                    .await
+            };
+            match outcome {
                 Ok(outcome) => return Ok(outcome),
                 Err(error) if self.can_retry_mutation(&error, attempt) => {
                     report.mutation_retries = report.mutation_retries.saturating_add(1);
@@ -1299,56 +1328,60 @@ impl DurableGraphDriver {
         }
     }
 
-    async fn succeed_node_with_retry(
-        &self,
+    fn succeed_node_with_retry<'a>(
+        &'a self,
         append: JournalAppend,
-        start: &NodeAttemptStartHead,
+        start: &'a NodeAttemptStartHead,
         intent: PendingNodeResultIntent,
         usage: BudgetUsage,
-        report: &mut GraphDriveReport,
-    ) -> Result<NodeAttemptCommitOutcome, GraphDriverError> {
-        let mut attempt = 1_u8;
-        loop {
-            match self
-                .store
-                .succeed_node_attempt(append.clone(), start, intent.clone(), usage.clone())
-                .await
-            {
-                Ok(outcome) => return Ok(outcome),
-                Err(error) if self.can_retry_mutation(&error, attempt) => {
-                    report.mutation_retries = report.mutation_retries.saturating_add(1);
-                    self.mutation_backoff(attempt).await;
-                    attempt = attempt.saturating_add(1);
+        report: &'a mut GraphDriveReport,
+    ) -> BoxFuture<'a, Result<NodeAttemptCommitOutcome, GraphDriverError>> {
+        Box::pin(async move {
+            let mut attempt = 1_u8;
+            loop {
+                match self
+                    .store
+                    .succeed_node_attempt(append.clone(), start, intent.clone(), usage.clone())
+                    .await
+                {
+                    Ok(outcome) => return Ok(outcome),
+                    Err(error) if self.can_retry_mutation(&error, attempt) => {
+                        report.mutation_retries = report.mutation_retries.saturating_add(1);
+                        self.mutation_backoff(attempt).await;
+                        attempt = attempt.saturating_add(1);
+                    }
+                    Err(error) => return Err(error.into()),
                 }
-                Err(error) => return Err(error.into()),
             }
-        }
+        })
     }
 
-    async fn fail_node_with_retry(
-        &self,
+    fn fail_node_with_retry<'a>(
+        &'a self,
         append: JournalAppend,
-        start: &NodeAttemptStartHead,
+        start: &'a NodeAttemptStartHead,
         failure: Failure,
         usage: BudgetUsage,
-        report: &mut GraphDriveReport,
-    ) -> Result<NodeAttemptCommitOutcome, GraphDriverError> {
-        let mut attempt = 1_u8;
-        loop {
-            match self
-                .store
-                .fail_node_attempt(append.clone(), start, failure.clone(), usage.clone())
-                .await
-            {
-                Ok(outcome) => return Ok(outcome),
-                Err(error) if self.can_retry_mutation(&error, attempt) => {
-                    report.mutation_retries = report.mutation_retries.saturating_add(1);
-                    self.mutation_backoff(attempt).await;
-                    attempt = attempt.saturating_add(1);
+        report: &'a mut GraphDriveReport,
+    ) -> BoxFuture<'a, Result<NodeAttemptCommitOutcome, GraphDriverError>> {
+        Box::pin(async move {
+            let mut attempt = 1_u8;
+            loop {
+                match self
+                    .store
+                    .fail_node_attempt(append.clone(), start, failure.clone(), usage.clone())
+                    .await
+                {
+                    Ok(outcome) => return Ok(outcome),
+                    Err(error) if self.can_retry_mutation(&error, attempt) => {
+                        report.mutation_retries = report.mutation_retries.saturating_add(1);
+                        self.mutation_backoff(attempt).await;
+                        attempt = attempt.saturating_add(1);
+                    }
+                    Err(error) => return Err(error.into()),
                 }
-                Err(error) => return Err(error.into()),
             }
-        }
+        })
     }
 
     async fn renew_with_retry(
@@ -1393,7 +1426,14 @@ impl DurableGraphDriver {
     ) -> Result<DelayedRetryScheduleOutcome, GraphDriverError> {
         let mut attempt = 1_u8;
         loop {
-            match self.store.schedule_delayed_retry_wakeup(plan).await {
+            let outcome = if plan.frame().is_some() {
+                self.store
+                    .schedule_graph_frame_delayed_retry_wakeup(plan)
+                    .await
+            } else {
+                self.store.schedule_delayed_retry_wakeup(plan).await
+            };
+            match outcome {
                 Ok(outcome) => return Ok(outcome),
                 Err(error) if self.can_retry_mutation(&error, attempt) => {
                     report.mutation_retries = report.mutation_retries.saturating_add(1);
@@ -1503,27 +1543,6 @@ impl DurableGraphDriver {
         )
     }
 
-    fn barrier_continued_payload(
-        &self,
-        graph: &GraphReference,
-        checkpoint: &Checkpoint,
-        successor_id: CheckpointId,
-        successor_superstep: stateknot_core::Superstep,
-    ) -> Result<JournalPayload, GraphDriverError> {
-        self.event_payload(
-            "graph-barrier-continued",
-            json!({
-                "operation": "graph_barrier_continued",
-                "graph_digest": digest_hex(graph.definition_digest()),
-                "checkpoint_id": checkpoint.checkpoint_id().to_string(),
-                "superstep": checkpoint.superstep().get().to_string(),
-                "successor_checkpoint_id": successor_id.to_string(),
-                "successor_superstep": successor_superstep.get().to_string(),
-                "disposition": "continue"
-            }),
-        )
-    }
-
     fn event_payload(
         &self,
         kind: &'static str,
@@ -1592,10 +1611,115 @@ pub enum DurableGraphDriverBuildError {
     UnsafeLeaseRenewalCadence,
 }
 
+/// Numeric observations from a completed whole-history application replay.
+///
+/// Root and frame counts remain distinct. This Copy report contains no durable
+/// identity and grants no dispatch permission; only a fresh committed Start does.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GraphDriveReplayReport {
+    root_checkpoints_validated: u64,
+    frame_checkpoints_validated: u64,
+    barriers_replayed: u64,
+    results_replayed: u64,
+    frames_validated: u64,
+    returns_validated: u64,
+    waits_validated: u64,
+    maximum_barrier_result_bytes: usize,
+    manifest_bytes: usize,
+    structural_edges_verified: u64,
+}
+
+impl GraphDriveReplayReport {
+    const fn empty() -> Self {
+        Self {
+            root_checkpoints_validated: 0,
+            frame_checkpoints_validated: 0,
+            barriers_replayed: 0,
+            results_replayed: 0,
+            frames_validated: 0,
+            returns_validated: 0,
+            waits_validated: 0,
+            maximum_barrier_result_bytes: 0,
+            manifest_bytes: 0,
+            structural_edges_verified: 0,
+        }
+    }
+    fn from_completed(report: &stateknot_store_postgres::GraphRecoveryReplayReport) -> Self {
+        Self {
+            root_checkpoints_validated: report.root_checkpoints_validated(),
+            frame_checkpoints_validated: report.frame_checkpoints_validated(),
+            barriers_replayed: report.barriers_replayed(),
+            results_replayed: report.results_replayed(),
+            frames_validated: report.frames_validated(),
+            returns_validated: report.returns_validated(),
+            waits_validated: report.waits_validated(),
+            maximum_barrier_result_bytes: report.maximum_barrier_result_bytes(),
+            manifest_bytes: report.manifest_bytes(),
+            structural_edges_verified: report.structural_edges_verified(),
+        }
+    }
+    /// Returns the complete replay observation for `root_checkpoints_validated`.
+    #[must_use]
+    pub const fn root_checkpoints_validated(self) -> u64 {
+        self.root_checkpoints_validated
+    }
+    /// Returns the complete replay observation for `frame_checkpoints_validated`.
+    #[must_use]
+    pub const fn frame_checkpoints_validated(self) -> u64 {
+        self.frame_checkpoints_validated
+    }
+    /// Returns the complete replay observation for `barriers_replayed`.
+    #[must_use]
+    pub const fn barriers_replayed(self) -> u64 {
+        self.barriers_replayed
+    }
+    /// Returns the complete replay observation for `results_replayed`.
+    #[must_use]
+    pub const fn results_replayed(self) -> u64 {
+        self.results_replayed
+    }
+    /// Returns the complete replay observation for `frames_validated`.
+    #[must_use]
+    pub const fn frames_validated(self) -> u64 {
+        self.frames_validated
+    }
+    /// Returns the complete replay observation for `returns_validated`.
+    #[must_use]
+    pub const fn returns_validated(self) -> u64 {
+        self.returns_validated
+    }
+    /// Returns the complete replay observation for `waits_validated`.
+    #[must_use]
+    pub const fn waits_validated(self) -> u64 {
+        self.waits_validated
+    }
+    /// Returns the complete replay observation for `maximum_barrier_result_bytes`.
+    #[must_use]
+    pub const fn maximum_barrier_result_bytes(self) -> usize {
+        self.maximum_barrier_result_bytes
+    }
+    /// Returns the complete replay observation for `manifest_bytes`.
+    #[must_use]
+    pub const fn manifest_bytes(self) -> usize {
+        self.manifest_bytes
+    }
+    /// Returns the complete replay observation for `structural_edges_verified`.
+    #[must_use]
+    pub const fn structural_edges_verified(self) -> u64 {
+        self.structural_edges_verified
+    }
+}
+
 /// Observable work and recovery evidence from one drive call.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct GraphDriveReport {
     replay: GraphReplayReport,
+    whole_replay_passes: u32,
+    whole_replay: GraphDriveReplayReport,
+    frame_entries_committed: u32,
+    frame_barriers_committed: u32,
+    frame_returns_committed: u32,
+    frame_callers_rebound: u32,
     durable_events: u32,
     node_attempts_started: u32,
     node_attempts_completed: u32,
@@ -1610,6 +1734,12 @@ impl GraphDriveReport {
     const fn new(replay: GraphReplayReport) -> Self {
         Self {
             replay,
+            whole_replay_passes: 0,
+            whole_replay: GraphDriveReplayReport::empty(),
+            frame_entries_committed: 0,
+            frame_barriers_committed: 0,
+            frame_returns_committed: 0,
+            frame_callers_rebound: 0,
             durable_events: 0,
             node_attempts_started: 0,
             node_attempts_completed: 0,
@@ -1621,10 +1751,44 @@ impl GraphDriveReport {
         }
     }
 
-    /// Returns the complete noninitial replay evidence.
+    /// Returns Root counters from the same whole-history replay pass.
+    /// These compatibility counters contain no scoped frames or authority.
     #[must_use]
     pub const fn replay(self) -> GraphReplayReport {
         self.replay
+    }
+
+    /// Returns numeric observations from the most recent complete whole replay.
+    /// These counters carry no journal, checkpoint or launch authority.
+    #[must_use]
+    pub const fn whole_replay(self) -> GraphDriveReplayReport {
+        self.whole_replay
+    }
+
+    /// Returns actual independent whole-history application passes this claim.
+    #[must_use]
+    pub const fn whole_replay_passes(self) -> u32 {
+        self.whole_replay_passes
+    }
+    /// Returns whole framework entries converged by this call.
+    #[must_use]
+    pub const fn frame_entries_committed(self) -> u32 {
+        self.frame_entries_committed
+    }
+    /// Returns whole scoped barriers converged by this call.
+    #[must_use]
+    pub const fn frame_barriers_committed(self) -> u32 {
+        self.frame_barriers_committed
+    }
+    /// Returns whole scoped returns converged by this call.
+    #[must_use]
+    pub const fn frame_returns_committed(self) -> u32 {
+        self.frame_returns_committed
+    }
+    /// Returns physical bindings of the actual leaf caller.
+    #[must_use]
+    pub const fn frame_callers_rebound(self) -> u32 {
+        self.frame_callers_rebound
     }
 
     /// Returns driver-owned journal events observed or committed this call.
@@ -1711,6 +1875,9 @@ impl GraphDriveResult {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum GraphDriveOutcome {
+    /// The complete scoped barrier and every wait were saved; the Run lease
+    /// was released atomically. Resolution resumes the retained actual leaf.
+    FrameWaiting(Box<stateknot_store_postgres::GraphFrameBarrierCommitOutcome>),
     /// Children were sealed and the lease released in one transaction. The
     /// node remains unfinished until publication and a higher-fence recovery.
     ChildJoin(Box<stateknot_core::ChildRunJoinRequest>),
@@ -1742,7 +1909,9 @@ pub enum GraphDriveOutcome {
 /// Exact lease-bound input for terminal cancellation acknowledgement.
 #[derive(Clone, Debug)]
 pub struct GraphCancellationHandoff {
+    quarantine_context: CorruptionQuarantineContext,
     checkpoint: stateknot_core::CheckpointHead,
+    leaf: Option<stateknot_core::GraphFrameCheckpointHead>,
     journal_head: JournalHead,
     event_id: EventId,
     expected_revision: RunRevision,
@@ -1751,6 +1920,15 @@ pub struct GraphCancellationHandoff {
 }
 
 impl GraphCancellationHandoff {
+    pub(crate) const fn quarantine_context(&self) -> &CorruptionQuarantineContext {
+        &self.quarantine_context
+    }
+    /// Returns the actual stopped leaf without replacing the Root projection.
+    #[must_use]
+    pub const fn leaf(&self) -> Option<&stateknot_core::GraphFrameCheckpointHead> {
+        self.leaf.as_ref()
+    }
+
     /// Returns the exact checkpoint at which cancellation stopped graph progress.
     #[must_use]
     pub const fn checkpoint(&self) -> &stateknot_core::CheckpointHead {
@@ -1814,6 +1992,7 @@ impl GraphCancellationHandoff {
 #[derive(Clone, Debug)]
 pub struct GraphLifecycleBarrierHandoff {
     plan: GraphBarrierPlan,
+    original_lifecycle: Box<RunLifecycle>,
     journal_head: JournalHead,
     event_id: EventId,
     expected_revision: RunRevision,
@@ -1821,6 +2000,12 @@ pub struct GraphLifecycleBarrierHandoff {
 }
 
 impl GraphLifecycleBarrierHandoff {
+    /// Returns the complete original lifecycle retained for exact ACK recovery.
+    #[must_use]
+    pub fn original_lifecycle(&self) -> &RunLifecycle {
+        &self.original_lifecycle
+    }
+
     /// Returns the complete deterministic barrier and disposition.
     #[must_use]
     pub const fn plan(&self) -> &GraphBarrierPlan {
@@ -1954,6 +2139,9 @@ impl GraphDriveBlockers {
 /// Exact recovery plan and lease retained for supervision.
 #[derive(Clone, Debug)]
 pub struct GraphBlockedHandoff {
+    quarantine_context: CorruptionQuarantineContext,
+    root_checkpoint: stateknot_core::CheckpointHead,
+    leaf: Option<stateknot_core::GraphFrameCheckpointHead>,
     plan: ReadyNodeRecoveryPlan,
     lease: RunLease,
     event_id: EventId,
@@ -1962,6 +2150,19 @@ pub struct GraphBlockedHandoff {
 }
 
 impl GraphBlockedHandoff {
+    pub(crate) const fn quarantine_context(&self) -> &CorruptionQuarantineContext {
+        &self.quarantine_context
+    }
+    /// Returns the actual Run Root projection, independent of the active leaf.
+    #[must_use]
+    pub const fn root_checkpoint(&self) -> &stateknot_core::CheckpointHead {
+        &self.root_checkpoint
+    }
+    /// Returns the exact scoped leaf that produced the blocked plan.
+    #[must_use]
+    pub const fn leaf(&self) -> Option<&stateknot_core::GraphFrameCheckpointHead> {
+        self.leaf.as_ref()
+    }
     /// Returns every deterministic ready-node classification and evidence.
     #[must_use]
     pub const fn plan(&self) -> &ReadyNodeRecoveryPlan {
@@ -2017,6 +2218,19 @@ impl GraphBlockedHandoff {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum GraphDriverError {
+    /// Complete exact-journal accounting was unavailable at a frame action.
+    #[error("complete DIRECT usage evidence is unavailable: {source}")]
+    DirectUsageEvidence {
+        /// Closed operational evidence failure; this never quarantines data.
+        #[source]
+        source: crate::GraphLifecycleEvidenceError,
+    },
+    /// The provider substituted the observation or regressed authenticated usage.
+    #[error("complete DIRECT usage evidence does not match the exact observation")]
+    InvalidDirectUsageEvidence,
+    /// Scoped child ownership has not yet qualified this execution profile.
+    #[error("scoped child Join is unavailable in this graph execution profile")]
+    ScopedChildJoinUnsupported,
     /// Join evidence preparation timed out or panicked before node dispatch;
     /// no node completion, failure or usage was synthesized.
     #[error("child Join preparation did not complete before node dispatch")]
@@ -2115,7 +2329,7 @@ enum StartedNodesExecution {
 }
 
 enum NodeExecutionCommit {
-    Committed,
+    Committed(Box<JournalHead>),
     RunCancellationObserved,
     ChildJoin(Box<stateknot_core::ChildRunJoinRequest>),
 }

@@ -1,0 +1,35 @@
+{
+  "kind": "three strict Clippy production source corrections; not validated",
+  "original_failure_exit": 101,
+  "original_failed_source_tree": "341915b8591583df412cc7a5ec6ceb83b89e8dcdc8015c8f39aaabcab6ffed01",
+  "original_failed_file_count": 928,
+  "changed_files": [
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server.rs",
+      "before_sha256": "af082e8e4ba0dce9de4cb5e0df22ccb495785a8bc94d5551b7591271965cdf67",
+      "after_sha256": "44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8",
+      "bytes": 45852
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_bound_state.rs",
+      "before_sha256": "7eb1479003dd7c6e60ffcab3839b2bfc9763ee6dac578f2d9d6174460a94e737",
+      "after_sha256": "0748ccec2da55113c01dc8e6b3dcd5eabd921c4cfcc9892b98ca4a17874768bd",
+      "bytes": 25732
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_tool.rs",
+      "before_sha256": "69aacce70e0826f011cc956deaace864513a50ba7815ccb71bb4ccda912d22ed",
+      "after_sha256": "f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b",
+      "bytes": 94750
+    }
+  ],
+  "unchanged_other_files": 925,
+  "original_clippy_log_sha256": "200787b672ec0caff4d1b9358cadff125e3d98e174d030ef6c672484f58f1739",
+  "fix_patch_sha256": "c585ea9d95e150bbc80430aa411a77429ae5a6f4895d4b2001a3619d8501fef2",
+  "dispatch_equivalence_proved": true,
+  "public_Interface_unchanged": true,
+  "test_assertion_note": "only internal principal Debug positive formatting expected value gains omitted-fields marker; all redaction negatives unchanged",
+  "no_lint_threshold_allows_limits_or_error_changes": true,
+  "cargo_rustfmt_rustc_or_DB_invoked": false,
+  "strict_Clippy_passed": null
+}

@@ -111,6 +111,55 @@ Driver 在**派发新节点之前**检查 `maximum_supersteps`，重启后正好
 原有事件 Schema 中的节点阻塞计数仍然只表示节点计数。保留的失败 Handoff 在响应丢失后可以
 重复提交，不重新读取证据，也不替换原始终态失败。
 
+独立的 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md)实验已加入原始取消
+或封存失败后的整栈 Store 关闭：保留根状态和 Caller 的实际旧 fence，冻结完整已定价
+DIRECT 用量，并拒绝未完成的普通节点、provider 或子任务。作用域 provider 调用验证
+实际帧身份；将 Root checkpoint 伪装为嵌套调用仍返回原有的无效激活错误。它使用 Schema 33 与对应
+的 52 表受信服务端角色配置。重试先完整认证已提交决定；不授予执行权限的清理可以在
+执行截止期后完成。完成记录恢复与 Caller 锚点校验使用私有的堆上 Future 边界，使祖先
+重放在普通线程栈上保留全部普通完成与关闭完成校验。实际嵌套 Driver 派发和最终完整验收
+仍待完成。
+
+[冻结实验性 whole-frame 限定验收](qualification/experimental-whole-frames-2026-10-10.zh-CN.md)
+
+私有 whole-return Wire Intent 在堆上解码，保留原始规范字节、摘要和全部认证，
+避免 scoped 结果分页在多次 return 后扩大 Serde visitor 的栈占用。
+
+实验性 claimed 读取接口现可通过 `ClaimedRunRecovery::plan_graph_frame_ready_nodes`
+规划精确活动帧。有界结果分页使用完整 scoped head 与 namespace，复用已完成工作并保留
+完整物理 Attempt 历史；每页固定 Run journal，规划器在最终数据库时钟与 fence 校验前
+再次核对当前叶。终态叶允许没有 ready 节点。派发前仍须实际应用 schema/reducer 重放，
+并通过专用的持久化 scoped start；规划结果本身不授予派发权限。
+同一精确 checkpoint 下出现异 namespace 结果投影时，读取报告持久事实损坏；
+claimed 恢复通过原 worker 上下文执行隔离。
+
+[冻结 claimed 恢复限定验收](qualification/experimental-claimed-frame-recovery-2026-10-10.zh-CN.md)
+记录精确 `8285f25` 源码、完整门禁、真实旧 return 只读兼容及保留失败。实际嵌套
+Driver 和完整应用 replay 继续开放。
+
+[Root disposition 恢复增量](rfcs/0022-namespaced-graph-frames.md#root-disposition-recovery-increment-in-development)
+规定了正在开发的历史 Continue/Wait/Terminal 完整证明。新格式和迁移需要独立的最终源码验收；
+无法证明原 disposition 的合法旧历史明确返回恢复不可用，不能通过推测或回填获得执行权限。
+
+实验性 Store 提供 `PostgresStore::schedule_graph_frame_delayed_retry_wakeup`：
+仅当精确活动叶的 ready 节点全部为 Completed 或 Deferred 时才能首次调度。
+事务先锁 Run，完整认证活动栈和当前 Root/叶 head；在使用调用者 fence 重建历史前，
+先验证真实活动租约。随后重读有界完整结果与物理 Attempt 历史，由 Core 按原计划的
+观察时间重新推导原 SafeAfter 边界。调用者决策不一致属于无效输入，持久历史矛盾才是损坏。
+最终写入再次使用数据库当前时间、精确 journal、worker Attempt、epoch 和 scoped head。
+
+Root `schedule_delayed_retry_wakeup` 与 scoped 调度共用上述完整首次历史验证、已有延迟门和
+Outcome。公开纯 Planner 不能虚构 Root 结果或替换已存 Failure 的 SafeAfter 策略来延后队列；
+仅靠专用 Start 校验只能在 gate 到期后保护 launch。成功时释放租约，保留 Root 指针、叶/栈、
+journal、队列年龄、不可变历史及原预算/deadline。慢 Run UPDATE 触发器导致租约过期时，
+整个事务回滚；跨过 inclusive 重试边界时，通过 savepoint 撤回 gate 写入，重新核对原租约、
+队列年龄、Root/叶和 journal，返回 `Due`。调用者需重新规划，并通过专用 scoped Start
+获得新派发权限。远期 gate 不遮蔽独立 deadline 维护；取消清除 gate，并让清理工作进入队列。
+
+`Idempotent` 仅在租约已释放后只读观察同一完整当前 scope、epoch、head、journal 与 gate。
+它不授予 launch，也不证明已清除的原 worker Attempt 或完整原计划；不新增 wakeup Intent 表、
+plan digest 或 timer。本增量仍属于 Store 实验契约，实际嵌套 Driver 与应用重放尚需独立完成。
+
 ## 验证与未覆盖边界
 
 Core 测试覆盖确定性身份、冻结摘要、源节点排序、静态嵌套、返回转发、端口/路线/Schema/Reducer

@@ -1,0 +1,31 @@
+{
+  "baseline_source_files": 922,
+  "baseline_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "candidate_source_files": 923,
+  "candidate_tree_sha256": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "changes": [
+    {
+      "path": "crates/stateknot-integrations/src/a2a_client.rs",
+      "baseline_sha256": "b0397e995e9fea861a7a160344d2a9ead07605705752b6c9e1ff2fe9cd5120e4",
+      "candidate_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "baseline_sha256": "ef09a38b90ab71ca67cf51130a33d968d94f4cb845cfeeaeae9c8e69cfeb9db7",
+      "candidate_sha256": "c5c95f30fa10ba64bbd4f49fe262465bdd0ade533ad82e9d0f159798e838b359"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract/authorization_facts.rs",
+      "baseline_sha256": null,
+      "candidate_sha256": "1d6e980f892650d2da3325a4af1a7b575d7987b2bad7d2bda6c2cf697399a9ee"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "baseline_sha256": "f499d5d0f6fddc99dbaf7a080df753e11799ec63b5edc612241d8fbce8fe0480",
+      "candidate_sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    }
+  ],
+  "all_other_source_bytes_equal": true,
+  "all_original_migrations_1to36_equal": true,
+  "Store_Core_Runtime_and_Cargo_configs_equal": true
+}

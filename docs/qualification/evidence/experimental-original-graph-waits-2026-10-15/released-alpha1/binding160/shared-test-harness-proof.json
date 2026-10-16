@@ -1,0 +1,9 @@
+{
+  "alpha920_harness_sha256": "b2d6a74969692c4083920622b3d39224cd42154b1b032081a16f5e200f1f8152",
+  "alpha_case_fixture_not_installed_or_executed_in_final922": true,
+  "alpha_case_fixture_sha256": "734203e6123b2b5cd244666a17fb31ca06bb065d5428e06fc19663bdb7cd44c9",
+  "entire_original_parent_harness_bytes_equal_after_removing_that_declaration": true,
+  "final922_harness_sha256": "790697b004899c2123ea071fd5b5b193c126d5cc84b1bc85812858ef93efbdab",
+  "removed_only_exact_test_module_declaration_utf8": "\n#[path = \"postgres/released_alpha1_upgrade.rs\"]\nmod released_alpha1_upgrade;\n",
+  "test_reducer_schema_validator_and_options_definitions_unchanged": true
+}

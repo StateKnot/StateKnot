@@ -1,0 +1,143 @@
+{
+  "postgres_major": "16",
+  "complete": true,
+  "rows": [
+    {
+      "package": "stateknot-store-postgres",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "source_files": 919,
+      "source_unchanged": true,
+      "binary": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_full_native_oct15v1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "expected_tests": 264,
+      "exit_code": 101,
+      "seconds": 1591.2607698440552,
+      "summaries": [
+        [
+          "FAILED",
+          "261",
+          "3",
+          "0"
+        ]
+      ],
+      "exact_all_tests_passed": false,
+      "default_stack": true,
+      "original_resources_and_assertions": true,
+      "log_sha256": "b719a8bf62633b8621d71256d13cafbd1e25bb62394074acb446634c8c8e693d",
+      "backup_and_PITR_conditional_requires_separate_evidence": true
+    },
+    {
+      "package": "stateknot-runtime",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "source_files": 919,
+      "source_unchanged": true,
+      "binary": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+      "binary_sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_full_native_oct15v1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "expected_tests": 189,
+      "exit_code": 0,
+      "seconds": 1725.647104024887,
+      "summaries": [
+        [
+          "ok",
+          "189",
+          "0",
+          "0"
+        ]
+      ],
+      "exact_all_tests_passed": true,
+      "default_stack": true,
+      "original_resources_and_assertions": true,
+      "log_sha256": "c4552fe9380cd893fa3d9c7acacedf27a11fbc01b018022b558f502fa2fb8bb6",
+      "backup_and_PITR_conditional_requires_separate_evidence": true
+    },
+    {
+      "package": "stateknot-integrations",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "source_files": 919,
+      "source_unchanged": true,
+      "binary": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/full-native-v1/fresh-additional-build/stateknot-integrations",
+      "binary_sha256": "38f5b98ecf1fc18a6c05ca6e8f5417122100eceb6d52a65d336a2a8ca65edc36",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_full_native_oct15v1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/full-native-v1/fresh-additional-build/stateknot-integrations",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "expected_tests": 2,
+      "exit_code": 0,
+      "seconds": 3.0549728870391846,
+      "summaries": [
+        [
+          "ok",
+          "2",
+          "0",
+          "0"
+        ]
+      ],
+      "exact_all_tests_passed": true,
+      "default_stack": true,
+      "original_resources_and_assertions": true,
+      "log_sha256": "bb1feb9fad8378ea3f86022556696bf4c6d97e8c98edababfe0ad278762168b5",
+      "backup_and_PITR_conditional_requires_separate_evidence": true
+    },
+    {
+      "package": "stateknot-deepseek_agent",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "source_files": 919,
+      "source_unchanged": true,
+      "binary": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/full-native-v1/fresh-additional-build/stateknot-deepseek_agent",
+      "binary_sha256": "524df71aeb6876eec65ec262077c2224fbd71a6981b4e01a663a28786ac5b461",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_full_native_oct15v1",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/full-native-v1/fresh-additional-build/stateknot-deepseek_agent",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "expected_tests": 1,
+      "exit_code": 0,
+      "seconds": 2.5329020023345947,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "exact_all_tests_passed": true,
+      "default_stack": true,
+      "original_resources_and_assertions": true,
+      "log_sha256": "cd0f083124b0451c696c1bbbf2c14a73da78a69faedf3b800d0d4d9bdc3430fe",
+      "backup_and_PITR_conditional_requires_separate_evidence": true
+    }
+  ],
+  "seconds": 3323.06404876709,
+  "all_four_native_suites_passed": false,
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "source_files": 919,
+  "source_unchanged": true,
+  "default_stack": true,
+  "database": "stateknot_r1_a36_full_native_oct15v1",
+  "final_catalog_query_exit_code": 0,
+  "backup_and_PITR_conditional_requires_separate_evidence": true
+}

@@ -1,0 +1,1606 @@
+{
+  "artifacts": [
+    {
+      "path": "history/first-clippy/source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/after-format-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49254,
+      "stored_sha256": "03797dea3ae8553579f8b424c8679c3ea7a18ea5d82ee467557f065ab29c830c",
+      "raw_bytes": 168897,
+      "raw_sha256": "7a47abb9a27be177da3a513fcd89da38831500ff698268131f7e3a37f3ab9534"
+    },
+    {
+      "path": "history/second-clippy/source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-frozen-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49260,
+      "stored_sha256": "92b4f438b3c51e870a325c474a6d9fbc2884783b1c5d324597f5ea0ca42360ce",
+      "raw_bytes": 168897,
+      "raw_sha256": "9940403702c0fd98ca1a2f6d27d1cd4e7223ea391c03af83b1b21f151657202f"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/frozen-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49257,
+      "stored_sha256": "cc6e1eb8694981bbdb70b4c11ddc528ed7d4e3d38547d6601e9532f283530876",
+      "raw_bytes": 168897,
+      "raw_sha256": "7021ceb0a07462f2e7152c18d4f763c052aec152a7b28a4b3c7864f3a42f0e0b"
+    },
+    {
+      "path": "history/native-invalid-event-kind/source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/frozen-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49252,
+      "stored_sha256": "92bc0cf17a8e89d566deb29c38929241ae2fefa8fd3211fbc3d6fd7bfacb52e9",
+      "raw_bytes": 168897,
+      "raw_sha256": "4cf49bf59ba46a192d61c3d5d4901285b795e22311da3817d8005e0361370513"
+    },
+    {
+      "path": "history/first-clippy/first-clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/first-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 493,
+      "stored_sha256": "857e05901daa29797d8dff4be42aa62b35d400729b2c08d315e1f78ca36ab4e2",
+      "raw_bytes": 493,
+      "raw_sha256": "857e05901daa29797d8dff4be42aa62b35d400729b2c08d315e1f78ca36ab4e2"
+    },
+    {
+      "path": "history/first-clippy/first-clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/first-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1113,
+      "stored_sha256": "eff080647bd1878092cad36fb48160e09444c1d66ac68a6af100ef3a32dbea24",
+      "raw_bytes": 3426,
+      "raw_sha256": "200787b672ec0caff4d1b9358cadff125e3d98e174d030ef6c672484f58f1739"
+    },
+    {
+      "path": "history/first-clippy/first-clippy-preservation.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/first-clippy-preservation.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 330,
+      "stored_sha256": "010ea0f08e117ba7e87f6c97acf18f1ff62e483703a01e44d9bb9c6c7624feaa",
+      "raw_bytes": 330,
+      "raw_sha256": "010ea0f08e117ba7e87f6c97acf18f1ff62e483703a01e44d9bb9c6c7624feaa"
+    },
+    {
+      "path": "history/second-clippy/retry-clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 653,
+      "stored_sha256": "aa59ae1d0adaf6a80a91e224dc636c8e9f7b2e6cdde2781a5d077a8e214b5ecd",
+      "raw_bytes": 653,
+      "raw_sha256": "aa59ae1d0adaf6a80a91e224dc636c8e9f7b2e6cdde2781a5d077a8e214b5ecd"
+    },
+    {
+      "path": "history/second-clippy/retry-clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1392,
+      "stored_sha256": "fc00212e437ea121613810ea218642188f399a9bfe4c56ba0e708c0b2494fde3",
+      "raw_bytes": 7043,
+      "raw_sha256": "2f3496b8498300bc092a3ed057eec285b184aff44089c431bca190b9c0a7c5e5"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/retry-clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/retry-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 651,
+      "stored_sha256": "a494d515c91e83e7cad02f1f4da181f03fa7defbdcf151a6153d113d699cde6f",
+      "raw_bytes": 651,
+      "raw_sha256": "a494d515c91e83e7cad02f1f4da181f03fa7defbdcf151a6153d113d699cde6f"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/retry-clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/retry-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 226,
+      "stored_sha256": "e325734e21f209a475e0f2a470cc3565565f10cccf2baba1e4697c7f194eb6b3",
+      "raw_bytes": 584,
+      "raw_sha256": "18323f733e794127fa502d7b24dcc698f2d1637524bb6a48a80bb95edbabaeb3"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/retry-workspace.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/retry-workspace.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 617,
+      "stored_sha256": "b5e2db56bd142258be4330678fc736fdf52657ed6a97601771db034a571e086d",
+      "raw_bytes": 617,
+      "raw_sha256": "b5e2db56bd142258be4330678fc736fdf52657ed6a97601771db034a571e086d"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/retry-workspace.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/retry-workspace.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 3488,
+      "stored_sha256": "a2001f92a301844efa92f5f6c9bdb607b373c5054673a9c09a7122ff1a5e75fa",
+      "raw_bytes": 14436,
+      "raw_sha256": "ce1500d48ebef3629b7548b722c9de6e836d92260ff26bf0c498882e8171bf81"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/minimized-repro.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/minimized-repro.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 781,
+      "stored_sha256": "6688697fd1ad4be75d4c484331e584b8b21f446438d2a16c0b010d32478a5dad",
+      "raw_bytes": 781,
+      "raw_sha256": "6688697fd1ad4be75d4c484331e584b8b21f446438d2a16c0b010d32478a5dad"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/minimized-repro.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/minimized-repro.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 460,
+      "stored_sha256": "0cbed2f7ad44331c172df5b68489b0b1e3a452f1147e9c7af5fa73aa35e6a310",
+      "raw_bytes": 771,
+      "raw_sha256": "272869c97b547a40ee68e579e9d86c68084bfe77988b8720734ecfcd63733282"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/fix-receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/fix-receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 1821,
+      "stored_sha256": "527a154da5da440d6f27af3e59f4c3715f5d8c035845470c84cf2974e5aa206f",
+      "raw_bytes": 1821,
+      "raw_sha256": "527a154da5da440d6f27af3e59f4c3715f5d8c035845470c84cf2974e5aa206f"
+    },
+    {
+      "path": "history/native-invalid-event-kind/retry-clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/retry-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 651,
+      "stored_sha256": "dbd5ca3614f26f7dcbf4975178f1917145aa18e20aa5866553ce1232829778fd",
+      "raw_bytes": 651,
+      "raw_sha256": "dbd5ca3614f26f7dcbf4975178f1917145aa18e20aa5866553ce1232829778fd"
+    },
+    {
+      "path": "history/native-invalid-event-kind/retry-clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/retry-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 195,
+      "stored_sha256": "82bf0908075fb3b80815dc6106502aac7211c9df3ba7550aa268bbb6581814fb",
+      "raw_bytes": 216,
+      "raw_sha256": "1ce5f8f42c9d758d6f7141b89b8189c3a7d33268564f65b95d58e4247b1a4ca2"
+    },
+    {
+      "path": "history/native-invalid-event-kind/retry-workspace.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/retry-workspace.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 614,
+      "stored_sha256": "ef0c3b917e3551a46b7ee4e29795076afac9570fe2e28d01b46303c50fe35dcb",
+      "raw_bytes": 614,
+      "raw_sha256": "ef0c3b917e3551a46b7ee4e29795076afac9570fe2e28d01b46303c50fe35dcb"
+    },
+    {
+      "path": "history/native-invalid-event-kind/retry-workspace.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/retry-workspace.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 37981,
+      "stored_sha256": "311f30739605dbeb0d615898d94a5e8150c8e834c4322c0e17019f22c437ee64",
+      "raw_bytes": 184038,
+      "raw_sha256": "c5371d5390d765f858ca6e6ccf6f6558fea24ce39d1aa4432ac0d81db552ea8b"
+    },
+    {
+      "path": "history/native-invalid-event-kind/fix-receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/fix-receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 983,
+      "stored_sha256": "aa682d87627983266f9a0e51d67ee2fb1075c7081e4e412aa11f465c4b190017",
+      "raw_bytes": 983,
+      "raw_sha256": "aa682d87627983266f9a0e51d67ee2fb1075c7081e4e412aa11f465c4b190017"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/pg16.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/pg16.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 450,
+      "stored_sha256": "4a0d29d425f5ecc1e9752a37502eda65e280c0da8de37061b74bffec3e0f2b38",
+      "raw_bytes": 450,
+      "raw_sha256": "4a0d29d425f5ecc1e9752a37502eda65e280c0da8de37061b74bffec3e0f2b38"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/pg16.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/pg16.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 831,
+      "stored_sha256": "d94ee4a4f7f5911390b1047f0e303617dba3395dbe96977a1448d95be8b15e17",
+      "raw_bytes": 1932,
+      "raw_sha256": "ee8c97c08bcfe7f60cff22f114536c88d7dc6f7861756823e7118ec8cfae410c"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/binary.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/binary.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1159,
+      "stored_sha256": "3c192f0c768cb60b80fb4b779158b512182177ef2437aa28a8a0537e1b83285c",
+      "raw_bytes": 2866,
+      "raw_sha256": "3e66cb483862613d3dd1e14aeebf9d87fa8147796c3fa2746aa83b6dd75e8300"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/build.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/build.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 421,
+      "stored_sha256": "32e76e8708353c6f1fbc2a0518885c22bfe3ac350661b6df1a847df9cfb8d510",
+      "raw_bytes": 421,
+      "raw_sha256": "32e76e8708353c6f1fbc2a0518885c22bfe3ac350661b6df1a847df9cfb8d510"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/build.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/build.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 22037,
+      "stored_sha256": "7c65879ffff294863eec51791fa677b162eaaa3f5978aa44cb8e65623892a123",
+      "raw_bytes": 324834,
+      "raw_sha256": "ddbf5a817d0630327b52b7122492046a472ec16ddec571587cdebb294cf1c5bc"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/list.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/list.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 574,
+      "stored_sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5",
+      "raw_bytes": 1318,
+      "raw_sha256": "0a79e3c2010051a31e6993d829bc3648a068602a00747dc17b45fc92849087e6"
+    },
+    {
+      "path": "history/lint-phase-fix/receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/clippy-fix-v1/receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 1726,
+      "stored_sha256": "5303b4fbd88d6e9b414bf78a04343f3b584bf02b2c8a0b5cb0d3ba71ae557107",
+      "raw_bytes": 1726,
+      "raw_sha256": "5303b4fbd88d6e9b414bf78a04343f3b584bf02b2c8a0b5cb0d3ba71ae557107"
+    },
+    {
+      "path": "history/lint-phase-fix/phase-equivalence.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/clippy-fix-v1/phase-equivalence.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 1077,
+      "stored_sha256": "29149ef67c44ea6fb19431e2f11b76c8b585b98d7306d6b38f14a9416830c7cd",
+      "raw_bytes": 1077,
+      "raw_sha256": "29149ef67c44ea6fb19431e2f11b76c8b585b98d7306d6b38f14a9416830c7cd"
+    },
+    {
+      "path": "history/lint-phase-fix/fix.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/clippy-fix-v1/fix.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1027,
+      "stored_sha256": "19dc522bef62c87424a09b59b06c72ed4c856520cf17f12b0ffcb8f5bac288cc",
+      "raw_bytes": 3519,
+      "raw_sha256": "c585ea9d95e150bbc80430aa411a77429ae5a6f4895d4b2001a3619d8501fef2"
+    },
+    {
+      "path": "execution/gates/fmt.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-fmt.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 561,
+      "stored_sha256": "10b96c4d39665eefbfb63f7839e6fc574721782fc7293053f894f084f7e2fb1b",
+      "raw_bytes": 561,
+      "raw_sha256": "10b96c4d39665eefbfb63f7839e6fc574721782fc7293053f894f084f7e2fb1b"
+    },
+    {
+      "path": "execution/gates/fmt.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-fmt.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "execution/gates/clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 653,
+      "stored_sha256": "7538fa7b0c60fa72396cca4bf3ca1a297a97bf9290940109abd80d908244dfc7",
+      "raw_bytes": 653,
+      "raw_sha256": "7538fa7b0c60fa72396cca4bf3ca1a297a97bf9290940109abd80d908244dfc7"
+    },
+    {
+      "path": "execution/gates/clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 194,
+      "stored_sha256": "6f169442664563c2e26726a67492fd67a9479d60345658c2fd7ea7751f43c1ab",
+      "raw_bytes": 216,
+      "raw_sha256": "501c0af82096e5418a835c23b71d2d3c8d6b4e56ceed7f53ca5de12ecf0c2273"
+    },
+    {
+      "path": "execution/gates/workspace.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-workspace.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 617,
+      "stored_sha256": "9616a40d2ba5d4311ab88989686663cdefb9c7f29ad8b2b098e73258f2dc593e",
+      "raw_bytes": 617,
+      "raw_sha256": "9616a40d2ba5d4311ab88989686663cdefb9c7f29ad8b2b098e73258f2dc593e"
+    },
+    {
+      "path": "execution/gates/workspace.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-workspace.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 37948,
+      "stored_sha256": "fb346aa35bc7df45ccf8389cbc82dd28c08f9d48e71ca331fec479561c9c328f",
+      "raw_bytes": 184038,
+      "raw_sha256": "bd3fbf0cb69f37992b4f343bb1edf5939ec77d7aefa63329223ded68b9932f98"
+    },
+    {
+      "path": "execution/gates/doctests.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-doctests.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 608,
+      "stored_sha256": "c4ce18b0b18bfe543d482bab3d1f0733fcac5c6ded7a2d92cc1b3540816f4142",
+      "raw_bytes": 608,
+      "raw_sha256": "c4ce18b0b18bfe543d482bab3d1f0733fcac5c6ded7a2d92cc1b3540816f4142"
+    },
+    {
+      "path": "execution/gates/doctests.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-doctests.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1033,
+      "stored_sha256": "8c65c3388e34a93284338bb819504fac3a731db27f4678717c03810f4f475630",
+      "raw_bytes": 6234,
+      "raw_sha256": "aa7721e43876215405fb62060e651e9ff5339dc0140bec74efdfa2c1f24f678e"
+    },
+    {
+      "path": "execution/gates/rustdoc.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-rustdoc.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 610,
+      "stored_sha256": "9f2163f06d442eb8376224e212a520d83737131a5cfd96ff9ed5a816c143a205",
+      "raw_bytes": 610,
+      "raw_sha256": "9f2163f06d442eb8376224e212a520d83737131a5cfd96ff9ed5a816c143a205"
+    },
+    {
+      "path": "execution/gates/rustdoc.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-rustdoc.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 242,
+      "stored_sha256": "b43ced84b357dc0beb1bc6a45aaf6b251e1a8705b6b1bf9d293d50f5d99a2425",
+      "raw_bytes": 341,
+      "raw_sha256": "f67dbacb4fc4e886373c5ea5b01c9026dcee2e8af6adb3609d6a6d25e84b86e9"
+    },
+    {
+      "path": "execution/gates/nightly.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-nightly.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 630,
+      "stored_sha256": "7ab6398ff1c3a6d26135482160e7a932f9ad6c8ffdb2c06a54176b921583f4f8",
+      "raw_bytes": 630,
+      "raw_sha256": "7ab6398ff1c3a6d26135482160e7a932f9ad6c8ffdb2c06a54176b921583f4f8"
+    },
+    {
+      "path": "execution/gates/nightly.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/retry-nightly.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 194,
+      "stored_sha256": "37b19789bfb077349171d4d3ffda47b5fd2b806453e3f576f58a4f7851857c43",
+      "raw_bytes": 216,
+      "raw_sha256": "0c00795ebee589578be25eaf877cba0b7783ae7cee66d7440c5efe3621fd2d53"
+    },
+    {
+      "path": "execution/six-gates-summary.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/six-gates-summary.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1036,
+      "stored_sha256": "fe01527b0be83e6ac27988b14403a1c015fc0e41d03a1f0bf5bcc41d6a9239db",
+      "raw_bytes": 4616,
+      "raw_sha256": "417ee3d22bc54b8d8d94d2824bb1f0db0bedc8825a795c5967bc1d235b8113d8"
+    },
+    {
+      "path": "execution/run-gate.py.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/run-gate.py",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1595,
+      "stored_sha256": "2c8b83762c5d9882362a74c9fcd8cc1cf2b69e54a8ea57656a0f69174c9873d7",
+      "raw_bytes": 3400,
+      "raw_sha256": "fbc2114b732186d12cdb6a79a160dd834f1743d96592e61b89e92236701378c5"
+    },
+    {
+      "path": "execution/run-native.py.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/run-native.py",
+      "storage_encoding": "gzip",
+      "stored_bytes": 3028,
+      "stored_sha256": "5ff0ee4ecfa3c4587150b1288781a7ddf179722e6d7ef5f6841b3a75514c44e3",
+      "raw_bytes": 6715,
+      "raw_sha256": "14c0a39b644eb391881aee7709f2a68e6fbb339f4c25e9b603480517bac7e44a"
+    },
+    {
+      "path": "execution/fix-receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/fix-receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 445,
+      "stored_sha256": "7cb9443c65117ef74b66a7ad3541227a9c06bcfa6aa780b5ccce22d3f5722d3f",
+      "raw_bytes": 722,
+      "raw_sha256": "4b2c2a87fc137c248302f54dde9e4f70240ddb703096a16c10d9dc74bb628993"
+    },
+    {
+      "path": "execution/fix.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/fix.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 270,
+      "stored_sha256": "8e30825782faa5de74eb15338cb7547caeb66f71f2b404949198ac4cbfd499c5",
+      "raw_bytes": 501,
+      "raw_sha256": "9c10f7d1039b50b1d3dd96586d1fbd83b179a88accf038f073d9f9a8f71fa355"
+    },
+    {
+      "path": "execution/native/summary.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/summary.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 670,
+      "stored_sha256": "d895e1b7d32f93aae5bd1674e87361497a3319bd2201c0ab4d77a38a8f0f8a60",
+      "raw_bytes": 1742,
+      "raw_sha256": "7aa5d9860d541a0ea1d3f343616e61f0d5c67129b5f78ccabc57865b2c1ef490"
+    },
+    {
+      "path": "execution/native/build.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/build.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 22052,
+      "stored_sha256": "28c83e3acb6d1919dc2cb7e232aab3ee0f71f201aedcdc878af532b745b6039e",
+      "raw_bytes": 324290,
+      "raw_sha256": "851ab5b70681e33ec967a4513586822c9545a9bc072429542fa28955d8f2f3b9"
+    },
+    {
+      "path": "execution/native/build.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/build.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 281,
+      "stored_sha256": "408bce73e18d536cbffcf1580c10e7b33575e6022ed0114dbf950018c0471387",
+      "raw_bytes": 423,
+      "raw_sha256": "d4c0d3023c95c6a1548071ad92be303790bbb424a85b85c03192064443b2d9e8"
+    },
+    {
+      "path": "execution/native/binary.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/binary.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1158,
+      "stored_sha256": "289dd4d742f8e306180e6c341ca9b7c8729fab7c3542bd6d41485d54646d19df",
+      "raw_bytes": 2866,
+      "raw_sha256": "5b514c45c769760ce683454815c51e6fe397fa9ef2490bdb06725eab0834acab"
+    },
+    {
+      "path": "execution/native/list.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/list.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 574,
+      "stored_sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5",
+      "raw_bytes": 1318,
+      "raw_sha256": "0a79e3c2010051a31e6993d829bc3648a068602a00747dc17b45fc92849087e6"
+    },
+    {
+      "path": "execution/native/list.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/list.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 341,
+      "stored_sha256": "df1f7410fd13986215d7c1e704b0a12915ac7384718596244dfabb88c345c314",
+      "raw_bytes": 451,
+      "raw_sha256": "824cdfa2c3c74cd81fa48b8526ca17a3d6de52ef6b65ca6596c4dcf1b01a248d"
+    },
+    {
+      "path": "execution/native/pg16.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/pg16.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 731,
+      "stored_sha256": "fec81d9c17d134e47b4d6695c7d9d6f430048c6145fba5149dffef5e5a8b24ef",
+      "raw_bytes": 1621,
+      "raw_sha256": "6f5490ea06e05052f6c0bee986c30656dbed888ef7ae9fb721a07c28018f8206"
+    },
+    {
+      "path": "execution/native/pg16.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/pg16.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 358,
+      "stored_sha256": "229363762c6e562fba28a257d76f79fc2e4cfb7bd558d967150d1ff071f7a4ce",
+      "raw_bytes": 479,
+      "raw_sha256": "0bc731ad912f8066dd1bc8ccd14e51f72653bb9e8fb738065b2394e58717a7f8"
+    },
+    {
+      "path": "execution/native/pg16-database.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/pg16-database.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 254,
+      "stored_sha256": "5ee0c744361bec7986450274ae4c6331cb2e04e375617f176665d2645caa91a7",
+      "raw_bytes": 354,
+      "raw_sha256": "b478bf63582fb731ca5c812af4a45c8772276d2b1f3d0131c46ee7cc5e8fb50b"
+    },
+    {
+      "path": "execution/native/pg17.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/pg17.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 731,
+      "stored_sha256": "db4f1228f1d611f70b40be9e323eb640d5f1e003a317b4746ce7f4f3b9d2b5bf",
+      "raw_bytes": 1621,
+      "raw_sha256": "c8fedecb141a73a8985dfdf02653fcada662713e7a03d96453b91b819ad642d3"
+    },
+    {
+      "path": "execution/native/pg17.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/pg17.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 359,
+      "stored_sha256": "d2ef5ce281b6c504829731b5aec884b14d850f98c9b7325b90a80c212c6bca60",
+      "raw_bytes": 479,
+      "raw_sha256": "5edacf7d13cdc059ab61e47588c43f3737c87ff818e97fa50cc0fd4503591469"
+    },
+    {
+      "path": "execution/native/pg17-database.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/pg17-database.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 254,
+      "stored_sha256": "51d7c28756391d0dd968cd2f265c517c984c5ba553df8a13786087e2cfa3b7c6",
+      "raw_bytes": 354,
+      "raw_sha256": "7929dbebe43d53f76b930593997539adc78213309d719a4fd2a6c8ad66123a96"
+    },
+    {
+      "path": "execution/native/initial.df.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/initial.df",
+      "storage_encoding": "gzip",
+      "stored_bytes": 166,
+      "stored_sha256": "f2bd66e2ce71208f1f8f61a44c3125d7b5b3a868ec6f9bc0b2511ef237c36aea",
+      "raw_bytes": 190,
+      "raw_sha256": "82b61e2d1c0af28408aaeb577c6b6facffae9f74c31d9570164dbb28d5b7d691"
+    },
+    {
+      "path": "execution/native/final.df.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/final.df",
+      "storage_encoding": "gzip",
+      "stored_bytes": 166,
+      "stored_sha256": "28d651eccf31ae075bbf271135cc949003927b2579bd92a7807d32aeda6c7744",
+      "raw_bytes": 190,
+      "raw_sha256": "13a5f23854582e8584ab44e62c7b321894f881c4d5f9650735048eeb08a88a40"
+    },
+    {
+      "path": "execution/native/final-binary-lsof.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/final-binary-lsof.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "execution/native/final-binary-lsof.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/native-serial-default-profile-v3/final-binary-lsof.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "history/default-parallel-be326/six-gates-summary.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/six-gates-summary.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1039,
+      "stored_sha256": "02cf35af9720ada457aebc0372dc46bcc0ee7febb9de1771c606923699b0e8f4",
+      "raw_bytes": 4610,
+      "raw_sha256": "19d90df5ec1c4c7cb44418444b562fbf7a7e4403d60bb5fd5827a852ce276e83"
+    },
+    {
+      "path": "history/default-parallel-be326/fix-receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/fix-receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 450,
+      "stored_sha256": "5ea0f38885495eece1f7142e84b6436f2e2c2580e4ef606d17765a24f224801b",
+      "raw_bytes": 732,
+      "raw_sha256": "0277a331af592f853d5c3c6ccb02792a389151f05874c785a9c767013ecc41f5"
+    },
+    {
+      "path": "history/default-parallel-be326/fix.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/fix.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 264,
+      "stored_sha256": "7ff2750c305ec01f4cd37c159cf4176d73c67b7edf7935f65e4908852d8bbfd3",
+      "raw_bytes": 528,
+      "raw_sha256": "f648f1918a612dea1a7eaf13ce3df8c8cf13fe323a9ba811d494e2ac842c0572"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/fmt.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-fmt.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/fmt.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-fmt.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 375,
+      "stored_sha256": "6d80d9f3b49990cbede4b965944814b39b42fcd614d53edf90d5bddb89a5bc69",
+      "raw_bytes": 559,
+      "raw_sha256": "a9a3b7f6daabd83a90724480222e6d2d39915fda6dcb8f2fe0baf9e27f6004ac"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 196,
+      "stored_sha256": "dce940c99f6d21b75eed527baf6c51b287a6489771d25414fb1c4d78cb37f9a7",
+      "raw_bytes": 216,
+      "raw_sha256": "e884cf8cbee78f731c0162f5f4ee36811dcfaed6378dfe71dc0416f5ae8920c0"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/clippy.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-clippy.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 413,
+      "stored_sha256": "97a8012e09b7fac29a4f0ec24f764825893287f720fdb8ddf678b3d80ed609cc",
+      "raw_bytes": 652,
+      "raw_sha256": "1005b9eb314dec42c8fd61c0e580c75502f7609161d9243157b3fa56de99b7a0"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/workspace.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-workspace.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 37951,
+      "stored_sha256": "5a33995146e33b4638dba10b03d839db7aa3c51a0d283768844255c5468d40f5",
+      "raw_bytes": 184038,
+      "raw_sha256": "c919bd75d090cf9f263753ea499f6abec75cd7e119c5293c25b57ed1ab094e58"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/workspace.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-workspace.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 397,
+      "stored_sha256": "bcb1976174348e00f50d7b0d5c3b3fbb7ab158acc769f9e5db89fccfbbc6b698",
+      "raw_bytes": 616,
+      "raw_sha256": "776c3261499a5a5ab32c2f4e0393d0015f450c9e84c994d16c899b90ddf08bb6"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/doctests.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-doctests.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1035,
+      "stored_sha256": "e2ccb556476fefd26e68f14d2bc97550592f9e0849ea2f184ca9f2032ef64ea6",
+      "raw_bytes": 6234,
+      "raw_sha256": "d09391c8ee08f866cdf18193fbe357788ff2509da441d145faa3e6e37e675b9d"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/doctests.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-doctests.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 396,
+      "stored_sha256": "65612a16151477581a51147123210e92ceee7ab41d2c6f4340a888815c74c039",
+      "raw_bytes": 606,
+      "raw_sha256": "5203bd371fdfb41d5a6d70515044812c1068ee1e52bb3e974837fe9c10b2d859"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/rustdoc.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-rustdoc.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 343,
+      "stored_sha256": "0c54d5979c5792616d0b58ce7b20a4a5fb4c0fa9bc41797337f372ea38f74201",
+      "raw_bytes": 2298,
+      "raw_sha256": "479aad5f7a268bd094cb759ad221b0507d97b64972da7cea44ebffabee572bad"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/rustdoc.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-rustdoc.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 398,
+      "stored_sha256": "2f4ee75e32094f9f285e0ab0f24ccc500d5c5b0e9415e9605910ff4df9c5e1b7",
+      "raw_bytes": 609,
+      "raw_sha256": "397c630e4aed270e08fddd621c9e2dd3eefd1489cb74b45d45a0bfe211194f6a"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/nightly.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-nightly.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 270,
+      "stored_sha256": "09ca75c4da6033a1537d21772c6c52f807b41e1e50b615d160caf5581441cfdd",
+      "raw_bytes": 1281,
+      "raw_sha256": "d015a4f6596c2302d90726e727f44468c929021adf42fd71f57ac70cb17d9f9a"
+    },
+    {
+      "path": "history/default-parallel-be326/gates/nightly.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/retry-nightly.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 407,
+      "stored_sha256": "97b8e39a17d3341f6925bb3c55d40fd3c94cfe32ad43c454f6c0b1d20be75605",
+      "raw_bytes": 627,
+      "raw_sha256": "ecc92035a592a39a441025ade15f123f5b74710240445a74b876dca5124a73d3"
+    },
+    {
+      "path": "history/default-parallel-be326/native/summary.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/summary.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 671,
+      "stored_sha256": "1ed4669a4c6d3533312c4aeeddc8e4afd17a790f7cf483a09ca6103d8685a398",
+      "raw_bytes": 1742,
+      "raw_sha256": "e7d5caab4459db7555aebf8fdb3e450bf7b17b4034ba8c3a0c6d2856baa5fcb0"
+    },
+    {
+      "path": "history/default-parallel-be326/native/build.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/build.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 22030,
+      "stored_sha256": "cadbc10374a08cfd94374155aee69a7ec19432c068d9d89c59958722593ed358",
+      "raw_bytes": 324290,
+      "raw_sha256": "ff427efab95091b6edb4e4caf594cebd6130d907c9a28dce590b12f817e829c6"
+    },
+    {
+      "path": "history/default-parallel-be326/native/build.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/build.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 280,
+      "stored_sha256": "e80d8986c5d7e4f170c7ce1663748e91b1a877a1760e12c2680f2c2d9ab55c10",
+      "raw_bytes": 421,
+      "raw_sha256": "bdc3efba5e73473463525962b556fb65ffe26901ab3d027790b907c94e4b2ab3"
+    },
+    {
+      "path": "history/default-parallel-be326/native/binary.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/binary.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1158,
+      "stored_sha256": "c8e9c81887f4e7d06311dd924d9bfcde534bc470e365ffc677c8601d622fe7d1",
+      "raw_bytes": 2866,
+      "raw_sha256": "25fe13da9ee2ac8113dda87dc7a12002371650317b59e9d7bc549e67cfd43834"
+    },
+    {
+      "path": "history/default-parallel-be326/native/list.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/list.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 574,
+      "stored_sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5",
+      "raw_bytes": 1318,
+      "raw_sha256": "0a79e3c2010051a31e6993d829bc3648a068602a00747dc17b45fc92849087e6"
+    },
+    {
+      "path": "history/default-parallel-be326/native/pg16.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/pg16.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 733,
+      "stored_sha256": "0ecfb88072b51a21c72917cf8c06292db9513d2b1835fb24df9ab23350c4370d",
+      "raw_bytes": 1620,
+      "raw_sha256": "987c1588b984f3ddf542e512b356ba8b254275fb3ee19789632fc693a6fa20d5"
+    },
+    {
+      "path": "history/default-parallel-be326/native/pg16.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/pg16.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 340,
+      "stored_sha256": "eaac2bea262b3be6b926bb14afd87595754c1f8048cadc58b03be04dc0c10e10",
+      "raw_bytes": 447,
+      "raw_sha256": "e67f94225cdd1bc20f406040ba7bb5f889bf1f88959cef94985e6b2946442cff"
+    },
+    {
+      "path": "history/default-parallel-be326/native/pg17.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/pg17.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 733,
+      "stored_sha256": "6a81c900af9de1189e2c36dd3a48a6a4356c22233a99fb69b253cfa66bc7a2cc",
+      "raw_bytes": 1620,
+      "raw_sha256": "a78c15c8993941f83c9edf5f4920ab28659f7560024f12cc9ebbc6d2275d5842"
+    },
+    {
+      "path": "history/default-parallel-be326/native/pg17.receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/native-default-profile-v2/pg17.receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 339,
+      "stored_sha256": "69b885a0bbbfedd0958bc9cafe8affa8b71241f981a02c071428eab0bcb298cc",
+      "raw_bytes": 448,
+      "raw_sha256": "d56f0307312c442e6ef7c231b966384efaf01e68bc851d4208164645b25a6e51"
+    },
+    {
+      "path": "history/serial-marker-red/receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/serial-marker-repro-v1/receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 660,
+      "stored_sha256": "329fec8b2ce2f1224118489bebe5f7f376ea9adcf9f9663b00a2ec11d2c1e64f",
+      "raw_bytes": 1094,
+      "raw_sha256": "042c5d815e4322d2ee8d1a2d364f435e96a1ded350897fddeb2611c7b8ebc1b2"
+    },
+    {
+      "path": "history/serial-marker-red/test.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v4/serial-marker-repro-v1/test.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 257,
+      "stored_sha256": "591181a723b2c6ed7bf5aaa5acc06646ca0ce954f964058d9f1bdd38102cc6e0",
+      "raw_bytes": 339,
+      "raw_sha256": "4a7b992159bf4f9c9ece0876e45a669a9c75356324e56add8534128e1d132f7c"
+    },
+    {
+      "path": "reviews/interface/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-interface-v1/independent-final-review/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 207,
+      "stored_sha256": "e2fce1e41ba732e7854a07e65a29edba7af6ba420d6215231b5e1d48663df788",
+      "raw_bytes": 310,
+      "raw_sha256": "dce530ac796c5ddde7335a1f7d999b784d6f03b26be5b465bd0cfbf85dde38c8"
+    },
+    {
+      "path": "reviews/interface/receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-interface-v1/independent-final-review/receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1716,
+      "stored_sha256": "bc4a59506617e5f0c1b4567b8a600db69d43f7e91df98c0c980cc0ae66fc4d59",
+      "raw_bytes": 3369,
+      "raw_sha256": "96439840509cd5e7dbce2c73b6f6473ba635afb190c16bdecfb460ca91728891"
+    },
+    {
+      "path": "reviews/interface/review.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-interface-v1/independent-final-review/review.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 718,
+      "stored_sha256": "56c6006d54435e58cb44e241cc124402506154ea575d25e6f29d2c9085e83286",
+      "raw_bytes": 857,
+      "raw_sha256": "494834cc989ef541fd47549a218dd78cddaf42b7a4803cab7afb62c9e7cca682"
+    },
+    {
+      "path": "reviews/standards/final-fixture-increment-v1/constructor-context.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-fixture-increment-v1/constructor-context.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 408,
+      "stored_sha256": "df763056eabb2d77f51c6771c9e0f2843b2ded6e82989deba389aa0861142856",
+      "raw_bytes": 611,
+      "raw_sha256": "6d93495548eecdfb3c04d7965fbbb43010e4da4efed94cd2314a0bc78a2d1a7b"
+    },
+    {
+      "path": "reviews/standards/final-fixture-increment-v1/final-source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-fixture-increment-v1/final-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49255,
+      "stored_sha256": "811f9ef452f3ac27893c9ae0d48aefe2da53abad89b5c050d20a3dcc20f4d175",
+      "raw_bytes": 168897,
+      "raw_sha256": "16a1d9149f58c6d634d2c6b434494d563fa8228b9b4d485bcb22261a0ee156ca"
+    },
+    {
+      "path": "reviews/standards/final-fixture-increment-v1/fixture-increment.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-fixture-increment-v1/fixture-increment.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 275,
+      "stored_sha256": "22706ef724b85e87956d2764996295e0fef896fb77b8e23afdaa82d100af6c89",
+      "raw_bytes": 541,
+      "raw_sha256": "9053dbf82ad9d7134906a25c25f792954a420132d1d4c77cd17bc5f80eecb238"
+    },
+    {
+      "path": "reviews/standards/final-fixture-increment-v1/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-fixture-increment-v1/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 423,
+      "stored_sha256": "b80ce9a2e2d556f30acf240cc373d65bf05ef7ce24a2897e1abbaf23c78e1cc9",
+      "raw_bytes": 828,
+      "raw_sha256": "579539f513a25fe2f8a3ece1d9ff2fbbf943f5a06f14ad86fcd5ca13e2b8ccf2"
+    },
+    {
+      "path": "reviews/standards/final-fixture-increment-v1/review-receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-fixture-increment-v1/review-receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1070,
+      "stored_sha256": "a9961a15ca7db2bba0592b33532dbee22f90a16db19a488b7e2ffbc5ff922b96",
+      "raw_bytes": 2220,
+      "raw_sha256": "0c9b50e2ccd4480099a0c8182ddc52232d111013d34a8cbec9162dd0bf025f45"
+    },
+    {
+      "path": "reviews/standards/final-fixture-increment-v1/review.zh-CN.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-fixture-increment-v1/review.zh-CN.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 573,
+      "stored_sha256": "46f44329f3861c5d5c09d51537d0216bd4d6f1463e7be4d3a45fe6adcd8296a8",
+      "raw_bytes": 696,
+      "raw_sha256": "4d7a232fa42810b086172500ff97d5522bf513a6635c1b3cd6128f5ec349de5f"
+    },
+    {
+      "path": "reviews/standards/final-helper-increment.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-helper-increment.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 658,
+      "stored_sha256": "92ec9c6b5806150bd39fb2410017d0834643598bd66ef14e1d6b1d2c31ac7598",
+      "raw_bytes": 1567,
+      "raw_sha256": "36db8a415e15f8a89230da4dd8d6da162a7d483a16876aeed73847a3fe1e6200"
+    },
+    {
+      "path": "reviews/standards/final-increment-input-verification.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-increment-input-verification.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 429,
+      "stored_sha256": "a7ae44599c881a9bf32fee20e988041d55829dfc7bc809ce7be831cd2b9f839d",
+      "raw_bytes": 843,
+      "raw_sha256": "95c9212244df430698a57a9fc2d846c0ed168ad8684c4bee2356c4235e6ab652"
+    },
+    {
+      "path": "reviews/standards/final-review.diff.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-review.diff",
+      "storage_encoding": "gzip",
+      "stored_bytes": 26782,
+      "stored_sha256": "2aa1d81b091962db65058b6be819193b095e4683adb46cc8b5d1cc21acb6899e",
+      "raw_bytes": 163894,
+      "raw_sha256": "e66180d2d01382697b43f8f63a58ccd1d08486ecd8901db2727e9d8842c4eb44"
+    },
+    {
+      "path": "reviews/standards/final-source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/final-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49252,
+      "stored_sha256": "92bc0cf17a8e89d566deb29c38929241ae2fefa8fd3211fbc3d6fd7bfacb52e9",
+      "raw_bytes": 168897,
+      "raw_sha256": "4cf49bf59ba46a192d61c3d5d4901285b795e22311da3817d8005e0361370513"
+    },
+    {
+      "path": "reviews/standards/input-verification.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/input-verification.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1372,
+      "stored_sha256": "58b2996df565ef0ffae06e11f549cdbbb268879843c7dc4b8d0c629d2623cbe4",
+      "raw_bytes": 4439,
+      "raw_sha256": "889505974c30cd85c718895cd45c3791a94f406a44f63e3217d3e49fec4e76d8"
+    },
+    {
+      "path": "reviews/standards/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 683,
+      "stored_sha256": "54a239f9ba56e30c862294785989e5b2b49f504572cd376c239f514846c881bc",
+      "raw_bytes": 1635,
+      "raw_sha256": "e9c8fe48c39828e55e506579e6ae2621d6b6297ae7a9418c14c788b175f37d48"
+    },
+    {
+      "path": "reviews/standards/protected-input-verification.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/protected-input-verification.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20536,
+      "stored_sha256": "4218839ab4a6005442eb01bc80c8fec78c209743c5a268b1ed60af4e9fc82de6",
+      "raw_bytes": 69955,
+      "raw_sha256": "32e318196ae5b94c1e95cf8ab36fe7b8d1022778cda033dd6249bd6bd69c4487"
+    },
+    {
+      "path": "reviews/standards/review-receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/review-receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2813,
+      "stored_sha256": "3d530214ba0567d214a31b042eaf188692c431ccec263cd3cd7882351f69c6dc",
+      "raw_bytes": 6820,
+      "raw_sha256": "9e8f2581e0319247036b8e1e74f4c7a3c5de0a4eb3638a550153480b39cbde62"
+    },
+    {
+      "path": "reviews/standards/review.diff.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/review.diff",
+      "storage_encoding": "gzip",
+      "stored_bytes": 26601,
+      "stored_sha256": "62b395ab9cecd1c0ea718385248948bbf561a8126e75323086ef19ab5d641498",
+      "raw_bytes": 163263,
+      "raw_sha256": "369de7091e3fe17ec18e08bc8a32df57d513da980193011341a49faa30fbc737"
+    },
+    {
+      "path": "reviews/standards/review.zh-CN.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/review.zh-CN.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 657,
+      "stored_sha256": "98e8fd9ca9bd0169c0c3b784a874b3e23ce9da4ecd6c1fa49f30b95c2e86ff3a",
+      "raw_bytes": 822,
+      "raw_sha256": "28899620f0648b668a70bc0207de0225c0ea1e4d1f2ab1433daf98ce0b69d263"
+    },
+    {
+      "path": "reviews/standards/standards-sources.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-standards-review-v1/standards-sources.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1454,
+      "stored_sha256": "0d35636ded8090d264593638f9dc45c8e5aa2d05c00918578ad49abccaa55436",
+      "raw_bytes": 3169,
+      "raw_sha256": "112febc33f4a23de6b15f928dce918729d7cb47de501ca560c4c58cd834652e1"
+    },
+    {
+      "path": "reviews/spec/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-spec-review-v1/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 482,
+      "stored_sha256": "98689bee7fe9330a347601c31b95d7a2b1bfd62e8f82f4189ecac0de4dca1f98",
+      "raw_bytes": 955,
+      "raw_sha256": "6fe57b23c48ab7d5e2d0f64b32827b6253d1236d10c81faccb0fa4829b347d66"
+    },
+    {
+      "path": "reviews/spec/requirements-review.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-spec-review-v1/requirements-review.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 3157,
+      "stored_sha256": "83eeb62c9758125ac88e7ca1665fe00110a9bff8799cd1c45c68cb5d8ff3431d",
+      "raw_bytes": 8532,
+      "raw_sha256": "47ab9e4849c7021f01e5ad9b5a50b14ccb745a7e8ade6ccf039641c56ec2dc1a"
+    },
+    {
+      "path": "reviews/spec/review-inputs.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-spec-review-v1/review-inputs.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2105,
+      "stored_sha256": "3907d6c3937763313cfbb3a5a5d7a0bc175a8780eda88c52003cf9f54d299b50",
+      "raw_bytes": 5771,
+      "raw_sha256": "e386782f9b9e5d59b2a1cda02f0d62be9a557777069d6192cf707a7a3934eae9"
+    },
+    {
+      "path": "reviews/spec/review-receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-spec-review-v1/review-receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1080,
+      "stored_sha256": "1774c1f9b9fffedcc35db6d85453c3aa6c1032dd5edf9604506e208c77e9af78",
+      "raw_bytes": 2055,
+      "raw_sha256": "f35e573a5a14b62e61ee84abb48722c40b39b5bb3cfc32a2da40721ac4446fac"
+    },
+    {
+      "path": "reviews/spec/review.zh-CN.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-spec-review-v1/review.zh-CN.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 581,
+      "stored_sha256": "54805e75ea37b5e6eccc35f268a193fa9636b477685284ed6bd85c1baf0aab42",
+      "raw_bytes": 707,
+      "raw_sha256": "39fe5d7490eea758395c4a1a734d6371204401cd437a65a4eec65f37751b650d"
+    },
+    {
+      "path": "reviews/spec/reviewed-source.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-spec-review-v1/reviewed-source.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 26755,
+      "stored_sha256": "0864b1689649f46ac902c9258353232c32be417dde9706594b645caa9ec0c11f",
+      "raw_bytes": 163636,
+      "raw_sha256": "8d3599224b4857e82618e4842ca9283152d850792287a0005d6b28d7e8067b0c"
+    },
+    {
+      "path": "reviews/CI/actual_parallel_pg16/mcp-bound-state-qualification.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/actual_parallel_pg16/mcp-bound-state-qualification.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 733,
+      "stored_sha256": "0ecfb88072b51a21c72917cf8c06292db9513d2b1835fb24df9ab23350c4370d",
+      "raw_bytes": 1620,
+      "raw_sha256": "987c1588b984f3ddf542e512b356ba8b254275fb3ee19789632fc693a6fa20d5"
+    },
+    {
+      "path": "reviews/CI/actual_parallel_pg16/predicate.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/actual_parallel_pg16/predicate.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/actual_parallel_pg16/predicate.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/actual_parallel_pg16/predicate.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/auxiliary-checks.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/auxiliary-checks.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1089,
+      "stored_sha256": "88950a8efa6b5932f94ed187b583545622ccf1b1dc177434f7a7749df1ffbfdf",
+      "raw_bytes": 2354,
+      "raw_sha256": "d7a72bda1390f2610c58e092b70622676d8fcfeef0003900af923ad2bd642414"
+    },
+    {
+      "path": "reviews/CI/baseline.yml.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/baseline.yml",
+      "storage_encoding": "gzip",
+      "stored_bytes": 6915,
+      "stored_sha256": "b5157afe3e5b33493012a252cc326ee793245f0b98678b3d1078c662dfb7cacc",
+      "raw_bytes": 44609,
+      "raw_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7"
+    },
+    {
+      "path": "reviews/CI/candidate-predicates.sh.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/candidate-predicates.sh",
+      "storage_encoding": "gzip",
+      "stored_bytes": 317,
+      "stored_sha256": "2f50c526b02fbdae947595bd4f922bd2604e67b1f81b5d2ef2c4d992d0930168",
+      "raw_bytes": 647,
+      "raw_sha256": "39d1fc6759664847f217b2267cb2d5587e49165062668fbcd1a3677fe4de7863"
+    },
+    {
+      "path": "reviews/CI/candidate.yml.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/candidate.yml",
+      "storage_encoding": "gzip",
+      "stored_bytes": 7282,
+      "stored_sha256": "291a13e3db87d92e9c16bd92b9a6418e9075cf9ee08bac6a84408d3d3d8217e6",
+      "raw_bytes": 47120,
+      "raw_sha256": "6568a90f4de078ef9f4bc7469e7891b72af7b00619301ee645dced64fea14fd9"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/fix.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/fix.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 270,
+      "stored_sha256": "8e30825782faa5de74eb15338cb7547caeb66f71f2b404949198ac4cbfd499c5",
+      "raw_bytes": 501,
+      "raw_sha256": "9c10f7d1039b50b1d3dd96586d1fbd83b179a88accf038f073d9f9a8f71fa355"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 605,
+      "stored_sha256": "56c072335e83e785001098b2895de0bbf7045a38f054ef715ff96dd5bd8f3c89",
+      "raw_bytes": 1861,
+      "raw_sha256": "0cb64d232bb934f8c99bc7459f070a83bd68fbe7b162a8c3d0468d47b6c490cf"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/original-candidate-predicates.sh.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/original-candidate-predicates.sh",
+      "storage_encoding": "gzip",
+      "stored_bytes": 317,
+      "stored_sha256": "2f50c526b02fbdae947595bd4f922bd2604e67b1f81b5d2ef2c4d992d0930168",
+      "raw_bytes": 647,
+      "raw_sha256": "39d1fc6759664847f217b2267cb2d5587e49165062668fbcd1a3677fe4de7863"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/checker.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/pg16-original-checker/checker.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/checker.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/pg16-original-checker/checker.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/mcp-bound-state-qualification.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/pg16-original-checker/mcp-bound-state-qualification.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 731,
+      "stored_sha256": "fec81d9c17d134e47b4d6695c7d9d6f430048c6145fba5149dffef5e5a8b24ef",
+      "raw_bytes": 1621,
+      "raw_sha256": "6f5490ea06e05052f6c0bee986c30656dbed888ef7ae9fb721a07c28018f8206"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/checker.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/pg17-original-checker/checker.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/checker.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/pg17-original-checker/checker.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/mcp-bound-state-qualification.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/pg17-original-checker/mcp-bound-state-qualification.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 731,
+      "stored_sha256": "db4f1228f1d611f70b40be9e323eb640d5f1e003a317b4746ce7f4f3b9d2b5bf",
+      "raw_bytes": 1621,
+      "raw_sha256": "c8fedecb141a73a8985dfdf02653fcada662713e7a03d96453b91b819ad642d3"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/review-inputs.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/review-inputs.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2841,
+      "stored_sha256": "4b2d022298fb727a985a9fcbba5686233b6bc0c138aa97d8d85c0ec19313b7b8",
+      "raw_bytes": 10422,
+      "raw_sha256": "56935303addb457f336701e1410e2a1a9000e03a37cd745288e76a5885802fe6"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/review-receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/review-receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1072,
+      "stored_sha256": "12d8870a151ed0306c5d88d34bc5afff8733b181759dd81a9e1f7d02e228625f",
+      "raw_bytes": 2757,
+      "raw_sha256": "b4ad185ad8f429baafc0d07ed45c7725208341d674b3de299138516cdc055a50"
+    },
+    {
+      "path": "reviews/CI/final-marker-fixture-increment-v1/review.zh-CN.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/final-marker-fixture-increment-v1/review.zh-CN.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 568,
+      "stored_sha256": "18f1d01d92c4fcd81e1ad0c6a0b6255feb837d7aede81980876b1e956296a3cc",
+      "raw_bytes": 720,
+      "raw_sha256": "7fac8995f980ec660a8eaf863c35ec7230cb133753ddebaa5fb7e815ef9d857e"
+    },
+    {
+      "path": "reviews/CI/findings.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/findings.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1060,
+      "stored_sha256": "f860079a11530d46c6ae7dd65785f025b9945429ed326a21f4bd598ca41c2e35",
+      "raw_bytes": 2229,
+      "raw_sha256": "eafa8bec35596c761b4e59858875f08d3d19d7a31d8c759cfb10ae8013101c62"
+    },
+    {
+      "path": "reviews/CI/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 926,
+      "stored_sha256": "43204341f661fdae0baa8fa4639b150b8c75c9e23a5de52c1702b0b898e16a1c",
+      "raw_bytes": 2976,
+      "raw_sha256": "108e9670834b8dfd51a0467e06256827f076178c747a4cc2447f515977478d7d"
+    },
+    {
+      "path": "reviews/CI/modeled_successful_serialized_pretty_output/mcp-bound-state-qualification.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/modeled_successful_serialized_pretty_output/mcp-bound-state-qualification.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 733,
+      "stored_sha256": "50f0acd75538df77aea5b633b7f0f7068f5a0f599f3898f18c5a2b801e3d196a",
+      "raw_bytes": 1620,
+      "raw_sha256": "6f9c8ba31562bfb8a2dddf1dc65e2e9ccfe500c5aaa0d4d6bc32ec02227b708e"
+    },
+    {
+      "path": "reviews/CI/modeled_successful_serialized_pretty_output/predicate.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/modeled_successful_serialized_pretty_output/predicate.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/modeled_successful_serialized_pretty_output/predicate.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/modeled_successful_serialized_pretty_output/predicate.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/new-step.sh.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/new-step.sh",
+      "storage_encoding": "gzip",
+      "stored_bytes": 664,
+      "stored_sha256": "40c642a4c872f3f3161e57388759850008644d46fbbd2c6a7d3cb019184b62fc",
+      "raw_bytes": 1429,
+      "raw_sha256": "caf77aa02f3588f9b017eaea921fee6b37f9d060c79bc3bccbe1c4007b783569"
+    },
+    {
+      "path": "reviews/CI/pipeline.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/pipeline.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/CI/pipeline.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/pipeline.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 47,
+      "stored_sha256": "cda9be2337014fc0d168ee7189e94636ac801414229312ad722e26c1112d0e38",
+      "raw_bytes": 27,
+      "raw_sha256": "48e38683cc6561a11d1cd3528b2a1e563aaf6c367a4e556624056f5869adca69"
+    },
+    {
+      "path": "reviews/CI/review-inputs.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/review-inputs.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 626,
+      "stored_sha256": "ac6c7045519356fa2ab4705e4e8a76da0a717023e025af9044522144b1491350",
+      "raw_bytes": 1075,
+      "raw_sha256": "ebae1e47d0a381aeb69336373bb14c1a3740e851f08094bd430274edc961fb91"
+    },
+    {
+      "path": "reviews/CI/review-receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/review-receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1151,
+      "stored_sha256": "96c5c8fe9d11f2fb4ff686afab9f7465b141d74f3524f5e0a75be228e866b48a",
+      "raw_bytes": 3436,
+      "raw_sha256": "72a3b346f4382909f8e09dbf71c9470dd6eeb7e6fa73d846a110296bf2bb4c49"
+    },
+    {
+      "path": "reviews/CI/review.zh-CN.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/review.zh-CN.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 706,
+      "stored_sha256": "6c831818f30410c68628b02d394ad4b15a3e7bd98d74d255dd22136089fd7fb8",
+      "raw_bytes": 866,
+      "raw_sha256": "4306580fa43d84af584572a1f275b76a280bcaeacc88a6f5f116eff94e7933b1"
+    },
+    {
+      "path": "reviews/CI/synthetic-pipeline.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-ci-review-v1/synthetic-pipeline.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 47,
+      "stored_sha256": "cda9be2337014fc0d168ee7189e94636ac801414229312ad722e26c1112d0e38",
+      "raw_bytes": 27,
+      "raw_sha256": "48e38683cc6561a11d1cd3528b2a1e563aaf6c367a4e556624056f5869adca69"
+    },
+    {
+      "path": "CI-candidate/candidate.yml.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-ci-candidate-v1/candidate.yml",
+      "storage_encoding": "gzip",
+      "stored_bytes": 7282,
+      "stored_sha256": "291a13e3db87d92e9c16bd92b9a6418e9075cf9ee08bac6a84408d3d3d8217e6",
+      "raw_bytes": 47120,
+      "raw_sha256": "6568a90f4de078ef9f4bc7469e7891b72af7b00619301ee645dced64fea14fd9"
+    },
+    {
+      "path": "CI-candidate/candidate.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-ci-candidate-v1/candidate.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1105,
+      "stored_sha256": "6bf96dedcdf28c6dda5ffc2813bd48aee51b77f76a6be2190e7b4d95633712d2",
+      "raw_bytes": 2846,
+      "raw_sha256": "29bda3c3093c8004af30bfbc5be94e42a8277d6414116c8873f592c8a23ccdd1"
+    },
+    {
+      "path": "CI-candidate/receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-ci-candidate-v1/receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2459,
+      "stored_sha256": "c2a61d744f0f1a4cf1895dff9dc7809638023250c791af41cd9d4c5fa4aa523f",
+      "raw_bytes": 5384,
+      "raw_sha256": "fcdc9c9feeba49cdb0e9781199ad642e1ab2558a325a2305eefcc547406731fc"
+    },
+    {
+      "path": "execution/final-resource-observation.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/final-resource-observation.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 730,
+      "stored_sha256": "730d40881745ec566ceb46be11bdff02a088cc17c32ebe03f040dc3f1a008083",
+      "raw_bytes": 2588,
+      "raw_sha256": "edbbe474a2da04c13b49f77e8b98997455697c0dd00bbb92862416d0ac9f1e12"
+    },
+    {
+      "path": "execution/resource-raw/stable_reused_cache.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/final-resource-observation/stable_reused_cache.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "execution/resource-raw/final.df.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/final-resource-observation/final.df",
+      "storage_encoding": "gzip",
+      "stored_bytes": 167,
+      "stored_sha256": "88d91b87f2b9432db836a0093e4c2a36cfa19e6eb40a796f3ede7ee981551f89",
+      "raw_bytes": 190,
+      "raw_sha256": "7376a3dda9694ec427c817bc6863a6b2acdbf038cfb3239663db4bfb61b120aa"
+    },
+    {
+      "path": "execution/resource-raw/native_saved_program.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/final-resource-observation/native_saved_program.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "execution/resource-raw/native_saved_program.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/final-resource-observation/native_saved_program.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "execution/resource-raw/stable_reused_cache.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/final-resource-observation/stable_reused_cache.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "execution/resource-raw/nightly_reused_cache.stderr.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/final-resource-observation/nightly_reused_cache.stderr",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "execution/resource-raw/nightly_reused_cache.stdout.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v5/final-resource-observation/nightly_reused_cache.stdout",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/execution-facts/conservative-536-inputs.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-execution-independent-review-v1/conservative-536-inputs.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 28308,
+      "stored_sha256": "e6e512d9e0bb741b06b31d59797f5fdb67113d9322d0e9b75bd77c8a4e1fb8ff",
+      "raw_bytes": 101530,
+      "raw_sha256": "a69a28d43db5d9dfe28706c98e6f834ce6721e9587de6290795ff0323c3177f4"
+    },
+    {
+      "path": "reviews/execution-facts/raw-command-checks.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-execution-independent-review-v1/raw-command-checks.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2105,
+      "stored_sha256": "3fcfe60c12893a27b2f20b2932aea6072b941c9528290ba3a7f741091ce06abe",
+      "raw_bytes": 9208,
+      "raw_sha256": "11cf43b9da7b0eae5efcc280863a86e642731a5565084b232a83b4af28ba1eac"
+    },
+    {
+      "path": "reviews/execution-facts/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-execution-independent-review-v1/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 386,
+      "stored_sha256": "98c83b0cf57b8fa3e7265c57675a997d98131e5ef17e9c03372c8d70a3c1591b",
+      "raw_bytes": 790,
+      "raw_sha256": "e71831b26f853199fc836f61451fc93ae5f925eb8ba9b947b27effa394ccbcd9"
+    },
+    {
+      "path": "reviews/execution-facts/input-identities.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-execution-independent-review-v1/input-identities.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1008,
+      "stored_sha256": "9c6b5f762b0f2af893883c47fc530d2e960b3191f734136f8f36943080ea4c05",
+      "raw_bytes": 3788,
+      "raw_sha256": "0465f67152f729011b74379d56b26faa31f493645e603cdff9f2227d2173dfa7"
+    },
+    {
+      "path": "reviews/execution-facts/review.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-execution-independent-review-v1/review.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1322,
+      "stored_sha256": "7141dc9ad9c4863397abf158f13ed02c3888a080bd9229e793538dde2803c0a2",
+      "raw_bytes": 1794,
+      "raw_sha256": "466ec418c2aa12bc1a576cf9c855acca5c56de80c589c0759eb8fecba3e76176"
+    },
+    {
+      "path": "reviews/execution-facts/receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-execution-independent-review-v1/receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2676,
+      "stored_sha256": "9623569c7ffb50cb6ac49f6fd0901450e436f0affe5725b1ab22b1dc963a5ca3",
+      "raw_bytes": 5898,
+      "raw_sha256": "5b9d88210e08a59cf320f4bfea93aca3dbef8841fea8abcb2f6ecffb395a45e9"
+    },
+    {
+      "path": "adoption-docs-v2/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-adoption-docs-v2/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1527,
+      "stored_sha256": "395ef2eceb24f6f4a488ba22ed2554f3182c7ac8c36a15bf5095eb61e6ddcf57",
+      "raw_bytes": 4248,
+      "raw_sha256": "e024644b713da0b72e64d8aa0b198be8f016c7cdce621d475c975b79bd1cc23b"
+    },
+    {
+      "path": "adoption-docs-v2/freeze.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-adoption-docs-v2/freeze.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 434,
+      "stored_sha256": "b49354cdcdcb7a4a47d78c36e9141d97334c66bdc4fdcf774a613185426e28e0",
+      "raw_bytes": 663,
+      "raw_sha256": "6fe1007c860f1128155eb53dfb8947b94dfe4acb97dd3be41f15065a7c6d8bb2"
+    },
+    {
+      "path": "adoption-docs-v2/candidate-documents.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-adoption-docs-v2/candidate-documents.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 947,
+      "stored_sha256": "fbffa61892a89aa547e1624df62dae5f56db3aedf94288c25ff0844bcaca1e9e",
+      "raw_bytes": 2039,
+      "raw_sha256": "c85fba974fe3ae9d2284ffd6a8080b6900f72dd4828a67a74afd1e9888d4f981"
+    },
+    {
+      "path": "adoption-docs-v2/receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-adoption-docs-v2/receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 831,
+      "stored_sha256": "e6ad38310c994af7e464409d29850e6ea455b3f17fe28423964374d36f1bb8c5",
+      "raw_bytes": 1548,
+      "raw_sha256": "8a06babefae6d971379225b45586032caae84672cd89c11af57a449c83bdd264"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/audit.py.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/audit.py",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2833,
+      "stored_sha256": "f1422840db431fee07c9097d4ccdd7ec98bdb2547eab3e67431a54aa9fc23752",
+      "raw_bytes": 7389,
+      "raw_sha256": "381d8275c3fa0cf30c054066e786b3a690851e1af35688c48deb191671792ec5"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 683,
+      "stored_sha256": "6f5ada187f467082802a03eef6117493481873ab44c08390397d6f3cfffd1a84",
+      "raw_bytes": 1635,
+      "raw_sha256": "01db6897abbfa0e235b9034d8729b5dd33aa0aa3e427de52c909471d9ac64c28"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/offline-verifier.stdout.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/offline-verifier.stdout.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 452,
+      "stored_sha256": "9de1e7138bf25dd4f0f4ff3a415f5a9f979ccfbc038d7d0274f88185420c47d0",
+      "raw_bytes": 829,
+      "raw_sha256": "858727aa4bff511b1c2df24057068440d81467c80cffaf64830cbe2e40353cae"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/input-identities.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/input-identities.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 3165,
+      "stored_sha256": "88ad27418d3026e3504e64c7f4dd71bc654e33e11b34e7250f6808a7b24b9a3a",
+      "raw_bytes": 13661,
+      "raw_sha256": "a9149198c6a9f32564e23276f2abf965b51180732d9a5142f549d032848b4672"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/offline-verifier.stderr.txt.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/offline-verifier.stderr.txt",
+      "storage_encoding": "gzip",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/review.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/review.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2080,
+      "stored_sha256": "b3f7206cf420061980c27483abf24d24e93366d1db15dc4105c0c1bc7ed63f05",
+      "raw_bytes": 3956,
+      "raw_sha256": "908b972743fd62a9a396e5b46959e2c26b6cfd7a0e1a531efab16076348cb1b8"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/audit-receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/audit-receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 2128,
+      "stored_sha256": "ae9be67df90d8830b57b8b31e98db4d5ae9d2bf0a774e656f18fe9c0048cd182",
+      "raw_bytes": 5037,
+      "raw_sha256": "d531e92b7fa926bb4b1a19287b8c8ab860ddf38e09f69d4592569f68651fa853"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1632,
+      "stored_sha256": "f0939e0b642d96c92163b3a1a46dfbdb8103f74bea0292f5822f4674dd873c4b",
+      "raw_bytes": 3437,
+      "raw_sha256": "1df5e343cbb98f4e6a75983e37781eaa782308c7eaf2ff16b8073779d8674b66"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/standards-agent/manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/standards-agent/manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 246,
+      "stored_sha256": "c57ab0bccf07073c0251ba922e3fc3cfa7a46056b209dccc2022a509247585c6",
+      "raw_bytes": 373,
+      "raw_sha256": "bc329d1622c7407f7fb2c3a8034a848766b7e8a2232bbdf09eef0374a26ac491"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/standards-agent/review.md.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/standards-agent/review.md",
+      "storage_encoding": "gzip",
+      "stored_bytes": 936,
+      "stored_sha256": "31b9e15b3c191e87e3dfd3762711ff493d777d50e7f0656a825b439adc44e14c",
+      "raw_bytes": 1653,
+      "raw_sha256": "fb16e14a00f6527bac44affd93f579d466d5b0bf161d85710f7eee1271da489b"
+    },
+    {
+      "path": "reviews/adoption-docs-v2/standards-agent/receipt.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-adoption-docs-v2-review-v1/standards-agent/receipt.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1264,
+      "stored_sha256": "df3f591ab00ba71180f32149ce583a40ba5847e628d1fe16c6896f0146f4d52d",
+      "raw_bytes": 3144,
+      "raw_sha256": "200b2357b7ae532ce1ff7d83153fb5502a0df3a1453b891464a1c7d2f41d4a2e"
+    }
+  ]
+}

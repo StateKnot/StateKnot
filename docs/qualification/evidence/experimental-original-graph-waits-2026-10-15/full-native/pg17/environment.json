@@ -1,0 +1,13 @@
+{
+  "database": "stateknot_r1_a36_fixed922_native_oct15v1",
+  "postgres_major": "17",
+  "server_version_num": 170011,
+  "default_stack": true,
+  "original_resources_and_assertions": true,
+  "old_test_environment_keys_removed": [],
+  "only_set_test_keys": [
+    "STATEKNOT_TEST_DATABASE_URL",
+    "STATEKNOT_REQUIRE_POSTGRES_TESTS"
+  ],
+  "backup_and_PITR_conditional_not_qualified_by_libtest_count": true
+}

@@ -46,6 +46,13 @@ Facade，并已实现一个严格 MCP Remote Tool Profile；稳定 HTTP/gRPC/SSE
 
 ## 启动绑定
 
+未发布的[嵌套 Driver](durable-graph-runtime.zh-CN.md#实验性命名空间帧)
+要求同一 provider 实现 `direct_usage_evidence`，默认实现拒绝提供完整框架用量。
+Loop 把该 provider 同时绑定到 Driver 与 lifecycle coordinator。
+`AgentLoopOutcome::FrameWaiting` 转交已提交的 scoped Wait 与租约释放；
+授权 Wait resolution 和新 scheduler claim 负责恢复，不再创建第二个 Root Wait。
+这些增量仍受 RFC-0022 草案约束，不包含在 `0.1.0-alpha.1` 中。
+
 冻结 Executable Registry 前必须安装 Driver、Lifecycle 与 Cancellation 三份标准审计 Schema。数据库迁移完成后，再从同一个
 不可变 Release Artifact 注册全部应用 Schema、Graph、Reducer 与 Node Executor；只有这些
 步骤全部成功后才能构造 Scheduler。

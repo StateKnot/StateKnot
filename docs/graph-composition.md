@@ -143,6 +143,73 @@ blocker counts remain node counts in the unchanged event schema. A retained
 failure handoff can be retried after a lost acknowledgement without re-reading
 evidence or changing the original terminal failure.
 
+The separate Draft [RFC-0022](rfcs/0022-namespaced-graph-frames.md) experiment
+now includes whole Store closure after an original cancellation or sealed
+failure. It retains the Root state and actual old caller fences, freezes
+complete priced DIRECT accounting and refuses outstanding ordinary/provider or
+child work. Scoped provider activations authenticate their actual frame; a Root
+checkpoint relabeled as nested retains the original invalid-activation error.
+It uses Schema 33 and the matching 52-table trusted-role profile.
+Existing committed decisions are fully authenticated before retries; cleanup
+granting no execution can finish after the execution deadline. Completion
+restoration and caller-anchor verification use private heap-backed Future
+boundaries so ancestor replay retains the full ordinary/closed completion checks
+on the normal thread stack. These Store primitives still require actual nested
+Driver dispatch and final qualification.
+
+[Frozen experimental whole-frame qualification](qualification/experimental-whole-frames-2026-10-10.md)
+
+Private whole-return Wire intents retain their original canonical bytes while
+being decoded on the heap, preserving full ancestor authentication during
+scoped result paging on the normal stack.
+
+The experimental claimed read interface can now plan an exact active frame with
+`ClaimedRunRecovery::plan_graph_frame_ready_nodes`. Its bounded result pages use
+the whole scoped head and namespace, reuse completed work and retain complete
+physical attempt history. Every page pins the Run journal; the planner checks
+the current leaf again before its final database-time fence validation. A
+terminal leaf may have no ready nodes. The plan still needs actual application
+schema/reducer replay and a dedicated durable scoped start before dispatch.
+Unexpected result namespace projections at an exact checkpoint fail as durable
+corruption; claimed reads quarantine through the original worker context.
+
+The [frozen claimed recovery qualification](qualification/experimental-claimed-frame-recovery-2026-10-10.md)
+records the exact `8285f25` source, full gates, prechange read-only return
+compatibility and retained failures. Actual nested Driver and whole application
+replay remain open. The [Root disposition recovery increment](rfcs/0022-namespaced-graph-frames.md#root-disposition-recovery-increment-in-development)
+specifies the complete historical Continue/Wait/Terminal proof being developed;
+its new format and migration require their own final-source qualification.
+
+The experimental Store provides
+`PostgresStore::schedule_graph_frame_delayed_retry_wakeup` for an exact active
+leaf with only Completed and Deferred ready nodes. A fresh write locks the Run,
+authenticates the whole active stack and current Root/leaf heads, checks the
+actual live worker before using its fence in recovery, and reloads complete
+bounded result and physical-attempt history. Core rederives the original
+SafeAfter boundaries at the plan's original observation time. A different
+caller decision is invalid input; contradictory durable history is corruption.
+Fresh database time and the exact journal, worker attempt, epoch and scoped
+head predicates guard the final scheduler projection.
+
+Root `schedule_delayed_retry_wakeup` and scoped scheduling share this complete
+fresh-history validator, the existing gate and outcome contract. The public
+pure planner cannot invent a Root result or substitute a stored failure's
+SafeAfter policy to delay the queue; dedicated Start validation alone would
+only protect launch after that gate elapsed. A successful write releases the
+lease and preserves the Root pointer, leaf/stack, journal, queue age, immutable history and original accounting/deadline. If a
+slow Run update trigger crosses lease expiry, the transaction rolls back. If
+it crosses the inclusive retry boundary, a savepoint restores the original
+lease and gate before rechecking the Run and whole current scope and returning
+`Due`. The caller replans; only a fresh dedicated scoped Start grants launch.
+Deadline maintenance remains independent of a far-future gate and cancellation
+clears the gate while making cleanup scheduler-visible.
+
+`Idempotent` is deliberately a read-only observation of the same current whole
+scope, epoch, head, journal and stored gate after lease release. It grants no
+launch and does not prove the erased original worker attempt or complete
+original plan. No wakeup-intent table, plan digest or timer is added. This Store
+increment does not complete nested Driver dispatch or application replay.
+
 ## Qualification and remaining boundaries
 
 Core tests cover deterministic identities, a frozen digest, source-order

@@ -1,0 +1,31 @@
+from pathlib import Path
+import os,subprocess,json,time,hashlib,shutil,sys
+root=Path('/Users/jiawy/Documents/RustAgentFramework'); source=root/'.local-verification/2026-10-15/proof-base-erased-source'; base=root/'.local-verification/2026-10-15/evidence/proof-base-erased'; out=base/sys.argv[1]
+out.mkdir(exist_ok=False)
+target=(root/'target/r1-oct15-root-layout').resolve(); assert target.parent==root/'target' and target.name=='r1-oct15-root-layout'
+assert (target/'CACHEDIR.TAG').read_text().startswith('Signature: 8a477f597d28d172789f06886806bc55')
+assert not subprocess.check_output(['git','ls-files','target/r1-oct15-root-layout'],cwd=root)
+opened=subprocess.run(['lsof','+D',str(target)],capture_output=True,text=True); (out/'cache-open-files.txt').write_text(opened.stdout+opened.stderr); assert opened.returncode==1 and not opened.stdout.strip() and not opened.stderr.strip()
+env=os.environ.copy();env.update(CARGO_TARGET_DIR=str(target),CARGO_INCREMENTAL='0',CARGO_PROFILE_DEV_DEBUG='0',CARGO_PROFILE_TEST_DEBUG='0',RUSTFLAGS='-D warnings',RUSTDOCFLAGS='-D warnings')
+for key in ['STATEKNOT_REQUIRE_POSTGRES_TESTS','STATEKNOT_TEST_DATABASE_URL','STATEKNOT_PROOF_BASE_PROBE']: env.pop(key,None)
+assert 'RUST_MIN_STACK' not in env
+manifest=[{'path':str(p.relative_to(source)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(source.rglob('*')) if p.is_file()]
+assert len(manifest)==899
+assert manifest==json.loads((base/'source-manifest.json').read_text()), 'frozen source changed'
+(out/'source-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+(out/'cache-before.df').write_bytes(subprocess.check_output(['df','-k',str(root)]))
+clean=['cargo','clean','--manifest-path',str(source/'Cargo.toml'),'--target-dir',str(target),'-p','stateknot-store-postgres']
+with (out/'workspace-clean.log').open('w') as log: subprocess.run(clean,cwd=source,env=env,stdout=log,stderr=subprocess.STDOUT,check=True)
+(out/'cache-after-clean.df').write_bytes(subprocess.check_output(['df','-k',str(root)]))
+cmd=['cargo','test','--manifest-path',str(source/'Cargo.toml'),'-p','stateknot-store-postgres','--test','postgres','--all-features','--locked','--no-run','--message-format=json'];start=time.time()
+with (out/'build.stdout.jsonl').open('w') as stdout,(out/'build.stderr.log').open('w') as stderr: result=subprocess.run(cmd,cwd=source,env=env,stdout=stdout,stderr=stderr)
+artifacts=[]
+if result.returncode==0:
+ for line in (out/'build.stdout.jsonl').read_text().splitlines():
+  try:event=json.loads(line)
+  except json.JSONDecodeError:continue
+  if event.get('reason')=='compiler-artifact' and event.get('executable') and event.get('target',{}).get('name')=='postgres':
+   assert event.get('fresh') is False
+   original=Path(event['executable']);saved=out/'stateknot-store-postgres-postgres';shutil.copy2(original,saved);artifacts.append({'path':str(saved),'sha256':hashlib.sha256(saved.read_bytes()).hexdigest(),'fresh':False})
+value={'source':str(source),'command':cmd,'exit_code':result.returncode,'seconds':time.time()-start,'target':str(target),'artifacts':artifacts,'source_manifest_sha256':hashlib.sha256((out/'source-manifest.json').read_bytes()).hexdigest(),'explicit_package_clean':clean,'env_overrides':{k:env[k] for k in ['CARGO_TARGET_DIR','CARGO_INCREMENTAL','CARGO_PROFILE_DEV_DEBUG','CARGO_PROFILE_TEST_DEBUG','RUSTFLAGS','RUSTDOCFLAGS']}}
+(out/'receipt.json').write_text(json.dumps(value,indent=2)+'\n');(out/'cache-after.df').write_bytes(subprocess.check_output(['df','-k',str(root)]));shutil.copy2(__file__,out/'runner.py');print(json.dumps(value));sys.exit(result.returncode)

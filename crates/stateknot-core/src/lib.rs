@@ -85,6 +85,10 @@ mod extension;
 mod failure;
 mod graph;
 mod graph_composition;
+mod graph_frame;
+mod graph_frame_barrier;
+mod graph_frame_call;
+mod graph_frame_entry;
 mod identity;
 mod ids;
 mod journal;
@@ -131,7 +135,7 @@ pub use agent_admission::{
 pub use agent_runtime::{
     AgentArtifacts, AgentArtifactsError, AgentRequest, AgentRequestValidationError, AgentResult,
     AgentResultError, AgentResultProvenance, AgentResultProvenanceError,
-    AgentResultValidationError,
+    AgentResultValidationError, AgentTerminalValidationInputs,
 };
 pub use artifact::{
     ArtifactDescription, ArtifactDescriptionError, ArtifactIdentity, ArtifactModality,
@@ -190,15 +194,21 @@ pub use failure::{
 };
 pub use graph::{
     CompiledGraph, GraphBarrierDisposition, GraphBarrierPlan, GraphBarrierPlanError,
-    GraphCompileError, GraphExecutionLimits, GraphExecutionLimitsError, GraphNode, GraphNodeError,
-    GraphReducer, GraphReducerError, GraphReducerInput, GraphReducerReference, GraphRoute,
-    GraphRouteError, GraphRoutes, GraphRoutesError, GraphSchemaValidationError,
-    GraphSchemaValidator, GraphValueKind,
+    GraphCompileError, GraphExecutionLimits, GraphExecutionLimitsError, GraphFrameBarrierPlan,
+    GraphNode, GraphNodeError, GraphReducer, GraphReducerError, GraphReducerInput,
+    GraphReducerReference, GraphRoute, GraphRouteError, GraphRoutes, GraphRoutesError,
+    GraphSchemaValidationError, GraphSchemaValidator, GraphValueKind,
 };
 pub use graph_composition::{
     GraphComposition, GraphCompositionError, GraphNodeSource, GraphSubgraphCall,
     SharedStateSubgraph,
 };
+pub use graph_frame::{
+    GraphFrameCheckpoint, GraphFrameCheckpointHead, GraphFrameError, GraphFrameIdentity,
+};
+pub use graph_frame_barrier::{GraphFrameBarrier, GraphFrameBarrierError};
+pub use graph_frame_call::{GraphFrameCall, GraphFrameCallPolicy, GraphFrameCompileError};
+pub use graph_frame_entry::{GraphFrameEntry, GraphFrameEntryError, GraphFrameEntryPlan};
 pub use identity::{IssuerId, IssuerIdError, PrincipalIdentity, SubjectId, SubjectIdError};
 pub use ids::{
     AgentSubmissionKey, AgentSubmissionKeyError, ArtifactId, AttemptId, AuthorizationReceiptId,

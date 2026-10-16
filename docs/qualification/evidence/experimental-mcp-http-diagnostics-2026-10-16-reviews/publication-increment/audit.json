@@ -1,0 +1,47 @@
+{
+  "observed_utc": "2026-10-16T03:58:57.698155+00:00",
+  "prior_v1_manifest_sha256": "29815d58e4d758bd2e65e99966f5811e2785d5de73bc772edf859ebc19ecc679",
+  "final_v2_manifest_sha256": "cc98e0d5e10949ff07ae412a7c4b33bcdcf4e4ceedb73d05be5f08a845878770",
+  "final_v2_freeze_sha256": "2d756f7b0b438d91ad288c37bbcf10ab63ad6014e4ba9d5e3831c1bf294d1ba0",
+  "candidate_files": 98,
+  "candidate_bytes": 594517,
+  "renamed_artifacts": [
+    {
+      "before_path": "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/execution/fixture-reference-fix.patch",
+      "after_path": "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/execution/fixture-reference-fix.patch.gz",
+      "raw_bytes": 918,
+      "raw_sha256": "27104f8f6a9609b043eedbaed7035304004675a2746ef95a64da7b5814eb39d7",
+      "gzip_bytes": 396,
+      "gzip_sha256": "04fa25bb3d4cde8856c0aebd366c18abf50a35fac64915c969356cb2e9822c45",
+      "gzip_mtime": 0,
+      "lossless": true
+    },
+    {
+      "before_path": "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/history/id-fixture-reference-fix.patch",
+      "after_path": "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/history/id-fixture-reference-fix.patch.gz",
+      "raw_bytes": 918,
+      "raw_sha256": "27104f8f6a9609b043eedbaed7035304004675a2746ef95a64da7b5814eb39d7",
+      "gzip_bytes": 396,
+      "gzip_sha256": "04fa25bb3d4cde8856c0aebd366c18abf50a35fac64915c969356cb2e9822c45",
+      "gzip_mtime": 0,
+      "lossless": true
+    }
+  ],
+  "both_raw_patch_bytes_equal_v1_and_saved_original_SHA": true,
+  "gzip_mtime0_no_filename_and_deterministic_roundtrip": true,
+  "metadata_modified_exactly": [
+    "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/artifact-index.json",
+    "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/manifest.json",
+    "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/seal.json",
+    "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.json"
+  ],
+  "unchanged_candidate_files": 92,
+  "artifact_index_non_storage_fields_unchanged": true,
+  "seal_only_manifest_hash_changes": true,
+  "machine_JSON_only_evidence_hashes_and_accurate_packaging_note_changes": true,
+  "EN_CN_reports_payloads_runners_logs_receipts_contracts_source_refs_all_bytes_unchanged": true,
+  "all_non_gzip_text_trailing_whitespace_absent": true,
+  "original_v1_review_and_root_staged_diffcheck_failure_retained": true,
+  "new_compile_Native_network_DB_Docker_cache_main_or_original_package_mutation": false,
+  "workspace_mode_not_repeated_or_old_negative_reinterpreted": true
+}

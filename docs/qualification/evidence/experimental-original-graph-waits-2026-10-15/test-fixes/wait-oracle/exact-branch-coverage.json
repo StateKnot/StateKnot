@@ -1,0 +1,20 @@
+{
+  "cases": [
+    {
+      "postgres_major": "16",
+      "actual_profile": "graph_registered",
+      "due": "2026-10-15T10:19:32.459405+00:00",
+      "event": "2026-10-15T10:19:32.4195+00:00",
+      "native_receipt": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/wait-oracle-v2/native-pg16-v1/receipt.json"
+    },
+    {
+      "postgres_major": "17",
+      "actual_profile": "graph_elapsed",
+      "due": "2026-10-15T10:19:35.855482+00:00",
+      "event": "2026-10-15T10:19:36.27713+00:00",
+      "native_receipt": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/wait-oracle-v2/native-pg17-v1/receipt.json"
+    }
+  ],
+  "both_oracle_branches_observed": true,
+  "full_original_assertions_tail_preserved": true
+}

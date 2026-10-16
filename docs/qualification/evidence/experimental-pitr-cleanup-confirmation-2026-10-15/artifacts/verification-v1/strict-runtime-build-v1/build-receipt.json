@@ -1,0 +1,21 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-pitr-cleanup-source/Cargo.toml",
+    "-p",
+    "stateknot-runtime",
+    "--test",
+    "postgres",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "exit_code": 0,
+  "seconds": 17.50260615348816,
+  "stdout_sha256": "9c60d903032332338fb444849ee1e358399cbf3954fa49c76a54a03c5580347b",
+  "stderr_sha256": "e28d045b955f4d889dee31fd9d48c785ef7401623b8e0c57da77db77513916c7",
+  "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d"
+}

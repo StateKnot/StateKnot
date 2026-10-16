@@ -1,0 +1,15 @@
+{
+  "actual_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+  "configured_image": "postgres:17",
+  "container": "stateknot-r1-oct15-pg17",
+  "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+  "database_not_dropped": true,
+  "database_oid": "485780",
+  "image_id": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+  "labels": {
+    "stateknot.task": "r1-oct15"
+  },
+  "major": 17,
+  "new_absent_database_created": "stateknot_r1_mcp_debug_20261016v3",
+  "port": 55417
+}

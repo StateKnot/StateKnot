@@ -1,0 +1,248 @@
+{
+  "call": {
+    "input_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    },
+    "node_id": "call",
+    "output_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    },
+    "return_route": "return",
+    "slot": "slot.a",
+    "target": {
+      "definition_digest": "sha256:9ea50b9250f6cbf348bde7face1d89b467040b86167cc72e46f4a67017fe85c2",
+      "identity": {
+        "capability": {
+          "name": "child",
+          "version": "1.0.0"
+        },
+        "owner": {
+          "issuer": "https://issuer.example.com/frame-calls",
+          "subject": "frame-call-contract"
+        }
+      },
+      "state_schema": {
+        "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+        "id": "https://schemas.example.com/frame-call-state/1.0.0",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "child": {
+    "definition_digest": "sha256:9ea50b9250f6cbf348bde7face1d89b467040b86167cc72e46f4a67017fe85c2",
+    "entry_nodes": [
+      "finish"
+    ],
+    "identity": {
+      "capability": {
+        "name": "child",
+        "version": "1.0.0"
+      },
+      "owner": {
+        "issuer": "https://issuer.example.com/frame-calls",
+        "subject": "frame-call-contract"
+      }
+    },
+    "input_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    },
+    "limits": {
+      "maximum_parallelism": 1,
+      "maximum_supersteps": "8"
+    },
+    "nodes": [
+      {
+        "node_id": "finish",
+        "routes": [],
+        "terminal": true
+      }
+    ],
+    "output_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    },
+    "reducer": {
+      "definition_digest": "sha256:7789eb2457635ee60e24da91077650753e7c15fc56fbb51ed8318ac7658fcf4d",
+      "identity": {
+        "capability": {
+          "name": "reducer",
+          "version": "1.0.0"
+        },
+        "owner": {
+          "issuer": "https://issuer.example.com/frame-calls",
+          "subject": "frame-call-contract"
+        }
+      }
+    },
+    "state_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    },
+    "update_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    }
+  },
+  "compiled": {
+    "definition_digest": "sha256:4b636032417a140c6ef2eb84295a1e157d7c66f3e682a8dc9d724cde99d1903e",
+    "entry_nodes": [
+      "call"
+    ],
+    "frame_calls": {
+      "calls": [
+        {
+          "input_schema": {
+            "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+            "id": "https://schemas.example.com/frame-call-state/1.0.0",
+            "version": "1.0.0"
+          },
+          "node_id": "call",
+          "output_schema": {
+            "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+            "id": "https://schemas.example.com/frame-call-state/1.0.0",
+            "version": "1.0.0"
+          },
+          "return_route": "return",
+          "slot": "slot.a",
+          "target": {
+            "definition_digest": "sha256:9ea50b9250f6cbf348bde7face1d89b467040b86167cc72e46f4a67017fe85c2",
+            "identity": {
+              "capability": {
+                "name": "child",
+                "version": "1.0.0"
+              },
+              "owner": {
+                "issuer": "https://issuer.example.com/frame-calls",
+                "subject": "frame-call-contract"
+              }
+            },
+            "state_schema": {
+              "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+              "id": "https://schemas.example.com/frame-call-state/1.0.0",
+              "version": "1.0.0"
+            }
+          }
+        }
+      ],
+      "maximum_depth": 7,
+      "maximum_frame_starts": 4096,
+      "version": 1
+    },
+    "identity": {
+      "capability": {
+        "name": "parent",
+        "version": "1.0.0"
+      },
+      "owner": {
+        "issuer": "https://issuer.example.com/frame-calls",
+        "subject": "frame-call-contract"
+      }
+    },
+    "input_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    },
+    "limits": {
+      "maximum_parallelism": 1,
+      "maximum_supersteps": "8"
+    },
+    "nodes": [
+      {
+        "node_id": "call",
+        "routes": [
+          {
+            "route_id": "return",
+            "successors": [
+              "finish"
+            ]
+          }
+        ],
+        "terminal": false
+      },
+      {
+        "node_id": "finish",
+        "routes": [],
+        "terminal": true
+      }
+    ],
+    "output_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    },
+    "reducer": {
+      "definition_digest": "sha256:7789eb2457635ee60e24da91077650753e7c15fc56fbb51ed8318ac7658fcf4d",
+      "identity": {
+        "capability": {
+          "name": "reducer",
+          "version": "1.0.0"
+        },
+        "owner": {
+          "issuer": "https://issuer.example.com/frame-calls",
+          "subject": "frame-call-contract"
+        }
+      }
+    },
+    "state_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    },
+    "update_schema": {
+      "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+      "id": "https://schemas.example.com/frame-call-state/1.0.0",
+      "version": "1.0.0"
+    }
+  },
+  "policy": {
+    "calls": [
+      {
+        "input_schema": {
+          "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+          "id": "https://schemas.example.com/frame-call-state/1.0.0",
+          "version": "1.0.0"
+        },
+        "node_id": "call",
+        "output_schema": {
+          "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+          "id": "https://schemas.example.com/frame-call-state/1.0.0",
+          "version": "1.0.0"
+        },
+        "return_route": "return",
+        "slot": "slot.a",
+        "target": {
+          "definition_digest": "sha256:9ea50b9250f6cbf348bde7face1d89b467040b86167cc72e46f4a67017fe85c2",
+          "identity": {
+            "capability": {
+              "name": "child",
+              "version": "1.0.0"
+            },
+            "owner": {
+              "issuer": "https://issuer.example.com/frame-calls",
+              "subject": "frame-call-contract"
+            }
+          },
+          "state_schema": {
+            "digest": "sha256:67d1d57b9103086f0899605cb7b34bb515dba8542b0b6d9f424be615fa4d19f2",
+            "id": "https://schemas.example.com/frame-call-state/1.0.0",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "maximum_depth": 7,
+    "maximum_frame_starts": 4096,
+    "version": 1
+  },
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-graph-frame-call/1.0.0"
+}

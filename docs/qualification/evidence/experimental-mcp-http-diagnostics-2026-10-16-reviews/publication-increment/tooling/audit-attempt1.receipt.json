@@ -1,0 +1,7 @@
+{
+  "classification": "review helper assertion, no product execution",
+  "exit_code": 1,
+  "cause": "Initial metadata normalizer expected machineJSON evidence hash changes only. v2 also adds an accurate publication_packaging note, within the declared machineJSON metadata file.",
+  "correction": "Explicitly validate the version2 lossless packaging note and then compare all remaining JSON facts unchanged.",
+  "production_or_execution_fact_changed": false
+}

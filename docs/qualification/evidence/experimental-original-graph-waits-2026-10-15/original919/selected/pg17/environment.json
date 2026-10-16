@@ -1,0 +1,29 @@
+{
+  "postgres_major": "17",
+  "server_version_num": 170011,
+  "database": "stateknot_r1_a36_feedback_oct15v1",
+  "default_stack": true,
+  "require_postgres": true,
+  "old_test_environment_keys_removed": [],
+  "no_source_or_resource_overrides": true,
+  "original_node_timeout_seconds": 30,
+  "original_role_concurrency": 24,
+  "original_role_pool_maximum": 8,
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "binaries": {
+    "stateknot-store-postgres": {
+      "package": "stateknot-store-postgres",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+      "sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "fresh": false
+    },
+    "stateknot-runtime": {
+      "package": "stateknot-runtime",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+      "sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "fresh": false
+    }
+  }
+}

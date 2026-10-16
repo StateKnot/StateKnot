@@ -1,0 +1,77 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-agent-terminal-validation-inputs/1.0.0",
+  "inputs": {
+    "valid": [
+      {
+        "budget": {
+          "artifact_bytes": "104857600",
+          "cached_input_tokens": "500000",
+          "checkpoint_bytes": "10485760",
+          "concurrent_branches": "16",
+          "costs": [
+            {
+              "currency": "CNY",
+              "micro_units": "7000000"
+            },
+            {
+              "currency": "USD",
+              "micro_units": "1000000"
+            }
+          ],
+          "deadline": "2030-01-01T00:00:00.000000Z",
+          "event_bytes": "20971520",
+          "fan_out": "32",
+          "graph_depth": "32",
+          "graph_steps": "1000",
+          "input_bytes": "10485760",
+          "input_tokens": "1000000",
+          "model_attempts": "50",
+          "model_turns": "12",
+          "output_bytes": "4096",
+          "output_tokens": "100000",
+          "reasoning_tokens": "25000",
+          "remote_agent_delegations": "10",
+          "retries": "25",
+          "tool_calls": "24",
+          "write_calls": "1"
+        },
+        "descriptor_identity": {
+          "capability": {
+            "name": "agents.incident",
+            "version": "1.0.0"
+          },
+          "owner": {
+            "issuer": "https://issuer.example.com/tenant",
+            "subject": "agent-owner"
+          }
+        },
+        "descriptor_input_schema": {
+          "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+          "id": "https://schemas.example.com/incident-request/1.0.0",
+          "version": "1.0.0"
+        },
+        "descriptor_output_schema": {
+          "digest": "sha256:bc2d4ff36c2aa6116ae05fc560b14322ec993c16d956d400c428e7cdc84c1aec",
+          "id": "https://schemas.example.com/incident-report/1.0.0",
+          "version": "1.0.0"
+        },
+        "request": {
+          "budget_limits": {
+            "deadline": "2030-01-01T00:00:00.000000Z",
+            "input_bytes": "10485760",
+            "output_bytes": "4096"
+          },
+          "input": {
+            "incident_id": "INC-42",
+            "question": "Summarize the evidence"
+          },
+          "input_schema": {
+            "digest": "sha256:b7011166f623be8bc57010857337af99b4dfe183a775bb1aed56600a2d97b0ea",
+            "id": "https://schemas.example.com/incident-request/1.0.0",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ]
+  }
+}

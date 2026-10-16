@@ -118,7 +118,7 @@ jobs:
       - name: Verify typed Core value fixtures and reproducible property models
         env:
           PROPTEST_RNG_SEED: "20261008"
-        run: cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --locked
+        run: cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --test graph_frame_contracts --test graph_frame_calls --test graph_frame_barriers --locked
 
       - name: Verify optimized timestamp rejection with overflow checks
         env:
@@ -320,6 +320,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
+      - name: Enable long paths on Windows
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
+
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -333,6 +337,15 @@ jobs:
     name: PostgreSQL (${{ matrix.version }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Optimize the CPU-heavy contract tests while retaining panic checks.
+    # Build/test profile only; leases, fixtures and job budgets are unchanged.
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_PROFILE_TEST_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_TEST_OVERFLOW_CHECKS: "true"
     strategy:
       fail-fast: false
       matrix:
@@ -671,6 +684,50 @@ jobs:
           path: |
             mcp-authorization-qualification.log
             failure-close-process-environment.log
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Qualify mandatory MCP host-bound state ingress
+        env:
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_TEST_DATABASE_URL: postgres://postgres:stateknot_test_password@127.0.0.1:5432/stateknot_test
+          STATEKNOT_QUALIFICATION_POSTGRES_IMAGE: ${{ matrix.image }}
+          STATEKNOT_QUALIFICATION_POSTGRES_MAJOR: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          {
+            git rev-parse HEAD
+            git rev-parse 'HEAD^{tree}'
+            sha256sum Cargo.lock
+            rustc -Vv
+            uname -a
+            df -T .
+            printf 'configured_postgres_image=%s\n' "$STATEKNOT_QUALIFICATION_POSTGRES_IMAGE"
+            printf 'configured_postgres_major=%s\n' "$STATEKNOT_QUALIFICATION_POSTGRES_MAJOR"
+            printf 'STATEKNOT_REQUIRE_POSTGRES_TESTS=%s\n' "$STATEKNOT_REQUIRE_POSTGRES_TESTS"
+            for setting in CARGO_INCREMENTAL CARGO_PROFILE_DEV_DEBUG CARGO_PROFILE_TEST_DEBUG \
+              CARGO_PROFILE_TEST_OPT_LEVEL CARGO_PROFILE_TEST_DEBUG_ASSERTIONS CARGO_PROFILE_TEST_OVERFLOW_CHECKS; do
+              printf '%s=%s\n' "$setting" "${!setting}"
+            done
+          } > mcp-bound-state-environment.log
+          cargo test -p stateknot --test mcp_bound_state --locked -- \
+            --nocapture --test-threads=1 2>&1 | tee mcp-bound-state-qualification.log
+          test "$(grep -c '^running 15 tests$' mcp-bound-state-qualification.log)" = 1
+          test "$(grep -c '^STATEKNOT_MCP_BOUND_STATE_POSTGRES:' mcp-bound-state-qualification.log)" = 1
+          test "$(grep -Fxc 'STATEKNOT_MCP_BOUND_STATE_POSTGRES: consumers=3 positive_commits=6 refused_rebinds=12 tenant_ledgers=2 complete_journals=true' mcp-bound-state-qualification.log)" = 1
+          test "$(grep -Ec '^test result: ok[.] 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' mcp-bound-state-qualification.log)" = 1
+          if grep -Fq 'STATEKNOT_MCP_BOUND_STATE_POSTGRES_SKIPPED:' mcp-bound-state-qualification.log; then
+            exit 1
+          fi
+
+      - name: Upload MCP host-bound state ingress evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mcp-bound-state-postgres-${{ matrix.version }}-${{ github.run_id }}
+          path: |
+            mcp-bound-state-qualification.log
+            mcp-bound-state-environment.log
           if-no-files-found: error
           retention-days: 30
 

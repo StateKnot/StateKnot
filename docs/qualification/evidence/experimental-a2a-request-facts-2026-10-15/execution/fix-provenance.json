@@ -1,0 +1,14 @@
+{
+  "prior_source_tree": "59fd524f0e21460a9ffc8edf7de8cc6ad4d0f95d69384c6515200675364bbea6",
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "delta": [
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "prior_sha256": "c722f75a3f38626bf736d0ac408f07b7dfded5c0726c2f786245a10900e6d4b5",
+      "new_sha256": "c5c95f30fa10ba64bbd4f49fe262465bdd0ade533ad82e9d0f159798e838b359"
+    }
+  ],
+  "production_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "red_log_sha256": "7a714146a36a34cad074b63cd0995de7f7d76b02fb451fbff79a961e92f3c83d",
+  "red_log": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v1/gates-v2-loopback/workspace.log"
+}

@@ -1,0 +1,34 @@
+{
+  "original_source_tree": "5815ebb0e70a8c9ad8e7c24abec9643e62c1cc3f0ece7d60e00383f01ce17917",
+  "original_clippy_exit": 101,
+  "original_log_sha256": "2f3496b8498300bc092a3ed057eec285b184aff44089c431bca190b9c0a7c5e5",
+  "original_source_archive_sha256": "a8dcc93b70f64567499b0dc1fc32ff6326419df8d8a28560b3673cd342668fa5",
+  "changed": [
+    {
+      "path": "crates/stateknot/tests/mcp_bound_state/durable.rs",
+      "before_sha256": "e1d9b4064f84a1606c0114483a4ff6a0d259fcc43c2e1d1c3e914b446678f8e5",
+      "after_sha256": "4fa232b251ae06ff6140bda3655a1b74a153e33acd546b11ab34b29f3dd26010"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_bound_state/support.rs",
+      "before_sha256": "e9e3618aeb18777035a0455da847786f7a1b72a9082c054dcc4351645c76827d",
+      "after_sha256": "4c326a037a8d84e1be12889377738a5d90d833689ef4b5deedae118c57d264d9"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_bound_state.rs",
+      "before_sha256": "9ffb892525a45226b6df0dcd2b91a9c30a3d0d328711ab1d123a8d28cec3802f",
+      "after_sha256": "4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_bound_state.rs",
+      "before_sha256": "0748ccec2da55113c01dc8e6b3dcd5eabd921c4cfcc9892b98ca4a17874768bd",
+      "after_sha256": "bf373b080025d40e619e16b6144295a363754653ab3c162e7f9433773abd30b7"
+    }
+  ],
+  "behaviour_or_assertions_changed": false,
+  "lint_suppressions_added": false,
+  "source_tree": "78ae451ebbb33275e19f1998733191ae312649a688d8ba53736e87bd6b97c4e7",
+  "source_files": 928,
+  "format_exit": 0,
+  "partial_edit_preparation_error": "first edit helper expected /// documentation but declaration has // comments; helper AssertionError, no compilation attempted; original source archive retained; exact block moved on retry"
+}

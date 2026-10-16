@@ -1,0 +1,25 @@
+{
+  "gate": "clippy",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "clippy",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "runner_pid": 55216,
+  "pid": 55226,
+  "start_unix": 1792119850.4003782,
+  "source_tree": "99861ea4d92e931a28608411f3611144d468c0c3d514ec880589a4e0752c8774",
+  "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+  "exit_code": 101,
+  "seconds": 36.709197759628296,
+  "log_sha256": "96e4fed554374155e12a7496a90e635dd30e05b1bf56a29d3fd593cae26dabc0",
+  "source_before_after_exact": true,
+  "native_database_execution": false
+}

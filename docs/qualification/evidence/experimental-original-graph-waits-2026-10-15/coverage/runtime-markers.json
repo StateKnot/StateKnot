@@ -1,0 +1,1205 @@
+{
+  "counts_per_major": {
+    "STATEKNOT_PROCESS_KILL_EVIDENCE": 6,
+    "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2,
+    "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6,
+    "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2,
+    "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2,
+    "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2,
+    "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2,
+    "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2,
+    "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8,
+    "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9,
+    "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1,
+    "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+    "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+    "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+    "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1
+  },
+  "markers": {
+    "16": {
+      "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_identity_recovery_verified": true,
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-admission-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_identity_recovery_verified": true,
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-admission-commit-loss-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_settlement_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_identity_recovery_verified": true,
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-cancellation-delivery-commit-loss-v1",
+          "termination": "SIGKILL",
+          "wait_abandonment_verified": true
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_settlement_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_identity_recovery_verified": true,
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-cancellation-delivery-commit-loss-v1",
+          "termination": "SIGKILL",
+          "wait_abandonment_verified": true
+        }
+      ],
+      "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": [
+        {
+          "accounting_and_notification_verified": true,
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_event_recovery_verified": true,
+          "os": "macos",
+          "parent_finalization_verified": true,
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-settlement-commit-loss-v1",
+          "terminal_anchor_verified": true,
+          "termination": "SIGKILL"
+        },
+        {
+          "accounting_and_notification_verified": true,
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_event_recovery_verified": true,
+          "os": "macos",
+          "parent_finalization_verified": true,
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-settlement-commit-loss-v1",
+          "terminal_anchor_verified": true,
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "admission",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "join",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "deadline",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "child_cancel",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "child_terminal",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "settlement",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "takeover",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "parent_terminal",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "replay",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "expired_fence_rejection_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "failure-close-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "expired_fence_rejection_verified": false,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "failure-close-commit-loss-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "close_record_and_journal_atomicity_verified": true,
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_failure_and_event_verified": true,
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "parent-finalization-commit-loss-v1",
+          "terminal_accounting_verified": true,
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "close_record_and_journal_atomicity_verified": true,
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_failure_and_event_verified": true,
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "parent-finalization-commit-loss-v1",
+          "terminal_accounting_verified": true,
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": [
+        {
+          "failed_page": 16,
+          "tail_reached": true,
+          "restart_revisited": true
+        }
+      ],
+      "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": [
+        {
+          "deadline": true,
+          "child_cancel": true,
+          "child_settle": true,
+          "join": true,
+          "failure_close": true,
+          "replicas": true,
+          "tenant_allowlist": true
+        }
+      ],
+      "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": [
+        {
+          "forced_process_loss": true,
+          "fresh_owner": true,
+          "cancellation_identity_preserved": true,
+          "original_failure_preserved": true
+        }
+      ],
+      "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": [
+        {
+          "real_database_tick_deadline": true,
+          "joined": true
+        }
+      ],
+      "STATEKNOT_PROCESS_KILL_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "source",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "delivery",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "child_terminal",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "settlement",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "close",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "replay",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_ROLE_PROFILE_EVIDENCE": [
+        {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "graph_wait_elapsed_and_registered_real_runtime_login": true,
+          "graph_wait_runtime_update_delete_and_retention_rejected": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 36,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        }
+      ],
+      "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_noninitial_checkpoint_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_event_recovered": false,
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-consumption-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_noninitial_checkpoint_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_event_recovered": true,
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-consumption-commit-loss-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "admission",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "join",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "child_terminal",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "settlement",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "publication",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "takeover",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "parent_resume",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "replay",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "join_registration",
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "join_registration",
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "join_publication",
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "join_publication",
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "deadline_cancellation",
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "deadline_cancellation",
+          "os": "macos",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        }
+      ]
+    },
+    "17": {
+      "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_identity_recovery_verified": true,
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-admission-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_identity_recovery_verified": true,
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-admission-commit-loss-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_settlement_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_identity_recovery_verified": true,
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-cancellation-delivery-commit-loss-v1",
+          "termination": "SIGKILL",
+          "wait_abandonment_verified": true
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_settlement_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_identity_recovery_verified": true,
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-cancellation-delivery-commit-loss-v1",
+          "termination": "SIGKILL",
+          "wait_abandonment_verified": true
+        }
+      ],
+      "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": [
+        {
+          "accounting_and_notification_verified": true,
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_event_recovery_verified": true,
+          "os": "macos",
+          "parent_finalization_verified": true,
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-settlement-commit-loss-v1",
+          "terminal_anchor_verified": true,
+          "termination": "SIGKILL"
+        },
+        {
+          "accounting_and_notification_verified": true,
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_event_recovery_verified": true,
+          "os": "macos",
+          "parent_finalization_verified": true,
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-settlement-commit-loss-v1",
+          "terminal_anchor_verified": true,
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "admission",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "join",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "deadline",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "child_cancel",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "child_terminal",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "settlement",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "takeover",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "parent_terminal",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "replay",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "deadline-cancel-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "expired_fence_rejection_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "failure-close-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "expired_fence_rejection_verified": false,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "failure-close-commit-loss-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "close_record_and_journal_atomicity_verified": true,
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_failure_and_event_verified": true,
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "parent-finalization-commit-loss-v1",
+          "terminal_accounting_verified": true,
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "close_record_and_journal_atomicity_verified": true,
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_failure_and_event_verified": true,
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "parent-finalization-commit-loss-v1",
+          "terminal_accounting_verified": true,
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": [
+        {
+          "failed_page": 16,
+          "tail_reached": true,
+          "restart_revisited": true
+        }
+      ],
+      "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": [
+        {
+          "deadline": true,
+          "child_cancel": true,
+          "child_settle": true,
+          "join": true,
+          "failure_close": true,
+          "replicas": true,
+          "tenant_allowlist": true
+        }
+      ],
+      "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": [
+        {
+          "forced_process_loss": true,
+          "fresh_owner": true,
+          "cancellation_identity_preserved": true,
+          "original_failure_preserved": true
+        }
+      ],
+      "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": [
+        {
+          "real_database_tick_deadline": true,
+          "joined": true
+        }
+      ],
+      "STATEKNOT_PROCESS_KILL_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "source",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "delivery",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "child_terminal",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "settlement",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "close",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "replay",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "failure-close-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_ROLE_PROFILE_EVIDENCE": [
+        {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "graph_wait_elapsed_and_registered_real_runtime_login": true,
+          "graph_wait_runtime_update_delete_and_retention_rejected": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 36,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        }
+      ],
+      "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_noninitial_checkpoint_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_event_recovered": false,
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-consumption-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_noninitial_checkpoint_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "original_event_recovered": true,
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-consumption-commit-loss-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "admission",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "join",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "child_terminal",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "settlement",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "publication",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "takeover",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "parent_resume",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "forced_exit": true,
+          "invariants": "passed",
+          "os": "macos",
+          "phase": "replay",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-committed-boundaries-v1",
+          "termination": "SIGKILL"
+        }
+      ],
+      "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": [
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "join_registration",
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "join_registration",
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "join_publication",
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "join_publication",
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": false,
+          "commit_response_forwarded": false,
+          "cut": "commit_not_forwarded",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "deadline_cancellation",
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        },
+        {
+          "arch": "aarch64",
+          "cold_recovery_verified": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "downstream_progress_verified": true,
+          "interrupted_writer_killed": true,
+          "invariants": "passed",
+          "operation": "deadline_cancellation",
+          "os": "macos",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "join-deadline-commit-loss-v1",
+          "termination": "SIGKILL"
+        }
+      ]
+    }
+  }
+}
