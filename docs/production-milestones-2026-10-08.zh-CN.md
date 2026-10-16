@@ -115,6 +115,10 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 
 ## R1 核心契约与开发者接入
 
+2026-10-16 增量：[scoped Wait 进程故障记录](qualification/experimental-scoped-wait-process-faults-2026-10-16.zh-CN.md)
+覆盖真实 COMMIT 请求/响应丢失、writer 终止、双条件授权恢复和冷 Driver 继续。
+双版 PostgreSQL 定向执行与本机六门禁通过；完整 Native/CI、G4 和 R1 仍未关闭。
+
 2026-10-16 增量：[Return 进程故障资格记录](qualification/experimental-frame-return-process-faults-2026-10-16.zh-CN.md)
 保存双版 PostgreSQL 的真实提交请求/响应丢失、杀死 writer 与冷 Driver 接管结果；
 仅四个测试路径变化，不关闭完整故障矩阵、CI或R1。下一步继续完成原预算内完整 CI

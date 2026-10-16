@@ -1,0 +1,251 @@
+{
+  "schema": "stateknot-wait-v2-extractor-increment-review-v1",
+  "reviewer": "/root/ci_monitor_review_oct16b/linux_monitor_semantics",
+  "reviewed_at_utc": "2026-10-16T09:10:28.367399+00:00",
+  "prior_raw_review": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/graph-frame-wait-process-fault-spec-review-v1/receipt.json",
+    "bytes": 8059,
+    "sha256": "b965565f471f3dbe98e087106a25c74cd6631fd5824c494b1c3313619beb0ce9"
+  },
+  "raw_authoring_manifest": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-authoring-v2/manifest.json",
+    "bytes": 1942,
+    "sha256": "fced554cbb3b3566f571d4fb4679e77c2c114e06dbda8a093db11db1070349ba"
+  },
+  "result": {
+    "blocking_findings": 0,
+    "actionable_findings": 0,
+    "remaining_findings": []
+  },
+  "frozen_versions": [
+    {
+      "version": 1,
+      "source_directory": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-source-v1",
+      "source_tree_sha256": "0e5b53a5669f8f47bbd818b1de0f4cba030b864ece679e6057e61f96bfcd19bc",
+      "compiled_inputs_sha256": "fde6e76b2ec04fc2a0f4c8ec6f5450c33261ff1a9abe9fb3797a30e283a4c2f6",
+      "source_count": 933,
+      "compiled_count": 542,
+      "manifest_bindings": [
+        {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v1/scope.json",
+          "bytes": 847,
+          "sha256": "1e060b23f7aa1470f265f7bc6f67424cddce804eb39ec6b6b998258b872c2fa3"
+        },
+        {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v1/frozen-source-manifest.json",
+          "bytes": 169956,
+          "sha256": "6a6cb7f5b70f754ede8b338dd3b3b9d771e09ee868ff30942299a6d5b292922c"
+        },
+        {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v1/compiled-inputs.json",
+          "bytes": 102652,
+          "sha256": "115e1a8dcd122c5e13caccee37db3224fd4b681f059b961813accd648995e524"
+        }
+      ],
+      "all_source_bytes_and_hashes_checked": true,
+      "compiled_inputs_all_match_frozen_source_rows": true,
+      "observed_prior_gate_evidence": [
+        {
+          "gate": "fmt",
+          "actual_exit_code": 0,
+          "receipt": {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v1/fmt.receipt.json",
+            "bytes": 1477,
+            "sha256": "0ac44772c61e09ad9f2d52c02ca82ec0b7345f5c0d5579360923c23629682659"
+          },
+          "raw_log": {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v1/fmt.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "observed_only_not_reexecuted": true
+        },
+        {
+          "gate": "clippy",
+          "actual_exit_code": 101,
+          "receipt": {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v1/clippy.receipt.json",
+            "bytes": 1572,
+            "sha256": "4d8d59e37018df75369682db5a4cbbaef1836af0a6fcd2d0673a054ace0fab3a"
+          },
+          "raw_log": {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v1/clippy.log",
+            "bytes": 2058,
+            "sha256": "837460e5ee762f3a4b2234271f36580e98330099d025d18da35eaddab4b14a43"
+          },
+          "observed_only_not_reexecuted": true
+        }
+      ]
+    },
+    {
+      "version": 2,
+      "source_directory": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-source-v2",
+      "source_tree_sha256": "b286803afacf84278ffa579e8f898610e9474378bd982897e90f1c3c0f0c718c",
+      "compiled_inputs_sha256": "43877dc8d16584c5a957356a1d0310ac4faea1525b743c05c4a159178780c305",
+      "source_count": 933,
+      "compiled_count": 542,
+      "manifest_bindings": [
+        {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/scope.json",
+          "bytes": 847,
+          "sha256": "84a22591a46a808c94c43e34f422407d4c519bbe87e02e75b91c002dbbdc2d0d"
+        },
+        {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/frozen-source-manifest.json",
+          "bytes": 169956,
+          "sha256": "89d079225fd45a235fc0bb629c1dcdee2e2bf727b0230dcf59890cbb73d185c3"
+        },
+        {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/compiled-inputs.json",
+          "bytes": 102652,
+          "sha256": "762821f3103bf1e504dd2337c1cac0caebef4a5b1a1ac8df0dc48c404e020925"
+        }
+      ],
+      "all_source_bytes_and_hashes_checked": true,
+      "compiled_inputs_all_match_frozen_source_rows": true,
+      "observed_prior_gate_evidence": [
+        {
+          "gate": "fmt",
+          "actual_exit_code": 0,
+          "receipt": {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/fmt.receipt.json",
+            "bytes": 1477,
+            "sha256": "9145abbcb83ea65003cf312af8d65e1d9417ae303838dc2bcbe0155e4c946d46"
+          },
+          "raw_log": {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/fmt.log",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "observed_only_not_reexecuted": true
+        },
+        {
+          "gate": "clippy",
+          "actual_exit_code": 0,
+          "receipt": {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/clippy.receipt.json",
+            "bytes": 1569,
+            "sha256": "00c63c1591aaf6cd583e990dd66684fa7629bb4801a84602b7143b28053620a8"
+          },
+          "raw_log": {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/clippy.log",
+            "bytes": 1386,
+            "sha256": "a6c782e5c124ffb9cf8a3954628ea4b1ae48a7a90f5977409eea8f54c2204c51"
+          },
+          "observed_only_not_reexecuted": true
+        }
+      ]
+    }
+  ],
+  "formatting_proof": {
+    "other_two_payloads_raw_to_v1_byte_identical": true,
+    "only_nonwhitespace_token_changes": [
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": "}"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": "}"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": "}"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": "]"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      },
+      {
+        "kind": "insert_optional_trailing_comma",
+        "following_delimiter": ")"
+      }
+    ],
+    "comment_content_and_order_exact": true,
+    "all_literal_tokens_exact": true,
+    "canonical_tokens": 5672,
+    "canonical_token_sha256": "3ebe17961f1e2f1cd26926f735db08196d865dcfe09b17df78fee6d62ce0b32a",
+    "method": "Preserve quoted literal tokens; ignore source whitespace and line comments for lexical comparison; independently compare comment bytes/order; require every nonwhitespace raw-to-v1 token diff to be one inserted comma before a closing delimiter; manual formatting diff inspection. Not a Rust compiler or general AST semantic proof."
+  },
+  "extraction_proof": {
+    "sole_v1_to_v2_changed_path": "crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs",
+    "mechanical_helper_inline_restores_entire_v1_file_bytes": true,
+    "unchanged_allow_attributes": [
+      "#[allow(clippy::too_many_lines)]"
+    ],
+    "no_assertion_deletion_or_reordering": true,
+    "helper_await_remains_before_first_resolution": true,
+    "ACK_Before_After_two_cuts_SQL_and_budget_logic_unchanged": true
+  },
+  "base_proof": {
+    "commit": "ff7fea7db88a611e2f0db29ceedf6b0b4b48f5fa",
+    "all_933_source_Git_blob_IDs_compared": true,
+    "only_changed_paths": [
+      "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+      "crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs",
+      "crates/stateknot-runtime/tests/postgres/nested_driver.rs"
+    ],
+    "original_Return_unchanged": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-source-v2/crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+      "bytes": 20905,
+      "sha256": "a8bad803f174e54d2b235a4987469c8b7238a23405d21496317e261002d03700"
+    },
+    "production_Rust_SQL_migrations_configuration_and_original_timing_options_unchanged": true
+  },
+  "report": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/graph-frame-wait-process-fault-v2-extractor-increment-review-v1/REVIEW.zh-CN.md",
+    "bytes": 1953,
+    "sha256": "b087710fa24f34f96efc795ad97be0573b6ade4577418aff40f47566e1ecab82"
+  },
+  "execution_scope": {
+    "read_only_except_new_review_directory": true,
+    "candidate_raw_v1_v2_prior_review_main_index_or_Git_modified": false,
+    "Rust_fmt_Clippy_tests_DB_Docker_network_or_CI_executed_by_reviewer": false,
+    "workspace_or_remaining_six_gates_Native_full_CI_or_milestone_pass_transferred": false
+  },
+  "qualification_limits": [
+    "This is a static increment review from raw authoring-v2 through two frozen source copies.",
+    "Observed fmt/Clippy receipts are existing execution evidence and were not rerun by this reviewer.",
+    "No Runtime inventory, dual PostgreSQL, complete workspace/remaining gates or full CI qualification is issued here."
+  ]
+}

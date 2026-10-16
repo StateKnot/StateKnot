@@ -159,6 +159,11 @@ MCP stdio 验收必须包括启动失败、握手阻塞、版本不匹配、畸�
 
 ## 执行与关闭规则
 
+2026-10-16 的 [scoped Wait 进程故障记录](qualification/experimental-scoped-wait-process-faults-2026-10-16.zh-CN.md)
+补充双版 PostgreSQL 的真实提交截断、writer 终止、原 ACK 无写入恢复、双条件授权
+及冷 Driver 后继/父应用各一次验证；仅三个测试路径变化。完整 Native/CI、elapsed
+Timer、scoped child Join 等组合与 G4/R1 退出条件继续开放。
+
 R1 首先补齐 C2/C3 和 G3 的证据/语义，并保留 C5 注册/隐私回归，独立协议安全 RFC 与 stdio RFC 随后进入
 实现评审。每个增量保留 DCO、必要回归、支持范围及中英文采用文档。
 新增公开/持久化契约须先按 RFC 流程收口，不能通过修改本清单降低退出条件。

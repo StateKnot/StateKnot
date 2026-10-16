@@ -14,6 +14,11 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Exercise scoped Wait COMMIT request/response loss with real writer termination,
+  authorized two-condition resolution and cold Driver continuation on PostgreSQL
+  16/17, preserving the original Wait facts after Return. See the bounded
+  [qualification record](docs/qualification/experimental-scoped-wait-process-faults-2026-10-16.md).
+
 - Exercise experimental frame Return COMMIT request/response loss through real
   writer termination and cold higher-fence Driver recovery, and reject corrupted
   suspended middle-frame components. Four targeted PostgreSQL16/17 runs pass;

@@ -1,0 +1,17 @@
+{
+  "source_directory": "graph-frame-wait-process-fault-source-v1",
+  "source_tree_sha256": "0e5b53a5669f8f47bbd818b1de0f4cba030b864ece679e6057e61f96bfcd19bc",
+  "compiled_inputs_sha256": "fde6e76b2ec04fc2a0f4c8ec6f5450c33261ff1a9abe9fb3797a30e283a4c2f6",
+  "source_count": 933,
+  "compiled_count": 542,
+  "origin_commit": "ff7fea7db88a611e2f0db29ceedf6b0b4b48f5fa",
+  "changed_paths": [
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs"
+  ],
+  "source_only_expected_Runtime_inventory_not_measured": 193,
+  "production_Rust_SQL_API_migrations_or_business_budgets_changed": false,
+  "Native_full_CI_or_R1_qualification": false,
+  "fresh_copy_all_source_mtimes_created_after": 1792141318.228056
+}
